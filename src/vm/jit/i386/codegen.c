@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: codegen.c 1745 2004-12-09 14:07:22Z twisti $
 
 */
 
@@ -4945,13 +4945,14 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-#define NATIVESTUBSIZE    370 + 36
+#define NATIVESTUBSIZE    450           /* keep this size high enough!        */
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
 #endif
 
+#if 0
 void i386_native_stub_debug(void **p) {
 	printf("Pos on stack: %p\n",p);
 	printf("Return adress should be: %p\n",*p);
@@ -4973,31 +4974,30 @@ void traverseStackInfo() {
 		printf("\n");
 		p=*p;
 	}
-	
-
 }
-
+#endif
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
-    u1 *s = CNEW(u1, NATIVESTUBSIZE);   /* memory to hold the stub            */
-	codegendata *cd;
-	registerdata *rd;
+    u1                 *s;              /* pointer to stub memory             */
+	codegendata        *cd;
+	registerdata       *rd;
 	t_inlining_globals *id;
-	s4 dumpsize;
+	s4                  dumpsize;
+    s4                  i;
+    u1                 *tptr;
+    s4                  stackframesize;
+    s4                  stackframeoffset;
+    bool                addmethod;
+    s4                 *callAddrPatchPos;
+    u1                 *jmpInstrPos;
+    s4                 *jmpInstrPatchPos;
 
-    int addmethod=0;
-    u1 *tptr;
-    int i;
-    int stackframesize = 4+16;           /* initial 4 bytes is space for jni env,
-					 	+ 4 byte thread pointer + 4 byte previous pointer + method info + 4 offset native*/
-    int stackframeoffset = 4;
-
-    int p, t;
-
-    void**  callAddrPatchPos=0;
-    u1* jmpInstrPos=0;
-    void** jmpInstrPatchPos=0;
+	/* initial 4 bytes is space for jni env, + 4 byte thread pointer + 4 byte */
+	/* previous pointer + method info + 4 offset native                       */
+	stackframesize = 4 + 16;
+    stackframeoffset = 4;
+	addmethod = false;
 
 	/* mark start of dump memory area */
 
@@ -5014,18 +5014,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
+	descriptor2types(m);                /* set paramcount and paramtypes      */
+
+	s = CNEW(u1, NATIVESTUBSIZE);       /* memory to hold the stub            */
+
 	/* set some required varibles which are normally set by codegen_setup */
 	cd->mcodebase = s;
 	cd->mcodeptr = s;
 	cd->clinitrefs = NULL;
 
-	if (m->flags & ACC_STATIC) {
-		stackframesize += 4;
-		stackframeoffset += 4;
-	}
-
-    descriptor2types(m);                     /* set paramcount and paramtypes */
-  
 /*DEBUG*/
 /* 	i386_push_reg(cd, REG_SP);
         i386_mov_imm_reg(cd, (s4) i386_native_stub_debug, REG_ITMP1);
@@ -5036,6 +5033,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* if function is static, check for initialized */
 
 	if (m->flags & ACC_STATIC) {
+		stackframesize += 4;
+		stackframeoffset += 4;
+
 		/* if class isn't yet initialized, do it */
 		if (!m->class->initialized) {
 			s4 *header = (s4 *) s;
@@ -5068,105 +5068,107 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	}
 
-    if (runverbose) {
-        i386_alu_imm_reg(cd, I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-        
-        for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-            t = m->paramtypes[p];
-            if (IS_INT_LNG_TYPE(t)) {
-                if (IS_2_WORD_TYPE(t)) {
-                    i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-                    i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
+	if (runverbose) {
+		s4 p, t;
+
+		i386_alu_imm_reg(cd, I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+    
+		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = m->paramtypes[p];
+			if (IS_INT_LNG_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
-                } else if (t == TYPE_ADR) {
-                    i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-                    i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
+				} else if (t == TYPE_ADR) {
+					i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
-                } else {
-                    i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, EAX);
-                    i386_cltd(cd);
+				} else {
+					i386_mov_membase_reg(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4, EAX);
+					i386_cltd(cd);
 					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
-                }
+				}
 
-            } else {
-                if (!IS_2_WORD_TYPE(t)) {
-                    i386_flds_membase(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
-                    i386_fstps_membase(cd, REG_SP, p * 8);
-                    i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
-                    i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
+			} else {
+				if (!IS_2_WORD_TYPE(t)) {
+					i386_flds_membase(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
+					i386_fstps_membase(cd, REG_SP, p * 8);
+					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
+					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
-                } else {
-                    i386_fldl_membase(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
-                    i386_fstpl_membase(cd, REG_SP, p * 8);
-                }
-            }
-        }
-		
-        i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
-        for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
-            i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-            i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-        }
+				} else {
+					i386_fldl_membase(cd, REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
+					i386_fstpl_membase(cd, REG_SP, p * 8);
+				}
+			}
+		}
+	
+		i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
+		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+		}
 
-        i386_mov_imm_membase(cd, (s4) m, REG_SP, TRACE_ARGS_NUM * 8);
+		i386_mov_imm_membase(cd, (s4) m, REG_SP, TRACE_ARGS_NUM * 8);
 
-        i386_mov_imm_reg(cd, (s4) builtin_trace_args, REG_ITMP1);
-        i386_call_reg(cd, REG_ITMP1);
+		i386_mov_imm_reg(cd, (s4) builtin_trace_args, REG_ITMP1);
+		i386_call_reg(cd, REG_ITMP1);
 
-        i386_alu_imm_reg(cd, I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-    }
+		i386_alu_imm_reg(cd, I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+	}
 
-    /*
-	 * mark the whole fpu stack as free for native functions
-	 * (only for saved register count == 0)
-	 */
-    i386_ffree_reg(cd, 0);
-    i386_ffree_reg(cd, 1);
-    i386_ffree_reg(cd, 2);
-    i386_ffree_reg(cd, 3);
-    i386_ffree_reg(cd, 4);
-    i386_ffree_reg(cd, 5);
-    i386_ffree_reg(cd, 6);
-    i386_ffree_reg(cd, 7);
+	/* Mark the whole fpu stack as free for native functions (only for saved  */
+	/* register count == 0).                                                  */
+	i386_ffree_reg(cd, 0);
+	i386_ffree_reg(cd, 1);
+	i386_ffree_reg(cd, 2);
+	i386_ffree_reg(cd, 3);
+	i386_ffree_reg(cd, 4);
+	i386_ffree_reg(cd, 5);
+	i386_ffree_reg(cd, 6);
+	i386_ffree_reg(cd, 7);
 
 	/* calculate stackframe size for native function */
-    tptr = m->paramtypes;
-    for (i = 0; i < m->paramcount; i++) {
-        switch (*tptr++) {
-        case TYPE_INT:
-        case TYPE_FLT:
-        case TYPE_ADR:
-            stackframesize += 4;
-            break;
+	tptr = m->paramtypes;
+	for (i = 0; i < m->paramcount; i++) {
+		switch (*tptr++) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
+			stackframesize += 4;
+			break;
 
-        case TYPE_LNG:
-        case TYPE_DBL:
-            stackframesize += 8;
-            break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			stackframesize += 8;
+			break;
 
-        default:
-            panic("unknown parameter type in native function");
-        }
-    }
+		default:
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown parameter type %d in native stub",
+									   *tptr);
+		}
+	}
 
 	i386_alu_imm_reg(cd, I386_SUB, stackframesize, REG_SP);
 
 /* CREATE DYNAMIC STACK INFO -- BEGIN*/
-   i386_mov_imm_membase(cd,0,REG_SP,stackframesize-4);
-   i386_mov_imm_membase(cd, (s4) m, REG_SP,stackframesize-8);
-   i386_mov_imm_reg(cd, (s4) builtin_asm_get_stackframeinfo, REG_ITMP1);
-   i386_call_reg(cd, REG_ITMP1);
-   i386_mov_reg_membase(cd, REG_RESULT,REG_SP,stackframesize-12); /*save thread specific pointer*/
-   i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2); 
-   i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16); /*save previous value of memory adress pointed to by thread specific pointer*/
-   i386_mov_reg_reg(cd, REG_SP,REG_ITMP2);
-   i386_alu_imm_reg(cd, I386_ADD,stackframesize-16,REG_ITMP2);
-   i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT,0);
+	i386_mov_imm_membase(cd,0,REG_SP,stackframesize-4);
+	i386_mov_imm_membase(cd, (s4) m, REG_SP,stackframesize-8);
+	i386_mov_imm_reg(cd, (s4) builtin_asm_get_stackframeinfo, REG_ITMP1);
+	i386_call_reg(cd, REG_ITMP1);
+	i386_mov_reg_membase(cd, REG_RESULT,REG_SP,stackframesize-12); /*save thread specific pointer*/
+	i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2); 
+	i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16); /*save previous value of memory adress pointed to by thread specific pointer*/
+	i386_mov_reg_reg(cd, REG_SP,REG_ITMP2);
+	i386_alu_imm_reg(cd, I386_ADD,stackframesize-16,REG_ITMP2);
+	i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT,0);
 
 /*TESTING ONLY */
 /*   i386_mov_imm_membase(cd, (s4) m, REG_SP,stackframesize-4);
@@ -5176,80 +5178,84 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 /* CREATE DYNAMIC STACK INFO -- END*/
 
 /* RESOLVE NATIVE METHOD -- BEGIN*/
-#ifndef STATIC_CLASSPATH
-   if (f==0) {
-     /*log_text("Dynamic classpath: preparing for delayed native function resolving");*/
-     i386_jmp_imm(cd,0);
-     jmpInstrPos=cd->mcodeptr-4;
-     /*patchposition*/
-     i386_mov_imm_reg(cd,jmpInstrPos,REG_ITMP1);
-     i386_push_reg(cd,REG_ITMP1);
-     /*jmp offset*/
-     i386_mov_imm_reg(cd,0,REG_ITMP1);
-     jmpInstrPatchPos=cd->mcodeptr-4;
-     i386_push_reg(cd,REG_ITMP1);
-     /*position of call address to patch*/
-     i386_mov_imm_reg(cd,0,REG_ITMP1);
-     callAddrPatchPos=(cd->mcodeptr-4);
-     i386_push_reg(cd,REG_ITMP1);
-     /*method info structure*/
-     i386_mov_imm_reg(cd,(s4) m, REG_ITMP1);
-     i386_push_reg(cd,REG_ITMP1);
-     /*call resolve functions*/
-     i386_mov_imm_reg(cd, (s4)codegen_resolve_native,REG_ITMP1);
-     i386_call_reg(cd,REG_ITMP1);
-     /*cleanup*/
-     i386_pop_reg(cd,REG_ITMP1);
-     i386_pop_reg(cd,REG_ITMP1);
-     i386_pop_reg(cd,REG_ITMP1);
-     i386_pop_reg(cd,REG_ITMP1);
-     /*fix jmp offset replacement*/
-     (*jmpInstrPatchPos)=cd->mcodeptr-jmpInstrPos-4;
-   } /*else log_text("Dynamic classpath: immediate native function resolution possible");*/
+#if !defined(STATIC_CLASSPATH)
+	if (f == NULL) {
+		/*log_text("Dynamic classpath: preparing for delayed native function resolving");*/
+		i386_jmp_imm(cd, 0);
+		jmpInstrPos = cd->mcodeptr - 4;
+
+		/* patch position */
+		i386_mov_imm_reg(cd, (s4) jmpInstrPos, REG_ITMP1);
+		i386_push_reg(cd, REG_ITMP1);
+
+		/* jmp offset */
+		i386_mov_imm_reg(cd, 0, REG_ITMP1);
+		jmpInstrPatchPos = (s4 *) (cd->mcodeptr - 4);
+		i386_push_reg(cd, REG_ITMP1);
+
+		/* position of call address to patch */
+		i386_mov_imm_reg(cd, 0, REG_ITMP1);
+		callAddrPatchPos = (s4 *) (cd->mcodeptr - 4);
+		i386_push_reg(cd, REG_ITMP1);
+
+		/* method info structure */
+		i386_mov_imm_reg(cd, (s4) m, REG_ITMP1);
+		i386_push_reg(cd, REG_ITMP1);
+
+		/* call resolve functions */
+		i386_mov_imm_reg(cd, (s4) codegen_resolve_native, REG_ITMP1);
+		i386_call_reg(cd, REG_ITMP1);
+
+		/* cleanup */
+		i386_alu_imm_reg(cd, I386_ADD, 4 * 4, REG_SP);
+
+		/* fix jmp offset replacement */
+		*jmpInstrPatchPos = cd->mcodeptr - jmpInstrPos - 4;
+	} /*else log_text("Dynamic classpath: immediate native function resolution possible");*/
 #endif
 /* RESOLVE NATIVE METHOD -- END*/
 
+	tptr = m->paramtypes;
+	for (i = 0; i < m->paramcount; i++) {
+		switch (*tptr++) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
+			i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset);
+			stackframeoffset += 4;
+			break;
 
+		case TYPE_LNG:
+		case TYPE_DBL:
+			i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
+			i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8 + 4, REG_ITMP2);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset);
+			i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, stackframeoffset + 4);
+			stackframeoffset += 8;
+			break;
 
-    tptr = m->paramtypes;
-    for (i = 0; i < m->paramcount; i++) {
-        switch (*tptr++) {
-        case TYPE_INT:
-        case TYPE_FLT:
-        case TYPE_ADR:
-            i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
-            i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset);
-            stackframeoffset += 4;
-            break;
+		default:
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown parameter type %d in native stub",
+									   *tptr);
+		}
+	}
 
-        case TYPE_LNG:
-        case TYPE_DBL:
-            i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8, REG_ITMP1);
-            i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + i * 8 + 4, REG_ITMP2);
-            i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset);
-            i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, stackframeoffset + 4);
-            stackframeoffset += 8;
-            break;
-
-        default:
-            panic("unknown parameter type in native function");
-        }
-    }
-
+	/* if function is static, put class into second argument */
 	if (m->flags & ACC_STATIC) {
-		/* put class into second argument */
 		i386_mov_imm_membase(cd, (s4) m->class, REG_SP, 4);
 	}
 
 	/* put env into first argument */
 	i386_mov_imm_membase(cd, (s4) &env, REG_SP, 0);
 
-    i386_mov_imm_reg(cd, (s4) f, REG_ITMP1);
-#ifndef STATIC_CLASSPATH
-    if (f==0)
-      (*callAddrPatchPos)=(cd->mcodeptr-4);
+	i386_mov_imm_reg(cd, (s4) f, REG_ITMP1);
+#if !defined(STATIC_CLASSPATH)
+	if (f == NULL)
+		*callAddrPatchPos = (s4) cd->mcodeptr - 4;
 #endif
-    i386_call_reg(cd, REG_ITMP1);
+	i386_call_reg(cd, REG_ITMP1);
 
 /*REMOVE DYNAMIC STACK INFO -BEGIN */
     i386_push_reg(cd, REG_RESULT2);
@@ -5317,8 +5323,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_jmp_reg(cd, REG_ITMP3);
 
 	if (addmethod) {
-		codegen_insertmethod(s, cd->mcodeptr);
+		codegen_insertmethod((functionptr) s, (functionptr) cd->mcodeptr);
 	}
+
+	/* patch in a clinit call if required *************************************/
 
 	{
 		u1          *xcodeptr;
