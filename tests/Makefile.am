@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1819 2004-12-22 15:35:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,19 +37,20 @@ SUBDIRS = jvm98 kaffe
 EXTRA_DIST = \
 	x.java x.output \
 	jctest.java jctest.output \
-	fp.java fp.output \
 	fptest.java fptest.output \
+	fp.java fp.output \
+	extest.java extest.output \
 	TestBase.java TestArrayClasses.java TestArrayClasses.output \
 	BasicToStrings.java BasicToStrings.output \
-	extest.java extest_clinit.java extest.output \
-	GCBench.java
+	GCBench.java \
+	JavaPerformace.java
 
 JAVA = $(top_srcdir)/src/cacao/cacao
 JAVAC = jikes -nowarn
 
-check_DATA = checkall
+checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst
 
-checkall: x.tst jctest.tst TestArrayClasses.tst BasicToStrings.tst fp.tst fptest.tst extest.tst GCBench.tstrun
+checkrun: GCBench.tstrun JavaPerformance.tstrun
 
 %.tst:
 	$(JAVAC) $*.java
