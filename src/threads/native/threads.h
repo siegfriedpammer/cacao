@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: threads.h 1790 2004-12-21 10:11:23Z twisti $
 
 */
 
@@ -34,6 +34,7 @@
 #ifndef _THREADS_H
 #define _THREADS_H
 
+#include <pthread.h>
 #include <semaphore.h>
 
 #include "mm/memory.h"
