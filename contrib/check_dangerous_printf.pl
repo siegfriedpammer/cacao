@@ -16,6 +16,7 @@ my @FUNCTIONS =
      {NAME => 'printf'     ,FORMATPOS => 1},
      {NAME => 'sprintf'    ,FORMATPOS => 2},
      {NAME => 'fprintf'    ,FORMATPOS => 2},
+     {NAME => 'error'      ,FORMATPOS => 1},
      {NAME => 'dolog'      ,FORMATPOS => 1},
      {NAME => 'dolog_plain',FORMATPOS => 1},
     );
@@ -45,6 +46,7 @@ sub prepare
 sub wanted
 {
     push @files, $File::Find::name if /\.[ch]$/i;
+    push @files, $File::Find::name if /\.inc$/i;
 }
 
 sub get_args
