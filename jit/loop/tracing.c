@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 1141 2004-06-05 23:19:24Z twisti $
+   $Id: tracing.c 1274 2004-07-05 17:24:40Z twisti $
 
 */
 
@@ -465,10 +465,8 @@ struct Trace* tracing(basicblock *block, int index, int temp)
 		case ICMD_LUSHRCONST:		/* ..., value  ==> ..., value >>> constant	*/
 		case ICMD_IANDCONST:		/* ..., value  ==> ..., value & constant	*/
 		case ICMD_IREMPOW2:			/* ..., value  ==> ..., value % constant	*/
-		case ICMD_IREM0X10001:		/* ..., value  ==> ..., value % 0x100001	*/
 		case ICMD_LANDCONST:		/* ..., value  ==> ..., value & constant	*/
 		case ICMD_LREMPOW2:			/* ..., value  ==> ..., value % constant	*/
-		case ICMD_LREM0X10001:		/* ..., value  ==> ..., value % 0x10001		*/
 		case ICMD_IORCONST:			/* ..., value  ==> ..., value | constant	*/
 		case ICMD_LORCONST:			/* ..., value  ==> ..., value | constant	*/  
 		case ICMD_IXORCONST:		/* ..., value  ==> ..., value ^ constant	*/

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1229 2004-06-30 19:39:04Z twisti $
+   $Id: jit.c 1274 2004-07-05 17:24:40Z twisti $
 
 */
 
@@ -88,7 +88,6 @@ int jcommandsize[256] = {
 #define ICMD_ICONST            3        /* val.i = constant                   */
 	1,
 #define JAVA_ICONST_1          4
-#define ICMD_IREM0X10001       4
 	1,
 #define JAVA_ICONST_2          5
 #define ICMD_IDIVPOW2          5        /* val.i = constant                   */
@@ -99,7 +98,6 @@ int jcommandsize[256] = {
 #define JAVA_ICONST_4          7
 	1,
 #define JAVA_ICONST_5          8
-#define ICMD_LREM0X10001       8
 	1,
 #define JAVA_LCONST_0          9
 #define ICMD_LCONST            9        /* val.l = constant                   */
@@ -706,15 +704,15 @@ char *icmd_names[256] = {
 	"ACONST       ", /*               1 */
 	"NULLCHECKPOP ", /* ICONST_M1     2 */
 	"ICONST       ", /*               3 */
-	"IREM0X10001  ", /* ICONST_1      4 */
+	"UNDEF4       ", /* ICONST_1      4 */
 	"IDIVPOW2     ", /* ICONST_2      5 */
 	"LDIVPOW2     ", /* ICONST_3      6 */
 	"UNDEF__7     ", /* ICONST_4      7 */
-	"LREM0X10001  ", /* ICONST_5      8 */
+	"UNDEF5       ", /* ICONST_5      8 */
 	"LCONST       ", /*               9 */
 	"LCMPCONST    ", /* LCONST_1     10 */
 	"FCONST       ", /*              11 */
-	"UNDEF_12     ", /* FCONST_1     12 */
+	"UNDEF12      ", /* FCONST_1     12 */
 	"ELSE_ICONST  ", /* FCONST_2     13 */
 	"DCONST       ", /*              14 */
 	"IFEQ_ICONST  ", /* DCONST_1     15 */
@@ -773,14 +771,14 @@ char *icmd_names[256] = {
 	"IF_LCMPGE    ", /* FSTORE_1     68 */
 	"IF_LCMPGT    ", /* FSTORE_2     69 */
 	"IF_LCMPLE    ", /* FSTORE_3     70 */
-	"UNDEF_71     ", /* DSTORE_0     71 */
-	"UNDEF_72     ", /* DSTORE_1     72 */
-	"UNDEF_73     ", /* DSTORE_2     73 */
-	"UNDEF_74     ", /* DSTORE_3     74 */
-	"UNDEF_75     ", /* ASTORE_0     75 */
-	"UNDEF_76     ", /* ASTORE_1     76 */
-	"UNDEF_77     ", /* ASTORE_2     77 */
-	"UNDEF_78     ", /* ASTORE_3     78 */
+	"UNDEF71      ", /* DSTORE_0     71 */
+	"UNDEF72      ", /* DSTORE_1     72 */
+	"UNDEF73      ", /* DSTORE_2     73 */
+	"UNDEF74      ", /* DSTORE_3     74 */
+	"UNDEF75      ", /* ASTORE_0     75 */
+	"UNDEF76      ", /* ASTORE_1     76 */
+	"UNDEF77      ", /* ASTORE_2     77 */
+	"UNDEF78      ", /* ASTORE_3     78 */
 	"IASTORE      ", /*              79 */
 	"LASTORE      ", /*              80 */
 	"FASTORE      ", /*              81 */

@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1257 2004-06-30 21:00:21Z twisti $
+   $Id: reg.inc 1274 2004-07-05 17:24:40Z twisti $
 
 */
 
@@ -1181,7 +1181,6 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_IMULCONST:
 				case ICMD_IDIVPOW2:
 				case ICMD_IREMPOW2:
-				case ICMD_IREM0X10001:
 				case ICMD_IANDCONST:
 				case ICMD_IORCONST:
 				case ICMD_IXORCONST:
@@ -1194,7 +1193,6 @@ static void allocate_scratch_registers(methodinfo *m)
 				case ICMD_LMULCONST:
 				case ICMD_LDIVPOW2:
 				case ICMD_LREMPOW2:
-				case ICMD_LREM0X10001:
 				case ICMD_LANDCONST:
 				case ICMD_LORCONST:
 				case ICMD_LXORCONST:
