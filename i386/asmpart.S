@@ -42,6 +42,7 @@
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
+	.globl asm_builtin_frem
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
@@ -527,7 +528,22 @@ asm_builtin_monitorexit:
 *******************************************************************************/
 
 asm_builtin_idiv:
-	ret
+		cmpl	$0,12(%esp)             /* if (null) throw exception */
+		je		nb_idiv
+
+		movl	4(%esp),%eax            /* 4 (return) = 4 */
+		cltd
+		idivl	12(%esp)
+
+		ret
+
+nb_idiv:
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArithmeticException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
 		
 
 /************************ function asm_builtin_ldiv ****************************
@@ -537,7 +553,20 @@ asm_builtin_idiv:
 *******************************************************************************/
 
 asm_builtin_ldiv:
-	jmp		builtin_ldiv
+		movl	12(%esp),%eax
+		orl		16(%esp),%eax
+		test	%eax,%eax				/* if (null) throw exception */
+		je		nb_ldiv
+
+		jmp		builtin_ldiv
+
+nb_ldiv:
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArithmeticException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
 				
 
 /************************ function asm_builtin_irem ****************************
@@ -547,7 +576,23 @@ asm_builtin_ldiv:
 *******************************************************************************/
 
 asm_builtin_irem:
-	ret
+		cmpl	$0,12(%esp)             /* if (null) throw exception */
+		je		nb_irem
+
+		movl	4(%esp),%eax            /* 4 (return) = 4 */
+		cltd
+		idivl	12(%esp)
+		
+		movl	%edx,%eax
+		ret
+
+nb_irem:
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArithmeticException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
 
 
 /************************ function asm_builtin_lrem ****************************
@@ -557,7 +602,49 @@ asm_builtin_irem:
 *******************************************************************************/
 
 asm_builtin_lrem:
-	jmp		builtin_lrem
+		movl	12(%esp),%eax
+		orl		16(%esp),%eax
+		test	%eax,%eax				/* if (null) throw exception */
+		je		nb_lrem
+
+		jmp		builtin_lrem
+
+nb_lrem:
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArithmeticException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
+		
+
+/************************ function asm_builtin_frem ****************************
+*                                                                              *
+*   Does null check and calls frem or throws an exception                      *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_frem:
+		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+
+		flds	12(%esp)                /* 8 (frame) + 4 (return) = 12 */
+		fstps	(%esp)
+
+		flds	20(%esp)
+		fstps	4(%esp)
+
+		call	builtin_frem
+
+		addl	$8,%esp
+		ret
+
+nb_frem:
+		popl	%edx					/* delete return address */
+		pushl	%ecx					/* save data segment address */
+		
+		movl	proto_java_lang_ArithmeticException,%eax
+		subl	$2,%edx					/* faulting address is return adress - 2 */
+		jmp		asm_handle_nat_exception
 		
 
 /*********************** function new_builtin_checkcast ************************

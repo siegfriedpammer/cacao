@@ -61,7 +61,7 @@
 /* #define REG_END   -1        last entry in tables */
 
 int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP,
     REG_END };
 
 /* for use of reserved registers, see comment above */
@@ -253,6 +253,28 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = imb.b[1]; \
         *(((u1 *) mcodeptr)++) = imb.b[2]; \
         *(((u1 *) mcodeptr)++) = imb.b[3]; \
+    } while (0)
+
+
+#define i386_emit_double64_low(imm) \
+    do { \
+        i386_imm_buf imb; \
+        imb.d = (double) (imm); \
+        *(((u1 *) mcodeptr)++) = imb.b[0]; \
+        *(((u1 *) mcodeptr)++) = imb.b[1]; \
+        *(((u1 *) mcodeptr)++) = imb.b[2]; \
+        *(((u1 *) mcodeptr)++) = imb.b[3]; \
+    } while (0)
+
+
+#define i386_emit_double64_high(imm) \
+    do { \
+        i386_imm_buf imb; \
+        imb.d = (double) (imm); \
+        *(((u1 *) mcodeptr)++) = imb.b[4]; \
+        *(((u1 *) mcodeptr)++) = imb.b[5]; \
+        *(((u1 *) mcodeptr)++) = imb.b[6]; \
+        *(((u1 *) mcodeptr)++) = imb.b[7]; \
     } while (0)
 
 
@@ -473,6 +495,22 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_mov_double_low_membase(imm,basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc7; \
+        i386_emit_membase((basereg),(disp),0); \
+        i386_emit_double64_low((imm)); \
+    } while (0)
+
+
+#define i386_mov_double_high_membase(imm,basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc7; \
+        i386_emit_membase((basereg),(disp),0); \
+        i386_emit_double64_high((imm)); \
+    } while (0)
+
+
 #define i386_movsbl_reg_reg(reg,dreg) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
@@ -623,6 +661,15 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_shld_imm_reg_reg(imm,reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xa4; \
+        i386_emit_reg((reg),(dreg)); \
+        i386_emit_imm8((imm)); \
+    } while (0)
+
+
 #define i386_shld_reg_membase(reg,basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
@@ -636,6 +683,15 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
         *(((u1 *) mcodeptr)++) = (u1) 0xad; \
         i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_shrd_imm_reg_reg(imm,reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xac; \
+        i386_emit_reg((reg),(dreg)); \
+        i386_emit_imm8((imm)); \
     } while (0)
 
 
@@ -1228,6 +1284,13 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
+#define i386_fprem() \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xf8; \
+    } while (0)
+
+
 #define i386_fprem1() \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
@@ -1269,10 +1332,24 @@ static const unsigned char i386_jcc_map[] = {
         *(((u1 *) mcodeptr)++) = (u1) 0xe3; \
     } while (0)
 
+
 #define i386_fldcw_membase(basereg,disp) \
     do { \
         *(((u1 *) mcodeptr)++) = (u1) 0xd9; \
         i386_emit_membase((basereg),(disp),5); \
+    } while (0)
+
+
+#define i386_wait() \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x9b; \
+    } while (0)
+
+
+#define i386_ffree(reg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0xdd; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xc0 + (0x07 & (reg)); \
     } while (0)
 
 
