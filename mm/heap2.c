@@ -239,7 +239,7 @@ heap_allocate (SIZE		  in_length,
 	if (finalizer)
 		fprintf(stderr, "finalizer detected\n");
 
-#if VERBOSITY >= VERBOSITY_LIFESPAN
+#if VERBOSITY >= VERBOSITY_LIFESPAN && 0
 	/* perform garbage collection to collect data for lifespan analysis */
 	if (heap_top > heap_base)
 		gc_call();
@@ -310,7 +310,7 @@ heap_allocate (SIZE		  in_length,
 	
  failure:
 	/* 3.b. failure to allocate enough memory... fail gracefully */
-#if VERBOSITY >= VERBOSITY_MESSAGE
+#if VERBOSITY >= VERBOSITY_MESSAGE && 0
 	fprintf(stderr, 
 			"heap2.c: heap_allocate was unable to allocate 0x%lx bytes on the VM heap.\n",
 			length);
