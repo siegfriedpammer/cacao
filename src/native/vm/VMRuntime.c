@@ -29,21 +29,26 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1767 2004-12-16 16:46:57Z motse $
+   $Id: VMRuntime.c 1816 2004-12-22 13:17:24Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#if !defined(STATIC_CLASSPATH)
-#include <dlfcn.h>
+#if defined(__DARWIN__)
+# include <mach/mach.h>
 #endif
 
-#include "config.h"
+#if !defined(STATIC_CLASSPATH)
+# include <dlfcn.h>
+#endif
+
 #include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
