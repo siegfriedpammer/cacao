@@ -5,11 +5,11 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Enth"alt Supportfunktionen f"ur:
-		- Lesen von JavaClass-Files
-	    - unicode-Symbole
-		- den Heap 
-		- zus"atzliche Support-Funktionen
+	Contains support functions for:
+		- Reading of Java class files
+		- Unicode symbols
+		- the heap
+		- additional support functions
 
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 	Changes: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
@@ -508,14 +508,14 @@ void utf_show ()
 }
 
 /******************************************************************************
-*********************** Diverse Support-Funktionen ****************************
+*********************** Misc support functions ********************************
 ******************************************************************************/
 
 
-/******************** Funktion: desc_to_type **********************************
+/******************** Function: desc_to_type **********************************
    
-    Findet zu einem gegebenen Typdescriptor den entsprechenden 
-    Java-Grunddatentyp.
+	Determines the corresponding Java base data type for a given type
+	descriptor.
 	
 ******************************************************************************/
 
@@ -545,10 +545,10 @@ u2 desc_to_type (utf *descriptor)
 }
 
 
-/********************** Funktion: desc_typesize *******************************
+/********************** Function: desc_typesize *******************************
 
-	Berechnet die L"ange (in Byte) eines Datenelements gegebenen Typs,
-	der durch den Typdescriptor gegeben ist.
+	Calculates the lenght in bytes needed for a data element of the type given
+	by its type descriptor.
 	
 ******************************************************************************/
 
@@ -616,7 +616,7 @@ u2 utf_nextu2(char **utf_ptr)
     return unicode_char;
 }
  
-/******************** Funktion: class_new **************************************
+/******************** Function: class_new **************************************
 
     searches for the class with the specified name in the classes hashtable,
     if there is no such class a new classinfo structure is created and inserted
@@ -724,7 +724,7 @@ classinfo *class_new (utf *u)
 	return c;
 }
 
-/******************** Funktion: class_get **************************************
+/******************** Function: class_get **************************************
 
     searches for the class with the specified name in the classes hashtable
     if there is no such class NULL is returned

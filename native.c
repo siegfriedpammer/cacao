@@ -4,11 +4,10 @@
 
 	See file COPYRIGHT for information on usage and disclaimer of warranties
 
-	Enth"alt die Tabellen f"ur die native-methods.
-	Die vom Headerfile-Generator erzeugten -.hh - Dateien werden hier
-	eingebunden, und ebenso alle C-Funktionen, mit denen diese
-	Methoden implementiert werden.
-
+    Contains the tables for native methods.
+	The .hh files created with the header file generator are all included here
+	as are the C functions implementing these methods.
+	
 	Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at	
 	         Roman Obermaisser   EMAIL: cacao@complang.tuwien.ac.at	
 	         Andreas Krall       EMAIL: cacao@complang.tuwien.ac.at	
@@ -34,7 +33,7 @@
 #include "threads/thread.h"                       /* schani */
 #include "threads/locks.h"
 
-/* INCLUDE-Files fuer IO-Funktionen */
+/* Include files for IO functions */
 
 #include <fcntl.h>
 #include <dirent.h>
@@ -377,16 +376,14 @@ void throw_classnotfoundexception()
 }
 
 
-/*********************** Funktion: native_findfunction *************************
+/*********************** Function: native_findfunction *************************
 
-	Sucht in der Tabelle die passende Methode (muss mit Klassennamen,
-	Methodennamen, Descriptor und 'static'-Status "ubereinstimmen),
-	und gibt den Funktionszeiger darauf zur"uck.
-	Return: Funktionszeiger oder NULL  (wenn es keine solche Methode gibt)
+	Looks up a method (must have the same class name, method name, descriptor
+	and 'static'ness) and returns a function pointer to it.
+	Returns: function pointer or NULL (if there is no such method)
 
-	Anmerkung: Zu Beschleunigung des Suchens werden die als C-Strings
-	   vorliegenden Namen/Descriptors in entsprechende unicode-Symbole
-	   umgewandelt (beim ersten Aufruf dieser Funktion).
+	Remark: For faster operation, the names/descriptors are converted from C
+		strings to Unicode the first time this function is called.
 
 *******************************************************************************/
 
@@ -870,7 +867,7 @@ java_objectheader *literalstring_u2 (java_chararray *a, u4 length, bool copymode
     return (java_objectheader *) js;
 }
 
-/******************** Funktion: literalstring_new *****************************
+/******************** Function: literalstring_new *****************************
 
     creates a new javastring with the text of the utf-symbol
     and inserts it into the string hashtable
