@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 979 2004-03-25 23:46:22Z twisti $
+   $Id: asmpart.S 1059 2004-05-16 13:16:15Z twisti $
 
 */
 
@@ -104,7 +104,12 @@
 	.globl _string_java_lang_ArithmeticException_message
 	.globl _string_java_lang_ClassCastException
 
+	.globl _builtin_asm_get_exceptionptrptr
+	.globl __exceptionptr
+
 	.globl _builtin_throw_exception
+	.globl _class_load
+	.globl _class_link
 	.globl _class_init
 	.globl _catch_Handler
 	.globl _new_exception
@@ -116,6 +121,10 @@
 jitcompile:
 	.long _jit_compile
 
+class_load:
+	.long _class_load
+class_link:
+	.long _class_link
 class_init:
 	.long _class_init
 		
@@ -157,6 +166,11 @@ string_java_lang_ArithmeticException_message:
 	.long _string_java_lang_ArithmeticException_message
 string_java_lang_ClassCastException:
 	.long _string_java_lang_ClassCastException
+
+builtin_asm_get_exceptionptrptr:
+	.long _builtin_asm_get_exceptionptrptr
+_exceptionptr:
+	.long __exceptionptr
 
 catch_Handler:
 	.long _catch_Handler
@@ -571,16 +585,82 @@ ex_stack_loop:
 	addi    r4,pv,ExTableStart    /* r4 = start of exception table            */
 
 ex_table_loop:
-	lwz     r5,ExStartPC(r4)
-	cmplw   r5,xpc
+	lwz     r5,ExStartPC(r4)      /* r5 = exception start pc                  */
+	cmplw   r5,xpc                /* (startpc <= xpc)                         */
 	bgt     ex_table_cont
-	lwz     r5,ExEndPC(r4)
-	cmplw   xpc,r5
+	lwz     r5,ExEndPC(r4)        /* r5 = exception end pc                    */
+	cmplw   xpc,r5                /* (xpc < endpc)                            */
 	bge     ex_table_cont
-	lwz     r7,ExCatchType(r4)
+	lwz     r7,ExCatchType(r4)    /* r7 = exception catch type                */
 	mr.     r7,r7
 	beq     ex_handle_it
 
+	lwz     itmp3,offclassloaded(r7)
+	mr.     itmp3,itmp3
+	bne     L_class_loaded
+
+	addi    r1,r1,-16*4           /* allocate stack                           */
+	stw     r3,7*4(r1)            /* save used registers                      */
+	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
+	stw     r2,9*4(r1)
+	stw     xptr,10*4(r1)
+	stw     xpc,11*4(r1)
+	mflr    xptr
+	stw     xptr,12*4(r1)
+	stw     r7,13*4(r1)
+
+	mr      r3,r7                 /* arg1 = exceptionclass                    */
+	bl      0f
+0:
+	mflr    itmp1
+	lwz     itmp1,lo16(class_load-0b)(itmp1)
+	mtctr   itmp1
+	bctrl
+
+	lwz     r3,7*4(r1)
+	lwz     r4,8*4(r1)
+	lwz     r2,9*4(r1)
+	lwz     xptr,10*4(r1)
+	lwz     xpc,11*4(r1)
+	lwz     itmp3,12*4(r1)
+	mtlr    itmp3
+	lwz     r7,13*4(r1)	
+	addi    r1,r1,16*4
+
+L_class_loaded:
+	lwz     itmp3,offclasslinked(r7)
+	mr.     itmp3,itmp3
+	bne     L_class_linked
+
+	addi    r1,r1,-16*4           /* allocate stack                           */
+	stw     r3,7*4(r1)            /* save used registers                      */
+	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
+	stw     r2,9*4(r1)
+	stw     xptr,10*4(r1)
+	stw     xpc,11*4(r1)
+	mflr    xptr
+	stw     xptr,12*4(r1)
+	stw     r7,13*4(r1)
+
+	mr      r3,r7                 /* arg1 = exceptionclass                    */
+	bl      0f
+0:
+	mflr    itmp1
+	lwz     itmp1,lo16(class_link-0b)(itmp1)
+	mtctr   itmp1
+	bctrl
+
+	lwz     r3,7*4(r1)
+	lwz     r4,8*4(r1)
+	lwz     r2,9*4(r1)
+	lwz     xptr,10*4(r1)
+	lwz     xpc,11*4(r1)
+	lwz     itmp3,12*4(r1)
+	mtlr    itmp3
+	lwz     r7,13*4(r1)	
+	addi    r1,r1,16*4
+
+L_class_linked:
 	lwz     r6,offobjvftbl(xptr)  /* r6 = vftblptr(xptr)                      */
 	lwz     r7,offclassvftbl(r7)  /* r7 = vftblptr(catchtype) class (not obj) */
 	lwz     r6,offbaseval(r6)     /* r6 = baseval(xptr)                       */
@@ -746,65 +826,91 @@ _asm_check_clinit:
 
 	mflr	r0
 	stw     r0,8(r1)
-	addi    r1,r1,-(24*8)
+	addi    r1,r1,-(26*8)         /* keep stack 16-bytes aligned              */
 
-    stw     r3,3*8(r1)                  /* save argument registers            */
-    stw     r4,4*8(r1)                  /* preserve linkage area (24 bytes)   */
-    stw     r5,5*8(r1)
-    stw     r6,6*8(r1)
-    stw     r7,7*8(r1)
-    stw     r8,8*8(r1)
-    stw     r9,9*8(r1)
-	stw     r10,10*8(r1)
+    stw     r3,4*8(r1)            /* save argument registers                  */
+    stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
+    stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
+    stw     r6,7*8(r1)
+    stw     r7,8*8(r1)
+    stw     r8,9*8(r1)
+    stw     r9,10*8(r1)
+	stw     r10,11*8(r1)
 
-	stfd    f1,11*8(r1)
-    stfd    f2,12*8(r1)
-    stfd    f3,13*8(r1)
-    stfd    f4,14*8(r1)
-    stfd    f5,15*8(r1)
-    stfd    f6,16*8(r1)
-    stfd    f7,17*8(r1)
-    stfd    f8,18*8(r1)
-    stfd    f9,19*8(r1)
-    stfd    f10,20*8(r1)
-    stfd    f11,21*8(r1)
-    stfd    f12,22*8(r1)
-    stfd    f13,23*8(r1)
+	stfd    f1,12*8(r1)
+    stfd    f2,13*8(r1)
+    stfd    f3,14*8(r1)
+    stfd    f4,15*8(r1)
+    stfd    f5,16*8(r1)
+    stfd    f6,17*8(r1)
+    stfd    f7,18*8(r1)
+    stfd    f8,19*8(r1)
+    stfd    f9,20*8(r1)
+    stfd    f10,21*8(r1)
+    stfd    f11,22*8(r1)
+    stfd    f12,23*8(r1)
+    stfd    f13,24*8(r1)
 		
 	mr      r3,itmp1
 	lwz     itmp1,lo16(class_init-0b)(pv)
 	mtctr   itmp1
 	bctrl
+	mr      itmp1,r3              /* save return value in temp register       */
 
-	lwz     r3,3*8(r1)
-	lwz     r4,4*8(r1)
-	lwz     r5,5*8(r1)
-	lwz     r6,6*8(r1)
-	lwz     r7,7*8(r1)
-	lwz     r8,8*8(r1)
-	lwz     r9,9*8(r1)
-	lwz     r10,10*8(r1)
+	lwz     r3,4*8(r1)
+	lwz     r4,5*8(r1)
+	lwz     r5,6*8(r1)
+	lwz     r6,7*8(r1)
+	lwz     r7,8*8(r1)
+	lwz     r8,9*8(r1)
+	lwz     r9,10*8(r1)
+	lwz     r10,11*8(r1)
 
-    lfd     f1,11*8(r1)
-    lfd     f2,12*8(r1)
-    lfd     f3,13*8(r1)
-    lfd   	f4,14*8(r1)
-    lfd   	f5,15*8(r1)
-    lfd   	f6,16*8(r1)
-    lfd   	f7,17*8(r1)
-    lfd   	f8,18*8(r1)
-    lfd   	f9,19*8(r1)
-    lfd   	f10,20*8(r1)
-    lfd   	f11,21*8(r1)
-    lfd   	f12,22*8(r1)
-    lfd   	f13,23*8(r1)
+    lfd     f1,12*8(r1)
+    lfd     f2,13*8(r1)
+    lfd     f3,14*8(r1)
+    lfd   	f4,15*8(r1)
+    lfd   	f5,16*8(r1)
+    lfd   	f6,17*8(r1)
+    lfd   	f7,18*8(r1)
+    lfd   	f8,19*8(r1)
+    lfd   	f9,20*8(r1)
+    lfd   	f10,21*8(r1)
+    lfd   	f11,22*8(r1)
+    lfd   	f12,23*8(r1)
+    lfd   	f13,24*8(r1)
 		
-	lwz     r0,(24*8)+8(r1)
+	lwz     r0,(26*8)+8(r1)
 	mtlr    r0
-	addi    r1,r1,(24*8)
+	addi    r1,r1,(26*8)
+
+	mr.	    itmp1,itmp1           /* check for an exception                   */
+	beq     L_initializererror
 
 L_is_initialized:
 	blr
+
+L_initializererror:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#error XXX TWISTI please check me for correctness
+	mflr	r0
+	stw     r0,8(r1)
+	addi    r1,r1,-4*8            /* preserve linkage area (24 bytes)         */
+	lwz     itmp1,lo16(builtin_asm_get_exceptionptrptr-0b)(pv)
+	mtctr   itmp1
+	bctrl
+	lwz     r0,(4*8)+8(r1)
+	mtlr    r0	
+	addi    r1,r1,4*8
+#else
+	lwz     itmp2,lo16(_exceptionptr-0b)(pv)
+	lwz     xptr,0(itmp2)         /* get the exception pointer                */
+	li      r0,0
+	stw     r0,0(itmp2)           /* clear the exception pointer              */
+#endif
+
+	mflr    xpc
+	b       _asm_handle_nat_exception
 
 
 /******************* function asm_builtin_checkarraycast ***********************

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 962 2004-03-15 00:37:59Z twisti $
+   $Id: codegen.c 1059 2004-05-16 13:16:15Z twisti $
 
 */
 
@@ -275,6 +275,7 @@ int catch_Handler(int *regs)
 {
 	sigset_t nsig;
 	int instr, reg;
+	java_objectheader *xptr;
 
 	instr = *(int *) crashpc;
 	reg = (instr >> 16) & 31;
@@ -284,13 +285,10 @@ int catch_Handler(int *regs)
 		sigaddset(&nsig, lastsig);
 		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
 
-		if (!proto_java_lang_NullPointerException) {
-			proto_java_lang_NullPointerException =
-				new_exception(string_java_lang_NullPointerException);
-		}
+		xptr = new_exception(string_java_lang_NullPointerException);
 
 		regs[REG_ITMP2_XPC] = crashpc;
-		regs[REG_ITMP1_XPTR] = (s4) proto_java_lang_NullPointerException;
+		regs[REG_ITMP1_XPTR] = (u4) xptr;
 
 		return 0;
 	}
@@ -3059,6 +3057,13 @@ makeactualcall:
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
+		case ICMD_CHECKOOM:   /* ... ==> ...                                  */
+
+			M_CMPI(REG_RESULT, 0);
+			M_BEQ(0);
+			codegen_addxoomrefs(mcodeptr);
+			break;
+
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -3302,6 +3307,60 @@ makeactualcall:
 		}
 	}
 
+	/* generate oom check stubs */
+
+	xcodeptr = NULL;
+
+	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch((u1 *) mcodebase + xoomrefs->branchpos, 
+							  xoomrefs->branchpos,
+							  (u1 *) xcodeptr - (u1 *) mcodebase - 4);
+			continue;
+		}
+
+		gen_resolvebranch((u1 *) mcodebase + xoomrefs->branchpos, 
+		                  xoomrefs->branchpos,
+						  (u1 *) mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		M_LDA(REG_ITMP2_XPC, REG_PV, xoomrefs->branchpos - 4);
+
+		if (xcodeptr != NULL) {
+			M_BR(xcodeptr - mcodeptr - 1);
+
+		} else {
+			xcodeptr = mcodeptr;
+
+            M_IADD_IMM(REG_SP, -1 * 8, REG_SP);
+            M_IST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+            a = dseg_addaddress(builtin_get_exceptionptrptr);
+            M_ALD(REG_ITMP2, REG_PV, a);
+            M_MTCTR(REG_ITMP2);
+            M_JSR;
+            M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+#else
+			a = dseg_addaddress(&_exceptionptr);
+			M_ALD(REG_ITMP2, REG_PV, a);
+
+			M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);
+			M_CLR(REG_ITMP3);
+			M_AST(REG_ITMP3, REG_ITMP2, 0);
+#endif
+
+            M_ILD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+            M_IADD_IMM(REG_SP, 1 * 8, REG_SP);
+
+			a = dseg_addaddress(asm_handle_exception);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
+		}
+	}
+
 	/* generate null pointer check stubs */
 
 	xcodeptr = NULL;
@@ -3309,12 +3368,14 @@ makeactualcall:
 	for (; xnullrefs != NULL; xnullrefs = xnullrefs->next) {
 		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch((u1 *) mcodebase + xnullrefs->branchpos, 
-				xnullrefs->branchpos, (u1 *) xcodeptr - (u1 *) mcodebase - 4);
+							  xnullrefs->branchpos,
+							  (u1 *) xcodeptr - (u1 *) mcodebase - 4);
 			continue;
 			}
 
 		gen_resolvebranch((u1 *) mcodebase + xnullrefs->branchpos, 
-		                  xnullrefs->branchpos, (u1 *) mcodeptr - mcodebase);
+		                  xnullrefs->branchpos,
+						  (u1 *) mcodeptr - mcodebase);
 
 		MCODECHECK(8);
 
@@ -3343,11 +3404,10 @@ makeactualcall:
 
 			a = dseg_addaddress(asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, a);
-
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
-			}
 		}
+	}
 	}
 
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
@@ -3406,14 +3466,14 @@ void removecompilerstub(u1 *stub)
 *******************************************************************************/
 
 #define NATIVESTUBSIZE      200
-#define NATIVESTUBOFFSET    8
+#define NATIVESTUBOFFSET    9
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
-	int disp;
 	s4 *s;                              /* memory to hold the stub            */
 	s4 *cs;
 	s4 *mcodeptr;                       /* code generation pointer            */
+	s4 disp;
 	s4 stackframesize = 0;              /* size of stackframe if needed       */
 
 	reg_init();
@@ -3431,10 +3491,27 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-6) = (u4) m;
 	*(cs-7) = (u4) builtin_displaymethodstop;
 	*(cs-8) = (u4) m->class;
+	*(cs-9) = (u4) asm_check_clinit;
 
 	M_MFLR(REG_ITMP1);
 	M_AST(REG_ITMP1, REG_SP, 8);        /* store return address               */
 	M_LDA(REG_SP, REG_SP, -64);         /* build up stackframe                */
+
+	/* if function is static, check for initialized */
+
+	if (m->flags & ACC_STATIC) {
+		/* if class isn't yet initialized, do it */
+		if (!m->class->initialized) {
+			/* call helper function which patches this code */
+			M_ALD(REG_ITMP1, REG_PV, -8 * 4);     /* class                    */
+			M_ALD(REG_PV, REG_PV, -9 * 4);        /* asm_check_clinit         */
+			M_MTCTR(REG_PV);
+			M_JSR;
+			disp = -(s4) (mcodeptr - cs) * 4;
+			M_MFLR(REG_ITMP1);
+			M_LDA(REG_PV, REG_ITMP1, disp);       /* recompute pv from ra     */
+		}
+	}
 
 	if (runverbose) {
 		s4 p, t, s1, d, a;
@@ -3442,10 +3519,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
         s4 fltargs = 0;
 		s4 dblargs = 0;
 
-        M_MFLR(REG_ITMP3);
+/*          M_MFLR(REG_ITMP3); */
         M_LDA(REG_SP, REG_SP, -(24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
 
-        M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+/*          M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8); */
 
 		M_CLR(REG_ITMP1);
 
@@ -3547,10 +3624,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
             }
         }
 
-        M_ILD(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+/*          M_ILD(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8); */
 
         M_LDA(REG_SP, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
-        M_MTLR(REG_ITMP3);
+/*          M_MTLR(REG_ITMP3); */
 	}
 
 	/* save argument registers on stack -- if we have to */
@@ -3564,7 +3641,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 
-
+		panic("nativestub");
 	}
 
 	if (m->flags & ACC_STATIC) {
@@ -3594,7 +3671,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_ALD(REG_PV, REG_PV, -1 * 4);      /* load adress of native method       */
 	M_MTCTR(REG_PV);
 	M_JSR;
-	disp = -(int) (mcodeptr - cs) * 4;
+	disp = -(s4) (mcodeptr - cs) * 4;
 	M_MFLR(REG_ITMP1);
 	M_LDA(REG_PV, REG_ITMP1, disp);     /* recompute pv from ra               */
 
