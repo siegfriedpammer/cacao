@@ -29,7 +29,7 @@
    Changes: Carolyn Oates
             Edwin Steiner
 
-   $Id: parse.c 1419 2004-10-21 09:59:33Z carolyn $
+   $Id: parse.c 1421 2004-10-28 14:39:49Z stefan $
 
 */
 
@@ -528,7 +528,7 @@ if (opt_rt) {
 #ifdef USE_THREADS
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
-		inline_env->isleafmethod = false;
+		inline_env->method->isleafmethod = false;
 	}			
 #endif
 
