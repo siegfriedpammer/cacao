@@ -756,7 +756,9 @@ int main(int argc, char **argv)
 			printf ("\n");
 		}
 
+#ifdef USE_THREADS
 		killThread(currentThread);
+#endif
 		fprintf(stderr, "still here\n");
 	}
 
