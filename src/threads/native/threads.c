@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: threads.c 1768 2004-12-16 22:13:10Z motse $
 
 */
 
@@ -1053,7 +1053,7 @@ bool threadHoldsLock(threadobject *t, java_objectheader *o)
 {
 	monitorLockRecord *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
-	return lr->o == o && lr->ownerThread == t;
+	return lr && lr->o == o && lr->ownerThread == t;
 }
 
 void interruptThread(java_lang_VMThread *thread)
