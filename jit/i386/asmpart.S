@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 968 2004-03-19 17:52:42Z jowenn $
+   $Id: asmpart.S 986 2004-03-29 07:02:38Z stefan $
 
 */
 
@@ -246,7 +246,7 @@ asm_calljavafunction2long:
 	push    %edi
 
 	mov     20(%ebp),%eax             /* pointer to arg block                 */
-	mov     16(%ebp),%ecx             /* arg count                            */
+	mov     12(%ebp),%ecx             /* arg count                            */
 	test    %ecx,%ecx                 /* maybe we have no args                */
 	jle     calljava_copydone
 
