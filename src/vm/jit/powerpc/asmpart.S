@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1877 2005-01-21 11:32:53Z stefan $
+   $Id: asmpart.S 1941 2005-02-14 20:25:40Z stefan $
 
 */
 
@@ -1220,9 +1220,11 @@ nb_lrem:
 
 
 asm_cacheflush:
-	addi    r4,r4,31
-	mr      r5,r3
 	add     r4,r3,r4
+	rlwinm  r3,r3,0,0,26
+	addi    r4,r4,31
+	rlwinm  r4,r4,0,0,26
+	mr      r5,r3
 1:
 	cmplw   r3,r4
 	bge     0f
