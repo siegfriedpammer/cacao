@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 907 2004-01-29 13:20:05Z carolyn $
+   $Id: builtin.c 908 2004-02-02 00:51:04Z twisti $
 
 */
 
@@ -481,14 +481,16 @@ java_objectheader *builtin_new(classinfo *c)
 {
 	java_objectheader *o;
 
-	if (initverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Initialize class ");
-		utf_sprint(logtext + strlen(logtext), c->name);
-		sprintf(logtext + strlen(logtext), " (from builtin_new)");
-		log_text(logtext);
+	if (!c->initialized) {
+		if (initverbose) {
+			char logtext[MAXLOGTEXT];
+			sprintf(logtext, "Initialize class ");
+			utf_sprint(logtext + strlen(logtext), c->name);
+			sprintf(logtext + strlen(logtext), " (from builtin_new)");
+			log_text(logtext);
+		}
+		class_init(c);
 	}
-	class_init(c);
 
 #ifdef SIZE_FROM_CLASSINFO
 	c->alignedsize = align_size(c->instancesize);
@@ -762,9 +764,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 	if (verbose || runverbose) {
 		printf("Exception ");
 		if (_exceptionptr) {
-			utf_display (_exceptionptr->vftbl->class->name);
-		}
-		else {
+			utf_display(_exceptionptr->vftbl->class->name);
+
+		} else {
 			printf("Error: <Nullpointer instead of exception>");
 			if (!proto_java_lang_ClassCastException) printf("%s","proto_java_lang_ClassCastException==0");
 			if (!proto_java_lang_NullPointerException) printf("%s","proto_java_lang_NullPointerException==0");
@@ -779,20 +781,22 @@ java_objectheader *builtin_trace_exception(java_objectheader *_exceptionptr,
 
 		}
 		printf(" thrown in ");
+
 		if (method) {
-			utf_display (method->class->name);
+			utf_display(method->class->name);
 			printf(".");
-			utf_display (method->name);
+			utf_display(method->name);
 			if (method->flags & ACC_SYNCHRONIZED)
 				printf("(SYNC)");
 			else
 				printf("(NOSYNC)");
 			printf("(%p) at position %p\n", method->entrypoint, pos);
-		}
-		else
+
+		} else
 			printf("call_java_method\n");
 		fflush (stdout);
 	}
+
 	return _exceptionptr;
 }
 
