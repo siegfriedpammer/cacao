@@ -9,7 +9,7 @@
     Authors: Mark Probst         EMAIL: cacao@complang.tuwien.ac.at
              Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: threads.h 385 2003-07-10 10:45:57Z twisti $
+    Last Change: $Id: threads.h 526 2003-10-22 21:14:50Z twisti $
 
 *******************************************************************************/
 
@@ -26,7 +26,6 @@
 
 void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack (void *func, u1 *stack);
-void asm_switchstackandcall (void *stack, void *func, void **stacktopsave, void *p);
 
 /* access macros */
 
