@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1073 2004-05-19 23:21:15Z stefan $
+   $Id: asmpart.S 1137 2004-06-05 20:28:56Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
 
 	.align 2
 
-	.globl _asm_docalljavamethod
+	.globl _asm_calljavafunction
 	.globl _asm_calljavafunction2
 	.globl _asm_calljavafunction2long
 	.globl _asm_calljavafunction2double
@@ -118,6 +118,7 @@
 	.globl _new_exception
 	.globl _new_exception_message
 	.globl _new_exception_int
+
 
 jitcompile:
 	.long _jit_compile
@@ -176,22 +177,20 @@ _exceptionptr:
 #endif
 
 		
-#define     MethodPointer   -8
-#define     FrameSize       -12
-#define     IsSync          -16
-#define     IsLeaf          -20
-#define     IntSave         -24
-#define     FltSave         -28
-#define     ExTableSize     -32
-#define     ExTableStart    -32
-
-#define     ExEntrySize     -16
-#define     ExStartPC       -4
-#define     ExEndPC         -8
-#define     ExHandlerPC     -12
-#define     ExCatchType     -16
-
-
+/********************* function asm_calljavafunction ***************************
+*                                                                              *
+*   This function calls a Java-method (which possibly needs compilation)       *
+*   with up to 4 address parameters.                                           *
+*                                                                              *
+*   This functions calls the JIT-compiler which eventually translates the      *
+*   method into machine code.                                                  *
+*                                                                              *
+*   C-prototype:		                                                               *
+*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                      *
+*                                                                              *
+*******************************************************************************/
+		
 	.align 2
     .long   0                         /* catch type all                       */
     .long   calljava_xhandler         /* handler pc                           */
@@ -206,8 +205,7 @@ _exceptionptr:
     .long   0                         /* method pointer (pointer to name)     */
 	.long   0                         /* padding                              */
 
-
-_asm_docalljavamethod:
+_asm_calljavafunction:
 	mflr    r0
 	stw     r31,-4(r1)
 //	stw     r30,-8(r1)
@@ -252,7 +250,7 @@ _asm_docalljavamethod:
 	bctrl
 1:
 	mflr    itmp1
-	addi    pv,itmp1,lo16(_asm_docalljavamethod-1b)
+	addi    pv,itmp1,lo16(_asm_calljavafunction-1b)
 
 calljava_regrestore:
 	lwz     r16,40(r1)
@@ -377,7 +375,7 @@ calljava_argsloaded:
 	bctrl
 1:
 	mflr    itmp1
-	addi    pv,itmp1,lo16(_asm_docalljavamethod-1b)
+	addi    pv,itmp1,lo16(_asm_calljavafunction2-1b)
 	
 calljava_regrestore2:
 	lwz		r16,40(r1)
@@ -512,6 +510,18 @@ noregchange:
 
 
 
+/********************* function asm_handle_exception ***************************
+*                                                                              *
+*   This function handles an exception. It does not use the usual calling      *
+*   conventions. The exception pointer is passed in REG_ITMP1 and the          *
+*   pc from the exception raising position is passed in REG_ITMP2. It searches *
+*   the local exception table for a handler. If no one is found, it unwinds    *
+*   stacks and continues searching the callers.                                *
+*                                                                              *
+*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
+*                                                                              *
+*******************************************************************************/
+		
 _asm_handle_nat_exception:
 	mflr    r2
 	lwz     itmp3,4(r2)
@@ -894,7 +904,6 @@ L_is_initialized:
 	blr
 
 L_initializererror:
-0:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
 	stw     r0,8(r1)
@@ -908,9 +917,9 @@ L_initializererror:
 #else
 	lwz     r3,lo16(_exceptionptr-0b)(pv)
 #endif
-	lwz     xptr,0(r3)         /* get the exception pointer                */
+	lwz     xptr,0(r3)            /* get the exception pointer                */
 	li      r0,0
-	stw     r0,0(r3)           /* clear the exception pointer              */
+	stw     r0,0(r3)              /* clear the exception pointer              */
 
 	mflr    xpc
 	b       _asm_handle_nat_exception
@@ -1425,27 +1434,28 @@ _asm_switchstackandcall:
 _asm_getclassvalues_atomic:
 _crit_restart2:
 _crit_begin2:
-	lwz r6,offbaseval(r3)
-	lwz r7,offdiffval(r3)
-	lwz r8,offbaseval(r4)
+	lwz     r6,offbaseval(r3)
+	lwz     r7,offdiffval(r3)
+	lwz     r8,offbaseval(r4)
 _crit_end2:
-	stw r6,offcast_super_baseval(r5)
-	stw r7,offcast_super_diffval(r5)
-	stw r8,offcast_sub_baseval(r5)
+	stw     r6,offcast_super_baseval(r5)
+	stw     r7,offcast_super_diffval(r5)
+	stw     r8,offcast_sub_baseval(r5)
 	blr
 
 	.data
 
 _asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.long _crit_begin1
-	.long _crit_end1
-	.long _crit_restart1
-	.long _crit_begin2
-	.long _crit_end2
-	.long _crit_restart2
+	.long   _crit_begin1
+	.long   _crit_end1
+	.long   _crit_restart1
+	.long   _crit_begin2
+	.long   _crit_end2
+	.long   _crit_restart2
 #endif
 	.long 0
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
