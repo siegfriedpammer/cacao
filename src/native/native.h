@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: native.h 1189 2004-06-19 12:42:54Z twisti $
+   $Id: native.h 1239 2004-06-30 20:06:24Z twisti $
 
 */
 
@@ -41,7 +41,32 @@
 #include "nat/java_lang_Throwable.h"
 
 
+/* table for locating native methods */
+
+typedef struct nativeref nativeref;
+typedef struct nativecompref nativecompref;
+
+struct nativeref {
+	char       *classname;
+	char       *methodname;
+	char       *descriptor;
+	bool        isstatic;
+	functionptr func;
+};
+
+/* table for fast string comparison */
+
+struct nativecompref {
+	utf        *classname;
+	utf        *methodname;
+	utf        *descriptor;
+	bool        isstatic;
+	functionptr func;
+};
+
+
 /* searchpath for classfiles */
+
 extern char *classpath;
 
 extern classinfo *class_java_lang_Class;
@@ -59,9 +84,11 @@ extern classinfo *class_java_lang_Character;
 extern classinfo *class_java_lang_Integer;
 
 
-/* system exception classes required while compiling                          */
+/* system exception classes required in cacao */
 
 extern classinfo *class_java_lang_Throwable;
+extern classinfo *class_java_lang_Exception;
+extern classinfo *class_java_lang_Error;
 
 
 /* exception/error super class */
