@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 1794 2004-12-21 14:10:20Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,14 +40,14 @@ EXTRA_DIST = \
 	mpegaudio.diff mpegaudio.output \
 	raytrace.diff raytrace.output
 
-JAVA = $(top_srcdir)/src/cacao/cacao
-JAVAC = jikes
+JAVA = $(top_srcdir)/../src/cacao/cacao
+JAVAC = jikes -nowarn
 
 checkjvm: compress db javac mpegaudio raytrace 
 
 check compress db javac mpegaudio raytrace: force
 	rm -rf $@
-	cp -r ../jvm98/spec/benchmarks/_*_$@ $@
+	cp -r ./jvm98/spec/benchmarks/_*_$@ $@
 	patch -p0 < $@.diff
 	(cd $@; \
 	 chmod 644 *; \

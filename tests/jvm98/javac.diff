@@ -25,7 +25,7 @@ diff -Nu javac2/postoutput.sh javac/postoutput.sh
 @@ -0,0 +1,6 @@
 +unset LANG LC_ALL LC_COLLATE
 +rm -f *.class
-+$JAVAC -classpath classes.zip JavaLex.java
++$JAVAC -target 1.3 -classpath classes.zip JavaLex.java
 +rm -fr sun
 +$JAVA JavaLex sample.lex
 +cat sample.lex.java >> javac.output
@@ -36,7 +36,7 @@ diff -Nu javac2/setup.sh javac/setup.sh
 +rm -f *.class
 +mv input/* .
 +mv Middle.java Main.java
-+cp ../../jvm98/spec/benchmarks/_*_jess/input/* input
++cp ../jvm98/spec/benchmarks/_*_jess/input/* input
 +mv lib/spec .
 +$JAVAC -d . spec/*/*/*.java
 diff -Nu javac2/sample.lex javac/sample.lex
