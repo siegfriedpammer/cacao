@@ -34,7 +34,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 1173 2004-06-16 14:56:18Z jowenn $
+   $Id: builtin.c 1194 2004-06-19 12:59:20Z twisti $
 
 */
 
@@ -1118,10 +1118,6 @@ void builtin_monitorenter(java_objectheader *o)
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
-	/*log_text("Monitor enter");*/
-
-	assert(blockInts == 0);
-
 	++blockInts;
 
 	hashValue = MUTEX_HASH_VALUE(o);
@@ -1132,25 +1128,18 @@ void builtin_monitorenter(java_objectheader *o)
 		internal_lock_mutex_for_object(o);
 
 	--blockInts;
-
-	assert(blockInts == 0);
 #else
-	monitorEnter((threadobject*) THREADOBJECT, o);
+	monitorEnter((threadobject *) THREADOBJECT, o);
 #endif
 #endif
 }
 
 
-void builtin_monitorexit (java_objectheader *o)
+void builtin_monitorexit(java_objectheader *o)
 {
-
 #if defined(USE_THREADS)
 #if !defined(NATIVE_THREADS)
 	int hashValue;
-
-	/* log_text("Monitor leave"); */
-
-	assert(blockInts == 0);
 
 	++blockInts;
 
@@ -1166,10 +1155,8 @@ void builtin_monitorexit (java_objectheader *o)
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
-
-	assert(blockInts == 0);
 #else
-	monitorExit((threadobject*) THREADOBJECT, o);
+	monitorExit((threadobject *) THREADOBJECT, o);
 #endif
 #endif
 }
