@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 1456 2004-11-05 14:33:14Z twisti $
+   $Id: reg.inc 1459 2004-11-05 16:23:02Z twisti $
 
 */
 
@@ -120,16 +120,6 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 			break;
 		}
 	}
-
-#if defined(__I386__)
-	/* 
-	   this assumes that we have 3 tmp regs (%ecx, %edx, %ebx) 
-	   sort to [ %ebx, %edx, %ecx ]
-	 */
-	i = rd->tmpintregs[0];
-	rd->tmpintregs[0] = rd->tmpintregs[2];
-	rd->tmpintregs[2] = i;
-#endif
 
 #if defined(__X86_64__)
 	/* 
@@ -288,20 +278,9 @@ void reg_close()
 	
 void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-#if defined(__I386__)
-	/* remove %ecx and/or %edx from tmpintregs */
-	int origtmpintregcnt = m->registerdata->tmpintregcnt;
-	if (method_uses_ecx) m->registerdata->tmpintregcnt--;
-	if (method_uses_edx) m->registerdata->tmpintregcnt--;
-#endif
-
 	interface_regalloc(m, cd, rd);
 	allocate_scratch_registers(m, rd);
 	local_regalloc(m, cd, rd);
-
-#if defined(__I386__)
-	m->registerdata->tmpintregcnt = origtmpintregcnt;
-#endif
 }
 
 
