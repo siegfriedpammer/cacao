@@ -30,7 +30,7 @@
             Mark Probst
 			Edwin Steiner
 
-   $Id: loader.c 941 2004-03-06 17:27:56Z jowenn $
+   $Id: loader.c 945 2004-03-06 21:33:21Z twisti $
 
 */
 
@@ -2879,6 +2879,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 void class_init(classinfo *c)
 {
 	methodinfo *m;
+	native_stackframeinfo **info;
 	s4 i;
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int b;
@@ -2949,16 +2950,17 @@ void class_init(classinfo *c)
 	blockInts = 0;
 #endif
 
+	info = builtin_asm_new_stackframeinfo();
+	(*info)->method = m;
+	(*info)->returnFromNative = 0;
+	(*info)->addrReturnFromNative = 0;
+	log_text("cl_init");
+	utf_display(m->class->name);
 
-                        native_stackframeinfo **info=builtin_asm_new_stackframeinfo();
-                        (*info)->method=m;
-                        (*info)->returnFromNative=0;
-                        (*info)->addrReturnFromNative=0;
-			log_text("cl_init");
-			utf_display(m->class->name);
 	/* now call the initializer */
 	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
-                        *info=(*info)->prev;
+
+	*info = (*info)->prev;
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);
