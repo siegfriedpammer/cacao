@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Runtime.c 1506 2004-11-14 14:48:49Z jowenn $
+   $Id: Runtime.c 1514 2004-11-17 11:52:46Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+
+#include "config.h"
 #include "exceptions.h"
 #include "main.h"
 #include "jni.h"
@@ -56,7 +58,6 @@
 #include "nat/java_util_Properties.h"    /* needed for java_lang_VMRuntime.h */
 #include "nat/java_lang_VMRuntime.h"
 
-#include "config.h"
 #ifndef STATIC_CLASSPATH
 #include <dlfcn.h>
 #endif
@@ -78,8 +79,8 @@ static bool finalizeOnExit = false;
 typedef struct property property;
 
 struct property {
-	char *key;
-	char *value;
+	char     *key;
+	char     *value;
 	property *next;
 };
 
@@ -344,37 +345,46 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java_lang_VMRuntime
+ * Class:     java/lang/VMRuntime
  * Method:    nativeGetLibname
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_nativeGetLibname(JNIEnv *env, jclass clazz, java_lang_String *par1, java_lang_String *par2)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_nativeGetLibname(JNIEnv *env, jclass clazz, java_lang_String *pathname, java_lang_String *libname)
 {
 	char *buffer;
 	int buffer_len;
-	utf *data;
-	java_lang_String *resultString;	
-	data = javastring_toutf(par2, 0);
+	utf *u;
+	java_lang_String *s;
+
+	if (!libname) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
+
+	u = javastring_toutf(libname, 0);
 	
-	if (!data) {
+	if (!u) {
 		log_text("nativeGetLibName: Error: empty string");
 		return 0;;
 	}
 	
-	buffer_len = utf_strlen(data) + 6 /*lib .so */ +1 /*0*/;
+	buffer_len = utf_strlen(u) + 6 /*lib .so */ +1 /*0*/;
 	buffer = MNEW(char, buffer_len);
-	sprintf(buffer,"lib");
-	utf_sprint(buffer+3,data);
-	strcat(buffer,".so");
+
+	sprintf(buffer, "lib");
+	utf_sprint(buffer + 3, u);
+	strcat(buffer, ".so");
+
 #ifdef JOWENN_DEBUG
-        log_text("nativeGetLibName:");
+	log_text("nativeGetLibName:");
 	log_text(buffer);
 #endif
 	
-	resultString=javastring_new_char(buffer);	
+	s = javastring_new_char(buffer);	
 
 	MFREE(buffer, char, buffer_len);
-	return resultString;
+
+	return s;
 }
 
 
@@ -440,7 +450,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_insertSystemProperties(JNIEnv *e
 #endif
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
 	insert_property(m, p, "java.compiler", "cacao.jit");
-	insert_property(m, p, "java.ext.dirs", "null");
+	insert_property(m, p, "java.ext.dirs", "");
  	insert_property(m, p, "os.name", utsnamebuf.sysname);
 	insert_property(m, p, "os.arch", utsnamebuf.machine);
 	insert_property(m, p, "os.version", utsnamebuf.release);
