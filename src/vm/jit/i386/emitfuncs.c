@@ -26,15 +26,21 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2042 2005-03-20 13:42:54Z twisti $
+   $Id: emitfuncs.c 2211 2005-04-04 10:39:36Z christian $
 
 */
 
-
+#include "vm/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/types.h"
+
+#ifdef STATISTICS
+#define COUNT(a) (a)++
+#else
+#define COUNT(a)
+#endif
 
 
 void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
@@ -352,6 +358,7 @@ void i386_emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction 
  */
 void i386_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
+	COUNT(count_mov_reg_reg);
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_reg((reg),(dreg));
 }
@@ -374,6 +381,7 @@ void i386_movb_imm_reg(codegendata *cd, s4 imm, s4 reg)
 
 void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
 	i386_emit_membase((basereg),(disp),(reg));
 }
@@ -385,6 +393,7 @@ void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
  */
 void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
 	i386_address_byte(2, (reg), (basereg));
 	i386_emit_imm32((disp));
@@ -393,6 +402,7 @@ void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 
 void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 {
+	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_membase((basereg),(disp),(reg));
 }
@@ -400,6 +410,7 @@ void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 
 void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
 }
@@ -407,6 +418,7 @@ void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4
 
 void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
+	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
 }
@@ -414,6 +426,7 @@ void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 inde
 
 void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
+	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x66;
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
@@ -422,6 +435,7 @@ void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 ind
 
 void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale)
 {
+	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x88;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
 }
@@ -429,6 +443,7 @@ void i386_movb_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 ind
 
 void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
 {
+	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_mem((reg),(mem));
 }
@@ -436,6 +451,7 @@ void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem)
 
 void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
 	i386_emit_mem((dreg),(mem));
 }
@@ -467,6 +483,7 @@ void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 
 void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbe;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
@@ -475,6 +492,7 @@ void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg,
 
 void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));
@@ -483,6 +501,7 @@ void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg,
 
 void i386_movzwl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
+	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xb7;
 	i386_emit_memindex((reg),(disp),(basereg),(indexreg),(scale));

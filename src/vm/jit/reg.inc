@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2038 2005-03-20 11:22:40Z twisti $
+   $Id: reg.inc 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -112,7 +112,7 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 			rd->savintregs[rd->savintreguse++] = i;
 			break;
 		case REG_TMP:
-			rd->tmpintregs[rd->tmpintreguse++] = i;
+  			rd->tmpintregs[rd->tmpintreguse++] = i; 
 			break;
 		case REG_ARG:
 			rd->argintregs[rd->intreg_argnum++] = i;
@@ -149,6 +149,63 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	rd->secondregs[rd->argintregs[rd->intreg_argnum - 1]] = REG_ITMP3;
 #endif
 
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	/* setup the address register table */
+	rd->adrreg_argnum = 0;
+	rd->tmpadrregcnt = 0;
+	rd->savadrregcnt = 0;
+
+	for (rd->adrregsnum = 0; nregdescadr[rd->adrregsnum] != REG_END; rd->adrregsnum++) {
+		switch (nregdescadr[rd->adrregsnum]) {
+		case REG_SAV:
+			rd->savadrregcnt++;
+			break;
+		case REG_TMP:
+			rd->tmpadrregcnt++;
+			break;
+		case REG_ARG:
+			rd->adrreg_argnum++;
+			break;
+		}
+	}
+
+	rd->argadrregs = DMNEW(s4, rd->adrreg_argnum);
+	rd->tmpadrregs = DMNEW(s4, rd->tmpadrregcnt);
+	rd->savadrregs = DMNEW(s4, rd->savadrregcnt);
+	rd->freeargadrregs = DMNEW(s4, rd->adrreg_argnum);
+	rd->freetmpadrregs = DMNEW(s4, rd->tmpadrregcnt);
+	rd->freesavadrregs = DMNEW(s4, rd->savadrregcnt);
+
+	rd->adrreg_argnum = 0;
+	rd->argadrreguse = 0;
+	rd->tmpadrreguse = 0;
+	rd->savadrreguse = 0;
+
+	for (i = 0; i < rd->adrregsnum; i++) {
+		switch (nregdescadr[i]) {
+		case REG_RET:
+			rd->adrreg_ret = i; 
+			break;
+		case REG_SAV:
+			rd->savadrregs[rd->savadrreguse++] = i;
+			break;
+		case REG_TMP:
+  			rd->tmpadrregs[rd->tmpadrreguse++] = i; 
+			break;
+		case REG_ARG:
+			rd->argadrregs[rd->adrreg_argnum++] = i;
+			rd->argadrreguse++;
+			break;
+		}
+	}
+
+/* #if defined(????) */
+	/* 
+	 * on xdsp the argument registers are in ascending order ???
+	 */
+/* #endif */
+#endif
+		
 	/* setup the float register table */
 	rd->fltreg_argnum = 0;
 	rd->tmpfltregcnt = 0;
@@ -223,6 +280,13 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		v[0][TYPE_ADR].type = -1;
 		v[0][TYPE_ADR].flags = 0;
 	}
+#ifdef INVOKE_NEW
+#ifdef SPECIALMEMUSE
+	rd->ifmemuse = 6;
+#else
+	rd->ifmemuse = 0; /* init to zero -> analyse_stack will set it to a higher value, if appropriate */
+#endif
+#endif
 }
 
 
@@ -273,12 +337,16 @@ void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	int     s, t, saved;
-	int     intalloc, fltalloc;
+	int     intalloc, fltalloc; /* ?per Interface slot only one flt or one int type can be allocated to a register? */
 	varinfo *v;
 	int		regsneeded = 0;
 
 	/* allocate stack space for passing arguments to called methods */
+#ifdef INVOKE_NEW_DEBUG
+	int temp;
+#endif
 
+#ifndef INVOKE_NEW
 #if !defined(SPECIALMEMUSE)
 	/* For this to work properly the integer argument register count must be  */
 	/* less or equal the float argument register count (e.g. x86_64).         */
@@ -290,11 +358,44 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 		rd->ifmemuse = 0;
 	}
 #endif
+#ifdef INVOKE_NEW_DEBUG
+	if (compileverbose) {
+		printf("ifmemuse by reg.inc: %3i,%3i\n",rd->ifmemuse, rd->maxmemuse);
+	}
+#endif
+#else /* ifndef INVOKE_NEW */
+#ifdef INVOKE_NEW_DEBUG
+	if (compileverbose) {
+		temp = rd->ifmemuse;
+#if !defined(SPECIALMEMUSE)
+		/* For this to work properly the integer argument register count must be  */
+		/* less or equal the float argument register count (e.g. x86_64).         */
+		/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
+		if (rd->arguments_num > INT_ARG_CNT) {
+			rd->ifmemuse = rd->arguments_num - INT_ARG_CNT;
+
+		} else {
+			rd->ifmemuse = 0;
+		}
+#endif
+		if (compileverbose) {
+			printf("ifmemuse by reg.inc: %3i,%3i\n",rd->ifmemuse, rd->maxmemuse);
+			if (temp != rd->ifmemuse)
+				printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+		}
+		rd->ifmemuse = temp;
+	}
+#endif
+#endif /* ifndef INVOKE_NEW */
 
 	rd->iftmpintregcnt = rd->tmpintregcnt;
 	rd->ifsavintregcnt = rd->savintregcnt;
 	rd->iftmpfltregcnt = rd->tmpfltregcnt;
 	rd->ifsavfltregcnt = rd->savfltregcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	rd->iftmpadrregcnt = rd->tmpadrregcnt;
+	rd->ifsavadrregcnt = rd->savadrregcnt;
+#endif
 
 	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
@@ -311,6 +412,23 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 				regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 				if (!saved) {
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					if (t == TYPE_ADR) {
+						if (rd->iftmpadrregcnt > 0) {
+							rd->iftmpadrregcnt--;
+							v->regoff = rd->tmpadrregs[rd->iftmpadrregcnt];
+						}
+						else if (rd->ifsavadrregcnt > 0) {
+							rd->ifsavadrregcnt--;
+							v->regoff = rd->savadrregs[rd->ifsavadrregcnt];
+						}
+						else {
+							v->flags |= INMEMORY;
+							v->regoff = rd->ifmemuse;
+							rd->ifmemuse += regsneeded + 1;
+						}						
+					} else {
+#endif
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
 							v->flags |= rd->interfaces[s][fltalloc].flags & INMEMORY;
@@ -363,8 +481,24 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 						intalloc = t;
 					}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					}
+#endif
 				}
 				else {
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					if (t == TYPE_ADR) {
+						if (rd->ifsavadrregcnt > 0) {
+							rd->ifsavadrregcnt--;
+							v->regoff = rd->savadrregs[rd->ifsavadrregcnt];
+						}
+						else {
+							v->flags |= INMEMORY;
+							v->regoff = rd->ifmemuse;
+							rd->ifmemuse += regsneeded + 1;
+						}						
+					} else {
+#endif
 					if (IS_FLT_DBL_TYPE(t)) {
 						if (fltalloc >= 0) {
 							v->flags |= rd->interfaces[s][fltalloc].flags & INMEMORY;
@@ -409,6 +543,9 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 						intalloc = t;
 					}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					}
+#endif
 				}
 			} /* if (type >= 0) */
 		} /* for t */
@@ -421,6 +558,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	rd->maxargfltreguse = -1;
 	rd->maxtmpfltreguse = rd->iftmpfltregcnt;
 	rd->maxsavfltreguse = rd->ifsavfltregcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	rd->maxargadrreguse = -1;
+	rd->maxtmpadrreguse = rd->iftmpadrregcnt;
+	rd->maxsavadrreguse = rd->ifsavadrregcnt;
+#endif
 }
 
 
@@ -441,8 +583,14 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (m->isleafmethod) {
 		int arg, doublewordarg, iargcnt, fargcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		int aargcnt;
+#endif
 
 		arg = 0, iargcnt = 0, fargcnt = 0;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		aargcnt = 0;
+#endif
 		doublewordarg = 0;
 		for (s = 0; s < cd->maxlocals; s++) {
 			intalloc = -1; fltalloc = -1;
@@ -453,6 +601,33 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (v->type >= 0) {
 #ifdef USETWOREGS
 					regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					if (t == TYPE_ADR) {
+						/* doublewordarg not possible for xdsp */
+#if !defined(CONSECUTIVE_ADDRESSARGS)
+						aargcnt = arg;
+#endif
+  						if ((arg < m->paramcount) && (aargcnt < rd->adrreg_argnum)) {
+							v->flags = 0;
+							v->regoff = rd->argadrregs[aargcnt];
+						}
+						if (rd->maxtmpadrreguse > 0) {
+							rd->maxtmpadrreguse--;
+							v->flags = 0;
+							v->regoff = rd->tmpadrregs[rd->maxtmpadrreguse];
+						}
+						else if (rd->maxsavadrreguse > 0) {
+							rd->maxsavadrreguse--;
+							v->flags = 0;
+							v->regoff = rd->savadrregs[rd->maxsavadrreguse];
+						}
+						else {
+							v->flags |= INMEMORY;
+							v->regoff = rd->ifmemuse;
+							rd->ifmemuse += regsneeded + 1;
+						}						
+					} else {
 #endif
 					if (IS_FLT_DBL_TYPE(t)) {
 #if !defined(CONSECUTIVE_FLOATARGS)
@@ -542,6 +717,9 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 						intalloc = t;
 					}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					}
+#endif
 				}
 			}
 			if (arg < m->paramcount) {
@@ -560,12 +738,20 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 					doublewordarg = 1;
 
 				} else {
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					if ( TYPE_ADR == m->paramtypes[arg] ) {
+						aargcnt++;
+					} else {
+#endif
 					if (IS_FLT_DBL_TYPE(m->paramtypes[arg])) {
 						fargcnt++;
 
 					} else {
 						iargcnt++;
 					}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+					}
+#endif
 					arg++;
 				}
 			}
@@ -581,6 +767,20 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (v->type >= 0) {
 #ifdef USETWOREGS
 				regsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
+#endif
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				if ( t == TYPE_ADR ) {
+					if (rd->maxsavadrreguse > 0) {
+						rd->maxsavadrreguse--;
+						v->flags = 0;
+						v->regoff = rd->savadrregs[rd->maxsavadrreguse];
+					}
+					else {
+						v->flags = INMEMORY;
+						v->regoff = rd->maxmemuse;
+						rd->maxmemuse += regsneeded + 1;
+					}
+				} else {
 #endif
 				if (IS_FLT_DBL_TYPE(t)) {
 					if (fltalloc >= 0) {
@@ -628,6 +828,10 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 					intalloc = t;
 				}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				}
+#endif
+
 			}
 		}
 	}
@@ -644,15 +848,26 @@ static void reg_init_temp(registerdata *rd)
 	rd->freesavinttop = 0;
 	rd->freetmpflttop = 0;
 	rd->freesavflttop = 0;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	rd->freetmpadrtop = 0;
+	rd->freesavadrtop = 0;
+#endif
 
 	rd->tmpintreguse = rd->iftmpintregcnt;
 	rd->savintreguse = rd->ifsavintregcnt;
 	rd->tmpfltreguse = rd->iftmpfltregcnt;
 	rd->savfltreguse = rd->ifsavfltregcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	rd->tmpadrreguse = rd->iftmpadrregcnt;
+	rd->savadrreguse = rd->ifsavadrregcnt;
+#endif
 
 	/* all argument registers are available */
 	rd->argintreguse = rd->intreg_argnum;
 	rd->argfltreguse = rd->fltreg_argnum;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	rd->argadrreguse = rd->adrreg_argnum;
+#endif
 }
 
 
@@ -678,6 +893,22 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 		if (tryagain == 1) {
 			if (!(s->flags & SAVEDVAR))
 				s->flags |= SAVEDTMP;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			if (s->type == TYPE_ADR) {
+				if (rd->freesavadrtop > 0) {
+					rd->freesavadrtop--;
+					s->regoff = rd->freesavadrregs[rd->freesavadrtop];
+					return;
+
+				} else if (rd->savadrreguse > 0) {
+					rd->savadrreguse--;
+					if (rd->savadrreguse < rd->maxsavadrreguse)
+						rd->maxsavadrreguse = rd->savadrreguse;
+					s->regoff = rd->savadrregs[rd->savadrreguse];
+					return;
+				}
+			} else {
+#endif
 			if (IS_FLT_DBL_TYPE(s->type)) {
 				if (rd->freesavflttop > 0) {
 					rd->freesavflttop--;
@@ -715,8 +946,26 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 				}
 #endif
 			}
-
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			}
+#endif
 		} else {
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			if (s->type == TYPE_ADR) {
+				if (rd->freetmpadrtop > 0) {
+					rd->freetmpadrtop--;
+					s->regoff = rd->freetmpadrregs[rd->freetmpadrtop];
+					return;
+
+				} else if (rd->tmpadrreguse > 0) {
+					rd->tmpadrreguse--;
+					if (rd->tmpadrreguse < rd->maxtmpadrreguse)
+						rd->maxtmpadrreguse = rd->tmpadrreguse;
+					s->regoff = rd->tmpadrregs[rd->tmpadrreguse];
+					return;
+				}
+			} else {
+#endif
 			if (IS_FLT_DBL_TYPE(s->type)) {
 				if (rd->freetmpflttop > 0) {
 					rd->freetmpflttop--;
@@ -754,6 +1003,9 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 				}
 #endif
 			}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+			}
+#endif
 		}
 	}
 
@@ -790,6 +1042,15 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 			rd->freemem[rd->freememtop + 1] = s->regoff + 1;
 		rd->freememtop += regsneeded + 1;
 
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	} else if (s->type == TYPE_ADR) {
+		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
+			s->flags &= ~SAVEDTMP;
+			rd->freesavadrregs[rd->freesavadrtop++] = s->regoff;
+
+		} else
+			rd->freetmpadrregs[rd->freetmpadrtop++] = s->regoff;
+#endif
 	} else if (IS_FLT_DBL_TYPE(s->type)) {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
 			s->flags &= ~SAVEDTMP;

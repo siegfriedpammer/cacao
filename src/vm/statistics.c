@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 2080 2005-03-25 13:35:06Z edwin $
+   $Id: statistics.c 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -88,6 +88,10 @@ int count_interface_size = 0;
 int count_argument_mem_ss = 0;
 int count_argument_reg_ss = 0;
 int count_method_in_register = 0;
+int count_mov_reg_reg = 0;
+int count_mov_mem_reg = 0;
+int count_mov_reg_mem = 0;
+int count_mov_mem_mem = 0;
 
 int count_jit_calls = 0;
 int count_methods = 0;
@@ -503,6 +507,14 @@ void print_stats()
 
 
 	/* LSRA statistics ********************************************************/
+	sprintf(logtext, "Moves reg -> reg:     %6d",count_mov_reg_reg );
+	log_text(logtext);
+	sprintf(logtext, "Moves mem -> reg:     %6d",count_mov_mem_reg );
+	log_text(logtext);
+	sprintf(logtext, "Moves reg -> mem:     %6d",count_mov_reg_mem );
+	log_text(logtext);
+	sprintf(logtext, "Moves mem -> mem:     %6d",count_mov_mem_mem );
+	log_text(logtext);
 
 	sprintf(logtext, "Methods allocated by LSRA:         %6d", count_methods_allocated_by_lsra);
 	log_text(logtext);

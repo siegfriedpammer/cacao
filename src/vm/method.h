@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2190 2005-04-02 10:07:44Z edwin $
+   $Id: method.h 2211 2005-04-04 10:39:36Z christian $
 */
 
 
@@ -117,7 +117,9 @@ struct methodinfo {                 /* method structure                       */
 	s4	        subRedefsUsed;
 	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
 	/* helper for lsra */
+#ifdef LSRA
 	s4          maxlifetimes;
+#endif
 };
 
 

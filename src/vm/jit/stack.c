@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: stack.c 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -51,6 +51,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
+#include "vm/jit/lsra.h"
 
 
 /**********************************************************************/
@@ -94,6 +95,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	s4 *s4ptr;
 	void* *tptr;
 	s4 *argren;
+
+#ifdef INVOKE_NEW
+	s4 call_argcount;
+	s4 call_returntype;
+#endif
+
+#ifdef LSRA
+	m->maxlifetimes = 0;
+#endif
 
 	argren = DMNEW(s4, cd->maxlocals);   /* table for argument renaming       */
 	for (i = 0; i < cd->maxlocals; i++)
@@ -1824,7 +1834,29 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 						/* pop many push any */
-						
+#ifdef INVOKE_NEW
+				case ICMD_BUILTIN3:
+						call_argcount = 3;
+						call_returntype = iptr->op1;
+						goto _callhandling;
+					case ICMD_BUILTIN2:
+#if defined(USEBUILTINTABLE) || !SUPPORT_DIVISION
+					/* Just prevent a compiler warning... */
+					builtin2:
+#endif
+						call_argcount = 2;
+						call_returntype = iptr->op1;
+						goto _callhandling;
+					case ICMD_BUILTIN1:
+#if defined(USEBUILTINTABLE)
+					/* Just prevent a compiler warning... */
+					builtin1:
+#endif	
+						call_argcount = 1;
+						call_returntype = iptr->op1;
+						goto _callhandling;
+
+#endif
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKESPECIAL:
 					case ICMD_INVOKEINTERFACE:
@@ -1834,10 +1866,232 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							methodinfo *lm = iptr->val.a;
 							if (lm->flags & ACC_STATIC)
 								{COUNT(count_check_null);}
+#ifdef INVOKE_NEW
+							call_argcount = iptr->op1;
+							call_returntype = lm->returntype;
+
+						_callhandling:
+#endif
+#ifdef INVOKE_NEW
+							i = call_argcount;
+#else
 							i = iptr->op1;
+#endif
+							
 							if (i > rd->arguments_num)
 								rd->arguments_num = i;
 							REQUIRE(i);
+/* --------- old and unchanged till here (almoust ;)----------- */
+#ifdef INVOKE_NEW
+/* --------- new try from here on till #else            ------- */
+							{
+								s4 iarg = 0;
+								s4 farg = 0;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+								s4 aarg = 0;
+#endif
+								s4 stacksize = 0;     /* Stackoffset for spilled arg */
+								s4 maxstacksize = 0;  /* Stackspace required for spilled args */
+								s4 paramsize;
+
+#ifdef SPECIALMEMUSE
+/* normaly Parameters are spilled beginning from offset 0, regardless the argument index */
+/* with SPECIALMEMUSE, Parameters are spilled from offset 6, regarding the argument index -> Parameters in registers "waste" Stackspace */
+								stacksize = 6;
+#endif
+							/* Calc ARGVAR Stackslots regarding CONSECUTIVE_[INT|FLOAT|ADDR]ARGS and */
+							/* rd->[int|flt|adr]reg_argnum                                           */
+
+								/* count integer, float and if existing address arguments and possibly used stackspace*/
+
+								copy = curstack;
+								while (--i >= 0) {
+#ifdef SPECIALMEMUSE
+#ifdef USETWOREGS
+									stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
+#else
+									stacksize++;
+#endif
+#endif
+									switch (copy->type) {
+									case TYPE_ADR:
+#ifdef HAS_ADDRESS_REGISTER_FILE
+#ifdef CONSECUTIVE_ADDRARGS
+										aarg++;
+#endif
+#ifndef SPECIALMEMUSE
+#ifdef CONSECUTIVE_ADDRARGS
+										if (aarg > rd->adrreg_argnum)
+#else
+										if (i >= rd->adrreg_argnum)
+#endif
+										    stacksize++;
+#endif
+										break;
+#endif
+									case TYPE_INT:
+									case TYPE_LNG:
+#ifdef CONSECUTIVE_INTARGS
+#ifdef USETWOREGS
+										iarg += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
+#else
+	   									iarg++;
+#endif
+#endif
+#ifndef SPECIALMEMUSE
+#ifdef CONSECUTIVE_INTARGS
+										if (iarg > rd->intreg_argnum)
+#else
+										if (i >= rd->intreg_argnum)
+#endif
+#ifdef USETWOREGS
+											stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
+#else
+										    stacksize++;
+#endif
+#endif
+										break;
+									case TYPE_FLT:
+									case TYPE_DBL:
+#ifdef CONSECUTIVE_FLOATARGS
+										farg++;
+#endif
+#ifndef SPECIALMEMUSE
+#ifdef CONSECUTIVE_FLOATARGS
+
+										if (farg > rd->fltreg_argnum)
+#else
+										if (i >= rd->fltreg_argnum)
+#endif
+#ifdef USETWOREGS
+											stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
+#else
+										    stacksize++;
+#endif
+#endif
+										break;
+									}
+
+									copy = copy->prev;
+								}
+								/* Set ARGVAR to appropriate registerfile index, calc rd->ifmemuse (max stackspace) */
+#ifdef SPECIALMEMUSE
+								if (stacksize > rd->ifmemuse)
+									rd->ifmemuse = stacksize;
+#endif
+								i = call_argcount;
+								copy = curstack;
+								paramsize = 1;
+								while (--i >= 0) {
+#ifdef USETWOREGS
+									paramsize = (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;
+#endif
+#ifdef HAS_ADDRESS_REGISTER_FILE
+									if (copy->type == TYPE_ADR) {
+#ifdef CONSECUTIVE_ADDRARGS
+										aarg--;
+#else
+										aarg = i;
+#endif
+#ifndef SPECIALMEMUSE
+										if (aarg >= rd->adrreg_argnum)
+											if (!maxstacksize)
+												maxstacksize = stacksize;
+#endif
+										if (!(copy->flags & SAVEDVAR)) {
+											copy->varnum = aarg;
+											copy->varkind = ARGVAR;
+											if (aarg < rd->adrreg_argnum) {
+												copy->flags = 0;
+												copy->regoff = rd->argadrregs[aarg];
+											} else {
+												copy->flags = INMEMORY;
+												copy->regoff = stacksize - paramsize;
+#ifndef SPECIALMEMUSE
+												stacksize -=paramsize;
+#endif
+											}
+										}												
+									} else {
+#endif
+										if (IS_FLT_DBL_TYPE(copy->type)) {
+#ifdef CONSECUTIVE_FLOATARGS
+											farg--;
+#else
+											farg = i;
+#endif
+#ifndef SPECIALMEMUSE
+
+											if (farg >= rd->fltreg_argnum)
+												if (!maxstacksize)
+													maxstacksize = stacksize;
+#endif
+											if (!(copy->flags & SAVEDVAR)) {
+												copy->varnum = farg;
+												copy->varkind = ARGVAR;
+												if (farg < rd->fltreg_argnum) {
+													copy->flags = 0;
+													copy->regoff = rd->argfltregs[farg];
+												} else {
+													copy->flags = INMEMORY;
+													copy->regoff = stacksize - paramsize;
+#ifndef SPECIALMEMUSE
+													stacksize -=paramsize;
+#endif
+												}
+											}												
+										} else { /* int_arg */
+#ifdef CONSECUTIVE_INTARGS
+											iarg--;
+#else
+#ifndef SPECIALMEMUSE
+											iarg = i;
+#else
+#ifdef USETWOREGS
+											iarg = stacksize - paramsize - 6;
+#endif
+#endif
+#endif
+#ifndef SPECIALMEMUSE
+											if (iarg >= rd->intreg_argnum)
+												if (!maxstacksize)
+													maxstacksize = stacksize;
+#endif
+											if (!(copy->flags & SAVEDVAR)) {
+												copy->varnum = iarg;
+												copy->varkind = ARGVAR;
+#ifdef USETWOREGS
+												if ((iarg+paramsize-1) < rd->intreg_argnum) {
+#else
+												if (iarg < rd->intreg_argnum) {
+#endif
+													copy->flags = 0;
+													copy->regoff = rd->argintregs[iarg];
+												} else {
+													copy->flags = INMEMORY;
+													copy->regoff = stacksize - paramsize;
+#ifndef SPECIALMEMUSE
+													stacksize -=paramsize;
+#endif
+												}
+											}
+										}
+#ifdef HAS_ADDRESS_REGISTER_FILE
+									}
+#endif
+#ifdef SPECIALMEMUSE
+									stacksize -=paramsize;
+#endif
+									copy = copy->prev;
+								}
+#ifndef SPECIALMEMUSE
+								if (rd->ifmemuse < maxstacksize)
+									rd->ifmemuse = maxstacksize;
+#endif
+	if (compileverbose)
+		printf("ifmemuse,maxstacksize by stack.c: %3i,%3i\n",rd->ifmemuse, maxstacksize);
+							}
+#else /* ifdef INVOKE_NEW */
 #if defined(__X86_64__)
 							{
 								s4 iarg = 0;
@@ -1894,21 +2148,31 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								copy = copy->prev;
 							}
 #endif /* defined(__X86_64__) */
+#endif /* ifdef INVOKE_NEW */
 							while (copy) {
 								copy->flags |= SAVEDVAR;
 								copy = copy->prev;
 							}
+#ifdef INVOKE_NEW
+							i = call_argcount;
+#else
 							i = iptr->op1;
+#endif
 							POPMANY(i);
+#ifdef INVOKE_NEW
+							if (call_returntype != TYPE_VOID)
+								OP0_1(call_returntype);
+#else
 							if (lm->returntype != TYPE_VOID)
 								OP0_1(lm->returntype);
+#endif
 							break;
 						}
 					case ICMD_INLINE_START:
 					case ICMD_INLINE_END:
 						SETDST;
 						break;
-
+#ifndef INVOKE_NEW
 					case ICMD_BUILTIN3:
 						/* DEBUG */ /*dolog("builtin3");*/
 						REQUIRE_3;
@@ -1960,10 +2224,19 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					if (iptr->op1 != TYPE_VOID)
 						OP0_1(iptr->op1);
 					break;
-
+#endif /* ifndef INVOKE_NEW */
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
 						REQUIRE(i);
+#ifdef INVOKE_NEW
+#ifdef SPECIALMEMUSE
+						if (rd->ifmemuse < (i + rd->intreg_argnum + 6))
+							rd->ifmemuse = i + rd->intreg_argnum + 6; 
+#else
+						if (rd->ifmemuse < i)
+							rd->ifmemuse = i; /* n integer args spilled on stack */
+#endif
+#endif
 						if ((i + INT_ARG_CNT) > rd->arguments_num)
 							rd->arguments_num = i + INT_ARG_CNT;
 						copy = curstack;
@@ -1972,6 +2245,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							if (!(copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
+#ifdef INVOKE_NEW
+								copy->flags|=INMEMORY;
+#ifdef SPECIALMEMUSE
+								copy->regoff = i + rd->intreg_argnum + 6;
+#else
+								copy->regoff = i;
+#endif
+#endif
 							}
 							copy = copy->prev;
 						}
@@ -2137,10 +2418,14 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
 					printf(" M%02d", s->regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				else if (s->type == TYPE_ADR)
+					printf(" R%02d", s->regoff);
+#endif
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" F%02d", s->regoff);
 				else {
-					printf(" R%02d", s->regoff);
+					printf(" %3s", regs[s->regoff]);
 				}
 				break;
 			case STACKVAR:
@@ -2151,6 +2436,12 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				break;
 			case ARGVAR:
 				printf(" A%02d", s->varnum);
+#ifdef INVOKE_NEW_DEBUG
+				if (s->flags & INMEMORY)
+					printf("(M%i)", s->regoff);
+				else
+					printf("(R%i)", s->regoff);
+#endif
 				break;
 			default:
 				printf(" !%02d", j);
@@ -2160,10 +2451,14 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 			case TEMPVAR:
 				if (s->flags & INMEMORY)
 					printf(" m%02d", s->regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				else if (s->type == TYPE_ADR)
+					printf(" r%02d", s->regoff);
+#endif
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" f%02d", s->regoff);
 				else {
-					printf(" r%02d", s->regoff);
+					printf(" %3s", regs[s->regoff]);
 				}
 				break;
 			case STACKVAR:
@@ -2174,6 +2469,12 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				break;
 			case ARGVAR:
 				printf(" a%02d", s->varnum);
+#ifdef INVOKE_NEW_DEBUG
+				if (s->flags & INMEMORY)
+					printf("(M%i)", s->regoff);
+				else
+					printf("(R%i)", s->regoff);
+#endif
 				break;
 			default:
 				printf(" ?%02d", j);
@@ -2283,10 +2584,14 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 				printf("   (%s) ", jit_type[j]);
 				if (rd->locals[i][j].flags & INMEMORY)
 					printf("m%2d", rd->locals[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+				else if (j == TYPE_ADR)
+					printf("r%02d", rd->locals[i][j].regoff);
+#endif
 				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 					printf("f%02d", rd->locals[i][j].regoff);
 				else {
-					printf("r%02d", rd->locals[i][j].regoff);
+					printf("%3s", regs[rd->locals[i][j].regoff]);
 				}
 			}
 		printf("\n");
@@ -2309,19 +2614,27 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 					if (rd->interfaces[i][j].flags & SAVEDVAR) {
 						if (rd->interfaces[i][j].flags & INMEMORY)
 							printf("M%2d", rd->interfaces[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+						else if (j == TYPE_ADR)
+							printf("R%02d", rd->interfaces[i][j].regoff);
+#endif
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("F%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("R%02d", rd->interfaces[i][j].regoff);
+							printf("%3s", regs[rd->locals[i][j].regoff]);
 						}
 					}
 					else {
 						if (rd->interfaces[i][j].flags & INMEMORY)
 							printf("m%2d", rd->interfaces[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+						else if (j == TYPE_ADR)
+							printf("r%02d", rd->interfaces[i][j].regoff);
+#endif
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("f%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("r%02d", rd->interfaces[i][j].regoff);
+							printf("%3s", regs[rd->locals[i][j].regoff]);
 						}
 					}
 				}
@@ -2399,6 +2712,22 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			else
 				icmd_print_stack(cd, iptr->dst);
 			printf("]     %4d  ", i);
+
+#ifdef LSRA_EDX
+			if (icmd_uses_tmp[iptr->opc][0])
+				printf("  ---");
+			else
+				printf("  EAX");
+			if (icmd_uses_tmp[iptr->opc][1])
+				printf(" ---");
+			else
+				printf(" ECX");
+			if (icmd_uses_tmp[iptr->opc][2])
+				printf(" ---  ");
+			else
+				printf(" EDX  ");
+#endif
+
 			show_icmd(iptr, deadcode);
 			printf("\n");
 		}

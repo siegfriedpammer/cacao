@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2189 2005-04-02 02:05:59Z edwin $
+   $Id: codegen.inc 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -874,6 +874,10 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 		break;
 
 	case ARGVAR:
+#ifdef INVOKE_NEW
+		if (!(v->flags & INMEMORY))
+			return(v->regoff);
+#else
 		v->regoff = v->varnum;
 		if (IS_FLT_DBL_TYPE(v->type)) {
 			if (v->varnum < FLT_ARG_CNT) {
@@ -903,6 +907,7 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 			v->regoff -= INT_ARG_CNT;
 #endif
 		}
+#endif
 		break;
 	}
 #ifdef STATISTICS

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2210 2005-04-04 10:06:38Z twisti $
+   $Id: cacao.c 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -781,12 +781,12 @@ int main(int argc, char **argv)
 
 #ifdef LSRA
 		case OPT_LSRA:
-#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__) || defined(__POWERPC__)
+/* #if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__) || defined(__POWERPC__) */
 			opt_lsra = true;
-#else
-			printf("LSRA not available for this architecture\n");
-			opt_lsra = false;
-#endif
+/* #else */
+/* 			printf("LSRA not available for this architecture\n"); */
+/* 			opt_lsra = false; */
+/* #endif */
 			break;
 #endif
 
@@ -1100,6 +1100,7 @@ int main(int argc, char **argv)
 void cacao_exit(s4 status)
 {
 	methodinfo *m;
+
 
 	assert(class_java_lang_System);
 	assert(class_java_lang_System->loaded);

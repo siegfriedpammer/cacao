@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 2080 2005-03-25 13:35:06Z edwin $
+   $Id: statistics.h 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -97,6 +97,10 @@ extern int count_interface_size;
 extern int count_argument_mem_ss;
 extern int count_argument_reg_ss;
 extern int count_method_in_register;
+extern int count_mov_reg_reg;
+extern int count_mov_mem_reg;
+extern int count_mov_reg_mem;
+extern int count_mov_mem_mem;
 
 extern int count_jit_calls;
 extern int count_methods;

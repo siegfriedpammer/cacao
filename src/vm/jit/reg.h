@@ -26,13 +26,20 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 1962 2005-02-23 11:50:07Z twisti $
+   $Id: reg.h 2211 2005-04-04 10:39:36Z christian $
 
 */
 
 
 #ifndef _REG_H
 #define _REG_H
+
+/* #define INVOKE_NEW */
+/* #define INVOKE_NEW_DEBUG */
+
+/* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
+/* Changes affect handling of ARGVAR Stackslots in reg_of_var in codegen.inc          */
+/* and calculation of rd->ifmemuse in reg.inc                                         */
 
 /* We typedef these structures before #includes to resolve circular           */
 /* dependencies.                                                              */
@@ -72,10 +79,10 @@ struct registerdata {
 	int fltreg_argnum;              /* number of float argument registers     */
 
 
-	int *argintregs;                /* scratch integer registers              */
+	int *argintregs;                /* argument integer registers             */
 	int *tmpintregs;                /* scratch integer registers              */
 	int *savintregs;                /* saved integer registers                */
-	int *argfltregs;                /* scratch float registers                */
+	int *argfltregs;                /* argument float registers               */
 	int *tmpfltregs;                /* scratch float registers                */
 	int *savfltregs;                /* saved float registers                  */
 	int *freeargintregs;            /* free argument integer registers        */
@@ -84,6 +91,31 @@ struct registerdata {
 	int *freeargfltregs;            /* free argument float registers          */
 	int *freetmpfltregs;            /* free scratch float registers           */
 	int *freesavfltregs;            /* free saved float registers             */
+
+#ifdef HAS_ADDRESS_REGISTER_FILE
+	int adrregsnum;                 /* absolute number of address registers   */
+	int adrreg_ret;                 /* register to return address values      */
+	int adrreg_argnum;              /* number of address argument registers   */
+	int *argadrregs;                /* argument address registers             */
+	int *tmpadrregs;                /* scratch address registers              */
+	int *savadrregs;               /* saved address registers                */
+	int *freeargadrregs;            /* free argument address registers        */
+	int *freetmpadrregs;            /* free scratch address registers         */
+	int *freesavadrregs;            /* free saved address registers           */
+
+	int tmpadrregcnt;               /* scratch address register count         */
+	int savadrregcnt;               /* saved address register count           */
+	int iftmpadrregcnt;             /* iface scratch address register count   */
+	int ifsavadrregcnt;             /* iface saved address register count     */
+	int argadrreguse;               /* used argument address register count   */
+	int tmpadrreguse;               /* used scratch address register count    */
+	int savadrreguse;               /* used saved address register count      */
+	int maxargadrreguse;            /* max used argument address register count */
+	int maxtmpadrreguse;            /* max used scratch address register count  */
+	int maxsavadrreguse;            /* max used saved address register count  */
+	int freetmpadrtop;              /* free scratch address register count    */
+	int freesavadrtop;              /* free saved address register count      */
+#endif
 
 #ifdef USETWOREGS
 	int *secondregs;                /* used for longs in 2 32 bit registers   */

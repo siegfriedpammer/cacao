@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: stack.h 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -102,8 +102,14 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
-                        new->varkind=v;new->varnum=n;curstack=new;new++;}
+#define NEWSTACK_(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
+		                new->varkind=v;new->varnum=n;curstack=new;new++; }
+#ifdef LSRA
+    #define NEWSTACK(s,v,n) {NEWSTACK_(s,v,n); m->maxlifetimes++;}
+#else
+    #define NEWSTACK(s,v,n) NEWSTACK_(s,v,n)
+#endif
+
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
 #define NEWSTACK0(s)    NEWSTACK(s,UNDEFVAR,0)
 

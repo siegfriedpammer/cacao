@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: codegen.c 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -49,6 +49,9 @@
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#ifdef LSRA
+#include "vm/jit/lsra.h"
+#endif
 #include "vm/jit/reg.h"
 #include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/types.h"
@@ -488,6 +491,23 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
+#ifdef LSRA
+		if (opt_lsra) {
+		while (src != NULL) {
+			len--;
+			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					/* 				d = reg_of_var(m, src, REG_ITMP1); */
+					if (!(src->flags & INMEMORY))
+						d= src->regoff;
+					else
+						d=REG_ITMP1;
+					M_INTMOVE(REG_ITMP1, d);
+					store_reg_to_var_int(src, d);
+				}
+				src = src->prev;
+			}
+		} else {
+#endif
 		while (src != NULL) {
 			len--;
 			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
@@ -523,7 +543,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			src = src->prev;
 		}
-
+#ifdef LSRA
+		}
+#endif
 		/* walk through all instructions */
 		
 		src = bptr->instack;
@@ -3299,6 +3321,9 @@ afteractualcall:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
+#ifdef LSRA
+	if (!opt_lsra) 
+#endif
 	while (src) {
 		len--;
 		if ((src->varkind != STACKVAR)) {

@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2030 2005-03-10 16:17:50Z christian $
+   $Id: lsra.h 2211 2005-04-04 10:39:36Z christian $
 
 */
 
@@ -34,32 +34,63 @@
 #ifndef _LSRA_H
 #define _LSRA_H
 
-/*   #define LSRA_DEBUG */
+/* #define LSRA_DEBUG */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
-/* #define LSRA_PRINTLIFETIMES */
+/*  #define LSRA_PRINTLIFETIMES */
 /* #define LSRA_EDX */
+/*  #define LSRA_TESTLT */
+/* #define LSRA_LEAF */
+#define JOIN_DEST_STACK
+#define JOIN_DUP_STACK
+#define LSRA_DO_SR
+#define LSRA_DO_EX
+
+
+#define USAGE_COUNT        /* influence LSRA with usagecount */
+#define USAGE_PER_INSTR    /* divide usagecount by lifetimelength */
+
+#ifdef LSRA_DEBUG
+#undef LSRA_LEAF
+#endif
+
+#ifdef LSRA_TESTLT
+#define VS 999999
+#endif
 
 
 #ifdef LSRA_DEBUG
 #define LSRA_PRINTLIFETIMES
 #endif
 
+#define LSRA_BB_IN 3
+#define LSRA_BB_OUT 2
 #define LSRA_STORE 1
 #define LSRA_LOAD 0
 #define LSRA_POP -1
+
+/* join types and flags*/
+#define JOIN     0           /* join that are not in any way dangerous */
+#define JOIN_BB  1           /* join Stackslots over Basic Block Boundaries */
+#define JOIN_DUP 2           /* join of two possibly concurring lifeteimes through DUP* */
+#define JOIN_OP  4           /* join of src operand with dst operand on i386 and x86_64 architecture */
+                             /* JOIN_DUP and JOIN_OP is mutually exclusive as JOIN_OP and JOIN_BB    */
+#define JOINING  8           /* set while joining for DUP or OP to prevent assignement to a */
+                             /* REG_RES before all involved lifetimes have been seen fully  */
 
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
 
 #if defined(LSRA_EDX)
-struct tmp_reg {
-	int eax;
-	int ecx;
-	int edx;
-};
+#define REG_RES_COUNT 3
+/* struct tmp_reg { */
+/* 	int eax; */
+/* 	int ecx; */
+/* 	int edx; */
+/* }; */
 
-extern struct tmp_reg icmd_uses_tmp[256];
+extern int icmd_uses_tmp[256][REG_RES_COUNT+1];
+extern int lsra_reg_res[REG_RES_COUNT];
 #endif
 
 struct _list {
@@ -77,18 +108,17 @@ struct lifetime {
 	int i_start; /* instruction number of first use */
 	int i_end; /* instruction number of last use */
 	int v_index; /* local variable index or negative for stackslots */
-	int type;
-	int usagecount; /* number of references*/
+	int type; /* TYPE_??? or -1 for unused lifetime */
+	long usagecount; /* number of references*/
 	int reg; /* regoffset durch lsra zugewiesen */
 	int savedvar;
-	struct stackslot *passthrough; /* List of Stackslots in Lifetime, which are passed through a Basic Block */
+	int flags;
 	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL (=="pure" Local Var) */
-
 	int bb_last_use;
 	int i_last_use;
 	int bb_first_def;
 	int i_first_def;
-	struct lifetime *next;
+/* 	struct lifetime *next; */
 };
 
 struct active_lt {
@@ -127,24 +157,41 @@ struct lsra_reg {
 	int use;
 };
 
+struct _sbr {
+	int header;
+	struct _list *ret;
+	struct _sbr *next;
+};
+
 struct lsradata {
 #if defined(LSRA_EDX)
-	int edx_free;
+	int reg_res_free[REG_RES_COUNT];
 #endif
-	struct _list **succ;
-	struct _list **pred;
-	int *num_pred;
-	int *sorted;
-	int *sorted_rev;
-	struct _backedge *_backedges;
+	struct _list **succ; /* CFG successors*/
+	struct _list **pred; /* CFG predecessors */
+	int *num_pred;       /* CFG number of predecessors */
+	int *sorted;         /* BB sorted in reverse post order */
+	int *sorted_rev;     /* BB reverse of sorted */
 	struct _backedge **backedge;
 	int backedge_count;
-	struct lifetime *ss_lifetimes;
-	struct lifetime **locals_lifetimes;
-	struct lifetime *lifetimes;
-	struct stackslot *stackslots;
+
+	struct _sbr sbr;
+
+	long *nesting;
+
+	int maxlifetimes; /* copy from methodinfo to prevent passing methodinfo as parameter */
+	struct lifetime *lifetime; /* array of lifetimes */
+	int *lt_used; /* index to lifetimearray for used lifetimes */
+	int lifetimecount;
+	int *lt_int; /* index to lifetimearray for int lifetimes */
+	int lt_int_count;
+	int *lt_flt; /* index to lifetimearray for float lifetimes */
+	int lt_flt_count;
+	int *lt_rest; /* index to lifetimearray for all lifetimes not to be allocated in registers */
+	int lt_rest_count;
+
 	struct active_lt *active_tmp, *active_sav;
-	int active_sav_count, active_tmp_count;
+
 	struct lsra_exceptiontable *ex;
 	int icount_max;
 	int end_bb;
@@ -155,13 +202,6 @@ struct freemem {
 	int off;
 	int end;
 	struct freemem *next;
-};
-
-struct lsra_exceptiontable {
-	int handler_min;
-	int handler_max;
-	int guarded_min;
-	int guarded_max;
 };
 
 typedef struct lsradata lsradata;
@@ -178,9 +218,11 @@ void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *);
 void lsra_dump_stack(stackptr );
 #endif
 #ifdef LSRA_PRINTLIFETIMES
-void print_lifetimes(registerdata *, lsradata *, struct lifetime *);
+void print_lifetimes(registerdata *, lsradata *, int *, int);
 #endif
-
+#ifdef LSRA_TESTLT
+void test_lifetimes( methodinfo *, lsradata *, registerdata *);
+#endif
 
 void lsra_reg_setup(methodinfo *m ,registerdata *,struct lsra_register *,struct lsra_register * );
 
@@ -190,22 +232,18 @@ void lsra_scan_registers_canditates(methodinfo *,  lsradata *, int);
 void lsra_join_lifetimes( methodinfo *, lsradata *, int);
 void lsra_calc_lifetime_length(methodinfo *, lsradata *, codegendata *);
 
-void lsra_merge_local_ss(struct lifetime *, struct lifetime *);
-
 void _lsra_new_stack( lsradata *, stackptr , int , int, int);
 void _lsra_from_stack(lsradata *, stackptr , int , int, int);
 void lsra_add_ss(struct lifetime *, stackptr );
 void lsra_usage_local(lsradata *, s4 , int , int , int , int );
-void lsra_new_local(lsradata *, s4 , int );
 
-void lsra_sort_lt(struct lifetime **);
-void _lsra_main( methodinfo *, lsradata *, struct lifetime *, struct lsra_register *, int *);
+void _lsra_main( methodinfo *, lsradata *, int *, int, struct lsra_register *, int *);
 void lsra_expire_old_intervalls(methodinfo *, lsradata *, struct lifetime *, struct lsra_register *);
 void _lsra_expire_old_intervalls(methodinfo *, struct lifetime *, struct lsra_register *, struct active_lt **/* , int * */);
 void spill_at_intervall(methodinfo *, lsradata *, struct lifetime *);
 void _spill_at_intervall(struct lifetime *, struct active_lt **);
 void lsra_add_active(struct lifetime *, struct active_lt **);
-void lsra_alloc(methodinfo *, registerdata *, struct lifetime *, int *);
+void lsra_alloc(methodinfo *, registerdata *, struct lsradata *, int *, int, int *);
 int lsra_getmem(struct lifetime *, struct freemem *, int *);
 struct freemem *lsra_getnewmem(int *);
 void lsra_align_stackslots(struct lsradata *, stackptr, stackptr);
