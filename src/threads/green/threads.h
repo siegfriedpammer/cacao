@@ -1,3 +1,4 @@
+/* -*- mode: c; tab-width: 4; c-basic-offset: 4 -*- */
 /*
  * thread.h
  * Thread support.
@@ -41,7 +42,8 @@ struct _thread;
 
 typedef struct _ctx
 {
-    bool               free;           /* schani */
+    struct _thread    *thread;
+    bool               free;
     u1                 status;
     u1                 priority;
     u1*                restorePoint;

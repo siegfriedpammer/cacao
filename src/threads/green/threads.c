@@ -128,13 +128,16 @@ initThreads(u1 *stackbottom)
 
     initLocks();
 
-    for (i = 0; i < MAXTHREADS; ++i)
+    for (i = 0; i < MAXTHREADS; ++i) {
 		contexts[i].free = true;
+		contexts[i].thread = NULL;
+		heap_addreference((void**)&contexts[i].thread);
+	}
 
     /* Allocate a thread to be the main thread */
     liveThreads = the_main_thread = (thread*)builtin_new(loader_load(unicode_new_char("java/lang/Thread")));
     assert(the_main_thread != 0);
-	heap_addreference((void **) &liveThreads);
+	/* heap_addreference((void **) &liveThreads); */
     
     the_main_thread->PrivateInfo = 1;
     CONTEXT(the_main_thread).free = false;
@@ -155,6 +158,7 @@ initThreads(u1 *stackbottom)
 
 	CONTEXT(the_main_thread).flags = THREAD_FLAGS_NOSTACKALLOC;
 	CONTEXT(the_main_thread).nextlive = 0;
+	CONTEXT(the_main_thread).thread = the_main_thread;
 	the_main_thread->single_step = 0;
 	the_main_thread->daemon = 0;
 	the_main_thread->stillborn = 0;
@@ -174,7 +178,7 @@ initThreads(u1 *stackbottom)
 
     mainThread = currentThread = the_main_thread;
 
-	heap_addreference((void**)&mainThread);
+	/* heap_addreference((void**)&mainThread); */
 
 	/* Add thread into runQ */
 	iresumeThread(mainThread);
@@ -200,6 +204,7 @@ startThread (thread* tid)
 
     tid->PrivateInfo = i + 1;
     CONTEXT(tid).free = false;
+	CONTEXT(tid).thread = tid;
     CONTEXT(tid).nextlive = liveThreads;
     liveThreads = tid;
     allocThreadStack(tid, threadStackSize);
@@ -532,7 +537,10 @@ killThread(thread* tid)
 		freeThreadStack(tid);
 
 		/* free context */
-		CONTEXT(tid).free = true;
+		if (tid != mainThread) {
+			CONTEXT(tid).free = true;
+			CONTEXT(tid).thread = NULL;
+		}
 
 		/* Run something else */
 		needReschedule = true;
