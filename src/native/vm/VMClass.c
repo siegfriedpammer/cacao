@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMClass.c 1075 2004-05-20 16:58:49Z twisti $
 
 */
 
@@ -166,14 +166,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     int i;
     utf *utf_constr = utf_new_char("<init>");
 
-    
-	/*log_text("Java_java_lang_VMClass_getDeclaredConstructors");
-	  log_plain_utf(c->name);
-	  log_plain("\n");*/
-	/*    class_showmethods(c);
-		  class_showmethods(loader_load(utf_new_char("java/lang/Class")));*/
-
-
     /* determine number of constructors */
     for (i = 0; i < c->methodscount; i++) 
 		if (((c->methods[i].flags & ACC_PUBLIC) || !public_only) && 
@@ -227,7 +219,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, java_lang_VMClass *this, s4 publicOnly)
 {
+#if defined(__GNUC__)
 #warning fix the public only case
+#endif
 	classinfo *c = (classinfo *) this->vmData;
 	int pos = 0;                /* current declared class */
 	int declaredclasscount = 0; /* number of declared classes */
@@ -277,7 +271,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, java_lang_VMClass *this)
 {
+#if defined(__GNUC__)
 #warning fixme
+#endif
 	classinfo *c = (classinfo *) this->vmData;
 
 	if (this && this->vmData && !Java_java_lang_VMClass_isPrimitive(env, this) && (c->name->text[0] != '[')) {

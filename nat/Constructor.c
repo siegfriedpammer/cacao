@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Constructor.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: Constructor.c 1075 2004-05-20 16:58:49Z twisti $
 
 */
 
@@ -54,27 +54,28 @@
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *parameters, java_lang_Class *clazz, s4 par3)
 {
 
+#if defined(__GNUC__)
 #warning fix me for parameters float/double and long long  parameters
+#endif
 
 	methodinfo *m;
 	java_objectheader *o;
-
-        
-	/*	log_text("Java_java_lang_reflect_Constructor_constructNative called");
-        log_plain_utf(((struct classinfo*)clazz)->name);*/
-/*  	log_plain("\n"); */
 
 	/* find initializer */
 
 	if (!parameters) {
 		if (this->parameterTypes->header.size != 0) {
-			*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException, "wrong number of arguments");
+			*exceptionptr =
+				new_exception_message(string_java_lang_IllegalArgumentException,
+									  "wrong number of arguments");
 			return 0;
 		}
 
 	} else {
 		if (this->parameterTypes->header.size != parameters->header.size) {
-			*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException, "wrong number of arguments");
+			*exceptionptr =
+				new_exception_message(string_java_lang_IllegalArgumentException,
+									  "wrong number of arguments");
 			return 0;
 		}
 	}
@@ -107,7 +108,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 				log_plain("\n");
 				class_showconstantpool((classinfo *) clazz);
 			}
+#if defined(__GNUC__)
 #warning throw an exception here, although this should never happen
+#endif
 			return (java_lang_Object *) o;
 		}
 
@@ -128,11 +131,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
 #endif
-	/*log_plain_utf(m->descriptor);
-	  log_text("calling constructor");*/
-	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 
-	/*log_text("Java_java_lang_reflect_Constructor: returning object");*/
+	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
 
 	return (java_lang_Object *) o;
 }
@@ -145,7 +145,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	/*	log_text("Java_java_lang_reflect_Constructor_getModifiers called");*/
 	classinfo *c = (classinfo *) (this->clazz);
 
 	if ((this->slot < 0) || (this->slot >= c->methodscount))

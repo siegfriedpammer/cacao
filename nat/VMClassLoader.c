@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClassLoader.c 1067 2004-05-18 10:25:51Z stefan $
+   $Id: VMClassLoader.c 1075 2004-05-20 16:58:49Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include "loader.h"
 #include "native.h"
 #include "builtin.h"
+#include "tables.h"
 #include "toolbox/logging.h"
 #include "java_lang_Class.h"
 #include "java_lang_String.h"
@@ -100,7 +101,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
  */
 JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *par1)
 {
-	/* linked the class */
+	/* link the class */
 	if (!clazz->linked)
 		class_link(clazz);
 
