@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1758 2004-12-14 13:14:40Z twisti $
+   $Id: stack.c 1776 2004-12-20 21:05:31Z twisti $
 
 */
 
@@ -227,7 +227,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 /*  					dolog("p: %04d op: %s stack: %p", iptr - instr, icmd_names[opcode], curstack); */
 
-#ifdef USEBUILTINTABLE
+#if defined(USEBUILTINTABLE)
 					{
 #if 0
 						stdopdescriptor *breplace;
@@ -412,9 +412,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									(iptr[0].val.i == 0x80000000)) {
 									iptr[0].opc = ICMD_IREMPOW2;
 									iptr[0].val.i -= 1;
-#if defined(__I386__)
-									method_uses_ecx = true;
-#endif
 									goto icmd_iconst_tail;
 								}
 								PUSHCONST(TYPE_INT);
@@ -440,21 +437,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_LONG_SHIFT
 							case ICMD_LSHL:
 								iptr[0].opc = ICMD_LSHLCONST;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 								goto icmd_lconst_tail;
 							case ICMD_LSHR:
 								iptr[0].opc = ICMD_LSHRCONST;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 								goto icmd_lconst_tail;
 							case ICMD_LUSHR:
 								iptr[0].opc = ICMD_LUSHRCONST;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 								goto icmd_lconst_tail;
 #endif
 							case ICMD_IF_ICMPEQ:
@@ -548,10 +536,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_LONG_MUL
 							case ICMD_LMUL:
 								iptr[0].opc = ICMD_LMULCONST;
-#if defined(__I386__)
-								method_uses_ecx = true;
-								method_uses_edx = true;
-#endif
 								goto icmd_lconst_tail;
 #endif
 #if SUPPORT_LONG_DIV
@@ -623,9 +607,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									break;
 								}
 								iptr[0].opc = ICMD_LDIVPOW2;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 								goto icmd_lconst_tail;
 							case ICMD_LREM:
 								if ((iptr[0].val.l == 0x00000002) ||
@@ -661,9 +642,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									(iptr[0].val.l == 0x80000000)) {
 									iptr[0].opc = ICMD_LREMPOW2;
 									iptr[0].val.l -= 1;
-#if defined(__I386__)
-									method_uses_ecx = true;
-#endif
 									goto icmd_lconst_tail;
 								}
 								PUSHCONST(TYPE_LNG);
@@ -686,9 +664,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									switch (iptr[2].opc) {
 									case ICMD_IFEQ:
 										iptr[0].opc = ICMD_IF_LEQ;
-#if defined(__I386__)
-										method_uses_ecx = true;
-#endif
 									icmd_lconst_lcmp_tail:
 										iptr[0].op1 = iptr[2].op1;
 										bptr->icount -= 2;
@@ -706,9 +681,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										break;
 									case ICMD_IFNE:
 										iptr[0].opc = ICMD_IF_LNE;
-#if defined(__I386__)
-										method_uses_ecx = true;
-#endif
 										goto icmd_lconst_lcmp_tail;
 									case ICMD_IFLT:
 										iptr[0].opc = ICMD_IF_LLT;
@@ -802,10 +774,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 2 push 1 */
 
 					case ICMD_LALOAD:
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 					case ICMD_IALOAD:
 					case ICMD_FALOAD:
 					case ICMD_DALOAD:
@@ -814,9 +782,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP2IAT_1(opcode-ICMD_IALOAD);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 					case ICMD_BALOAD:
@@ -826,20 +791,19 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP2IAT_1(TYPE_INT);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 						/* pop 0 push 0 iinc */
 
 					case ICMD_IINC:
-#ifdef STATISTICS
-						i = stackdepth;
-						if (i >= 10)
-							count_store_depth[10]++;
-						else
-							count_store_depth[i]++;
+#if defined(STATISTICS)
+						if (opt_stat) {
+							i = stackdepth;
+							if (i >= 10)
+								count_store_depth[10]++;
+							else
+								count_store_depth[i]++;
+						}
 #endif
 						copy = curstack;
 						i = stackdepth - 1;
@@ -867,18 +831,20 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					i = opcode - ICMD_ISTORE;
 					rd->locals[iptr->op1][i].type = i;
-#ifdef STATISTICS
-					count_pcmd_store++;
-					i = new - curstack;
-					if (i >= 20)
-						count_store_length[20]++;
-					else
-						count_store_length[i]++;
-					i = stackdepth - 1;
-					if (i >= 10)
-						count_store_depth[10]++;
-					else
-						count_store_depth[i]++;
+#if defined(STATISTICS)
+					if (opt_stat) {
+						count_pcmd_store++;
+						i = new - curstack;
+						if (i >= 20)
+							count_store_length[20]++;
+						else
+							count_store_length[i]++;
+						i = stackdepth - 1;
+						if (i >= 10)
+							count_store_depth[10]++;
+						else
+							count_store_depth[i]++;
+					}
 #endif
 					copy = curstack->prev;
 					i = stackdepth - 2;
@@ -903,10 +869,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_IASTORE:
 					case ICMD_AASTORE:
 					case ICMD_LASTORE:
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
 						COUNT(count_check_null);
@@ -922,10 +884,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 						OP3TIA_0(TYPE_INT);
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 						break;
 
 						/* pop 1 push 0 */
@@ -964,9 +922,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_PUTSTATIC:
 						COUNT(count_pcmd_mem);
 						OP1_0(iptr->op1);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 						/* pop 1 push 0 branch */
@@ -1094,9 +1049,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						}
 						SETDST;
 						superblockend = true;
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 							
 						/* pop 1 push 0 table branch */
@@ -1169,9 +1121,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						OPTT2_0(iptr->op1,TYPE_ADR);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 					case ICMD_POP2:
@@ -1410,17 +1359,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
 					case ICMD_IUSHR:
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 					case ICMD_IADD:
 					case ICMD_ISUB:
 					case ICMD_IMUL:
@@ -1450,10 +1392,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 
 					case ICMD_LMUL:
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 					case ICMD_LADD:
 					case ICMD_LSUB:
 					case ICMD_LOR:
@@ -1469,10 +1407,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_LUSHR:
 						COUNT(count_pcmd_op);
 						OP2IT_1(TYPE_LNG);
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 						break;
 
 					case ICMD_FADD:
@@ -1500,9 +1434,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							switch (iptr[1].opc) {
 							case ICMD_IFEQ:
 								iptr[0].opc = ICMD_IF_LCMPEQ;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 							icmd_lcmp_if_tail:
 								iptr[0].op1 = iptr[1].op1;
 								len--;
@@ -1518,9 +1449,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								break;
 							case ICMD_IFNE:
 								iptr[0].opc = ICMD_IF_LCMPNE;
-#if defined(__I386__)
-								method_uses_ecx = true;
-#endif
 								goto icmd_lcmp_if_tail;
 							case ICMD_IFLT:
 								iptr[0].opc = ICMD_IF_LCMPLT;
@@ -1578,9 +1506,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_I2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_INT, TYPE_LNG);
-#if defined(__I386__)
-						method_uses_edx = true;
-#endif
 						break;
 					case ICMD_I2F:
 						COUNT(count_pcmd_op);
@@ -1609,9 +1534,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_F2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_FLT, TYPE_LNG);
-#if defined(__I386__)
-						method_uses_edx = true;
-#endif
 						break;
 					case ICMD_F2D:
 						COUNT(count_pcmd_op);
@@ -1624,9 +1546,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_D2L:
 						COUNT(count_pcmd_op);
 						OP1_1(TYPE_DBL, TYPE_LNG);
-#if defined(__I386__)
-						method_uses_edx = true;
-#endif
 						break;
 					case ICMD_D2F:
 						COUNT(count_pcmd_op);
@@ -1635,17 +1554,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					case ICMD_CHECKCAST:
 						OP1_1(TYPE_ADR, TYPE_ADR);
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 						break;
 
 					case ICMD_INSTANCEOF:
-#if defined(__I386__)
-						method_uses_ecx = true;
-						method_uses_edx = true;
-#endif
 					case ICMD_ARRAYLENGTH:
 						OP1_1(TYPE_ADR, TYPE_INT);
 						break;
@@ -1659,9 +1570,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_null);
 						COUNT(count_pcmd_mem);
 						OP1_1(TYPE_ADR, iptr->op1);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 						/* pop 0 push 1 */
@@ -1669,9 +1577,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_GETSTATIC:
 						COUNT(count_pcmd_mem);
 						OP0_1(iptr->op1);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						break;
 
 					case ICMD_NEW:
@@ -1706,9 +1611,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKEINTERFACE:
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
-#if defined(__I386__)
-						method_uses_ecx = true;
-#endif
 						{
 							methodinfo *lm = iptr->val.a;
 							if (lm->flags & ACC_STATIC)
@@ -1770,7 +1672,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #else
 							copy = curstack;
 							while (--i >= 0) {
-								if (! (copy->flags & SAVEDVAR)) {
+								if (!(copy->flags & SAVEDVAR)) {
 									copy->varkind = ARGVAR;
 									copy->varnum = i;
 								}
@@ -1796,7 +1698,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_BUILTIN3:
 						/* DEBUG */ /*dolog("builtin3");*/
 						REQUIRE_3;
-						if (! (curstack->flags & SAVEDVAR)) {
+						if (!(curstack->flags & SAVEDVAR)) {
 							curstack->varkind = ARGVAR;
 							curstack->varnum = 2;
 						}
@@ -1806,7 +1708,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						OP1_0ANY;
 
 					case ICMD_BUILTIN2:
+#if defined(USEBUILTINTABLE) || !SUPPORT_DIVISION
+					/* Just prevent a compiler warning... */
 					builtin2:
+#endif
 						REQUIRE_2;
 						/* DEBUG */ /*dolog("builtin2");*/
 					if (!(curstack->flags & SAVEDVAR)) {
@@ -1819,7 +1724,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					OP1_0ANY;
 
 					case ICMD_BUILTIN1:
+#if defined(USEBUILTINTABLE)
+					/* Just prevent a compiler warning... */
 					builtin1:
+#endif
 						REQUIRE_1;
 						/* DEBUG */ /*dolog("builtin1");*/
 					if (!(curstack->flags & SAVEDVAR)) {
@@ -1842,14 +1750,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_MULTIANEWARRAY:
 						i = iptr->op1;
 						REQUIRE(i);
-						if ((i + rd->intreg_argnum) > rd->arguments_num)
-							rd->arguments_num = i + rd->intreg_argnum;
+						if ((i + INT_ARG_CNT) > rd->arguments_num)
+							rd->arguments_num = i + INT_ARG_CNT;
 						copy = curstack;
 						while (--i >= 0) {
 							/* check INT type here? Currently typecheck does this. */
-							if (! (copy->flags & SAVEDVAR)) {
+							if (!(copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
-								copy->varnum = i + rd->intreg_argnum;
+								copy->varnum = i + INT_ARG_CNT;
 							}
 							copy = copy->prev;
 						}
