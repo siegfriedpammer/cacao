@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 1319 2004-07-16 13:45:50Z twisti $
+   $Id: codegen.h 1347 2004-07-21 23:29:39Z twisti $
 
 */
 
@@ -98,14 +98,23 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(mcodeptr); \
+        codegen_addxnullrefs(m, mcodeptr); \
+    }
+
+#define gen_bound_check \
+    if (checkbounds) { \
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
+        M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
+        M_BEQZ(REG_ITMP3, 0);\
+        codegen_addxboundrefs(m, mcodeptr, s2); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if((mcodeptr + (icnt)) > mcodeend) mcodeptr = codegen_increase((u1*) mcodeptr)
+	if ((mcodeptr + (icnt)) > cd->mcodeend) \
+        mcodeptr = codegen_increase(m, (u1 *) mcodeptr)
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -193,6 +202,23 @@
 			store_reg_to_var_int(to, d); \
 			}\
 		}
+
+
+#define ICONST(r,c) \
+    if ((c) >= -32768 && (c) <= 32767) { \
+        M_LDA((r), REG_ZERO, c); \
+    } else { \
+        a = dseg_adds4(m, (c)); \
+        M_ILD((r), REG_PV, a); \
+    }
+
+#define LCONST(r,c) \
+    if ((c) >= -32768 && (c) <= 32767) { \
+        M_LDA((r), REG_ZERO, (c)); \
+    } else { \
+        a = dseg_adds8(m, (c)); \
+        M_LLD((r), REG_PV, a); \
+    }
 
 
 /* macros to create code ******************************************************/
@@ -506,11 +532,6 @@
 
 /* function prototypes */
 
-void codegen_init();
-void init_exceptions();
-void codegen(methodinfo *m);
-void codegen_close();
-void dseg_display(s4 *s4ptr);
 void thread_restartcriticalsection(ucontext_t*);
 
 #endif /* _CODEGEN_H */
