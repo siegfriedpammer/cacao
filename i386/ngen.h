@@ -664,56 +664,6 @@ static const unsigned char i386_jcc_map[] = {
     } while (0)
 
 
-#define i386_shld_reg_reg(reg,dreg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xa5; \
-        i386_emit_reg((reg),(dreg)); \
-    } while (0)
-
-
-#define i386_shld_imm_reg_reg(imm,reg,dreg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xa4; \
-        i386_emit_reg((reg),(dreg)); \
-        i386_emit_imm8((imm)); \
-    } while (0)
-
-
-#define i386_shld_reg_membase(reg,basereg,disp) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xa5; \
-        i386_emit_membase((basereg),(disp),(reg)); \
-    } while (0)
-
-
-#define i386_shrd_reg_reg(reg,dreg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xad; \
-        i386_emit_reg((reg),(dreg)); \
-    } while (0)
-
-
-#define i386_shrd_imm_reg_reg(imm,reg,dreg) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xac; \
-        i386_emit_reg((reg),(dreg)); \
-        i386_emit_imm8((imm)); \
-    } while (0)
-
-
-#define i386_shrd_reg_membase(reg,basereg,disp) \
-    do { \
-        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
-        *(((u1 *) mcodeptr)++) = (u1) 0xad; \
-        i386_emit_membase((basereg),(disp),(reg)); \
-    } while (0)
-
-
 
 /*
  * inc, dec operations
@@ -893,6 +843,56 @@ static const unsigned char i386_jcc_map[] = {
             i386_emit_membase((basereg),(disp),(opc)); \
             i386_emit_imm8((imm)); \
         } \
+    } while (0)
+
+
+#define i386_shld_reg_reg(reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xa5; \
+        i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_shld_imm_reg_reg(imm,reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xa4; \
+        i386_emit_reg((reg),(dreg)); \
+        i386_emit_imm8((imm)); \
+    } while (0)
+
+
+#define i386_shld_reg_membase(reg,basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xa5; \
+        i386_emit_membase((basereg),(disp),(reg)); \
+    } while (0)
+
+
+#define i386_shrd_reg_reg(reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xad; \
+        i386_emit_reg((reg),(dreg)); \
+    } while (0)
+
+
+#define i386_shrd_imm_reg_reg(imm,reg,dreg) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xac; \
+        i386_emit_reg((reg),(dreg)); \
+        i386_emit_imm8((imm)); \
+    } while (0)
+
+
+#define i386_shrd_reg_membase(reg,basereg,disp) \
+    do { \
+        *(((u1 *) mcodeptr)++) = (u1) 0x0f; \
+        *(((u1 *) mcodeptr)++) = (u1) 0xad; \
+        i386_emit_membase((basereg),(disp),(reg)); \
     } while (0)
 
 

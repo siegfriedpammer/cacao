@@ -18,8 +18,6 @@
 #include "offsets.h"
 
 	.text
-/*	.set    noat */
-/*	.set    noreorder */
 
 
 /********************* exported functions and variables ***********************/
@@ -35,6 +33,7 @@
 	.globl asm_builtin_checkcast	
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_anewarray
+	.globl asm_builtin_newarray_array
 	.globl asm_builtin_aastore
 	.globl asm_builtin_monitorenter
 	.globl asm_builtin_monitorexit
@@ -70,16 +69,14 @@
 *******************************************************************************/
 
 has_no_x_instr_set:
-
-		xor		%eax,%eax
+		xor		%eax,%eax				/* result code 0 (not used for i386   */
 		ret
 
 
 /********************* function synchronize_caches ****************************/
 
 synchronize_caches:
-
-		ret
+		ret								/* do nothing                         */
 
 
 /********************* function asm_calljavamethod *****************************
@@ -175,14 +172,10 @@ calljava_return:
 
 		addl	$32,%esp              /* free stack space                     */
 		
-/*	ldl     v0,newcompiler            /* load newcompiler flag                */
-		movl    newcompiler, %eax     /* load newcompiler flag                */
-/*	subq    v0,1,v0                   /* negate for clearing v0               */
+		movl    newcompiler,%eax      /* load newcompiler flag                */
 		subl    $1,%eax               /* negate for clearing v0               */
-/*	beq     v0,calljava_ret           /* if newcompiler skip ex copying       */
 		cmpl    $0,%eax               /* if newcompiler skip ex copying       */
 		je      calljava_ret
-/*	mov     $1,v0                     /* pass exception to caller (C)         */
 		movl    $1, %eax              /* pass exception to caller (C)         */
 calljava_ret:
 		leave
@@ -314,7 +307,6 @@ calljava_xhandler2:
 
 
 asm_call_jit_compiler:
-
 		pushl	%ebp
 		movl	%esp, %ebp
 
@@ -379,10 +371,8 @@ L_call_method:
 *******************************************************************************/
 
 asm_dumpregistersandcall:
-		pushl	%ebp				/* build stack frame */
-		movl	%esp,%ebp
-
 		push	%ebx
+		push	%ebp
 		push	%esi
 		push	%edi
 				
@@ -391,9 +381,9 @@ asm_dumpregistersandcall:
 
 		pop		%edi
 		pop		%esi
+		pop		%ebp
 		pop		%ebx
 		
-		leave
 		ret
 
 
@@ -680,6 +670,27 @@ asm_builtin_anewarray:
 		ret
 
 		
+/******************* function asm_builtin_newarray_array ***********************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_newarray_array:
+		subl	$8,%esp					/* build stack frame (2 * 4 bytes) */
+
+		movl	12(%esp),%eax
+		movl	%eax,(%esp)
+
+		movl	20(%esp),%eax
+		movl	%eax,4(%esp)
+
+		call	builtin_newarray_array
+	
+		addl	$8,%esp
+		ret
+
+		
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -817,7 +828,7 @@ asm_perform_threadswitch:
 		movl	%esp,0(%eax)
 
 		movl	44(%esp),%eax			/* second argument **to */
-		movl	0(%eax),%esp			/* load stack pointer */
+		movl	0(%eax),%esp			/* load new stack pointer */
 
 		movl	32(%esp),%eax			/* restore return address */
 		movl	%eax,36(%esp)
