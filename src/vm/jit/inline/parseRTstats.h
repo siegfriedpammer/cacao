@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: parseRTstats.h 562 2003-11-03 00:34:34Z twisti $
 
 */
 
@@ -37,6 +37,10 @@
 extern int unRTclassHeirCnt;
 extern int unRTmethodCnt;
 extern int pWhenMarked;
+
+
+/* function prototypes */
+void printObjectClassHeirarchy1();
 
 #endif /* _PARSERTSTATS_H */
 

@@ -28,7 +28,7 @@
 
    Changes: Carolyn Oates
 
-   $Id: parse.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: parse.c 562 2003-11-03 00:34:34Z twisti $
 
 */
 
@@ -630,7 +630,7 @@ void parse()
 		opcode = code_get_u1(p);            /* fetch op code                  */
 
 	  
-		if (opt_rt && (pOpcodes == 2) || (pOpcodes == 3)) {
+		if (opt_rt && (pOpcodes == 2 || pOpcodes == 3)) {
 			printf("Parse<%i> p=%i<%i<   opcode=<%i> %s\n",
 				   pOpcodes, p, rt_jcodelength, opcode, icmd_names[opcode]);
 		}

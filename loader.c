@@ -30,13 +30,14 @@
             Roman Obermaiser
             Mark Probst
 
-   $Id: loader.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: loader.c 562 2003-11-03 00:34:34Z twisti $
 
 */
 
 
+#include <string.h>
 #include <assert.h>
-
+#include <sys/stat.h>
 #include "global.h"
 #include "loader.h"
 #include "native.h"
@@ -44,13 +45,10 @@
 #include "builtin.h"
 #include "jit.h"
 #include "asmpart.h"
-
 #include "toolbox/memory.h"
-
 #include "toolbox/loging.h"
-
 #include "threads/thread.h"
-#include <sys/stat.h>
+
 
 /* global variables ***********************************************************/
 

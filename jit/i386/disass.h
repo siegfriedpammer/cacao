@@ -1,4 +1,4 @@
-/* i386/disass.h - wrapper functions for GNU binutils disassembler
+/* jit/i386/disass.h - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -27,7 +27,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: disass.h 557 2003-11-02 22:51:59Z twisti $
+   $Id: disass.h 562 2003-11-03 00:34:34Z twisti $
 
 */
 

@@ -35,11 +35,11 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: tables.c 562 2003-11-03 00:34:34Z twisti $
 
 */
 
-
+#include <string.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/mman.h>

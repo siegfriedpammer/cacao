@@ -37,12 +37,13 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: main.c 557 2003-11-02 22:51:59Z twisti $
+   $Id: main.c 562 2003-11-03 00:34:34Z twisti $
 
 */
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "global.h"
 #include "tables.h"
 #include "loader.h"
@@ -50,8 +51,10 @@
 #include "asmpart.h"
 #include "builtin.h"
 #include "native.h"
+#include "mm/boehm.h"
 #include "threads/thread.h"
 #include "toolbox/loging.h"
+#include "toolbox/memory.h"
 #include "parseRTstats.h"
 
 
