@@ -31,7 +31,7 @@
 
    Changes: Stefan Ring
 
-   $Id: types.h 624 2003-11-13 14:06:52Z twisti $
+   $Id: types.h 1500 2004-11-12 16:35:44Z twisti $
 
 */
 
@@ -59,7 +59,7 @@
 #define SUPPORT_LONG_ICVT   0
 #define SUPPORT_LONG_FCVT   0
 
-//#define CONDITIONAL_LOADCONST
+/* #define CONDITIONAL_LOADCONST */
 #define NOLONG_CONDITIONAL
 #define NO_DIV_OPT
 #define USETWOREGS
