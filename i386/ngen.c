@@ -11,7 +11,7 @@
 	Authors: Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
 	         Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: ngen.c 255 2003-03-16 23:38:49Z twisti $
+	Last Change: $Id: ngen.c 258 2003-03-23 14:48:28Z twisti $
 
 *******************************************************************************/
 
@@ -2973,10 +2973,10 @@ static void gen_mcode()
 			i386_fnstsw();
 			i386_sahf();
 			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
-			i386_jcc(I386_CC_A, 1 + 5);
-			i386_inc_reg(d);
-			i386_jmp(1);
+			i386_jcc(I386_CC_B, 1 + 5);
 			i386_dec_reg(d);
+			i386_jmp(1);
+			i386_inc_reg(d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2989,10 +2989,10 @@ static void gen_mcode()
 			i386_fnstsw();
 			i386_sahf();
 			i386_jcc(I386_CC_E, 6 + 1 + 5 + 1);
-			i386_jcc(I386_CC_A, 1 + 5);
-			i386_inc_reg(d);
-			i386_jmp(1);
+			i386_jcc(I386_CC_B, 1 + 5);
 			i386_dec_reg(d);
+			i386_jmp(1);
+			i386_inc_reg(d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -5177,6 +5177,9 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 /*  	M_ALD  (REG_PV, REG_PV, 14*8);      /* load adress of native method       */
 /*  	M_JSR  (REG_RA, REG_PV);            /* call native method                 */
 
+/*  	utf_fprint(stderr, m->name); */
+/*  	fprintf(stderr, " paramcount=%d paramtypes=%x\n", m->paramcount, m->paramtypes); */
+
 	i386_alu_imm_reg(I386_SUB, 24, REG_SP); /* 20 = 5 * 4 (5 params * 4 bytes)    */
 
 	i386_mov_membase_reg(REG_SP, 24 + 4, REG_ITMP1);
@@ -5194,7 +5197,7 @@ u1 *createnativestub (functionptr f, methodinfo *m)
 	i386_mov_membase_reg(REG_SP, 56 + 4, REG_ITMP1);
 	i386_mov_reg_membase(REG_ITMP1, REG_SP, 20);
 
-	i386_mov_imm_membase(&env, REG_SP, 0);
+ 	i386_mov_imm_membase(&env, REG_SP, 0);
 
 	i386_mov_imm_reg(f, REG_ITMP1);
 	i386_call_reg(REG_ITMP1);
