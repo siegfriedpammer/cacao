@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 1874 2005-01-21 09:24:57Z twisti $
+   $Id: cacaoh.c 1910 2005-02-10 09:55:49Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "cacaoh/headers.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
+#include "native/include/java_lang_Throwable.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -54,10 +55,12 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 
@@ -250,6 +253,10 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
+	/* initialize some cacao subsystems */
+
+	utf8_init();
+	class_init_foo();
 	loader_init((u1 *) &dummy);
 
 
@@ -262,6 +269,7 @@ int main(int argc, char **argv)
    		cp = argv[a];
 
 		/* convert classname */
+
    		for (i = strlen(cp) - 1; i >= 0; i--) {
 			switch (cp[i]) {
 			case '.': cp[i] = '/';
@@ -273,8 +281,14 @@ int main(int argc, char **argv)
 		c = class_new(utf_new_char(cp));
 
 		/* exceptions are catched with new_exception call */
-		class_load(c);
-		class_link(c);
+
+		if (!class_load(c))
+			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
+									   cp);
+
+		if (!class_link(c))
+			throw_cacao_exception_exit(string_java_lang_LinkageError,
+									   cp);
 
 		headerfile_generate(c, opt_directory);
 	}
