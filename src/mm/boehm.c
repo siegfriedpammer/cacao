@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 897 2004-01-21 00:49:42Z stefan $
+   $Id: boehm.c 925 2004-02-26 00:09:51Z twisti $
 
 */
 
@@ -39,12 +39,6 @@
 #include "builtin.h"
 #include "threads/thread.h"
 #include "toolbox/loging.h"
-
-/* this is temporary workaround */
-#if defined(__X86_64__)
-#define GC_DEBUG
-#endif
-
 #include "gc.h"
 
 
