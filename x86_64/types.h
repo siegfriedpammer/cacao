@@ -9,9 +9,9 @@
     Authors: Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at
              Andreas  Krall      EMAIL: cacao@complang.tuwien.ac.at
              Michael Gschwind    EMAIL: cacao@complang.tuwien.ac.at
-             Christan Thalinger  EMAIL: cacao@complang.tuwien.ac.at
+             Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at
 
-    Last Change: $Id: types.h 408 2003-08-11 00:39:45Z twisti $
+    Last Change: $Id: types.h 417 2003-08-27 23:29:30Z twisti $
 
 *******************************************************************************/
 
