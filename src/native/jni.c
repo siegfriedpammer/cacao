@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: jni.c 791 2003-12-16 18:49:19Z edwin $
+   $Id: jni.c 808 2003-12-30 12:45:28Z twisti $
 
 */
 
@@ -79,31 +79,32 @@ static utf* utf_double = 0;
 
 u4 get_parametercount(methodinfo *m)
 {
-    utf  *descr    =  m->descriptor;    /* method-descriptor */
-    char *utf_ptr  =  descr->text;      /* current position in utf-text */
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
-    java_objectarray* result;
-    int parametercount = 0;
-   int i;
+	utf  *descr    =  m->descriptor;    /* method-descriptor */
+	char *utf_ptr  =  descr->text;      /* current position in utf-text */
+	char *desc_end =  utf_end(descr);   /* points behind utf string     */
+	java_objectarray* result;
+	int parametercount = 0;
+	int i;
 
-    /* skip '(' */
-    utf_nextu2(&utf_ptr);
+	/* skip '(' */
+	utf_nextu2(&utf_ptr);
 
     /* determine number of parameters */
-    while ( *utf_ptr != ')' ) {
-        get_type(&utf_ptr,desc_end,true);
-        parametercount++;
-    }
+	while ( *utf_ptr != ')' ) {
+		get_type(&utf_ptr,desc_end,true);
+		parametercount++;
+	}
 
-    return parametercount;
+	return parametercount;
 }
 
 
 
-void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char ret) {
-    char *utf__ptr  =  descr->text;      /* current position in utf-text */
-    char **utf_ptr  =  &utf__ptr;
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
+void fill_callblock(void *obj, utf *descr, jni_callblock blk[], va_list data, char ret)
+{
+    char *utf__ptr = descr->text;      /* current position in utf-text */
+    char **utf_ptr = &utf__ptr;
+    char *desc_end = utf_end(descr);   /* points behind utf string     */
 
     int cnt;
 
@@ -120,82 +121,82 @@ void fill_callblock(void *obj,utf *descr,jni_callblock blk[], va_list data, char
     utf_nextu2(utf_ptr);
 
     /* determine number of parameters */
-   if (obj) {
-	   blk[0].itemtype=TYPE_ADR;
-	   blk[0].item=PTR_TO_ITEM(obj);
-	   cnt=1;
-   } else cnt=0;
-   while ( **utf_ptr != ')' ) {
-   	if (*utf_ptr>=desc_end)
+	if (obj) {
+		blk[0].itemtype = TYPE_ADR;
+		blk[0].item = PTR_TO_ITEM(obj);
+		cnt = 1;
+	} else cnt = 0;
+	while (**utf_ptr != ')') {
+		if (*utf_ptr >= desc_end)
         	panic("illegal method descriptor");
 
-	switch (utf_nextu2(utf_ptr)) {
-	/* primitive types */
-	      case 'B' :
-	      case 'C' :
-	      case 'S' : 
-	      case 'Z' :
-			 blk[cnt].itemtype=TYPE_INT;
-			 blk[cnt].item=(u8) va_arg(data,int);
-	                 break;
-	      case 'I' :
-			 blk[cnt].itemtype=TYPE_INT;
-			 dummy=va_arg(data,u4);
-			 /*printf("fill_callblock: pos:%d, value:%d\n",cnt,dummy);*/
-			 blk[cnt].item=(u8)dummy;
+		switch (utf_nextu2(utf_ptr)) {
+			/* primitive types */
+		case 'B' :
+		case 'C' :
+		case 'S' : 
+		case 'Z' :
+			blk[cnt].itemtype=TYPE_INT;
+			blk[cnt].item=(u8) va_arg(data,int);
+			break;
+		case 'I' :
+			blk[cnt].itemtype=TYPE_INT;
+			dummy=va_arg(data,u4);
+			/*printf("fill_callblock: pos:%d, value:%d\n",cnt,dummy);*/
+			blk[cnt].item=(u8)dummy;
 
-	                 break;
+			break;
 
-	      case 'J' : 
-			 blk[cnt].itemtype=TYPE_LNG;
-			 blk[cnt].item=(u8)va_arg(data,jlong);
-       		         break;
-	      case 'F' : 
-			 blk[cnt].itemtype=TYPE_FLT;
-			 *((jfloat*)(&blk[cnt].item))=((jfloat)va_arg(data,jdouble));
-	                 break;
+		case 'J' : 
+			blk[cnt].itemtype=TYPE_LNG;
+			blk[cnt].item=(u8)va_arg(data,jlong);
+			break;
+		case 'F' : 
+			blk[cnt].itemtype=TYPE_FLT;
+			*((jfloat*)(&blk[cnt].item))=((jfloat)va_arg(data,jdouble));
+			break;
 
-	      case 'D' : 
-			 blk[cnt].itemtype=TYPE_DBL;
-			 *((jdouble*)(&blk[cnt].item))=(jdouble)va_arg(data,jdouble);
-	                 break;
-	      case 'V' : panic ("V not allowed as function parameter");
-        	         break;
-	      case 'L' : {
-        	            while (utf_nextu2(utf_ptr)!=';')
+		case 'D' : 
+			blk[cnt].itemtype=TYPE_DBL;
+			*((jdouble*)(&blk[cnt].item))=(jdouble)va_arg(data,jdouble);
+			break;
+		case 'V' : panic ("V not allowed as function parameter");
+			break;
+		case 'L' : {
+			while (utf_nextu2(utf_ptr)!=';')
 
  			    blk[cnt].itemtype=TYPE_ADR;
-				blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
-	                    break;			
-	                 }
-	      case '[' : {
-			  /* XXX */
-	                    /* arrayclass */
-               		    char *start = *utf_ptr;
-	                    char ch;
-	                    while ((ch = utf_nextu2(utf_ptr))=='[')
-	                    if (ch == 'L') {
-	                        while (utf_nextu2(utf_ptr)!=';') {}
-		                    }
+			blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
+			break;			
+		}
+		case '[' : {
+			/* XXX */
+			/* arrayclass */
+			char *start = *utf_ptr;
+			char ch;
+			while ((ch = utf_nextu2(utf_ptr))=='[')
+				if (ch == 'L') {
+					while (utf_nextu2(utf_ptr)!=';') {}
+				}
 	
-			     ch=utf_nextu2(utf_ptr);
-			    blk[cnt].itemtype=TYPE_ADR;
-			    blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
-	                    break;			
-                	 }
+			ch=utf_nextu2(utf_ptr);
+			blk[cnt].itemtype=TYPE_ADR;
+			blk[cnt].item=PTR_TO_ITEM(va_arg(data,void*));
+			break;			
+		}
+		}
+		cnt++;
 	}
-	cnt++;
-   }
 
-   /*the standard doesn't say anything about return value checking, but it appears to be usefull*/
-   c=utf_nextu2(utf_ptr);
-   c=utf_nextu2(utf_ptr);
-   /*printf("%c  %c\n",ret,c);*/
-   if (ret=='O') {
-	if (!((c=='L') || (c=='['))) log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
-   } else if (ret != c) log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
-
+	/*the standard doesn't say anything about return value checking, but it appears to be usefull*/
+	c = utf_nextu2(utf_ptr);
+	c = utf_nextu2(utf_ptr);
+	/*printf("%c  %c\n",ret,c);*/
+	if (ret=='O') {
+		if (!((c=='L') || (c=='['))) log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
+	} else if (ret != c) log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
 }
+
 
 /* XXX it could be considered if we should do typechecking here in the future */
 char fill_callblock_objA(void *obj, utf *descr, jni_callblock blk[], java_objectarray* params)
@@ -833,8 +834,7 @@ jint Throw(JNIEnv* env, jthrowable obj)
 
  **********************************************************************************/   
 
-
-jint ThrowNew (JNIEnv* env, jclass clazz, const char *msg) 
+jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg) 
 {
 	java_lang_Throwable *o;
 
@@ -845,9 +845,11 @@ jint ThrowNew (JNIEnv* env, jclass clazz, const char *msg)
 
   	o->detailMessage = (java_lang_String*) javastring_new_char((char *) msg);
 
-	exceptionptr = (java_objectheader*) o;	
+	exceptionptr = (java_objectheader*) o;
+
 	return 0;
 }
+
 
 /************************* check if exception occured *****************************/
 
@@ -1821,22 +1823,23 @@ void SetDoubleField (JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val)
         setField(obj,jdouble,fieldID,val);
 }
 
+
 /**************** JNI-functions for calling static methods **********************/ 
 
-jmethodID GetStaticMethodID (JNIEnv *env, jclass clazz, const char *name, const char *sig)
+jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const char *sig)
 {
 	jmethodID m;
 
- 	m = class_resolvemethod (
-		clazz, 
-		utf_new_char ((char*) name), 
-		utf_new_char ((char*) sig)
-    	);
+ 	m = class_resolvemethod(
+							clazz,
+							utf_new_char((char*) name),
+							utf_new_char((char*) sig));
 
-	if (!m) exceptionptr =	native_new_and_init(class_java_lang_NoSuchMethodError);  
+	if (!m) exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError);
 
 	return m;
 }
+
 
 jobject CallStaticObjectMethod (JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
@@ -2364,7 +2367,7 @@ void ReleaseStringChars (JNIEnv *env, jstring str, const jchar *chars)
 jstring NewStringUTF (JNIEnv *env, const char *utf)
 {
 /*    log_text("NewStringUTF called");*/
-    return javastring_new(utf_new_char(utf));
+    return (jstring) javastring_new(utf_new_char((char *) utf));
 }
 
 /****************** returns the utf8 length in bytes of a string *******************/
@@ -2967,15 +2970,6 @@ jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)
 }
 
 
-
-
-
-
-
-
-
-
-
 /********************************* JNI invocation table ******************************/
 
 struct _JavaVM javaVMTable={
@@ -3226,171 +3220,238 @@ struct JNI_Table envTable = {
     &ExceptionCheck
 };
 
-
 JNIEnv env = &envTable;
 
 
-
-
-
-
-
-
-jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *methodID,jobject obj, java_objectarray *params) {
+jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID, jobject obj, java_objectarray *params)
+{
 	int argcount;
 	jni_callblock *blk;
-	jobject ret;
 	char retT;
 	jobject retVal;
-	if (methodID==0) {
+
+	if (methodID == 0) {
 		exceptionptr = native_new_and_init(class_java_lang_NoSuchMethodError); 
 		return 0;
 	}
-        argcount=get_parametercount(methodID);
+	argcount = get_parametercount(methodID);
 
-    	if (obj && (!builtin_instanceof((java_objectheader*)obj,methodID->class))) {
-         	(*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/IllegalArgumentException")),
-                	"Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
-        	return 0;
-    	}
+	if (obj && (!builtin_instanceof((java_objectheader*)obj, methodID->class))) {
+		(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/IllegalArgumentException")),
+						 "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+		return 0;
+	}
 
 
 
-	if  (argcount>3) {
-		exceptionptr=native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
+	if  (argcount > 3) {
+		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		log_text("Too many arguments. invokeNativeHelper does not support that");
 		return 0;
 	}
 
 	if ( ((!params) && (argcount!=0)) || 
-		(params && (params->header.size!=argcount))
-	   ) {
+		 (params && (params->header.size!=argcount))
+		 ) {
 		exceptionptr = native_new_and_init(loader_load(utf_new_char("java/lang/IllegalArgumentException")));
 		return 0;
 	}
 
 
-         if (!(methodID->flags & ACC_STATIC) && (!obj))  {
-         	(*env)->ThrowNew(env,loader_load(utf_new_char("java/lang/NullPointerException")),
-                	"Static mismatch in Java_java_lang_reflect_Method_invokeNative");
-         	return 0;
-    	}
+	if (!(methodID->flags & ACC_STATIC) && (!obj))  {
+		(*env)->ThrowNew(env, loader_load(utf_new_char("java/lang/NullPointerException")),
+						 "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+		return 0;
+	}
 
-	if ((methodID->flags & ACC_STATIC) && (obj)) obj=0;
+	if ((methodID->flags & ACC_STATIC) && (obj)) obj = 0;
 
 	blk = MNEW(jni_callblock, 4 /*argcount+2*/);
 
-	retT=fill_callblock_objA(obj,methodID->descriptor,blk,params);
+	retT = fill_callblock_objA(obj, methodID->descriptor, blk, params);
 
 	switch (retT) {
-		case 'V':	(void)asm_calljavafunction2(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-				retVal=NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
-				break;
-		case 'I':	{
-					s4 intVal;	
-					intVal=(s4)asm_calljavafunction2(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Integer")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(I)V")),intVal);
-				}
-				break;
-		case 'B':	{
-					s4 intVal;	
-					intVal=(s4)asm_calljavafunction2(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Byte")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(B)V")),intVal);
-				}
-				break;
-		case 'C':	{
-					s4 intVal;	
-					intVal=(s4)asm_calljavafunction2(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Character")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(C)V")),intVal);
-				}
-				break;
-		case 'S': 	{
-					s4 intVal;	
-					intVal=(s4)asm_calljavafunction2(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Short")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(S)V")),intVal);
-				}
+	case 'V':
+		(void) asm_calljavafunction2(methodID,
+									 argcount + 1,
+									 (argcount + 1) * sizeof(jni_callblock),
+									 blk);
+		retVal = NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
+		break;
 
-		case 'Z': 	{
-					s4 intVal;	
-					intVal=(s4)asm_calljavafunction2(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Boolean")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(Z)V")),intVal);
-				}
-				break;
-		case 'J': 	{
-					jlong intVal;	
-					intVal=asm_calljavafunction2long(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Long")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(J)V")),intVal);
-				}
-				break;
-		case 'F':	{
-					jdouble floatVal;	
-					floatVal=asm_calljavafunction2double(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Float")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(F)V")),floatVal);
-				}
-				break;
-		case 'D':	{
-					jdouble floatVal;	
-					floatVal=asm_calljavafunction2double(methodID,
-						argcount+1,(argcount+1)*sizeof(jni_callblock),blk);											        
-					retVal=builtin_new(loader_load_sysclass(NULL,utf_new_char("java/lang/Double")));
-					CallVoidMethod(env,retVal,
-						class_resolvemethod(retVal->vftbl->class,
-						utf_new_char("<init>"),utf_new_char("(D)V")),floatVal);
-				}
-				break;
-
-		case 'L': 	/* fall through */
-		case '[': 	retVal=asm_calljavafunction2(methodID,argcount+1,(argcount+1)*sizeof(jni_callblock),blk);
-				break;
-		default: 	{ 
-					/* if this happens the acception has already been set by fill_callblock_objA*/
-					MFREE(blk, jni_callblock, 4 /*argcount+2*/);
-					return (jobject*)0;
-				}
+	case 'I': {
+		s4 intVal;	
+		intVal = (s4) asm_calljavafunction2(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Integer")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(I)V")),
+					   intVal);
 	}
+	break;
+
+	case 'B': {
+		s4 intVal;	
+		intVal = (s4) asm_calljavafunction2(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Byte")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(B)V")),
+					   intVal);
+	}
+	break;
+
+	case 'C': {
+		s4 intVal;	
+		intVal = (s4) asm_calljavafunction2(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Character")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(C)V")),
+					   intVal);
+	}
+	break;
+
+	case 'S': {
+		s4 intVal;	
+		intVal = (s4) asm_calljavafunction2(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Short")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(S)V")),
+					   intVal);
+	}
+	break;
+
+	case 'Z': {
+		s4 intVal;	
+		intVal = (s4) asm_calljavafunction2(methodID,
+											argcount + 1,
+											(argcount + 1) * sizeof(jni_callblock),
+											blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Boolean")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(Z)V")),
+					   intVal);
+	}
+	break;
+
+	case 'J': {
+		jlong intVal;	
+		intVal = asm_calljavafunction2long(methodID,
+										   argcount + 1,
+										   (argcount + 1) * sizeof(jni_callblock),
+										   blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Long")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(J)V")),
+					   intVal);
+	}
+	break;
+
+	case 'F': {
+		jdouble floatVal;	
+		floatVal = asm_calljavafunction2double(methodID,
+											   argcount + 1,
+											   (argcount + 1) * sizeof(jni_callblock),
+											   blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Float")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(F)V")),
+					   floatVal);
+	}
+	break;
+
+	case 'D': {
+		jdouble floatVal;	
+		floatVal = asm_calljavafunction2double(methodID,
+											   argcount + 1,
+											   (argcount + 1) * sizeof(jni_callblock),
+											   blk);
+		retVal = builtin_new(loader_load_sysclass(NULL,
+												  utf_new_char("java/lang/Double")));
+		CallVoidMethod(env,
+					   retVal,
+					   class_resolvemethod(retVal->vftbl->class,
+										   utf_new_char("<init>"),
+										   utf_new_char("(D)V")),
+					   floatVal);
+	}
+	break;
+
+	case 'L': /* fall through */
+	case '[':
+		retVal = asm_calljavafunction2(methodID,
+									   argcount + 1,
+									   (argcount + 1) * sizeof(jni_callblock),
+									   blk);
+		break;
+
+	default:
+		/* if this happens the acception has already been set by fill_callblock_objA*/
+		MFREE(blk, jni_callblock, 4 /*argcount+2*/);
+		return (jobject *) 0;
+	}
+
 	MFREE(blk, jni_callblock, 4 /*argcount+2*/);
 
 	if (exceptionptr) {
 		java_objectheader *exceptionToWrap=exceptionptr;
-		classinfo *ivtec=loader_load_sysclass(NULL,utf_new_char("java/lang/reflect/InvocationTargetException"));
-		java_objectheader* ivte=builtin_new(ivtec);
-		asm_calljavafunction(class_resolvemethod(ivtec,utf_new_char("<init>"),utf_new_char("(Ljava/lang/Throwable;)V")),
-			ivte,exceptionToWrap,0,0);
-		if (exceptionptr!=NULL) panic("jni.c: error while creating InvocationTargetException wrapper");
-		exceptionptr=ivte;
+		classinfo *ivtec = loader_load_sysclass(NULL,
+												utf_new_char("java/lang/reflect/InvocationTargetException"));
+		java_objectheader* ivte = builtin_new(ivtec);
+		asm_calljavafunction(class_resolvemethod(ivtec,
+												 utf_new_char("<init>"),
+												 utf_new_char("(Ljava/lang/Throwable;)V")),
+							 ivte,
+							 exceptionToWrap,
+							 0,
+							 0);
+
+		if (exceptionptr != NULL)
+			panic("jni.c: error while creating InvocationTargetException wrapper");
+
+		exceptionptr = ivte;
 	}
-	return retVal;	
 
+	return (jobject *) retVal;
 }
-
 
 
 /*
