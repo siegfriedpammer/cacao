@@ -473,7 +473,6 @@ void exit_handler(void)
 	loader_close ();
 	unicode_close ( literalstring_free );
 
-
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated");
 		if (statistics)
@@ -511,7 +510,7 @@ int main(int argc, char **argv)
 #ifndef USE_THREADS
 	stackbottom = &dummy;
 #endif
-
+	
 	if (0 != atexit(exit_handler))
 		panic("unable to register exit_handler");
 
