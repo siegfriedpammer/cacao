@@ -27,11 +27,12 @@
 
    Authores: Christian Thalinger
 
-   $Id: methodtable.c 688 2003-12-04 23:50:25Z jowenn $
+   $Id: methodtable.c 764 2003-12-13 22:48:23Z twisti $
 
 */
 
 
+#include <stdlib.h>
 #include <stdio.h>
 #include "methodtable.h"
 #include "types.h"
@@ -107,6 +108,11 @@ u1 *findmethod(u1 *pos)
     exit(-1);
 }
 
+
+void asmprintf(int x)
+{
+	printf("0x%x (%d)\n", x, x);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
