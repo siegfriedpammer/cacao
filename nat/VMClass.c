@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMClass.c 1201 2004-06-20 21:24:17Z twisti $
+   $Id: VMClass.c 1313 2004-07-14 18:30:37Z twisti $
 
 */
 
@@ -766,16 +766,20 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
 }
 
 
-
-
 /*
  * Class:     java_lang_VMClass
  * Method:    initialize
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, java_lang_Class *that)
+JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, java_lang_Class *c)
 {
-	log_text("Java_java_lang_VMClass_initialize");
+	classinfo *ci;
+
+	ci = (classinfo *) c;
+
+	/* initialize class */
+	if (!ci->initialized)
+		class_init(ci);
 }
 
 
