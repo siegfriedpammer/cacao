@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: asmpart.S 830 2004-01-03 16:46:45Z stefan $
+   $Id: asmpart.S 855 2004-01-06 16:18:42Z twisti $
 
 */
 
@@ -153,7 +153,6 @@
 
 /********************* exported functions and variables ***********************/
 
-	.globl has_no_x_instr_set
 	.globl synchronize_caches
 	.globl asm_calljavafunction_asm
 	.globl asm_calljavafunction2_asm
@@ -161,6 +160,7 @@
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
+	.globl asm_check_clinit
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_checkcast
 	.globl asm_builtin_aastore
@@ -174,6 +174,8 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
+	.globl asm_builtin_trace
+	.globl asm_builtin_exittrace
 
 
 /*************************** imported functions *******************************/
@@ -183,22 +185,6 @@
 	.globl builtin_throw_exception
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
-
-
-/*********************** function has_no_x_instr_set ***************************
-*                                                                              *
-*   determines if the byte support instruction set (21164a and higher)         *
-*   is available.                                                              *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    has_no_x_instr_set
-has_no_x_instr_set:
-
-	move    v0,zero                   /* result code 0 (not used for MIPS)    */
-	j       ra                        /* return                               */
-
-	.end    has_no_x_instr_set
 
 
 /********************* function synchronize_caches ****************************/
@@ -241,13 +227,13 @@ call_name:
 
 	.align  3
 asm_calljavafunction_asm:
-
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
 	bal     call_java_pc
 	sd      pv,3*8(sp)                /* procedure vector                     */
+                                      /* +4 instructions                      */
 call_java_pc:
 	aaddiu  pv,ra,-4*4
 
@@ -282,9 +268,9 @@ call_java_pc:
 #else
 	nop
 #endif
+                                      /* 1 + 8 + 4 + 3 + 5 = 21 instructions  */
 
 calljava_return:
-
 	ld      ra,0(sp)                  /* restore return address               */
 	ld      pv,3*8(sp)                /* restore procedure vector             */
 
@@ -296,14 +282,16 @@ calljava_return:
 	ldc1    fss5,9*8(sp)
 	j       ra                        /* return                               */
 	aaddiu  sp,sp,10*8                /* free stack space                     */
+                                      /* +10 instructions                      */
 
 	.set    reorder
 	
 calljava_xhandler:
-
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
 	b       calljava_return
+                                      /* +3 instructions                      */
+                                      /* = 38 instructions                    */
 
 	.end    asm_calljavafunction_asm
 
@@ -314,17 +302,16 @@ call_name2:
 
 	.align  3
 asm_calljavafunction2_asm:
-
-	aaddiu  sp,sp,-12*8               /* allocate stack space                 */
-	                                  /* (only 11 needed)                     */
+	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
 	sd      ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
 	bal     call_java_pc2
-	sd      pv,8(sp)                  /* procedure vector                     */
+	sd      pv,1*8(sp)                /* procedure vector                     */
+                                      /* +4 instructions                      */
 call_java_pc2:
 	aaddiu  pv,ra,-4*4
-	sd      s7,24(sp)
+	sd      s7,3*8(sp)
 
 	.set    reorder
 	
@@ -334,42 +321,52 @@ call_java_pc2:
 	sdc1    fss3,8*8(sp)
 	sdc1    fss4,9*8(sp)
 	sdc1    fss5,10*8(sp)
-	sd      a0,32(sp)                 /* save method pointer for compiler     */
+	sd      a0,4*8(sp)                /* save method pointer for compiler     */
 	move    t0,a3
 	move    s7,a1
+                                      /* +11 instructions                     */
 
 	blez    s7,calljava_argsloaded
 	ald     a0,offjniitem(t0)
 	ldc1    fa0,offjniitem(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a1,offjniitem+sizejniblock*1(t0)
 	ldc1    fa1,offjniitem+sizejniblock*1(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a2,offjniitem+sizejniblock*2(t0)
 	ldc1    fa2,offjniitem+sizejniblock*2(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a3,offjniitem+sizejniblock*3(t0)
 	ldc1    fa3,offjniitem+sizejniblock*3(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a4,offjniitem+sizejniblock*4(t0)
 	ldc1    fa4,offjniitem+sizejniblock*4(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a5,offjniitem+sizejniblock*5(t0)
 	ldc1    fa5,offjniitem+sizejniblock*5(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a6,offjniitem+sizejniblock*6(t0)
 	ldc1    fa6,offjniitem+sizejniblock*6(t0)
-	ala     s7,-1(s7)
-	blez    s7,calljava_argsloaded
+	daddi   s7,s7,-1
+	blez    s7,calljava_argsloaded    /* +1 delay slot                        */
+
 	ald     a7,offjniitem+sizejniblock*7(t0)
 	ldc1    fa7,offjniitem+sizejniblock*7(t0)
-	ala     s7,-1(s7)
+	daddi   s7,s7,-1
+                                      /* 5 + 4*6 + 3 + 7 = 39 instructions    */
+		
 calljava_argsloaded:
     move    t4,sp
 	blez    s7,calljava_nocopy
@@ -377,6 +374,7 @@ calljava_argsloaded:
 	sll     t2,t1,3
 	daddu   sp,sp,t2
 	daddu   t2,t2,t4
+                                      /* +6 instructions                      */
 
 calljava_copyloop:
     ald     t3,offjniitem+sizejniblock*8(t0)
@@ -385,6 +383,7 @@ calljava_copyloop:
 	ala     t0,sizejniblock(t0)
 	ala     t2,8(t2)
 	bnez    t1,calljava_copyloop
+                                      /* +6 instructions                      */
 
 calljava_nocopy:
 	ala     itmp1,32(t4)              /* pass pointer to methodptr via itmp1  */
@@ -399,9 +398,9 @@ calljava_nocopy:
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
+                                      /* +8 instructions                      */
 
 calljava_return2:
-
 	ld      ra,0(sp)                  /* restore return address               */
 	ld      pv,8(sp)                  /* restore procedure vector             */
 	ld      s7,24(sp)
@@ -414,16 +413,18 @@ calljava_return2:
 	ldc1    fss5,10*8(sp)
 	j       ra                        /* return                               */
 	aaddiu  sp,sp,12*8                /* free stack space                     */
+                                      /* +11 instructions                     */
 
 	.set    reorder
 	
 calljava_xhandler2:
-
     sll     s7,s7,3
 	aaddu   sp,s7,sp
 	move    a0,itmp1                  
-	jal     builtin_throw_exception
-	b       calljava_return2
+	jal     builtin_throw_exception   /* + 1 delay slot                       */
+	b       calljava_return2          /* + 1 delay slot                       */
+                                      /* 5 + 2 = 7 instructions               */
+                                      /* = 92 instructions                    */
 
 	.end    asm_calljavafunction2_asm
 
@@ -510,7 +511,7 @@ noregchange:
 	ldc1    fa6,14*8(sp)
 	ldc1    fa7,15*8(sp)
 	ld      mptr,16*8(sp)         /* restore method pointer                   */
-	ld      ra,17*8(sp)           /* restore return address                      */
+	ld      ra,17*8(sp)           /* restore return address                   */
 	aaddiu  sp,sp,18*8            /* deallocate stack area                    */
 
 	lw      t0,-12(ra)            /* load instruction LDQ PV,xxx($yy)         */
@@ -617,7 +618,8 @@ ex_stack_loop:
 	move    a0,xptr
 	ald     a1,MethodPointer(pv)
 	move    a2,xpc
-	move    a3,t3
+/*	move    a3,t3 */
+	addu    a3,zero,1
 	jal     builtin_trace_exception /* trace_exception(xptr,methodptr)        */
 	
 	ld      xptr,0*8(sp)          /* restore used register                    */
@@ -757,6 +759,64 @@ ex_flt2:
 	.end    asm_handle_nat_exception
 
 
+/********************* asm_check_clinit ****************************************
+*                                                                              *
+*   Checks if class is initialized. If not, do it right now.                   *
+*                                                                              *
+*******************************************************************************/
+		
+    .ent    asm_check_clinit
+asm_check_clinit:
+	lw      itmp2,offclassinit(itmp1)
+	bnez    itmp2,L_is_initialized
+	
+	aaddiu  sp,sp,-18*8
+	sd      ra,0*8(sp)
+	sd      a0,1*8(sp)            /* save argument registers for leaf funcs   */
+	sd      a1,2*8(sp)
+	sd      a2,3*8(sp)
+	sd      a3,4*8(sp)
+	sd      a4,5*8(sp)
+	sd      a5,6*8(sp)
+	sd      a6,7*8(sp)
+	sd      a7,8*8(sp)
+	sdc1    fa0,9*8(sp)
+	sdc1    fa1,10*8(sp)
+	sdc1    fa2,11*8(sp)
+	sdc1    fa3,12*8(sp)
+	sdc1    fa4,13*8(sp)
+	sdc1    fa5,14*8(sp)
+	sdc1    fa6,15*8(sp)
+	sdc1    fa7,16*8(sp)
+		
+	move    a0,itmp1
+	jal     class_init
+		
+	ld      ra,0*8(sp)
+	ld      a0,1*8(sp)            /* restore argument registers               */
+	ld      a1,2*8(sp)
+	ld      a2,3*8(sp)
+	ld      a3,4*8(sp)
+	ld      a4,5*8(sp)
+	ld      a5,6*8(sp)
+	ld      a6,7*8(sp)
+	ld      a7,8*8(sp)
+	ldc1    fa0,9*8(sp)
+	ldc1    fa1,10*8(sp)
+	ldc1    fa2,11*8(sp)
+	ldc1    fa3,12*8(sp)
+	ldc1    fa4,13*8(sp)
+	ldc1    fa5,14*8(sp)
+	ldc1    fa6,15*8(sp)
+	ldc1    fa7,16*8(sp)
+	aaddiu  sp,sp,18*8
+	
+L_is_initialized:
+	j       ra
+		
+	.end	asm_check_clinit
+
+		
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
 *   Does null check and calls monitorenter or throws an exception              *
@@ -1073,7 +1133,6 @@ asm_perform_threadswitch:
 *                                                                              *
 *******************************************************************************/
 
-
 	.ent	asm_switchstackandcall
 asm_switchstackandcall:
 	aaddiu  a0,a0,-16       /* allocate new stack                             */
@@ -1098,6 +1157,85 @@ asm_getcallingmethod:
 	li      v0,0
 	j       ra
 	.end    asm_getcallingmethod
+
+
+/*********************** function asm_builtin_trace ****************************
+*                                                                              *
+*   Intended to be called from the native stub. Saves all argument registers   *
+*   and calls builtin_trace_args.                                              *
+*                                                                              *
+*******************************************************************************/
+
+	.ent asm_builtin_trace
+asm_builtin_trace:
+	daddiu  sp,sp,-18*8
+	sd      itmp1,0*8(sp)
+	sd      ra,1*8(sp)
+	sd      a0,2*8(sp)
+	sd      a1,3*8(sp)
+	sd      a2,4*8(sp)
+	sd      a3,5*8(sp)
+	sd      a4,6*8(sp)
+	sd      a5,7*8(sp)
+	sd      a6,8*8(sp)
+	sd      a7,9*8(sp)
+	sdc1    fa0,10*8(sp)
+	sdc1    fa1,11*8(sp)
+	sdc1    fa2,12*8(sp)
+	sdc1    fa3,13*8(sp)
+	sdc1    fa4,14*8(sp)
+	sdc1    fa5,15*8(sp)
+	sdc1    fa6,16*8(sp)
+	sdc1    fa7,17*8(sp)
+	
+	jal     builtin_trace_args
+
+	ld      ra,1*8(sp)	
+	ld      a0,2*8(sp)            /* restore argument registers               */
+	ld      a1,3*8(sp)            /* they could be used by method             */
+	ld      a2,4*8(sp)
+	ld      a3,5*8(sp)
+	ld      a4,6*8(sp)
+	ld      a5,7*8(sp)
+	ld      a6,8*8(sp)
+	ld      a7,9*8(sp)
+	ldc1    fa0,10*8(sp)
+	ldc1    fa1,11*8(sp)
+	ldc1    fa2,12*8(sp)
+	ldc1    fa3,13*8(sp)
+	ldc1    fa4,14*8(sp)
+	ldc1    fa5,15*8(sp)
+	ldc1    fa6,16*8(sp)
+	ldc1    fa7,17*8(sp)
+	daddiu  sp,sp,18*8
+	j       ra
+
+	.end asm_builtin_trace
+
+
+/********************* function asm_builtin_exittrace **************************
+*                                                                              *
+*   Intended to be called from the native stub. Saves return value and calls   *
+*   builtin_displaymethodstop.                                                 *
+*                                                                              *
+*******************************************************************************/
+
+	.ent asm_builtin_exittrace
+asm_builtin_exittrace:
+	daddiu  sp,sp,-4*8
+	sd      ra,0*8(sp)
+	sd      v0,1*8(sp)
+	sdc1    fv0,2*8(sp)
+
+	jal     builtin_displaymethodstop
+	
+	ld      ra,0*8(sp)
+	ld      v0,1*8(sp)
+	ldc1    fv0,2*8(sp)
+	daddiu  sp,sp,4*8
+	j       ra
+
+	.end asm_builtin_exittrace
 
 
 /*
