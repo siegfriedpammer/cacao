@@ -1,4 +1,4 @@
-/* jit/powerpc/types.h - machine specific definitions for powerpc
+/* vm/jit/powerpc/types.h - machine specific definitions for powerpc
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -31,7 +31,7 @@
 
    Changes: Stefan Ring
 
-   $Id: types.h 1500 2004-11-12 16:35:44Z twisti $
+   $Id: types.h 1635 2004-12-01 09:57:58Z twisti $
 
 */
 
@@ -39,35 +39,10 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
-#define POINTERSIZE         4
-#define WORDS_BIGENDIAN     1
+#include "vm/jit/powerpc/arch.h"
 
-#define SUPPORT_DIVISION    0
-#define SUPPORT_LONG        1
-#define SUPPORT_FLOAT       1
-#define SUPPORT_DOUBLE      1
-#define SUPPORT_FMOD        0
-#define SUPPORT_FICVT       1
-#define SUPPORT_IFCVT       0
 
-#define SUPPORT_LONG_ADD    1
-#define SUPPORT_LONG_CMP    1
-#define SUPPORT_LONG_LOG    1
-#define SUPPORT_LONG_SHIFT  0
-#define SUPPORT_LONG_MUL    0
-#define SUPPORT_LONG_DIV    0
-#define SUPPORT_LONG_ICVT   0
-#define SUPPORT_LONG_FCVT   0
-
-/* #define CONDITIONAL_LOADCONST */
-#define NOLONG_CONDITIONAL
-#define NO_DIV_OPT
-#define USETWOREGS
-#define CONSECUTIVE_FLOATARGS
-#define SPECIALMEMUSE
-#define USEBUILTINTABLE
-
-#define U8_AVAILABLE        1
+/* define the sizes of the integer types used internally by cacao */
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -85,6 +60,11 @@ typedef unsigned long long      u8;
 typedef struct {u4 low, high;}  u8;
 #define s8 u8
 #endif
+
+
+/* define size of a function pointer used in function pointer casts */
+
+typedef u4                      ptrint;
 
 #endif /* _TYPES_H */
 

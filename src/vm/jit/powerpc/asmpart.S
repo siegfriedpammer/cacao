@@ -1,4 +1,4 @@
-/* jit/powerpc/asmpart.S - Java-C interface functions for powerpc
+/* vm/jit/powerpc/asmpart.S - Java-C interface functions for powerpc
 		
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,12 +28,12 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: asmpart.S 1501 2004-11-12 16:36:13Z twisti $
+   $Id: asmpart.S 1635 2004-12-01 09:57:58Z twisti $
 
 */
 
 #include "config.h"
-#include "jit/powerpc/offsets.h"
+#include "vm/jit/powerpc/offsets.h"
 
 
 #define     MethodPointer   -8

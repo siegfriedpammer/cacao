@@ -1,4 +1,4 @@
-/* jit/powerpc/codegen.c - machine code generator for 32-bit powerpc
+/* vm/jit/powerpc/codegen.c - machine code generator for 32-bit powerpc
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -28,26 +28,26 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.c 1501 2004-11-12 16:36:13Z twisti $
+   $Id: codegen.c 1635 2004-12-01 09:57:58Z twisti $
 
 */
 
 #include <stdio.h>
 #include <signal.h>
+
 #include "config.h"
-#include "global.h"
-#include "types.h"
-#include "main.h"
-#include "builtin.h"
-#include "asmpart.h"
-#include "jni.h"
-#include "loader.h"
-#include "tables.h"
-#include "native.h"
-#include "jit/jit.h"
-#include "jit/parse.h"
-#include "jit/reg.h"
-#include "jit/powerpc/codegen.h"
+#include "native/native.h"
+#include "vm/builtin.h"
+#include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/parse.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/powerpc/arch.h"
+#include "vm/jit/powerpc/codegen.h"
+#include "vm/jit/powerpc/types.h"
 
 
 /* register descripton - array ************************************************/
@@ -61,7 +61,7 @@
 
 /* #define REG_END   -1        last entry in tables */
  
-int nregdescint[] = {
+static int nregdescint[] = {
 	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
 	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV, 
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
@@ -70,25 +70,20 @@ int nregdescint[] = {
 
 /* for use of reserved registers, see comment above */
 	
-int nregdescfloat[] = {
+static int nregdescfloat[] = {
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV, REG_SAV, 
 	REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	REG_END };
 
-/* for use of reserved registers, see comment above */
 
+/* Include independent code generation stuff -- include after register        */
+/* descriptions to avoid extern definitions.                                  */
 
-/*******************************************************************************
-
-    include independent code generation stuff -- include after register
-    descriptions to avoid extern definitions
-
-*******************************************************************************/
-
-#include "jit/codegen.inc"
-#include "jit/reg.inc"
+#include "vm/jit/codegen.inc"
+#include "vm/jit/reg.inc"
+#include "vm/jit/lsra.inc"
 
 
 void asm_cacheflush(void *, long);

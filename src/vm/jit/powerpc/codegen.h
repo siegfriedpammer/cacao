@@ -1,5 +1,5 @@
-/* jit/powerpc/codegen.h - code generation macros and definitions for
-                           32-bit powerpc
+/* vm/jit/powerpc/codegen.h - code generation macros and definitions for
+                              32-bit powerpc
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    Institut f. Computersprachen, TU Wien
@@ -29,7 +29,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 1479 2004-11-11 11:16:46Z twisti $
+   $Id: codegen.h 1635 2004-12-01 09:57:58Z twisti $
 
 */
 
@@ -37,10 +37,8 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
-#include "jit/jit.h"
+#include "vm/jit/reg.h"
 
-
-/* see also file calling.doc for explanation of calling conventions           */
 
 /* preallocated registers *****************************************************/
 
