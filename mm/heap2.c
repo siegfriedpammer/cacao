@@ -11,6 +11,7 @@
 #include "../threads/thread.h"
 #include "../threads/locks.h"
 #include <assert.h>
+#include "lifespan.h"
 
 #include "mm.h"
 
@@ -19,8 +20,10 @@
 #undef ALIGN
 #undef OFFSET
 
+//#define COLLECT_LIFESPAN
+#define NEW_COLLECT_LIFESPAN
 #define GC_COLLECT_STATISTICS
-//#define FINALIZER_COUNTING
+#define FINALIZER_COUNTING
 
 #undef STRUCTURES_ON_HEAP
 //#define STRUCTURES_ON_HEAP
@@ -104,6 +107,10 @@ static unsigned long gc_finalizers_detected = 0;
 static iMux  alloc_mutex;
 #endif
 
+#ifdef COLLECT_LIFESPAN
+static FILE* tracefile;
+#endif
+
 /* --- implementation */
 
 void 
@@ -170,6 +177,27 @@ heap_init (SIZE size,
 	/* 8. Init the mutexes for synchronization */
 	alloc_mutex.holder = 0;
 #endif
+
+	/* 9. Set up collection of lifespan data */
+#ifdef COLLECT_LIFESPAN
+#if 0
+	tracefile = fopen("heap.trace", "w");
+#else
+	tracefile = popen("gzip -9 >heap.trace.gz", "w");
+#endif
+	if (!tracefile) {
+		fprintf(stderr, "heap2.c: Radio Ga Ga! (fopen failed)\n");
+		exit(-2);
+	}
+
+	fprintf(tracefile, "heap_base\t0x%lx\n", heap_base);	
+	fprintf(tracefile, "heap_limit\t0x%lx\n", heap_limit);
+	fprintf(tracefile, "heap_top\t0x%lx\n", heap_top);
+#endif
+
+#ifdef NEW_COLLECT_LIFESPAN
+	lifespan_init(heap_base, heap_size);
+#endif
 }
 
 __inline__
@@ -187,6 +215,19 @@ void
 heap_close (void)
 {
 	address_list_node* curr = finalizers;
+
+	/* 0. clean up lifespan module */
+#ifdef COLLECT_LIFESPAN
+#if 0
+	fclose(tracefile);
+#else
+	pclose(tracefile);
+#endif
+#endif
+
+#ifdef NEW_COLLECT_LIFESPAN
+	lifespan_close();
+#endif
 
 	/* 1. Clean up on the heap... finalize all remaining objects */
 #if 1
@@ -211,8 +252,8 @@ heap_close (void)
 	if (heap_base)
 		munmap(heap_base, heap_size);
 
-#ifdef GC_COLLECT_STATISTICS
 	/* 4. emit statistical data */
+#ifdef GC_COLLECT_STATISTICS
 	sprintf(logtext, "%ld bytes for %ld objects allocated.", 
 			gc_alloc_total, gc_alloc_count); 
 	dolog();
@@ -242,6 +283,9 @@ heap_close (void)
 	dolog();
 #endif
 
+#ifdef NEW_COLLECT_LIFESPAN
+	lifespan_emit();
+#endif
 }
 
 __inline__
@@ -289,6 +333,10 @@ heap_add_finalizer_for_object_at(void* addr)
 	   objects will need to be added first. -- phil. */
 
 	heap_add_address_to_address_list(&finalizers, addr);
+
+#ifdef COLLECT_LIFESPAN
+	fprintf(tracefile, "finalizer\t0x%lx\n", addr);
+#endif
 }
 
 void* 
@@ -312,7 +360,7 @@ heap_allocate (SIZE		  in_length,
 		++gc_finalizers_detected;
 #endif
 
-#if VERBOSITY >= VERBOSITY_LIFESPAN && 0
+#if defined(COLLECT_LIFESPAN) || defined(NEW_COLLECT_LIFESPAN)
 	/* perform garbage collection to collect data for lifespan analysis */
 	if (heap_top > heap_base)
 		gc_call();
@@ -368,13 +416,23 @@ heap_allocate (SIZE		  in_length,
 	if (finalizer)
 		heap_add_finalizer_for_object_at(free_chunk);
 
-#if 0 /* lifespan */
-	fprintf(stderr, "alloc 0x%lx bytes @ 0x%lx\n", length, free_chunk);
-#endif
-
 #ifdef GC_COLLECT_STATISTICS
 	gc_alloc_total += length;
 	++gc_alloc_count;
+#endif
+
+#if 0
+	if (free_chunk == 0x20000430228)
+		fprintf(stderr, "yell!\n");
+#endif
+
+#ifdef COLLECT_LIFESPAN
+	fprintf(tracefile, "alloc\t0x%lx\t0x%lx\n", 
+			free_chunk, (long)free_chunk + length);
+#endif
+
+#ifdef NEW_COLLECT_LIFESPAN
+	lifespan_alloc(free_chunk, length);
 #endif
 
  failure:
@@ -448,15 +506,26 @@ void gc_reclaim (void)
 															free_end);
 
 		if (free_start < heap_top) {
-			free_end   = bitmap_find_next_setbit(mark_bitmap, (void*)((long)free_start + 8)); /* FIXME: constant used */
+			free_end = bitmap_find_next_setbit(mark_bitmap, (void*)((long)free_start + 8)); /* FIXME: constant used */
 
 			if (free_end < heap_top) {
 				allocator_free(free_start, (long)free_end - (long)free_start);
 
-#if !defined(JIT_MARKER_SUPPORT)
+#ifdef COLLECT_LIFESPAN
+				fprintf(tracefile, 
+						"free\t0x%lx\t0x%lx\n", 
+						free_start,
+						(long)free_end);
+#endif
+
+#ifdef NEW_COLLECT_LIFESPAN
+				lifespan_free(free_start, free_end);
+#endif
+
+#ifndef SIZE_FROM_CLASSINFO
 				/* would make trouble with JIT-Marker support. The Marker for unused blocks 
 				   might be called, leading to a bad dereference. -- phil. */
-				bitmap_setbit(mark_bits, free_start);
+				bitmap_setbit(mark_bits, free_start); /* necessary to calculate obj-size bitmap based. */
 #endif
 			}
 		} else
@@ -489,6 +558,10 @@ void gc_reclaim (void)
 	heap_next_collection = (void*)((long)heap_top + ((long)heap_limit - (long)heap_top) / 4);
 	if (heap_next_collection > heap_limit)
 		heap_next_collection = heap_limit;
+
+#ifdef COLLECT_LIFESPAN
+	fprintf(tracefile, "heap_top\t0x%lx\n", heap_top);
+#endif
 }
 
 __inline__
@@ -600,6 +673,11 @@ gc_mark_object_at (void** addr)
 		void** end;
 
 #ifdef SIZE_FROM_CLASSINFO
+#if 0
+		if (addr == 0x20000430228)
+			fprintf(stderr, "stop me!\n");
+#endif
+
 		if (((java_objectheader*)addr)->vftbl == class_array->vftbl)
 			end = (void**)((long)addr + (long)((java_arrayheader*)addr)->alignedsize);
 		else
