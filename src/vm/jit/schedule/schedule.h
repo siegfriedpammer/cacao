@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: schedule.h 1963 2005-02-23 17:03:53Z twisti $
+   $Id: schedule.h 1964 2005-02-24 08:44:59Z twisti $
 
 */
 
@@ -58,6 +58,7 @@ struct scheduledata {
 	minstruction **intregs_write_dep;
 	minstruction **fltregs_read_dep;
 	minstruction **fltregs_write_dep;
+	minstruction *memory_read_dep;
 	minstruction *memory_write_dep;
 };
 
