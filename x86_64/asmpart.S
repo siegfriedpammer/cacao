@@ -11,7 +11,7 @@
 *            Reinhard Grafl      EMAIL: cacao@complang.tuwien.ac.at            *
 *            Christian Thalinger EMAIL: cacao@complang.tuwien.ac.at            *
 *                                                                              *
-*   Last Change: $Id: asmpart.S 388 2003-07-10 16:49:05Z twisti $        *
+*   Last Change: $Id: asmpart.S 397 2003-07-29 21:38:52Z twisti $         *
 *                                                                              *
 *******************************************************************************/
 
@@ -68,13 +68,7 @@
 *******************************************************************************/
 
 has_no_x_instr_set:
-		finit                         /* intitialize the fpu                  */
-
-		pushl	$0x027f   /* Round to nearest, 53-bit mode, exceptions masked */
-		fldcw	(%esp)
-		addl	$4,%esp
-		
-		xor		%eax,%eax				/* result code 0 (not used for i386)  */
+		xor		%rax,%rax				/* result code 0 (not used for i386)  */
 		ret
 
 
@@ -97,20 +91,20 @@ has_no_x_instr_set:
 *                                                                              *
 *******************************************************************************/
 
-#define    	MethodPointer   -4
-#define    	FrameSize       -8
-#define     IsSync          -12
-#define     IsLeaf          -16
-#define     IntSave         -20
-#define     FltSave         -24
-#define     ExTableSize     -28
-#define     ExTableStart    -28
+#define    	MethodPointer   -8
+#define    	FrameSize       -12
+#define     IsSync          -16
+#define     IsLeaf          -20
+#define     IntSave         -24
+#define     FltSave         -28
+#define     ExTableSize     -32
+#define     ExTableStart    -32
 
-#define     ExEntrySize     -16
-#define     ExStartPC       -4
-#define     ExEndPC         -8
-#define     ExHandlerPC     -12
-#define     ExCatchType     -16
+#define     ExEntrySize     -32
+#define     ExStartPC       -8
+#define     ExEndPC         -16
+#define     ExHandlerPC     -24
+#define     ExCatchType     -32
 
 call_name:
 	.ascii  "calljavamethod\0\0"
@@ -126,50 +120,35 @@ call_name:
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
+	.long   8                         /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavamethod:
-		pushl	%ebp                  /* allocate stack space                 */
-		movl	%esp, %ebp
+		push	%rbp                  /* allocate stack space                 */
+		mov     %rsp,%rbp
 
-		subl	$32,%esp              /* pass the remaining parameters        */
-		xorl	%edx,%edx
+		mov     %rdi,%rax             /* move function pointer to %rax        */
 
-		movl	%edx,28(%esp)         /* convert parms to 8 byte              */
-		movl	24(%ebp),%eax
-		movl	%eax,24(%esp)
-		
-		movl	%edx,20(%esp)
-		movl	20(%ebp),%eax
-		movl	%eax,16(%esp)
-
-		movl	%edx,12(%esp)
-		movl	16(%ebp),%eax
-		movl	%eax,8(%esp)
-
-		movl	%edx,4(%esp)
-		movl	12(%ebp),%eax
-		movl	%eax,(%esp)
-
-		movl	8(%ebp),%eax          /* move function pointer to %eax        */
-
-		lea		asm_call_jit_compiler,%ecx
-		call	*%ecx                 /* call JIT compiler                    */
+        mov     %rsi,%rdi             /* pass remaining parameters            */
+        mov     %rdx,%rsi
+        mov     %rcx,%rdx
+        mov     %r8,%rcx
+        
+		lea		asm_call_jit_compiler,%rcx
+		call	*%rcx                 /* call JIT compiler                    */
 		
 calljava_jit:
 calljava_return:
 calljava_ret:
-		xorl	%eax,%eax
+		xor     %rax,%rax
 		leave					 	  /* free stack space                     */
 		ret
 
 calljava_xhandler:
-		pushl	%eax				  /* pass exception pointer               */
+		push	%rax				  /* pass exception pointer               */
 		call    builtin_throw_exception
-		addl	$4,%esp
-		addl	$32,%esp
-		popl	%ebp
+		add     $8,%rsp
+		pop     %ebp
 		ret
 
 
@@ -201,36 +180,22 @@ call_name2:
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
+	.long   8                         /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
-		pushl	%ebp                  /* allocate stack space                 */
-		movl	%esp, %ebp
+		push	%rbp                  /* allocate stack space                 */
+		mov     %rsp,%rbp
 
-		subl	$32,%esp              /* pass the remaining parameters        */
-		xorl	%edx,%edx
+		mov     %rdi,%rax             /* move function pointer to %rax        */
 
-		movl	%edx,28(%esp)         /* convert parms to 8 byte              */
-		movl	24(%ebp),%eax
-		movl	%eax,24(%esp)
-		
-		movl	%edx,20(%esp)
-		movl	20(%ebp),%eax
-		movl	%eax,16(%esp)
-
-		movl	%edx,12(%esp)
-		movl	16(%ebp),%eax
-		movl	%eax,8(%esp)
-
-		movl	%edx,4(%esp)
-		movl	12(%ebp),%eax
-		movl	%eax,(%esp)
-
-		movl	8(%ebp),%eax          /* move function pointer to %eax        */
-
-		lea		asm_call_jit_compiler,%ecx 
-		call	*%ecx                 /* call JIT compiler                    */
+        mov     %rsi,%rdi             /* pass remaining parameters            */
+        mov     %rdx,%rsi
+        mov     %rcx,%rdx
+        mov     %r8,%rcx
+        
+		lea		asm_call_jit_compiler,%rcx
+		call	*%rcx                 /* call JIT compiler                    */
 	
 calljava_jit2:
 calljava_return2:
@@ -239,11 +204,10 @@ calljava_ret2:
 		ret
 
 calljava_xhandler2:
-		pushl	%eax				  /* pass exception pointer               */
+		push    %rax				  /* pass exception pointer               */
 		call    builtin_throw_exception
-		addl	$4,%esp
-		addl	$32,%esp
-		popl	%ebp
+		add     $8,%esp
+		pop     %rbp
 		ret
 						
 
@@ -276,50 +240,50 @@ calljava_xhandler2:
 
 
 asm_call_jit_compiler:
-		pushl	%ebp
-		movl	%esp, %ebp
+		push    %ebp
+		mov     %esp, %ebp
 
-		pushl	%ebx            /* save register                              */
-/*		pushl	%esi*/
-/*		pushl	%edi*/
+		push    %ebx            /* save register                              */
+/*		push	%esi*/
+/*		push	%edi*/
 				
-		movl	4(%ebp),%edx	/* get return address                         */
+		mov     4(%ebp),%edx	/* get return address                         */
 		movb	-1(%edx),%bl	/* get function code                          */
 		cmpb	$0xd2,%bl		/* called with `call *REG_ITMP2' (%edx)?      */
 		jne		L_not_static_special
 
-		subl	$6,%edx			/* calculate address of immediate             */
+		sub     $6,%edx			/* calculate address of immediate             */
 		jmp		L_call_jit_compile
 		
 L_not_static_special:
 		cmpb	$0xd0,%bl		/* called with `call *REG_ITMP1' (%eax)       */
 		jne		L_not_virtual_interface
 		
-		subl	$6,%edx         /* calculate address of offset                */
-		movl	(%edx),%edx     /* get offset                                 */
-		addl	%ecx,%edx       /* add base address to get method address     */
+		sub     $6,%edx         /* calculate address of offset                */
+		mov     (%edx),%edx     /* get offset                                 */
+		add     %ecx,%edx       /* add base address to get method address     */
 		jmp		L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavamethod             */
-		xorl	%edx,%edx
+		xor     %edx,%edx
 		
 L_call_jit_compile:
-		pushl	%edx            /* save address for method pointer            */
+		push    %edx            /* save address for method pointer            */
 
-		pushl	%eax			/* push methodpointer on stack                */
+		push    %eax			/* push methodpointer on stack                */
 		call	jit_compile
-		addl	$4,%esp
+		add     $4,%esp
 
-		popl	%edx            /* restore address for method pointer         */
-		testl	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
+		pop     %edx            /* restore address for method pointer         */
+		test	%edx,%edx		/* is address == 0 (asm_calljavamethod)       */
 		je		L_call_method
 		
-		movl	%eax,(%edx)		/* and now save the new pointer               */
+		mov     %eax,(%edx)		/* and now save the new pointer               */
 
 L_call_method:
-/*		popl	%edi            /* restore registers                          */
-/*		popl	%esi*/
-		popl	%ebx
+/*		pop     %edi            /* restore registers                          */
+/*		pop     %esi*/
+		pop     %ebx
 		
 		leave
 		jmp		*%eax			/* ...and now call the new method             */
@@ -339,13 +303,38 @@ L_call_method:
 *                                                                              *
 *******************************************************************************/
 
+asm_dumpregistersandcall:       
+asm_handle_exception:   
+asm_handle_nat_exception:       
+asm_builtin_checkcast	:       
+asm_builtin_checkarraycast:     
+asm_builtin_anewarray:  
+asm_builtin_newarray_array:     
+asm_builtin_aastore:    
+asm_builtin_monitorenter:       
+asm_builtin_monitorexit:        
+asm_builtin_idiv:       
+asm_builtin_irem:       
+asm_builtin_ldiv:       
+asm_builtin_lrem:       
+asm_builtin_frem:       
+asm_builtin_arrayinstanceof:    
+asm_perform_threadswitch:       
+asm_initialize_thread_stack:    
+asm_switchstackandcall: 
+asm_getcallingmethod:   
+asm_builtin_trace:      
+asm_builtin_exittrace:
+        ret
+
+#if 0
 asm_dumpregistersandcall:
 		push	%ebx
 		push	%ebp
 		push	%esi
 		push	%edi
 				
-		movl	8(%ebp),%eax		/* load function pointer */
+		mov     8(%ebp),%eax		/* load function pointer */
 		call	*%eax				/* call function */
 
 		pop		%edi
@@ -369,82 +358,82 @@ asm_dumpregistersandcall:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-		addl	$4,%esp						/* clear return address of native stub */
+		add     $4,%esp						/* clear return address of native stub */
 		
 asm_handle_exception:
-		pushl   %eax
-		pushl	%edx						/* get the data segment ptr       */
+		push    %eax
+		push	%edx						/* get the data segment ptr       */
 		call	findmethod
-		movl	%eax,%ecx
-		popl	%edx
-		popl	%eax
+		mov     %eax,%ecx
+		pop     %edx
+		pop     %eax
 
-		pushl	%ebp
-		movl	%esp,%ebp
+		push    %ebp
+		mov     %esp,%ebp
 
-		pushl	%eax						/* save exception pointer         */
-/*		subl	$2,%edx */
-		pushl	%edx						/* save exception pc              */
-		pushl	%ecx						/* save data segment pointer      */
+		push    %eax						/* save exception pointer         */
+/*		sub     $2,%edx */
+		push    %edx						/* save exception pc              */
+		push	%ecx						/* save data segment pointer      */
         
-		pushl	%ebx
-		pushl	%esi
-		pushl	%edi
+		push	%ebx
+		push	%esi
+		push	%edi
 		
 ex_stack_loop:
-		subl	$16,%esp
+		sub     $16,%esp
 
-		movl	%eax,(%esp)					/* exception pointer */
+		mov     %eax,(%esp)					/* exception pointer */
 
-		movl	MethodPointer(%ecx),%eax	/* method pointer */
-		movl	%eax,4(%esp)
+		mov     MethodPointer(%ecx),%eax	/* method pointer */
+		mov     %eax,4(%esp)
 		
-		movl	%edx,8(%esp)				/* exception pc */
-		movl	$1,12(%esp)					/* set no unwind flag */
+		mov     %edx,8(%esp)				/* exception pc */
+		mov     $1,12(%esp)					/* set no unwind flag */
 		call	builtin_trace_exception
 
-		addl	$16,%esp
+		add     $16,%esp
 
-		movl	-12(%ebp),%esi				/* %esi = data segment pointer */
-		movl	ExTableSize(%esi),%ecx		/* %ecx = exception table size */
+		mov     -12(%ebp),%esi				/* %esi = data segment pointer */
+		mov     ExTableSize(%esi),%ecx		/* %ecx = exception table size */
 		test	%ecx,%ecx					/* if empty table skip */
 		je		empty_table
 
 		lea		ExTableStart(%esi),%edi		/* %edi = start of exception table */
-		movl	-4(%ebp),%eax				/* get xptr */
+		mov     -4(%ebp),%eax				/* get xptr */
 		
 ex_table_loop:
-		movl	-8(%ebp),%edx				/* get xpc */
+		mov     -8(%ebp),%edx				/* get xpc */
 		
-		movl	ExStartPC(%edi),%ebx		/* %ebx = exception start pc */
-		cmpl	%edx,%ebx					/* %ebx = (startpc <= xpc) */
+		mov     ExStartPC(%edi),%ebx		/* %ebx = exception start pc */
+		cmp     %edx,%ebx					/* %ebx = (startpc <= xpc) */
 		jg		ex_table_cont				/* if (false) continue */
-		movl	ExEndPC(%edi),%ebx			/* %ebx = exception end pc */
-		cmpl	%ebx,%edx					/* %ebx = (xpc < endpc) */
+		mov     ExEndPC(%edi),%ebx			/* %ebx = exception end pc */
+		cmp     %ebx,%edx					/* %ebx = (xpc < endpc) */
 		jge		ex_table_cont				/* if (false) continue */
-		movl	ExCatchType(%edi),%ebx		/* arg1 = exception catch type */
+		mov     ExCatchType(%edi),%ebx		/* arg1 = exception catch type */
 		test	%ebx,%ebx					/* NULL catches everything */
 		je		ex_handle_it
 
-		movl	offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr) */
-		movl	offobjvftbl(%ebx),%ebx		/* %ebx = vftblptr(catchtype) class (not obj) */
-		movl	offbaseval(%esi),%esi		/* %esi = baseval(xptr) */
-		movl	offbaseval(%ebx),%edx		/* %edx = baseval(catchtype) */
-		movl	offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype) */
-		subl	%edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
-		cmpl	%ebx,%esi					/* xptr is instanceof catchtype */
+		mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr) */
+		mov     offobjvftbl(%ebx),%ebx		/* %ebx = vftblptr(catchtype) class (not obj) */
+		mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr) */
+		mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype) */
+		mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype) */
+		sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
+		cmp     %ebx,%esi					/* xptr is instanceof catchtype */
 		ja		ex_table_cont
 		
 ex_handle_it:
-		movl	ExHandlerPC(%edi),%edx
+		mov     ExHandlerPC(%edi),%edx
 		
-		popl	%edi
-		popl	%esi
-		popl	%ebx
+		pop     %edi
+		pop     %esi
+		pop     %ebx
         
-        popl    %eax                        /* pop %ecx (dummy) */
-        popl    %eax                        /* pop %edx (dummy) */
-        popl    %eax                        /* pop %eax */
+        pop     %eax                        /* pop %ecx (dummy) */
+        pop     %eax                        /* pop %edx (dummy) */
+        pop     %eax                        /* pop %eax */
         
 		leave
 
@@ -452,61 +441,61 @@ ex_handle_it:
 
 ex_table_cont:
 		lea		ExEntrySize(%edi),%edi
-		decl	%ecx
+		dec     %ecx
 		test	%ecx,%ecx
 		jg		ex_table_loop
 		
 empty_table:
-		popl	%edi
-		popl	%esi
-		popl	%ebx
-		popl	%ecx						/* restore data segment pointer   */
-		popl	%edx
-		popl	%eax						/* restore exception pointer      */
-		popl	%ebp
+		pop     %edi
+		pop    	%esi
+		pop     %ebx
+		pop     %ecx						/* restore data segment pointer   */
+		pop     %edx
+		pop     %eax						/* restore exception pointer      */
+		pop     %ebp
 
-		movl	%eax,%edi					/* save exception pointer         */
+		mov     %eax,%edi					/* save exception pointer         */
 				
 ex_already_cleared:		
-		movl	IsSync(%ecx),%eax			/* %eax = SyncOffset              */
+		mov     IsSync(%ecx),%eax			/* %eax = SyncOffset              */
 		test	%eax,%eax					/* if zero no monitorexit         */
 		je		no_monitor_exit
 		
-		addl	%esp,%eax
-		movl	-8(%eax),%eax
-		pushl	%eax
+		add     %esp,%eax
+		mov     -8(%eax),%eax
+		push    %eax
 		call	builtin_monitorexit
-		addl	$4,%esp
+		add     $4,%esp
         
 no_monitor_exit:
-		movl	FrameSize(%ecx),%eax		/* %eax = frame size              */
-		addl	%eax,%esp					/* unwind stack                   */
-		movl	%esp,%eax					/* %eax = pointer to save area    */
+		mov     FrameSize(%ecx),%eax		/* %eax = frame size              */
+		add     %eax,%esp					/* unwind stack                   */
+		mov     %esp,%eax					/* %eax = pointer to save area    */
 
-		movl	IntSave(%ecx),%edx			/* %edx = saved int register count */
+		mov     IntSave(%ecx),%edx			/* %edx = saved int register count */
 		test	%edx,%edx
 		je		noint
-		cmpl	$1,%edx
+		cmp     $1,%edx
 		je		int1
 		
 int2:	
-		movl	-16(%eax),%ebx
+		mov     -16(%eax),%ebx
 
 int1:	
-		movl	-8(%eax),%ebp
+		mov     -8(%eax),%ebp
 
-		shll	$3,%edx						/* multiply by 8 bytes             */
-		subl	%edx,%eax
+		shl     $3,%edx						/* multiply by 8 bytes             */
+		sub     %edx,%eax
 		
 noint:
-		movl	FltSave(%ecx),%edx			/* %edx = saved flt register count */
+		mov     FltSave(%ecx),%edx			/* %edx = saved flt register count */
 		test	%edx,%edx
 		je		noflt
-		cmpl	$1,%edx
+		cmp     $1,%edx
 		je		flt1
-		cmpl	$2,%edx
+		cmp     $2,%edx
 		je		flt2
-		cmpl	$3,%edx
+		cmp     $3,%edx
 		je		flt3
 		
 flt4:	
@@ -526,37 +515,37 @@ flt1:
 		fstp	%st(4)
 		
 noflt:					
-		popl	%edx						/* the new xpc is return address  */
-		subl	$2,%edx
+		pop     %edx						/* the new xpc is return address  */
+		sub     $2,%edx
 		
-		pushl	%edx
-		pushl	%ebx
-		pushl	%ebp
-		pushl	%esi
-		pushl	%edi
+		push	%edx
+		push	%ebx
+		push	%ebp
+		push	%esi
+		push	%edi
 								
-		pushl	%edx						/* get the new data segment ptr   */
+		push	%edx						/* get the new data segment ptr   */
 		call	findmethod
-		movl	%eax,%ecx
-		addl	$4,%esp
+		mov     %eax,%ecx
+		add     $4,%esp
 
-		popl	%edi
-		popl	%esi
-		popl	%ebp
-		popl	%ebx
-		popl	%edx
+		pop     %edi
+		pop     %esi
+		pop     %ebp
+		pop     %ebx
+		pop     %edx
 		
-		movl	%edi,%eax					/* restore saved exception pointer */
+		mov     %edi,%eax					/* restore saved exception pointer */
 				
-		pushl	%ebp
-		movl	%esp,%ebp
+		push    %ebp
+		mov     %esp,%ebp
 
-		pushl	%eax						/* save exception pointer         */
-		pushl	%edx						/* save exception pc              */
-		pushl	%ecx						/* save data segment pointer      */
-		pushl	%ebx
-		pushl	%esi
-		pushl	%edi
+		push    %eax						/* save exception pointer         */
+		push    %edx						/* save exception pc              */
+		push    %ecx						/* save data segment pointer      */
+		push    %ebx
+		push    %esi
+		push    %edi
 		
 		jmp		ex_stack_loop
 		
@@ -1089,4 +1078,4 @@ asm_builtin_exittrace:
 
         popa
         ret
-        
+#endif
