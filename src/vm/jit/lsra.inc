@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 1735 2004-12-07 14:33:27Z twisti $
+   $Id: lsra.inc 1775 2004-12-20 21:04:08Z twisti $
 
 */
 
@@ -589,10 +589,6 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd)
 			}
 		tmp_reg_count=sav_reg_count;
 		for (i=0; i<reg_count ; i++) {
-#if defined(__I386__)
-			if ((method_uses_ecx) && (i==ECX)) continue;
-			if ((method_uses_edx) && (i==EDX)) continue;
-#endif
 			if (nregdescint[i]==REG_TMP) {
 				reg[tmp_reg_count].reg_index=i;
 				reg[tmp_reg_count].use=0;

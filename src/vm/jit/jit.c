@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: jit.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: jit.c 1775 2004-12-20 21:04:08Z twisti $
 
 */
 
@@ -75,13 +75,6 @@
 int stackreq[256];
 
                                 
-#if defined(__I386__)
-/* these define if a method has ICMDs which use %edx or %ecx */
-bool method_uses_ecx;
-bool method_uses_edx;
-#endif
-
-
 int jcommandsize[256] = {
 
 #define JAVA_NOP               0
@@ -1529,22 +1522,6 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	/* initialise parameter type descriptor */
 
 	descriptor2types(m);
-
-#if defined(__I386__)
-	/* we try to use these registers as scratch registers */
-    if (m->exceptiontablelength > 0) {
-		method_uses_ecx = true;
-		method_uses_edx = true;
-
-	} else {
-		/* XXX when we use this, we have to save used registers in asm_
-		   functions (see asm_check_clinit */
-/*  		method_uses_ecx = false; */
-/*  		method_uses_edx = false; */
-		method_uses_ecx = true;
-		method_uses_edx = true;
-	}
-#endif
 
 	/* call the compiler passes ***********************************************/
 

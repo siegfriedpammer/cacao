@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: jit.h 1775 2004-12-20 21:04:08Z twisti $
 
 */
 
@@ -819,13 +819,7 @@ builtin_descriptor *find_builtin(int opcode);
 extern int stackreq[256];
 
 
-#if defined(__I386__)
-extern bool method_uses_ecx;
-extern bool method_uses_edx;
-#endif
-
-
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 functionptr jit_compile(methodinfo *m); /* compile a method with jit compiler */
 
