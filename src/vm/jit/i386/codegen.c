@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1020 2004-04-20 21:12:57Z stefan $
+   $Id: codegen.c 1040 2004-04-26 17:09:52Z twisti $
 
 */
 
@@ -323,6 +323,7 @@ void catch_NullPointerException(int sig)
 
 	void **_p = (void **) &sig;
 	struct sigcontext *sigctx = (struct sigcontext *) ++_p;
+	java_objectheader *xptr;
 
 	/* Reset signal handler - necessary for SysV, does no harm for BSD */
 
@@ -332,19 +333,15 @@ void catch_NullPointerException(int sig)
 /*  	fprintf(stderr, "null=%d %p addr=%p\n", sig, sigctx, sigctx->eip); */
 
 /*  	if (faultaddr == 0) { */
-		signal(sig, (void *) catch_NullPointerException);          /* reinstall handler */
+		signal(sig, (void *) catch_NullPointerException);    /* reinstall handler */
 		sigemptyset(&nsig);
 		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);                     /* unblock signal    */
+		sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
-		/* is exception initialized? */
-		if (!proto_java_lang_NullPointerException) {
-			proto_java_lang_NullPointerException = 
-				new_exception(string_java_lang_NullPointerException);
-		}
+		xptr = new_exception(string_java_lang_NullPointerException);
 
-		sigctx->eax = (s4) proto_java_lang_NullPointerException;   /* REG_ITMP1_XPTR    */
-		sigctx->ecx = sigctx->eip;                                 /* REG_ITMP2_XPC     */
+		sigctx->eax = (s4) xptr;      /* REG_ITMP1_XPTR    */
+		sigctx->ecx = sigctx->eip;    /* REG_ITMP2_XPC     */
 		sigctx->eip = (s4) asm_handle_exception;
 
 		return;
@@ -357,7 +354,7 @@ void catch_NullPointerException(int sig)
 }
 
 
-/* ArithmeticException signal handler for hardware divide by zero check */
+/* ArithmeticException signal handler for hardware divide by zero check       */
 
 void catch_ArithmeticException(int sig)
 {
@@ -375,7 +372,7 @@ void catch_ArithmeticException(int sig)
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
 	xptr = new_exception_message(string_java_lang_ArithmeticException,
-								   string_java_lang_ArithmeticException_message);
+								 string_java_lang_ArithmeticException_message);
 
 	sigctx->eax = (s4) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->ecx = sigctx->eip;                           /* REG_ITMP2_XPC     */
@@ -403,7 +400,7 @@ void init_exceptions(void)
 }
 
 
-/* function gen_mcode **********************************************************
+/* function codegen ************************************************************
 
 	generates machine code
 
@@ -424,6 +421,16 @@ void codegen()
 	int fpu_st_offset = 0;
 
 	xtable *ex;
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Generating code: ");
+		utf_sprint_classname(logtext + strlen(logtext), class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), descriptor);
+		log_text(logtext);
+	}
 
 	{
 	int p, pa, t, l, r;
@@ -478,43 +485,11 @@ void codegen()
 	/* create exception table */
 
 	for (ex = extable; ex != NULL; ex = ex->down) {
-
-#ifdef LOOP_DEBUG	
-		if (ex->start != NULL)
-			printf("adding start - %d - ", ex->start->debug_nr);
-		else {
-			printf("PANIC - start is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->start);
-
-#ifdef LOOP_DEBUG			
-		if (ex->end != NULL)
-			printf("adding end - %d - ", ex->end->debug_nr);
-		else {
-			printf("PANIC - end is NULL");
-			exit(-1);
-		}
-#endif
-
    		dseg_addtarget(ex->end);
-
-#ifdef LOOP_DEBUG		
-		if (ex->handler != NULL)
-			printf("adding handler - %d\n", ex->handler->debug_nr);
-		else {
-			printf("PANIC - handler is NULL");
-			exit(-1);
-		}
-#endif
-
 		dseg_addtarget(ex->handler);
-	   
 		(void) dseg_addaddress(ex->catchtype);
 	}
-	
 
 	
 	/* initialize mcode variables */
@@ -561,34 +536,36 @@ void codegen()
 	if (runverbose) {
 		i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
-		for (p = 0; p < mparamcount; p++) {
+		for (p = 0; p < mparamcount && p < TRACE_ARGS_NUM; p++) {
 			t = mparamtypes[p];
+
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
 					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP2);
 					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
+					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4 + 4, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
 
-				} else if (t == TYPE_ADR) {
-					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
-					i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
-					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
-
+/*  				} else if (t == TYPE_ADR) { */
 				} else {
-					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, EAX);
-					i386_cltd();
-					i386_mov_reg_membase(EAX, REG_SP, p * 8);
-					i386_mov_reg_membase(EDX, REG_SP, p * 8 + 4);
+					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8);
+					i386_alu_reg_reg(I386_XOR, REG_ITMP1, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
+
+/*  				} else { */
+/*  					i386_mov_membase_reg(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, EAX); */
+/*  					i386_cltd(); */
+/*  					i386_mov_reg_membase(EAX, REG_SP, p * 8); */
+/*  					i386_mov_reg_membase(EDX, REG_SP, p * 8 + 4); */
 				}
 
 			} else {
-				if (t == TYPE_FLT) {
+				if (!IS_2_WORD_TYPE(t)) {
 					i386_flds_membase(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4);
 					i386_fstps_membase(REG_SP, p * 8);
-					i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
-					i386_mov_reg_membase(REG_ITMP2, REG_SP, p * 8 + 4);
+					i386_alu_reg_reg(I386_XOR, REG_ITMP1, REG_ITMP1);
+					i386_mov_reg_membase(REG_ITMP1, REG_SP, p * 8 + 4);
 
 				} else {
 					i386_fldl_membase(REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4);
@@ -605,9 +582,7 @@ void codegen()
 		}
 
 		i386_mov_imm_membase((s4) method, REG_SP, TRACE_ARGS_NUM * 8);
-
   		i386_mov_imm_reg((s4) builtin_trace_args, REG_ITMP1);
-/*  		i386_mov_imm_reg(asm_builtin_trace, REG_ITMP1); */
 		i386_call_reg(REG_ITMP1);
 
 		i386_alu_imm_reg(I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
@@ -644,9 +619,9 @@ void codegen()
 
 					} else {
 						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1);    /* + 4 for return address */
-						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4 + 4, REG_ITMP2);    /* + 4 for return address */
 						i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8);
-						i386_mov_reg_membase(REG_ITMP2, REG_SP, r * 8 + 4);
+						i386_mov_membase_reg(REG_SP, (parentargs_base + pa) * 8 + 4 + 4, REG_ITMP1);    /* + 4 for return address */
+						i386_mov_reg_membase(REG_ITMP1, REG_SP, r * 8 + 4);
 					}
 				}
 			}
@@ -699,8 +674,8 @@ void codegen()
 		i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP1);
 		i386_alu_imm_reg(I386_SUB, 4, REG_SP);
 		i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-		i386_mov_imm_reg((s4) builtin_monitorenter, REG_ITMP2);
-		i386_call_reg(REG_ITMP2);
+		i386_mov_imm_reg((s4) builtin_monitorenter, REG_ITMP1);
+		i386_call_reg(REG_ITMP1);
 		i386_alu_imm_reg(I386_ADD, 4, REG_SP);
 	}			
 #endif
@@ -3740,32 +3715,28 @@ void codegen()
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_ARETURN:
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg((s4) asm_builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-			}
-#endif
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
+
+#ifdef USE_THREADS
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
+				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+
+				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
+				i386_mov_imm_reg((s4) asm_builtin_monitorexit, REG_ITMP1);
+				i386_call_reg(REG_ITMP1);
+				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
+
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+			}
+#endif
+
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-			}
-#endif
 			if (src->flags & INMEMORY) {
 				i386_mov_membase_reg(REG_SP, src->regoff * 8, REG_RESULT);
 				i386_mov_membase_reg(REG_SP, src->regoff * 8 + 4, REG_RESULT2);
@@ -3773,40 +3744,48 @@ void codegen()
 			} else {
 				panic("LRETURN: longs have to be in memory");
 			}
+
+#ifdef USE_THREADS
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
+				i386_mov_reg_membase(REG_RESULT, REG_SP, maxmemuse * 8);
+				i386_mov_reg_membase(REG_RESULT2, REG_SP, maxmemuse * 8 + 4);
+
+				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
+				i386_call_reg(REG_ITMP1);
+				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
+
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_RESULT);
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8 + 4, REG_RESULT2);
+			}
+#endif
+
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-			}
-#endif
-			var_to_reg_flt(s1, src, REG_FRESULT);
-			/* this may be an early return -- keep the offset correct for the remaining code */
-			fpu_st_offset--;
-			goto nowperformreturn;
-
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
-#ifdef USE_THREADS
-			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(REG_SP, 8 * maxmemuse, REG_ITMP1);
-				i386_alu_imm_reg(I386_SUB, 4, REG_SP);
-				i386_mov_reg_membase(REG_ITMP1, REG_SP, 0);
-				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
-				i386_call_reg(REG_ITMP1);
-				i386_alu_imm_reg(I386_ADD, 4, REG_SP);
-			}
-#endif
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			/* this may be an early return -- keep the offset correct for the remaining code */
 			fpu_st_offset--;
+
+#ifdef USE_THREADS
+			if (checksync && (method->flags & ACC_SYNCHRONIZED)) {
+				i386_mov_membase_reg(REG_SP, maxmemuse * 8, REG_ITMP2);
+				i386_fstl_membase(REG_SP, maxmemuse * 8);
+
+				i386_alu_imm_reg(I386_SUB, 1 * 8, REG_SP);
+				i386_mov_reg_membase(REG_ITMP2, REG_SP, 0 * 8);
+				i386_mov_imm_reg((s4) builtin_monitorexit, REG_ITMP1);
+				i386_call_reg(REG_ITMP1);
+				i386_alu_imm_reg(I386_ADD, 1 * 8, REG_SP);
+
+				i386_fldl_membase(REG_SP, maxmemuse * 8);
+			}
+#endif
+
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -4074,9 +4053,8 @@ gen_method: {
 				case ICMD_BUILTIN2:
 				case ICMD_BUILTIN1:
 
-					a = (s4) m;
+					a = (u4) m;
 					d = iptr->op1;
-
 
 					i386_mov_imm_reg(a, REG_ITMP1);
 					i386_call_reg(REG_ITMP1);
@@ -4084,7 +4062,7 @@ gen_method: {
 
 				case ICMD_INVOKESTATIC:
 
-					a = (s4) m->stubroutine;
+					a = (u4) m->stubroutine;
 					d = m->returntype;
 
 					i386_mov_imm_reg(a, REG_ITMP2);
@@ -4093,7 +4071,7 @@ gen_method: {
 
 				case ICMD_INVOKESPECIAL:
 
-					a = (s4) m->stubroutine;
+					a = (u4) m->stubroutine;
 					d = m->returntype;
 
 					i386_mov_membase_reg(REG_SP, 0, REG_ITMP1);
@@ -4444,6 +4422,13 @@ gen_method: {
 			codegen_addxcheckarefs(mcodeptr);
 			break;
 
+		case ICMD_CHECKOOM:  /* ... ==> ...                                   */
+
+			i386_test_reg_reg(REG_RESULT, REG_RESULT);
+			i386_jcc(I386_CC_E, 0);
+			codegen_addxoomrefs(mcodeptr);
+			break;
+
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -4580,7 +4565,7 @@ gen_method: {
 
 		MCODECHECK(8);
 
-		/* move index into REG_ITMP1 */
+		/* move index register into REG_ITMP1 */
 		i386_mov_reg_reg(xboundrefs->reg, REG_ITMP1);              /* 2 bytes */
 
 		i386_mov_imm_reg(0, REG_ITMP2_XPC);                        /* 5 bytes */
@@ -4637,8 +4622,6 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-/*  			i386_mov_imm_reg((s4) proto_java_lang_NegativeArraySizeException, REG_ITMP1_XPTR); */
-
 			i386_push_reg(REG_ITMP2_XPC);
 
 			i386_alu_imm_reg(I386_SUB, 1 * 4, REG_SP);
@@ -4680,8 +4663,6 @@ gen_method: {
 		
 		} else {
 			xcodeptr = mcodeptr;
-
-/*  			i386_mov_imm_reg((s4) proto_java_lang_ClassCastException, REG_ITMP1_XPTR); */
 
 			i386_push_reg(REG_ITMP2_XPC);
 
@@ -4725,8 +4706,6 @@ gen_method: {
 		} else {
 			xcodeptr = mcodeptr;
 
-/*  			i386_mov_imm_reg((s4) proto_java_lang_ArithmeticException, REG_ITMP1_XPTR); */
-
 			i386_push_reg(REG_ITMP2_XPC);
 
 			i386_alu_imm_reg(I386_SUB, 2 * 4, REG_SP);
@@ -4737,6 +4716,52 @@ gen_method: {
 			i386_alu_imm_reg(I386_ADD, 2 * 4, REG_SP);
 
 			i386_pop_reg(REG_ITMP2_XPC);
+
+			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
+			i386_jmp_reg(REG_ITMP3);
+		}
+	}
+
+	/* generate oom check stubs */
+	xcodeptr = NULL;
+	
+	for (; xoomrefs != NULL; xoomrefs = xoomrefs->next) {
+		if ((exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
+							  xoomrefs->branchpos,
+							  (u1*) xcodeptr - (u1*) mcodebase - (5 + 5 + 2));
+			continue;
+		}
+
+		gen_resolvebranch((u1*) mcodebase + xoomrefs->branchpos, 
+		                  xoomrefs->branchpos, (u1*) mcodeptr - mcodebase);
+
+		MCODECHECK(8);
+
+		i386_mov_imm_reg(0, REG_ITMP2_XPC);    /* 5 bytes */
+		dseg_adddata(mcodeptr);
+		i386_mov_imm_reg(xoomrefs->branchpos - 6, REG_ITMP1);    /* 5 bytes */
+		i386_alu_reg_reg(I386_ADD, REG_ITMP1, REG_ITMP2_XPC);    /* 2 bytes */
+
+		if (xcodeptr != NULL) {
+			i386_jmp_imm(((u1 *) xcodeptr - (u1 *) mcodeptr) - 5);
+		
+		} else {
+			xcodeptr = mcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			i386_push_reg(REG_ITMP2_XPC);
+			i386_mov_imm_reg((s4) &builtin_get_exceptionptrptr, REG_ITMP1);
+			i386_call_reg(REG_ITMP1);
+			i386_mov_membase_reg(REG_RESULT, 0, REG_ITMP3);
+			i386_mov_imm_membase(0, REG_RESULT, 0);
+			i386_mov_reg_reg(REG_ITMP3, REG_ITMP1_XPTR);
+			i386_pop_reg(REG_ITMP2_XPC);
+#else
+			i386_mov_imm_reg((s4) &_exceptionptr, REG_ITMP3);
+			i386_mov_membase_reg(REG_ITMP3, 0, REG_ITMP1_XPTR);
+			i386_mov_imm_membase(0, REG_ITMP3, 0);
+#endif
 
 			i386_mov_imm_reg((s4) asm_handle_exception, REG_ITMP3);
 			i386_jmp_reg(REG_ITMP3);
@@ -4789,6 +4814,16 @@ gen_method: {
 	}
 	
 	codegen_finish((int)((u1*) mcodeptr - mcodebase));
+
+	if (compileverbose) {
+		char logtext[MAXLOGTEXT];
+		sprintf(logtext, "Generating code done: ");
+		utf_sprint_classname(logtext + strlen(logtext), class->name);
+		sprintf(logtext + strlen(logtext), ".");
+		utf_sprint(logtext + strlen(logtext), method->name);
+		utf_sprint_classname(logtext + strlen(logtext), descriptor);
+		log_text(logtext);
+	}
 }
 
 
@@ -4816,7 +4851,7 @@ u1 *createcompilerstub(methodinfo *m)
     count_cstub_len += COMPSTUBSIZE;
 #endif
 
-    return (u1*) s;
+    return s;
 }
 
 
@@ -4896,6 +4931,18 @@ u1 *createnativestub(functionptr f, methodinfo *m)
  	i386_pop_reg(REG_ITMP1);*/
 
 
+	/* if function is static, check for initialized */
+
+	if (m->flags & ACC_STATIC) {
+	/* if class isn't yet initialized, do it */
+		if (!m->class->initialized) {
+			/* call helper function which patches this code */
+			i386_mov_imm_reg((s4) m->class, REG_ITMP1);
+			i386_mov_imm_reg((s4) asm_check_clinit, REG_ITMP2);
+			i386_call_reg(REG_ITMP2);
+		}
+	}
+
     if (runverbose) {
         i386_alu_imm_reg(I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
         
@@ -4922,7 +4969,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
                 }
 
             } else {
-                if (t == TYPE_FLT) {
+                if (!IS_2_WORD_TYPE(t)) {
                     i386_flds_membase(REG_SP, 4 + (TRACE_ARGS_NUM + p) * 8 + 4);
                     i386_fstps_membase(REG_SP, p * 8);
                     i386_alu_reg_reg(I386_XOR, REG_ITMP2, REG_ITMP2);
@@ -5029,9 +5076,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     }
 
 	if (m->flags & ACC_STATIC) {
+		/* put class into second argument */
 		i386_mov_imm_membase((s4) m->class, REG_SP, 4);
 	}
 
+	/* put env into first argument */
 	i386_mov_imm_membase((s4) &env, REG_SP, 0);
 
     i386_mov_imm_reg((s4) f, REG_ITMP1);
