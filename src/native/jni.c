@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2020 2005-03-09 12:01:42Z twisti $
+   $Id: jni.c 2146 2005-03-30 16:44:24Z twisti $
 
 */
 
@@ -796,23 +796,29 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *b
 #endif
 
 	/* build a classbuffer with the given data */
+
 	cb = NEW(classbuffer);
 	cb->class = c;
 	cb->size = bufLen;
 	cb->data = (u1 *) buf;
 	cb->pos = cb->data - 1;
 
-	r = class_load_intern(cb);
+	/* load the class from this buffer */
+
+	r = load_class_from_classbuffer(cb);
 
 	/* if return value is NULL, we had a problem and the class is not loaded */
+
 	if (!r) {
 		c->loaded = false;
 
 		/* now free the allocated memory, otherwise we could ran into a DOS */
+
 		class_remove(c);
 	}
 
 	/* free memory */
+
 	FREE(cb, classbuffer);
 
 #if defined(STATISTICS)
@@ -855,8 +861,11 @@ jclass FindClass(JNIEnv *env, const char *name)
   
 	c = class_new(utf_new_char_classname((char *) name));
 
-	if (!class_load(c) || !class_link(c))
+	if (!load_class_bootstrap(c) || !link_class(c)) {
+		class_remove(c);
+
 		return NULL;
+	}
 
 	use_class_as_object(c);
 
@@ -1117,8 +1126,8 @@ jint EnsureLocalCapacity (JNIEnv* env, jint capacity)
 
 /* AllocObject *****************************************************************
 
-   Allocates a new Java object without invoking any of the constructors for the
-   object. Returns a reference to the object.
+   Allocates a new Java object without invoking any of the
+   constructors for the object. Returns a reference to the object.
 
 *******************************************************************************/
 
@@ -1141,9 +1150,10 @@ jobject AllocObject(JNIEnv *env, jclass clazz)
 
 /* NewObject *******************************************************************
 
-   Constructs a new Java object. The method ID indicates which constructor
-   method to invoke. This ID must be obtained by calling GetMethodID() with
-   <init> as the method name and void (V) as the return type.
+   Constructs a new Java object. The method ID indicates which
+   constructor method to invoke. This ID must be obtained by calling
+   GetMethodID() with <init> as the method name and void (V) as the
+   return type.
 
 *******************************************************************************/
 
@@ -3300,11 +3310,12 @@ void DeleteGlobalRef(JNIEnv* env, jobject gref)
 }
 
 
-/* ExceptionCheck *****************************************************************
+/* ExceptionCheck **************************************************************
 
-   check for pending exception
+   Returns JNI_TRUE when there is a pending exception; otherwise,
+   returns JNI_FALSE.
 
-**********************************************************************************/
+*******************************************************************************/
 
 jboolean ExceptionCheck(JNIEnv *env)
 {
