@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.h 1793 2004-12-21 10:14:35Z twisti $
+   $Id: memory.h 1815 2004-12-22 12:52:24Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 
 #include "arch.h"
 #include "types.h"
+#include "mm/boehm.h"
 
 
 /* 
