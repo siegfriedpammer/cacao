@@ -1,5 +1,18 @@
 /* class: java/lang/Thread */
 
+
+#include "jni.h"
+#include "types.h"
+#include "native.h"
+#include "loader.h"
+#include "tables.h"
+#include "threads/thread.h"
+#include "java_lang_ThreadGroup.h"
+#include "java_lang_Object.h"         /* needed for java_lang_Thread.h */
+#include "java_lang_Throwable.h"      /* needed for java_lang_Thread.h */
+#include "java_lang_Thread.h"
+
+
 /*
  * Class:     java/lang/Thread
  * Method:    countStackFrames
@@ -244,4 +257,19 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_nativeInit (JNIEnv *env ,  struct j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_holdsLock (JNIEnv *env , jclass clazz, struct java_lang_Object* par1)
 {
+  return 0;
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

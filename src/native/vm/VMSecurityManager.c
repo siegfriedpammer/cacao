@@ -1,6 +1,11 @@
 /* class: java/lang/SecurityManager */
 
 
+#include "jni.h"
+#include "builtin.h"
+#include "native.h"
+#include "tables.h"
+
 
 /*
  * Class:     java/lang/SecurityManager
@@ -26,3 +31,17 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassCon
   /* XXX should use vftbl directly */
   return builtin_newarray(0,class_array_of(class_java_lang_Class)->vftbl);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

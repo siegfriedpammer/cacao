@@ -1,6 +1,15 @@
 /* class: java/lang/reflect/Field */
 
 
+#include "jni.h"
+#include "builtin.h"
+#include "loader.h"
+#include "native.h"
+#include "tables.h"
+#include "java_lang_Object.h"
+#include "java_lang_reflect_Field.h"
+
+
 /*
  * Class:     java/lang/reflect/Field
  * Method:    get
@@ -143,6 +152,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Field_get ( JN
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return NULL;
 }
 
 /*
@@ -166,6 +177,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean ( JNIEnv *env ,  st
 
   /* raise exception */
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -186,6 +199,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte ( JNIEnv *env ,  struc
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -206,6 +221,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar ( JNIEnv *env ,  struc
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -226,6 +243,8 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble ( JNIEnv *env , 
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -246,6 +265,8 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat ( JNIEnv *env ,  s
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -266,6 +287,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt ( JNIEnv *env ,  struct
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -284,6 +307,8 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong ( JNIEnv *env ,  struc
       if (fid) 
 	  return (*env)->GetLongField (env, (jobject) obj, fid);
   }
+
+  return 0;
 }
 
 /*
@@ -304,6 +329,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort ( JNIEnv *env ,  stru
   }
 
   exceptionptr = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+  return 0;
 }
 
 /*
@@ -644,3 +671,17 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiers (JNIEnv *env ,  s
 /*	log_text("Java_java_lang_reflect_Field_getType");*/
 	return (((struct classinfo*)this->declaringClass)->fields[this->slot]).flags;
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

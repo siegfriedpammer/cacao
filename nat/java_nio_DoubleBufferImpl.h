@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_DOUBLEBUFFERIMPL_H
+#define _JAVA_NIO_DOUBLEBUFFERIMPL_H
+
 /* Structure information for class: java/nio/DoubleBufferImpl */
 
 typedef struct java_nio_DoubleBufferImpl {
@@ -12,4 +15,6 @@ typedef struct java_nio_DoubleBufferImpl {
    java_doublearray* backing_buffer;
    s4 readOnly;
 } java_nio_DoubleBufferImpl;
+
+#endif
 

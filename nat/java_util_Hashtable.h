@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_UTIL_HASHTABLE_H
+#define _JAVA_UTIL_HASHTABLE_H
+
 /* Structure information for class: java/util/Hashtable */
 
 typedef struct java_util_Hashtable {
@@ -13,4 +16,6 @@ typedef struct java_util_Hashtable {
    struct java_util_Collection* values;
    struct java_util_Set* entries;
 } java_util_Hashtable;
+
+#endif
 

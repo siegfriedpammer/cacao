@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NET_DATAGRAMPACKET_H
+#define _JAVA_NET_DATAGRAMPACKET_H
+
 /* Structure information for class: java/net/DatagramPacket */
 
 typedef struct java_net_DatagramPacket {
@@ -10,4 +13,6 @@ typedef struct java_net_DatagramPacket {
    struct java_net_InetAddress* address;
    s4 port;
 } java_net_DatagramPacket;
+
+#endif
 

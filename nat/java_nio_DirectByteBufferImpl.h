@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_DIRECTBYTEBUFFERIMPL_H
+#define _JAVA_NIO_DIRECTBYTEBUFFERIMPL_H
+
 /* Structure information for class: java/nio/DirectByteBufferImpl */
 
 typedef struct java_nio_DirectByteBufferImpl {
@@ -16,27 +19,37 @@ typedef struct java_nio_DirectByteBufferImpl {
    s4 readOnly;
 } java_nio_DirectByteBufferImpl;
 
+
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    allocateImpl
  * Signature: (I)Lgnu/classpath/RawData;
  */
-JNIEXPORT struct gnu_classpath_RawData* JNICALL Java_java_nio_DirectByteBufferImpl_allocateImpl (JNIEnv *env , jclass clazz , s4 par1);
+JNIEXPORT struct gnu_classpath_RawData* JNICALL Java_java_nio_DirectByteBufferImpl_allocateImpl(JNIEnv *env, jclass clazz, s4 par1);
+
+
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    freeImpl
  * Signature: (Lgnu/classpath/RawData;)V
  */
-JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_freeImpl (JNIEnv *env , jclass clazz , struct gnu_classpath_RawData* par1);
+JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_freeImpl(JNIEnv *env, jclass clazz, struct gnu_classpath_RawData* par1);
+
+
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    getImpl
  * Signature: (I)B
  */
-JNIEXPORT s4 JNICALL Java_java_nio_DirectByteBufferImpl_getImpl (JNIEnv *env ,  struct java_nio_DirectByteBufferImpl* this , s4 par1);
+JNIEXPORT s4 JNICALL Java_java_nio_DirectByteBufferImpl_getImpl(JNIEnv *env, struct java_nio_DirectByteBufferImpl* this, s4 par1);
+
+
 /*
  * Class:     java/nio/DirectByteBufferImpl
  * Method:    putImpl
  * Signature: (IB)V
  */
-JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_putImpl (JNIEnv *env ,  struct java_nio_DirectByteBufferImpl* this , s4 par1, s4 par2);
+JNIEXPORT void JNICALL Java_java_nio_DirectByteBufferImpl_putImpl(JNIEnv *env, struct java_nio_DirectByteBufferImpl* this, s4 par1, s4 par2);
+
+#endif
+

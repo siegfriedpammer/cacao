@@ -1,5 +1,14 @@
 /* class: java/lang/ClassLoader */
 
+
+#include "jni.h"
+#include "loader.h"
+#include "native.h"
+#include "java_lang_Class.h"
+#include "java_lang_String.h"
+#include "java_lang_ClassLoader.h"
+
+
 /*
  * Class:     java/lang/ClassLoader
  * Method:    defineClass0
@@ -50,3 +59,16 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass ( JNIEnv *env ,
   return;
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

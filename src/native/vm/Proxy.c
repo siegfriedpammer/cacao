@@ -1,3 +1,7 @@
+#include "jni.h"
+#include "java_lang_ClassLoader.h"
+
+
 /*
  * Class:     java_lang_reflect_Proxy
  * Method:    getProxyClass0
@@ -26,3 +30,17 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_reflect_Proxy_generateP
 	log_text("Java_java_lang_reflect_Proxy_getProxyClass0");
 	return 0;
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

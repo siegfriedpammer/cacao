@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NET_NETWORKINTERFACE_H
+#define _JAVA_NET_NETWORKINTERFACE_H
+
 /* Structure information for class: java/net/NetworkInterface */
 
 typedef struct java_net_NetworkInterface {
@@ -8,9 +11,13 @@ typedef struct java_net_NetworkInterface {
    struct java_util_Vector* inetAddresses;
 } java_net_NetworkInterface;
 
+
 /*
  * Class:     java/net/NetworkInterface
  * Method:    getRealNetworkInterfaces
  * Signature: ()Ljava/util/Vector;
  */
-JNIEXPORT struct java_util_Vector* JNICALL Java_java_net_NetworkInterface_getRealNetworkInterfaces (JNIEnv *env , jclass clazz );
+JNIEXPORT struct java_util_Vector* JNICALL Java_java_net_NetworkInterface_getRealNetworkInterfaces(JNIEnv *env, jclass clazz);
+
+#endif
+

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_CHARBUFFERIMPL_H
+#define _JAVA_NIO_CHARBUFFERIMPL_H
+
 /* Structure information for class: java/nio/CharBufferImpl */
 
 typedef struct java_nio_CharBufferImpl {
@@ -12,4 +15,6 @@ typedef struct java_nio_CharBufferImpl {
    java_chararray* backing_buffer;
    s4 readOnly;
 } java_nio_CharBufferImpl;
+
+#endif
 

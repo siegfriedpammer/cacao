@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_UTIL_ZIP_INFLATER_H
+#define _JAVA_UTIL_ZIP_INFLATER_H
+
 /* Structure information for class: java/util/zip/Inflater */
 
 typedef struct java_util_zip_Inflater {
@@ -21,4 +24,6 @@ typedef struct java_util_zip_Inflater {
    struct java_util_zip_InflaterHuffmanTree* distTree;
    struct java_util_zip_Adler32* adler;
 } java_util_zip_Inflater;
+
+#endif
 

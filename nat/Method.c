@@ -1,5 +1,12 @@
-#include "helpers.h"
 /* class: java/lang/reflect/Method */
+
+
+#include "jni.h"
+#include "types.h"
+#include "builtin.h"
+#include "native.h"
+#include "java_lang_reflect_Method.h"
+
 
 /*
  * Class:     java_lang_reflect_Method
@@ -69,5 +76,18 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeN
 {
 	log_text("Java_java_lang_reflect_Method_invokeNative called");
 	return 0;
-
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -1,7 +1,52 @@
 /* class: java/lang/Runtime */
 
 
+#include <unistd.h>
+#include <sys/utsname.h>
+#include "jni.h"
+#include "builtin.h"
+#include "loader.h"
+#include "native.h"
+#include "tables.h"
+#include "asmpart.h"
+#include "mm/boehm.h"
+#include "java_io_File.h"
+#include "java_lang_String.h"
+#include "java_util_Properties.h"    /* needed for java_lang_Runtime.h */
+#include "java_lang_Runtime.h"
+
+
 #define JOWENN_DEBUG
+
+
+#define MAXPROPS 100
+static int activeprops = 19;  
+   
+static char *proplist[MAXPROPS][2] = {
+        { "java.class.path", NULL },
+        { "java.home", NULL },
+        { "user.home", NULL },  
+        { "user.name", NULL },
+        { "user.dir",  NULL },
+                                
+        { "os.arch", NULL },
+        { "os.name", NULL },
+        { "os.version", NULL },
+                                         
+        { "java.class.version", "45.3" },
+        { "java.version", PACKAGE":"VERSION },
+        { "java.vendor", "CACAO Team" },
+        { "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
+	{ "java.vm.name", "CACAO"}, 
+	{ "java.tmpdir", "/tmp/"},
+	{ "java.io.tmpdir", "/tmp/"},
+
+        { "path.separator", ":" },
+        { "file.separator", "/" },
+        { "line.separator", "\n" },
+	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
+};
+
 
 /*
  * Class:     java_lang_Runtime
@@ -14,6 +59,8 @@ JNIEXPORT struct java_lang_Process* JNICALL Java_java_lang_Runtime_execInternal 
   log_text("Java_java_lang_Runtime_execInternal  called");
   return NULL;
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    exitInternal
@@ -23,6 +70,8 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal ( JNIEnv *env ,  stru
 {
 	cacao_shutdown (par1);
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    freeMemory
@@ -33,6 +82,8 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory ( JNIEnv *env ,  struct j
 	log_text ("java_lang_Runtime_freeMemory called");
 	return builtin_i2l (0);
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    gc
@@ -42,6 +93,8 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_gc ( JNIEnv *env ,  struct java_la
 {
 	gc_call();
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    runFinalization
@@ -51,6 +104,8 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalization ( JNIEnv *env, str
 {
   log_text("Java_java_lang_Runtime_runFinalization0  called");
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    runFinalizersOnExit
@@ -60,6 +115,8 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_runFinalizersOnExitInternal ( JNIE
 {
   log_text("Java_java_lang_Runtime_runFinalizersOnExit0  called");
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    totalMemory
@@ -70,6 +127,8 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory ( JNIEnv *env ,  struct 
 	log_text ("java_lang_Runtime_totalMemory called");
 	return builtin_i2l (0);
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    traceInstructions
@@ -79,6 +138,8 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_traceInstructions ( JNIEnv *env , 
 {
   log_text("Java_java_lang_Runtime_traceInstructions  called");
 }
+
+
 /*
  * Class:     java/lang/Runtime
  * Method:    traceMethodCalls
@@ -101,17 +162,17 @@ JNIEXPORT s4 JNICALL Java_java_lang_Runtime_availableProcessors (JNIEnv *env ,  
 }
 
 
-
 /*
  * Class:     java_lang_Runtime
  * Method:    nativeLoad
  * Signature: (Ljava/lang/String;)I
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Runtime_nativeLoad (JNIEnv *env ,  struct java_lang_Runtime* this , struct java_lang_String* 
-par1) {
+par1)
+{
 #ifdef JOWENN_DEBUG	
 	char *buffer;	         	
-	int buffer_len, pos;
+	int buffer_len;
 	utf * data;
 	
 	data=javastring_toutf(par1,0);
@@ -137,6 +198,7 @@ par1) {
 	return 1;
 }
 
+
 /*
  * Class:     java_lang_Runtime
  * Method:    nativeGetLibname
@@ -146,11 +208,8 @@ JNIEXPORT struct java_lang_String* JNICALL Java_java_lang_Runtime_nativeGetLibna
 struct java_lang_String* par2) {
 #ifdef JOWENN_DEBUG	
 	char *buffer;	         	
-	int buffer_len, pos;
+	int buffer_len;
 	utf * data;
-	int i;
-	
-	java_lang_String *str = (java_lang_String *) par1;;	
 	
 	data=javastring_toutf(par2,0);
 	
@@ -175,35 +234,6 @@ struct java_lang_String* par2) {
 }
 
 
-#define MAXPROPS 100
-static int activeprops = 19;  
-   
-static char *proplist[MAXPROPS][2] = {
-        { "java.class.path", NULL },
-        { "java.home", NULL },
-        { "user.home", NULL },  
-        { "user.name", NULL },
-        { "user.dir",  NULL },
-                                
-        { "os.arch", NULL },
-        { "os.name", NULL },
-        { "os.version", NULL },
-                                         
-        { "java.class.version", "45.3" },
-        { "java.version", PACKAGE":"VERSION },
-        { "java.vendor", "CACAO Team" },
-        { "java.vendor.url", "http://www.complang.tuwien.ac.at/java/cacao/" },
-	{ "java.vm.name","CACAO"}, 
-	{ "java.tmpdir","/tmp/"},
-	{ "java.io.tmpdir","/tmp/"},
-
-        { "path.separator", ":" },
-        { "file.separator", "/" },
-        { "line.separator", "\n" },
-	{ "java.protocol.handler.pkgs","gnu.java.net.protocol"}
-};
-
-
 /*
  * Class:     java_lang_Runtime
  * Method:    insertSystemProperties
@@ -215,7 +245,6 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties (JNIEnv *en
         u4 i;
         methodinfo *m;
         char buffer[BUFFERSIZE];
-        java_objectheader *o;
         struct utsname utsnamebuf;
 
 	log_text("Java_java_lang_Runtime_insertSystemProperties");
@@ -224,7 +253,7 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties (JNIEnv *en
         proplist[1][1] = getenv("JAVA_HOME");
         proplist[2][1] = getenv("HOME");
         proplist[3][1] = getenv("USER");
-        proplist[4][1] = getcwd(buffer,BUFFERSIZE);
+        proplist[4][1] = getcwd(buffer, BUFFERSIZE);
 
         /* get properties from system */
         uname(&utsnamebuf);
@@ -232,31 +261,31 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_insertSystemProperties (JNIEnv *en
         proplist[6][1] = utsnamebuf.sysname;
         proplist[7][1] = utsnamebuf.release;
 
-        if (!p) panic ("Java_java_lang_Runtime_insertSystemProperties called with  NULL-Argument");
+        if (!p) panic("Java_java_lang_Runtime_insertSystemProperties called with NULL-Argument");
 
         /* search for method to add properties */
-        m = class_resolvemethod (
-                p->header.vftbl->class,
-                utf_new_char ("put"),
-                utf_new_char ("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
-        );
+        m = class_resolvemethod(
+                                p->header.vftbl->class,
+                                utf_new_char("put"),
+                                utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
+                                );
 
-        if (!m) panic ("Can not find method 'put' for class Properties");
+        if (!m) panic("Can not find method 'put' for class Properties");
 
         /* add the properties */
-        for (i=0; i<activeprops; i++) {
+        for (i = 0; i < activeprops; i++) {
 
-            if (proplist[i][1]==NULL) proplist[i][1]="";
+            if (proplist[i][1] == NULL) proplist[i][1] = "";
 
-            asm_calljavamethod(m,  p,
-                                javastring_new_char(proplist[i][0]),
-                                javastring_new_char(proplist[i][1]),
-                                        NULL
-                                );
+            asm_calljavamethod(m,
+                               p,
+                               javastring_new_char(proplist[i][0]),
+                               javastring_new_char(proplist[i][1]),
+                               NULL
+                               );
         }
 
-        return p;
-
+        return;
 }
 
 
@@ -270,3 +299,16 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_maxMemory (JNIEnv *env ,  struct jav
 	return 0;
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_INTBUFFERIMPL_H
+#define _JAVA_NIO_INTBUFFERIMPL_H
+
 /* Structure information for class: java/nio/IntBufferImpl */
 
 typedef struct java_nio_IntBufferImpl {
@@ -12,4 +15,6 @@ typedef struct java_nio_IntBufferImpl {
    java_intarray* backing_buffer;
    s4 readOnly;
 } java_nio_IntBufferImpl;
+
+#endif
 

@@ -1,185 +1,23 @@
 /* class: java/lang/Class */
 
 
+#include "jni.h"
+#include "types.h"
+#include "global.h"
+#include "builtin.h"
+#include "loader.h"
+#include "native.h"
+#include "tables.h"
+#include "java_lang_Class.h"
+#include "java_lang_reflect_Constructor.h"
+#include "java_lang_reflect_Field.h"
+#include "java_lang_reflect_Method.h"
+#include "java_lang_Throwable.h"    /* needed for java_lang_VMClass.h */
+#include "java_lang_VMClass.h"
+
+
 /* for selecting public members */
 #define MEMBER_PUBLIC  0
-
-
-/****************************************************************************************** 											   			
-
-	creates method signature (excluding return type) from array of 
-	class-objects representing the parameters of the method 
-
-*******************************************************************************************/
-
-
-utf *create_methodsig(java_objectarray* types, char *retType)
-{
-    char *buffer;       /* buffer for building the desciptor */
-    char *pos;          /* current position in buffer */
-    utf *result;        /* the method signature */
-    u4 buffer_size = 3; /* minimal size=3: room for parenthesis and returntype */
-    u4 len = 0;		/* current length of the descriptor */
-    u4 i,j,n;
- 
-    if (!types) return NULL;
-
-    /* determine required buffer-size */    
-    for (i=0;i<types->header.size;i++) {
-      classinfo *c = (classinfo *) types->data[i];
-      buffer_size  = buffer_size + c->name->blength+2;
-    }
-
-    if (retType) buffer_size+=strlen(retType);
-
-    /* allocate buffer */
-    buffer = MNEW(u1, buffer_size);
-    pos    = buffer;
-    
-    /* method-desciptor starts with parenthesis */
-    *pos++ = '(';
-
-    for (i=0;i<types->header.size;i++) {
-
-            char ch;	   
-            /* current argument */
-	    classinfo *c = (classinfo *) types->data[i];
-	    /* current position in utf-text */
-	    char *utf_ptr = c->name->text; 
-	    
-	    /* determine type of argument */
-	    if ( (ch = utf_nextu2(&utf_ptr)) == '[' ) {
-	
-	    	/* arrayclass */
-	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
-		   *pos++ = *utf_ptr; /* copy text */
-
-	    } else
-	    {	   	
-	      	/* check for primitive types */
-		for (j=0; j<PRIMITIVETYPE_COUNT; j++) {
-
-			char *utf_pos	= utf_ptr-1;
-			char *primitive = primitivetype_table[j].wrapname;
-
-			/* compare text */
-			while (utf_pos<utf_end(c->name))
-		   		if (*utf_pos++ != *primitive++) goto nomatch;
-
-			/* primitive type found */
-			*pos++ = primitivetype_table[j].typesig;
-			goto next_type;
-
-		nomatch:
-		}
-
-		/* no primitive type and no arrayclass, so must be object */
-	      	*pos++ = 'L';
-	      	/* copy text */
-	        for ( utf_ptr--; utf_ptr<utf_end(c->name); utf_ptr++)
-		   	*pos++ = *utf_ptr;
-	      	*pos++ = ';';
-
-		next_type:
-	    }  
-    }	    
-
-    *pos++ = ')';
-
-    if (retType) {
-	for (i=0;i<strlen(retType);i++) {
-		*pos++=retType[i];
-	}
-    }
-    /* create utf-string */
-    result = utf_new(buffer,(pos-buffer));
-    MFREE(buffer, u1, buffer_size);
-
-    return result;
-}
-
-/******************************************************************************************
-
-	retrieve the next argument or returntype from a descriptor
-	and return the corresponding class 
-
-*******************************************************************************************/
-
-
-classinfo *get_type(char **utf_ptr,char *desc_end, bool skip)
-{
-    classinfo *c = class_from_descriptor(*utf_ptr,desc_end,utf_ptr,
-                                         (skip) ? CLASSLOAD_SKIP : CLASSLOAD_LOAD);
-    if (!c)
-	/* unknown type */
-	panic("illegal descriptor");
-
-    if (skip) return NULL;
-
-    use_class_as_object(c);
-    return c;
-}
-
-/******************************************************************************************
-
-	use the descriptor of a method to generate a java/lang/Class array
-	which contains the classes of the parametertypes of the method
-
-*******************************************************************************************/
-
-java_objectarray* get_parametertypes(methodinfo *m) 
-{
-    utf  *descr    =  m->descriptor;    /* method-descriptor */ 
-    char *utf_ptr  =  descr->text;      /* current position in utf-text */
-    char *desc_end =  utf_end(descr);   /* points behind utf string     */
-    java_objectarray* result;
-    int parametercount = 0;
-    int i;
-
-    /* skip '(' */
-    utf_nextu2(&utf_ptr);
-  
-    /* determine number of parameters */
-    while ( *utf_ptr != ')' ) {
-    	get_type(&utf_ptr,desc_end,true);
-	parametercount++;
-    }
-
-    /* create class-array */
-    result = builtin_anewarray(parametercount, class_java_lang_Class);
-
-    utf_ptr  =  descr->text;
-    utf_nextu2(&utf_ptr);
-
-    /* get returntype classes */
-    for (i = 0; i < parametercount; i++)
-	    result->data[i] = (java_objectheader *) get_type(&utf_ptr,desc_end, false);
-
-    return result;
-}
-
-
-/******************************************************************************************
-
-	get the returntype class of a method
-
-*******************************************************************************************/
-
-classinfo *get_returntype(methodinfo *m) 
-{
-	char *utf_ptr;   /* current position in utf-text */
-	char *desc_end;  /* points behind utf string     */
-        utf *desc = m->descriptor; /* method-descriptor  */
-
-	utf_ptr  = desc->text;
-	desc_end = utf_end(desc);
-
-	/* ignore parametertypes */
-        while ((utf_ptr<desc_end) && utf_nextu2(&utf_ptr)!=')')
-		/* skip */ ;
-
-	return get_type(&utf_ptr,desc_end, false);
-}
 
 
 /*
@@ -187,15 +25,13 @@ classinfo *get_returntype(methodinfo *m)
  * Method:    forName
  * Signature: (Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName (JNIEnv *env , jclass clazz,struct java_lang_String* s)
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, struct java_lang_String* s)
 {
 	classinfo *c;
 	utf *u;
-	u4 i;
 
-	if (runverbose)
-	{
-	    log_text("Java_java_lang_VMClass_forName0 called");
+	if (runverbose) {
+	    log_text("Java_java_lang_VMClass_forName called");
 	    log_text(javastring_tochar((java_objectheader*)s));
 	}
 
@@ -206,18 +42,14 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_forName (JNIEnv
         u = javastring_toutf(s, true);
         
         if ( !(c = class_get(u)) ) {
-            methodinfo *method;
-            java_lang_Class *class;
-            
             log_text("forName: would need classloader");
             /*utf_display(u);*/
             
             c = loader_load(u);
-            if (c == NULL)
-            {
+            if (c == NULL) {
                 /* class was not loaded. raise exception */
                 exceptionptr = 
-                    native_new_and_init (class_java_lang_ClassNotFoundException);
+                    native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
                 return NULL;
             }
         }
@@ -270,7 +102,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentTyp
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors (JNIEnv *env ,  struct java_lang_VMClass* this , s4 public_only)
 {
   
-    classinfo *c = (classinfo *) (this->vmData);    
+    classinfo *c = (classinfo *) (this->vmData);
     java_objectheader *o;
     classinfo *class_constructor;
     java_objectarray *array_constructor;     /* result: array of Method-objects */
@@ -395,7 +227,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringCla
   log_text("Java_java_lang_VMClass_getDeclaringClass");
 
   if (this && this->vmData && !Java_java_lang_VMClass_isPrimitive(env, this) && (c->name->text[0]!='[')) {    
-    int i, j;
+    int i;
 
     if (c->innerclasscount == 0)  /* no innerclasses exist */
 	return NULL;
@@ -428,8 +260,8 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_java_lang_VMClass_getFiel
     fieldinfo *f;               /* the field to be represented */
     java_lang_reflect_Field *o; /* result: field-object */
     utf *desc;			/* the fielddescriptor */
-    char buffer[MAXSTRINGSIZE];
     int idx;
+
     /* create Field object */
     c = (classinfo*) loader_load(utf_new_char ("java/lang/reflect/Field"));
     o = (java_lang_reflect_Field*) native_new_and_init(c);

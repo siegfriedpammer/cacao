@@ -1,5 +1,14 @@
-#include "helpers.h"
 /* class: java/lang/reflect/Constructor */
+
+
+#include "jni.h"
+#include "builtin.h"
+#include "loader.h"
+#include "native.h"
+#include "tables.h"
+#include "asmpart.h"
+#include "java_lang_Class.h"
+#include "java_lang_reflect_Constructor.h"
 
 
 /*
@@ -97,3 +106,17 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers (JNIEnv *en
                 panic("error illegal slot for method in class (getReturnType)");
         return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

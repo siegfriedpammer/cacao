@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _GNU_JAVA_NIO_SELECTORIMPL_H
+#define _GNU_JAVA_NIO_SELECTORIMPL_H
+
 /* Structure information for class: gnu/java/nio/SelectorImpl */
 
 typedef struct gnu_java_nio_SelectorImpl {
@@ -11,4 +14,6 @@ typedef struct gnu_java_nio_SelectorImpl {
    struct java_util_Set* selected;
    struct java_util_Set* canceled;
 } gnu_java_nio_SelectorImpl;
+
+#endif
 

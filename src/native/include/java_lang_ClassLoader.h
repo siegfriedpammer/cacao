@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_LANG_CLASSLOADER_H
+#define _JAVA_LANG_CLASSLOADER_H
+
 /* Structure information for class: java/lang/ClassLoader */
 
 typedef struct java_lang_ClassLoader {
@@ -12,4 +15,6 @@ typedef struct java_lang_ClassLoader {
    struct java_util_Map* packageAssertionStatus;
    struct java_util_Map* classAssertionStatus;
 } java_lang_ClassLoader;
+
+#endif
 

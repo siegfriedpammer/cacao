@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_UTIL_LOCALE_H
+#define _JAVA_UTIL_LOCALE_H
+
 /* Structure information for class: java/util/Locale */
 
 typedef struct java_util_Locale {
@@ -9,4 +12,6 @@ typedef struct java_util_Locale {
    struct java_lang_String* variant;
    s4 hashcode;
 } java_util_Locale;
+
+#endif
 

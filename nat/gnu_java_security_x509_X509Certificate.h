@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _GNU_JAVA_SECURITY_X509_X509CERTIFICATE_H
+#define _GNU_JAVA_SECURITY_X509_X509CERTIFICATE_H
+
 /* Structure information for class: gnu/java/security/x509/X509Certificate */
 
 typedef struct gnu_java_security_x509_X509Certificate {
@@ -27,4 +30,6 @@ typedef struct gnu_java_security_x509_X509Certificate {
    java_bytearray* sigAlgVal;
    java_bytearray* signature;
 } gnu_java_security_x509_X509Certificate;
+
+#endif
 

@@ -1,5 +1,15 @@
 /* class: java/lang/Object */
 
+
+#include "jni.h"
+#include "builtin.h"
+#include "native.h"
+#include "mm/boehm.h"
+#include "threads/locks.h"
+#include "java_lang_Cloneable.h"
+#include "java_lang_Object.h"
+
+
 /*
  * Class:     java/lang/Object
  * Method:    clone
@@ -90,3 +100,15 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait ( JNIEnv *env , jclass clazz
 }
 
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_LANG_CLASS_H
+#define _JAVA_LANG_CLASS_H
+
 /* Structure information for class: java/lang/Class */
 
 typedef struct java_lang_Class {
@@ -9,4 +12,6 @@ typedef struct java_lang_Class {
    struct java_lang_VMClass* vmClass;
    struct java_lang_reflect_Constructor* constructor;
 } java_lang_Class;
+
+#endif
 

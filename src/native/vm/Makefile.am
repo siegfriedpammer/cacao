@@ -1,1 +1,43 @@
-EXTRA_DIST = AccessController.c Adler32.c Array.c BigInteger.c CRC32.c Class.c ClassLoader.c ClassLoader_NativeLibrary.c Compiler.c Constructor.c DatagramPacket.c Deflater.c Double.c Field.c FileDescriptor.c FileInputStream.c FileOutputStream.c FileSystem.c Finalizer.c Float.c InetAddress.c InetAddressImpl.c Inflater.c JarFile.c Math.c Method.c Object.c ObjectInputStream.c ObjectStreamClass.c Package.c PlainDatagramSocketImpl.c PlainSocketImpl.c RandomAccessFile.c ResourceBundle.c Runtime.c SecurityManager.c SocketInputStream.c SocketOutputStream.c String.c System.c Thread.c Throwable.c UnixFileSystem.c ZipEntry.c ZipFile.c
+## Process this file with automake to produce Makefile.in
+
+# $Id: Makefile.am 675 2003-11-24 20:48:41Z twisti $
+
+
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/jit -I$(top_srcdir)/jit/@ARCH_DIR@
+
+EXTRA_DIST =
+
+noinst_LIBRARIES = libnat.a
+
+libnat_a_SOURCES = \
+	Constructor.c \
+	Field.c \
+	FileChannelImpl.c \
+	Method.c \
+	Proxy.c \
+	Runtime.c \
+	Thread.c \
+	VMClass.c \
+	VMClassLoader.c \
+	VMObject.c \
+	VMObjectStreamClass.c \
+	VMSecurityManager.c \
+	VMSystem.c \
+	JOWENNTest1.c
+
+#libgtk_a_SOURCES = \
+	GdkGraphics.c \
+	GdkPixbufDecoder.c \
+	GtkComponentPeer.c \
+	GtkFileDialogPeer.c \
+	GtkLabelPeer.c \
+	GtkScrollPanePeer.c
+
+
+## Local variables:
+## mode: Makefile
+## indent-tabs-mode: t
+## c-basic-offset: 4
+## tab-width: 8
+## compile-command: "automake --add-missing"
+## End:

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NET_DATAGRAMSOCKETIMPL_H
+#define _JAVA_NET_DATAGRAMSOCKETIMPL_H
+
 /* Structure information for class: java/net/DatagramSocketImpl */
 
 typedef struct java_net_DatagramSocketImpl {
@@ -7,4 +10,6 @@ typedef struct java_net_DatagramSocketImpl {
    s4 localPort;
    struct java_io_FileDescriptor* fd;
 } java_net_DatagramSocketImpl;
+
+#endif
 

@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_IO_OUTPUTSTREAMWRITER_H
+#define _JAVA_IO_OUTPUTSTREAMWRITER_H
+
 /* Structure information for class: java/io/OutputStreamWriter */
 
 typedef struct java_io_OutputStreamWriter {
@@ -7,4 +10,6 @@ typedef struct java_io_OutputStreamWriter {
    struct java_lang_Object* lock;
    struct gnu_java_io_encode_Encoder* out;
 } java_io_OutputStreamWriter;
+
+#endif
 

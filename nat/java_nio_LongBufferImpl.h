@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_LONGBUFFERIMPL_H
+#define _JAVA_NIO_LONGBUFFERIMPL_H
+
 /* Structure information for class: java/nio/LongBufferImpl */
 
 typedef struct java_nio_LongBufferImpl {
@@ -12,4 +15,6 @@ typedef struct java_nio_LongBufferImpl {
    java_longarray* backing_buffer;
    s4 readOnly;
 } java_nio_LongBufferImpl;
+
+#endif
 

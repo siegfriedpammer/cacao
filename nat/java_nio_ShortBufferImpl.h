@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_NIO_SHORTBUFFERIMPL_H
+#define _JAVA_NIO_SHORTBUFFERIMPL_H
+
 /* Structure information for class: java/nio/ShortBufferImpl */
 
 typedef struct java_nio_ShortBufferImpl {
@@ -12,4 +15,6 @@ typedef struct java_nio_ShortBufferImpl {
    java_shortarray* backing_buffer;
    s4 readOnly;
 } java_nio_ShortBufferImpl;
+
+#endif
 

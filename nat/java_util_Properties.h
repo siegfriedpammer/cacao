@@ -1,5 +1,8 @@
 /* This file is machine generated, don't edit it !*/
 
+#ifndef _JAVA_UTIL_PROPERTIES_H
+#define _JAVA_UTIL_PROPERTIES_H
+
 /* Structure information for class: java/util/Properties */
 
 typedef struct java_util_Properties {
@@ -14,4 +17,6 @@ typedef struct java_util_Properties {
    struct java_util_Set* entries;
    struct java_util_Properties* defaults;
 } java_util_Properties;
+
+#endif
 
