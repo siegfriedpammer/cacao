@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2172 2005-03-31 19:27:07Z twisti $
+   $Id: VMClass.c 2174 2005-04-01 08:42:57Z twisti $
 
 */
 
@@ -72,7 +72,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 
 	/* XXX TWISTI: we currently use the classpath default implementation, maybe 
 	   we change this someday to a faster native version */
-#if 1
+#if 0
 	classinfo *c;
 	utf       *u;
 
