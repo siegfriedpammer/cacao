@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: codegen.inc.h 1565 2004-11-23 15:56:37Z twisti $
+   $Id: codegen.inc.h 1605 2004-11-29 10:06:02Z twisti $
 
 */
 
@@ -66,58 +66,61 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 struct threadcritnodetemp {
 	threadcritnodetemp *next;
-	s4 mcodebegin;
-	s4 mcodeend;
-	s4 mcoderestart;
+	s4                  mcodebegin;
+	s4                  mcodeend;
+	s4                  mcoderestart;
 };
 
 
 struct codegendata {
-	u1 *mcodebase;                  /* base pointer of code area              */
-	s4 *mcodeend;                   /* pointer to end of code area            */
-	s4  mcodesize;                  /* complete size of code area (bytes)     */
+	u1             *mcodebase;      /* base pointer of code area              */
+	s4             *mcodeend;       /* pointer to end of code area            */
+	s4              mcodesize;      /* complete size of code area (bytes)     */
 
-	u1 *mcodeptr;                   /* code generation pointer                */
+#if defined(__I386__) || defined(__X86_64__)
+	u1             *mcodeptr;       /* code generation pointer                */
+#endif
 
-	u1 *dsegtop;                    /* pointer to top (end) of data area      */
-	s4  dsegsize;                   /* complete size of data area (bytes)     */
-	s4  dseglen;                    /* used size of data area (bytes)         */
+	u1             *dsegtop;        /* pointer to top (end) of data area      */
+	s4              dsegsize;       /* complete size of data area (bytes)     */
+	s4              dseglen;        /* used size of data area (bytes)         */
                                     /* data area grows from top to bottom     */
 
-	jumpref   *jumpreferences;      /* list of jumptable target addresses     */
-	dataref   *datareferences;      /* list of data segment references        */
-	branchref *xboundrefs;          /* list of bound check branches           */
-	branchref *xcheckarefs;         /* list of array size check branches      */
-	branchref *xnullrefs;           /* list of null check branches            */
-	branchref *xcastrefs;           /* list of cast check branches            */
-	branchref *xdivrefs;            /* list of divide by zero branches        */
-	branchref *xexceptionrefs;      /* list of exception branches             */
-	clinitref *clinitrefs;
+	jumpref        *jumpreferences; /* list of jumptable target addresses     */
+	dataref        *datareferences; /* list of data segment references        */
+	branchref      *xboundrefs;     /* list of bound check branches           */
+	branchref      *xcheckarefs;    /* list of array size check branches      */
+	branchref      *xnullrefs;      /* list of null check branches            */
+	branchref      *xcastrefs;      /* list of cast check branches            */
+	branchref      *xdivrefs;       /* list of divide by zero branches        */
+	branchref      *xexceptionrefs; /* list of exception branches             */
+	clinitref      *clinitrefs;
 
-	linenumberref *linenumberreferences; /* list of line numbers and the      */
+	linenumberref  *linenumberreferences; /* list of line numbers and the     */
 	                                /* program counters of their first        */
 	                                /* instruction                            */
-	s4 linenumbertablesizepos;
-	s4 linenumbertablestartpos;
-	s4 linenumbertab;
+	s4              linenumbertablesizepos;
+	s4              linenumbertablestartpos;
+	s4              linenumbertab;
 
-	methodinfo *method;
-        s4  exceptiontablelength;/* exceptiontable length                  */
-        exceptiontable *exceptiontable; /* the exceptiontable                     */
+	methodinfo     *method;
+	s4              exceptiontablelength; /* exceptiontable length            */
+	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
 	threadcritnodetemp *threadcrit; /* List of critical code regions          */
 	threadcritnodetemp threadcritcurrent;
-	s4 threadcritcount;             /* Number of critical regions             */
-        int maxstack;
-        int maxlocals;
+	s4                 threadcritcount; /* Number of critical regions         */
+
+	s4              maxstack;
+	s4              maxlocals;
 };
 
 
 /***************** forward references in branch instructions ******************/
 
 struct branchref {
-	s4 branchpos;               /* patching position in code segment          */
-	s4 reg;                     /* used for ArrayIndexOutOfBounds index reg   */
+	s4         branchpos;       /* patching position in code segment          */
+	s4         reg;             /* used for ArrayIndexOutOfBounds index reg   */
 	branchref *next;            /* next element in branchref list             */
 };
 
@@ -125,14 +128,14 @@ struct branchref {
 /******************** forward references in tables  ***************************/
 
 struct jumpref {
-	s4 tablepos;                /* patching position in data segment          */
-	struct basicblock *target;  /* target basic block                         */
-	jumpref *next;              /* next element in jumpref list               */
+	s4          tablepos;       /* patching position in data segment          */
+	basicblock *target;         /* target basic block                         */
+	jumpref    *next;           /* next element in jumpref list               */
 };
 
 
 struct dataref {
-	u1 *pos;                    /* patching position in generated code        */
+	u1      *pos;               /* patching position in generated code        */
 	dataref *next;              /* next element in dataref list               */
 };
 
@@ -140,20 +143,15 @@ struct dataref {
 struct clinitref {
 	s4         branchpos;
 	classinfo *class;
-	u4         mcode;
-#if defined(__I386__) || defined(__X86_64__)
-	u1         xmcode;
-	u1        *mcodeptr;        /* codegendata dummy pointer to generate code */
-#endif
 	clinitref *next;
 };
 
 
 struct linenumberref {
-	s4 tablepos;                /* patching position in data segment          */
-	int targetmpc;              /* machine code program counter of first      */
+	s4             tablepos;    /* patching position in data segment          */
+	s4             targetmpc;   /* machine code program counter of first      */
 	                            /* instruction for given line                 */
-	u2 linenumber;              /* line number, used for inserting into the   */
+	u2             linenumber;  /* line number, used for inserting into the   */
 	                            /* table and for validty checking             */
 	linenumberref *next;        /* next element in linenumberref list         */
 };
@@ -169,7 +167,7 @@ struct _methodtree_element {
 #endif
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void codegen_init();
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
