@@ -26,10 +26,13 @@
 
    Authors: Stefan Ring
 
-   $Id: boehm.c 925 2004-02-26 00:09:51Z twisti $
+   $Id: boehm.c 952 2004-03-11 21:52:35Z stefan $
 
 */
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#define GC_LINUX_THREADS
+#endif
 
 #include "main.h"
 #include "boehm.h"
