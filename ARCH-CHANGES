@@ -18,3 +18,6 @@
     mips: TODO
     powerpc: TODO
     x86_64: TODO
+
+- codegen.c: monitor changes (twisti) ???
+    i386: done (1.36)
