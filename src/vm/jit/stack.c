@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: stack.c 1642 2004-12-01 13:21:54Z christian $
+   $Id: stack.c 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -2630,7 +2630,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 	}
-/*  	printf(" Line number: %d, method:",iptr->line); */
+  	printf(" Line number: %d, method:",iptr->line);
 /*        printf("\t\t");
   	utf_display(iptr->method->class->name); 
   	printf("."); 

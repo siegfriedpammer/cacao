@@ -1,4 +1,4 @@
-/* native/vm/VMSecurityManager.c - java/lang/VMSecurityManager
+/* nat/SecurityManager.c - java/lang/SecurityManager
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -28,10 +28,9 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMSecurityManager.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: VMSecurityManager.c 1680 2004-12-04 12:02:08Z jowenn $
 
 */
-
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -40,8 +39,6 @@
 #include "vm/builtin.h"
 #include "vm/tables.h"
 
-
-#ifndef __I386__
 /*
  * Class:     java/lang/SecurityManager
  * Method:    currentClassLoader
@@ -51,19 +48,20 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
 {
 	log_text("Java_java_lang_VMSecurityManager_currentClassLoader");
 
-	/* XXX TWISTI temporary hack! FIX ME jowenn */
 	if (cacao_initializing)
 		return NULL;
 
-	init_systemclassloader();
-
-	return SystemClassLoader;
-}
+#ifdef __I386__
+	return cacao_currentClassLoader();
+#else
+	return 0;
 #endif
+/*	init_systemclassloader();
+
+	return SystemClassLoader;*/
+}
 
 
-#ifndef __I386__
-/*THIS IS IN ASMPART NOW*/
 /*
  * Class:     java/lang/SecurityManager
  * Method:    getClassContext
@@ -71,12 +69,14 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMSecurityManager_curren
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMSecurityManager_getClassContext(JNIEnv *env, jclass clazz)
 {
-  log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
-
-  /* XXX should use vftbl directly */
-  return (java_objectarray *) builtin_newarray(0, class_array_of(class_java_lang_Class)->vftbl);
-}
+	log_text("Java_java_lang_VMSecurityManager_getClassContext  called");
+	if (cacao_initializing) return 0;
+#ifdef __I386__
+	return cacao_createClassContextArray();
+#else
+	return 0;
 #endif
+}
 
 java_objectarray* temporaryGetClassContextHelper(methodinfo *m) {
 	if (!m) {

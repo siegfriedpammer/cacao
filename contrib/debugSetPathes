@@ -3,5 +3,5 @@ $PWD/classpath/native/jni/java-util/.libs:$PWD/classpath/native/jni/java-awt/.li
 $PWD/classpath/native/jni/java-io/.libs:$PWD/classpath/native/jni/classpath/.libs:\
 $PWD/classpath/native/jni/java-net/.libs:$LD_LIBRARY_PATH
 export CLASSPATH=.:$PWD/classpath/lib/glibj.zip:$CLASSPATH
-export PATH=$PWD:$PATH
+export PATH=$PWD/cacao:$PATH
 

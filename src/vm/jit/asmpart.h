@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 1661 2004-12-03 15:45:56Z twisti $
+   $Id: asmpart.h 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -127,6 +127,9 @@ extern threadcritnode asm_criticalsections;
 #endif
 
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
+
+void asm_prepare_native_stackinfo(void*ret,void*stackbegin);
+void asm_remove_native_stackinfo();
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);

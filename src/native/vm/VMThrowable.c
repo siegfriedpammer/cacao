@@ -1,4 +1,4 @@
-/* native/vm/VMThrowable.c - java/lang/VMThrowable
+/* nat/VMThrowable.c - java/lang/Throwable
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003
    R. Grafl, A. Krall, C. Kruegel, C. Oates, R. Obermaisser,
@@ -26,10 +26,9 @@
 
    Authors: Joseph Wenninger
 
-   $Id: VMThrowable.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: VMThrowable.c 1680 2004-12-04 12:02:08Z jowenn $
 
 */
-
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -64,18 +63,15 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (vmthrow == NULL)
 		panic("Needed instance of class  java.lang.VMThrowable could not be created");
 
-#if defined(__I386__)
-	(void) asm_get_stackTrace(&(vmthrow->vmData));
-#else
-	vmthrow->vmData=0;
+#ifdef __I386__
+	cacao_stacktrace_NormalTrace(&(vmthrow->vmData));
 #endif
-
 	return vmthrow;
 }
 
 
-
-java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,long pos,long size)
+static
+java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long size)
 {
 	long resultPos;
 	methodinfo *m;
@@ -103,13 +99,12 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 		return 0;
 
 /*	printf("Should return an array with %ld element(s)\n",size);*/
-	pos--;
+	/*pos--;*/
 	
-	
-	for(resultPos=0;pos>=0;resultPos++,pos--) {
+	for(resultPos=0;size>0;size--,el++,resultPos++) {
 		java_objectheader *element;
 
-		if (source[pos].method==0) {
+		if (el->method==0) {
 			resultPos--;
 			continue;
 		}
@@ -123,25 +118,25 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
 #endif
 #if 0
 		(*env)->CallVoidMethod(env,element,m,
-			javastring_new(source[pos].method->class->sourcefile),
+			javastring_new(el->method->class->sourcefile),
 			source[size].linenumber,
-			javastring_new(source[pos].method->class->name),
-			javastring_new(source[pos].method->name),
-			source[pos].method->flags & ACC_NATIVE);
+			javastring_new(el->method->class->name),
+			javastring_new(el->method->name),
+			el->method->flags & ACC_NATIVE);
 #else
-		if (!(source[pos].method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
+		if (!(el->method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
 		"Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[pos].method->class->sourcefile));
+		(jobject) javastring_new(el->method->class->sourcefile));
 /*  		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject,  */
-/*  		(jobject) javastring_new(source[pos].method->class->name)); */
-		setfield_critical(c,element,"declaringClass",      "Ljava/lang/String;",  jobject, 
-		(jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) source[pos].method->class));
+/*  		(jobject) javastring_new(el->method->class->name)); */
+		setfield_critical(c,element,"declaringClass",          "Ljava/lang/String;",  jobject, 
+		(jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) el->method->class));
 		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(source[pos].method->name));
+		(jobject) javastring_new(el->method->name));
 		setfield_critical(c,element,"lineNumber",          "I",  jint, 
-		(jint) ((source[pos].method->flags & ACC_NATIVE) ? -1:(source[pos].linenumber)));
+		(jint) ((el->method->flags & ACC_NATIVE) ? -1:(el->linenumber)));
 		setfield_critical(c,element,"isNative",          "Z",  jboolean, 
-		(jboolean) ((source[pos].method->flags & ACC_NATIVE) ? 1:0));
+		(jboolean) ((el->method->flags & ACC_NATIVE) ? 1:0));
 
 
 #endif			
@@ -161,56 +156,46 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *source,
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *par1)
 {
-	long  pos;
-	long  maxpos;
-	long  sizediff;
-	utf*  classname=par1->header.vftbl->class->name;
+#ifdef __I386__
+	stackTraceBuffer *buf=(stackTraceBuffer*)this->vmData;
+	u8 size;
+	stacktraceelement *el;
+	classinfo  *excClass=par1->header.vftbl->class;
 	utf*  init=utf_new_char("<init>");
 	utf*  throwable=utf_new_char("java/lang/Throwable");
-	stacktraceelement *el=(stacktraceelement*)this->vmData;
+	long destElementCount;
+	stacktraceelement *tmpEl;
 
-	/*	log_text("Java_java_lang_VMThrowable_getStackTrace");
-	utf_display(par1->header.vftbl->class->name);
-	printf("\n----------------------------------------------\n");*/
-
-	sizediff=0;
-	if (el == 0) {
-		return generateStackTraceArray(env, el, 0,0);
-	}	
-
-	for (pos = 0; !((el[pos].method == 0) && (el[pos].linenumber ==-1)); pos++) {
-		if (el[pos].method==0) sizediff++;
-	}
-
-	if (pos == 0) {
-		panic("Stacktrace cannot have zero length");
-	}
-
-	pos--;
-	pos--;
-	maxpos = pos;
-	if (el[pos].method!=0) { /* if == 0 -> some builtin native */
-		if (el[pos].method->class->name == throwable && el[pos].method->name == init) {
-			for (; pos >= 0 && el[pos].method->name == init && el[pos].method->class->name != classname; pos--) {
-/*				log_text("ignoring:");
-				utf_display(el[pos].method->name);
-				log_text("");
-				utf_display(el[pos].method->class->name);
-				log_text("");*/
-
-			};
-			pos--;
-			if (pos < 0) {
-				log_text("Invalid stack trace for Throwable.getStackTrace()");
-
+	if (!buf) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
+	
+	size=buf->full;
+	if (size<=2) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<=2)");
+	size -=2;
+	el=&(buf->start[2]); /* element 0==VMThrowable.fillInStackTrace native call, 1==Throwable.fillInStackTrace*/
+	if (el->method!=0) { /* => not a builtin native wrapper*/
+		if ((el->method->class->name==throwable) && (el->method->name == init) ){
+			/* We assume that we are within the initializer of the exception object, the exception object itself should not appear
+				in the stack trace, so we skip till we reach the first function, which is not an init function or till we reach the exception object class*/
+			for (; (size>0) && (el->method->name==init) && (el->method->class!=excClass); el++, size--) {
+				/* just loop*/
+			}
+			size --;
+			el++;
+			if (size<1) {
+				log_text("Invalid stacktrace for VMThrowable.getStackTrace()");
 			}
 		}
 	}
-	
-	/* build the result array*/
-	pos++; /*arraysize*/
 
-	return generateStackTraceArray(env,el,pos,pos-sizediff);	
+	
+	for (destElementCount = 0, tmpEl=el; size>0; size--,tmpEl++) {
+		if (tmpEl->method!=0) destElementCount++;
+	}
+
+	return generateStackTraceArray(env,el,destElementCount);
+#else
+	return 0;
+#endif
 }
 
 

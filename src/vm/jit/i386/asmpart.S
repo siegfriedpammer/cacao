@@ -29,38 +29,14 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1623 2004-11-30 14:18:19Z twisti $
+   $Id: asmpart.S 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
 
 #include "config.h"
 #include "vm/jit/i386/offsets.h"
-
-
-/* data segment offsets */
-
-#define MethodPointer   	-4
-#define FrameSize       	-8
-#define IsSync          	-12
-#define IsLeaf          	-16
-#define IntSave         	-20
-#define FltSave         	-24
-#define LineNumberTableSize	-28
-#define LineNumberTableStart	-32
-#define ExTableSize     	-36
-#define ExTableStart    	-36
-
-#define ExEntrySize     -16
-#define ExStartPC       -4
-#define ExEndPC         -8
-#define ExHandlerPC     -12
-#define ExCatchType     -16
-
-
-#define LineEntrySize	-8
-#define LinePC		0
-#define LineLine	-4
+#include "vm/jit/i386/asmoffsets.h"
 
 
 #define itmp1    %eax
@@ -107,13 +83,11 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
-	.globl Java_java_lang_VMSecurityManager_getClassContext
-	.globl Java_java_lang_VMSecurityManager_currentClassLoader    
 	.globl asm_builtin_new
-	.globl asm_get_stackTrace
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
-
+	.globl asm_prepare_native_stackinfo
+	.globl asm_remove_native_stackinfo
 /*************************** imported functions *******************************/
 
 	.globl jit_compile
@@ -122,9 +96,6 @@
 	.globl builtin_trace_exception
 	.globl class_java_lang_Object
 	.globl codegen_findmethod
-/*	.globl codegen_findmethod1*/
-	.globl builtin_asm_createclasscontextarray
-	.globl builtin_asm_getclassloader
 	.globl callgetexceptionptrptr
 	.globl asm_throw_and_handle_exception
 	.globl asm_throw_and_handle_hardware_arithmetic_exception
@@ -400,7 +371,14 @@ L_exception:
 	pop     %ecx                /* delete return address                      */
 	sub     $2,%ecx             /* faulting address is return adress - 2      */
 
-L_refillinStacktrace:
+L_refillinStacktrace:               /*a compilation error should cause a stacktrace
+                                    which starts at the method call, which caused
+                                    the compilation of the new function. Until this
+                                    point the trace is invalid anyways, since it is
+                                    not complete. Compared to other runtimes it will
+                                    not be correct either, since we report eg class
+                                    not found errors too early, since we always
+                                    compile methods completely*/
 	push %ecx		/* store fault adress */
 	push %eax		/* temporarily save exception pointer*/
 	call builtin_asm_get_stackframeinfo
@@ -457,18 +435,6 @@ asm_handle_nat_exception:
 		add     $4,%esp						/* clear return address of native stub */
 		
 asm_handle_exception:
-#if 0
-		push %ebp
-		mov %esp,%ebp
-		push %eax	/* exception pointer */
-		push %ecx	/* excepiton pc */
-
-		call asm_get_stackTrace
-
-		pop %ecx
-		pop %eax
-		pop %ebp
-#endif
 asm_handle_exception_loop:
 		push    %ebp
 		mov     %esp,%ebp
@@ -704,33 +670,25 @@ asm_check_clinit:
 	test	%eax,%eax
 	jnz     L_is_initialized
 
-#if 0
-	sub     $16,%esp                    /* build stack frame (4 * 4 bytes)    */
-	mov     %eax,(%esp)                 /* put classpointer on stack          */
-	call    builtin_asm_get_stackframeinfo
-
-	movl    $0,12(%esp)
-	mov     %eax,8(%esp)
-	mov     (%eax),%ecx
-	mov     %ecx,4(%esp)
-	mov     %esp,%ecx
-	add     $4,%ecx
-	mov     %ecx,(%eax)
-#endif
+	/*3*4 bytes*/
+	mov 16(%esp),itmp1
+	push itmp1                        /*return adress into java machine code */
+	mov 4(%esp),itmp1
+	push itmp1                        /*begin of java stack frame*/
+	pushl $0                           /*internal (invisible) method*/
+	call asm_prepare_native_stackinfo /*puts additional 2 *4 bytes of
+						data onto the stack */
 
 	sub     $4,%esp
-	mov     4+4(%esp),itmp1             /* get class pointer                  */
+	mov     20+4+4(%esp),itmp1          /* get class pointer                  */
 	mov     itmp1,(%esp)                /* store class pointer as a0          */
 	call    class_init                  /* call class_init function           */
 	add     $4,%esp
 
-#if 0
-	mov     4(%esp),%edx
-	mov     8(%esp),%ecx
-	mov     %edx,(%ecx)
-
-	add     $16,%esp
-#endif
+	call asm_remove_native_stackinfo  /* removes 4* 4 bytes and leaves ret
+						 into java machine code on stack  */
+	add	$4,%esp                   /* ret address no longer needed, is still
+						on stack a few bytes above */
 
 	test    %eax,%eax                   /* we had an exception                */
 	je      L_initializererror
@@ -1045,11 +1003,18 @@ nb_aastore_null:
 	jmp		asm_handle_exception
 #endif
 nb_aastore_bound:
-	push    %ecx                        /* itmp2 contains array index         */
+	add     $12,%esp
+	mov	%ecx,%eax                        /* itmp2 contains array index         */
+	pushl	$0  /*directly below return adress*/
+	pushl   $0  /*internal (invisible) method*/
+	call    asm_prepare_native_stackinfo /* puts 2*4 bytes onto stack*/
+
+	push	%eax
 	call    new_arrayindexoutofboundsexception
 	add     $(1*4),%esp
 
-	add     $12,%esp
+	call	asm_remove_native_stackinfo /*return adress is the first on stack again*/
+
 	pop     %ecx                        /* delete return address              */
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
@@ -1207,224 +1172,39 @@ asm_switchstackandcall:
 	ret
 
 		
-Java_java_lang_VMSecurityManager_currentClassLoader:
-	mov  cacao_initializing,%eax
-	test %eax,%eax
-	jz   Java_java_lang_VMSecurityManager_cont
-
-	mov $0,%eax
-	ret
-Java_java_lang_VMSecurityManager_cont:
-	lea  builtin_asm_getclassloader,%eax 
-	push %eax	/*store collector function pointer*/
-	jmp getClassContext_begin
-Java_java_lang_VMSecurityManager_getClassContext:
-	lea  builtin_asm_createclasscontextarray,%eax 
-	push %eax /*store collector function pointer*/
-getClassContext_begin:	/*start the real work*/
-
-	mov %esp,%eax
-	sub $4,%eax
-	sub $68,%esp /*64 memory location without overwriting return adress and collector function adress*/
-	mov %esp,%ebx	/*end of allocated memory block for classpointers is the adress of the working data block +4 */
-	push $0 /*%esp+32 was native*/
-	push %eax /*%esp+24 blkbegin*/
-	push %eax /*%esp+20 currentpos*/
-	push %ebx /*%esp+16 blkend*/
-
-	call builtin_asm_get_threadrootmethod
-	push %eax /*%esp+12*/
-	movl 104(%esp),%eax /*(stack contains: threadRootMethod,blkend,blkpos,blkbegin,was native, data(64kB),collector,ret,env,class,frame stack info of stub, we want the frame stack info  of thestub*/
-	movl %esp,%edx
-	addl $116, %edx
-	push %edx /*esp+8*/ /*position of return address of native stub*/
-	call builtin_asm_get_stackframeinfo
-/*	movl (%eax),%eax*/ /*TEST*/
-	push 0(%eax) /*esp+4*/ /*address of frame info block*/
-	movl 124(%esp),%edx
-
-/*DEBUG*/
-/*	mov %esp,%eax
-	addl $116,%eax
-	push %eax
-	call i386_native_stub_debug
-	pop %eax*/
-
-	push %edx /*esp+0*/ /*return adress out of native stub*/
-	call codegen_findmethod	/*find calling java method, this one is still to be skipped (==SecurityManager.getClassContext (or .currentClassLoader)*/
-
-/*DEBUGGING*/
-/*	push %eax
-	movl MethodPointer(%eax),%eax
-	push %eax
-	call temporaryGetClassContextHelper
-	pop %eax
-	call traverseStackInfo
-	pop %eax
-*/
-
-	movl 20(%esp),%edx
-	movl MethodPointer(%eax),%ebx
-	movl offclassmethodinfo(%ebx),%ecx
-	movl %ecx,(%edx)
-	subl $4,%edx
-	movl %edx,20(%esp)
-
-	mov 8(%esp),%ebx /*pos of return adress */
-	add FrameSize(%eax),%ebx
-	add $4,%ebx	/*adress of new return adress (out of Securitymanager.*/
-	mov %ebx,8(%esp) 
-	mov %eax,(%esp)
-
-	/* by now we have skipped this method call*/
-
-getClassContext_next:	
-	movl 8(%esp),%eax
-	movl (%eax),%eax
-	movl %eax,(%esp) /*return adress*/
-
-	call codegen_findmethod
-
-	cmp $1,32(%esp)
-	mov 8(%esp),%ebx
-	add FrameSize(%eax),%ebx
-	add $4,%ebx
-	mov %ebx,8(%esp) /*store adress of next return adress*/
-getClassContext_nextRetStored:
-
-	mov MethodPointer(%eax),%ecx	/*get struct methodinfo*/
-
-	cmp $0,%ecx
-	je getClassContext_nativeCall
-	/*save class pointer*/
-	movl $0,32(%esp)
-getClassContext_saveClassPointer:
-	movl 20(%esp),%ebx	/*get temporary memory adress in stack*/
-	movl offclassmethodinfo(%ecx),%edx /* get class pointer of method*/
-	movl %edx,(%ebx) /*save */
-	sub $4,%ebx	/*calculate next position */
-	movl %ebx,20(%esp) /* check if the new adress would overwrite our working data */
-	cmp %ebx,16(%esp)
-	je getClassContext_incStack
-getClassContext_checkLeave:
-	
-	cmp 12(%esp),%ecx	/*check if we reached the toplevel method of our thread*/
-	je  getClassContext_leave /*yes ->leave*/
-
-/*DEBUGING*/
-/*	mov %ecx,(%esp)
-	call temporaryGetClassContextHelper
-*/
-	
-	
-	jmp getClassContext_next /*continue*/
-
-
-getClassContext_nativeCall:
-	movl $1,32(%esp)
-	movl 4(%esp),%eax	/*get top most element on stackframe help information stack*/
-	test %eax,%eax
-	jz getClassContext_leave
-	movl 0(%eax),%ecx 
-	movl %ecx,4(%esp)
-	addl $8,%eax
-	movl (%eax),%ecx
-	addl $4,%eax
-	movl %eax,8(%esp)
-	
-	cmp $0,%ecx
-	je getClassContext_checkLeave
-	jmp getClassContext_saveClassPointer
-
-getClassContext_incStack:
-	/*make another 64 in our temporary storage free and store the workingdata */
-	movl %esp,%edx
-	subl $40,%esp /*should be 32*/
-	push 32(%edx)
-	push 28(%edx)
-	push 24(%edx)
-	push 20(%edx)
-	push 16(%edx)
-	push 12(%edx)
-	push 8(%edx)
-	push 4(%edx)
-	push 0(%edx)
-	subl $64,16(%esp)
-
-	jmp getClassContext_checkLeave /* continue */
-
-getClassContext_leave:
-/*DEBUGING*/
-/*	mov %ecx,(%esp)
-	call temporaryGetClassContextHelper*/
-
-	/*call collector function with begin/end of temporary classarray*/
-	push 24(%esp)
-	push 24(%esp)
-	
-	movl 32(%esp),%eax
-	add $4,%eax
-	movl (%eax),%ebx
-	call *%ebx
-
-	/* free stack memory of this function*/
-	mov 32(%esp),%esp
-	add $8,%esp
-	ret
-
-
 asm_throw_and_handle_exception:
-	sub $20,%esp /*build stack frame*/
-	mov %ecx,16(%esp) /*save eip of problem */
-	mov %eax,(%esp)
-	movl $0,12(%esp) /*internal function -> no function description */
-	call builtin_asm_get_stackframeinfo
-	mov %eax,8(%esp)
-	mov (%eax),%ecx
-	mov %ecx,4(%esp)
-	mov %esp,%ecx
-	add $4,%ecx
-	mov %ecx,(%eax)
+	push %ecx
+	pushl $0 /* the pushed XPC is directly below the java frame*/
+	pushl $0
+	call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained below*/
 	
-/*	mov string_java_lang_NullPointerException,%eax
-	mov %eax,(%esp)*/
-        call new_exception
 	push %eax
-	mov 8(%esp),%eax
-	mov 12(%esp),%ecx
-	mov %eax,(%ecx)
-	pop %eax
-	add $16,%esp
+        call new_exception
+	add $4,%esp   /*remove parameter*/
+
+	call asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained below*/
+
 	pop %ecx
 	jmp asm_handle_exception
 	ret /*should never be reached */
 
 asm_throw_and_handle_hardware_arithmetic_exception:
-	sub $24,%esp /*build stack frame*/
-	mov %ecx,20(%esp) /*save eip of problem */
 	
-	movl $0,16(%esp) /*internal function -> no function description */
-	call builtin_asm_get_stackframeinfo
-	mov %eax,12(%esp)
-	mov (%eax),%ecx
-	mov %ecx,8(%esp)
-	mov %esp,%ecx
-	add $8,%ecx
-	mov %ecx,(%eax)
+	push %ecx
+	pushl $0 /* the pushed XPC is directly below the java frame*/
+	pushl $0
+	call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained below*/
 	
-	mov string_java_lang_ArithmeticException,%eax
-	mov %eax,(%esp)
 	mov string_java_lang_ArithmeticException_message,%eax
-	mov %eax,4(%esp)
+	push %eax
+	mov string_java_lang_ArithmeticException,%eax
+	push %eax
 
 	call new_exception_message
+	add $8,%esp /*remove parameters */
 
-	push %eax
-	mov 12(%esp),%eax
-	mov 16(%esp),%ecx
-	mov %eax,(%ecx)
-	pop %eax
-	add $20,%esp
+	call asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained below*/
+
 	pop %ecx
 	jmp asm_handle_exception
 	ret /*should never be reached */
@@ -1442,6 +1222,13 @@ asm_builtin_new:
 		test	%ecx,%ecx
 		jnz		L_builtin_new_noinit
 
+		mov 4(%esp),%eax /* class pointer, is kept during the asm_prepare... calls */
+
+		/* 2 *4 bytes, the return adress is used directy */
+		pushl $0  /* the structure is placed directly below the java stackframe*/
+		pushl $0  /* builtin (invisible) method */
+		call  asm_prepare_native_stackinfo /*puts 2*4 additional bytes on stack*/
+#if 0
                 sub             $16,%esp                                 /* build stack frame (4 * 4 bytes) */
 
                 mov             20(%esp),%eax
@@ -1455,15 +1242,20 @@ asm_builtin_new:
 		mov	%esp,%ecx
 		add	$4,%ecx
 		mov	%ecx,(%eax)
-
+#endif
+		push	%eax
                 call    builtin_new
+		add	$4,%esp
 
+		call	asm_remove_native_stackinfo /*first element on stack is return adress again*/
+#if 0		
+		call	
 		mov	4(%esp),%ebx
 		mov	8(%esp),%ecx
 		mov	%ebx,(%ecx)
 
                 add             $16,%esp
-
+#endif
 		jmp L_builtin_new_patch
 
 
@@ -1484,104 +1276,6 @@ L_builtin_new_patch:
 
 
 
-
-asm_get_stackTrace:
-	push %ebp /*(%ebp-4)*/
-	mov %esp,%ebp
-	add $4,%ebp
-	push %edi /*(%ebp-8)*/
-	push %esi /*(%ebp-12)*/
-	push %ebx /*(%ebp-16)*/
-	call builtin_asm_get_stackframeinfo
-	movl (%eax),%eax
-	pushl 0(%eax) /*(%ebp-20)*/
-	lea 12(%eax),%edi
-	call builtin_asm_get_threadrootmethod
-	pushl %eax /*(%ebp-24)*/
-
-	pushl (%edi)
-asm_get_stackTraceLoop:
-	call codegen_findmethod
-	mov %eax,%esi
-	add $4,%esp
-	pushl $1 /*no indent*/
-
-	mov (%edi),%edx
-	sub $4,%edx
-
-get_stackTrace_line:
-	movl LineNumberTableSize(%esi),%ecx
-	test    %ecx,%ecx /* skip if empty line table */
-	je      get_stackTrace_noLineInfo
-
-	movl LineNumberTableStart(%esi),%ebx
-	
-get_stackTrace_lineLoop:
-	cmp %edx,LinePC(%ebx)
-	jg get_stackTrace_nextLineInfo
-
-	pushl LineLine(%ebx)
-	jmp get_stackTrace_cont
-
-get_stackTrace_nextLineInfo:	
-	lea LineEntrySize(%ebx),%ebx
-	dec %ecx
-	test %ecx,%ecx
-
-	jne get_stackTrace_lineLoop
-
-get_stackTrace_noLineInfo:
-	pushl $0
-
-
-get_stackTrace_cont:
-	pushl (%edi) /*4*/
-	pushl MethodPointer(%esi)
-	pushl $0 /*8(%ebp)*/ /*exception ptr*/
-	call builtin_trace_exception
-	add $12,%esp
-
-	movl MethodPointer(%esi),%eax
-	movl %eax,4(%esp)
-	test %eax,%eax
-	je get_stackTrace_nat
-
-	cmp %eax,-24(%ebp)
-	je get_stackTrace_leave
-
-	mov FrameSize(%esi),%eax
-	add $4,%edi
-	add %eax,%edi
-	pushl (%edi)
-	jmp asm_get_stackTraceLoop
-
-get_stackTrace_nat:
-	add $8,%esp
-	movl -20(%ebp),%eax
-	cmp $0,%eax
-	je get_stackTrace_leave
-	movl  0(%eax),%ebx
-	movl  %ebx,-20(%ebp)
-	pushl 8(%eax)
-	pushl $0
-	lea 12(%eax),%edi
-	pushl (%edi)
-	jmp asm_get_stackTraceLoop
-
-get_stackTrace_leave:
-	mov %esp,%eax
-	lea -24(%ebp),%ebx
-	push %ebx
-	push %eax
-	push 4(%ebp)
-	call builtin_stacktrace_copy
-
-	lea -16(%ebp),%esp
-	pop %ebx
-	pop %esi
-	pop %edi
-	pop %ebp
-	ret
 
 
 asm_getclassvalues_atomic:
@@ -1613,6 +1307,107 @@ asm_criticalsections:
 	.long   _crit_restart2
 #endif
 	.long 0
+
+
+
+/************************ function asm_prepare_native_stackinfo ****************************
+*                                                                                          *
+*    creates a stackfame for the begin of a native function (either builtin or not )       *
+*    expected stack at begin of function                                                   *
+*                                        ....                                              *
+*                   address of the jit call which invokes the native                       *
+*                   begin address of stack frame of the java method                        *
+*                   method pointer or 0 (for built ins)                                    *
+*                   return address                                                         *
+*                                                                                          *
+*    at end of function:                                                                   *
+*                                          ...                                             *
+*                   address of the jit call which invokes the native                       *
+*                   begin address of stack frame of the java method                        *
+*                   method pointer or 0 (for built ins)                                    *
+*                   address of thread specific top of native list                          *
+*                   old value of thread specific head                                      *
+*                   return address                                                         *
+*                                                                                          *
+*                                        ....                                              *
+* This thing is less efficient than the original #define (callerside)                      *
+* destroyes REG_ITMP2, keeps REG_ITMP1                                                     *
+********************************************************************************************/
+
+
+asm_prepare_native_stackinfo:
+        sub $8,%esp
+        mov 8(%esp),%ecx
+        mov %ecx,(%esp)
+        push %eax
+        lea     builtin_asm_get_stackframeinfo,%ecx
+        call    *%ecx
+        mov %eax, 12(%esp)
+        mov (%eax),%ecx
+        mov %ecx,8(%esp)
+        mov %esp,%ecx
+        add $8,%ecx
+        mov %ecx,(%eax)
+        pop %eax
+        ret
+#if 0
+#define PREPARE_NATIVE_STACKINFO \
+    i386_push_reg(cd, REG_ITMP1);       /*save itmp1, needed by some stubs */ \
+    i386_alu_imm_reg(cd, I386_SUB, 2*4, REG_SP); /* build stack frame (2 * 4 bytes), together with previous =3*4 */ \
+    i386_mov_imm_reg(cd, (s4) codegen_stubcalled,REG_ITMP1); \
+    i386_call_reg(cd, REG_ITMP1);                /*call    codegen_stubcalled*/ \
+    i386_mov_imm_reg(cd, (s4) builtin_asm_get_stackframeinfo,REG_ITMP1); \
+    i386_call_reg(cd, REG_ITMP1);                /*call    builtin_asm_get_stackframeinfo*/ \
+    i386_mov_reg_membase(cd, REG_RESULT,REG_SP,1*4); /* save thread pointer  to native call stack*/ \
+    i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2); /* get old value of thread specific native call stack */ \
+    i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,0*4);     /* store value on stack */ \
+    i386_mov_reg_membase(cd, REG_SP,REG_RESULT,0); /* store pointer to new stack frame information */ \
+    i386_mov_membase_reg(cd, REG_SP,2*4,REG_ITMP1); /* restore ITMP1, need for some stubs*/ \
+    i386_mov_imm_membase(cd, 0,REG_SP, 2*4);    /* builtin */
+#endif
+
+
+/************************ function asm_remove _native_stackinfo *******************************************
+*                                                                                                         *
+*    creates a stackfame for the begin of a native function (either builtin or not)                       *
+*    expected stack at begin of function                                                                  *
+*                   address of the jit call which invokes the native                                      *
+*                   begin address of stack frame of the java method                                       *
+*                   method pointer or 0 (for built ins)                                                   *
+*                   address thread specific top of native list                                            *
+*                   old value of thread specific head                                                     *
+*                   return address                                                                        *
+*                                                                                                         *
+*    at end of function:                                                                                  *
+*                             ....                                                                        *
+*                   return adresss of the jit call which invokes the native                               *
+*                   return address                                                                        *
+*                                                                                                         *
+*                   REG_ITMP2_XPC = address of the jit call which invokes the native                      *
+*                                                                                                         *
+*                                                                                                         *
+* This thing is less efficient than the original #define (callerside), uses ITMP3,uses ITMP3,keeps ITMP1  *
+***********************************************************************************************************/
+
+asm_remove_native_stackinfo:
+        mov 4(%esp),%ecx
+        mov 8(%esp),%edx
+        mov %ecx,(%edx)
+        pop %edx
+        add $16,%esp
+        push %edx
+	ret
+
+#if 0
+#define REMOVE_NATIVE_STACKINFO \
+    i386_mov_membase_reg(cd, REG_SP,0,REG_ITMP2); \
+    i386_mov_membase_reg(cd, REG_SP,4,REG_ITMP3); \
+    i386_mov_reg_membase(cd, REG_ITMP2,REG_ITMP3,0); \
+    i386_alu_imm_reg(cd, I386_ADD,3*4,REG_SP);
+#endif
+
+
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

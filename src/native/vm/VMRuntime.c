@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1621 2004-11-30 13:06:55Z twisti $
+   $Id: VMRuntime.c 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -333,7 +333,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 #ifndef STATIC_CLASSPATH
 	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
         if (dlopen(data->text,RTLD_NOW | RTLD_GLOBAL)) {
-		log_text("LIBLOADED");
+		/*log_text("LIBLOADED");*/
                 retVal=1;
         }
 #else

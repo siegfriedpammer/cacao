@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 1668 2004-12-03 16:39:40Z twisti $
+   $Id: codegen.c 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -52,7 +52,10 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
 #include "vm/jit/x86_64/types.h"
-
+#include "vm/jit/x86_64/asmoffsets.h"
+#if 0
+#include "vm/jit/stacktrace.inc"
+#endif
 
 /* register descripton - array ************************************************/
 
@@ -3857,6 +3860,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	t_inlining_globals *id;
 	s4 dumpsize;
 
+	void **callAddrPatchPos=0;
+	u1 *jmpInstrPos=0;
+	void **jmpInstrPatchPos=0;
+
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -3886,26 +3893,27 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	}
 
-	if (runverbose) {
-		s4 p, l, s1;
 
-		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
+	x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 
-		x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 1 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 2 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 3 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 4 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 5 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 6 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 1 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 2 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 3 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 4 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 5 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 6 * 8);
 
-		x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 7 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 8 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 9 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 10 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 7 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 8 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 9 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 10 * 8);
 /*  		x86_64_movq_reg_membase(cd, rd->argfltregs[4], REG_SP, 11 * 8); */
 /*  		x86_64_movq_reg_membase(cd, rd->argfltregs[5], REG_SP, 12 * 8); */
 /*  		x86_64_movq_reg_membase(cd, rd->argfltregs[6], REG_SP, 13 * 8); */
 /*  		x86_64_movq_reg_membase(cd, rd->argfltregs[7], REG_SP, 14 * 8); */
+
+	if (runverbose) {
+		s4 p, l, s1;
 
 		/* show integer hex code for float arguments */
 		for (p = 0, l = 0; p < m->paramcount; p++) {
@@ -3921,27 +3929,44 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		x86_64_mov_imm_reg(cd, (s8) m, REG_ITMP1);
 		x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0 * 8);
-  		x86_64_mov_imm_reg(cd, (s8) builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg(cd, (s8) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
+	}
+/* call method to resolve native function if needed */
+#ifndef STATIC_CLASSPATH
+	if (f==0) { /* only if not already resolved */
+		x86_64_jmp_imm(cd,0);
+		jmpInstrPos=cd->mcodeptr-4; /*needed to patch a jump over this block*/
+		x86_64_mov_imm_reg(cd,(u8)m,rd->argintregs[0]);
+		x86_64_mov_imm_reg(cd,0,rd->argintregs[1]);
+		callAddrPatchPos=cd->mcodeptr-8; /* at this position the place is specified where the native function adress should be patched into*/
+		x86_64_mov_imm_reg(cd,0,rd->argintregs[2]);
+		jmpInstrPatchPos=cd->mcodeptr-8;
+		x86_64_mov_imm_reg(cd,jmpInstrPos,rd->argintregs[3]);
+		x86_64_mov_imm_reg(cd,(s8)codegen_resolve_native,REG_ITMP1);
+		x86_64_call_reg(cd,REG_ITMP1);
+		*(jmpInstrPatchPos)=cd->mcodeptr-jmpInstrPos-1; /*=opcode jmp_imm size*/
+	}
+#endif
 
-		x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[0]);
-		x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[1]);
-		x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[2]);
-		x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[3]);
-		x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[4]);
-		x86_64_mov_membase_reg(cd, REG_SP, 6 * 8, rd->argintregs[5]);
+	x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[0]);
+	x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[1]);
+	x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[2]);
+	x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[3]);
+	x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[4]);
+	x86_64_mov_membase_reg(cd, REG_SP, 6 * 8, rd->argintregs[5]);
 
-		x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[0]);
-		x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[1]);
-		x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[2]);
-		x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[3]);
+	x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[0]);
+	x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[1]);
+	x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[2]);
+	x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[3]);
 /*  		x86_64_movq_membase_reg(cd, REG_SP, 11 * 8, rd->argfltregs[4]); */
 /*  		x86_64_movq_membase_reg(cd, REG_SP, 12 * 8, rd->argfltregs[5]); */
 /*  		x86_64_movq_membase_reg(cd, REG_SP, 13 * 8, rd->argfltregs[6]); */
 /*  		x86_64_movq_membase_reg(cd, REG_SP, 14 * 8, rd->argfltregs[7]); */
 
-		x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
-	}
+	x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
+	
 
 #if 0
 	x86_64_alu_imm_reg(cd, X86_64_SUB, 7 * 8, REG_SP);    /* keep stack 16-byte aligned */
@@ -4010,6 +4035,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	x86_64_mov_imm_reg(cd, (u8) &env, rd->argintregs[0]);
 
 	x86_64_mov_imm_reg(cd, (u8) f, REG_ITMP1);
+#ifndef STATIC_CLASSPATH
+	if (f==0)
+		(*callAddrPatchPos)=cd->mcodeptr-8;
+#endif
 	x86_64_call_reg(cd, REG_ITMP1);
 
 	/* remove stackframe if there is one */

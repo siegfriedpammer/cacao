@@ -31,7 +31,7 @@
             Philipp Tomsich
 			Edwin Steiner
 
-   $Id: global.h 1658 2004-12-03 15:28:15Z twisti $
+   $Id: global.h 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -303,6 +303,7 @@ struct native_stackframeinfo {
 	void *oldThreadspecificHeadValue;
 	void **addressOfThreadspecificHead;
 	methodinfo *method;
+	void *beginOfJavaStackframe; /*only used if != 0*/
 	void *returnToFromNative;
 
 #if 0
@@ -326,6 +327,15 @@ struct stacktraceelement {
 };
 
 typedef struct stacktraceelement stacktraceelement;
+
+typedef struct stackTraceBuffer {
+        int needsFree;
+        struct stacktraceelement* start;
+        size_t size;
+        size_t full;
+} stackTraceBuffer;
+
+
 
 /* data structure for calls from c code to java methods */
 

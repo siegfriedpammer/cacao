@@ -47,10 +47,12 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 1662 2004-12-03 15:46:18Z twisti $
+   $Id: codegen.inc 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
+#ifndef _CODEGEN_INC_H_
+#define _CODEGEN_INC_H_
 
 #include <string.h>
 
@@ -965,16 +967,20 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 	void *sym;
 
   builtin_monitorenter((java_objectheader*) m);
+#if defined(__X86_64__)
+  if ((*((s4*)jmpPatchTarget))==((s4)jmpTarget)) {
+#else
   if ((*jmpPatchTarget)==jmpTarget) {
+#endif
     builtin_monitorexit((java_objectheader*) m);
     return;
   }
-  log_text("trying to resolve a native method");
+  /*log_text("trying to resolve a native method");
   utf_display(m->class->name);
-  utf_display(m->name);
+  utf_display(m->name);*/
   
-  lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL);
-  if (lib) {
+  lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL); /* open the application execution image */
+  if (lib) { /* it did work -> good, otherwise fail with error*/
     int ok=0;
     /*generate the name of the native function in the form Java_package1_package2...._classname_methodname*/
     nativeLen=/*Java_*/5+strlen(m->class->name->text)+/*_*/1+strlen(m->name->text)+/*\0*/1;
@@ -999,38 +1005,46 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 
 /*	printf("nativename: %s\n",nativeName); */
 
+    /*try to find the symbal fo the function */
     sym=dlsym(lib,nativeName);
     if (sym) {
-      ok=1;
-      log_text("resolved");
+      ok=1; /* it worked, everything fine */
+      /*log_text("resolved");*/
       MFREE(nativeName,char,nativeLen);
-    } else {
+    } else { /* we didn't find the symbol yet, try to resolve an overlaoded function (having the types in it's name*/
       size_t overloadedNativeLen=nativeLen+codegen_overloadPartLen(m->descriptor);
       char *overloadedNative=MNEW(char,overloadedNativeLen);
       sprintf(overloadedNative,"%s",nativeName);
       MFREE(nativeName,char,nativeLen);
       codegen_fillInOverloadPart(overloadedNative,m->descriptor);
-      log_text("symbol not found,trying harder (overloaded member ?)");
+      /*log_text("symbol not found,trying harder (overloaded member ?)");*/
       sym=dlsym(lib,overloadedNative);
       if (sym) {
         MFREE(overloadedNative,char,overloadedNativeLen);
-        ok=1;
-        log_text("resolved");
+        ok=1; /* we eventually found the native function -> everything ok*/
+        /*log_text("resolved");*/
       } else { 
+         /* we failed to find the native function within the execution image (app + loaded libraries) -> will cause an exit*/
          MFREE(overloadedNative,char,overloadedNativeLen);
          log_text("It was not possible to find the native function implementation. Not even in overloading case");
       }
    }
+    /* patch the address of the native function into the stub and make the stub jump over this function call in the future */
     if (ok) {
       (*insertionPoint)=sym;
+#if defined(__X86_64__)
+      (*((s4*)jmpPatchTarget))=(s4)jmpTarget;
+#else
       (*jmpPatchTarget)=jmpTarget;
+#endif
       builtin_monitorexit((java_objectheader *) m );
       return;
     }
 
   } else log_text("library not found");
   
-
+  /* There was an error, either the app image could not be opened or the native does not exist in the application and the
+     loaded libraries. Show an additional error and exit the vm*/
   {
     char *info;
     size_t slen;
@@ -1046,6 +1060,8 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 }
 #endif
 
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -29,7 +29,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 1621 2004-11-30 13:06:55Z twisti $
+   $Id: asmpart.S 1680 2004-12-04 12:02:08Z jowenn $
 
 */
 
@@ -37,22 +37,7 @@
 #include "config.h"
 #include "vm/jit/x86_64/arch.h"
 #include "vm/jit/x86_64/offsets.h"
-
-
-#define MethodPointer   -8
-#define FrameSize       -12
-#define IsSync          -16
-#define IsLeaf          -20
-#define IntSave         -24
-#define FltSave         -28
-#define ExTableSize     -32
-#define ExTableStart    -32
-
-#define ExEntrySize     -32
-#define ExStartPC       -8
-#define ExEndPC         -16
-#define ExHandlerPC     -24
-#define ExCatchType     -32
+#include "vm/jit/x86_64/asmoffsets.h"
 
 
 /* define it like the risc way */

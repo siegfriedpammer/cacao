@@ -40,7 +40,7 @@ powerpc* | ppc* )
 
 x86_64* )
 	ARCH_DIR="x86_64"
-        STATIC_CLASSPATH="1"
+        STATIC_CLASSPATH="0"
 	CFLAGS="-D__X86_64__"
 	;;
 

@@ -13,6 +13,7 @@ public class InlineExTest {
 			System.out.println("ERROR EXCEPTION EXPECTED");
 		} catch (Exception e) {
 			System.out.println(e);
+			e.printStackTrace();
 			System.out.println("End of outer exception handler");
 			System.exit(0);
 		}
