@@ -1,4 +1,4 @@
-/* vm/jit/mips/codegen.c - machine code generator for mips
+/* src/vm/jit/mips/codegen.c - machine code generator for MIPS
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,11 +27,13 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
+   Changes: Christian Thalinger
+
    Contains the codegenerator for an MIPS (R4000 or higher) processor.
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 1862 2005-01-05 10:48:23Z twisti $
+   $Id: codegen.c 2037 2005-03-19 15:57:50Z twisti $
 
 */
 
@@ -1844,6 +1846,72 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_BST(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+			break;
+
+
+		case ICMD_IASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, 2, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_IST(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			break;
+
+		case ICMD_LASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, 3, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_LST(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			break;
+
+		case ICMD_AASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_AST(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			break;
+
+		case ICMD_BASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_AADD(s2, s1, REG_ITMP1);
+			M_BST(REG_ZERO, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+			break;
+
+		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
+		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_AADD(s2, s1, REG_ITMP1);
+			M_AADD(s2, REG_ITMP1, REG_ITMP1);
+			M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_chararray, data[0]));
 			break;
 
 
