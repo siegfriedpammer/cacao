@@ -27,7 +27,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 1485 2004-11-11 14:41:42Z twisti $
+   $Id: codegen.h 1602 2004-11-29 09:56:25Z twisti $
 
 */
 
@@ -36,54 +36,6 @@
 #define _CODEGEN_H
 
 #include "jit/jit.h"
-
-
-/* see also file calling.doc for explanation of calling conventions           */
-
-/* preallocated registers *****************************************************/
-
-/* integer registers */
-  
-#define REG_ZERO        0    /* allways zero                                  */
-
-#define REG_RESULT      2    /* to deliver method results                     */ 
-
-#define REG_ITMP1       1    /* temporary register                            */
-#define REG_ITMP2       3    /* temporary register and method pointer         */
-#define REG_ITMP3       25   /* temporary register                            */
-
-#define REG_ARG_0       4    /* argument register                             */
-#define REG_ARG_1       5    /* argument register                             */
-#define REG_ARG_2       6    /* argument register                             */
-#define REG_ARG_3       7    /* argument register                             */
-#define REG_ARG_4       8    /* argument register                             */
-#define REG_ARG_5       9    /* argument register                             */
-
-#define REG_RA          31   /* return address                                */
-#define REG_SP          29   /* stack pointer                                 */
-#define REG_GP          28   /* global pointer                                */
-
-#define REG_PV          30   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   25   /* pointer to the place from where the procedure */
-                             /* vector has been fetched                       */
-#define REG_ITMP1_XPTR  1    /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   3    /* exception pc = temporary register 2           */
-
-/* floating point registers */
-
-#define REG_FRESULT     0    /* to deliver floating point method results      */ 
-#define REG_FTMP1       1    /* temporary floating point register             */
-#define REG_FTMP2       2    /* temporary floating point register             */
-#define REG_FTMP3       3    /* temporary floating point register             */
-
-#define REG_IFTMP       1    /* temporary integer and floating point register */
-
-
-#define INT_SAV_CNT      8   /* number of int callee saved registers          */
-#define INT_ARG_CNT      8   /* number of int argument registers              */
-
-#define FLT_SAV_CNT      4   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT      8   /* number of flt argument registers              */
 
 
 /* additional functions and macros to generate code ***************************/
@@ -123,6 +75,12 @@
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
         mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+
+
+#define ALIGNCODENOP \
+    if ((int) ((long) mcodeptr & 7)) { \
+        M_NOP; \
+    }
 
 
 /* M_INTMOVE:
