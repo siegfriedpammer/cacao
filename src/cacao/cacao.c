@@ -38,6 +38,9 @@
 bool compileall = false;
 int  newcompiler = true;     		
 bool verbose =  false;
+#ifdef NEW_GC
+bool new_gc = false;
+#endif
 
 #ifndef USE_THREADS
 void **stackbottom = 0;
@@ -76,35 +79,43 @@ void **stackbottom = 0;
 #ifdef OLD_COMPILER
 #define OPT_OLD         21
 #endif
+#ifdef NEW_GC
+#define OPT_GC1         22
+#define OPT_GC2         23
+#endif
 
 struct {char *name; bool arg; int value;} opts[] = {
-  {"classpath",   true,   OPT_CLASSPATH},
-  {"D",           true,   OPT_D},
-  {"ms",          true,   OPT_MS},
-  {"mx",          true,   OPT_MX},
-  {"noasyncgc",   false,  OPT_IGNORE},
-  {"noverify",    false,  OPT_IGNORE},
-  {"oss",         true,   OPT_IGNORE},
-  {"ss",          true,   OPT_IGNORE},
-  {"v",           false,  OPT_VERBOSE1},
-  {"verbose",     false,  OPT_VERBOSE},
-  {"verbosegc",   false,  OPT_VERBOSEGC},
-  {"verbosecall", false,  OPT_VERBOSECALL},
-  {"ieee",        false,  OPT_IEEE},
-  {"softnull",    false,  OPT_SOFTNULL},
-  {"time",        false,  OPT_TIME},
-  {"stat",        false,  OPT_STAT},
-  {"log",         true,   OPT_LOG},
-  {"c",           true,   OPT_CHECK},
-  {"l",           false,  OPT_LOAD},
-  {"m",           true,   OPT_METHOD},
-  {"sig",         true,   OPT_SIGNATURE},
-  {"s",           true,   OPT_SHOW},
-  {"all",         false,  OPT_ALL},
+	{"classpath",   true,   OPT_CLASSPATH},
+	{"D",           true,   OPT_D},
+	{"ms",          true,   OPT_MS},
+	{"mx",          true,   OPT_MX},
+	{"noasyncgc",   false,  OPT_IGNORE},
+	{"noverify",    false,  OPT_IGNORE},
+	{"oss",         true,   OPT_IGNORE},
+	{"ss",          true,   OPT_IGNORE},
+	{"v",           false,  OPT_VERBOSE1},
+	{"verbose",     false,  OPT_VERBOSE},
+	{"verbosegc",   false,  OPT_VERBOSEGC},
+	{"verbosecall", false,  OPT_VERBOSECALL},
+	{"ieee",        false,  OPT_IEEE},
+	{"softnull",    false,  OPT_SOFTNULL},
+	{"time",        false,  OPT_TIME},
+	{"stat",        false,  OPT_STAT},
+	{"log",         true,   OPT_LOG},
+	{"c",           true,   OPT_CHECK},
+	{"l",           false,  OPT_LOAD},
+	{"m",           true,   OPT_METHOD},
+	{"sig",         true,   OPT_SIGNATURE},
+	{"s",           true,   OPT_SHOW},
+	{"all",         false,  OPT_ALL},
 #ifdef OLD_COMPILER
-  {"old",         false,  OPT_OLD},
+	{"old",         false,  OPT_OLD},
 #endif
-  {NULL,  false, 0}
+#ifdef NEW_GC
+	{"gc1",         false,  OPT_GC1},
+	{"gc2",         false,  OPT_GC2},
+#endif
+	{NULL,  false, 0}
 };
 
 static int opt_ind = 1;
@@ -125,8 +136,8 @@ static int get_opt (int argc, char **argv)
 			if (strcmp(a+1, opts[i].name) == 0) {  /* boolean option found */
 				opt_ind++;
 				return opts[i].value;
-				}
 			}
+		}
 		else {
 			if (strcmp(a+1, opts[i].name) == 0) { /* parameter option found */
 				opt_ind++;
@@ -134,9 +145,9 @@ static int get_opt (int argc, char **argv)
 					opt_arg = argv[opt_ind];
 					opt_ind++;
 					return opts[i].value;
-					}
-				return OPT_ERROR;
 				}
+				return OPT_ERROR;
+			}
 			else {
 				size_t l = strlen(opts[i].name);
 				if (strlen(a+1) > l) {
@@ -144,11 +155,11 @@ static int get_opt (int argc, char **argv)
 						opt_ind++;
 						opt_arg = a+1+l;
 						return opts[i].value;
-						}
 					}
 				}
 			}
-		} /* end for */	
+		}
+	} /* end for */	
 
 	return OPT_ERROR;
 }
@@ -185,6 +196,10 @@ static void print_usage()
 	printf ("          -all ................. compile all methods, no execution\n");
 #ifdef OLD_COMPILER
 	printf ("          -old ................. use old JIT compiler\n");
+#endif
+#ifdef NEW_GC
+	printf ("          -gc1 ................. use the old garbage collector (default)\n");
+	printf ("          -gc2 ................. use the new garbage collector\n");
 #endif
 	printf ("          -m ................... compile only a specific method\n");
 	printf ("          -sig ................. specify signature for a specific method\n");
@@ -438,7 +453,7 @@ int main(int argc, char **argv)
 	java_objectheader *exceptionptr;
 	void *dummy;
 	
-   /********** interne (nur fuer main relevante Optionen) **************/
+	/********** interne (nur fuer main relevante Optionen) **************/
    
 	char logfilename[200] = "";
 	u4 heapsize = 16000000;
@@ -460,179 +475,189 @@ int main(int argc, char **argv)
 	atexit(clear_thread_flags);
 #endif
 
-   /************ Infos aus der Environment lesen ************************/
+	/************ Infos aus der Environment lesen ************************/
 
 	cp = getenv ("CLASSPATH");
 	if (cp) {
 		strcpy (classpath, cp);
-		}
+	}
 
-   /***************** Interpretieren der Kommandozeile *****************/
+	/***************** Interpretieren der Kommandozeile *****************/
    
-   checknull = false;
-   checkfloats = false;
+	checknull = false;
+	checkfloats = false;
 
 	while ( (i = get_opt(argc,argv)) != OPT_DONE) {
 
 		switch (i) {
-			case OPT_IGNORE: break;
+		case OPT_IGNORE: break;
 			
-			case OPT_CLASSPATH:    
-				strcpy (classpath + strlen(classpath), ":");
-				strcpy (classpath + strlen(classpath), opt_arg);
-				break;
+		case OPT_CLASSPATH:    
+			strcpy (classpath + strlen(classpath), ":");
+			strcpy (classpath + strlen(classpath), opt_arg);
+			break;
 				
-			case OPT_D:
-				{
+		case OPT_D:
+			{
 				int n,l=strlen(opt_arg);
 				for (n=0; n<l; n++) {
 					if (opt_arg[n]=='=') {
 						opt_arg[n] = '\0';
 						attach_property (opt_arg, opt_arg+n+1);
 						goto didit;
-						}
 					}
+				}
 				print_usage();
 				exit(10);
 					
-				didit: ;
-				}	
-				break;
+			didit: ;
+			}	
+		break;
 				
-			case OPT_MS:
-			case OPT_MX:
-				if (opt_arg[strlen(opt_arg)-1] == 'k') {
-					j = 1024 * atoi(opt_arg);
-					}
-				else if (opt_arg[strlen(opt_arg)-1] == 'm') {
-					j = 1024 * 1024 * atoi(opt_arg);
-					}
-				else j = atoi(opt_arg);
-				
-				if (i==OPT_MX) heapsize = j;
-				else heapstartsize = j;
-				break;
-
-			case OPT_VERBOSE1:
-				verbose = true;
-				break;
-								
-			case OPT_VERBOSE:
-				verbose = true;
-				loadverbose = true;
-				initverbose = true;
-				compileverbose = true;
-				break;
-				
-			case OPT_VERBOSEGC:
-				collectverbose = true;
-				break;
-				
-			case OPT_VERBOSECALL:
-				runverbose = true;
-				break;
-				
-			case OPT_IEEE:
-				checkfloats = true;
-				break;
-
-			case OPT_SOFTNULL:
-				checknull = true;
-				break;
-
-			case OPT_TIME:
-				getcompilingtime = true;
-				getloadingtime = true;
-				break;
-					
-			case OPT_STAT:
-				statistics = true;
-				break;
-					
-			case OPT_LOG:
-				strcpy (logfilename, opt_arg);
-				break;
-			
-			
-			case OPT_CHECK:
-         		for (j=0; j<strlen(opt_arg); j++) {
-         			switch (opt_arg[j]) {
-         			case 'b': checkbounds=false; break;
-					case 's': checksync=false; break;
-         			default:  print_usage();
-         			          exit(10);
-         			}
-         			}
-         		break;
-			
-			case OPT_LOAD:
-				startit = false;
-				makeinitializations = false;
-				break;
-
-			case OPT_METHOD:
-				startit = false;
-				specificmethodname = opt_arg;     		
-				makeinitializations = false;
-         		break;
-         		
-			case OPT_SIGNATURE:
-				specificsignature = opt_arg;     		
-         		break;
-         		
-			case OPT_ALL:
-				compileall = true;     		
-				startit = false;
-				makeinitializations = false;
-         		break;
-         		
-#ifdef OLD_COMPILER
- 			case OPT_OLD:
-				newcompiler = false;     		
-				checknull = true;
-         		break;
-#endif
-         		
-        	case OPT_SHOW:       /* Anzeigeoptionen */
-         		for (j=0; j<strlen(opt_arg); j++) {		
-         			switch (opt_arg[j]) {
-         			case 'a':  showdisassemble=true; compileverbose=true; break;
-         			case 'c':  showconstantpool=true; break;
-         			case 'd':  showddatasegment=true; break;
-         			case 'i':  showintermediate=true; compileverbose=true; break;
-         			case 'm':  showmethods=true; break;
-#ifdef OLD_COMPILER
-         			case 's':  showstack=true; compileverbose=true; break;
-#endif
-         			case 'u':  showunicode=true; break;
-         			default:   print_usage();
-         		    	       exit(10);
-         			}
-         			}
-         		break;
-			
-			default:
-				print_usage();
-				exit(10);
+		case OPT_MS:
+		case OPT_MX:
+			if (opt_arg[strlen(opt_arg)-1] == 'k') {
+				j = 1024 * atoi(opt_arg);
 			}
+			else if (opt_arg[strlen(opt_arg)-1] == 'm') {
+				j = 1024 * 1024 * atoi(opt_arg);
+			}
+			else j = atoi(opt_arg);
+				
+			if (i==OPT_MX) heapsize = j;
+			else heapstartsize = j;
+			break;
+
+		case OPT_VERBOSE1:
+			verbose = true;
+			break;
+								
+		case OPT_VERBOSE:
+			verbose = true;
+			loadverbose = true;
+			initverbose = true;
+			compileverbose = true;
+			break;
+				
+		case OPT_VERBOSEGC:
+			collectverbose = true;
+			break;
+				
+		case OPT_VERBOSECALL:
+			runverbose = true;
+			break;
+				
+		case OPT_IEEE:
+			checkfloats = true;
+			break;
+
+		case OPT_SOFTNULL:
+			checknull = true;
+			break;
+
+		case OPT_TIME:
+			getcompilingtime = true;
+			getloadingtime = true;
+			break;
+					
+		case OPT_STAT:
+			statistics = true;
+			break;
+					
+		case OPT_LOG:
+			strcpy (logfilename, opt_arg);
+			break;
 			
 			
+		case OPT_CHECK:
+			for (j=0; j<strlen(opt_arg); j++) {
+				switch (opt_arg[j]) {
+				case 'b': checkbounds=false; break;
+				case 's': checksync=false; break;
+				default:  print_usage();
+					exit(10);
+				}
+			}
+			break;
+			
+		case OPT_LOAD:
+			startit = false;
+			makeinitializations = false;
+			break;
+
+		case OPT_METHOD:
+			startit = false;
+			specificmethodname = opt_arg;     		
+			makeinitializations = false;
+			break;
+         		
+		case OPT_SIGNATURE:
+			specificsignature = opt_arg;     		
+			break;
+         		
+		case OPT_ALL:
+			compileall = true;     		
+			startit = false;
+			makeinitializations = false;
+			break;
+         		
+#ifdef OLD_COMPILER
+		case OPT_OLD:
+			newcompiler = false;     		
+			checknull = true;
+			break;
+#endif
+
+#ifdef NEW_GC
+		case OPT_GC2:
+			new_gc = true;
+			break;
+
+		case OPT_GC1:
+			new_gc = false;
+			break;
+#endif
+         		
+		case OPT_SHOW:       /* Anzeigeoptionen */
+			for (j=0; j<strlen(opt_arg); j++) {		
+				switch (opt_arg[j]) {
+				case 'a':  showdisassemble=true; compileverbose=true; break;
+				case 'c':  showconstantpool=true; break;
+				case 'd':  showddatasegment=true; break;
+				case 'i':  showintermediate=true; compileverbose=true; break;
+				case 'm':  showmethods=true; break;
+#ifdef OLD_COMPILER
+				case 's':  showstack=true; compileverbose=true; break;
+#endif
+				case 'u':  showunicode=true; break;
+				default:   print_usage();
+					exit(10);
+				}
+			}
+			break;
+			
+		default:
+			print_usage();
+			exit(10);
 		}
+			
+			
+	}
    
    
 	if (opt_ind >= argc) {
    		print_usage ();
    		exit(10);
-   		}
+	}
 
 
-   /**************************** Programmstart *****************************/
+	/**************************** Programmstart *****************************/
 
 	log_init (logfilename);
 	if (verbose) {
 		log_text (
-		"CACAO started -------------------------------------------------------");
-		}
+				  "CACAO started -------------------------------------------------------");
+	}
 	
 	suck_init (classpath);
 	native_setclasspath (classpath);
@@ -648,12 +673,12 @@ int main(int argc, char **argv)
 	native_loadclasses ();
 
 
-   /*********************** JAVA-Klassen laden  ***************************/
+	/*********************** JAVA-Klassen laden  ***************************/
    
    	cp = argv[opt_ind++];
    	for (i=strlen(cp)-1; i>=0; i--) {     /* Punkte im Klassennamen */
  	 	if (cp[i]=='.') cp[i]='/';        /* auf slashes umbauen */
-  	 	}
+	}
 
 	topclass = loader_load ( unicode_new_char (cp) );
 
@@ -665,7 +690,7 @@ int main(int argc, char **argv)
 	initThreads((u1*)&dummy);                   /* schani */
 #endif
 
-   /************************* Arbeitsroutinen starten ********************/
+	/************************* Arbeitsroutinen starten ********************/
 
 	if (startit) {
 		methodinfo *mainmethod;
@@ -674,34 +699,34 @@ int main(int argc, char **argv)
 		heap_addreference((void**) &a);
 
 		mainmethod = class_findmethod (
-				topclass,
-				unicode_new_char ("main"), 
-				unicode_new_char ("([Ljava/lang/String;)V")
-			   	);
+									   topclass,
+									   unicode_new_char ("main"), 
+									   unicode_new_char ("([Ljava/lang/String;)V")
+									   );
 		if (!mainmethod) panic ("Can not find method 'void main(String[])'");
 		if ((mainmethod->flags & ACC_STATIC) != ACC_STATIC) panic ("main is not static!");
 			
 		a = builtin_anewarray (argc - opt_ind, class_java_lang_String);
 		for (i=opt_ind; i<argc; i++) {
 			a->data[i-opt_ind] = javastring_new (unicode_new_char (argv[i]) );
-			}
+		}
 		exceptionptr = asm_calljavamethod (mainmethod, a, NULL,NULL,NULL );
 	
 		if (exceptionptr) {
 			printf ("#### Program has thrown: ");
 			unicode_display (exceptionptr->vftbl->class->name);
 			printf ("\n");
-			}
-
-/*		killThread(currentThread); */
-
 		}
+
+		/*		killThread(currentThread); */
+
+	}
 
 	/************* Auf Wunsch alle Methode "ubersetzen ********************/
 
 	if (compileall) {
 		class_compile_methods();
-		}
+	}
 
 
 	/******** Auf Wunsch eine spezielle Methode "ubersetzen ***************/
@@ -710,11 +735,11 @@ int main(int argc, char **argv)
 		methodinfo *m;
 		if (specificsignature)
 			m = class_findmethod(topclass, 
-					unicode_new_char(specificmethodname),
-					unicode_new_char(specificsignature));
+								 unicode_new_char(specificmethodname),
+								 unicode_new_char(specificsignature));
 		else
 			m = class_findmethod(topclass, 
-					unicode_new_char(specificmethodname), NULL);
+								 unicode_new_char(specificmethodname), NULL);
 		if (!m) panic ("Specific method not found");
 #ifdef OLD_COMPILER
 		if (newcompiler)
@@ -724,7 +749,7 @@ int main(int argc, char **argv)
 		else
 			(void) compiler_compile(m);
 #endif
-		}
+	}
 
 	/********************* Debug-Tabellen ausgeben ************************/
 				
@@ -734,7 +759,7 @@ int main(int argc, char **argv)
 
    
 
-   /************************ Freigeben aller Resourcen *******************/
+	/************************ Freigeben aller Resourcen *******************/
 
 	heap_close ();				/* must be called before compiler_close and
 								   loader_close because finalization occurs
@@ -746,7 +771,7 @@ int main(int argc, char **argv)
 	unicode_close ( literalstring_free );
 
 
-   /* Endemeldung ausgeben und mit entsprechendem exit-Status terminieren */
+	/* Endemeldung ausgeben und mit entsprechendem exit-Status terminieren */
 
 	if (verbose || getcompilingtime || statistics) {
 		log_text ("CACAO terminated");
@@ -755,7 +780,7 @@ int main(int argc, char **argv)
 		if (getcompilingtime)
 			print_times ();
 		mem_usagelog(1);
-		}
+	}
 		
 	exit(0);
 	return 1;

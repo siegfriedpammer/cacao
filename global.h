@@ -12,7 +12,7 @@
 	Changes: Mark     Probst  (schani)   EMAIL: cacao@complang.tuwien.ac.at
 			 Philipp  Tomsich (phil)     EMAIL: cacao@complang.tuwien.ac.at
 
-	Last Change: $Id: global.h 55 1998-11-10 17:33:40Z phil $
+	Last Change: $Id: global.h 64 1998-11-11 21:11:55Z phil $
 
 *******************************************************************************/
 
@@ -20,6 +20,7 @@
 #define __global_h_
 
 #define OLD_COMPILER        /* if enabled makes old compiler available        */
+#define NEW_GC              /* if enabled, includes the new gc. -- phil.      */
 
 #define STATISTICS          /* if enabled collects program statistics         */
 
@@ -529,7 +530,7 @@ extern java_objectheader *proto_java_lang_ThreadDeath;
 extern bool compileall;
 extern bool runverbose;         
 extern bool verbose;         
-                                
+
 
 /* statistic variables ********************************************************/
 
