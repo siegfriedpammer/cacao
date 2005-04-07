@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2243 2005-04-06 15:49:22Z twisti $
+   $Id: asmpart.h 2253 2005-04-07 11:21:10Z twisti $
 
 */
 
@@ -140,13 +140,9 @@ void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
 
-/* code patching functions (in asmpart.S) */
+/* code patching functions */
 void asm_builtin_new(unresolved_class *uc);
 void asm_invokespecial(void);
-
-/* code patching helper functions (in asmpart.c) */
-classinfo *asm_builtin_new_helper(constant_classref *ref);
-u1 *asm_invokespecial_helper(unresolved_method *um);
 
 #endif /* _ASMPART_H */
 
