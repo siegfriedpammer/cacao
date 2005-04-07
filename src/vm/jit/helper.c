@@ -1,4 +1,4 @@
-/* src/vm/jit/asmpart.c - code patching helper functions
+/* src/vm/jit/asmhelper.c - code patching helper functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2243 2005-04-06 15:49:22Z twisti $
+   $Id: helper.c 2250 2005-04-07 11:19:55Z twisti $
 
 */
 
