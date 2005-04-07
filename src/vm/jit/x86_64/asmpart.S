@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2246 2005-04-06 16:05:11Z twisti $
+   $Id: asmpart.S 2252 2005-04-07 11:20:40Z twisti $
 
 */
 
@@ -901,7 +901,7 @@ asm_builtin_new:
 	mov     v0,2(itmp2)                 /* patch in new classinfo*: 2 (mov)   */
 
 	lea     builtin_new,itmp1           /* get address from builtin_new       */
-	mov     itmp1,12(itmp2)             /* patch back in function address     */
+	mov     itmp1,12(itmp2)             /* patch back function address        */
 	jmp     *itmp2                      /* call new patched code              */
 
 L_asm_builtin_new_exception:
@@ -914,7 +914,7 @@ L_asm_builtin_new_exception:
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
-	pop     xpc                         /* delete return address              */
+	pop     xpc                         /* get and remove return address      */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
 	jmp     asm_handle_exception
 
