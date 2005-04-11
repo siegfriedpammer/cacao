@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2244 2005-04-06 16:03:50Z twisti $
+   $Id: parse.c 2263 2005-04-11 09:56:52Z twisti $
 
 */
 
@@ -661,9 +661,30 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1,inline_env->method);
 			{
 				classinfo *component;
-				classinfo *c;
-				constant_classref *cr =
-					(constant_classref*) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				constant_classref *compr;
+				constant_classref *cr;
+				classinfo         *c;
+
+#if defined(__X86_64__)
+				compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+
+				if (!(cr = class_get_classref_multiarray_of(1, compr)))
+					return NULL;
+
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+					return NULL;
+
+				if (c) {
+					LOADCONST_A_BUILTIN(c->vftbl);
+					BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
+
+				} else {
+					LOADCONST_A_BUILTIN(cr);
+					BUILTIN2(asm_BUILTIN_newarray, TYPE_ADR, currentline);
+				}
+				s_count++;
+#else
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&component))
@@ -675,26 +696,40 @@ SHOWOPCODE(DEBUG4)
   				LOADCONST_A_BUILTIN(c->vftbl);
 				s_count++;
 				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
+#endif
 			}
 			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_MULTIANEWARRAY:
 			inline_env->method->isleafmethod = false;
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 			{
+ 				classinfo *component;
+				classinfo *c;
+			    constant_classref *cr;
 				vftbl_t *arrayvftbl;
-				s4 v = code_get_u1(p + 3,inline_env->method);
+				s4 v = code_get_u1(p + 3, inline_env->method);
 
-				
+#if defined(__X86_64__)
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+					return NULL;
+
+				if (c) {
+					OP2AT(opcode, v, c->vftbl, BUILTIN_nmultianewarray, currentline);
+
+				} else {
+					OP2AT(opcode, v, cr, asm_BUILTIN_multianewarray, currentline);
+				}
+#else
 /*   				vftbl *arrayvftbl = */
 /*  					((classinfo *) class_getconstant(class, i, CONSTANT_Class))->vftbl; */
 /*   				OP2A(opcode, v, arrayvftbl,currentline); */
 
 				
- 				classinfo *component;
-			    constant_classref * cr =
-					(constant_classref*) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!resolve_classref_or_classinfo(inline_env->method,
 							CLASSREF_OR_CLASSINFO(cr),resolveEager,true,&component))
@@ -706,6 +741,7 @@ SHOWOPCODE(DEBUG4)
 /*   				classinfo *arrayclass = */
 /*  					(classinfo *) class_getconstant(class, i, CONSTANT_Class); */
 /*   				OP2A(opcode, v, arrayclass, currentline); */
+#endif
 			}
 			break;
 
@@ -954,15 +990,43 @@ SHOWOPCODE(DEBUG4)
 			BUILTIN3(BUILTIN_aastore, TYPE_VOID, currentline);
 			break;
 
-		case JAVA_PUTSTATIC:
 		case JAVA_GETSTATIC:
-			i = code_get_u2(p + 1,inline_env->method);
+		case JAVA_PUTSTATIC:
+#if defined(__X86_64__)
+		case JAVA_GETFIELD:
+		case JAVA_PUTFIELD:
+#endif
+			i = code_get_u2(p + 1, inline_env->method);
 			{
-				constant_FMIref *fr;
-				fieldinfo *fi;
-				classinfo *frclass;
+				constant_FMIref  *fr;
+				unresolved_field *uf;
+				fieldinfo        *fi;
+				classinfo        *c;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
+#if defined(__X86_64__)
+				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
+
+				if (!(uf = create_unresolved_field(inline_env->method->class,
+												   inline_env->method,
+												   iptr,
+												   NULL)))
+					return NULL;
+
+				/* store unresolved_field pointer */
+
+				iptr->target = uf;
+
+				/* only with -noverify, otherwise the typechecker does this */
+
+				if (!opt_verify) {
+					if (!resolve_field(uf, resolveLazy, &fi))
+						return NULL;
+
+					iptr->val.a = fi;
+				}
+				PINC;
+#else
 				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
 					return NULL;
 
@@ -979,9 +1043,11 @@ SHOWOPCODE(DEBUG4)
 				if (!fi->class->initialized) {
 					inline_env->method->isleafmethod = false;
 				}
+#endif
 			}
 			break;
 
+#if !defined(__X86_64__)
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
 			i = code_get_u2(p + 1,inline_env->method);
@@ -1006,20 +1072,47 @@ SHOWOPCODE(DEBUG4)
 				OP2A(opcode, fi->type, fi, currentline);
 			}
 			break;
+#endif
 
 
 			/* method invocation *****/
 
 		case JAVA_INVOKESTATIC:
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
+				unresolved_method *um;
 				classinfo *mrclass;
-				
+
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
+#if defined(__X86_64__)
+				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount, mr, currentline);
+
+				um = create_unresolved_method(inline_env->method->class,
+											  inline_env->method,
+											  iptr,
+											  NULL);
+
+				if (!um)
+					return NULL;
+
+				/* store the unresolved_method pointer */
+
+				iptr->target = um;
+
+				/* only with -noverify, otherwise the typechecker does this */
+
+				if (!opt_verify) {
+					if (!resolve_method(um, resolveLazy, &mi))
+						return NULL;
+
+					iptr->val.a = mi;
+				}
+				PINC;
+#else
 				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
 					return NULL;
 
@@ -1034,10 +1127,10 @@ SHOWOPCODE(DEBUG4)
 
 if (DEBUG4==true) { 
 	method_display_w_class(mi); 
-	printf("\tINVOKE STATIC\n");
+	printf("\tINVOKE SPEC/VIRT\n");
         fflush(stdout);}
 
-				if (!(mi->flags & ACC_STATIC)) {
+				if (mi->flags & ACC_STATIC) {
 					*exceptionptr =
 						new_exception(string_java_lang_IncompatibleClassChangeError);
 					return NULL;
@@ -1045,11 +1138,13 @@ if (DEBUG4==true) {
 
 				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
+#endif
 			}
 			break;
 
 		case JAVA_INVOKESPECIAL:
-			i = code_get_u2(p + 1,inline_env->method);
+		case JAVA_INVOKEVIRTUAL:
+			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
@@ -1113,55 +1208,42 @@ if (DEBUG4==true) {
 			}
 			break;
 
-/*  		case JAVA_INVOKESPECIAL: */
-		case JAVA_INVOKEVIRTUAL:
-			i = code_get_u2(p + 1,inline_env->method);
-			{
-				constant_FMIref *mr;
-				methodinfo *mi;
-				classinfo *mrclass;
-
-				inline_env->method->isleafmethod = false;
-
-				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
-					return NULL;
-
-				mi = class_resolveclassmethod(mrclass,
-											  mr->name,
-											  mr->descriptor,
-											  inline_env->method->class,
-											  true);
-
-				if (!mi)
-					return NULL;
-
-if (DEBUG4==true) { 
-	method_display_w_class(mi); 
-	printf("\tINVOKE SPEC/VIRT\n");
-        fflush(stdout);}
-
-				if (mi->flags & ACC_STATIC) {
-					*exceptionptr =
-						new_exception(string_java_lang_IncompatibleClassChangeError);
-					return NULL;
-				}
-
-				method_descriptor2types(mi);
-				OP2A(opcode, mi->paramcount, mi, currentline);
-			}
-			break;
-
 		case JAVA_INVOKEINTERFACE:
 			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_FMIref *mr;
 				methodinfo *mi;
 				classinfo *mrclass;
+				unresolved_method *um;
 				
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
+#if defined(__X86_64__)
+				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
+
+				um = create_unresolved_method(inline_env->method->class,
+											  inline_env->method,
+											  iptr,
+											  NULL);
+
+				if (!um)
+					return NULL;
+
+				/* store the unresolved_method* */
+
+				iptr->target = um;
+
+				/* only with -noverify, otherwise the typechecker does this */
+
+				if (!opt_verify) {
+					if (!resolve_method(um, resolveLazy, &mi))
+						return NULL;
+
+					iptr->val.a = mi;
+				}
+				PINC;
+#else
 				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
 					return NULL;
 
@@ -1185,6 +1267,7 @@ if (DEBUG4==true) {
         fflush(stdout);}
 				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
+#endif
 			}
 			break;
 
@@ -1199,7 +1282,7 @@ if (DEBUG4==true) {
 				i = code_get_u2(p + 1, inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr ,resolveLazy, true, &cls))
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
 				/* <clinit> can throw an exception over native code */
@@ -1210,7 +1293,7 @@ if (DEBUG4==true) {
 
 				} else {
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN1(asm_builtin_new, TYPE_ADR, currentline);
+					BUILTIN1((functionptr) asm_builtin_new, TYPE_ADR, currentline);
 				}
 
 				s_count++;
@@ -1229,12 +1312,31 @@ if (DEBUG4==true) {
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_classref *cr;
 				classinfo *cls;
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+
+#if defined(x__X86_64__)
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
+					return NULL;
+
+				if (cr->name->text[0] == '[') {
+					if (!resolve_classref(inline_env->method, cr, resolveEager, true, &cls))
+						return NULL;
+
+					/* array type cast-check */
+					LOADCONST_A_BUILTIN(cls->vftbl);
+					BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR, currentline);
+
+				} else {
+					/* object type cast-check */
+					OP2AT(opcode, 1, cls, cr, currentline);
+				}
+				s_count++;
+#else
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&cls))
 					return NULL;
@@ -1253,6 +1355,7 @@ if (DEBUG4==true) {
 					  + 						*/
 					OP2A(opcode, 1, cls, currentline);
 				}
+#endif
 			}
 			break;
 

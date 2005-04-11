@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2245 2005-04-06 16:04:16Z twisti $
+   $Id: stack.c 2263 2005-04-11 09:56:52Z twisti $
 
 */
 
@@ -1872,7 +1872,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						call_returntype = iptr->op1;
 						goto _callhandling;
 
+					case ICMD_INVOKESTATIC:
 					case ICMD_INVOKESPECIAL:
+					case ICMD_INVOKEVIRTUAL:
+					case ICMD_INVOKEINTERFACE:
 						COUNT(count_pcmd_met);
 						{
 #if defined(__X86_64__)
@@ -1889,40 +1892,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							call_argcount = iptr->op1;
 							call_returntype = lm->returntype;
 #endif
-
-/*  						_callhandling: */
-							i = call_argcount;
-
-							if (i > rd->arguments_num)
-								rd->arguments_num = i;
-							REQUIRE(i);
-
-							/* Macro in codegen.h */
-							SET_ARG_STACKSLOTS;
-
-							while (copy) {
-								copy->flags |= SAVEDVAR;
-								copy = copy->prev;
-							}
-							i = call_argcount;
-
-							POPMANY(i);
-							if (call_returntype != TYPE_VOID)
-								OP0_1(call_returntype);
-							break;
-						}
-
-					case ICMD_INVOKEVIRTUAL:
-/*  					case ICMD_INVOKESPECIAL: */
-					case ICMD_INVOKEINTERFACE:
-					case ICMD_INVOKESTATIC:
-						COUNT(count_pcmd_met);
-						{
-							methodinfo *lm = iptr->val.a;
-							if (lm->flags & ACC_STATIC)
-								{COUNT(count_check_null);}
-							call_argcount = iptr->op1;
-							call_returntype = lm->returntype;
 
 						_callhandling:
 							i = call_argcount;
@@ -2557,7 +2526,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_BASTORECONST:
 	case ICMD_CASTORECONST:
 	case ICMD_SASTORECONST:
-		printf(" %d", iptr->val.i);
+		printf(" %d (0x%08x)", iptr->val.i, iptr->val.i);
 		break;
 
 	case ICMD_IFEQ_ICONST:
@@ -2581,9 +2550,9 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
 #if defined(__I386__) || defined(__POWERPC__)
-		printf(" %lld", iptr->val.l);
+		printf(" %lld (0x%016llx)", iptr->val.l, iptr->val.l);
 #else
-		printf(" %ld", iptr->val.l);
+		printf(" %ld (0x%016lx)", iptr->val.l, iptr->val.l);
 #endif
 		break;
 
@@ -2602,9 +2571,25 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
+#if defined(__X86_64__)
+		if (iptr->val.a)
+			printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
+		else
+			printf(" NOT RESOLVED,");
+#else
 		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
-	case ICMD_PUTSTATIC:
+#endif
 	case ICMD_GETSTATIC:
+	case ICMD_PUTSTATIC:
+#if defined(__X86_64__)
+		printf(" ");
+		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
+		printf(".");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->name);
+		printf(" (type ");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
+		printf(")");
+#else
 		printf(" ");
 		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
 		printf(".");
@@ -2612,6 +2597,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type ");
 		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
+#endif
 		break;
 
 	case ICMD_PUTSTATICCONST:
@@ -2637,6 +2623,17 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %g,", iptr->val.d);
 			break;
 		}
+#if defined(__X86_64__)
+		if (iptr->opc == ICMD_PUTFIELDCONST)
+			printf(" NOT RESOLVED,");
+		printf(" ");
+		utf_display_classname(((unresolved_field *) iptr[1].target)->fieldref->classref->name);
+		printf(".");
+		utf_display(((unresolved_field *) iptr[1].target)->fieldref->name);
+		printf(" (type ");
+		utf_display(((unresolved_field *) iptr[1].target)->fieldref->descriptor);
+		printf(")");
+#else
 		if (iptr->opc == ICMD_PUTFIELDCONST)
 			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
 		printf(" ");
@@ -2646,6 +2643,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type ");
 		utf_display(((fieldinfo *) iptr[1].val.a)->descriptor);
 		printf(")");
+#endif
 		break;
 
 	case ICMD_IINC:
@@ -2741,6 +2739,21 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_CHECKCAST:
+#if defined(x__X86_64__)
+		if (iptr->op1) {
+			classinfo *c = iptr->val.a;
+			if (c) {
+				if (c->flags & ACC_INTERFACE)
+					printf(" (INTERFACE) ");
+				else
+					printf(" (CLASS,%3d) ", c->vftbl->diffval);
+			} else {
+				printf(" (NOT RESOLVED) ");
+			}
+			utf_display_classname(((constant_classref *) iptr->target)->name);
+		}
+		break;
+#endif
 	case ICMD_INSTANCEOF:
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
@@ -2764,7 +2777,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" %s", icmd_builtin_name((functionptr) iptr->val.fp));
 		break;
 
+	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKESPECIAL:
+	case ICMD_INVOKEVIRTUAL:
+	case ICMD_INVOKEINTERFACE:
 #if defined(__X86_64__)
 		printf(" ");
 		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
@@ -2778,17 +2794,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		utf_display(((methodinfo *) iptr->val.a)->name);
 		utf_display(((methodinfo *) iptr->val.a)->descriptor);
 #endif
-		break;
-
-	case ICMD_INVOKEVIRTUAL:
-/*  	case ICMD_INVOKESPECIAL: */
-	case ICMD_INVOKESTATIC:
-	case ICMD_INVOKEINTERFACE:
-		printf(" ");
-		utf_display_classname(((methodinfo *) iptr->val.a)->class->name);
-		printf(".");
-		utf_display(((methodinfo *) iptr->val.a)->name);
-		utf_display(((methodinfo *) iptr->val.a)->descriptor);
 		break;
 
 	case ICMD_IFEQ:
