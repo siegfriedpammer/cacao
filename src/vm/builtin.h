@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2148 2005-03-30 16:49:40Z twisti $
+   $Id: builtin.h 2256 2005-04-11 09:40:34Z twisti $
 
 */
 
@@ -207,6 +207,7 @@ java_intarray *builtin_newarray_int(s4 size);
 java_longarray *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
 java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims);
+#define BUILTIN_nmultianewarray (functionptr) builtin_nmultianewarray
 /*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims); */
 /* NOT AN OP */
 
