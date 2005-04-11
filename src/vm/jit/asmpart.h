@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2253 2005-04-07 11:21:10Z twisti $
+   $Id: asmpart.h 2260 2005-04-11 09:46:24Z twisti $
 
 */
 
@@ -106,12 +106,9 @@ void calljava_xhandler();
 void calljava_xhandler2();
 #endif
 
-
 void asm_handle_exception();
 void asm_handle_nat_exception();
 void asm_handle_nullptr_exception();
-
-void asm_check_clinit();
 
 void asm_handle_builtin_exception(classinfo *);
 void asm_throw_and_handle_exception();
@@ -121,6 +118,25 @@ void asm_refillin_and_handle_exception();
 void asm_throw_and_handle_arrayindexoutofbounds_exception();
 #endif
 void asm_throw_and_handle_hardware_arithmetic_exception();
+
+/* code patching functions */
+void asm_get_putstatic(void);
+void asm_get_putfield(void);
+void asm_builtin_new(unresolved_class *uc);
+
+void asm_builtin_newarray(unresolved_class *uc);
+#define asm_BUILTIN_newarray (functionptr) asm_builtin_newarray
+
+void asm_builtin_multianewarray(unresolved_class *uc);
+#define asm_BUILTIN_multianewarray (functionptr) asm_builtin_multianewarray
+
+void asm_invokestatic_special(void);
+void asm_invokevirtual(void);
+void asm_invokeinterface(void);
+void asm_checkcast_interface(void);
+void asm_checkcast_class(void);
+void asm_check_clinit(void);
+
 
 stacktraceelement *asm_get_stackTrace();
 
@@ -139,10 +155,6 @@ void asm_remove_native_stackinfo();
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
-
-/* code patching functions */
-void asm_builtin_new(unresolved_class *uc);
-void asm_invokespecial(void);
 
 #endif /* _ASMPART_H */
 
