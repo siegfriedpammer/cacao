@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2255 2005-04-11 09:40:23Z twisti $
+   $Id: builtin.c 2269 2005-04-11 10:50:12Z twisti $
 
 */
 
@@ -256,10 +256,12 @@ builtin_descriptor builtin_desc[] = {
 	{255,BUILTIN_drem            ,ICMD_BUILTIN2,TYPE_DOUBLE,TYPE_DOUBLE,TYPE_VOID  ,TYPE_DOUBLE,0,0,"drem"},
 
 
+#if defined(__X86_64__) || defined(__I386__)
 	/* assembler code patching functions */
 
 	{ 255, asm_builtin_new       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling asm_builtin_new)" },
 	{ 255, asm_builtin_newarray  , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling asm_builtin_newarray)" },
+#endif
 
 
 	/* this record marks the end of the list */
