@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2260 2005-04-11 09:46:24Z twisti $
+   $Id: asmpart.h 2273 2005-04-11 15:50:49Z twisti $
 
 */
 
@@ -133,8 +133,10 @@ void asm_builtin_multianewarray(unresolved_class *uc);
 void asm_invokestatic_special(void);
 void asm_invokevirtual(void);
 void asm_invokeinterface(void);
-void asm_checkcast_interface(void);
+void asm_checkcast_instanceof_flags(void);
+void asm_checkcast_instanceof_interface(void);
 void asm_checkcast_class(void);
+void asm_instanceof_class(void);
 void asm_check_clinit(void);
 
 
