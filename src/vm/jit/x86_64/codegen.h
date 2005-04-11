@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2223 2005-04-05 18:01:56Z christian $
+   $Id: codegen.h 2265 2005-04-11 09:58:52Z twisti $
 
 */
 
@@ -218,6 +218,19 @@ typedef enum {
             x86_64_address_byte(1,(dreg),(basereg)); \
             x86_64_emit_imm8((disp)); \
         } else { \
+            x86_64_address_byte(2,(dreg),(basereg)); \
+            x86_64_emit_imm32((disp)); \
+        } \
+    } while (0)
+
+
+#define x86_64_emit_membase32(basereg,disp,dreg) \
+    do { \
+        if ((basereg) == REG_SP || (basereg) == R12) { \
+            x86_64_address_byte(2,(dreg),REG_SP); \
+            x86_64_address_byte(0,REG_SP,REG_SP); \
+            x86_64_emit_imm32((disp)); \
+        } else {\
             x86_64_address_byte(2,(dreg),(basereg)); \
             x86_64_emit_imm32((disp)); \
         } \

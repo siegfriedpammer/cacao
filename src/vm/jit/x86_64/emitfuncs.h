@@ -1,4 +1,4 @@
-/* jit/x86_64/emitfuncs.h - emit function prototypes
+/* src/jit/x86_64/emitfuncs.h - emit function prototypes
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -24,10 +24,11 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Andreas Krall
-            Christian Thalinger
+   Authors: Christian Thalinger
 
-   $Id: emitfuncs.h 1735 2004-12-07 14:33:27Z twisti $
+   Changes:
+
+   $Id: emitfuncs.h 2265 2005-04-11 09:58:52Z twisti $
 
 */
 
@@ -60,10 +61,13 @@ void x86_64_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_mov_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void x86_64_movl_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void x86_64_mov_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
-void x86_64_movl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 void x86_64_mov_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
+void x86_64_movl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
+void x86_64_movl_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 void x86_64_mov_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
+void x86_64_mov_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void x86_64_movl_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
+void x86_64_movl_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void x86_64_mov_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
 void x86_64_movl_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
 void x86_64_mov_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
@@ -71,7 +75,9 @@ void x86_64_movl_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 i
 void x86_64_movw_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
 void x86_64_movb_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
 void x86_64_mov_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp);
+void x86_64_mov_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp);
 void x86_64_movl_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp);
+void x86_64_movl_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp);
 void x86_64_movsbq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_movsbq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movswq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
@@ -94,6 +100,7 @@ void x86_64_alul_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 dis
 void x86_64_alu_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg);
 void x86_64_alul_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg);
 void x86_64_alu_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
+void x86_64_alu_imm32_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
 void x86_64_alul_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
 void x86_64_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
 void x86_64_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
@@ -184,10 +191,14 @@ void x86_64_movq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movss_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_movsd_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_movss_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
+void x86_64_movss_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void x86_64_movsd_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
+void x86_64_movsd_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void x86_64_movss_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+void x86_64_movss_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movlps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movsd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+void x86_64_movsd_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movlpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_movss_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
 void x86_64_movsd_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
