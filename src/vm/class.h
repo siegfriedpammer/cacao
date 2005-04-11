@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2200 2005-04-03 21:44:19Z twisti $
+   $Id: class.h 2257 2005-04-11 09:42:19Z twisti $
 
 */
 
@@ -220,6 +220,10 @@ extern classinfo *pseudo_class_New;
 
 /* create a new classinfo struct */
 classinfo *class_create_classinfo(utf *u);
+
+/* retrieve constantpool element */
+voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
+voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
 
 /* frees all resources used by the class */
 void class_free(classinfo *);

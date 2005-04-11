@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2200 2005-04-03 21:44:19Z twisti $
+   $Id: class.c 2257 2005-04-11 09:42:19Z twisti $
 
 */
 
@@ -51,13 +51,14 @@
 
 #include "toolbox/logging.h"
 #include "vm/class.h"
+#include "vm/classcache.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
-#include "vm/loader.h"
-#include "vm/classcache.h"
 
 
 /******************************************************************************/
@@ -263,6 +264,56 @@ static void class_freecpool(classinfo *c)
 }
 
 
+/* class_getconstant ***********************************************************
+
+   Retrieves the value at position 'pos' of the constantpool of a
+   class. If the type of the value is other than 'ctype', an error is
+   thrown.
+
+*******************************************************************************/
+
+voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
+{
+	/* check index and type of constantpool entry */
+	/* (pos == 0 is caught by type comparison) */
+
+	if (pos >= c->cpcount || c->cptags[pos] != ctype) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
+	}
+
+	return c->cpinfos[pos];
+}
+
+
+/* innerclass_getconstant ******************************************************
+
+   Like class_getconstant, but if cptags is ZERO, null is returned.
+	
+*******************************************************************************/
+
+voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
+{
+	/* invalid position in constantpool */
+	if (pos >= c->cpcount) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
+	}
+
+	/* constantpool entry of type 0 */	
+	if (!c->cptags[pos])
+		return NULL;
+
+	/* check type of constantpool entry */
+	if (c->cptags[pos] != ctype) {
+		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
+		return NULL;
+	}
+		
+	return c->cpinfos[pos];
+}
+
+
 /* class_free ******************************************************************
 
    Frees all resources used by the class.
@@ -368,7 +419,6 @@ classinfo *class_array_of(classinfo *component, bool link)
 {
     s4 namelen;
     char *namebuf;
-	utf *arrayname;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
