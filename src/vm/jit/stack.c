@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2263 2005-04-11 09:56:52Z twisti $
+   $Id: stack.c 2271 2005-04-11 15:48:42Z twisti $
 
 */
 
@@ -2739,7 +2739,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_CHECKCAST:
-#if defined(x__X86_64__)
+	case ICMD_INSTANCEOF:
+#if defined(__X86_64__)
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
 			if (c) {
@@ -2754,7 +2755,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 #endif
-	case ICMD_INSTANCEOF:
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
 			if (c->flags & ACC_INTERFACE)
