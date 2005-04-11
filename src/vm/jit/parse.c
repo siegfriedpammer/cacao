@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2263 2005-04-11 09:56:52Z twisti $
+   $Id: parse.c 2268 2005-04-11 10:49:19Z twisti $
 
 */
 
@@ -1027,6 +1027,8 @@ SHOWOPCODE(DEBUG4)
 				}
 				PINC;
 #else
+				{
+				classinfo *frclass;
 				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
 					return NULL;
 
@@ -1042,6 +1044,7 @@ SHOWOPCODE(DEBUG4)
 				OP2A(opcode, fi->type, fi, currentline);
 				if (!fi->class->initialized) {
 					inline_env->method->isleafmethod = false;
+				}
 				}
 #endif
 			}
@@ -1127,10 +1130,10 @@ SHOWOPCODE(DEBUG4)
 
 if (DEBUG4==true) { 
 	method_display_w_class(mi); 
-	printf("\tINVOKE SPEC/VIRT\n");
+	printf("\tINVOKE STAT\n");
         fflush(stdout);}
 
-				if (mi->flags & ACC_STATIC) {
+				if (!(mi->flags & ACC_STATIC)) {
 					*exceptionptr =
 						new_exception(string_java_lang_IncompatibleClassChangeError);
 					return NULL;
@@ -1265,6 +1268,7 @@ if (DEBUG4==true) {
 	method_display_w_class(mi); 
 	printf("\tINVOKE INTERFACE\n");
         fflush(stdout);}
+
 				method_descriptor2types(mi);
 				OP2A(opcode, mi->paramcount, mi, currentline);
 #endif
