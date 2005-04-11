@@ -28,13 +28,14 @@
 
    Changes:
 
-   $Id: helper.c 2259 2005-04-11 09:45:52Z twisti $
+   $Id: helper.c 2266 2005-04-11 10:00:51Z twisti $
 
 */
 
 
 #include "vm/class.h"
 #include "vm/exceptions.h"
+#include "vm/initialize.h"
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/resolve.h"
@@ -77,7 +78,7 @@ s4 helper_resolve_classinfo_flags(constant_classref *cr)
 	/* resolve and load the class */
 
 	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
-		return NULL;
+		return -1;
 
 	/* return the flags */
 
