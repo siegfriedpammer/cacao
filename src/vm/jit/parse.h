@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2235 2005-04-06 12:05:06Z twisti $
+   $Id: parse.h 2262 2005-04-11 09:55:44Z twisti $
 
 */
 
@@ -80,6 +80,11 @@
 
 #define OP2A(o,o1,v,l) \
     OP2A_NOINC(o,o1,v,l); \
+    PINC
+
+#define OP2AT(o,o1,v,t,l) \
+    OP2A_NOINC(o,o1,v,l); \
+    iptr->target = (t); \
     PINC
 
 #define BUILTIN1(v,t,l) \
