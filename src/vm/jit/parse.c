@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2268 2005-04-11 10:49:19Z twisti $
+   $Id: parse.c 2272 2005-04-11 15:49:51Z twisti $
 
 */
 
@@ -1323,7 +1323,7 @@ if (DEBUG4==true) {
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(x__X86_64__)
+#if defined(__X86_64__)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
@@ -1333,13 +1333,13 @@ if (DEBUG4==true) {
 
 					/* array type cast-check */
 					LOADCONST_A_BUILTIN(cls->vftbl);
+					s_count++;
 					BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR, currentline);
 
 				} else {
 					/* object type cast-check */
 					OP2AT(opcode, 1, cls, cr, currentline);
 				}
-				s_count++;
 #else
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&cls))
@@ -1370,6 +1370,25 @@ if (DEBUG4==true) {
 				classinfo *cls;
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+
+#if defined(__X86_64__)
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
+					return NULL;
+
+				if (cr->name->text[0] == '[') {
+					if (!resolve_classref(inline_env->method, cr, resolveEager, true, &cls))
+						return NULL;
+
+					/* array type cast-check */
+					LOADCONST_A_BUILTIN(cls->vftbl);
+					s_count++;
+					BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+
+				} else {
+					/* object type cast-check */
+					OP2AT(opcode, 1, cls, cr, currentline);
+				}
+#else
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&cls))
 					return NULL;
@@ -1388,6 +1407,7 @@ if (DEBUG4==true) {
 					  + 						*/
 					OP2A(opcode, 1, cls, currentline);
 				}
+#endif
 			}
 			break;
 

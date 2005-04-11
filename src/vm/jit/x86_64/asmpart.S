@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2265 2005-04-11 09:58:52Z twisti $
+   $Id: asmpart.S 2272 2005-04-11 15:49:51Z twisti $
 
 */
 
@@ -159,8 +159,10 @@
 	.globl asm_invokestatic_special
 	.globl asm_invokevirtual
 	.globl asm_invokeinterface
-	.globl asm_checkcast_interface
+	.globl asm_checkcast_instanceof_flags
+	.globl asm_checkcast_instanceof_interface
 	.globl asm_checkcast_class
+	.globl asm_instanceof_class
 	.globl asm_check_clinit
 
 	.globl asm_builtin_checkarraycast
@@ -1193,7 +1195,7 @@ asm_invokeinterface:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_checkcast_interface *****************************************************
+/* asm_checkcast_instanceof_flags **********************************************
 
    XXX
 
@@ -1204,7 +1206,51 @@ asm_invokeinterface:
 
 *******************************************************************************/
 
-asm_checkcast_interface:
+asm_checkcast_instanceof_flags:
+	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
+
+	SAVE_ARGUMENT_REGISTERS
+	SAVE_TEMPORARY_REGISTERS
+
+	mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
+	mov     itmp2,16*8(%rsp)            /* can be used by CHECKCAST           */
+
+	mov     (0+17)*8(%rsp),a0           /* pass unresolved_method pointer     */
+	call    helper_resolve_classinfo_flags /* call the helper function        */
+
+	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_TEMPORARY_REGISTERS
+
+	cmp     $-1,v0l                     /* exception thrown? test for -1,     */
+	                                    /* because class flags can be 0       */
+	jz      L_asm_codepatcher_exception_with_stack_frame
+
+	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
+	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
+	sub     $5,itmp2                    /* remove size of `call rel32'        */
+	mov     itmp3,(itmp2)               /* patch back original code (8 bytes) */
+
+	mov     v0l,2(itmp2)                /* patch super->flags                 */
+
+	mov     itmp2,itmp3                 /* move return address                */
+	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
+	mov     16*8(%rsp),itmp2            /* can be used by field instructions  */
+	add     $((3+17)*8),%rsp            /* remove stack frame                 */
+	jmp     *itmp3                      /* call new patched code              */
+
+
+/* asm_checkcast_instanceof_interface ******************************************
+
+   XXX
+
+   Stack layout:
+     16   return address
+      8   machine code (which is patched back later)
+      0   unresolved field reference
+
+*******************************************************************************/
+
+asm_checkcast_instanceof_interface:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1281,7 +1327,50 @@ asm_checkcast_class:
 
 	mov     itmp2,itmp3                 /* move return address                */
 	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
-	mov     16*8(%rsp),itmp2            /* can be used by field instructions  */
+	mov     16*8(%rsp),itmp2
+	add     $((3+17)*8),%rsp            /* remove stack frame                 */
+	jmp     *itmp3                      /* call new patched code              */
+
+
+/* asm_instanceof_class ********************************************************
+
+   XXX
+
+   Stack layout:
+     16   return address
+      8   machine code (which is patched back later)
+      0   unresolved field reference
+
+*******************************************************************************/
+
+asm_instanceof_class:
+	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
+
+	SAVE_ARGUMENT_REGISTERS
+	SAVE_TEMPORARY_REGISTERS
+
+	mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
+	mov     itmp2,16*8(%rsp)            /* can be used by INSTANCEOF          */
+
+	mov     (0+17)*8(%rsp),a0           /* pass unresolved_method pointer     */
+	call    helper_resolve_classinfo_vftbl /* call the helper function        */
+
+	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_TEMPORARY_REGISTERS
+
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_codepatcher_exception_with_stack_frame
+
+	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
+	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
+	sub     $5,itmp2                    /* remove size of `call rel32'        */
+	mov     itmp3,(itmp2)               /* patch back original code (8 bytes) */
+
+	mov     v0,2(itmp2)                 /* patch super->vftbl                 */
+
+	mov     itmp2,itmp3                 /* move return address                */
+	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
+	mov     16*8(%rsp),itmp2
 	add     $((3+17)*8),%rsp            /* remove stack frame                 */
 	jmp     *itmp3                      /* call new patched code              */
 
