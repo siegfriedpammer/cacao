@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.h 2251 2005-04-07 11:20:08Z twisti $
+   $Id: helper.h 2259 2005-04-11 09:45:52Z twisti $
 
 */
 
@@ -36,14 +36,27 @@
 #ifndef _ASMHELPER_H
 #define _ASMHELPER_H
 
+#include "vm/class.h"
+#include "vm/linker.h"
+#include "vm/method.h"
 #include "vm/resolve.h"
 
 
 /* function prototypes ********************************************************/
 
 /* code patching helper functions */
-classinfo *asm_builtin_new_helper(constant_classref *ref);
-u1 *asm_invokespecial_helper(unresolved_method *um);
+
+classinfo *helper_resolve_classinfo(constant_classref *cr);
+s4         helper_resolve_classinfo_flags(constant_classref *cr);
+vftbl_t   *helper_resolve_classinfo_vftbl(constant_classref *cr);
+s4         helper_resolve_classinfo_index(constant_classref *cr);
+
+methodinfo *helper_resolve_methodinfo(unresolved_method *um);
+s4          helper_resolve_methodinfo_vftblindex(unresolved_method *um);
+u1         *helper_resolve_methodinfo_stubroutine(unresolved_method *um);
+
+void *helper_get_fieldinfo_value_address(unresolved_field *uf);
+s4    helper_get_fieldinfo_offset(unresolved_field *uf);
 
 #endif /* _ASMHELPER_H */
 

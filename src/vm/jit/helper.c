@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2250 2005-04-07 11:19:55Z twisti $
+   $Id: helper.c 2259 2005-04-11 09:45:52Z twisti $
 
 */
 
@@ -43,15 +43,15 @@
 #include "vm/loader.h"
 
 
-/* asm_builtin_new_helper ******************************************************
+/* helper_resolve_classinfo ****************************************************
 
-   This function is called from asm_builtin_new code patching function.
+   This function returns the loaded and resolved class.
 
 *******************************************************************************/
 
-classinfo *asm_builtin_new_helper(constant_classref *cr)
+classinfo *helper_resolve_classinfo(constant_classref *cr)
 {
-	classinfo  *c;
+	classinfo *c;
 
 	/* resolve and load the class */
 
@@ -64,13 +64,120 @@ classinfo *asm_builtin_new_helper(constant_classref *cr)
 }
 
 
-/* asm_invokespecial_helper ****************************************************
+/* helper_resolve_classinfo_flags **********************************************
 
-   This function is called from asm_invokespecial code patching function.
+   This function returns the flags of the passed class.
 
 *******************************************************************************/
 
-u1 *asm_invokespecial_helper(unresolved_method *um)
+s4 helper_resolve_classinfo_flags(constant_classref *cr)
+{
+	classinfo *c;
+
+	/* resolve and load the class */
+
+	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+		return NULL;
+
+	/* return the flags */
+
+	return c->flags;
+}
+
+
+/* helper_resolve_classinfo_vftbl **********************************************
+
+   This function return the vftbl pointer of the passed class.
+
+*******************************************************************************/
+
+vftbl_t *helper_resolve_classinfo_vftbl(constant_classref *cr)
+{
+	classinfo *c;
+
+	/* resolve the method */
+
+	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+		return NULL;
+
+	/* return the virtual function table pointer */
+
+	return c->vftbl;
+}
+
+
+/* helper_resolve_classinfo_index **********************************************
+
+   This function returns the index of the passed class.
+
+*******************************************************************************/
+
+s4 helper_resolve_classinfo_index(constant_classref *cr)
+{
+	classinfo *c;
+
+	/* resolve and load the class */
+
+	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+		return -1;
+
+	/* return the class' index */
+
+	return c->index;
+}
+
+
+/* helper_resolve_methodinfo ***************************************************
+
+   This function returns the loaded and resolved methodinfo of the
+   passed method.
+
+*******************************************************************************/
+
+methodinfo *helper_resolve_methodinfo(unresolved_method *um)
+{
+	methodinfo *m;
+
+	/* resolve the method */
+
+	if (!resolve_method(um, resolveEager, &m))
+		return NULL;
+
+	/* return the methodinfo pointer */
+
+	return m;
+}
+
+
+/* helper_resolve_methodinfo_vftblindex ****************************************
+
+   This function returns the virtual function table index (vftblindex)
+   of the passed method.
+
+*******************************************************************************/
+
+s4 helper_resolve_methodinfo_vftblindex(unresolved_method *um)
+{
+	methodinfo *m;
+
+	/* resolve the method */
+
+	if (!resolve_method(um, resolveEager, &m))
+		return -1;
+
+	/* return the virtual function table index */
+
+	return m->vftblindex;
+}
+
+
+/* helper_resolve_methodinfo_stubroutine ***************************************
+
+   This function returns the stubroutine of the passed method.
+
+*******************************************************************************/
+
+u1 *helper_resolve_methodinfo_stubroutine(unresolved_method *um)
 {
 	methodinfo *m;
 
@@ -82,6 +189,54 @@ u1 *asm_invokespecial_helper(unresolved_method *um)
 	/* return the method pointer */
 
 	return m->stubroutine;
+}
+
+
+/* helper_resolve_fieldinfo_value_address **************************************
+
+   This function returns the value address of the passed field.
+
+*******************************************************************************/
+
+void *helper_resolve_fieldinfo_value_address(unresolved_field *uf)
+{
+	fieldinfo *fi;
+
+	/* resolve the field */
+
+	if (!resolve_field(uf, resolveEager, &fi))
+		return NULL;
+
+	/* check if class is initialized */
+
+	if (!fi->class->initialized)
+		if (!initialize_class(fi->class))
+			return NULL;
+
+	/* return the field value's address */
+
+	return &(fi->value);
+}
+
+
+/* helper_resolve_fieldinfo_offset *********************************************
+
+   This function returns the offset value of the passed field.
+
+*******************************************************************************/
+
+s4 helper_resolve_fieldinfo_offset(unresolved_field *uf)
+{
+	fieldinfo *fi;
+
+	/* resolve the field */
+
+	if (!resolve_field(uf, resolveEager, &fi))
+		return -1;
+
+	/* return the field value's offset */
+
+	return fi->offset;
 }
 
 
