@@ -4,14 +4,17 @@ public class test {
     }
 
     public test() {
-        getstatic();
-        putstatic();
+//         getstatic();
+//         putstatic();
 
-        getfield();
-        putfield();
-        putfieldconst();
+//         getfield();
+//         putfield();
+//         putfieldconst();
 
-        invokespecial();
+//         invokespecial();
+
+        checkcast();
+        _instanceof();
     }
 
     public void getstatic() {
@@ -103,6 +106,50 @@ public class test {
     public void invokespecial() {
         p("invokespecial:");
         new invokespecial();
+    }
+
+    private void checkcast() {
+        p("checkcast:");
+
+        Object o = new Object();
+
+        try {
+            checkcastC cc = (checkcastC) o;
+            p("FAILED");
+        } catch (ClassCastException e) {
+            p("OK");
+        }
+
+        try {
+            checkcastI ci = (checkcastI) o;
+            p("FAILED");
+        } catch (ClassCastException e) {
+            p("OK");
+        }
+    }
+
+    private void _instanceof() {
+        p("instanceof:");
+
+        Object o = new Object();
+
+        try {
+            if (o instanceof instanceofC)
+                p("FAILED");
+            else
+                p("OK");
+        } catch (NoClassDefFoundError e) {
+            p("OK");
+        }
+
+        try {
+            if (o instanceof instanceofI)
+                p("FAILED");
+            else
+                p("OK");
+        } catch (NoClassDefFoundError e) {
+            p("OK");
+        }
     }
 
     public void check(int a, int b) {
