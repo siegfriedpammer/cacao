@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2199 2005-04-03 21:42:44Z twisti $
+   $Id: loader.c 2258 2005-04-11 09:43:57Z twisti $
 
 */
 
@@ -754,71 +754,6 @@ static bool skipattributes(classbuffer *cb, u4 num)
 	}
 
 	return true;
-}
-
-
-/******************** function:: class_getconstant *****************************
-
-	retrieves the value at position 'pos' of the constantpool of a class
-	if the type of the value is other than 'ctype' the system is stopped
-
-*******************************************************************************/
-
-voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
-{
-	/* check index and type of constantpool entry */
-	/* (pos == 0 is caught by type comparison) */
-	if (pos >= c->cpcount || c->cptags[pos] != ctype) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
-		return NULL;
-	}
-
-	return c->cpinfos[pos];
-}
-
-
-/******************** function: innerclass_getconstant ************************
-
-    like class_getconstant, but if cptags is ZERO null is returned
-	
-*******************************************************************************/
-
-voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
-{
-	/* invalid position in constantpool */
-	if (pos >= c->cpcount) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
-		return NULL;
-	}
-
-	/* constantpool entry of type 0 */	
-	if (!c->cptags[pos])
-		return NULL;
-
-	/* check type of constantpool entry */
-	if (c->cptags[pos] != ctype) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
-		return NULL;
-	}
-		
-	return c->cpinfos[pos];
-}
-
-
-/********************* Function: class_constanttype ****************************
-
-	Determines the type of a class entry in the ConstantPool
-	
-*******************************************************************************/
-
-u4 class_constanttype(classinfo *c, u4 pos)
-{
-	if (pos <= 0 || pos >= c->cpcount) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool index");
-		return 0;
-	}
-
-	return c->cptags[pos];
 }
 
 
@@ -2068,7 +2003,8 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	/* handle array classes */
 	if (name->text[0] == '[') {
 		LOADER_INC();
-		load_newly_created_array(c, NULL);
+		if (!load_newly_created_array(c, NULL))
+			return false;
 		LOADER_DEC();
 		LOADER_ASSERT(c->loaded);
 		*result = c;

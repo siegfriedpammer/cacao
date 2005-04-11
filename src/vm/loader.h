@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2199 2005-04-03 21:42:44Z twisti $
+   $Id: loader.h 2258 2005-04-11 09:43:57Z twisti $
 */
 
 
@@ -174,13 +174,6 @@ bool load_class_bootstrap(utf *name,classinfo **result);
 /* (don't use the following directly:) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 bool load_newly_created_array(classinfo *c,java_objectheader *loader);
-
-
-/* retrieve constantpool element */
-voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
-
-/* determine type of a constantpool element */
-u4 class_constanttype(classinfo *class, u4 pos);
 
 /* search class for a field */
 fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
