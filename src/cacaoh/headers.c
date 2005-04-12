@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2267 2005-04-11 10:02:00Z twisti $
+   $Id: headers.c 2287 2005-04-12 20:43:41Z twisti $
 
 */
 
@@ -81,8 +81,10 @@ java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 void asm_call_jit_compiler(void) {}
 
 /* assembler code patching functions */
-void asm_builtin_new(unresolved_class *uc) {}
-void asm_builtin_newarray(unresolved_class *uc) {}
+void asm_patcher_builtin_new(unresolved_class *uc) {}
+void asm_patcher_builtin_newarray(unresolved_class *uc) {}
+void asm_patcher_builtin_checkarraycast(unresolved_class *uc) {}
+void asm_patcher_builtin_arrayinstanceof(unresolved_class *uc) {}
 
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
