@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2273 2005-04-11 15:50:49Z twisti $
+   $Id: asmpart.h 2283 2005-04-12 19:53:05Z twisti $
 
 */
 
@@ -120,23 +120,32 @@ void asm_throw_and_handle_arrayindexoutofbounds_exception();
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
 /* code patching functions */
-void asm_get_putstatic(void);
-void asm_get_putfield(void);
-void asm_builtin_new(unresolved_class *uc);
+void asm_patcher_get_putstatic(void);
+void asm_patcher_get_putfield(void);
 
-void asm_builtin_newarray(unresolved_class *uc);
-#define asm_BUILTIN_newarray (functionptr) asm_builtin_newarray
+void asm_patcher_builtin_new(unresolved_class *uc);
+#define asm_patcher_BUILTIN_new (functionptr) asm_patcher_builtin_new
 
-void asm_builtin_multianewarray(unresolved_class *uc);
-#define asm_BUILTIN_multianewarray (functionptr) asm_builtin_multianewarray
+void asm_patcher_builtin_newarray(unresolved_class *uc);
+#define asm_patcher_BUILTIN_newarray (functionptr) asm_patcher_builtin_newarray
 
-void asm_invokestatic_special(void);
-void asm_invokevirtual(void);
-void asm_invokeinterface(void);
-void asm_checkcast_instanceof_flags(void);
-void asm_checkcast_instanceof_interface(void);
-void asm_checkcast_class(void);
-void asm_instanceof_class(void);
+void asm_patcher_builtin_multianewarray(unresolved_class *uc);
+#define asm_patcher_BUILTIN_multianewarray (functionptr) asm_patcher_builtin_multianewarray
+
+void asm_patcher_builtin_checkarraycast(unresolved_class *uc);
+#define asm_patcher_BUILTIN_checkarraycast (functionptr) asm_patcher_builtin_checkarraycast
+
+void asm_patcher_builtin_arrayinstanceof(unresolved_class *uc);
+#define asm_patcher_BUILTIN_arrayinstanceof (functionptr) asm_patcher_builtin_arrayinstanceof
+
+void asm_patcher_invokestatic_special(void);
+void asm_patcher_invokevirtual(void);
+void asm_patcher_invokeinterface(void);
+void asm_patcher_checkcast_instanceof_flags(void);
+void asm_patcher_checkcast_instanceof_interface(void);
+void asm_patcher_checkcast_class(void);
+void asm_patcher_instanceof_class(void);
+
 void asm_check_clinit(void);
 
 
