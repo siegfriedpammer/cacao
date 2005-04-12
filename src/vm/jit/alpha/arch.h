@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2039 2005-03-20 11:24:19Z twisti $
+   $Id: arch.h 2295 2005-04-12 22:57:26Z twisti $
 
 */
 
@@ -113,7 +113,7 @@
 #define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
-#define CONDITIONAL_LOADCONST
+#define CONDITIONAL_LOADCONST            1
 
 /*  #define CONSECUTIVE_INTARGS */
 /*  #define CONSECUTIVE_FLOATARGS */
