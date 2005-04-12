@@ -1,4 +1,4 @@
-/* vm/exceptions.h - exception related functions prototypes
+/* src/vm/exceptions.h - exception related functions prototypes
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,14 +26,15 @@
 
    Authors: Christian Thalinger
 
-   $Id: exceptions.h 2181 2005-04-01 16:53:33Z edwin $
+   Changes:
+
+   $Id: exceptions.h 2276 2005-04-12 19:47:33Z twisti $
 
 */
 
 
 #ifndef _EXCEPTIONS_H
 #define _EXCEPTIONS_H
-
 
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
@@ -66,6 +67,7 @@ extern methodinfo* _threadrootmethod;
 /* exception/error super class */
 
 extern const char *string_java_lang_Throwable;
+extern const char *string_java_lang_VMThrowable;
 
 
 /* specify some exception strings for code generation */

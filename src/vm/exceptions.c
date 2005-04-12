@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: exceptions.c 2276 2005-04-12 19:47:33Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "toolbox/logging.h"
+#include "toolbox/util.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -186,29 +187,56 @@ bool exceptions_init(void)
 {
 	/* java/lang/Throwable */
 
-	if (!load_class_bootstrap(utf_java_lang_Throwable,&class_java_lang_Throwable) ||
+	if (!load_class_bootstrap(utf_java_lang_Throwable,
+							  &class_java_lang_Throwable) ||
 		!link_class(class_java_lang_Throwable))
 		return false;
 
 
-	/* java/lang/Exception */
+	/* java/lang/VMThrowable */
 
-	if (!load_class_bootstrap(utf_java_lang_Exception,&class_java_lang_Exception) ||
-		!link_class(class_java_lang_Exception))
+	if (!load_class_bootstrap(utf_java_lang_VMThrowable,
+							  &class_java_lang_VMThrowable) ||
+		!link_class(class_java_lang_VMThrowable))
 		return false;
 
 
 	/* java/lang/Error */
 
-	if (!load_class_bootstrap(utf_java_lang_Error,&class_java_lang_Error) ||
+	if (!load_class_bootstrap(utf_java_lang_Error, &class_java_lang_Error) ||
 		!link_class(class_java_lang_Error))
+		return false;
+
+
+	/* java/lang/Exception */
+
+	if (!load_class_bootstrap(utf_java_lang_Exception,
+							  &class_java_lang_Exception) ||
+		!link_class(class_java_lang_Exception))
+		return false;
+
+
+	/* java/lang/NoClassDefFoundError */
+
+	if (!load_class_bootstrap(utf_java_lang_NoClassDefFoundError,
+							  &class_java_lang_NoClassDefFoundError) ||
+		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
 
 
 	/* java/lang/OutOfMemoryError */
 
-	if (!load_class_bootstrap(utf_java_lang_OutOfMemoryError,&class_java_lang_OutOfMemoryError) ||
+	if (!load_class_bootstrap(utf_java_lang_OutOfMemoryError,
+							  &class_java_lang_OutOfMemoryError) ||
 		!link_class(class_java_lang_OutOfMemoryError))
+		return false;
+
+
+	/* java/lang/ClassNotFoundException */
+
+	if (!load_class_bootstrap(utf_java_lang_ClassNotFoundException,
+							  &class_java_lang_ClassNotFoundException) ||
+		!link_class(class_java_lang_ClassNotFoundException))
 		return false;
 
 	return true;
@@ -333,7 +361,7 @@ java_objectheader *new_exception(const char *classname)
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 	return native_new_and_init(c);
@@ -343,7 +371,7 @@ java_objectheader *new_exception_message(const char *classname, const char *mess
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 
@@ -355,7 +383,7 @@ java_objectheader *new_exception_throwable(const char *classname, java_lang_Thro
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 
@@ -367,7 +395,7 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 
@@ -379,7 +407,7 @@ java_objectheader *new_exception_javastring(const char *classname, java_lang_Str
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 
@@ -391,7 +419,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 {
 	classinfo *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname),&c))
+	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
 	return native_new_and_init_int(c, i);
@@ -406,19 +434,48 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 {
-	char msg[MAXLOGTEXT];
-	va_list ap;
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+	va_list            ap;
 
-	utf_sprint_classname(msg, c->name);
-	sprintf(msg + strlen(msg), " (");
+	/* calculate message length */
+
+	if (c)
+		msglen = utf_strlen(c->name) + strlen(" (");
+
+	va_start(ap, message);
+	msglen += get_variable_message_length(message, ap);
+	va_end(ap);
+
+	if (c)
+		msglen += strlen(")");
+
+	msglen += strlen("0");
+
+	/* allocate a buffer */
+
+	msg = MNEW(char, msglen);
+
+	/* print message into allocated buffer */
+
+	if (c) {
+		utf_sprint_classname(msg, c->name);
+		strcat(msg, " (");
+	}
 
 	va_start(ap, message);
 	vsprintf(msg + strlen(msg), message, ap);
 	va_end(ap);
 
-	sprintf(msg + strlen(msg), ")");
+	if (c)
+		strcat(msg, ")");
 
-	return new_exception_message(string_java_lang_ClassFormatError, msg);
+	o = new_exception_message(string_java_lang_ClassFormatError, msg);
+
+	MFREE(msg, char, msglen);
+
+	return o;
 }
 
 
