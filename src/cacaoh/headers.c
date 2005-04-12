@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2287 2005-04-12 20:43:41Z twisti $
+   $Id: headers.c 2288 2005-04-12 21:54:40Z twisti $
 
 */
 
@@ -101,6 +101,10 @@ s8 asm_builtin_d2l(double a) { return 0; }
 void use_class_as_object(void) {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
+
+#if defined(__I386__)
+void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl) {}
+#endif
 
 s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {
 	return 0;
