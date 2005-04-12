@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2258 2005-04-11 09:43:57Z twisti $
+   $Id: loader.c 2278 2005-04-12 19:49:45Z twisti $
 
 */
 
@@ -137,81 +137,65 @@ bool loader_init(u1 *stackbottom)
 
 	/* load some important classes */
 
-	if (!load_class_bootstrap(utf_java_lang_Object,&class_java_lang_Object))
+	if (!load_class_bootstrap(utf_java_lang_Object, &class_java_lang_Object))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_String,&class_java_lang_String))
+	if (!load_class_bootstrap(utf_java_lang_String, &class_java_lang_String))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Cloneable,&class_java_lang_Cloneable))
+	if (!load_class_bootstrap(utf_java_lang_Cloneable, &class_java_lang_Cloneable))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_io_Serializable,&class_java_io_Serializable))
+	if (!load_class_bootstrap(utf_java_io_Serializable, &class_java_io_Serializable))
 		return false;
 
 
 	/* load classes for wrapping primitive types */
 
-	if (!load_class_bootstrap(utf_java_lang_Void,&class_java_lang_Void))
+	if (!load_class_bootstrap(utf_java_lang_Void, &class_java_lang_Void))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Boolean,&class_java_lang_Boolean))
+	if (!load_class_bootstrap(utf_java_lang_Boolean, &class_java_lang_Boolean))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Byte,&class_java_lang_Byte))
+	if (!load_class_bootstrap(utf_java_lang_Byte, &class_java_lang_Byte))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Character,&class_java_lang_Character))
+	if (!load_class_bootstrap(utf_java_lang_Character, &class_java_lang_Character))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Short,&class_java_lang_Short))
+	if (!load_class_bootstrap(utf_java_lang_Short, &class_java_lang_Short))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Integer,&class_java_lang_Integer))
+	if (!load_class_bootstrap(utf_java_lang_Integer, &class_java_lang_Integer))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Long,&class_java_lang_Long))
+	if (!load_class_bootstrap(utf_java_lang_Long, &class_java_lang_Long))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Float,&class_java_lang_Float))
+	if (!load_class_bootstrap(utf_java_lang_Float, &class_java_lang_Float))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Double,&class_java_lang_Double))
+	if (!load_class_bootstrap(utf_java_lang_Double, &class_java_lang_Double))
 		return false;
+
 
 	/* load some other important classes */
 
-	if (!load_class_bootstrap(utf_java_lang_Class,&class_java_lang_Class))
+	if (!load_class_bootstrap(utf_java_lang_Class, &class_java_lang_Class))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_ClassLoader,&class_java_lang_ClassLoader))
+	if (!load_class_bootstrap(utf_java_lang_ClassLoader, &class_java_lang_ClassLoader))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_SecurityManager,&class_java_lang_SecurityManager))
+	if (!load_class_bootstrap(utf_java_lang_SecurityManager, &class_java_lang_SecurityManager))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_System,&class_java_lang_System))
+	if (!load_class_bootstrap(utf_java_lang_System, &class_java_lang_System))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Throwable,&class_java_lang_Throwable))
-		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_VMThrowable,&class_java_lang_VMThrowable))
-		return false;
-
-	if (!load_class_bootstrap(utf_java_lang_Exception,&class_java_lang_Exception))
-		return false;
-
-	if (!load_class_bootstrap(utf_java_lang_Error,&class_java_lang_Error))
-		return false;
-
-	if (!load_class_bootstrap(utf_java_lang_OutOfMemoryError,&class_java_lang_OutOfMemoryError))
-		return false;
-
-	if (!load_class_bootstrap(utf_java_lang_NoClassDefFoundError,&class_java_lang_NoClassDefFoundError))
-		return false;
-
-	if (!load_class_bootstrap(utf_java_util_Vector,&class_java_util_Vector))
+	if (!load_class_bootstrap(utf_java_util_Vector, &class_java_util_Vector))
 		return false;
 
 #if defined(USE_THREADS)
