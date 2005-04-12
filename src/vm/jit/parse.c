@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2272 2005-04-11 15:49:51Z twisti $
+   $Id: parse.c 2281 2005-04-12 19:52:06Z twisti $
 
 */
 
@@ -680,7 +680,7 @@ SHOWOPCODE(DEBUG4)
 
 				} else {
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN2(asm_BUILTIN_newarray, TYPE_ADR, currentline);
+					BUILTIN2(asm_patcher_BUILTIN_newarray, TYPE_ADR, currentline);
 				}
 				s_count++;
 #else
@@ -721,7 +721,7 @@ SHOWOPCODE(DEBUG4)
 					OP2AT(opcode, v, c->vftbl, BUILTIN_nmultianewarray, currentline);
 
 				} else {
-					OP2AT(opcode, v, cr, asm_BUILTIN_multianewarray, currentline);
+					OP2AT(opcode, v, cr, asm_patcher_BUILTIN_multianewarray, currentline);
 				}
 #else
 /*   				vftbl *arrayvftbl = */
@@ -1297,7 +1297,7 @@ if (DEBUG4==true) {
 
 				} else {
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN1((functionptr) asm_builtin_new, TYPE_ADR, currentline);
+					BUILTIN1(asm_patcher_BUILTIN_new, TYPE_ADR, currentline);
 				}
 
 				s_count++;
@@ -1328,13 +1328,16 @@ if (DEBUG4==true) {
 					return NULL;
 
 				if (cr->name->text[0] == '[') {
-					if (!resolve_classref(inline_env->method, cr, resolveEager, true, &cls))
-						return NULL;
-
 					/* array type cast-check */
-					LOADCONST_A_BUILTIN(cls->vftbl);
+					if (cls) {
+						LOADCONST_A_BUILTIN(cls->vftbl);
+						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR, currentline);
+
+					} else {
+						LOADCONST_A_BUILTIN(cr);
+						BUILTIN2(asm_patcher_BUILTIN_checkarraycast, TYPE_ADR, currentline);
+					}
 					s_count++;
-					BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR, currentline);
 
 				} else {
 					/* object type cast-check */
@@ -1376,13 +1379,16 @@ if (DEBUG4==true) {
 					return NULL;
 
 				if (cr->name->text[0] == '[') {
-					if (!resolve_classref(inline_env->method, cr, resolveEager, true, &cls))
-						return NULL;
-
 					/* array type cast-check */
-					LOADCONST_A_BUILTIN(cls->vftbl);
+					if (cls) {
+						LOADCONST_A_BUILTIN(cls->vftbl);
+						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+
+					} else {
+						LOADCONST_A_BUILTIN(cr);
+						BUILTIN2(asm_patcher_BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+					}
 					s_count++;
-					BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
 
 				} else {
 					/* object type cast-check */
