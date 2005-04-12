@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2202 2005-04-03 21:56:13Z twisti $
+   $Id: asmpart.S 2290 2005-04-12 21:57:56Z twisti $
 
 */
 
@@ -40,6 +40,10 @@
 #include "vm/jit/i386/asmoffsets.h"
 
 
+/* define it like the risc way */
+
+#define v0       %eax
+
 #define itmp1    %eax
 #define itmp2    %ecx
 #define itmp3    %edx
@@ -47,7 +51,11 @@
 #define itmp1b   %al
 #define itmp2b   %cl
 #define itmp3b   %dl
-		
+
+#define xptr     itmp1
+#define xpc      itmp2
+
+
 	.text
 
 
@@ -66,7 +74,12 @@
 	.globl asm_handle_builtin_exception
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
+
 	.globl asm_check_clinit
+
+	.globl asm_patcher_builtin_new
+	.globl asm_patcher_invokestatic_special
+
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_newarray
 	.globl asm_builtin_aastore
@@ -87,7 +100,6 @@
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_getcallingmethod
-	.globl asm_builtin_new
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -730,6 +742,84 @@ L_initializererror:
 	jmp     asm_handle_exception
 
 
+/* asm_patcher_builtin_new *****************************************************
+
+   XXX
+
+   Arguments:
+     a0   contains the class reference
+
+*******************************************************************************/
+
+asm_patcher_builtin_new:
+	mov     4*1(%esp),itmp1             /* get the class reference            */
+	push    itmp1
+	call    helper_resolve_classinfo    /* call the helper function           */
+	add     $(4*1),%esp                 /* remove stack frame                 */
+
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_patcher_exception
+
+	pop     itmp2                       /* get return address                 */
+	sub     $(2+5+7),itmp2              /* 2 (call) + 5 (movi) + 7 (movi)     */
+	mov     v0,3(itmp2)                 /* patch in new classinfo*: 3 (mov)   */
+
+	lea     builtin_new,itmp1           /* get address from builtin_new       */
+	mov     itmp1,8(itmp2)              /* patch back function address        */
+	jmp     *itmp2                      /* call new patched code              */
+
+L_asm_patcher_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     v0,itmp2
+#else
+	lea     _exceptionptr,itmp2
+#endif
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
+
+	pop     itmp2                       /* get and remove return address      */
+	sub     $5,itmp2                    /* faulting address is ra - 5         */
+	jmp     asm_handle_exception
+
+
+/* asm_patcher_invokespecial ***************************************************
+
+   XXX
+
+   Stack layout:
+
+	16  ra      ; return address of patched call in java machine code
+	12  xmcode  ; additional machine code (only for i386 and x86_64)
+	8   mcode   ; machine code to patch back in
+	4   class   ; pointer to class
+	0   sp      ; stack pointer of java stack frame + return address
+
+*******************************************************************************/
+
+asm_patcher_invokestatic_special:
+	mov     4*1(%esp),itmp1             /* pass unresolved_method pointer     */
+	push    itmp1
+	call    helper_resolve_methodinfo_stubroutine /* call the helper function */
+	add     $(4*1),%esp                 /* remove stack frame                 */
+
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_patcher_exception
+
+	mov     16(%esp),itmp2              /* get return address                 */
+	sub     $5,itmp2                    /* remove size of `call rel32'        */
+
+	mov     12(%esp),itmp3              /* get xmcode machine code            */
+	movb    itmp3b,(itmp2)              /* patch back in 1 byte               */
+	mov     8(%esp),itmp3               /* get mcode machine code             */
+	mov     itmp3,1(itmp2)              /* patch back in 4 bytes              */
+
+	add     $(5*4),%esp                 /* remove stub stack frame incl. ra   */
+
+	mov     v0,3+2+1(itmp2)             /* patch stubroutine: 3 + 2 + 1 (mov) */
+	jmp     *itmp2                      /* call new patched code              */
+
+
 /********************* function asm_builtin_monitorenter ***********************
 *                                                                              *
 *   Does null check and calls monitorenter or throws an exception              *
@@ -933,24 +1023,24 @@ nb_carray_throw:
 	jmp		asm_handle_exception
 #endif
 		
-/******************* function asm_builtin_newarray *****************************
+/* asm_builtin_newarray ********************************************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
 *                                                                              *
 *******************************************************************************/
 
 asm_builtin_newarray:
-	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
+	sub     $8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-	mov		12(%esp),%eax
-	mov		%eax,(%esp)
+	mov     12(%esp),%eax
+	mov     %eax,(%esp)
 
-	mov		20(%esp),%eax
-	mov		%eax,4(%esp)
+	mov     20(%esp),%eax
+	mov     %eax,4(%esp)
 
 	call	builtin_newarray
 
-	add		$8,%esp
+	add     $8,%esp
 	ret
 
 		
@@ -1219,7 +1309,7 @@ asm_throw_and_handle_hardware_arithmetic_exception:
 	jmp asm_handle_exception
 	ret /*should never be reached */
 
-asm_builtin_new:
+asm_builtin_new2:
 /*optimize a littlebit */
 		mov %esp,%eax
 /*DEBUG*/
@@ -1425,7 +1515,7 @@ asm_remove_native_stackinfo:
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: asm
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
