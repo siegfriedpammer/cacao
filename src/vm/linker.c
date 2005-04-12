@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2239 2005-04-06 12:16:53Z twisti $
+   $Id: linker.c 2279 2005-04-12 19:50:04Z twisti $
 
 */
 
@@ -149,6 +149,25 @@ bool linker_init(void)
 		return false;
 
 	if (!link_class(class_java_lang_Double))
+		return false;
+
+
+	/* load some other important classes */
+
+	if (!link_class(class_java_lang_Class))
+		return false;
+
+	if (!link_class(class_java_lang_ClassLoader))
+		return false;
+
+	if (!link_class(class_java_lang_SecurityManager))
+		return false;
+
+	if (!link_class(class_java_lang_System))
+		return false;
+
+
+	if (!link_class(class_java_util_Vector))
 		return false;
 
 
