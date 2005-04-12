@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: codegen.c 2296 2005-04-12 22:57:45Z twisti $
 
 */
 
@@ -1940,10 +1940,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* If the static fields' class is not yet initialized, we do it   */
-			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit,
+									((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -1984,14 +1983,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
 
-			/* If the static fields' class is not yet initialized, we do it   */
-			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit,
+									((fieldinfo *) iptr[1].val.a)->class);
 
-				/* This is just for debugging purposes. Is very difficult to  */
-				/* read patched code. Here we patch the following 2 nop's     */
-				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
 					M_NOP; M_NOP;
 				}
@@ -2021,14 +2016,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			/* If the static fields' class is not yet initialized, we do it   */
-			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit,
+									((fieldinfo *) iptr->val.a)->class);
 
-				/* This is just for debugging purposes. Is very difficult to  */
-				/* read patched code. Here we patch the following 2 nop's     */
-				/* so that the real code keeps untouched.                     */
 				if (showdisassemble) {
 					M_NOP; M_NOP;
 				}
@@ -3164,32 +3155,31 @@ afteractualcall:
  */
 
 			{
-			classinfo *super = (classinfo*) iptr->val.a;
+			classinfo *super = (classinfo *) iptr->val.a;
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			codegen_threadcritrestart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			var_to_reg_int(s1, src, d);
+			var_to_reg_int(s1, src, REG_ITMP1);
 			if (iptr->op1) {                               /* class/interface */
 				if (super->flags & ACC_INTERFACE) {        /* interface       */
 					M_BEQZ(s1, 9);
 					M_NOP;
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-					M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-					M_IADD_IMM(REG_ITMP2, - super->index, REG_ITMP2);
-					M_BLEZ(REG_ITMP2, 0);
+					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
+					M_IADD_IMM(REG_ITMP3, - super->index, REG_ITMP3);
+					M_BLEZ(REG_ITMP3, 0);
 					codegen_addxcastrefs(cd, mcodeptr);
 					M_NOP;
-					M_ALD(REG_ITMP2, REG_ITMP1,
+					M_ALD(REG_ITMP3, REG_ITMP2,
 					      OFFSET(vftbl_t, interfacetable[0]) -
 					      super->index * sizeof(methodptr*));
-					M_BEQZ(REG_ITMP2, 0);
+					M_BEQZ(REG_ITMP3, 0);
 					codegen_addxcastrefs(cd, mcodeptr);
 					M_NOP;
-					}
-				else {                                     /* class           */
+
+				} else {                                   /* class           */
 
 					/*
 					s2 = super->vftbl->diffval;
@@ -3207,41 +3197,42 @@ afteractualcall:
 						}
 					*/
 
-					M_BEQZ(s1, 10 + (d == REG_ITMP3));
+					M_BEQZ(s1, 10 + (s1 == REG_ITMP1));
 					M_NOP;
-					M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-                    a = dseg_addaddress(cd, (void *) super->vftbl);
-                    M_ALD(REG_ITMP2, REG_PV, a);
+					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					a = dseg_addaddress(cd, (void *) super->vftbl);
+					M_ALD(REG_ITMP3, REG_PV, a);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-                    M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
-					if (d != REG_ITMP3) {
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
+					if (s1 != REG_ITMP1) {
+						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
-						M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
+						M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 					} else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ISUB(REG_ITMP1, REG_ITMP2, REG_ITMP1); 
-						M_ALD(REG_ITMP2, REG_PV, a);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
+						M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2); 
+						M_ALD(REG_ITMP3, REG_PV, a);
+						M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 						codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 					}
-                    M_CMPULT(REG_ITMP2, REG_ITMP1, REG_ITMP2);
-					M_BNEZ(REG_ITMP2, 0);
+					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
+					M_BNEZ(REG_ITMP3, 0);
 
 					codegen_addxcastrefs(cd, mcodeptr);
 					M_NOP;
-					}
 				}
-			else
+
+			} else
 				panic ("internal error: no inlined array checkcast");
 			}
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -3593,14 +3584,17 @@ afteractualcall:
 	/* generate put/getstatic stub call code */
 
 	{
-		clinitref   *cref;
-		u8           mcode;
-		s4          *tmpmcodeptr;
+		patchref *pref;
+		u8        mcode;
+		s4       *tmpmcodeptr;
 
-		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+			/* check code segment size */
+			MCODECHECK(5);
+
 			/* Get machine code which is patched back in later. The call is   */
 			/* 2 instruction words long.                                      */
-			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 
 			/* We need to split this, because an unaligned 8 byte read causes */
 			/* a SIGSEGV.                                                     */
@@ -3617,17 +3611,15 @@ afteractualcall:
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
-			MCODECHECK(5);
-
 			/* move class pointer into REG_ITMP1                              */
-			a = dseg_addaddress(cd, cref->class);
+			a = dseg_addaddress(cd, pref->ref);
 			M_ALD(REG_ITMP1, REG_PV, a);
 
 			/* move machine code into REG_ITMP2                               */
 			a = dseg_adds8(cd, mcode);
 			M_LLD(REG_ITMP2, REG_PV, a);
 
-			a = dseg_addaddress(cd, asm_check_clinit);
+			a = dseg_addaddress(cd, pref->asmwrapper);
 			M_ALD(REG_ITMP3, REG_PV, a);
 			M_JMP(REG_ITMP3);
 			M_NOP;
@@ -3749,7 +3741,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* set some required varibles which are normally set by codegen_setup     */
 	cd->mcodebase = (u1 *) mcodeptr;
-	cd->clinitrefs = NULL;
+	cd->patchrefs = NULL;
 
 	*(cs-1)  = (u8) f;                  /* address of native method           */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -3772,7 +3764,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* if function is static, check for initialized */
 
 	if (m->flags & ACC_STATIC && !m->class->initialized) {
-		codegen_addclinitref(cd, mcodeptr, m->class);
+		codegen_addpatchref(cd, mcodeptr, NULL, NULL);
 	}
 
 	/* max. 50 instructions */
@@ -4018,17 +4010,17 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* generate static stub call code                                         */
 
 	{
-		s4          *xcodeptr;
-		clinitref   *cref;
-		s4          *tmpmcodeptr;
+		patchref *pref;
+		s4       *xcodeptr;
+		s4       *tmpmcodeptr;
 
 		/* there can only be one clinit ref entry                             */
-		cref = cd->clinitrefs;
+		pref = cd->patchrefs;
 
-		if (cref) {
+		if (pref) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 2 instruction words long.                                      */
-			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 
 			/* We need to split this, because an unaligned 8 byte read causes */
 			/* a SIGSEGV.                                                     */

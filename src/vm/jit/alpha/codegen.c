@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2204 2005-04-03 22:48:21Z twisti $
+   $Id: codegen.c 2296 2005-04-12 22:57:45Z twisti $
 
 */
 
@@ -2149,7 +2149,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -2193,7 +2193,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit, ((fieldinfo *) iptr[1].val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -2228,7 +2228,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* if class isn't yet initialized, do it */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 2 nop's     */
@@ -3844,14 +3844,14 @@ gen_method: {
 	/* generate put/getstatic stub call code */
 
 	{
-		clinitref   *cref;
-		u4           mcode;
-		s4          *tmpmcodeptr;
+		patchref *pref;
+		u4        mcode;
+		s4       *tmpmcodeptr;
 
-		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
-			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 			mcode = *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
@@ -3867,7 +3867,7 @@ gen_method: {
 			MCODECHECK(6);
 
 			/* move class pointer into REG_ITMP1                              */
-			a = dseg_addaddress(cd, cref->class);
+			a = dseg_addaddress(cd, pref->ref);
 			M_ALD(REG_ITMP1, REG_PV, a);
 
 			/* move machine code onto stack                                   */
@@ -3876,7 +3876,7 @@ gen_method: {
 			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 			M_IST(REG_ITMP3, REG_SP, 0);
 
-			a = dseg_addaddress(cd, asm_check_clinit);
+			a = dseg_addaddress(cd, pref->asmwrapper);
 			M_ALD(REG_ITMP2, REG_PV, a);
 			M_JMP(REG_ZERO, REG_ITMP2);
 		}
@@ -4007,7 +4007,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* set some required varibles which are normally set by codegen_setup     */
 	cd->mcodebase = (u1 *) mcodeptr;
-	cd->clinitrefs = NULL;
+	cd->patchrefs = NULL;
 
 	*(cs-1)  = (u8) f;                  /* address of native method           */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -4035,7 +4035,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if (m->flags & ACC_STATIC) {
 	/* if class isn't yet initialized, do it */
 		if (!m->class->initialized) {
-			codegen_addclinitref(cd, mcodeptr, m->class);
+			codegen_addpatchref(cd, mcodeptr, NULL, NULL);
 		}
 	}
 
@@ -4261,17 +4261,17 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* generate put/getstatic stub call code */
 
 	{
-		s4          *xcodeptr;
-		clinitref   *cref;
-		s4          *tmpmcodeptr;
+		patchref *pref;
+		s4       *xcodeptr;
+		s4       *tmpmcodeptr;
 
-		/* there can only be one clinit ref entry                             */
-		cref = cd->clinitrefs;
+		/* there can only be one <clinit> ref entry                           */
+		pref = cd->patchrefs;
 
-		if (cref) {
+		if (pref) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
-			xcodeptr = (s4 *) (cd->mcodebase + cref->branchpos);
+			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 			*(cs-11) = (u4) *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
