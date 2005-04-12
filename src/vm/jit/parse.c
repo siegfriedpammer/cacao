@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2281 2005-04-12 19:52:06Z twisti $
+   $Id: parse.c 2292 2005-04-12 21:59:47Z twisti $
 
 */
 
@@ -1282,7 +1282,7 @@ if (DEBUG4==true) {
 				constant_classref *cr;
 				classinfo         *cls;
 				
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				i = code_get_u2(p + 1, inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
