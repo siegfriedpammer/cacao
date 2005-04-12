@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2257 2005-04-11 09:42:19Z twisti $
+   $Id: class.h 2275 2005-04-12 19:46:03Z twisti $
 
 */
 
@@ -166,10 +166,12 @@ extern classinfo *class_java_io_Serializable;
 
 extern classinfo *class_java_lang_Throwable;
 extern classinfo *class_java_lang_VMThrowable;
-extern classinfo *class_java_lang_Exception;
 extern classinfo *class_java_lang_Error;
-extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_NoClassDefFoundError;
+extern classinfo *class_java_lang_OutOfMemoryError;
+
+extern classinfo *class_java_lang_Exception;
+extern classinfo *class_java_lang_ClassNotFoundException;
 
 
 extern classinfo *class_java_lang_Void;
