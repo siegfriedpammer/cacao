@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: utf8.h 2277 2005-04-12 19:48:03Z twisti $
 
 */
 
@@ -70,10 +70,11 @@ extern utf *utf_java_io_Serializable;
 
 extern utf *utf_java_lang_Throwable;
 extern utf *utf_java_lang_VMThrowable;
-extern utf *utf_java_lang_Exception;
 extern utf *utf_java_lang_Error;
-extern utf *utf_java_lang_OutOfMemoryError;
+extern utf *utf_java_lang_Exception;
 extern utf *utf_java_lang_NoClassDefFoundError;
+extern utf *utf_java_lang_OutOfMemoryError;
+extern utf *utf_java_lang_ClassNotFoundException;
 
 extern utf* utf_java_lang_Void;
 extern utf* utf_java_lang_Boolean;

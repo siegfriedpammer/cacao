@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2158 2005-03-30 20:06:37Z twisti $
+   $Id: utf8.c 2277 2005-04-12 19:48:03Z twisti $
 
 */
 
@@ -62,10 +62,11 @@ utf *utf_java_io_Serializable;
 
 utf *utf_java_lang_Throwable;
 utf *utf_java_lang_VMThrowable;
-utf *utf_java_lang_Exception;
 utf *utf_java_lang_Error;
-utf *utf_java_lang_OutOfMemoryError;
+utf *utf_java_lang_Exception;
 utf *utf_java_lang_NoClassDefFoundError;
+utf *utf_java_lang_OutOfMemoryError;
+utf *utf_java_lang_ClassNotFoundException;
 
 utf* utf_java_lang_Void;
 utf* utf_java_lang_Boolean;
@@ -132,14 +133,19 @@ void utf8_init(void)
 	utf_java_lang_System           = utf_new_char("java/lang/System");
 	utf_java_io_Serializable       = utf_new_char("java/io/Serializable");
 
-	utf_java_lang_Throwable        = utf_new_char("java/lang/Throwable");
-	utf_java_lang_VMThrowable      = utf_new_char("java/lang/VMThrowable");
-	utf_java_lang_Exception        = utf_new_char("java/lang/Exception");
-	utf_java_lang_Error            = utf_new_char("java/lang/Error");
-	utf_java_lang_OutOfMemoryError = utf_new_char("java/lang/OutOfMemoryError");
+	utf_java_lang_Throwable        = utf_new_char(string_java_lang_Throwable);
+	utf_java_lang_VMThrowable      = utf_new_char(string_java_lang_VMThrowable);
+	utf_java_lang_Error            = utf_new_char(string_java_lang_Error);
+	utf_java_lang_Exception        = utf_new_char(string_java_lang_Exception);
 
 	utf_java_lang_NoClassDefFoundError =
 		utf_new_char(string_java_lang_NoClassDefFoundError);
+
+	utf_java_lang_OutOfMemoryError =
+		utf_new_char(string_java_lang_OutOfMemoryError);
+
+	utf_java_lang_ClassNotFoundException =
+		utf_new_char(string_java_lang_ClassNotFoundException);
 
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
 	utf_java_lang_Boolean          = utf_new_char("java/lang/Boolean");
