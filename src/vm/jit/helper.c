@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2266 2005-04-11 10:00:51Z twisti $
+   $Id: helper.c 2284 2005-04-12 20:31:38Z twisti $
 
 */
 
@@ -56,8 +56,39 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+	if (!resolve_classref(NULL, cr, resolveEager, true, &c)) {
+		java_objectheader *xptr;
+		java_objectheader *cause;
+
+		/* get the cause */
+
+		cause = *exceptionptr;
+
+		/* convert ClassNotFoundException's to NoClassDefFoundError's */
+
+		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+			/* clear exception, because we are calling jit code again */
+
+			*exceptionptr = NULL;
+
+			/* create new error */
+
+			xptr =
+				new_exception_javastring(string_java_lang_NoClassDefFoundError,
+										 ((java_lang_Throwable *) cause)->detailMessage);
+
+			/* we had an exception while creating the error */
+
+			if (*exceptionptr)
+				return NULL;
+
+			/* set new exception */
+
+			*exceptionptr = xptr;
+		}
+
 		return NULL;
+	}
 
 	/* return the classinfo pointer */
 
@@ -77,7 +108,7 @@ s4 helper_resolve_classinfo_flags(constant_classref *cr)
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+	if (!(c = helper_resolve_classinfo(cr)))
 		return -1;
 
 	/* return the flags */
@@ -96,9 +127,9 @@ vftbl_t *helper_resolve_classinfo_vftbl(constant_classref *cr)
 {
 	classinfo *c;
 
-	/* resolve the method */
+	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+	if (!(c = helper_resolve_classinfo(cr)))
 		return NULL;
 
 	/* return the virtual function table pointer */
@@ -119,7 +150,7 @@ s4 helper_resolve_classinfo_index(constant_classref *cr)
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, &c))
+	if (!(c = helper_resolve_classinfo(cr)))
 		return -1;
 
 	/* return the class' index */
@@ -141,8 +172,39 @@ methodinfo *helper_resolve_methodinfo(unresolved_method *um)
 
 	/* resolve the method */
 
-	if (!resolve_method(um, resolveEager, &m))
+	if (!resolve_method(um, resolveEager, &m)) {
+		java_objectheader *xptr;
+		java_objectheader *cause;
+
+		/* get the cause */
+
+		cause = *exceptionptr;
+
+		/* convert ClassNotFoundException's to NoClassDefFoundError's */
+
+		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+			/* clear exception, because we are calling jit code again */
+
+			*exceptionptr = NULL;
+
+			/* create new error */
+
+			xptr =
+				new_exception_javastring(string_java_lang_NoClassDefFoundError,
+										 ((java_lang_Throwable *) cause)->detailMessage);
+
+			/* we had an exception while creating the error */
+
+			if (*exceptionptr)
+				return NULL;
+
+			/* set new exception */
+
+			*exceptionptr = xptr;
+		}
+
 		return NULL;
+	}
 
 	/* return the methodinfo pointer */
 
@@ -163,7 +225,7 @@ s4 helper_resolve_methodinfo_vftblindex(unresolved_method *um)
 
 	/* resolve the method */
 
-	if (!resolve_method(um, resolveEager, &m))
+	if (!(m = helper_resolve_methodinfo(um)))
 		return -1;
 
 	/* return the virtual function table index */
@@ -184,12 +246,64 @@ u1 *helper_resolve_methodinfo_stubroutine(unresolved_method *um)
 
 	/* resolve the method */
 
-	if (!resolve_method(um, resolveEager, &m))
+	if (!(m = helper_resolve_methodinfo(um)))
 		return NULL;
 
 	/* return the method pointer */
 
 	return m->stubroutine;
+}
+
+
+/* helper_resolve_fieldinfo ****************************************************
+
+   This function returns the fieldinfo pointer of the passed field.
+
+*******************************************************************************/
+
+static void *helper_resolve_fieldinfo(unresolved_field *uf)
+{
+	fieldinfo *fi;
+
+	/* resolve the field */
+
+	if (!resolve_field(uf, resolveEager, &fi)) {
+		java_objectheader *xptr;
+		java_objectheader *cause;
+
+		/* get the cause */
+
+		cause = *exceptionptr;
+
+		/* convert ClassNotFoundException's to NoClassDefFoundError's */
+
+		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+			/* clear exception, because we are calling jit code again */
+
+			*exceptionptr = NULL;
+
+			/* create new error */
+
+			xptr =
+				new_exception_javastring(string_java_lang_NoClassDefFoundError,
+										 ((java_lang_Throwable *) cause)->detailMessage);
+
+			/* we had an exception while creating the error */
+
+			if (*exceptionptr)
+				return NULL;
+
+			/* set new exception */
+
+			*exceptionptr = xptr;
+		}
+
+		return NULL;
+	}
+
+	/* return the fieldinfo pointer */
+
+	return fi;
 }
 
 
@@ -205,7 +319,7 @@ void *helper_resolve_fieldinfo_value_address(unresolved_field *uf)
 
 	/* resolve the field */
 
-	if (!resolve_field(uf, resolveEager, &fi))
+	if (!(fi = helper_resolve_fieldinfo(uf)))
 		return NULL;
 
 	/* check if class is initialized */
@@ -232,7 +346,7 @@ s4 helper_resolve_fieldinfo_offset(unresolved_field *uf)
 
 	/* resolve the field */
 
-	if (!resolve_field(uf, resolveEager, &fi))
+	if (!(fi = helper_resolve_fieldinfo(uf)))
 		return -1;
 
 	/* return the field value's offset */
