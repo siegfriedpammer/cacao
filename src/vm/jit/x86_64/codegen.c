@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2272 2005-04-11 15:49:51Z twisti $
+   $Id: codegen.c 2286 2005-04-12 20:32:53Z twisti $
 
 */
 
@@ -2305,15 +2305,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
-				unresolved_field *uf = iptr->target;
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putstatic, uf);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+									(unresolved_field *) iptr->target);
 				a = 0;
 
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
 				if (!fi->class->initialized) {
-					codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, fi->class);
+					codegen_addpatchref(cd, cd->mcodeptr,
+										asm_check_clinit, fi->class);
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2352,15 +2353,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
-				unresolved_field *uf = iptr->target;
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putstatic, uf);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+									(unresolved_field *) iptr->target);
 				a = 0;
 
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
 				if (!fi->class->initialized) {
-					codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, fi->class);
+					codegen_addpatchref(cd, cd->mcodeptr,
+										asm_check_clinit, fi->class);
 
 					if (showdisassemble) {
 						x86_64_nop(cd);
@@ -2405,15 +2407,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* following NOP)                           */
 
 			if (!iptr[1].val.a) {
-				unresolved_field *uf = iptr[1].target;
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putstatic, uf);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+									(unresolved_field *) iptr[1].target);
 				a = 0;
 
 			} else {
 				fieldinfo *fi = iptr[1].val.a;
 
 				if (!fi->class->initialized) {
-					codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, fi->class);
+					codegen_addpatchref(cd, cd->mcodeptr,
+										asm_check_clinit, fi->class);
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2448,7 +2451,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putfield,
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
 									(unresolved_field *) iptr->target);
 				a = 0;
 			} else
@@ -2491,7 +2494,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putfield,
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
 									(unresolved_field *) iptr->target);
 				a = 0;
 			} else
@@ -2523,8 +2526,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (!iptr[1].val.a) {
-				unresolved_field *uf = iptr[1].target;
-				codegen_addpatchref(cd, cd->mcodeptr, asm_get_putfield, uf);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
+									(unresolved_field *) iptr[1].target);
 				a = 0;
 			} else
 				a = ((fieldinfo *) (iptr[1].val.a))->offset;
@@ -3163,7 +3166,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_invokestatic_special, um);
+										asm_patcher_invokestatic_special, um);
 
 					a = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3184,7 +3187,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_invokevirtual, um);
+										asm_patcher_invokevirtual, um);
 
 					s1 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3209,7 +3212,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_invokeinterface, um);
+										asm_patcher_invokeinterface, um);
 
 					s1 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3331,7 +3334,7 @@ gen_method: {
 				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
-									asm_checkcast_instanceof_flags,
+									asm_patcher_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
@@ -3353,7 +3356,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_checkcast_instanceof_interface,
+										asm_patcher_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP2,
@@ -3389,7 +3392,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_checkcast_class,
+										asm_patcher_checkcast_class,
 										(constant_classref *) iptr->target);
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
@@ -3514,7 +3517,7 @@ gen_method: {
 				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
-									asm_checkcast_instanceof_flags,
+									asm_patcher_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP3); /* super->flags */
@@ -3535,7 +3538,7 @@ gen_method: {
 									   REG_ITMP1);
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_checkcast_instanceof_interface,
+										asm_patcher_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP1,
@@ -3572,7 +3575,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_instanceof_class,
+										asm_patcher_instanceof_class,
 										(constant_classref *) iptr->target);
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP2);
