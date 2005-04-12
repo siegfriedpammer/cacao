@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2272 2005-04-11 15:49:51Z twisti $
+   $Id: asmpart.S 2285 2005-04-12 20:32:34Z twisti $
 
 */
 
@@ -151,18 +151,21 @@
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
-	.globl asm_get_putstatic
-	.globl asm_get_putfield
-	.globl asm_builtin_new
-	.globl asm_builtin_newarray
-	.globl asm_builtin_multianewarray
-	.globl asm_invokestatic_special
-	.globl asm_invokevirtual
-	.globl asm_invokeinterface
-	.globl asm_checkcast_instanceof_flags
-	.globl asm_checkcast_instanceof_interface
-	.globl asm_checkcast_class
-	.globl asm_instanceof_class
+	.globl asm_patcher_get_putstatic
+	.globl asm_patcher_get_putfield
+	.globl asm_patcher_builtin_new
+	.globl asm_patcher_builtin_newarray
+	.globl asm_patcher_builtin_multianewarray
+	.globl asm_patcher_builtin_checkarraycast
+	.globl asm_patcher_builtin_arrayinstanceof
+	.globl asm_patcher_invokestatic_special
+	.globl asm_patcher_invokevirtual
+	.globl asm_patcher_invokeinterface
+	.globl asm_patcher_checkcast_instanceof_flags
+	.globl asm_patcher_checkcast_instanceof_interface
+	.globl asm_patcher_checkcast_class
+	.globl asm_patcher_instanceof_class
+
 	.globl asm_check_clinit
 
 	.globl asm_builtin_checkarraycast
@@ -860,7 +863,7 @@ noflt:
 		jmp		ex_stack_loop
 
 
-/* asm_get_putstatic ***********************************************************
+/* asm_patcher_get_putstatic ***************************************************
 
    XXX
 
@@ -871,7 +874,7 @@ noflt:
 
 *******************************************************************************/
 
-asm_get_putstatic:
+asm_patcher_get_putstatic:
 	sub     $(15*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -887,7 +890,7 @@ asm_get_putstatic:
 	add     $((2+15)*8),%rsp            /* remove stack frame, keep ra        */
 
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
 	sub     $5,itmp2                    /* remove size of `call rel32'        */
@@ -899,7 +902,7 @@ asm_get_putstatic:
 	mov     v0,(itmp3)                  /* move field address to data segment */
 	jmp     *itmp2                      /* call new patched code              */
 
-L_asm_codepatcher_exception:
+L_asm_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2
@@ -914,7 +917,7 @@ L_asm_codepatcher_exception:
 	jmp     asm_handle_exception
 
 
-/* asm_get_putfield ************************************************************
+/* asm_patcher_get_putfield ****************************************************
 
    XXX
 
@@ -925,7 +928,7 @@ L_asm_codepatcher_exception:
 
 *******************************************************************************/
 
-asm_get_putfield:
+asm_patcher_get_putfield:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -942,7 +945,7 @@ asm_get_putfield:
 
 	cmp     $-1,v0l                     /* exception thrown? test for -1,     */
 	                                    /* because field offset can be 0      */
-	jz      L_asm_codepatcher_exception_with_stack_frame
+	jz      L_asm_patcher_exception_with_stack_frame
 
 	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
 	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
@@ -950,23 +953,23 @@ asm_get_putfield:
 	mov     itmp3,(itmp2)               /* patch back original code (8 bytes) */
 
 	cmpb    $0xf2,(itmp2)               /* test for movsd                     */
-	je      L_asm_get_putfield_float
+	je      L_asm_patcher_get_putfield_float
 	cmpb    $0xf3,(itmp2)               /* test for movss                     */
-	je      L_asm_get_putfield_float
+	je      L_asm_patcher_get_putfield_float
 	cmpb    $0x24,3(itmp2)              /* check for (%rsp) or (%r12)         */
-	je      L_asm_get_putfield_r12_membase
+	je      L_asm_patcher_get_putfield_r12_membase
 
 	mov     v0l,3(itmp2)                /* patch field offset                 */
-	jmp     L_asm_get_putfield_normal
+	jmp     L_asm_patcher_get_putfield_normal
 
-L_asm_get_putfield_float:
+L_asm_patcher_get_putfield_float:
 	mov     v0l,5(itmp2)                /* patch field offset (position + 2)  */
-	jmp     L_asm_get_putfield_normal
+	jmp     L_asm_patcher_get_putfield_normal
 		
-L_asm_get_putfield_r12_membase:
+L_asm_patcher_get_putfield_r12_membase:
 	mov     v0l,4(itmp2)                /* patch field offset (position + 1)  */
 
-L_asm_get_putfield_normal:
+L_asm_patcher_get_putfield_normal:
 	mov     itmp2,itmp3
 
 	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
@@ -975,7 +978,7 @@ L_asm_get_putfield_normal:
 	add     $((3+17)*8),%rsp            /* remove stack frame                 */
 	jmp     *itmp3                      /* call new patched code              */
 
-L_asm_codepatcher_exception_with_stack_frame:
+L_asm_patcher_exception_with_stack_frame:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     %rax,itmp2
@@ -991,7 +994,7 @@ L_asm_codepatcher_exception_with_stack_frame:
 	jmp     asm_handle_exception
 
 
-/* asm_builtin_new *************************************************************
+/* asm_patcher_builtin_new *****************************************************
 
    XXX
 
@@ -1000,15 +1003,15 @@ L_asm_codepatcher_exception_with_stack_frame:
 
 *******************************************************************************/
 
-asm_builtin_new:
+asm_patcher_builtin_new:
 	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
 	call    helper_resolve_classinfo    /* call the helper function           */
 	add     $(8*1),%rsp                 /* remove stack frame                 */
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
-	sub     $(3+10+10),itmp2            /* 3 (callq) + 10 (movi) + 10 (movi)  */
+	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
 	mov     v0,2(itmp2)                 /* patch in new classinfo*: 2 (mov)   */
 
 	lea     builtin_new,itmp1           /* get address from builtin_new       */
@@ -1016,7 +1019,7 @@ asm_builtin_new:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_builtin_newarray ********************************************************
+/* asm_patcher_builtin_newarray ************************************************
 
    XXX
 
@@ -1025,7 +1028,7 @@ asm_builtin_new:
 
 *******************************************************************************/
 
-asm_builtin_newarray:
+asm_patcher_builtin_newarray:
 	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
 	mov     a0,0*8(%rsp)                /* save argument                      */
 	mov     a1,a0                       /* pass class reference               */
@@ -1033,10 +1036,10 @@ asm_builtin_newarray:
 	mov     0*8(%rsp),a0                /* restore argument                   */
 	add     $(8*1),%rsp                 /* remove stack frame                 */
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
-	sub     $(3+10+10),itmp2            /* 3 (callq) + 10 (movi) + 10 (movi)  */
+	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
 	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
 
 	lea     builtin_newarray,itmp1      /* get address from builtin_newarray  */
@@ -1044,7 +1047,7 @@ asm_builtin_newarray:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_builtin_multianewarray **************************************************
+/* asm_patcher_builtin_multianewarray ******************************************
 
    XXX
 
@@ -1053,13 +1056,13 @@ asm_builtin_newarray:
 
 *******************************************************************************/
 
-asm_builtin_multianewarray:
+asm_patcher_builtin_multianewarray:
 	sub     $(1*8),%rsp                 /* stack frame (16-byte aligned)      */
 	mov     a1,a0                       /* pass class reference               */
 	call    helper_resolve_classinfo_vftbl /* call the helper function        */
 	add     $(1*8),%rsp                 /* remove stack frame                 */
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
 	sub     $(3+10+3+10+10),itmp2       /* go back to a0 mov                  */
@@ -1070,7 +1073,63 @@ asm_builtin_multianewarray:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_invokestatic_special ****************************************************
+/* asm_patcher_builtin_checkarraycast ******************************************
+
+   XXX
+
+   Arguments:
+     a1   contains the class reference
+
+*******************************************************************************/
+
+asm_patcher_builtin_checkarraycast:
+	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
+	mov     a0,0*8(%rsp)                /* save argument                      */
+	mov     a1,a0                       /* pass class reference               */
+	call    helper_resolve_classinfo_vftbl /* call the helper function        */
+	mov     0*8(%rsp),a0                /* restore argument                   */
+	add     $(8*1),%rsp                 /* remove stack frame                 */
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_patcher_exception
+
+	pop     itmp2                       /* get return address                 */
+	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
+	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
+
+	lea     asm_builtin_checkarraycast,itmp1 /* get function address          */
+	mov     itmp1,12(itmp2)             /* patch back function address        */
+	jmp     *itmp2                      /* call new patched code              */
+
+
+/* asm_patcher_builtin_arrayinstanceof *****************************************
+
+   XXX
+
+   Arguments:
+     a1   contains the class reference
+
+*******************************************************************************/
+
+asm_patcher_builtin_arrayinstanceof:
+	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
+	mov     a0,0*8(%rsp)                /* save argument                      */
+	mov     a1,a0                       /* pass class reference               */
+	call    helper_resolve_classinfo_vftbl /* call the helper function        */
+	mov     0*8(%rsp),a0                /* restore argument                   */
+	add     $(8*1),%rsp                 /* remove stack frame                 */
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_patcher_exception
+
+	pop     itmp2                       /* get return address                 */
+	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
+	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
+
+	lea     builtin_arrayinstanceof,itmp1 /* get function address             */
+	mov     itmp1,12(itmp2)             /* patch back function address        */
+	jmp     *itmp2                      /* call new patched code              */
+
+
+/* asm_patcher_invokestatic_special ********************************************
 
    XXX
 
@@ -1081,7 +1140,7 @@ asm_builtin_multianewarray:
 
 *******************************************************************************/
 
-asm_invokestatic_special:
+asm_patcher_invokestatic_special:
 	sub     $(15*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1095,7 +1154,7 @@ asm_invokestatic_special:
 	add     $((2+15)*8),%rsp            /* remove stack frame, keep ra        */
 
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
 	sub     $5,itmp2                    /* remove size of `call rel32'        */
@@ -1105,7 +1164,7 @@ asm_invokestatic_special:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_invokevirtual ***********************************************************
+/* asm_patcher_invokevirtual ***************************************************
 
    XXX
 
@@ -1116,7 +1175,7 @@ asm_invokestatic_special:
 
 *******************************************************************************/
 
-asm_invokevirtual:
+asm_patcher_invokevirtual:
 	sub     $(15*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1131,7 +1190,7 @@ asm_invokevirtual:
 
 	cmp     $-1,v0l                     /* exception thrown? test for -1,     */
 	                                    /* because vftblindex can be 0        */
-	je      L_asm_codepatcher_exception
+	je      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
 	sub     $5,itmp2                    /* remove size of `call rel32'        */
@@ -1143,7 +1202,7 @@ asm_invokevirtual:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_invokeinterface *********************************************************
+/* asm_patcher_invokeinterface *************************************************
 
    XXX
 
@@ -1154,7 +1213,7 @@ asm_invokevirtual:
 
 *******************************************************************************/
 
-asm_invokeinterface:
+asm_patcher_invokeinterface:
 	sub     $(15*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1168,7 +1227,7 @@ asm_invokeinterface:
 	add     $((2+15)*8),%rsp            /* remove stack frame, keep ra        */
 
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception
+	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
 	sub     $5,itmp2                    /* remove size of `call rel32'        */
@@ -1195,7 +1254,7 @@ asm_invokeinterface:
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_checkcast_instanceof_flags **********************************************
+/* asm_patcher_checkcast_instanceof_flags **************************************
 
    XXX
 
@@ -1206,7 +1265,7 @@ asm_invokeinterface:
 
 *******************************************************************************/
 
-asm_checkcast_instanceof_flags:
+asm_patcher_checkcast_instanceof_flags:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1223,7 +1282,7 @@ asm_checkcast_instanceof_flags:
 
 	cmp     $-1,v0l                     /* exception thrown? test for -1,     */
 	                                    /* because class flags can be 0       */
-	jz      L_asm_codepatcher_exception_with_stack_frame
+	jz      L_asm_patcher_exception_with_stack_frame
 
 	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
 	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
@@ -1239,7 +1298,7 @@ asm_checkcast_instanceof_flags:
 	jmp     *itmp3                      /* call new patched code              */
 
 
-/* asm_checkcast_instanceof_interface ******************************************
+/* asm_patcher_checkcast_instanceof_interface **********************************
 
    XXX
 
@@ -1250,7 +1309,7 @@ asm_checkcast_instanceof_flags:
 
 *******************************************************************************/
 
-asm_checkcast_instanceof_interface:
+asm_patcher_checkcast_instanceof_interface:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1267,7 +1326,7 @@ asm_checkcast_instanceof_interface:
 
 	cmp     $-1,v0l                     /* exception thrown? test for -1,     */
 	                                    /* because class index can be 0       */
-	jz      L_asm_codepatcher_exception_with_stack_frame
+	jz      L_asm_patcher_exception_with_stack_frame
 
 	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
 	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
@@ -1288,7 +1347,7 @@ asm_checkcast_instanceof_interface:
 	jmp     *itmp3                      /* call new patched code              */
 
 
-/* asm_checkcast_class *********************************************************
+/* asm_patcher_checkcast_class *************************************************
 
    XXX
 
@@ -1299,7 +1358,7 @@ asm_checkcast_instanceof_interface:
 
 *******************************************************************************/
 
-asm_checkcast_class:
+asm_patcher_checkcast_class:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1315,7 +1374,7 @@ asm_checkcast_class:
 	RESTORE_TEMPORARY_REGISTERS
 
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception_with_stack_frame
+	jz      L_asm_patcher_exception_with_stack_frame
 
 	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
 	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
@@ -1332,7 +1391,7 @@ asm_checkcast_class:
 	jmp     *itmp3                      /* call new patched code              */
 
 
-/* asm_instanceof_class ********************************************************
+/* asm_patcher_instanceof_class ************************************************
 
    XXX
 
@@ -1343,7 +1402,7 @@ asm_checkcast_class:
 
 *******************************************************************************/
 
-asm_instanceof_class:
+asm_patcher_instanceof_class:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
 	SAVE_ARGUMENT_REGISTERS
@@ -1359,7 +1418,7 @@ asm_instanceof_class:
 	RESTORE_TEMPORARY_REGISTERS
 
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_codepatcher_exception_with_stack_frame
+	jz      L_asm_patcher_exception_with_stack_frame
 
 	mov     (1+17)*8(%rsp),itmp3        /* get machine code                   */
 	mov     (2+17)*8(%rsp),itmp2        /* get return address                 */
