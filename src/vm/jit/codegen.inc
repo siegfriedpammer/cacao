@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2261 2005-04-11 09:48:09Z twisti $
+   $Id: codegen.inc 2282 2005-04-12 19:52:39Z twisti $
 
 */
 
@@ -842,12 +842,16 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	s4ptr = (s4 *) (ptrint) m->mcode;
 
 	printf("  --- dump of datasegment\n");
-	for (i = cd->dseglen; i > 0 ; i -= 4)
+	for (i = cd->dseglen; i > 0 ; i -= 4) {
 #if defined(__I386__) || defined(__POWERPC__)
-		printf("0x%08lx:   -%6x (%6d): %8x\n", s4ptr++, i, i, (s4) *s4ptr);
+		printf("0x%08lx:   -%6x (%6d): %8x\n",
+			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
 #else
-		printf("0x%016lx:   -%6x (%6d): %8x\n", s4ptr++, i, i, (s4) *s4ptr);
+		printf("0x%016lx:   -%6x (%6d): %8x\n",
+			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
 #endif
+		s4ptr++;
+	}
 
 	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
 }
