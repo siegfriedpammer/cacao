@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: codegen.c 2291 2005-04-12 21:59:24Z twisti $
 
 */
 
@@ -3109,7 +3109,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -3166,7 +3166,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr[1].val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr[1].val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr[1].val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -3205,7 +3205,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* If the static fields' class is not yet initialized, we do it   */
 			/* now. The call code is generated later.                         */
   			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				codegen_addclinitref(cd, cd->mcodeptr, ((fieldinfo *) iptr->val.a)->class);
+				codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, ((fieldinfo *) iptr->val.a)->class);
 
 				/* This is just for debugging purposes. Is very difficult to  */
 				/* read patched code. Here we patch the following 5 nop's     */
@@ -4316,7 +4316,7 @@ gen_method: {
 			case ICMD_BUILTIN3:
 			case ICMD_BUILTIN2:
 			case ICMD_BUILTIN1:
-				a = (u4) lm;
+				a = (ptrint) lm;
 				d = iptr->op1;
 
 				i386_mov_imm_reg(cd, a, REG_ITMP1);
@@ -4324,7 +4324,7 @@ gen_method: {
 				break;
 
 			case ICMD_INVOKESTATIC:
-				a = (u4) lm->stubroutine;
+				a = (ptrint) lm->stubroutine;
 				d = lm->returntype;
 
 				i386_mov_imm_reg(cd, a, REG_ITMP2);
@@ -4332,8 +4332,21 @@ gen_method: {
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				a = (u4) lm->stubroutine;
-				d = lm->returntype;
+				/* methodinfo* is not resolved, call the assembler function */
+
+				if (!lm) {
+					unresolved_method *um = iptr->target;
+
+					codegen_addpatchref(cd, cd->mcodeptr,
+										asm_patcher_invokestatic_special, um);
+
+					a = 0;
+					d = um->methodref->parseddesc.md->returntype.type;
+
+				} else {
+					a = (ptrint) lm->stubroutine;
+					d = lm->parseddesc->returntype.type;
+				}
 
 				i386_mov_membase_reg(cd, REG_SP, 0, REG_ITMP1);
 				gen_nullptr_check(REG_ITMP1);
@@ -5218,21 +5231,22 @@ java stack at this point*/
 	/* generate put/getstatic stub call code */
 
 	{
-		clinitref   *cref;
+		patchref    *pref;
 		codegendata *tmpcd;
 		u1           xmcode;
 		u4           mcode;
 
 		tmpcd = DNEW(codegendata);
 
-		for (cref = cd->clinitrefs; cref != NULL; cref = cref->next) {
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+			/* check code segment size */
+			MCODECHECK(50);
+
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
-			xcodeptr = cd->mcodebase + cref->branchpos;
+			xcodeptr = cd->mcodebase + pref->branchpos;
 			xmcode = *xcodeptr;
 			mcode = *((u4 *) (xcodeptr + 1));
-
-			MCODECHECK(50);
 
 			/* patch in `call rel32' to call the following code               */
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
@@ -5245,12 +5259,12 @@ java stack at this point*/
 			i386_push_imm(cd, (u4) xmcode);
 			i386_push_imm(cd, (u4) mcode);
 
-			i386_push_imm(cd, (u4) cref->class);
+			i386_push_imm(cd, (u4) pref->ref);
 
 			/* Push previously saved stack pointer onto stack.                */
 			i386_push_reg(cd, REG_ITMP1);
 
-			i386_mov_imm_reg(cd, (u4) asm_check_clinit, REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) pref->asmwrapper, REG_ITMP1);
 			i386_jmp_reg(cd, REG_ITMP1);
 		}
 	}
@@ -5427,7 +5441,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* set some required varibles which are normally set by codegen_setup */
 	cd->mcodebase = (u1 *) cs;
 	cd->mcodeptr = (u1 *) cs;
-	cd->clinitrefs = NULL;
+	cd->patchrefs = NULL;
 
 	/* if function is static, check for initialized */
 
@@ -5437,7 +5451,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		/* if class isn't yet initialized, do it */
 		if (!m->class->initialized)
-			codegen_addclinitref(cd, cd->mcodeptr, m->class);
+			codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, m->class);
 	}
 
 	if (runverbose) {
@@ -5677,7 +5691,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	if (require_clinit_call) {
 		u1          *xcodeptr;
-		clinitref   *cref;
+		patchref    *pref;
 		codegendata *tmpcd;
 		u1           xmcode;
 		u4           mcode;
@@ -5685,12 +5699,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		tmpcd = DNEW(codegendata);
 
 		/* there can only be one clinit ref entry                             */
-		cref = cd->clinitrefs;
+		pref = cd->patchrefs;
 
-		if (cref) {
+		if (pref) {
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
-			xcodeptr = cd->mcodebase + cref->branchpos;
+			xcodeptr = cd->mcodebase + pref->branchpos;
 			xmcode = *xcodeptr;
 			mcode =  *((u4 *) (xcodeptr + 1));
 
@@ -5705,12 +5719,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			i386_push_imm(cd, (u4) xmcode);
 			i386_push_imm(cd, (u4) mcode);
 
-			i386_push_imm(cd, (u4) cref->class);
+			i386_push_imm(cd, (u4) pref->ref);
 
 			/* Push previously saved stack pointer onto stack.                */
 			i386_push_reg(cd, REG_ITMP1);
 
-			i386_mov_imm_reg(cd, (u4) asm_check_clinit, REG_ITMP1);
+			i386_mov_imm_reg(cd, (u4) pref->asmwrapper, REG_ITMP1);
 			i386_jmp_reg(cd, REG_ITMP1);
 		}
 
