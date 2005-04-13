@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: arch.h 2298 2005-04-13 15:32:01Z christian $
 
 */
 
@@ -122,6 +122,9 @@
                                             /* only store REG_ZERO            */
 
 #define CONDITIONAL_LOADCONST            1
+	 
+/*  #define CONSECUTIVE_INTARGS */ 	 
+/*  #define CONSECUTIVE_FLOATARGS */
 
 #endif /* _ARCH_H */
 

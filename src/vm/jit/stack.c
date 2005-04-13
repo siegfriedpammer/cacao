@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2297 2005-04-13 12:50:07Z christian $
+   $Id: stack.c 2298 2005-04-13 15:32:01Z christian $
 
 */
 
@@ -46,6 +46,7 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
@@ -126,7 +127,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		NEWXSTACK;
 	}
 
-#ifdef CONDITIONAL_LOADCONST
+#if CONDITIONAL_LOADCONST
 	b_count = m->basicblockcount;
 	bptr = m->basicblocks;
 	while (--b_count >= 0) {
@@ -193,7 +194,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 		bptr++;
 	}
-#endif
+#endif /* CONDITIONAL_LOADCONST */
 
 
 	do {
@@ -233,7 +234,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				b_index = bptr - m->basicblocks;
 				while (--len >= 0)  {
 					opcode = iptr->opc;
-					iptr->target = NULL;
+					 /* XXX TWISTI: why is this set to NULL here? */
+ /*                 iptr->target = NULL; */
 
 /*  					dolog("p: %04d op: %s stack: %p", iptr - instr, icmd_names[opcode], curstack); */
 
@@ -535,6 +537,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].op1 = iptr[1].op1;
 								bptr->icount--;
 								len--;
+#if 1
 								/* iptr[1].opc = ICMD_NOP; */
 								OP1_0(TYPE_INT);
 								tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
@@ -543,6 +546,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 								MARKREACHED(tbptr, copy);
 								COUNT(count_pcmd_bra);
+#else
+								goto icmd_if;
+#endif
 								break;
 							case ICMD_IF_ICMPLT:
 								iptr[0].opc = ICMD_IFLT;
@@ -1170,64 +1176,77 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_IFGE:
 					case ICMD_IFGT:
 					case ICMD_IFLE:
+#if 0
+					icmd_if:
+#endif
 						COUNT(count_pcmd_bra);
-#ifdef CONDITIONAL_LOADCONST
-						{
-							tbptr = m->basicblocks + b_index;
-							if ((b_count >= 3) &&
-							    ((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
-							    (tbptr[1].pre_count == 1) &&
-							    (iptr[1].opc == ICMD_ICONST) &&
-							    (iptr[2].opc == ICMD_GOTO)   &&
-							    ((b_index + 3) == m->basicblockindex[iptr[2].op1]) &&
-							    (tbptr[2].pre_count == 1) &&
-							    (iptr[3].opc == ICMD_ICONST)) {
-								OP1_1(TYPE_INT, TYPE_INT);
-								switch (iptr[0].opc) {
-								case ICMD_IFEQ:
-									iptr[0].opc = ICMD_IFNE_ICONST;
-									break;
-								case ICMD_IFNE:
-									iptr[0].opc = ICMD_IFEQ_ICONST;
-									break;
-								case ICMD_IFLT:
-									iptr[0].opc = ICMD_IFGE_ICONST;
-									break;
-								case ICMD_IFGE:
-									iptr[0].opc = ICMD_IFLT_ICONST;
-									break;
-								case ICMD_IFGT:
-									iptr[0].opc = ICMD_IFLE_ICONST;
-									break;
-								case ICMD_IFLE:
-									iptr[0].opc = ICMD_IFGT_ICONST;
-									break;
-								}
-								iptr[0].val.i = iptr[1].val.i;
-								iptr[1].opc = ICMD_ELSE_ICONST;
-								iptr[1].val.i = iptr[3].val.i;
-								iptr[2].opc = ICMD_NOP;
-								iptr[3].opc = ICMD_NOP;
-								tbptr[1].flags = BBDELETED;
-								tbptr[2].flags = BBDELETED;
-								tbptr[1].icount = 0;
-								tbptr[2].icount = 0;
-								if (tbptr[3].pre_count == 2) {
-									len += tbptr[3].icount + 3;
-									bptr->icount += tbptr[3].icount + 3;
-									tbptr[3].flags = BBDELETED;
-									tbptr[3].icount = 0;
-									b_index++;
-								}
-								else {
-									bptr->icount++;
-									len ++;
-								}
-								b_index += 2;
+#if CONDITIONAL_LOADCONST
+						tbptr = m->basicblocks + b_index;
+						if ((b_count >= 3) &&
+							((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
+							(tbptr[1].pre_count == 1) &&
+							(tbptr[1].iinstr[0].opc == ICMD_ICONST) &&
+							(tbptr[1].iinstr[1].opc == ICMD_GOTO)   &&
+							((b_index + 3) == m->basicblockindex[tbptr[1].iinstr[1].op1]) &&
+							(tbptr[2].pre_count == 1) &&
+							(tbptr[2].iinstr[0].opc == ICMD_ICONST)) {
+							OP1_1(TYPE_INT, TYPE_INT);
+							switch (iptr[0].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IFNE_ICONST;
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IFEQ_ICONST;
+								break;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IFGE_ICONST;
+								break;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IFLT_ICONST;
+								break;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IFLE_ICONST;
+								break;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IFGT_ICONST;
 								break;
 							}
-						}
+#if 1
+							iptr[0].val.i = iptr[1].val.i;
+							iptr[1].opc = ICMD_ELSE_ICONST;
+							iptr[1].val.i = iptr[3].val.i;
+							iptr[2].opc = ICMD_NOP;
+							iptr[3].opc = ICMD_NOP;
+#else
+							/* HACK: save compare value in iptr[1].op1 */ 	 
+							iptr[1].op1 = iptr[0].val.i; 	 
+							iptr[0].val.i = tbptr[1].iinstr[0].val.i; 	 
+							iptr[1].opc = ICMD_ELSE_ICONST; 	 
+							iptr[1].val.i = tbptr[2].iinstr[0].val.i; 	 
+							tbptr[1].iinstr[0].opc = ICMD_NOP; 	 
+							tbptr[1].iinstr[1].opc = ICMD_NOP; 	 
+							tbptr[2].iinstr[0].opc = ICMD_NOP; 	 
 #endif
+							tbptr[1].flags = BBDELETED;
+							tbptr[2].flags = BBDELETED;
+							tbptr[1].icount = 0;
+							tbptr[2].icount = 0;
+							if (tbptr[3].pre_count == 2) {
+								len += tbptr[3].icount + 3;
+								bptr->icount += tbptr[3].icount + 3;
+								tbptr[3].flags = BBDELETED;
+								tbptr[3].icount = 0;
+								b_index++;
+							}
+							else {
+								bptr->icount++;
+								len ++;
+							}
+							b_index += 2;
+							break;
+						}
+#endif /* CONDITIONAL_LOADCONST */
+
 						OP1_0(TYPE_INT);
 						tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
 
@@ -1860,11 +1879,19 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
 						{
+#if defined(__X86_64__) 	 
+							unresolved_method *um = iptr->target; 	 
+/*                          if (lm->flags & ACC_STATIC) */
+/*                              {COUNT(count_check_null);} */ 	 
+							call_argcount = iptr->op1; 	 
+							call_returntype = um->methodref->parseddesc.md->returntype.type; 	 
+#else
 							methodinfo *lm = iptr->val.a;
 							if (lm->flags & ACC_STATIC)
 								{COUNT(count_check_null);}
 							call_argcount = iptr->op1;
 							call_returntype = lm->returntype;
+#endif
 
 						_callhandling:
 							i = call_argcount;
@@ -1887,6 +1914,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								OP0_1(call_returntype);
 							break;
 						}
+
 					case ICMD_INLINE_START:
 					case ICMD_INLINE_END:
 						SETDST;
@@ -2497,17 +2525,20 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LUSHRCONST:
 	case ICMD_ICONST:
 	case ICMD_ELSE_ICONST:
+	case ICMD_IASTORECONST:
+	case ICMD_BASTORECONST:
+	case ICMD_CASTORECONST:
+	case ICMD_SASTORECONST:
+		printf(" %d (0x%08x)", iptr->val.i, iptr->val.i);
+		break;
+
 	case ICMD_IFEQ_ICONST:
 	case ICMD_IFNE_ICONST:
 	case ICMD_IFLT_ICONST:
 	case ICMD_IFGE_ICONST:
 	case ICMD_IFGT_ICONST:
 	case ICMD_IFLE_ICONST:
-	case ICMD_IASTORECONST:
-	case ICMD_BASTORECONST:
-	case ICMD_CASTORECONST:
-	case ICMD_SASTORECONST:
-		printf(" %d", iptr->val.i);
+		printf("(%d) %d", iptr[1].op1, iptr->val.i);
 		break;
 
 	case ICMD_LADDCONST:
@@ -2522,9 +2553,9 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
 #if defined(__I386__) || defined(__POWERPC__)
-		printf(" %lld", iptr->val.l);
+		printf(" %lld (0x%016llx)", iptr->val.l, iptr->val.l);
 #else
-		printf(" %ld", iptr->val.l);
+		printf(" %ld (0x%016lx)", iptr->val.l, iptr->val.l);
 #endif
 		break;
 
@@ -2543,16 +2574,34 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
-	case ICMD_PUTSTATIC:
+#if defined(__X86_64__) 	 
+		if (iptr->val.a) 	 
+			printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
+		else 	 
+			printf(" NOT RESOLVED,"); 	 
+#else 	 
+		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset); 	 
+#endif 	 
+ 	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
+#if defined(__X86_64__)
+		printf(" "); 	 
+		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
+		printf("."); 	 
+		utf_display(((unresolved_field *) iptr->target)->fieldref->name); 	 
+		printf(" (type "); 	 
+		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor); 	 
+		printf(")"); 	 
+#else 	 
+ 
 		printf(" ");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->class->name);
+		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->name);
+		utf_display(((fieldinfo *) iptr->val.a)->name);
 		printf(" (type ");
-		utf_fprint(stdout, ((fieldinfo *) iptr->val.a)->descriptor);
+		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
+#endif
 		break;
 
 	case ICMD_PUTSTATICCONST:
@@ -2578,15 +2627,27 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %g,", iptr->val.d);
 			break;
 		}
+#if defined(__X86_64__) 	 
+		if (iptr->opc == ICMD_PUTFIELDCONST) 	 
+			printf(" NOT RESOLVED,"); 	 
+		printf(" "); 	 
+		utf_display_classname(((unresolved_field *) iptr[1].target)->fieldref->classref->name); 	 
+		printf("."); 	 
+		utf_display(((unresolved_field *) iptr[1].target)->fieldref->name); 	 
+		printf(" (type "); 	 
+		utf_display(((unresolved_field *) iptr[1].target)->fieldref->descriptor); 	 
+		printf(")"); 	 
+#else 	 
 		if (iptr->opc == ICMD_PUTFIELDCONST)
 			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
 		printf(" ");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->class->name);
+		utf_display_classname(((fieldinfo *) iptr[1].val.a)->class->name);
 		printf(".");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->name);
+		utf_display(((fieldinfo *) iptr[1].val.a)->name);
 		printf(" (type ");
-		utf_fprint(stdout, ((fieldinfo *) iptr[1].val.a)->descriptor);
+		utf_display(((fieldinfo *) iptr[1].val.a)->descriptor);
 		printf(")");
+#endif
 		break;
 
 	case ICMD_IINC:
@@ -2630,8 +2691,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_NEW:
 		printf(" ");
-		utf_fprint(stdout,
-				   ((classinfo *) iptr->val.a)->name);
+		utf_display_classname(((classinfo *) iptr->val.a)->name);
 		break;
 
 	case ICMD_NEWARRAY:
@@ -2666,8 +2726,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_ANEWARRAY:
 		if (iptr->op1) {
 			printf(" ");
-			utf_fprint(stdout,
-					   ((classinfo *) iptr->val.a)->name);
+			utf_display_classname(((classinfo *) iptr->val.a)->name);
 		}
 		break;
 
@@ -2677,7 +2736,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %d ",iptr->op1);
 			vft = (vftbl_t *)iptr->val.a;
 			if (vft)
-				utf_fprint(stdout,vft->class->name);
+				utf_display_classname(vft->class->name);
 			else
 				printf("<null>");
 		}
@@ -2685,13 +2744,28 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
+#if defined(__X86_64__) 	 
+		if (iptr->op1) { 	 
+			classinfo *c = iptr->val.a; 	 
+			if (c) { 	 
+				if (c->flags & ACC_INTERFACE) 	 
+					printf(" (INTERFACE) "); 	 
+				else 	 
+					printf(" (CLASS,%3d) ", c->vftbl->diffval); 	 
+			} else { 	 
+				printf(" (NOT RESOLVED) "); 	 
+			} 	 
+			utf_display_classname(((constant_classref *) iptr->target)->name); 	 
+		} 	 
+		break; 	 
+#endif
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
 			if (c->flags & ACC_INTERFACE)
 				printf(" (INTERFACE) ");
 			else
 				printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			utf_fprint(stdout, c->name);
+			utf_display_classname(c->name);
 		}
 		break;
 
@@ -2711,12 +2785,19 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
+#if defined(__X86_64__)
 		printf(" ");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->class->name);
+		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
 		printf(".");
-		utf_fprint(stdout,
-				   ((methodinfo *) iptr->val.a)->name);
+		utf_display(((unresolved_method *) iptr->target)->methodref->name);
+		utf_display(((unresolved_method *) iptr->target)->methodref->descriptor);
+#else
+		printf(" ");
+		utf_display_classname(((methodinfo *) iptr->val.a)->class->name);
+		printf(".");
+		utf_display(((methodinfo *) iptr->val.a)->name);
+		utf_display(((methodinfo *) iptr->val.a)->descriptor);
+#endif
 		break;
 
 	case ICMD_IFEQ:

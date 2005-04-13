@@ -29,13 +29,15 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2297 2005-04-13 12:50:07Z christian $
+   $Id: reg.inc 2298 2005-04-13 15:32:01Z christian $
 
 */
 
 
 #include "arch.h"
 #include "mm/memory.h"
+#include "vm/method.h" 	 
+#include "vm/resolve.h"
 #include "vm/jit/reg.h"
 
 
@@ -1525,7 +1527,11 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
+#if defined(__X86_64__) 	 
+					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
+#else
 					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
+#endif
 						reg_new_temp(rd, dst);
 					break;
 
