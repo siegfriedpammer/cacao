@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2211 2005-04-04 10:39:36Z christian $
+   $Id: stack.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -103,7 +103,10 @@
 /*--------------------------------------------------*/
 
 #define NEWSTACK_(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
-		                new->varkind=v;new->varnum=n;curstack=new;new++; }
+		                  new->varkind=v;new->varnum=n;curstack=new;new++;}
+						/* Initialize regoff, so -sia can show regnames even before reg.inc */ 
+                        /* regs[rd->intregargnum has to be set for this */ 
+						/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
 #ifdef LSRA
     #define NEWSTACK(s,v,n) {NEWSTACK_(s,v,n); m->maxlifetimes++;}
 #else

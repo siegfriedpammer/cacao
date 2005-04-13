@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2296 2005-04-12 22:57:45Z twisti $
+   $Id: codegen.c 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -423,8 +423,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  					M_LLD(var->regoff, REG_SP, 8 * (parentargs_base + pa));
 
  				} else {                             /* stack arg -> spilled  */
- 					M_LLD(REG_ITMP1, REG_SP, 8 * (parentargs_base + pa));
- 					M_LST(REG_ITMP1, REG_SP, 8 * var->regoff);
+/*  					M_LLD(REG_ITMP1, REG_SP, 8 * (parentargs_base + pa)); */
+/*  					M_LST(REG_ITMP1, REG_SP, 8 * var->regoff); */
+					var->regoff = parentargs_base + pa;
 				}
 			}
 
@@ -443,8 +444,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  					M_DLD(var->regoff, REG_SP, 8 * (parentargs_base + pa));
 
 				} else {                             /* stack-arg -> spilled  */
- 					M_DLD(REG_FTMP1, REG_SP, 8 * (parentargs_base + pa));
- 					M_DST(REG_FTMP1, REG_SP, 8 * var->regoff);
+/*  					M_DLD(REG_FTMP1, REG_SP, 8 * (parentargs_base + pa)); */
+/*  					M_DST(REG_FTMP1, REG_SP, 8 * var->regoff); */
+					var->regoff = parentargs_base + pa;
 				}
 			}
 		}
@@ -2722,41 +2724,47 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
-
-#if defined(USE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				s4 disp;
-				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
-				M_ALD(REG_ITMP3, REG_PV, a);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8); /* delay slot */
-				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
-				M_LDA(REG_PV, REG_RA, disp);
-			}
-#endif
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
-			goto nowperformreturn;
-
-		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_DRETURN:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				s4 disp;
 				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
+				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8); /* delay slot */
+				M_LST(REG_RESULT, REG_SP, rd->maxmemuse * 8);        /* delay slot */
+
 				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
+				M_LLD(REG_RESULT, REG_SP, rd->maxmemuse * 8);
 			}
 #endif
+			goto nowperformreturn;
+
+	    case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
+	    case ICMD_DRETURN:
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			{
 				int t = ((iptr->opc == ICMD_FRETURN) ? TYPE_FLT : TYPE_DBL);
 				M_TFLTMOVE(t, s1, REG_FRESULT);
 			}
+
+#if defined(USE_THREADS)
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+				s4 disp;
+				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8); 
+				M_JSR(REG_RA, REG_ITMP3);
+				M_DST(REG_FRESULT, REG_SP, rd->maxmemuse * 8);       /* delay slot */
+
+				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, disp);
+				M_DLD(REG_FRESULT, REG_SP, rd->maxmemuse * 8);
+			}
+#endif
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */

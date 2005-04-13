@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2289 2005-04-12 21:57:30Z twisti $
+   $Id: arch.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -83,6 +83,8 @@
 
 #define TRACE_ARGS_NUM  8
 
+#define REG_RES_CNT     3    /* number of reserved registers                  */
+
 
 /* define architecture features ***********************************************/
 
@@ -120,9 +122,6 @@
                                             /* only store REG_ZERO            */
 
 #define CONDITIONAL_LOADCONST            1
-
-/*  #define CONSECUTIVE_INTARGS */
-/*  #define CONSECUTIVE_FLOATARGS */
 
 #endif /* _ARCH_H */
 

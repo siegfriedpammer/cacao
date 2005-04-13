@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 2222 2005-04-05 17:38:04Z christian $
+   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -38,14 +38,61 @@
 
 /* Macro for stack.c to set Argument Stackslots */
 
+/* SET_ARG_STACKSLOTS ***************************************************
+Macro for stack.c to set Argument Stackslots
+
+Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
+they to not have the SAVEDVAR flag set. According to the calling
+conventions these stackslots are assigned argument registers or memory
+locations
+
+--- in
+i,call_argcount:  Number of arguments for this method
+call_intargshift: Amount of shifted argument registers in case of native
+                  method invokation or 0.
+curstack:         instack of the method invokation
+
+--- uses
+i, copy
+
+--- out
+copy:             Points to first stackslot after the parameters
+rd->argintreguse: max. number of used integer argument register so far
+rd->argfltreguse: max. number of used float argument register so far
+rd->ifmemuse:     max. number of stackslots used for spilling parameters
+                  so far
+************************************************************************/
+/* Todo ****************************************************************
+Change createnativestub in codegen.c to not destroy all not used argument
+registers in case of parametershift and change ICMD_xRETURN in codege.c
+Then delete #define DONT_USE_ARGREGS and delete the corresponding #ifdef
+part in reg.inc
+************************************************************************/
 #define SET_ARG_STACKSLOTS {											\
 		s4 stacksize;     /* Stackoffset for spilled arg */				\
-		stacksize = (i < rd->intreg_argnum)? 0 : (i - rd->intreg_argnum); \
-		copy = curstack;												\
+        s4 iarg = 0;													\
+        s4 farg = 0;													\
 																		\
+		stacksize = (i < rd->intreg_argnum)? 0 : (i - rd->intreg_argnum); \
 		if (rd->ifmemuse < stacksize)									\
 			rd->ifmemuse = stacksize;									\
 																		\
+		copy = curstack;												\
+		for (;i > 0; i--) {												\
+			if (IS_FLT_DBL_TYPE(copy->type)) {							\
+				if (farg == 0) farg = i;								\
+			} else {													\
+				if (iarg == 0) iarg = i;								\
+			}															\
+			copy = copy->prev;											\
+		}																\
+		if (rd->argintreguse < iarg)                                    \
+			rd->argintreguse = iarg;									\
+		if (rd->argfltreguse < farg)                                    \
+			rd->argfltreguse = farg;									\
+																		\
+		i = call_argcount;												\
+		copy = curstack;												\
 		while (--i >= 0) {												\
 			if (!(copy->flags & SAVEDVAR)) {							\
 				copy->varnum = i;										\
@@ -70,7 +117,8 @@
 			}															\
 			copy = copy->prev;											\
 		}																\
-	}																	\
+	}
+
 
 /* additional functions and macros to generate code ***************************/
 

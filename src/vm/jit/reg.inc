@@ -29,15 +29,13 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2263 2005-04-11 09:56:52Z twisti $
+   $Id: reg.inc 2297 2005-04-13 12:50:07Z christian $
 
 */
 
 
 #include "arch.h"
 #include "mm/memory.h"
-#include "vm/method.h"
-#include "vm/resolve.h"
 #include "vm/jit/reg.h"
 
 
@@ -283,10 +281,15 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		v[0][TYPE_ADR].flags = 0;
 	}
 #ifdef SPECIALMEMUSE
-	rd->ifmemuse = 6;
+	rd->ifmemuse = 6 + 8; /* 6*4=24 byte linkage area + 8*4=32 byte minimum parameter Area */
 #else
 	rd->ifmemuse = 0; /* init to zero -> analyse_stack will set it to a higher value, if appropriate */
 #endif
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	rd->argadrreguse = 0;
+#endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
+	rd->argintreguse = 0;/*Set argintreguse to rd->intreg_argnum to not use unused arguments as temp register*/
+	rd->argfltreguse = 0;/*Set argfltreguse to rd->fltreg_argnum to not use unused arguments as temp register*/
 }
 
 
@@ -325,6 +328,11 @@ void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	interface_regalloc(m, cd, rd);
 	allocate_scratch_registers(m, rd);
 	local_regalloc(m, cd, rd);
+#ifdef INVOKE_NEW_DEBUG
+		if (compileverbose) {
+			printf("maxmemuse by reg.inc: %3i\n",rd->maxmemuse);
+		}
+#endif
 }
 
 
@@ -346,6 +354,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	int temp;
 
 	if (compileverbose) {
+printf("analyse: argintru %3i argfltru %3i ifmemu %3i\n", rd->argintreguse, rd->argfltreguse, rd->ifmemuse);
 		temp = rd->ifmemuse;
 #if !defined(SPECIALMEMUSE)
 		/* For this to work properly the integer argument register count must be  */
@@ -359,7 +368,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 #endif
 		if (compileverbose) {
-			printf("ifmemuse by reg.inc: %3i,%3i by stack.c: %3i\n",rd->ifmemuse, rd->maxmemuse,temp);
+			printf("ifmemuse by reg.inc: %3i by stack.c: %3i\n",rd->ifmemuse,temp);
 			if (temp != rd->ifmemuse)
 				printf("Warning: Difference in ifmemuse calculated the old way and the new way\n");
 		}
@@ -375,7 +384,8 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	rd->iftmpadrregcnt = rd->tmpadrregcnt;
 	rd->ifsavadrregcnt = rd->savadrregcnt;
 #endif
-
+	rd->ifargintregcnt = rd->argintreguse;
+	rd->ifargfltregcnt = rd->argfltreguse;
 	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
 		saved = (rd->interfaces[s][TYPE_INT].flags |
@@ -393,6 +403,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!saved) {
 #ifdef HAS_ADDRESS_REGISTER_FILE
 					if (t == TYPE_ADR) {
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+						if (!m->isleafmethod &&(rd->ifargadrregcnt < rd->adrreg_argnum)) {
+							v->regoff = rd->argadrregs[rd->ifargadrregcnt++];
+						} else 
+#endif 
 						if (rd->iftmpadrregcnt > 0) {
 							rd->iftmpadrregcnt--;
 							v->regoff = rd->tmpadrregs[rd->iftmpadrregcnt];
@@ -412,6 +427,9 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (fltalloc >= 0) {
 							v->flags |= rd->interfaces[s][fltalloc].flags & INMEMORY;
 							v->regoff = rd->interfaces[s][fltalloc].regoff;
+						}
+						else if (!m->isleafmethod &&(rd->ifargfltregcnt < rd->fltreg_argnum)) {
+							v->regoff = rd->argfltregs[rd->ifargfltregcnt++];
 						}
 						else if (rd->iftmpfltregcnt > 0) {
 							rd->iftmpfltregcnt--;
@@ -441,6 +459,10 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							if (intalloc >= 0) {
 								v->flags |= rd->interfaces[s][intalloc].flags & INMEMORY;
 								v->regoff = rd->interfaces[s][intalloc].regoff;
+							}
+							else if (!m->isleafmethod &&(rd->ifargintregcnt +regsneeded < rd->intreg_argnum)) {
+								v->regoff = rd->argintregs[rd->ifargintregcnt];
+								rd->ifargintregcnt+=regsneeded+1;
 							}
 							else if (rd->iftmpintregcnt > regsneeded) {
 								rd->iftmpintregcnt -= regsneeded + 1;
@@ -531,14 +553,19 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	} /* for s */
 
 	rd->maxmemuse = rd->ifmemuse;
-	rd->maxargintreguse = -1;
+
+	rd->maxargintreguse = rd->ifargintregcnt;
+	rd->maxargfltreguse = rd->ifargfltregcnt;
+
 	rd->maxtmpintreguse = rd->iftmpintregcnt;
 	rd->maxsavintreguse = rd->ifsavintregcnt;
-	rd->maxargfltreguse = -1;
+
 	rd->maxtmpfltreguse = rd->iftmpfltregcnt;
 	rd->maxsavfltreguse = rd->ifsavfltregcnt;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	rd->maxargadrreguse = -1;
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+
+	rd->maxargadrreguse = rd->ifargadrregcnt;
 	rd->maxtmpadrreguse = rd->iftmpadrregcnt;
 	rd->maxsavadrreguse = rd->ifsavadrregcnt;
 #endif
@@ -816,7 +843,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 }
 
-static void reg_init_temp(registerdata *rd)
+static void reg_init_temp(methodinfo *m, registerdata *rd)
 {
 	rd->freememtop = 0;
 	rd->memuse = rd->ifmemuse;
@@ -839,16 +866,26 @@ static void reg_init_temp(registerdata *rd)
 	rd->savadrreguse = rd->ifsavadrregcnt;
 #endif
 
-#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
-	/* all argument registers are available */
-	rd->argintreguse = rd->intreg_argnum;
-	rd->argfltreguse = rd->fltreg_argnum;
+	rd->freearginttop = 0;
+	rd->freeargflttop = 0;
 #ifdef HAS_ADDRESS_REGISTER_FILE
-	rd->argadrreguse = rd->adrreg_argnum;
+	rd->freeargadrtop = 0;
 #endif
-#endif /*defined(USE_UNUSED_ARGUMENT_REGISTERS)*/
-}
 
+	if (!m->isleafmethod) {
+		rd->argintreguse = rd->ifargintregcnt;
+		rd->argfltreguse = rd->ifargfltregcnt;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		rd->argadrreguse = rd->ifargadrregcnt;
+#endif
+	} else {
+		rd->argintreguse = rd->intreg_argnum;
+		rd->argfltreguse = rd->fltreg_argnum;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		rd->argadrreguse = rd->adrreg_argnum;
+#endif
+	}
+}
 
 #define reg_new_temp(rd,s) if (s->varkind == TEMPVAR) reg_new_temp_func(rd, s)
 
@@ -945,28 +982,51 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 				}
 			} else {
 #endif
-			if (IS_FLT_DBL_TYPE(s->type)) {
-				if (rd->freetmpflttop > 0) {
-					rd->freetmpflttop--;
-					s->regoff = rd->freetmpfltregs[rd->freetmpflttop];
-					return;
+				if (IS_FLT_DBL_TYPE(s->type)) {
+					if (rd->freeargflttop > 0) {
+						rd->freeargflttop --;
+						s->regoff = rd->freeargfltregs[rd->freeargflttop];
+						s->flags |= TMPARG;
+						return;
+					} else if (rd->argfltreguse < rd->fltreg_argnum) {
+						if (rd->argfltreguse > rd->maxargfltreguse)
+							rd->maxargfltreguse = rd->argfltreguse;
+						s->regoff = rd->argfltregs[rd->argfltreguse++];
+						s->flags |= TMPARG;
+						return;
+					} else if (rd->freetmpflttop > 0) {
+						rd->freetmpflttop--;
+						s->regoff = rd->freetmpfltregs[rd->freetmpflttop];
+						return;
 
-				} else if (rd->tmpfltreguse > 0) {
-					rd->tmpfltreguse--;
-					if (rd->tmpfltreguse < rd->maxtmpfltreguse)
-						rd->maxtmpfltreguse = rd->tmpfltreguse;
-					s->regoff = rd->tmpfltregs[rd->tmpfltreguse];
-					return;
-				}
+					} else if (rd->tmpfltreguse > 0) {
+						rd->tmpfltreguse--;
+						if (rd->tmpfltreguse < rd->maxtmpfltreguse)
+							rd->maxtmpfltreguse = rd->tmpfltreguse;
+						s->regoff = rd->tmpfltregs[rd->tmpfltreguse];
+						return;
+					}
 
-			} else {
+				} else {
 #if defined(__I386__)
 				/*
 				 * for i386 put all longs in memory
 				 */
 				if (!IS_2_WORD_TYPE(s->type)) {
 #endif
-					if (rd->freetmpinttop > regsneeded) {
+					if (rd->freearginttop > regsneeded) {
+						rd->freearginttop -= regsneeded + 1;
+						s->regoff = rd->freeargintregs[rd->freearginttop];
+						s->flags |= TMPARG;
+						return;
+					} else if (rd->argintreguse < rd->intreg_argnum - regsneeded) {
+						if (rd->argintreguse > rd->maxargintreguse)
+							rd->maxargintreguse = rd->argintreguse;
+						s->regoff = rd->argintregs[rd->argintreguse];
+						s->flags |= TMPARG;
+						rd->argintreguse += regsneeded + 1;
+						return;
+					} else if (rd->freetmpinttop > regsneeded) {
 						rd->freetmpinttop -= regsneeded + 1;
 						s->regoff = rd->freetmpintregs[rd->freetmpinttop];
 						return;
@@ -1034,10 +1094,12 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
 			s->flags &= ~SAVEDTMP;
 			rd->freesavfltregs[rd->freesavflttop++] = s->regoff;
-
 		} else
-			rd->freetmpfltregs[rd->freetmpflttop++] = s->regoff;
-
+			if (s->flags & TMPARG) {
+				s->flags &= ~TMPARG;
+				rd->freeargfltregs[rd->freeargflttop++] = s->regoff;
+			} else
+				rd->freetmpfltregs[rd->freetmpflttop++] = s->regoff;
 	} else {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
 			s->flags &= ~SAVEDTMP;
@@ -1048,12 +1110,20 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #endif
 			rd->freesavinttop += regsneeded + 1;
 
+		} else if (s->flags & TMPARG) {
+			s->flags &= ~TMPARG;
+			rd->freeargintregs[rd->freearginttop] = s->regoff;
+#ifdef USETWOREGS
+			if (regsneeded)
+				rd->freeargintregs[rd->freearginttop + 1] = rd->secondregs[s->regoff];
+#endif
+			rd->freearginttop += regsneeded + 1;
 		} else {
 			rd->freetmpintregs[rd->freetmpinttop] = s->regoff;
 #ifdef USETWOREGS
 			if (regsneeded)
 				rd->freetmpintregs[rd->freetmpinttop + 1] = rd->secondregs[s->regoff];
-#endif
+#endif 
 			rd->freetmpinttop += regsneeded + 1;
 		}
 	}
@@ -1078,7 +1148,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 			dst = bptr->instack;
 
 			/* initialize temp registers */
-			reg_init_temp(rd);
+			reg_init_temp(m, rd);
 
 			iptr = bptr->iinstr;
 			len = bptr->icount;
@@ -1446,20 +1516,16 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 
 					/* pop many push any */
 					
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
+				case ICMD_INVOKESPECIAL:
+				case ICMD_INVOKESTATIC:
 				case ICMD_INVOKEINTERFACE:
 					i = iptr->op1;
 					while (--i >= 0) {
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-#if defined(__X86_64__)
-					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID)
-#else
 					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
-#endif
 						reg_new_temp(rd, dst);
 					break;
 

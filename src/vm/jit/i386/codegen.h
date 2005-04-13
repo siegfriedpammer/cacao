@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2218 2005-04-05 15:26:35Z christian $
+   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -37,8 +37,31 @@
 
 #include <ucontext.h>
 
-/* Macro for stack.c to set Argument Stackslots */
+#ifdef LSRA
+/* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
+#define LSRA_USES_REG_RES
+#endif
 
+/* SET_ARG_STACKSLOTS ***************************************************
+Macro for stack.c to set Argument Stackslots
+
+Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
+they to not have the SAVEDVAR flag set. According to the calling
+conventions these stackslots are assigned argument registers or memory
+locations
+
+--- in
+i:                Number of arguments for this method
+curstack:         instack of the method invokation
+
+--- uses
+i, copy
+
+--- out
+copy:             Points to first stackslot after the parameters
+rd->ifmemuse:     max. number of stackslots used for spilling parameters
+                  so far
+************************************************************************/
 #define SET_ARG_STACKSLOTS {					\
 		copy = curstack;						\
 		if (i > rd->ifmemuse)					\
@@ -52,7 +75,7 @@
 			}									\
 			copy = copy->prev;					\
 		}										\
-	}											\
+	}
 
 
 /* additional functions and macros to generate code ***************************/

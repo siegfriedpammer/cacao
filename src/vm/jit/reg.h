@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2222 2005-04-05 17:38:04Z christian $
+   $Id: reg.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -114,9 +114,8 @@ struct registerdata {
 	int maxsavadrreguse;            /* max used saved address register count  */
 	int freetmpadrtop;              /* free scratch address register count    */
 	int freesavadrtop;              /* free saved address register count      */
-#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
 	int ifargadrregcnt;             /* iface argument address register count     */
-#endif
+	int freeargadrtop;              /* free argument address register count      */
 #endif
 
 #ifdef USETWOREGS
@@ -138,10 +137,10 @@ struct registerdata {
 	int ifsavintregcnt;             /* iface saved integer register count     */
 	int iftmpfltregcnt;             /* iface scratch float register count     */
 	int ifsavfltregcnt;             /* iface saved float register count       */
-#if defined(USE_UNUSED_ARGUMENT_REGISTERS)
 	int ifargintregcnt;             /* iface argument float register count     */
 	int ifargfltregcnt;             /* iface argument float register count       */
-#endif
+	int freearginttop;              /* free argument integer register count      */
+	int freeargflttop;              /* free argument float register count      */
 
 	int argintreguse;               /* used argument integer register count   */
 	int tmpintreguse;               /* used scratch integer register count    */

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: jit.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -80,6 +80,7 @@ typedef struct subroutineinfo subroutineinfo;
 #define SAVEDVAR   1            /* variable has to survive method invocations */
 #define INMEMORY   2            /* variable stored in memory                  */
 #define SAVEDTMP   4            /* temporary variable using a saved register  */
+#define TMPARG     8            /* temporary variable using a argument register  */
 
 /* variable kinds */
 

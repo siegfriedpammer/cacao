@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2291 2005-04-12 21:59:24Z twisti $
+   $Id: codegen.c 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -98,6 +98,9 @@ static int nregdescfloat[] = {
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
 #ifdef LSRA
+#ifdef LSRA_USES_REG_RES
+#include "vm/jit/i386/icmd_uses_reg_res.inc"
+#endif
 #include "vm/jit/lsra.inc"
 #endif
 
@@ -839,7 +842,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
@@ -860,7 +863,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
@@ -881,7 +884,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		case ICMD_ASTORE:     /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			if ((src->varkind == LOCALVAR) &&
@@ -906,7 +909,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			if ((src->varkind == LOCALVAR) &&
@@ -929,7 +932,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			if ((src->varkind == LOCALVAR) &&
@@ -951,7 +954,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			if ((src->varkind == LOCALVAR) &&
@@ -978,18 +981,18 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 			break;
 
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 			M_COPY(src, iptr->dst);
 			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			M_COPY(src,       iptr->dst);
@@ -997,7 +1000,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			M_COPY(src,       iptr->dst);
@@ -1014,7 +1017,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			M_COPY(src,             iptr->dst);
@@ -1025,7 +1028,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			M_COPY(src,                   iptr->dst);
@@ -1037,7 +1040,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			M_COPY(src,       iptr->dst->prev);
@@ -1048,7 +1051,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* integer operations *************************************************/
 
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1081,7 +1084,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1106,7 +1109,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: YES */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1127,7 +1130,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1145,7 +1148,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1177,7 +1180,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1210,7 +1213,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1243,7 +1246,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 
 		case ICMD_IADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1252,7 +1255,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1260,7 +1263,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1293,7 +1296,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 			/* else path can never happen? longs stay in memory! */
 
@@ -1317,7 +1320,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_ISUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1391,7 +1394,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1399,7 +1402,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1425,7 +1428,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 			/* else path can never happen? longs stay in memory! */
 
@@ -1450,7 +1453,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: EAX*/ /* EDX really not destroyed by IMUL? */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1503,7 +1506,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: EAX*/ /* EDX really not destroyed by IMUL? */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1528,7 +1531,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1556,7 +1559,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1580,7 +1583,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EAX*/ /* Really uses EDX? */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1610,7 +1613,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EDX*/ 
 
 
@@ -1643,7 +1646,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			/* TODO: optimize for `/ 2' */
@@ -1663,7 +1666,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1690,7 +1693,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -1735,7 +1738,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1813,8 +1816,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SHL, src, iptr);
@@ -1822,7 +1825,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1830,8 +1833,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SAR, src, iptr);
@@ -1839,7 +1842,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1847,8 +1850,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SHR, src, iptr);
@@ -1856,7 +1859,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1864,8 +1867,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: S|YES ECX: YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
@@ -1913,7 +1916,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
         case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
  			                  /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -1937,8 +1940,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: S|YES ECX: YES S|EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
@@ -1990,7 +1993,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2014,8 +2017,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: S|YES ECX: YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
@@ -2067,7 +2070,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
   		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
   		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2091,7 +2094,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   			break;
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2100,7 +2103,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2108,7 +2111,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2117,7 +2120,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2125,7 +2128,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2134,7 +2137,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2142,7 +2145,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2151,7 +2154,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2159,7 +2162,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2168,7 +2171,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.i = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2176,7 +2179,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2185,7 +2188,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.l = constant                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2194,7 +2197,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var = &(rd->locals[iptr->op1][TYPE_INT]);
@@ -2238,7 +2241,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #define FPU_SET_53BIT_MODE
 #endif
 		case ICMD_FNEG:       /* ..., value  ==> ..., - value                 */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2249,7 +2252,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2260,7 +2263,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2273,7 +2276,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2286,7 +2289,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2299,7 +2302,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2312,7 +2315,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2326,7 +2329,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2348,7 +2351,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2362,7 +2365,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2384,7 +2387,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
@@ -2405,7 +2408,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
@@ -2427,8 +2430,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
 			if (src->flags & INMEMORY) {
@@ -2448,7 +2451,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_L2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
@@ -2463,8 +2466,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 			
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: NO EDX: NO OUTPUT: EAX*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: D|YES ECX: NO EDX: NO OUTPUT: EAX*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2520,8 +2523,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_D2I:       /* ..., value  ==> ..., (int) value              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: NO EDX: NO OUTPUT: EAX*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: D|YES ECX: NO EDX: NO OUTPUT: EAX*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -2576,7 +2579,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -2630,7 +2633,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_D2L:       /* ..., value  ==> ..., (long) value             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -2684,7 +2687,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -2694,7 +2697,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -2705,7 +2708,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 		case ICMD_DCMPL:
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			/* exchanged to skip fxch */
@@ -2731,7 +2734,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 		case ICMD_DCMPG:
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			/* exchanged to skip fxch */
@@ -2759,7 +2762,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* memory operations **************************************************/
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -2770,7 +2773,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2785,7 +2788,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2805,7 +2808,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2820,7 +2823,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2836,7 +2839,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2852,7 +2855,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2867,7 +2870,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;			
 
 		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2882,7 +2885,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2898,7 +2901,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2912,7 +2915,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2931,7 +2934,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2945,7 +2948,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2960,7 +2963,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2975,7 +2978,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -2989,7 +2992,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -3003,7 +3006,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -3021,7 +3024,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IASTORECONST: /* ..., arrayref, index  ==> ...              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3034,7 +3037,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_LASTORECONST: /* ..., arrayref, index  ==> ...              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3049,7 +3052,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_AASTORECONST: /* ..., arrayref, index  ==> ...              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3062,7 +3065,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_BASTORECONST: /* ..., arrayref, index  ==> ...              */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3075,7 +3078,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3088,7 +3091,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -3103,7 +3106,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			/* If the static fields' class is not yet initialized, we do it   */
@@ -3160,7 +3163,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* val = value (in current instruction)     */
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			/* If the static fields' class is not yet initialized, we do it   */
@@ -3199,7 +3202,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EAX*/ 
 
 			/* If the static fields' class is not yet initialized, we do it   */
@@ -3257,7 +3260,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 		                      /* op1 = type, val.a = field address            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			a = ((fieldinfo *) (iptr->val.a))->offset;
@@ -3296,7 +3299,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* val = value (in current instruction)     */
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			a = ((fieldinfo *) (iptr[1].val.a))->offset;
@@ -3320,7 +3323,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_GETFIELD:   /* .., objectref.  ==> ..., value                          */
 		                      /* op1 = type, val.i = field offset             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
 			a = ((fieldinfo *) (iptr->val.a))->offset;
@@ -3359,7 +3362,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* branch operations **************************************************/
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src, REG_ITMP1);
@@ -3375,7 +3378,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			i386_jmp_imm(cd, 0);
@@ -3385,7 +3388,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
   			i386_call_imm(cd, 0);
@@ -3394,7 +3397,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = local variable                       */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			var = &(rd->locals[iptr->op1][TYPE_ADR]);
@@ -3404,7 +3407,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3419,7 +3422,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3434,7 +3437,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3449,7 +3452,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3464,7 +3467,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3479,7 +3482,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3494,7 +3497,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3509,7 +3512,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.i = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3524,7 +3527,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3547,7 +3550,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3569,7 +3572,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3591,7 +3594,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3614,7 +3617,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3636,7 +3639,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -3658,7 +3661,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3680,7 +3683,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3697,7 +3700,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
 		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3719,7 +3722,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3736,7 +3739,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3758,7 +3761,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
 	                            /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3782,7 +3785,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3804,7 +3807,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
                                 /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3828,7 +3831,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3850,7 +3853,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3874,7 +3877,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
 		                        /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3896,7 +3899,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
 	                            /* op1 = target JavaVM pc                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -3921,13 +3924,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* (value xx 0) ? IFxx_ICONST : ELSE_ICONST                           */
 
 		case ICMD_ELSE_ICONST:  /* handled by IFxx_ICONST                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 			break;
 
 		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3936,7 +3939,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFNE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3945,7 +3948,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFLT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3954,7 +3957,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFGE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3963,7 +3966,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFGT_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3972,7 +3975,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IFLE_ICONST:  /* ..., value ==> ..., constant               */
 		                        /* val.i = constant                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
@@ -3982,7 +3985,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_ARETURN:
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src, REG_RESULT);
@@ -3991,7 +3994,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -4006,7 +4009,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FRESULT);
@@ -4017,7 +4020,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 nowperformreturn:
@@ -4130,7 +4133,7 @@ nowperformreturn:
 
 
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 			{
 				s4 i, l, *s4ptr;
@@ -4180,7 +4183,7 @@ nowperformreturn:
 
 
 		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
  			{
 				s4 i, l, val, *s4ptr;
@@ -4218,43 +4221,43 @@ nowperformreturn:
 
 		case ICMD_BUILTIN3:     /* ..., arg1, arg2, arg3 ==> ...              */
 		                        /* op1 = return type, val.a = function pointer*/
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 			s3 = 3;
 			goto gen_method;
 
 		case ICMD_BUILTIN2:     /* ..., arg1, arg2 ==> ...                    */
 		                        /* op1 = return type, val.a = function pointer*/
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 			s3 = 2;
 			goto gen_method;
 
 		case ICMD_BUILTIN1:     /* ..., arg1 ==> ...                          */
 		                        /* op1 = return type, val.a = function pointer*/
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 			s3 = 1;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
 		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 		case ICMD_INVOKEVIRTUAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 		case ICMD_INVOKEINTERFACE:/*.., objectref, [arg1, [arg2 ...]] ==> ... */
 		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 			s3 = iptr->op1;
@@ -4418,8 +4421,8 @@ gen_method: {
 
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: D|YES ECX: YES D|EDX: YES OUTPUT: REG_NULL*/ 
 
 /*          superclass is an interface:
  *
@@ -4552,8 +4555,8 @@ gen_method: {
 			break;
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: I|YES EDX: I|YES OUTPUT: REG_NULL*/ 
 
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
@@ -4689,7 +4692,7 @@ gen_method: {
 			break;
 
 		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
@@ -4703,7 +4706,7 @@ gen_method: {
 			break;
 
 		case ICMD_CHECKEXCEPTION:  /* ... ==> ...                             */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			i386_test_reg_reg(cd, REG_RESULT, REG_RESULT);
@@ -4713,7 +4716,7 @@ gen_method: {
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 			/* check for negative sizes and copy sizes to stack if necessary  */

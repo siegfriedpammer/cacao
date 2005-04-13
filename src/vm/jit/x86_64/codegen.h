@@ -27,10 +27,10 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2265 2005-04-11 09:58:52Z twisti $
+
+   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
 
 */
-
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
@@ -39,8 +39,28 @@
 
 #include "vm/jit/x86_64/types.h"
 
-/* Macro for stack.c to set Argument Stackslots */
+/* SET_ARG_STACKSLOTS *************************************************
+Macro for stack.c to set Argument Stackslots
 
+Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
+they to not have the SAVEDVAR flag set. According to the calling
+conventions these stackslots are assigned argument registers or memory
+locations
+
+-- in
+i,call_argcount:  Number of Parameters
+curstack:         stackptr to current instack
+copy    :         stackptr
+
+--- uses
+i, copy
+
+-- out
+copy: points to first stackslot after the parameters
+rd->ifmemuse: max. number of stackslots needed for spilled parameters so far
+rd->argintreguse: max. number of used integer argument registers used so far
+rd->fltintreguse: max. number of used float argument registers used so far          
+************************************************************************/
 #define SET_ARG_STACKSLOTS {											\
 		s4 iarg = 0;													\
 		s4 farg = 0;													\
@@ -52,6 +72,10 @@
 		}																\
 		stacksize  = (farg < rd->fltreg_argnum)? 0 : (farg - rd->fltreg_argnum); \
 		stacksize += (iarg < rd->intreg_argnum)? 0 : (iarg - rd->intreg_argnum); \
+		if (rd->argintreguse < iarg)									\
+			rd->argintreguse = iarg;									\
+		if (rd->argfltreguse < farg)									\
+			rd->argfltreguse = farg;									\
 		if (rd->ifmemuse < stacksize)									\
 			rd->ifmemuse = stacksize;									\
 		i = call_argcount;												\
@@ -60,7 +84,7 @@
 			if (IS_FLT_DBL_TYPE(copy->type)) {							\
 				farg--;													\
 				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;								\
+					copy->varnum = farg;								\
 					copy->varkind = ARGVAR;								\
 					if (farg < rd->fltreg_argnum) {						\
 						copy->flags = 0;								\
@@ -73,7 +97,7 @@
 			} else { /* int_arg */										\
 				iarg--;													\
 				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;								\
+					copy->varnum = iarg;								\
 					copy->varkind = ARGVAR;								\
 					if (iarg < rd->intreg_argnum) {						\
 						copy->flags = 0;								\
@@ -84,9 +108,9 @@
 					}													\
 				}														\
 			}															\
-		copy = copy->prev;												\
+			copy = copy->prev;											\
 		}																\
-	}																	\
+	}																   
 
 
 /* macros to create code ******************************************************/

@@ -28,7 +28,7 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 2226 2005-04-05 22:52:46Z christian $
+   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -39,21 +39,51 @@
 #include "vm/global.h"
 #include "vm/jit/reg.h"
 
-/* Macro for stack.c to set Argument Stackslots */
+/* SET_ARG_STACKSLOTS ***************************************************
+Macro for stack.c to set Argument Stackslots
+
+Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
+they to not have the SAVEDVAR flag set. According to the calling
+conventions these stackslots are assigned argument registers or memory
+locations
+
+--- in
+i,call_argcount:  Number of arguments for this method
+curstack:         instack of the method invokation
+call_returntype:  return type
+
+--- uses
+i, copy
+
+--- out
+copy:             Points to first stackslot after the parameters
+rd->argintreguse: max. number of used integer argument register so far
+rd->argfltreguse: max. number of used float argument register so far
+rd->ifmemuse:     max. number of stackslots used for spilling parameters
+                  so far
+************************************************************************/
 #define SET_ARG_STACKSLOTS {											\
 		s4 iarg = 0;													\
 		s4 farg = 0;													\
+		s4 iarg_max = 0;												\
 		s4 stacksize;													\
 																		\
 		stacksize = 6;													\
 																		\
 		copy = curstack;												\
-		while (--i >= 0) {												\
+		for (;i > 0; i--) {												\
 			stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
 			if (IS_FLT_DBL_TYPE(copy->type))							\
 				farg++;													\
 			copy = copy->prev;											\
 		}																\
+		if (rd->argfltreguse < farg)                                    \
+			rd->argfltreguse = farg;									\
+																		\
+		/* REG_FRESULT == FLOAT ARGUMENT REGISTER 0 */					\
+		if (IS_FLT_DBL_TYPE(call_returntype))							\
+			if (rd->argfltreguse < 1)									\
+				rd->argfltreguse = 1;									\
 																		\
 		if (stacksize > rd->ifmemuse)									\
 			rd->ifmemuse = stacksize;									\
@@ -77,6 +107,9 @@
 				}														\
 			} else {													\
 				iarg = stacksize - 6;									\
+				if (iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1) > iarg_max) \
+					iarg_max = iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1); \
+																		\
 				if (!(copy->flags & SAVEDVAR)) {						\
 					copy->varnum = i;									\
 					copy->varkind = ARGVAR;								\
@@ -90,6 +123,19 @@
 				}														\
 			}															\
 			copy = copy->prev;											\
+		}																\
+		if (rd->argintreguse < iarg_max)								\
+			rd->argintreguse = iarg_max;								\
+		if (IS_INT_LNG_TYPE(call_returntype)) {							\
+			/* REG_RESULT  == INTEGER ARGUMENT REGISTER 0 */			\
+			/* REG_RESULT2 == INTEGER ARGUMENT REGISTER 1 */			\
+			if (IS_2_WORD_TYPE(call_returntype)) {						\
+				if (rd->argintreguse < 2)								\
+					rd->argintreguse = 2;								\
+			} else {													\
+				if (rd->argintreguse < 1)								\
+					rd->argintreguse = 1;								\
+			}															\
 		}																\
 	}
 

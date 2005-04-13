@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: cacao.c 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -139,7 +139,7 @@ void **stackbottom = 0;
 #define OPT_EAGER            33
 
 #if defined(LSRA)
-# define OPT_LSRA            34
+#define OPT_LSRA             34
 #endif /* defined(LSRA) */
 
 #define OPT_JAR              35
@@ -781,12 +781,7 @@ int main(int argc, char **argv)
 
 #ifdef LSRA
 		case OPT_LSRA:
-/* #if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__) || defined(__POWERPC__) */
 			opt_lsra = true;
-/* #else */
-/* 			printf("LSRA not available for this architecture\n"); */
-/* 			opt_lsra = false; */
-/* #endif */
 			break;
 #endif
 

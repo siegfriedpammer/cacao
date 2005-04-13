@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2296 2005-04-12 22:57:45Z twisti $
+   $Id: codegen.c 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -449,8 +449,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  					M_LLD(var->regoff, REG_SP, 8 * (parentargs_base + pa));
 
  				} else {                             /* stack arg -> spilled  */
- 					M_LLD(REG_ITMP1, REG_SP, 8 * (parentargs_base + pa));
- 					M_LST(REG_ITMP1, REG_SP, 8 * var->regoff);
+/*  					M_LLD(REG_ITMP1, REG_SP, 8 * (parentargs_base + pa)); */
+/*  					M_LST(REG_ITMP1, REG_SP, 8 * var->regoff); */
+					var->regoff = parentargs_base + pa;
 				}
 			}
 
@@ -469,8 +470,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  					M_DLD(var->regoff, REG_SP, 8 * (parentargs_base + pa) );
 
  				} else {                             /* stack-arg -> spilled  */
- 					M_DLD(REG_FTMP1, REG_SP, 8 * (parentargs_base + pa));
- 					M_DST(REG_FTMP1, REG_SP, 8 * var->regoff);
+/*  					M_DLD(REG_FTMP1, REG_SP, 8 * (parentargs_base + pa)); */
+/*  					M_DST(REG_FTMP1, REG_SP, 8 * var->regoff); */
+					var->regoff = parentargs_base + pa;
 				}
 			}
 		}
@@ -4164,7 +4166,29 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 	}
+#if 1
+	{
+		s4 i;
 
+		if (m->flags & ACC_STATIC) {
+			/* shift iargs count if less than INT_ARG_CNT, or all */
+			for (i = (m->paramcount < (INT_ARG_CNT - 2)) ? m->paramcount : (INT_ARG_CNT - 2); i >= 0; i--) {
+				M_MOV(rd->argintregs[i], rd->argintregs[i + 2]);
+				M_FMOV(rd->argfltregs[i], rd->argfltregs[i + 2]);
+			}
+
+			/* put class into second argument register */
+			M_ALD(rd->argintregs[1], REG_PV, -8 * 8);
+
+		} else {
+			/* shift iargs count if less than INT_ARG_CNT, or all */
+			for (i = (m->paramcount < (INT_ARG_CNT - 1)) ? m->paramcount : (INT_ARG_CNT - 1); i >= 0; i--) {
+				M_MOV(rd->argintregs[i], rd->argintregs[i + 1]);
+				M_FMOV(rd->argfltregs[i], rd->argfltregs[i + 1]);
+			}
+		}
+	}
+#else
 	if (m->flags & ACC_STATIC) {
 		M_MOV(rd->argintregs[3], rd->argintregs[5]);
 		M_MOV(rd->argintregs[2], rd->argintregs[4]);
@@ -4190,6 +4214,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		M_FMOV(rd->argfltregs[1], rd->argfltregs[2]);
 		M_FMOV(rd->argfltregs[0], rd->argfltregs[1]);
 	}
+#endif
 
 	/* put env into first argument register */
 	M_ALD(rd->argintregs[0], REG_PV, -4 * 8);

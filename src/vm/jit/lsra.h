@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2211 2005-04-04 10:39:36Z christian $
+   $Id: lsra.h 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -38,7 +38,7 @@
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
 /*  #define LSRA_PRINTLIFETIMES */
-/* #define LSRA_EDX */
+/* #define LSRA_USES_REG_RES */ /* is now in i386/codegen.h */
 /*  #define LSRA_TESTLT */
 /* #define LSRA_LEAF */
 #define JOIN_DEST_STACK
@@ -80,18 +80,6 @@
 
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
-
-#if defined(LSRA_EDX)
-#define REG_RES_COUNT 3
-/* struct tmp_reg { */
-/* 	int eax; */
-/* 	int ecx; */
-/* 	int edx; */
-/* }; */
-
-extern int icmd_uses_tmp[256][REG_RES_COUNT+1];
-extern int lsra_reg_res[REG_RES_COUNT];
-#endif
 
 struct _list {
 	int value;
@@ -164,8 +152,8 @@ struct _sbr {
 };
 
 struct lsradata {
-#if defined(LSRA_EDX)
-	int reg_res_free[REG_RES_COUNT];
+#if defined(LSRA_USES_REG_RES)
+	int reg_res_free[REG_RES_CNT];
 #endif
 	struct _list **succ; /* CFG successors*/
 	struct _list **pred; /* CFG predecessors */

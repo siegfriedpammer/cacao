@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2228 2005-04-06 09:05:34Z twisti $
+   $Id: codegen.c 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -274,10 +274,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	parentargs_base = rd->maxmemuse + savedregs_num;
 
-#ifdef USE_THREADS                 /* space to save argument of monitor_enter */
-
+#ifdef USE_THREADS                 /* space to save argument of monitor_enter   */
+	                               /* and Return Values to survive monitor_exit */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		parentargs_base++;
+		parentargs_base+=3;
 
 #endif
 
@@ -347,6 +347,86 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
 		p-=2; M_DST(rd->savfltregs[i], REG_SP, 4 * p);
 	}
+	/* take arguments out of register or stack frame */
+
+	{
+		int narg=0, niarg=0;
+		int arg, iarg;
+
+ 	for (p = 0, l = 0; p < m->paramcount; p++) {
+		arg = narg; iarg = niarg;
+ 		t = m->paramtypes[p];
+ 		var = &(rd->locals[l][t]);
+ 		l++, niarg++;
+ 		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
+ 			l++, niarg++;
+ 		if (var->type < 0)
+ 			continue;
+		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
+ 			if (iarg < INT_ARG_CNT -
+					(IS_2_WORD_TYPE(t)!=0)) {        /* register arguments    */
+ 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+ 					M_TINTMOVE(t, rd->argintregs[iarg], var->regoff);
+
+				} else {                             /* reg arg -> spilled    */
+					M_IST(rd->argintregs[iarg], REG_SP, 4 * var->regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_IST(rd->secondregs[rd->argintregs[iarg]], REG_SP, 4 * var->regoff + 4);
+				}
+
+			} else {                                 /* stack arguments       */
+ 				pa = iarg + 6;
+ 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
+					M_ILD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+					if (IS_2_WORD_TYPE(t))
+						M_ILD(rd->secondregs[var->regoff], REG_SP, 4 * (parentargs_base + pa) + 4);
+
+				} else {                              /* stack arg -> spilled  */
+ 					M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa));
+ 					M_IST(REG_ITMP1, REG_SP, 4 * var->regoff);
+					if (IS_2_WORD_TYPE(t)) {
+						M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa) + 4);
+						M_IST(REG_ITMP1, REG_SP, 4 * var->regoff + 4);
+					}
+				}
+			}
+
+		} else {                                     /* floating args         */   
+			++narg;
+ 			if (arg < FLT_ARG_CNT) {                 /* register arguments    */
+ 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+ 					M_FLTMOVE(rd->argfltregs[arg], var->regoff);
+
+ 				} else {			                 /* reg arg -> spilled    */
+					if (IS_2_WORD_TYPE(t))
+						M_DST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+					else
+						M_FST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+ 				}
+
+ 			} else {                                 /* stack arguments       */
+ 				pa = iarg + 6;
+ 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
+					if (IS_2_WORD_TYPE(t))
+						M_DLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+
+					else
+						M_FLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+
+ 				} else {                             /* stack-arg -> spilled  */
+					if (IS_2_WORD_TYPE(t)) {
+						M_DLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
+						M_DST(REG_FTMP1, REG_SP, 4 * var->regoff);
+
+					} else {
+						M_FLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
+						M_FST(REG_FTMP1, REG_SP, 4 * var->regoff);
+					}
+			}
+			}
+		}
+	} /* end for */
+	}
 
 	/* save monitorenter argument */
 
@@ -361,7 +441,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_AST(rd->argintregs[0], REG_SP, 4 * rd->maxmemuse);
 		}
 	}			
+
+	/* call monitorenter function */
+
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		s4 func_enter = (m->flags & ACC_STATIC) ?
+			(s4) builtin_staticmonitorenter : (s4) builtin_monitorenter;
+		p = dseg_addaddress(cd, (void *) func_enter);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_MTCTR(REG_ITMP3);
+		M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 4);
+		M_JSR;
+	}
 #endif
+
 
 	/* copy argument registers to stack and call trace function with pointer
 	   to arguments on stack.
@@ -486,100 +579,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		M_MTLR(REG_ITMP3);
 	}
 
-	/* take arguments out of register or stack frame */
 
-	{
-		int narg=0, niarg=0;
-		int arg, iarg;
 
- 	for (p = 0, l = 0; p < m->paramcount; p++) {
-		arg = narg; iarg = niarg;
- 		t = m->paramtypes[p];
- 		var = &(rd->locals[l][t]);
- 		l++, niarg++;
- 		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
- 			l++, niarg++;
- 		if (var->type < 0)
- 			continue;
-		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
- 			if (iarg < INT_ARG_CNT -
-					(IS_2_WORD_TYPE(t)!=0)) {        /* register arguments    */
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_TINTMOVE(t, rd->argintregs[iarg], var->regoff);
 
-				} else {                             /* reg arg -> spilled    */
-					M_IST(rd->argintregs[iarg], REG_SP, 4 * var->regoff);
-					if (IS_2_WORD_TYPE(t))
-						M_IST(rd->secondregs[rd->argintregs[iarg]], REG_SP, 4 * var->regoff + 4);
-				}
-
-			} else {                                 /* stack arguments       */
- 				pa = iarg + 6;
- 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
-					M_ILD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
-					if (IS_2_WORD_TYPE(t))
-						M_ILD(rd->secondregs[var->regoff], REG_SP, 4 * (parentargs_base + pa) + 4);
-
-				} else {                              /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa));
- 					M_IST(REG_ITMP1, REG_SP, 4 * var->regoff);
-					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa) + 4);
-						M_IST(REG_ITMP1, REG_SP, 4 * var->regoff + 4);
-					}
-				}
-			}
-
-		} else {                                     /* floating args         */   
-			++narg;
- 			if (arg < FLT_ARG_CNT) {                 /* register arguments    */
- 				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_FLTMOVE(rd->argfltregs[arg], var->regoff);
-
- 				} else {			                 /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t))
-						M_DST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
-					else
-						M_FST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
- 				}
-
- 			} else {                                 /* stack arguments       */
- 				pa = iarg + 6;
- 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
-
-					else
-						M_FLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
-
- 				} else {                             /* stack-arg -> spilled  */
-					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
-						M_DST(REG_FTMP1, REG_SP, 4 * var->regoff);
-
-					} else {
-						M_FLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
-						M_FST(REG_FTMP1, REG_SP, 4 * var->regoff);
-					}
-			}
-			}
-		}
-	} /* end for */
-	}
-
-	/* call monitorenter function */
-
-#if defined(USE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		s4 func_enter = (m->flags & ACC_STATIC) ?
-			(s4) builtin_staticmonitorenter : (s4) builtin_monitorenter;
-		p = dseg_addaddress(cd, (void *) func_enter);
-		M_ALD(REG_ITMP3, REG_PV, p);
-		M_MTCTR(REG_ITMP3);
-		M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 4);
-		M_JSR;
-	}
-#endif
 	}
 
 	/* end of header generation */
@@ -2367,64 +2369,25 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
 		case ICMD_ARETURN:
-
-		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_DRETURN:
-
-		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-#if defined(USE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				a = dseg_addaddress(cd, (void *) (builtin_monitorexit));
-				M_ALD(REG_ITMP3, REG_PV, a);
-				M_MTCTR(REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 4);
-				M_JSR;
-			}
-#endif
-			switch (iptr->opc) {
-			case ICMD_IRETURN:
-			case ICMD_LRETURN:
-			case ICMD_ARETURN:
 				var_to_reg_int(s1, src, REG_RESULT);
 				M_TINTMOVE(src->type, s1, REG_RESULT);
 				goto nowperformreturn;
 
-			case ICMD_FRETURN:
-			case ICMD_DRETURN:
+		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
+		case ICMD_DRETURN:
 				var_to_reg_flt(s1, src, REG_FRESULT);
 				M_FLTMOVE(s1, REG_FRESULT);
 				goto nowperformreturn;
-			}
+
+		case ICMD_RETURN:      /* ...  ==> ...                                */
+
+
 
 nowperformreturn:
 			{
 			s4 i, p;
 			
 			p = parentargs_base;
-			
-			/* restore return address                                         */
-
-			if (!m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, 4 * p + 8);
-				M_MTLR(REG_ITMP3);
-			}
-
-			/* restore saved registers                                        */
-
-			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
-				p--; M_ILD(rd->savintregs[i], REG_SP, 4 * p);
-			}
-			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
-				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, 4 * p);
-			}
-
-			/* deallocate stack                                               */
-
-			if (parentargs_base) {
-				M_LDA(REG_SP, REG_SP, parentargs_base*4);
-			}
-
 			/* call trace function */
 
 			if (runverbose) {
@@ -2464,6 +2427,72 @@ nowperformreturn:
 				M_LDA(REG_SP, REG_SP, 10 * 8);
 				M_MTLR(REG_ITMP3);
 			}
+			
+#if defined(USE_THREADS)
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+				/* we need to save the proper return value */
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+					M_IST(REG_RESULT , REG_SP, rd->maxmemuse * 4 + 4);
+				case ICMD_LRETURN:
+					M_IST(REG_RESULT2, REG_SP, rd->maxmemuse * 4 + 8);
+					break;
+				case ICMD_FRETURN:
+					M_FST(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					break;
+				case ICMD_DRETURN:
+					M_DST(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					break;
+				}
+
+				a = dseg_addaddress(cd, (void *) (builtin_monitorexit));
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_MTCTR(REG_ITMP3);
+				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 4);
+				M_JSR;
+
+				/* and now restore the proper return value */
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+					M_ILD(REG_RESULT , REG_SP, rd->maxmemuse * 4 + 4);
+				case ICMD_LRETURN:
+					M_ILD(REG_RESULT2, REG_SP, rd->maxmemuse * 4 + 8);
+					break;
+				case ICMD_FRETURN:
+					M_FLD(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					break;
+				case ICMD_DRETURN:
+					M_DLD(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					break;
+				}
+			}
+#endif
+
+			/* restore return address                                         */
+
+			if (!m->isleafmethod) {
+				M_ALD(REG_ITMP3, REG_SP, 4 * p + 8);
+				M_MTLR(REG_ITMP3);
+			}
+
+			/* restore saved registers                                        */
+
+			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+				p--; M_ILD(rd->savintregs[i], REG_SP, 4 * p);
+			}
+			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, 4 * p);
+			}
+
+			/* deallocate stack                                               */
+
+			if (parentargs_base) {
+				M_LDA(REG_SP, REG_SP, parentargs_base*4);
+			}
+
+
 
 			M_RET;
 			ALIGNCODENOP;
@@ -3322,6 +3351,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	registerdata *rd;
 	t_inlining_globals *id;
 	s4 dumpsize;
+	s4 i;
 
 	/* mark start of dump memory area */
 
@@ -3359,7 +3389,18 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	M_MFLR(REG_ITMP1);
 	M_AST(REG_ITMP1, REG_SP, 8);        /* store return address               */
-	M_STWU(REG_SP, REG_SP, -64);        /* build up stackframe                */
+	/* Build up new Stackframe for native call */
+	stackframesize = 24; /* 24 Bytes Linkage Area */
+	stackframesize += (m->flags & ACC_STATIC) ? 8 : 4; /*1 or 2 additional int parameters */
+	for (i = 0; i < m->paramcount; i++) {
+		stackframesize += IS_2_WORD_TYPE(m->paramtypes[i]) ? 8 : 4;
+	}
+
+	if (stackframesize < (24+32)) { /* 24 Byte Linkage Area + 32 Bytes minimum Argument area */
+		stackframesize = 24+32;
+	}
+	stackframesize = stackframesize + 8; /* Reserve Space to store Result registers */
+	M_STWU(REG_SP, REG_SP, -stackframesize);      /* build up stackframe                */
 
 	/* if function is static, check for initialized */
 
@@ -3497,57 +3538,70 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 /*          M_MTLR(REG_ITMP3); */
 	}
 
-	/* save argument registers on stack -- if we have to */
-	if ((m->flags & ACC_STATIC && m->paramcount > (INT_ARG_CNT - 2)) ||
-		m->paramcount > (INT_ARG_CNT - 1)) {
-		s4 i;
-		u1 *tptr;
-		s4 paramshiftcnt = (m->flags & ACC_STATIC) ? 2 : 1;
-		s4 stackparamcnt = (m->paramcount > INT_ARG_CNT) ? m->paramcount - INT_ARG_CNT : 0;
+	/* save argument registers on stack -- if we have to            */
+	/* and copy spilled argument regs from old stack to the new one */
+	{
+		s4 farg = 0;
+		s4 iarg;
+		s4 paramsize;
+		s4 stack_off;
+		s4 shift;
 
-		/* calculate stackframe size for native function */
-		tptr = m->paramtypes;
-		for (i = INT_ARG_CNT; i < m->paramcount; i++) {
-			stackframesize += IS_2_WORD_TYPE(*tptr++) ? 8 : 4;
+		stack_off = 0;
+		shift = (m->flags & ACC_STATIC) ? 2 : 1;
+		for (i = 0; i < m->paramcount; i++) {
+			paramsize = IS_2_WORD_TYPE(m->paramtypes[i]) ? 2 : 1;
+			if (IS_FLT_DBL_TYPE(m->paramtypes[i])) {
+				farg++;
+				if (farg >= FLT_ARG_CNT) { /* spilled float arg -> copy from old stack */
+					if (paramsize == 1) { /* float arg */
+						M_FLD(REG_FTMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
+						M_FST(REG_FTMP1, REG_SP, 24 + 4*(shift + stack_off));
+					} else { /* double arg */
+						M_DLD(REG_FTMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
+						M_DST(REG_FTMP1, REG_SP, 24 + 4*(shift + stack_off));
+					}
+				}
+			} else { /* int arg */
+				iarg = stack_off; /* int register are not consecutive like the float*/
+				if (iarg + paramsize -1 < INT_ARG_CNT) {
+					if ( iarg + paramsize -1 == INT_ARG_CNT - shift ) {
+						/* int arg reg(s) spilled through shift to stack */
+						M_IST( rd->argintregs[iarg], REG_SP, 24 + 4 * (shift + stack_off));
+						if (paramsize == 2) /* spill secondreg, too */
+							M_IST( rd->argintregs[iarg+1], REG_SP, 24 + 4 * (shift + stack_off) + 4);
+					}
+				} else { /* already spilled int arg -> copy from old stack */
+					M_ILD(REG_ITMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
+					M_IST(REG_ITMP1, REG_SP, 24 + 4 * (shift + stack_off));
+					if (paramsize == 2) { /* long arg -> copy second half, too */
+						M_ILD(REG_ITMP1, REG_SP, stackframesize + 24 + 4 * stack_off + 4);
+						M_IST(REG_ITMP1, REG_SP, 24 + 4*(shift + stack_off) + 4);
+					}
+				}
+			}
+			stack_off += paramsize;
 		}
 
-		stackframesize += paramshiftcnt;
-
-		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
-
-		for (i = 0; i < stackparamcnt; i++) {
-			M_ILD(REG_ITMP1, REG_SP, stackparamcnt * 8 + 24 + i * 4);
-			M_IST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 4);
-
-			if (IS_2_WORD_TYPE(m->paramtypes[i])) {
-				M_ILD(REG_ITMP1, REG_SP, stackparamcnt * 8 + 24 + i * 4 + 4);
-				M_IST(REG_ITMP1, REG_SP, (paramshiftcnt + i) * 4);
+		/* now shift integer argument registers */
+		for (i = m->paramcount - 1; i >=0; i--) {
+			paramsize = IS_2_WORD_TYPE(m->paramtypes[i]) ? 2 : 1;
+			stack_off -= paramsize;
+			if (IS_INT_LNG_TYPE(m->paramtypes[i])) {
+				iarg = stack_off;
+				if ( iarg + paramsize -1 < INT_ARG_CNT - shift ) {
+					/* shift integer arg */
+					if (paramsize == 2)
+						M_MOV(rd->argintregs[iarg+1], rd->argintregs[iarg + shift + 1]);
+					M_MOV(rd->argintregs[iarg], rd->argintregs[iarg + shift]);
+				} /* else are already spilled to memory */
 			}
 		}
-
-
 	}
 
-	if (m->flags & ACC_STATIC) {
-		M_MOV(rd->argintregs[5], rd->argintregs[7]);
-		M_MOV(rd->argintregs[4], rd->argintregs[6]);
-		M_MOV(rd->argintregs[3], rd->argintregs[5]);
-		M_MOV(rd->argintregs[2], rd->argintregs[4]);
-		M_MOV(rd->argintregs[1], rd->argintregs[3]);
-		M_MOV(rd->argintregs[0], rd->argintregs[2]);
-
+	if (m->flags & ACC_STATIC)
 		/* put class into second argument register */
 		M_ALD(rd->argintregs[1], REG_PV, -8 * 4);
-
-	} else {
-		M_MOV(rd->argintregs[6], rd->argintregs[7]); 
-		M_MOV(rd->argintregs[5], rd->argintregs[6]); 
-		M_MOV(rd->argintregs[4], rd->argintregs[5]); 
-		M_MOV(rd->argintregs[3], rd->argintregs[4]);
-		M_MOV(rd->argintregs[2], rd->argintregs[3]);
-		M_MOV(rd->argintregs[1], rd->argintregs[2]);
-		M_MOV(rd->argintregs[0], rd->argintregs[1]);
-	}
 
 	/* put env into first argument register */
 	M_ALD(rd->argintregs[0], REG_PV, -4 * 4);
@@ -3558,11 +3612,6 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	disp = -(s4) (mcodeptr - cs) * 4;
 	M_MFLR(REG_ITMP1);
 	M_LDA(REG_PV, REG_ITMP1, disp);     /* recompute pv from ra               */
-
-	/* remove stackframe if there is one */
-	if (stackframesize) {
-		M_LDA(REG_SP, REG_SP, stackframesize * 8);
-	}
 
 	/* 20 instructions */
 	if (runverbose) {
@@ -3604,13 +3653,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	if (IS_FLT_DBL_TYPE(m->returntype))
 		if (IS_2_WORD_TYPE(m->returntype))
-			M_DST(REG_FRESULT, REG_SP, 56);
+			M_DST(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
 		else
-			M_FST(REG_FRESULT, REG_SP, 56);
+			M_FST(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
 	else {
-		M_IST(REG_RESULT, REG_SP, 56);
+		M_IST(REG_RESULT, REG_SP, stackframesize-8 /*56*/);
 		if (IS_2_WORD_TYPE(m->returntype))
-			M_IST(REG_RESULT2, REG_SP, 60);
+			M_IST(REG_RESULT2, REG_SP, stackframesize-4 /* 60*/);
 	}
 
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* builtin_get_exceptionptrptr        */
@@ -3623,13 +3672,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	if (IS_FLT_DBL_TYPE(m->returntype))
 		if (IS_2_WORD_TYPE(m->returntype))
-			M_DLD(REG_FRESULT, REG_SP, 56);
+			M_DLD(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
 		else
-			M_FLD(REG_FRESULT, REG_SP, 56);
+			M_FLD(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
 	else {
-		M_ILD(REG_RESULT, REG_SP, 56);
+		M_ILD(REG_RESULT, REG_SP, stackframesize-8 /*56*/);
 		if (IS_2_WORD_TYPE(m->returntype))
-			M_ILD(REG_RESULT2, REG_SP, 60);
+			M_ILD(REG_RESULT2, REG_SP, stackframesize-4 /*60*/);
 	}
 #else
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* get address of exceptionptr        */
@@ -3638,19 +3687,19 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_TST(REG_ITMP1_XPTR);
 	M_BNE(4);                           /* if no exception then return        */
 
-	M_ALD(REG_ITMP1, REG_SP, 64 + 8);   /* load return address                */
+	M_ALD(REG_ITMP1, REG_SP, stackframesize + 8);   /* load return address                */
 	M_MTLR(REG_ITMP1);
-	M_LDA(REG_SP, REG_SP, 64);          /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, stackframesize);          /* remove stackframe                  */
 
 	M_RET;
 
 	M_CLR(REG_ITMP3);
 	M_AST(REG_ITMP3, REG_ITMP2, 0);     /* store NULL into exceptionptr       */
 
-	M_ALD(REG_ITMP2, REG_SP, 64 + 8);   /* load return address                */
+	M_ALD(REG_ITMP2, REG_SP, stackframesize + 8);   /* load return address                */
 	M_MTLR(REG_ITMP2);
 
-	M_LDA(REG_SP, REG_SP, 64);          /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, stackframesize);          /* remove stackframe                  */
 
 	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC); /* fault address                */
 

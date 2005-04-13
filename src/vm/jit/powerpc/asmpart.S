@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2206 2005-04-04 09:20:57Z twisti $
+   $Id: asmpart.S 2297 2005-04-13 12:50:07Z christian $
 
 */
 
@@ -899,7 +899,7 @@ asm_check_clinit:
 
 	mflr	r0
 	stw     r0,8(r1)
-	stwu    r1,-(26*8)(r1)        /* keep stack 16-bytes aligned              */
+	stwu    r1,-(36*8)(r1)        /* keep stack 16-bytes aligned              */
 
 	stw     r3,4*8(r1)            /* save argument registers                  */
 	stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
@@ -923,7 +923,18 @@ asm_check_clinit:
 	stfd    fr11,22*8(r1)
 	stfd    fr12,23*8(r1)
 	stfd    fr13,24*8(r1)
-		
+
+	stw     r2,25*8(r1)
+	stw     r16,26*8(r1)
+	stw     r17,27*8(r1)
+	stw     r18,28*8(r1)
+	stw     r19,29*8(r1)
+	stw     r20,30*8(r1)
+	stw     r21,31*8(r1)
+	stw     r22,32*8(r1)
+	stw     r23,33*8(r1)
+
+
 	mr      r3,itmp1
 	bl      initialize_class
 	mr      itmp1,r3              /* save return value in temp register       */
@@ -950,10 +961,20 @@ asm_check_clinit:
 	lfd     fr11,22*8(r1)
 	lfd     fr12,23*8(r1)
 	lfd     fr13,24*8(r1)
-		
-	lwz     r0,(26*8)+8(r1)
+
+	lwz     r2,25*8(r1)
+	lwz     r16,26*8(r1)
+	lwz     r17,27*8(r1)
+	lwz     r18,28*8(r1)
+	lwz     r19,29*8(r1)
+	lwz     r20,30*8(r1)
+	lwz     r21,31*8(r1)
+	lwz     r22,32*8(r1)
+	lwz     r23,33*8(r1)		
+
+	lwz     r0,(36*8)+8(r1)
 	mtlr    r0
-	addi    r1,r1,(26*8)
+	addi    r1,r1,(36*8)
 
 	mr.     itmp1,itmp1           /* check for an exception                   */
 	beq     L_initializererror
