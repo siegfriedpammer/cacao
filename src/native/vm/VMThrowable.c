@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: VMThrowable.c 2301 2005-04-14 07:23:12Z edwin $
 
 */
 
@@ -164,10 +164,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	if (!buf) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
 	
 	size=buf->full;
-	if (size<=2) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<=2)");
+	if (size<2) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<2)");
 	size -=2;
 	el=&(buf->start[2]); /* element 0==VMThrowable.fillInStackTrace native call, 1==Throwable.fillInStackTrace*/
-	if (el->method!=0) { /* => not a builtin native wrapper*/
+	if (size && el->method!=0) { /* => not a builtin native wrapper*/
 		if ((el->method->class->name == utf_java_lang_Throwable) &&
 			(el->method->name == utf_init)) {
 			/* We assume that we are within the initializer of the exception object, the exception object itself should not appear
