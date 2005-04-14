@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # ======================================================================
-# log2xml - This script translates cacao -verbosecall ouput into a
+# log2xml - This script translates cacao -verbosecall output into a
 #           more readable XML format. It also separates the output of
 #           different threads and is able to ignore commonly called
 #           (uninteresting) methods.
@@ -17,9 +17,12 @@
 # You may want to edit the opt_ignore options below.
 #
 # Author  : Edwin Steiner
-# Revision: $Id: log2xml.pl 2305 2005-04-14 20:10:20Z edwin $
+# Revision: $Id: log2xml.pl 2306 2005-04-14 20:11:04Z edwin $
 #
 # $Log$
+# Revision 1.3  2005/04/14 20:11:04  edwin
+# typo
+#
 # Revision 1.2  2005/04/14 20:10:20  edwin
 # disabled debug print, added vim boilerplate
 #
