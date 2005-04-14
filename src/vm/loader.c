@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: loader.c 2300 2005-04-14 06:07:11Z edwin $
 
 */
 
@@ -81,7 +81,7 @@
 /* DEBUG HELPERS                                                              */
 /******************************************************************************/
 
-#define LOADER_VERBOSE
+/*#define LOADER_VERBOSE*/
 
 #ifndef NDEBUG
 #define LOADER_DEBUG
@@ -99,7 +99,7 @@
 
 #ifdef LOADER_VERBOSE
 static int loader_recursion = 0;
-#define LOADER_INDENT()   do { int i; for(i=0;i<loader_recursion;++i) fputs("    ",stderr); } while (0)
+#define LOADER_INDENT(str)   do { int i; for(i=0;i<loader_recursion*4;++i) {str[i]=' ';} str[i]=0;} while (0)
 #define LOADER_INC()  loader_recursion++
 #define LOADER_DEC()  loader_recursion--
 #else
@@ -1798,9 +1798,11 @@ bool load_class_from_sysloader(utf *name,classinfo **result)
 	bool success;
 
 #ifdef LOADER_VERBOSE
-	LOADER_INDENT();
-	fprintf(stderr,"load_class_from_sysloader(");
-	utf_fprint(stderr,name);fprintf(stderr,")\n");
+	char logtext[MAXLOGTEXT];
+	LOADER_INDENT(logtext);
+	sprintf(logtext+strlen(logtext),"load_class_from_sysloader(");
+	utf_sprint(logtext+strlen(logtext),name);strcat(logtext,")");
+	log_text(logtext);
 #endif
 
 	LOADER_ASSERT(class_java_lang_Object);
@@ -1849,24 +1851,26 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 	classinfo *r;
 	bool success;
 
+#ifdef LOADER_VERBOSE
+	char logtext[MAXLOGTEXT];
+	LOADER_INDENT(logtext);
+	strcat(logtext,"load_class_from_classloader(");
+	utf_sprint(logtext+strlen(logtext),name);sprintf(logtext+strlen(logtext),",%p,",(void*)cl);
+	if (!cl) strcat(logtext,"<bootstrap>");
+	else if (cl->vftbl && cl->vftbl->class) utf_sprint(logtext+strlen(logtext),cl->vftbl->class->name);
+	else strcat(logtext,"<unknown class>");
+	strcat(logtext,")");
+	log_text(logtext);
+#endif
+
 	LOADER_ASSERT(name);
 	LOADER_ASSERT(result);
-
-#ifdef LOADER_VERBOSE
-	LOADER_INDENT();
-	fprintf(stderr,"load_class_from_classloader(");
-	utf_fprint(stderr,name);fprintf(stderr,",%p,",(void*)cl);
-	if (!cl) fprintf(stderr,"<bootstrap>");
-	else if (cl->vftbl && cl->vftbl->class) utf_fprint(stderr,cl->vftbl->class->name);
-	else fprintf(stderr,"<unknown class>");
-	fprintf(stderr,")\n");fflush(stderr);
-#endif
 
 	/* lookup if this class has already been loaded */
 	*result = classcache_lookup(cl,name);
 #ifdef LOADER_VERBOSE
 	if (*result)
-		fprintf(stderr,"        cached -> %p\n",(void*)(*result));
+		dolog("        cached -> %p",(void*)(*result));
 #endif
 
 	if (*result)
@@ -1965,6 +1969,9 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	classbuffer *cb;
 	classinfo *c;
 	classinfo *r;
+#ifdef LOADER_VERBOSE
+	char logtext[MAXLOGTEXT];
+#endif
 
 	LOADER_ASSERT(name);
 	LOADER_ASSERT(result);
@@ -1980,9 +1987,10 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 		return true;
 
 #ifdef LOADER_VERBOSE
-	LOADER_INDENT();
-	fprintf(stderr,"load_class_bootstrap(");
-	utf_fprint(stderr,name);fprintf(stderr,")\n");
+	LOADER_INDENT(logtext);
+	strcat(logtext,"load_class_bootstrap(");
+	utf_sprint(logtext+strlen(logtext),name);strcat(logtext,")");
+	log_text(logtext);
 #endif
 
 	/* create the classinfo */
@@ -2099,10 +2107,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 ma, mi;
 	s4 dumpsize;
 	descriptor_pool *descpool;
-	char msg[MAXLOGTEXT];               /* maybe we get an exception */
+	char msg[MAXLOGTEXT];               /* maybe we get an exception */ /* XXX BUFFER OVERFLOW! */
 #if defined(STATISTICS)
 	u4 classrefsize;
 	u4 descsize;
+#endif
+#ifdef LOADER_VERBOSE
+	char logtext[MAXLOGTEXT];
 #endif
 
 	/* get the classbuffer's class */
@@ -2113,9 +2124,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		return c;
 
 #ifdef LOADER_VERBOSE
-	LOADER_INDENT();
-	fprintf(stderr,"load_class_from_classbuffer(");
-	utf_fprint(stderr,c->name);fprintf(stderr,")\n");
+	LOADER_INDENT(logtext);
+	strcat(logtext,"load_class_from_classbuffer(");
+	utf_sprint(logtext+strlen(logtext),c->name);strcat(logtext,")");
+	log_text(logtext);
 	LOADER_INC();
 #endif
 
@@ -2574,9 +2586,11 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	java_objectheader *definingloader = NULL;
 
 #ifdef LOADER_VERBOSE
-	LOADER_INDENT();
-	fprintf(stderr,"load_newly_created_array(");utf_fprint_classname(stderr,c->name);
-	fprintf(stderr,") loader=%p\n",loader);
+	char logtext[MAXLOGTEXT];
+	LOADER_INDENT(logtext);
+	strcat(logtext,"load_newly_created_array(");utf_sprint_classname(logtext+strlen(logtext),c->name);
+	sprintf(logtext+strlen(logtext),") loader=%p",loader);
+	log_text(logtext);
 #endif
 
 	/* Check array class name */
