@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: stringlocal.h 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -62,6 +62,9 @@ void stringtable_update(void);
 
 /* creates a new object of type java/lang/String from a utf-text */
 java_lang_String *javastring_new(utf *text);
+
+/* creates a new object of type java/lang/String from a utf-text, changes slashes to dots */
+java_lang_String *javastring_new_slash_to_dot(utf *text);
 
 /* creates a new object of type java/lang/String from a c-string */
 java_lang_String *javastring_new_char(const char *text);

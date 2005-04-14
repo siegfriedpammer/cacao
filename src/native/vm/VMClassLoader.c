@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClassLoader.c 2209 2005-04-04 09:41:17Z twisti $
+   $Id: VMClassLoader.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -84,20 +84,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
-	if (!name) {
-		/* XXX we have to support this case (name is read from classbuffer) */
-		log_text("defineClass(name == NULL,...) is not implemented, yet");
-		*exceptionptr = new_nullpointerexception();
-		return NULL;
+	if (name) {
+		/* convert '.' to '/' in java string */
+		utfname = javastring_toutf(name, true);
+		
+		/* check if this class has already been defined */
+		c = classcache_lookup_defined((java_objectheader *) this, utfname);
+		if (c)
+			return (java_lang_Class *) c;
 	}
-
-	/* convert '.' to '/' in java string */
-	utfname = javastring_toutf(name, true);
-	
-	/* check if this class has already been defined */
-	c = classcache_lookup_defined((java_objectheader *) this, utfname);
-	if (c)
-		return (java_lang_Class *) c;
+	else {
+		utfname = NULL;
+	}
 
 	/* create a new classinfo struct */
 	c = class_create_classinfo(utfname);
@@ -147,16 +145,27 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	builtin_monitorexit((java_objectheader *) c);
 #endif
 
-	/* exception? return! */
-
 	if (!r) {
-		/* If return value is NULL, we had a problem and the class is not     */
+		/* If return value is NULL, we had a problem and the class is not   */
 		/* loaded. */
-		/* now free the allocated memory, otherwise we could ran into a DOS */
+		/* now free the allocated memory, otherwise we could run into a DOS */
 
 		class_free(c);
 
 		return NULL;
+	}
+
+	if (r && !name) {
+		/* The name of the class was read from the classbuffer. We have to */
+		/* check if there already was a class definined with this name.    */
+		r = classcache_lookup_defined((java_objectheader *) this,c->name);
+
+		if (r) {
+			/* Yes, there was already a class with this name. We have to   */
+			/* throw ours away.                                            */
+			class_free(c);
+			c = r;
+		}
 	}
 
 	/* set ProtectionDomain */

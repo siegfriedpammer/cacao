@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 2133 2005-03-30 09:49:41Z twisti $
+   $Id: logging.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -44,6 +44,12 @@
 #include "vm/global.h"
 #include "vm/tables.h"
 #include "vm/statistics.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# endif
+#endif
 
 
 /***************************************************************************
@@ -79,11 +85,19 @@ void dolog(const char *txt, ...)
 	va_end(ap);
 
 	if (logfile) {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		fprintf(logfile, "[%p] %s\n",(void*)THREADOBJECT,logtext);
+#else
 		fprintf(logfile, "%s\n",logtext);
+#endif
 		fflush(logfile);
 
 	} else {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		fprintf(stdout,"LOG: [%p] %s\n",(void*)THREADOBJECT,logtext);
+#else
 		fprintf(stdout,"LOG: %s\n",logtext);
+#endif
 		fflush(stdout);
 	}
 }

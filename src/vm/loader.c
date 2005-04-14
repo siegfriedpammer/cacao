@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2278 2005-04-12 19:49:45Z twisti $
+   $Id: loader.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -81,7 +81,7 @@
 /* DEBUG HELPERS                                                              */
 /******************************************************************************/
 
-/*#define LOADER_VERBOSE*/
+#define LOADER_VERBOSE
 
 #ifndef NDEBUG
 #define LOADER_DEBUG
@@ -1855,7 +1855,11 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 #ifdef LOADER_VERBOSE
 	LOADER_INDENT();
 	fprintf(stderr,"load_class_from_classloader(");
-	utf_fprint(stderr,name);fprintf(stderr,",%p)\n",(void*)cl);
+	utf_fprint(stderr,name);fprintf(stderr,",%p,",(void*)cl);
+	if (!cl) fprintf(stderr,"<bootstrap>");
+	else if (cl->vftbl && cl->vftbl->class) utf_fprint(stderr,cl->vftbl->class->name);
+	else fprintf(stderr,"<unknown class>");
+	fprintf(stderr,")\n");fflush(stderr);
 #endif
 
 	/* lookup if this class has already been loaded */
@@ -1918,7 +1922,7 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 		LOADER_INC();
 		r = (classinfo *) asm_calljavafunction(lc,
 											   cl,
-											   javastring_new(name),
+											   javastring_new_slash_to_dot(name),
 											   NULL, NULL);
 		LOADER_DEC();
 
@@ -2210,7 +2214,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
 
-	if (name != c->name) {
+	if (c->name == utf_not_named_yet) {
+		/* we finally have a name for this class */
+		c->name = name;
+		class_set_packagename(c);
+	}
+	else if (name != c->name) {
 		utf_sprint(msg, c->name);
 		strcat(msg, " (wrong name: ");
 		utf_strcat(msg, name);

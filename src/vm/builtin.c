@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2294 2005-04-12 22:01:12Z twisti $
+   $Id: builtin.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -1003,6 +1003,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   s4 line,
 										   s4 noindent)
 {
+	char logtext[MAXLOGTEXT];
+	
 	if (!noindent) {
 		if (methodindent)
 			methodindent--;
@@ -1011,51 +1013,52 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	}
 	if (opt_verbose || runverbose || verboseexception) {
 		if (xptr) {
-			printf("Exception ");
-			utf_display_classname(xptr->vftbl->class->name);
+			sprintf(logtext,"Exception ");
+			utf_sprint_classname(logtext+strlen(logtext), xptr->vftbl->class->name);
 
 		} else {
-			printf("Some Throwable");
+			sprintf(logtext,"Some Throwable");
 		}
-		printf(" thrown in ");
+		sprintf(logtext+strlen(logtext), " thrown in ");
 
 		if (m) {
-			utf_display_classname(m->class->name);
-			printf(".");
-			utf_display(m->name);
+			utf_sprint_classname(logtext+strlen(logtext), m->class->name);
+			sprintf(logtext+strlen(logtext), ".");
+			utf_sprint(logtext+strlen(logtext), m->name);
 			if (m->flags & ACC_SYNCHRONIZED) {
-				printf("(SYNC");
+				sprintf(logtext+strlen(logtext), "(SYNC");
 
 			} else{
-				printf("(NOSYNC");
+				sprintf(logtext+strlen(logtext), "(NOSYNC");
 			}
 
 			if (m->flags & ACC_NATIVE) {
-				printf(",NATIVE");
+				sprintf(logtext+strlen(logtext), ",NATIVE");
 #if POINTERSIZE == 8
-				printf(")(0x%016lx) at position 0x%016lx\n", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext+strlen(logtext), ")(0x%016lx) at position 0x%016lx\n", (ptrint) m->entrypoint, (ptrint) pos);
 #else
-				printf(")(0x%08x) at position 0x%08x\n", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext+strlen(logtext), ")(0x%08x) at position 0x%08x\n", (ptrint) m->entrypoint, (ptrint) pos);
 #endif
 
 			} else {
 #if POINTERSIZE == 8
-				printf(")(0x%016lx) at position 0x%016lx (", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext+strlen(logtext), ")(0x%016lx) at position 0x%016lx (", (ptrint) m->entrypoint, (ptrint) pos);
 #else
-				printf(")(0x%08x) at position 0x%08x (", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext+strlen(logtext), ")(0x%08x) at position 0x%08x (", (ptrint) m->entrypoint, (ptrint) pos);
 #endif
 				if (m->class->sourcefile == NULL) {
-					printf("<NO CLASSFILE INFORMATION>");
+					sprintf(logtext+strlen(logtext), "<NO CLASSFILE INFORMATION>");
 
 				} else {
-					utf_display(m->class->sourcefile);
+					utf_sprint(logtext+strlen(logtext), m->class->sourcefile);
 				}
-				printf(":%d)\n", line);
+				sprintf(logtext+strlen(logtext), ":%d)\n", line);
 			}
 
 		} else
-			printf("call_java_method\n");
-		fflush(stdout);
+			sprintf(logtext+strlen(logtext), "call_java_method\n");
+
+		log_text(logtext);
 	}
 
 	return xptr;
@@ -1077,7 +1080,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
 	if (methodindent == 0) 
-			sprintf(logtext + methodindent, "1st_call: ");
+		sprintf(logtext + methodindent, "1st_call: ");
 	else
 		sprintf(logtext + methodindent, "called: ");
 

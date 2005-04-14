@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2277 2005-04-12 19:48:03Z twisti $
+   $Id: utf8.h 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -117,6 +117,8 @@ extern utf *utf_void__java_lang_Throwable;
 extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Throwable__void;
+
+extern utf *utf_not_named_yet;
 
 extern utf *array_packagename;
 

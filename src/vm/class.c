@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2275 2005-04-12 19:46:03Z twisti $
+   $Id: class.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -128,21 +128,55 @@ classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
 
+/* class_set_packagename *******************************************************
+
+   Derive the package name from the class name and store it in the struct.
+
+*******************************************************************************/
+
+void class_set_packagename(classinfo *c)
+{
+	if (c->name->text[0] == '[') {
+		/* Array classes are not loaded from classfiles. */
+		c->packagename = array_packagename;
+	} 
+	else {
+		/* Find the package name */
+		/* Classes in the unnamed package keep packagename == NULL. */
+		char *p = utf_end(c->name) - 1;
+		char *start = c->name->text;
+		for (;p > start; --p) {
+			if (*p == '/') {
+				c->packagename = utf_new(start, p - start);
+				break;
+			}
+		}
+	}
+}
 
 /* class_create_classinfo ******************************************************
 
-   XXX
+   Create a new classinfo struct. The class name is set to the given utf *,
+   most other fields are initialized to zero.
+
+   Note: classname may be NULL. In this case a not-yet-named classinfo is
+         created. The name must be filled in later and class_set_packagename
+		 must be called after that.
 
 *******************************************************************************/
 
 classinfo *class_create_classinfo(utf *classname)
 {
-	classinfo *c;     /* hashtable element */
+	classinfo *c;
 
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_class_infos += sizeof(classinfo);
 #endif
+
+	/* we use a safe name for temporarily unnamed classes */
+	if (!classname)
+		classname = utf_not_named_yet;
 
 	if (initverbose) {
 		char logtext[MAXLOGTEXT];
@@ -190,21 +224,8 @@ classinfo *class_create_classinfo(utf *classname)
 	c->classloader = NULL;
 	c->sourcefile = NULL;
 	
-	if (c->name->text[0] == '[') {
-		/* Array classes are not loaded from classfiles. */
-		c->packagename = array_packagename;
-
-	} else {
-		/* Find the package name */
-		/* Classes in the unnamed package keep packagename == NULL. */
-		char *p = utf_end(c->name) - 1;
-		char *start = c->name->text;
-		for (;p > start; --p) {
-			if (*p == '/') {
-				c->packagename = utf_new(start, p - start);
-				break;
-			}
-		}
+	if (classname != utf_not_named_yet) {
+		class_set_packagename(c);
 	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)

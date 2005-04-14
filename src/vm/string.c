@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: string.c 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -129,6 +129,55 @@ java_lang_String *javastring_new(utf *u)
 	/* decompress utf-string */
 	for (i = 0; i < utflength; i++)
 		a->data[i] = utf_nextu2(&utf_ptr);
+	
+	/* set fields of the javastring-object */
+	s->value  = a;
+	s->offset = 0;
+	s->count  = utflength;
+
+	return s;
+}
+
+/* javastring_new_slash_to_dot *************************************************
+
+   creates a new object of type java/lang/String with the text of 
+   the specified utf8-string with slashes changed to dots
+
+   return: pointer to the string or NULL if memory is exhausted.	
+
+*******************************************************************************/
+
+java_lang_String *javastring_new_slash_to_dot(utf *u)
+{
+	char *utf_ptr;                  /* current utf character in utf string    */
+	u4 utflength;                   /* length of utf-string if uncompressed   */
+	java_lang_String *s;            /* result-string                          */
+	java_chararray *a;
+	s4 i;
+	u2 ch;
+
+	if (!u) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
+
+	utf_ptr = u->text;
+	utflength = utf_strlen(u);
+
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(utflength);
+
+	/* javastring or character-array could not be created */
+	if (!a || !s)
+		return NULL;
+
+	/* decompress utf-string */
+	for (i = 0; i < utflength; i++) {
+		ch = utf_nextu2(&utf_ptr);
+		if (ch == '/')
+			ch = '.';
+		a->data[i] = ch;
+	}
 	
 	/* set fields of the javastring-object */
 	s->value  = a;

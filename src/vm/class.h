@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2275 2005-04-12 19:46:03Z twisti $
+   $Id: class.h 2299 2005-04-14 05:17:27Z edwin $
 
 */
 
@@ -222,6 +222,9 @@ extern classinfo *pseudo_class_New;
 
 /* create a new classinfo struct */
 classinfo *class_create_classinfo(utf *u);
+
+/* set the package name after the name has been set */
+void class_set_packagename(classinfo *c);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
