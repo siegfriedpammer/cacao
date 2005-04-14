@@ -17,9 +17,12 @@
 # You may want to edit the opt_ignore options below.
 #
 # Author  : Edwin Steiner
-# Revision: $Id: log2xml.pl 2304 2005-04-14 19:44:00Z edwin $
+# Revision: $Id: log2xml.pl 2305 2005-04-14 20:10:20Z edwin $
 #
 # $Log$
+# Revision 1.2  2005/04/14 20:10:20  edwin
+# disabled debug print, added vim boilerplate
+#
 # Revision 1.1  2005/04/14 19:44:00  edwin
 # added log2xml.pl and log2xml.vim
 #
@@ -373,7 +376,7 @@ sub process_text ( $$ )
 {
 	my ($thread,$text) = @_;
 
-	print STDERR "$.: $text\n";
+	# print STDERR "$.: $text\n";
 
 	if ($opt_no_text_for_ignored && $ignore_level{$thread} > 0) {
 		return;
@@ -441,4 +444,6 @@ sub main
 }
 
 main();
+
+# vim: noet ts=4 sw=4 ai
 
