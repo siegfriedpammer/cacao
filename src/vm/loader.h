@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2258 2005-04-11 09:43:57Z twisti $
+   $Id: loader.h 2303 2005-04-14 12:04:42Z edwin $
 */
 
 
@@ -204,8 +204,19 @@ classinfo *class_primitive_from_sig(char sig);
 void fprintflags(FILE *fp, u2 f);
 void printflags(u2 f);
 
-#endif /* _LOADER_H */
+/******************************************************************************/
+/* SYNCHRONIZATION                                                            */
+/******************************************************************************/
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#  define LOADER_LOCK()    tables_lock()
+#  define LOADER_UNLOCK()  tables_unlock()
+#else
+#  define LOADER_LOCK()
+#  define LOADER_UNLOCK()
+#endif
+
+#endif /* _LOADER_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

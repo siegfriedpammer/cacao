@@ -28,8 +28,9 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: VMClassLoader.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: VMClassLoader.c 2303 2005-04-14 12:04:42Z edwin $
 
 */
 
@@ -84,14 +85,19 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
+	/* synchronize */
+	LOADER_LOCK();
+
 	if (name) {
 		/* convert '.' to '/' in java string */
 		utfname = javastring_toutf(name, true);
 		
 		/* check if this class has already been defined */
 		c = classcache_lookup_defined((java_objectheader *) this, utfname);
-		if (c)
+		if (c) {
+			LOADER_UNLOCK();
 			return (java_lang_Class *) c;
+		}
 	}
 	else {
 		utfname = NULL;
@@ -99,11 +105,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	/* create a new classinfo struct */
 	c = class_create_classinfo(utfname);
-
-#if defined(USE_THREADS)
-	/* enter a monitor on the class */
-	builtin_monitorenter((java_objectheader *) c);
-#endif
 
 #if defined(STATISTICS)
 	/* measure time */
@@ -139,12 +140,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		loadingtime_stop();
 #endif
 
-#if defined(USE_THREADS)
-	/* leave the monitor */
-
-	builtin_monitorexit((java_objectheader *) c);
-#endif
-
 	if (!r) {
 		/* If return value is NULL, we had a problem and the class is not   */
 		/* loaded. */
@@ -152,7 +147,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 		class_free(c);
 
-		return NULL;
+		goto return_exception;
 	}
 
 	if (r && !name) {
@@ -174,7 +169,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	use_class_as_object(c);
 
+	LOADER_UNLOCK();
 	return (java_lang_Class *) c;
+
+return_exception:
+	LOADER_UNLOCK();
+	return NULL;
 }
 
 

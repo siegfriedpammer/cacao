@@ -32,10 +32,9 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2300 2005-04-14 06:07:11Z edwin $
+   $Id: loader.c 2303 2005-04-14 12:04:42Z edwin $
 
 */
-
 
 #include <stdlib.h>
 #include <string.h>
@@ -75,7 +74,6 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
-
 
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */
@@ -1962,6 +1960,10 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
        true.............everything ok
 	   false............an exception has been thrown
 
+   SYNCHRONIZATION:
+       load_class_bootstrap is synchronized. It can be treated as an
+	   atomic operation.
+
 *******************************************************************************/
 
 bool load_class_bootstrap(utf *name, classinfo **result)
@@ -1973,18 +1975,23 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	char logtext[MAXLOGTEXT];
 #endif
 
+	/* for debugging */
 	LOADER_ASSERT(name);
 	LOADER_ASSERT(result);
+	LOADER_INC();
+
+	/* synchronize */
+	LOADER_LOCK();
 
 	/* lookup if this class has already been loaded */
 	*result = classcache_lookup(NULL, name);
 	if (*result)
-		return true;
+		goto success;
 
 	/* check if this class has already been defined */
 	*result = classcache_lookup_defined(NULL, name);
 	if (*result)
-		return true;
+		goto success;
 
 #ifdef LOADER_VERBOSE
 	LOADER_INDENT(logtext);
@@ -1998,20 +2005,12 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	
 	/* handle array classes */
 	if (name->text[0] == '[') {
-		LOADER_INC();
 		if (!load_newly_created_array(c, NULL))
-			return false;
-		LOADER_DEC();
+			goto return_exception;
 		LOADER_ASSERT(c->loaded);
 		*result = c;
-		return true;
+		goto success;
 	}
-
-#if defined(USE_THREADS)
-	/* enter a monitor on the class */
-
-	builtin_monitorenter((java_objectheader *) c);
-#endif
 
 #if defined(STATISTICS)
 	/* measure time */
@@ -2033,19 +2032,11 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
 									 name);
-
-#if defined(USE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
-
-		return false;
+		goto return_exception;
 	}
 	
 	/* load the class from the buffer */
-
-	LOADER_INC();
 	r = load_class_from_classbuffer(cb);
-	LOADER_DEC();
 
 	/* free memory */
 	suck_stop(cb);
@@ -2060,28 +2051,32 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 #endif
 
 	if (!r) {
-#if defined(USE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
+		/* the class could not be loaded, free the classinfo struct */
 		class_free(c);
 	}
 
-	/* store this class in the loaded class cache */
+	/* store this class in the loaded class cache    */
+	/* this step also checks the loading constraints */
 	if (r && !classcache_store(NULL, c)) {
-#if defined(USE_THREADS)
-		builtin_monitorexit((java_objectheader *) c);
-#endif
 		class_free(c);
 		r = NULL; /* exception */
 	}
 
-#if defined(USE_THREADS)
-	/* leave the monitor */
-	if (c) builtin_monitorexit((java_objectheader *) c);
-#endif
+	if (!r)
+		goto return_exception;
 
 	*result = r;
-	return (r != NULL);
+
+success:
+	LOADER_UNLOCK();
+	LOADER_DEC();
+	return true;
+
+return_exception:
+	*result = NULL;
+	LOADER_UNLOCK();
+	LOADER_DEC();
+	return false;
 }
 
 
@@ -2096,6 +2091,9 @@ bool load_class_bootstrap(utf *name, classinfo **result)
    The loaded class is removed from the list 'unloadedclasses' and
    added to the list 'unlinkedclasses'.
 	
+   SYNCHRONIZATION:
+       This function is NOT synchronized!
+   
 *******************************************************************************/
 
 classinfo *load_class_from_classbuffer(classbuffer *cb)
