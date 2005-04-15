@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.c 2241 2005-04-06 15:07:46Z edwin $
+   $Id: classcache.c 2309 2005-04-15 14:29:04Z edwin $
 
 */
 
@@ -62,10 +62,10 @@
 /* THREAD-SAFE LOCKING                                                        */
 /*============================================================================*/
 
-    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-    /* CAUTION: The static functions below are */
-    /*          NOT synchronized!              */
-    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	/* CAUTION: The static functions below are */
+	/*          NOT synchronized!              */
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #  define CLASSCACHE_LOCK()    tables_lock()
@@ -93,10 +93,11 @@ hashtable classcache_hash;
   
 *******************************************************************************/
 
-void 
-classcache_init()
+void
+classcache_init(
+	)
 {
-	init_hashtable(&classcache_hash,CLASSCACHE_INIT_SIZE);
+	init_hashtable(&classcache_hash, CLASSCACHE_INIT_SIZE);
 }
 
 /* classcache_new_loader_entry *************************************************
@@ -114,7 +115,9 @@ classcache_init()
 *******************************************************************************/
 
 static classcache_loader_entry *
-classcache_new_loader_entry(classloader *loader,classcache_loader_entry *next)
+classcache_new_loader_entry(
+	/*@shared@*/ /*@null@*/ classloader * loader,
+	/*@only  @*/ /*@null@*/ classcache_loader_entry * next)
 {
 	classcache_loader_entry *lden;
 
@@ -142,15 +145,16 @@ classcache_new_loader_entry(classloader *loader,classcache_loader_entry *next)
   
 *******************************************************************************/
 
-static classcache_loader_entry *
-classcache_merge_loaders(classcache_loader_entry *lista,
-		                 classcache_loader_entry *listb)
+static /*@null@*/ classcache_loader_entry *
+classcache_merge_loaders(
+	/*@null@*/ classcache_loader_entry * lista,
+	/*@null@*/ classcache_loader_entry * listb)
 {
 	classcache_loader_entry *result;
 	classcache_loader_entry *ldenA;
 	classcache_loader_entry *ldenB;
 	classcache_loader_entry **chain;
-	
+
 	/* XXX This is a quadratic algorithm. If this ever
 	 * becomes a problem, the loader lists should be
 	 * stored as sorted lists and merged in linear time. */
@@ -158,9 +162,9 @@ classcache_merge_loaders(classcache_loader_entry *lista,
 	result = NULL;
 	chain = &result;
 
-	for (ldenA=lista; ldenA; ldenA=ldenA->next) {
-		
-		for (ldenB=listb; ldenB; ldenB=ldenB->next) {
+	for (ldenA = lista; ldenA != NULL; ldenA = ldenA->next) {
+
+		for (ldenB = listb; ldenB != NULL; ldenB = ldenB->next) {
 			if (ldenB->loader == ldenA->loader)
 				goto common_element;
 		}
@@ -169,7 +173,7 @@ classcache_merge_loaders(classcache_loader_entry *lista,
 		*chain = ldenA;
 		chain = &(ldenA->next);
 
-common_element:
+	  common_element:
 		/* XXX free the duplicated element */
 		;
 	}
@@ -193,31 +197,33 @@ common_element:
        null if no entry was found.
 	   
 *******************************************************************************/
- 
-static classcache_name_entry *
-classcache_lookup_name(utf *name)
-{
-	classcache_name_entry * c;     /* hash table element */
-	u4 key;           /* hashkey computed from classname */
-	u4 slot;          /* slot in hashtable               */
-	u2 i;
 
-	key  = utf_hashkey(name->text, name->blength);
+static /*@exposed@*/ /*@null@*/ classcache_name_entry *
+classcache_lookup_name(
+	/*@shared@*/ utf * name)
+{
+	classcache_name_entry *c;	/* hash table element */
+	u4 key;						/* hashkey computed from classname */
+	u4 slot;					/* slot in hashtable               */
+	u4 i;
+
+	key = utf_hashkey(name->text, (u4) name->blength);
 	slot = key & (classcache_hash.size - 1);
-	c    = classcache_hash.ptr[slot];
+	c = classcache_hash.ptr[slot];
 
 	/* search external hash chain for the entry */
 	while (c) {
 		if (c->name->blength == name->blength) {
-			for (i = 0; i < name->blength; i++)
-				if (name->text[i] != c->name->text[i]) goto nomatch;
-						
+			for (i = 0; i < (u4) name->blength; i++)
+				if (name->text[i] != c->name->text[i])
+					goto nomatch;
+
 			/* entry found in hashtable */
 			return c;
 		}
-			
-	nomatch:
-		c = c->hashlink; /* next element in external chain */
+
+	  nomatch:
+		c = c->hashlink;		/* next element in external chain */
 	}
 
 	/* not found */
@@ -237,31 +243,33 @@ classcache_lookup_name(utf *name)
        a pointer to the classcache_name_entry for this name
 	   
 *******************************************************************************/
- 
-static classcache_name_entry *
-classcache_new_name(utf *name)
-{
-	classcache_name_entry * c;     /* hash table element */
-	u4 key;           /* hashkey computed from classname */
-	u4 slot;          /* slot in hashtable               */
-	u2 i;
 
-	key  = utf_hashkey(name->text, name->blength);
+static /*@exposed@*/ classcache_name_entry *
+classcache_new_name(
+	/*@shared@*/ utf * name)
+{
+	classcache_name_entry *c;	/* hash table element */
+	u4 key;						/* hashkey computed from classname */
+	u4 slot;					/* slot in hashtable               */
+	u4 i;
+
+	key = utf_hashkey(name->text, (u4) name->blength);
 	slot = key & (classcache_hash.size - 1);
-	c    = classcache_hash.ptr[slot];
+	c = classcache_hash.ptr[slot];
 
 	/* search external hash chain for the entry */
 	while (c) {
 		if (c->name->blength == name->blength) {
-			for (i = 0; i < name->blength; i++)
-				if (name->text[i] != c->name->text[i]) goto nomatch;
-						
+			for (i = 0; i < (u4) name->blength; i++)
+				if (name->text[i] != c->name->text[i])
+					goto nomatch;
+
 			/* entry found in hashtable */
 			return c;
 		}
-			
-	nomatch:
-		c = c->hashlink; /* next element in external chain */
+
+	  nomatch:
+		c = c->hashlink;		/* next element in external chain */
 	}
 
 	/* location in hashtable found, create new entry */
@@ -272,7 +280,7 @@ classcache_new_name(utf *name)
 	c->classes = NULL;
 
 	/* insert entry into hashtable */
-	c->hashlink = classcache_hash.ptr[slot];
+	c->hashlink = (classcache_name_entry *) classcache_hash.ptr[slot];
 	classcache_hash.ptr[slot] = c;
 
 	/* update number of hashtable-entries */
@@ -281,11 +289,10 @@ classcache_new_name(utf *name)
 	if (classcache_hash.entries > (classcache_hash.size * 2)) {
 
 		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */  
+		   the external chains is approx. 2                */
 
-		u4 i;
-		classcache_name_entry *c;
-		hashtable newhash;  /* the new hashtable */
+		classcache_name_entry *c2;
+		hashtable newhash;		/* the new hashtable */
 
 		/* create new hashtable, double the size */
 		init_hashtable(&newhash, classcache_hash.size * 2);
@@ -293,20 +300,22 @@ classcache_new_name(utf *name)
 
 		/* transfer elements to new hashtable */
 		for (i = 0; i < classcache_hash.size; i++) {
-			c = (classcache_name_entry *) classcache_hash.ptr[i];
-			while (c) {
-				classcache_name_entry *nextc = c->hashlink;
-				u4 slot = (utf_hashkey(c->name->text, c->name->blength)) & (newhash.size - 1);
-						
-				c->hashlink = newhash.ptr[slot];
-				newhash.ptr[slot] = c;
+			c2 = (classcache_name_entry *) classcache_hash.ptr[i];
+			while (c2) {
+				classcache_name_entry *nextc = c2->hashlink;
+				u4 newslot =
+					(utf_hashkey(c2->name->text, (u4) c2->name->blength)) & (newhash.size - 1);
 
-				c = nextc;
+				c2->hashlink = (classcache_name_entry *) newhash.ptr[newslot];
+				newhash.ptr[newslot] = c2;
+
+				c2 = nextc;
 			}
 		}
-	
-		/* dispose old table */	
-		MFREE(classcache_hash.ptr, void*, classcache_hash.size);
+
+		/* dispose old table */
+		MFREE(classcache_hash.ptr, void *,
+			  classcache_hash.size);
 		classcache_hash = newhash;
 	}
 
@@ -329,8 +338,10 @@ classcache_new_name(utf *name)
    
 *******************************************************************************/
 
-classinfo *
-classcache_lookup(classloader *initloader,utf *classname)
+/*@null@*/ classinfo *
+classcache_lookup(
+	/*@shared@*/ classloader * initloader,
+	/*@shared@*/ utf * classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -340,22 +351,22 @@ classcache_lookup(classloader *initloader,utf *classname)
 	CLASSCACHE_LOCK();
 
 	en = classcache_lookup_name(classname);
-	
+
 	if (en) {
 		/* iterate over all class entries */
-		for (clsen=en->classes; clsen; clsen=clsen->next) {
+		for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
 			/* check if this entry has been loaded by initloader */
-			for (lden=clsen->loaders; lden; lden=lden->next) {
+			for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
-					CLASSCACHE_ASSERT(clsen->classobj);
+					CLASSCACHE_ASSERT(clsen->classobj != NULL);
 					cls = clsen->classobj;
 					goto found;
 				}
 			}
 		}
 	}
-found:
+  found:
 	CLASSCACHE_UNLOCK();
 	return cls;
 }
@@ -374,24 +385,25 @@ found:
    
 *******************************************************************************/
 
-classinfo * 
-classcache_lookup_defined(classloader *defloader,utf *classname)
+/*@null@*/ classinfo *
+classcache_lookup_defined(
+	/*@shared@*/ classloader * defloader,
+	/*@shared@*/ utf * classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
-	classcache_loader_entry *lden;
 	classinfo *cls = NULL;
 
 	CLASSCACHE_LOCK();
 
 	en = classcache_lookup_name(classname);
-	
+
 	if (en) {
 		/* iterate over all class entries */
-		for (clsen=en->classes; clsen; clsen=clsen->next) {
+		for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
 			if (!clsen->classobj)
 				continue;
-			
+
 			/* check if this entry has been defined by defloader */
 			if (clsen->classobj->classloader == defloader) {
 				cls = clsen->classobj;
@@ -399,7 +411,7 @@ classcache_lookup_defined(classloader *defloader,utf *classname)
 			}
 		}
 	}
-found:
+  found:
 	CLASSCACHE_UNLOCK();
 	return cls;
 }
@@ -422,53 +434,55 @@ found:
 *******************************************************************************/
 
 bool
-classcache_store(classloader *initloader,classinfo *cls)
+classcache_store(
+	/*@shared@*/ /*@null@*/ classloader * initloader,
+	/*@shared@*/ classinfo * cls)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
 
-	CLASSCACHE_ASSERT(cls);
-	CLASSCACHE_ASSERT(cls->loaded);
+	CLASSCACHE_ASSERT(cls != NULL);
+	CLASSCACHE_ASSERT(cls->loaded != NULL);
 
 #ifdef CLASSCACHE_VERBOSE
-	fprintf(stderr,"classcache_store(%p,",initloader);
-	utf_fprint_classname(stderr,cls->name);
-	fprintf(stderr,")\n");
+	fprintf(stderr, "classcache_store(%p,", initloader);
+	utf_fprint_classname(stderr, cls->name);
+	fprintf(stderr, ")\n");
 #endif
 
 	CLASSCACHE_LOCK();
 
 	en = classcache_new_name(cls->name);
 
-	CLASSCACHE_ASSERT(en);
-	
+	CLASSCACHE_ASSERT(en != NULL);
+
 	/* iterate over all class entries */
-	for (clsen=en->classes; clsen; clsen=clsen->next) {
-		
+	for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+
 #ifdef CLASSCACHE_DEBUG
 		/* check if this entry has already been loaded by initloader */
 		/* It never should have been loaded before! */
-		for (lden=clsen->loaders; lden; lden=lden->next) {
+		for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
 			if (lden->loader == initloader)
 				CLASSCACHE_ASSERT(false);
 		}
 #endif
 
 		/* check if initloader is constrained to this entry */
-		for (lden=clsen->constraints; lden; lden=lden->next) {
+		for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
 			if (lden->loader == initloader) {
 				/* we have to use this entry */
 				/* check if is has already been resolved to another class */
-				if (clsen->classobj && clsen->classobj != cls) {
+				if (clsen->classobj != NULL && clsen->classobj != cls) {
 					/* a loading constraint is violated */
 					*exceptionptr = new_exception_message(string_java_lang_LinkageError,
-							"loading constraint violated XXX add message");
+														  "loading constraint violated XXX add message");
 					goto return_exception;
 				}
 
 				/* record initloader as initiating loader */
-				clsen->loaders = classcache_new_loader_entry(initloader,clsen->loaders);
+				clsen->loaders = classcache_new_loader_entry(initloader, clsen->loaders);
 
 				/* record the loaded class object */
 				clsen->classobj = cls;
@@ -477,7 +491,7 @@ classcache_store(classloader *initloader,classinfo *cls)
 				goto return_success;
 			}
 		}
-		
+
 	}
 
 	/* create a new class entry for this class object with */
@@ -485,19 +499,19 @@ classcache_store(classloader *initloader,classinfo *cls)
 
 	clsen = NEW(classcache_class_entry);
 	clsen->classobj = cls;
-	clsen->loaders = classcache_new_loader_entry(initloader,NULL);
+	clsen->loaders = classcache_new_loader_entry(initloader, NULL);
 	clsen->constraints = NULL;
 
 	clsen->next = en->classes;
 	en->classes = clsen;
 
-return_success:
+  return_success:
 	CLASSCACHE_UNLOCK();
 	return true;
 
-return_exception:
+  return_exception:
 	CLASSCACHE_UNLOCK();
-	return false; /* exception */
+	return false;				/* exception */
 }
 
 /* classcache_find_loader ******************************************************
@@ -515,27 +529,29 @@ return_exception:
    
 *******************************************************************************/
 
-static classcache_class_entry *
-classcache_find_loader(classcache_name_entry *entry,classloader *loader)
+static /*@exposed@*/ /*@null@*/ classcache_class_entry *
+classcache_find_loader(
+	classcache_name_entry * entry,
+	/*@shared@*/ /*@null@*/ classloader * loader)
 {
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
-	
-	CLASSCACHE_ASSERT(entry);
+
+	CLASSCACHE_ASSERT(entry != NULL);
 
 	/* iterate over all class entries */
-	for (clsen=entry->classes; clsen; clsen=clsen->next) {
-		
+	for (clsen = entry->classes; clsen != NULL; clsen = clsen->next) {
+
 		/* check if this entry has already been loaded by initloader */
-		for (lden=clsen->loaders; lden; lden=lden->next) {
+		for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
 			if (lden->loader == loader)
-				return clsen; /* found */
+				return clsen;	/* found */
 		}
-		
+
 		/* check if loader is constrained to this entry */
-		for (lden=clsen->constraints; lden; lden=lden->next) {
+		for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
 			if (lden->loader == loader)
-				return clsen; /* found */
+				return clsen;	/* found */
 		}
 	}
 
@@ -553,23 +569,24 @@ classcache_find_loader(classcache_name_entry *entry,classloader *loader)
 *******************************************************************************/
 
 static void
-classcache_free_class_entry(classcache_class_entry *clsen)
+classcache_free_class_entry(
+	classcache_class_entry * clsen)
 {
 	classcache_loader_entry *lden;
 	classcache_loader_entry *next;
-	
-	CLASSCACHE_ASSERT(clsen);
 
-	for (lden=clsen->loaders; lden; lden=next) {
+	CLASSCACHE_ASSERT(clsen != NULL);
+
+	for (lden = clsen->loaders; lden != NULL; lden = next) {
 		next = lden->next;
-		FREE(lden,classcache_loader_entry);
+		FREE(lden, classcache_loader_entry);
 	}
-	for (lden=clsen->constraints; lden; lden=next) {
+	for (lden = clsen->constraints; lden != NULL; lden = next) {
 		next = lden->next;
-		FREE(lden,classcache_loader_entry);
+		FREE(lden, classcache_loader_entry);
 	}
 
-	FREE(clsen,classcache_class_entry);
+	FREE(clsen, classcache_class_entry);
 }
 
 /* classcache_remove_class_entry ***********************************************
@@ -585,13 +602,14 @@ classcache_free_class_entry(classcache_class_entry *clsen)
 *******************************************************************************/
 
 static void
-classcache_remove_class_entry(classcache_name_entry *entry,
-							  classcache_class_entry *clsen)
+classcache_remove_class_entry(
+	classcache_name_entry * entry,
+	classcache_class_entry * clsen)
 {
 	classcache_class_entry **chain;
 
-	CLASSCACHE_ASSERT(entry);
-	CLASSCACHE_ASSERT(clsen);
+	CLASSCACHE_ASSERT(entry != NULL);
+	CLASSCACHE_ASSERT(clsen != NULL);
 
 	chain = &(entry->classes);
 	while (*chain) {
@@ -614,19 +632,20 @@ classcache_remove_class_entry(classcache_name_entry *entry,
 *******************************************************************************/
 
 static void
-classcache_free_name_entry(classcache_name_entry *entry)
+classcache_free_name_entry(
+	classcache_name_entry * entry)
 {
 	classcache_class_entry *clsen;
 	classcache_class_entry *next;
-	
-	CLASSCACHE_ASSERT(entry);
 
-	for (clsen=entry->classes; clsen; clsen=next) {
+	CLASSCACHE_ASSERT(entry != NULL);
+
+	for (clsen = entry->classes; clsen; clsen = next) {
 		next = clsen->next;
 		classcache_free_class_entry(clsen);
 	}
 
-	FREE(entry,classcache_name_entry);
+	FREE(entry, classcache_name_entry);
 }
 
 /* classcache_free *************************************************************
@@ -641,24 +660,23 @@ classcache_free_name_entry(classcache_name_entry *entry)
   
 *******************************************************************************/
 
-void 
-classcache_free()
+void
+classcache_free(
+	)
+	/*@globals killed classcache_hash@*/
 {
 	u4 slot;
 	classcache_name_entry *entry;
 	classcache_name_entry *next;
 
-	for (slot=0; slot<classcache_hash.size; ++slot) {
-		for (entry=(classcache_name_entry *)classcache_hash.ptr[slot];
-			 entry;
-			 entry = next)
-		{
+	for (slot = 0; slot < classcache_hash.size; ++slot) {
+		for (entry = (classcache_name_entry *) classcache_hash.ptr[slot]; entry; entry = next) {
 			next = entry->hashlink;
 			classcache_free_name_entry(entry);
 		}
 	}
 
-	MFREE(classcache_hash.ptr,voidptr,classcache_hash.size);
+	MFREE(classcache_hash.ptr, voidptr, classcache_hash.size);
 	classcache_hash.size = 0;
 	classcache_hash.entries = 0;
 	classcache_hash.ptr = NULL;
@@ -682,18 +700,21 @@ classcache_free()
 *******************************************************************************/
 
 bool
-classcache_add_constraint(classloader *a,classloader *b,utf *classname)
+classcache_add_constraint(
+	/*@shared@*/ /*@null@*/ classloader * a,
+	/*@shared@*/ /*@null@*/ classloader * b,
+	/*@shared@*/ utf * classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsenA;
 	classcache_class_entry *clsenB;
 
-	CLASSCACHE_ASSERT(classname);
+	CLASSCACHE_ASSERT(classname != NULL);
 
 #ifdef CLASSCACHE_VERBOSE
-	fprintf(stderr,"classcache_add_constraint(%p,%p,",(void*)a,(void*)b);
-	utf_fprint_classname(stderr,classname);
-	fprintf(stderr,")\n");
+	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
+	utf_fprint_classname(stderr, classname);
+	fprintf(stderr, ")\n");
 #endif
 
 	/* a constraint with a == b is trivially satisfied */
@@ -704,13 +725,13 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 
 	en = classcache_new_name(classname);
 
-	CLASSCACHE_ASSERT(en);
-	
-	/* find the entry loaded by / constrained to each loader */
-	clsenA = classcache_find_loader(en,a);
-	clsenB = classcache_find_loader(en,b);
+	CLASSCACHE_ASSERT(en != NULL);
 
-	if (clsenA && clsenB) {
+	/* find the entry loaded by / constrained to each loader */
+	clsenA = classcache_find_loader(en, a);
+	clsenB = classcache_find_loader(en, b);
+
+	if (clsenA != NULL && clsenB != NULL) {
 		/* { both loaders have corresponding entries } */
 
 		/* if the entries are the same, the constraint is already recorded */
@@ -718,28 +739,28 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 			goto return_success;
 
 		/* check if the entries can be merged */
-		if (clsenA->classobj && clsenB->classobj && clsenA->classobj != clsenB->classobj) {
+		if (clsenA->classobj != NULL && clsenB->classobj != NULL
+			&& clsenA->classobj != clsenB->classobj) {
 			/* no, the constraint is violated */
 			*exceptionptr = new_exception_message(string_java_lang_LinkageError,
-					"loading constraint violated XXX add message");
+												  "loading constraint violated XXX add message");
 			goto return_exception;
 		}
 
 		/* yes, merge the entries */
 		/* clsenB will be merged into clsenA */
-		clsenA->loaders = classcache_merge_loaders(clsenA->loaders,
-												   clsenB->loaders);
+		clsenA->loaders = classcache_merge_loaders(clsenA->loaders, clsenB->loaders);
 		clsenB->loaders = NULL;
-		
+
 		clsenA->constraints = classcache_merge_loaders(clsenA->constraints,
 													   clsenB->constraints);
 		clsenB->constraints = NULL;
 
 		if (!clsenA->classobj)
 			clsenA->classobj = clsenB->classobj;
-		
+
 		/* remove clsenB from the list of class entries */
-		classcache_remove_class_entry(en,clsenB);
+		classcache_remove_class_entry(en, clsenB);
 	}
 	else {
 		/* { at most one of the loaders has a corresponding entry } */
@@ -755,8 +776,8 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 			clsenA = NEW(classcache_class_entry);
 			clsenA->classobj = NULL;
 			clsenA->loaders = NULL;
-			clsenA->constraints = classcache_new_loader_entry(b,NULL);
-			clsenA->constraints = classcache_new_loader_entry(a,clsenA->constraints);
+			clsenA->constraints = classcache_new_loader_entry(b, NULL);
+			clsenA->constraints = classcache_new_loader_entry(a, clsenA->constraints);
 
 			clsenA->next = en->classes;
 			en->classes = clsenA;
@@ -765,19 +786,19 @@ classcache_add_constraint(classloader *a,classloader *b,utf *classname)
 			/* make b the loader that has no corresponding entry */
 			if (clsenB)
 				b = a;
-			
+
 			/* loader b must be added to entry clsenA */
-			clsenA->constraints = classcache_new_loader_entry(b,clsenA->constraints);
+			clsenA->constraints = classcache_new_loader_entry(b, clsenA->constraints);
 		}
 	}
 
-return_success:
+  return_success:
 	CLASSCACHE_UNLOCK();
 	return true;
 
-return_exception:
+  return_exception:
 	CLASSCACHE_UNLOCK();
-	return false; /* exception */
+	return false;				/* exception */
 }
 
 /*============================================================================*/
@@ -796,7 +817,8 @@ return_exception:
 *******************************************************************************/
 
 void
-classcache_debug_dump(FILE *file)
+classcache_debug_dump(
+	/*@shared@*/ FILE * file)
 {
 	classcache_name_entry *c;
 	classcache_class_entry *clsen;
@@ -805,39 +827,39 @@ classcache_debug_dump(FILE *file)
 
 	CLASSCACHE_LOCK();
 
-	fprintf(file,"\n=== [loaded class cache] =====================================\n\n");
-	fprintf(file,"hash size   : %d\n",classcache_hash.size);
-	fprintf(file,"hash entries: %d\n",classcache_hash.entries);
-	fprintf(file,"\n");
+	fprintf(file, "\n=== [loaded class cache] =====================================\n\n");
+	fprintf(file, "hash size   : %d\n", (int) classcache_hash.size);
+	fprintf(file, "hash entries: %d\n", (int) classcache_hash.entries);
+	fprintf(file, "\n");
 
-	for (slot=0; slot<classcache_hash.size; ++slot) {
+	for (slot = 0; slot < classcache_hash.size; ++slot) {
 		c = (classcache_name_entry *) classcache_hash.ptr[slot];
 
-		for (; c; c=c->hashlink) {
-			utf_fprint_classname(file,c->name);
-			fprintf(file,"\n");
+		for (; c != NULL; c = c->hashlink) {
+			utf_fprint_classname(file, c->name);
+			fprintf(file, "\n");
 
 			/* iterate over all class entries */
-			for (clsen=c->classes; clsen; clsen=clsen->next) {
+			for (clsen = c->classes; clsen != NULL; clsen = clsen->next) {
 				if (clsen->classobj) {
-					fprintf(file,"    loaded %p\n",(void*)clsen->classobj);
+					fprintf(file, "    loaded %p\n", (void *) clsen->classobj);
 				}
 				else {
-					fprintf(file,"    unresolved\n");
+					fprintf(file, "    unresolved\n");
 				}
-				fprintf(file,"        loaders:");
-				for (lden=clsen->loaders; lden; lden=lden->next) {
-					fprintf(file,"<%p> %p",(void *)lden,(void *)lden->loader);
+				fprintf(file, "        loaders:");
+				for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
+					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
 				}
-				fprintf(file,"\n        constraints:");
-				for (lden=clsen->constraints; lden; lden=lden->next) {
-					fprintf(file,"<%p> %p",(void *)lden,(void *)lden->loader);
+				fprintf(file, "\n        constraints:");
+				for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
+					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
 				}
-				fprintf(file,"\n");
+				fprintf(file, "\n");
 			}
 		}
 	}
-	fprintf(file,"\n==============================================================\n\n");
+	fprintf(file, "\n==============================================================\n\n");
 
 	CLASSCACHE_UNLOCK();
 }
@@ -855,4 +877,3 @@ classcache_debug_dump(FILE *file)
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-
