@@ -17,9 +17,12 @@
 # You may want to edit the opt_ignore options below.
 #
 # Author  : Edwin Steiner
-# Revision: $Id: log2xml.pl 2306 2005-04-14 20:11:04Z edwin $
+# Revision: $Id: log2xml.pl 2307 2005-04-15 09:06:54Z edwin $
 #
 # $Log$
+# Revision 1.4  2005/04/15 09:06:54  edwin
+# output more valid xml
+#
 # Revision 1.3  2005/04/14 20:11:04  edwin
 # typo
 #
@@ -144,6 +147,17 @@ sub write_xml_leave ( $$ )
 	print $file "</call>\n";
 }
 
+sub write_xml_never_returns ( $$ )
+{
+	my ($thread,$node) = @_;
+
+	my $file = $files{$thread};
+	print $file '<never_returns';
+	print $file ' name="' . quote($node->{NAME}) . '"';
+	print $file "/>\n";
+	print $file "</call>\n";
+}
+
 sub write_xml_node ( $$ )
 {
 	my ($thread,$node) = @_;
@@ -172,11 +186,13 @@ sub write_xml_header ( $ )
 {
 	my ($file) = @_;
 	print $file '<?xml version="1.0"?>'."\n";
+	print $file "<thread>\n";
 }
 
 sub write_xml_end ( $ )
 {
 	my ($file) = @_;
+	print $file "</thread>\n";
 }
 
 # ======================================================================
@@ -440,7 +456,14 @@ sub main
 				write_xml_frame($thread,$top);
 				$ign--;
 		    }
+			pop @{$stacks{$thread}} for 1..$ignore_level{$thread};
 		}
+		while (scalar @{$stacks{$thread}} > 1) {
+				my $top = $stacks{$thread}->[-1];
+				write_xml_never_returns($thread,$top);
+				pop @{$stacks{$thread}};
+		}
+		write_xml_end($files{$thread});
 		$files{$thread}->close();
 	}
 	print STDERR "processed $. lines\n";
