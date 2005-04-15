@@ -17,9 +17,12 @@
 # You may want to edit the opt_ignore options below.
 #
 # Author  : Edwin Steiner
-# Revision: $Id: log2xml.pl 2307 2005-04-15 09:06:54Z edwin $
+# Revision: $Id: log2xml.pl 2308 2005-04-15 09:33:34Z edwin $
 #
 # $Log$
+# Revision 1.5  2005/04/15 09:33:34  edwin
+# preserve indentation of log text
+#
 # Revision 1.4  2005/04/15 09:06:54  edwin
 # output more valid xml
 #
@@ -417,8 +420,8 @@ sub main
 		my $lastthread;
 		while (<>) {
 			chomp($_);
-			if (/LOG: \[(\S+)\]\s+(.*)/) {
-				my ($thread,$log) = ($1,$2);
+			if (/LOG: \[(\S+)\](\s*)(.*)/) {
+				my ($thread,$space,$log) = ($1,$2,$3);
 				thread_register($thread);
 				$lastthread = $thread;
 				if ($log =~ /(1st_call|called|finished):\s*(.*)/) {
@@ -428,7 +431,7 @@ sub main
 					process_exception($thread,$1,$2);
 				}
 				else {
-					process_text($thread,$log);
+					process_text($thread,$space.$log);
 				}
 			}
 			else {
