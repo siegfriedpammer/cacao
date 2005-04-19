@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2285 2005-04-12 20:32:34Z twisti $
+   $Id: asmpart.S 2310 2005-04-19 13:51:30Z twisti $
 
 */
 
@@ -1015,13 +1015,16 @@ asm_patcher_builtin_new:
 	mov     v0,2(itmp2)                 /* patch in new classinfo*: 2 (mov)   */
 
 	lea     builtin_new,itmp1           /* get address from builtin_new       */
-	mov     itmp1,12(itmp2)             /* patch back function address        */
+	mov     itmp1,10+2(itmp2)           /* patch back function address        */
 	jmp     *itmp2                      /* call new patched code              */
 
 
-/* asm_patcher_builtin_newarray ************************************************
+/* asm_patcher_builtin_vftbl ***************************************************
 
-   XXX
+   Combines some builtin function patchers:
+     - asm_patcher_builtin_newarray
+     - asm_patcher_builtin_checkarraycast
+     - asm_patcher_builtin_arrayinstanceof
 
    Arguments:
      a1   contains the class reference
@@ -1029,12 +1032,25 @@ asm_patcher_builtin_new:
 *******************************************************************************/
 
 asm_patcher_builtin_newarray:
-	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
-	mov     a0,0*8(%rsp)                /* save argument                      */
+	lea     builtin_newarray,itmp3      /* get address from builtin_newarray  */
+	jmp     asm_patcher_builtin_vftbl
+
+asm_patcher_builtin_checkarraycast:
+	lea     asm_builtin_checkarraycast,itmp3 /* get function address          */
+	jmp     asm_patcher_builtin_vftbl
+
+asm_patcher_builtin_arrayinstanceof:
+	lea     builtin_arrayinstanceof,itmp3 /* get function address             */
+
+asm_patcher_builtin_vftbl:
+	sub     $(8*3),%rsp                 /* stack frame (16-byte aligned)      */
+	mov     itmp3,0*8(%rsp)             /* save function address              */
+	mov     a0,1*8(%rsp)                /* save argument                      */
 	mov     a1,a0                       /* pass class reference               */
 	call    helper_resolve_classinfo_vftbl /* call the helper function        */
-	mov     0*8(%rsp),a0                /* restore argument                   */
-	add     $(8*1),%rsp                 /* remove stack frame                 */
+	mov     0*8(%rsp),itmp3             /* restore function address           */
+	mov     1*8(%rsp),a0                /* restore argument                   */
+	add     $(8*3),%rsp                 /* remove stack frame                 */
 	test    v0,v0                       /* exception thrown?                  */
 	jz      L_asm_patcher_exception
 
@@ -1042,8 +1058,7 @@ asm_patcher_builtin_newarray:
 	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
 	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
 
-	lea     builtin_newarray,itmp1      /* get address from builtin_newarray  */
-	mov     itmp1,12(itmp2)             /* patch back function address        */
+	mov     itmp3,10+2(itmp2)           /* patch back function address        */
 	jmp     *itmp2                      /* call new patched code              */
 
 
@@ -1065,67 +1080,11 @@ asm_patcher_builtin_multianewarray:
 	jz      L_asm_patcher_exception
 
 	pop     itmp2                       /* get return address                 */
-	sub     $(3+10+3+10+10),itmp2       /* go back to a0 mov                  */
+	sub     $(10+10+3+10+3),itmp2       /* go back to a0 mov                  */
 	mov     v0,10+2(itmp2)              /* patch in new vftbl*: 10 (movi) + 2 */
 
 	lea     builtin_nmultianewarray,itmp1 /* get function address             */
 	mov     itmp1,10+10+3+2(itmp2)      /* patch back function address        */
-	jmp     *itmp2                      /* call new patched code              */
-
-
-/* asm_patcher_builtin_checkarraycast ******************************************
-
-   XXX
-
-   Arguments:
-     a1   contains the class reference
-
-*******************************************************************************/
-
-asm_patcher_builtin_checkarraycast:
-	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
-	mov     a0,0*8(%rsp)                /* save argument                      */
-	mov     a1,a0                       /* pass class reference               */
-	call    helper_resolve_classinfo_vftbl /* call the helper function        */
-	mov     0*8(%rsp),a0                /* restore argument                   */
-	add     $(8*1),%rsp                 /* remove stack frame                 */
-	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_patcher_exception
-
-	pop     itmp2                       /* get return address                 */
-	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
-	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
-
-	lea     asm_builtin_checkarraycast,itmp1 /* get function address          */
-	mov     itmp1,12(itmp2)             /* patch back function address        */
-	jmp     *itmp2                      /* call new patched code              */
-
-
-/* asm_patcher_builtin_arrayinstanceof *****************************************
-
-   XXX
-
-   Arguments:
-     a1   contains the class reference
-
-*******************************************************************************/
-
-asm_patcher_builtin_arrayinstanceof:
-	sub     $(8*1),%rsp                 /* stack frame (16-byte aligned)      */
-	mov     a0,0*8(%rsp)                /* save argument                      */
-	mov     a1,a0                       /* pass class reference               */
-	call    helper_resolve_classinfo_vftbl /* call the helper function        */
-	mov     0*8(%rsp),a0                /* restore argument                   */
-	add     $(8*1),%rsp                 /* remove stack frame                 */
-	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_patcher_exception
-
-	pop     itmp2                       /* get return address                 */
-	sub     $(10+10+3),itmp2            /* 10 (movi) + 10 (movi) + 3 (callq)  */
-	mov     v0,2(itmp2)                 /* patch in new vftbl*: 2 (mov)       */
-
-	lea     builtin_arrayinstanceof,itmp1 /* get function address             */
-	mov     itmp1,12(itmp2)             /* patch back function address        */
 	jmp     *itmp2                      /* call new patched code              */
 
 
