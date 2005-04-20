@@ -7,61 +7,140 @@ public class test {
         getstatic();
         putstatic();
 
-        getfield();
-        putfield();
-        putfieldconst();
+//          getfield();
+//         putfield();
+//         putfieldconst();
 
-        newarray();
-        multianewarray();
+//         newarray();
+//         multianewarray();
 
-        invokespecial();
+//         invokespecial();
 
-        checkcast();
-        _instanceof();
+//         checkcast();
+//         _instanceof();
     }
 
     public void getstatic() {
-        p("getstatic:");
-        check(getstaticI.i, 123);
-        check(getstaticJ.l, 456L);
-        check(getstaticF.f, 123.456F);
-        check(getstaticD.d, 789.012);
-        check(getstaticL.o, null);
+        try {
+            p("getstatic (I): ");
+            check(getstaticI.i, 123);
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("getstatic (J): ");
+            check(getstaticJ.l, 456L);
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("getstatic (F): ");
+            check(getstaticF.f, 123.456F);
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("getstatic (D): ");
+            check(getstaticD.d, 789.012);
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("getstatic (L): ");
+            check(getstaticL.o, null);
+        } catch (Throwable t) {
+            failed(t);
+        }
     }
 
 
     public void putstatic() {
-        p("putstatic:");
+        try {
+            p("putstatic (I): ");
+            int i = 123;
+            putstaticI.i = i;
+            check(putstaticI.i, i);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        int i = 123;
-        long l = 456L;
-        float f = 123.456F;
-        double d = 789.012;
-        Object o = null;
+        try {
+            p("putstatic (J): ");
+            long l = 456L;
+            putstaticJ.l = l;
+            check(putstaticJ.l, l);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        putstaticI.i = i;
-        check(putstaticI.i, i);
+        try {
+            p("putstatic (F): ");
+            float f = 123.456F;
+            putstaticF.f = f;
+            check(putstaticF.f, f);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        putstaticJ.l = l;
-        check(putstaticJ.l, l);
+        try {
+            p("putstatic (D): ");
+            double d = 789.012;
+            putstaticD.d = d;
+            check(putstaticD.d, d);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        putstaticF.f = f;
-        check(putstaticF.f, f);
 
-        putstaticD.d = d;
-        check(putstaticD.d, d);
-
-        putstaticL.o = o;
-        check(putstaticL.o, o);
+        try {
+            p("putstatic (L): ");
+            Object o = null;
+            putstaticL.o = o;
+            check(putstaticL.o, o);
+        } catch (Throwable t) {
+            failed(t);
+        }
     }
 
     public void getfield() {
-        p("getfield:");
-        check(new getfieldI().i, 123);
-        check(new getfieldJ().l, 456L);
-        check(new getfieldF().f, 123.456F);
-        check(new getfieldD().d, 789.012);
-        check(new getfieldL().o, null);
+//         try {
+//             p("getfield (I): ");
+//             check(new getfieldI().i, 123);
+//         } catch (Throwable t) {
+//             failed(t);
+//         }
+
+        try {
+            p("getfield (J): ");
+            check(new getfieldJ().l, 456L);
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+//         try {
+//             p("getfield (F): ");
+//             check(new getfieldF().f, 123.456F);
+//         } catch (Throwable t) {
+//             failed(t);
+//         }
+
+//         try {
+//             p("getfield (D): ");
+//             check(new getfieldD().d, 789.012);
+//         } catch (Throwable t) {
+//             failed(t);
+//         }
+
+//         try {
+//             p("getfield (L): ");
+//             check(new getfieldL().o, null);
+//         } catch (Throwable t) {
+//             failed(t);
+//         }
     }
 
     public void putfield() {
