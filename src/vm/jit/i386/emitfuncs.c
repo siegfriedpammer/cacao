@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: emitfuncs.c 2316 2005-04-21 16:40:28Z twisti $
 
 */
 
@@ -395,8 +395,9 @@ void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
 	*(cd->mcodeptr++) = 0x8b;
-	i386_address_byte(2, (reg), (basereg));
-	i386_emit_imm32((disp));
+/*  	i386_address_byte(2,(reg),(basereg)); */
+/*  	i386_emit_imm32((disp)); */
+	i386_emit_membase32((basereg),(disp),(reg));
 }
 
 
@@ -405,6 +406,14 @@ void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp)
 	COUNT(count_mov_reg_mem);
 	*(cd->mcodeptr++) = 0x89;
 	i386_emit_membase((basereg),(disp),(reg));
+}
+
+
+void i386_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp)
+{
+	COUNT(count_mov_reg_mem);
+	*(cd->mcodeptr++) = 0x89;
+	i386_emit_membase32((basereg),(disp),(reg));
 }
 
 
@@ -469,6 +478,14 @@ void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xc7;
 	i386_emit_membase((basereg),(disp),0);
+	i386_emit_imm32((imm));
+}
+
+
+void i386_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xc7;
+	i386_emit_membase32((basereg),(disp),0);
 	i386_emit_imm32((imm));
 }
 
@@ -945,10 +962,24 @@ void i386_flds_membase(codegendata *cd, s4 basereg, s4 disp)
 }
 
 
+void i386_flds_membase32(codegendata *cd, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xd9;
+	i386_emit_membase32((basereg),(disp),0);
+}
+
+
 void i386_fldl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	i386_emit_membase((basereg),(disp),0);
+}
+
+
+void i386_fldl_membase32(codegendata *cd, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xdd;
+	i386_emit_membase32((basereg),(disp),0);
 }
 
 
@@ -1050,10 +1081,24 @@ void i386_fstps_membase(codegendata *cd, s4 basereg, s4 disp)
 }
 
 
+void i386_fstps_membase32(codegendata *cd, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xd9;
+	i386_emit_membase32((basereg),(disp),3);
+}
+
+
 void i386_fstpl_membase(codegendata *cd, s4 basereg, s4 disp)
 {
 	*(cd->mcodeptr++) = 0xdd;
 	i386_emit_membase((basereg),(disp),3);
+}
+
+
+void i386_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp)
+{
+	*(cd->mcodeptr++) = 0xdd;
+	i386_emit_membase32((basereg),(disp),3);
 }
 
 

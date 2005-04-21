@@ -1,4 +1,4 @@
-/* vm/jit/i386/emitfuncs.h - emit function prototypes
+/* src/vm/jit/i386/emitfuncs.h - emit function prototypes
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.h 2042 2005-03-20 13:42:54Z twisti $
+   Changes:
+
+   $Id: emitfuncs.h 2316 2005-04-21 16:40:28Z twisti $
 
 */
 
@@ -56,6 +58,7 @@ void i386_movb_imm_reg(codegendata *cd, s4 imm, s4 dreg);
 void i386_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
 void i386_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
 void i386_mov_reg_membase(codegendata *cd, s4 reg, s4 basereg, s4 disp);
+void i386_mov_reg_membase32(codegendata *cd, s4 reg, s4 basereg, s4 disp);
 void i386_mov_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_mov_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_movw_reg_memindex(codegendata *cd, s4 reg, s4 disp, s4 basereg, s4 indexreg, s4 scale);
@@ -64,6 +67,7 @@ void i386_mov_reg_mem(codegendata *cd, s4 reg, s4 mem);
 void i386_mov_mem_reg(codegendata *cd, s4 mem, s4 dreg);
 void i386_mov_imm_mem(codegendata *cd, s4 imm, s4 mem);
 void i386_mov_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
+void i386_mov_imm_membase32(codegendata *cd, s4 imm, s4 basereg, s4 disp);
 void i386_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp);
 void i386_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
 void i386_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg);
@@ -123,7 +127,9 @@ void i386_fld1(codegendata *cd);
 void i386_fldz(codegendata *cd);
 void i386_fld_reg(codegendata *cd, s4 reg);
 void i386_flds_membase(codegendata *cd, s4 basereg, s4 disp);
+void i386_flds_membase32(codegendata *cd, s4 basereg, s4 disp);
 void i386_fldl_membase(codegendata *cd, s4 basereg, s4 disp);
+void i386_fldl_membase32(codegendata *cd, s4 basereg, s4 disp);
 void i386_fldt_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_flds_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_fldl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
@@ -138,7 +144,9 @@ void i386_fsts_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 sc
 void i386_fstl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_fstp_reg(codegendata *cd, s4 reg);
 void i386_fstps_membase(codegendata *cd, s4 basereg, s4 disp);
+void i386_fstps_membase32(codegendata *cd, s4 basereg, s4 disp);
 void i386_fstpl_membase(codegendata *cd, s4 basereg, s4 disp);
+void i386_fstpl_membase32(codegendata *cd, s4 basereg, s4 disp);
 void i386_fstpt_membase(codegendata *cd, s4 basereg, s4 disp);
 void i386_fstps_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
 void i386_fstpl_memindex(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale);
