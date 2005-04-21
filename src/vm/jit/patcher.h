@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/patcher.h - i386 code patching functions
+/* src/vm/jit/patcher.h - code patching functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,23 +28,50 @@
 
    Changes:
 
-   $Id: patcher.h 2312 2005-04-20 16:01:00Z twisti $
+   $Id: patcher.h 2320 2005-04-21 20:19:06Z twisti $
 
 */
 
 #ifndef _PATCHER_H
 #define _PATCHER_H
 
+#include "types.h"
 #include "vm/global.h"
-#include "vm/jit/i386/types.h"
 
 
 /* function prototypes ********************************************************/
 
 bool patcher_get_putstatic(u1 *sp);
+#define PATCHER_get_putstatic (functionptr) patcher_get_putstatic
+
+#if defined(__I386__)
+
+bool patcher_getfield(u1 *sp);
+#define PATCHER_getfield (functionptr) patcher_getfield
+
+bool patcher_putfield(u1 *sp);
+#define PATCHER_putfield (functionptr) patcher_putfield
+
+#else
+
 bool patcher_get_putfield(u1 *sp);
+#define PATCHER_get_putfield (functionptr) patcher_get_putfield
+
+#endif /* defined(__I386__) */
+
 bool patcher_builtin_new(u1 *sp);
+
+bool patcher_invokestatic_special(u1 *sp);
+#define PATCHER_invokestatic_special (functionptr) patcher_invokestatic_special
+
+bool patcher_invokevirtual(u1 *sp);
+#define PATCHER_invokevirtual (functionptr) patcher_invokevirtual
+
+bool patcher_invokeinterface(u1 *sp);
+#define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
+
 bool patcher_clinit(u1 *sp);
+#define PATCHER_clinit (functionptr) patcher_clinit
 
 #endif /* _PATCHER_H */
 
