@@ -1,24 +1,42 @@
 public class test {
+    boolean doit = true;
+
     public static void main(String[] argv) {
-        new test();
+//          invokestatic();
+
+        new test(argv);
     }
 
-    public test() {
-        getstatic();
-        putstatic();
+    public test(String[] argv) {
+        if (argv.length > 0) {
+            for (int i = 0; i < argv.length; i++) {
+                if (argv[i].equals("skip")) {
+                    doit = false;
+                }
+            }
+        }
+//          getstatic();
+//          putstatic();
 
 //          getfield();
 //         putfield();
 //         putfieldconst();
 
-//         newarray();
-//         multianewarray();
+//          newarray();
+//          multianewarray();
 
 //         invokespecial();
 
-//         checkcast();
-//         _instanceof();
+        checkcast();
+        _instanceof();
     }
+
+
+    final private static void invokestatic() {
+        System.out.println("invokestatic:");
+        invokestatic.sub();
+    }
+
 
     public void getstatic() {
         try {
@@ -190,7 +208,9 @@ public class test {
     private void newarray() {
         try {
             p("newarray: ");
-            newarray[] na = new newarray[1];
+            if (doit) {
+                newarray[] na = new newarray[1];
+            }
             ok();
         } catch (Throwable t) {
             failed(t);
@@ -200,7 +220,9 @@ public class test {
     private void multianewarray() {
         try {
             p("multianewarray: ");
-            multianewarray[][] ma = new multianewarray[1][1];
+            if (doit) {
+                multianewarray[][] ma = new multianewarray[1][1];
+            }
             ok();
         } catch (Throwable t) {
             failed(t);
@@ -219,20 +241,41 @@ public class test {
     private void checkcast() {
         Object o = new Object();
 
+        // class
         try {
             p("checkcast class: ");
             checkcastC cc = (checkcastC) o;
             failed();
         } catch (ClassCastException e) {
             ok();
+        } catch (Throwable t) {
+            failed(t);
         }
 
+        // interface
         try {
             p("checkcast interface: ");
             checkcastI ci = (checkcastI) o;
             failed();
         } catch (ClassCastException e) {
             ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+
+        // array
+
+        Object[] oa = new Object[1];
+
+        try {
+            p("checkcast class array: ");
+            checkcastC[] cca = (checkcastC[]) oa;
+            failed();
+        } catch (ClassCastException e) {
+            ok();
+        } catch (Throwable t) {
+            failed(t);
         }
     }
 
@@ -252,6 +295,21 @@ public class test {
         try {
             p("instanceof interface: ");
             if (o instanceof instanceofI)
+                failed();
+            else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+
+        // array
+
+        Object[] oa = new Object[1];
+
+        try {
+            p("instanceof class array: ");
+            if (oa instanceof instanceofC[])
                 failed();
             else
                 ok();
