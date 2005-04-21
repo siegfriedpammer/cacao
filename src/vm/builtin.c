@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: builtin.c 2330 2005-04-21 22:41:57Z twisti $
 
 */
 
@@ -239,7 +239,6 @@ builtin_descriptor builtin_desc[] = {
 	{255,BUILTIN_newarray_short  ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_short"},
 	{255,BUILTIN_newarray_int    ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_int"},
 	{255,BUILTIN_newarray_long   ,ICMD_BUILTIN1,TYPE_INT   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray_long"},
-	{255,BUILTIN_anewarray       ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_ADR   ,0,0,"anewarray"},
 #if defined(USE_THREADS)
 	{255,BUILTIN_monitorenter    ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorenter"},
 	{255,BUILTIN_monitorexit     ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_VOID  ,0,0,"monitorexit"},
@@ -259,12 +258,12 @@ builtin_descriptor builtin_desc[] = {
 #if defined(__X86_64__) || defined(__I386__)
 	/* assembler code patching functions */
 
-	{ 255, asm_patcher_BUILTIN_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling asm_patcher_builtin_new)" },
+	{ 255, asm_wrapper_patcher_BUILTIN_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling asm_wrapper_patcher_builtin_new)" },
 #endif
 #if defined(__X86_64__)
-	{ 255, asm_patcher_BUILTIN_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling asm_patcher_builtin_newarray)" },
-	{ 255, asm_patcher_BUILTIN_checkarraycast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "checkarraycast (calling asm_patcher_builtin_checkarraycast)" },
-	{ 255, asm_patcher_BUILTIN_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling asm_patcher_builtin_arrayinstanceof)" },
+	{ 255, asm_wrapper_patcher_BUILTIN_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling asm_wrapper_patcher_builtin_newarray)" },
+	{ 255, asm_wrapper_patcher_BUILTIN_checkarraycast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "checkarraycast (calling asm_wrapper_patcher_builtin_checkarraycast)" },
+	{ 255, asm_wrapper_patcher_BUILTIN_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling asm_wrapper_patcher_builtin_arrayinstanceof)" },
 #endif
 
 
@@ -732,7 +731,7 @@ java_objectheader *builtin_new(classinfo *c)
 
    Creates an array with the given vftbl on the heap.
 
-   Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is available
 
    CAUTION: The given vftbl must be the vftbl of the *array* class,
    not of the element class.
@@ -782,17 +781,14 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 }
 
 
-/********************** Function: builtin_anewarray *************************
+/* builtin_anewarray ***********************************************************
 
-	Creates an array of references to the given class type on the heap.
+   Creates an array of references to the given class type on the heap.
 
-	Return value: pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-    XXX This function does not do The Right Thing, because it uses a
-    classinfo pointer at runtime. builtin_newarray should be used
-    instead.
-
-*****************************************************************************/
+*******************************************************************************/
 
 java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 {
@@ -806,176 +802,193 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *component)
 		if (!link_class(component))
 			return NULL;
 
-	c = class_array_of(component,true);
+	c = class_array_of(component, true);
+
 	if (!c)
 		return NULL;
+
 	return (java_objectarray *) builtin_newarray(size, c->vftbl);
 }
 
 
-/******************** Function: builtin_newarray_int ***********************
+/* builtin_newarray_int ********************************************************
 
-	Creates an array of 32 bit Integers on the heap.
+   Creates an array of 32 bit Integers on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_intarray *builtin_newarray_int(s4 size)
 {
-	return (java_intarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
+	return (java_intarray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_INT].arrayvftbl);
 }
 
 
-/******************** Function: builtin_newarray_long ***********************
+/* builtin_newarray_long *******************************************************
 
-	Creates an array of 64 bit Integers on the heap.
+   Creates an array of 64 bit Integers on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_longarray *builtin_newarray_long(s4 size)
 {
-	return (java_longarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
+	return (java_longarray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_LONG].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_float ***********************
+/* builtin_newarray_float ******************************************************
 
-	Creates an array of 32 bit IEEE floats on the heap.
+   Creates an array of 32 bit IEEE floats on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_floatarray *builtin_newarray_float(s4 size)
 {
-	return (java_floatarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
+	return (java_floatarray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_FLOAT].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_double ***********************
+/* builtin_newarray_double *****************************************************
 
-	Creates an array of 64 bit IEEE floats on the heap.
+   Creates an array of 64 bit IEEE floats on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_doublearray *builtin_newarray_double(s4 size)
 {
-	return (java_doublearray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
+	return (java_doublearray *)
+		builtin_newarray(size,
+						 primitivetype_table[ARRAYTYPE_DOUBLE].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_byte ***********************
+/* builtin_newarray_byte *******************************************************
 
-	Creates an array of 8 bit Integers on the heap.
+   Creates an array of 8 bit Integers on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_bytearray *builtin_newarray_byte(s4 size)
 {
-	return (java_bytearray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
+	return (java_bytearray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_BYTE].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_char ************************
+/* builtin_newarray_char *******************************************************
 
-	Creates an array of characters on the heap.
+   Creates an array of characters on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_chararray *builtin_newarray_char(s4 size)
 {
-	return (java_chararray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
+	return (java_chararray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_short ***********************
+/* builtin_newarray_short ******************************************************
 
-	Creates an array of 16 bit Integers on the heap.
+   Creates an array of 16 bit Integers on the heap.
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_shortarray *builtin_newarray_short(s4 size)
 {
-	return (java_shortarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
+	return (java_shortarray *)
+		builtin_newarray(size, primitivetype_table[ARRAYTYPE_SHORT].arrayvftbl);
 }
 
 
-/******************** function: builtin_newarray_boolean ************************
+/* builtin_newarray_boolean ****************************************************
 
-	Creates an array of bytes on the heap. The array is designated as an array
-	of booleans (important for casts)
+   Creates an array of bytes on the heap. The array is designated as
+   an array of booleans (important for casts)
 	
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
-*****************************************************************************/
+*******************************************************************************/
 
 java_booleanarray *builtin_newarray_boolean(s4 size)
 {
-	return (java_booleanarray*) builtin_newarray(size, primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
+	return (java_booleanarray *)
+		builtin_newarray(size,
+						 primitivetype_table[ARRAYTYPE_BOOLEAN].arrayvftbl);
 }
 
 
-/**************** function: builtin_nmultianewarray ***************************
+/* builtin_multianewarray ******************************************************
 
-	Creates a multi-dimensional array on the heap. The dimensions are passed in
-	an array of longs.
+   Creates a multi-dimensional array on the heap. The dimensions are
+   passed in an array of longs.
 
-    Arguments:
-        n............number of dimensions to create
-        arrayvftbl...vftbl of the array class
-        dims.........array containing the size of each dimension to create
+   Arguments:
+       n............number of dimensions to create
+       arrayvftbl...vftbl of the array class
+       dims.........array containing the size of each dimension to create
 
-	Return value:  pointer to the array or NULL if no memory is available
+   Return value: pointer to the array or NULL if no memory is
+   available
 
 ******************************************************************************/
 
-java_arrayheader *builtin_nmultianewarray(int n, vftbl_t *arrayvftbl, long *dims)
-/*  java_arrayheader *builtin_nmultianewarray(int n, classinfo *arrayclass, long *dims) */
+java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 {
 	s4 size, i;
 	java_arrayheader *a;
 	vftbl_t *componentvftbl;
 
-/*  	utf_display(arrayclass->name); */
-
-/*  	class_load(arrayclass); */
-/*  	class_link(arrayclass); */
-	
 	/* create this dimension */
+
 	size = (s4) dims[0];
   	a = builtin_newarray(size, arrayvftbl);
-/*  	a = builtin_newarray(size, arrayclass->vftbl); */
 
 	if (!a)
 		return NULL;
 
 	/* if this is the last dimension return */
+
 	if (!--n)
 		return a;
 
 	/* get the vftbl of the components to create */
+
 	componentvftbl = arrayvftbl->arraydesc->componentvftbl;
-/*  	component = arrayclass->vftbl->arraydesc; */
 
 	/* The verifier guarantees this. */
 	/* if (!componentvftbl) */
 	/*	panic ("multianewarray with too many dimensions"); */
 
 	/* create the component arrays */
+
 	for (i = 0; i < size; i++) {
 		java_arrayheader *ea = 
-			builtin_nmultianewarray(n, componentvftbl, dims + 1);
+			builtin_multianewarray(n, componentvftbl, dims + 1);
 
 		if (!ea)
 			return NULL;
