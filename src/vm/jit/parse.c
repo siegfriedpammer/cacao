@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2292 2005-04-12 21:59:47Z twisti $
+   $Id: parse.c 2324 2005-04-21 22:35:27Z twisti $
 
 */
 
@@ -680,7 +680,7 @@ SHOWOPCODE(DEBUG4)
 
 				} else {
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN2(asm_patcher_BUILTIN_newarray, TYPE_ADR, currentline);
+					BUILTIN2(asm_wrapper_patcher_BUILTIN_newarray, TYPE_ADR, currentline);
 				}
 				s_count++;
 #else
@@ -695,7 +695,7 @@ SHOWOPCODE(DEBUG4)
 					return NULL;
   				LOADCONST_A_BUILTIN(c->vftbl);
 				s_count++;
-				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
+				BUILTIN2(BUILTIN_anewarray, TYPE_ADR, currentline);
 #endif
 			}
 			OP(ICMD_CHECKEXCEPTION);
@@ -718,10 +718,10 @@ SHOWOPCODE(DEBUG4)
 					return NULL;
 
 				if (c) {
-					OP2AT(opcode, v, c->vftbl, BUILTIN_nmultianewarray, currentline);
+					OP2AT(opcode, v, c->vftbl, BUILTIN_multianewarray, currentline);
 
 				} else {
-					OP2AT(opcode, v, cr, asm_patcher_BUILTIN_multianewarray, currentline);
+					OP2AT(opcode, v, cr, asm_wrapper_patcher_BUILTIN_multianewarray, currentline);
 				}
 #else
 /*   				vftbl *arrayvftbl = */
@@ -1297,7 +1297,7 @@ if (DEBUG4==true) {
 
 				} else {
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN1(asm_patcher_BUILTIN_new, TYPE_ADR, currentline);
+					BUILTIN1(asm_wrapper_patcher_BUILTIN_new, TYPE_ADR, currentline);
 				}
 
 				s_count++;
@@ -1335,7 +1335,7 @@ if (DEBUG4==true) {
 
 					} else {
 						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2(asm_patcher_BUILTIN_checkarraycast, TYPE_ADR, currentline);
+						BUILTIN2(asm_wrapper_patcher_BUILTIN_checkarraycast, TYPE_ADR, currentline);
 					}
 					s_count++;
 
@@ -1386,7 +1386,7 @@ if (DEBUG4==true) {
 
 					} else {
 						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2(asm_patcher_BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+						BUILTIN2(asm_wrapper_patcher_BUILTIN_arrayinstanceof, TYPE_INT, currentline);
 					}
 					s_count++;
 
