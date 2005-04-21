@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2320 2005-04-21 20:19:06Z twisti $
+   $Id: patcher.h 2326 2005-04-21 22:36:28Z twisti $
 
 */
 
@@ -60,6 +60,11 @@ bool patcher_get_putfield(u1 *sp);
 #endif /* defined(__I386__) */
 
 bool patcher_builtin_new(u1 *sp);
+bool patcher_builtin_newarray(u1 *sp, constant_classref *cr);
+bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr);
+
+bool patcher_builtin_checkarraycast(u1 *sp, constant_classref *cr);
+bool patcher_builtin_arrayinstanceof(u1 *sp, constant_classref *cr);
 
 bool patcher_invokestatic_special(u1 *sp);
 #define PATCHER_invokestatic_special (functionptr) patcher_invokestatic_special
@@ -69,6 +74,18 @@ bool patcher_invokevirtual(u1 *sp);
 
 bool patcher_invokeinterface(u1 *sp);
 #define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
+
+bool patcher_checkcast_instanceof_flags(u1 *sp);
+#define PATCHER_checkcast_instanceof_flags (functionptr) patcher_checkcast_instanceof_flags
+
+bool patcher_checkcast_instanceof_interface(u1 *sp);
+#define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
+
+bool patcher_checkcast_class(u1 *sp);
+#define PATCHER_checkcast_class (functionptr) patcher_checkcast_class
+
+bool patcher_instanceof_class(u1 *sp);
+#define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
 
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit
