@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2234 2005-04-06 12:04:25Z twisti $
+   $Id: codegen.inc.h 2318 2005-04-21 19:44:18Z twisti $
 
 */
 
@@ -147,7 +147,7 @@ struct dataref {
 
 struct patchref {
 	s4           branchpos;
-	functionptr  asmwrapper;
+	functionptr  patcher;
 	voidptr      ref;
 	patchref    *next;
 };
