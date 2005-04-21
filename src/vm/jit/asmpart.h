@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2321 2005-04-21 20:25:34Z twisti $
+   $Id: asmpart.h 2327 2005-04-21 22:36:46Z twisti $
 
 */
 
@@ -119,35 +119,25 @@ void asm_throw_and_handle_arrayindexoutofbounds_exception();
 #endif
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
-/* code patching functions */
-void asm_patcher_wrapper(void);
-void asm_patcher_get_putstatic(void);
-void asm_patcher_get_putfield(void);
 
-void asm_patcher_builtin_new(unresolved_class *uc);
-#define asm_patcher_BUILTIN_new (functionptr) asm_patcher_builtin_new
+/* wrapper for code patching functions */
 
-void asm_patcher_builtin_newarray(unresolved_class *uc);
-#define asm_patcher_BUILTIN_newarray (functionptr) asm_patcher_builtin_newarray
+void asm_wrapper_patcher(void);
 
-void asm_patcher_builtin_multianewarray(unresolved_class *uc);
-#define asm_patcher_BUILTIN_multianewarray (functionptr) asm_patcher_builtin_multianewarray
+void asm_wrapper_patcher_builtin_new(unresolved_class *uc);
+#define asm_wrapper_patcher_BUILTIN_new (functionptr) asm_wrapper_patcher_builtin_new
 
-void asm_patcher_builtin_checkarraycast(unresolved_class *uc);
-#define asm_patcher_BUILTIN_checkarraycast (functionptr) asm_patcher_builtin_checkarraycast
+void asm_wrapper_patcher_builtin_newarray(unresolved_class *uc);
+#define asm_wrapper_patcher_BUILTIN_newarray (functionptr) asm_wrapper_patcher_builtin_newarray
 
-void asm_patcher_builtin_arrayinstanceof(unresolved_class *uc);
-#define asm_patcher_BUILTIN_arrayinstanceof (functionptr) asm_patcher_builtin_arrayinstanceof
+void asm_wrapper_patcher_builtin_multianewarray(unresolved_class *uc);
+#define asm_wrapper_patcher_BUILTIN_multianewarray (functionptr) asm_wrapper_patcher_builtin_multianewarray
 
-void asm_patcher_invokestatic_special(void);
-void asm_patcher_invokevirtual(void);
-void asm_patcher_invokeinterface(void);
-void asm_patcher_checkcast_instanceof_flags(void);
-void asm_patcher_checkcast_instanceof_interface(void);
-void asm_patcher_checkcast_class(void);
-void asm_patcher_instanceof_class(void);
+void asm_wrapper_patcher_builtin_checkarraycast(unresolved_class *uc);
+#define asm_wrapper_patcher_BUILTIN_checkarraycast (functionptr) asm_wrapper_patcher_builtin_checkarraycast
 
-void asm_check_clinit(void);
+void asm_wrapper_patcher_builtin_arrayinstanceof(unresolved_class *uc);
+#define asm_wrapper_patcher_BUILTIN_arrayinstanceof (functionptr) asm_wrapper_patcher_builtin_arrayinstanceof
 
 
 stacktraceelement *asm_get_stackTrace();
