@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2283 2005-04-12 19:53:05Z twisti $
+   $Id: asmpart.h 2321 2005-04-21 20:25:34Z twisti $
 
 */
 
@@ -120,6 +120,7 @@ void asm_throw_and_handle_arrayindexoutofbounds_exception();
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
 /* code patching functions */
+void asm_patcher_wrapper(void);
 void asm_patcher_get_putstatic(void);
 void asm_patcher_get_putfield(void);
 
