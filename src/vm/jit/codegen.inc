@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2282 2005-04-12 19:52:39Z twisti $
+   $Id: codegen.inc 2319 2005-04-21 19:44:32Z twisti $
 
 */
 
@@ -539,7 +539,7 @@ static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 
 static void codegen_addpatchref(codegendata *cd,
 								voidptr branchptr,
-								functionptr asmwrapper,
+								functionptr patcher,
 								voidptr ref)
 {
 	patchref *pr;
@@ -549,7 +549,7 @@ static void codegen_addpatchref(codegendata *cd,
 
 	pr = DNEW(patchref);
 	pr->branchpos = branchpos;
-	pr->asmwrapper = asmwrapper;
+	pr->patcher = patcher;
 	pr->ref = ref;
 	pr->next = cd->patchrefs;
 	cd->patchrefs = pr;
@@ -844,7 +844,7 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	printf("  --- dump of datasegment\n");
 	for (i = cd->dseglen; i > 0 ; i -= 4) {
 #if defined(__I386__) || defined(__POWERPC__)
-		printf("0x%08lx:   -%6x (%6d): %8x\n",
+		printf("0x%08x:   -%6x (%6d): %8x\n",
 			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
 #else
 		printf("0x%016lx:   -%6x (%6d): %8x\n",
