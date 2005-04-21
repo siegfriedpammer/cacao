@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2299 2005-04-14 05:17:27Z edwin $
+   $Id: utf8.h 2322 2005-04-21 22:17:46Z twisti $
 
 */
 
@@ -66,6 +66,7 @@ extern utf *utf_java_lang_Cloneable;
 extern utf *utf_java_lang_SecurityManager;
 extern utf *utf_java_lang_String;
 extern utf *utf_java_lang_System;
+extern utf *utf_java_lang_ThreadGroup;
 extern utf *utf_java_io_Serializable;
 
 extern utf *utf_java_lang_Throwable;

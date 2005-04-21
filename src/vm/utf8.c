@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: utf8.c 2322 2005-04-21 22:17:46Z twisti $
 
 */
 
@@ -58,6 +58,7 @@ utf *utf_java_lang_Cloneable;
 utf *utf_java_lang_SecurityManager;
 utf *utf_java_lang_String;
 utf *utf_java_lang_System;
+utf *utf_java_lang_ThreadGroup;
 utf *utf_java_io_Serializable;
 
 utf *utf_java_lang_Throwable;
@@ -133,6 +134,7 @@ void utf8_init(void)
 	utf_java_lang_SecurityManager  = utf_new_char("java/lang/SecurityManager");
 	utf_java_lang_String           = utf_new_char("java/lang/String");
 	utf_java_lang_System           = utf_new_char("java/lang/System");
+	utf_java_lang_ThreadGroup      = utf_new_char("java/lang/ThreadGroup");
 	utf_java_io_Serializable       = utf_new_char("java/io/Serializable");
 
 	utf_java_lang_Throwable        = utf_new_char(string_java_lang_Throwable);
