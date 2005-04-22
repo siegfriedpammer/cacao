@@ -1,4 +1,4 @@
-/* vm/jit/i386/codegen.h - code generation macros and definitions for i386
+/* src/vm/jit/i386/codegen.h - code generation macros and definitions for i386
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,7 +27,9 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
+   Changes:
+
+   $Id: codegen.h 2339 2005-04-22 13:31:01Z twisti $
 
 */
 
@@ -445,6 +447,19 @@ typedef enum {
         if (i386_is_imm8((disp))) { \
             i386_address_byte(1, (dreg), (basereg)); \
             i386_emit_imm8((disp)); \
+        } else { \
+            i386_address_byte(2, (dreg), (basereg)); \
+            i386_emit_imm32((disp)); \
+        } \
+    } while (0)
+
+
+#define i386_emit_membase32(basereg,disp,dreg) \
+    do { \
+        if ((basereg) == ESP) { \
+            i386_address_byte(2, (dreg), ESP); \
+            i386_address_byte(0, ESP, ESP); \
+            i386_emit_imm32((disp)); \
         } else { \
             i386_address_byte(2, (dreg), (basereg)); \
             i386_emit_imm32((disp)); \
