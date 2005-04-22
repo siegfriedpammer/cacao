@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 2316 2005-04-21 16:40:28Z twisti $
+   $Id: emitfuncs.h 2338 2005-04-22 13:30:40Z twisti $
 
 */
 
@@ -80,6 +80,7 @@ void i386_alu_reg_reg(codegendata *cd, s4 opc, s4 reg, s4 dreg);
 void i386_alu_reg_membase(codegendata *cd, s4 opc, s4 reg, s4 basereg, s4 disp);
 void i386_alu_membase_reg(codegendata *cd, s4 opc, s4 basereg, s4 disp, s4 reg);
 void i386_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
+void i386_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void i386_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
 void i386_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
 void i386_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
