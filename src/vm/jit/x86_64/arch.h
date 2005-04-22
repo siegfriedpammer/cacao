@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2039 2005-03-20 11:24:19Z twisti $
+   $Id: arch.h 2350 2005-04-22 13:54:34Z twisti $
 
 */
 
@@ -142,7 +142,7 @@
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
-#define SUPPORT_CONST_STORE              1  /* do we support const stores     */
+#define SUPPORT_CONST_STORE              0  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
