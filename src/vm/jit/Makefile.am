@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2336 2005-04-22 13:29:51Z twisti $
+## $Id: Makefile.am 2354 2005-04-22 14:50:12Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -56,8 +56,8 @@ noinst_HEADERS = \
 noinst_LTLIBRARIES = libjit.la
 
 libjit_la_SOURCES = \
-	asmhelper.c \
-	asmhelper.h \
+	helper.c \
+	helper.h \
 	jit.c \
 	jit.h \
 	parse.c \
