@@ -1,4 +1,4 @@
-/* src/vm/jit/asmhelper.h - code patching helper functions
+/* src/vm/jit/helper.h - code patching helper functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,13 +28,13 @@
 
    Changes:
 
-   $Id: helper.h 2332 2005-04-22 13:21:02Z twisti $
+   $Id: helper.h 2355 2005-04-22 14:57:47Z twisti $
 
 */
 
 
-#ifndef _ASMHELPER_H
-#define _ASMHELPER_H
+#ifndef _HELPER_H
+#define _HELPER_H
 
 #include "vm/class.h"
 #include "vm/linker.h"
@@ -48,7 +48,7 @@ classinfo  *helper_resolve_classinfo(constant_classref *cr);
 methodinfo *helper_resolve_methodinfo(unresolved_method *um);
 fieldinfo  *helper_resolve_fieldinfo(unresolved_field *uf);
 
-#endif /* _ASMHELPER_H */
+#endif /* _HELPER_H */
 
 
 /*

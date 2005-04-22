@@ -28,15 +28,17 @@
 
    Changes:
 
-   $Id: patcher.c 2335 2005-04-22 13:28:28Z twisti $
+   $Id: patcher.c 2355 2005-04-22 14:57:47Z twisti $
 
 */
 
 
 #include "vm/jit/i386/types.h"
+#include "vm/builtin.h"
 #include "vm/field.h"
+#include "vm/initialize.h"
 #include "vm/references.h"
-#include "vm/jit/asmhelper.c"
+#include "vm/jit/helper.h"
 
 
 /* patcher_get_putstatic *******************************************************
