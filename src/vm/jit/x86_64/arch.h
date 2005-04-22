@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2350 2005-04-22 13:54:34Z twisti $
+   $Id: arch.h 2357 2005-04-22 17:37:57Z christian $
 
 */
 
@@ -148,8 +148,8 @@
 
 #define CONDITIONAL_LOADCONST            1
 
-#define CONSECUTIVE_INTARGS
-#define CONSECUTIVE_FLOATARGS
+#define CONSECUTIVE_INTEGER_ARGS
+#define CONSECUTIVE_FLOAT_ARGS
 
 #endif /* _ARCH_H */
 
