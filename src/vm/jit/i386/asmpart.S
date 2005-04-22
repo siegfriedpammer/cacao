@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2290 2005-04-12 21:57:56Z twisti $
+   $Id: asmpart.S 2342 2005-04-22 13:34:00Z twisti $
 
 */
 
@@ -75,13 +75,16 @@
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
 
-	.globl asm_check_clinit
-
-	.globl asm_patcher_builtin_new
-	.globl asm_patcher_invokestatic_special
+	.globl asm_wrapper_patcher
+	.globl asm_wrapper_patcher_builtin_new
+	.globl asm_wrapper_patcher_builtin_newarray
+	.globl asm_wrapper_patcher_builtin_multianewarray
+	.globl asm_wrapper_patcher_builtin_checkarraycast
+	.globl asm_wrapper_patcher_builtin_arrayinstanceof
 
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_newarray
+	.globl asm_builtin_multianewarray
 	.globl asm_builtin_aastore
 
 #if defined(USE_THREADS)
@@ -666,109 +669,61 @@ noflt:
 		jmp		asm_handle_exception_loop
 		
 
-/* asm_check_clinit ************************************************************
-
-   DOCUMENT ME!!!
-
-   Stack layout:
-
-	16  ra      ; return address of patched call in java machine code
-	12  xmcode  ; additional machine code (only for i386 and x86_64)
-	8   mcode   ; machine code to patch back in
-	4   class   ; pointer to class
-	0   sp      ; stack pointer of java stack frame + return address
-
-*******************************************************************************/
-
-asm_check_clinit:
-	mov     4(%esp),%eax                /* get fieldinfo's class pointer      */
-	mov     offclassinit(%eax),%eax     /* get initialized flag               */
-	test	%eax,%eax
-	jnz     L_is_initialized
-
-	/*3*4 bytes*/
-	mov 16(%esp),itmp1
-	push itmp1                        /*return adress into java machine code */
-	mov 4(%esp),itmp1
-	push itmp1                        /*begin of java stack frame*/
-	pushl $0                           /*internal (invisible) method*/
-	call asm_prepare_native_stackinfo /*puts additional 2 *4 bytes of
-						data onto the stack */
-
-	sub     $4,%esp
-	mov     20+4+4(%esp),itmp1          /* get class pointer                  */
-	mov     itmp1,(%esp)                /* store class pointer as a0          */
-	call    initialize_class            /* call initialize class function     */
-	add     $4,%esp
-
-	call asm_remove_native_stackinfo  /* removes 4* 4 bytes and leaves ret
-						 into java machine code on stack  */
-	add	$4,%esp                   /* ret address no longer needed, is still
-						on stack a few bytes above */
-
-	test    %eax,%eax                   /* we had an exception                */
-	je      L_initializererror
-
-L_is_initialized:
-	mov     16(%esp),itmp1              /* get return address                 */
-	sub     $5,itmp1                    /* remove size of `call rel32'        */
-
-	mov     12(%esp),itmp2              /* get xmcode machine code            */
-	movb    itmp2b,(itmp1)              /* patch back in 1 byte               */
-	mov     8(%esp),itmp2               /* get mcode machine code             */
-	mov     itmp2,1(itmp1)              /* patch back in 4 bytes              */
-
-	add     $(5*4),%esp                 /* remove stub stack frame incl. ra   */
-
-	jmp     *itmp1                      /* jump to patched code an execute it */
-
-L_initializererror:
-	add     $(4*4),%esp                 /* remove stub stack frame            */
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	call    builtin_asm_get_exceptionptrptr
-	mov     %eax,%ecx
-	mov     (%ecx),%eax                 /* get the exception pointer          */
-	movl    $0,(%ecx)                   /* clear the exception pointer        */
-#else
-	lea     _exceptionptr,%ecx
-	mov     (%ecx),%eax                 /* get the exception pointer          */
-	movl    $0,(%ecx)                   /* clear the exception pointer        */
-#endif
-
-	pop     itmp2                       /* get and delete ra                  */
-	sub     $5,itmp2                    /* faulting address is ra - 5         */
-
-	jmp     asm_handle_exception
-
-
-/* asm_patcher_builtin_new *****************************************************
+/* asm_wrapper_patcher *********************************************************
 
    XXX
 
-   Arguments:
-     a0   contains the class reference
+   Stack layout:
+     16   return address
+     12   last byte of machine code (xmcode)
+      8   machine code (which is patched back later)
+      4   unresolved field reference
+      0   patcher function pointer to call
 
 *******************************************************************************/
 
-asm_patcher_builtin_new:
-	mov     4*1(%esp),itmp1             /* get the class reference            */
+asm_wrapper_patcher:
+	sub     $(2*4),%esp                 /* create stack frame                 */
+
+	mov     itmp1,0*4(%esp)             /* save itmp1 and itmp2               */
+	mov     itmp2,1*4(%esp)             /* may be used by some instructions   */
+
+#if 0
+	/* 3*4 bytes */
+	mov     3*4(%esp),itmp1             /* return adress into java code       */
+	mov     %esp,itmp2                  /* begin of java stack frame          */
+	add     $(3*4),itmp2
 	push    itmp1
-	call    helper_resolve_classinfo    /* call the helper function           */
-	add     $(4*1),%esp                 /* remove stack frame                 */
+	push    itmp2
+	pushl   $0                          /* internal (invisible) method        */
+	call    asm_prepare_native_stackinfo /* puts additional 2 *4 bytes of
+						data onto the stack */
+#endif
 
-	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_patcher_exception
+	mov     %esp,itmp1                  /* pass stack pointer                 */
+	add     $(3*4),itmp1                /* also skip patcher function pointer */
+	push    itmp1
+	mov     3*4(%esp),itmp1             /* get function pointer from stack    */
+	call    *itmp1                      /* call the patcher function          */
+	add     $4,%esp
+	mov     v0,itmp3                    /* save return value                  */
 
-	pop     itmp2                       /* get return address                 */
-	sub     $(2+5+7),itmp2              /* 2 (call) + 5 (movi) + 7 (movi)     */
-	mov     v0,3(itmp2)                 /* patch in new classinfo*: 3 (mov)   */
+#if 0
+	call    asm_remove_native_stackinfo  /* removes 4* 4 bytes and leaves ret
+						 into java machine code on stack  */
+	add     $4,%esp                   /* ret address no longer needed, is still
+						on stack a few bytes above */
+#endif
 
-	lea     builtin_new,itmp1           /* get address from builtin_new       */
-	mov     itmp1,8(itmp2)              /* patch back function address        */
-	jmp     *itmp2                      /* call new patched code              */
+	mov     0*4(%esp),itmp1             /* restore itmp1 and itmp2            */
+	mov     1*4(%esp),itmp2             /* may be used by some instructions   */
 
-L_asm_patcher_exception:
+	add     $((4+2)*4),%esp             /* remove stack frame, keep ra        */
+	test    itmp3,itmp3                 /* exception thrown?                  */
+	jz      L_asm_wrapper_patcher_exception
+	ret                                 /* call new patched code              */
+
+L_asm_wrapper_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2
@@ -778,46 +733,68 @@ L_asm_patcher_exception:
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
-	pop     itmp2                       /* get and remove return address      */
-	sub     $5,itmp2                    /* faulting address is ra - 5         */
+	pop     xpc                         /* get and remove return address      */
 	jmp     asm_handle_exception
 
 
-/* asm_patcher_invokespecial ***************************************************
+/* asm_wrapper_patcher_builtin_new *********************************************
 
    XXX
 
    Stack layout:
-
-	16  ra      ; return address of patched call in java machine code
-	12  xmcode  ; additional machine code (only for i386 and x86_64)
-	8   mcode   ; machine code to patch back in
-	4   class   ; pointer to class
-	0   sp      ; stack pointer of java stack frame + return address
+     4    contains the class reference
+     0    return address
 
 *******************************************************************************/
 
-asm_patcher_invokestatic_special:
-	mov     4*1(%esp),itmp1             /* pass unresolved_method pointer     */
-	push    itmp1
-	call    helper_resolve_methodinfo_stubroutine /* call the helper function */
-	add     $(4*1),%esp                 /* remove stack frame                 */
-
+asm_wrapper_patcher_builtin_new:
+	mov     1*4(%esp),itmp1             /* get class reference                */
+	mov     %esp,itmp2                  /* get stack pointer                  */
+	push    itmp2                       /* pass stack pointer                 */
+	push    itmp1                       /* pass class reference               */
+	call    patcher_builtin_new         /* call the patcher function          */
+	add     $(2*4),%esp                 /* clear arguments                    */
 	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_patcher_exception
+	jz      L_asm_wrapper_patcher_exception
+	ret                                 /* call new patched code              */
 
-	mov     16(%esp),itmp2              /* get return address                 */
-	sub     $5,itmp2                    /* remove size of `call rel32'        */
 
-	mov     12(%esp),itmp3              /* get xmcode machine code            */
-	movb    itmp3b,(itmp2)              /* patch back in 1 byte               */
-	mov     8(%esp),itmp3               /* get mcode machine code             */
-	mov     itmp3,1(itmp2)              /* patch back in 4 bytes              */
+/* asm_wrapper_patcher_builtin_* ***********************************************
 
-	add     $(5*4),%esp                 /* remove stub stack frame incl. ra   */
+   XXX
 
-	mov     v0,3+2+1(itmp2)             /* patch stubroutine: 3 + 2 + 1 (mov) */
-	jmp     *itmp2                      /* call new patched code              */
+   Stack layout:
+    12    contains the class reference
+     4    first argument
+     0    return address
+
+*******************************************************************************/
+
+asm_wrapper_patcher_builtin_newarray:
+	lea     patcher_builtin_newarray,itmp3
+	jmp     L_asm_wrapper_patcher_builtin_main
+
+asm_wrapper_patcher_builtin_multianewarray:
+	lea     patcher_builtin_multianewarray,itmp3
+	jmp     L_asm_wrapper_patcher_builtin_main
+
+asm_wrapper_patcher_builtin_checkarraycast:
+	lea     patcher_builtin_checkarraycast,itmp3
+	jmp     L_asm_wrapper_patcher_builtin_main
+	
+asm_wrapper_patcher_builtin_arrayinstanceof:
+	lea     patcher_builtin_arrayinstanceof,itmp3
+
+L_asm_wrapper_patcher_builtin_main:
+	mov     3*4(%esp),itmp1             /* get class reference                */
+	mov     %esp,itmp2                  /* save stack pointer                 */
+	push    itmp1                       /* pass class reference               */
+	push    itmp2                       /* pass stack pointer                 */
+	call    *itmp3                      /* call the patcher function          */
+	add     $(2*4),%esp                 /* clear arguments                    */
+	test    v0,v0                       /* exception thrown?                  */
+	jz      L_asm_wrapper_patcher_exception
+	ret                                 /* call new patched code              */
 
 
 /********************* function asm_builtin_monitorenter ***********************
@@ -1022,6 +999,7 @@ nb_carray_throw:
 	sub		$2,%ecx                     /* faulting address is return adress - 2 */
 	jmp		asm_handle_exception
 #endif
+
 		
 /* asm_builtin_newarray ********************************************************
 *                                                                              *
@@ -1039,8 +1017,30 @@ asm_builtin_newarray:
 	mov     %eax,4(%esp)
 
 	call	builtin_newarray
-
 	add     $8,%esp
+	ret
+
+		
+/* asm_builtin_multianewarray **************************************************
+*                                                                              *
+*   Does the cast check and eventually throws an exception                     *
+*                                                                              *
+*******************************************************************************/
+
+asm_builtin_multianewarray:
+	sub     $3*4,%esp
+
+	mov     0*8+(1+3)*4(%esp),%eax
+	mov     %eax,0*4(%esp)
+
+	mov     1*8+(1+3)*4(%esp),%eax
+	mov     %eax,1*4(%esp)
+
+	mov     2*8+(1+3)*4(%esp),%eax
+	mov     %eax,2*4(%esp)
+
+	call	builtin_multianewarray
+	add     $3*4,%esp
 	ret
 
 		
