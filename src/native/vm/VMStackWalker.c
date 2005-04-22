@@ -1,4 +1,4 @@
-/* native/vm/VMStackWalker.c - gnu/classpath/VMStackWalker
+/* src/native/vm/VMStackWalker.c - gnu/classpath/VMStackWalker
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: VMStackWalker.c 2346 2005-04-22 13:51:12Z twisti $
 
 */
 
@@ -46,7 +46,6 @@
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
-	classinfo *c;
 	if (cacao_initializing)
 		return 0;
 
@@ -55,10 +54,8 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 #else
 
 	/* XXX TWISTI: only a quick hack */
-	c = class_array_of(class_java_lang_Class,true);
-	if (!c)
-		return NULL;
-	return (java_objectarray *) builtin_newarray(0, c->vftbl);
+
+	return builtin_anewarray(0, class_java_lang_Class);
 #endif
 }
 
