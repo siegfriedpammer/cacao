@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2286 2005-04-12 20:32:53Z twisti $
+   $Id: codegen.c 2337 2005-04-22 13:30:22Z twisti $
 
 */
 
@@ -3481,6 +3481,11 @@ gen_method: {
 #endif
 
 			var_to_reg_int(s1, src, REG_ITMP1);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			if (s1 == d) {
+				M_INTMOVE(s1, REG_ITMP1);
+				s1 = REG_ITMP1;
+			}
 
 			/* calculate interface instanceof code size */
 
@@ -3503,11 +3508,6 @@ gen_method: {
 			CALCOFFSETBYTES(s3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 			s3 += 3 /* sub */ + 3 /* xor */ + 3 /* cmp */ + 4 /* setcc */;
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
-			if (s1 == d) {
-				M_INTMOVE(s1, REG_ITMP1);
-				s1 = REG_ITMP1;
-			}
 			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
 
 			/* if class is not resolved, check which code to call */
@@ -3586,17 +3586,17 @@ gen_method: {
 										OFFSET(vftbl_t, baseval),
 										REG_ITMP1);
 				x86_64_movl_membase_reg(cd, REG_ITMP2,
-										OFFSET(vftbl_t, baseval),
+										OFFSET(vftbl_t, diffval),
 										REG_ITMP3);
 				x86_64_movl_membase_reg(cd, REG_ITMP2,
-										OFFSET(vftbl_t, diffval),
+										OFFSET(vftbl_t, baseval),
 										REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-				x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP3, REG_ITMP1);
-				x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
-				x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP2, REG_ITMP1);
+				x86_64_alu_reg_reg(cd, X86_64_SUB, REG_ITMP2, REG_ITMP1);
+				x86_64_alu_reg_reg(cd, X86_64_XOR, d, d); /* may be REG_ITMP2 */
+				x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP3, REG_ITMP1);
 				x86_64_setcc_reg(cd, X86_64_CC_BE, d);
 			}
   			store_reg_to_var_int(iptr->dst, d);
