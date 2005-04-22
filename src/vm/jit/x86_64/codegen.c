@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2337 2005-04-22 13:30:22Z twisti $
+   $Id: codegen.c 2352 2005-04-22 13:55:26Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/parse.h"
+#include "vm/jit/patcher.h"
 #include "vm/jit/x86_64/arch.h"
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
@@ -543,7 +544,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->icount;
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 
-			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
+			MCODECHECK(128);    /* XXX are 128 bytes enough? */
+
 			switch (iptr->opc) {
 			case ICMD_INLINE_START: /* internal ICMDs                         */
 			case ICMD_INLINE_END:
@@ -2305,7 +2307,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target);
 				a = 0;
 
@@ -2314,7 +2317,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_check_clinit, fi->class);
+										PATCHER_clinit, fi->class);
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2353,7 +2356,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target);
 				a = 0;
 
@@ -2362,7 +2366,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_check_clinit, fi->class);
+										PATCHER_clinit, fi->class);
 
 					if (showdisassemble) {
 						x86_64_nop(cd);
@@ -2407,7 +2411,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* following NOP)                           */
 
 			if (!iptr[1].val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putstatic,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putstatic,
 									(unresolved_field *) iptr[1].target);
 				a = 0;
 
@@ -2416,7 +2421,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_check_clinit, fi->class);
+										PATCHER_clinit, fi->class);
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2451,7 +2456,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target);
 				a = 0;
 			} else
@@ -2494,7 +2500,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 
 			if (!iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target);
 				a = 0;
 			} else
@@ -2526,7 +2533,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (!iptr[1].val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr, asm_patcher_get_putfield,
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_get_putfield,
 									(unresolved_field *) iptr[1].target);
 				a = 0;
 			} else
@@ -3166,7 +3174,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_invokestatic_special, um);
+										PATCHER_invokestatic_special, um);
 
 					a = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3187,7 +3195,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_invokevirtual, um);
+										PATCHER_invokevirtual, um);
 
 					s1 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3212,7 +3220,7 @@ gen_method: {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_invokeinterface, um);
+										PATCHER_invokeinterface, um);
 
 					s1 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3334,7 +3342,7 @@ gen_method: {
 				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
-									asm_patcher_checkcast_instanceof_flags,
+									PATCHER_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
@@ -3356,7 +3364,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_checkcast_instanceof_interface,
+										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP2,
@@ -3392,7 +3400,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_checkcast_class,
+										PATCHER_checkcast_class,
 										(constant_classref *) iptr->target);
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
@@ -3517,7 +3525,7 @@ gen_method: {
 				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
-									asm_patcher_checkcast_instanceof_flags,
+									PATCHER_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP3); /* super->flags */
@@ -3538,7 +3546,7 @@ gen_method: {
 									   REG_ITMP1);
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_checkcast_instanceof_interface,
+										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP1,
@@ -3575,7 +3583,7 @@ gen_method: {
 
 				if (!super)
 					codegen_addpatchref(cd, cd->mcodeptr,
-										asm_patcher_instanceof_class,
+										PATCHER_instanceof_class,
 										(constant_classref *) iptr->target);
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP2);
@@ -3978,7 +3986,7 @@ gen_method: {
 		tmpcd = DNEW(codegendata);
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			MCODECHECK(50);
+			MCODECHECK(64);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
@@ -3995,7 +4003,10 @@ gen_method: {
 			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
 			x86_64_push_reg(cd, REG_ITMP3);
 
-			x86_64_mov_imm_reg(cd, (ptrint) pref->asmwrapper, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (ptrint) pref->patcher, REG_ITMP3);
+			x86_64_push_reg(cd, REG_ITMP3);
+
+			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
@@ -4124,7 +4135,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* if function is static, check for initialized */
 
 	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addpatchref(cd, cd->mcodeptr, asm_check_clinit, m->class);
+		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_clinit, m->class);
 	}
 
 	if (runverbose) {
@@ -4423,7 +4434,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
 			x86_64_push_reg(cd, REG_ITMP3);
 
-			x86_64_mov_imm_reg(cd, (ptrint) pref->asmwrapper, REG_ITMP3);
+			x86_64_mov_imm_reg(cd, (ptrint) pref->patcher, REG_ITMP3);
+			x86_64_push_reg(cd, REG_ITMP3);
+
+			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 		}
 	}
