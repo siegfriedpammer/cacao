@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2315 2005-04-21 11:22:45Z twisti $
+   $Id: patcher.c 2349 2005-04-22 13:54:18Z twisti $
 
 */
 
@@ -199,7 +199,7 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 }
 
 
-/* patcher_builtin_anewarray ***************************************************
+/* patcher_builtin_newarray ****************************************************
 
    XXX
 
@@ -207,7 +207,7 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_anewarray(u1 *sp, constant_classref *cr)
+bool patcher_builtin_newarray(u1 *sp, constant_classref *cr)
 {
 	u1                *ra;
 	classinfo         *c;
@@ -232,7 +232,7 @@ bool patcher_builtin_anewarray(u1 *sp, constant_classref *cr)
 
 	/* patch new function address */
 
-	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_anewarray;
+	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_newarray;
 
 	return true;
 }
