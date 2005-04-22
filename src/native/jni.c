@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2201 2005-04-03 21:48:11Z twisti $
+   $Id: jni.c 2344 2005-04-22 13:50:02Z twisti $
 
 */
 
@@ -2501,18 +2501,34 @@ jsize GetArrayLength(JNIEnv *env, jarray array)
 }
 
 
-jobjectArray NewObjectArray (JNIEnv *env, jsize len, jclass clazz, jobject init)
+/* NewObjectArray **************************************************************
+
+   Constructs a new array holding objects in class elementClass. All
+   elements are initially set to initialElement.
+
+*******************************************************************************/
+
+jobjectArray NewObjectArray(JNIEnv *env, jsize length, jclass elementClass, jobject initialElement)
 {
-	java_objectarray *j;
+	java_objectarray *oa;
+	s4 i;
 
-    if (len < 0) {
-		*exceptionptr = new_exception(string_java_lang_NegativeArraySizeException);
+	if (length < 0) {
+		*exceptionptr = new_negativearraysizeexception();
 		return NULL;
-    }
+	}
 
-    j = builtin_anewarray(len, clazz);
+    oa = builtin_anewarray(length, elementClass);
 
-    return j;
+	if (!oa)
+		return NULL;
+
+	/* set all elements to initialElement */
+
+	for (i = 0; i < length; i++)
+		oa->data[i] = initialElement;
+
+	return oa;
 }
 
 
