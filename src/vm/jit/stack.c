@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2298 2005-04-13 15:32:01Z christian $
+   $Id: stack.c 2333 2005-04-22 13:26:36Z twisti $
 
 */
 
@@ -1879,7 +1879,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
 						{
-#if defined(__X86_64__) 	 
+#if defined(__X86_64__) || defined(__I386__)
 							unresolved_method *um = iptr->target; 	 
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
@@ -2574,17 +2574,25 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-#if defined(__X86_64__) 	 
+#if defined(__X86_64__) || defined(__I386__)
 		if (iptr->val.a) 	 
 			printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
 		else 	 
 			printf(" NOT RESOLVED,"); 	 
 #else 	 
 		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset); 	 
+		printf(" ");
+		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
+		printf(".");
+		utf_display(((fieldinfo *) iptr->val.a)->name);
+		printf(" (type ");
+		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
+		printf(")");
+		break;
 #endif 	 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 		printf(" "); 	 
 		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
 		printf("."); 	 
@@ -2593,7 +2601,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor); 	 
 		printf(")"); 	 
 #else 	 
- 
 		printf(" ");
 		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
 		printf(".");
@@ -2627,7 +2634,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %g,", iptr->val.d);
 			break;
 		}
-#if defined(__X86_64__) 	 
+#if defined(__X86_64__)
 		if (iptr->opc == ICMD_PUTFIELDCONST) 	 
 			printf(" NOT RESOLVED,"); 	 
 		printf(" "); 	 
@@ -2744,7 +2751,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-#if defined(__X86_64__) 	 
+#if defined(__X86_64__) || defined(__I386__)
 		if (iptr->op1) { 	 
 			classinfo *c = iptr->val.a; 	 
 			if (c) { 	 
@@ -2785,7 +2792,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 		printf(" ");
 		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
 		printf(".");

@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2324 2005-04-21 22:35:27Z twisti $
+   $Id: parse.c 2333 2005-04-22 13:26:36Z twisti $
 
 */
 
@@ -665,7 +665,7 @@ SHOWOPCODE(DEBUG4)
 				constant_classref *cr;
 				classinfo         *c;
 
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!(cr = class_get_classref_multiarray_of(1, compr)))
@@ -711,7 +711,7 @@ SHOWOPCODE(DEBUG4)
 				vftbl_t *arrayvftbl;
 				s4 v = code_get_u1(p + 3, inline_env->method);
 
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
@@ -992,7 +992,7 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_GETSTATIC:
 		case JAVA_PUTSTATIC:
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
 #endif
@@ -1004,7 +1004,7 @@ SHOWOPCODE(DEBUG4)
 				classinfo        *c;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
@@ -1050,7 +1050,7 @@ SHOWOPCODE(DEBUG4)
 			}
 			break;
 
-#if !defined(__X86_64__)
+#if !defined(__X86_64__) && !defined(__I386__)
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
 			i = code_get_u2(p + 1,inline_env->method);
@@ -1091,7 +1091,7 @@ SHOWOPCODE(DEBUG4)
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1157,7 +1157,7 @@ if (DEBUG4==true) {
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1222,7 +1222,7 @@ if (DEBUG4==true) {
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1323,7 +1323,7 @@ if (DEBUG4==true) {
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
@@ -1374,7 +1374,7 @@ if (DEBUG4==true) {
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
