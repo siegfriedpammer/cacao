@@ -1,4 +1,4 @@
-/* native/vm/VMThread.c - java/lang/VMThread
+/* src/native/vm/VMThread.c - java/lang/VMThread
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMThread.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: VMThread.c 2347 2005-04-22 13:51:36Z twisti $
 
 */
 
@@ -78,7 +79,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_
 JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
 {
 	java_lang_Thread *t;
-	classinfo *threadgroupclass;
 
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread called");
@@ -100,10 +100,8 @@ if (t == NULL) printf("t ptr is NULL\n"); fflush(stdout);
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread 222");
 
-	if (!load_class_bootstrap(utf_new_char("java/lang/ThreadGroup"),&threadgroupclass))
-		return NULL;
-
-	t->group = (java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
+	t->group = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (runverbose)
 		log_text("java_lang_VMThread_currentThread 333");
