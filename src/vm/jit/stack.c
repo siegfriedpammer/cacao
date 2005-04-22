@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2333 2005-04-22 13:26:36Z twisti $
+   $Id: stack.c 2356 2005-04-22 17:33:35Z christian $
 
 */
 
@@ -1925,13 +1925,19 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							rd->argintreguse = 3;	
 
 						i = iptr->op1;
+
 						REQUIRE(i);
 #ifdef SPECIALMEMUSE
 						if (rd->ifmemuse < (i + rd->intreg_argnum + 6))
 							rd->ifmemuse = i + rd->intreg_argnum + 6; 
 #else
+# if defined(__I386__)
+						if (rd->ifmemuse < i + 3)
+							rd->ifmemuse = i + 3; /* n integer args spilled on stack */
+# else
 						if (rd->ifmemuse < i)
 							rd->ifmemuse = i; /* n integer args spilled on stack */
+# endif /* defined(__I386__) */
 #endif
 						if ((i + INT_ARG_CNT) > rd->arguments_num)
 							rd->arguments_num = i + INT_ARG_CNT;
@@ -1942,11 +1948,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
 								copy->flags|=INMEMORY;
-#ifdef SPECIALMEMUSE
+#if defined(SPECIALMEMUSE)
 								copy->regoff = i + rd->intreg_argnum + 6;
 #else
+# if defined(__I386__)
+								copy->regoff = i + 3;
+# else
 								copy->regoff = i;
-#endif
+# endif /* defined(__I386__) */
+#endif /* defined(SPECIALMEMUSE) */
 							}
 							copy = copy->prev;
 						}

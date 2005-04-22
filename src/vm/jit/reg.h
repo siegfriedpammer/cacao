@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: reg.h 2356 2005-04-22 17:33:35Z christian $
 
 */
 
@@ -35,6 +35,8 @@
 #define _REG_H
 
 /* #define INVOKE_NEW_DEBUG */
+/* #define NEW_MEMORY */
+
 
 /* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
 /* Changes affect handling of ARGVAR Stackslots in reg_of_var in codegen.inc          */
@@ -118,10 +120,14 @@ struct registerdata {
 	int freeargadrtop;              /* free argument address register count      */
 #endif
 
-#ifdef USETWOREGS
+#ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	int *secondregs;                /* used for longs in 2 32 bit registers   */
 #endif
 
+#if defined(NEW_MEMORY) && defined(HAS_4BYTE_STACKSLOT)
+	int *freemem_2;
+	int freememtop_2;
+#endif
 	int *freemem;                   /* free scratch memory                    */
 	int memuse;                     /* used memory count                      */
 	int ifmemuse;                   /* interface used memory count            */

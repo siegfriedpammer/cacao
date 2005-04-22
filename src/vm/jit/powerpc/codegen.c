@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2297 2005-04-13 12:50:07Z christian $
+   $Id: codegen.c 2356 2005-04-22 17:33:35Z christian $
 
 */
 
@@ -3400,6 +3400,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		stackframesize = 24+32;
 	}
 	stackframesize = stackframesize + 8; /* Reserve Space to store Result registers */
+	stackframesize = (stackframesize + 3) & ~3; /* Keep Stack 16 Byte aligned */
 	M_STWU(REG_SP, REG_SP, -stackframesize);      /* build up stackframe                */
 
 	/* if function is static, check for initialized */

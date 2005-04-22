@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2339 2005-04-22 13:31:01Z twisti $
+   $Id: codegen.h 2356 2005-04-22 17:33:35Z christian $
 
 */
 
@@ -64,6 +64,30 @@ copy:             Points to first stackslot after the parameters
 rd->ifmemuse:     max. number of stackslots used for spilling parameters
                   so far
 ************************************************************************/
+#if defined(HAS_4BYTE_STACKSLOT)
+#define SET_ARG_STACKSLOTS {								\
+		s4 stacksize = 0;									\
+		copy = curstack;									\
+		while (--i >= 0) {									\
+			stacksize+=IS_2_WORD_TYPE(copy->type)?2:1;		\
+			copy = copy->prev;								\
+		}													\
+		i=call_argcount;									\
+		copy=curstack;										\
+		if (stacksize > rd->ifmemuse)						\
+			rd->ifmemuse = stacksize;						\
+		while (--i >= 0) {									\
+			stacksize -= IS_2_WORD_TYPE(copy->type)?2:1;	\
+			if (!(copy->flags & SAVEDVAR)) {				\
+				copy->varkind = ARGVAR;						\
+				copy->varnum = i;							\
+				copy->flags |= INMEMORY;					\
+				copy->regoff = stacksize;					\
+			}												\
+			copy = copy->prev;								\
+		}													\
+	}
+#else
 #define SET_ARG_STACKSLOTS {					\
 		copy = curstack;						\
 		if (i > rd->ifmemuse)					\
@@ -78,7 +102,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 			copy = copy->prev;					\
 		}										\
 	}
-
+#endif /*  defined(HAS_4BYTE_STACKSLOTS) */
 
 /* additional functions and macros to generate code ***************************/
 
@@ -122,7 +146,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define gen_div_check(v) \
     if (checknull) { \
         if ((v)->flags & INMEMORY) { \
-            i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 8); \
+            i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4); \
         } else { \
             i386_test_reg_reg(cd, src->regoff, src->regoff); \
         } \
@@ -163,10 +187,10 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 
 #define M_LNGMEMMOVE(reg,dreg) \
     do { \
-        i386_mov_membase_reg(cd, REG_SP, (reg) * 8, REG_ITMP1); \
-        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 8); \
-        i386_mov_membase_reg(cd, REG_SP, (reg) * 8 + 4, REG_ITMP1); \
-        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 8 + 4); \
+        i386_mov_membase_reg(cd, REG_SP, (reg) * 4, REG_ITMP1); \
+        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 4); \
+        i386_mov_membase_reg(cd, REG_SP, (reg) * 4 + 4, REG_ITMP1); \
+        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 4 + 4); \
     } while (0)
 
 
@@ -188,7 +212,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define var_to_reg_int(regnr,v,tempnr) \
     if ((v)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        i386_mov_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
+        i386_mov_membase_reg(cd, REG_SP, (v)->regoff * 4, tempnr); \
         regnr = tempnr; \
     } else { \
         regnr = (v)->regoff; \
@@ -200,7 +224,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     if ((v)->type == TYPE_FLT) { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_flds_membase(cd, REG_SP, (v)->regoff * 8); \
+            i386_flds_membase(cd, REG_SP, (v)->regoff * 4); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -211,7 +235,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     } else { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fldl_membase(cd, REG_SP, (v)->regoff * 8); \
+            i386_fldl_membase(cd, REG_SP, (v)->regoff * 4); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -225,7 +249,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     if ((v)->type == TYPE_FLT) { \
        if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_flds_membase(cd, REG_SP, (v)->regoff * 8); \
+            i386_flds_membase(cd, REG_SP, (v)->regoff * 4); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -234,7 +258,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     } else { \
         if ((v)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fldl_membase(cd, REG_SP, (v)->regoff * 8); \
+            i386_fldl_membase(cd, REG_SP, (v)->regoff * 4); \
             fpu_st_offset++; \
             regnr = tempnr; \
         } else { \
@@ -257,7 +281,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define store_reg_to_var_int(sptr, tempregnum) \
     if ((sptr)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        i386_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
+        i386_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 4); \
     }
 
 
@@ -265,7 +289,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     if ((sptr)->type == TYPE_FLT) { \
         if ((sptr)->flags & INMEMORY) { \
              COUNT_SPILLS; \
-             i386_fstps_membase(cd, REG_SP, (sptr)->regoff * 8); \
+             i386_fstps_membase(cd, REG_SP, (sptr)->regoff * 4); \
              fpu_st_offset--; \
         } else { \
 /*                  i386_fxch_reg((sptr)->regoff);*/ \
@@ -275,7 +299,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     } else { \
         if ((sptr)->flags & INMEMORY) { \
             COUNT_SPILLS; \
-            i386_fstpl_membase(cd, REG_SP, (sptr)->regoff * 8); \
+            i386_fstpl_membase(cd, REG_SP, (sptr)->regoff * 4); \
             fpu_st_offset--; \
         } else { \
 /*                  i386_fxch_reg((sptr)->regoff);*/ \
@@ -297,14 +321,14 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
             if (!IS_2_WORD_TYPE(from->type)) { \
                 if (to->flags & INMEMORY) { \
                      if (from->flags & INMEMORY) { \
-                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 8, REG_ITMP1); \
-                         i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, to->regoff * 8); \
+                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 4, REG_ITMP1); \
+                         i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, to->regoff * 4); \
                      } else { \
-                         i386_mov_reg_membase(cd, from->regoff, REG_SP, to->regoff * 8); \
+                         i386_mov_reg_membase(cd, from->regoff, REG_SP, to->regoff * 4); \
                      } \
                 } else { \
                      if (from->flags & INMEMORY) { \
-                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 8, to->regoff); \
+                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 4, to->regoff); \
                      } else { \
                          i386_mov_reg_reg(cd, from->regoff, to->regoff); \
                      } \

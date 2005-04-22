@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2352 2005-04-22 13:55:26Z twisti $
+   $Id: codegen.c 2356 2005-04-22 17:33:35Z christian $
 
 */
 
@@ -325,8 +325,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
  					x86_64_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, var->regoff);    /* + 8 for return address */
 				} else {                             /* stack arg -> spilled  */
-					x86_64_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, REG_ITMP1);    /* + 8 for return address */
-					x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 8);
+					/* x86_64_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, REG_ITMP1); */    /* + 8 for return address */
+/* 					x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 8); */
+					var->regoff = parentargs_base + pa + 1;
 				}
 			}
 			s1++;
@@ -349,8 +350,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					x86_64_movq_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, var->regoff);
 
 				} else {
-					x86_64_movq_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, REG_FTMP1);
-					x86_64_movq_reg_membase(cd, REG_FTMP1, REG_SP, var->regoff * 8);
+/* 					x86_64_movq_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 8, REG_FTMP1); */
+/* 					x86_64_movq_reg_membase(cd, REG_FTMP1, REG_SP, var->regoff * 8); */
+					var->regoff = parentargs_base + pa + 1;
 				}
 			}
 			s2++;
