@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: native.c 2345 2005-04-22 13:50:44Z twisti $
 
 */
 
@@ -583,6 +583,7 @@ java_objectarray* get_parametertypes(methodinfo *m)
 
     /* create class-array */
 	assert(class_java_lang_Class);
+
     result = builtin_anewarray(parametercount, class_java_lang_Class);
 
     /* get classes */
@@ -614,6 +615,7 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
 
     /* create class-array */
 	assert(class_java_lang_Class);
+
     result = builtin_anewarray(excount, class_java_lang_Class);
 
     for (i = 0; i < excount; i++) {
@@ -782,13 +784,6 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
 
 	/*printf("end %p, start %p, size %ld\n",end,start,size);*/
-	if (!class_java_lang_Class)
-		if (!load_class_bootstrap(utf_new_char("java/lang/Class"),&class_java_lang_Class))
-			return NULL;
-
-	if (!class_java_lang_SecurityManager)
-		if (!load_class_bootstrap(utf_new_char("java/lang/SecurityManager"),&class_java_lang_SecurityManager))
-			return NULL;
 
 	if (size > 0) {
 		if (*start == class_java_lang_SecurityManager) {
@@ -797,11 +792,7 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 		}
 	}
 
-	c = class_array_of(class_java_lang_Class,true);
-	if (!c)
-		return NULL;
-	tmpArray = (java_objectarray*)
-		builtin_newarray(size, c->vftbl);
+	tmpArray = builtin_anewarray(size, class_java_lang_Class);
 
 	for(i = 0, current = start; i < size; i++, current--) {
 		c = *current;
