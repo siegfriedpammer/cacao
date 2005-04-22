@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2319 2005-04-21 19:44:32Z twisti $
+   $Id: codegen.inc 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -397,13 +397,13 @@ static void dseg_adddata(codegendata *cd, u1 *ptr)
 
 static void dseg_addlinenumbertablesize(codegendata *cd)
 {
-#ifdef __ALPHA__
+#if defined (__ALPHA__) || defined (__X86_64__)
 	dseg_adds4(cd, 0); /*PADDING*/
 #endif
 	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
 
 	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
-#ifdef __ALPHA__
+#if defined(__ALPHA__) || defined (__X86_64__)
 	dseg_adds4(cd, 0); /*PADDING*/
 #endif
 }
@@ -558,7 +558,7 @@ static void codegen_addpatchref(codegendata *cd,
 
 static void codegen_createlinenumbertable(codegendata *cd)
 {
-#if defined(__I386__) || defined(__ALPHA__)
+#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
 	linenumberref *lr;
 
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
@@ -768,7 +768,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		jr = jr->next;
 	}
 
-#if defined(__I386__) || defined(__ALPHA__)
+#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
 	/* line number table resolving */
 	{
 		linenumberref *lr;
@@ -777,7 +777,6 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #else
 		s4 lrtlen = 0;
 #endif
-
 		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
 			lrtlen++;
 			*((functionptr *) ((long) epoint + (long) lr->tablepos)) =

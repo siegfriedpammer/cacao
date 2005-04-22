@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 2346 2005-04-22 13:51:12Z twisti $
+   $Id: VMStackWalker.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -49,7 +49,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 	if (cacao_initializing)
 		return 0;
 
-#if defined(__I386__) || defined(__ALPHA__)
+#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__)
 	return cacao_createClassContextArray();
 #else
 

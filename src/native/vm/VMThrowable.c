@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2301 2005-04-14 07:23:12Z edwin $
+   $Id: VMThrowable.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -62,7 +62,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (!vmthrow)
 		panic("Needed instance of class  java.lang.VMThrowable could not be created");
 
-#if defined(__I386__) || defined(__ALPHA__)
+#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
 	cacao_stacktrace_NormalTrace(&(vmthrow->vmData));
 #endif
 	return vmthrow;
@@ -153,7 +153,7 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *par1)
 {
-#if defined(__I386__) || defined(__ALPHA__)
+#if defined(__I386__) || defined(__ALPHA__) || defined (__x86_64__)
 	stackTraceBuffer *buf=(stackTraceBuffer*)this->vmData;
 	u8 size;
 	stacktraceelement *el;

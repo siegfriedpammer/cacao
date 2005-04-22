@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2325 2005-04-21 22:35:54Z twisti $
+   $Id: stacktrace.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -47,6 +47,7 @@
 
 
 #undef JWDEBUG
+
 /*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
 /* the line number is only u2, but to avoid alignment problems it is made the same size as a native
@@ -54,7 +55,7 @@
 	if java bytecode is ever extended to support more than 65535 lines/file, this could will have to
 	be changed.*/
 
-#ifdef _ALPHA_
+#if defined(_ALPHA_) || defined(__X86_64__)
 	#define LineNumber u8
 #else
 	#define LineNumber u4
@@ -222,7 +223,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 						dataseg=info->savedpv;
 					else
 						dataseg=codegen_findmethod(returnAdress);
-#elif defined(__I386__)
+#elif defined(__I386__) || defined (__X86_64__)
 					dataseg=codegen_findmethod(returnAdress);
 #endif
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
@@ -231,7 +232,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					else
 #if defined(__ALPHA__)
 						stackPtr=(char*)(info->beginOfJavaStackframe);
-#elif defined(__I386__)
+#elif defined(__I386__) || defined (__X86_64__)
 						stackPtr=(char*)(info->beginOfJavaStackframe)+sizeof(void*);
 #endif
 					info=info->oldThreadspecificHeadValue;
@@ -248,13 +249,13 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 #endif
 					/*utf_display(currentMethod->class->name);
 					utf_display(currentMethod->name);*/
-					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress);
+					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress-1);
 					frameSize=*((u4*)(dataseg+FrameSize));
 #if defined(__ALPHA__)
 					/* cacao saves the return adress as the first element of the stack frame on alphas*/
 					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize-sizeof(void*))));
 					returnAdress=(*((void**)(stackPtr+frameSize-sizeof(void*))));
-#elif defined(__I386__)
+#elif defined(__I386__) || defined (__x86_64__)
 					/* on i386 the return adress is the first element before the stack frme*/
 					returnAdress=(*((void**)(stackPtr+frameSize)));
 					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize)));
@@ -264,7 +265,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
 #if defined(__ALPHA__)
 					stackPtr+=frameSize;
-#elif defined(__I386__)
+#elif defined(__I386__) || defined (__x86_64__)
 					stackPtr+=frameSize+sizeof(void*);
 #endif
 				}

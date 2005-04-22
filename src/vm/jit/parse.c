@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2333 2005-04-22 13:26:36Z twisti $
+   $Id: parse.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -280,7 +280,7 @@ if (m->exceptiontablelength > 0)
 
 	if (m->linenumbercount == 0) {
 		lineindex = 0;
-
+		/*printf("linenumber count == 0\n");*/
 	} else {
 		linepcchange = m->linenumbers[0].start_pc;
 	}
@@ -294,6 +294,7 @@ if (m->exceptiontablelength > 0)
 		if (!iswide) {
 			instructionstart[gp] = 1;
 			/*log_text("new start of instruction");*/
+                        /*printf ("%s, linepcchange %d,p %d\n",inline_env->method->name->text,linepcchange,p);*/
 			if (linepcchange==p) {
 				if (inline_env->method->linenumbercount > lineindex) {
 					currentline = inline_env->method->linenumbers[lineindex].line_number;

@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmoffsets.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmoffsets.h 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -45,10 +45,10 @@
 #define IsLeaf                  -20
 #define IntSave                 -24
 #define FltSave                 -28
-#define LineNumberTableSize     0    /* XXX dummy entries */
-#define LineNumberTableStart    0    /* XXX dummy entries */
-#define ExTableSize             -32
-#define ExTableStart            -32
+#define LineNumberTableSize     -40
+#define LineNumberTableStart    -48
+#define ExTableSize             -56
+#define ExTableStart            -56
 
 #define ExEntrySize             -32
 #define ExStartPC               -8

@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2356 2005-04-22 17:33:35Z christian $
+   $Id: codegen.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -90,6 +90,8 @@ static int nregdescfloat[] = {
 #endif
 
 
+void dummy_func() { }
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
 {
@@ -124,11 +126,17 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
+#if 0
 	xptr = new_nullpointerexception();
 
 	sigctx->rax = (u8) xptr;                             /* REG_ITMP1_XPTR    */
 	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
 	sigctx->rip = (u8) asm_handle_exception;
+#endif
+
+	sigctx->rax = (u8) string_java_lang_NullPointerException;
+	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
+	sigctx->rip = (u8) asm_throw_and_handle_exception;
 
 	return;
 }
@@ -155,11 +163,13 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 	sigaddset(&nsig, sig);
 	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
+#if 0
 	xptr = new_arithmeticexception();
 
 	sigctx->rax = (u8) xptr;                             /* REG_ITMP1_XPTR    */
+#endif
 	sigctx->r10 = sigctx->rip;                           /* REG_ITMP2_XPC     */
-	sigctx->rip = (u8) asm_handle_exception;
+	sigctx->rip = (u8) asm_throw_and_handle_hardware_arithmetic_exception;
 
 	return;
 }
@@ -201,6 +211,7 @@ void init_exceptions(void)
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4              len, s1, s2, s3, d;
+	u2              currentline;
 	ptrint          a;
 	s4              parentargs_base;
 	stackptr        src;
@@ -259,6 +270,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
 	(void) dseg_adds4(cd, rd->savintregcnt - rd->maxsavintreguse);/* IntSave  */
 	(void) dseg_adds4(cd, rd->savfltregcnt - rd->maxsavfltreguse);/* FltSave  */
+
+	(void) dseg_addlinenumbertablesize(cd);
+
 	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
 
 	/* create exception table */
@@ -544,7 +558,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		
 		src = bptr->instack;
 		len = bptr->icount;
+		currentline=0;
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
+			if (iptr->line != currentline) {
+				dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
+				/*printf("%s : %d\n",m->name->text,iptr->line);*/
+				currentline = iptr->line;
+			}
 
 			MCODECHECK(128);    /* XXX are 128 bytes enough? */
 
@@ -3713,6 +3733,8 @@ gen_method: {
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
+	codegen_createlinenumbertable(cd);
+
 	{
 
 	/* generate bound check stubs */
@@ -3741,14 +3763,26 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			/*create stackinfo -- begin*/
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4 * 8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3 * 8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,2*8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,1*8);
+			x86_64_mov_imm_reg(cd,(ptrint)asm_prepare_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*create stackinfo -- end*/
 
 			x86_64_mov_reg_reg(cd, REG_ITMP1, rd->argintregs[0]);
 			x86_64_mov_imm_reg(cd, (ptrint) new_arrayindexoutofboundsexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
-			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
+			/*remove stackinfo -- begin*/
+			x86_64_mov_imm_reg(cd,(ptrint)asm_remove_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*remove stackinfo -- end*/
+
+			x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
 			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
@@ -3785,13 +3819,25 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			/*create stackinfo -- begin*/
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4 * 8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3 * 8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,2*8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,1*8);
+			x86_64_mov_imm_reg(cd,(ptrint)asm_prepare_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*create stackinfo -- end*/
 
 			x86_64_mov_imm_reg(cd, (u8) new_negativearraysizeexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
-			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
+			/*remove stackinfo -- begin*/
+			x86_64_mov_imm_reg(cd,(ptrint)asm_remove_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*remove stackinfo -- end*/
+
+			x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
 			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
@@ -3828,13 +3874,25 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
+			/*create stackinfo -- begin*/
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4 * 8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3 * 8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,2*8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,1*8);
+			x86_64_mov_imm_reg(cd,(ptrint)asm_prepare_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*create stackinfo -- end*/
+
 
 			x86_64_mov_imm_reg(cd, (u8) new_classcastexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
-			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
+			/*remove stackinfo -- begin*/
+			x86_64_mov_imm_reg(cd,(ptrint)asm_remove_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*remove stackinfo -- end*/
+
+			x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
 			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
@@ -3871,13 +3929,24 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
+			/*create stackinfo -- begin*/
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4 * 8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3 * 8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,2*8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,1*8);
+			x86_64_mov_imm_reg(cd,(ptrint)asm_prepare_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*create stackinfo -- end*/
 
 			x86_64_mov_imm_reg(cd, (u8) new_arithmeticexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
-			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
+			/*remove stackinfo -- begin*/
+			x86_64_mov_imm_reg(cd,(ptrint)asm_remove_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*remove stackinfo -- end*/
+
+			x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
 			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
@@ -3964,13 +4033,25 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0 * 8);
+			/*create stackinfo -- begin*/
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4 * 8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3 * 8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,2*8);
+			x86_64_mov_imm_membase(cd,0,REG_SP,1*8);
+			x86_64_mov_imm_reg(cd,(ptrint)asm_prepare_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*create stackinfo -- end*/
+
 
 			x86_64_mov_imm_reg(cd, (ptrint) new_nullpointerexception, REG_ITMP3);
 			x86_64_call_reg(cd, REG_ITMP3);
 
-			x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2_XPC);
+			/*remove stackinfo -- begin*/
+			x86_64_mov_imm_reg(cd,(ptrint)asm_remove_native_stackinfo,REG_ITMP3);
+			x86_64_call_reg(cd,REG_ITMP3);
+			/*remove stackinfo -- end*/
+
+			x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_ITMP2_XPC);
 			x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 
 			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
@@ -4079,10 +4160,11 @@ void removecompilerstub(u1 *stub)
 /* static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr; */
 /* #endif */
 
-#define NATIVESTUBSIZE    700           /* keep this size high enough!        */
+#define NATIVESTUBSIZE    800           /* keep this size high enough!        */
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
+	int gg;
 	u1                 *s;              /* pointer to stub memory             */
 	codegendata        *cd;
 	registerdata       *rd;
@@ -4189,30 +4271,71 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 	}
 
+	/* 4 == additional size needed for native stack frame information*/
+	x86_64_alu_imm_reg(cd, X86_64_SUB, (4+INT_ARG_CNT + FLT_ARG_CNT+1) * 8, REG_SP);
+
+	x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 0 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 1 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 2 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 3 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 4 * 8);
+	x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 5 * 8);
+
+	x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 6 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 7 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 8 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 9 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[4], REG_SP, 10 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[5], REG_SP, 11 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[6], REG_SP, 12 * 8);
+	x86_64_movq_reg_membase(cd, rd->argfltregs[7], REG_SP, 13 * 8);
+
+/*
+15+
+0*8        void *oldThreadspecificHeadValue;
+1*8        void **addressOfThreadspecificHead;
+2*8        methodinfo *method;
+3*8        void *beginOfJavaStackframe; only used if != 0
+4*8        void *returnToFromNative;
+*/
+
+	/* CREATE DYNAMIC STACK INFO -- BEGIN   offsets:15,16,17,18*/
+	x86_64_mov_imm_membase(cd, 0, REG_SP, 18*8);
+	x86_64_mov_imm_membase(cd, (u8)m, REG_SP, 17*8);
+
+	x86_64_mov_imm_reg(cd, (u8) builtin_asm_get_stackframeinfo,REG_ITMP1);
+	x86_64_call_reg(cd,REG_ITMP1);
+
+	x86_64_mov_reg_membase(cd,REG_RESULT,REG_SP,16*8);
+	x86_64_mov_membase_reg(cd,REG_RESULT,0,REG_ITMP2);
+	x86_64_mov_reg_membase(cd,REG_ITMP2,REG_SP,15*8);
+	x86_64_mov_reg_reg(cd,REG_SP,REG_ITMP2);
+	x86_64_alu_imm_reg(cd, X86_64_ADD, (1+INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_ITMP2);
+	x86_64_mov_reg_membase(cd,REG_ITMP2,REG_RESULT,0);
+
+#if 0
+
+        i386_mov_imm_membase(cd,0,REG_SP,stackframesize-4);
+        i386_mov_imm_membase(cd, (s4) m, REG_SP,stackframesize-8);
+        i386_mov_imm_reg(cd, (s4) builtin_asm_get_stackframeinfo, REG_ITMP1);
+        i386_call_reg(cd, REG_ITMP1);
+        i386_mov_reg_membase(cd, REG_RESULT,REG_SP,stackframesize-12); /*save thread specific pointer*/
+        i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2);
+        i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16); /*save previous value of memory adress pointed to by thread specific pointer*/
+        i386_mov_reg_reg(cd, REG_SP,REG_ITMP2);
+        i386_alu_imm_reg(cd, I386_ADD,stackframesize-16,REG_ITMP2);
+        i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT,0);
+#endif
+	/* CREATE DYNAMIC STACK INFO -- END*/
+
+
 #if !defined(STATIC_CLASSPATH)
 	/* call method to resolve native function if needed */
 	if (f == NULL) {
-		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
-
-		x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, 1 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[1], REG_SP, 2 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[2], REG_SP, 3 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[3], REG_SP, 4 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[4], REG_SP, 5 * 8);
-		x86_64_mov_reg_membase(cd, rd->argintregs[5], REG_SP, 6 * 8);
-
-		x86_64_movq_reg_membase(cd, rd->argfltregs[0], REG_SP, 7 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[1], REG_SP, 8 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[2], REG_SP, 9 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[3], REG_SP, 10 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[4], REG_SP, 11 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[5], REG_SP, 12 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[6], REG_SP, 13 * 8);
-		x86_64_movq_reg_membase(cd, rd->argfltregs[7], REG_SP, 14 * 8);
-
 		/* needed to patch a jump over this block */
 		x86_64_jmp_imm(cd, 0);
 		jmpInstrPos = cd->mcodeptr - 4;
+
 
 		x86_64_mov_imm_reg(cd, (u8) m, rd->argintregs[0]);
 
@@ -4227,27 +4350,30 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_imm_reg(cd, (u8) codegen_resolve_native, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
 
-		*(jmpInstrPatchPos) = cd->mcodeptr - jmpInstrPos - 1; /*=opcode jmp_imm size*/
+		*(jmpInstrPatchPos) = cd->mcodeptr - jmpInstrPos - 1-3; /*=opcode jmp_imm size*/
 
-		x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[0]);
-		x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[1]);
-		x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[2]);
-		x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[3]);
-		x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[4]);
-		x86_64_mov_membase_reg(cd, REG_SP, 6 * 8, rd->argintregs[5]);
-
-		x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[0]);
-		x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[1]);
-		x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[2]);
-		x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[3]);
-		x86_64_movq_membase_reg(cd, REG_SP, 11 * 8, rd->argfltregs[4]);
-		x86_64_movq_membase_reg(cd, REG_SP, 12 * 8, rd->argfltregs[5]);
-		x86_64_movq_membase_reg(cd, REG_SP, 13 * 8, rd->argfltregs[6]);
-		x86_64_movq_membase_reg(cd, REG_SP, 14 * 8, rd->argfltregs[7]);
-
-		x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 	}
+
 #endif
+
+
+	x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, rd->argintregs[0]);
+	x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, rd->argintregs[1]);
+	x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, rd->argintregs[2]);
+	x86_64_mov_membase_reg(cd, REG_SP, 3 * 8, rd->argintregs[3]);
+	x86_64_mov_membase_reg(cd, REG_SP, 4 * 8, rd->argintregs[4]);
+	x86_64_mov_membase_reg(cd, REG_SP, 5 * 8, rd->argintregs[5]);
+
+	x86_64_movq_membase_reg(cd, REG_SP, 6 * 8, rd->argfltregs[0]);
+	x86_64_movq_membase_reg(cd, REG_SP, 7 * 8, rd->argfltregs[1]);
+	x86_64_movq_membase_reg(cd, REG_SP, 8 * 8, rd->argfltregs[2]);
+	x86_64_movq_membase_reg(cd, REG_SP, 9 * 8, rd->argfltregs[3]);
+	x86_64_movq_membase_reg(cd, REG_SP, 10 * 8, rd->argfltregs[4]);
+	x86_64_movq_membase_reg(cd, REG_SP, 11 * 8, rd->argfltregs[5]);
+	x86_64_movq_membase_reg(cd, REG_SP, 12 * 8, rd->argfltregs[6]);
+	x86_64_movq_membase_reg(cd, REG_SP, 13 * 8, rd->argfltregs[7]);
+
+	x86_64_alu_imm_reg(cd, X86_64_ADD, (INT_ARG_CNT + FLT_ARG_CNT+1) * 8, REG_SP);
 
 	/* save argument registers on stack -- if we have to */
 
@@ -4279,6 +4405,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		stackparamcnt += (iargs > INT_ARG_CNT) ? iargs - INT_ARG_CNT : 0;
 		stackparamcnt += (fargs > FLT_ARG_CNT) ? fargs - FLT_ARG_CNT : 0;
 
+
 		stackframesize = stackparamcnt + paramshiftcnt;
 
 		/* keep stack 16-byte aligned */
@@ -4302,7 +4429,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		/* copy stack arguments into new stack frame -- if any */
 		for (i = 0; i < stackparamcnt; i++) {
-			x86_64_mov_membase_reg(cd, REG_SP, (stackframesize + 1 + i) * 8, REG_ITMP1);
+			x86_64_mov_membase_reg(cd, REG_SP, (stackframesize + 1 + i+4) * 8, REG_ITMP1);  /* 4==additional size for stackrace data*/
 			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, (paramshiftcnt + i) * 8);
 		}
 
@@ -4345,6 +4472,23 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	if (stackframesize) {
 		x86_64_alu_imm_reg(cd, X86_64_ADD, stackframesize * 8, REG_SP);
 	}
+
+	/*REMOVE DYNAMIC STACK INFO -BEGIN */
+	x86_64_mov_reg_membase(cd,REG_RESULT,REG_SP,2*8);
+	x86_64_mov_membase_reg(cd,REG_SP,0*8,REG_ITMP2);
+	x86_64_mov_membase_reg(cd,REG_SP,1*8,REG_RESULT);
+	x86_64_mov_reg_membase(cd,REG_ITMP2,REG_RESULT,0);
+	x86_64_mov_membase_reg(cd,REG_SP,2*8,REG_RESULT);
+#if 0
+	i386_push_reg(cd, REG_RESULT2);
+	i386_mov_membase_reg(cd, REG_SP,stackframesize-12,REG_ITMP2); /*old value*/
+	i386_mov_membase_reg(cd, REG_SP,stackframesize-8,REG_RESULT2); /*pointer*/
+	i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT2,0);
+	i386_pop_reg(cd, REG_RESULT2);
+#endif
+	/*REMOVE DYNAMIC STACK INFO -END */
+
+	x86_64_alu_imm_reg(cd, X86_64_ADD, 4 * 8, REG_SP);
 
 	if (runverbose) {
 		x86_64_alu_imm_reg(cd, X86_64_SUB, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
@@ -4452,6 +4596,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 								   "Native stub size %d is to small for current stub size %d",
 								   NATIVESTUBSIZE, (s4) (cd->mcodeptr - s));
 	}
+
 
 #if defined(STATISTICS)
 	if (opt_stat)

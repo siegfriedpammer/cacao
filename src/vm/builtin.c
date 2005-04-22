@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2330 2005-04-21 22:41:57Z twisti $
+   $Id: builtin.c 2358 2005-04-22 22:01:51Z jowenn $
 
 */
 
@@ -2100,6 +2100,7 @@ inline void* builtin_asm_get_stackframeinfo()
 {
 /*log_text("builtin_asm_get_stackframeinfo()");*/
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	/*printf("stackframeinfo: %p,%p\n",&THREADINFO->_stackframeinfo,*(&THREADINFO->_stackframeinfo));*/
 	return &THREADINFO->_stackframeinfo;
 #else
 #if defined(__GNUC__)
