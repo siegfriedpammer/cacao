@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.h 2259 2005-04-11 09:45:52Z twisti $
+   $Id: helper.h 2332 2005-04-22 13:21:02Z twisti $
 
 */
 
@@ -44,19 +44,9 @@
 
 /* function prototypes ********************************************************/
 
-/* code patching helper functions */
-
-classinfo *helper_resolve_classinfo(constant_classref *cr);
-s4         helper_resolve_classinfo_flags(constant_classref *cr);
-vftbl_t   *helper_resolve_classinfo_vftbl(constant_classref *cr);
-s4         helper_resolve_classinfo_index(constant_classref *cr);
-
+classinfo  *helper_resolve_classinfo(constant_classref *cr);
 methodinfo *helper_resolve_methodinfo(unresolved_method *um);
-s4          helper_resolve_methodinfo_vftblindex(unresolved_method *um);
-u1         *helper_resolve_methodinfo_stubroutine(unresolved_method *um);
-
-void *helper_get_fieldinfo_value_address(unresolved_field *uf);
-s4    helper_get_fieldinfo_offset(unresolved_field *uf);
+fieldinfo  *helper_resolve_fieldinfo(unresolved_field *uf);
 
 #endif /* _ASMHELPER_H */
 

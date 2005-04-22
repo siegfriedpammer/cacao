@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2284 2005-04-12 20:31:38Z twisti $
+   $Id: helper.c 2332 2005-04-22 13:21:02Z twisti $
 
 */
 
@@ -96,69 +96,6 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 }
 
 
-/* helper_resolve_classinfo_flags **********************************************
-
-   This function returns the flags of the passed class.
-
-*******************************************************************************/
-
-s4 helper_resolve_classinfo_flags(constant_classref *cr)
-{
-	classinfo *c;
-
-	/* resolve and load the class */
-
-	if (!(c = helper_resolve_classinfo(cr)))
-		return -1;
-
-	/* return the flags */
-
-	return c->flags;
-}
-
-
-/* helper_resolve_classinfo_vftbl **********************************************
-
-   This function return the vftbl pointer of the passed class.
-
-*******************************************************************************/
-
-vftbl_t *helper_resolve_classinfo_vftbl(constant_classref *cr)
-{
-	classinfo *c;
-
-	/* resolve and load the class */
-
-	if (!(c = helper_resolve_classinfo(cr)))
-		return NULL;
-
-	/* return the virtual function table pointer */
-
-	return c->vftbl;
-}
-
-
-/* helper_resolve_classinfo_index **********************************************
-
-   This function returns the index of the passed class.
-
-*******************************************************************************/
-
-s4 helper_resolve_classinfo_index(constant_classref *cr)
-{
-	classinfo *c;
-
-	/* resolve and load the class */
-
-	if (!(c = helper_resolve_classinfo(cr)))
-		return -1;
-
-	/* return the class' index */
-
-	return c->index;
-}
-
-
 /* helper_resolve_methodinfo ***************************************************
 
    This function returns the loaded and resolved methodinfo of the
@@ -212,56 +149,13 @@ methodinfo *helper_resolve_methodinfo(unresolved_method *um)
 }
 
 
-/* helper_resolve_methodinfo_vftblindex ****************************************
-
-   This function returns the virtual function table index (vftblindex)
-   of the passed method.
-
-*******************************************************************************/
-
-s4 helper_resolve_methodinfo_vftblindex(unresolved_method *um)
-{
-	methodinfo *m;
-
-	/* resolve the method */
-
-	if (!(m = helper_resolve_methodinfo(um)))
-		return -1;
-
-	/* return the virtual function table index */
-
-	return m->vftblindex;
-}
-
-
-/* helper_resolve_methodinfo_stubroutine ***************************************
-
-   This function returns the stubroutine of the passed method.
-
-*******************************************************************************/
-
-u1 *helper_resolve_methodinfo_stubroutine(unresolved_method *um)
-{
-	methodinfo *m;
-
-	/* resolve the method */
-
-	if (!(m = helper_resolve_methodinfo(um)))
-		return NULL;
-
-	/* return the method pointer */
-
-	return m->stubroutine;
-}
-
-
 /* helper_resolve_fieldinfo ****************************************************
 
    This function returns the fieldinfo pointer of the passed field.
 
 *******************************************************************************/
 
-static void *helper_resolve_fieldinfo(unresolved_field *uf)
+void *helper_resolve_fieldinfo(unresolved_field *uf)
 {
 	fieldinfo *fi;
 
@@ -304,54 +198,6 @@ static void *helper_resolve_fieldinfo(unresolved_field *uf)
 	/* return the fieldinfo pointer */
 
 	return fi;
-}
-
-
-/* helper_resolve_fieldinfo_value_address **************************************
-
-   This function returns the value address of the passed field.
-
-*******************************************************************************/
-
-void *helper_resolve_fieldinfo_value_address(unresolved_field *uf)
-{
-	fieldinfo *fi;
-
-	/* resolve the field */
-
-	if (!(fi = helper_resolve_fieldinfo(uf)))
-		return NULL;
-
-	/* check if class is initialized */
-
-	if (!fi->class->initialized)
-		if (!initialize_class(fi->class))
-			return NULL;
-
-	/* return the field value's address */
-
-	return &(fi->value);
-}
-
-
-/* helper_resolve_fieldinfo_offset *********************************************
-
-   This function returns the offset value of the passed field.
-
-*******************************************************************************/
-
-s4 helper_resolve_fieldinfo_offset(unresolved_field *uf)
-{
-	fieldinfo *fi;
-
-	/* resolve the field */
-
-	if (!(fi = helper_resolve_fieldinfo(uf)))
-		return -1;
-
-	/* return the field value's offset */
-
-	return fi->offset;
 }
 
 
