@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: threads.c 2348 2005-04-22 13:52:35Z twisti $
 
 */
 
@@ -479,7 +479,6 @@ void
 initThreads(u1 *stackbottom)
 {
 	classinfo *threadclass;
-	classinfo *threadgroupclass;
 	java_lang_String *threadname;
 	java_lang_Thread *mainthread;
 	java_lang_ThreadGroup *threadgroup;
@@ -517,10 +516,9 @@ initThreads(u1 *stackbottom)
 	threadname = javastring_new(utf_new_char("main"));
 
 	/* Allocate and init ThreadGroup */
-	if (!load_class_bootstrap(utf_new_char("java/lang/ThreadGroup"),&threadgroupclass))
-		throw_exception_exit();
-	threadgroup =
-		(java_lang_ThreadGroup *) native_new_and_init(threadgroupclass);
+
+	threadgroup = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (!threadgroup)
 		throw_exception_exit();
@@ -536,7 +534,7 @@ initThreads(u1 *stackbottom)
 
 	/* Call Thread constructor */
 	method = class_resolveclassmethod(threadclass,
-									  utf_new_char("<init>"),
+									  utf_init,
 									  utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
 									  threadclass,
 									  true);
@@ -553,10 +551,10 @@ initThreads(u1 *stackbottom)
 	mainthread->daemon = false;
 
 	/* Add mainthread to ThreadGroup */
-	method = class_resolveclassmethod(threadgroupclass,
+	method = class_resolveclassmethod(class_java_lang_ThreadGroup,
 									  utf_new_char("addThread"),
 									  utf_new_char("(Ljava/lang/Thread;)V"),
-									  threadgroupclass,
+									  class_java_lang_ThreadGroup,
 									  true);
 
 	if (!method)
