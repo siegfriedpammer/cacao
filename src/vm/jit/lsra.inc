@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2297 2005-04-13 12:50:07Z christian $
+   $Id: lsra.inc 2359 2005-04-23 08:06:45Z christian $
 
 */
 #include <stdio.h>
@@ -894,7 +894,7 @@ void lsra_join_lifetimes(methodinfo *m, lsradata *ls, int b_index) {
 }
 
 void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_reg,struct lsra_register *flt_reg ) {
-	int i, iarg, farg;
+	int i, j, iarg, farg;
 	int int_sav_top;
 	int flt_sav_top;
 
@@ -950,7 +950,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 			case TYPE_LNG: /* i386->longs stay in Memory */
 #endif
 				iarg++;
-#ifndef CONSECUTIVE_FLOATARGS
+#ifndef CONSECUTIVE_FLOAT_ARGS
 				farg++;
 #endif
 				if (rd->locals[localindex][m->paramtypes[i]].type >= 0)	
@@ -964,7 +964,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 			case TYPE_DBL: /* i386->longs stay in Memory */
 #endif
 				farg++;
-#ifndef CONSECUTIVE_INTARGS
+#ifndef CONSECUTIVE_INTEGER_ARGS
 				iarg++;
 #endif
 				if (rd->locals[localindex][m->paramtypes[i]].type >= 0)	
@@ -997,21 +997,27 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 			flt_reg->sav_reg[--flt_sav_top]=rd->tmpfltregs[i];
 
 	} else {
-		/* non leaf method -> don't use Argument Registers, divide temp and saved registers */
+		/* non leaf method -> use Argument Registers [arg[int|flt]reguse ... [int|flt]reg_argnum[ as temp reg */
+		/* divide temp and saved registers */
 		int_sav_top = int_reg->sav_top = rd->savintregcnt;
 		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
-		int_reg->tmp_top = rd->tmpintregcnt;
+		int_reg->tmp_top = rd->tmpintregcnt + max(0, (rd->intreg_argnum - rd->argintreguse));
 		int_reg->tmp_reg = DMNEW(int, int_reg->tmp_top);
+
 		flt_sav_top =flt_reg->sav_top = rd->savfltregcnt;
 		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
-		flt_reg->tmp_top = rd->tmpfltregcnt;
+		flt_reg->tmp_top = rd->tmpfltregcnt + max(0 , (rd->fltreg_argnum - rd->argfltreguse));
 		flt_reg->tmp_reg = DMNEW(int, flt_reg->tmp_top);
 
-		/* copy temp registers to flt_reg->tmp_reg and int_reg->tmp_reg */
+		/* copy temp and unused argument registers to flt_reg->tmp_reg and int_reg->tmp_reg */
 		for (i=0; i < rd->tmpintregcnt; i++)
 			int_reg->tmp_reg[i]=rd->tmpintregs[i];
+		for (j=rd->argintreguse; j < rd->intreg_argnum; j++, i++)
+			int_reg->tmp_reg[i]=rd->argintregs[j];
 		for (i=0; i < rd->tmpfltregcnt; i++)
 			flt_reg->tmp_reg[i]=rd->tmpfltregs[i];
+		for (j=rd->argfltreguse; j < rd->fltreg_argnum; j++, i++)
+			flt_reg->tmp_reg[i]=rd->argfltregs[j];
 	}
 
 	/* now copy saved registers to flt_reg->sav_reg and int_reg->sav_reg */
@@ -1120,11 +1126,11 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 
 		switch (lt->type) {
 		case TYPE_LNG:
-#if defined(__I386__) || defined(USETWOREGS)
+#if defined(HAS_4BYTE_STACKSLOT)
 			/*
 			 * for i386 put all longs in memory
 			 */
-			/* for PowerPC (USETWOREGS) for now into memory, too */
+			/* for PowerPC for now into memory, too (ignore SUPPORT_COMBINE_INTEGER_REGISTERS)*/
 			flags=0;
 			break;
 #endif
@@ -1133,14 +1139,14 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 			flags=1;
 			break;
 		case TYPE_DBL:
+		case TYPE_FLT:
 #if defined(__I386__)
 			/*
-			 * for i386 put all longs in memory
+			 * for i386 put all floats in memory
 			 */
 			flags=0;
 			break;
 #endif
-		case TYPE_FLT:
 			flags=2;
 			break;
 		default:
@@ -1197,19 +1203,7 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 
 	/* allocate stack space for passing arguments to called methods */
 
-#if !defined(SPECIALMEMUSE)
-	/* For this to work properly the integer argument register count must be  */
-	/* less or equal the float argument register count (e.g. x86_64).         */
-	/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
-	if (rd->arguments_num > INT_ARG_CNT) {
-		lsra_mem_use = rd->arguments_num - INT_ARG_CNT;
-
-	} else {
-		lsra_mem_use = 0;
-	}
-#else
-        lsra_mem_use = rd->ifmemuse; /* Init with if_memuse from pregregpass */
-#endif
+    lsra_mem_use = rd->ifmemuse; /* Init with if_memuse from stack.c */
 
 #ifdef LSRA_DEBUG
 	printf("Alloc Rest\n");
@@ -1251,14 +1245,14 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lsradata *ls, int *lifet
 	struct freemem *fmem;
 	struct stackslot *n;
 	int lt_index;
-#ifdef USETWOREGS
+#ifdef HAS_4BYTE_STACKSLOT
 	struct freemem *fmem_2;
 #endif
 
 	fmem=DNEW(struct freemem);
 	fmem->off=-1;
 	fmem->next=NULL;
-#ifdef USETWOREGS
+#ifdef HAS_4BYTE_STACKSLOT
 	fmem_2=DNEW(struct freemem);
 	fmem_2->off=-1;
 	fmem_2->next=NULL;
@@ -1272,7 +1266,7 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lsradata *ls, int *lifet
 #endif
 		if (lt->reg==-1) {
 			flags=INMEMORY;
-#ifdef USETWOREGS
+#ifdef HAS_4BYTE_STACKSLOT
 			if (IS_2_WORD_TYPE(lt->type))
 				regoff=lsra_getmem(lt, fmem_2, mem_use);
 			else
@@ -1317,7 +1311,7 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 	/* noch kein Speicher vergeben, oder alle Enden später */
 	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) {
 		fm=lsra_getnewmem(mem_use);
-#ifdef USETWOREGS
+#ifdef HAS_4BYTE_STACKSLOT
 		if (IS_2_WORD_TYPE(lt->type)) (*mem_use)++;
 #endif
 	} else {
@@ -2395,9 +2389,12 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 				lsra_from_stack(ls, src,b_index,iindex);
 				src = src->prev;
 			}
-			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID) {
+#if defined(__X86_64__) || defined(__I386__)	 
+			if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
+#else
+			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
+#endif
 				lsra_new_stack(ls,dst,b_index,iindex);
-			}
 			break;
 
 		case ICMD_BUILTIN3:
@@ -3011,9 +3008,12 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 				ret = lsra_test_from_stack(ls, rd, src, values);
 				src = src->prev;
 			}
-			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID) {
+#if defined(__X86_64__) || defined(__I386__)	 
+			if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
+#else
+			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
+#endif
 				ret = lsra_test_new_stack(ls, rd,dst, values);
-			}
 			break;
 
 		case ICMD_BUILTIN3:

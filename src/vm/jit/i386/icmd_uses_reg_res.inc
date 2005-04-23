@@ -28,8 +28,8 @@
 
 */
 #define NO   0 /* Register survives this ICMD */
-#define S    1 /* Register can not be an source operand */
-#define D    2 /* Register can not be an destination operand */
+#define S    1 /* Register can not be a source operand */
+#define D    2 /* Register can not be a destination operand */
 #define YES  4 /* Register does not survive this ICMD */
 
 int lsra_reg_res[REG_RES_CNT]={EAX, ECX, EDX};
@@ -216,8 +216,8 @@ int icmd_uses_reg_res[256][REG_RES_CNT + 1] ={
 { YES, YES, YES, REG_NULL},    /* ICMD_RETURN	*/
 { S|YES, S|YES, S|YES, EAX},    /* ICMD_GETSTATIC*/   
 { S|YES, S|YES, S|YES, REG_NULL},    /* ICMD_PUTSTATIC*/   
-{ YES, S|YES,  NO, REG_NULL},    /* ICMD_GETFIELD	*/    
-{ S|YES, S|YES,  NO, REG_NULL},    /* ICMD_PUTFIELD	*/   
+{ S|YES, S|YES, S|YES, EAX},    /* ICMD_GETFIELD	*/    
+{ S|YES, S|YES,  S|YES, REG_NULL},    /* ICMD_PUTFIELD	*/   
 { S|YES, YES, YES, EAX},        /* ICMD_INVOKEVIRTUAL	*/    
 { S|YES, YES, YES, EAX},        /* ICMD_INVOKESPECIAL	*/  
 { S|YES, YES, YES, EAX},        /* ICMD_INVOKESTATIC	*/     
@@ -230,7 +230,7 @@ int icmd_uses_reg_res[256][REG_RES_CNT + 1] ={
 { YES, YES, YES, REG_NULL},    /* ICMD_ATHROW 	*/
 { YES, S|YES, S|YES, REG_NULL},  /* ICMD_CHECKCAST	*/
 /* { S|D|YES, S|D|YES, S|D|YES, REG_NULL}, */    /* ICMD_CHECKCAST	*/
-{ D|YES, D|YES, YES, REG_NULL},    /* ICMD_INSTANCEOF	*/
+{ S|D|YES, S|D|YES, S|D|YES, REG_NULL},    /* ICMD_INSTANCEOF	*/
 /*{ S|D|YES, S|D|YES, S|D|YES, REG_NULL}, */    /* ICMD_INSTANCEOF	*/
 { YES, YES, YES, REG_NULL}, /* ICMD_MONITORENTER	*/
 { YES, YES, YES, REG_NULL}, /* ICMD_MONITOREXIT	*/
@@ -251,7 +251,7 @@ int icmd_uses_reg_res[256][REG_RES_CNT + 1] ={
 { S|YES, S|YES,  NO, REG_NULL},    /* ICMD_CASTORECONST	*/
 { S|YES, S|YES,  NO, REG_NULL},    /* ICMD_SASTORECONST	*/
 { S|YES, S|YES, S|YES, REG_NULL},    /* ICMD_PUTSTATICCONST */
-{  YES,  NO,  NO, REG_NULL},    /* ICMD_PUTFIELDCONST */
+{ S|YES,  S|YES,  S|YES, REG_NULL},    /* ICMD_PUTFIELDCONST */
 { YES, YES, YES, REG_NULL}, /* ICMD_IMULPOW2 */
 { YES, YES, YES, REG_NULL}, /* ICMD_LMULPOW2 */
 {  NO,  NO,  NO, REG_NULL}, /* 	"UNDEF216"	*/
