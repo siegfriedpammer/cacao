@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2356 2005-04-22 17:33:35Z christian $
+   $Id: stack.c 2361 2005-04-24 17:55:03Z twisti $
 
 */
 
@@ -280,6 +280,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						/* pop 0 push 0 */
 
+					case ICMD_CHECKNULL:
+						COUNT(count_check_null);
 					case ICMD_NOP:
 					case ICMD_CHECKASIZE:
 					case ICMD_CHECKEXCEPTION:
@@ -1326,7 +1328,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						superblockend = true;
 						break;
 
-					case ICMD_NULLCHECKPOP:
 					case ICMD_MONITORENTER:
 						COUNT(count_check_null);
 					case ICMD_MONITOREXIT:

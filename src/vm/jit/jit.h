@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: jit.h 2361 2005-04-24 17:55:03Z twisti $
 
 */
 
@@ -189,7 +189,7 @@ extern int jcommandsize[256];
 #define ICMD_ACONST            1        /* val.a = constant                   */
 
 #define JAVA_ICONST_M1         2
-#define ICMD_NULLCHECKPOP      2
+#define ICMD_CHECKNULL         2
 
 #define JAVA_ICONST_0          3
 #define ICMD_ICONST            3        /* val.i = constant                   */

@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2359 2005-04-23 08:06:45Z christian $
+   $Id: lsra.inc 2361 2005-04-24 17:55:03Z twisti $
 
 */
 #include <stdio.h>
@@ -1926,6 +1926,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		case ICMD_GOTO:
 		case ICMD_NOP:
 		case ICMD_ELSE_ICONST:
+		case ICMD_CHECKNULL:
 		case ICMD_CHECKEXCEPTION:
 		case ICMD_CHECKASIZE:
 		case ICMD_PUTSTATICCONST:
@@ -2039,7 +2040,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		case ICMD_PUTSTATIC: /* stack(value) -> static_field */
 		case ICMD_PUTFIELDCONST:
 			/* pop 1 push 0 branch */
-		case ICMD_NULLCHECKPOP: /****** ????? -1 -> stack *********/
 		case ICMD_MONITORENTER:
 		case ICMD_MONITOREXIT:
 			lsra_from_stack(ls, src,b_index,iindex); /* stack -> value */

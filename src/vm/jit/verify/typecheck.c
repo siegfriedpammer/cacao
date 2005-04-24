@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2190 2005-04-02 10:07:44Z edwin $
+   $Id: typecheck.c 2361 2005-04-24 17:55:03Z twisti $
 
 */
 
@@ -1953,8 +1953,8 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						   * typechecking the array creation instructions. */
 
 						  /* FALLTHROUGH! */
-                      case ICMD_NULLCHECKPOP:
-						  /* NULLCHECKPOP just requires that the stack top
+                      case ICMD_CHECKNULL:
+						  /* CHECKNULL just requires that the stack top
 						   * is an address. This is checked in stack.c */
 						  
                           maythrow = true;

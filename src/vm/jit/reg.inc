@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2356 2005-04-22 17:33:35Z christian $
+   $Id: reg.inc 2361 2005-04-24 17:55:03Z twisti $
 
 */
 
@@ -1235,6 +1235,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 
 				case ICMD_NOP:
 				case ICMD_ELSE_ICONST:
+				case ICMD_CHECKNULL:
 				case ICMD_CHECKASIZE:
 				case ICMD_CHECKEXCEPTION:
 				case ICMD_IINC:
@@ -1344,7 +1345,6 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_TABLESWITCH:
 				case ICMD_LOOKUPSWITCH:
 
-				case ICMD_NULLCHECKPOP:
 				case ICMD_MONITORENTER:
 				case ICMD_MONITOREXIT:
 					reg_free_temp(rd, src);

@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2242 2005-04-06 15:10:16Z edwin $
+   $Id: jit.c 2361 2005-04-24 17:55:03Z twisti $
 
 */
 
@@ -90,7 +90,7 @@ int jcommandsize[256] = {
 #define ICMD_ACONST            1        /* val.a = constant                   */
 	1,
 #define JAVA_ICONST_M1         2
-#define ICMD_NULLCHECKPOP      2
+#define ICMD_CHECKNULL         2
 	1,
 #define JAVA_ICONST_0          3
 #define ICMD_ICONST            3        /* val.i = constant                   */
@@ -718,7 +718,7 @@ int jcommandsize[256] = {
 char *icmd_names[256] = {
 	"NOP            ", /*               0 */
 	"ACONST         ", /*               1 */
-	"NULLCHECKPOP   ", /* ICONST_M1     2 */
+	"CHECKNULL      ", /* ICONST_M1     2 */
 	"ICONST         ", /*               3 */
 	"UNDEF4         ", /* ICONST_1      4 */
 	"IDIVPOW2       ", /* ICONST_2      5 */
