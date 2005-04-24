@@ -26,7 +26,7 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 1923 2005-02-10 10:43:41Z twisti $
+   $Id: threads.h 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -98,6 +98,7 @@ struct nativethread {
 	threadobject      *next;
 	threadobject      *prev;
 	java_objectheader *_exceptionptr;
+        u1                _dontfillinexceptionstacktrace;
 	methodinfo        *_threadrootmethod;
 	void              *_stackframeinfo;
 	pthread_t          tid;

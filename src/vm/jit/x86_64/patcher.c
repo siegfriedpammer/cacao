@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2355 2005-04-22 14:57:47Z twisti $
+   $Id: patcher.c 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -39,7 +39,7 @@
 #include "vm/initialize.h"
 #include "vm/references.h"
 #include "vm/jit/helper.h"
-
+#include "vm/exceptions.h"
 
 /* patcher_get_putstatic *******************************************************
 
@@ -59,28 +59,58 @@ bool patcher_get_putstatic(u1 *sp)
 	fieldinfo        *fi;
 	ptrint           *dataaddress;
 	s4                ripoffset;
-
+	void             *beginJavaStack;
 	/* get stuff from the stack */
 
 	ra    = (u1 *)               *((ptrint *) (sp + 2 * 8));
 	mcode =                      *((u8 *)     (sp + 1 * 8));
 	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 8));
-
+	beginJavaStack=              (void*)(sp+2*8);
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
 	/* get the fieldinfo */
-
 	if (!(fi = helper_resolve_fieldinfo(uf)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* check if the field's class is initialized */
+	*dontfillinexceptionstacktrace=false;
+	if (!fi->class->initialized) {
+		bool init;
+		{
+			/*struct native_stackframeinfo {
+	        		void *oldThreadspecificHeadValue;
+		        	void **addressOfThreadspecificHead;
+			        methodinfo *method;
+        			void *beginOfJavaStackframe; only used if != 0
+			        void *returnToFromNative;
+			}*/
+			/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
+			native_stackframeinfo sfi;
+			sfi.returnToFromNative=(void*)ra;
+			sfi.beginOfJavaStackframe=beginJavaStack;
+			sfi.method=0; /*internal*/
+			sfi.addressOfThreadspecificHead=builtin_asm_get_stackframeinfo();
+			sfi.oldThreadspecificHeadValue=*(sfi.addressOfThreadspecificHead);
+			*(sfi.addressOfThreadspecificHead)=&sfi;
 
-	if (!fi->class->initialized)
-		if (!initialize_class(fi->class))
+			init=initialize_class(fi->class);
+
+			*(sfi.addressOfThreadspecificHead)=sfi.oldThreadspecificHeadValue;
+		}
+		if (!init)
+		{
 			return false;
+		}
+	}
+
+	*dontfillinexceptionstacktrace=false;
 
 	/* patch back original code */
 
@@ -130,10 +160,16 @@ bool patcher_get_putfield(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
+
 	/* get the fieldinfo */
 
 	if (!(fi = helper_resolve_fieldinfo(uf)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -158,6 +194,7 @@ bool patcher_get_putfield(u1 *sp)
 			*((u4 *) (ra + 3)) = (u4) (fi->offset);
 	}
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -184,10 +221,15 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 	ra = ra - (10 + 10 + 3);
 	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the classinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch the classinfo pointer */
 
@@ -197,6 +239,7 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_new;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -223,11 +266,17 @@ bool patcher_builtin_newarray(u1 *sp, constant_classref *cr)
 	ra = ra - (10 + 10 + 3);
 	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
 
+
+	*dontfillinexceptionstacktrace=true;
+
+
 	/* get the classinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
-
+	}
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
@@ -236,6 +285,7 @@ bool patcher_builtin_newarray(u1 *sp, constant_classref *cr)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_newarray;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -262,11 +312,14 @@ bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr)
 	ra = ra - (10 + 10 + 3 + 10 + 3);
 	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		*dontfillinexceptionstacktrace=false;
 		return false;
-
+	}
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) c->vftbl;
@@ -275,6 +328,7 @@ bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr)
 
 	*((ptrint *) (ra + 10 + 10 + 3 + 2)) = (ptrint) BUILTIN_multianewarray;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -301,10 +355,15 @@ bool patcher_builtin_checkarraycast(u1 *sp, constant_classref *cr)
 	ra = ra - (10 + 10 + 3);
 	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the classinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch the class' vftbl pointer */
 
@@ -314,6 +373,7 @@ bool patcher_builtin_checkarraycast(u1 *sp, constant_classref *cr)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_checkarraycast;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -340,10 +400,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp, constant_classref *cr)
 	ra = ra - (10 + 10 + 3);
 	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
 
+
+	*dontfillinexceptionstacktrace=true;
+
+
 	/* get the classinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch the class' vftbl pointer */
 
@@ -353,6 +420,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp, constant_classref *cr)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arrayinstanceof;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -381,11 +449,16 @@ bool patcher_invokestatic_special(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
+
 	/* get the fieldinfo */
 
 	if (!(m = helper_resolve_methodinfo(um)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
-
+	}
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
@@ -394,6 +467,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -422,10 +496,15 @@ bool patcher_invokevirtual(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(m = helper_resolve_methodinfo(um)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -436,6 +515,7 @@ bool patcher_invokevirtual(u1 *sp)
 	*((s4 *) (ra + 3 + 3)) = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -464,10 +544,15 @@ bool patcher_invokeinterface(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(m = helper_resolve_methodinfo(um)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -483,6 +568,7 @@ bool patcher_invokeinterface(u1 *sp)
 	*((s4 *) (ra + 3 + 7 + 3)) =
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -511,11 +597,15 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
-
+	}
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
@@ -524,6 +614,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	*((s4 *) (ra + 2)) = (s4) c->flags;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -552,10 +643,16 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -569,6 +666,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
 			  c->index * sizeof(methodptr*));
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -597,10 +695,15 @@ bool patcher_checkcast_class(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -611,6 +714,7 @@ bool patcher_checkcast_class(u1 *sp)
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 	*((ptrint *) (ra + 10 + 7 + 7 + 3 + 2)) = (ptrint) c->vftbl;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -639,10 +743,15 @@ bool patcher_instanceof_class(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
+	*dontfillinexceptionstacktrace=true;
+
 	/* get the fieldinfo */
 
 	if (!(c = helper_resolve_classinfo(cr)))
+	{
+		*dontfillinexceptionstacktrace=false;
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -652,6 +761,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -667,12 +777,14 @@ bool patcher_clinit(u1 *sp)
 	u1        *ra;
 	u8         mcode;
 	classinfo *c;
+	void      *beginJavaStack;
 
 	/* get stuff from the stack */
 
 	ra    = (u1 *)        *((ptrint *) (sp + 2 * 8));
 	mcode =               *((u8 *)     (sp + 1 * 8));
 	c     = (classinfo *) *((ptrint *) (sp + 0 * 8));
+	beginJavaStack =      (void*) (sp+2*8);
 
 	/* calculate and set the new return address */
 
@@ -682,8 +794,34 @@ bool patcher_clinit(u1 *sp)
 	/* check if the class is initialized */
 
 	if (!c->initialized)
-		if (!initialize_class(c))
+	{
+		bool init;
+		{
+			/*struct native_stackframeinfo {
+	        		void *oldThreadspecificHeadValue;
+		        	void **addressOfThreadspecificHead;
+			        methodinfo *method;
+        			void *beginOfJavaStackframe; only used if != 0
+			        void *returnToFromNative;
+			}*/
+			/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
+			native_stackframeinfo sfi;
+			sfi.returnToFromNative=(void*)ra;
+			sfi.beginOfJavaStackframe=beginJavaStack;
+			sfi.method=0; /*internal*/
+			sfi.addressOfThreadspecificHead=builtin_asm_get_stackframeinfo();
+			sfi.oldThreadspecificHeadValue=*(sfi.addressOfThreadspecificHead);
+			*(sfi.addressOfThreadspecificHead)=&sfi;
+
+			init=initialize_class(c);
+
+			*(sfi.addressOfThreadspecificHead)=sfi.oldThreadspecificHeadValue;
+		}
+		if (!init)
+		{
 			return false;
+		}
+	}
 
 	/* patch back original code */
 

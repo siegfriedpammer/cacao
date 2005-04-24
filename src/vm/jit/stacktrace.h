@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2123 2005-03-29 22:12:32Z twisti $
+   $Id: stacktrace.h 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -55,7 +55,7 @@ struct native_stackframeinfo {
 #ifdef __ALPHA__
 	void *savedpv;
 #endif
-	void *beginOfJavaStackframe; /*only used if != 0*/
+	void *beginOfJavaStackframe; /*only used if != 0*/ /* on i386 and x86_64 this points to the return addres stored directly below the stackframe*/
 	void *returnToFromNative;
 
 #if 0

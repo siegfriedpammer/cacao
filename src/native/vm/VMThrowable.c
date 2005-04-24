@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: VMThrowable.c 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -46,6 +46,7 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/exceptions.h"
 
 
 /*
@@ -56,6 +57,11 @@
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *par1)
 {
 	java_lang_VMThrowable *vmthrow;
+
+	if ((*dontfillinexceptionstacktrace) == true) {
+		/*log_text("dontfillinexceptionstacktrace");*/
+		return 0;
+	}
 
 	vmthrow = (java_lang_VMThrowable *) native_new_and_init(class_java_lang_VMThrowable);
 

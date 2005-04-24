@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2332 2005-04-22 13:21:02Z twisti $
+   $Id: helper.c 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -39,6 +39,7 @@
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/resolve.h"
+#include "vm/linker.h"
 
 /* XXX class_resolveclassmethod */
 #include "vm/loader.h"
@@ -199,6 +200,43 @@ void *helper_resolve_fieldinfo(unresolved_field *uf)
 
 	return fi;
 }
+
+
+/* helper_fillin_stacktrace  ****************************************************
+
+   This function returns the exception given as parameter with a filled in stacktrace
+
+*******************************************************************************/
+
+java_objectheader *helper_fillin_stacktrace(java_objectheader* exc)
+{
+	classinfo *c;
+	methodinfo *m;
+        /*log_text("helper_fillin_stacktrace has beenentered");*/
+	/* these are panics, since this are sever problems, which must never happen*/
+	if (exc==0) panic("Exception must not be null in helper_fillin_stacktrace");
+	if ( ((java_lang_Throwable *) exc)->vmState!=0) return exc;
+	if (exc->vftbl==0) panic ("Exception vftbl must not be null in helper_fillin_stacktrace");
+	/*get classinfo from object instance*/
+	c=exc->vftbl->class;
+	if (c==0) panic("Exception class must not be null in helper_fillin_stacktrace");
+	/*find the fillInStackTrace method*/
+	m=class_resolvemethod(c,utf_fillInStackTrace,utf_void__java_lang_Throwable);
+	if (m==0) panic ("Exception does not have a fillInStackTrace method");
+
+	/*log_text("helper_fillin_stacktrace doing it's work now");*/
+	asm_calljavafunction(m,exc,0,0,0);
+
+	/*return exception back to asmpart*/
+	return exc;
+}
+
+java_objectheader *helper_fillin_stacktrace_always(java_objectheader* exc) {
+	if (exc==0) panic("Exception must not be null in helper_fillin_stacktrace");
+	((java_lang_Throwable *) exc)->vmState=0;
+	return helper_fillin_stacktrace(exc);
+}
+
 
 
 /*

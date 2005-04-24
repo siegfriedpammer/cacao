@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: codegen.c 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -53,7 +53,7 @@
 #include "vm/jit/x86_64/emitfuncs.h"
 #include "vm/jit/x86_64/types.h"
 #include "vm/jit/x86_64/asmoffsets.h"
-
+#include "vm/jit/helper.h"
 
 /* register descripton - array ************************************************/
 
@@ -90,7 +90,7 @@ static int nregdescfloat[] = {
 #endif
 
 
-void dummy_func() { }
+void codegen_dummy_func() { log_text("codegen_dummy_func"); }
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
@@ -3983,21 +3983,40 @@ gen_method: {
 		} else {
 			xcodeptr = cd->mcodeptr;
 
+
+
+			x86_64_alu_imm_reg(cd, X86_64_SUB, 4*8, REG_SP);
+			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3*8);
+			x86_64_mov_imm_membase(cd, 0, REG_SP, 2*8);
+			x86_64_mov_imm_membase(cd, 0, REG_SP, 1*8);
+			x86_64_mov_imm_membase(cd, 0, REG_SP, 0*8);
+			x86_64_mov_imm_reg(cd,(u8) asm_prepare_native_stackinfo,REG_ITMP1);
+			x86_64_call_reg(cd,REG_ITMP1);
+			
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			x86_64_alu_imm_reg(cd, X86_64_SUB, 8, REG_SP);
-			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 0);
 			x86_64_mov_imm_reg(cd, (u8) &builtin_get_exceptionptrptr, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
 			x86_64_mov_membase_reg(cd, REG_RESULT, 0, REG_ITMP3);
 			x86_64_mov_imm_membase(cd, 0, REG_RESULT, 0);
 			x86_64_mov_reg_reg(cd, REG_ITMP3, REG_ITMP1_XPTR);
-			x86_64_mov_membase_reg(cd, REG_SP, 0, REG_ITMP2_XPC);
-			x86_64_alu_imm_reg(cd, X86_64_ADD, 8, REG_SP);
 #else
 			x86_64_mov_imm_reg(cd, (u8) &_exceptionptr, REG_ITMP3);
 			x86_64_mov_membase_reg(cd, REG_ITMP3, 0, REG_ITMP1_XPTR);
 			x86_64_mov_imm_membase(cd, 0, REG_ITMP3, 0);
 #endif
+			x86_64_mov_reg_reg(cd,REG_ITMP1_XPTR,RDI);
+			x86_64_mov_imm_reg(cd,(u8) helper_fillin_stacktrace_always,REG_ITMP1);
+			x86_64_call_reg(cd,REG_ITMP1);
+			x86_64_mov_reg_reg(cd,REG_RESULT,REG_ITMP1_XPTR);
+
+			x86_64_mov_imm_reg(cd,(u8) asm_remove_native_stackinfo,REG_ITMP2);
+			x86_64_call_reg(cd,REG_ITMP2);
+			
+			x86_64_alu_imm_reg(cd, X86_64_ADD, 8, REG_SP);
+			x86_64_mov_membase_reg(cd, REG_SP, 0, REG_ITMP2_XPC);
+			x86_64_alu_imm_reg(cd, X86_64_ADD, 8, REG_SP);
+
 
 			x86_64_mov_imm_reg(cd, (u8) asm_handle_exception, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
@@ -4164,7 +4183,6 @@ void removecompilerstub(u1 *stub)
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
-	int gg;
 	u1                 *s;              /* pointer to stub memory             */
 	codegendata        *cd;
 	registerdata       *rd;

@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2357 2005-04-22 17:37:57Z christian $
+   $Id: builtin.h 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -371,6 +371,7 @@ java_objectheader **builtin_asm_get_exceptionptrptr(void);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static inline java_objectheader **builtin_get_exceptionptrptr(void);
+static inline u1 *builtin_get_dontfillinexceptionstacktrace(void);
 /* NOT AN OP */
 static inline methodinfo **builtin_get_threadrootmethod(void);
 /* NOT AN OP */
@@ -378,6 +379,11 @@ static inline methodinfo **builtin_get_threadrootmethod(void);
 inline java_objectheader **builtin_get_exceptionptrptr(void)
 {
 	return &THREADINFO->_exceptionptr;
+}
+
+inline u1 *builtin_get_dontfillinexceptionstacktrace(void)
+{
+	return &THREADINFO->_dontfillinexceptionstacktrace;
 }
 
 inline methodinfo **builtin_get_threadrootmethod(void)

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.h 2355 2005-04-22 14:57:47Z twisti $
+   $Id: helper.h 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -47,6 +47,8 @@
 classinfo  *helper_resolve_classinfo(constant_classref *cr);
 methodinfo *helper_resolve_methodinfo(unresolved_method *um);
 fieldinfo  *helper_resolve_fieldinfo(unresolved_field *uf);
+java_objectheader *helper_fillin_stacktrace(java_objectheader*);
+java_objectheader *helper_fillin_stacktrace_always(java_objectheader*);
 
 #endif /* _HELPER_H */
 

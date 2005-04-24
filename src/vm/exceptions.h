@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.h 2276 2005-04-12 19:47:33Z twisti $
+   $Id: exceptions.h 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -46,18 +46,21 @@
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 
-#define exceptionptr        builtin_get_exceptionptrptr()
-#define threadrootmethod    builtin_get_threadrootmethod()
+#define exceptionptr                     builtin_get_exceptionptrptr()
+#define dontfillinexceptionstacktrace    builtin_get_dontfillinexceptionstacktrace()
+#define threadrootmethod                 builtin_get_threadrootmethod()
 
 #else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
 
 #define exceptionptr        (&_exceptionptr)
+#define dontfillinexceptionstacktrace (&_dontfillinexceptionstacktrace)
 #define threadrootmethod    (&_threadrootmethod)
 
 #endif /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 extern java_objectheader *_exceptionptr;
+extern u1 _dontfillinexceptionstacktrace;
 extern methodinfo* _threadrootmethod;
 #endif /* !defined(USE_THREADS) || !defined(NATIVE_THREADS) */
 

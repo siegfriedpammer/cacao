@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2276 2005-04-12 19:47:33Z twisti $
+   $Id: exceptions.c 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -60,6 +60,7 @@
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 java_objectheader* _exceptionptr = NULL;
+u1 _dontfillinexceptionstacktrace = false;
 #endif
 
 

@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: asmpart.S 2360 2005-04-24 13:07:57Z jowenn $
 
 */
 
@@ -891,15 +891,27 @@ asm_wrapper_patcher:
         ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
+        /*stack bottom is xpc and it is directly below the last java stackframe*/
+        push $0
+        push $0
+	push $0 /*padding*/
+        call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
         call    builtin_asm_get_exceptionptrptr
         mov     v0,itmp2
 #else
         lea     _exceptionptr,itmp2
 #endif
-        mov     (itmp2),xptr                /* get the exception pointer          */
-        movl    $0,(itmp2)                  /* clear the exception pointer        */
+        mov     (itmp2),a0                /* get the exception pointer          */
+        movl    $0,(itmp2)                  /* clear exception pointer */
+	call    helper_fillin_stacktrace
 
+	mov     v0,xptr
+
+        call    asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
+
+	pop     xpc
         pop     xpc                         /* get and remove return address      */
         jmp     asm_handle_exception
 
@@ -1134,11 +1146,22 @@ nb_aastore_null:
 	jmp    asm_throw_and_handle_exception
 
 nb_aastore_bound:
-	mov     %rsi,%rdi               /* move index into a0                     */
+	add	$24,%rsp
+	push	$0 /*directly below return address*/
+	push	$0 /*internal*/
+	push	$0 /*padding*/
+	mov	%rsi,itmp1
+	
+	call    asm_prepare_native_stackinfo
+
+	mov     itmp1,%rdi               /* move index into a0                     */
 	call    new_arrayindexoutofboundsexception
-	add     $24,%rsp
-	pop     %r10                    /* delete return address                  */
-	sub     $3,%r10                 /* faulting address is return adress - 3  */
+
+	call	asm_remove_native_stackinfo
+
+	pop     xpc                    /* just remove one quadword                  */
+	pop     xpc                    /* delete return address                  */
+	sub     $3,xpc                 /* faulting address is return adress - 3  */
 	jmp     asm_handle_exception
 		
 nb_aastore_throw:
