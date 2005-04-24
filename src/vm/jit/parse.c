@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: parse.c 2362 2005-04-24 17:57:24Z twisti $
 
 */
 
@@ -1421,19 +1421,20 @@ if (DEBUG4==true) {
 		case JAVA_MONITORENTER:
 #if defined(USE_THREADS)
 			if (checksync) {
-				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID,currentline);
+				OP(ICMD_CHECKNULL);
+				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID, currentline);
 			} else
 #endif
 				{
-					OP(ICMD_NULLCHECKPOP);
+					OP(ICMD_CHECKNULL);
+					OP(ICMD_POP);
 				}
 			break;
 
 		case JAVA_MONITOREXIT:
 #if defined(USE_THREADS)
 			if (checksync) {
-				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID,currentline);
-				OP(ICMD_CHECKEXCEPTION);
+				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID, currentline);
 			} else
 #endif
 				{
