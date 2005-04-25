@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2356 2005-04-22 17:33:35Z christian $
+   $Id: codegen.h 2376 2005-04-25 14:15:14Z twisti $
 
 */
 
@@ -160,11 +160,6 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define MCODECHECK(icnt) \
 	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
         cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
-
-
-/* XXX Do we need code padding on i386? */
-/*  #define ALIGNCODENOP {if((int)((long)cd->mcodeptr&7)){M_NOP;}} */
-#define ALIGNCODENOP
 
 
 /* M_INTMOVE:
@@ -513,6 +508,11 @@ typedef enum {
             i386_emit_imm32((disp)); \
         }    \
      } while (0)
+
+
+/* macros to create code ******************************************************/
+
+#define M_NOP                   i386_nop(cd)                    /* ;          */
 
 
 /* function gen_resolvebranch **************************************************
