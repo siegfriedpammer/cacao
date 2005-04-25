@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2328 2005-04-21 22:38:17Z twisti $
+   $Id: headers.c 2378 2005-04-25 14:19:52Z twisti $
 
 */
 
@@ -80,11 +80,11 @@ java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 
 void asm_call_jit_compiler(void) {}
 
-/* assembler code patching functions */
-void asm_wrapper_patcher_builtin_new(unresolved_class *uc) {}
-void asm_wrapper_patcher_builtin_newarray(unresolved_class *uc) {}
-void asm_wrapper_patcher_builtin_checkarraycast(unresolved_class *uc) {}
-void asm_wrapper_patcher_builtin_arrayinstanceof(unresolved_class *uc) {}
+/* code patching functions */
+void patcher_builtin_new(u1 *sp) {}
+void patcher_builtin_newarray(u1 *sp) {}
+void patcher_builtin_checkarraycast(u1 *sp) {}
+void patcher_builtin_arrayinstanceof(u1 *sp) {}
 
 s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
@@ -102,10 +102,6 @@ void use_class_as_object(void) {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
 
-#if defined(__I386__)
-void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl) {}
-#endif
-
 s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {
 	return 0;
 }
@@ -121,12 +117,6 @@ long compare_and_swap(long *p, long oldval, long newval)
 }
 #endif
 
-
-#if defined(__I386__)
-s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class) {
-	return 0;
-}
-#endif
 
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
 
