@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2361 2005-04-24 17:55:03Z twisti $
+   $Id: reg.inc 2367 2005-04-25 10:14:50Z christian $
 
 */
 
@@ -355,30 +355,22 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	int		intregsneeded = 0;
 	int		memneeded = 0;
 
-	/* allocate stack space for passing arguments to called methods */
+	/* rd->ifmemuse was already set in stack.c to allocate stack space for passing arguments to called methods */
+	
+#if defined(__I386__)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* reserve 0(%esp) for Monitorenter/exit Argument on i386 */
+		if (rd->ifmemuse < 1)
+			rd->ifmemuse = 1;
+	}
+#endif
 #ifdef INVOKE_NEW_DEBUG
 	int temp;
 
 	if (compileverbose) {
-printf("analyse: argintru %3i argfltru %3i ifmemu %3i\n", rd->argintreguse, rd->argfltreguse, rd->ifmemuse);
-		temp = rd->ifmemuse;
-#if !defined(SPECIALMEMUSE)
-		/* For this to work properly the integer argument register count must be  */
-		/* less or equal the float argument register count (e.g. x86_64).         */
-		/* (arch.h: INT_ARG_CNT <= FLT_ARG_CNT)                                   */
-		if (rd->arguments_num > INT_ARG_CNT) {
-			rd->ifmemuse = rd->arguments_num - INT_ARG_CNT;
-
-		} else {
-			rd->ifmemuse = 0;
-		}
-#endif
-		if (compileverbose) {
-			printf("ifmemuse by reg.inc: %3i by stack.c: %3i\n",rd->ifmemuse,temp);
-			if (temp != rd->ifmemuse)
-				printf("Warning: Difference in ifmemuse calculated the old way and the new way\n");
-		}
-		rd->ifmemuse = temp;
+		if (checksync && (m->flags & ACC_SYNCHRONIZED))
+			printf("ACC_SYNCHRONIZED\n");
+		printf("analyse: argintru %3i argfltru %3i ifmemu %3i\n", rd->argintreguse, rd->argfltreguse, rd->ifmemuse);
 	}
 #endif
 
