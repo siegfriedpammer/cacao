@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: builtin.h 2365 2005-04-25 10:00:09Z twisti $
 
 */
 
@@ -157,9 +157,9 @@ s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class); /* XXX
 #define BUILTIN_arrayinstanceof (functionptr) asm_builtin_arrayinstanceof
 #endif
 
-s4 builtin_checkarraycast(java_objectheader *obj, vftbl_t *target);
+s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
 /* NOT AN OP */
-s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target);
+s4 asm_builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
 #define BUILTIN_checkarraycast (functionptr) asm_builtin_checkarraycast
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
@@ -233,15 +233,11 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 
 #if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o);
-/* NOT AN OP */
+#define BUILTIN_monitorenter (functionptr) builtin_monitorenter
 void builtin_staticmonitorenter(classinfo *c);
-/* NOT AN OP */
-void asm_builtin_monitorenter(java_objectheader *o);
-#define BUILTIN_monitorenter (functionptr) asm_builtin_monitorenter
-void *builtin_monitorexit(java_objectheader *o);
-/* NOT AN OP */
-void *asm_builtin_monitorexit(java_objectheader *o);
-#define BUILTIN_monitorexit (functionptr) asm_builtin_monitorexit
+#define BUILTIN_staticmonitorenter (functionptr) builtin_staticmonitorenter
+void builtin_monitorexit(java_objectheader *o);
+#define BUILTIN_monitorexit (functionptr) builtin_monitorexit
 #endif
 
 s4 builtin_idiv(s4 a, s4 b);
