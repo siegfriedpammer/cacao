@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2262 2005-04-11 09:55:44Z twisti $
+   $Id: parse.h 2372 2005-04-25 14:10:17Z twisti $
 
 */
 
@@ -87,29 +87,52 @@
     iptr->target = (t); \
     PINC
 
-#define BUILTIN1(v,t,l) \
+#define BUILTIN1(v,o1,l) \
     inline_env->method->isleafmethod = false; \
     iptr->opc = ICMD_BUILTIN1; \
-    iptr->op1 = (t); \
+    iptr->op1 = (o1); \
     iptr->val.fp = (v); \
+    iptr->target = NULL; \
     iptr->line = (l); \
     iptr->method = inline_env->method; \
     PINC
 
-#define BUILTIN2(v,t,l) \
+#define BUILTIN1T(v,o1,t,l) \
+    inline_env->method->isleafmethod = false; \
+    iptr->opc = ICMD_BUILTIN1; \
+    iptr->op1 = (o1); \
+    iptr->val.fp = (v); \
+    iptr->target = (t); \
+    iptr->line = (l); \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define BUILTIN2(v,o1,l) \
     inline_env->method->isleafmethod = false; \
     iptr->opc = ICMD_BUILTIN2; \
-    iptr->op1 = (t);\
+    iptr->op1 = (o1);\
     iptr->val.fp = (v); \
+    iptr->target = NULL; \
     iptr->line = (l); \
     iptr->method = inline_env->method; \
     PINC
 
-#define BUILTIN3(v,t,l) \
+#define BUILTIN2T(v,o1,t,l) \
+    inline_env->method->isleafmethod = false; \
+    iptr->opc = ICMD_BUILTIN2; \
+    iptr->op1 = (o1);\
+    iptr->val.fp = (v); \
+    iptr->target = (t); \
+    iptr->line = (l); \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define BUILTIN3(v,o1,l) \
     inline_env->method->isleafmethod = false; \
     iptr->opc = ICMD_BUILTIN3; \
-    iptr->op1 = (t);\
+    iptr->op1 = (o1);\
     iptr->val.fp = (v); \
+    iptr->target = NULL; \
     iptr->line = (l); \
     iptr->method = inline_env->method; \
     PINC
