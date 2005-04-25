@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: codegen.c 2379 2005-04-25 23:15:32Z twisti $
 
 */
 
@@ -2389,14 +2389,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class);
-
-					if (showdisassemble) {
-						x86_64_nop(cd);
-						x86_64_nop(cd);
-						x86_64_nop(cd);
-						x86_64_nop(cd);
-						x86_64_nop(cd);
-					}
 				}
 
 				a = (ptrint) &(fi->value);
