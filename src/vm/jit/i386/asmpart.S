@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2364 2005-04-25 08:50:52Z christian $
+   $Id: asmpart.S 2374 2005-04-25 14:13:56Z twisti $
 
 */
 
@@ -76,29 +76,18 @@
 	.globl asm_handle_exception
 
 	.globl asm_wrapper_patcher
-	.globl asm_wrapper_patcher_builtin_new
-	.globl asm_wrapper_patcher_builtin_newarray
-	.globl asm_wrapper_patcher_builtin_multianewarray
-	.globl asm_wrapper_patcher_builtin_checkarraycast
-	.globl asm_wrapper_patcher_builtin_arrayinstanceof
 
 	.globl asm_builtin_checkarraycast
-	.globl asm_builtin_newarray
-	.globl asm_builtin_multianewarray
 	.globl asm_builtin_aastore
-
-#if defined(USE_THREADS)
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-#endif
 
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
+
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
-	.globl asm_builtin_arrayinstanceof
+
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
@@ -751,134 +740,6 @@ L_asm_wrapper_patcher_exception:
 	jmp     asm_handle_exception
 
 
-/* asm_wrapper_patcher_builtin_new *********************************************
-
-   XXX
-
-   Stack layout:
-     4    contains the class reference
-     0    return address
-
-*******************************************************************************/
-
-asm_wrapper_patcher_builtin_new:
-	mov     1*4(%esp),itmp1             /* get class reference                */
-	mov     %esp,itmp2                  /* get stack pointer                  */
-	push    itmp2                       /* pass stack pointer                 */
-	push    itmp1                       /* pass class reference               */
-	call    patcher_builtin_new         /* call the patcher function          */
-	add     $(2*4),%esp                 /* clear arguments                    */
-	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_wrapper_patcher_exception
-	ret                                 /* call new patched code              */
-
-
-/* asm_wrapper_patcher_builtin_* ***********************************************
-
-   XXX
-
-   Stack layout:
-     8    contains the class reference
-     4    first argument
-     0    return address
-
-*******************************************************************************/
-
-asm_wrapper_patcher_builtin_newarray:
-	lea     patcher_builtin_newarray,itmp3
-	jmp     L_asm_wrapper_patcher_builtin_main
-
-asm_wrapper_patcher_builtin_multianewarray:
-	lea     patcher_builtin_multianewarray,itmp3
-	jmp     L_asm_wrapper_patcher_builtin_main
-
-asm_wrapper_patcher_builtin_checkarraycast:
-	lea     patcher_builtin_checkarraycast,itmp3
-	jmp     L_asm_wrapper_patcher_builtin_main
-	
-asm_wrapper_patcher_builtin_arrayinstanceof:
-	lea     patcher_builtin_arrayinstanceof,itmp3
-
-L_asm_wrapper_patcher_builtin_main:
-	mov     2*4(%esp),itmp1             /* get class reference                */
-	mov     %esp,itmp2                  /* save stack pointer                 */
-	push    itmp1                       /* pass class reference               */
-	push    itmp2                       /* pass stack pointer                 */
-	call    *itmp3                      /* call the patcher function          */
-	add     $(2*4),%esp                 /* clear arguments                    */
-	test    v0,v0                       /* exception thrown?                  */
-	jz      L_asm_wrapper_patcher_exception
-	ret                                 /* call new patched code              */
-
-
-/********************* function asm_builtin_monitorenter ***********************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-asm_builtin_monitorenter:
-	cmpl    $0,4(%esp)
-	je      nb_monitorenter             /* if (null) throw exception          */
-	jmp		builtin_monitorenter        /* else call builtin_monitorenter     */
-
-nb_monitorenter:
-        mov string_java_lang_NullPointerException,%eax
-        pop %ecx
-        sub $2,%ecx
-        jmp asm_throw_and_handle_exception
-
-#if 0
-	push    string_java_lang_NullPointerException
-	call    new_exception
-	add     $(1*4),%esp
-	
-	pop     %ecx                        /* delete return address              */
-	sub     $2,%ecx                     /* faulting address is return adress - 2 */
-	jmp     asm_handle_exception
-#endif		
-#endif
-
-
-/********************* function asm_builtin_monitorexit ************************
-*                                                                              *
-*   Does null check and calls monitorexit or throws an exception               *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-asm_builtin_monitorexit:
-	mov     4(%esp),%eax
-    test    %eax,%eax
-	je      nb_monitorexit              /* if (null) throw exception          */
-    push    %ecx                        /* save registers which could be used */
-    push    %edx
-    push    %eax
-	call    builtin_monitorexit         /* else call builtin_monitorenter     */
-    add     $4,%esp
-    pop     %edx                        /* restore registers which could be used */
-    pop     %ecx
-    ret
-
-nb_monitorexit:
-        mov string_java_lang_NullPointerException,%eax
-        pop %ecx
-        sub $2,%ecx
-        jmp asm_throw_and_handle_exception
-
-#if 0
-	push    string_java_lang_NullPointerException
-	call    new_exception
-	add     $(1*4),%esp
-	
-	pop     %ecx                    /* delete return address              */
-	sub     $2,%ecx                 /* faulting address is return adress - 2 */
-	jmp     asm_handle_exception
-#endif
-#endif
-
-
 /************************ function asm_builtin_ldiv ****************************
 *                                                                              *
 *   Does null check and calls ldiv or throws an exception                      *
@@ -1015,26 +876,6 @@ nb_carray_throw:
 #endif
 
 		
-/* asm_builtin_newarray ********************************************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-* asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target)          *
-*******************************************************************************/
-
-asm_builtin_newarray:
-	sub     $8,%esp                     /* build stack frame (2 * 4 bytes)    */
-
-	mov     12(%esp),%eax				/* copy first param (8 + 4(return)) */
-	mov     %eax,(%esp)
-
-	mov     16(%esp),%eax				/* copy second param (8 + 4 + 4) */
-	mov     %eax,4(%esp)
-
-	call	builtin_newarray
-	add     $8,%esp
-	ret
-
-		
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
@@ -1128,28 +969,8 @@ nb_aastore_store:
 	sub     $2,%ecx                     /* faulting address is return adress - 2 */
 	jmp     asm_handle_exception
 #endif
-		
-/******************* function asm_builtin_arrayinstanceof **********************
-*                                                                              *
-*   Does the instanceof check of arrays                                        *
-* asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class)        *
-*******************************************************************************/
 
-asm_builtin_arrayinstanceof:
-	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-	mov     12(%esp),%eax				/* obj (8+4(return)) */
-	mov     %eax,(%esp)
-
-	mov     16(%esp),%eax				/* class (8+4(return)+4(obj)) */
-	mov     %eax,4(%esp)
-
-	call    builtin_arrayinstanceof
-
-	add     $8,%esp
-	ret
-
-		
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 * initialized a thread stack                                                   *
