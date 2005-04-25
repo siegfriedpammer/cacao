@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2342 2005-04-22 13:34:00Z twisti $
+   $Id: asmpart.S 2364 2005-04-25 08:50:52Z christian $
 
 */
 
@@ -152,32 +152,27 @@ asm_calljavafunction_int:
 	push    %ebx                      /* save registers                       */
 	push    %esi
 	push    %edi
-        
-	sub     $32,%esp                  /* pass the remaining parameters        */
-	xor     %edx,%edx
 
-	mov     %edx,28(%esp)             /* convert parms to 8 byte              */
-	mov     24(%ebp),%eax
-	mov     %eax,24(%esp)
+
+	sub		$16,%esp					/* 4 adress parameters * 4 Bytes */
+	mov     24(%ebp),%eax				/* copy adress parameters to new block */
+	mov     %eax,12(%esp)
 		
-	mov     %edx,20(%esp)
 	mov     20(%ebp),%eax
-	mov     %eax,16(%esp)
-
-	mov     %edx,12(%esp)
-	mov     16(%ebp),%eax
 	mov     %eax,8(%esp)
 
-	mov     %edx,4(%esp)
+	mov     16(%ebp),%eax
+	mov     %eax,4(%esp)
+
 	mov     12(%ebp),%eax
 	mov     %eax,(%esp)
-
+		
 	mov     8(%ebp),%eax              /* move function pointer to %eax        */
 
 	lea     asm_call_jit_compiler,%edx 
 	call    *%edx                     /* call JIT compiler                    */
-	
-	add     $32,%esp
+
+	add     $16,%esp
 	pop     %edi                      /* restore registers                    */
 	pop     %esi
 	pop     %ebx
@@ -189,7 +184,7 @@ calljava_xhandler:
 	call    builtin_throw_exception
 	add     $4,%esp
 
-	add     $32,%esp
+	add     $16,%esp
 	pop     %edi                      /* restore registers                    */
 	pop     %esi
 	pop     %ebx
@@ -241,29 +236,48 @@ asm_calljavafunction2double:
 	push    %esi
 	push    %edi
 
-	mov     20(%ebp),%eax             /* pointer to arg block                 */
-	mov     12(%ebp),%ecx             /* arg count                            */
+	mov     20(%ebp),%eax             /* pointer to arg block (4(push)+4(return)+4+4+4)*/
+	mov     12(%ebp),%ecx             /* arg count            (4(push)+4(return)+4     */
 	test    %ecx,%ecx                 /* maybe we have no args                */
 	jle     calljava_copydone
 
-	mov     %ecx,%edx                 /* calculate stack size                 */
-	shl     $3,%edx
-	mov     %edx,%esi                 /* save in callee saved register        */
+		mov		%ecx,%edx			 /* calculate stack size                 */
+		xor		%esi,%esi
+		mov		%eax,%edi			 /* save pointer to arg block */
+calljava_calcstacksize:
+		mov		offjniitemtype(%eax),%ebx
+		test	$1,%ebx					/* Two Word Type? */
+		jz		calljava_onewordtype
+		add		$4,%esi
+calljava_onewordtype:
+		add		$4,%esi
+		sub		$1,%edx
+		test	%edx,%edx				/* any args left ?*/
+		jz		calljava_setstack
+		add     $sizejniblock,%eax      /* goto next argument block             */
+		jmp		calljava_calcstacksize
+		
+calljava_setstack:				
+		mov		%edi,%eax			 /* restore pointer to arg block */
 	sub     %esi,%esp                 /* stack frame for arguments            */
 	mov     %esp,%edi
 
 calljava_copyloop:
-	mov     offjniitem(%eax),%edx
-	mov     %edx,0(%edi)
-	mov     offjniitem+4(%eax),%edx
-	mov     %edx,4(%edi)
-
+	    mov     offjniitem(%eax),%edx   /* copy 4 Byte of Argument */
+	    mov     %edx,(%edi)
+		add		$4,%edi					/* increase sp to next argument         */
+		mov		offjniitemtype(%eax),%ebx /* type -> ebx */
+		test	$1,%ebx					/* Two Word Type? */
+		jz		calljava_copynext
+	    mov     offjniitem+4(%eax),%edx /* copy upper 4 Byte of 2 Word Type */  
+		mov     %edx,(%edi)			
+		add		$4,%edi					/* increase sp to next argument         */
+calljava_copynext:		
 	sub     $1,%ecx                   /* are there any args left?             */
 	test    %ecx,%ecx
 	jle     calljava_copydone
 
 	add     $sizejniblock,%eax        /* goto next argument block             */
-	add     $8,%edi                   /* increase sp to next argument         */
 	jmp     calljava_copyloop
 
 calljava_copydone:
@@ -325,7 +339,7 @@ asm_call_jit_compiler:
 	push	%ebx                /* save register                              */
     push    %ebp
 			
-	mov     8(%esp),%ebp        /* get return address (2 push)                */
+	mov     2*4(%esp),%ebp      /* get return address (2 push)                */
 	mov     -1(%ebp),%bl        /* get function code                          */
 	cmp     $0xd1,%bl           /* called with `call *REG_ITMP2' (%ecx)?      */
 	jne		L_not_static_special
@@ -592,7 +606,7 @@ ex_already_cleared:
 
 #if defined(USE_THREADS)
         add     %esp,%eax
-        mov     -4(%eax),%eax               /* we have the xptr on the stack  */
+        mov     (%eax),%eax               /* we have the xptr on the stack (+4-4=0)  */
         push    %edx                        /* save regs                      */
         push    %eax
 		call    builtin_monitorexit
@@ -616,18 +630,18 @@ no_monitor_exit:
 		je      int3
 
 int4:	
-		mov     -32(%eax),%ebx
+		mov     -16(%eax),%ebx
 
 int3:	
-		mov     -24(%eax),%ebp
+		mov     -12(%eax),%ebp
 
 int2:	
-		mov     -16(%eax),%esi
+		mov     -8(%eax),%esi
 
 int1:	
-		mov     -8(%eax),%edi
+		mov     -4(%eax),%edi
 
-   		shl     $3,%ecx						/* multiply by 8 bytes             */
+   		shl     $2,%ecx						/* multiply by 4 bytes             */
 		sub     %ecx,%eax
 		
 noint:
@@ -664,7 +678,7 @@ noflt:
         add     %ecx,%esp                   /* unwind stack                   */
         
 		pop     %ecx                        /* the new xpc is return address  */
-		sub     $2,%ecx
+		sub     $2,%ecx						/* -2 -> call */
 		
 		jmp		asm_handle_exception_loop
 		
@@ -764,7 +778,7 @@ asm_wrapper_patcher_builtin_new:
    XXX
 
    Stack layout:
-    12    contains the class reference
+     8    contains the class reference
      4    first argument
      0    return address
 
@@ -786,7 +800,7 @@ asm_wrapper_patcher_builtin_arrayinstanceof:
 	lea     patcher_builtin_arrayinstanceof,itmp3
 
 L_asm_wrapper_patcher_builtin_main:
-	mov     3*4(%esp),itmp1             /* get class reference                */
+	mov     2*4(%esp),itmp1             /* get class reference                */
 	mov     %esp,itmp2                  /* save stack pointer                 */
 	push    itmp1                       /* pass class reference               */
 	push    itmp2                       /* pass stack pointer                 */
@@ -967,10 +981,10 @@ asm_builtin_d2l:
 asm_builtin_checkarraycast:
 	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-	mov		12(%esp),%eax               /* 8 (frame) + 4 (return)             */
+	mov		12(%esp),%eax               /* first param:	8 (frame) + 4 (return)*/
 	mov		%eax,(%esp)                 /* save object pointer                */
 
-	mov		20(%esp),%eax
+	mov		16(%esp),%eax				/* second param:	8 (frame) + 4 (return) + 4*/
 	mov		%eax,4(%esp)
 
 	call	builtin_checkarraycast      /* builtin_checkarraycast             */
@@ -1004,16 +1018,16 @@ nb_carray_throw:
 /* asm_builtin_newarray ********************************************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+* asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target)          *
 *******************************************************************************/
 
 asm_builtin_newarray:
 	sub     $8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-	mov     12(%esp),%eax
+	mov     12(%esp),%eax				/* copy first param (8 + 4(return)) */
 	mov     %eax,(%esp)
 
-	mov     20(%esp),%eax
+	mov     16(%esp),%eax				/* copy second param (8 + 4 + 4) */
 	mov     %eax,4(%esp)
 
 	call	builtin_newarray
@@ -1021,33 +1035,10 @@ asm_builtin_newarray:
 	ret
 
 		
-/* asm_builtin_multianewarray **************************************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-asm_builtin_multianewarray:
-	sub     $3*4,%esp
-
-	mov     0*8+(1+3)*4(%esp),%eax
-	mov     %eax,0*4(%esp)
-
-	mov     1*8+(1+3)*4(%esp),%eax
-	mov     %eax,1*4(%esp)
-
-	mov     2*8+(1+3)*4(%esp),%eax
-	mov     %eax,2*4(%esp)
-
-	call	builtin_multianewarray
-	add     $3*4,%esp
-	ret
-
-		
 /******************* function asm_builtin_aastore ******************************
 *                                                                              *
 *   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+* void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o)*
 *******************************************************************************/
 
 asm_builtin_aastore:
@@ -1057,8 +1048,8 @@ asm_builtin_aastore:
 	test    %eax,%eax                   /* if null pointer throw exception    */
 	je      nb_aastore_null
 
-	mov     offarraysize(%eax),%edx /* load size                          */
-	mov     24(%esp),%ecx               /* index                              */
+	mov     offarraysize(%eax),%edx     /* load size                          */
+	mov     20(%esp),%ecx               /* index  (12 + 4 + 4)                 */
 	cmp     %edx,%ecx                   /* do bound check                     */
 	jae     nb_aastore_bound            /* if out of bounds throw exception   */
 
@@ -1070,7 +1061,7 @@ asm_builtin_aastore:
 	mov     16(%esp),%eax               /* 12 (frame) + 4 (return)            */
 	mov     %eax,(%esp)
 	   
-	mov     32(%esp),%eax               /* object is second argument          */
+	mov     24(%esp),%eax               /* object is second argument (12+4+4+4) */
 	mov     %eax,4(%esp)
 	
 	call    builtin_canstore            /* builtin_canstore(arrayref,object)  */
@@ -1078,7 +1069,7 @@ asm_builtin_aastore:
 	test    %eax,%eax                   /* if (false) throw exception         */
 	je      nb_aastore_store
 
-	mov     32(%esp),%eax
+	mov     24(%esp),%eax
 	mov     8(%esp),%ecx
 	mov     %eax,offobjarrdata(%ecx)    /* store objectptr in array           */
 	
@@ -1104,7 +1095,7 @@ nb_aastore_null:
 #endif
 nb_aastore_bound:
 	add     $12,%esp
-	mov	%ecx,%eax                        /* itmp2 contains array index         */
+	mov	    %ecx,%eax                    /* itmp2 contains array index         */
 	pushl	$0  /*directly below return adress*/
 	pushl   $0  /*internal (invisible) method*/
 	call    asm_prepare_native_stackinfo /* puts 2*4 bytes onto stack*/
@@ -1141,16 +1132,16 @@ nb_aastore_store:
 /******************* function asm_builtin_arrayinstanceof **********************
 *                                                                              *
 *   Does the instanceof check of arrays                                        *
-*                                                                              *
+* asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class)        *
 *******************************************************************************/
 
 asm_builtin_arrayinstanceof:
 	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
-	mov     12(%esp),%eax
+	mov     12(%esp),%eax				/* obj (8+4(return)) */
 	mov     %eax,(%esp)
 
-	mov     20(%esp),%eax
+	mov     16(%esp),%eax				/* class (8+4(return)+4(obj)) */
 	mov     %eax,4(%esp)
 
 	call    builtin_arrayinstanceof
