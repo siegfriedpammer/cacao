@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2365 2005-04-25 10:00:09Z twisti $
+   $Id: builtin.h 2368 2005-04-25 14:05:29Z twisti $
 
 */
 
@@ -151,12 +151,6 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
 
-#if defined(__I386__)
-s4 asm_builtin_arrayinstanceof(java_objectheader *obj, classinfo *class); /* XXX ? */
-#undef  BUILTIN_arrayinstanceof
-#define BUILTIN_arrayinstanceof (functionptr) asm_builtin_arrayinstanceof
-#endif
-
 s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
 /* NOT AN OP */
 s4 asm_builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
@@ -184,12 +178,6 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl);
 
 java_objectarray *builtin_anewarray(s4 size, classinfo *component);
 #define BUILTIN_anewarray (functionptr) builtin_anewarray
-
-#if defined(__I386__)
-void asm_builtin_newarray(s4 size, vftbl_t *arrayvftbl);
-#undef  BUILTIN_newarray
-#define BUILTIN_newarray (functionptr) asm_builtin_newarray
-#endif
 
 java_booleanarray *builtin_newarray_boolean(s4 size);
 #define BUILTIN_newarray_boolean (functionptr) builtin_newarray_boolean
