@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2362 2005-04-24 17:57:24Z twisti $
+   $Id: parse.c 2371 2005-04-25 14:09:30Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
+#include "vm/jit/patcher.h"
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/parseXTA.h"
 #include "vm/jit/inline/inline.h"
@@ -627,30 +628,30 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_NEWARRAY:
 			OP(ICMD_CHECKASIZE);
-			switch (code_get_s1(p + 1,inline_env->method)) {
+			switch (code_get_s1(p + 1, inline_env->method)) {
 			case 4:
-				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR, currentline);
 				break;
 			case 5:
-				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR, currentline);
 				break;
 			case 6:
-				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR, currentline);
 				break;
 			case 7:
-				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR, currentline);
 				break;
 			case 8:
-				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR, currentline);
 				break;
 			case 9:
-				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR, currentline);
 				break;
 			case 10:
-				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR, currentline);
 				break;
 			case 11:
-				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR,currentline);
+				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR, currentline);
 				break;
 			default: panic("Invalid array-type to create");
 			}
@@ -659,7 +660,7 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_ANEWARRAY:
 			OP(ICMD_CHECKASIZE);
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 			{
 				classinfo *component;
 				constant_classref *compr;
@@ -677,11 +678,11 @@ SHOWOPCODE(DEBUG4)
 
 				if (c) {
 					LOADCONST_A_BUILTIN(c->vftbl);
-					BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
+					BUILTIN2T(BUILTIN_newarray, TYPE_ADR, NULL, currentline);
 
 				} else {
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN2(asm_wrapper_patcher_BUILTIN_newarray, TYPE_ADR, currentline);
+					LOADCONST_A_BUILTIN(NULL);
+					BUILTIN2T(PATCHER_builtin_newarray, TYPE_ADR, cr, currentline);
 				}
 				s_count++;
 #else
@@ -719,10 +720,10 @@ SHOWOPCODE(DEBUG4)
 					return NULL;
 
 				if (c) {
-					OP2AT(opcode, v, c->vftbl, BUILTIN_multianewarray, currentline);
+					OP2AT(opcode, v, c->vftbl, NULL, currentline);
 
 				} else {
-					OP2AT(opcode, v, cr, asm_wrapper_patcher_BUILTIN_multianewarray, currentline);
+					OP2AT(opcode, v, cr, PATCHER_builtin_multianewarray, currentline);
 				}
 #else
 /*   				vftbl *arrayvftbl = */
@@ -1294,11 +1295,11 @@ if (DEBUG4==true) {
 
 				if (cls && cls->initialized) {
 					LOADCONST_A_BUILTIN(cls);
-					BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
+					BUILTIN1T(BUILTIN_new, TYPE_ADR, NULL, currentline);
 
 				} else {
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN1(asm_wrapper_patcher_BUILTIN_new, TYPE_ADR, currentline);
+					LOADCONST_A_BUILTIN(NULL);
+					BUILTIN1T(PATCHER_builtin_new, TYPE_ADR, cr, currentline);
 				}
 
 				s_count++;
@@ -1332,11 +1333,11 @@ if (DEBUG4==true) {
 					/* array type cast-check */
 					if (cls) {
 						LOADCONST_A_BUILTIN(cls->vftbl);
-						BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR, currentline);
+						BUILTIN2T(BUILTIN_checkarraycast, TYPE_ADR, NULL, currentline);
 
 					} else {
-						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2(asm_wrapper_patcher_BUILTIN_checkarraycast, TYPE_ADR, currentline);
+						LOADCONST_A_BUILTIN(NULL);
+						BUILTIN2T(PATCHER_builtin_checkarraycast, TYPE_ADR, cr, currentline);
 					}
 					s_count++;
 
@@ -1383,11 +1384,11 @@ if (DEBUG4==true) {
 					/* array type cast-check */
 					if (cls) {
 						LOADCONST_A_BUILTIN(cls->vftbl);
-						BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+						BUILTIN2T(BUILTIN_arrayinstanceof, TYPE_INT, NULL, currentline);
 
 					} else {
-						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2(asm_wrapper_patcher_BUILTIN_arrayinstanceof, TYPE_INT, currentline);
+						LOADCONST_A_BUILTIN(NULL);
+						BUILTIN2T(PATCHER_builtin_arrayinstanceof, TYPE_INT, cr, currentline);
 					}
 					s_count++;
 
