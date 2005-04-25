@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2366 2005-04-25 10:01:30Z twisti $
+   $Id: builtin.c 2369 2005-04-25 14:06:16Z twisti $
 
 */
 
@@ -74,6 +74,7 @@
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/patcher.h"
 
 
 #undef DEBUG /*define DEBUG 1*/
@@ -258,12 +259,10 @@ builtin_descriptor builtin_desc[] = {
 #if defined(__X86_64__) || defined(__I386__)
 	/* assembler code patching functions */
 
-	{ 255, asm_wrapper_patcher_BUILTIN_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling asm_wrapper_patcher_builtin_new)" },
-#endif
-#if defined(__X86_64__)
-	{ 255, asm_wrapper_patcher_BUILTIN_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling asm_wrapper_patcher_builtin_newarray)" },
-	{ 255, asm_wrapper_patcher_BUILTIN_checkarraycast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "checkarraycast (calling asm_wrapper_patcher_builtin_checkarraycast)" },
-	{ 255, asm_wrapper_patcher_BUILTIN_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling asm_wrapper_patcher_builtin_arrayinstanceof)" },
+	{ 255, PATCHER_builtin_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling patcher_builtin_new)" },
+	{ 255, PATCHER_builtin_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling patcher_builtin_newarray)" },
+	{ 255, PATCHER_builtin_checkarraycast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "checkarraycast (calling patcher_builtin_checkarraycast)" },
+	{ 255, PATCHER_builtin_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling patcher_builtin_arrayinstanceof)" },
 #endif
 
 
