@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: builtin.c 2366 2005-04-25 10:01:30Z twisti $
 
 */
 
@@ -436,21 +436,28 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 }
 
 
-/*********** internal function: builtin_descriptorscompatible ******************
+/* builtin_descriptorscompatible ***********************************************
 
-	Checks if two array type descriptors are assignment compatible
-	Return value:  1 ... target = desc is possible
-				   0 ... otherwise
+   Checks if two array type descriptors are assignment compatible
+
+   Return value: 1 ... target = desc is possible
+                 0 ... otherwise
 			
-******************************************************************************/
+*******************************************************************************/
 
-static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *target)
+static s4 builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor *target)
 {
-	if (desc==target) return 1;
-	if (desc->arraytype != target->arraytype) return 0;
-	if (desc->arraytype != ARRAYTYPE_OBJECT) return 1;
+	if (desc == target)
+		return 1;
+
+	if (desc->arraytype != target->arraytype)
+		return 0;
+
+	if (desc->arraytype != ARRAYTYPE_OBJECT)
+		return 1;
 	
 	/* {both arrays are arrays of references} */
+
 	if (desc->dimension == target->dimension) {
 		/* an array which contains elements of interface types is allowed to be casted to Object (JOWENN)*/
 		if ( (desc->elementvftbl->baseval<0) && (target->elementvftbl->baseval==1) ) return 1;
@@ -463,30 +470,29 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,arraydescriptor *t
 }
 
 
-/******************** function: builtin_checkarraycast ***********************
+/* builtin_checkarraycast ******************************************************
 
-	Checks if an object is really a subtype of the requested array type.
-	The object has to be an array to begin with. For simple arrays (int, short,
-	double, etc.) the types have to match exactly.
-	For arrays of objects, the type of elements in the array has to be a
-	subtype (or the same type) of the requested element type. For arrays of
-	arrays (which in turn can again be arrays of arrays), the types at the
-	lowest level have to satisfy the corresponding sub class relation.
+   Checks if an object is really a subtype of the requested array
+   type.  The object has to be an array to begin with. For simple
+   arrays (int, short, double, etc.) the types have to match exactly.
+   For arrays of objects, the type of elements in the array has to be
+   a subtype (or the same type) of the requested element type. For
+   arrays of arrays (which in turn can again be arrays of arrays), the
+   types at the lowest level have to satisfy the corresponding sub
+   class relation.
 	
-	Return value:  1 ... cast is possible
-				   0 ... otherwise
-	
-	ATTENTION: a cast with a NULL pointer is always possible.
-			
-*****************************************************************************/
+*******************************************************************************/
 
 s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target)
 {
 	arraydescriptor *desc;
-	
-	if (!o) return 1;
-	if ((desc = o->vftbl->arraydesc) == NULL) return 0;
 
+	if (!o)
+		return 1;
+
+	if ((desc = o->vftbl->arraydesc) == NULL)
+		return 0;
+ 
 	return builtin_descriptorscompatible(desc, target->arraydesc);
 }
 
@@ -1444,7 +1450,7 @@ void builtin_staticmonitorenter(classinfo *c)
 
 
 #if defined(USE_THREADS)
-void *builtin_monitorexit(java_objectheader *o)
+void builtin_monitorexit(java_objectheader *o)
 {
 #if !defined(NATIVE_THREADS)
 	int hashValue;
@@ -1463,10 +1469,8 @@ void *builtin_monitorexit(java_objectheader *o)
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
-	return o;
 #else
 	monitorExit((threadobject *) THREADOBJECT, o);
-	return o;
 #endif
 }
 #endif
