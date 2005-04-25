@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2327 2005-04-21 22:36:46Z twisti $
+   $Id: asmpart.h 2370 2005-04-25 14:07:19Z twisti $
 
 */
 
@@ -119,26 +119,8 @@ void asm_throw_and_handle_arrayindexoutofbounds_exception();
 #endif
 void asm_throw_and_handle_hardware_arithmetic_exception();
 
-
 /* wrapper for code patching functions */
-
 void asm_wrapper_patcher(void);
-
-void asm_wrapper_patcher_builtin_new(unresolved_class *uc);
-#define asm_wrapper_patcher_BUILTIN_new (functionptr) asm_wrapper_patcher_builtin_new
-
-void asm_wrapper_patcher_builtin_newarray(unresolved_class *uc);
-#define asm_wrapper_patcher_BUILTIN_newarray (functionptr) asm_wrapper_patcher_builtin_newarray
-
-void asm_wrapper_patcher_builtin_multianewarray(unresolved_class *uc);
-#define asm_wrapper_patcher_BUILTIN_multianewarray (functionptr) asm_wrapper_patcher_builtin_multianewarray
-
-void asm_wrapper_patcher_builtin_checkarraycast(unresolved_class *uc);
-#define asm_wrapper_patcher_BUILTIN_checkarraycast (functionptr) asm_wrapper_patcher_builtin_checkarraycast
-
-void asm_wrapper_patcher_builtin_arrayinstanceof(unresolved_class *uc);
-#define asm_wrapper_patcher_BUILTIN_arrayinstanceof (functionptr) asm_wrapper_patcher_builtin_arrayinstanceof
-
 
 stacktraceelement *asm_get_stackTrace();
 
