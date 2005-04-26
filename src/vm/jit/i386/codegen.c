@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2377 2005-04-25 14:16:45Z twisti $
+   $Id: codegen.c 2383 2005-04-26 16:11:58Z twisti $
 
 */
 
@@ -4502,6 +4502,7 @@ gen_method: {
 					}
 
 					s1 = 0;
+					s2 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
 
 				} else {

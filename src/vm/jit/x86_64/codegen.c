@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2379 2005-04-25 23:15:32Z twisti $
+   $Id: codegen.c 2383 2005-04-26 16:11:58Z twisti $
 
 */
 
@@ -3237,6 +3237,7 @@ gen_method: {
 										PATCHER_invokeinterface, um);
 
 					s1 = 0;
+					s2 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
 
 				} else {
