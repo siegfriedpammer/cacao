@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2370 2005-04-25 14:07:19Z twisti $
+   $Id: asmpart.h 2384 2005-04-26 16:12:27Z twisti $
 
 */
 
@@ -63,7 +63,8 @@ struct castinfo {
    determines if the byte support instruction set (21164a and higher)
    is available.
 */
-int has_no_x_instr_set();
+int has_no_x_instr_set(void);
+void asm_sync_instruction_cache(void);
 #endif
 
 
@@ -72,7 +73,7 @@ int has_no_x_instr_set();
    Register R0 contains a pointer to the method info structure
    (prepared by createcompilerstub).
 */
-void asm_call_jit_compiler();
+void asm_call_jit_compiler(void);
 
 
 /* 
