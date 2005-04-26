@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: patcher.c 2391 2005-04-26 19:49:15Z twisti $
 
 */
 
@@ -37,9 +37,11 @@
 #include "vm/builtin.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
+#include "vm/options.h"
 #include "vm/references.h"
 #include "vm/jit/helper.h"
 #include "vm/exceptions.h"
+
 
 /* patcher_get_putstatic *******************************************************
 
@@ -116,6 +118,11 @@ bool patcher_get_putstatic(u1 *sp)
 
 	*((u8 *) ra) = mcode;
 
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
 	/* get RIP offset from machine instruction */
 
 	ripoffset = *((u4 *) (ra + 3));
@@ -133,8 +140,6 @@ bool patcher_get_putstatic(u1 *sp)
 
 
 /* patcher_get_putfield ********************************************************
-
-   XXX
 
    Machine code:
 
@@ -175,6 +180,11 @@ bool patcher_get_putfield(u1 *sp)
 
 	*((u8 *) ra) = mcode;
 
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
 	/* patch the field's offset: we check for the field type, because the     */
 	/* instructions have different lengths                                    */
 
@@ -201,25 +211,32 @@ bool patcher_get_putfield(u1 *sp)
 
 /* patcher_builtin_new *********************************************************
 
-   XXX
-
    Machine code:
+
+   48 bf a0 f0 92 00 00 00 00 00    mov    $0x92f0a0,%rdi
+   <patched call position>
+   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_new(constant_classref *cr, u1 *sp)
+bool patcher_builtin_new(u1 *sp)
 {
 	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 10 + 3);
-	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
+	ra = ra - (10 + 5);
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
@@ -231,9 +248,18 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 		return false;
 	}
 
+	/* patch back original code */
+
+	*((u8 *) (ra + 10)) = mcode;
+
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (ra + 2)) = (ptrint) c;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch new function address */
 
@@ -246,40 +272,54 @@ bool patcher_builtin_new(constant_classref *cr, u1 *sp)
 
 /* patcher_builtin_newarray ****************************************************
 
-   XXX
-
    Machine code:
+
+   48 be 88 13 9b 00 00 00 00 00    mov    $0x9b1388,%rsi
+   <patched call position>
+   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_newarray(u1 *sp, constant_classref *cr)
+bool patcher_builtin_newarray(u1 *sp)
 {
 	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 10 + 3);
-	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
-
+	ra = ra - (10 + 5);
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
-
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
+
+	/* patch back original code */
+
+	*((u8 *) (ra + 10)) = mcode;
+
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch new function address */
 
@@ -292,25 +332,34 @@ bool patcher_builtin_newarray(u1 *sp, constant_classref *cr)
 
 /* patcher_builtin_multianewarray **********************************************
 
-   XXX
-
    Machine code:
+
+   <patched call position>
+   48 bf 02 00 00 00 00 00 00 00    mov    $0x2,%rdi
+   48 be 30 40 b2 00 00 00 00 00    mov    $0xb24030,%rsi
+   48 89 e2                         mov    %rsp,%rdx
+   48 b8 7c 96 4b 00 00 00 00 00    mov    $0x4b967c,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr)
+bool patcher_builtin_multianewarray(u1 *sp)
 {
 	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 10 + 3 + 10 + 3);
-	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
+	ra = ra - 5;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
@@ -320,6 +369,16 @@ bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr)
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) c->vftbl;
@@ -335,35 +394,50 @@ bool patcher_builtin_multianewarray(u1 *sp, constant_classref *cr)
 
 /* patcher_builtin_checkarraycast **********************************************
 
-   XXX
-
    Machine code:
+
+   48 be b8 3f b2 00 00 00 00 00    mov    $0xb23fb8,%rsi
+   <patched call position>
+   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_checkarraycast(u1 *sp, constant_classref *cr)
+bool patcher_builtin_checkarraycast(u1 *sp)
 {
 	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 10 + 3);
-	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
+	ra = ra - (10 + 5);
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
+
+	/* patch back original code */
+
+	*((u8 *) (ra + 10)) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch the class' vftbl pointer */
 
@@ -380,37 +454,50 @@ bool patcher_builtin_checkarraycast(u1 *sp, constant_classref *cr)
 
 /* patcher_builtin_arrayinstanceof *********************************************
 
-   XXX
-
    Machine code:
+
+   48 be 30 3c b2 00 00 00 00 00    mov    $0xb23c30,%rsi
+   <patched call position>
+   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_arrayinstanceof(u1 *sp, constant_classref *cr)
+bool patcher_builtin_arrayinstanceof(u1 *sp)
 {
 	u1                *ra;
+	u8                 mcode;
+	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra = (u1 *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 10 + 3);
-	*((ptrint *) (sp + 0 * 8)) = (ptrint) ra;
-
+	ra = ra - (10 + 5);
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
-
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
+
+	/* patch back original code */
+
+	*((u8 *) (ra + 10)) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch the class' vftbl pointer */
 
@@ -463,6 +550,11 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	*((u8 *) ra) = mcode;
 
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
 	/* patch stubroutine */
 
 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
@@ -509,6 +601,11 @@ bool patcher_invokevirtual(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch vftbl index */
 
@@ -558,6 +655,11 @@ bool patcher_invokeinterface(u1 *sp)
 
 	*((u8 *) ra) = mcode;
 
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
 	/* patch interfacetable index */
 
 	*((s4 *) (ra + 3 + 3)) = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
@@ -601,14 +703,19 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
+
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch class flags */
 
@@ -643,13 +750,11 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	ra = ra - 5;
 	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
-
 	*dontfillinexceptionstacktrace=true;
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -657,6 +762,11 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch super class index */
 
@@ -699,8 +809,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -708,6 +817,11 @@ bool patcher_checkcast_class(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch super class' vftbl */
 
@@ -747,8 +861,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -756,6 +869,11 @@ bool patcher_instanceof_class(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
 
 	/* patch super class' vftbl */
 
@@ -793,8 +911,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* check if the class is initialized */
 
-	if (!c->initialized)
-	{
+	if (!c->initialized) {
 		bool init;
 		{
 			/*struct native_stackframeinfo {
