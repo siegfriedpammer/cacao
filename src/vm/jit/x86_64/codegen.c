@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2383 2005-04-26 16:11:58Z twisti $
+   $Id: codegen.c 2392 2005-04-26 19:50:42Z twisti $
 
 */
 
@@ -377,23 +377,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		u8 func_enter;
-
 		if (m->flags & ACC_STATIC) {
-			func_enter = (u8) builtin_staticmonitorenter;
-			x86_64_mov_imm_reg(cd, (s8) m->class, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) m->class, REG_ITMP1);
 			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, rd->maxmemuse * 8);
+			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
+			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
+			x86_64_call_reg(cd, REG_ITMP1);
 
 		} else {
-			func_enter = (u8) builtin_monitorenter;
+			x86_64_test_reg_reg(cd, rd->argintregs[0], rd->argintregs[0]);
+			x86_64_jcc(cd, X86_64_CC_Z, 0);
+			codegen_addxnullrefs(cd, cd->mcodeptr);
 			x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, rd->maxmemuse * 8);
+			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_monitorenter, REG_ITMP1);
+			x86_64_call_reg(cd, REG_ITMP1);
 		}
-
-		/* call monitorenter function */
-
-		x86_64_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 8, rd->argintregs[0]);
-		x86_64_mov_imm_reg(cd, func_enter, REG_ITMP1);
-		x86_64_call_reg(cd, REG_ITMP1);
 	}
 #endif
 
@@ -576,14 +574,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case ICMD_NOP:    /* ...  ==> ...                                 */
 				break;
 
-			case ICMD_NULLCHECKPOP: /* ..., objectref  ==> ...                */
+			case ICMD_CHECKNULL: /* ..., objectref  ==> ..., objectref        */
 				if (src->flags & INMEMORY) {
 					x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8);
 
 				} else {
 					x86_64_test_reg_reg(cd, src->regoff, src->regoff);
 				}
-				x86_64_jcc(cd, X86_64_CC_E, 0);
+				x86_64_jcc(cd, X86_64_CC_Z, 0);
 				codegen_addxnullrefs(cd, cd->mcodeptr);
 				break;
 
@@ -2332,6 +2330,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
 
 			} else {
@@ -2340,6 +2343,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2381,6 +2388,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
 
 			} else {
@@ -2389,6 +2401,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2428,6 +2444,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr[1].target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
 
 			} else {
@@ -2436,6 +2457,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
 				}
 
 				a = (ptrint) &(fi->value);
@@ -2473,9 +2498,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
-			} else
+
+			} else {
 				a = ((fieldinfo *) (iptr->val.a))->offset;
+			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2517,9 +2549,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
-			} else
+
+			} else {
 				a = ((fieldinfo *) (iptr->val.a))->offset;
+			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2550,9 +2589,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr[1].target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
 				a = 0;
-			} else
+
+			} else {
 				a = ((fieldinfo *) (iptr[1].val.a))->offset;
+			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
@@ -2956,7 +3002,7 @@ nowperformreturn:
 					break;
 				}
 
-				x86_64_mov_imm_reg(cd, (u8) builtin_monitorexit, REG_ITMP1);
+				x86_64_mov_imm_reg(cd, (ptrint) builtin_monitorexit, REG_ITMP1);
 				x86_64_call_reg(cd, REG_ITMP1);
 
 				/* and now restore the proper return value */
@@ -3167,19 +3213,36 @@ gen_method: {
 			case ICMD_BUILTIN3:
 			case ICMD_BUILTIN2:
 			case ICMD_BUILTIN1:
-				a = (ptrint) lm;
 				d = iptr->op1;
+
+				if (iptr->target) {
+					codegen_addpatchref(cd, cd->mcodeptr,
+										(functionptr) lm, iptr->target);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+
+					a = 0;
+
+				} else {
+					a = (ptrint) lm;
+				}
 
 				x86_64_mov_imm_reg(cd, a, REG_ITMP1);
 				x86_64_call_reg(cd, REG_ITMP1);
 				break;
 
 			case ICMD_INVOKESPECIAL:
+				x86_64_test_reg_reg(cd, rd->argintregs[0], rd->argintregs[0]);
+				x86_64_jcc(cd, X86_64_CC_Z, 0);
+				codegen_addxnullrefs(cd, cd->mcodeptr);
+
 				/* first argument contains pointer */
-				gen_nullptr_check(rd->argintregs[0]);
+/*  				gen_nullptr_check(rd->argintregs[0]); */
 
 				/* access memory for hardware nullptr */
-				x86_64_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2);
+/*  				x86_64_mov_membase_reg(cd, rd->argintregs[0], 0, REG_ITMP2); */
 
 				/* fall through */
 
@@ -3189,6 +3252,10 @@ gen_method: {
 
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokestatic_special, um);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
 
 					a = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3210,6 +3277,10 @@ gen_method: {
 
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokevirtual, um);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
 
 					s1 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
@@ -3236,17 +3307,19 @@ gen_method: {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokeinterface, um);
 
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+
 					s1 = 0;
 					s2 = 0;
 					d = um->methodref->parseddesc.md->returntype.type;
 
 				} else {
-					classinfo * ci = lm->class;
-
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr) * ci->index;
+						sizeof(methodptr) * lm->class->index;
 
-					s2 = sizeof(methodptr) * (lm - ci->methods);
+					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 
 					d = lm->parseddesc->returntype.type;
 				}
@@ -3665,17 +3738,35 @@ gen_method: {
 				}
 			}
 
+			/* is a patcher function set? */
+
+			if (iptr->target) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									(functionptr) iptr->target, iptr->val.a);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
+				a = 0;
+
+			} else {
+				a = (ptrint) iptr->val.a;
+			}
+
 			/* a0 = dimension count */
+
 			x86_64_mov_imm_reg(cd, iptr->op1, rd->argintregs[0]);
 
 			/* a1 = arrayvftbl */
+
 			x86_64_mov_imm_reg(cd, (ptrint) iptr->val.a, rd->argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
+
 			x86_64_mov_reg_reg(cd, REG_SP, rd->argintregs[2]);
 
-			/* contains the correct function to call (from parse.c) */
-			x86_64_mov_imm_reg(cd, (ptrint) iptr->target, REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_multianewarray, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
 
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
