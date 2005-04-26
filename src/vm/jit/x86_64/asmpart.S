@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: asmpart.S 2390 2005-04-26 19:48:02Z twisti $
 
 */
 
@@ -139,20 +139,9 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
-	.globl asm_wrapper_patcher_builtin_new
-
-	.globl asm_wrapper_patcher_builtin_newarray
-	.globl asm_wrapper_patcher_builtin_multianewarray
-	.globl asm_wrapper_patcher_builtin_checkarraycast
-	.globl asm_wrapper_patcher_builtin_arrayinstanceof
 
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
-
-#if defined(USE_THREADS)
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-#endif
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -167,8 +156,9 @@
 
 	.globl asm_prepare_native_stackinfo
 	.globl asm_remove_native_stackinfo
-        .globl asm_throw_and_handle_exception
-        .globl asm_throw_and_handle_hardware_arithmetic_exception		
+	.globl asm_throw_and_handle_exception
+	.globl asm_throw_and_handle_hardware_arithmetic_exception		
+
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -195,7 +185,7 @@ call_name:
 	.long   0
 	.quad   0                         /* line number table start              */
 	.quad   0                         /* line number table size               */
-        .long   0
+	.long   0
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -864,160 +854,59 @@ noflt:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-        sub     $(18*8),%rsp                /* stack frame (16-byte aligned)      */
+	sub     $(18*8),%rsp                /* stack frame (16-byte aligned)      */
 
-        SAVE_ARGUMENT_REGISTERS
-        SAVE_TEMPORARY_REGISTERS
+	SAVE_ARGUMENT_REGISTERS
+	SAVE_TEMPORARY_REGISTERS
 
-        mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
-        mov     itmp2,16*8(%rsp)            /* can be used by some instructions   */
+	mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
+	mov     itmp2,16*8(%rsp)            /* can be used by some instructions   */
 
-        mov     %rsp,a0                     /* pass stack pointer                 */
-        add     $(19*8),a0                  /* skip patcher function pointer      */
-        mov     18*8(%rsp),itmp3            /* get function pointer               */
-        call    *itmp3                      /* call the patcher function          */
-        mov     v0,itmp3                    /* save return value                  */
+	mov     %rsp,a0                     /* pass stack pointer                 */
+	add     $(19*8),a0                  /* skip patcher function pointer      */
+	mov     18*8(%rsp),itmp3            /* get function pointer               */
+	call    *itmp3                      /* call the patcher function          */
+	mov     v0,itmp3                    /* save return value                  */
 
-        RESTORE_ARGUMENT_REGISTERS
-        RESTORE_TEMPORARY_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_TEMPORARY_REGISTERS
 
-        mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
-        mov     16*8(%rsp),itmp2            /* can be used by some instructions   */
+	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
+	mov     16*8(%rsp),itmp2            /* can be used by some instructions   */
 
-        add     $((3+18)*8),%rsp            /* remove stack frame, keep ra        */
+	add     $((3+18)*8),%rsp            /* remove stack frame, keep ra        */
 
-        test    itmp3,itmp3                 /* exception thrown?                  */
-        jz      L_asm_wrapper_patcher_exception
-        ret                                 /* call new patched code              */
+	test    itmp3,itmp3                 /* exception thrown?                  */
+	jz      L_asm_wrapper_patcher_exception
+	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
-        /*stack bottom is xpc and it is directly below the last java stackframe*/
-        push $0
-        push $0
+	/*stack bottom is xpc and it is directly below the last java stackframe*/
+	push $0
+	push $0
 	push $0 /*padding*/
-        call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
+	call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-        call    builtin_asm_get_exceptionptrptr
-        mov     v0,itmp2
+	call    builtin_asm_get_exceptionptrptr
+	mov     v0,itmp2
 #else
-        lea     _exceptionptr,itmp2
+	lea     _exceptionptr,itmp2
 #endif
-        mov     (itmp2),a0                /* get the exception pointer          */
-        movl    $0,(itmp2)                  /* clear exception pointer */
+	mov     (itmp2),a0                  /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear exception pointer            */
 	call    helper_fillin_stacktrace
 
 	mov     v0,xptr
 
-        call    asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
+	call    asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
+	add     $8,%rsp
 
-	pop     xpc
-        pop     xpc                         /* get and remove return address      */
-        jmp     asm_handle_exception
-
-
-/* asm_wrapper_patcher_builtin_new *********************************************
-
-   XXX
-
-   Arguments:
-     a0   contains the class reference
-
-*******************************************************************************/
-
-asm_wrapper_patcher_builtin_new:
-        sub     $(1*8),%rsp                 /* stack frame (16-byte aligned)      */
-        mov     %rsp,a1                     /* pass stack pointer                 */
-        add     $(1*8),a1
-        call    patcher_builtin_new         /* call the helper function           */
-        add     $(1*8),%rsp                 /* remove stack frame                 */
-        test    v0,v0                       /* exception thrown?                  */
-        jz      L_asm_wrapper_patcher_exception
-        ret                                 /* call new patched code              */
+	pop     xpc                         /* get and remove return address      */
+	jmp     asm_handle_exception
 
 
-/* asm_wrapper_patcher_builtin_* ***********************************************
-
-   XXX
-
-   Arguments:
-     a1   contains the class reference
-
-*******************************************************************************/
-
-asm_wrapper_patcher_builtin_newarray:
-        lea     patcher_builtin_newarray,itmp1
-        jmp     L_asm_wrapper_patcher_builtin_main
-
-asm_wrapper_patcher_builtin_multianewarray:
-        lea     patcher_builtin_multianewarray,itmp1
-        jmp     L_asm_wrapper_patcher_builtin_main
-
-asm_wrapper_patcher_builtin_checkarraycast:
-        lea     patcher_builtin_checkarraycast,itmp1
-        jmp     L_asm_wrapper_patcher_builtin_main
-
-asm_wrapper_patcher_builtin_arrayinstanceof:
-        lea     patcher_builtin_arrayinstanceof,itmp1
-
-L_asm_wrapper_patcher_builtin_main:
-        sub     $(1*8),%rsp                 /* stack frame (16-byte aligned)      */
-        mov     a0,0*8(%rsp)                /* save argument                      */
-        mov     %rsp,a0                     /* pass stack pointer                 */
-        add     $(1*8),a0
-        call    *itmp1                      /* call the patcher function          */
-        mov     0*8(%rsp),a0                /* restore argument                   */
-        add     $(1*8),%rsp                 /* remove stack frame                 */
-        test    v0,v0                       /* exception thrown?                  */
-        jz      L_asm_wrapper_patcher_exception
-        ret                                 /* call new patched code              */
-
-
-
-
-/********************* function asm_builtin_monitorenter ***********************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-asm_builtin_monitorenter:
-	test    %rdi,%rdi
-	je      nb_monitorenter             /* if (null) throw exception          */
-	jmp     builtin_monitorenter        /* else call builtin_monitorenter     */
-
-nb_monitorenter:
-	/*call    new_nullpointerexception*/
-	pop     xpc                        /* delete return address              */
-	sub     $3,xpc                     /* faulting address is ra - 3         */
-        mov     string_java_lang_NullPointerException,xptr
-	jmp     asm_throw_and_handle_exception
-#endif
-		
-
-/********************* function asm_builtin_monitorexit ************************
-*                                                                              *
-*   Does null check and calls monitorexit or throws an exception               *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-asm_builtin_monitorexit:
-	test    %rdi,%rdi
-	je      nb_monitorexit              /* if (null) throw exception          */
-	jmp     builtin_monitorexit         /* else call builtin_monitorenter     */
-
-nb_monitorexit:
-	/*call    new_nullpointerexception*/
-	pop     xpc                        /* delete return address              */
-	sub     $3,xpc                     /* faulting address is ra - 3         */
-        mov     string_java_lang_NullPointerException,xptr
-	jmp     asm_throw_and_handle_exception
-#endif
-
-
-/********************* function asm_builtin_x2x ********************************
+/* asm_builtin_x2x *************************************************************
 *                                                                              *
 *   Wrapper functions for float to int corner cases                            *
 *                                                                              *
