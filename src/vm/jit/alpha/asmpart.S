@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2203 2005-04-03 22:36:17Z twisti $
+   $Id: asmpart.S 2389 2005-04-26 16:16:05Z twisti $
 
 */
 
@@ -100,6 +100,55 @@
 
 #define PAL_imb 0x86
 
+
+/* save and restore macros ****************************************************/
+
+#define SAVE_ARGUMENT_REGISTERS(off) \
+	stq     a0,(0+(off))*8(sp)			; \
+	stq     a1,(1+(off))*8(sp)			; \
+	stq     a2,(2+(off))*8(sp)			; \
+	stq     a3,(3+(off))*8(sp)			; \
+	stq     a4,(4+(off))*8(sp)			; \
+	stq     a5,(5+(off))*8(sp)			; 
+
+
+#define RESTORE_ARGUMENT_REGISTERS(off) \
+	ldq     a0,(0+(off))*8(sp)			; \
+	ldq     a1,(1+(off))*8(sp)			; \
+	ldq     a2,(2+(off))*8(sp)			; \
+	ldq     a3,(3+(off))*8(sp)			; \
+	ldq     a4,(4+(off))*8(sp)			; \
+	ldq     a5,(5+(off))*8(sp)			; 
+
+		
+#define SAVE_TEMPORARY_REGISTERS(off) \
+	stq     t0,(0+(off))*8(sp)			; \
+	stq     t1,(1+(off))*8(sp)			; \
+	stq     t2,(2+(off))*8(sp)			; \
+	stq     t3,(3+(off))*8(sp)			; \
+	stq     t4,(4+(off))*8(sp)			; \
+	stq     t5,(5+(off))*8(sp)			; \
+	stq     t6,(6+(off))*8(sp)			; \
+	stq     t7,(7+(off))*8(sp)			; \
+	stq     t8,(8+(off))*8(sp)			; \
+	stq     t9,(9+(off))*8(sp)			; \
+	stq     t10,(10+(off))*8(sp)		; 
+
+
+#define RESTORE_TEMPORARY_REGISTERS(off) \
+	ldq     t0,(0+(off))*8(sp)			; \
+	ldq     t1,(1+(off))*8(sp)			; \
+	ldq     t2,(2+(off))*8(sp)			; \
+	ldq     t3,(3+(off))*8(sp)			; \
+	ldq     t4,(4+(off))*8(sp)			; \
+	ldq     t5,(5+(off))*8(sp)			; \
+	ldq     t6,(6+(off))*8(sp)			; \
+	ldq     t7,(7+(off))*8(sp)			; \
+	ldq     t8,(8+(off))*8(sp)			; \
+	ldq     t9,(9+(off))*8(sp)			; \
+	ldq     t10,(10+(off))*8(sp)		; 
+
+
 	.text
 	.set    noat
 	.set    noreorder
@@ -107,6 +156,7 @@
 
 /********************* exported functions and variables ***********************/
 
+	.globl asm_sync_instruction_cache
 	.globl has_no_x_instr_set
 
 	.globl asm_calljavafunction
@@ -125,19 +175,17 @@
 	.globl asm_throw_and_handle_arrayindexoutofbounds_exception
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
-	.globl asm_check_clinit
+
+	.globl asm_wrapper_patcher
+
 	.globl asm_builtin_checkarraycast
 	.globl asm_builtin_aastore
-
-#if defined(USE_THREADS)
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-#endif
 
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
+
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
@@ -147,6 +195,20 @@
 	.globl asm_remove_native_stackinfo
 	.globl asm_refillin_and_handle_exception
 
+
+/* asm_sync_instruction_cache **************************************************
+
+   XXX
+
+*******************************************************************************/
+
+	.ent    asm_sync_instruction_cache
+
+asm_sync_instruction_cache:
+	call_pal PAL_imb              /* synchronize instruction cache            */
+	jmp     zero,(ra)
+
+	.end    asm_sync_instruction_cache
 
 /*********************** function has_no_x_instr_set ***************************
 *                                                                              *
@@ -234,10 +296,11 @@ calljava_ret:
 
 calljava_xhandler:
 	ldq     gp,24(sp)                 /* restore global pointer               */
-	mov     itmp1,a0
+	mov     xptr,a0
 	jsr     ra,builtin_throw_exception
 	ldq     ra,0(sp)                  /* restore return address               */
 	lda     sp,32(sp)                 /* free stack space                     */
+	mov     zero,v0                   /* return NULL                          */
 	jmp     zero,(ra)
 	.end    asm_calljavafunction
 
@@ -992,168 +1055,74 @@ ex_flt2:
 	.end    asm_handle_nat_exception
 
 
-/* asm_check_clinit ************************************************************
+/* asm_wrapper_patcher *********************************************************
 
-   DOCUMENT ME!!!
-
-   Arguments:
-
-	itmp1: pointer to class
+   XXX
 
    Stack layout:
+     16   machine code (which is patched back later)
+      8   unresolved class/method/field reference
+      0   patcher function pointer to call
+    ----
+     -8   return address (saved below in the wrapper)
 
-	0   mcode  ; machine code to patch back in
-
-   ATTENTION: We can not use REG_ITMP3 here to pass the machine code, since
-              itmp3 == gp!
+   ATTENTION: itmp3 == gp! But we don't need gp do call the patcher function.
 
 *******************************************************************************/
 		
-	.ent    asm_check_clinit
+	.ent    asm_wrapper_patcher
 
-asm_check_clinit:
-	ldgp    gp,0(itmp2)           /* function is called via `jsr ra,itmp1'    */
+asm_wrapper_patcher:
+	subq    sp,(6+11+4)*8,sp      /* create stack frame                       */
 
-	subq	sp,8*8,sp
+	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 integer argument registers        */
+	SAVE_TEMPORARY_REGISTERS(6)   /* save 11 integer temporary registers      */
 
-	stq     ra,0*8(sp)            /* save return address                      */
-	stq     pv,1*8(sp)            /* save pv of calling java function         */
-	stq     a0,2*8(sp)            /* save argument registers for leaf         */
-	stq     a1,3*8(sp)            /* functions and native stub                */
-	stq     a2,4*8(sp)
-	stq     a3,5*8(sp)
-	stq     a4,6*8(sp)
-	stq     a5,7*8(sp)
-		
-	ldl     itmp2,offclassinit(itmp1)
-	bne     itmp2,L_is_initialized
-	
-	mov     itmp1,a0              /* move class pointer to a0                 */
-	jsr     ra,initialize_class
+	stq     itmp1,(6+11+0)*8(sp)  /* save itmp1                               */
+	stq     itmp2,(6+11+1)*8(sp)  /* save itmp2                               */
+	stq     pv,(6+11+2)*8(sp)     /* save pv of calling java function         */
+	stq     ra,(6+11+3)*8(sp)     /* save return address                      */
+
+	mov     sp,a0                 /* pass stack pointer                       */
+	addq    a0,(1+6+11+4)*8,a0    /* skip patcher function pointer            */
+	ldq     pv,(0+6+11+4)*8(sp)   /* get function pointer                     */
+	jmp     ra,(pv)               /* call the patcher function                */
 	ldgp    gp,0(ra)
 		
-	beq     v0,L_initializererror
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 integer argument registers     */
+	RESTORE_TEMPORARY_REGISTERS(6)/* restore 11 integer temporary registers   */
 
-L_is_initialized:
-	ldq     ra,0*8(sp)            /* get return address                       */
-	subq    ra,1*4,ra             /* go back 1 instruction                    */
-	ldl     itmp1,8*8(sp)         /* load machine code from stack             */
-	stl     itmp1,0(ra)           /* store the machine code                   */
+	ldq     itmp1,(6+11+0)*8(sp)  /* restore itmp1                            */
+	ldq     itmp2,(6+11+1)*8(sp)  /* restore itmp2                            */
+	ldq     pv,(6+11+2)*8(sp)     /* restore pv of calling java function      */
+	ldq     ra,(6+11+3)*8(sp)     /* restore return address                   */
 
-	call_pal PAL_imb              /* synchronise instruction cache            */
+	addq    sp,(3+6+11+4)*8,sp    /* remove stack frame                       */
 
-	ldq     ra,0*8(sp)            /* restore return address                   */
-	ldq     pv,1*8(sp)            /* restore pv of calling java function      */
-	ldq     a0,2*8(sp)            /* restore argument registers               */
-	ldq     a1,3*8(sp)
-	ldq     a2,4*8(sp)
-	ldq     a3,5*8(sp)
-	ldq     a4,6*8(sp)
-	ldq     a5,7*8(sp)
+	beq     v0,L_asm_wrapper_patcher_exception
+	jmp     zero,(ra)             /* jump to new patched code                 */
 
-	addq    sp,(8+1)*8,sp         /* remove stack frame (+1 for machine code) */
-
-	subq    ra,1*4,ra             /* go back 1 instruction                    */
-	jmp     zero,(ra)             /* jump to the new code                     */
-
-L_initializererror:
+L_asm_wrapper_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	subq    sp,2*8,sp
+	stq     ra,0*8(sp)
+	stq     pv,1*8(sp)
 	jsr     ra,builtin_asm_get_exceptionptrptr
+	ldq     ra,0*8(sp)
+	ldq     pv,1*8(sp)
+	addq    sp,2*8,sp
 #else
 	lda     v0,_exceptionptr
 #endif
 	ldq     xptr,0(v0)            /* get the exception pointer                */
 	stq     zero,0(v0)            /* clear the exception pointer              */
 
-	ldq     ra,0*8(sp)            /* restore return address                   */
-	ldq     pv,1*8(sp)            /* restore pv of calling java function      */
-	ldq     a0,2*8(sp)            /* restore argument registers               */
-	ldq     a1,3*8(sp)
-	ldq     a2,4*8(sp)
-	ldq     a3,5*8(sp)
-	ldq     a4,6*8(sp)
-	ldq     a5,7*8(sp)
-
-	addq    sp,(8+1)*8,sp         /* remove stack frame (+1 for machine code) */
-
-	subq    ra,4,xpc
+	mov     ra,xpc                /* get exception pc                         */
 	br      asm_handle_exception  /* we have the pv of the calling java func. */
 
-	.end	asm_check_clinit
+	.end	asm_wrapper_patcher
 
 		
-/********************* function asm_builtin_monitorenter ***********************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-	.ent    asm_builtin_monitorenter
-
-asm_builtin_monitorenter:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_monitorenter
-	beq     a0,nb_monitorenter        /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_monitorenter       */
-
-nb_monitorenter:
-	lda xpc,-4(ra)
-	ldq xptr,string_java_lang_NullPointerException
-	jmp zero,asm_throw_and_handle_nat_exception
-#if 0
-	subq    sp,8,sp
-    stq     ra,0(sp)
-    jsr     ra,new_nullpointerexception
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-    ldq     ra,0(sp)
-	addq    sp,8,sp
-	
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br      asm_handle_nat_exception
-#endif
-
-	.end    asm_builtin_monitorenter
-#endif
-
-
-/********************* function asm_builtin_monitorexit ************************
-*                                                                              *
-*   Does null check and calls monitorexit or throws an exception               *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-	.ent    asm_builtin_monitorexit
-
-asm_builtin_monitorexit:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_monitorexit
-	beq     a0,nb_monitorexit         /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_monitorexit        */
-
-nb_monitorexit:
-	lda	xpc,-4(ra)
-	ldq	xptr,string_java_lang_NullPointerException
-	jmp	zero,asm_throw_and_handle_nat_exception
-#if 0
-	subq    sp,8,sp
-    stq     ra,0(sp)
-    jsr     ra,new_nullpointerexception
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-    ldq     ra,0(sp)
-	addq    sp,8,sp
-	
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br      asm_handle_nat_exception
-#endif
-
-	.end    asm_builtin_monitorexit
-#endif
-
-
 /************************ function asm_builtin_idiv ****************************
 *                                                                              *
 *   Does null check and calls idiv or throws an exception                      *

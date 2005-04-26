@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: codegen.h 2389 2005-04-26 16:16:05Z twisti $
 
 */
 
@@ -271,9 +271,11 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
                  (REG means: use b as register number)
                  (CONST means: use b as constant 8-bit-integer)
 */      
+
 #define M_OP3(op,fu,a,b,c,const) \
 	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<(16-3*(const)))| \
 	((const)<<12)|((fu)<<5)|((c)) )
+
 
 /* 3-address-floating-point-operation: M_FOP3 
      op .... opcode
@@ -281,16 +283,19 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
      a,b ... source floating-point registers
      c ..... destination register
 */ 
+
 #define M_FOP3(op,fu,a,b,c) \
 	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((fu)<<5)|(c) )
+
 
 /* branch instructions: M_BRA 
       op ..... opcode
       a ...... register to be tested
       disp ... relative address to be jumped to (divided by 4)
 */
+
 #define M_BRA(op,a,disp) \
-	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((disp)&0x1fffff) )
+	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff))
 
 
 /* memory operations: M_MEM
@@ -299,8 +304,9 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
       b ...... base register
       disp ... displacement (16 bit signed) to be added to b
 */ 
+
 #define M_MEM(op,a,b,disp) \
-	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((disp)&0xffff) )
+	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff))
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
