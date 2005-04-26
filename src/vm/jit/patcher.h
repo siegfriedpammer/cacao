@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2373 2005-04-25 14:10:56Z twisti $
+   $Id: patcher.h 2386 2005-04-26 16:14:39Z twisti $
 
 */
 
@@ -89,11 +89,20 @@ bool patcher_checkcast_instanceof_flags(u1 *sp);
 bool patcher_checkcast_instanceof_interface(u1 *sp);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
+#if defined(__I386__) || defined(__X86_64__)
+
 bool patcher_checkcast_class(u1 *sp);
 #define PATCHER_checkcast_class (functionptr) patcher_checkcast_class
 
 bool patcher_instanceof_class(u1 *sp);
 #define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
+
+#else /* defined(__I386__) || defined(__X86_64__) */
+
+bool patcher_checkcast_instanceof_class(u1 *sp);
+#define PATCHER_checkcast_instanceof_class (functionptr) patcher_checkcast_instanceof_class
+
+#endif /* defined(__I386__) || defined(__X86_64__) */
 
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit
