@@ -15,17 +15,18 @@ public class test {
                 }
             }
         }
-//          getstatic();
-//          putstatic();
 
-//          getfield();
-//         putfield();
-//         putfieldconst();
+        getstatic();
+        putstatic();
 
-//          newarray();
-//          multianewarray();
+        getfield();
+        putfield();
+        putfieldconst();
 
-//         invokespecial();
+        newarray();
+        multianewarray();
+
+        invokespecial();
 
         checkcast();
         _instanceof();
@@ -125,12 +126,12 @@ public class test {
     }
 
     public void getfield() {
-//         try {
-//             p("getfield (I): ");
-//             check(new getfieldI().i, 123);
-//         } catch (Throwable t) {
-//             failed(t);
-//         }
+        try {
+            p("getfield (I): ");
+            check(new getfieldI().i, 123);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
         try {
             p("getfield (J): ");
@@ -139,58 +140,78 @@ public class test {
             failed(t);
         }
 
-//         try {
-//             p("getfield (F): ");
-//             check(new getfieldF().f, 123.456F);
-//         } catch (Throwable t) {
-//             failed(t);
-//         }
+       try {
+           p("getfield (F): ");
+           check(new getfieldF().f, 123.456F);
+       } catch (Throwable t) {
+           failed(t);
+       }
 
-//         try {
-//             p("getfield (D): ");
-//             check(new getfieldD().d, 789.012);
-//         } catch (Throwable t) {
-//             failed(t);
-//         }
+       try {
+           p("getfield (D): ");
+           check(new getfieldD().d, 789.012);
+       } catch (Throwable t) {
+           failed(t);
+       }
 
-//         try {
-//             p("getfield (L): ");
-//             check(new getfieldL().o, null);
-//         } catch (Throwable t) {
-//             failed(t);
-//         }
+       try {
+           p("getfield (L): ");
+           check(new getfieldL().o, null);
+       } catch (Throwable t) {
+           failed(t);
+       }
     }
 
     public void putfield() {
-        p("putfield (I): ");
-        putfieldI pfi = new putfieldI();
-        int i = 123;
-        pfi.i = i;
-        check(pfi.i, i);
+        try {
+            p("putfield (I): ");
+            putfieldI pfi = new putfieldI();
+            int i = 123;
+            pfi.i = i;
+            check(pfi.i, i);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        p("putfield (J): ");
-        putfieldJ pfj = new putfieldJ();
-        long l = 456L;
-        pfj.l = l;
-        check(pfj.l, l);
+        try {
+            p("putfield (J): ");
+            putfieldJ pfj = new putfieldJ();
+            long l = 456L;
+            pfj.l = l;
+            check(pfj.l, l);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        p("putfield (F): ");
-        putfieldF pff = new putfieldF();
-        float f = 123.456F;
-        pff.f = f;
-        check(pff.f, f);
+        try {
+            p("putfield (F): ");
+            putfieldF pff = new putfieldF();
+            float f = 123.456F;
+            pff.f = f;
+            check(pff.f, f);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        p("putfield (D): ");
-        putfieldD pfd = new putfieldD();
-        double d = 789.012;
-        pfd.d = d;
-        check(pfd.d, d);
+        try {
+            p("putfield (D): ");
+            putfieldD pfd = new putfieldD();
+            double d = 789.012;
+            pfd.d = d;
+            check(pfd.d, d);
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-        p("putfield (L): ");
-        putfieldL pfl = new putfieldL();
-        Object o = null;
-        pfl.o = o;
-        check(pfl.o, o);
+        try {
+            p("putfield (L): ");
+            putfieldL pfl = new putfieldL();
+            Object o = null;
+            pfl.o = o;
+            check(pfl.o, o);
+        } catch (Throwable t) {
+            failed(t);
+        }
     }
 
     public void putfieldconst() {
@@ -244,8 +265,11 @@ public class test {
         // class
         try {
             p("checkcast class: ");
-            checkcastC cc = (checkcastC) o;
-            failed();
+            if (doit) {
+                checkcastC cc = (checkcastC) o;
+                failed();
+            } else
+                ok();
         } catch (ClassCastException e) {
             ok();
         } catch (Throwable t) {
@@ -255,8 +279,11 @@ public class test {
         // interface
         try {
             p("checkcast interface: ");
-            checkcastI ci = (checkcastI) o;
-            failed();
+            if (doit) {
+                checkcastI ci = (checkcastI) o;
+                failed();
+            } else
+                ok();
         } catch (ClassCastException e) {
             ok();
         } catch (Throwable t) {
@@ -270,8 +297,11 @@ public class test {
 
         try {
             p("checkcast class array: ");
-            checkcastC[] cca = (checkcastC[]) oa;
-            failed();
+            if (doit) {
+                checkcastC[] cca = (checkcastC[]) oa;
+                failed();
+            } else
+                ok();
         } catch (ClassCastException e) {
             ok();
         } catch (Throwable t) {
@@ -284,8 +314,11 @@ public class test {
 
         try {
             p("instanceof class: ");
-            if (o instanceof instanceofC)
-                failed();
+            if (doit)
+                if (o instanceof instanceofC)
+                    failed();
+                else
+                    ok();
             else
                 ok();
         } catch (Throwable t) {
@@ -294,8 +327,11 @@ public class test {
 
         try {
             p("instanceof interface: ");
-            if (o instanceof instanceofI)
-                failed();
+            if (doit)
+                if (o instanceof instanceofI)
+                    failed();
+                else
+                    ok();
             else
                 ok();
         } catch (Throwable t) {
@@ -309,8 +345,11 @@ public class test {
 
         try {
             p("instanceof class array: ");
-            if (oa instanceof instanceofC[])
-                failed();
+            if (doit)
+                if (oa instanceof instanceofC[])
+                    failed();
+                else
+                    ok();
             else
                 ok();
         } catch (Throwable t) {
