@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2073 2005-03-24 19:06:22Z edwin $
+   $Id: VMSystemProperties.c 2381 2005-04-26 16:10:30Z twisti $
 
 */
 
@@ -171,6 +171,9 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "java.specification.name", "Java Platform API Specification");
 	insert_property(m, p, "java.class.version", "48.0");
 	insert_property(m, p, "java.class.path", classpath);
+
+	insert_property(m, p, "java.runtime.version", VERSION);
+	insert_property(m, p, "java.runtime.name", "CACAO");
 
 	/* Set bootclasspath properties. One for GNU classpath and the other for  */
 	/* compatibility with Sun (required by most applications).                */
