@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2361 2005-04-24 17:55:03Z twisti $
+   $Id: stack.c 2388 2005-04-26 16:15:17Z twisti $
 
 */
 
@@ -1880,7 +1880,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
 						{
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 							unresolved_method *um = iptr->target; 	 
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
@@ -2600,10 +2600,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
 		break;
-#endif 	 
+#endif
+
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__)/*   || defined(__ALPHA__) */
 		printf(" "); 	 
 		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
 		printf("."); 	 
@@ -2762,7 +2763,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 		if (iptr->op1) { 	 
 			classinfo *c = iptr->val.a; 	 
 			if (c) { 	 
@@ -2803,7 +2804,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 		printf(" ");
 		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
 		printf(".");
