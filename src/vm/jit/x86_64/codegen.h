@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: codegen.h 2393 2005-04-26 19:50:58Z twisti $
 
 */
 
@@ -489,6 +489,11 @@ typedef enum {
 			store_reg_to_var_int(to, d); \
 		} \
 	}
+
+
+/* macros to create code ******************************************************/
+
+#define M_NOP                   x86_64_nop(cd)                  /* ;          */
 
 
 /* function gen_resolvebranch **************************************************
