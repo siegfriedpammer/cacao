@@ -1,13 +1,7 @@
 public class test {
-    boolean doit = true;
+    static boolean doit = true;
 
     public static void main(String[] argv) {
-//          invokestatic();
-
-        new test(argv);
-    }
-
-    public test(String[] argv) {
         if (argv.length > 0) {
             for (int i = 0; i < argv.length; i++) {
                 if (argv[i].equals("skip")) {
@@ -16,6 +10,12 @@ public class test {
             }
         }
 
+        invokestatic();
+
+        new test();
+    }
+
+    public test() {
         getstatic();
         putstatic();
 
@@ -34,43 +34,65 @@ public class test {
 
 
     final private static void invokestatic() {
-        System.out.println("invokestatic:");
-        invokestatic.sub();
+        System.out.print("invokestatic: ");
+        try {
+            if (doit)
+                invokestatic.sub();
+            else
+                System.out.println("OK");
+        } catch (Throwable t) {
+            System.out.println("FAILED: " + t);
+        }
     }
 
 
     public void getstatic() {
         try {
             p("getstatic (I): ");
-            check(getstaticI.i, 123);
+            if (doit)
+                check(getstaticI.i, 123);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("getstatic (J): ");
-            check(getstaticJ.l, 456L);
+            if (doit)
+                check(getstaticJ.l, 456L);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("getstatic (F): ");
-            check(getstaticF.f, 123.456F);
+            if (doit)
+                check(getstaticF.f, 123.456F);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("getstatic (D): ");
-            check(getstaticD.d, 789.012);
+            if (doit)
+                check(getstaticD.d, 789.012);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("getstatic (L): ");
-            check(getstaticL.o, null);
+            if (doit)
+                check(getstaticL.o, null);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
@@ -80,36 +102,48 @@ public class test {
     public void putstatic() {
         try {
             p("putstatic (I): ");
-            int i = 123;
-            putstaticI.i = i;
-            check(putstaticI.i, i);
+            if (doit) {
+                int i = 123;
+                putstaticI.i = i;
+                check(putstaticI.i, i);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putstatic (J): ");
-            long l = 456L;
-            putstaticJ.l = l;
-            check(putstaticJ.l, l);
+            if (doit) {
+                long l = 456L;
+                putstaticJ.l = l;
+                check(putstaticJ.l, l);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putstatic (F): ");
-            float f = 123.456F;
-            putstaticF.f = f;
-            check(putstaticF.f, f);
+            if (doit) {
+                float f = 123.456F;
+                putstaticF.f = f;
+                check(putstaticF.f, f);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putstatic (D): ");
-            double d = 789.012;
-            putstaticD.d = d;
-            check(putstaticD.d, d);
+            if (doit) {
+                double d = 789.012;
+                putstaticD.d = d;
+                check(putstaticD.d, d);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
@@ -117,9 +151,12 @@ public class test {
 
         try {
             p("putstatic (L): ");
-            Object o = null;
-            putstaticL.o = o;
-            check(putstaticL.o, o);
+            if (doit) {
+                Object o = null;
+                putstaticL.o = o;
+                check(putstaticL.o, o);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
@@ -128,102 +165,147 @@ public class test {
     public void getfield() {
         try {
             p("getfield (I): ");
-            check(new getfieldI().i, 123);
+            if (doit)
+                check(new getfieldI().i, 123);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("getfield (J): ");
-            check(new getfieldJ().l, 456L);
+            if (doit)
+                check(new getfieldJ().l, 456L);
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
-       try {
-           p("getfield (F): ");
-           check(new getfieldF().f, 123.456F);
-       } catch (Throwable t) {
-           failed(t);
-       }
+        try {
+            p("getfield (F): ");
+            if (doit)
+                check(new getfieldF().f, 123.456F);
+            else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-       try {
-           p("getfield (D): ");
-           check(new getfieldD().d, 789.012);
-       } catch (Throwable t) {
-           failed(t);
-       }
+        try {
+            p("getfield (D): ");
+            if (doit)
+                check(new getfieldD().d, 789.012);
+            else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
 
-       try {
-           p("getfield (L): ");
-           check(new getfieldL().o, null);
-       } catch (Throwable t) {
-           failed(t);
-       }
+        try {
+            p("getfield (L): ");
+            if (doit)
+                check(new getfieldL().o, null);
+            else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
     }
+
 
     public void putfield() {
         try {
             p("putfield (I): ");
-            putfieldI pfi = new putfieldI();
-            int i = 123;
-            pfi.i = i;
-            check(pfi.i, i);
+            if (doit) {
+                putfieldI pfi = new putfieldI();
+                int i = 123;
+                pfi.i = i;
+                check(pfi.i, i);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putfield (J): ");
-            putfieldJ pfj = new putfieldJ();
-            long l = 456L;
-            pfj.l = l;
-            check(pfj.l, l);
+            if (doit) {
+                putfieldJ pfj = new putfieldJ();
+                long l = 456L;
+                pfj.l = l;
+                check(pfj.l, l);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putfield (F): ");
-            putfieldF pff = new putfieldF();
-            float f = 123.456F;
-            pff.f = f;
-            check(pff.f, f);
+            if (doit) {
+                putfieldF pff = new putfieldF();
+                float f = 123.456F;
+                pff.f = f;
+                check(pff.f, f);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putfield (D): ");
-            putfieldD pfd = new putfieldD();
-            double d = 789.012;
-            pfd.d = d;
-            check(pfd.d, d);
+            if (doit) {
+                putfieldD pfd = new putfieldD();
+                double d = 789.012;
+                pfd.d = d;
+                check(pfd.d, d);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
 
         try {
             p("putfield (L): ");
-            putfieldL pfl = new putfieldL();
-            Object o = null;
-            pfl.o = o;
-            check(pfl.o, o);
+            if (doit) {
+                putfieldL pfl = new putfieldL();
+                Object o = null;
+                pfl.o = o;
+                check(pfl.o, o);
+            } else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
     }
 
     public void putfieldconst() {
-        p("putfieldconst (I,F): ");
-        putfieldconstIF pfcif = new putfieldconstIF();
-        pfcif.i = 123;
-        check(pfcif.i, 123);
+        try {
+            p("putfieldconst (I,F): ");
+            if (doit) {
+                putfieldconstIF pfcif = new putfieldconstIF();
+                pfcif.i = 123;
+                check(pfcif.i, 123);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
  
-        p("putfieldconst (J,D,L): ");
-        putfieldconstJDL pfcjdl = new putfieldconstJDL();
-        pfcjdl.l = 456;
-        check(pfcjdl.l, 456);
+        try {
+            p("putfieldconst (J,D,L): ");
+            if (doit) {
+                putfieldconstJDL pfcjdl = new putfieldconstJDL();
+                pfcjdl.l = 456;
+                check(pfcjdl.l, 456);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
     }
 
     private void newarray() {
@@ -253,7 +335,10 @@ public class test {
     public void invokespecial() {
         try {
             p("invokespecial: ");
-            new invokespecial();
+            if (doit)
+                new invokespecial();
+            else
+                ok();
         } catch (Throwable t) {
             failed(t);
         }
