@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2402 2005-04-27 13:17:07Z jowenn $
+   $Id: patcher.c 2403 2005-04-27 14:28:15Z twisti $
 
 */
 
@@ -59,8 +59,7 @@ bool patcher_get_putstatic(u1 *sp)
 	u8                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
-	ptrint           *dataaddress;
-	s4                ripoffset;
+	s4                offset;
 	void             *beginJavaStack;
 	/* get stuff from the stack */
 
@@ -125,15 +124,11 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get RIP offset from machine instruction */
 
-	ripoffset = *((u4 *) (ra + 3));
+	offset = *((u4 *) (ra + 3));
 
-	/* calculate address in data segment (+ 7: is the size of the RIP move) */
+	/* patch the field value's address (+ 7: is the size of the RIP move) */
 
-	dataaddress = (ptrint *) (ra + ripoffset + 7);
-
-	/* patch the field value's address */
-
-	*dataaddress = (ptrint) &(fi->value);
+	*((ptrint *) (ra + 7 + offset)) = (ptrint) &(fi->value);
 
 	return true;
 }
