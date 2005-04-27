@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2389 2005-04-26 16:16:05Z twisti $
+   $Id: asmpart.S 2399 2005-04-27 12:53:03Z twisti $
 
 */
 
@@ -79,24 +79,54 @@
 #define sp      $30
 #define zero    $31
 
-#define itmp1   $25
+#define itmp1   t11
 #define itmp2   $28
-#define itmp3   $29
+#define itmp3   gp
 
 #define xptr    itmp1
 #define xpc     itmp2
 
-#define sf0     $f2
-#define sf1     $f3
-#define sf2     $f4
-#define sf3     $f5
-#define sf4     $f6
-#define sf5     $f7
-#define sf6     $f8
-#define sf7     $f9
+
+#define ft0     $f1
+
+#define fs0     $f2
+#define fs1     $f3
+#define fs2     $f4
+#define fs3     $f5
+#define fs4     $f6
+#define fs5     $f7
+#define fs6     $f8
+#define fs7     $f9
+
+#define ft1     $f10
+#define ft2     $f11
+#define ft3     $f12
+#define ft4     $f13
+#define ft5     $f14
+#define ft6     $f15
+
+#define fa0     $f16
+#define fa1     $f17
+#define fa2     $f18
+#define fa3     $f19
+#define fa4     $f20
+#define fa5     $f21
+
+#define ft7     $f22
+#define ft8     $f23
+#define ft9     $f24
+#define ft10    $f25
+#define ft11    $f26
+#define ft12    $f27
+#define ft13    $f28
+#define ft14    $f29
+#define ft15    $f20
 
 #define fzero   $f31
 
+#define ftmp1   ft13
+#define ftmp2   ft14
+#define ftmp3   ft15
 
 #define PAL_imb 0x86
 
@@ -104,49 +134,95 @@
 /* save and restore macros ****************************************************/
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
-	stq     a0,(0+(off))*8(sp)			; \
-	stq     a1,(1+(off))*8(sp)			; \
-	stq     a2,(2+(off))*8(sp)			; \
-	stq     a3,(3+(off))*8(sp)			; \
-	stq     a4,(4+(off))*8(sp)			; \
-	stq     a5,(5+(off))*8(sp)			; 
-
+	stq     a0,(0+(off))*8(sp)      ; \
+	stq     a1,(1+(off))*8(sp)      ; \
+	stq     a2,(2+(off))*8(sp)      ; \
+	stq     a3,(3+(off))*8(sp)      ; \
+	stq     a4,(4+(off))*8(sp)      ; \
+	stq     a5,(5+(off))*8(sp)      ; \
+	\
+	stt     fa0,(6+(off))*8(sp)     ; \
+	stt     fa1,(7+(off))*8(sp)     ; \
+	stt     fa2,(8+(off))*8(sp)     ; \
+	stt     fa3,(9+(off))*8(sp)     ; \
+	stt     fa4,(10+(off))*8(sp)    ; \
+	stt     fa5,(11+(off))*8(sp)    ;
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
-	ldq     a0,(0+(off))*8(sp)			; \
-	ldq     a1,(1+(off))*8(sp)			; \
-	ldq     a2,(2+(off))*8(sp)			; \
-	ldq     a3,(3+(off))*8(sp)			; \
-	ldq     a4,(4+(off))*8(sp)			; \
-	ldq     a5,(5+(off))*8(sp)			; 
-
+	ldq     a0,(0+(off))*8(sp)      ; \
+	ldq     a1,(1+(off))*8(sp)      ; \
+	ldq     a2,(2+(off))*8(sp)      ; \
+	ldq     a3,(3+(off))*8(sp)      ; \
+	ldq     a4,(4+(off))*8(sp)      ; \
+	ldq     a5,(5+(off))*8(sp)      ; \
+	\
+	ldt     fa0,(6+(off))*8(sp)     ; \
+	ldt     fa1,(7+(off))*8(sp)     ; \
+	ldt     fa2,(8+(off))*8(sp)     ; \
+	ldt     fa3,(9+(off))*8(sp)     ; \
+	ldt     fa4,(10+(off))*8(sp)    ; \
+	ldt     fa5,(11+(off))*8(sp)    ;
 		
 #define SAVE_TEMPORARY_REGISTERS(off) \
-	stq     t0,(0+(off))*8(sp)			; \
-	stq     t1,(1+(off))*8(sp)			; \
-	stq     t2,(2+(off))*8(sp)			; \
-	stq     t3,(3+(off))*8(sp)			; \
-	stq     t4,(4+(off))*8(sp)			; \
-	stq     t5,(5+(off))*8(sp)			; \
-	stq     t6,(6+(off))*8(sp)			; \
-	stq     t7,(7+(off))*8(sp)			; \
-	stq     t8,(8+(off))*8(sp)			; \
-	stq     t9,(9+(off))*8(sp)			; \
-	stq     t10,(10+(off))*8(sp)		; 
+	stq     t0,(0+(off))*8(sp)       ; \
+	stq     t1,(1+(off))*8(sp)       ; \
+	stq     t2,(2+(off))*8(sp)       ; \
+	stq     t3,(3+(off))*8(sp)       ; \
+	stq     t4,(4+(off))*8(sp)       ; \
+	stq     t5,(5+(off))*8(sp)       ; \
+	stq     t6,(6+(off))*8(sp)       ; \
+	stq     t7,(7+(off))*8(sp)       ; \
+	stq     t8,(8+(off))*8(sp)       ; \
+	stq     t9,(9+(off))*8(sp)       ; \
+	stq     t10,(10+(off))*8(sp)     ; \
+	\
+	stt     ft0,(11+(off))*8(sp)     ; \
+	stt     ft1,(12+(off))*8(sp)     ; \
+	stt     ft2,(13+(off))*8(sp)     ; \
+	stt     ft3,(14+(off))*8(sp)     ; \
+	stt     ft4,(15+(off))*8(sp)     ; \
+	stt     ft5,(16+(off))*8(sp)     ; \
+	stt     ft6,(17+(off))*8(sp)     ; \
+	stt     ft7,(18+(off))*8(sp)     ; \
+	stt     ft8,(19+(off))*8(sp)     ; \
+	stt     ft9,(20+(off))*8(sp)     ; \
+	stt     ft10,(21+(off))*8(sp)    ; \
+	stt     ft11,(22+(off))*8(sp)    ; \
+	stt     ft12,(23+(off))*8(sp)    ; \
+	stt     ft13,(24+(off))*8(sp)    ; \
+	stt     ft14,(25+(off))*8(sp)    ; \
+	stt     ft15,(26+(off))*8(sp)    ; 
 
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
-	ldq     t0,(0+(off))*8(sp)			; \
-	ldq     t1,(1+(off))*8(sp)			; \
-	ldq     t2,(2+(off))*8(sp)			; \
-	ldq     t3,(3+(off))*8(sp)			; \
-	ldq     t4,(4+(off))*8(sp)			; \
-	ldq     t5,(5+(off))*8(sp)			; \
-	ldq     t6,(6+(off))*8(sp)			; \
-	ldq     t7,(7+(off))*8(sp)			; \
-	ldq     t8,(8+(off))*8(sp)			; \
-	ldq     t9,(9+(off))*8(sp)			; \
-	ldq     t10,(10+(off))*8(sp)		; 
+	ldq     t0,(0+(off))*8(sp)       ; \
+	ldq     t1,(1+(off))*8(sp)       ; \
+	ldq     t2,(2+(off))*8(sp)       ; \
+	ldq     t3,(3+(off))*8(sp)       ; \
+	ldq     t4,(4+(off))*8(sp)       ; \
+	ldq     t5,(5+(off))*8(sp)       ; \
+	ldq     t6,(6+(off))*8(sp)       ; \
+	ldq     t7,(7+(off))*8(sp)       ; \
+	ldq     t8,(8+(off))*8(sp)       ; \
+	ldq     t9,(9+(off))*8(sp)       ; \
+	ldq     t10,(10+(off))*8(sp)     ; \
+	\
+	ldt     ft0,(11+(off))*8(sp)     ; \
+	ldt     ft1,(12+(off))*8(sp)     ; \
+	ldt     ft2,(13+(off))*8(sp)     ; \
+	ldt     ft3,(14+(off))*8(sp)     ; \
+	ldt     ft4,(15+(off))*8(sp)     ; \
+	ldt     ft5,(16+(off))*8(sp)     ; \
+	ldt     ft6,(17+(off))*8(sp)     ; \
+	ldt     ft7,(18+(off))*8(sp)     ; \
+	ldt     ft8,(19+(off))*8(sp)     ; \
+	ldt     ft9,(20+(off))*8(sp)     ; \
+	ldt     ft10,(21+(off))*8(sp)    ; \
+	ldt     ft11,(22+(off))*8(sp)    ; \
+	ldt     ft12,(23+(off))*8(sp)    ; \
+	ldt     ft13,(24+(off))*8(sp)    ; \
+	ldt     ft14,(25+(off))*8(sp)    ; \
+	ldt     ft15,(26+(off))*8(sp)    ; 
 
 
 	.text
@@ -412,6 +488,7 @@ calljava_xhandler2:
 	ldq     ra,0(sp)                  /* restore return address               */
 	ldq     s6,24(sp)
 	lda     sp,40(sp)                 /* free stack space                     */
+	mov     zero,v0                   /* return NULL                          */
 	jmp     zero,(ra)
 	.end    asm_calljavafunction2
 
@@ -459,18 +536,9 @@ asm_call_jit_compiler:
 	addq    t8,$28,$28            /* compute update address                   */
 noregchange:
 	lda     sp,-14*8(sp)          /* reserve stack space                      */
-	stq     a0,0*8(sp)            /* save all argument registers              */
-	stq     a1,1*8(sp)            /* they could be used by method             */
-	stq     a2,2*8(sp)
-	stq     a3,3*8(sp)
-	stq     a4,4*8(sp)
-	stq     a5,5*8(sp)
-	stt     $f16,6*8(sp)
-	stt     $f17,7*8(sp)
-	stt     $f18,8*8(sp)
-	stt     $f19,9*8(sp)
-	stt     $f20,10*8(sp)
-	stt     $f21,11*8(sp)
+
+	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
+
 	stq     $28,12*8(sp)          /* save method pointer                      */
 	stq     ra,13*8(sp)           /* save return address                      */
 
@@ -478,18 +546,8 @@ noregchange:
 	jsr     ra,jit_compile        /* jit compiler                             */
 	ldgp    gp,0(ra)
 
-	ldq     a0,0*8(sp)            /* load argument registers                  */
-	ldq     a1,1*8(sp)
-	ldq     a2,2*8(sp)
-	ldq     a3,3*8(sp)
-	ldq     a4,4*8(sp)
-	ldq     a5,5*8(sp)
-	ldt     $f16,6*8(sp)
-	ldt     $f17,7*8(sp)
-	ldt     $f18,8*8(sp)
-	ldt     $f19,9*8(sp)
-	ldt     $f20,10*8(sp)
-	ldt     $f21,11*8(sp)
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
+
 	ldq     $28,12*8(sp)          /* load method pointer                      */
 	ldq     ra,13*8(sp)           /* load return address                      */
 	lda     sp,14*8(sp)           /* deallocate stack area                    */
@@ -738,6 +796,11 @@ asm_throw_and_handle_exception:
 	stq     pv,1*8(sp)            /* store pv of caller in structure          */
 	stq     zero,0*8(sp)          /* builtin (invisible function)             */
 	                              /* puts 2 additional quadwords on stack     */
+
+	br      ra,L_asm_throw_and_handle_exception_load_gp
+L_asm_throw_and_handle_exception_load_gp:
+	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
+
 	jsr     ra,asm_prepare_native_stackinfo
 	ldgp	gp,0(ra)
 
@@ -1029,14 +1092,14 @@ ex_flt1:
 	negl    t1,t1                 /* negate register count                    */
 	s4addq  t1,t2,t2              /* t2 = ex_flt_sav - 4 * register count     */
 	jmp     zero,(t2)             /* jump to save position                    */
-	ldt     $f2,-64(t0)
-	ldt     $f3,-56(t0)
-	ldt     $f4,-48(t0)
-	ldt     $f5,-40(t0)
-	ldt     $f6,-32(t0)
-	ldt     $f7,-24(t0)
-	ldt     $f8,-16(t0)
-	ldt     $f9,-8(t0)
+	ldt     fs0,-64(t0)
+	ldt     fs1,-56(t0)
+	ldt     fs2,-48(t0)
+	ldt     fs3,-40(t0)
+	ldt     fs4,-32(t0)
+	ldt     fs5,-24(t0)
+	ldt     fs6,-16(t0)
+	ldt     fs7,-8(t0)
 ex_flt2:
 	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
@@ -1060,11 +1123,10 @@ ex_flt2:
    XXX
 
    Stack layout:
+	 24   return address into JIT code (patch position)
      16   machine code (which is patched back later)
       8   unresolved class/method/field reference
       0   patcher function pointer to call
-    ----
-     -8   return address (saved below in the wrapper)
 
    ATTENTION: itmp3 == gp! But we don't need gp do call the patcher function.
 
@@ -1073,51 +1135,58 @@ ex_flt2:
 	.ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	subq    sp,(6+11+4)*8,sp      /* create stack frame                       */
+	lda     sp,-(12+27+4)*8(sp)   /* create stack frame                       */
 
-	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 integer argument registers        */
-	SAVE_TEMPORARY_REGISTERS(6)   /* save 11 integer temporary registers      */
+	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
+	SAVE_TEMPORARY_REGISTERS(12)  /* save 11 int/16 float temporary registers */
 
-	stq     itmp1,(6+11+0)*8(sp)  /* save itmp1                               */
-	stq     itmp2,(6+11+1)*8(sp)  /* save itmp2                               */
-	stq     pv,(6+11+2)*8(sp)     /* save pv of calling java function         */
-	stq     ra,(6+11+3)*8(sp)     /* save return address                      */
+	stq     itmp1,(12+27+0)*8(sp) /* save itmp1                               */
+	stq     itmp2,(12+27+1)*8(sp) /* save itmp2                               */
+	stq     ra,(12+27+2)*8(sp)    /* save method return address (for leafs)   */
+	stq     pv,(12+27+3)*8(sp)    /* save pv of calling java function         */
 
-	mov     sp,a0                 /* pass stack pointer                       */
-	addq    a0,(1+6+11+4)*8,a0    /* skip patcher function pointer            */
-	ldq     pv,(0+6+11+4)*8(sp)   /* get function pointer                     */
+	lda     a0,(1+12+27+4)*8(sp)  /* pass sp, skip patcher function pointer   */
+	ldq     pv,(0+12+27+4)*8(sp)  /* get function pointer                     */
 	jmp     ra,(pv)               /* call the patcher function                */
 	ldgp    gp,0(ra)
 		
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 integer argument registers     */
-	RESTORE_TEMPORARY_REGISTERS(6)/* restore 11 integer temporary registers   */
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(12)/* restore 11 integer temporary registers  */
 
-	ldq     itmp1,(6+11+0)*8(sp)  /* restore itmp1                            */
-	ldq     itmp2,(6+11+1)*8(sp)  /* restore itmp2                            */
-	ldq     pv,(6+11+2)*8(sp)     /* restore pv of calling java function      */
-	ldq     ra,(6+11+3)*8(sp)     /* restore return address                   */
+	ldq     itmp1,(12+27+0)*8(sp) /* restore itmp1                            */
+	ldq     itmp2,(12+27+1)*8(sp) /* restore itmp2                            */
+	ldq     ra,(12+27+2)*8(sp)    /* restore method return address (for leafs)*/
+	ldq     pv,(12+27+3)*8(sp)    /* restore pv of calling java function      */
 
-	addq    sp,(3+6+11+4)*8,sp    /* remove stack frame                       */
+	ldq     itmp3,(3+12+27+4)*8(sp)/* get return address (into JIT code)      */
+	lda     sp,(4+12+27+4)*8(sp)  /* remove stack frame                       */
 
 	beq     v0,L_asm_wrapper_patcher_exception
-	jmp     zero,(ra)             /* jump to new patched code                 */
+
+	jmp     zero,(itmp3)          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
+	mov     itmp3,xpc             /* return address into JIT code is xpc      */
+
+	br      itmp1,L_asm_wrapper_patcher_exception_load_gp
+L_asm_wrapper_patcher_exception_load_gp:
+	ldgp    gp,0(itmp1)           /* itmp3 == gp, load the current gp         */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	subq    sp,2*8,sp
-	stq     ra,0*8(sp)
-	stq     pv,1*8(sp)
+	subq    sp,3*8,sp
+	stq     xpc,0*8(sp)           /* save return address (xpc)                */
+	stq     ra,1*8(sp)
+	stq     pv,2*8(sp)
 	jsr     ra,builtin_asm_get_exceptionptrptr
-	ldq     ra,0*8(sp)
-	ldq     pv,1*8(sp)
-	addq    sp,2*8,sp
+	ldq     xpc,0*8(sp)           /* restore return address (xpc)             */
+	ldq     ra,1*8(sp)
+	ldq     pv,2*8(sp)
+	addq    sp,3*8,sp
 #else
 	lda     v0,_exceptionptr
 #endif
 	ldq     xptr,0(v0)            /* get the exception pointer                */
 	stq     zero,0(v0)            /* clear the exception pointer              */
-
-	mov     ra,xpc                /* get exception pc                         */
 	br      asm_handle_exception  /* we have the pv of the calling java func. */
 
 	.end	asm_wrapper_patcher
@@ -1386,14 +1455,14 @@ asm_perform_threadswitch:
 	stq     s4, 32(sp)
 	stq     s5, 40(sp)
 	stq     s6, 48(sp)
-	stt     sf0, 56(sp)
-	stt     sf1, 64(sp)
-	stt     sf2, 72(sp)
-	stt     sf3, 80(sp)
-	stt     sf4, 88(sp)
-	stt     sf5, 96(sp)
-	stt     sf6, 104(sp)
-	stt     sf7, 112(sp)
+	stt     fs0, 56(sp)
+	stt     fs1, 64(sp)
+	stt     fs2, 72(sp)
+	stt     fs3, 80(sp)
+	stt     fs4, 88(sp)
+	stt     fs5, 96(sp)
+	stt     fs6, 104(sp)
+	stt     fs7, 112(sp)
 	stq     ra, 120(sp)
 	stq     sp, 0(a0)
 	stq     sp, 0(a2)
@@ -1405,14 +1474,14 @@ asm_perform_threadswitch:
 	ldq     s4, 32(sp)
 	ldq     s5, 40(sp)
 	ldq     s6, 48(sp)
-	ldt     sf0, 56(sp)
-	ldt     sf1, 64(sp)
-	ldt     sf2, 72(sp)
-	ldt     sf3, 80(sp)
-	ldt     sf4, 88(sp)
-	ldt     sf5, 96(sp)
-	ldt     sf6, 104(sp)
-	ldt     sf7, 112(sp)
+	ldt     fs0, 56(sp)
+	ldt     fs1, 64(sp)
+	ldt     fs2, 72(sp)
+	ldt     fs3, 80(sp)
+	ldt     fs4, 88(sp)
+	ldt     fs5, 96(sp)
+	ldt     fs6, 104(sp)
+	ldt     fs7, 112(sp)
 	ldq     ra, 120(sp)
 	mov     ra, pv
 	addq    sp, 128, sp
