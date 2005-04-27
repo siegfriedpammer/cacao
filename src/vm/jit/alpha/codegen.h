@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 2389 2005-04-26 16:16:05Z twisti $
+   $Id: codegen.h 2397 2005-04-27 12:44:54Z twisti $
 
 */
 
@@ -146,6 +146,13 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
         mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+
+
+#define ALIGNCODENOP \
+    if ((s4) ((ptrint) mcodeptr & 7)) { \
+        M_NOP; \
+    }
+
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
