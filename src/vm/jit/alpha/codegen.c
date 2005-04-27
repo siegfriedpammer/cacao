@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2389 2005-04-26 16:16:05Z twisti $
+   $Id: codegen.c 2398 2005-04-27 12:46:40Z twisti $
 
 */
 
@@ -2306,31 +2306,95 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 
+		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
+		                      /* op1 = type, val.i = field offset             */
+
+			var_to_reg_int(s1, src, REG_ITMP1);
+			gen_nullptr_check(s1);
+
+			if (!iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_get_putfield,
+									(unresolved_field *) iptr->target);
+
+				if (showdisassemble)
+					M_NOP;
+
+				a = 0;
+
+			} else {
+				a = ((fieldinfo *) (iptr->val.a))->offset;
+			}
+
+			switch (iptr->op1) {
+			case TYPE_INT:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ILD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_LNG:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_LLD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_ADR:
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				M_ALD(d, s1, a);
+				store_reg_to_var_int(iptr->dst, d);
+				break;
+			case TYPE_FLT:
+				d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+				M_FLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			case TYPE_DBL:				
+				d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+				M_DLD(d, s1, a);
+				store_reg_to_var_flt(iptr->dst, d);
+				break;
+			}
+			break;
+
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 		                      /* op1 = type, val.a = field address            */
 
-			a = ((fieldinfo *) iptr->val.a)->offset;
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			gen_nullptr_check(s1);
+
+			if (!IS_FLT_DBL_TYPE(iptr->op1)) {
+				var_to_reg_int(s2, src, REG_ITMP2);
+			} else {
+				var_to_reg_flt(s2, src, REG_FTMP2);
+			}
+
+			if (!iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_get_putfield,
+									(unresolved_field *) iptr->target);
+
+				if (showdisassemble)
+					M_NOP;
+
+				a = 0;
+
+			} else {
+				a = ((fieldinfo *) (iptr->val.a))->offset;
+			}
+
 			switch (iptr->op1) {
 			case TYPE_INT:
-				var_to_reg_int(s2, src, REG_ITMP2);
 				M_IST(s2, s1, a);
 				break;
 			case TYPE_LNG:
-				var_to_reg_int(s2, src, REG_ITMP2);
 				M_LST(s2, s1, a);
 				break;
 			case TYPE_ADR:
-				var_to_reg_int(s2, src, REG_ITMP2);
 				M_AST(s2, s1, a);
 				break;
 			case TYPE_FLT:
-				var_to_reg_flt(s2, src, REG_FTMP2);
 				M_FST(s2, s1, a);
 				break;
 			case TYPE_DBL:
-				var_to_reg_flt(s2, src, REG_FTMP2);
 				M_DST(s2, s1, a);
 				break;
 			}
@@ -2341,9 +2405,23 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
 
-			a = ((fieldinfo *) iptr[1].val.a)->offset;
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
+
+			if (!iptr[1].val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_get_putfield,
+									(unresolved_field *) iptr[1].target);
+
+				if (showdisassemble)
+					M_NOP;
+
+				a = 0;
+
+			} else {
+				a = ((fieldinfo *) (iptr[1].val.a))->offset;
+			}
+
 			switch (iptr[1].op1) {
 			case TYPE_INT:
 				M_IST(REG_ZERO, s1, a);
@@ -2363,45 +2441,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			break;
 
-		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
-		                      /* op1 = type, val.i = field offset             */
-
-			a = ((fieldinfo *)(iptr->val.a))->offset;
-			var_to_reg_int(s1, src, REG_ITMP1);
-			gen_nullptr_check(s1);
-			switch (iptr->op1) {
-			case TYPE_INT:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ILD(d, s1, a);
-				store_reg_to_var_int(iptr->dst, d);
-				break;
-			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_LLD(d, s1, a);
-				store_reg_to_var_int(iptr->dst, d);
-				break;
-			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ALD(d, s1, a);
-				store_reg_to_var_int(iptr->dst, d);
-				break;
-			case TYPE_FLT:
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_FLD(d, s1, a);
-				store_reg_to_var_flt(iptr->dst, d);
-				break;
-			case TYPE_DBL:				
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_DLD(d, s1, a);
-				store_reg_to_var_flt(iptr->dst, d);
-				break;
-			}
-			break;
-
 
 		/* branch operations **************************************************/
-
-#define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}}
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
@@ -4091,13 +4132,17 @@ gen_method: {
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
 			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
 
-			M_BSR(REG_RA, tmpmcodeptr - (xcodeptr + 1));
+			M_BSR(REG_ITMP3, tmpmcodeptr - (xcodeptr + 1));
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
 			/* create stack frame */
 
-			M_LSUB_IMM(REG_SP, 3 * 8, REG_SP);
+			M_LSUB_IMM(REG_SP, 4 * 8, REG_SP);
+
+			/* move return address onto stack */
+
+			M_AST(REG_ITMP3, REG_SP, 3 * 8);
 
 			/* move machine code onto stack */
 
@@ -4545,13 +4590,17 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
 			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
 
-			M_BSR(REG_RA, tmpmcodeptr - (xcodeptr + 1));
+			M_BSR(REG_ITMP3, tmpmcodeptr - (xcodeptr + 1));
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
 			/* create stack frame                                             */
 
-			M_LSUB_IMM(REG_SP, 3 * 8, REG_SP);
+			M_LSUB_IMM(REG_SP, 4 * 8, REG_SP);
+
+			/* move return address onto stack */
+
+			M_AST(REG_ITMP3, REG_SP, 3 * 8);
 
 			/* move machine code onto stack                                   */
 
