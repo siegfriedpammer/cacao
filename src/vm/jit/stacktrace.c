@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: stacktrace.c 2402 2005-04-27 13:17:07Z jowenn $
 
 */
 
@@ -44,9 +44,9 @@
 #include "vm/class.h"
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
+#include "vm/loader.h"
 
-
-#undef JWDEBUG
+#define JWDEBUG
 
 /*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
@@ -64,7 +64,7 @@
 typedef struct lineNumberTableEntry {
 /* The special value of -1 means that a inlined function starts, a value of -2 means that an inlined function ends*/
 	LineNumber lineNr;
-	void *pc;
+	u1 *pc;
 } lineNumberTableEntry;
 
 typedef struct lineNumberTableEntryInlineBegin {
@@ -105,7 +105,7 @@ static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line
 }
 
 static int fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,methodinfo 
-		*method,lineNumberTableEntry *startEntry, lineNumberTableEntry **entry, size_t *entriesAhead,void *adress) {
+		*method,lineNumberTableEntry *startEntry, lineNumberTableEntry **entry, size_t *entriesAhead,u1 *adress) {
 
 	size_t ahead=*entriesAhead;
 	lineNumberTableEntry *ent=*entry;
@@ -149,7 +149,7 @@ static int fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,methodinfo
 	
 }
 
-static void fillInStackTrace_method(stackTraceBuffer *buffer,methodinfo *method,char *dataSeg, void* adress) {
+static void fillInStackTrace_method(stackTraceBuffer *buffer,methodinfo *method,u1 *dataSeg, u1* adress) {
 	size_t lineNumberTableSize=(*((size_t*)(dataSeg+LineNumberTableSize)));
 
 
@@ -164,7 +164,7 @@ static void fillInStackTrace_method(stackTraceBuffer *buffer,methodinfo *method,
 		lineNumberTableEntry *startEntry;
 
 		/*		printf("dataSeg: %p\n",dataSeg);*/
-		calc=dataSeg+LineNumberTableStart;
+		calc=(void**)(dataSeg+LineNumberTableStart);
 		/*		printf("position of line number table start reference in data segment: %p\n",calc);
 				printf("line number table start as found in table: %p\n",*calc);*/
 		ent=(lineNumberTableEntry *) (((char*)(*calc) - (sizeof(lineNumberTableEntry)-sizeof(void*))));
@@ -179,6 +179,20 @@ static void fillInStackTrace_method(stackTraceBuffer *buffer,methodinfo *method,
 	}
 }
 
+
+typedef union {
+	u1*         u1ptr;
+	functionptr funcptr;
+	void*       voidptr;
+} u1ptr_functionptr_union;
+
+#define cast_funcptr_u1ptr(dest,src) \
+	{ u1f.funcptr=src;\
+	dest=u1f.u1ptr; }	
+
+#define cast_u1ptr_funcptr(dest,src) \
+	{ u1f.u1ptr=src;\
+	dest=u1f.funcptr; }	
 
 void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector coll)
 {
@@ -200,10 +214,12 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 			*target=0;
 			return;
 		} else {
-			char *dataseg; /*make it byte addressable*/
+			u1 *tmp;
+			u1 *dataseg; /*make it byte addressable*/
 			methodinfo *currentMethod=0;
-			void *returnAdress;
-			char* stackPtr;
+			/*void*/ functionptr returnAdress;
+			u1* stackPtr;
+			u1ptr_functionptr_union u1f;
 
 /*			utf_display(info->method->class->name);
 			utf_display(info->method->name);*/
@@ -211,7 +227,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 			while ((currentMethod!=0) ||  (info!=0)) {
 				if (currentMethod==0) { /*some builtin native */
 					currentMethod=info->method;
-					returnAdress=info->returnToFromNative;
+					returnAdress=(functionptr)info->returnToFromNative;
 					/*log_text("native");*/
 					if (currentMethod) {
 						/*utf_display(currentMethod->class->name);
@@ -224,16 +240,16 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					else
 						dataseg=codegen_findmethod(returnAdress);
 #elif defined(__I386__) || defined (__X86_64__)
-					dataseg=codegen_findmethod(returnAdress);
+					cast_funcptr_u1ptr(dataseg,codegen_findmethod(returnAdress));
 #endif
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
 					if (info->beginOfJavaStackframe==0)
-						stackPtr=((char*)info)+sizeof(native_stackframeinfo);
+						stackPtr=((u1*)info)+sizeof(native_stackframeinfo);
 					else
 #if defined(__ALPHA__)
-						stackPtr=(char*)(info->beginOfJavaStackframe);
+						stackPtr=(u1*)(info->beginOfJavaStackframe);
 #elif defined(__I386__) || defined (__X86_64__)
-						stackPtr=(char*)(info->beginOfJavaStackframe)+sizeof(void*);
+						stackPtr=(u1*)(info->beginOfJavaStackframe)+sizeof(void*);
 #endif
 					info=info->oldThreadspecificHeadValue;
 				} else { /*method created by jit*/
@@ -249,16 +265,17 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 #endif
 					/*utf_display(currentMethod->class->name);
 					utf_display(currentMethod->name);*/
-					fillInStackTrace_method(&buffer,currentMethod,dataseg,returnAdress-1);
+					cast_funcptr_u1ptr(tmp,returnAdress);
+					fillInStackTrace_method(&buffer,currentMethod,dataseg,tmp-1);
 					frameSize=*((u4*)(dataseg+FrameSize));
 #if defined(__ALPHA__)
 					/* cacao saves the return adress as the first element of the stack frame on alphas*/
-					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize-sizeof(void*))));
+					cast_funcptr_u1ptr (dataseg,codegen_findmethod(*((void**)(stackPtr+frameSize-sizeof(void*)))));
 					returnAdress=(*((void**)(stackPtr+frameSize-sizeof(void*))));
 #elif defined(__I386__) || defined (__x86_64__)
 					/* on i386 the return adress is the first element before the stack frme*/
-					returnAdress=(*((void**)(stackPtr+frameSize)));
-					dataseg=codegen_findmethod(*((void**)(stackPtr+frameSize)));
+					cast_u1ptr_funcptr(returnAdress,*((u1**)(stackPtr+frameSize)));
+					cast_funcptr_u1ptr(dataseg,codegen_findmethod(returnAdress));
 #endif
 /*					printf ("threadrootmethod %p\n",builtin_asm_get_threadrootmethod());
 					if (currentMethod==builtin_asm_get_threadrootmethod()) break;*/
@@ -290,7 +307,7 @@ void stackTraceCollector(void **target, stackTraceBuffer *buffer) {
 
 	dest->needsFree=0;
 	dest->size=dest->full;
-	dest->start=dest+1;
+	dest->start=(stacktraceelement*)(dest+1);
 
 	/*
 	if (buffer->full>0) {
@@ -348,7 +365,7 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
 
 java_objectarray *cacao_createClassContextArray() {
 	java_objectarray *array=0;
-	cacao_stacktrace_fillInStackTrace(&array,&classContextCollector);
+	cacao_stacktrace_fillInStackTrace((void**)&array,&classContextCollector);
 	return array;
 	
 }
@@ -368,7 +385,7 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
         if (size > 1) {
 		size--;
 		start=&(buffer->start[1]);
-                if (start == class_java_lang_SecurityManager) {
+                if (start->method && (start->method->class == class_java_lang_SecurityManager)) {
                         size--;
                         start--;
                 }
@@ -400,7 +417,7 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
 
 java_objectheader *cacao_currentClassLoader() {
 	java_objectheader *header=0;
-	cacao_stacktrace_fillInStackTrace(&header,&classLoaderCollector);
+	cacao_stacktrace_fillInStackTrace((void**)&header,&classLoaderCollector);
 	return header;
 }
 
@@ -413,7 +430,7 @@ void callingMethodCollector(void **target, stackTraceBuffer *buffer) {
 
 methodinfo *cacao_callingMethod() {
 	methodinfo *method;
-	cacao_stacktrace_fillInStackTrace(&method,&callingMethodCollector);
+	cacao_stacktrace_fillInStackTrace((void**)&method,&callingMethodCollector);
 	return method;
 }
 

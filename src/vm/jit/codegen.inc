@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: codegen.inc 2402 2005-04-27 13:17:07Z jowenn $
 
 */
 
@@ -1048,20 +1048,21 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 			MFREE(nativeName,char,nativeLen);
 			i++;
 			nativeLen++;
-			nativeNameEscape[nativeLen]=0;
+			nativeNameEscape[nativeLen-1]=0;
 			nativeName=nativeNameEscape;
 		}
 		if (nativeName[i]=='/') nativeName[i]='_';
 		i++;
     } 
 
-/*	printf("nativename: %s\n",nativeName); */
+	/*printf("\nnativename: %s\n",nativeName);*/
 
     /*try to find the symbal fo the function */
     sym=dlsym(lib,nativeName);
     if (sym) {
       ok=1; /* it worked, everything fine */
       /*log_text("resolved");*/
+      /*printf("strlen %d, nativeLen %d\n",strlen(nativeName),nativeLen);*/
       MFREE(nativeName,char,nativeLen);
     } else { /* we didn't find the symbol yet, try to resolve an overlaoded function (having the types in it's name*/
       size_t overloadedNativeLen=nativeLen+codegen_overloadPartLen(m->descriptor);

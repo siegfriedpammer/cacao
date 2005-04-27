@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2391 2005-04-26 19:49:15Z twisti $
+   $Id: patcher.c 2402 2005-04-27 13:17:07Z jowenn $
 
 */
 
@@ -904,6 +904,7 @@ bool patcher_clinit(u1 *sp)
 	c     = (classinfo *) *((ptrint *) (sp + 0 * 8));
 	beginJavaStack =      (void*) (sp+2*8);
 
+	/*printf("beginJavaStack: %p, ra %p\n",beginJavaStack,ra);*/
 	/* calculate and set the new return address */
 
 	ra = ra - 5;

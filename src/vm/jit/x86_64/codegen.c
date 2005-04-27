@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2392 2005-04-26 19:50:42Z twisti $
+   $Id: codegen.c 2402 2005-04-27 13:17:07Z jowenn $
 
 */
 
@@ -4264,6 +4264,7 @@ void removecompilerstub(u1 *stub)
 /* #endif */
 
 #define NATIVESTUBSIZE    800           /* keep this size high enough!        */
+#define NATIVESTUB_DATA_SIZE (7*8)
 
 u1 *createnativestub(functionptr f, methodinfo *m)
 {
@@ -4277,6 +4278,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	s4                  iargs;          /* count of integer arguments         */
 	s4                  fargs;          /* count of float arguments           */
 	s4                  i;              /* counter                            */
+	s4                  stubsize;
+	u8                  *cs;
+	bool                require_clinit_call;
 
 	void **callAddrPatchPos=0;
 	u1 *jmpInstrPos=0;
@@ -4311,16 +4315,35 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		IS_INT_LNG_TYPE(*tptr++) ? iargs++ : fargs++;
 	}
 
-	s = CNEW(u1, NATIVESTUBSIZE);       /* memory to hold the stub            */
+	stubsize=NATIVESTUBSIZE;
+	require_clinit_call= ((m->flags & ACC_STATIC) && !m->class->initialized);
+	if (require_clinit_call) stubsize+=NATIVESTUB_DATA_SIZE;
+	s = CNEW(u1, stubsize);       /* memory to hold the stub            */
+
+	if (require_clinit_call) {
+		cs = (u8*) (s+NATIVESTUB_DATA_SIZE);
+                *(cs - 7) = 0;                  /* extable size,padding               */
+                *(cs - 6) = 0;                  /* line number table start            */
+                *(cs - 5) = 0;                  /* line number table size             */
+                *(cs - 4) = 0;                  /* padding,fltsave                    */
+                *(cs - 3) = 0;                  /* intsave=0,isleaf=0                 */
+                *(cs - 2) = 0x0000000000000000;  /* frame size=0 (stack misalignment)  issync=0     */
+#if 0
+                *(cs - 2) = 0x0000000100000000;  /* frame size=1  issync=0     */
+#endif
+                *(cs - 1) = (u8) m;             /* method pointer                     */
+	} else {
+		cs = (u8*) s;
+	}
 
 	/* set some required varibles which are normally set by codegen_setup */
-	cd->mcodebase = s;
-	cd->mcodeptr = s;
+	cd->mcodebase = (u1*)cs;
+	cd->mcodeptr = (u1*)cs;
 	cd->patchrefs = NULL;
 
 	/* if function is static, check for initialized */
 
-	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
+	if (require_clinit_call) {
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_clinit, m->class);
 	}
 
@@ -4687,29 +4710,32 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
+
+			codegen_insertmethod((functionptr) cs, (functionptr) cd->mcodeptr);
+			printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);
 		}
 	}
 
 	/* Check if the stub size is big enough to hold the whole stub generated. */
 	/* If not, this can lead into unpredictable crashes, because of heap      */
 	/* corruption.                                                            */
-	if ((s4) (cd->mcodeptr - s) > NATIVESTUBSIZE) {
+	if ((s4) (cd->mcodeptr - s) > stubsize) {
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Native stub size %d is to small for current stub size %d",
-								   NATIVESTUBSIZE, (s4) (cd->mcodeptr - s));
+								   stubsize, (s4) (cd->mcodeptr - s));
 	}
 
 
 #if defined(STATISTICS)
 	if (opt_stat)
-		count_nstub_len += NATIVESTUBSIZE;
+		count_nstub_len += stubsize;
 #endif
 
 	/* release dump area */
 
 	dump_release(dumpsize);
 
-	return s;
+	return (u1*) cs;
 }
 
 
