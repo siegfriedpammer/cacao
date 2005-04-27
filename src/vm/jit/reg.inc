@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2387 2005-04-26 16:14:56Z twisti $
+   $Id: reg.inc 2400 2005-04-27 12:58:28Z christian $
 
 */
 
@@ -200,12 +200,6 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 			break;
 		}
 	}
-
-/* #if defined(????) */
-	/* 
-	 * on xdsp the argument registers are in ascending order ???
-	 */
-/* #endif */
 #endif
 		
 	/* setup the float register table */
