@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2389 2005-04-26 16:16:05Z twisti $
+   $Id: patcher.c 2396 2005-04-27 12:44:31Z twisti $
 
 */
 
@@ -45,8 +45,6 @@
 
 /* patcher_get_putstatic *******************************************************
 
-   XXX
-
    Machine code:
 
    <patched call position>
@@ -57,24 +55,24 @@
 
 bool patcher_get_putstatic(u1 *sp)
 {
+	u1               *ra;
 	u4                mcode;
 	unresolved_field *uf;
-	u1               *ra;
 	u1               *pv;
 	fieldinfo        *fi;
 	s2                offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)               *((ptrint *) (sp + 2 * 8));
 	mcode =                      *((u4 *)     (sp + 1 * 8));
 	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)               *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)               *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)               *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -114,12 +112,10 @@ bool patcher_get_putstatic(u1 *sp)
 
 /* patcher_get_putfield ********************************************************
 
-   XXX
-
    Machine code:
 
    <patched call position>
-   8b 88 00 00 00 00          mov    0x00000000(%eax),%ecx
+   a2af0020    ldl     a5,32(s6)
 
 *******************************************************************************/
 
@@ -128,18 +124,18 @@ bool patcher_get_putfield(u1 *sp)
 	u1               *ra;
 	u8                mcode;
 	unresolved_field *uf;
+	u1               *pv;
 	fieldinfo        *fi;
 
-	/* get stuff from the stack */
-
-	ra    = (u1 *)               *((ptrint *) (sp + 3 * 4));
-	mcode =                      *((u8 *)     (sp + 1 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 4));
+	ra    = (u1 *)               *((ptrint *) (sp + 2 * 8));
+	mcode =                      *((u4 *)     (sp + 1 * 8));
+	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 8));
+	pv    = (u1 *)               *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 5;
-	*((ptrint *) (sp + 3 * 4)) = (ptrint) ra;
+	ra = ra - 4;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -148,29 +144,26 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* if we show disassembly, we have to skip the nop */
 
 	if (showdisassemble)
-		ra = ra + 5;
+		ra = ra + 4;
 
 	/* patch the field's offset */
 
-	*((u4 *) (ra + 2)) = (u4) (fi->offset);
+	*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
 
-	/* if the field has type long, we need to patch the second move too */
+	/* synchronize instruction cache */
 
-	if (fi->type == TYPE_LNG)
-		*((u4 *) (ra + 6 + 2)) = (u4) (fi->offset + 4);
+	asm_sync_instruction_cache();
 
 	return true;
 }
 
 
 /* patcher_builtin_new *********************************************************
-
-   XXX
 
    Machine code:
 
@@ -183,24 +176,24 @@ bool patcher_get_putfield(u1 *sp)
 
 bool patcher_builtin_new(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (4 + 4);
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the classinfo */
 
@@ -242,8 +235,6 @@ bool patcher_builtin_new(u1 *sp)
 
 /* patcher_builtin_newarray ****************************************************
 
-   XXX
-
    Machine code:
 
    a63bff88    ldq     a1,-120(pv)
@@ -255,24 +246,24 @@ bool patcher_builtin_new(u1 *sp)
 
 bool patcher_builtin_newarray(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (4 + 4);
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the classinfo */
 
@@ -314,8 +305,6 @@ bool patcher_builtin_newarray(u1 *sp)
 
 /* patcher_builtin_multianewarray **********************************************
 
-   XXX
-
    Machine code:
 
    <patched call position>
@@ -329,24 +318,24 @@ bool patcher_builtin_newarray(u1 *sp)
 
 bool patcher_builtin_multianewarray(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the classinfo */
 
@@ -391,24 +380,24 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 bool patcher_builtin_checkarraycast(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (2 * 4);
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the classinfo */
 
@@ -461,24 +450,24 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 bool patcher_builtin_arrayinstanceof(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s4                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (2 * 4);
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	ra = ra - (4 + 4);
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the classinfo */
 
@@ -530,24 +519,24 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 bool patcher_invokestatic_special(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	unresolved_method *um;
-	u1                *ra;
 	u1                *pv;
 	methodinfo        *m;
 	s4                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -592,21 +581,21 @@ bool patcher_invokestatic_special(u1 *sp)
 
 bool patcher_invokevirtual(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	unresolved_method *um;
-	u1                *ra;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -649,21 +638,21 @@ bool patcher_invokevirtual(u1 *sp)
 
 bool patcher_invokeinterface(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	unresolved_method *um;
-	u1                *ra;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -707,24 +696,24 @@ bool patcher_invokeinterface(u1 *sp)
 
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -758,8 +747,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 /* patcher_checkcast_instanceof_interface **************************************
 
-   XXX
-
    Machine code:
 
    <patched call position>
@@ -773,21 +760,21 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -830,24 +817,24 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 bool patcher_checkcast_instanceof_class(u1 *sp)
 {
+	u1                *ra;
 	u4                 mcode;
 	constant_classref *cr;
-	u1                *ra;
 	u1                *pv;
 	classinfo         *c;
 	s2                 offset;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u4 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)                *((ptrint *) (sp - 2 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 3 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* get the fieldinfo */
 
@@ -887,20 +874,20 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 bool patcher_clinit(u1 *sp)
 {
+	u1        *ra;
 	u4         mcode;
 	classinfo *c;
-	u1        *ra;
 
 	/* get stuff from the stack */
 
+	ra    = (u1 *)        *((ptrint *) (sp + 2 * 8));
 	mcode =               *((u4 *)     (sp + 1 * 8));
 	c     = (classinfo *) *((ptrint *) (sp + 0 * 8));
-	ra    = (u1 *)        *((ptrint *) (sp - 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 4;
-	*((ptrint *) (sp - 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
 
 	/* check if the class is initialized */
 
