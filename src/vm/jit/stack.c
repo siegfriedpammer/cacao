@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2388 2005-04-26 16:15:17Z twisti $
+   $Id: stack.c 2395 2005-04-27 12:42:39Z twisti $
 
 */
 
@@ -2585,11 +2585,17 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 		if (iptr->val.a) 	 
-			printf(" %d,", ((fieldinfo *) iptr->val.a)->offset);
+			printf(" %d, ", ((fieldinfo *) iptr->val.a)->offset);
 		else 	 
-			printf(" NOT RESOLVED,"); 	 
+			printf(" NOT RESOLVED, "); 	 
+		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
+		printf("."); 	 
+		utf_display(((unresolved_field *) iptr->target)->fieldref->name); 	 
+		printf(" (type "); 	 
+		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor); 	 
+		printf(")"); 	 
 #else 	 
 		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset); 	 
 		printf(" ");
@@ -2599,12 +2605,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type ");
 		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
 		printf(")");
-		break;
 #endif
+		break;
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-#if defined(__X86_64__) || defined(__I386__)/*   || defined(__ALPHA__) */
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 		printf(" "); 	 
 		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
 		printf("."); 	 
@@ -2805,7 +2811,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
 #if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
-		printf(" ");
+		if (!iptr->val.a)
+			printf(" (NOT RESOLVED) ");
+		else
+			printf(" ");
 		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
 		printf(".");
 		utf_display(((unresolved_method *) iptr->target)->methodref->name);
