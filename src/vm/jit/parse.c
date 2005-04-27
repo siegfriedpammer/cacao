@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2385 2005-04-26 16:14:07Z twisti $
+   $Id: parse.c 2394 2005-04-27 12:42:00Z twisti $
 
 */
 
@@ -994,7 +994,7 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_GETSTATIC:
 		case JAVA_PUTSTATIC:
-#if defined(__X86_64__) || defined(__I386__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
 #endif
@@ -1006,7 +1006,7 @@ SHOWOPCODE(DEBUG4)
 				classinfo        *c;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-#if defined(__X86_64__) || defined(__I386__)/*   || defined(__ALPHA__) */
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
@@ -1052,7 +1052,7 @@ SHOWOPCODE(DEBUG4)
 			}
 			break;
 
-#if !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
 			i = code_get_u2(p + 1,inline_env->method);
