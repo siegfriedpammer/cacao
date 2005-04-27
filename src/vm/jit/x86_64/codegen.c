@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2402 2005-04-27 13:17:07Z jowenn $
+   $Id: codegen.c 2404 2005-04-27 14:29:21Z twisti $
 
 */
 
@@ -3399,6 +3399,9 @@ gen_method: {
 				3 /* test */ + 6 /* jcc */ + 3 + 4 /* mov_membase32_reg */ +
 				3 /* test */ + 6 /* jcc */;
 
+			if (!super)
+				s2 += (showdisassemble ? 5 : 0);
+
 			/* calculate class checkcast code size */
 
 			s3 = 3; /* mov_membase_reg */
@@ -3423,15 +3426,22 @@ gen_method: {
 			
 			s3 += 3 /* cmp */ + 6 /* jcc */;
 
+			if (!super)
+				s3 += (showdisassemble ? 5 : 0);
+
 			/* if class is not resolved, check which code to call */
 
 			if (!super) {
 				x86_64_test_reg_reg(cd, s1, s1);
-				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
+				x86_64_jcc(cd, X86_64_CC_Z, 6 + (showdisassemble ? 5 : 0) + 7 + 6 + s2 + 5 + s3);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
 				x86_64_alul_imm_reg(cd, X86_64_AND, ACC_INTERFACE, REG_ITMP2);
@@ -3450,10 +3460,15 @@ gen_method: {
 									   OFFSET(java_objectheader, vftbl),
 									   REG_ITMP2);
 
-				if (!super)
+				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+				}
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP2,
 										  OFFSET(vftbl_t, interfacetablelength),
@@ -3486,10 +3501,15 @@ gen_method: {
 									   OFFSET(java_objectheader, vftbl),
 									   REG_ITMP2);
 
-				if (!super)
+				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_class,
 										(constant_classref *) iptr->target);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+				}
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -3591,6 +3611,9 @@ gen_method: {
 				3 /* test */ + 6 /* jcc */ + 3 + 4 /* mov_membase32_reg */ +
 				3 /* test */ + 4 /* setcc */;
 
+			if (!super)
+				s2 += (showdisassemble ? 5 : 0);
+
 			/* calculate class instanceof code size */
 			
 			s3 = 3; /* mov_membase_reg */
@@ -3604,17 +3627,25 @@ gen_method: {
 			CALCOFFSETBYTES(s3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 			s3 += 3 /* sub */ + 3 /* xor */ + 3 /* cmp */ + 4 /* setcc */;
 
+			if (!super)
+				s3 += (showdisassemble ? 5 : 0);
+
 			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
 
 			/* if class is not resolved, check which code to call */
 
 			if (!super) {
 				x86_64_test_reg_reg(cd, s1, s1);
-				x86_64_jcc(cd, X86_64_CC_Z, 6 + 7 + 6 + s2 + 5 + s3);
+				x86_64_jcc(cd, X86_64_CC_Z, (6 + (showdisassemble ? 5 : 0) +
+											 7 + 6 + s2 + 5 + s3));
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target);
+
+				if (showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
 
 				x86_64_movl_imm_reg(cd, 0, REG_ITMP3); /* super->flags */
 				x86_64_alul_imm_reg(cd, X86_64_AND, ACC_INTERFACE, REG_ITMP3);
@@ -3632,10 +3663,15 @@ gen_method: {
 				x86_64_mov_membase_reg(cd, s1,
 									   OFFSET(java_objectheader, vftbl),
 									   REG_ITMP1);
-				if (!super)
+				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+				}
 
 				x86_64_movl_membase32_reg(cd, REG_ITMP1,
 										  OFFSET(vftbl_t, interfacetablelength),
@@ -3669,10 +3705,15 @@ gen_method: {
 									   OFFSET(java_objectheader, vftbl),
 									   REG_ITMP1);
 
-				if (!super)
+				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_instanceof_class,
 										(constant_classref *) iptr->target);
+
+					if (showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+				}
 
 				x86_64_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP2);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
