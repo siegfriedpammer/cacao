@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2344 2005-04-22 13:50:02Z twisti $
+   $Id: jni.c 2408 2005-04-28 12:38:50Z jowenn $
 
 */
 
@@ -3229,10 +3229,18 @@ jint DestroyJavaVM(JavaVM *vm)
 }
 
 
-jint AttachCurrentThread(JavaVM *vm, void **par1, void *par2)
+jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 {
 	log_text("AttachCurrentThread called");
-
+#if 0
+#if !defined(HAVE___THREAD)
+	log_text("implement really attaching here (threadobj)");
+	cacao_thread_attach();
+#else
+	#error "No idea how to implement that. Perhaps Stefan knows"
+#endif
+#endif
+	*env = &ptr_env;
 	return 0;
 }
 
