@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2395 2005-04-27 12:42:39Z twisti $
+   $Id: stack.c 2405 2005-04-28 09:12:23Z jowenn $
 
 */
 
@@ -205,9 +205,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		repeat = false;
 		STACKRESET;
 		deadcode = true;
+		/*printf("Block count :%d\n",b_count);*/
 		while (--b_count >= 0) {
 			if (bptr->flags == BBDELETED) {
 				/* do nothing */
+				/*log_text("BBDELETED");*/
 			}
 			else if (superblockend && (bptr->flags < BBREACHED))
 				repeat = true;
@@ -465,6 +467,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_IDIVPOW2;
 								goto icmd_iconst_tail;
 							case ICMD_IREM:
+								/*log_text("stack.c: ICMD_ICONST/ICMD_IREM");*/
 								if ((iptr[0].val.i == 0x00000002) ||
 									(iptr[0].val.i == 0x00000004) ||
 									(iptr[0].val.i == 0x00000008) ||
@@ -1191,34 +1194,36 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							(tbptr[1].iinstr[1].opc == ICMD_GOTO)   &&
 							((b_index + 3) == m->basicblockindex[tbptr[1].iinstr[1].op1]) &&
 							(tbptr[2].pre_count == 1) &&
-							(tbptr[2].iinstr[0].opc == ICMD_ICONST)) {
-							OP1_1(TYPE_INT, TYPE_INT);
-							switch (iptr[0].opc) {
-							case ICMD_IFEQ:
-								iptr[0].opc = ICMD_IFNE_ICONST;
-								break;
-							case ICMD_IFNE:
-								iptr[0].opc = ICMD_IFEQ_ICONST;
-								break;
-							case ICMD_IFLT:
-								iptr[0].opc = ICMD_IFGE_ICONST;
-								break;
-							case ICMD_IFGE:
-								iptr[0].opc = ICMD_IFLT_ICONST;
-								break;
-							case ICMD_IFGT:
-								iptr[0].opc = ICMD_IFLE_ICONST;
-								break;
-							case ICMD_IFLE:
-								iptr[0].opc = ICMD_IFGT_ICONST;
-								break;
-							}
+							(tbptr[2].iinstr[0].opc == ICMD_ICONST)  &&
+							(tbptr[2].icount==1)) {
+								printf("tbptr[2].icount=%d\n",tbptr[2].icount);
+								OP1_1(TYPE_INT, TYPE_INT);
+								switch (iptr[0].opc) {
+									case ICMD_IFEQ:
+										iptr[0].opc = ICMD_IFNE_ICONST;
+										break;
+									case ICMD_IFNE:
+										iptr[0].opc = ICMD_IFEQ_ICONST;
+										break;
+									case ICMD_IFLT:
+										iptr[0].opc = ICMD_IFGE_ICONST;
+										break;
+									case ICMD_IFGE:
+										iptr[0].opc = ICMD_IFLT_ICONST;
+										break;
+									case ICMD_IFGT:
+										iptr[0].opc = ICMD_IFLE_ICONST;
+										break;
+									case ICMD_IFLE:
+										iptr[0].opc = ICMD_IFGT_ICONST;
+										break;
+									}
 #if 1
-							iptr[0].val.i = iptr[1].val.i;
-							iptr[1].opc = ICMD_ELSE_ICONST;
-							iptr[1].val.i = iptr[3].val.i;
-							iptr[2].opc = ICMD_NOP;
-							iptr[3].opc = ICMD_NOP;
+								iptr[0].val.i = iptr[1].val.i;
+								iptr[1].opc = ICMD_ELSE_ICONST;
+								iptr[1].val.i = iptr[3].val.i;
+								iptr[2].opc = ICMD_NOP;
+								iptr[3].opc = ICMD_NOP;
 #else
 							/* HACK: save compare value in iptr[1].op1 */ 	 
 							iptr[1].op1 = iptr[0].val.i; 	 
@@ -1229,21 +1234,21 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							tbptr[1].iinstr[1].opc = ICMD_NOP; 	 
 							tbptr[2].iinstr[0].opc = ICMD_NOP; 	 
 #endif
-							tbptr[1].flags = BBDELETED;
-							tbptr[2].flags = BBDELETED;
-							tbptr[1].icount = 0;
-							tbptr[2].icount = 0;
-							if (tbptr[3].pre_count == 2) {
-								len += tbptr[3].icount + 3;
-								bptr->icount += tbptr[3].icount + 3;
-								tbptr[3].flags = BBDELETED;
-								tbptr[3].icount = 0;
-								b_index++;
-							}
-							else {
-								bptr->icount++;
-								len ++;
-							}
+								tbptr[1].flags = BBDELETED;
+								tbptr[2].flags = BBDELETED;
+								tbptr[1].icount = 0;
+								tbptr[2].icount = 0;
+								if (tbptr[3].pre_count == 2) {
+									len += tbptr[3].icount + 3;
+									bptr->icount += tbptr[3].icount + 3;
+									tbptr[3].flags = BBDELETED;
+									tbptr[3].icount = 0;
+									b_index++;
+								}
+								else {
+									bptr->icount++;
+									len ++;
+								}
 							b_index += 2;
 							break;
 						}
@@ -1600,12 +1605,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					case ICMD_IREM:
 #if !SUPPORT_DIVISION
+						/*log_text("ICMD_IREM: !SUPPORT_DIVISION");*/
 						iptr[0].opc = ICMD_BUILTIN2;
 						iptr[0].op1 = TYPE_INT;
 						iptr[0].val.fp = BUILTIN_irem;
 						m->isleafmethod = false;
 						goto builtin2;
 #endif
+						/*log_text("ICMD_IREM: SUPPORT_DIVISION");*/
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
