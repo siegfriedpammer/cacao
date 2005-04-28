@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2403 2005-04-27 14:28:15Z twisti $
+   $Id: patcher.c 2410 2005-04-28 13:31:55Z twisti $
 
 */
 
@@ -45,10 +45,9 @@
 
 /* patcher_get_putstatic *******************************************************
 
-   XXX
-
    Machine code:
 
+   <patched call position>
    4d 8b 15 86 fe ff ff             mov    -378(%rip),%r10
 
 *******************************************************************************/
@@ -138,6 +137,7 @@ bool patcher_get_putstatic(u1 *sp)
 
    Machine code:
 
+   <patched call position>
    45 8b 8f 00 00 00 00             mov    0x0(%r15),%r9d
 
 *******************************************************************************/
@@ -429,14 +429,14 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 	*((u8 *) (ra + 10)) = mcode;
 
+	/* patch the class' vftbl pointer */
+
+	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
+
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (showdisassemble)
 		ra = ra + 5;
-
-	/* patch the class' vftbl pointer */
-
-	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 
 	/* patch new function address */
 
@@ -489,14 +489,14 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	*((u8 *) (ra + 10)) = mcode;
 
+	/* patch the class' vftbl pointer */
+
+	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
+
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (showdisassemble)
 		ra = ra + 5;
-
-	/* patch the class' vftbl pointer */
-
-	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 
 	/* patch new function address */
 
