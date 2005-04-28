@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2402 2005-04-27 13:17:07Z jowenn $
+   $Id: stacktrace.c 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -46,7 +46,7 @@
 #include "vm/jit/codegen.inc.h"
 #include "vm/loader.h"
 
-#define JWDEBUG
+#undef JWDEBUG
 
 /*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
@@ -205,8 +205,9 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 	buffer.start=primaryBlock;
 	buffer.size=BLOCK_INITIALSIZE*sizeof(stacktraceelement);
 	buffer.full=0;
-
-
+#ifdef JWDEBUG
+	log_text("entering cacao_stacktrace_fillInStacktrace");
+#endif
 	{
 		struct native_stackframeinfo *info=(*(((void**)(builtin_asm_get_stackframeinfo()))));
 		if (!info) {
@@ -290,11 +291,18 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 			
 			if (coll) coll(target,&buffer);
 			if (buffer.needsFree) free(buffer.start);
+#ifdef JWDEBUG
+			log_text("leaving cacao_stacktrace_fillInStacktrace");
+#endif
+
 			return;
 		}
 		/*log_text("\n=========================================================");*/
 	}
 	*target=0;
+#ifdef JWDEBUG
+		log_text("leaving(2) cacao_stacktrace_fillInStacktrace");
+#endif
 
 }
 

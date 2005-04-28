@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2402 2005-04-27 13:17:07Z jowenn $
+   $Id: codegen.inc 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -674,8 +674,12 @@ functionptr codegen_findmethod(functionptr pc)
 		tables_unlock();
 #endif
 #endif
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "cannot find function");
+		{
+			char msg[63];
+			sprintf(msg,"cannot find function (%p)",pc);
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+								   msg);
+		}
 	}
 
 #if defined(USE_THREADS)

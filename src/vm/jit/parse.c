@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2394 2005-04-27 12:42:00Z twisti $
+   $Id: parse.c 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -770,6 +770,7 @@ SHOWOPCODE(DEBUG4)
 				debug_writebranch;
 				i = label_index[i];
 			}
+			/*printf("GOTO: %d\n",i);*/
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -1450,6 +1451,7 @@ if (DEBUG4==true) {
 			break;
 
 		case JAVA_IREM:
+			/*log_text("parse.c: adding IREM to bytecode list");*/
 			OP(opcode);
 			break;
 

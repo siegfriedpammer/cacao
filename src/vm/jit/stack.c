@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2405 2005-04-28 09:12:23Z jowenn $
+   $Id: stack.c 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -1196,7 +1196,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							(tbptr[2].pre_count == 1) &&
 							(tbptr[2].iinstr[0].opc == ICMD_ICONST)  &&
 							(tbptr[2].icount==1)) {
-								printf("tbptr[2].icount=%d\n",tbptr[2].icount);
+								/*printf("tbptr[2].icount=%d\n",tbptr[2].icount);*/
 								OP1_1(TYPE_INT, TYPE_INT);
 								switch (iptr[0].opc) {
 									case ICMD_IFEQ:

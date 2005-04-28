@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2372 2005-04-25 14:10:17Z twisti $
+   $Id: parse.h 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -181,6 +181,7 @@
             b_count++; \
             m->basicblockindex[(i)] |= 1; \
         } \
+	/*printf("Block has been inserted: %d\n",i); */ \
     } while (0)
 
 

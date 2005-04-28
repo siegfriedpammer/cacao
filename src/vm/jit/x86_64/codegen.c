@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2404 2005-04-27 14:29:21Z twisti $
+   $Id: codegen.c 2406 2005-04-28 12:19:06Z jowenn $
 
 */
 
@@ -1340,7 +1340,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-
+			log_text("Emitting ICMD_IREM");
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (src->prev->flags & INMEMORY) {
 				x86_64_movl_membase_reg(cd, REG_SP, src->prev->regoff * 8, RAX);
@@ -4756,6 +4756,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);
 		}
 	}
+
+	printf("(nativestub) %s: %p - %p\n",m->name->text,cs,cd->mcodeptr);
 
 	/* Check if the stub size is big enough to hold the whole stub generated. */
 	/* If not, this can lead into unpredictable crashes, because of heap      */
