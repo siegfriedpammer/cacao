@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: codegen.c 2407 2005-04-28 12:34:39Z jowenn $
 
 */
 
@@ -4753,11 +4753,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			x86_64_jmp_reg(cd, REG_ITMP3);
 
 			codegen_insertmethod((functionptr) cs, (functionptr) cd->mcodeptr);
-			printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);
+			/*printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);*/
 		}
 	}
 
-	printf("(nativestub) %s: %p - %p\n",m->name->text,cs,cd->mcodeptr);
+	/*printf("(nativestub) %s: %p - %p\n",m->name->text,cs,cd->mcodeptr);*/
 
 	/* Check if the stub size is big enough to hold the whole stub generated. */
 	/* If not, this can lead into unpredictable crashes, because of heap      */
