@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2407 2005-04-28 12:34:39Z jowenn $
+   $Id: codegen.c 2416 2005-04-29 19:01:51Z twisti $
 
 */
 
@@ -315,11 +315,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
  		if (var->type < 0) {
-			if (IS_INT_LNG_TYPE(t)) {
+			if (IS_INT_LNG_TYPE(t))
 				s1++;
-			} else {
+			else
 				s2++;
-			}
  			continue;
 		}
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
@@ -377,9 +376,35 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* stack offset for monitor argument */
+
+		s1 = rd->maxmemuse;
+
+		if (runverbose) {
+			M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8, REG_SP);
+
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LST(rd->argintregs[p], REG_SP, p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+			if (m->isleafmethod) {
+				for (p = 0; p < INT_TMP_CNT; p++)
+					M_LST(rd->tmpintregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
+
+				for (p = 0; p < FLT_TMP_CNT; p++)
+					M_DST(rd->tmpfltregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
+			}
+
+			s1 += INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT;
+		}
+
+		/* decide which monitor enter function to call */
+
 		if (m->flags & ACC_STATIC) {
 			x86_64_mov_imm_reg(cd, (ptrint) m->class, REG_ITMP1);
-			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, rd->maxmemuse * 8);
+			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 8);
 			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
 			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
@@ -388,9 +413,28 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			x86_64_test_reg_reg(cd, rd->argintregs[0], rd->argintregs[0]);
 			x86_64_jcc(cd, X86_64_CC_Z, 0);
 			codegen_addxnullrefs(cd, cd->mcodeptr);
-			x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, rd->maxmemuse * 8);
+			x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, s1 * 8);
 			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_monitorenter, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
+		}
+
+		if (runverbose) {
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LLD(rd->argintregs[p], REG_SP, p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+
+			if (m->isleafmethod) {
+				for (p = 0; p < INT_TMP_CNT; p++)
+					M_LLD(rd->tmpintregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
+
+				for (p = 0; p < FLT_TMP_CNT; p++)
+					M_DLD(rd->tmpfltregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
+			}
+
+			M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8, REG_SP);
 		}
 	}
 #endif
@@ -399,18 +443,26 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* to arguments on stack.                                                 */
 
 	if (runverbose) {
-		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1 + 1) * 8, REG_SP);
+		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
 
 		/* save integer argument registers */
 
-		for (p = 0; p < INT_ARG_CNT; p++) {
-			x86_64_mov_reg_membase(cd, rd->argintregs[p], REG_SP, (1 + p) * 8);
-		}
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_LST(rd->argintregs[p], REG_SP, (1 + p) * 8);
 
 		/* save float argument registers */
 
-		for (p = 0; p < FLT_ARG_CNT; p++) {
-			x86_64_movq_reg_membase(cd, rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DST(rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
+
+		/* save temporary registers for leaf methods */
+
+		if (m->isleafmethod) {
+			for (p = 0; p < INT_TMP_CNT; p++)
+				M_LST(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
+
+			for (p = 0; p < FLT_TMP_CNT; p++)
+				M_DST(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
 		}
 
 		/* show integer hex code for float arguments */
@@ -431,24 +483,32 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 		}
 
-		x86_64_mov_imm_reg(cd, (u8) m, REG_ITMP2);
+		x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP2);
 		x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0 * 8);
-		x86_64_mov_imm_reg(cd, (u8) builtin_trace_args, REG_ITMP1);
+		x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
 
 		/* restore integer argument registers */
 
-		for (p = 0; p < INT_ARG_CNT; p++) {
-			x86_64_mov_membase_reg(cd, REG_SP, (1 + p) * 8, rd->argintregs[p]);
-		}
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_LLD(rd->argintregs[p], REG_SP, (1 + p) * 8);
 
 		/* restore float argument registers */
 
-		for (p = 0; p < FLT_ARG_CNT; p++) {
-			x86_64_movq_membase_reg(cd, REG_SP, (1 + INT_ARG_CNT + p) * 8, rd->argfltregs[p]);
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DLD(rd->argfltregs[p], REG_SP, (1 + INT_ARG_CNT + p) * 8);
+
+		/* restore temporary registers for leaf methods */
+
+		if (m->isleafmethod) {
+			for (p = 0; p < INT_TMP_CNT; p++)
+				M_LLD(rd->tmpintregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
+
+			for (p = 0; p < FLT_TMP_CNT; p++)
+				M_DLD(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
 		}
 
-		x86_64_alu_imm_reg(cd, X86_64_ADD, (6 + 8 + 1 + 1) * 8, REG_SP);
+		M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
 	}
 
 	}
@@ -1340,7 +1400,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-			log_text("Emitting ICMD_IREM");
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (src->prev->flags & INMEMORY) {
 				x86_64_movl_membase_reg(cd, REG_SP, src->prev->regoff * 8, RAX);
@@ -3217,7 +3276,7 @@ gen_method: {
 
 				if (iptr->target) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										(functionptr) lm, iptr->target);
+										iptr->val.fp, iptr->target);
 
 					if (showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3783,7 +3842,8 @@ gen_method: {
 
 			if (iptr->target) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									(functionptr) iptr->target, iptr->val.a);
+									(functionptr) (ptrint) iptr->target,
+									iptr->val.a);
 
 				if (showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4213,18 +4273,40 @@ gen_method: {
 		tmpcd = DNEW(codegendata);
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			MCODECHECK(64);
+			/* check size of code segment */
+
+			MCODECHECK(2 * 8 + 128);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode = *((ptrint *) xcodeptr);
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			*((ptrint *) cd->mcodeptr++) = 0;                        /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 8)) = (ptrint) get_dummyLR(); /* monitorPtr */
+			cd->mcodeptr += 16;
+#endif
+
 			/* patch in `call rel32' to call the following code               */
+
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			x86_64_call_imm(cd, 0);
+			x86_64_alu_imm_membase(cd, X86_64_SUB, 5 + 2 * 8, REG_SP, 0);
+#else
+			x86_64_push_imm(cd, 0);
+#endif
+
 			/* move machine code bytes and classinfo pointer into registers */
+
 			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP3);
 			x86_64_push_reg(cd, REG_ITMP3);
 			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
@@ -4733,14 +4815,34 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		if (pref) {
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode = *((ptrint *) xcodeptr);
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			*((ptrint *) cd->mcodeptr++) = 0;                        /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 8)) = (ptrint) get_dummyLR(); /* monitorPtr */
+			cd->mcodeptr += 16;
+#endif
+
 			/* patch in `call rel32' to call the following code               */
+
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			x86_64_call_imm(cd, 0);
+			x86_64_alu_imm_membase(cd, X86_64_SUB, 5 + 2 * 8, REG_SP, 0);
+#else
+			x86_64_push_imm(cd, 0);
+#endif
+
 			/* move machine code bytes and classinfo pointer into registers */
+
 			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP3);
 			x86_64_push_reg(cd, REG_ITMP3);
 			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
@@ -4752,7 +4854,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 
-			codegen_insertmethod((functionptr) cs, (functionptr) cd->mcodeptr);
+			codegen_insertmethod((functionptr) (ptrint) cs,
+								 (functionptr) (ptrint) cd->mcodeptr);
 			/*printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);*/
 		}
 	}
