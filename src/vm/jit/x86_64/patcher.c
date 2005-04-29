@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2412 2005-04-29 15:22:08Z twisti $
+   $Id: patcher.c 2418 2005-04-29 19:29:17Z twisti $
 
 */
 
@@ -81,9 +81,7 @@ bool patcher_get_putstatic(u1 *sp)
 #if defined(USE_THREADS)
 	/* enter a monitor on the patching position */
 
-	printf("monitorenter before: %p\n", THREADOBJECT);
 	builtin_monitorenter(o);
-	printf("monitorenter after : %p\n", THREADOBJECT);
 
 	/* check if the position has already been patched */
 
