@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2390 2005-04-26 19:48:02Z twisti $
+   $Id: asmpart.S 2411 2005-04-29 15:18:14Z twisti $
 
 */
 
@@ -846,7 +846,8 @@ noflt:
    XXX
 
    Stack layout:
-     24   return address
+     32   return address
+	 24   pointer to virtual java_objectheader
      16   machine code (which is patched back later)
       8   unresolved class/method/field reference
       0   pointer to patcher function
@@ -874,7 +875,7 @@ asm_wrapper_patcher:
 	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
 	mov     16*8(%rsp),itmp2            /* can be used by some instructions   */
 
-	add     $((3+18)*8),%rsp            /* remove stack frame, keep ra        */
+	add     $((4+18)*8),%rsp            /* remove stack frame, keep ra        */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
