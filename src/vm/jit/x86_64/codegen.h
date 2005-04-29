@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2393 2005-04-26 19:50:58Z twisti $
+   $Id: codegen.h 2415 2005-04-29 18:55:49Z twisti $
 
 */
 
@@ -493,7 +493,16 @@ typedef enum {
 
 /* macros to create code ******************************************************/
 
-#define M_NOP                   x86_64_nop(cd)                  /* ;          */
+#define M_LLD(a,b,disp)         x86_64_mov_membase_reg(cd, (b), (disp), (a))
+#define M_DLD(a,b,disp)         x86_64_movq_membase_reg(cd, (b), (disp), (a))
+
+#define M_LST(a,b,disp)         x86_64_mov_reg_membase(cd, (a), (b), (disp))
+#define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
+
+#define M_LADD_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_ADD, (a), (b))
+#define M_LSUB_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_SUB, (a), (b))
+
+#define M_NOP                   x86_64_nop(cd)
 
 
 /* function gen_resolvebranch **************************************************
