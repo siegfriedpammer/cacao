@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2410 2005-04-28 13:31:55Z twisti $
+   $Id: patcher.c 2412 2005-04-29 15:22:08Z twisti $
 
 */
 
@@ -54,32 +54,55 @@
 
 bool patcher_get_putstatic(u1 *sp)
 {
-	u1               *ra;
-	u8                mcode;
-	unresolved_field *uf;
-	fieldinfo        *fi;
-	s4                offset;
-	void             *beginJavaStack;
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	unresolved_field  *uf;
+	fieldinfo         *fi;
+	s4                 offset;
+	void              *beginJavaStack;
+
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 2 * 8));
-	mcode =                      *((u8 *)     (sp + 1 * 8));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 8));
-	beginJavaStack=              (void*)(sp+2*8);
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
+
+	beginJavaStack=              (void*)(sp + 3 * 8);
+
+	*dontfillinexceptionstacktrace=true;
+
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
-	*dontfillinexceptionstacktrace=true;
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	printf("monitorenter before: %p\n", THREADOBJECT);
+	builtin_monitorenter(o);
+	printf("monitorenter after : %p\n", THREADOBJECT);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
 	/* get the fieldinfo */
-	if (!(fi = helper_resolve_fieldinfo(uf)))
-	{
+
+	if (!(fi = helper_resolve_fieldinfo(uf))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
 
 	/* check if the field's class is initialized */
+
 	*dontfillinexceptionstacktrace=false;
 	if (!fi->class->initialized) {
 		bool init;
@@ -129,6 +152,16 @@ bool patcher_get_putstatic(u1 *sp)
 
 	*((ptrint *) (ra + 7 + offset)) = (ptrint) &(fi->value);
 
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -144,29 +177,43 @@ bool patcher_get_putstatic(u1 *sp)
 
 bool patcher_get_putfield(u1 *sp)
 {
-	u1               *ra;
-	u8                mcode;
-	unresolved_field *uf;
-	fieldinfo        *fi;
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	unresolved_field  *uf;
+	fieldinfo         *fi;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 2 * 8));
-	mcode =                      *((u8 *)     (sp + 1 * 8));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
-	if (!(fi = helper_resolve_fieldinfo(uf)))
-	{
+	if (!(fi = helper_resolve_fieldinfo(uf))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -200,6 +247,17 @@ bool patcher_get_putfield(u1 *sp)
 	}
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -218,27 +276,42 @@ bool patcher_get_putfield(u1 *sp)
 bool patcher_builtin_new(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
-	{
+	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -261,6 +334,17 @@ bool patcher_builtin_new(u1 *sp)
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_new;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -279,22 +363,38 @@ bool patcher_builtin_new(u1 *sp)
 bool patcher_builtin_newarray(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the classinfo */
 
@@ -321,6 +421,17 @@ bool patcher_builtin_newarray(u1 *sp)
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_newarray;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -341,22 +452,38 @@ bool patcher_builtin_newarray(u1 *sp)
 bool patcher_builtin_multianewarray(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the classinfo */
 
@@ -383,6 +510,17 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	*((ptrint *) (ra + 10 + 10 + 3 + 2)) = (ptrint) BUILTIN_multianewarray;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -401,22 +539,38 @@ bool patcher_builtin_multianewarray(u1 *sp)
 bool patcher_builtin_checkarraycast(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the classinfo */
 
@@ -443,6 +597,17 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_checkarraycast;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -461,22 +626,38 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 bool patcher_builtin_arrayinstanceof(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the classinfo */
 
@@ -503,6 +684,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arrayinstanceof;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -516,28 +708,42 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 bool patcher_invokestatic_special(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
-	{
+	if (!(m = helper_resolve_methodinfo(um))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -555,6 +761,17 @@ bool patcher_invokestatic_special(u1 *sp)
 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -568,27 +785,42 @@ bool patcher_invokestatic_special(u1 *sp)
 bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
-	{
+	if (!(m = helper_resolve_methodinfo(um))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -608,6 +840,17 @@ bool patcher_invokevirtual(u1 *sp)
 								   sizeof(methodptr) * m->vftblindex);
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -621,27 +864,42 @@ bool patcher_invokevirtual(u1 *sp)
 bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
 
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
-	{
+	if (!(m = helper_resolve_methodinfo(um))) {
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
@@ -666,6 +924,17 @@ bool patcher_invokeinterface(u1 *sp)
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -679,22 +948,38 @@ bool patcher_invokeinterface(u1 *sp)
 bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
@@ -717,6 +1002,17 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	*((s4 *) (ra + 2)) = (s4) c->flags;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -730,22 +1026,38 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
@@ -772,6 +1084,17 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 			  c->index * sizeof(methodptr*));
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -785,22 +1108,38 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 bool patcher_checkcast_class(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
@@ -824,6 +1163,17 @@ bool patcher_checkcast_class(u1 *sp)
 	*((ptrint *) (ra + 10 + 7 + 7 + 3 + 2)) = (ptrint) c->vftbl;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -837,22 +1187,38 @@ bool patcher_checkcast_class(u1 *sp)
 bool patcher_instanceof_class(u1 *sp)
 {
 	u1                *ra;
+	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* get the fieldinfo */
 
@@ -875,6 +1241,17 @@ bool patcher_instanceof_class(u1 *sp)
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 
 	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
+
 	return true;
 }
 
@@ -887,23 +1264,40 @@ bool patcher_instanceof_class(u1 *sp)
 
 bool patcher_clinit(u1 *sp)
 {
-	u1        *ra;
-	u8         mcode;
-	classinfo *c;
-	void      *beginJavaStack;
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	classinfo         *c;
+	void              *beginJavaStack;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)        *((ptrint *) (sp + 2 * 8));
-	mcode =               *((u8 *)     (sp + 1 * 8));
-	c     = (classinfo *) *((ptrint *) (sp + 0 * 8));
-	beginJavaStack =      (void*) (sp+2*8);
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	c     = (classinfo *)         *((ptrint *) (sp + 0 * 8));
+
+	beginJavaStack =      (void*) (sp + 3 * 8);
 
 	/*printf("beginJavaStack: %p, ra %p\n",beginJavaStack,ra);*/
 	/* calculate and set the new return address */
 
 	ra = ra - 5;
-	*((ptrint *) (sp + 2 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
 
 	/* check if the class is initialized */
 
@@ -939,6 +1333,16 @@ bool patcher_clinit(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+#if defined(USE_THREADS)
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+#endif
 
 	return true;
 }
