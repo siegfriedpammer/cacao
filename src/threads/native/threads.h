@@ -1,4 +1,4 @@
-/* threads/native/threads.h - native threads header
+/* src/threads/native/threads.h - native threads header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.h 2360 2005-04-24 13:07:57Z jowenn $
+   Changes: Christian Thalinger
+
+   $Id: threads.h 2417 2005-04-29 19:17:55Z twisti $
 
 */
 
@@ -169,6 +171,7 @@ void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);
 void initThreadsEarly();
 void initThreads(u1 *stackbottom);
 void initObjectLock(java_objectheader *);
+monitorLockRecord *get_dummyLR(void);
 void initLocks();
 void initThread(java_lang_VMThread *);
 void startThread(thread *t);

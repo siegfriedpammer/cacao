@@ -1,4 +1,4 @@
-/* threads/native/threads.c - native threads support
+/* src/threads/native/threads.c - native threads support
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Stefan Ring
 
-   $Id: threads.c 2348 2005-04-22 13:52:35Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: threads.c 2417 2005-04-29 19:17:55Z twisti $
 
 */
 
@@ -823,6 +825,21 @@ void initObjectLock(java_objectheader *o)
 {
 	o->monitorPtr = dummyLR;
 }
+
+
+/* get_dummyLR *****************************************************************
+
+   Returns the global dummy monitor lock record. The pointer is
+   required in the code generator to set up a virtual
+   java_objectheader for code patch locking.
+
+*******************************************************************************/
+
+monitorLockRecord *get_dummyLR(void)
+{
+	return dummyLR;
+}
+
 
 static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 {
