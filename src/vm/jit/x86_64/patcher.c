@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: patcher.c 2426 2005-04-30 20:12:59Z twisti $
 
 */
 
@@ -328,6 +328,11 @@ bool patcher_putfieldconst(u1 *sp)
 
 	if (showdisassemble)
 		ra = ra + 5;
+
+	/* handle special case when the base register is %r12 */
+
+	if (*(ra + 2) == 0x84)
+		ra = ra + 1;
 
 	/* patch the field's offset */
 
