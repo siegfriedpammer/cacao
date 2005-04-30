@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: jni.c 2425 2005-04-30 16:29:15Z jowenn $
 
 */
 
@@ -53,6 +53,8 @@
 #include "native/include/java_lang_Float.h"
 #include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_Throwable.h"
+#include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_lang_reflect_Field.h"
 
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
@@ -654,10 +656,22 @@ jclass FindClass(JNIEnv *env, const char *name)
   
 jmethodID FromReflectedMethod(JNIEnv* env, jobject method)
 {
-	log_text("JNI-Call: FromReflectedMethod: IMPLEMENT ME!!!");
+        struct methodinfo *mi;
+	java_lang_reflect_Method *rm;
+        classinfo *c;
+
+	rm=(java_lang_reflect_Method*) method;
+	if (rm==0) return 0;
+	c= (classinfo *) (rm->declaringClass);
 	STATS(jniinvokation();)
 
-	return 0;
+        if (rm->slot < 0 || rm->slot >= c->methodscount) {
+		/*this usually means a severe internal cacao error or somebody
+		tempered around with the reflected method*/
+                panic("error illegal slot for method in class(FromReflectedMethod)");
+        }
+        mi = &(c->methods[rm->slot]);
+	return mi;
 }
 
 
@@ -1060,10 +1074,22 @@ jboolean IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
  
 jfieldID FromReflectedField(JNIEnv* env, jobject field)
 {
-	log_text("JNI-Call: FromReflectedField");
+	java_lang_reflect_Field *f;
+	classinfo *c;
+	jfieldID fid;   /* the JNI-fieldid of the wrapping object */
 	STATS(jniinvokation();)
+	/*log_text("JNI-Call: FromReflectedField");*/
 
-	return 0;
+	f=(java_lang_reflect_Field *)field;
+	if (f==0) return 0;
+	c=(classinfo*)(f->declaringClass);
+	if ( (f->slot<0) || (f->slot>c->fieldscount)) {
+		/*this usually means a severe internal cacao error or somebody
+		tempered around with the reflected method*/
+                panic("error illegal slot for field in class(FromReflectedField)");
+	}
+	fid=&(c->fields[f->slot]);
+	return fid;
 }
 
 
