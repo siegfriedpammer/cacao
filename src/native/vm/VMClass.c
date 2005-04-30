@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2209 2005-04-04 09:41:17Z twisti $
+   $Id: VMClass.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -582,6 +582,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, 
 	classinfo *c = (classinfo *) that;
 	java_lang_String *s = (java_lang_String *) javastring_new(c->name);
 
+	/*log_text("Java_java_lang_VMClass_getName");*/
+
 	if (!s)
 		return NULL;
 
@@ -791,10 +793,12 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass cla
 	ci = (classinfo *) c;
 
 	/* initialize class */
-	if (!ci->initialized)
+	if (!ci->initialized) {
+		/*printf("Java_java_land_VMClass_initialize calling initialize_class %s\n",ci->name->text);*/
 		/* No need to check return value, because class_init already sets the */
 		/* exception pointer. */
 		(void) initialize_class(ci);
+	}
 }
 
 

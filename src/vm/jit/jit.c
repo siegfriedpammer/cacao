@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: jit.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -1494,7 +1494,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	if (compileverbose) {
 		log_message_method("Compiling done: ", m);
-		printf("%p - %p\n",(void *) ((long) m->mcode + cd->dseglen),(void *) ((long) m->mcode + m->mcodelength));
+		printf("method dataseg:%p, range:%p %p\n",m->mcode,(void *) ((long) m->mcode + cd->dseglen),(void *) ((long) m->mcode + m->mcodelength));
 	}
 
 #ifdef LSRA

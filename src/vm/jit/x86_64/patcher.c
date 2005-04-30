@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2421 2005-04-30 13:28:35Z twisti $
+   $Id: patcher.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -41,6 +41,39 @@
 #include "vm/references.h"
 #include "vm/jit/helper.h"
 #include "vm/exceptions.h"
+
+
+helper_initialize_class(void* beginOfJavaStack,classinfo *c,u1 *ra) {
+	if (!c->initialized) {
+		bool init;
+		{
+			/*struct native_stackframeinfo {
+	        		void *oldThreadspecificHeadValue;
+		        	void **addressOfThreadspecificHead;
+			        methodinfo *method;
+        			void *beginOfJavaStackframe; only used if != 0
+			        void *returnToFromNative;
+			}*/
+			/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
+			native_stackframeinfo sfi;
+			sfi.returnToFromNative=ra;
+			sfi.beginOfJavaStackframe=beginOfJavaStack;
+			sfi.method=0; /*internal*/
+			sfi.addressOfThreadspecificHead=builtin_asm_get_stackframeinfo();
+			sfi.oldThreadspecificHeadValue=*(sfi.addressOfThreadspecificHead);
+			*(sfi.addressOfThreadspecificHead)=&sfi;
+
+			/*printf("calling static initializer (helper_initialize_class), returnaddress=%p for class %s\n",ra,c->name->text);*/
+
+			init=initialize_class(c);
+
+			*(sfi.addressOfThreadspecificHead)=sfi.oldThreadspecificHeadValue;
+		}
+		return init;
+	}
+	return true;
+}
+
 
 
 /* patcher_get_putstatic *******************************************************
@@ -87,7 +120,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -98,40 +131,11 @@ bool patcher_get_putstatic(u1 *sp)
 		*dontfillinexceptionstacktrace=false;
 		return false;
 	}
-
 	/* check if the field's class is initialized */
 
 	*dontfillinexceptionstacktrace=false;
-	if (!fi->class->initialized) {
-		bool init;
-		{
-			/*struct native_stackframeinfo {
-	        		void *oldThreadspecificHeadValue;
-		        	void **addressOfThreadspecificHead;
-			        methodinfo *method;
-        			void *beginOfJavaStackframe; only used if != 0
-			        void *returnToFromNative;
-			}*/
-			/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
-			native_stackframeinfo sfi;
-			sfi.returnToFromNative=(void*)ra;
-			sfi.beginOfJavaStackframe=beginJavaStack;
-			sfi.method=0; /*internal*/
-			sfi.addressOfThreadspecificHead=builtin_asm_get_stackframeinfo();
-			sfi.oldThreadspecificHeadValue=*(sfi.addressOfThreadspecificHead);
-			*(sfi.addressOfThreadspecificHead)=&sfi;
+	if (!helper_initialize_class(beginJavaStack,fi->class,ra)) return false;
 
-			init=initialize_class(fi->class);
-
-			*(sfi.addressOfThreadspecificHead)=sfi.oldThreadspecificHeadValue;
-		}
-		if (!init)
-		{
-			return false;
-		}
-	}
-
-	*dontfillinexceptionstacktrace=false;
 
 	/* patch back original code */
 
@@ -157,7 +161,10 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* leave the monitor on the patching position */
 
+	*dontfillinexceptionstacktrace=true;
 	builtin_monitorexit(o);
+	*dontfillinexceptionstacktrace=false;
+
 #endif
 
 	return true;
@@ -204,7 +211,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -244,7 +251,6 @@ bool patcher_get_putfield(u1 *sp)
 			*((u4 *) (ra + 3)) = (u4) (fi->offset);
 	}
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -254,7 +260,9 @@ bool patcher_get_putfield(u1 *sp)
 	/* leave the monitor on the patching position */
 
 	builtin_monitorexit(o);
+
 #endif
+	*dontfillinexceptionstacktrace=false;
 
 	return true;
 }
@@ -331,7 +339,6 @@ bool patcher_putfieldconst(u1 *sp)
 		*((u4 *) (ra + 3)) = (u4) (fi->offset);
 	}
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -342,6 +349,7 @@ bool patcher_putfieldconst(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
+	*dontfillinexceptionstacktrace=false;
 
 	return true;
 }
@@ -365,13 +373,14 @@ bool patcher_builtin_new(u1 *sp)
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
-
+	void              *beginJavaStack;
 	/* get stuff from the stack */
 
 	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
 	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
+	beginJavaStack =              (void*) (sp+3*8);
 
 	/* calculate and set the new return address */
 
@@ -389,7 +398,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -398,8 +407,13 @@ bool patcher_builtin_new(u1 *sp)
 
 	if (!(c = helper_resolve_classinfo(cr))) {
 		*dontfillinexceptionstacktrace=false;
+		/*should here be an monitorexit too ?*/
 		return false;
 	}
+
+	*dontfillinexceptionstacktrace=false;
+	/*printf("ra:%p\n",ra);*/
+	if (!helper_initialize_class(beginJavaStack,c,ra+5)) return false;
 
 	/* patch back original code */
 
@@ -418,7 +432,6 @@ bool patcher_builtin_new(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_new;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -426,8 +439,10 @@ bool patcher_builtin_new(u1 *sp)
 	o->vftbl = (vftbl_t *) 1;
 
 	/* leave the monitor on the patching position */
-
+	*dontfillinexceptionstacktrace=true;
 	builtin_monitorexit(o);
+	*dontfillinexceptionstacktrace=false;
+
 #endif
 
 	return true;
@@ -476,7 +491,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -505,7 +520,6 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_newarray;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -515,7 +529,9 @@ bool patcher_builtin_newarray(u1 *sp)
 	/* leave the monitor on the patching position */
 
 	builtin_monitorexit(o);
+
 #endif
+	*dontfillinexceptionstacktrace=false;
 
 	return true;
 }
@@ -565,7 +581,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -594,7 +610,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 10 + 3 + 2)) = (ptrint) BUILTIN_multianewarray;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -605,6 +620,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
+	*dontfillinexceptionstacktrace=false;
 
 	return true;
 }
@@ -652,7 +668,7 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -681,7 +697,6 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_checkarraycast;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -692,7 +707,7 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -768,7 +783,6 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arrayinstanceof;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -779,7 +793,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -821,7 +835,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -845,7 +859,6 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -856,7 +869,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -898,7 +911,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -924,7 +937,6 @@ bool patcher_invokevirtual(u1 *sp)
 	*((s4 *) (ra + 3 + 3)) = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -935,7 +947,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -977,7 +989,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=true;
 		return true;
 	}
 #endif
@@ -1008,7 +1020,6 @@ bool patcher_invokeinterface(u1 *sp)
 	*((s4 *) (ra + 3 + 7 + 3)) =
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -1019,7 +1030,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -1061,7 +1072,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -1086,7 +1097,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	*((s4 *) (ra + 2)) = (s4) c->flags;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -1097,7 +1107,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -1139,7 +1149,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -1168,7 +1178,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
 			  c->index * sizeof(methodptr*));
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -1179,7 +1188,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -1221,7 +1230,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -1247,7 +1256,6 @@ bool patcher_checkcast_class(u1 *sp)
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 	*((ptrint *) (ra + 10 + 7 + 7 + 3 + 2)) = (ptrint) c->vftbl;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -1258,7 +1266,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -1300,7 +1308,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
@@ -1325,7 +1333,6 @@ bool patcher_instanceof_class(u1 *sp)
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
 
-	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
 	/* this position has been patched */
@@ -1336,7 +1343,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	builtin_monitorexit(o);
 #endif
-
+	*dontfillinexceptionstacktrace=false;
 	return true;
 }
 
@@ -1379,41 +1386,14 @@ bool patcher_clinit(u1 *sp)
 
 	if (o->vftbl) {
 		builtin_monitorexit(o);
-
+		*dontfillinexceptionstacktrace=false;
 		return true;
 	}
 #endif
 
 	/* check if the class is initialized */
-
-	if (!c->initialized) {
-		bool init;
-		{
-			/*struct native_stackframeinfo {
-	        		void *oldThreadspecificHeadValue;
-		        	void **addressOfThreadspecificHead;
-			        methodinfo *method;
-        			void *beginOfJavaStackframe; only used if != 0
-			        void *returnToFromNative;
-			}*/
-			/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
-			native_stackframeinfo sfi;
-			sfi.returnToFromNative=(void*)ra;
-			sfi.beginOfJavaStackframe=beginJavaStack;
-			sfi.method=0; /*internal*/
-			sfi.addressOfThreadspecificHead=builtin_asm_get_stackframeinfo();
-			sfi.oldThreadspecificHeadValue=*(sfi.addressOfThreadspecificHead);
-			*(sfi.addressOfThreadspecificHead)=&sfi;
-
-			init=initialize_class(c);
-
-			*(sfi.addressOfThreadspecificHead)=sfi.oldThreadspecificHeadValue;
-		}
-		if (!init)
-		{
-			return false;
-		}
-	}
+	*dontfillinexceptionstacktrace=false;
+	if (!helper_initialize_class(beginJavaStack,c,ra)) return false;
 
 	/* patch back original code */
 
@@ -1425,8 +1405,10 @@ bool patcher_clinit(u1 *sp)
 	o->vftbl = (vftbl_t *) 1;
 
 	/* leave the monitor on the patching position */
-
+	*dontfillinexceptionstacktrace=true;
 	builtin_monitorexit(o);
+	*dontfillinexceptionstacktrace=false;
+
 #endif
 
 	return true;

@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 2213 2005-04-04 13:05:15Z edwin $
+   $Id: initialize.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -48,6 +48,7 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
+#undef JWDEBUG
 
 /* private functions **********************************************************/
 
@@ -91,6 +92,9 @@ bool initialize_class(classinfo *c)
 		return true;
 	}
 
+#ifdef JWDEBUG
+	printf("preparing to call initialize_class_intern for %s\n",c->name->text);
+#endif
 	/* this initalizing run begins NOW */
 	c->initializing = true;
 
@@ -101,6 +105,10 @@ bool initialize_class(classinfo *c)
 	   initialized */
 	if (r)
 		c->initialized = true;
+
+#ifdef JWDEBUG
+	printf("finished to call initialize_class_intern for %s\n",c->name->text);
+#endif
 
 	/* this initalizing run is done */
 	c->initializing = false;
@@ -153,7 +161,9 @@ static bool initialize_class_intern(classinfo *c)
 				utf_strcat_classname(logtext, c->name);
 				log_text(logtext);
 			}
-
+#ifdef JWDEBUG
+			printf("preparing to call initialize_class for super  %s\n",c->super.cls->name->text);
+#endif
 			if (!initialize_class(c->super.cls))
 				return false;
 		}
@@ -163,6 +173,9 @@ static bool initialize_class_intern(classinfo *c)
 
 	for (i = 0; i < c->interfacescount; i++) {
 		if (!c->interfaces[i].cls->initialized) {
+#ifdef JWDEBUG
+			printf("preparing to call initialize_class for interface  %s\n",c->interfaces[i].cls->name->text);
+#endif
 			if (initverbose) {
 				char logtext[MAXLOGTEXT];
 				strcpy(logtext, "Initialize interface class ");

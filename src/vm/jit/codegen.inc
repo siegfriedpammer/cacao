@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: codegen.inc 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -78,6 +78,11 @@
 #include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
 
+#undef JWDEBUG_X86
+
+#ifdef JWDEBUG_X86
+#include <execinfo.h>
+#endif
 
 /* in this tree we store all method addresses *********************************/
 
@@ -600,23 +605,6 @@ static int methodtree_comparator(const void *pc, const void *element, void *para
 }
 
 
-#if 0
-void *codegen_findmethod1(void *pc)
-{
-	void * retVal=findmethod(pc);
-	methodinfo **ma=(methodinfo**)retVal;
-	methodinfo *m=ma[-1];
-	if (m)
-		if (m->name)
-			utf_display(m->name);
-		else 
-			log_text("No Name");
-	else log_text("No methodinfo");
-	return retVal;
-}
-#endif
-
-
 void codegen_insertmethod(functionptr startpc, functionptr endpc)
 {
 	methodtree_element *mte;
@@ -675,6 +663,13 @@ functionptr codegen_findmethod(functionptr pc)
 #endif
 #endif
 		{
+#ifdef JWDEBUG_X86
+			{
+				void *bt[5];
+				fprintf(stderr,"backtrace:");
+				backtrace_symbols_fd(bt,5,2);
+			}
+#endif
 			char msg[63];
 			sprintf(msg,"cannot find function (%p)",pc);
 			throw_cacao_exception_exit(string_java_lang_InternalError,

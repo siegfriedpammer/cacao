@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2422 2005-04-30 13:29:34Z twisti $
+   $Id: codegen.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -54,6 +54,7 @@
 #include "vm/jit/x86_64/types.h"
 #include "vm/jit/x86_64/asmoffsets.h"
 #include "vm/jit/helper.h"
+#include "vm/statistics.h"
 
 /* register descripton - array ************************************************/
 
@@ -89,7 +90,11 @@ static int nregdescfloat[] = {
 #include "vm/jit/lsra.inc"
 #endif
 
-
+#if 0
+#define JWNATIVEDEBUG(x) true
+#else
+#define JWNATIVEDEBUG(x) x
+#endif
 void codegen_dummy_func() { log_text("codegen_dummy_func"); }
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -442,7 +447,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* Copy argument registers to stack and call trace function with pointer  */
 	/* to arguments on stack.                                                 */
 
-	if (runverbose) {
+	if (runverbose || opt_stat) {
 		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
 
 		/* save integer argument registers */
@@ -465,29 +470,35 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DST(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
 		}
 
-		/* show integer hex code for float arguments */
+		if (runverbose) {
+			/* show integer hex code for float arguments */
 
-		for (p = 0, l = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
-			t = m->paramtypes[p];
+			for (p = 0, l = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
+				t = m->paramtypes[p];
 
-			/* if the paramtype is a float, we have to right shift all        */
-			/* following integer registers                                    */
+				/* if the paramtype is a float, we have to right shift all        */
+				/* following integer registers                                    */
+	
+				if (IS_FLT_DBL_TYPE(t)) {
+					for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
+						x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
+					}
 
-			if (IS_FLT_DBL_TYPE(t)) {
-				for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
-					x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
+					x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
+					l++;
 				}
-
-				x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
-				l++;
 			}
+
+			x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP2);
+			x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0 * 8);
+			x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
+			x86_64_call_reg(cd, REG_ITMP1);
 		}
-
-		x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP2);
-		x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0 * 8);
-		x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
-		x86_64_call_reg(cd, REG_ITMP1);
-
+		STATS({
+			x86_64_mov_imm_reg(cd,(u8)compiledinvokation,REG_ITMP1);
+			x86_64_call_reg(cd,REG_ITMP1);
+		})
+		
 		/* restore integer argument registers */
 
 		for (p = 0; p < INT_ARG_CNT; p++)
@@ -4388,7 +4399,7 @@ void removecompilerstub(u1 *stub)
 /* static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr; */
 /* #endif */
 
-#define NATIVESTUBSIZE    800           /* keep this size high enough!        */
+#define NATIVESTUBSIZE    1024           /* keep this size high enough!        */
 #define NATIVESTUB_DATA_SIZE (7*8)
 
 u1 *createnativestub(functionptr f, methodinfo *m)
@@ -4472,7 +4483,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_clinit, m->class);
 	}
 
-	if (runverbose) {
+	if (JWNATIVEDEBUG(runverbose)) {
 		s4 l, s1;
 
 		x86_64_alu_imm_reg(cd, X86_64_SUB, (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
@@ -4551,7 +4562,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* CREATE DYNAMIC STACK INFO -- BEGIN   offsets:15,16,17,18*/
 	x86_64_mov_imm_membase(cd, 0, REG_SP, 18*8);
-	x86_64_mov_imm_membase(cd, (u8)m, REG_SP, 17*8);
+	x86_64_mov_imm_membase(cd, (ptrint)m, REG_SP, 17*8);
+	/*x86_64_mov_imm_membase(cd, 0, REG_SP, 17*8);*/
 
 	x86_64_mov_imm_reg(cd, (u8) builtin_asm_get_stackframeinfo,REG_ITMP1);
 	x86_64_call_reg(cd,REG_ITMP1);
@@ -4578,6 +4590,10 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #endif
 	/* CREATE DYNAMIC STACK INFO -- END*/
 
+	STATS({
+		x86_64_mov_imm_reg(cd,(u8)nativeinvokation,REG_ITMP1);
+		x86_64_call_reg(cd,REG_ITMP1);
+	})
 
 #if !defined(STATIC_CLASSPATH)
 	/* call method to resolve native function if needed */
@@ -4740,7 +4756,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	x86_64_alu_imm_reg(cd, X86_64_ADD, 4 * 8, REG_SP);
 
-	if (runverbose) {
+	if (JWNATIVEDEBUG(runverbose)) {
 		x86_64_alu_imm_reg(cd, X86_64_SUB, 3 * 8, REG_SP);    /* keep stack 16-byte aligned */
 
 		x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, 0 * 8);
@@ -4856,13 +4872,13 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
 			x86_64_jmp_reg(cd, REG_ITMP3);
 
-			codegen_insertmethod((functionptr) (ptrint) cs,
-								 (functionptr) (ptrint) cd->mcodeptr);
-			/*printf("codegen_insertmethod (nativestub) %p - %p\n",cs,cd->mcodeptr);*/
+			codegen_insertmethod((functionptr) cs, (functionptr) cd->mcodeptr);
+			/*printf("codegen_insertmethod (nativestub) %s.%s:   %p  %p\n",
+								m->class->name->text,m->name->text,cs,cd->mcodeptr);*/
 		}
 	}
 
-	/*printf("(nativestub) %s: %p - %p\n",m->name->text,cs,cd->mcodeptr);*/
+	/*printf("(nativestub) %s.%s:  %p  %p\n",m->class->name->text,m->name->text,cs,cd->mcodeptr);*/
 
 	/* Check if the stub size is big enough to hold the whole stub generated. */
 	/* If not, this can lead into unpredictable crashes, because of heap      */

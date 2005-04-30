@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 2201 2005-04-03 21:48:11Z twisti $
+   $Id: Field.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -295,6 +295,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -360,6 +361,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -425,6 +427,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -490,6 +493,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -564,6 +568,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -636,6 +641,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -707,6 +713,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -780,6 +787,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
+		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/

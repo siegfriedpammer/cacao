@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 2211 2005-04-04 10:39:36Z christian $
+   $Id: statistics.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -144,6 +144,11 @@ int count_in_uniqueInterface_not_inlined = 0;
 int count_in_maxDepth = 0;
 int count_in_maxMethods = 0;
 
+u8 count_native_function_calls=0;
+u8 count_compiled_function_calls=0;
+u8 count_jni_callXmethod_calls=0;
+u8 count_jni_calls=0;
+
 u2 count_in_not   [512];
 /***
 int count_no_in[12] = {0,0,0,0, 0,0,0,0, 0,0,0,0};
@@ -196,6 +201,49 @@ s4 count_schedule_nodes = 0;
 s4 count_schedule_leaders = 0;
 s4 count_schedule_max_leaders = 0;
 s4 count_schedule_critical_path = 0;
+
+
+
+/* nativeinvokation ***********************************************************
+
+   increments the native invokation count by one
+	
+*******************************************************************************/
+void nativeinvokation() {
+	/*do locking here */
+	count_native_function_calls++;
+}
+
+/* compiledinvokation *********************************************************
+
+   increments the compiled invokation count by one
+	
+*******************************************************************************/
+void compiledinvokation() {
+	/* do locking here*/
+	count_compiled_function_calls++;
+}
+
+
+/* jnicallXmethodinvokation ***************************************************
+
+   increments the jni CallXMethod invokation count by one
+	
+*******************************************************************************/
+void jnicallXmethodnvokation() {
+	/*do locking here */
+	count_jni_callXmethod_calls++;
+}
+
+/* jniinvokation *************************************************************
+
+   increments the jni overall  invokation count by one
+	
+*******************************************************************************/
+void jniinvokation() {
+	/*do locking here */
+	count_jni_calls++;
+}
 
 
 /* getcputime *********************************** ******************************
@@ -618,6 +666,18 @@ void print_stats()
 	 log_text(logtext);
 	 sprintf(logtext, "Length of critical path:      %7d\n", count_schedule_critical_path);
 	 log_text(logtext);
+
+
+	/* call statistics */
+	log_text("Function call statistics:");
+	sprintf(logtext,"Number of native function invokations:           %ld", count_native_function_calls);
+	log_text(logtext);
+	sprintf(logtext,"Number of compiled function invokations:         %ld", count_compiled_function_calls);
+	log_text(logtext);
+	sprintf(logtext,"Number of jni->CallXMethod function invokations: %ld", count_jni_callXmethod_calls);
+	log_text(logtext);
+	sprintf(logtext,"Overall number of jni invokations:               %ld", count_jni_calls);
+	log_text(logtext);
 }
 
 

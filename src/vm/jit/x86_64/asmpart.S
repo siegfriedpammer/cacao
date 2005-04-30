@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2414 2005-04-29 18:55:09Z twisti $
+   $Id: asmpart.S 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -246,8 +246,10 @@ call_name2:
 	.quad   calljava_xhandler2        /* end pc                               */
 	.quad   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0
 	.quad   0                         /* line number table  start             */
 	.quad   0                         /* line number table  size              */
+        .long   0
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 2211 2005-04-04 10:39:36Z christian $
+   $Id: statistics.h 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -183,6 +183,25 @@ void print_times();
 void print_stats();
 
 void mem_usagelog(bool givewarnings);
+
+
+void nativeinvokation();
+void compiledinvokation();
+void jnicallXmethodnvokation();
+void jniinvokation();
+
+
+#if defined(STATISTICS)
+#define STATS(x) \
+	{ \
+		if (opt_stat) \
+			x \
+	}
+#else
+#define STATS(x)
+#endif
+
+
  
 #endif /* _STATISTICS_H */
 

@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: stacktrace.c 2424 2005-04-30 13:45:06Z jowenn $
 
 */
 
@@ -87,11 +87,14 @@ static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line
 		buffer->full = buffer->full + 1;
 #ifdef JWDEBUG
 		log_text("addEntry (stacktrace):");
+		printf("method %p\n",method);
+		if (method) printf("method->name %p\n",method->name);
 		if (method) utf_display(method->name); else printf("Native");
 		if (method) {printf("\n");utf_display(method->class->name);}
-		printf("\nLine:%ld\n",line);
+		printf("\nnext buffer item %d\nLine:%ld\n",buffer->full,line);
 #endif
 	} else {
+		log_text("stacktrace buffer full, resizing");
 		stacktraceelement *newBuffer=(stacktraceelement*)
 			malloc((buffer->size+BLOCK_SIZEINCREMENT)*sizeof(stacktraceelement));
 		if (newBuffer==0) panic("OOM during stacktrace creation");
@@ -140,7 +143,12 @@ static int fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,methodinfo
 				ent--;
 				addEntry(buffer,method,ent->lineNr);
 				return 1;	
-			} else panic("trace point before method");
+			} else {
+#ifdef JWDEBUG
+				printf("trace point: %p\n",adress);
+#endif
+				panic("trace point before method");
+			}
 		}
 	}
 	ent--;
@@ -207,6 +215,14 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 	buffer.full=0;
 #ifdef JWDEBUG
 	log_text("entering cacao_stacktrace_fillInStacktrace");
+	{
+		int i=0;
+		struct native_stackframeinfo *tmpinfo;
+		for (tmpinfo=(*(((void**)(builtin_asm_get_stackframeinfo()))));tmpinfo;tmpinfo=tmpinfo->oldThreadspecificHeadValue)
+			i++;
+		printf("native function depth:%d\n",i);
+		
+	}
 #endif
 	{
 		struct native_stackframeinfo *info=(*(((void**)(builtin_asm_get_stackframeinfo()))));
@@ -229,10 +245,19 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 				if (currentMethod==0) { /*some builtin native */
 					currentMethod=info->method;
 					returnAdress=(functionptr)info->returnToFromNative;
-					/*log_text("native");*/
+#ifdef JWDEBUG
+					log_text("native");
+					printf("return to %p\n",returnAdress);
+#endif
 					if (currentMethod) {
-						/*utf_display(currentMethod->class->name);
-						utf_display(currentMethod->name);*/
+#ifdef JWDEBUG
+						log_text("real native (not an internal helper)\n");
+						printf("returnaddress %p, methodpointer %p, stackframe begin %p\n",info->returnToFromNative,info->method, info->beginOfJavaStackframe);
+#if 0
+						utf_display(currentMethod->class->name);
+						utf_display(currentMethod->name);
+#endif
+#endif
 						addEntry(&buffer,currentMethod,0);
 					}
 #if defined(__ALPHA__)
@@ -255,7 +280,9 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					info=info->oldThreadspecificHeadValue;
 				} else { /*method created by jit*/
 					u4 frameSize;
-					/*log_text("JIT");*/
+#ifdef JWDEBUG
+					log_text("JIT");
+#endif
 #if defined (__ALPHA__)
 					if (currentMethod->isleafmethod) {
 #ifdef JWDEBUG
@@ -359,13 +386,30 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
         tmpArray = builtin_anewarray(targetSize, class_java_lang_Class);
 
         for(i = 0, current = start; i < targetSize; i++, current++) {
-                if (current->method==0) { i--; continue;}
-		/*printf("adding item to class context array:%s\n",current->method->class->name->text);
-		printf("method for class: :%s\n",current->method->name->text);*/
+                if (current->method==0) { i--; /*printf("Skipping\n");*/ continue;}
+#ifdef JWDEBUG
+		{
+			printf("after current->method check\n");
+			if (current->method->class==0) printf("Error method defining class i null\n");
+			else printf("method defining class is not null :)\n");
+			printf("adding item to class context array:%s\n",current->method->class->name->text);
+			printf("method for class: :%s\n",current->method->name->text);
+		}
+#endif
                 use_class_as_object(current->method->class);
+#ifdef JWDEBUG
+		{
+			printf("use_class_as_object_finished\n");
+		}
+#endif
                 tmpArray->data[i] = (java_objectheader *) current->method->class;
+#ifdef JWDEBUG
+		printf("array item has been set\n");
+#endif
         }
-
+#ifdef JWDEBUG
+	printf("leaving classContextCollector");
+#endif
         *target=tmpArray;
 }
 
