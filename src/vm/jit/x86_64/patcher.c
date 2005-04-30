@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2418 2005-04-29 19:29:17Z twisti $
+   $Id: patcher.c 2421 2005-04-30 13:28:35Z twisti $
 
 */
 
@@ -151,13 +151,13 @@ bool patcher_get_putstatic(u1 *sp)
 	*((ptrint *) (ra + 7 + offset)) = (ptrint) &(fi->value);
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -247,13 +247,100 @@ bool patcher_get_putfield(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+#endif
+
+	return true;
+}
+
+
+/* patcher_putfieldconst *******************************************************
+
+   Machine code:
+
+   <patched call position>
+   49 c7 87 10 00 00 00 00 00 00 00    movq   $0x0,0x10(%r15)
+
+*******************************************************************************/
+
+bool patcher_putfieldconst(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	unresolved_field  *uf;
+	fieldinfo         *fi;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 5;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+
+	*dontfillinexceptionstacktrace=true;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
+	/* get the fieldinfo */
+
+	if (!(fi = helper_resolve_fieldinfo(uf))) {
+		*dontfillinexceptionstacktrace=false;
+		return false;
+	}
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
+	/* patch the field's offset */
+
+	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
+		*((u4 *) (ra + 3)) = (u4) (fi->offset);
+		*((u4 *) (ra + 11 + 3)) = (u4) (fi->offset + 4);
+
+	} else {
+		*((u4 *) (ra + 3)) = (u4) (fi->offset);
+	}
+
+	*dontfillinexceptionstacktrace=false;
+
+#if defined(USE_THREADS)
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -334,13 +421,13 @@ bool patcher_builtin_new(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -421,13 +508,13 @@ bool patcher_builtin_newarray(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -510,13 +597,13 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -597,13 +684,13 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -684,13 +771,13 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -761,13 +848,13 @@ bool patcher_invokestatic_special(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -840,13 +927,13 @@ bool patcher_invokevirtual(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -924,13 +1011,13 @@ bool patcher_invokeinterface(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -1002,13 +1089,13 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -1084,13 +1171,13 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -1163,13 +1250,13 @@ bool patcher_checkcast_class(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -1241,13 +1328,13 @@ bool patcher_instanceof_class(u1 *sp)
 	*dontfillinexceptionstacktrace=false;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
@@ -1333,13 +1420,13 @@ bool patcher_clinit(u1 *sp)
 	*((u8 *) ra) = mcode;
 
 #if defined(USE_THREADS)
-	/* leave the monitor on the patching position */
-
-	builtin_monitorexit(o);
-
 	/* this position has been patched */
 
 	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
 #endif
 
 	return true;
