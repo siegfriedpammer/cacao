@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 2128 2005-03-29 22:25:59Z twisti $
+   $Id: logging.h 2419 2005-04-30 11:51:55Z jowenn $
 
 */
 
@@ -44,7 +44,11 @@
 #include "vm/utf8.h"
 
 
-#define MAXLOGTEXT 500
+/*500 is to small for eclipse traces, (builtin_trace_args, perhaps the
+buffer should be created there dynamically, if the text is longer,
+instead of setting the size for all invocations that big*/
+
+#define MAXLOGTEXT  16383 
 
 /* function prototypes ********************************************************/
 
