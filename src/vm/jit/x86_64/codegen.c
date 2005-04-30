@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2416 2005-04-29 19:01:51Z twisti $
+   $Id: codegen.c 2422 2005-04-30 13:29:34Z twisti $
 
 */
 
@@ -2646,7 +2646,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (!iptr[1].val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_get_putfield,
+									PATCHER_putfieldconst,
 									(unresolved_field *) iptr[1].target);
 
 				if (showdisassemble) {
@@ -2667,7 +2667,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_LNG:
 			case TYPE_ADR:
 			case TYPE_DBL:
-				if (IS_IMM32(iptr->val.l)) {
+				/* We can only optimize the move, if the class is resolved.   */
+				/* Otherwise we don't know what to patch.                     */
+				if (iptr[1].val.a && IS_IMM32(iptr->val.l)) {
 					x86_64_mov_imm_membase32(cd, iptr->val.l, s1, a);
 				} else {
 					x86_64_movl_imm_membase32(cd, iptr->val.l, s1, a);
@@ -4585,7 +4587,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		jmpInstrPos = cd->mcodeptr - 4;
 
 
-		x86_64_mov_imm_reg(cd, (u8) m, rd->argintregs[0]);
+		x86_64_mov_imm_reg(cd, (ptrint) m, rd->argintregs[0]);
 
 		x86_64_mov_imm_reg(cd, 0, rd->argintregs[1]);
 		callAddrPatchPos = cd->mcodeptr - 8; /* at this position the place is specified where the native function adress should be patched into*/
@@ -4593,9 +4595,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		x86_64_mov_imm_reg(cd, 0, rd->argintregs[2]);
 		jmpInstrPatchPos = cd->mcodeptr - 8;
 
-		x86_64_mov_imm_reg(cd, jmpInstrPos, rd->argintregs[3]);
+		x86_64_mov_imm_reg(cd, (ptrint) jmpInstrPos, rd->argintregs[3]);
 
-		x86_64_mov_imm_reg(cd, (u8) codegen_resolve_native, REG_ITMP1);
+		x86_64_mov_imm_reg(cd, (ptrint) codegen_resolve_native, REG_ITMP1);
 		x86_64_call_reg(cd, REG_ITMP1);
 
 		*(jmpInstrPatchPos) = cd->mcodeptr - jmpInstrPos - 1-3; /*=opcode jmp_imm size*/
