@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: Method.c 1801 2004-12-21 20:19:19Z jowenn $
+   $Id: Method.c 2427 2005-05-01 12:27:54Z jowenn $
 
 */
 
@@ -54,7 +54,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, jav
 {
 	classinfo *c = (classinfo *) this->declaringClass;
 
-	if (this->slot < 0 || this->slot >= c->methodscount)
+	if ((this->slot < 0) || (this->slot >= c->methodscount))
 		panic("error illegal slot for method in class (getReturnType)");
 	
 	return (c->methods[this->slot]).flags &
@@ -123,7 +123,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 	classinfo *c = (classinfo *) declaringClass;
 
-	if (slot < 0 || slot >= c->methodscount) {
+	if ((slot < 0) || (slot >= c->methodscount)) {
 		panic("error illegal slot for method in class(getParameterTypes)");
 	}
 	mi = &(c->methods[slot]);

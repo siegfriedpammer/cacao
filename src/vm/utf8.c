@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2322 2005-04-21 22:17:46Z twisti $
+   $Id: utf8.c 2427 2005-05-01 12:27:54Z jowenn $
 
 */
 
@@ -80,6 +80,9 @@ utf* utf_java_lang_Float;
 utf* utf_java_lang_Double;
 
 utf *utf_java_util_Vector;
+utf *utf_java_lang_reflect_Constructor;
+utf *utf_java_lang_reflect_Method;
+
 
 utf *utf_InnerClasses;                  /* InnerClasses                       */
 utf *utf_ConstantValue;                 /* ConstantValue                      */
@@ -162,6 +165,8 @@ void utf8_init(void)
 	utf_java_lang_Double           = utf_new_char("java/lang/Double");
 
 	utf_java_util_Vector           = utf_new_char("java/util/Vector");
+	utf_java_lang_reflect_Constructor = utf_new_char("java/lang/reflect/Constructor");
+	utf_java_lang_reflect_Method      = utf_new_char("java/lang/reflect/Method");
 
 	utf_InnerClasses               = utf_new_char("InnerClasses");
 	utf_ConstantValue              = utf_new_char("ConstantValue");

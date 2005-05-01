@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2425 2005-04-30 16:29:15Z jowenn $
+   $Id: jni.c 2427 2005-05-01 12:27:54Z jowenn $
 
 */
 
@@ -54,6 +54,7 @@
 #include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
 
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
@@ -654,23 +655,38 @@ jclass FindClass(JNIEnv *env, const char *name)
   
 *******************************************************************************/
   
-jmethodID FromReflectedMethod(JNIEnv* env, jobject method)
+jmethodID FromReflectedMethod(JNIEnv* env, jobject method_or_constr)
 {
         struct methodinfo *mi;
-	java_lang_reflect_Method *rm;
         classinfo *c;
+	s4 slot;
 
-	rm=(java_lang_reflect_Method*) method;
-	if (rm==0) return 0;
-	c= (classinfo *) (rm->declaringClass);
 	STATS(jniinvokation();)
 
-        if (rm->slot < 0 || rm->slot >= c->methodscount) {
+	if (method_or_constr==0) return 0;
+	
+	if (builtin_instanceof(method_or_constr, class_java_lang_reflect_Method))
+	{
+		java_lang_reflect_Method *rm=(java_lang_reflect_Method*) method_or_constr;
+		slot=rm->slot;
+		c= (classinfo *) (rm->declaringClass);	
+	}
+	else if (builtin_instanceof(method_or_constr, class_java_lang_reflect_Constructor))
+	{
+		java_lang_reflect_Constructor *rc=(java_lang_reflect_Constructor*) method_or_constr;
+		slot=rc->slot;
+		c= (classinfo*) (rc->clazz);
+	}
+	else return 0;
+
+
+	printf ("slot %d,methodscount %d\n",slot,c->methodscount);
+        if ((slot < 0) || (slot >= c->methodscount)) {
 		/*this usually means a severe internal cacao error or somebody
 		tempered around with the reflected method*/
                 panic("error illegal slot for method in class(FromReflectedMethod)");
         }
-        mi = &(c->methods[rm->slot]);
+        mi = &(c->methods[slot]);
 	return mi;
 }
 
@@ -1083,7 +1099,7 @@ jfieldID FromReflectedField(JNIEnv* env, jobject field)
 	f=(java_lang_reflect_Field *)field;
 	if (f==0) return 0;
 	c=(classinfo*)(f->declaringClass);
-	if ( (f->slot<0) || (f->slot>c->fieldscount)) {
+	if ( (f->slot<0) || (f->slot>=c->fieldscount)) {
 		/*this usually means a severe internal cacao error or somebody
 		tempered around with the reflected method*/
                 panic("error illegal slot for field in class(FromReflectedField)");

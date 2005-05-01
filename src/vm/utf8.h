@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2322 2005-04-21 22:17:46Z twisti $
+   $Id: utf8.h 2427 2005-05-01 12:27:54Z jowenn $
 
 */
 
@@ -88,6 +88,9 @@ extern utf* utf_java_lang_Float;
 extern utf* utf_java_lang_Double;
 
 extern utf *utf_java_util_Vector;
+extern utf *utf_java_lang_reflect_Constructor;
+extern utf *utf_java_lang_reflect_Method;
+
 
 extern utf *utf_InnerClasses;
 extern utf *utf_ConstantValue;
