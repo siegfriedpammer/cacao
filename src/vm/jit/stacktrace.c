@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: stacktrace.c 2430 2005-05-03 19:25:52Z twisti $
 
 */
 
@@ -94,9 +94,14 @@ static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line
 		printf("\nnext buffer item %d\nLine:%ld\n",buffer->full,line);
 #endif
 	} else {
+		stacktraceelement *newBuffer;
+
 		log_text("stacktrace buffer full, resizing");
-		stacktraceelement *newBuffer=(stacktraceelement*)
-			malloc((buffer->size+BLOCK_SIZEINCREMENT)*sizeof(stacktraceelement));
+
+		newBuffer =
+			(stacktraceelement *) malloc((buffer->size + BLOCK_SIZEINCREMENT) *
+										 sizeof(stacktraceelement));
+
 		if (newBuffer==0) panic("OOM during stacktrace creation");
 		memcpy(newBuffer,buffer->start,buffer->size*sizeof(stacktraceelement));
 		if (buffer->needsFree) free(buffer->start);
