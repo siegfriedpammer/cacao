@@ -30,13 +30,12 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: jit.c 2428 2005-05-03 19:24:00Z twisti $
 
 */
 
 
 #include "config.h"
-#include "codegen.h"
 #include "disass.h"
 #include "types.h"
 #include "mm/memory.h"
@@ -50,6 +49,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/tables.h"
+#include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/jit.h"
 #ifdef LSRA
