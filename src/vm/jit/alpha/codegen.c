@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2398 2005-04-27 12:46:40Z twisti $
+   $Id: codegen.c 2431 2005-05-03 19:27:11Z twisti $
 
 */
 
@@ -4119,12 +4119,27 @@ gen_method: {
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
-			MCODECHECK(9);
+
+			MCODECHECK(13 + 4 + 1);
 
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
+
 			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 			mcode = *xcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			/* align data structure to 8-byte */
+
+			if (!((ptrint) mcodeptr & 0x7))
+				M_NOP;
+
+			*((ptrint *) mcodeptr++) = 0;                            /* vftbl */
+			*((ptrint *) (mcodeptr + 2)) = (ptrint) get_dummyLR(); /* monitorPtr */
+			mcodeptr += 4;
+#endif
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */
@@ -4138,11 +4153,21 @@ gen_method: {
 
 			/* create stack frame */
 
-			M_LSUB_IMM(REG_SP, 4 * 8, REG_SP);
+			M_LSUB_IMM(REG_SP, 5 * 8, REG_SP);
 
 			/* move return address onto stack */
 
+			M_AST(REG_ITMP3, REG_SP, 4 * 8);
+
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			M_BSR(REG_ITMP3, 0);
+			M_LSUB_IMM(REG_ITMP3, 3 * 4 + 2 * 8, REG_ITMP3);
 			M_AST(REG_ITMP3, REG_SP, 3 * 8);
+#else
+			M_AST(REG_ZERO, REG_SP, 3 * 8);
+#endif
 
 			/* move machine code onto stack */
 
@@ -4581,8 +4606,22 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		if (pref) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
+
 			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 			*(cs-11) = (u4) *xcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			/* align data structure to 8-byte */
+
+			if (!((ptrint) mcodeptr & 0x7))
+				M_NOP;
+
+			*((ptrint *) mcodeptr++) = 0;                            /* vftbl */
+			*((ptrint *) (mcodeptr + 2)) = (ptrint) get_dummyLR(); /* monitorPtr */
+			mcodeptr += 4;
+#endif
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */
@@ -4596,11 +4635,21 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			/* create stack frame                                             */
 
-			M_LSUB_IMM(REG_SP, 4 * 8, REG_SP);
+			M_LSUB_IMM(REG_SP, 5 * 8, REG_SP);
 
 			/* move return address onto stack */
 
+			M_AST(REG_ITMP3, REG_SP, 4 * 8);
+
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			M_BSR(REG_ITMP3, 0);
+			M_LSUB_IMM(REG_ITMP3, 3 * 4 + 2 * 8, REG_ITMP3);
 			M_AST(REG_ITMP3, REG_SP, 3 * 8);
+#else
+			M_AST(REG_ZERO, REG_SP, 3 * 8);
+#endif
 
 			/* move machine code onto stack                                   */
 

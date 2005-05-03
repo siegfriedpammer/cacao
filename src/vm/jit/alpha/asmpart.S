@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2399 2005-04-27 12:53:03Z twisti $
+   $Id: asmpart.S 2431 2005-05-03 19:27:11Z twisti $
 
 */
 
@@ -1123,7 +1123,8 @@ ex_flt2:
    XXX
 
    Stack layout:
-	 24   return address into JIT code (patch position)
+	 32   return address into JIT code (patch position)
+     24   pointer to virtual java_objectheader
      16   machine code (which is patched back later)
       8   unresolved class/method/field reference
       0   patcher function pointer to call
@@ -1158,8 +1159,8 @@ asm_wrapper_patcher:
 	ldq     ra,(12+27+2)*8(sp)    /* restore method return address (for leafs)*/
 	ldq     pv,(12+27+3)*8(sp)    /* restore pv of calling java function      */
 
-	ldq     itmp3,(3+12+27+4)*8(sp)/* get return address (into JIT code)      */
-	lda     sp,(4+12+27+4)*8(sp)  /* remove stack frame                       */
+	ldq     itmp3,(4+12+27+4)*8(sp)/* get return address (into JIT code)      */
+	lda     sp,(5+12+27+4)*8(sp)  /* remove stack frame                       */
 
 	beq     v0,L_asm_wrapper_patcher_exception
 
