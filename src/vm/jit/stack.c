@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: stack.c 2429 2005-05-03 19:25:36Z twisti $
 
 */
 
@@ -2596,13 +2596,13 @@ void show_icmd(instruction *iptr, bool deadcode)
 		if (iptr->val.a) 	 
 			printf(" %d, ", ((fieldinfo *) iptr->val.a)->offset);
 		else 	 
-			printf(" NOT RESOLVED, "); 	 
-		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
-		printf("."); 	 
-		utf_display(((unresolved_field *) iptr->target)->fieldref->name); 	 
-		printf(" (type "); 	 
-		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor); 	 
-		printf(")"); 	 
+			printf(" (NOT RESOLVED), ");
+		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
+		printf(".");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->name);
+		printf(" (type ");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
+		printf(")"); 
 #else 	 
 		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset); 	 
 		printf(" ");
@@ -2618,13 +2618,16 @@ void show_icmd(instruction *iptr, bool deadcode)
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
 #if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
-		printf(" "); 	 
-		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name); 	 
-		printf("."); 	 
-		utf_display(((unresolved_field *) iptr->target)->fieldref->name); 	 
-		printf(" (type "); 	 
-		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor); 	 
-		printf(")"); 	 
+		if (iptr->val.a)
+			printf(" ");
+		else
+			printf(" (NOT RESOLVED) ");
+		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
+		printf(".");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->name);
+		printf(" (type ");
+		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
+		printf(")");
 #else 	 
 		printf(" ");
 		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
