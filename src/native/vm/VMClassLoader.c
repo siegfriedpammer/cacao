@@ -1,4 +1,4 @@
-/* native/vm/VMClassLoader.c - java/lang/VMClassLoader
+/* src/native/vm/VMClassLoader.c - java/lang/VMClassLoader
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMClassLoader.c 2303 2005-04-14 12:04:42Z edwin $
+   $Id: VMClassLoader.c 2433 2005-05-04 10:25:21Z twisti $
 
 */
 
@@ -284,113 +284,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	}
 
 	return NULL;
-}
-
-
-/*
- * Class:     java/lang/VMClassLoader
- * Method:    nativeGetResources
- * Signature: (Ljava/lang/String;)Ljava/util/Vector;
- */
-JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
-{
-	jobject           o;
-	methodinfo       *m;
-	java_lang_String *path;
-	classpath_info   *cpi;
-	utf              *utfname;
-	char             *charname;
-	char             *tmppath;
-	s4                namelen;
-	s4                pathlen;
-	struct stat       buf;
-	jboolean          ret;
-
-	/* get the resource name as utf string */
-
-	utfname = javastring_toutf(name, false);
-
-	namelen = utf_strlen(utfname) + strlen("0");
-	charname = MNEW(char, namelen);
-
-	utf_sprint(charname, utfname);
-
-	/* new Vector() */
-
-	o = native_new_and_init(class_java_util_Vector);
-
-	if (!o)
-		return NULL;
-
-	/* get v.add() method */
-
-	m = class_resolveclassmethod(class_java_util_Vector,
-								 utf_new_char("add"),
-								 utf_new_char("(Ljava/lang/Object;)Z"),
-								 NULL,
-								 true);
-
-	if (!m)
-		return NULL;
-
-	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
-		/* clear path pointer */
-  		path = NULL;
-
-#if defined(USE_ZLIB)
-		if (cpi->type == CLASSPATH_ARCHIVE) {
-
-#if defined(USE_THREADS)
-			/* enter a monitor on zip/jar archives */
-
-			builtin_monitorenter((java_objectheader *) cpi);
-#endif
-
-			if (cacao_locate(cpi->uf, utfname) == UNZ_OK) {
-				pathlen = strlen("jar:file://") + cpi->pathlen + strlen("!/") +
-					namelen + strlen("0");
-
-				tmppath = MNEW(char, pathlen);
-
-				sprintf(tmppath, "jar:file://%s!/%s", cpi->path, charname);
-				path = javastring_new_char(tmppath),
-
-				MFREE(tmppath, char, pathlen);
-			}
-
-#if defined(USE_THREADS)
-			/* leave the monitor */
-
-			builtin_monitorexit((java_objectheader *) cpi);
-#endif
-
-		} else {
-#endif /* defined(USE_ZLIB) */
-			pathlen = strlen("file://") + cpi->pathlen + namelen + strlen("0");
-
-			tmppath = MNEW(char, pathlen);
-
-			sprintf(tmppath, "file://%s%s", cpi->path, charname);
-
-			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
-				path = javastring_new_char(tmppath),
-
-			MFREE(tmppath, char, pathlen);
-#if defined(USE_ZLIB)
-		}
-#endif
-
-		/* if a resource was found, add it to the vector */
-
-		if (path) {
-			ret = (jboolean) asm_calljavafunction_int(m, o, path, NULL, NULL);
-
-			if (!ret)
-				return NULL;
-		}
-	}
-
-	return (java_util_Vector *) o;
 }
 
 
