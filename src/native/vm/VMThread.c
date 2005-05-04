@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 2347 2005-04-22 13:51:36Z twisti $
+   $Id: VMThread.c 2435 2005-05-04 10:26:11Z twisti $
 
 */
 
@@ -216,19 +216,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
 
 #if defined(USE_THREADS)
 	setPriorityThread((thread *) this->thread, par1);
-#endif
-}
-
-
-/*
- * Class:     java/lang/VMThread
- * Method:    sleep
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 millis, s4 nanos)
-{
-#if defined(USE_THREADS)
-	sleepThread(millis, nanos);
 #endif
 }
 
