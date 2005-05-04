@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nativetable.inc 2165 2005-03-30 20:20:25Z twisti $
+   $Id: nativetable.inc 2437 2005-05-04 15:06:30Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/gnu_classpath_VMStackWalker.h"
 #include "native/include/gnu_classpath_VMSystemProperties.h"
+#include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
@@ -1248,6 +1249,7 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMClassLoader_resolveClass,
 	(functionptr) Java_java_lang_VMClassLoader_loadClass,
 	(functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass,
+	(functionptr) Java_java_lang_VMClassLoader_nativeGetResources,
 	(functionptr) Java_java_lang_VMObject_clone,
 	(functionptr) Java_java_lang_VMObject_notify,
 	(functionptr) Java_java_lang_VMObject_notifyAll,
