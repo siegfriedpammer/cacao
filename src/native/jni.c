@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: jni.c 2439 2005-05-04 15:23:13Z twisti $
 
 */
 
@@ -3346,9 +3346,10 @@ void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char 
 
 void * GetPrimitiveArrayCritical (JNIEnv* env, jarray array, jboolean *isCopy)
 {
-	STATS(jniinvokation();)
 	java_objectheader *s = (java_objectheader*) array;
 	arraydescriptor *desc = s->vftbl->arraydesc;
+
+	STATS(jniinvokation();)
 
 	if (!desc) return NULL;
 
