@@ -1,4 +1,4 @@
-/* This file is machine generated, don't edit it !*/
+/* This file is machine generated, don't edit it! */
 
 #ifndef _JAVA_LANG_THREAD_H
 #define _JAVA_LANG_THREAD_H
@@ -16,6 +16,7 @@ typedef struct java_lang_Thread {
    s8 stacksize;
    struct java_lang_Throwable* stillborn;
    struct java_lang_ClassLoader* contextClassLoader;
+   struct java_util_WeakHashMap* locals;
 } java_lang_Thread;
 
 #endif

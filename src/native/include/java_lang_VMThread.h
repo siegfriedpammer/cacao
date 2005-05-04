@@ -1,4 +1,4 @@
-/* This file is machine generated, don't edit it !*/
+/* This file is machine generated, don't edit it! */
 
 #ifndef _JAVA_LANG_VMTHREAD_H
 #define _JAVA_LANG_VMTHREAD_H
@@ -94,14 +94,6 @@ JNIEXPORT struct java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz);
-
-
-/*
- * Class:     java/lang/VMThread
- * Method:    sleep
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, s8 par1, s4 par2);
 
 
 /*

@@ -1,4 +1,4 @@
-/* This file is machine generated, don't edit it !*/
+/* This file is machine generated, don't edit it! */
 
 #ifndef _JAVA_LANG_STRING_H
 #define _JAVA_LANG_STRING_H

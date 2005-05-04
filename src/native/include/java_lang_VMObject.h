@@ -1,4 +1,4 @@
-/* This file is machine generated, don't edit it !*/
+/* This file is machine generated, don't edit it! */
 
 #ifndef _JAVA_LANG_VMOBJECT_H
 #define _JAVA_LANG_VMOBJECT_H
@@ -8,6 +8,14 @@
 typedef struct java_lang_VMObject {
    java_objectheader header;
 } java_lang_VMObject;
+
+
+/*
+ * Class:     java/lang/VMObject
+ * Method:    getClass
+ * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
+ */
+JNIEXPORT struct java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, struct java_lang_Object* par1);
 
 
 /*

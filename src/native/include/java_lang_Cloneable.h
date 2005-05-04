@@ -1,4 +1,4 @@
-/* This file is machine generated, don't edit it !*/
+/* This file is machine generated, don't edit it! */
 
 #ifndef _JAVA_LANG_CLONEABLE_H
 #define _JAVA_LANG_CLONEABLE_H
