@@ -26,11 +26,12 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2361 2005-04-24 17:55:03Z twisti $
+   $Id: lsra.inc 2436 2005-05-04 12:39:53Z christian $
 
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "mm/memory.h"
 #include "vm/options.h"
@@ -69,8 +70,8 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, t_inlining_globals *
 			out=m->basicblocks[b_index].outstack;
 			outd=m->basicblocks[b_index].outdepth;
 			for (;outd != 0;out=out->prev, outd--) {
-				if (out->varkind == ARGVAR) panic("ARGVAR in outstack\n");
-				if (out->varkind == LOCALVAR) panic("LOCALVAR in outstack\n");
+				if (out->varkind == ARGVAR) { log_text("ARGVAR in outstack\n"); assert(0); }
+				if (out->varkind == LOCALVAR) { log_text("LOCALVAR in outstack\n"); assert(0); }
 			}
 		}
 			b_index++;
@@ -361,11 +362,11 @@ void lsra_add_exceptions(methodinfo *m, codegendata *cd, lsradata *ls) {
 #ifdef LSRA_DEBUG
 		printf("[%i-%i]->%i ",ex->start->debug_nr, ex->end->debug_nr,ex->handler->debug_nr);
 		if (ex->handler->debug_nr >= m->basicblockcount)
-			panic("Exceptionhandler Basicblocknummer invalid\n");
+			{ log_text("Exceptionhandler Basicblocknummer invalid\n"); assert(0); }
 		if (m->basicblocks[ex->handler->debug_nr].flags < BBREACHED)
-			panic("Exceptionhandler Basicblocknummer not reachable\n");
+			{ log_text("Exceptionhandler Basicblocknummer not reachable\n"); assert(0); }
 		if (ex->start->debug_nr > ex->end->debug_nr)
-			panic("Guarded Area starts after its end\n");
+			{ log_text("Guarded Area starts after its end\n"); assert(0); }
 #endif
 		/* loop all valid Basic Blocks of the guarded area and add CFG edges to the appropriate handler */
 		for (i=ex->start->debug_nr; (i <= ex->end->debug_nr) && (i < m->basicblockcount); i++)
@@ -384,7 +385,7 @@ void lsra_add_jsr( methodinfo *m, lsradata *ls, int from, int to) {
 	for (; (to < m->basicblockcount) && (m->basicblocks[to].flags < BBREACHED); to++);
 #ifdef LSRA_DEBUG
 	if (to == m->basicblockcount)
-		panic("Invalid subroutine start index\n");
+		{ log_text("Invalid subroutine start index\n"); assert(0); }
 #endif
 
 	lsra_add_cfg(m, ls, from, to);
@@ -392,7 +393,7 @@ void lsra_add_jsr( methodinfo *m, lsradata *ls, int from, int to) {
 	for (from++; (from < m->basicblockcount) && (m->basicblocks[from].flags < BBREACHED); from++);
 #ifdef LSRA_DEBUG
 	if (from == m->basicblockcount)
-		panic("Invalid return basic block index for jsr\n");
+		{ log_text("Invalid return basic block index for jsr\n"); assert(0); }
 #endif
 
 	/* add subroutine info in ls->sbr.next */
@@ -615,7 +616,7 @@ void lsra_init(methodinfo *m, codegendata *cd, t_inlining_globals *id, lsradata 
 
 /* 	ls->ss_lifetimes=NULL; */
 #ifdef LSRA_DEBUG
-	if (cd->maxlocals != id->cumlocals) panic("lsra: Welche locals nehmen?\n");
+	if (cd->maxlocals != id->cumlocals) { log_text("lsra: Welche locals nehmen?\n"); assert(0); }
 #endif
 
 	ls->maxlifetimes = m->maxlifetimes;
@@ -727,17 +728,17 @@ bool lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls)
 	bptr = m->basicblocks;
 	while (bptr != NULL) {
 		if (i > m->basicblockcount){
-			panic("linked bb list does not correspond with bb array(1)\n");
+			{ log_text("linked bb list does not correspond with bb array(1)\n"); assert(0); }
 		}
 		if (bptr != &(m->basicblocks[i])){
-			panic("linked bb list does not correspond with bb array(2)\n");
+			{ log_text("linked bb list does not correspond with bb array(2)\n"); assert(0); }
 		}
 
 		i++;
 		bptr=bptr->next;
 	}
 	if (i<m->basicblockcount){
-		panic("linked bb list does not correspond with bb array(3)\n");
+		{ log_text("linked bb list does not correspond with bb array(3)\n"); assert(0); }
 	}
 
 #endif
@@ -783,7 +784,7 @@ bool lsra_join_ss( struct lsradata *ls, struct stackelement *in, struct stackele
 	
 #ifdef LSRA_DEBUG
 		if (join_flag == JOIN_BB)
-			if (lt->type == -1) panic("lsra_join_ss: lifetime for instack not found\n");
+			if (lt->type == -1) { log_text("lsra_join_ss: lifetime for instack not found\n"); assert(0); }
 #endif
 #if 0 /* was once upon a time */
 		if (lt->type == -1) /* lifetime was assigned a REG_RES and has been thrown away */
@@ -821,14 +822,14 @@ bool lsra_join_ss( struct lsradata *ls, struct stackelement *in, struct stackele
 #if 0 /* was once upon a time */
 			if (join_flag == JOIN_BB)
 #endif
-				if (lto->type == -1) panic("lsra_join_ss: lifetime for outstack not found\n");
+				if (lto->type == -1) { log_text("lsra_join_ss: lifetime for outstack not found\n"); assert(0); }
 #endif
 #if 0 /* was once upon a time */
 			if (lto->type == -1) /* lifetime was assigned a REG_RES and has been thrown away */
 				return false;
 #endif
 #ifdef LSRA_DEBUG
-			if (lto->type != lt->type) panic ("lsra_join_ss: in/out stack type mismatch\n");
+			if (lto->type != lt->type) { log_text("lsra_join_ss: in/out stack type mismatch\n"); assert(0); }
 #endif
 
 	
@@ -1150,7 +1151,7 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 			flags=2;
 			break;
 		default:
-			panic("Unknown Type\n");
+			{ log_text("Unknown Type\n"); assert(0); }
 		}
 
 		switch (flags) {
@@ -1287,7 +1288,7 @@ void lsra_alloc(methodinfo *m, registerdata *rd, struct lsradata *ls, int *lifet
 /* 				lsra_setflags( &(rd->locals[lt->v_index][lt->type].flags), flags); */
 				rd->locals[lt->v_index][lt->type].flags= flags;
 				rd->locals[lt->v_index][lt->type].regoff=regoff;
-			} else panic("Type Data mismatch 1\n");
+			} else { log_text("Type Data mismatch 1\n"); assert(0); }
 		}		
 		lt->reg = regoff;
 	}
@@ -1450,7 +1451,7 @@ void spill_at_intervall(methodinfo *m, lsradata *ls, struct lifetime *lt )
 		if (lt->reg == -1) /* kein tmp mehr frei gewesen */
 			_spill_at_intervall(lt, &(ls->active_sav));
 	}
-/* 	if (lt->reg == -2) panic("spill_at_intervall: Keine Register mehr frei gewesen!\n"); */
+/* 	if (lt->reg == -2) { log_text("spill_at_intervall: Keine Register mehr frei gewesen!\n"); assert(0); } */
 }
 
 void _spill_at_intervall(struct lifetime *lt, struct active_lt **active)
@@ -1630,7 +1631,7 @@ void print_lifetimes(registerdata *rd, lsradata *ls, int *lt, int lifetimecount)
 				regoff=rd->locals[n->v_index][n->type].regoff;
 				varkind=-1;
 			} else 
-				panic("Type Data mismatch 3\n");
+				{ log_text("Type Data mismatch 3\n"); assert(0); }
 		}
 		printf("i_Start: %3i(%3i,%3i) i_stop: %3i(%3i,%3i) reg: %3i VI: %3i type: %3i flags: %3i varkind: %3i usage: %3li ltflags: %xi \n",n->i_start, ls->sorted[n->bb_first_def], n->i_first_def,n->i_end, ls->sorted[n->bb_last_use], n->i_last_use,regoff,n->v_index,type,flags, varkind, n->usagecount, n->flags);
 	}
@@ -1862,7 +1863,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	if (m->basicblocks[b_index].type != BBTYPE_STD) {
 #ifdef LSRA_DEBUG
 		if (src == NULL)
-			panic("No Incoming Stackslot for Exception or Subroutine Basic Block\n");
+			{ log_text("No Incoming Stackslot for Exception or Subroutine Basic Block\n"); assert(0); }
 #endif
 		lsra_new_stack(ls, src, b_index, 0);
 		if (src->varkind == STACKVAR)
@@ -1873,7 +1874,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		if (src->varkind == ARGVAR )  /* no ARGVAR possible at BB Boundaries with LSRA! -> change to TEMPVAR */
 			src->varkind = TEMPVAR;
 		else if (src->varkind == LOCALVAR )
-			panic("LOCALVAR at basicblock instack\n"); /* only allowed for top most ss at sbr or exh entries! */
+			{ log_text("LOCALVAR at basicblock instack\n"); assert(0); } /* only allowed for top most ss at sbr or exh entries! */
 		else {
 			if (src->varkind == STACKVAR )  /* no Interfaces at BB Boundaries with LSRA! -> change to TEMPVAR */
 				src->varkind = TEMPVAR;
@@ -1883,9 +1884,9 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 	src = m->basicblocks[b_index].outstack;
 	for (;src != NULL; src=src->prev) {
 		if (src->varkind == ARGVAR )  
-			panic("ARGVAR at basicblock outstack\n");
+			{ log_text("ARGVAR at basicblock outstack\n"); assert(0); }
 		else if (src->varkind == LOCALVAR )
-			panic("LOCALVAR at basicblock outstack\n");
+			{ log_text("LOCALVAR at basicblock outstack\n"); assert(0); }
 		else {
 			if (src->varkind == STACKVAR )  /* no Interfaces at BB Boundaries with LSRA! -> change to TEMPVAR */
 				src->varkind = TEMPVAR;
@@ -2421,7 +2422,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 
 		default:
 			printf("ICMD %d at %d\n", iptr->opc, (int)(iptr - m->instructions));
-			panic("Missing ICMD code during register allocation");
+			{ log_text("Missing ICMD code during register allocation"); assert(0); }
 		} /* switch */
 
 #if defined(LSRA_USES_REG_RES)
@@ -2542,7 +2543,7 @@ int lsra_test_local( lsradata *ls, registerdata *rd, int v_index, int type, int 
 
 	n = &(ls->lifetime[ ls->maxlifetimes + v_index * (TYPE_ADR+1) + type]);
 	if (n->type == -1)
-		panic("lsra_test: Local Var Lifetime not initialized!\n");
+		{ log_text("lsra_test: Local Var Lifetime not initialized!\n"); assert(0); }
 
 	return lsra_test_lt(rd, n, store, values, rd->locals[v_index][type].flags & INMEMORY);
 }
@@ -2560,10 +2561,10 @@ int lsra_test_stack( lsradata *ls, registerdata *rd, stackptr s, int *values, in
 	}
 	if (s->varkind != ARGVAR) {
 		if (s->varnum >=0)
-			panic("lsra_test: Stackslot not initialized!\n");
+			{ log_text("lsra_test: Stackslot not initialized!\n"); assert(0); }
 		n = &(ls->lifetime[-s->varnum - 1]);
 		if (n->type == -1)
-			panic("lsra_test: Stackslot Lifetime not initialized!\n");
+			{ log_text("lsra_test: Stackslot Lifetime not initialized!\n"); assert(0); }
 
 		return lsra_test_lt(rd, n, store, values, s->flags & INMEMORY);
 	}
@@ -3040,7 +3041,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 
 		default:
 			printf("ICMD %d at %d\n", iptr->opc, (int)(iptr - m->instructions));
-			panic("Missing ICMD code during register allocation");
+			{ log_text("Missing ICMD code during register allocation"); assert(0); }
 		} /* switch */
 	}
 	if (ret != -1) {
@@ -3073,7 +3074,7 @@ void test_lifetimes( methodinfo *m, lsradata *ls, registerdata *rd)
 	v_max = rd->maxmemuse + rd->intregsnum + rd->fltregsnum;
 
 	if ( (values = calloc( v_max, sizeof(int))) == NULL )
-		 panic("test_lifetimes: out of memory\n");
+		 { log_text("test_lifetimes: out of memory\n"); assert(0); }
 
 	ret = -1;
 	for (j=0; (j < 100) && (ret == -1); j++ ) {
