@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nativetable.inc 2437 2005-05-04 15:06:30Z twisti $
+   $Id: nativetable.inc 2440 2005-05-04 15:28:00Z twisti $
 
 */
 
@@ -244,6 +244,12 @@ static nativeref nativetable[] = {
 	  "(Ljava/lang/String;)Ljava/lang/Class;",
 	  true,
 	  (functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass
+	},
+	{ "java/lang/VMObject",
+	  "getClass",
+	  "(Ljava/lang/Object;)Ljava/lang/Class;",
+	  true,
+	  (functionptr) Java_java_lang_VMObject_getClass
 	},
 	{ "java/lang/VMObject",
 	  "clone",
@@ -627,36 +633,30 @@ static nativeref nativetable[] = {
 
 	/* These are implemented in GNU classpath *********************************/
 
-	{ "java/lang/Object",
-	  "getClass",
-	  "()Ljava/lang/Class;",
-	  false,
-	  (functionptr) Java_java_lang_Object_getClass
-	},
-	{ "java/net/InetAddress",
-	  "getLocalHostname",
-	  "()Ljava/lang/String;",
-	  true,
-	  (functionptr) Java_java_net_InetAddress_getLocalHostname
-	},
-	{ "java/net/InetAddress",
-	  "lookupInaddrAny",
-	  "()[B",
-	  true,
-	  (functionptr) Java_java_net_InetAddress_lookupInaddrAny
-	},
-	{ "java/net/InetAddress",
-	  "getHostByAddr",
-	  "([B)Ljava/lang/String;",
-	  true,
-	  (functionptr) Java_java_net_InetAddress_getHostByAddr
-	},
-	{ "java/net/InetAddress",
-	  "getHostByName",
-	  "(Ljava/lang/String;)[[B",
-	  true,
-	  (functionptr) Java_java_net_InetAddress_getHostByName
-	},
+/* 	{ "java/net/InetAddress", */
+/* 	  "getLocalHostname", */
+/* 	  "()Ljava/lang/String;", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_net_InetAddress_getLocalHostname */
+/* 	}, */
+/* 	{ "java/net/InetAddress", */
+/* 	  "lookupInaddrAny", */
+/* 	  "()[B", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_net_InetAddress_lookupInaddrAny */
+/* 	}, */
+/* 	{ "java/net/InetAddress", */
+/* 	  "getHostByAddr", */
+/* 	  "([B)Ljava/lang/String;", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_net_InetAddress_getHostByAddr */
+/* 	}, */
+/* 	{ "java/net/InetAddress", */
+/* 	  "getHostByName", */
+/* 	  "(Ljava/lang/String;)[[B", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_net_InetAddress_getHostByName */
+/* 	}, */
 	{ "gnu/java/net/PlainDatagramSocketImpl",
 	  "bind",
 	  "(ILjava/net/InetAddress;)V",
@@ -867,18 +867,18 @@ static nativeref nativetable[] = {
 	  false,
 	  (functionptr) Java_gnu_java_nio_channels_FileChannelImpl_lock
 	},
-	{ "java/io/ObjectInputStream",
-	  "currentClassLoader",
-	  "(Ljava/lang/SecurityManager;)Ljava/lang/ClassLoader;",
-	  true,
-	  (functionptr) Java_java_io_ObjectInputStream_currentClassLoader
-	},
-	{ "java/io/ObjectInputStream",
-	  "allocateObject",
-	  "(Ljava/lang/Class;)Ljava/lang/Object;",
-	  false,
-	  (functionptr) Java_java_io_ObjectInputStream_allocateObject
-	},
+/* 	{ "java/io/ObjectInputStream", */
+/* 	  "currentClassLoader", */
+/* 	  "(Ljava/lang/SecurityManager;)Ljava/lang/ClassLoader;", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_io_ObjectInputStream_currentClassLoader */
+/* 	}, */
+/* 	{ "java/io/ObjectInputStream", */
+/* 	  "allocateObject", */
+/* 	  "(Ljava/lang/Class;)Ljava/lang/Object;", */
+/* 	  false, */
+/* 	  (functionptr) Java_java_io_ObjectInputStream_allocateObject */
+/* 	}, */
 	{ "java/io/VMFile",
 	  "lastModified",
 	  "(Ljava/lang/String;)J",
@@ -1023,23 +1023,23 @@ static nativeref nativetable[] = {
 	  true,
 	  (functionptr) Java_java_io_VMObjectStreamClass_setObjectNative
 	},
-	{ "java/lang/Double",
+	{ "java/lang/VMDouble",
 	  "parseDouble",
 	  "(Ljava/lang/String;)D",
 	  true,
-	  (functionptr) Java_java_lang_Double_parseDouble
+	  (functionptr) Java_java_lang_VMDouble_parseDouble
 	},
-	{ "java/lang/Double",
+	{ "java/lang/VMDouble",
 	  "toString",
 	  "(DZ)Ljava/lang/String;",
 	  true,
-	  (functionptr) Java_java_lang_Double_toString
+	  (functionptr) Java_java_lang_VMDouble_toString
 	},
-	{ "java/lang/Double",
+	{ "java/lang/VMDouble",
 	  "initIDs",
 	  "()V",
 	  true,
-	  (functionptr) Java_java_lang_Double_initIDs
+	  (functionptr) Java_java_lang_VMDouble_initIDs
 	},
 	{ "java/lang/Math",
 	  "sin",
@@ -1203,12 +1203,12 @@ static nativeref nativetable[] = {
 	  true,
 	  (functionptr) Java_java_lang_reflect_Array_createObjectArray
 	},
-	{ "java/net/NetworkInterface",
-	  "getRealNetworkInterfaces",
-	  "()Ljava/util/Vector;",
-	  true,
-	  (functionptr) Java_java_net_NetworkInterface_getRealNetworkInterfaces
-	},
+/* 	{ "java/net/NetworkInterface", */
+/* 	  "getRealNetworkInterfaces", */
+/* 	  "()Ljava/util/Vector;", */
+/* 	  true, */
+/* 	  (functionptr) Java_java_net_NetworkInterface_getRealNetworkInterfaces */
+/* 	}, */
 	{ "java/util/VMTimeZone",
 	  "getSystemTimeZoneId",
 	  "()Ljava/lang/String;",
@@ -1250,6 +1250,7 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMClassLoader_loadClass,
 	(functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass,
 	(functionptr) Java_java_lang_VMClassLoader_nativeGetResources,
+	(functionptr) Java_java_lang_VMObject_getClass,
 	(functionptr) Java_java_lang_VMObject_clone,
 	(functionptr) Java_java_lang_VMObject_notify,
 	(functionptr) Java_java_lang_VMObject_notifyAll,
