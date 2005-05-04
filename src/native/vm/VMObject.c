@@ -28,7 +28,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: VMObject.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMObject.c 2434 2005-05-04 10:25:47Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "toolbox/logging.h"
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"
 #include "vm/builtin.h"
@@ -59,7 +60,27 @@
 
 
 /*
- * Class:     java/lang/Object
+ * Class:     java/lang/VMObject
+ * Method:    getClass
+ * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, java_lang_Object *obj)
+{
+	classinfo *c;
+
+	if (!obj)
+		return NULL;
+
+	c = ((java_objectheader *) obj)->vftbl->class;
+
+	use_class_as_object(c);
+
+	return (java_lang_Class *) c;
+}
+
+
+/*
+ * Class:     java/lang/VMObject
  * Method:    clone
  * Signature: ()Ljava/lang/Object;
  */
@@ -107,7 +128,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 
 
 /*
- * Class:     java/lang/Object
+ * Class:     java/lang/VMObject
  * Method:    notify
  * Signature: ()V
  */
@@ -123,7 +144,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 
 
 /*
- * Class:     java/lang/Object
+ * Class:     java/lang/VMObject
  * Method:    notifyAll
  * Signature: ()V
  */
@@ -139,7 +160,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java/lang/Object
+ * Class:     java/lang/VMObject
  * Method:    wait
  * Signature: (J)V
  */
