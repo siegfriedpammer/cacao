@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2429 2005-05-03 19:25:36Z twisti $
+   $Id: stack.c 2441 2005-05-09 15:30:19Z twisti $
 
 */
 
@@ -2285,7 +2285,16 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	for (ex = cd->exceptiontable; ex != NULL; ex = ex->down) {
 		printf("    L%03d ... ", ex->start->debug_nr );
 		printf("L%03d  = ", ex->end->debug_nr);
-		printf("L%03d\n", ex->handler->debug_nr);
+		printf("L%03d", ex->handler->debug_nr);
+		printf("  (catchtype: ");
+		if (ex->catchtype.any)
+			if (IS_CLASSREF(ex->catchtype))
+				utf_display_classname(ex->catchtype.ref->name);
+			else
+				utf_display_classname(ex->catchtype.cls->name);
+		else
+			printf("ANY");
+		printf(")\n");
 	}
 	
 	printf("Local Table:\n");
