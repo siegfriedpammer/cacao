@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2431 2005-05-03 19:27:11Z twisti $
+   $Id: codegen.c 2452 2005-05-11 15:34:37Z twisti $
 
 */
 
@@ -4133,12 +4133,12 @@ gen_method: {
 
 			/* align data structure to 8-byte */
 
-			if (!((ptrint) mcodeptr & 0x7))
-				M_NOP;
+			ALIGNCODENOP;
 
-			*((ptrint *) mcodeptr++) = 0;                            /* vftbl */
+			*((ptrint *) (mcodeptr + 0)) = 0;                        /* vftbl */
 			*((ptrint *) (mcodeptr + 2)) = (ptrint) get_dummyLR(); /* monitorPtr */
-			mcodeptr += 4;
+
+			mcodeptr += 2 * 2;                 /* mcodeptr is a `u4*' pointer */
 #endif
 
 			/* patch in the call to call the following code (done at compile  */
@@ -4615,12 +4615,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			/* align data structure to 8-byte */
 
-			if (!((ptrint) mcodeptr & 0x7))
-				M_NOP;
+			ALIGNCODENOP;
 
-			*((ptrint *) mcodeptr++) = 0;                            /* vftbl */
+			*((ptrint *) (mcodeptr + 0)) = 0;                        /* vftbl */
 			*((ptrint *) (mcodeptr + 2)) = (ptrint) get_dummyLR(); /* monitorPtr */
-			mcodeptr += 4;
+
+			mcodeptr += 2 * 2;                 /* mcodeptr is a `u4*' pointer */
 #endif
 
 			/* patch in the call to call the following code (done at compile  */
