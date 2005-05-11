@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: asmpart.S 2448 2005-05-11 13:03:20Z twisti $
 
 */
 
@@ -140,7 +140,7 @@
 
 	.globl asm_wrapper_patcher
 
-	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
 	.globl asm_builtin_f2i
@@ -971,16 +971,16 @@ asm_builtin_d2l:
 	ret
 
 
-/* asm_builtin_checkarraycast **************************************************
+/* asm_builtin_arraycheckcast **************************************************
 
    Does the cast check and eventually throws an exception.
 
 *******************************************************************************/
 
-asm_builtin_checkarraycast:
+asm_builtin_arraycheckcast:
 	sub     $24,%rsp                    /* keep stack 16-byte aligned         */
 	mov     %rdi,(%rsp)                 /* save object pointer                */
-	call    builtin_checkarraycast      /* builtin_checkarraycast             */
+	call    builtin_arraycheckcast
 	test    %rax,%rax                   /* if (false) throw exception         */
 	je      nb_carray_throw
 	mov     (%rsp),%rax                 /* return object pointer              */
