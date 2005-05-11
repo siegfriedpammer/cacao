@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2431 2005-05-03 19:27:11Z twisti $
+   $Id: asmpart.S 2449 2005-05-11 13:34:47Z twisti $
 
 */
 
@@ -254,7 +254,7 @@
 
 	.globl asm_wrapper_patcher
 
-	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
 	.globl asm_builtin_idiv
@@ -1281,20 +1281,20 @@ nb_lrem:
 	.end    asm_builtin_lrem
 
 
-/******************* function asm_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_arraycheckcast **************************************************
+
+   Does the cast check and eventually throws an exception.
+
 *******************************************************************************/
 
-	.ent    asm_builtin_checkarraycast
+	.ent    asm_builtin_arraycheckcast
 
-asm_builtin_checkarraycast:
+asm_builtin_arraycheckcast:
 	ldgp    gp,0(pv)
 	lda     sp,-16(sp)                /* allocate stack space                 */
 	stq     ra,0(sp)                  /* save return address                  */
 	stq     a0,8(sp)                  /* save object pointer                  */
-	jsr     ra,builtin_checkarraycast /* builtin_checkarraycast               */
+	jsr     ra,builtin_arraycheckcast
 	ldgp    gp,0(ra)
 	beq     v0,nb_carray_throw        /* if (false) throw exception           */
 	ldq     ra,0(sp)                  /* restore return address               */
@@ -1320,7 +1320,7 @@ nb_carray_throw:
 	br      asm_handle_nat_exception
 #endif
 
-	.end    asm_builtin_checkarraycast
+	.end    asm_builtin_arraycheckcast
 
 
 /******************* function asm_builtin_aastore ******************************

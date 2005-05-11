@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2431 2005-05-03 19:27:11Z twisti $
+   $Id: patcher.c 2449 2005-05-11 13:34:47Z twisti $
 
 */
 
@@ -497,7 +497,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 }
 
 
-/* patcher_builtin_checkarraycast **********************************************
+/* patcher_builtin_arraycheckcast **********************************************
 
    Machine code:
 
@@ -508,7 +508,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_checkarraycast(u1 *sp)
+bool patcher_builtin_arraycheckcast(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
@@ -573,7 +573,7 @@ bool patcher_builtin_checkarraycast(u1 *sp)
 
 	/* patch new function address */
 
-	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_checkarraycast;
+	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_arraycheckcast;
 
 	/* synchronize instruction cache */
 
