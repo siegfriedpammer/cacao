@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2406 2005-04-28 12:19:06Z jowenn $
+   $Id: parse.c 2446 2005-05-11 12:54:04Z twisti $
 
 */
 
@@ -667,7 +667,7 @@ SHOWOPCODE(DEBUG4)
 				constant_classref *cr;
 				classinfo         *c;
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!(cr = class_get_classref_multiarray_of(1, compr)))
@@ -713,7 +713,7 @@ SHOWOPCODE(DEBUG4)
 				vftbl_t *arrayvftbl;
 				s4 v = code_get_u1(p + 3, inline_env->method);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
@@ -995,7 +995,7 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_GETSTATIC:
 		case JAVA_PUTSTATIC:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
 #endif
@@ -1007,7 +1007,7 @@ SHOWOPCODE(DEBUG4)
 				classinfo        *c;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
@@ -1029,6 +1029,10 @@ SHOWOPCODE(DEBUG4)
 					iptr->val.a = fi;
 				}
 				PINC;
+#if defined(__MIPS__)
+				if (!fi || !fi->class->initialized)
+					inline_env->method->isleafmethod = false;
+#endif
 #else
 				{
 				classinfo *frclass;
@@ -1053,7 +1057,7 @@ SHOWOPCODE(DEBUG4)
 			}
 			break;
 
-#if !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
+#if !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__) && !defined(__MIPS__)
 		case JAVA_PUTFIELD:
 		case JAVA_GETFIELD:
 			i = code_get_u2(p + 1,inline_env->method);
@@ -1094,7 +1098,7 @@ SHOWOPCODE(DEBUG4)
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1160,7 +1164,7 @@ if (DEBUG4==true) {
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1225,7 +1229,7 @@ if (DEBUG4==true) {
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1285,7 +1289,7 @@ if (DEBUG4==true) {
 				constant_classref *cr;
 				classinfo         *cls;
 				
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				i = code_get_u2(p + 1, inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
@@ -1326,7 +1330,7 @@ if (DEBUG4==true) {
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
@@ -1334,11 +1338,11 @@ if (DEBUG4==true) {
 					/* array type cast-check */
 					if (cls) {
 						LOADCONST_A_BUILTIN(cls->vftbl);
-						BUILTIN2T(BUILTIN_checkarraycast, TYPE_ADR, NULL, currentline);
+						BUILTIN2T(BUILTIN_arraycheckcast, TYPE_ADR, NULL, currentline);
 
 					} else {
 						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2T(PATCHER_builtin_checkarraycast, TYPE_ADR, cr, currentline);
+						BUILTIN2T(PATCHER_builtin_arraycheckcast, TYPE_ADR, cr, currentline);
 					}
 					s_count++;
 
@@ -1346,6 +1350,10 @@ if (DEBUG4==true) {
 					/* object type cast-check */
 					OP2AT(opcode, 1, cls, cr, currentline);
 				}
+#if defined(__MIPS__)
+				if (!cls)
+					inline_env->method->isleafmethod = false;
+#endif
 #else
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&cls))
@@ -1355,7 +1363,7 @@ if (DEBUG4==true) {
 					/* array type cast-check */
 					LOADCONST_A_BUILTIN(cls->vftbl);
 					s_count++;
-					BUILTIN2(BUILTIN_checkarraycast, TYPE_ADR,currentline);
+					BUILTIN2(BUILTIN_arraycheckcast, TYPE_ADR,currentline);
 
 				} else { /* object type cast-check */
 					/*
@@ -1377,7 +1385,7 @@ if (DEBUG4==true) {
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
 					return NULL;
 
@@ -1397,6 +1405,10 @@ if (DEBUG4==true) {
 					/* object type cast-check */
 					OP2AT(opcode, 1, cls, cr, currentline);
 				}
+#if defined(__MIPS__)
+				if (!cls)
+					inline_env->method->isleafmethod = false;
+#endif
 #else
 				if (!resolve_classref(inline_env->method,
 							cr,resolveEager,true,&cls))

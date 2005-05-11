@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2441 2005-05-09 15:30:19Z twisti $
+   $Id: stack.c 2446 2005-05-11 12:54:04Z twisti $
 
 */
 
@@ -1887,7 +1887,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
 						{
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 							unresolved_method *um = iptr->target; 	 
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
@@ -2601,7 +2601,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->val.a) 	 
 			printf(" %d, ", ((fieldinfo *) iptr->val.a)->offset);
 		else 	 
@@ -2626,7 +2626,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->val.a)
 			printf(" ");
 		else
@@ -2788,20 +2788,20 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
-		if (iptr->op1) { 	 
-			classinfo *c = iptr->val.a; 	 
-			if (c) { 	 
-				if (c->flags & ACC_INTERFACE) 	 
-					printf(" (INTERFACE) "); 	 
-				else 	 
-					printf(" (CLASS,%3d) ", c->vftbl->diffval); 	 
-			} else { 	 
-				printf(" (NOT RESOLVED) "); 	 
-			} 	 
-			utf_display_classname(((constant_classref *) iptr->target)->name); 	 
-		} 	 
-		break; 	 
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
+		if (iptr->op1) {
+			classinfo *c = iptr->val.a;
+			if (c) {
+				if (c->flags & ACC_INTERFACE)
+					printf(" (INTERFACE) ");
+				else
+					printf(" (CLASS,%3d) ", c->vftbl->diffval);
+			} else {
+				printf(" (NOT RESOLVED) ");
+			}
+			utf_display_classname(((constant_classref *) iptr->target)->name);
+		}
+		break;
 #endif
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
@@ -2829,7 +2829,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (!iptr->val.a)
 			printf(" (NOT RESOLVED) ");
 		else

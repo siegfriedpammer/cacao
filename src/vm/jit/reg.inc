@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2400 2005-04-27 12:58:28Z christian $
+   $Id: reg.inc 2446 2005-05-11 12:54:04Z twisti $
 
 */
 
@@ -1582,7 +1582,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
 #else
 					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
