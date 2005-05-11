@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2445 2005-05-11 12:52:36Z twisti $
+   $Id: codegen.inc 2451 2005-05-11 15:31:42Z twisti $
 
 */
 
@@ -755,12 +755,12 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + cd->dseglen;
 
 	m->mcodelength = mcodelen + cd->dseglen;
-	m->mcode = (functionptr) (long) CNEW(u1, alignedlen + extralen);
+	m->mcode = (functionptr) (ptrint) CNEW(u1, alignedlen + extralen);
 
-	memcpy((void *) (long) m->mcode, cd->dsegtop - cd->dseglen, cd->dseglen);
-	memcpy((void *) ((long) m->mcode + cd->dseglen), cd->mcodebase, mcodelen);
+	MCOPY((void *) m->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
+	MCOPY((void *) ((ptrint) m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
 
-	m->entrypoint = epoint = (functionptr) ((long) m->mcode + cd->dseglen);
+	m->entrypoint = epoint = (functionptr) ((ptrint) m->mcode + cd->dseglen);
 
 	/* jump table resolving */
 	jr = cd->jumpreferences;
