@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2207 2005-04-04 09:28:38Z twisti $
+## $Id: Makefile.am 2444 2005-05-11 12:51:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,18 +38,19 @@ AM_CCASFLAGS = $(INCLUDES)
 
 noinst_HEADERS = \
 	arch.h \
+	asmoffsets.h \
 	machine-instr.h \
 	types.h
 
 noinst_LTLIBRARIES = libarch.la
 
 libarch_la_SOURCES = \
-	asmoffsets.h \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
 	disass.c \
-	disass.h
+	disass.h \
+	patcher.c
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2357 2005-04-22 17:37:57Z christian $
+   $Id: arch.h 2444 2005-05-11 12:51:53Z twisti $
 
 */
 
@@ -77,11 +77,17 @@
 #define REG_IFTMP       1    /* temporary integer and floating point register */
 
 
+#define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
 #define INT_ARG_CNT     8    /* number of int argument registers              */
+#define INT_TMP_CNT     5    /* number of integer temporary registers         */
+#define INT_RES_CNT     3    /* number of integer reserved registers          */
 
+#define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     8    /* number of flt argument registers              */
+#define FLT_TMP_CNT     15   /* number of float temporary registers           */
+#define FLT_RES_CNT     3    /* number of float reserved registers            */
 
 #define TRACE_ARGS_NUM  8
 

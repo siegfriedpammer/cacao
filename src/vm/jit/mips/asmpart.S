@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2205 2005-04-03 22:51:43Z twisti $
+   $Id: asmpart.S 2444 2005-05-11 12:51:53Z twisti $
 
 */
 
@@ -136,6 +136,98 @@
 #define ashift  3
 
 
+/* save and restore macros ****************************************************/
+
+#define SAVE_ARGUMENT_REGISTERS(off) \
+	sd      a0,(0+(off))*8(sp)	; \
+	sd      a1,(1+(off))*8(sp)	; \
+	sd      a2,(2+(off))*8(sp)	; \
+	sd      a3,(3+(off))*8(sp)	; \
+	sd      a4,(4+(off))*8(sp)	; \
+	sd      a5,(5+(off))*8(sp)	; \
+	sd      a6,(6+(off))*8(sp)	; \
+	sd      a7,(7+(off))*8(sp)	; \
+	\
+	sdc1    fa0,(8+(off))*8(sp)	; \
+	sdc1    fa1,(9+(off))*8(sp)	; \
+	sdc1    fa2,(10+(off))*8(sp); \
+	sdc1    fa3,(11+(off))*8(sp); \
+	sdc1    fa4,(12+(off))*8(sp); \
+	sdc1    fa5,(13+(off))*8(sp); \
+	sdc1    fa6,(14+(off))*8(sp); \
+	sdc1    fa7,(15+(off))*8(sp); 
+
+
+#define RESTORE_ARGUMENT_REGISTERS(off) \
+	ld      a0,(0+(off))*8(sp)	; \
+	ld      a1,(1+(off))*8(sp)	; \
+	ld      a2,(2+(off))*8(sp)	; \
+	ld      a3,(3+(off))*8(sp)	; \
+	ld      a4,(4+(off))*8(sp)	; \
+	ld      a5,(5+(off))*8(sp)	; \
+	ld      a6,(6+(off))*8(sp)	; \
+	ld      a7,(7+(off))*8(sp)	; \
+	\
+	ldc1    fa0,(8+(off))*8(sp); \
+	ldc1    fa1,(9+(off))*8(sp); \
+	ldc1    fa2,(10+(off))*8(sp); \
+	ldc1    fa3,(11+(off))*8(sp); \
+	ldc1    fa4,(12+(off))*8(sp); \
+	ldc1    fa5,(13+(off))*8(sp); \
+	ldc1    fa6,(14+(off))*8(sp); \
+	ldc1    fa7,(15+(off))*8(sp); 
+
+
+#define SAVE_TEMPORARY_REGISTERS(off) \
+	sd      t0,(0+(off))*8(sp)	; \
+	sd      t1,(1+(off))*8(sp)	; \
+	sd      t2,(2+(off))*8(sp)	; \
+	sd      t3,(3+(off))*8(sp)	; \
+	sd      t8,(4+(off))*8(sp)	; \
+	\
+	sdc1    ft3,(5+(off))*8(sp)	; \
+	sdc1    ft4,(6+(off))*8(sp)	; \
+	sdc1    ft5,(7+(off))*8(sp)	; \
+	sdc1    ft6,(8+(off))*8(sp)	; \
+	sdc1    ft7,(9+(off))*8(sp)	; \
+	sdc1    ft8,(10+(off))*8(sp)	; \
+	sdc1    ft9,(11+(off))*8(sp)	; \
+	sdc1    ft10,(12+(off))*8(sp)	; \
+	sdc1    ft11,(13+(off))*8(sp)	; \
+	sdc1    ft12,(14+(off))*8(sp)	; \
+	sdc1    ft13,(15+(off))*8(sp)	; \
+	sdc1    ft14,(16+(off))*8(sp)	; \
+	sdc1    ft15,(17+(off))*8(sp)	; \
+	sdc1    ft16,(18+(off))*8(sp)	; \
+	sdc1    ft17,(19+(off))*8(sp)	; \
+	sdc1    ft18,(20+(off))*8(sp)	; \
+
+
+#define RESTORE_TEMPORARY_REGISTERS(off) \
+	ld      t0,(0+(off))*8(sp)	; \
+	ld      t1,(1+(off))*8(sp)	; \
+	ld      t2,(2+(off))*8(sp)	; \
+	ld      t3,(3+(off))*8(sp)	; \
+	ld      t8,(4+(off))*8(sp)	; \
+	\
+	ldc1    ft3,(5+(off))*8(sp)	; \
+	ldc1    ft4,(6+(off))*8(sp)	; \
+	ldc1    ft5,(7+(off))*8(sp)	; \
+	ldc1    ft6,(8+(off))*8(sp)	; \
+	ldc1    ft7,(9+(off))*8(sp)	; \
+	ldc1    ft8,(10+(off))*8(sp)	; \
+	ldc1    ft9,(11+(off))*8(sp)	; \
+	ldc1    ft10,(12+(off))*8(sp)	; \
+	ldc1    ft11,(13+(off))*8(sp)	; \
+	ldc1    ft12,(14+(off))*8(sp)	; \
+	ldc1    ft13,(15+(off))*8(sp)	; \
+	ldc1    ft14,(16+(off))*8(sp)	; \
+	ldc1    ft15,(17+(off))*8(sp)	; \
+	ldc1    ft16,(18+(off))*8(sp)	; \
+	ldc1    ft17,(19+(off))*8(sp)	; \
+	ldc1    ft18,(20+(off))*8(sp)	; \
+
+
 	.text
 	.set    noat
 
@@ -155,9 +247,10 @@
 	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
-	.globl asm_check_clinit
-	.globl asm_builtin_checkarraycast
-	.globl asm_builtin_checkcast
+
+	.globl asm_wrapper_patcher
+
+	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
 #if defined(USE_THREADS)
@@ -763,45 +856,72 @@ ex_flt2:
 	.end    asm_handle_nat_exception
 
 
-/********************* asm_check_clinit ****************************************
-*                                                                              *
-*   Checks if class is initialized. If not, do it right now.                   *
-*                                                                              *
+/* asm_wrapper_patcher *********************************************************
+
+   XXX
+
+   Stack layout:
+	 32   return address into JIT code (patch position)
+     24   pointer to virtual java_objectheader
+     16   machine code (which is patched back later)
+      8   unresolved class/method/field reference
+      0   patcher function pointer to call
+
 *******************************************************************************/
 		
-    .ent    asm_check_clinit
+    .ent    asm_wrapper_patcher
 
-asm_check_clinit:
-	daddiu  sp,sp,-24*8
+asm_wrapper_patcher:
+	daddiu  sp,sp,-(16+21+4+1)*8  /* create stack frame                       */
 
-	sd      ra,0*8(sp)            /* save return address                      */
+	SAVE_ARGUMENT_REGISTERS(0)    /* save 8 int/8 float argument registers    */
+	SAVE_TEMPORARY_REGISTERS(16)  /* save 5 int/16 float temporary registers  */
 
-	sd      a0,1*8(sp)            /* save argument registers for leaf funcs   */
-	sd      a1,2*8(sp)
-	sd      a2,3*8(sp)
-	sd      a3,4*8(sp)
-	sd      a4,5*8(sp)
-	sd      a5,6*8(sp)
-	sd      a6,7*8(sp)
-	sd      a7,8*8(sp)
+	sd      itmp1,(16+21+0)*8(sp) /* save itmp1                               */
+	sd      itmp2,(16+21+1)*8(sp) /* save itmp2                               */
+	sd      ra,(16+21+2+1)*8(sp)  /* save method return address (for leafs)   */
+	sd      pv,(16+21+3+1)*8(sp)  /* save pv of calling java function         */
 
-	sd      t0,9*8(sp)
-	sd      t1,10*8(sp)
-	sd      t2,11*8(sp)
-	sd      t3,12*8(sp)
-	sd      t8,13*8(sp)
+	daddiu  a0,sp,(1+16+21+4+1)*8 /* pass sp, skip patcher function pointer   */
+	ld      itmp3,(0+16+21+4+1)*8(sp) /* get function pointer                 */
+	jalr    itmp3
 
-	sdc1    fa0,14*8(sp)
-	sdc1    fa1,15*8(sp)
-	sdc1    fa2,16*8(sp)
-	sdc1    fa3,17*8(sp)
-	sdc1    fa4,18*8(sp)
-	sdc1    fa5,19*8(sp)
-	sdc1    fa6,20*8(sp)
-	sdc1    fa7,21*8(sp)
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(16) /* restore 5 int/16 float temporary reg.  */
 
-	sd      itmp2,22*8(sp)        /* save machine code                        */
+	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
+	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
+	ld      ra,(16+21+2+1)*8(sp)  /* restore method return address (for leafs)*/
+	ld      pv,(16+21+3+1)*8(sp)  /* restore pv of calling java function      */
 
+	ld      itmp3,(4+16+21+4+1)*8(sp) /* get return address (into JIT code)   */
+	daddiu  sp,sp,(5+16+21+4+1)*8 /* remove stack frame                       */
+
+	beqz    v0,L_asm_wrapper_patcher_exception
+
+	jr      itmp3                 /* jump to new patched code                 */
+
+L_asm_wrapper_patcher_exception:
+	move    xpc,itmp3             /* return address into JIT code is xpc      */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	daddiu  sp,sp,-4*8
+	sd      xpc,0*8(sp)
+	sd      ra,1*8(sp)
+	sd      pv,2*8(sp)
+	jal     builtin_asm_get_exceptionptrptr
+	ld      xpc,0*8(sp)
+	ld      ra,1*8(sp)
+	ld      pv,2*8(sp)
+	daddiu  sp,sp,4*8
+#else
+	la      v0,_exceptionptr
+#endif
+	ld      xptr,0(v0)            /* get the exception pointer                */
+	sd      zero,0(v0)            /* clear the exception pointer              */
+	b       asm_handle_exception
+
+#if 0
 	                              /* check if class is initialized            */
 	lw      itmp3,offclassinit(itmp1)
 	bnez    itmp3,L_is_initialized
@@ -812,8 +932,8 @@ asm_check_clinit:
 	beqz    v0,L_initializererror
 
 L_is_initialized:
-	ld      ra,0*8(sp)            /* get return address                       */
-	ld      itmp1,22*8(sp)        /* get machine code                         */
+	ld      itmp1,(16+21+1)*8(sp) /* get machine code                         */
+	ld      ra,(16+21+2)*8(sp)    /* load method return address (for leafs)   */
 
 	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
 	sw      itmp1,0(ra)           /* patch first instruction                  */
@@ -824,33 +944,15 @@ L_is_initialized:
 	addiu   a1,zero,2*4           /* 2 instruction words long                 */
 	jal     docacheflush          /* flush!                                   */
 	
-	ld      ra,0*8(sp)            /* restore return address                   */
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(16)/* restore 5 int/16 float temporary reg.   */
 
-	ld      a0,1*8(sp)            /* restore argument registers               */
-	ld      a1,2*8(sp)
-	ld      a2,3*8(sp)
-	ld      a3,4*8(sp)
-	ld      a4,5*8(sp)
-	ld      a5,6*8(sp)
-	ld      a6,7*8(sp)
-	ld      a7,8*8(sp)
+	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
+	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
+	ld      ra,(16+21+2)*8(sp)    /* restore method return address (for leafs)*/
+	ld      pv,(16+21+3)*8(sp)    /* restore pv of calling java function      */
 
-	ld      t0,9*8(sp)
-	ld      t1,10*8(sp)
-	ld      t2,11*8(sp)
-	ld      t3,12*8(sp)
-	ld      t8,13*8(sp)
-
-	ldc1    fa0,14*8(sp)
-	ldc1    fa1,15*8(sp)
-	ldc1    fa2,16*8(sp)
-	ldc1    fa3,17*8(sp)
-	ldc1    fa4,18*8(sp)
-	ldc1    fa5,19*8(sp)
-	ldc1    fa6,20*8(sp)
-	ldc1    fa7,21*8(sp)
-
-	daddiu  sp,sp,24*8
+	daddiu  sp,sp,(16+21+4+1)*8   /* remove stack frame                       */
 
 	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
 	jr      ra
@@ -864,38 +966,21 @@ L_initializererror:
 	ld      xptr,0(v0)            /* get the exception pointer                */
 	sd      zero,0(v0)            /* clear the exception pointer              */
 
-	ld      ra,0*8(sp)            /* restore return address                   */
+	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(16)/* restore 5 int/16 float temporary reg.   */
 
-	ld      a0,1*8(sp)            /* restore argument registers               */
-	ld      a1,2*8(sp)
-	ld      a2,3*8(sp)
-	ld      a3,4*8(sp)
-	ld      a4,5*8(sp)
-	ld      a5,6*8(sp)
-	ld      a6,7*8(sp)
-	ld      a7,8*8(sp)
+	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
+	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
+	ld      ra,(16+21+2)*8(sp)    /* restore method return address (for leafs)*/
+	ld      pv,(16+21+3)*8(sp)    /* restore pv of calling java function      */
 
-	ld      t0,9*8(sp)
-	ld      t1,10*8(sp)
-	ld      t2,11*8(sp)
-	ld      t3,12*8(sp)
-	ld      t8,13*8(sp)
-
-	ldc1    fa0,14*8(sp)
-	ldc1    fa1,15*8(sp)
-	ldc1    fa2,16*8(sp)
-	ldc1    fa3,17*8(sp)
-	ldc1    fa4,18*8(sp)
-	ldc1    fa5,19*8(sp)
-	ldc1    fa6,20*8(sp)
-	ldc1    fa7,21*8(sp)
-
-	daddiu  sp,sp,24*8
+	daddiu  sp,sp,(16+21+4+1)*8   /* remove stack frame                       */
 
 	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
 	b       asm_handle_exception
+#endif
 
-	.end	asm_check_clinit
+	.end	asm_wrapper_patcher
 
 		
 /********************* function asm_builtin_monitorenter ***********************
@@ -1065,19 +1150,19 @@ nb_lrem:
 	.end    asm_builtin_lrem
 
 
-/******************* function asm_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_arraycheckcast **************************************************
+
+   Does the cast check and eventually throws an exception.
+
 *******************************************************************************/
 
-	.ent    asm_builtin_checkarraycast
+	.ent    asm_builtin_arraycheckcast
 
-asm_builtin_checkarraycast:
+asm_builtin_arraycheckcast:
 	aaddiu  sp,sp,-16                 /* allocate stack space                 */
 	sd      ra,0(sp)                  /* save return address                  */
 	sd      a0,8(sp)                  /* save object pointer                  */
-	jal     builtin_checkarraycast    /* builtin_checkarraycast               */
+	jal     builtin_arraycheckcast    /* builtin_arraycheckcast               */
 	beqz    v0,nb_carray_throw        /* if (false) throw exception           */
 	ld      ra,0(sp)                  /* restore return address               */
 	ld      v0,8(sp)                  /* return object pointer                */
@@ -1093,38 +1178,7 @@ nb_carray_throw:
 	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
 	b       asm_handle_nat_exception
 
-	.end    asm_builtin_checkarraycast
-
-
-/********************* function asm_builtin_checkcast **************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_checkcast
-
-asm_builtin_checkcast:
-	aaddiu  sp,sp,-16                 /* allocate stack space                 */
-	sd      ra,0(sp)                  /* save return address                  */
-	sd      a0,8(sp)                  /* save object pointer                  */
-	jal     builtin_checkcast         /* builtin_checkcast                    */
-	beqz    v0,nb_ccast_throw         /* if (false) throw exception           */
-	ld      ra,0(sp)                  /* restore return address               */
-	ld      v0,8(sp)                  /* return object pointer                */
-	aaddiu  sp,sp,16                  /* deallocate stack                     */
-	j       ra                        /* return                               */
-
-nb_ccast_throw:
-	jal     new_classcastexception
-	move    xptr,v0
-
-	ld      ra,0(sp)                  /* restore return address               */
-	aaddiu  sp,sp,16                  /* free stack space                     */
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_checkcast
+	.end    asm_builtin_arraycheckcast
 
 
 /******************* function asm_builtin_aastore ******************************

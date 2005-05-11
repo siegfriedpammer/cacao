@@ -1,4 +1,4 @@
-/* vm/jit/mips/codegen.h - code generation macros and definitions for mips
+/* src/vm/jit/mips/codegen.h - code generation macros and definitions for MIPS
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: codegen.h 2444 2005-05-11 12:51:53Z twisti $
 
 */
 
@@ -340,14 +340,14 @@ part in reg.inc
 */
 
 
-#define M_ITYPE(op, rs, rt, imm)\
-  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((imm)&0xffff))
+#define M_ITYPE(op,rs,rt,imm) \
+    *(mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff))
 
-#define M_JTYPE(op, imm)\
-  *(mcodeptr++) = (((op)<<26)|((off)&0x3ffffff))
+#define M_JTYPE(op,imm) \
+    *(mcodeptr++) = (((op) << 26) | ((off) & 0x3ffffff))
 
-#define M_RTYPE(op, rs, rt, rd, sa, fu)\
-  *(mcodeptr++) = (((op)<<26)|((rs)<<21)|((rt)<<16)|((rd)<<11)|((sa)<<6)|(fu))
+#define M_RTYPE(op,rs,rt,rd,sa,fu) \
+    *(mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((sa) << 6) | (fu))
 
 #define M_FP2(fu, fmt, fs, fd)       M_RTYPE(0x11, fmt,  0, fs, fd, fu)
 #define M_FP3(fu, fmt, fs, ft, fd)   M_RTYPE(0x11, fmt, ft, fs, fd, fu)
@@ -357,7 +357,8 @@ part in reg.inc
 #define FMT_I  20
 #define FMT_L  21
 
-/* macros for all used commands (see a MIPS-manual for description) ***********/ 
+
+/* macros for all used commands (see a MIPS-manual for description) ***********/
 
 /* load/store macros use the form OPERATION(source/dest, base, offset)        */
 
@@ -604,6 +605,7 @@ part in reg.inc
 #define M_CMOVGT_IMM(a,b,c)     M_OP3 (0x11,0x66, a,b,c,1)     /* a> 0 ? c=b  */
 #endif
 
+
 /* function gen_resolvebranch **************************************************
 
 	backpatches a branch instruction; MIPS branch instructions are very
@@ -617,10 +619,25 @@ part in reg.inc
 *******************************************************************************/
 
 #define gen_resolvebranch(ip,so,to) \
-    ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0xffff
+    do { \
+        s4 offset; \
+        \
+        offset = ((s4) (to) - (so)) >> 2; \
+        \
+        /* On the MIPS we can only branch signed 16-bit instruction words */ \
+        /* (signed 18-bit = 32KB = +/- 16KB). Check this!                 */ \
+        \
+        if ((offset < (s4) 0xffff8000) || (offset > (s4) 0x00007fff)) { \
+            throw_cacao_exception_exit(string_java_lang_InternalError, \
+                                       "Jump offset is out of range: %d > +/-%d", \
+                                       offset, 0x00007fff); \
+        } \
+        \
+        ((s4 *) (ip))[-1] |= (offset & 0x0000ffff); \
+    } while (0)
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void docacheflush(u1 *p, long bytelen);
 
