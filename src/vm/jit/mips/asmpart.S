@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2444 2005-05-11 12:51:53Z twisti $
+   $Id: asmpart.S 2454 2005-05-11 19:52:59Z twisti $
 
 */
 
@@ -589,6 +589,8 @@ noregchange:
 	ld      ra,17*8(sp)           /* restore return address                   */
 	aaddiu  sp,sp,18*8            /* deallocate stack area                    */
 
+	beqz    v0,L_asm_call_jit_compiler_exception
+
 	lw      t0,-12(ra)            /* load instruction LDQ PV,xxx($yy)         */
 	sll     t0,t0,16
 	sra     t0,t0,16              /* isolate offset                           */
@@ -600,6 +602,22 @@ noregchange:
 
 	jr      pv                    /* and call method. The method returns      */
 	                              /* directly to the caller (ra).             */
+
+L_asm_call_jit_compiler_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	daddiu  sp,sp,-2*8
+	sd      ra,0*8(sp)
+	jal     builtin_asm_get_exceptionptrptr
+	ld      ra,0*8(sp)
+	daddiu  sp,sp,2*8
+#else
+	la      v0,_exceptionptr
+#endif
+	ld      xptr,0(v0)            /* get the exception pointer                */
+	sd      zero,0(v0)            /* clear the exception pointer              */
+
+	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
+	b       asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
 
