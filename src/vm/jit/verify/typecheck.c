@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2361 2005-04-24 17:55:03Z twisti $
+   $Id: typecheck.c 2447 2005-05-11 12:55:06Z twisti $
 
 */
 
@@ -1860,16 +1860,16 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  if (!vft->arraydesc)
 								  panic("internal error: builtin_arrayinstanceof with non-array class");
 						  }
-                          else if (ISBUILTIN(BUILTIN_checkarraycast)) {
+                          else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
 							  vftbl_t *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: BUILTIN_checkarraycast without classinfo");
+                                  panic("illegal instruction: BUILTIN_arraycheckcast without classinfo");
 							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
 								  panic("CHECKCAST with unlinked class");
 							  if (!vft->arraydesc)
-								  panic("internal error: builtin_checkarraycast with non-array class");
+								  panic("internal error: builtin_arraycheckcast with non-array class");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
 						  else {

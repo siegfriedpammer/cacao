@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2423 2005-04-30 13:29:57Z twisti $
+   $Id: patcher.h 2447 2005-05-11 12:55:06Z twisti $
 
 */
 
@@ -73,8 +73,8 @@ bool patcher_builtin_newarray(u1 *sp);
 bool patcher_builtin_multianewarray(u1 *sp);
 #define PATCHER_builtin_multianewarray (functionptr) patcher_builtin_multianewarray
 
-bool patcher_builtin_checkarraycast(u1 *sp);
-#define PATCHER_builtin_checkarraycast (functionptr) patcher_builtin_checkarraycast
+bool patcher_builtin_arraycheckcast(u1 *sp);
+#define PATCHER_builtin_arraycheckcast (functionptr) patcher_builtin_arraycheckcast
 
 bool patcher_builtin_arrayinstanceof(u1 *sp);
 #define PATCHER_builtin_arrayinstanceof (functionptr) patcher_builtin_arrayinstanceof

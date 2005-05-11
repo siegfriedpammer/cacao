@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2378 2005-04-25 14:19:52Z twisti $
+   $Id: headers.c 2447 2005-05-11 12:55:06Z twisti $
 
 */
 
@@ -83,10 +83,8 @@ void asm_call_jit_compiler(void) {}
 /* code patching functions */
 void patcher_builtin_new(u1 *sp) {}
 void patcher_builtin_newarray(u1 *sp) {}
-void patcher_builtin_checkarraycast(u1 *sp) {}
+void patcher_builtin_arraycheckcast(u1 *sp) {}
 void patcher_builtin_arrayinstanceof(u1 *sp) {}
-
-s4 asm_builtin_checkcast(java_objectheader *obj, classinfo *class) { return 0; }
 
 s4 asm_builtin_idiv(s4 a, s4 b) { return 0; }
 s4 asm_builtin_irem(s4 a, s4 b) { return 0; }
@@ -102,7 +100,8 @@ void use_class_as_object(void) {}
 void asm_builtin_monitorenter(java_objectheader *o) {}
 void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
 
-s4 asm_builtin_checkarraycast(java_objectheader *obj, vftbl_t *target) {
+s4 asm_builtin_arraycheckcast(java_objectheader *obj, vftbl_t *target)
+{
 	return 0;
 }
 
