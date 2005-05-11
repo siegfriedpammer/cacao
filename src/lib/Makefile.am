@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2035 2005-03-18 12:45:13Z twisti $
+## $Id: Makefile.am 2453 2005-05-11 15:37:35Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,9 +41,7 @@ JAVA_VM_FILES = \
 	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/io/VMFile.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectStreamClass.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Constructor.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Field.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Method.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectInputStream.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMClass.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMCompiler.java \
@@ -56,13 +54,16 @@ JAVA_VM_FILES = \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMString.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMThread.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMThrowable.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Constructor.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Field.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Method.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/security/VMAccessController.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/util/VMTimeZone.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/nio/channels/VMChannels.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/net/VMInetAddress.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/nio/VMDirectByteBuffer.java
 
-#GLIBJ_ZIP = $(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
-GLIBJ_ZIP = ../classpath/lib/rt.jar
+GLIBJ_ZIP = $(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
 
 vmzipdir = $(prefix)/jre/lib
 vmzip_DATA = vm.zip
