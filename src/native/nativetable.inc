@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nativetable.inc 2440 2005-05-04 15:28:00Z twisti $
+   $Id: nativetable.inc 2450 2005-05-11 13:47:15Z twisti $
 
 */
 
@@ -61,7 +61,7 @@
 
 #include "native/include/java_lang_SecurityManager.h"
 #include "native/include/java_net_DatagramPacket.h"
-#include "native/include/java_net_InetAddress.h"
+#include "native/include/java_net_VMInetAddress.h"
 #include "native/include/java_net_SocketImpl.h"
 
 #include "native/include/gnu_java_net_PlainDatagramSocketImpl.h"
@@ -633,30 +633,30 @@ static nativeref nativetable[] = {
 
 	/* These are implemented in GNU classpath *********************************/
 
-/* 	{ "java/net/InetAddress", */
-/* 	  "getLocalHostname", */
-/* 	  "()Ljava/lang/String;", */
-/* 	  true, */
-/* 	  (functionptr) Java_java_net_InetAddress_getLocalHostname */
-/* 	}, */
-/* 	{ "java/net/InetAddress", */
-/* 	  "lookupInaddrAny", */
-/* 	  "()[B", */
-/* 	  true, */
-/* 	  (functionptr) Java_java_net_InetAddress_lookupInaddrAny */
-/* 	}, */
-/* 	{ "java/net/InetAddress", */
-/* 	  "getHostByAddr", */
-/* 	  "([B)Ljava/lang/String;", */
-/* 	  true, */
-/* 	  (functionptr) Java_java_net_InetAddress_getHostByAddr */
-/* 	}, */
-/* 	{ "java/net/InetAddress", */
-/* 	  "getHostByName", */
-/* 	  "(Ljava/lang/String;)[[B", */
-/* 	  true, */
-/* 	  (functionptr) Java_java_net_InetAddress_getHostByName */
-/* 	}, */
+	{ "java/net/VMInetAddress",
+	  "getLocalHostname",
+	  "()Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_net_VMInetAddress_getLocalHostname
+	},
+	{ "java/net/VMInetAddress",
+	  "lookupInaddrAny",
+	  "()[B",
+	  true,
+	  (functionptr) Java_java_net_VMInetAddress_lookupInaddrAny
+	},
+	{ "java/net/VMInetAddress",
+	  "getHostByAddr",
+	  "([B)Ljava/lang/String;",
+	  true,
+	  (functionptr) Java_java_net_VMInetAddress_getHostByAddr
+	},
+	{ "java/net/VMInetAddress",
+	  "getHostByName",
+	  "(Ljava/lang/String;)[[B",
+	  true,
+	  (functionptr) Java_java_net_VMInetAddress_getHostByName
+	},
 	{ "gnu/java/net/PlainDatagramSocketImpl",
 	  "bind",
 	  "(ILjava/net/InetAddress;)V",

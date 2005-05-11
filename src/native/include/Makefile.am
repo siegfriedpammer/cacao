@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2059 2005-03-23 11:08:43Z twisti $
+## $Id: Makefile.am 2450 2005-05-11 13:47:15Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -80,7 +80,7 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 IMPLEMENTED_IN_CLASSPATH_HEADER_FILES = \
 	java_lang_SecurityManager.h \
 	java_net_DatagramPacket.h \
-	java_net_InetAddress.h \
+	java_net_VMInetAddress.h \
 	java_net_SocketImpl.h \
 	\
 	gnu_java_net_PlainDatagramSocketImpl.h \
