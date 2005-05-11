@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: codegen.inc 2445 2005-05-11 12:52:36Z twisti $
 
 */
 
@@ -439,6 +439,9 @@ static void codegen_addreference(codegendata *cd, basicblock *target, void *bran
 	s4 branchpos;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	/* Check if the target basicblock has already a start pc, so the jump is  */
+	/* backward and we can resolve it immediately.                            */
 
 	if (target->mpc >= 0) {
 		gen_resolvebranch((u1 *) cd->mcodebase + branchpos,
