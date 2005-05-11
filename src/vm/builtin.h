@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2368 2005-04-25 14:05:29Z twisti $
+   $Id: builtin.h 2443 2005-05-11 12:50:26Z twisti $
 
 */
 
@@ -151,10 +151,10 @@ s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
 
-s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
+s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
 /* NOT AN OP */
-s4 asm_builtin_checkarraycast(java_objectheader *o, vftbl_t *target);
-#define BUILTIN_checkarraycast (functionptr) asm_builtin_checkarraycast
+s4 asm_builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
+#define BUILTIN_arraycheckcast (functionptr) asm_builtin_arraycheckcast
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */

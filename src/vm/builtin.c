@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2382 2005-04-26 16:11:10Z twisti $
+   $Id: builtin.c 2443 2005-05-11 12:50:26Z twisti $
 
 */
 
@@ -228,7 +228,7 @@ builtin_descriptor builtin_desc[] = {
 
 	{255,BUILTIN_instanceof      ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"instanceof"},
 	{255,BUILTIN_arrayinstanceof ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_INT   ,0,0,"arrayinstanceof"},
-	{255,BUILTIN_checkarraycast  ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,0,0,"checkarraycast"},
+	{255,BUILTIN_arraycheckcast  ,ICMD_BUILTIN2,TYPE_ADR   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,0,0,"arraycheckcast"},
 	{255,BUILTIN_aastore         ,ICMD_BUILTIN3,TYPE_ADR   ,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,0,0,"aastore"},
 	{255,BUILTIN_new             ,ICMD_BUILTIN1,TYPE_ADR   ,TYPE_VOID  ,TYPE_VOID  ,TYPE_ADR   ,0,0,"new"},
 	{255,BUILTIN_newarray        ,ICMD_BUILTIN2,TYPE_INT   ,TYPE_ADR   ,TYPE_VOID  ,TYPE_ADR   ,0,0,"newarray"},
@@ -256,12 +256,12 @@ builtin_descriptor builtin_desc[] = {
 	{255,BUILTIN_drem            ,ICMD_BUILTIN2,TYPE_DOUBLE,TYPE_DOUBLE,TYPE_VOID  ,TYPE_DOUBLE,0,0,"drem"},
 
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 	/* assembler code patching functions */
 
 	{ 255, PATCHER_builtin_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling patcher_builtin_new)" },
 	{ 255, PATCHER_builtin_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling patcher_builtin_newarray)" },
-	{ 255, PATCHER_builtin_checkarraycast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "checkarraycast (calling patcher_builtin_checkarraycast)" },
+	{ 255, PATCHER_builtin_arraycheckcast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "arraycheckcast (calling patcher_builtin_arraycheckcast)" },
 	{ 255, PATCHER_builtin_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling patcher_builtin_arrayinstanceof)" },
 #endif
 
@@ -469,7 +469,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor *
 }
 
 
-/* builtin_checkarraycast ******************************************************
+/* builtin_arraycheckcast ******************************************************
 
    Checks if an object is really a subtype of the requested array
    type.  The object has to be an array to begin with. For simple
@@ -482,7 +482,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor *
 	
 *******************************************************************************/
 
-s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target)
+s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target)
 {
 	arraydescriptor *desc;
 
@@ -498,8 +498,10 @@ s4 builtin_checkarraycast(java_objectheader *o, vftbl_t *target)
 
 s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 {
-	if (!obj) return 1;
-	return builtin_checkarraycast(obj, target);
+	if (!obj)
+		return 1;
+
+	return builtin_arraycheckcast(obj, target);
 }
 
 
