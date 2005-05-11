@@ -27,7 +27,7 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: codegen.c 2442 2005-05-11 12:05:08Z twisti $
 
 */
 
@@ -4299,8 +4299,9 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			*((ptrint *) cd->mcodeptr++) = 0;                        /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 0)) = 0;                    /* vftbl */
 			*((ptrint *) (cd->mcodeptr + 8)) = (ptrint) get_dummyLR(); /* monitorPtr */
+
 			cd->mcodeptr += 16;
 #endif
 
@@ -4360,9 +4361,10 @@ u1 *createcompilerstub(methodinfo *m)
 	cd->mcodeptr = s;
 
 	/* code for the stub */
-	x86_64_mov_imm_reg(cd, (u8) m, REG_ITMP1); /* pass method to compiler     */
-	x86_64_mov_imm_reg(cd, (u8) asm_call_jit_compiler, REG_ITMP3);/* load address */
-	x86_64_jmp_reg(cd, REG_ITMP3);      /* jump to compiler                   */
+
+	x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP1); /* pass method to compiler */
+	x86_64_mov_imm_reg(cd, (ptrint) asm_call_jit_compiler, REG_ITMP3);
+	x86_64_jmp_reg(cd, REG_ITMP3);
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -4840,8 +4842,9 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			*((ptrint *) cd->mcodeptr++) = 0;                        /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 0)) = 0;                    /* vftbl */
 			*((ptrint *) (cd->mcodeptr + 8)) = (ptrint) get_dummyLR(); /* monitorPtr */
+
 			cd->mcodeptr += 16;
 #endif
 
