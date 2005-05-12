@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 2194 2005-04-03 16:13:27Z twisti $
+   $Id: util.c 2463 2005-05-12 23:54:07Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "types.h"
 #include "mm/memory.h"
 #include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 
 
 /* getcwd **********************************************************************

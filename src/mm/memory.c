@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: memory.c 2019 2005-03-09 11:56:20Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: memory.c 2463 2005-05-12 23:54:07Z twisti $
 
 */
 
@@ -46,10 +48,6 @@
 
 #include "config.h"
 #include "mm/memory.h"
-#include "vm/exceptions.h"
-#include "vm/global.h"
-#include "vm/options.h"
-#include "vm/statistics.h"
 #include "native/native.h"
 
 #if defined(USE_THREADS)
@@ -61,6 +59,11 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
+#include "vm/stringlocal.h"
 
 
 /********* general types, variables and auxiliary functions *********/
