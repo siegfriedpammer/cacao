@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 2194 2005-04-03 16:13:27Z twisti $
+   $Id: headers.h 2464 2005-05-12 23:55:10Z twisti $
 
 */
 
@@ -54,15 +54,19 @@
 extern THREADSPECIFIC java_objectheader *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
+extern chain *ident_chain;
 extern FILE *file;
 
 
 /* function prototypes ********************************************************/
 
+void printID(utf *u);
+void printOverloadPart(utf *desc);
 void literalstring_free(java_objectheader *o);
 void printmethod(methodinfo *m);
 void gen_header_filename(char *buffer, utf *u);
 void headerfile_generate(classinfo *c, char *opt_directory);
+void print_classname(classinfo *clazz);
 
 #endif /* _HEADERS_H */
 

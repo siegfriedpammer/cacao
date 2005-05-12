@@ -30,11 +30,12 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2447 2005-05-11 12:55:06Z twisti $
+   $Id: headers.c 2464 2005-05-12 23:55:10Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -54,13 +55,14 @@
 #include "native/include/java_lang_Throwable.h"
 #include "toolbox/chain.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/tables.h"
 #include "vm/loader.h"
 #include "vm/options.h"
-#include "vm/builtin.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -156,11 +158,122 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 	return true;
 }
 
+
+/* exception functions ********************************************************/
+
+/* these should not be called */
+
+void throw_exception(void) { assert(0); }
+void throw_exception_exit(void) { assert(0); }
+java_objectheader *new_verifyerror(methodinfo *m, const char *message) { assert(0); }
+java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable) { assert(0); }
+
+
+void throw_cacao_exception_exit(const char *exception, const char *message, ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "%s: ", exception);
+
+	va_start(ap, message);
+	vfprintf(stderr, message, ap);
+	va_end(ap);
+
+	exit(1);
+}
+
+
+java_objectheader *new_exception(const char *classname)
+{
+	fprintf(stderr, "%s\n", classname);
+	exit(1);
+}
+
+
+java_objectheader *new_exception_message(const char *classname, const char *message)
+{
+	fprintf(stderr, "%s: %s\n", classname, message);
+	exit(1);
+}
+
+
+java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
+{
+	fprintf(stderr, "%s: ", classname);
+	utf_display(message);
+	fputc('\n', stderr);
+
+	exit(1);
+}
+
+
+java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
+{
+	va_list ap;
+
+	utf_display(c->name);
+	fprintf(stderr, ": ");
+
+	va_start(ap, message);
+	vfprintf(stderr, message, ap);
+	va_end(ap);
+
+	fputc('\n', stderr);
+
+	exit(1);
+}
+
+
+java_objectheader *new_internalerror(const char *message, ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "%s: ", string_java_lang_InternalError);
+
+	va_start(ap, message);
+	vfprintf(stderr, message, ap);
+	va_end(ap);
+
+	exit(1);
+}
+
+
+java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *message, ...)
+{
+	va_list ap;
+
+	fprintf(stderr, "%s: ", string_java_lang_UnsupportedClassVersionError);
+
+	utf_display(c->name);
+	fprintf(stderr, ": ");
+
+	va_start(ap, message);
+	vfprintf(stderr, message, ap);
+	va_end(ap);
+
+	exit(1);
+}
+
+
+java_objectheader *new_negativearraysizeexception(void)
+{
+	fprintf(stderr, "%s", string_java_lang_NegativeArraySizeException);
+	exit(1);
+}
+
+
+java_objectheader *new_nullpointerexception(void)
+{
+	fprintf(stderr, "%s", string_java_lang_NullPointerException);
+	exit(1);
+}
+
+
 /************************ global variables **********************/
 
 chain *nativemethod_chain;              /* chain with native methods          */
 chain *nativeclass_chain;               /* chain with processed classes       */
-static chain *ident_chain; /* chain with method and field names in current class */
+chain *ident_chain;     /* chain with method and field names in current class */
 FILE *file = NULL;
 static u4 outputsize;
 static bool dopadding;
@@ -168,17 +281,17 @@ static bool dopadding;
 
 static void printIDpart(int c)
 {
-	if ((c >= 'a' && c <= 'z')
-		|| (c >= 'A' && c <= 'Z')
-		|| (c >= '0' && c <= '9')
-		|| (c == '_'))
+	if ((c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') ||
+		(c == '_'))
 		putc(c, file);
 	else
 		putc('_', file);
 }
 
 
-static void printID(utf *u)
+void printID(utf *u)
 {
 	char *utf_ptr = u->text;
 	int i;
@@ -200,36 +313,39 @@ static void addoutputsize (int len)
 }
 
 
-static void printOverloadPart(utf *desc)
+void printOverloadPart(utf *desc)
 {
 	char *utf_ptr=desc->text;
 	u2 c;
 
-	fprintf(file,"__");
-	while ((c=utf_nextu2(&utf_ptr))!=')') {
+	fprintf(file, "__");
+
+	while ((c = utf_nextu2(&utf_ptr)) != ')') {
 		switch (c) {
-			case 'I':
-			case 'S':
-			case 'B':
-			case 'C':
-			case 'Z':
-			case 'J':
-			case 'F':
-			case 'D': 
-				fprintf (file, "%c",(char)c);
-				break;
-			case '[':
-				fprintf(file,"_3");
-                           	break;
-			case 'L':
-				putc('L',file);
-				while ( (c=utf_nextu2(&utf_ptr)) != ';')
-					printIDpart (c);
-				fprintf(file,"_2");
-				break;
-			case '(':
-				break;
-			default: panic ("invalid method descriptor");
+		case 'I':
+		case 'S':
+		case 'B':
+		case 'C':
+		case 'Z':
+		case 'J':
+		case 'F':
+		case 'D': 
+			fprintf(file, "%c", (char) c);
+			break;
+		case '[':
+			fprintf(file, "_3");
+			break;
+		case 'L':
+			putc('L', file);
+			while ((c = utf_nextu2(&utf_ptr)) != ';')
+				printIDpart(c);
+			fprintf(file, "_2");
+			break;
+		case '(':
+			break;
+		default: 
+			log_text("invalid method descriptor");
+			assert(0);
 		}
 	}
 }
@@ -366,15 +482,15 @@ void printmethod(methodinfo *m)
 	utf_fprint(file, m->name);
 	fprintf(file, "\n * Signature: ");
 	utf_fprint(file, m->descriptor);
-	fprintf(file, "\n */\n");	
+	fprintf(file, "\n */\n");
 
 	/* create prototype */ 			
-	fprintf(file, "JNIEXPORT ");				
+	fprintf(file, "JNIEXPORT ");
 	printtype(utf_ptr);
 	fprintf(file, " JNICALL Java_");
-	printID(m->class->name);           
+	printID(m->class->name);
 
-	chain_addlast(ident_chain, m->name);	
+	chain_addlast(ident_chain, m->name);
 
 	fprintf(file, "_");
 	printID(m->name);
@@ -536,12 +652,10 @@ void print_classname(classinfo *clazz)
 	u2 c;
 
     while (utf_ptr < endpos) {
-		if ((c = utf_nextu2(&utf_ptr)) == '_') {
+		if ((c = utf_nextu2(&utf_ptr)) == '_')
 			putc('$', file);
-
-		} else {
+		else
 			putc(c, file);
-		}
 	}
 } 
 
