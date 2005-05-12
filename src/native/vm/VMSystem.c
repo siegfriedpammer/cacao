@@ -1,4 +1,4 @@
-/* native/vm/VMSystem.c - java/lang/VMSystem
+/* src/native/vm/VMSystem.c - java/lang/VMSystem
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMSystem.c 1773 2004-12-19 17:39:01Z jowenn $
+   $Id: VMSystem.c 2459 2005-05-12 23:21:10Z twisti $
 
 */
 
@@ -40,8 +41,9 @@
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
 
 
 /*

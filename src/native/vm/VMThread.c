@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 2435 2005-05-04 10:26:11Z twisti $
+   $Id: VMThread.c 2459 2005-05-12 23:21:10Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 
@@ -70,6 +71,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_
 
     return 0;
 }
+
 
 /*
  * Class:     java/lang/VMThread
@@ -158,7 +160,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isAlive(JNIEnv *env, java_lang_VMTh
 
 	return 0;
 }
-
 
 
 /*

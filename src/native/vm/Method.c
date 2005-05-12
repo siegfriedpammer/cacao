@@ -1,4 +1,4 @@
-/* native/vm/Method.c - java/lang/reflect/Method
+/* src/native/vm/Method.c - java/lang/reflect/Method
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: Method.c 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: Method.c 2459 2005-05-12 23:21:10Z twisti $
 
 */
 
@@ -44,6 +45,8 @@
 #include "vm/builtin.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/exceptions.h"
+#include "vm/stringlocal.h"
+
 
 /*
  * Class:     java_lang_reflect_Method

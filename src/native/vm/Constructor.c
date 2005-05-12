@@ -1,4 +1,4 @@
-/* native/vm/Constructor.c - java/lang/reflect/Constructor
+/* src/native/vm/Constructor.c - java/lang/reflect/Constructor
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: Constructor.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: Constructor.c 2459 2005-05-12 23:21:10Z twisti $
 
 */
 
@@ -45,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
@@ -56,10 +58,7 @@
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *parameters, java_lang_Class *clazz, s4 par3)
 {
-
-#if defined(__GNUC__)
-#warning fix me for parameters float/double and long long  parameters
-#endif
+	/* XXX fix me for parameters float/double and long long  parameters */
 
 	methodinfo *m;
 	java_objectheader *o;

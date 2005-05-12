@@ -1,4 +1,4 @@
-/* native/vm/VMObject.c - java/lang/Object
+/* src/native/vm/VMObject.c - java/lang/VMObject
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,8 +27,9 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: VMObject.c 2434 2005-05-04 10:25:47Z twisti $
+   $Id: VMObject.c 2459 2005-05-12 23:21:10Z twisti $
 
 */
 
@@ -44,10 +45,6 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"
-#include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -57,6 +54,12 @@
 #  include "threads/green/locks.h"
 # endif
 #endif
+
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/stringlocal.h"
 
 
 /*
