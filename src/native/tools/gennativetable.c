@@ -1,4 +1,4 @@
-/* gennativetable.c - generate nativetable.h for native.c
+/* src/native/tools/gennativetable.c - generate nativetable.h for native.c
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 2455 2005-05-11 21:35:46Z twisti $
+   $Id: gennativetable.c 2460 2005-05-12 23:38:46Z twisti $
 
 */
 
@@ -52,6 +52,7 @@
 #endif
 
 #include "toolbox/chain.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
@@ -60,28 +61,29 @@
 
 int main(int argc, char **argv)
 {
-	s4 i, j, k;
-	char classpath[500] = "";
+	char *bootclasspath;
 	char *cp;
+
+	classcache_name_entry *nmen;
+	classcache_class_entry *clsen;
 	classinfo *c;
+	s4 i;
+	s4 j;
+	u4 slot;
 	methodinfo *m;
 	methodinfo *m2;
 	bool nativelyoverloaded;
-	u4 heapmaxsize = 2 * 1024 * 1024;
+
+	u4 heapmaxsize = 4 * 1024 * 1024;
 	u4 heapstartsize = 100 * 1024;
 	void *dummy;
 
-	/* XXX change me */
-	char classname[1024];
+	/* set the bootclasspath */
 
-	if (argc < 2) {
-   		printf("Usage: gennativetable class [class...]\n");
-   		exit(1);
-	}
-
-	cp = getenv("CLASSPATH");
+	cp = getenv("BOOTCLASSPATH");
 	if (cp) {
-		strcpy(classpath + strlen(classpath), cp);
+		bootclasspath = MNEW(char, strlen(cp) + 1);
+		strcpy(bootclasspath, cp);
 	}
 
 	/* initialize the garbage collector */
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
 
 	tables_init();
 
-	suck_init(classpath);
+	suck_init(bootclasspath);
    
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -101,65 +103,71 @@ int main(int argc, char **argv)
 	/* initialize some cacao subsystems */
 
 	utf8_init();
-	class_init_foo();
 	loader_init((u1 *) &dummy);
 
 
 	/*********************** Load JAVA classes  **************************/
 
-   	nativeclass_chain = chain_new();
 	nativemethod_chain = chain_new();
+	ident_chain = chain_new();
 
-	for (i = 1; i < argc; i++) {
-   		cp = argv[i];
+	/* load all classes from bootclasspath */
 
-		/* convert classname */
-   		for (j = strlen(cp) - 1; j >= 0; j--) {
-			switch (cp[j]) {
-			case '.': cp[j] = '/';
-				break;
-			case '_': cp[j] = '$';
-  	 		}
-		}
-	
-		c = class_new(utf_new_char(cp));
+	loader_load_all_classes();
 
-		/* exceptions are catched with new_exception call */
-		class_load(c);
-		class_link(c);
+	/* link all classes */
 
-		chain_addlast(nativeclass_chain, c);
+	for (slot = 0; slot < classcache_hash.size; slot++) {
+		nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
 
-		/* find overloaded methods */
-		for (j = 0; j < c->methodscount; j++) {
-			m = &(c->methods[j]);
+		for (; nmen; nmen = nmen->hashlink) {
+			/* iterate over all class entries */
 
-			if (!(m->flags & ACC_NATIVE))
-				continue;
+			for (clsen = nmen->classes; clsen; clsen = clsen->next) {
+				c = clsen->classobj;
 
-			if (!m->nativelyoverloaded) {
-				nativelyoverloaded = false;
-				
-				for (k = j + 1; k < c->methodscount; k++) {
-					m2 = &(c->methods[k]);
+				if (!c)
+					continue;
 
-					if (!(m2->flags & ACC_NATIVE))
+				/* exceptions are catched with new_exception call */
+
+				if (!c->linked)
+					(void) link_class(c);
+
+				/* find overloaded methods */
+
+				for (i = 0; i < c->methodscount; i++) {
+					m = &(c->methods[i]);
+
+					if (!(m->flags & ACC_NATIVE))
 						continue;
 
-					if (m->name == m2->name) {
-						m2->nativelyoverloaded = true;
-						nativelyoverloaded = true;
+					if (!m->nativelyoverloaded) {
+						nativelyoverloaded = false;
+				
+						for (j = i + 1; j < c->methodscount; j++) {
+							m2 = &(c->methods[j]);
+
+							if (!(m2->flags & ACC_NATIVE))
+								continue;
+
+							if (m->name == m2->name) {
+								m2->nativelyoverloaded = true;
+								nativelyoverloaded = true;
+							}
+						}
+
+						m->nativelyoverloaded = nativelyoverloaded;
 					}
 				}
-				m->nativelyoverloaded = nativelyoverloaded;
-			}
-		}
 
-		for (j = 0; j < c->methodscount; j++) {
-			m = &(c->methods[j]);
+				for (j = 0; j < c->methodscount; j++) {
+					m = &(c->methods[j]);
 
-			if (m->flags & ACC_NATIVE) {
-				chain_addlast(nativemethod_chain, m);
+					if (m->flags & ACC_NATIVE) {
+						chain_addlast(nativemethod_chain, m);
+					}
+				}
 			}
 		}
 	}
@@ -168,71 +176,53 @@ int main(int argc, char **argv)
 
 	file = stdout;
 
-	fprintf(file, "/* Table of native methods: nativetables.inc */\n");
 	fprintf(file, "/* This file is machine generated, don't edit it! */\n\n"); 
 
-	fprintf(file, "#include \"config.h\"\n");
+	m = chain_first(nativemethod_chain);
 
-	c = chain_first(nativeclass_chain);
-	while (c) {
-		gen_header_filename(classname, c->name);
-		fprintf(file, "#include \"native/include/%s.h\"\n", classname);
-		c = chain_next(nativeclass_chain);
+	while (m) {
+		printmethod(m);
+		m = chain_next(nativemethod_chain);
 	}
-	chain_free(nativeclass_chain);
 
-	fprintf(file, "\n\n#include \"native/native.h\"\n\n");
-	fprintf(file, "#if defined(STATIC_CLASSPATH)\n\n");
 	fprintf(file, "static nativeref nativetable[] = {\n");
 
 	m = chain_first(nativemethod_chain);
+
 	while (m) {
-		printnativetableentry(m);
+        fprintf(file, "   { \"");
+
+		print_classname(m->class);
+		fprintf(file, "\",\n     \"");
+		utf_fprint(file, m->name);
+		fprintf(file, "\",\n     \"");
+		utf_fprint(file, m->descriptor);
+		fprintf(file, "\",\n     ");
+
+		if (m->flags & ACC_STATIC)
+			fprintf(file, "true");
+		else
+			fprintf(file, "false");
+
+		fprintf(file, ",\n     ");
+		fprintf(file, "(functionptr) Java_");
+		printID(m->class->name);
+		fprintf(file, "_");
+		printID(m->name);
+	 
+		if (m->nativelyoverloaded)
+			printOverloadPart(m->descriptor);
+
+		fprintf(file,"\n   },\n");
+
 		m = chain_next(nativemethod_chain);
 	}
+
 	chain_free(nativemethod_chain);
+	chain_free(ident_chain);
 
 	fprintf(file, "};\n");
-	fprintf(file, "\n#else\n\n");
-	fprintf(file, "/* Ensure that symbols for functions implemented within cacao are used and    */\n");
-	fprintf(file, "/* exported to dlopen.                                                        */\n\n");
-	fprintf(file, "static functionptr dummynativetable[] = {\n");
 
-	{
-		FILE *implData;
-
-		implData = fopen("vm/implementednatives.data", "r");
-
-		if (!implData) {
-			fclose(file);
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   "Could not find file");
-		}
-
-		while (!feof(implData)) {
-			char functionLine[1024];
-			functionLine[0] = '\0';
-			fgets(functionLine, 1024, implData);
-
-			if (strlen(functionLine) < 2)
-				continue;
-
-			if (functionLine[strlen(functionLine) - 1] != '\n') {
-				fclose(implData);
-				fclose(file);
-				exit(4);
-			}
-
-			functionLine[strlen(functionLine) - 1] = ',';
-			fprintf(file,"\t(functionptr) %s\n", functionLine);
-		}
-
-		fprintf(file, "\t(functionptr) 0\n");
-		fclose(implData);
-	}
-
-	fprintf(file, "};\n");
-	fprintf(file, "\n#endif\n");
 	fclose(file);
 	
 	/* release all resources */

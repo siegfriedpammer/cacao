@@ -28,9 +28,10 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2455 2005-05-11 21:35:46Z twisti $
+## $Id: Makefile.am 2460 2005-05-12 23:38:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
 
@@ -40,8 +41,7 @@ gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
 	$(top_builddir)/src/cacaoh/libcacaoh.la \
-	$(top_builddir)/src/boehm-gc/libgc.la \
-	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a
+	$(top_builddir)/src/boehm-gc/libgc.la
 
 gennativetable_DEPENDENCIES = $(gennativetable_LDADD)
 
