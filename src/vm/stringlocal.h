@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2299 2005-04-14 05:17:27Z edwin $
+   $Id: stringlocal.h 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -54,6 +54,55 @@ struct literalstring {
 
 /* javastring-hashtable */
 extern hashtable string_hash;
+
+
+/* global string definitions **************************************************/
+
+/* exception/error super class */
+
+extern const char *string_java_lang_Throwable;
+extern const char *string_java_lang_VMThrowable;
+
+
+/* specify some exception strings for code generation */
+
+extern const char *string_java_lang_ArithmeticException;
+extern const char *string_java_lang_ArithmeticException_message;
+extern const char *string_java_lang_ArrayIndexOutOfBoundsException;
+extern const char *string_java_lang_ArrayStoreException;
+extern const char *string_java_lang_ClassCastException;
+extern const char *string_java_lang_ClassNotFoundException;
+extern const char *string_java_lang_CloneNotSupportedException;
+extern const char *string_java_lang_Exception;
+extern const char *string_java_lang_IllegalAccessException;
+extern const char *string_java_lang_IllegalArgumentException;
+extern const char *string_java_lang_IllegalMonitorStateException;
+extern const char *string_java_lang_IndexOutOfBoundsException;
+extern const char *string_java_lang_InstantiationException;
+extern const char *string_java_lang_InterruptedException;
+extern const char *string_java_lang_NegativeArraySizeException;
+extern const char *string_java_lang_NoSuchFieldException;
+extern const char *string_java_lang_NoSuchMethodException;
+extern const char *string_java_lang_NullPointerException;
+
+
+/* specify some error strings for code generation */
+
+extern const char *string_java_lang_AbstractMethodError;
+extern const char *string_java_lang_ClassCircularityError;
+extern const char *string_java_lang_ClassFormatError;
+extern const char *string_java_lang_Error;
+extern const char *string_java_lang_ExceptionInInitializerError;
+extern const char *string_java_lang_IncompatibleClassChangeError;
+extern const char *string_java_lang_InternalError;
+extern const char *string_java_lang_LinkageError;
+extern const char *string_java_lang_NoClassDefFoundError;
+extern const char *string_java_lang_NoSuchFieldError;
+extern const char *string_java_lang_NoSuchMethodError;
+extern const char *string_java_lang_OutOfMemoryError;
+extern const char *string_java_lang_UnsupportedClassVersionError;
+extern const char *string_java_lang_VerifyError;
+extern const char *string_java_lang_VirtualMachineError;
 
 
 /* function prototypes ********************************************************/

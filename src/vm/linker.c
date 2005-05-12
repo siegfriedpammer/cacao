@@ -32,12 +32,13 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2323 2005-04-21 22:18:38Z twisti $
+   $Id: linker.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
 
 #include <assert.h>
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
@@ -48,6 +49,7 @@
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/codegen.inc.h"
 
 

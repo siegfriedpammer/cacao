@@ -26,11 +26,12 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christian Thalinger
 
-   $Id: descriptor.c 2194 2005-04-03 16:13:27Z twisti $
+   $Id: descriptor.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
+
 
 #include <assert.h>
 
@@ -39,6 +40,7 @@
 #include "vm/descriptor.h"
 #include "vm/exceptions.h"
 #include "vm/resolve.h"
+#include "vm/stringlocal.h"
 
 
 /* constants (private to descriptor.c) ****************************************/

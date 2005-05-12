@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2446 2005-05-11 12:54:04Z twisti $
+   $Id: stack.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/jit.h"

@@ -1,4 +1,4 @@
-/* vm/classcache.c - loaded class cache and loading constraints
+/* src/vm/classcache.c - loaded class cache and loading constraints
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,18 +26,22 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christian Thalinger
 
-   $Id: classcache.c 2309 2005-04-15 14:29:04Z edwin $
+   $Id: classcache.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
+
 #include <assert.h>
-#include "vm/classcache.h"
-#include "vm/utf8.h"
-#include "vm/tables.h"
-#include "vm/exceptions.h"
+
 #include "mm/memory.h"
+#include "vm/classcache.h"
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
+#include "vm/tables.h"
+#include "vm/utf8.h"
+
 
 /* initial number of slots in the classcache hash table */
 #define CLASSCACHE_INIT_SIZE  2048
@@ -443,7 +447,7 @@ classcache_store(
 	classcache_loader_entry *lden;
 
 	CLASSCACHE_ASSERT(cls != NULL);
-	CLASSCACHE_ASSERT(cls->loaded != NULL);
+	CLASSCACHE_ASSERT(cls->loaded != 0);
 
 #ifdef CLASSCACHE_VERBOSE
 	fprintf(stderr, "classcache_store(%p,", initloader);

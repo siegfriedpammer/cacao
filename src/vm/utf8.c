@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: utf8.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "vm/exceptions.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
 

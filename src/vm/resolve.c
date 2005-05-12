@@ -26,9 +26,9 @@
 
    Authors: Edwin Steiner
 
-   Changes:
+   Changes: Christan Thalinger
 
-   $Id: resolve.c 2241 2005-04-06 15:07:46Z edwin $
+   $Id: resolve.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -39,11 +39,11 @@
 #include "vm/resolve.h"
 #include "vm/access.h"
 #include "vm/classcache.h"
-#include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/linker.h"
-#include "vm/classcache.h"
 #include "vm/descriptor.h"
+#include "vm/exceptions.h"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
 

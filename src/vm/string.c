@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: string.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -48,6 +48,122 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
+
+
+/* global string definitions **************************************************/
+
+/* exception/error super class */
+
+const char *string_java_lang_Throwable =
+    "java/lang/Throwable";
+
+const char *string_java_lang_VMThrowable =
+    "java/lang/VMThrowable";
+
+
+/* specify some exception strings for code generation */
+
+const char *string_java_lang_ArithmeticException =
+    "java/lang/ArithmeticException";
+
+const char *string_java_lang_ArithmeticException_message =
+    "/ by zero";
+
+const char *string_java_lang_ArrayIndexOutOfBoundsException =
+    "java/lang/ArrayIndexOutOfBoundsException";
+
+const char *string_java_lang_ArrayStoreException =
+    "java/lang/ArrayStoreException";
+
+const char *string_java_lang_ClassCastException =
+    "java/lang/ClassCastException";
+
+const char *string_java_lang_ClassNotFoundException =
+	"java/lang/ClassNotFoundException";
+
+const char *string_java_lang_CloneNotSupportedException =
+    "java/lang/CloneNotSupportedException";
+
+const char *string_java_lang_Exception =
+    "java/lang/Exception";
+
+const char *string_java_lang_IllegalAccessException =
+    "java/lang/IllegalAccessException";
+
+const char *string_java_lang_IllegalArgumentException =
+    "java/lang/IllegalArgumentException";
+
+const char *string_java_lang_IllegalMonitorStateException =
+    "java/lang/IllegalMonitorStateException";
+
+const char *string_java_lang_IndexOutOfBoundsException =
+    "java/lang/IndexOutOfBoundsException";
+
+const char *string_java_lang_InstantiationException =
+    "java/lang/InstantiationException";
+
+const char *string_java_lang_InterruptedException =
+    "java/lang/InterruptedException";
+
+const char *string_java_lang_NegativeArraySizeException =
+    "java/lang/NegativeArraySizeException";
+
+const char *string_java_lang_NoSuchFieldException =
+	"java/lang/NoSuchFieldException";
+
+const char *string_java_lang_NoSuchMethodException =
+	"java/lang/NoSuchMethodException";
+
+const char *string_java_lang_NullPointerException =
+    "java/lang/NullPointerException";
+
+
+/* specify some error strings for code generation */
+
+const char *string_java_lang_AbstractMethodError =
+    "java/lang/AbstractMethodError";
+
+const char *string_java_lang_ClassCircularityError =
+    "java/lang/ClassCircularityError";
+
+const char *string_java_lang_ClassFormatError =
+    "java/lang/ClassFormatError";
+
+const char *string_java_lang_Error =
+    "java/lang/Error";
+
+const char *string_java_lang_ExceptionInInitializerError =
+    "java/lang/ExceptionInInitializerError";
+
+const char *string_java_lang_IncompatibleClassChangeError =
+    "java/lang/IncompatibleClassChangeError";
+
+const char *string_java_lang_InternalError =
+    "java/lang/InternalError";
+
+const char *string_java_lang_LinkageError =
+    "java/lang/LinkageError";
+
+const char *string_java_lang_NoClassDefFoundError =
+    "java/lang/NoClassDefFoundError";
+
+const char *string_java_lang_NoSuchFieldError =
+	"java/lang/NoSuchFieldError";
+
+const char *string_java_lang_NoSuchMethodError =
+	"java/lang/NoSuchMethodError";
+
+const char *string_java_lang_OutOfMemoryError =
+    "java/lang/OutOfMemoryError";
+
+const char *string_java_lang_UnsupportedClassVersionError =
+    "java/lang/UnsupportedClassVersionError";
+
+const char *string_java_lang_VerifyError =
+    "java/lang/VerifyError";
+
+const char *string_java_lang_VirtualMachineError =
+    "java/lang/VirtualMachineError";
 
 
 /* stringtable_update **********************************************************

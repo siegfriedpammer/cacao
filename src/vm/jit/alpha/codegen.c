@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2452 2005-05-11 15:34:37Z twisti $
+   $Id: codegen.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"

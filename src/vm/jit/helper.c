@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: helper.c 2458 2005-05-12 23:02:07Z twisti $
 
 */
 
@@ -36,10 +36,11 @@
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/linker.h"
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/resolve.h"
-#include "vm/linker.h"
+#include "vm/stringlocal.h"
 
 /* XXX class_resolveclassmethod */
 #include "vm/loader.h"
