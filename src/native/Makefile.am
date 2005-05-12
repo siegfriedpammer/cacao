@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1996 2005-03-05 16:57:40Z twisti $
+## $Id: Makefile.am 2461 2005-05-12 23:44:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,6 +38,16 @@ SUBDIRS = include vm
 
 CLEANFILES =
 
+if STATIC_CLASSPATH
+SUBDIRS += tools
+CLEANFILES += nativetable.inc
+
+$(srcdir)/native.c: nativetable.inc
+
+nativetable.inc: $(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable
+	BOOTCLASSPATH=$(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable > $(top_builddir)/src/native/nativetable.inc
+endif
+
 noinst_LTLIBRARIES = libnative.la
 
 libnative_la_SOURCES = \
@@ -45,8 +55,7 @@ libnative_la_SOURCES = \
 	jni.h \
 	native.c \
 	native.h \
-	nativecalls.inc \
-	nativetable.inc
+	nativecalls.inc
 
 libnative_la_LIBADD = \
 	vm/libnativevm.la
