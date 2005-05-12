@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2345 2005-04-22 13:50:44Z twisti $
+   $Id: native.c 2462 2005-05-12 23:45:03Z twisti $
 
 */
 
@@ -75,7 +75,128 @@
 
 /* include table of native functions ******************************************/
 
-#include "nativetable.inc"
+#if defined(STATIC_CLASSPATH)
+
+#include "native/include/java_lang_Cloneable.h"
+#include "native/include/java_lang_reflect_Field.h"
+#include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_util_Properties.h"
+
+#include "native/nativetable.inc"
+
+#else /* defined(STATIC_CLASSPATH) */
+
+/* Ensure that symbols for functions implemented within CACAO are used and    */
+/* exported to dlopen.                                                        */
+
+static functionptr dummynativetable[] = {
+	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
+
+	(functionptr) Java_gnu_classpath_VMSystemProperties_preInit,
+
+	(functionptr) Java_java_lang_VMClass_isInstance,
+	(functionptr) Java_java_lang_VMClass_isAssignableFrom,
+	(functionptr) Java_java_lang_VMClass_isInterface,
+	(functionptr) Java_java_lang_VMClass_isPrimitive,
+	(functionptr) Java_java_lang_VMClass_getName,
+	(functionptr) Java_java_lang_VMClass_getSuperclass,
+	(functionptr) Java_java_lang_VMClass_getInterfaces,
+	(functionptr) Java_java_lang_VMClass_getComponentType,
+	(functionptr) Java_java_lang_VMClass_getModifiers,
+	(functionptr) Java_java_lang_VMClass_getDeclaringClass,
+	(functionptr) Java_java_lang_VMClass_getDeclaredClasses,
+	(functionptr) Java_java_lang_VMClass_getDeclaredFields,
+	(functionptr) Java_java_lang_VMClass_getDeclaredMethods,
+	(functionptr) Java_java_lang_VMClass_getDeclaredConstructors,
+	(functionptr) Java_java_lang_VMClass_getClassLoader,
+	(functionptr) Java_java_lang_VMClass_forName,
+	(functionptr) Java_java_lang_VMClass_isArray,
+	(functionptr) Java_java_lang_VMClass_initialize,
+	(functionptr) Java_java_lang_VMClass_loadArrayClass,
+	(functionptr) Java_java_lang_VMClass_throwException,
+
+	(functionptr) Java_java_lang_VMClassLoader_defineClass,
+	(functionptr) Java_java_lang_VMClassLoader_resolveClass,
+	(functionptr) Java_java_lang_VMClassLoader_loadClass,
+	(functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass,
+	(functionptr) Java_java_lang_VMClassLoader_nativeGetResources,
+
+	(functionptr) Java_java_lang_VMObject_getClass,
+	(functionptr) Java_java_lang_VMObject_clone,
+	(functionptr) Java_java_lang_VMObject_notify,
+	(functionptr) Java_java_lang_VMObject_notifyAll,
+	(functionptr) Java_java_lang_VMObject_wait,
+
+	(functionptr) Java_java_lang_VMRuntime_availableProcessors,
+	(functionptr) Java_java_lang_VMRuntime_freeMemory,
+	(functionptr) Java_java_lang_VMRuntime_totalMemory,
+	(functionptr) Java_java_lang_VMRuntime_maxMemory,
+	(functionptr) Java_java_lang_VMRuntime_gc,
+	(functionptr) Java_java_lang_VMRuntime_runFinalization,
+	(functionptr) Java_java_lang_VMRuntime_runFinalizationForExit,
+	(functionptr) Java_java_lang_VMRuntime_traceInstructions,
+	(functionptr) Java_java_lang_VMRuntime_traceMethodCalls,
+	(functionptr) Java_java_lang_VMRuntime_runFinalizersOnExit,
+	(functionptr) Java_java_lang_VMRuntime_exit,
+	(functionptr) Java_java_lang_VMRuntime_nativeLoad,
+	(functionptr) Java_java_lang_VMRuntime_mapLibraryName,
+
+	(functionptr) Java_java_lang_VMString_intern,
+
+	(functionptr) Java_java_lang_VMSystem_arraycopy,
+	(functionptr) Java_java_lang_VMSystem_identityHashCode,
+
+	(functionptr) Java_java_lang_VMThread_start,
+	(functionptr) Java_java_lang_VMThread_interrupt,
+	(functionptr) Java_java_lang_VMThread_isInterrupted,
+	(functionptr) Java_java_lang_VMThread_suspend,
+	(functionptr) Java_java_lang_VMThread_resume,
+	(functionptr) Java_java_lang_VMThread_nativeSetPriority,
+	(functionptr) Java_java_lang_VMThread_nativeStop,
+	(functionptr) Java_java_lang_VMThread_currentThread,
+	(functionptr) Java_java_lang_VMThread_yield,
+	(functionptr) Java_java_lang_VMThread_interrupted,
+	(functionptr) Java_java_lang_VMThread_holdsLock,
+
+	(functionptr) Java_java_lang_VMThrowable_fillInStackTrace,
+	(functionptr) Java_java_lang_VMThrowable_getStackTrace,
+
+	(functionptr) Java_java_lang_reflect_Constructor_getModifiers,
+	(functionptr) Java_java_lang_reflect_Constructor_constructNative,
+
+	(functionptr) Java_java_lang_reflect_Field_getModifiers,
+	(functionptr) Java_java_lang_reflect_Field_getType,
+	(functionptr) Java_java_lang_reflect_Field_get,
+	(functionptr) Java_java_lang_reflect_Field_getBoolean,
+	(functionptr) Java_java_lang_reflect_Field_getByte,
+	(functionptr) Java_java_lang_reflect_Field_getChar,
+	(functionptr) Java_java_lang_reflect_Field_getShort,
+	(functionptr) Java_java_lang_reflect_Field_getInt,
+	(functionptr) Java_java_lang_reflect_Field_getLong,
+	(functionptr) Java_java_lang_reflect_Field_getFloat,
+	(functionptr) Java_java_lang_reflect_Field_getDouble,
+	(functionptr) Java_java_lang_reflect_Field_set,
+	(functionptr) Java_java_lang_reflect_Field_setBoolean,
+	(functionptr) Java_java_lang_reflect_Field_setByte,
+	(functionptr) Java_java_lang_reflect_Field_setChar,
+	(functionptr) Java_java_lang_reflect_Field_setShort,
+	(functionptr) Java_java_lang_reflect_Field_setInt,
+	(functionptr) Java_java_lang_reflect_Field_setLong,
+	(functionptr) Java_java_lang_reflect_Field_setFloat,
+	(functionptr) Java_java_lang_reflect_Field_setDouble,
+
+	(functionptr) Java_java_lang_reflect_Proxy_getProxyClass0,
+	(functionptr) Java_java_lang_reflect_Proxy_getProxyData0,
+	(functionptr) Java_java_lang_reflect_Proxy_generateProxyClass0,
+
+	(functionptr) Java_java_lang_reflect_Method_getModifiers,
+	(functionptr) Java_java_lang_reflect_Method_getReturnType,
+	(functionptr) Java_java_lang_reflect_Method_getParameterTypes,
+	(functionptr) Java_java_lang_reflect_Method_getExceptionTypes,
+	(functionptr) Java_java_lang_reflect_Method_invokeNative,
+};
+
+#endif /* defined(STATIC_CLASSPATH) */
 
 
 /************* use classinfo structure as java.lang.Class object **************/
@@ -772,9 +893,8 @@ return true;
 
 java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo **start)
 {
-#if defined(__GNUC__)
-#warning platform dependend
-#endif
+	/* XXX platform dependend */
+
 	java_objectarray *tmpArray;
 	int i;
 	classinfo **current;
@@ -808,9 +928,8 @@ java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo
 
 java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **start)
 {
-#if defined(__GNUC__)
-#warning platform dependend
-#endif
+	/* XXX platform dependend */
+
 	int i;
 	classinfo **current;
 	classinfo *c;
