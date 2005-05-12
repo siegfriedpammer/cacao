@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2196 2005-04-03 21:37:44Z twisti $
+## $Id: Makefile.am 2457 2005-05-12 23:00:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -63,8 +63,6 @@ libvmcore_la_SOURCES = \
 	classcache.h \
 	descriptor.c \
 	descriptor.h \
-	exceptions.c \
-	exceptions.h \
 	field.c \
 	field.h \
 	initialize.c \
@@ -89,7 +87,9 @@ libvmcore_la_SOURCES = \
 	utf8.h \
 	$(ZLIB_OBJ)
 
-libvm_la_SOURCES =
+libvm_la_SOURCES = \
+	exceptions.c \
+	exceptions.h
 
 libvm_la_LIBADD = \
 	libvmcore.la \
