@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: loader.c 2456 2005-05-12 22:59:04Z twisti $
 
 */
 
@@ -492,7 +492,13 @@ void suck_init(char *classpath)
 }
 
 
-void create_all_classes()
+/* loader_load_all_classes *****************************************************
+
+   Loads all classes specified in the BOOTCLASSPATH.
+
+*******************************************************************************/
+
+void loader_load_all_classes(void)
 {
 	classpath_info *cpi;
 	classinfo *c;
@@ -507,7 +513,11 @@ void create_all_classes()
 			ce = s->cacao_dir_list;
 				
 			while (ce) {
-				load_class_bootstrap(ce->name,&c);
+				/* check for .properties files */
+
+				if (!strstr(ce->name->text, ".properties"))
+					load_class_bootstrap(ce->name, &c);
+
 				ce = ce->next;
 			}
 

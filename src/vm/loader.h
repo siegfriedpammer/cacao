@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2303 2005-04-14 12:04:42Z edwin $
+   $Id: loader.h 2456 2005-05-12 22:59:04Z twisti $
 */
 
 
@@ -155,7 +155,7 @@ extern classpath_info *classpath_entries;
 bool loader_init(u1 *stackbottom);
 
 void suck_init(char *cpath);
-void create_all_classes(void);
+void loader_load_all_classes(void);
 void suck_stop(classbuffer *cb);
 
 inline bool check_classbuffer_size(classbuffer *cb, s4 len);

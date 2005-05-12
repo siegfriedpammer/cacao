@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2297 2005-04-13 12:50:07Z christian $
+   $Id: cacao.c 2456 2005-05-12 22:59:04Z twisti $
 
 */
 
@@ -939,9 +939,13 @@ int main(int argc, char **argv)
 									 class_java_lang_Object,
 									 false);
 
+		if (*exceptionptr) {
+			throw_main_exception_exit();
+		}
+
 		/* there is no main method or it isn't static */
 
-		if (*exceptionptr || !m || !(m->flags & ACC_STATIC)) {
+		if (!m || !(m->flags & ACC_STATIC)) {
 			*exceptionptr = NULL;
 
 			*exceptionptr =
@@ -1003,15 +1007,20 @@ int main(int argc, char **argv)
 
 		/* create all classes found in the classpath */
 		/* XXX currently only works with zip/jar's */
-		create_all_classes();
+
+		loader_load_all_classes();
 
 		/* link all classes */
+
 		for (slot = 0; slot < classcache_hash.size; slot++) {
 			nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
-			for (; nmen; nmen=nmen->hashlink) {
+
+			for (; nmen; nmen = nmen->hashlink) {
 				/* iterate over all class entries */
+
 				for (clsen = nmen->classes; clsen; clsen = clsen->next) {
 					c = clsen->classobj;
+
 					if (!c)
 						continue;
 
