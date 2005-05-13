@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2356 2005-04-22 17:33:35Z christian $
+   $Id: arch.h 2477 2005-05-13 14:04:16Z twisti $
 
 */
 
@@ -53,33 +53,39 @@
 
 /* integer registers */
   
-#define REG_RESULT      EAX      /* to deliver method results                 */
-#define REG_RESULT2     EDX      /* to deliver long method results            */
+#define REG_RESULT      EAX     /* to deliver method results                  */
+#define REG_RESULT2     EDX     /* to deliver long method results             */
 
-#define REG_ITMP1       EAX      /* temporary register                        */
-#define REG_ITMP2       ECX      /* temporary register                        */
-#define REG_ITMP3       EDX      /* temporary register                        */
+#define REG_ITMP1       EAX     /* temporary register                         */
+#define REG_ITMP2       ECX     /* temporary register                         */
+#define REG_ITMP3       EDX     /* temporary register                         */
 
-#define REG_NULL        -1       /* used for reg_of_var where d is not needed */
+#define REG_NULL        -1      /* used for reg_of_var where d is not needed  */
 
-#define REG_ITMP1_XPTR  EAX      /* exception pointer = temporary register 1  */
-#define REG_ITMP2_XPC   ECX      /* exception pc = temporary register 2       */
+#define REG_ITMP1_XPTR  EAX     /* exception pointer = temporary register 1   */
+#define REG_ITMP2_XPC   ECX     /* exception pc = temporary register 2        */
 
-#define REG_SP          ESP      /* stack pointer                             */
+#define REG_SP          ESP     /* stack pointer                              */
 
 /* floating point registers */
 
-#define REG_FRESULT     0    /* to deliver floating point method results      */
-#define REG_FTMP1       6    /* temporary floating point register             */
-#define REG_FTMP2       7    /* temporary floating point register             */
-#define REG_FTMP3       7    /* temporary floating point register             */
+#define REG_FRESULT     0       /* to deliver floating point method results   */
+#define REG_FTMP1       6       /* temporary floating point register          */
+#define REG_FTMP2       7       /* temporary floating point register          */
+#define REG_FTMP3       7       /* temporary floating point register          */
 
 
-#define INT_SAV_CNT     3    /* number of int callee saved registers          */
-#define INT_ARG_CNT     0    /* number of int argument registers              */
+#define INT_REG_CNT     8       /* number of integer registers                */
+#define INT_SAV_CNT     3       /* number of integer callee saved registers   */
+#define INT_ARG_CNT     0       /* number of integer argument registers       */
+#define INT_TMP_CNT     1       /* number of integer temporary registers      */
+#define INT_RES_CNT     3       /* numebr of integer reserved registers       */
 
-#define FLT_SAV_CNT     0    /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     0    /* number of flt argument registers              */
+#define FLT_REG_CNT     8       /* number of float registers                  */
+#define FLT_SAV_CNT     0       /* number of float callee saved registers     */
+#define FLT_ARG_CNT     0       /* number of float argument registers         */
+#define FLT_TMP_CNT     0       /* number of float temporary registers        */
+#define FLT_RES_CNT     8       /* numebr of float reserved registers         */
 
 #define TRACE_ARGS_NUM  8
 
@@ -117,7 +123,7 @@
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
 
-#define SUPPORT_CONST_STORE              0  /* do we support const stores     */
+#define SUPPORT_CONST_STORE              1  /* do we support const stores     */
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
