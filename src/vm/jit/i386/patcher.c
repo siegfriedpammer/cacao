@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2468 2005-05-13 09:06:03Z twisti $
+   $Id: patcher.c 2475 2005-05-13 14:02:57Z twisti $
 
 */
 
@@ -276,6 +276,93 @@ bool patcher_putfield(u1 *sp)
 
 		*((u4 *) (ra + 7 + 7 + 2)) = (u4) (fi->offset);
 		*((u4 *) (ra + 7 + 7 + 6 + 2)) = (u4) (fi->offset + 4);
+	}
+
+#if defined(USE_THREADS)
+	/* this position has been patched */
+
+	o->vftbl = (vftbl_t *) 1;
+
+	/* leave the monitor on the patching position */
+
+	builtin_monitorexit(o);
+#endif
+
+	return true;
+}
+
+
+/* patcher_putfieldconst *******************************************************
+
+   Machine code:
+
+   <patched call position>
+   c7 85 00 00 00 00 7b 00 00 00    movl   $0x7b,0x0(%ebp)
+
+*******************************************************************************/
+
+bool patcher_putfieldconst(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	unresolved_field  *uf;
+	fieldinfo         *fi;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 4));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 4));
+	mcode =                       *((u8 *)     (sp + 1 * 4));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 4));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 5;
+	*((ptrint *) (sp + 4 * 4)) = (ptrint) ra;
+
+#if defined(USE_THREADS)
+	/* enter a monitor on the patching position */
+
+	builtin_monitorenter(o);
+
+	/* check if the position has already been patched */
+
+	if (o->vftbl) {
+		builtin_monitorexit(o);
+
+		return true;
+	}
+#endif
+
+	/* get the fieldinfo */
+
+	if (!(fi = helper_resolve_fieldinfo(uf)))
+		return false;
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
+	/* patch the field's offset */
+
+	if (!IS_2_WORD_TYPE(fi->type)) {
+		*((u4 *) (ra + 2)) = (u4) (fi->offset);
+
+	} else {
+		/* long/double code is different:
+		 *
+		 * c7 80 00 00 00 00 c8 01 00 00    movl   $0x1c8,0x0(%eax)
+		 * c7 80 04 00 00 00 00 00 00 00    movl   $0x0,0x4(%eax)
+		 */
+
+		*((u4 *) (ra + 2)) = (u4) (fi->offset);
+		*((u4 *) (ra + 10 + 2)) = (u4) (fi->offset + 4);
 	}
 
 #if defined(USE_THREADS)
