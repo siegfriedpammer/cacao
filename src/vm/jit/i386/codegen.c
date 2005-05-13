@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2470 2005-05-13 09:08:48Z twisti $
+   $Id: codegen.c 2476 2005-05-13 14:03:12Z twisti $
 
 */
 
@@ -3428,7 +3428,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (!iptr[1].val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_getfield,
+									PATCHER_putfieldconst,
 									(unresolved_field *) iptr[1].target);
 
 				if (showdisassemble) {
