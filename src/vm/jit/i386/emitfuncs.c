@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2356 2005-04-22 17:33:35Z christian $
+   $Id: emitfuncs.c 2466 2005-05-13 09:04:04Z twisti $
 
 */
 
@@ -316,7 +316,7 @@ void i386_emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction 
 		s4 offset = 0;
 
 		if (src->flags & INMEMORY) {
-			i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+			i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 		} else {
 			i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -335,7 +335,7 @@ void i386_emit_ifcc_iconst(codegendata *cd, s4 if_op, stackptr src, instruction 
 
 	} else {
 		if (src->flags & INMEMORY) {
-			i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+			i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 		} else {
 			i386_test_reg_reg(cd, src->regoff, src->regoff);
