@@ -60,7 +60,7 @@ public class test {
         try {
             p("getstatic (J): ");
             if (doit)
-                check(getstaticJ.l, 456L);
+                check(getstaticJ.l, 1234567890123L);
             else
                 ok();
         } catch (Throwable t) {
@@ -115,7 +115,7 @@ public class test {
         try {
             p("putstatic (J): ");
             if (doit) {
-                long l = 456L;
+                long l = 1234567890123L;
                 putstaticJ.l = l;
                 check(putstaticJ.l, l);
             } else
@@ -176,7 +176,7 @@ public class test {
         try {
             p("getfield (J): ");
             if (doit)
-                check(new getfieldJ().l, 456L);
+                check(new getfieldJ().l, 1234567890123L);
             else
                 ok();
         } catch (Throwable t) {
@@ -233,7 +233,7 @@ public class test {
             p("putfield (J): ");
             if (doit) {
                 putfieldJ pfj = new putfieldJ();
-                long l = 456L;
+                long l = 1234567890123L;
                 pfj.l = l;
                 check(pfj.l, l);
             } else
@@ -299,8 +299,8 @@ public class test {
             p("putfieldconst (J,D,L): ");
             if (doit) {
                 putfieldconstJDL pfcjdl = new putfieldconstJDL();
-                pfcjdl.l = 456;
-                check(pfcjdl.l, 456);
+                pfcjdl.l = 1234567890123L;
+                check(pfcjdl.l, 1234567890123L);
             } else
                 ok();
         } catch (Throwable t) {
