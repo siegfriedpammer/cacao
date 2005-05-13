@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2374 2005-04-25 14:13:56Z twisti $
+   $Id: asmpart.S 2469 2005-05-13 09:06:36Z twisti $
 
 */
 
@@ -77,7 +77,7 @@
 
 	.globl asm_wrapper_patcher
 
-	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
 	.globl asm_builtin_ldiv
@@ -677,7 +677,8 @@ noflt:
    XXX
 
    Stack layout:
-     16   return address
+     20   return address
+     16   pointer to virtual java_objectheader
      12   last byte of machine code (xmcode)
       8   machine code (which is patched back later)
       4   unresolved field reference
@@ -721,7 +722,7 @@ asm_wrapper_patcher:
 	mov     0*4(%esp),itmp1             /* restore itmp1 and itmp2            */
 	mov     1*4(%esp),itmp2             /* may be used by some instructions   */
 
-	add     $((4+2)*4),%esp             /* remove stack frame, keep ra        */
+	add     $((5+2)*4),%esp             /* remove stack frame, keep ra        */
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
 	ret                                 /* call new patched code              */
@@ -833,13 +834,13 @@ asm_builtin_d2l:
 	ret
 
 
-/******************* function asm_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_arraycheckcast **************************************************
+
+   Does the cast check and eventually throws an exception.
+
 *******************************************************************************/
 
-asm_builtin_checkarraycast:
+asm_builtin_arraycheckcast:
 	sub		$8,%esp                     /* build stack frame (2 * 4 bytes)    */
 
 	mov		12(%esp),%eax               /* first param:	8 (frame) + 4 (return)*/
@@ -848,7 +849,7 @@ asm_builtin_checkarraycast:
 	mov		16(%esp),%eax				/* second param:	8 (frame) + 4 (return) + 4*/
 	mov		%eax,4(%esp)
 
-	call	builtin_checkarraycast      /* builtin_checkarraycast             */
+	call	builtin_arraycheckcast
 
 	test	%eax,%eax                   /* if (false) throw exception         */
 	je		nb_carray_throw
