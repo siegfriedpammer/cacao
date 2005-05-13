@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2450 2005-05-11 13:47:15Z twisti $
+## $Id: Makefile.am 2480 2005-05-13 15:32:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -77,36 +77,42 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_lang_VMSystem.h \
 	java_lang_reflect_Proxy.h
 
-IMPLEMENTED_IN_CLASSPATH_HEADER_FILES = \
-	java_lang_SecurityManager.h \
+ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 	java_net_DatagramPacket.h \
-	java_net_VMInetAddress.h \
-	java_net_SocketImpl.h \
+	java_net_InetAddress.h \
 	\
 	gnu_java_net_PlainDatagramSocketImpl.h \
 	gnu_java_net_PlainSocketImpl.h \
+	gnu_java_nio_PipeImpl.h \
 	gnu_java_nio_channels_FileChannelImpl.h \
-	java_io_ObjectInputStream.h \
-	java_io_VMFile.h \
-	java_io_VMObjectStreamClass.h \
-	java_lang_Math.h \
-	java_lang_VMDouble.h \
-	java_lang_VMFloat.h \
-	java_lang_reflect_Array.h \
-	java_net_NetworkInterface.h \
-	java_nio_DirectByteBufferImpl.h \
-	java_util_VMTimeZone.h
+	gnu_java_nio_charset_iconv_IconvEncoder.h \
+	gnu_java_nio_charset_iconv_IconvDecoder.h \
+	java_lang_VMProcess.h \
+	java_net_SocketImpl.h \
+	java_nio_MappedByteBufferImpl.h \
+	java_nio_channels_spi_SelectorProvider.h
 
 CLEANFILES = \
 	$(GEN_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
-	$(IMPLEMENTED_IN_CLASSPATH_HEADER_FILES)
+	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 
 noinst_HEADERS = \
 	$(NO_GEN_HEADER_FILES) \
 	$(GEN_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
-	$(IMPLEMENTED_IN_CLASSPATH_HEADER_FILES)
+	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+
+DO_HEADER_FILES = \
+	$(GEN_HEADER_FILES) \
+	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+
+if STATIC_CLASSPATH
+noinst_HEADERS += \
+	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
+
+DO_HEADER_FILES += \
+	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
+endif
 
 noinst_DATA =
 
@@ -118,7 +124,12 @@ else
 CLASSPATH = $(top_builddir)/src/classpath/lib/
 endif
 
-$(CLEANFILES):
+$(NO_GEN_HEADER_FILES):
+	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
+	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
+	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
+
+$(DO_HEADER_FILES):
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
