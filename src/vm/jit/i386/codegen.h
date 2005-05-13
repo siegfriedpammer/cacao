@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2376 2005-04-25 14:15:14Z twisti $
+   $Id: codegen.h 2467 2005-05-13 09:05:00Z twisti $
 
 */
 
@@ -138,7 +138,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 
 #define gen_bound_check \
     if (checkbounds) { \
-        i386_alu_membase_reg(cd, I386_CMP, s1, OFFSET(java_arrayheader, size), s2); \
+        i386_alu_membase_reg(cd, ALU_CMP, s1, OFFSET(java_arrayheader, size), s2); \
         i386_jcc(cd, I386_CC_AE, 0); \
         codegen_addxboundrefs(cd, cd->mcodeptr, s2); \
     }
@@ -146,7 +146,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define gen_div_check(v) \
     if (checknull) { \
         if ((v)->flags & INMEMORY) { \
-            i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4); \
+            i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4); \
         } else { \
             i386_test_reg_reg(cd, src->regoff, src->regoff); \
         } \
@@ -337,30 +337,30 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 /* macros to create code ******************************************************/
 
 typedef enum {
-    I386_AL = 0,
-    I386_CL = 1,
-    I386_DL = 2,
-    I386_BL = 3,
-    I386_AH = 4,
-    I386_CH = 5,
-    I386_DH = 6,
-    I386_BH = 7,
-    I386_NREGB
+    REG_AL = 0,
+    REG_CL = 1,
+    REG_DL = 2,
+    REG_BL = 3,
+    REG_AH = 4,
+    REG_CH = 5,
+    REG_DH = 6,
+    REG_BH = 7,
+    REG_NREGB
 } I386_RegB_No;
 
 
 /* opcodes for alu instructions */
 
 typedef enum {
-    I386_ADD = 0,
-    I386_OR  = 1,
-    I386_ADC = 2,
-    I386_SBB = 3,
-    I386_AND = 4,
-    I386_SUB = 5,
-    I386_XOR = 6,
-    I386_CMP = 7,
-    I386_NALU
+    ALU_ADD = 0,
+    ALU_OR  = 1,
+    ALU_ADC = 2,
+    ALU_SBB = 3,
+    ALU_AND = 4,
+    ALU_SUB = 5,
+    ALU_XOR = 6,
+    ALU_CMP = 7,
+    ALU_NALU
 } I386_ALU_Opcode;
 
 typedef enum {
@@ -512,7 +512,14 @@ typedef enum {
 
 /* macros to create code ******************************************************/
 
-#define M_NOP                   i386_nop(cd)                    /* ;          */
+#define M_ILD(a,b,disp)         i386_mov_membase_reg(cd, (b), (disp), (a))
+
+#define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
+
+#define M_IADD_IMM(a,b)         i386_alu_imm_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB_IMM(a,b)         i386_alu_imm_reg(cd, ALU_SUB, (a), (b))
+
+#define M_NOP                   i386_nop(cd)
 
 
 /* function gen_resolvebranch **************************************************
