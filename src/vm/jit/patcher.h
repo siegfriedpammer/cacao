@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2447 2005-05-11 12:55:06Z twisti $
+   $Id: patcher.h 2473 2005-05-13 14:01:19Z twisti $
 
 */
 
@@ -59,7 +59,7 @@ bool patcher_get_putfield(u1 *sp);
 
 #endif /* defined(__I386__) */
 
-#if defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__)
 bool patcher_putfieldconst(u1 *sp);
 #define PATCHER_putfieldconst (functionptr) patcher_putfieldconst
 #endif
