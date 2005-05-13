@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2462 2005-05-12 23:45:03Z twisti $
+   $Id: native.c 2465 2005-05-13 00:02:01Z twisti $
 
 */
 
@@ -75,12 +75,29 @@
 
 /* include table of native functions ******************************************/
 
-#if defined(STATIC_CLASSPATH)
-
 #include "native/include/java_lang_Cloneable.h"
-#include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_util_Properties.h"
+#include "native/include/java_io_InputStream.h"
+#include "native/include/java_io_PrintStream.h"
+
+#include "native/include/gnu_classpath_VMStackWalker.h"
+#include "native/include/gnu_classpath_VMSystemProperties.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_VMClass.h"
+#include "native/include/java_lang_VMClassLoader.h"
+#include "native/include/java_lang_VMObject.h"
+#include "native/include/java_lang_VMRuntime.h"
+#include "native/include/java_lang_VMString.h"
+#include "native/include/java_lang_VMSystem.h"
+#include "native/include/java_lang_VMThread.h"
+#include "native/include/java_lang_VMThrowable.h"
+#include "native/include/java_lang_reflect_Constructor.h"
+#include "native/include/java_lang_reflect_Field.h"
+#include "native/include/java_lang_reflect_Proxy.h"
+#include "native/include/java_lang_reflect_Method.h"
+
+#if defined(STATIC_CLASSPATH)
 
 #include "native/nativetable.inc"
 
@@ -205,19 +222,20 @@ void use_class_as_object(classinfo *c)
 {
 	if (!c->classvftbl) {
 		/* is the class loaded */
-		if (!c->loaded)
+		if (!c->loaded) {
 /*  			if (!class_load(c)) */
 /*  				throw_exception_exit(); */
-			panic("use_class_as_object: class_load should not happen");
+			log_text("use_class_as_object: class_load should not happen");
+			assert(0);
+		}
 
 		/* is the class linked */
 		if (!c->linked)
 			if (!link_class(c))
 				throw_exception_exit();
 
-		/*if (class_java_lang_Class ==0) panic("java/lang/Class not loaded in use_class_as_object");
-		if (class_java_lang_Class->vftbl ==0) panic ("vftbl == 0 in use_class_as_object");*/
 		assert(class_java_lang_Class);
+
 		c->header.vftbl = class_java_lang_Class->vftbl;
 		c->classvftbl = true;
   	}
