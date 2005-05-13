@@ -1,4 +1,4 @@
-/* vm/jit/x86_64/codegen.c - machine code generator for x86_64
+/* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,7 +27,9 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   $Id: codegen.c 2442 2005-05-11 12:05:08Z twisti $
+   Changes:
+
+   $Id: codegen.c 2471 2005-05-13 09:10:14Z twisti $
 
 */
 
@@ -42,8 +44,11 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/loader.h"
+#include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/helper.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/parse.h"
@@ -53,8 +58,7 @@
 #include "vm/jit/x86_64/emitfuncs.h"
 #include "vm/jit/x86_64/types.h"
 #include "vm/jit/x86_64/asmoffsets.h"
-#include "vm/jit/helper.h"
-#include "vm/statistics.h"
+
 
 /* register descripton - array ************************************************/
 
