@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2444 2005-05-11 12:51:53Z twisti $
+   $Id: codegen.c 2478 2005-05-13 14:19:50Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #ifdef LSRA
