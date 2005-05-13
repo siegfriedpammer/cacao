@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: stack.c 2474 2005-05-13 14:02:17Z twisti $
 
 */
 
@@ -2672,7 +2672,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %g,", iptr->val.d);
 			break;
 		}
-#if defined(__X86_64__)
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->opc == ICMD_PUTFIELDCONST) 	 
 			printf(" NOT RESOLVED,"); 	 
 		printf(" "); 	 
