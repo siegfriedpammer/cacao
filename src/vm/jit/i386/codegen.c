@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2383 2005-04-26 16:11:58Z twisti $
+   $Id: codegen.c 2470 2005-05-13 09:08:48Z twisti $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
 #include "vm/jit/asmpart.h"
@@ -238,8 +239,8 @@ void init_exceptions(void)
 
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	s4 len, s1, s2, s3, d;
-	s4 a;
+	s4     len, s1, s2, s3, d;
+	ptrint a;
 	stackptr      src;
 	varinfo      *var;
 	basicblock   *bptr;
@@ -327,7 +328,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* create stack frame (if necessary) */
 
 	if (parentargs_base) {
-		i386_alu_imm_reg(cd, I386_SUB, parentargs_base * 4, REG_SP);
+		i386_alu_imm_reg(cd, ALU_SUB, parentargs_base * 4, REG_SP);
 	}
 
 	/* save return address and used callee saved registers */
@@ -338,68 +339,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
 		p-=2; i386_fld_reg(cd, rd->savfltregs[i]); i386_fstpl_membase(cd, REG_SP, p * 4);
-	}
-
-	/* copy argument registers to stack and call trace function with pointer
-	   to arguments on stack.
-	*/
-
-	if (runverbose) {
-		stack_off = 0;
-
-		i386_alu_imm_reg(cd, I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
-
-		for (p = 0, l=0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
-
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base  + stack_off) * 4 + 4 + 4, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
-/*  				} else if (t == TYPE_ADR) { */
-				} else {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
-/*  				} else { */
-/*  					i386_mov_membase_reg(cd, REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, EAX); */
-/*  					i386_cltd(cd); */
-/*  					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8); */
-/*  					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4); */
-				}
-
-			} else {
-				if (!IS_2_WORD_TYPE(t)) {
-					i386_flds_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
-					i386_fstps_membase(cd, REG_SP, p * 8);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-
-				} else {
-					i386_fldl_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
-					i386_fstpl_membase(cd, REG_SP, p * 8);
-				}
-			}
-			stack_off += (IS_2_WORD_TYPE(t)) ? 2 : 1;
-		}
-
-		/* fill up the remaining arguments */
-		i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
-		}
-
-		i386_mov_imm_membase(cd, (s4) m, REG_SP, TRACE_ARGS_NUM * 8);
-  		i386_mov_imm_reg(cd, (s4) builtin_trace_args, REG_ITMP1);
-		i386_call_reg(cd, REG_ITMP1);
-
-		i386_alu_imm_reg(cd, I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -490,9 +429,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		s1 = rd->maxmemuse;
+
 		if (m->flags & ACC_STATIC) {
 			i386_mov_imm_reg(cd, (ptrint) m->class, REG_ITMP1);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, rd->maxmemuse * 4);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 4);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0);
 			i386_mov_imm_reg(cd, (ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);
@@ -502,13 +443,85 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			i386_jcc(cd, I386_CC_Z, 0);
 			codegen_addxnullrefs(cd, cd->mcodeptr);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, rd->maxmemuse * 4);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 4);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0);
 			i386_mov_imm_reg(cd, (ptrint) BUILTIN_monitorenter, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);
 		}
 	}			
 #endif
+
+	/* copy argument registers to stack and call trace function with pointer
+	   to arguments on stack.
+	*/
+
+	if (runverbose) {
+		stack_off = 0;
+
+		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
+
+		/* save temporary registers for leaf methods */
+
+		for (p = 0; p < INT_TMP_CNT; p++)
+			M_IST(rd->tmpintregs[p], REG_SP, TRACE_ARGS_NUM * 8 + 4 + p * 4);
+
+		for (p = 0, l=0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = m->paramtypes[p];
+
+			if (IS_INT_LNG_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t)) {
+					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
+					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
+					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base  + stack_off) * 4 + 4 + 4, REG_ITMP1);
+					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+
+/*  				} else if (t == TYPE_ADR) { */
+				} else {
+					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
+					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
+					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+
+/*  				} else { */
+/*  					i386_mov_membase_reg(cd, REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, EAX); */
+/*  					i386_cltd(cd); */
+/*  					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8); */
+/*  					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4); */
+				}
+
+			} else {
+				if (!IS_2_WORD_TYPE(t)) {
+					i386_flds_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
+					i386_fstps_membase(cd, REG_SP, p * 8);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
+					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+
+				} else {
+					i386_fldl_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
+					i386_fstpl_membase(cd, REG_SP, p * 8);
+				}
+			}
+			stack_off += (IS_2_WORD_TYPE(t)) ? 2 : 1;
+		}
+
+		/* fill up the remaining arguments */
+		i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
+		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+		}
+
+		i386_mov_imm_membase(cd, (ptrint) m, REG_SP, TRACE_ARGS_NUM * 8);
+  		i386_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
+		i386_call_reg(cd, REG_ITMP1);
+
+		/* restore temporary registers for leaf methods */
+
+		for (p = 0; p < INT_TMP_CNT; p++)
+			M_ILD(rd->tmpintregs[p], REG_SP, TRACE_ARGS_NUM * 8 + 4 + p * 4);
+
+		M_IADD_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
+	}
 
 	}
 
@@ -662,7 +675,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 			} else {
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -684,7 +697,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {
 				if (iptr->val.i == 0) {
-					i386_alu_reg_reg(cd, I386_XOR, d, d);
+					i386_alu_reg_reg(cd, ALU_XOR, d, d);
 
 				} else {
 					i386_mov_imm_reg(cd, iptr->val.i, d);
@@ -788,7 +801,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {
 				if ((s4) iptr->val.a == 0) {
-					i386_alu_reg_reg(cd, I386_XOR, d, d);
+					i386_alu_reg_reg(cd, ALU_XOR, d, d);
 
 				} else {
 					i386_mov_imm_reg(cd, (s4) iptr->val.a, d);
@@ -1105,7 +1118,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
 						i386_neg_membase(cd, REG_SP, iptr->dst->regoff * 4);
-						i386_alu_imm_membase(cd, I386_ADC, 0, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_imm_membase(cd, ALU_ADC, 0, REG_SP, iptr->dst->regoff * 4 + 4);
 						i386_neg_membase(cd, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else {
@@ -1113,7 +1126,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						i386_neg_reg(cd, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_ADC, 0, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP1);
 						i386_neg_reg(cd, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 					}
@@ -1200,27 +1213,27 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						i386_alu_imm_membase(cd, I386_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_imm_membase(cd, ALU_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_AND, 0x0000ffff, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_AND, 0x0000ffff, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 					}
 
 				} else {
 					i386_mov_reg_membase(cd, src->regoff, REG_SP, iptr->dst->regoff * 4);
-					i386_alu_imm_membase(cd, I386_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 4);
+					i386_alu_imm_membase(cd, ALU_AND, 0x0000ffff, REG_SP, iptr->dst->regoff * 4);
 				}
 
 			} else {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, iptr->dst->regoff);
-					i386_alu_imm_reg(cd, I386_AND, 0x0000ffff, iptr->dst->regoff);
+					i386_alu_imm_reg(cd, ALU_AND, 0x0000ffff, iptr->dst->regoff);
 
 				} else {
 					M_INTMOVE(src->regoff, iptr->dst->regoff);
-					i386_alu_imm_reg(cd, I386_AND, 0x0000ffff, iptr->dst->regoff);
+					i386_alu_imm_reg(cd, ALU_AND, 0x0000ffff, iptr->dst->regoff);
 				}
 			}
 			break;
@@ -1263,7 +1276,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: S|YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialu(cd, I386_ADD, src, iptr);
+			i386_emit_ialu(cd, ALU_ADD, src, iptr);
 			break;
 
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
@@ -1272,7 +1285,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialuconst(cd, I386_ADD, src, iptr);
+			i386_emit_ialuconst(cd, ALU_ADD, src, iptr);
 			break;
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
@@ -1284,22 +1297,22 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_reg_membase(cd, ALU_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_ADC, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_reg_membase(cd, ALU_ADC, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else if (src->prev->regoff == iptr->dst->regoff) {
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_reg_membase(cd, ALU_ADD, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_ADC, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_reg_membase(cd, ALU_ADC, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_membase_reg(cd, I386_ADD, REG_SP, src->regoff * 4, REG_ITMP1);
+						i386_alu_membase_reg(cd, ALU_ADD, REG_SP, src->regoff * 4, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_membase_reg(cd, I386_ADC, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+						i386_alu_membase_reg(cd, ALU_ADC, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 					}
 
@@ -1317,15 +1330,15 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						i386_alu_imm_membase(cd, I386_ADD, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
-						i386_alu_imm_membase(cd, I386_ADC, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_imm_membase(cd, ALU_ADD, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_imm_membase(cd, ALU_ADC, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_ADD, iptr->val.l, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_ADD, iptr->val.l, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_ADC, iptr->val.l >> 32, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_ADC, iptr->val.l >> 32, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 					}
 				}
@@ -1341,65 +1354,65 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_reg_membase(cd, ALU_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_membase_reg(cd, I386_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
+						i386_alu_membase_reg(cd, ALU_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 					}
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, REG_ITMP1);
-					i386_alu_membase_reg(cd, I386_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
+					i386_alu_membase_reg(cd, ALU_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
-						i386_alu_reg_membase(cd, I386_SUB, src->regoff, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_reg_membase(cd, ALU_SUB, src->regoff, REG_SP, iptr->dst->regoff * 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_reg_reg(cd, I386_SUB, src->regoff, REG_ITMP1);
+						i386_alu_reg_reg(cd, ALU_SUB, src->regoff, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 					}
 
 				} else {
 					i386_mov_reg_membase(cd, src->prev->regoff, REG_SP, iptr->dst->regoff * 4);
-					i386_alu_reg_membase(cd, I386_SUB, src->regoff, REG_SP, iptr->dst->regoff * 4);
+					i386_alu_reg_membase(cd, ALU_SUB, src->regoff, REG_SP, iptr->dst->regoff * 4);
 				}
 
 			} else {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, d);
-					i386_alu_membase_reg(cd, I386_SUB, REG_SP, src->regoff * 4, d);
+					i386_alu_membase_reg(cd, ALU_SUB, REG_SP, src->regoff * 4, d);
 
 				} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 					M_INTMOVE(src->prev->regoff, d);
-					i386_alu_membase_reg(cd, I386_SUB, REG_SP, src->regoff * 4, d);
+					i386_alu_membase_reg(cd, ALU_SUB, REG_SP, src->regoff * 4, d);
 
 				} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					/* workaround for reg alloc */
 					if (src->regoff == iptr->dst->regoff) {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_reg_reg(cd, I386_SUB, src->regoff, REG_ITMP1);
+						i386_alu_reg_reg(cd, ALU_SUB, src->regoff, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, d);
-						i386_alu_reg_reg(cd, I386_SUB, src->regoff, d);
+						i386_alu_reg_reg(cd, ALU_SUB, src->regoff, d);
 					}
 
 				} else {
 					/* workaround for reg alloc */
 					if (src->regoff == iptr->dst->regoff) {
 						M_INTMOVE(src->prev->regoff, REG_ITMP1);
-						i386_alu_reg_reg(cd, I386_SUB, src->regoff, REG_ITMP1);
+						i386_alu_reg_reg(cd, ALU_SUB, src->regoff, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 
 					} else {
 						M_INTMOVE(src->prev->regoff, d);
-						i386_alu_reg_reg(cd, I386_SUB, src->regoff, d);
+						i386_alu_reg_reg(cd, ALU_SUB, src->regoff, d);
 					}
 				}
 			}
@@ -1411,7 +1424,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialuconst(cd, I386_SUB, src, iptr);
+			i386_emit_ialuconst(cd, ALU_SUB, src, iptr);
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
@@ -1423,16 +1436,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_reg_membase(cd, ALU_SUB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_reg_membase(cd, I386_SBB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_reg_membase(cd, ALU_SBB, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else {
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-						i386_alu_membase_reg(cd, I386_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
+						i386_alu_membase_reg(cd, ALU_SUB, REG_SP, src->regoff * 4, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_membase_reg(cd, I386_SBB, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+						i386_alu_membase_reg(cd, ALU_SBB, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 					}
 				}
@@ -1449,16 +1462,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
-						i386_alu_imm_membase(cd, I386_SUB, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
-						i386_alu_imm_membase(cd, I386_SBB, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
+						i386_alu_imm_membase(cd, ALU_SUB, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
+						i386_alu_imm_membase(cd, ALU_SBB, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
 
 					} else {
 						/* TODO: could be size optimized with lea -- see gcc output */
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_SUB, iptr->val.l, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_SUB, iptr->val.l, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
 						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
-						i386_alu_imm_reg(cd, I386_SBB, iptr->val.l >> 32, REG_ITMP1);
+						i386_alu_imm_reg(cd, ALU_SBB, iptr->val.l >> 32, REG_ITMP1);
 						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4 + 4);
 					}
 				}
@@ -1558,12 +1571,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* TODO: optimize move EAX -> REG_ITMP3 */
   					i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP2);   /* mem -> ITMP3           */
 					i386_imul_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP2);            /* mem * ITMP3 -> ITMP3   */
-					i386_alu_reg_reg(cd, I386_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
+					i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
 
 					i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP2);       /* mem -> ITMP3           */
 					i386_imul_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);        /* mem * ITMP3 -> ITMP3   */
 
-					i386_alu_reg_reg(cd, I386_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
+					i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_reg_membase(cd, EAX, REG_SP, iptr->dst->regoff * 4);
 					i386_mov_reg_membase(cd, EDX, REG_SP, iptr->dst->regoff * 4 + 4);
 				}
@@ -1584,11 +1597,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_imm_reg(cd, iptr->val.l >> 32, REG_ITMP2);                       /* imm -> ITMP3           */
 					i386_imul_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP2);            /* mem * ITMP3 -> ITMP3   */
 
-					i386_alu_reg_reg(cd, I386_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
+					i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_imm_reg(cd, iptr->val.l, REG_ITMP2);                             /* imm -> ITMP3           */
 					i386_imul_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);        /* mem * ITMP3 -> ITMP3   */
 
-					i386_alu_reg_reg(cd, I386_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
+					i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP2, EDX);                      /* ITMP3 + EDX -> EDX     */
 					i386_mov_reg_membase(cd, EAX, REG_SP, iptr->dst->regoff * 4);
 					i386_mov_reg_membase(cd, EDX, REG_SP, iptr->dst->regoff * 4 + 4);
 				}
@@ -1609,9 +1622,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_INTMOVE(src->prev->regoff, EAX);
 			}
 			
-			i386_alu_imm_reg(cd, I386_CMP, 0x80000000, EAX);    /* check as described in jvm spec */
+			i386_alu_imm_reg(cd, ALU_CMP, 0x80000000, EAX);    /* check as described in jvm spec */
 			i386_jcc(cd, I386_CC_NE, 3 + 6);
-			i386_alu_imm_reg(cd, I386_CMP, -1, s1);
+			i386_alu_imm_reg(cd, ALU_CMP, -1, s1);
 			i386_jcc(cd, I386_CC_E, 1 + 2);
 
   			i386_cltd(cd);
@@ -1640,10 +1653,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_INTMOVE(src->prev->regoff, EAX);
 			}
 			
-			i386_alu_imm_reg(cd, I386_CMP, 0x80000000, EAX);    /* check as described in jvm spec */
+			i386_alu_imm_reg(cd, ALU_CMP, 0x80000000, EAX);    /* check as described in jvm spec */
 			i386_jcc(cd, I386_CC_NE, 2 + 3 + 6);
-			i386_alu_reg_reg(cd, I386_XOR, EDX, EDX);
-			i386_alu_imm_reg(cd, I386_CMP, -1, s1);
+			i386_alu_reg_reg(cd, ALU_XOR, EDX, EDX);
+			i386_alu_imm_reg(cd, ALU_CMP, -1, s1);
 			i386_jcc(cd, I386_CC_E, 1 + 2);
 
   			i386_cltd(cd);
@@ -1671,7 +1684,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			a = 2;
 			CALCIMMEDIATEBYTES(a, (1 << iptr->val.i) - 1);
 			i386_jcc(cd, I386_CC_NS, a);
-			i386_alu_imm_reg(cd, I386_ADD, (1 << iptr->val.i) - 1, d);
+			i386_alu_imm_reg(cd, ALU_ADD, (1 << iptr->val.i) - 1, d);
 				
 			i386_shift_imm_reg(cd, I386_SAR, iptr->val.i, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -1693,8 +1706,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					i386_test_reg_reg(cd, REG_ITMP2, REG_ITMP2);
 					i386_jcc(cd, I386_CC_NS, a);
-					i386_alu_imm_reg(cd, I386_ADD, (1 << iptr->val.i) - 1, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_ADC, 0, REG_ITMP2);
+					i386_alu_imm_reg(cd, ALU_ADD, (1 << iptr->val.i) - 1, REG_ITMP1);
+					i386_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP2);
 					i386_shrd_imm_reg_reg(cd, iptr->val.i, REG_ITMP2, REG_ITMP1);
 					i386_shift_imm_reg(cd, I386_SAR, iptr->val.i, REG_ITMP2);
 
@@ -1724,24 +1737,24 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* TODO: optimize */
 			M_INTMOVE(s1, d);
-			i386_alu_imm_reg(cd, I386_AND, iptr->val.i, d);
+			i386_alu_imm_reg(cd, ALU_AND, iptr->val.i, d);
 			i386_test_reg_reg(cd, s1, s1);
 			i386_jcc(cd, I386_CC_GE, a);
  			i386_mov_reg_reg(cd, s1, d);
   			i386_neg_reg(cd, d);
-  			i386_alu_imm_reg(cd, I386_AND, iptr->val.i, d);
+  			i386_alu_imm_reg(cd, ALU_AND, iptr->val.i, d);
 			i386_neg_reg(cd, d);
 
 /*  			M_INTMOVE(s1, EAX); */
 /*  			i386_cltd(cd); */
-/*  			i386_alu_reg_reg(cd, I386_XOR, EDX, EAX); */
-/*  			i386_alu_reg_reg(cd, I386_SUB, EDX, EAX); */
-/*  			i386_alu_reg_reg(cd, I386_AND, iptr->val.i, EAX); */
-/*  			i386_alu_reg_reg(cd, I386_XOR, EDX, EAX); */
-/*  			i386_alu_reg_reg(cd, I386_SUB, EDX, EAX); */
+/*  			i386_alu_reg_reg(cd, ALU_XOR, EDX, EAX); */
+/*  			i386_alu_reg_reg(cd, ALU_SUB, EDX, EAX); */
+/*  			i386_alu_reg_reg(cd, ALU_AND, iptr->val.i, EAX); */
+/*  			i386_alu_reg_reg(cd, ALU_XOR, EDX, EAX); */
+/*  			i386_alu_reg_reg(cd, ALU_SUB, EDX, EAX); */
 /*  			M_INTMOVE(EAX, d); */
 
-/*  			i386_alu_reg_reg(cd, I386_XOR, d, d); */
+/*  			i386_alu_reg_reg(cd, ALU_XOR, d, d); */
 /*  			i386_mov_imm_reg(cd, iptr->val.i, ECX); */
 /*  			i386_shrd_reg_reg(cd, s1, d); */
 /*  			i386_shift_imm_reg(cd, I386_SHR, 32 - iptr->val.i, d); */
@@ -1764,8 +1777,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 /*  					M_INTMOVE(REG_ITMP1, REG_ITMP2); */
 /*  					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3); */
 /*  					i386_jcc(cd, I386_CC_NS, offset); */
-/*  					i386_alu_imm_reg(cd, I386_ADD, (1 << iptr->val.l) - 1, REG_ITMP2); */
-/*  					i386_alu_imm_reg(cd, I386_ADC, 0, REG_ITMP3); */
+/*  					i386_alu_imm_reg(cd, ALU_ADD, (1 << iptr->val.l) - 1, REG_ITMP2); */
+/*  					i386_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP3); */
 					
 /*  					i386_shrd_imm_reg_reg(cd, iptr->val.l, REG_ITMP3, REG_ITMP2); */
 /*  					i386_shift_imm_reg(cd, I386_SAR, iptr->val.l, REG_ITMP3); */
@@ -1773,9 +1786,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 /*  					i386_shift_imm_reg(cd, I386_SHL, iptr->val.l, REG_ITMP2); */
 
-/*  					i386_alu_reg_reg(cd, I386_SUB, REG_ITMP2, REG_ITMP1); */
+/*  					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP2, REG_ITMP1); */
 /*  					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2); */
-/*  					i386_alu_reg_reg(cd, I386_SBB, REG_ITMP3, REG_ITMP2); */
+/*  					i386_alu_reg_reg(cd, ALU_SBB, REG_ITMP3, REG_ITMP2); */
 
 /*  					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4); */
 /*  					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 4 + 4); */
@@ -1803,23 +1816,23 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
 					
-					i386_alu_imm_reg(cd, I386_AND, iptr->val.l, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_AND, iptr->val.l >> 32, REG_ITMP2);
-					i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4 + 4);
+					i386_alu_imm_reg(cd, ALU_AND, iptr->val.l, REG_ITMP1);
+					i386_alu_imm_reg(cd, ALU_AND, iptr->val.l >> 32, REG_ITMP2);
+					i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4 + 4);
 					i386_jcc(cd, I386_CC_GE, a);
 
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
 					
 					i386_neg_reg(cd, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_ADC, 0, REG_ITMP2);
+					i386_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP2);
 					i386_neg_reg(cd, REG_ITMP2);
 					
-					i386_alu_imm_reg(cd, I386_AND, iptr->val.l, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_AND, iptr->val.l >> 32, REG_ITMP2);
+					i386_alu_imm_reg(cd, ALU_AND, iptr->val.l, REG_ITMP1);
+					i386_alu_imm_reg(cd, ALU_AND, iptr->val.l >> 32, REG_ITMP2);
 					
 					i386_neg_reg(cd, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_ADC, 0, REG_ITMP2);
+					i386_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP2);
 					i386_neg_reg(cd, REG_ITMP2);
 
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst->regoff * 4);
@@ -1898,7 +1911,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 /*  						i386_test_imm_reg(cd, 32, ECX); */
 /*  						i386_jcc(cd, I386_CC_E, 2 + 2); */
 /*  						i386_mov_reg_reg(cd, REG_ITMP1, REG_ITMP2); */
-/*  						i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1); */
+/*  						i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1); */
 						
 /*  						i386_shld_reg_membase(cd, REG_ITMP1, REG_SP, src->prev->regoff * 4 + 4); */
 /*  						i386_shift_membase(cd, I386_SHL, REG_SP, iptr->dst->regoff * 4); */
@@ -1916,7 +1929,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						i386_test_imm_reg(cd, 32, ECX);
 						i386_jcc(cd, I386_CC_E, 2 + 2);
 						i386_mov_reg_reg(cd, REG_ITMP1, REG_ITMP3);
-						i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
+						i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 						
 						i386_shld_reg_reg(cd, REG_ITMP1, REG_ITMP3);
 						i386_shift_reg(cd, I386_SHL, REG_ITMP1);
@@ -1939,7 +1952,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (iptr->val.i & 0x20) {
 					i386_mov_reg_reg(cd, REG_ITMP1, REG_ITMP2);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_shld_imm_reg_reg(cd, iptr->val.i & 0x3f, REG_ITMP1, REG_ITMP2);
 
 				} else {
@@ -2050,7 +2063,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 /*  						i386_test_imm_reg(cd, 32, ECX); */
 /*  						i386_jcc(cd, I386_CC_E, 2 + 2); */
 /*  						i386_mov_reg_reg(cd, REG_ITMP2, REG_ITMP1); */
-/*  						i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2); */
+/*  						i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2); */
 						
 /*  						i386_shrd_reg_reg(cd, REG_ITMP2, REG_ITMP1); */
 /*  						i386_shift_reg(cd, I386_SHR, REG_ITMP2); */
@@ -2070,7 +2083,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						i386_test_imm_reg(cd, 32, ECX);
 						i386_jcc(cd, I386_CC_E, 2 + 2);
 						i386_mov_reg_reg(cd, REG_ITMP3, REG_ITMP1);
-						i386_alu_reg_reg(cd, I386_XOR, REG_ITMP3, REG_ITMP3);
+						i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP3, REG_ITMP3);
 						
 						i386_shrd_reg_reg(cd, REG_ITMP3, REG_ITMP1);
 						i386_shift_reg(cd, I386_SHR, REG_ITMP3);
@@ -2093,7 +2106,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (iptr->val.i & 0x20) {
 					i386_mov_reg_reg(cd, REG_ITMP2, REG_ITMP1);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
 					i386_shrd_imm_reg_reg(cd, iptr->val.i & 0x3f, REG_ITMP2, REG_ITMP1);
 
 				} else {
@@ -2111,7 +2124,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialu(cd, I386_AND, src, iptr);
+			i386_emit_ialu(cd, ALU_AND, src, iptr);
 			break;
 
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
@@ -2120,7 +2133,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialuconst(cd, I386_AND, src, iptr);
+			i386_emit_ialuconst(cd, ALU_AND, src, iptr);
 			break;
 
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
@@ -2128,7 +2141,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_lalu(cd, I386_AND, src, iptr);
+			i386_emit_lalu(cd, ALU_AND, src, iptr);
 			break;
 
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
@@ -2137,7 +2150,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_laluconst(cd, I386_AND, src, iptr);
+			i386_emit_laluconst(cd, ALU_AND, src, iptr);
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
@@ -2145,7 +2158,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialu(cd, I386_OR, src, iptr);
+			i386_emit_ialu(cd, ALU_OR, src, iptr);
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
@@ -2154,7 +2167,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialuconst(cd, I386_OR, src, iptr);
+			i386_emit_ialuconst(cd, ALU_OR, src, iptr);
 			break;
 
 		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
@@ -2162,7 +2175,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_lalu(cd, I386_OR, src, iptr);
+			i386_emit_lalu(cd, ALU_OR, src, iptr);
 			break;
 
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
@@ -2171,7 +2184,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_laluconst(cd, I386_OR, src, iptr);
+			i386_emit_laluconst(cd, ALU_OR, src, iptr);
 			break;
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
@@ -2179,7 +2192,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialu(cd, I386_XOR, src, iptr);
+			i386_emit_ialu(cd, ALU_XOR, src, iptr);
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
@@ -2188,7 +2201,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_ialuconst(cd, I386_XOR, src, iptr);
+			i386_emit_ialuconst(cd, ALU_XOR, src, iptr);
 			break;
 
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
@@ -2196,7 +2209,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_lalu(cd, I386_XOR, src, iptr);
+			i386_emit_lalu(cd, ALU_XOR, src, iptr);
 			break;
 
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
@@ -2205,7 +2218,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
-			i386_emit_laluconst(cd, I386_XOR, src, iptr);
+			i386_emit_laluconst(cd, ALU_XOR, src, iptr);
 			break;
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
@@ -2215,13 +2228,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var = &(rd->locals[iptr->op1][TYPE_INT]);
 			if (var->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_ADD, iptr->val.i, REG_SP, var->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_ADD, iptr->val.i, REG_SP, var->regoff * 4);
 
 			} else {
 				/* `inc reg' is slower on p4's (regarding to ia32             */
 				/* optimization reference manual and benchmarks) and as fast  */
 				/* on athlon's.                                               */
-				i386_alu_imm_reg(cd, I386_ADD, iptr->val.i, var->regoff);
+				i386_alu_imm_reg(cd, ALU_ADD, iptr->val.i, var->regoff);
 			}
 			break;
 
@@ -2497,7 +2510,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-				i386_alu_imm_membase(cd, I386_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2513,7 +2526,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-				i386_alu_imm_reg(cd, I386_CMP, 0x80000000, iptr->dst->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, 0x80000000, iptr->dst->regoff);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2554,7 +2567,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-  				i386_alu_imm_membase(cd, I386_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4);
+  				i386_alu_imm_membase(cd, ALU_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2570,7 +2583,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-				i386_alu_imm_reg(cd, I386_CMP, 0x80000000, iptr->dst->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, 0x80000000, iptr->dst->regoff);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2610,7 +2623,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-  				i386_alu_imm_membase(cd, I386_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4 + 4);
+  				i386_alu_imm_membase(cd, ALU_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4 + 4);
 
 				a = 6 + 4;
 				CALCOFFSETBYTES(a, REG_SP, iptr->dst->regoff * 4);
@@ -2624,7 +2637,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_jcc(cd, I386_CC_NE, a);
 
-  				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, iptr->dst->regoff * 4);
+  				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, iptr->dst->regoff * 4);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2664,7 +2677,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_adds4(cd, 0x027f);    /* Round to nearest, 53-bit mode, exceptions masked */
 				i386_fldcw_membase(cd, REG_ITMP1, a);
 
-  				i386_alu_imm_membase(cd, I386_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4 + 4);
+  				i386_alu_imm_membase(cd, ALU_CMP, 0x80000000, REG_SP, iptr->dst->regoff * 4 + 4);
 
 				a = 6 + 4;
 				CALCOFFSETBYTES(a, REG_SP, iptr->dst->regoff * 4);
@@ -2678,7 +2691,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_jcc(cd, I386_CC_NE, a);
 
-  				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, iptr->dst->regoff * 4);
+  				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, iptr->dst->regoff * 4);
 
 				a = 3;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -2734,14 +2747,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			i386_fnstsw(cd);
 			i386_test_imm_reg(cd, 0x400, EAX);    /* unordered treat as GT */
 			i386_jcc(cd, I386_CC_E, 6);
-			i386_alu_imm_reg(cd, I386_AND, 0x000000ff, EAX);
+			i386_alu_imm_reg(cd, ALU_AND, 0x000000ff, EAX);
  			i386_sahf(cd);
 			i386_mov_imm_reg(cd, 0, d);    /* does not affect flags */
   			i386_jcc(cd, I386_CC_E, 6 + 3 + 5 + 3);
   			i386_jcc(cd, I386_CC_B, 3 + 5);
-			i386_alu_imm_reg(cd, I386_SUB, 1, d);
+			i386_alu_imm_reg(cd, ALU_SUB, 1, d);
 			i386_jmp_imm(cd, 3);
-			i386_alu_imm_reg(cd, I386_ADD, 1, d);
+			i386_alu_imm_reg(cd, ALU_ADD, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2760,14 +2773,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			i386_fnstsw(cd);
 			i386_test_imm_reg(cd, 0x400, EAX);    /* unordered treat as LT */
 			i386_jcc(cd, I386_CC_E, 3);
-			i386_movb_imm_reg(cd, 1, I386_AH);
+			i386_movb_imm_reg(cd, 1, REG_AH);
  			i386_sahf(cd);
 			i386_mov_imm_reg(cd, 0, d);    /* does not affect flags */
   			i386_jcc(cd, I386_CC_E, 6 + 3 + 5 + 3);
   			i386_jcc(cd, I386_CC_B, 3 + 5);
-			i386_alu_imm_reg(cd, I386_SUB, 1, d);
+			i386_alu_imm_reg(cd, ALU_SUB, 1, d);
 			i386_jmp_imm(cd, 3);
-			i386_alu_imm_reg(cd, I386_ADD, 1, d);
+			i386_alu_imm_reg(cd, ALU_ADD, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -3493,7 +3506,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 			} else {
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -3508,7 +3521,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 			} else {
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -3523,10 +3536,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3538,10 +3551,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3553,10 +3566,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_LE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3568,10 +3581,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3583,10 +3596,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_G, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3598,10 +3611,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.i, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.i, REG_SP, src->regoff * 4);
 
 			} else {
-				i386_alu_imm_reg(cd, I386_CMP, iptr->val.i, src->regoff);
+				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_GE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3615,14 +3628,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				if (iptr->val.l == 0) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-					i386_alu_membase_reg(cd, I386_OR, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+					i386_alu_membase_reg(cd, ALU_OR, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 
 				} else {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
-					i386_alu_imm_reg(cd, I386_XOR, iptr->val.l >> 32, REG_ITMP2);
+					i386_alu_imm_reg(cd, ALU_XOR, iptr->val.l >> 32, REG_ITMP2);
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-					i386_alu_imm_reg(cd, I386_XOR, iptr->val.l, REG_ITMP1);
-					i386_alu_reg_reg(cd, I386_OR, REG_ITMP2, REG_ITMP1);
+					i386_alu_imm_reg(cd, ALU_XOR, iptr->val.l, REG_ITMP1);
+					i386_alu_reg_reg(cd, ALU_OR, REG_ITMP2, REG_ITMP1);
 				}
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
@@ -3636,7 +3649,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3646,7 +3659,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_jcc(cd, I386_CC_G, a);
 
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_B, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3658,7 +3671,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3668,7 +3681,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				
 				i386_jcc(cd, I386_CC_G, a);
 
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_BE, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3682,14 +3695,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				if (iptr->val.l == 0) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-					i386_alu_membase_reg(cd, I386_OR, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+					i386_alu_membase_reg(cd, ALU_OR, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 
 				} else {
 					i386_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-					i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
+					i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
 					i386_mov_imm_reg(cd, iptr->val.l >> 32, REG_ITMP2);
-					i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
-					i386_alu_reg_reg(cd, I386_OR, REG_ITMP2, REG_ITMP1);
+					i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
+					i386_alu_reg_reg(cd, ALU_OR, REG_ITMP2, REG_ITMP1);
 				}
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
@@ -3703,7 +3716,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3713,7 +3726,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_jcc(cd, I386_CC_L, a);
 
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_A, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3725,7 +3738,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3735,7 +3748,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_jcc(cd, I386_CC_L, a);
 
-				i386_alu_imm_membase(cd, I386_CMP, iptr->val.l, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_AE, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3748,16 +3761,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3771,9 +3784,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP2);
-				i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
-				i386_alu_reg_reg(cd, I386_OR, REG_ITMP2, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
+				i386_alu_reg_reg(cd, ALU_OR, REG_ITMP2, REG_ITMP1);
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_E, 0);
@@ -3787,16 +3800,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3810,9 +3823,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP2);
-				i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
-				i386_alu_reg_reg(cd, I386_OR, REG_ITMP2, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_XOR, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
+				i386_alu_reg_reg(cd, ALU_OR, REG_ITMP2, REG_ITMP1);
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_NE, 0);
@@ -3826,16 +3839,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3848,7 +3861,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_L, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3859,7 +3872,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_jcc(cd, I386_CC_G, a);
 
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_B, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3872,16 +3885,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_G, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3894,7 +3907,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_G, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3905,7 +3918,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_jcc(cd, I386_CC_L, a);
 
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3918,16 +3931,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_LE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3940,7 +3953,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_L, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3951,7 +3964,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_jcc(cd, I386_CC_G, a);
 
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_BE, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -3964,16 +3977,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-				i386_alu_reg_membase(cd, I386_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, src->prev->regoff * 4);
 
 			} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, src->prev->regoff);
 
 			} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-				i386_alu_reg_membase(cd, I386_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
+				i386_alu_reg_membase(cd, ALU_CMP, src->regoff, REG_SP, src->prev->regoff * 4);
 
 			} else {
-				i386_alu_reg_reg(cd, I386_CMP, src->regoff, src->prev->regoff);
+				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_GE, 0);
 			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
@@ -3986,7 +3999,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_G, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 
@@ -3997,7 +4010,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_jcc(cd, I386_CC_L, a);
 
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
-				i386_alu_membase_reg(cd, I386_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
+				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_AE, 0);
 				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
 			}			
@@ -4113,7 +4126,7 @@ nowperformreturn:
 			
 			/* call trace function */
 			if (runverbose) {
-				i386_alu_imm_reg(cd, I386_SUB, 4 + 8 + 8 + 4, REG_SP);
+				i386_alu_imm_reg(cd, ALU_SUB, 4 + 8 + 8 + 4, REG_SP);
 
 				i386_mov_imm_membase(cd, (s4) m, REG_SP, 0);
 
@@ -4129,7 +4142,7 @@ nowperformreturn:
 				i386_mov_membase_reg(cd, REG_SP, 4, REG_RESULT);
 				i386_mov_membase_reg(cd, REG_SP, 4 + 4, REG_RESULT2);
 
-				i386_alu_imm_reg(cd, I386_ADD, 4 + 8 + 8 + 4, REG_SP);
+				i386_alu_imm_reg(cd, ALU_ADD, 4 + 8 + 8 + 4, REG_SP);
 			}
 
 #if defined(USE_THREADS)
@@ -4203,7 +4216,7 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 			if (parentargs_base) {
-				i386_alu_imm_reg(cd, I386_ADD, parentargs_base * 4, REG_SP);
+				i386_alu_imm_reg(cd, ALU_ADD, parentargs_base * 4, REG_SP);
 			}
 
 			i386_ret(cd);
@@ -4227,13 +4240,13 @@ nowperformreturn:
 				var_to_reg_int(s1, src, REG_ITMP1);
 				M_INTMOVE(s1, REG_ITMP1);
 				if (l != 0) {
-					i386_alu_imm_reg(cd, I386_SUB, l, REG_ITMP1);
+					i386_alu_imm_reg(cd, ALU_SUB, l, REG_ITMP1);
 				}
 				i = i - l + 1;
 
                 /* range check */
 
-				i386_alu_imm_reg(cd, I386_CMP, i - 1, REG_ITMP1);
+				i386_alu_imm_reg(cd, ALU_CMP, i - 1, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
 
                 /* codegen_addreference(cd, BlockPtrOfPC(s4ptr[0]), cd->mcodeptr); */
@@ -4280,7 +4293,7 @@ nowperformreturn:
 					++tptr;
 
 					val = s4ptr[0];
-					i386_alu_imm_reg(cd, I386_CMP, val, s1);
+					i386_alu_imm_reg(cd, ALU_CMP, val, s1);
 					i386_jcc(cd, I386_CC_E, 0);
 					/* codegen_addreference(cd, BlockPtrOfPC(s4ptr[1]), cd->mcodeptr); */
 					codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr); 
@@ -4655,7 +4668,7 @@ gen_method: {
 				}
 
 				i386_mov_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
-				i386_alu_imm_reg(cd, I386_AND, ACC_INTERFACE, REG_ITMP2);
+				i386_alu_imm_reg(cd, ALU_AND, ACC_INTERFACE, REG_ITMP2);
 				i386_jcc(cd, I386_CC_Z, s2 + 5);
 			}
 
@@ -4684,7 +4697,7 @@ gen_method: {
 				i386_mov_membase32_reg(cd, REG_ITMP2,
 									   OFFSET(vftbl_t, interfacetablelength),
 									   REG_ITMP3);
-				i386_alu_imm32_reg(cd, I386_SUB, superindex, REG_ITMP3);
+				i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
 				i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 				i386_jcc(cd, I386_CC_LE, 0);
 				codegen_addxcastrefs(cd, cd->mcodeptr);
@@ -4736,13 +4749,13 @@ gen_method: {
 /* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
 /* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
 /* #endif */
-/* 					i386_alu_reg_reg(cd, I386_SUB, REG_ITMP1, REG_ITMP2); */
+/* 					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP1, REG_ITMP2); */
 
 /* 				} else { */
 				i386_mov_membase32_reg(cd, REG_ITMP3,
 									   OFFSET(vftbl_t, baseval),
 									   REG_ITMP3);
-				i386_alu_reg_reg(cd, I386_SUB, REG_ITMP3, REG_ITMP2);
+				i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP3, REG_ITMP2);
 				i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
 				i386_mov_membase_reg(cd, REG_ITMP3,
 									 OFFSET(vftbl_t, diffval),
@@ -4752,7 +4765,7 @@ gen_method: {
 #endif
 /* 				} */
 
-				i386_alu_reg_reg(cd, I386_CMP, REG_ITMP3, REG_ITMP2);
+				i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP2);
 				i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
 				codegen_addxcastrefs(cd, cd->mcodeptr);
 			}
@@ -4840,7 +4853,7 @@ gen_method: {
 			if (!super)
 				s3 += (showdisassemble ? 5 : 0);
 
-			i386_alu_reg_reg(cd, I386_XOR, d, d);
+			i386_alu_reg_reg(cd, ALU_XOR, d, d);
 
 			/* if class is not resolved, check which code to call */
 
@@ -4857,7 +4870,7 @@ gen_method: {
 				}
 
 				i386_mov_imm_reg(cd, 0, REG_ITMP3); /* super->flags */
-				i386_alu_imm32_reg(cd, I386_AND, ACC_INTERFACE, REG_ITMP3);
+				i386_alu_imm32_reg(cd, ALU_AND, ACC_INTERFACE, REG_ITMP3);
 				i386_jcc(cd, I386_CC_Z, s2 + 5);
 			}
 
@@ -4886,7 +4899,7 @@ gen_method: {
 				i386_mov_membase32_reg(cd, REG_ITMP1,
 									   OFFSET(vftbl_t, interfacetablelength),
 									   REG_ITMP3);
-				i386_alu_imm32_reg(cd, I386_SUB, superindex, REG_ITMP3);
+				i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
 				i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 
 				a = (2 + 4 /* mov_membase32_reg */ + 2 /* test */ +
@@ -4945,9 +4958,9 @@ gen_method: {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-				i386_alu_reg_reg(cd, I386_SUB, REG_ITMP2, REG_ITMP1);
-				i386_alu_reg_reg(cd, I386_XOR, d, d); /* may be REG_ITMP2 */
-				i386_alu_reg_reg(cd, I386_CMP, REG_ITMP3, REG_ITMP1);
+				i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP2, REG_ITMP1);
+				i386_alu_reg_reg(cd, ALU_XOR, d, d); /* may be REG_ITMP2 */
+				i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 5);
 				i386_mov_imm_reg(cd, 1, d);
 			}
@@ -4960,7 +4973,7 @@ gen_method: {
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 				
 			} else {
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -4989,7 +5002,7 @@ gen_method: {
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
 				if (src->flags & INMEMORY) {
-					i386_alu_imm_membase(cd, I386_CMP, 0, REG_SP, src->regoff * 4);
+					i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
 
 				} else {
 					i386_test_reg_reg(cd, src->regoff, src->regoff);
@@ -5044,7 +5057,7 @@ gen_method: {
 			/* a2 = pointer to dimensions = stack pointer */
 
 			M_INTMOVE(REG_SP, REG_ITMP1);
-			i386_alu_imm_reg(cd, I386_ADD, 3 * 4, REG_ITMP1);
+			i386_alu_imm_reg(cd, ALU_ADD, 3 * 4, REG_ITMP1);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 2 * 4);
 
 			i386_mov_imm_reg(cd, (ptrint) BUILTIN_multianewarray, REG_ITMP1);
@@ -5131,7 +5144,7 @@ gen_method: {
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP3, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP3, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5147,11 +5160,11 @@ gen_method: {
 			i386_mov_imm_reg(cd,(s4)asm_prepare_native_stackinfo,REG_ITMP3);
 			i386_call_reg(cd,REG_ITMP3);
 
-			i386_alu_imm_reg(cd, I386_SUB, 1 * 4, REG_SP);
+			i386_alu_imm_reg(cd, ALU_SUB, 1 * 4, REG_SP);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0 * 4);
 			i386_mov_imm_reg(cd, (u4) new_arrayindexoutofboundsexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);
+			i386_alu_imm_reg(cd, ALU_ADD, 1 * 4, REG_SP);
 
 			/*REMOVE_NATIVE_STACKINFO;*/
 			i386_mov_imm_reg(cd,(s4)asm_remove_native_stackinfo,REG_ITMP3);
@@ -5185,7 +5198,7 @@ gen_method: {
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5205,7 +5218,7 @@ gen_method: {
 
 			i386_mov_imm_reg(cd, (u4) new_negativearraysizeexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			/*i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);*/
+			/*i386_alu_imm_reg(cd, ALU_ADD, 1 * 4, REG_SP);*/
 
 
 			/*REMOVE_NATIVE_STACKINFO;*/
@@ -5241,7 +5254,7 @@ gen_method: {
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5260,7 +5273,7 @@ gen_method: {
 
 			i386_mov_imm_reg(cd, (u4) new_classcastexception, REG_ITMP1);
 			i386_call_reg(cd, REG_ITMP1);   /* return value is REG_ITMP1_XPTR */
-			/*i386_alu_imm_reg(cd, I386_ADD, 1 * 4, REG_SP);*/
+			/*i386_alu_imm_reg(cd, ALU_ADD, 1 * 4, REG_SP);*/
 
 
 			/*REMOVE_NATIVE_STACKINFO;*/
@@ -5296,7 +5309,7 @@ gen_method: {
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5350,7 +5363,7 @@ gen_method: {
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5390,7 +5403,7 @@ java stack at this point*/
 			i386_mov_imm_reg(cd, (s4) class_resolvemethod, REG_ITMP3);
 			i386_call_reg(cd, REG_ITMP3);
 /*cleanup parameters of class_resolvemethod*/
-			i386_alu_imm_reg(cd, I386_ADD,3*4 /*class reference + 2x string reference*/,REG_SP);
+			i386_alu_imm_reg(cd, ALU_ADD,3*4 /*class reference + 2x string reference*/,REG_SP);
 /*prepare call to asm_calljavafunction2 */			
 			i386_push_imm(cd, 0);
 			i386_push_imm(cd, TYPE_ADR); /* --> call block (TYPE,Exceptionptr), each 8 byte  (make this dynamic) (JOWENN)*/
@@ -5404,7 +5417,7 @@ java stack at this point*/
 
 			/* check exceptionptr + fail (JOWENN)*/			
 
-			i386_alu_imm_reg(cd, I386_ADD,6*4,REG_SP);
+			i386_alu_imm_reg(cd, ALU_ADD,6*4,REG_SP);
 
 			i386_pop_reg(cd, REG_ITMP1_XPTR);
 			i386_pop_reg(cd, REG_ITMP3); /* just remove the no longer needed 0 from the stack*/
@@ -5442,7 +5455,7 @@ java stack at this point*/
 		i386_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                    /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		i386_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);      /* 5 bytes */
-		i386_alu_reg_reg(cd, I386_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
+		i386_alu_reg_reg(cd, ALU_ADD, REG_ITMP1, REG_ITMP2_XPC);  /* 2 bytes */
 		
 		if (xcodeptr != NULL) {
 			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
@@ -5462,7 +5475,7 @@ java stack at this point*/
 
 #if 0
 			/* create native call block*/
-			i386_alu_imm_reg(cd, I386_SUB, 3*4, REG_SP); /* build stack frame (4 * 4 bytes) */
+			i386_alu_imm_reg(cd, ALU_SUB, 3*4, REG_SP); /* build stack frame (4 * 4 bytes) */
 
 
 			i386_mov_imm_reg(cd, (s4) codegen_stubcalled,REG_ITMP1);
@@ -5490,7 +5503,7 @@ java stack at this point*/
 			i386_mov_membase_reg(cd, REG_SP,0,REG_ITMP2);
 			i386_mov_membase_reg(cd, REG_SP,4,REG_ITMP3);
 			i386_mov_reg_membase(cd, REG_ITMP2,REG_ITMP3,0);
-			i386_alu_imm_reg(cd, I386_ADD,3*4,REG_SP);
+			i386_alu_imm_reg(cd, ALU_ADD,3*4,REG_SP);
 #endif
 
 			i386_pop_reg(cd, REG_ITMP2_XPC);
@@ -5511,18 +5524,40 @@ java stack at this point*/
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
-			MCODECHECK(50);
+
+			MCODECHECK(64);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
+
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode = *((u8 *) xcodeptr);
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			*((ptrint *) (cd->mcodeptr + 0)) = 0;                    /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 4)) = (ptrint) get_dummyLR(); /* monitorPtr */
+
+			cd->mcodeptr += 2 * 4;
+#endif
+
 			/* patch in `call rel32' to call the following code               */
+
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Push machine code bytes to patch onto the stack.               */
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			i386_call_imm(cd, 0);
+			i386_alu_imm_membase(cd, ALU_SUB, 5 + 2 * 4, REG_SP, 0);
+#else
+			i386_push_imm(cd, 0);
+#endif
+
+			/* move machine code bytes and classinfo pointer into registers */
+
 			i386_push_imm(cd, (ptrint) (mcode >> 32));
 			i386_push_imm(cd, (ptrint) mcode);
 			i386_push_imm(cd, (ptrint) pref->ref);
@@ -5728,7 +5763,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		s4 p, t;
 		s4 stack_off = 0;
 
-		i386_alu_imm_reg(cd, I386_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+		i386_alu_imm_reg(cd, ALU_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
     
 		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
 			t = m->paramtypes[p];
@@ -5741,7 +5776,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 				} else if (t == TYPE_ADR) {
 					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
@@ -5756,7 +5791,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 				if (!IS_2_WORD_TYPE(t)) {
 					i386_flds_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
 					i386_fstps_membase(cd, REG_SP, p * 8);
-					i386_alu_reg_reg(cd, I386_XOR, REG_ITMP2, REG_ITMP2);
+					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
@@ -5767,7 +5802,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			stack_off += (IS_2_WORD_TYPE(t)) ? 8 : 4;
 		}
 	
-		i386_alu_reg_reg(cd, I386_XOR, REG_ITMP1, REG_ITMP1);
+		i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
@@ -5778,7 +5813,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		i386_mov_imm_reg(cd, (u4) builtin_trace_args, REG_ITMP1);
 		i386_call_reg(cd, REG_ITMP1);
 
-		i386_alu_imm_reg(cd, I386_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+		i386_alu_imm_reg(cd, ALU_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
@@ -5801,7 +5836,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 /* align Stackframe to 8 Byte */
 /* 	if ((stackframesize + 1) & 1)  */
 /* 		stackframesize++;          */
-	i386_alu_imm_reg(cd, I386_SUB, stackframesize, REG_SP);
+	i386_alu_imm_reg(cd, ALU_SUB, stackframesize, REG_SP);
 
 /* CREATE DYNAMIC STACK INFO -- BEGIN*/
 	i386_mov_imm_membase(cd,0,REG_SP,stackframesize-4);
@@ -5812,7 +5847,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2); 
 	i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16); /*save previous value of memory adress pointed to by thread specific pointer*/
 	i386_mov_reg_reg(cd, REG_SP,REG_ITMP2);
-	i386_alu_imm_reg(cd, I386_ADD,stackframesize-16,REG_ITMP2);
+	i386_alu_imm_reg(cd, ALU_ADD,stackframesize-16,REG_ITMP2);
 	i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT,0);
 
 /*TESTING ONLY */
@@ -5852,7 +5887,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		i386_call_reg(cd, REG_ITMP1);
 
 		/* cleanup */
-		i386_alu_imm_reg(cd, I386_ADD, 4 * 4, REG_SP);
+		i386_alu_imm_reg(cd, ALU_ADD, 4 * 4, REG_SP);
 
 		/* fix jmp offset replacement */
 		*jmpInstrPatchPos = cd->mcodeptr - jmpInstrPos - 4;
@@ -5909,11 +5944,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
     i386_pop_reg(cd, REG_RESULT2);
 /*REMOVE DYNAMIC STACK INFO -END */
 
-    i386_alu_imm_reg(cd, I386_ADD, stackframesize, REG_SP);
+    i386_alu_imm_reg(cd, ALU_ADD, stackframesize, REG_SP);
 
 
     if (runverbose) {
-        i386_alu_imm_reg(cd, I386_SUB, 4 + 8 + 8 + 4, REG_SP);
+        i386_alu_imm_reg(cd, ALU_SUB, 4 + 8 + 8 + 4, REG_SP);
 		
         i386_mov_imm_membase(cd, (u4) m, REG_SP, 0);
 		
@@ -5929,7 +5964,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
         i386_mov_membase_reg(cd, REG_SP, 4, REG_RESULT);
         i386_mov_membase_reg(cd, REG_SP, 4 + 4, REG_RESULT2);
 		
-        i386_alu_imm_reg(cd, I386_ADD, 4 + 8 + 8 + 4, REG_SP);
+        i386_alu_imm_reg(cd, ALU_ADD, 4 + 8 + 8 + 4, REG_SP);
     }
 
 	/* we can't use REG_ITMP3 == REG_RESULT2 */
@@ -5961,7 +5996,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_imm_membase(cd, 0, REG_ITMP2, 0);
 #endif
 	i386_mov_membase_reg(cd, REG_SP, 0, REG_ITMP2_XPC);
-	i386_alu_imm_reg(cd, I386_SUB, 2, REG_ITMP2_XPC);
+	i386_alu_imm_reg(cd, ALU_SUB, 2, REG_ITMP2_XPC);
 
 	i386_mov_imm_reg(cd, (u4) asm_handle_nat_exception, REG_ITMP3);
 	i386_jmp_reg(cd, REG_ITMP3);
@@ -5982,14 +6017,35 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		if (pref) {
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
+
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode =  *((u8 *) xcodeptr);
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			*((ptrint *) (cd->mcodeptr + 0)) = 0;                    /* vftbl */
+			*((ptrint *) (cd->mcodeptr + 4)) = (ptrint) get_dummyLR(); /* monitorPtr */
+
+			cd->mcodeptr += 2 * 4;
+#endif
+
 			/* patch in `call rel32' to call the following code               */
+
 			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
 			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
 
-			/* Push machine code bytes to patch onto the stack.               */
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			i386_call_imm(cd, 0);
+			i386_alu_imm_membase(cd, ALU_SUB, 5 + 2 * 4, REG_SP, 0);
+#else
+			i386_push_imm(cd, 0);
+#endif
+
+			/* move machine code bytes and classinfo pointer onto stack */
+
 			i386_push_imm(cd, (ptrint) (mcode >> 32));
 			i386_push_imm(cd, (ptrint) mcode);
 			i386_push_imm(cd, (ptrint) pref->ref);
