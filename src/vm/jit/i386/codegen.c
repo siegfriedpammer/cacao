@@ -29,13 +29,14 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2476 2005-05-13 14:03:12Z twisti $
+   $Id: codegen.c 2481 2005-05-17 09:05:33Z twisti $
 
 */
 
 
 #define _GNU_SOURCE
 
+#include <assert.h>
 #include <stdio.h>
 #include <ucontext.h>
 #ifdef __FreeBSD__
@@ -351,20 +352,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
  		if (var->type >= 0) {
-			if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
-				if (p < rd->intreg_argnum) {              /* register arguments    */
-					panic("integer register argument");
-					if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+			if (IS_INT_LNG_TYPE(t)) {                /* integer args          */
+				if (p < rd->intreg_argnum) {         /* register arguments    */
+					log_text("integer register argument");
+					assert(0);
+					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
 						/*   					M_INTMOVE (argintregs[p], r); */
 
-					} else {                             /* reg arg -> spilled    */
+					} else {                         /* reg arg -> spilled    */
 						/*   					M_LST (argintregs[p], REG_SP, 8 * r); */
 					}
-				} else {                                 /* stack arguments       */
+				} else {                             /* stack arguments       */
 					/* pa = p - rd->intreg_argnum; */
-					if (!(var->flags & INMEMORY)) {      /* stack arg -> register */ 
+					if (!(var->flags & INMEMORY)) {  /* stack arg -> register */
 						i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4, var->regoff);      /* + 4 for return address */
-					} else {                             /* stack arg -> spilled  */
+					} else {                         /* stack arg -> spilled  */
 						if (!IS_2_WORD_TYPE(t)) {
 							/* i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4, REG_ITMP1) */;    /* + 4 for return address */
 /* 							i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 4); */
@@ -380,18 +382,18 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					}
 				}
 		
-			} else {                                     /* floating args         */   
-				if (p < rd->fltreg_argnum) {              /* register arguments    */
-					if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
-						panic("There are no float argument registers!");
+			} else {                                 /* floating args         */
+				if (p < rd->fltreg_argnum) {         /* register arguments    */
+					log_text("There are no float argument registers!");
+					assert(0);
 
-					} else {			                 /* reg arg -> spilled    */
-						panic("There are no float argument registers!");
+					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
+					} else {			             /* reg arg -> spilled    */
 					}
 
-				} else {                                 /* stack arguments       */
+				} else {                             /* stack arguments       */
 					/* pa = p - rd->fltreg_argnum; */
-					if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
+					if (!(var->flags & INMEMORY)) {  /* stack-arg -> register */
 						if (t == TYPE_FLT) {
 							i386_flds_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4);
 							fpu_st_offset++;
@@ -405,9 +407,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 							fpu_st_offset--;
 						}
 
-					} else {                              /* stack-arg -> spilled  */
-						/*   					i386_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1); */
-						/*   					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, r * 8); */
+					} else {                         /* stack-arg -> spilled  */
+/*   					i386_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1); */
+/*   					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, r * 8); */
 						if (t == TYPE_FLT) {
 /* 							i386_flds_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4); */
 /* 							i386_fstps_membase(cd, REG_SP, var->regoff * 4); */
@@ -551,34 +553,38 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #ifdef LSRA
 		if (opt_lsra) {
-		while (src != NULL) {
-			len--;
-  			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
-				if (!IS_2_WORD_TYPE(src->type)) {
-					if (bptr->type == BBTYPE_SBR) {
+			while (src != NULL) {
+				len--;
+				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+					if (!IS_2_WORD_TYPE(src->type)) {
+						if (bptr->type == BBTYPE_SBR) {
 							/* 							d = reg_of_var(m, src, REG_ITMP1); */
 							if (!(src->flags & INMEMORY))
-								d= src->regoff;
+								d = src->regoff;
 							else
-								d=REG_ITMP1;
-						i386_pop_reg(cd, d);
-						store_reg_to_var_int(src, d);
+								d = REG_ITMP1;
+
+							i386_pop_reg(cd, d);
+							store_reg_to_var_int(src, d);
+
 						} else if (bptr->type == BBTYPE_EXH) {
 							/* 							d = reg_of_var(m, src, REG_ITMP1); */
 							if (!(src->flags & INMEMORY))
-								d= src->regoff;
+								d = src->regoff;
 							else
-								d=REG_ITMP1;
+								d = REG_ITMP1;
 							M_INTMOVE(REG_ITMP1, d);
 							store_reg_to_var_int(src, d);
 						}
 
 					} else {
-						panic("copy interface registers(EXH, SBR): longs have to be in memory (begin 1)");
+						log_text("copy interface registers(EXH, SBR): longs have to be in memory (begin 1)");
+						assert(0);
 					}
 				}
 				src = src->prev;
 			}
+
 		} else {
 #endif
 			while (src != NULL) {
@@ -596,7 +602,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					}
 
 				} else {
-					panic("copy interface registers: longs have to be in memory (begin 1)");
+					log_text("copy interface registers: longs have to be in memory (begin 1)");
+					assert(0);
 				}
 
 			} else {
@@ -634,7 +641,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   								M_LNGMEMMOVE(s1, src->regoff);
 
 							} else {
-								panic("copy interface registers: longs have to be in memory (begin 2)");
+								log_text("copy interface registers: longs have to be in memory (begin 2)");
+								assert(0);
 							}
 						}
 					}
@@ -716,7 +724,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_imm_membase(cd, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
 				
 			} else {
-				panic("LCONST: longs have to be in memory");
+				log_text("LCONST: longs have to be in memory");
+				assert(0);
 			}
 			break;
 
@@ -858,11 +867,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_LNGMEMMOVE(var->regoff, iptr->dst->regoff);
 
 				} else {
-					panic("LLOAD: longs have to be in memory");
+					log_text("LLOAD: longs have to be in memory");
+					assert(0);
 				}
 
 			} else {
-				panic("LLOAD: longs have to be in memory");
+				log_text("LLOAD: longs have to be in memory");
+				assert(0);
 			}
 			break;
 
@@ -948,11 +959,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_LNGMEMMOVE(src->regoff, var->regoff);
 
 				} else {
-					panic("LSTORE: longs have to be in memory");
+					log_text("LSTORE: longs have to be in memory");
+					assert(0);
 				}
 
 			} else {
-				panic("LSTORE: longs have to be in memory");
+				log_text("LSTORE: longs have to be in memory");
+				assert(0);
 			}
 			break;
 
@@ -2486,7 +2499,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				fpu_st_offset++;
 
 			} else {
-				panic("L2F: longs have to be in memory");
+				log_text("L2F: longs have to be in memory");
+				assert(0);
 			}
   			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2654,7 +2668,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, iptr->dst->regoff * 4 + 4);
 
 			} else {
-				panic("F2L: longs have to be in memory");
+				log_text("F2L: longs have to be in memory");
+				assert(0);
 			}
 			break;
 
@@ -2708,7 +2723,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, iptr->dst->regoff * 4 + 4);
 
 			} else {
-				panic("D2L: longs have to be in memory");
+				log_text("D2L: longs have to be in memory");
+				assert(0);
 			}
 			break;
 
@@ -3179,7 +3195,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 4);
 					i386_mov_reg_membase(cd, REG_ITMP3, REG_SP, iptr->dst->regoff * 4 + 4);
 				} else {
-					panic("GETSTATIC: longs have to be in memory");
+					log_text("GETSTATIC: longs have to be in memory");
+					assert(0);
 				}
 				break;
 			case TYPE_FLT:
@@ -3246,7 +3263,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_ITMP1, 0);
 					i386_mov_reg_membase(cd, REG_ITMP3, REG_ITMP1, 4);
 				} else {
-					panic("PUTSTATIC: longs have to be in memory");
+					log_text("PUTSTATIC: longs have to be in memory");
+					assert(0);
 				}
 				break;
 			case TYPE_FLT:
@@ -3402,7 +3420,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_reg_membase32(cd, REG_ITMP2, s1, a);
 					i386_mov_reg_membase32(cd, REG_ITMP3, s1, a + 4);
 				} else {
-					panic("PUTFIELD: longs have to be in memory");
+					log_text("PUTFIELD: longs have to be in memory");
+					assert(0);
 				}
 				break;
 			case TYPE_FLT:
@@ -4097,7 +4116,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_RESULT2);
 
 			} else {
-				panic("LRETURN: longs have to be in memory");
+				log_text("LRETURN: longs have to be in memory");
+				assert(0);
 			}
 
 			goto nowperformreturn;
@@ -4376,7 +4396,8 @@ gen_method: {
 
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (s3 < rd->intreg_argnum) {
-						panic("No integer argument registers available!");
+						log_text("No integer argument registers available!");
+						assert(0);
 
 					} else {
 						if (!IS_2_WORD_TYPE(src->type)) {
@@ -4392,14 +4413,16 @@ gen_method: {
 								M_LNGMEMMOVE(src->regoff, stack_off);
 
 							} else {
-								panic("copy arguments: longs have to be in memory");
+								log_text("copy arguments: longs have to be in memory");
+								assert(0);
 							}
 						}
 					}
 
 				} else {
 					if (s3 < rd->fltreg_argnum) {
-						panic("No float argument registers available!");
+						log_text("No float argument registers available!");
+						assert(0);
 
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
@@ -4548,7 +4571,8 @@ gen_method: {
 							i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, iptr->dst->regoff * 4 + 4);
 
 						} else {
-  							panic("RETURN: longs have to be in memory");
+  							log_text("RETURN: longs have to be in memory");
+							assert(0);
 						}
 
 					} else {
@@ -5093,7 +5117,8 @@ gen_method: {
 					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
 
 				} else {
-					panic("double store");
+					log_text("double store");
+					assert(0);
 /*  					M_DST(s1, REG_SP, 4 * interfaces[len][s2].regoff); */
 				}
 
@@ -5112,7 +5137,8 @@ gen_method: {
 						M_LNGMEMMOVE(s1, rd->interfaces[len][s2].regoff);
 
 					} else {
-						panic("copy interface registers: longs have to be in memory (end)");
+						log_text("copy interface registers: longs have to be in memory (end)");
+						assert(0);
 					}
 				}
 			}
