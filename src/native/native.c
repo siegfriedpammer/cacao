@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2465 2005-05-13 00:02:01Z twisti $
+   $Id: native.c 2482 2005-05-19 08:48:55Z jowenn $
 
 */
 
@@ -96,6 +96,7 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Proxy.h"
 #include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_security_VMAccessController.h"
 
 #if defined(STATIC_CLASSPATH)
 
@@ -211,6 +212,8 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_Method_getParameterTypes,
 	(functionptr) Java_java_lang_reflect_Method_getExceptionTypes,
 	(functionptr) Java_java_lang_reflect_Method_invokeNative,
+
+	(functionptr) Java_java_security_VMAccessController_getStack,
 };
 
 #endif /* defined(STATIC_CLASSPATH) */

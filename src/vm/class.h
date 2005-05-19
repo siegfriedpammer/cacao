@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: class.h 2482 2005-05-19 08:48:55Z jowenn $
 
 */
 
@@ -191,6 +191,7 @@ extern classinfo *class_java_lang_Double;
 extern classinfo *class_java_util_Vector;
 extern classinfo *class_java_lang_reflect_Constructor;
 extern classinfo *class_java_lang_reflect_Method;
+extern classinfo *arrayclass_java_lang_Object;
 
 /* pseudo classes for the type checker ****************************************/
 

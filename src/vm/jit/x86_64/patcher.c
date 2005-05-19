@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2448 2005-05-11 13:03:20Z twisti $
+   $Id: patcher.c 2482 2005-05-19 08:48:55Z jowenn $
 
 */
 
@@ -43,7 +43,7 @@
 #include "vm/exceptions.h"
 
 
-helper_initialize_class(void* beginOfJavaStack,classinfo *c,u1 *ra) {
+bool helper_initialize_class(void* beginOfJavaStack,classinfo *c,u1 *ra) {
 	if (!c->initialized) {
 		bool init;
 		{

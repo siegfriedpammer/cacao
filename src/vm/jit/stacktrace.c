@@ -26,7 +26,7 @@
 
    Authors: Joseph Wenninger
 
-   $Id: stacktrace.c 2430 2005-05-03 19:25:52Z twisti $
+   $Id: stacktrace.c 2482 2005-05-19 08:48:55Z jowenn $
 
 */
 
@@ -45,8 +45,12 @@
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
+#include "vm/exceptions.h"
 
 #undef JWDEBUG
+#undef JWDEBUG2
+#undef JWDEBUG3
 
 /*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
@@ -85,7 +89,7 @@ static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line
 		tmp->method=method;
 		tmp->linenumber=line;
 		buffer->full = buffer->full + 1;
-#ifdef JWDEBUG
+#if (defined(JWDEBUG) || defined (JWDEBUG2))
 		log_text("addEntry (stacktrace):");
 		printf("method %p\n",method);
 		if (method) printf("method->name %p\n",method->name);
@@ -216,7 +220,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 	stackTraceBuffer buffer;
 	buffer.needsFree=0;
 	buffer.start=primaryBlock;
-	buffer.size=BLOCK_INITIALSIZE*sizeof(stacktraceelement);
+	buffer.size=BLOCK_INITIALSIZE; /**sizeof(stacktraceelement)*/;
 	buffer.full=0;
 #ifdef JWDEBUG
 	log_text("entering cacao_stacktrace_fillInStacktrace");
@@ -380,9 +384,11 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
 	start=buffer->start;
 	start++;
 	targetSize--;
-
         if (targetSize > 0) {
                 if ((start->method) && (start->method->class== class_java_lang_SecurityManager)) {
+#if (defined(JWDEBUG) || defined(JWDEBUG3))
+			printf("removing one frame");
+#endif
                         targetSize--;
                         start++;
                 }
@@ -390,9 +396,12 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
 
         tmpArray = builtin_anewarray(targetSize, class_java_lang_Class);
 
+#if (defined(JWDEBUG) || defined(JWDEBUG3))
+	printf("==========================================================================================================\n");
+#endif
         for(i = 0, current = start; i < targetSize; i++, current++) {
                 if (current->method==0) { i--; /*printf("Skipping\n");*/ continue;}
-#ifdef JWDEBUG
+#if (defined(JWDEBUG) || defined(JWDEBUG3))
 		{
 			printf("after current->method check\n");
 			if (current->method->class==0) printf("Error method defining class i null\n");
@@ -412,7 +421,7 @@ void classContextCollector(void **target, stackTraceBuffer *buffer) {
 		printf("array item has been set\n");
 #endif
         }
-#ifdef JWDEBUG
+#if (defined(JWDEBUG) || defined(JWDEBUG3))
 	printf("leaving classContextCollector");
 #endif
         *target=tmpArray;
@@ -455,7 +464,7 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
 			/* XXX handle exception */;
 
         for(i=0, current = start; i < size; i++, current++) {
-                m=start->method;
+                m=current->method;
 		if (!m) continue;
 
                 if (m->class == privilegedAction) {
@@ -490,6 +499,64 @@ methodinfo *cacao_callingMethod() {
 	cacao_stacktrace_fillInStackTrace((void**)&method,&callingMethodCollector);
 	return method;
 }
+
+
+static
+void getStackCollector(void **target, stackTraceBuffer *buffer) {
+	java_objectarray *classes;
+	java_objectarray *methodnames;
+	java_objectarray **result=(java_objectarray**)target;
+	java_lang_String *str;
+	classinfo *c;
+        stacktraceelement *current;
+	int i,size;
+
+	/*log_text("getStackCollector");*/
+
+	size=buffer->full;
+
+
+	*result=builtin_anewarray(2,arrayclass_java_lang_Object);
+	if (result==0) panic("getStackCollector (very out of memory)");
+	classes=builtin_anewarray(size,class_java_lang_Class);
+	methodnames=builtin_anewarray(size,class_java_lang_String);
+	(*result)->data[0]=(java_objectheader*)classes;
+	(*result)->data[1]=(java_objectheader*)methodnames;
+	if ( (0==classes) || (0==methodnames)) {
+		classes=builtin_anewarray(0,class_java_lang_Class);
+		methodnames=builtin_anewarray(0,class_java_lang_String);
+		(*result)->data[0]=(java_objectheader*)classes;
+		(*result)->data[1]=(java_objectheader*)methodnames;
+		if ( (0==classes) || (0==methodnames)) panic ("getStackCollector (very out of memory 2)");
+		return;
+	}
+	/*log_text("Before for loop");*/
+	for (i=0,current=&(buffer->start[0]);i<size;i++,current++) {
+		/*log_text("In loop");*/
+		c=current->method->class;
+		use_class_as_object(c);
+		classes->data[i]=(java_objectheader*)c;
+		str=javastring_new(current->method->name);
+		if (!str) return;
+		methodnames->data[i]=(java_objectheader*)str;
+		/*printf("getStackCollector: %s.%s\n",c->name->text,current->method->name->text);*/
+	}
+
+	/*if (*exceptionptr) panic("Exception in getStackCollector");*/
+
+	/*log_text("loop left");*/
+        return;
+
+}
+
+java_objectarray *cacao_getStackForVMAccessController() {
+	java_objectarray *result=0;
+	cacao_stacktrace_fillInStackTrace((void**)&result,&getStackCollector);
+	return result;
+}
+
+
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

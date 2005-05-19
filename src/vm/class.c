@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: class.c 2482 2005-05-19 08:48:55Z jowenn $
 
 */
 
@@ -123,7 +123,7 @@ classinfo *class_java_lang_Double = NULL;
 classinfo *class_java_util_Vector = NULL;
 classinfo *class_java_lang_reflect_Constructor = NULL;
 classinfo *class_java_lang_reflect_Method = NULL;
-
+classinfo *arrayclass_java_lang_Object=NULL;
 
 /* pseudo classes for the typechecker */
 
