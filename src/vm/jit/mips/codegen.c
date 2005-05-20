@@ -33,11 +33,12 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2478 2005-05-13 14:19:50Z twisti $
+   $Id: codegen.c 2489 2005-05-20 17:51:34Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
@@ -173,8 +174,11 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 
 	} else {
         faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%lx at 0x%lx\n", (long) faultaddr, (long) sigctx->gregs[CTX_EPC]);
-		panic("Stack overflow");
+
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "faulting address: 0x%lx at 0x%lx\n",
+								   (long) faultaddr,
+								   (long) sigctx->gregs[CTX_EPC]);
 	}
 }
 
@@ -1550,9 +1554,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_DDIV(s1, s2, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
-		
+
+#if 0		
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
-			panic("FREM");
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
@@ -1577,6 +1581,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_DSUB(s1, REG_FTMP3, d);
 			store_reg_to_var_flt(iptr->dst, d);
 		    break;
+#endif
 
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2F:
@@ -3692,7 +3697,7 @@ afteractualcall:
 			if (s1 <= 32768)
 				M_LDA (REG_PV, REG_RA, -s1);
 			else {
-				panic("To big");
+				assert(0);
 			}
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
