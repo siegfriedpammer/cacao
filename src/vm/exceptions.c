@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: exceptions.c 2490 2005-05-20 23:05:49Z twisti $
 
 */
 
@@ -154,9 +154,12 @@ static void throw_exception_exit_intern(bool doexit)
 		if (pss) {
 			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
 
-			/* this normally means, we are EXTREMLY out of memory, but may be
-			   any other exception */
+			/* This normally means, we are EXTREMLY out of memory or have a   */
+			/* serious problem while printStackTrace. But may be another      */
+			/* exception, so print it.                                        */
+
 			if (*exceptionptr) {
+				fprintf(stderr, "Exception while printStackTrace(): ");
 				utf_fprint_classname(stderr, c->name);
 				fprintf(stderr, "\n");
 			}
@@ -374,14 +377,36 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 
 java_objectheader *new_internalerror(const char *message, ...)
 {
-	char msg[MAXLOGTEXT];
-	va_list ap;
+	java_objectheader *o;
+	va_list            ap;
+	char              *msg;
+	s4                 msglen;
+
+	/* calculate exception message length */
+
+	va_start(ap, message);
+	msglen = get_variable_message_length(message, ap);
+	va_end(ap);
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
 
 	va_start(ap, message);
 	vsprintf(msg, message, ap);
 	va_end(ap);
 
-	return new_exception_message(string_java_lang_InternalError, msg);
+	/* create exception object */
+
+	o = new_exception_message(string_java_lang_InternalError, msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	return o;
 }
 
 
@@ -393,20 +418,44 @@ java_objectheader *new_internalerror(const char *message, ...)
 
 java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *message, ...)
 {
-	char msg[MAXLOGTEXT];
-	va_list ap;
+	java_objectheader *o;
+	va_list            ap;
+	char              *msg;
+    s4                 msglen;
+
+	/* calculate exception message length */
+
+	msglen = utf_strlen(c->name) + strlen(" (") + strlen(")") + strlen("0");
+
+	va_start(ap, message);
+	msglen += get_variable_message_length(message, ap);
+	va_end(ap);
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
 
 	utf_sprint_classname(msg, c->name);
-	sprintf(msg + strlen(msg), " (");
+	strcat(msg, " (");
 
 	va_start(ap, message);
 	vsprintf(msg + strlen(msg), message, ap);
 	va_end(ap);
 
-	sprintf(msg + strlen(msg), ")");
+	strcat(msg, ")");
 
-	return new_exception_message(string_java_lang_UnsupportedClassVersionError,
-								 msg);
+	/* create exception object */
+
+	o = new_exception_message(string_java_lang_UnsupportedClassVersionError,
+							  msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	return o;
 }
 
 
@@ -416,31 +465,51 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 *******************************************************************************/
 
-java_objectheader *new_verifyerror(methodinfo *m, const char *message)
+java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 {
 	java_objectheader *o;
-	char *msg;
-	s4 len;
+	va_list            ap;
+	char              *msg;
+	s4                 msglen;
 
 	useinlining = false; /* at least until sure inlining works with exceptions*/
-	len = 8 + utf_strlen(m->class->name) +
-		10 + utf_strlen(m->name) +
-		13 + utf_strlen(m->descriptor) +
-		2 + strlen(message) + 1;
-		
-	msg = MNEW(char, len);
 
-	sprintf(msg, "(class: ");
-	utf_sprint(msg + strlen(msg), m->class->name);
-	sprintf(msg + strlen(msg), ", method: ");
-	utf_sprint(msg + strlen(msg), m->name);
-	sprintf(msg + strlen(msg), ", signature: ");
-	utf_sprint(msg + strlen(msg), m->descriptor);
-	sprintf(msg + strlen(msg), ") %s", message);
+	/* calculate exception message length */
+
+	msglen = strlen("(class: ") + utf_strlen(m->class->name) +
+		strlen(", method: ") + utf_strlen(m->name) +
+		strlen(" signature: ") + utf_strlen(m->descriptor) +
+		strlen(") ") + strlen("0");
+
+	va_start(ap, message);
+	msglen += get_variable_message_length(message, ap);
+	va_end(ap);
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
+
+	strcpy(msg, "(class: ");
+	utf_strcat(msg, m->class->name);
+	strcat(msg, ", method: ");
+	utf_strcat(msg, m->name);
+	strcat(msg, " signature: ");
+	utf_strcat(msg, m->descriptor);
+	strcat(msg, ") ");
+
+	va_start(ap, message);
+	vsprintf(msg + strlen(msg), message, ap);
+	va_end(ap);
+
+	/* create exception object */
 
 	o = new_exception_message(string_java_lang_VerifyError, msg);
 
-	MFREE(msg, u1, len);
+	/* free memory */
+
+	MFREE(msg, char, msglen);
 
 	return o;
 }
@@ -448,7 +517,7 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message)
 
 /* new_arithmeticexception *****************************************************
 
-   generates a java.lang.ArithmeticException for the jit compiler
+   Generates a java.lang.ArithmeticException for the jit compiler.
 
 *******************************************************************************/
 
@@ -468,7 +537,8 @@ java_objectheader *new_arithmeticexception(void)
 
 /* new_arrayindexoutofboundsexception ******************************************
 
-   generates a java.lang.ArrayIndexOutOfBoundsException for the jit compiler
+   Generates a java.lang.ArrayIndexOutOfBoundsException for the JIT
+   compiler.
 
 *******************************************************************************/
 
@@ -490,11 +560,7 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 		return *exceptionptr;
 
 	s = (java_lang_String *) asm_calljavafunction(m,
-#if POINTERSIZE == 8
-												  (void *) (s8) index,
-#else
-												  (void *) index,
-#endif
+												  (void *) (ptrint) index,
 												  NULL,
 												  NULL,
 												  NULL);
