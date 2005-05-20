@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: typeinfo.c 2483 2005-05-20 11:19:41Z twisti $
 
 */
 
@@ -659,7 +659,8 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	if (!resolve_classref_or_classinfo(NULL /* XXX should now method */,
 				c,resolveLazy,true,&cls))
 	{
-		panic("XXX could not resolve class reference"); /* XXX */
+		log_text("XXX could not resolve class reference"); /* XXX */
+		assert(0);
 		return false;
 	}
 	
@@ -745,14 +746,19 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 
     /* check arguments */
     for (i=0; i<desc->paramcount; ++i) {
-		if (++args > buflen)
-			panic("Buffer too small for method arguments."); /* XXX */
+		if (++args > buflen) {
+			log_text("Buffer too small for method arguments."); /* XXX */
+			assert(0);
+		}
 
 		typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++);
 		
 		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
-			if (++args > buflen)
-				panic("Buffer too small for method arguments."); /* XXX */
+			if (++args > buflen) {
+				log_text("Buffer too small for method arguments."); /* XXX */
+				assert(0);
+			}
+
 			*typebuf++ = TYPE_VOID;
 			TYPEINFO_INIT_PRIMITIVE(*infobuf);
 			infobuf++;
@@ -789,15 +795,20 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 
     /* check arguments */
     for (i=0; i<desc->paramcount; ++i) {
-		if (++args > buflen)
-			panic("Buffer too small for method arguments."); /* XXX */
+		if (++args > buflen) {
+			log_text("Buffer too small for method arguments."); /* XXX */
+			assert(0);
+		}
 
 		typedescriptor_init_from_typedesc(td,desc->paramtypes + i);
 		td++;
 
 		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
-			if (++args > buflen)
-				panic("Buffer too small for method arguments."); /* XXX */
+			if (++args > buflen) {
+				log_text("Buffer too small for method arguments."); /* XXX */
+				assert(0);
+			}
+
 			td->type = TYPE_VOID;
 			TYPEINFO_INIT_PRIMITIVE(td->info);
 			td++;
@@ -820,8 +831,10 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
         return;
     }
     
-    if (!TYPEINFO_IS_ARRAY(*srcarray))
-        panic("Trying to access component of non-array"); /* XXX throw exception */
+    if (!TYPEINFO_IS_ARRAY(*srcarray)) {
+        log_text("Trying to access component of non-array"); /* XXX throw exception */
+		assert(0);
+	}
 
 	if (IS_CLASSREF(srcarray->typeclass)) {
 		constant_classref *comp;
@@ -835,9 +848,12 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 	else {
 		vftbl_t *comp;
 		
-		if (!srcarray->typeclass.cls->linked)
-			if (!link_class(srcarray->typeclass.cls))
-				panic("XXX could not link class");
+		if (!srcarray->typeclass.cls->linked) {
+			if (!link_class(srcarray->typeclass.cls)) {
+				log_text("XXX could not link class");
+				assert(0);
+			}
+		}
 
 		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl);
 		TYPEINFO_ASSERT(srcarray->typeclass.cls->vftbl->arraydesc);
@@ -902,7 +918,9 @@ typeinfo_merge_error(char *str,typeinfo *x,typeinfo *y) {
     fprintf(stderr,"Typeinfo y:\n");
     typeinfo_print(stderr,y,1);
 #endif
-    panic(str); /* XXX throw an exception */
+
+    log_text(str); /* XXX throw an exception */
+	assert(0);
 }
 
 /* Condition: clsx != clsy. */
@@ -1442,8 +1460,11 @@ return_simple:
             }
             else {
                 common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub,true);
-				if (!common.cls)
-					panic("XXX Coult not create array class");
+				if (!common.cls) {
+					log_text("XXX Coult not create array class");
+					assert(0);
+				}
+
                 elementtype = ARRAYTYPE_OBJECT;
                 elementclass.cls = pseudo_class_Arraystub;
             }
@@ -1466,8 +1487,10 @@ return_simple:
 					common.ref = class_get_classref_multiarray_of(dimension,elementclass.ref);
 				else {
 					common.cls = class_multiarray_of(dimension,elementclass.cls,true);
-					if (!common.cls)
-						panic("XXX Coult not create array class");
+					if (!common.cls) {
+						log_text("XXX Coult not create array class");
+						assert(0);
+					}
 				}
                 /* DEBUG */ /* utf_display(common->name); printf("\n"); */
             }
@@ -1550,8 +1573,11 @@ typeinfo_test_parse(typeinfo *info,char *str)
         info->merged->count = num;
 
         for (i=0; i<num; ++i) {
-            if (typebuf[i] != TYPE_ADDRESS)
-                panic("non-reference type in mergedlist");
+            if (typebuf[i] != TYPE_ADDRESS) {
+                log_text("non-reference type in mergedlist");
+				assert(0);
+			}
+
             info->merged->list[i].any = infobuf[i].typeclass.any;
         }
         qsort(info->merged->list,num,sizeof(classref_or_classinfo),
@@ -1659,16 +1685,21 @@ typeinfo_testrun(char *filename)
     FILE *file = fopen(filename,"rt");
 	int res;
     
-    if (!file)
-        panic("could not open typeinfo test file");
+    if (!file) {
+        log_text("could not open typeinfo test file");
+		assert(0);
+	}
 
     while (fgets(buf,TYPEINFO_TEST_BUFLEN,file)) {
         if (buf[0] == '#' || !strlen(buf))
             continue;
         
         res = sscanf(buf,"%s\t%s\t%s\n",bufa,bufb,bufc);
-        if (res != 3 || !strlen(bufa) || !strlen(bufb) || !strlen(bufc))
-            panic("Invalid line in typeinfo test file (none of empty, comment or test)");
+        if (res != 3 || !strlen(bufa) || !strlen(bufb) || !strlen(bufc)) {
+            log_text("Invalid line in typeinfo test file (none of empty, comment or test)");
+			assert(0);
+		}
+
 #if 0
         typeinfo_test_parse(&a,bufa);
         typeinfo_test_parse(&b,bufb);
@@ -1702,7 +1733,8 @@ typeinfo_testrun(char *filename)
 
     if (failed) {
         fprintf(stderr,"Failed typeinfo_merge tests: %d\n",failed);
-        panic("Failed test");
+        log_text("Failed test");
+		assert(0);
     }
 }
 
