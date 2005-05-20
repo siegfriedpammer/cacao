@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2482 2005-05-19 08:48:55Z jowenn $
+## $Id: Makefile.am 2486 2005-05-20 15:28:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -76,7 +76,7 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
 	java_lang_reflect_Proxy.h \
-	java_security_VMAccessController
+	java_security_VMAccessController.h
 
 ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 	java_net_DatagramPacket.h \
