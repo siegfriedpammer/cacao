@@ -11,7 +11,8 @@ What about recursion???  x.a calls x.a
 Now wondering if there is a memory corruption because XTA seems to finish ok
 ****/
 
-/* jit/parseXTA.c - parser and print functions for Rapid Type Analyis
+/* src/vm/jit/inline/parseXTA.c - parser and print functions for
+                                  Rapid Type Analyis
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -39,7 +40,9 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Authors: Carolyn Oates
 
-   $Id: parseXTA.c 2195 2005-04-03 16:53:16Z edwin $
+   Changes: Christian Thalinger
+
+   $Id: parseXTA.c 2487 2005-05-20 17:43:27Z twisti $
 
 */
 
@@ -115,6 +118,8 @@ Results: (currently) with -stat see # methods marked used
  
 ****************/
 
+
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -122,6 +127,7 @@ Results: (currently) with -stat see # methods marked used
 #include "cacao/cacao.h"
 #include "mm/memory.h"   
 #include "toolbox/list.h"
+#include "toolbox/logging.h"
 #include "vm/class.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
@@ -217,8 +223,10 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			class = strtok(desc,";");
 			desc = strtok(NULL,"\0");
 			/* get/save classinfo ptr */
-			if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
-				panic("could not load class in descriptor2typesL");
+			if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+				log_text("could not load class in descriptor2typesL");
+				assert(0);
+			}
 			classtypes[pcount-1] = clsinfo;
 			p = addClassCone(p, clsinfo);
 			if (debugInfo >= 1) {
@@ -235,8 +243,10 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 				class = strtok(desc,";");
 				desc = strtok(NULL,"\0");
 				/* get/save classinfo ptr */
-				if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
-					panic("could not load class in descriptor2typesL");
+				if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+					log_text("could not load class in descriptor2typesL");
+					assert(0);
+				}
 				classtypes[pcount-1] = clsinfo;
 				p= addClassCone(p, clsinfo);
 				if (debugInfo >= 1) {
@@ -250,7 +260,8 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 				classtypes[pcount-1] = NULL;
 			break;
 		default:   
-			panic("Ill formed methodtype-descriptor");
+			log_text("Ill formed methodtype-descriptor");
+			assert(0);
 		}
 	}
 
@@ -283,18 +294,23 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			  
 		/* get class string */
 		class = strtok(desc,";");
-		if (!load_class_bootstrap(utf_new_char(class),&clsinfo))
-			panic("could not load class in descriptor2typesL");
+		if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+			log_text("could not load class in descriptor2typesL");
+			assert(0);
+		}
 		m->returnclass = clsinfo;
 		if (m->returnclass == NULL) {
 			printf("class=<%s>\t",class); fflush(stdout);
-			panic ("return class not found");
+			log_text("return class not found");
+			assert(0);
 		}
 		break;
 	case 'V':  m->returntype = TYPE_VOID;
 		break;
 
-	default:   panic("Ill formed methodtype-descriptor-ReturnType");
+	default:
+		log_text("Ill formed methodtype-descriptor-ReturnType");
+		assert(0);
 	}
 
 	m->paramcount = pcount;
@@ -437,8 +453,14 @@ mCalls->xta->calls->tail->monoPoly = monoPoly;
 mCalled->xta->calledBy = add2MethSet(mCalled->xta->calledBy, mCalls);
 
 /* IS THIS REALLY NEEDED???? */
-if (mCalled->xta->calledBy == NULL) panic("mCalled->xta->calledBy is NULL!!!");
-if (mCalls->xta->calls == NULL) panic("mCalls->xta->calls is NULL!!!");
+if (mCalled->xta->calledBy == NULL) {
+	log_text("mCalled->xta->calledBy is NULL!!!");
+	assert(0);
+}
+if (mCalls->xta->calls == NULL) {
+	log_text("mCalls->xta->calls is NULL!!!");
+	assert(0);
+}
 
 }
 
@@ -673,7 +695,11 @@ void  xtaMethodCalls_and_sendReturnType(methodinfo *m)
 
         xtaAllFldsUsed (m);
 
-	if (m->xta == NULL) panic("m->xta null for return type\n");
+		if (m->xta == NULL) {
+			log_text("m->xta null for return type");
+			assert(0);
+		}
+
         /* for each method that this method calls */
         if (m->xta->calls == NULL)
                 s1 = NULL;
@@ -736,8 +762,10 @@ bool xtaAddFldClassTypeInfo(fieldinfo *fi) {
 				desc = MNEW(char, 256);
 				strcpy(desc,++utf_ptr);
 				cname = strtok(desc,";");
-				if (!load_class_bootstrap(utf_new_char(cname),&class))
-					panic("could not load class in xtaAddFldClassTypeInfo");
+				if (!load_class_bootstrap(utf_new_char(cname),&class)) {
+					log_text("could not load class in xtaAddFldClassTypeInfo");
+					assert(0);
+				}
 				fi->xta->fldClassType= class;    /* save field's type class ptr */	
 			} 
 		}
@@ -774,8 +802,8 @@ if (submeth == NULL) {
 	utf_display(class->name); printf(".");
 	METHINFOx(topmethod);
 	printf("parse XTA: Method not found in class hierarchy");fflush(stdout);
-	panic("parse XTA: Method not found in class hierarchy");
-	}
+	assert(0);
+}
 
 /* if submeth called previously from this method then return */
 if (mCalls->xta->calls != NULL) {
@@ -1114,8 +1142,10 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 		SHOWOPCODE(XTA_DEBUGopcodes)
 
 		nextp = p + jcommandsize[opcode];   /* compute next instr start */
-		if (nextp > m->jcodelength)
-			panic("Unexpected end of bytecode");
+		if (nextp > m->jcodelength) {
+			log_text("Unexpected end of bytecode");
+			assert(0);
+		}
 
 		switch (opcode) {
 
@@ -1191,8 +1221,10 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass))
-					panic("Could not resolve class reference");
+				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass)) {
+					log_text("Could not resolve class reference");
+					assert(0);
+				}
 				LAZYLOADING(frclass)
 
 				fi = class_resolvefield(frclass,
@@ -1226,8 +1258,11 @@ printf(" PUTSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass))
-					panic("Could not resolve class reference");
+				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass)) {
+					log_text("Could not resolve class reference");
+					assert(0);
+				}
+
 				LAZYLOADING(frclass)
 
 				fi = class_resolvefield(frclass,
@@ -1264,8 +1299,11 @@ printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 				classinfo *mrclass;
 
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
-				if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-					panic("Could not resolve class reference");
+				if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+					log_text("Could not resolve class reference");
+					assert(0);
+				}
+
 				LAZYLOADING(mrclass) 
 				mi = class_resolveclassmethod(	mrclass,
 												mr->name,
@@ -1373,8 +1411,11 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
-					if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-						panic("Could not resolve class reference");
+					if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+						log_text("Could not resolve class reference");
+						assert(0);
+					}
+
 			       	LAZYLOADING(mrclass) 
 				mi = class_resolveclassmethod(mrclass,
                                                 mr->name,
@@ -1428,8 +1469,11 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 								classinfo *mrclass;
 
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-								if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-									panic("Could not resolve class reference");
+								if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+									log_text("Could not resolve class reference");
+									assert(0);
+								}
+
                                 LAZYLOADING(mrclass)
 
                                 mi = class_resolveinterfacemethod(mrclass,
@@ -1625,9 +1669,10 @@ methodinfo *missedXTAworklist()
 	    if ((calls_class == NULL) || (calls_meth == NULL) || (calls_desc == NULL) 
 	    ||        (class == NULL) ||       (meth == NULL) ||       (desc == NULL))  
 	****/
-	    if (        (class == NULL) ||       (meth == NULL) ||       (desc == NULL))  
-		panic (
-		"Error in xtaMissedIn file: Missing a part of calls_class.calls_meth calls calls_desc class.meth desc \n"); 
+	    if (        (class == NULL) ||       (meth == NULL) ||       (desc == NULL)) {
+			log_text("Error in xtaMissedIn file: Missing a part of calls_class.calls_meth calls calls_desc class.meth desc");
+			assert(0);
+		}
  	    SYSADD(class,meth,desc, POLY, missedtxt)
 	    }
 	fclose(xtaMissedIn);
@@ -1658,9 +1703,10 @@ void parseXTAmethod(methodinfo *xta_method) {
 	    else {
 	       printf("Abstract method in XTA Work List: ");
 	       METHINFOx(xta_method);
-	       panic("Abstract method in XTA Work List.");
-               }
-            }            	
+	       log_text("Abstract method in XTA Work List.");
+		   assert(0);
+		}
+	}            	
 }
 
 void XTAprintCallgraph (list *xtaWorkList, char * txt);

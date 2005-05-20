@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 2189 2005-04-02 02:05:59Z edwin $
+   $Id: inline.c 2487 2005-05-20 17:43:27Z twisti $
 
 */
 
@@ -56,6 +56,8 @@ Method to be inlined must:
 -ine  JOWENN <- please add
 ---*/
 
+
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -244,7 +246,10 @@ void inlining_pop_compiler_variables(
 	t_inlining_stacknode *tmp 
 	  = (t_inlining_stacknode *) list_first(inline_env->inlining_stack);
 
-	if (!inline_env->isinlinedmethod) panic("Attempting to pop from inlining stack in toplevel method!\n");
+	if (!inline_env->isinlinedmethod) {
+		log_text("Attempting to pop from inlining stack in toplevel method!");
+		assert(0);
+	}
 
 	*i = tmp->i;
 	*p = tmp->p;
@@ -386,7 +391,7 @@ bool can_inline (
 bool can = false;
 u2 whycannot = 0;
 if ((inline_env->cummethods < INLINING_MAXMETHODS) && 
-   /*** (!(imi->flags & ACC_ABSTRACT)) && /** Problem from INVOKE STATIC **/
+   /*** (!(imi->flags & ACC_ABSTRACT)) && ** Problem from INVOKE STATIC **/
     (!(imi->flags & ACC_NATIVE)) &&
     (inlineoutsiders || (m->class->name == imr->classref->name)) &&
     (imi->jcodelength < INLINING_MAXCODESIZE) &&
@@ -500,7 +505,10 @@ if  (imi->flags & ACC_ABSTRACT) return can;
   if (mult)  
   	count_in_rejected_mult++;
 #endif
-  if (whycannot > ((1<<IN_MAX)-1)) panic ("Inline Whynot is too large???\n");
+  if (whycannot > ((1<<IN_MAX)-1)) {
+	  log_text("Inline Whynot is too large???");
+	  assert(0);
+  }
 #if defined(STATISTICS)
   count_in_not[whycannot]++; 
 #endif
@@ -724,8 +732,10 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					if (opcode ==JAVA_INVOKEINTERFACE) {
 					    imr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass))
-							panic("Could not resolve class reference");
+						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass)) {
+							log_text("Could not resolve class reference");
+							assert(0);
+						}
 					    LAZYLOADING(imrclass)
                                             imi = class_resolveinterfacemethod(
 						imrclass,
@@ -733,13 +743,17 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
                                                 imr->descriptor,
                                                 m->class,
                        				true);
-					    if (!imi)  /* extra for debug */
-						panic("ExceptionI thrown while parsing bytecode"); /* XXX should be passed on */
-					   }
-					else {
-					   imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass))
-							panic("Could not resolve class reference");
+					    if (!imi) { /* extra for debug */
+							log_text("ExceptionI thrown while parsing bytecode"); /* XXX should be passed on */
+							assert(0);
+						}
+
+					} else {
+						imr = class_getconstant(m->class, i, CONSTANT_Methodref);
+						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass)) {
+							log_text("Could not resolve class reference");
+							assert(0);
+						}
 					   LAZYLOADING(imrclass)
 					   imi = class_resolveclassmethod(
 						imrclass,
@@ -747,12 +761,16 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 						imr->descriptor,
 						m->class,
 						true);
-					    if (!imi) /* extra for debug */
-						panic("Exception0 thrown while parsing bytecode"); /* XXX should be passed on */
+					    if (!imi) { /* extra for debug */
+							log_text("Exception0 thrown while parsing bytecode"); /* XXX should be passed on */
+							assert(0);
+						}
 					    }
 
-					if (!imi) /* normal-but never get here now */ 
-						panic("Exception thrown while parsing bytecode"); /* XXX should be passed on */
+					if (!imi) { /* normal-but never get here now */ 
+						log_text("Exception thrown while parsing bytecode"); /* XXX should be passed on */
+						assert(0);
+					}
 
 /** Inlining has problem currently with typecheck & inlining **/
 /** Due problem with typecheck & inlining, class checks fail for <init>s **/

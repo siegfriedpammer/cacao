@@ -27,7 +27,9 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRT.c 2193 2005-04-02 19:33:43Z edwin $
+   Changes: Christian Thalinger
+
+   $Id: parseRT.c 2487 2005-05-20 17:43:27Z twisti $
 
 */
 
@@ -59,6 +61,8 @@ Results: (currently) with -stat see # methods marked used
  
 ****************/
 
+
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -66,6 +70,7 @@ Results: (currently) with -stat see # methods marked used
 #include "cacao/cacao.h"
 #include "mm/memory.h"   
 #include "toolbox/list.h"
+#include "toolbox/logging.h"
 #include "vm/class.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
@@ -302,7 +307,7 @@ if (submeth == NULL) {
 	utf_display(class->name); printf(".");
 	METHINFOx(topmethod);
 	printf("parse RT: Method not found in class hierarchy");fflush(stdout);
-	panic("parse RT: Method not found in class hierarchy");
+	assert(0);
 	}
 if (submeth->methodUsed == USED) return;
   
@@ -453,8 +458,10 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 		SHOWOPCODE(RTA_DEBUGopcodes)
 
 		nextp = p + jcommandsize[opcode];   /* compute next instrtart */
-		if (nextp > m->jcodelength)
-			panic("Unexpected end of bytecode");
+		if (nextp > m->jcodelength) {
+			log_text("Unexpected end of bytecode");
+			assert(0);
+		}
 
 		switch (opcode) {
 
@@ -530,8 +537,11 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
-				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass))
-					panic("Could not resolve class reference");
+				if (!resolve_classref(m,fr->classref,resolveEager,true,&frclass)) {
+					log_text("Could not resolve class reference");
+					assert(0);
+				}
+
 				LAZYLOADING(frclass);
 
 				fi = class_resolvefield(frclass,
@@ -560,8 +570,11 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				classinfo *mrclass;
 
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
-				if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-					panic("Could not resolve class reference");
+				if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+					log_text("Could not resolve class reference");
+					assert(0);
+				}
+
 				LAZYLOADING(mrclass) 
 				mi = class_resolveclassmethod(	mrclass,
 												mr->name,
@@ -667,8 +680,11 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
-					if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-						panic("Could not resolve class reference");
+					if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+						log_text("Could not resolve class reference");
+						assert(0);
+					}
+
 			       	LAZYLOADING(mrclass) 
 				mi = class_resolveclassmethod(mrclass,
                                                 mr->name,
@@ -713,8 +729,11 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 								classinfo *mrclass;
 
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-								if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass))
-									panic("Could not resolve class reference");
+								if (!resolve_classref(m,mr->classref,resolveEager,true,&mrclass)) {
+									log_text("Could not resolve class reference");
+									assert(0);
+								}
+
                                 LAZYLOADING(mrclass)
 
                                 mi = class_resolveinterfacemethod(mrclass,
@@ -893,8 +912,10 @@ methodinfo *missedRTAworklist()
 	    class = strtok(line, " \n");
 	    meth  = strtok(NULL, " \n");
 	    desc  = strtok(NULL, " \n");
-	    if ((class == NULL) || (meth == NULL) || (desc == NULL))  
-		panic ("Error in rtMissedIn file for: class.meth, desc\n"); 
+	    if ((class == NULL) || (meth == NULL) || (desc == NULL)) {
+			log_text("Error in rtMissedIn file for: class.meth, desc");
+			assert(0);
+		}
  	    SYSADD(class,meth,desc,missedtxt)
 	    }
 	fclose(rtMissedIn);
@@ -925,9 +946,10 @@ void parseRTmethod(methodinfo *rt_method) {
 	    else {
 	       printf("Abstract method in RTA Work List: ");
 	       METHINFOx(rt_method);
-	       panic("Abstract method in RTA Work List.");
-               }
-            }            	
+	       log_text("Abstract method in RTA Work List.");
+		   assert(0);
+		}
+	}            	
 }
 
 
