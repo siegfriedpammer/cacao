@@ -1,4 +1,4 @@
-/* vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
+/* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,9 +26,12 @@
 
    Authors: Edwin Steiner
 
-   $Id: typecheck.c 2447 2005-05-11 12:55:06Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: typecheck.c 2484 2005-05-20 11:20:21Z twisti $
 
 */
+
 
 #include <assert.h>
 #include <string.h>
@@ -233,6 +236,133 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_COUNT_FREQ(array,val,limit)
 #endif
 
+
+/****************************************************************************/
+/* MACROS FOR STACK TYPE CHECKING                                           */
+/****************************************************************************/
+
+#define TYPECHECK_VERIFYERROR(msg) \
+    do { \
+        *exceptionptr = new_verifyerror(m, (msg)); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE_INT \
+    do { \
+        *exceptionptr = \
+            new_verifyerror(m, "Expecting to find integer on stack"); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE_LNG \
+    do { \
+        *exceptionptr = \
+            new_verifyerror(m, "Expecting to find long on stack"); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE_FLT \
+    do { \
+        *exceptionptr = \
+            new_verifyerror(m, "Expecting to find float on stack"); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE_DBL \
+    do { \
+        *exceptionptr = \
+            new_verifyerror(m, "Expecting to find double on stack"); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE_ADR \
+    do { \
+        *exceptionptr = \
+            new_verifyerror(m, "Expecting to find object/array on stack"); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_VERIFYERROR_TYPE(t) \
+    do { \
+        char *type; \
+        switch ((t)) { \
+        case TYPE_INT: \
+			type = "integer"; \
+			break; \
+		case TYPE_LNG: \
+			type = "long"; \
+			break; \
+		case TYPE_FLT: \
+			type = "float"; \
+			break; \
+		case TYPE_DBL: \
+			type = "double"; \
+			break; \
+		case TYPE_ADR: \
+			type = "object/array"; \
+			break; \
+		} \
+        *exceptionptr = new_verifyerror(m, \
+										"Expecting to find %s on stack", \
+										type); \
+        return NULL; \
+    } while (0)
+
+
+#define TYPECHECK_STACK(sp,tp) \
+    do { \
+        if ((sp)->type != (tp)) \
+            TYPECHECK_VERIFYERROR_TYPE((tp)); \
+    } while(0)
+
+
+#define TYPECHECK_INT(sp) \
+    do { \
+        if ((sp)->type != TYPE_INT) \
+            TYPECHECK_VERIFYERROR_TYPE_INT; \
+    } while(0)
+
+#define TYPECHECK_LNG(sp) \
+    do { \
+        if ((sp)->type != TYPE_LNG) \
+            TYPECHECK_VERIFYERROR_TYPE_LNG; \
+    } while(0)
+
+#define TYPECHECK_FLT(sp) \
+    do { \
+        if ((sp)->type != TYPE_FLT) \
+            TYPECHECK_VERIFYERROR_TYPE_FLT; \
+    } while(0)
+
+#define TYPECHECK_DBL(sp) \
+    do { \
+        if ((sp)->type != TYPE_DBL) \
+            TYPECHECK_VERIFYERROR_TYPE_DBL; \
+    } while(0)
+
+#define TYPECHECK_ADR(sp) \
+    do { \
+        if ((sp)->type != TYPE_ADR) \
+            TYPECHECK_VERIFYERROR_TYPE_ADR; \
+    } while(0)
+
+
+#define TYPECHECK_ARGS1(t1)							            \
+	do {TYPECHECK_STACK(curstack,t1);} while (0)
+#define TYPECHECK_ARGS2(t1,t2)						            \
+	do {TYPECHECK_ARGS1(t1);									\
+		TYPECHECK_STACK(curstack->prev,t2);} while (0)
+#define TYPECHECK_ARGS3(t1,t2,t3)								\
+	do {TYPECHECK_ARGS2(t1,t2);									\
+		TYPECHECK_STACK(curstack->prev->prev,t3);} while (0)
+
+
 /****************************************************************************/
 /* TYPESTACK FUNCTIONS                                                      */
 /****************************************************************************/
@@ -265,9 +395,14 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 	int k;
 	
 	for (;dst; dst=dst->prev, y=y->prev) {
-		if (!y) panic("Stack depth mismatch 1");
-		if (dst->type != y->type)
-			panic("Stack type mismatch 1");
+		if (!y) {
+			log_text("Stack depth mismatch 1");
+			assert(0);
+		}
+		if (dst->type != y->type) {
+			log_text("Stack type mismatch 1");
+			assert(0);
+		}
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
@@ -295,7 +430,10 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 			}
 		}
 	}
-	if (y) panic("Stack depth mismatch 2");
+	if (y) {
+		log_text("Stack depth mismatch 2");
+		assert(0);
+	}
 }
 
 static void
@@ -326,24 +464,36 @@ typestack_merge(stackptr dst,stackptr y)
 {
 	bool changed = false;
 	for (; dst; dst = dst->prev, y=y->prev) {
-		if (!y)
-			panic("Stack depth mismatch 3");
-		if (dst->type != y->type) panic("Stack type mismatch 2");
+		if (!y) {
+			log_text("Stack depth mismatch 3");
+			assert(0);
+		}
+		if (dst->type != y->type) {
+			log_text("Stack type mismatch 2");
+			assert(0);
+		}
 		if (dst->type == TYPE_ADDRESS) {
 			if (TYPEINFO_IS_PRIMITIVE(dst->typeinfo)) {
 				/* dst has returnAddress type */
-				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo))
-					panic("Merging returnAddress with reference");
+				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
+					log_text("Merging returnAddress with reference");
+					assert(0);
+				}
 			}
 			else {
 				/* dst has reference type */
-				if (TYPEINFO_IS_PRIMITIVE(y->typeinfo))
-					panic("Merging reference with returnAddress");
+				if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
+					log_text("Merging reference with returnAddress");
+					assert(0);
+				}
 				changed |= typeinfo_merge(&(dst->typeinfo),&(y->typeinfo));
 			}
 		}
 	}
-	if (y) panic("Stack depth mismatch 4");
+	if (y) {
+		log_text("Stack depth mismatch 4");
+		assert(0);
+	}
 	return changed;
 }
 
@@ -521,9 +671,9 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 	if (destblock <= current) {
 		stackptr sp;
 		int i;
-#if defined(__GNUC__)
-#warning FIXME FOR INLINING
-#endif
+
+		/* XXX FIXME FOR INLINING */
+
 		if (!useinlining) {
 			TYPECHECK_COUNT(stat_backwards);
         		LOG("BACKWARDS!");
@@ -532,13 +682,16 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
                 		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
 					show_icmd_method(cd->method,cd,rd);
 					printf("current: %d, dest: %d\n", current->debug_nr, destblock->debug_nr);
-					panic("Branching backwards with uninitialized object on stack");
+					log_text("Branching backwards with uninitialized object on stack");
+					assert(0);
             		}
 
 			for (i=0; i<locsize; ++i)
 				if (yloc->td[i].type == TYPE_ADR &&
-				TYPEINFO_IS_NEWOBJECT(yloc->td[i].info))
-					panic("Branching backwards with uninitialized object in local variable");
+					TYPEINFO_IS_NEWOBJECT(yloc->td[i].info)) {
+					log_text("Branching backwards with uninitialized object in local variable");
+					assert(0);
+				}
 		}
 	}
 	
@@ -585,8 +738,10 @@ typestate_ret(codegendata *cd,registerdata *rd, void *localbuf,
 	bool repeat = false;
 
 	for (yvec=yloc; yvec; ) {
-		if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex]))
-			panic("Illegal instruction: RET on non-returnAddress");
+		if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex])) {
+			log_text("Illegal instruction: RET on non-returnAddress");
+			assert(0);
+		}
 
 		destblock = (basicblock*) TYPEINFO_RETURNADDRESS(yvec->td[retindex].info);
 
@@ -640,7 +795,8 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 			  }
 			  break;
 		  default:
-			  panic("Invalid access flags");
+			  log_text("Invalid access flags");
+			  assert(0);
 		}
 	}
 
@@ -680,10 +836,10 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 
 #define INDEX_ONEWORD(num)										\
 	do { if((num)<0 || (num)>=validlocals)						\
-			panic("Invalid local variable index"); } while (0)
+			TYPECHECK_VERIFYERROR("Invalid local variable index"); } while (0)
 #define INDEX_TWOWORD(num)										\
 	do { if((num)<0 || ((num)+1)>=validlocals)					\
-			panic("Invalid local variable index"); } while (0)
+			TYPECHECK_VERIFYERROR("Invalid local variable index"); } while (0)
 
 #define STORE_ONEWORD(num,type)									\
  	do {typevectorset_store(localset,num,type,NULL);} while(0)
@@ -708,12 +864,12 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 		if (jsrencountered) {											\
 			if (!typevectorset_checktype(localset,num,tp)) {				\
 				WORDCHECKFAULT;	\
-				panic("Variable type mismatch");						\
+				TYPECHECK_VERIFYERROR("Variable type mismatch");						\
 			}	\
 		}																\
 		else {															\
 			if (localset->td[num].type != tp) {							\
-				panic("Variable type mismatch");						\
+				TYPECHECK_VERIFYERROR("Variable type mismatch");						\
 				WORDCHECKFAULT;	\
 			} \
 		}																\
@@ -723,34 +879,10 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 	do {TYPECHECK_COUNT(stat_ins_primload);								\
 		if (!typevectorset_checktype(localset,num,type)) {                \
 			WORDCHECKFAULT;	\
-            		panic("Variable type mismatch");	                        \
+            		TYPECHECK_VERIFYERROR("Variable type mismatch");	                        \
 		} \
 	} while(0)
 
-/****************************************************************************/
-/* MACROS FOR STACK TYPE CHECKING                                           */
-/****************************************************************************/
-
-/* These macros are for basic typechecks which were not done in stack.c */
-
-#define TYPECHECK_STACK(sp,tp)								\
-	do { if ((sp)->type != (tp))							\
-			panic("Wrong data type on stack"); } while(0)
-
-#define TYPECHECK_ADR(sp)  TYPECHECK_STACK(sp,TYPE_ADR)
-#define TYPECHECK_INT(sp)  TYPECHECK_STACK(sp,TYPE_INT)
-#define TYPECHECK_LNG(sp)  TYPECHECK_STACK(sp,TYPE_LNG)
-#define TYPECHECK_FLT(sp)  TYPECHECK_STACK(sp,TYPE_FLT)
-#define TYPECHECK_DBL(sp)  TYPECHECK_STACK(sp,TYPE_DBL)
-
-#define TYPECHECK_ARGS1(t1)							            \
-	do {TYPECHECK_STACK(curstack,t1);} while (0)
-#define TYPECHECK_ARGS2(t1,t2)						            \
-	do {TYPECHECK_ARGS1(t1);									\
-		TYPECHECK_STACK(curstack->prev,t2);} while (0)
-#define TYPECHECK_ARGS3(t1,t2,t3)								\
-	do {TYPECHECK_ARGS2(t1,t2);									\
-		TYPECHECK_STACK(curstack->prev->prev,t3);} while (0)
 
 /****************************************************************************/
 /* MISC MACROS                                                              */
@@ -797,7 +929,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
             /* check the marker variable */                             \
             LOG("Checking <init> marker");                              \
             if (!typevectorset_checktype(localset,numlocals-1,TYPE_INT))\
-                panic("<init> method does not initialize 'this'");      \
+                TYPECHECK_VERIFYERROR("<init> method does not initialize 'this'");      \
         }                                                               \
     } while (0)
 
@@ -937,7 +1069,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
     /* if this is an instance method initialize the "this" ref type */
     if (!(m->flags & ACC_STATIC)) {
 		if (!i)
-			panic("Not enough local variables for method arguments");
+			TYPECHECK_VERIFYERROR("Not enough local variables for method arguments");
         td->type = TYPE_ADDRESS;
         if (initmethod)
             TYPEINFO_INIT_NEWOBJECT(td->info,NULL);
@@ -1011,9 +1143,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                 /* init variable types at the start of this block */
 				COPY_TYPEVECTORSET(MGET_TYPEVECTOR(localbuf,b_index,numlocals),
 								   localset,numlocals);
-#if defined(__GNUC__)
-#warning FIXME FOR INLINING
-#endif
+
+				/* XXX FIXME FOR INLINING */
+
 		if(!useinlining) {
 				if (handlers[0])
 					for (i=0; i<numlocals; ++i)
@@ -1021,7 +1153,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
 								show_icmd_method(m, cd, rd);
 								printf("Uninitialized variale: %d, block: %d\n", i, bptr->debug_nr);
-								panic("Uninitialized object in local variable inside try block");
+								TYPECHECK_VERIFYERROR("Uninitialized object in local variable inside try block");
 							}
 		}
 				DOLOG(typestate_print(get_logfile(),curstack,localset,numlocals));
@@ -1124,7 +1256,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           /* loading a returnAddress is not allowed */
 						  if (jsrencountered) {
 							  if (!typevectorset_checkreference(localset,iptr->op1))
-								  panic("illegal instruction: ALOAD loading non-reference");
+								  TYPECHECK_VERIFYERROR("illegal instruction: ALOAD loading non-reference");
 
 							  typevectorset_copymergedtype(localset,iptr->op1,&(dst->typeinfo));
 						  }
@@ -1135,7 +1267,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 									iptr->op1,iptr->method->class->name->text,
 									iptr->method->name->text,m->class->name->text,m->name->text);
 								  show_icmd(iptr, false);
-								  panic("illegal instruction: ALOAD loading non-reference");
+								  TYPECHECK_VERIFYERROR("illegal instruction: ALOAD loading non-reference");
 							  }
 							  TYPEINFO_COPY(localset->td[iptr->op1].info,dst->typeinfo);
 						  }
@@ -1147,7 +1279,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_ASTORE:
                           if (handlers[0] &&
                               TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
-                              panic("Storing uninitialized object in local variable inside try block");
+                              TYPECHECK_VERIFYERROR("Storing uninitialized object in local variable inside try block");
 
 						  if (TYPESTACK_IS_RETURNADDRESS(curstack))
 							  typevectorset_store_retaddr(localset,iptr->op1,&(curstack->typeinfo));
@@ -1161,7 +1293,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 
                       case ICMD_AALOAD:
                           if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->typeinfo))
-                              panic("illegal instruction: AALOAD on non-reference array");
+                              TYPECHECK_VERIFYERROR("illegal instruction: AALOAD on non-reference array");
 
                           typeinfo_init_component(&curstack->prev->typeinfo,&dst->typeinfo);
                           maythrow = true;
@@ -1204,9 +1336,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 
 							  /* check the type of the invocant */
 							  if (!TYPEINFO_IS_REFERENCE(invocant->typeinfo))
-								  panic("illegal instruction: PUTFIELD(CONST) on non-reference");
+								  TYPECHECK_VERIFYERROR("illegal instruction: PUTFIELD(CONST) on non-reference");
 							  if (TYPEINFO_IS_ARRAY(invocant->typeinfo))
-								  panic("illegal instruction: PUTFIELD(CONST) on array");
+								  TYPECHECK_VERIFYERROR("illegal instruction: PUTFIELD(CONST) on array");
 
 							  /* check if the field is accessible */
 							  if (TYPEINFO_IS_NEWOBJECT(invocant->typeinfo)) {
@@ -1215,26 +1347,26 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  {
 									  /* uninitialized "this" instance */
 									  if (fi->class != m->class || (fi->flags & ACC_STATIC) != 0)
-										  panic("Setting unaccessible field in uninitialized object");
+										  TYPECHECK_VERIFYERROR("Setting unaccessible field in uninitialized object");
 								  }
 								  else {
-									  panic("PUTFIELD(CONST) on uninitialized object");
+									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) on uninitialized object");
 								  }
 							  }
 							  else {
 								  if (!is_accessible(fi->flags,fi->class,fi->class, myclass,
 													 &(invocant->typeinfo)))
-									  panic("PUTFIELD(CONST): field is not accessible");
+									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST): field is not accessible");
 							  }
 
 							  /* check if the value is assignable to the field */
 							  if (type != fi->type)
-								  panic("PUTFIELD(CONST) type mismatch");
+								  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) type mismatch");
 							  if (type == TYPE_ADR) {
 								  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&rinfo);
 								  if (!typeinfo_is_assignable(temptip,
 															  &rinfo))
-									  panic("PUTFIELD(CONST) reference type not assignable");
+									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) reference type not assignable");
 							  }
 						  }
                           maythrow = true;
@@ -1270,16 +1402,16 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  
 							  /* check if the field is accessible */
 							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL))
-								  panic("PUTSTATIC(CONST): field is not accessible");
+								  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST): field is not accessible");
 
 							  /* check if the value is assignable to the field */
 							  if (type != fi->type)
-								  panic("PUTSTATIC(CONST) type mismatch");
+								  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST) type mismatch");
 							  if (type == TYPE_ADR) {
 								  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&rinfo);
 								  if (!typeinfo_is_assignable(temptip,
 															  &rinfo))
-									  panic("PUTSTATIC(CONST) reference type not assignable");
+									  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST) reference type not assignable");
 							  }
 						  }
                           maythrow = true;
@@ -1288,16 +1420,16 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_GETFIELD:
 						  TYPECHECK_COUNT(stat_ins_field);
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              panic("illegal instruction: GETFIELD on non-reference");
+                              TYPECHECK_VERIFYERROR("illegal instruction: GETFIELD on non-reference");
                           if (TYPEINFO_IS_ARRAY(curstack->typeinfo))
-                              panic("illegal instruction: GETFIELD on array");
+                              TYPECHECK_VERIFYERROR("illegal instruction: GETFIELD on array");
                           
                           {
                               fieldinfo *fi = (fieldinfo *)(iptr->val.a);
 							  
 							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,
 												 &(curstack->typeinfo)))
-								  panic("GETFIELD: field is not accessible");
+								  TYPECHECK_VERIFYERROR("GETFIELD: field is not accessible");
 							  
                               if (dst->type == TYPE_ADR) {
                                   typeinfo_init_from_typedesc(fi->parseddesc,NULL,&(dst->typeinfo));
@@ -1319,7 +1451,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								printf("\n");
 
 
-								  panic("GETSTATIC: field is not accessible");
+								  TYPECHECK_VERIFYERROR("GETSTATIC: field is not accessible");
 							}
 
                               if (dst->type == TYPE_ADR) {
@@ -1335,112 +1467,112 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_ARRAYLENGTH:
                           if (!TYPEINFO_MAYBE_ARRAY(curstack->typeinfo)
 							  && curstack->typeinfo.typeclass.cls != pseudo_class_Arraystub)
-                              panic("illegal instruction: ARRAYLENGTH on non-array");
+                              TYPECHECK_VERIFYERROR("illegal instruction: ARRAYLENGTH on non-array");
                           maythrow = true;
                           break;
 
                       case ICMD_BALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_BOOLEAN)
                               && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_BYTE))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_CALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_CHAR))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_DALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_DOUBLE))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_FALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_FLOAT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_IALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_INT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_SALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_SHORT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_LALOAD:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo,ARRAYTYPE_LONG))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_BASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_BOOLEAN)
                               && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_BYTE))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_CASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_CHAR))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_DASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_DOUBLE))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_FASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_FLOAT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_IASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_INT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_SASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_SHORT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
                       case ICMD_LASTORE:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->prev->typeinfo,ARRAYTYPE_LONG))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_IASTORECONST:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_INT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_LASTORECONST:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_LONG))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_BASTORECONST:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_BOOLEAN)
                               && !TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_BYTE))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_CASTORECONST:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_CHAR))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
                       case ICMD_SASTORECONST:
                           if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(curstack->prev->typeinfo, ARRAYTYPE_SHORT))
-                              panic("Array type mismatch");
+                              TYPECHECK_VERIFYERROR("Array type mismatch");
                           maythrow = true;
                           break;
 
@@ -1463,7 +1595,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  TYPECHECK_ADR(curstack);
                           /* returnAddress is not allowed */
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              panic("Illegal instruction: CHECKCAST on non-reference");
+                              TYPECHECK_VERIFYERROR("Illegal instruction: CHECKCAST on non-reference");
 
                           TYPEINFO_INIT_CLASSINFO(dst->typeinfo,(classinfo *)iptr[0].val.a);
                           maythrow = true;
@@ -1473,7 +1605,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  TYPECHECK_ADR(curstack);
                           /* returnAddress is not allowed */
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              panic("Illegal instruction: INSTANCEOF on non-reference");
+                              TYPECHECK_VERIFYERROR("Illegal instruction: INSTANCEOF on non-reference");
                           break;
                           
                           /****************************************/
@@ -1555,38 +1687,38 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_ATHROW:
                           if (!typeinfo_is_assignable_to_class(
                                    &curstack->typeinfo,CLASSREF_OR_CLASSINFO(class_java_lang_Throwable)))
-                              panic("illegal instruction: ATHROW on non-Throwable");
+                              TYPECHECK_VERIFYERROR("illegal instruction: ATHROW on non-Throwable");
                           superblockend = true;
                           maythrow = true;
                           break;
 
                       case ICMD_ARETURN:
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              panic("illegal instruction: ARETURN on non-reference");
+                              TYPECHECK_VERIFYERROR("illegal instruction: ARETURN on non-reference");
 
                           if (returntype.type != TYPE_ADDRESS
                               || !typeinfo_is_assignable(&curstack->typeinfo,&(returntype.info)))
-                              panic("Return type mismatch");
+                              TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
                       case ICMD_IRETURN:
-                          if (returntype.type != TYPE_INT) panic("Return type mismatch");
+                          if (returntype.type != TYPE_INT) TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
                       case ICMD_LRETURN:
-                          if (returntype.type != TYPE_LONG) panic("Return type mismatch");
+                          if (returntype.type != TYPE_LONG) TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
                       case ICMD_FRETURN:
-                          if (returntype.type != TYPE_FLOAT) panic("Return type mismatch");
+                          if (returntype.type != TYPE_FLOAT) TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
                       case ICMD_DRETURN:
-                          if (returntype.type != TYPE_DOUBLE) panic("Return type mismatch");
+                          if (returntype.type != TYPE_DOUBLE) TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
                       case ICMD_RETURN:
-                          if (returntype.type != TYPE_VOID) panic("Return type mismatch");
+                          if (returntype.type != TYPE_VOID) TYPECHECK_VERIFYERROR("Return type mismatch");
 					  return_tail:
                           TYPECHECK_LEAVE;
                           superblockend = true;
@@ -1608,7 +1740,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           
                           tbptr = (basicblock *) iptr->target;
 						  if (bptr + 1 == (m->basicblocks + m->basicblockcount + 1))
-							  panic("Illegal instruction: JSR at end of bytecode");
+							  TYPECHECK_VERIFYERROR("Illegal instruction: JSR at end of bytecode");
 						  typestack_put_retaddr(dst,bptr+1,localset);
 						  repeat |= typestate_reach(cd, rd,localbuf,bptr,tbptr,dst,
 													localset,numlocals,true);
@@ -1619,7 +1751,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_RET:
                           /* check returnAddress variable */
 						  if (!typevectorset_checkretaddr(localset,iptr->op1))
-                              panic("illegal instruction: RET using non-returnAddress variable");
+                              TYPECHECK_VERIFYERROR("illegal instruction: RET using non-returnAddress variable");
 
 						  repeat |= typestate_ret(cd,rd, localbuf,bptr,curstack,
 												  localset,iptr->op1,numlocals);
@@ -1643,7 +1775,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                               classref_or_classinfo initclass;
 
 							  if (specialmethod && !callinginit)
-								  panic("Invalid invocation of special method");
+								  TYPECHECK_VERIFYERROR("Invalid invocation of special method");
 
 							  if (opcode == ICMD_INVOKESPECIAL) {
 								  /* XXX for INVOKESPECIAL: check if the invokation is done at all */
@@ -1651,7 +1783,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  /* (If callinginit the class is checked later.) */
 								  if (!callinginit) { 
  									  if (!builtin_isanysubclass(myclass,mi->class)) 
- 										  panic("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
+ 										  TYPECHECK_VERIFYERROR("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
  								  } 
 							  }
 
@@ -1672,7 +1804,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                               while (--i >= 0) {
                                   LOG1("param %d",i);
                                   if (srcstack->type != ptype[i])
-                                      panic("Parameter type mismatch in method invocation");
+                                      TYPECHECK_VERIFYERROR("Parameter type mismatch in method invocation");
                                   if (srcstack->type == TYPE_ADR) {
                                       LOGINFO(&(srcstack->typeinfo));
                                       LOGINFO(pinfo + i);
@@ -1680,7 +1812,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                       {
                                           /* first argument to <init> method */
                                           if (!TYPEINFO_IS_NEWOBJECT(srcstack->typeinfo))
-                                              panic("Calling <init> on initialized object");
+                                              TYPECHECK_VERIFYERROR("Calling <init> on initialized object");
                                           
                                           /* get the address of the NEW instruction */
                                           LOGINFO(&(srcstack->typeinfo));
@@ -1693,7 +1825,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                       }
                                       else {
                                           if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
-                                              panic("Parameter reference type mismatch in method invocation");
+                                              TYPECHECK_VERIFYERROR("Parameter reference type mismatch in method invocation");
                                       }
                                   }
                                   LOG("ok");
@@ -1707,12 +1839,12 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  if (!is_accessible(mi->flags,mi->class,/*NULL have to check what here should really be*/ mi->class /*dont't crash right now*/, myclass,
 												 (opcode == ICMD_INVOKESTATIC) ? NULL
 												 : &(srcstack->typeinfo)))
-								  panic("Invoking unaccessible method");
+								  TYPECHECK_VERIFYERROR("Invoking unaccessible method");
 
 							  LOG("checking return type");
                               if (rtype != TYPE_VOID) {
                                   if (rtype != dst->type)
-                                      panic("Return type mismatch in method invocation");
+                                      TYPECHECK_VERIFYERROR("Return type mismatch in method invocation");
                                   TYPEINFO_COPY(rinfo,dst->typeinfo);
                               }
 
@@ -1760,7 +1892,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 									  TYPECHECK_ASSERT(initmethod);
 									  /* must be <init> of current class or direct superclass */
 									  if (mi->class != m->class && mi->class != m->class->super.cls)
-										  panic("<init> calling <init> of the wrong class");
+										  TYPECHECK_VERIFYERROR("<init> calling <init> of the wrong class");
 									  
                                       /* set our marker variable to type int */
                                       LOG("setting <init> marker");
@@ -1770,7 +1902,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 									  /* initializing an instance created with NEW */
 									  /* XXX is this strictness ok? */
 									  if (mi->class != initclass.cls) /* XXX change to classref */
-										  panic("Calling <init> method of the wrong class");
+										  TYPECHECK_VERIFYERROR("Calling <init> method of the wrong class");
 								  }
                               }
                           }
@@ -1784,24 +1916,24 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  
 							  /* check the array lengths on the stack */
 							  i = iptr[0].op1;
-							  if (i<1) panic("MULTIANEWARRAY with dimensions < 1");
+							  if (i < 1)
+								  TYPECHECK_VERIFYERROR("Illegal dimension argument");
 							  srcstack = curstack;
 							  while (i--) {
 								  if (!srcstack)
-									  panic("MULTIANEWARRAY missing array length");
-								  if (srcstack->type != TYPE_INT)
-									  panic("MULTIANEWARRAY using non-int as array length");
+									  TYPECHECK_VERIFYERROR("Unable to pop operand off an empty stack");
+								  TYPECHECK_INT(srcstack);
 								  srcstack = srcstack->prev;
 							  }
 							  
 							  /* check array descriptor */
 							  arrayvftbl = (vftbl_t*) iptr[0].val.a;
 							  if (!arrayvftbl)
-								  panic("MULTIANEWARRAY with unlinked class");
+								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with unlinked class");
 							  if ((desc = arrayvftbl->arraydesc) == NULL)
-								  panic("MULTIANEWARRAY with non-array class");
+								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with non-array class");
 							  if (desc->dimension < iptr[0].op1)
-								  panic("MULTIANEWARRAY dimension to high");
+								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY dimension to high");
 							  
 							  /* set the array type of the result */
 							  TYPEINFO_INIT_CLASSINFO(dst->typeinfo,arrayvftbl->class);
@@ -1816,7 +1948,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  TYPECHECK_INT(curstack->prev);
 							  TYPECHECK_ADR(curstack->prev->prev);
                               if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
-                                  panic("illegal instruction: AASTORE to non-reference array");
+                                  TYPECHECK_VERIFYERROR("illegal instruction: AASTORE to non-reference array");
                           }
 						  else {
 							  /* XXX put these checks in a function */
@@ -1840,12 +1972,12 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  vftbl_t *vft;
 							  TYPECHECK_INT(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: builtin_newarray without classinfo");
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_newarray without classinfo");
 							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
-								  panic("ANEWARRAY with unlinked class");
+								  TYPECHECK_VERIFYERROR("ANEWARRAY with unlinked class");
 							  if (!vft->arraydesc)
-								  panic("ANEWARRAY with non-array class");
+								  TYPECHECK_VERIFYERROR("ANEWARRAY with non-array class");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
                           else if (ISBUILTIN(BUILTIN_arrayinstanceof))
@@ -1853,23 +1985,23 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 							  vftbl_t *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: builtin_arrayinstanceof without classinfo");
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_arrayinstanceof without classinfo");
 							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
-								  panic("INSTANCEOF with unlinked class");
+								  TYPECHECK_VERIFYERROR("INSTANCEOF with unlinked class");
 							  if (!vft->arraydesc)
-								  panic("internal error: builtin_arrayinstanceof with non-array class");
+								  TYPECHECK_VERIFYERROR("internal error: builtin_arrayinstanceof with non-array class");
 						  }
                           else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
 							  vftbl_t *vft;
 							  TYPECHECK_ADR(curstack->prev);
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: BUILTIN_arraycheckcast without classinfo");
+                                  TYPECHECK_VERIFYERROR("illegal instruction: BUILTIN_arraycheckcast without classinfo");
 							  vft = (vftbl_t *)iptr[-1].val.a;
 							  if (!vft)
-								  panic("CHECKCAST with unlinked class");
+								  TYPECHECK_VERIFYERROR("CHECKCAST with unlinked class");
 							  if (!vft->arraydesc)
-								  panic("internal error: builtin_arraycheckcast with non-array class");
+								  TYPECHECK_VERIFYERROR("internal error: builtin_arraycheckcast with non-array class");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
 						  else {
@@ -1891,12 +2023,12 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           if (ISBUILTIN(BUILTIN_new)) {
 							  
                               if (iptr[-1].opc != ICMD_ACONST)
-                                  panic("illegal instruction: builtin_new without classinfo");
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_new without classinfo");
 							  cls = (classinfo *) iptr[-1].val.a;
 							  TYPECHECK_ASSERT(cls->linked);
 							  /* The following check also forbids array classes and interfaces: */
 							  if ((cls->flags & ACC_ABSTRACT) != 0)
-								  panic("Invalid instruction: NEW creating instance of abstract class");
+								  TYPECHECK_VERIFYERROR("Invalid instruction: NEW creating instance of abstract class");
                               TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
                           else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
@@ -2120,7 +2252,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 
                       default:
                           LOG2("ICMD %d at %d\n", iptr->opc, (int)(iptr-bptr->iinstr));
-                          panic("Missing ICMD code during typecheck");
+                          TYPECHECK_VERIFYERROR("Missing ICMD code during typecheck");
 #endif
 					}
 
@@ -2163,7 +2295,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                         tbptr++;
 #ifdef TYPECHECK_DEBUG
                         if ((tbptr->debug_nr) >= m->basicblockcount)
-                            panic("Control flow falls off the last block");
+                            TYPECHECK_VERIFYERROR("Control flow falls off the last block");
 #endif
                     }
                     TYPECHECK_REACH;
