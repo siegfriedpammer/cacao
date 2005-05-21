@@ -29,10 +29,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: Field.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
+
+#include <assert.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -51,9 +53,7 @@
 
 #undef DEBUG
 
-#ifdef __GNUC__
-#warning	FIXE SET NATIVES
-#endif
+/* XXX FIXE SET NATIVES */
 
 #if (defined(__ALPHA__) || defined(__I386__))
 /*this = java_lang_reflect_Field, fi=fieldinfo, c=declaredClass (classinfo)*/
@@ -90,7 +90,8 @@
 		}	\
 	}	
 #else
-#define CHECKFIELDACCESS(this,fi,c,doret)
+#define CHECKFIELDACCESS(this,fi,c,doret) \
+    (c) = (c) /* prevent compiler warning */
 #endif
 
 
@@ -279,7 +280,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -295,7 +299,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -345,7 +349,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -361,7 +368,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -411,7 +418,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -427,7 +437,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -477,7 +487,10 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -493,7 +506,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -552,7 +565,10 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -568,7 +584,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -625,7 +641,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -641,7 +660,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -697,7 +716,10 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -713,7 +735,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
@@ -771,7 +793,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 	/* check if the field really has the same name and check if the type descriptor is not empty*/
 	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
                                                                           "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) panic("Type-Descriptor is empty");
+	if (fid->descriptor->blength<1) {
+		log_text("Type-Descriptor is empty");
+		assert(0);
+	}
 #endif
 	/* check if obj would be needed (not static field), but is 0)*/
 	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
@@ -787,7 +812,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf("calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
+		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/

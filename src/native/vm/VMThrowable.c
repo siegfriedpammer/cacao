@@ -28,10 +28,12 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: VMThrowable.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
+
+#include <assert.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -65,11 +67,13 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 
 	vmthrow = (java_lang_VMThrowable *) native_new_and_init(class_java_lang_VMThrowable);
 
-	if (!vmthrow)
-		panic("Needed instance of class  java.lang.VMThrowable could not be created");
+	if (!vmthrow) {
+		log_text("Needed instance of class  java.lang.VMThrowable could not be created");
+		assert(0);
+	}
 
 #if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
-	cacao_stacktrace_NormalTrace(&(vmthrow->vmData));
+	cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData));
 #endif
 	return vmthrow;
 }
@@ -93,8 +97,10 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 						 utf_init,
 						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
 
-	if (!m)
-		panic("java.lang.StackTraceElement misses needed constructor");	
+	if (!m) {
+		log_text("java.lang.StackTraceElement misses needed constructor");	
+		assert(0);
+	}
 
 	oa = builtin_anewarray(size, c);
 
@@ -114,11 +120,12 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 
 		element=builtin_new(c);
 		if (!element) {
-			panic("Memory for stack trace element could not be allocated");
+			log_text("Memory for stack trace element could not be allocated");
+			assert(0);
 		}
-#ifdef __GNUC__
-#warning call constructor once jni is fixed to allow more than three parameters
-#endif
+
+		/* XXX call constructor once jni is fixed to allow more than three parameters */
+
 #if 0
 		(*env)->CallVoidMethod(env,element,m,
 			javastring_new(el->method->class->sourcefile),
@@ -167,10 +174,18 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	long destElementCount;
 	stacktraceelement *tmpEl;
 
-	if (!buf) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
+	if (!buf) {
+		log_text("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
+		assert(0);
+	}
 	
-	size=buf->full;
-	if (size<2) panic("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<2)");
+	size = buf->full;
+
+	if (size < 2) {
+		log_text("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<2)");
+		assert(0);
+	}
+
 	size -=2;
 	el=&(buf->start[2]); /* element 0==VMThrowable.fillInStackTrace native call, 1==Throwable.fillInStackTrace*/
 	if (size && el->method!=0) { /* => not a builtin native wrapper*/

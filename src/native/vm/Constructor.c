@@ -29,11 +29,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 2459 2005-05-12 23:21:10Z twisti $
+   $Id: Constructor.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <string.h>
 
 #include "native/jni.h"
@@ -110,9 +111,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 				log_plain("\n");
 				class_showconstantpool((classinfo *) clazz);
 			}
-#if defined(__GNUC__)
-#warning throw an exception here, although this should never happen
-#endif
+
+			/* XXX throw an exception here, although this should never happen */
+
 			return (java_lang_Object *) o;
 		}
 
@@ -141,7 +142,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 
 /*
- * Class:     java_lang_reflect_Constructor
+ * Class:     java/lang/reflect/Constructor
  * Method:    getModifiers
  * Signature: ()I
  */
@@ -149,8 +150,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env
 {
 	classinfo *c = (classinfo *) (this->clazz);
 
-	if ((this->slot < 0) || (this->slot >= c->methodscount))
-		panic("error illegal slot for constructor in class (getModifiers)");
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for constructor in class (getModifiers)");
+		assert(0);
+	}
 
 	return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
 }

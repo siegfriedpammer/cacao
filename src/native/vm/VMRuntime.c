@@ -1,4 +1,4 @@
-/* native/vm/VMRuntime.c - java/lang/VMRuntime
+/* src/native/vm/VMRuntime.c - java/lang/VMRuntime
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 1991 2005-03-05 16:50:28Z twisti $
+   $Id: VMRuntime.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
@@ -106,7 +106,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    freeMemory
  * Signature: ()J
  */
@@ -117,7 +117,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    gc
  * Signature: ()V
  */
@@ -128,7 +128,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_gc(JNIEnv *env, jclass clazz)
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    runFinalization
  * Signature: ()V
  */
@@ -139,21 +139,20 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    runFinalizersOnExit
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, s4 value)
 {
-#ifdef __GNUC__
-#warning threading
-#endif
+	/* XXX threading */
+
 	finalizeOnExit = value;
 }
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    runFinalizationsForExit
  * Signature: ()V
  */
@@ -171,7 +170,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *e
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    totalMemory
  * Signature: ()J
  */
@@ -182,7 +181,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass cl
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    traceInstructions
  * Signature: (Z)V
  */
@@ -193,7 +192,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, j
 
 
 /*
- * Class:     java/lang/Runtime
+ * Class:     java/lang/VMRuntime
  * Method:    traceMethodCalls
  * Signature: (Z)V
  */

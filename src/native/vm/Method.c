@@ -29,10 +29,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 2459 2005-05-12 23:21:10Z twisti $
+   $Id: Method.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
+
+#include <assert.h>
 
 #include "types.h"
 #include "native/jni.h"
@@ -48,8 +50,9 @@
 #include "vm/stringlocal.h"
 
 
+
 /*
- * Class:     java_lang_reflect_Method
+ * Class:     java/lang/reflect/Method
  * Method:    getModifiers
  * Signature: ()I
  */
@@ -57,9 +60,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, jav
 {
 	classinfo *c = (classinfo *) this->declaringClass;
 
-	if ((this->slot < 0) || (this->slot >= c->methodscount))
-		panic("error illegal slot for method in class (getReturnType)");
-	
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for method in class (getReturnType)");
+		assert(0);
+	}
+
 	return (c->methods[this->slot]).flags &
 		(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
 		 ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT);
@@ -75,8 +80,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 {
 	classinfo *c = (classinfo *) this->declaringClass;
 
-	if (this->slot < 0 || this->slot >= c->methodscount)
-		panic("error illegal slot for method in class (getReturnType)");
+	if (this->slot < 0 || this->slot >= c->methodscount) {
+		log_text("error illegal slot for method in class (getReturnType)");
+		assert(0);
+	}
 
 	return (java_lang_Class *) get_returntype(&(c->methods[this->slot]));
 }
@@ -91,8 +98,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
 {
 	classinfo *c = (classinfo *) this->declaringClass;
 
-	if (this->slot < 0 || this->slot >= c->methodscount)
-		panic("error illegal slot for method in class(getParameterTypes)");
+	if (this->slot < 0 || this->slot >= c->methodscount) {
+		log_text("error illegal slot for method in class(getParameterTypes)");
+		assert(0);
+	}
 
 	return get_parametertypes(&(c->methods[this->slot]));
 }
@@ -107,8 +116,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 {
 	classinfo *c = (classinfo *) this->declaringClass;
 
-	if (this->slot < 0 || this->slot >= c->methodscount)
-		panic("error illegal slot for method in class(getExceptionTypes)");
+	if (this->slot < 0 || this->slot >= c->methodscount) {
+		log_text("error illegal slot for method in class(getExceptionTypes)");
+		assert(0);
+	}
 
 	return get_exceptiontypes(&(c->methods[this->slot]));
 
@@ -127,8 +138,10 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 	classinfo *c = (classinfo *) declaringClass;
 
 	if ((slot < 0) || (slot >= c->methodscount)) {
-		panic("error illegal slot for method in class(getParameterTypes)");
+		log_text("error illegal slot for method in class(getParameterTypes)");
+		assert(0);
 	}
+
 	mi = &(c->methods[slot]);
 
 #if (defined(__ALPHA__) || defined(__I386__))

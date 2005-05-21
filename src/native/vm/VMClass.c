@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: VMClass.c 2493 2005-05-21 14:59:14Z twisti $
 
 */
 
@@ -232,9 +232,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *that, s4 publicOnly)
 {
-#if defined(__GNUC__)
-#warning fix the public only case
-#endif
+	/* XXX fix the public only case */
+
 	classinfo *c = (classinfo *) that;
 	int pos = 0;                /* current declared class */
 	int declaredclasscount = 0; /* number of declared classes */
@@ -280,15 +279,14 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 
 
 /*
- * Class:     java/lang/Class
+ * Class:     java/lang/VMClass
  * Method:    getDeclaringClass
  * Signature: ()Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, struct java_lang_Class *that)
 {
-#if defined(__GNUC__)
-#warning fixme
-#endif
+	/* XXX fixme */
+
 	classinfo *c = (classinfo *) that;
 
 	if (that && !Java_java_lang_VMClass_isPrimitive(env, clazz,that) && (c->name->text[0] != '[')) {
@@ -515,7 +513,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 	/*	
 		class_showmethods(class_method);
-		panic("JOWENN");
+		log_text("JOWENN");
+		assert(0);
 	*/
     
 
