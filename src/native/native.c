@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2482 2005-05-19 08:48:55Z jowenn $
+   $Id: native.c 2491 2005-05-21 14:58:28Z twisti $
 
 */
 
@@ -99,6 +99,24 @@
 #include "native/include/java_security_VMAccessController.h"
 
 #if defined(STATIC_CLASSPATH)
+
+/* these are required to prevent compiler warnings */
+
+#include "native/include/java_net_DatagramPacket.h"
+#include "native/include/java_net_InetAddress.h"
+#include "native/include/java_net_SocketImpl.h"
+
+#include "native/include/gnu_java_net_PlainDatagramSocketImpl.h"
+#include "native/include/gnu_java_net_PlainSocketImpl.h"
+#include "native/include/gnu_java_nio_PipeImpl.h"
+#include "native/include/gnu_java_nio_channels_FileChannelImpl.h"
+#include "native/include/gnu_java_nio_charset_iconv_IconvEncoder.h"
+#include "native/include/gnu_java_nio_charset_iconv_IconvDecoder.h"
+#include "native/include/java_lang_VMProcess.h"
+#include "native/include/java_nio_MappedByteBufferImpl.h"
+#include "native/include/java_nio_channels_spi_SelectorProvider.h"
+
+/* now include the native table */
 
 #include "native/nativetable.inc"
 
