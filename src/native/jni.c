@@ -31,11 +31,12 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2439 2005-05-04 15:23:13Z twisti $
+   $Id: jni.c 2492 2005-05-21 14:58:36Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <string.h>
 
 #include "config.h"
@@ -83,6 +84,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/statistics.h"
+
 
 /* XXX TWISTI hack: define it extern so they can be found in this file */
 extern const struct JNIInvokeInterface JNI_JavaVMTable;
@@ -638,9 +640,11 @@ jclass FindClass(JNIEnv *env, const char *name)
 	classinfo *c = NULL;  
 	STATS(jniinvokation();)
   
-	if (!load_class_bootstrap(utf_new_char_classname((char *) name),&c) || !link_class(c)) {
+	if (!load_class_bootstrap(utf_new_char_classname((char *) name), &c))
 		return NULL;
-	}
+
+	if (!link_class(c))
+		return NULL;
 
 	use_class_as_object(c);
 
@@ -684,7 +688,8 @@ jmethodID FromReflectedMethod(JNIEnv* env, jobject method_or_constr)
         if ((slot < 0) || (slot >= c->methodscount)) {
 		/*this usually means a severe internal cacao error or somebody
 		tempered around with the reflected method*/
-                panic("error illegal slot for method in class(FromReflectedMethod)");
+			log_text("error illegal slot for method in class(FromReflectedMethod)");
+			assert(0);
         }
         mi = &(c->methods[slot]);
 	return mi;
@@ -1102,7 +1107,8 @@ jfieldID FromReflectedField(JNIEnv* env, jobject field)
 	if ( (f->slot<0) || (f->slot>=c->fieldscount)) {
 		/*this usually means a severe internal cacao error or somebody
 		tempered around with the reflected method*/
-                panic("error illegal slot for field in class(FromReflectedField)");
+		log_text("error illegal slot for field in class(FromReflectedField)");
+		assert(0);
 	}
 	fid=&(c->fields[f->slot]);
 	return fid;
@@ -1836,7 +1842,8 @@ jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig)
        log_text("sig:");
        log_text(sig);
 
-       panic("setfield_critical failed"); 
+       log_text("setfield_critical failed");
+	   assert(0);
     }
     return id;
 }
@@ -3486,8 +3493,9 @@ jboolean ExceptionCheck(JNIEnv *env)
 
 /* NewDirectByteBuffer *********************************************************
 
-   Allocates and returns a direct java.nio.ByteBuffer referring to the block of
-   memory starting at the memory address address and extending capacity bytes.
+   Allocates and returns a direct java.nio.ByteBuffer referring to the
+   block of memory starting at the memory address address and
+   extending capacity bytes.
 
 *******************************************************************************/
 
@@ -3502,8 +3510,8 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 /* GetDirectBufferAddress ******************************************************
 
-   Fetches and returns the starting address of the memory region referenced by
-   the given direct java.nio.Buffer.
+   Fetches and returns the starting address of the memory region
+   referenced by the given direct java.nio.Buffer.
 
 *******************************************************************************/
 
@@ -3518,8 +3526,8 @@ void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 /* GetDirectBufferCapacity *****************************************************
 
-   Fetches and returns the capacity in bytes of the memory region referenced by
-   the given direct java.nio.Buffer.
+   Fetches and returns the capacity in bytes of the memory region
+   referenced by the given direct java.nio.Buffer.
 
 *******************************************************************************/
 
@@ -4272,8 +4280,10 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 								 0);
 		}
 
-		if (*exceptionptr != NULL)
-			panic("jni.c: error while creating InvocationTargetException wrapper");
+		if (*exceptionptr != NULL) {
+			log_text("jni.c: error while creating InvocationTargetException wrapper");
+			assert(0);
+		}
 
 		*exceptionptr = ivte;
 	}
