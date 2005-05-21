@@ -28,11 +28,12 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 2463 2005-05-12 23:54:07Z twisti $
+   $Id: memory.c 2494 2005-05-21 15:07:00Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,8 +161,10 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 	void *dst;
 
 	if (!src) {
-		if (len1 != 0)
-			panic("reallocating memoryblock with address NULL, length != 0");
+		if (len1 != 0) {
+			log_text("reallocating memoryblock with address NULL, length != 0");
+			assert(0);
+		}
 	}
 
 #if defined(STATISTICS)
@@ -184,7 +187,9 @@ void mem_free(void *m, s4 size)
 	if (!m) {
 		if (size == 0)
 			return;
-		panic("returned memoryblock with address NULL, length != 0");
+
+		log_text("returned memoryblock with address NULL, length != 0");
+		assert(0);
 	}
 
 #if defined(STATISTICS)
