@@ -1,4 +1,4 @@
-/* vm/jit/loop/analyze.c - bound check removal functions
+/* src/vm/jit/loop/analyze.c - bound check removal functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,17 +26,20 @@
 
    Authors: Christopher Kruegel
 
+   Changes: Christian Thalinger
+
    Contains the functions which perform the bound check removals. With
    the loops identified, these functions scan the code for array
    accesses that take place in loops and try to guarantee that their
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: analyze.c 2495 2005-05-22 19:49:53Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1731,7 +1734,8 @@ stackptr copy_stack_from(stackptr source) {
 		LOAD_ARRAYLENGTH(ld->c_rightside->var); \
 		break; \
 	default: \
-		panic("C_ERROR: illegal trace on rightside of loop-header"); \
+		log_text("C_ERROR: illegal trace on rightside of loop-header"); \
+		assert(0); \
 	} \
 }
 

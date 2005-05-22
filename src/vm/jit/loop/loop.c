@@ -1,4 +1,4 @@
-/* vm/jit/loop/loop.c - array bound removal
+/* src/vm/jit/loop/loop.c - array bound removal
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -24,17 +24,20 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Christopher Kruegel      EMAIL: cacao@complang.tuwien.ac.at
+   Authors: Christopher Kruegel
+
+   Changes: Christian Thalinger
 
    The loop detection is performed according to Lengauer-Tarjan
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: loop.c 2495 2005-05-22 19:49:53Z twisti $
 
 */
 
 
+#include <assert.h>
 /*  #include <stdio.h> */
 /*  #include <stdlib.h> */
 
@@ -332,7 +335,8 @@ void resultPass2(loopdata *ld)
 
 void c_mem_error()
 {
-  panic("C_ERROR: Not enough memeory");
+	log_text("C_ERROR: Not enough memeory");
+	assert(0);
 } 
 
 

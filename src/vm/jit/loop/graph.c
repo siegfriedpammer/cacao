@@ -1,4 +1,4 @@
-/* vm/jit/loop/graph.c - control flow graph
+/* src/vm/jit/loop/graph.c - control flow graph
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -31,12 +31,15 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: graph.c 2495 2005-05-22 19:49:53Z twisti $
 
 */
 
 
+#include <assert.h>
+
 #include "mm/memory.h"
+#include "toolbox/logging.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
@@ -135,7 +138,8 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
 
 #ifdef C_DEBUG
 	if (blockIndex > m->basicblockcount) {
-		panic("DepthFirst: BlockIndex exceeded\n");
+		log_text("DepthFirst: BlockIndex exceeded\n");
+		assert(0);
 	}		
 #endif
 
@@ -293,7 +297,8 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 	
 #ifdef C_DEBUG
 	if (blockIndex > m->basicblockcount) {
-		panic("DepthFirst: BlockIndex exceeded");
+		log_text("DepthFirst: BlockIndex exceeded");
+		assert(0);
 	}
 #endif
 
