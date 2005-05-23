@@ -28,16 +28,22 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 2509 2005-05-23 10:19:12Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
+if DISABLE_GC
+GC_FILE = nogc.c
+else
+GC_FILE = boehm.c
+endif
+
 noinst_LTLIBRARIES = libmm.la
 
 libmm_la_SOURCES = \
-	boehm.c \
+	$(GC_FILE) \
 	boehm.h \
 	memory.c \
 	memory.h
