@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2443 2005-05-11 12:50:26Z twisti $
+   $Id: builtin.c 2498 2005-05-23 08:12:52Z twisti $
 
 */
 
@@ -53,6 +53,7 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Cloneable.h"
+#include "native/include/java_lang_Object.h"          /* required by VMObject */
 #include "native/include/java_lang_VMObject.h"
 
 #if defined(USE_THREADS)
@@ -65,6 +66,7 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "toolbox/util.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -511,13 +513,33 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 
 java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 {
+    java_lang_Throwable *t;
+	char                *logtext;
+	s4                   logtextlen;
+
 	if (opt_verbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Builtin exception thrown: ");
+		t = (java_lang_Throwable *) xptr;
 
-		if (xptr) {
-			java_lang_Throwable *t = (java_lang_Throwable *) xptr;
+		/* calculate message length */
 
+		logtextlen = strlen("Builtin exception thrown: ") + strlen("0");
+
+		if (t) {
+			logtextlen +=
+				utf_strlen(xptr->vftbl->class->name) +
+				strlen(": ") +
+				javastring_strlen((java_objectheader *) t->detailMessage);
+
+		} else
+			logtextlen += strlen("(nil)");
+
+		/* allocate memory */
+
+		logtext = MNEW(char, logtextlen);
+
+		strcpy(logtext, "Builtin exception thrown: ");
+
+		if (t) {
 			utf_sprint_classname(logtext + strlen(logtext),
 								 xptr->vftbl->class->name);
 
@@ -525,15 +547,20 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 				char *buf;
 
 				buf = javastring_tochar((java_objectheader *) t->detailMessage);
-				sprintf(logtext + strlen(logtext), ": %s", buf);
+				strcat(logtext, ": ");
+				strcat(logtext, buf);
 				MFREE(buf, char, strlen(buf));
 			}
 
 		} else {
-			sprintf(logtext + strlen(logtext), "Error: <Nullpointer instead of exception>");
+			strcat(logtext, "(nil)");
 		}
 
 		log_text(logtext);
+
+		/* release memory */
+
+		MFREE(logtext, char, logtextlen);
 	}
 
 	*exceptionptr = xptr;
@@ -987,9 +1014,7 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 
 	componentvftbl = arrayvftbl->arraydesc->componentvftbl;
 
-	/* The verifier guarantees this. */
-	/* if (!componentvftbl) */
-	/*	panic ("multianewarray with too many dimensions"); */
+	/* The verifier guarantees that the dimension count is in the range. */
 
 	/* create the component arrays */
 
@@ -1023,7 +1048,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   s4 line,
 										   s4 noindent)
 {
-	char logtext[MAXLOGTEXT];
+	char *logtext;
+	s4    logtextlen;
 	
 	if (!noindent) {
 		if (methodindent)
@@ -1031,59 +1057,126 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		else
 			log_text("WARNING: unmatched methodindent--");
 	}
-	if (opt_verbose || runverbose || verboseexception) {
-		if (xptr) {
-			sprintf(logtext,"Exception ");
-			utf_sprint_classname(logtext+strlen(logtext), xptr->vftbl->class->name);
 
-		} else {
-			sprintf(logtext,"Some Throwable");
-		}
-		sprintf(logtext+strlen(logtext), " thrown in ");
+	if (opt_verbose || runverbose || verboseexception) {
+		/* calculate message length */
+
+		if (xptr) {
+			logtextlen =
+				strlen("Exception ") +
+				utf_strlen(xptr->vftbl->class->name);
+
+		} else
+			logtextlen = strlen("Some Throwable");
+
+		logtextlen += strlen(" thrown in ");
 
 		if (m) {
-			utf_sprint_classname(logtext+strlen(logtext), m->class->name);
-			sprintf(logtext+strlen(logtext), ".");
-			utf_sprint(logtext+strlen(logtext), m->name);
-			if (m->flags & ACC_SYNCHRONIZED) {
-				sprintf(logtext+strlen(logtext), "(SYNC");
+			logtextlen +=
+				utf_strlen(m->class->name) +
+				strlen(".") +
+				utf_strlen(m->name) +
+				strlen("(NOSYNC,NATIVE");
 
-			} else{
-				sprintf(logtext+strlen(logtext), "(NOSYNC");
-			}
+#if POINTERSIZE == 8
+			logtextlen +=
+				get_variable_message_length(")(0x%016lx) at position 0x%016lx (",
+											(ptrint) m->entrypoint,
+											(ptrint) pos);
+#else
+			logtextlen +=
+				get_variable_message_length(")(0x%08x) at position 0x%08x (",
+											(ptrint) m->entrypoint,
+											(ptrint) pos);
+#endif
+
+			if (m->class->sourcefile == NULL)
+				logtextlen += strlen("<NO CLASSFILE INFORMATION>");
+			else
+				logtextlen += utf_strlen(m->class->sourcefile);
+
+			logtextlen += get_variable_message_length(":%d)", line);
+
+		} else
+			logtextlen += strlen("call_java_method");
+
+		logtextlen += strlen("0");
+
+		/* allocate memory */
+
+		logtext = MNEW(char, logtextlen);
+
+		if (xptr) {
+			strcpy(logtext, "Exception ");
+			utf_strcat_classname(logtext, xptr->vftbl->class->name);
+
+		} else {
+			strcpy(logtext, "Some Throwable");
+		}
+
+		strcat(logtext, " thrown in ");
+
+		if (m) {
+			utf_strcat_classname(logtext, m->class->name);
+			strcat(logtext, ".");
+			utf_strcat(logtext, m->name);
+
+			if (m->flags & ACC_SYNCHRONIZED)
+				strcat(logtext, "(SYNC");
+			else
+				strcat(logtext, "(NOSYNC");
 
 			if (m->flags & ACC_NATIVE) {
-				sprintf(logtext+strlen(logtext), ",NATIVE");
+				strcat(logtext, ",NATIVE");
+
 #if POINTERSIZE == 8
-				sprintf(logtext+strlen(logtext), ")(0x%016lx) at position 0x%016lx\n", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext + strlen(logtext),
+						")(0x%016lx) at position 0x%016lx",
+						(ptrint) m->entrypoint, (ptrint) pos);
 #else
-				sprintf(logtext+strlen(logtext), ")(0x%08x) at position 0x%08x\n", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext + strlen(logtext),
+						")(0x%08x) at position 0x%08x",
+						(ptrint) m->entrypoint, (ptrint) pos);
 #endif
 
 			} else {
 #if POINTERSIZE == 8
-				sprintf(logtext+strlen(logtext), ")(0x%016lx) at position 0x%016lx (", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext + strlen(logtext),
+						")(0x%016lx) at position 0x%016lx (",
+						(ptrint) m->entrypoint, (ptrint) pos);
 #else
-				sprintf(logtext+strlen(logtext), ")(0x%08x) at position 0x%08x (", (ptrint) m->entrypoint, (ptrint) pos);
+				sprintf(logtext + strlen(logtext),
+						")(0x%08x) at position 0x%08x (",
+						(ptrint) m->entrypoint, (ptrint) pos);
 #endif
-				if (m->class->sourcefile == NULL) {
-					sprintf(logtext+strlen(logtext), "<NO CLASSFILE INFORMATION>");
 
-				} else {
-					utf_sprint(logtext+strlen(logtext), m->class->sourcefile);
-				}
-				sprintf(logtext+strlen(logtext), ":%d)\n", line);
+				if (m->class->sourcefile == NULL)
+					strcat(logtext, "<NO CLASSFILE INFORMATION>");
+				else
+					utf_strcat(logtext, m->class->sourcefile);
+
+				sprintf(logtext + strlen(logtext), ":%d)", line);
 			}
 
 		} else
-			sprintf(logtext+strlen(logtext), "call_java_method\n");
+			strcat(logtext, "call_java_method");
 
 		log_text(logtext);
+
+		/* release memory */
+
+		MFREE(logtext, char, logtextlen);
 	}
 
 	return xptr;
 }
 
+
+/* builtin_trace_args **********************************************************
+
+   XXX
+
+*******************************************************************************/
 
 #ifdef TRACE_ARGS_NUM
 void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
@@ -1095,34 +1188,53 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 #endif
 						methodinfo *m)
 {
-	s4 i;
-	char logtext[MAXLOGTEXT];
+	char *logtext;
+	s4    logtextlen;
+	s4    i;
+
+	/* calculate message length */
+
+	logtextlen =
+		methodindent + strlen("called: ") +
+		utf_strlen(m->class->name) +
+		strlen(".") +
+		utf_strlen(m->name) +
+		utf_strlen(m->descriptor) +
+		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
+
+	/* add maximal argument length */
+
+	logtextlen += get_variable_message_length("0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
+											  -1, -1, -1, -1, -1, -1, -1, -1,
+											  m->paramcount - 8);
+
+	/* allocate memory */
+
+	logtext = MNEW(char, logtextlen);
+
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
-	if (methodindent == 0) 
-		sprintf(logtext + methodindent, "1st_call: ");
-	else
-		sprintf(logtext + methodindent, "called: ");
 
-	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint(logtext + strlen(logtext), m->descriptor);
+	strcpy(logtext + methodindent, "called: ");
 
-	if (m->flags & ACC_PUBLIC)       sprintf(logtext + strlen(logtext), " PUBLIC");
-	if (m->flags & ACC_PRIVATE)      sprintf(logtext + strlen(logtext), " PRIVATE");
-	if (m->flags & ACC_PROTECTED)    sprintf(logtext + strlen(logtext), " PROTECTED");
-   	if (m->flags & ACC_STATIC)       sprintf(logtext + strlen(logtext), " STATIC");
-   	if (m->flags & ACC_FINAL)        sprintf(logtext + strlen(logtext), " FINAL");
-   	if (m->flags & ACC_SYNCHRONIZED) sprintf(logtext + strlen(logtext), " SYNCHRONIZED");
-   	if (m->flags & ACC_VOLATILE)     sprintf(logtext + strlen(logtext), " VOLATILE");
-   	if (m->flags & ACC_TRANSIENT)    sprintf(logtext + strlen(logtext), " TRANSIENT");
-   	if (m->flags & ACC_NATIVE)       sprintf(logtext + strlen(logtext), " NATIVE");
-   	if (m->flags & ACC_INTERFACE)    sprintf(logtext + strlen(logtext), " INTERFACE");
-   	if (m->flags & ACC_ABSTRACT)     sprintf(logtext + strlen(logtext), " ABSTRACT");
-	
+	utf_strcat_classname(logtext, m->class->name);
+	strcat(logtext, ".");
+	utf_strcat(logtext, m->name);
+	utf_strcat(logtext, m->descriptor);
 
-	sprintf(logtext + strlen(logtext), "(");
+	if (m->flags & ACC_PUBLIC)       strcat(logtext, " PUBLIC");
+	if (m->flags & ACC_PRIVATE)      strcat(logtext, " PRIVATE");
+	if (m->flags & ACC_PROTECTED)    strcat(logtext, " PROTECTED");
+   	if (m->flags & ACC_STATIC)       strcat(logtext, " STATIC");
+   	if (m->flags & ACC_FINAL)        strcat(logtext, " FINAL");
+   	if (m->flags & ACC_SYNCHRONIZED) strcat(logtext, " SYNCHRONIZED");
+   	if (m->flags & ACC_VOLATILE)     strcat(logtext, " VOLATILE");
+   	if (m->flags & ACC_TRANSIENT)    strcat(logtext, " TRANSIENT");
+   	if (m->flags & ACC_NATIVE)       strcat(logtext, " NATIVE");
+   	if (m->flags & ACC_INTERFACE)    strcat(logtext, " INTERFACE");
+   	if (m->flags & ACC_ABSTRACT)     strcat(logtext, " ABSTRACT");
+
+	strcat(logtext, "(");
 
 	switch (m->paramcount) {
 	case 0:
@@ -1130,165 +1242,199 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 #if defined(__I386__) || defined(__POWERPC__)
 	case 1:
-		sprintf(logtext+strlen(logtext), "%llx", a0);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx",
+				a0);
 		break;
 
 	case 2:
-		sprintf(logtext+strlen(logtext), "%llx, %llx", a0, a1);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx",
+				a0, a1);
 		break;
 
 	case 3:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx", a0, a1, a2);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2);
 		break;
 
 	case 4:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx",
-				a0,   a1,   a2,   a3);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2, a3);
 		break;
 
 #if TRACE_ARGS_NUM >= 6
 	case 5:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx",
-				a0,   a1,   a2,   a3,   a4);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2, a3, a4);
 		break;
 
 	case 6:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx",
-				a0,   a1,   a2,   a3,   a4,   a5);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2, a3, a4, a5);
 		break;
 #endif /* TRACE_ARGS_NUM >= 6 */
 
 #if TRACE_ARGS_NUM == 8
 	case 7:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx",
-				a0,   a1,   a2,   a3,   a4,   a5,   a6);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2, a3, a4, a5, a6);
 		break;
 
 	case 8:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx, %llx",
-				a0,   a1,   a2,   a3,   a4,   a5,   a6,   a7);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
+				a0, a1, a2, a3, a4, a5, a6, a7);
 		break;
 
 	default:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
-				a0,   a1,   a2,   a3,   a4,   a5,   a6,   a7,   m->paramcount - 8);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
+				a0, a1, a2, a3, a4, a5, a6, a7, m->paramcount - 8);
 		break;
 #else /* TRACE_ARGS_NUM == 8 */
 	default:
-		sprintf(logtext+strlen(logtext), "%llx, %llx, %llx, %llx, %llx, %llx, ...(%d)",
-				a0,   a1,   a2,   a3,   a4,   a5,   m->paramcount - 6);
+		sprintf(logtext + strlen(logtext),
+				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
+				a0, a1, a2, a3, a4, a5, m->paramcount - 6);
 		break;
 #endif /* TRACE_ARGS_NUM == 8 */
+
 #else /* defined(__I386__) || defined(__POWERPC__) */
 	case 1:
-		sprintf(logtext+strlen(logtext), "%lx", a0);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx",
+				a0);
 		break;
 
 	case 2:
-		sprintf(logtext+strlen(logtext), "%lx, %lx", a0, a1);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx",
+				a0, a1);
 		break;
 
 	case 3:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx", a0, a1, a2);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx", a0, a1, a2);
 		break;
 
 	case 4:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx",
-				a0,  a1,  a2,  a3);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx",
+				a0, a1, a2, a3);
 		break;
 
 #if TRACE_ARGS_NUM >= 6
 	case 5:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx",
-				a0,  a1,  a2,  a3,  a4);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
+				a0, a1, a2, a3, a4);
 		break;
 
 	case 6:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx",
-				a0,  a1,  a2,  a3,  a4,  a5);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
+				a0, a1, a2, a3, a4, a5);
 		break;
 #endif /* TRACE_ARGS_NUM >= 6 */
 
 #if TRACE_ARGS_NUM == 8
 	case 7:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx",
-				a0,  a1,  a2,  a3,  a4,  a5,  a6);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
+				a0, a1, a2, a3, a4, a5, a6);
 		break;
 
 	case 8:
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx",
-				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx",
+				a0, a1, a2, a3, a4, a5, a6, a7);
 		break;
 #endif /* TRACE_ARGS_NUM == 8 */
 
 	default:
 #if TRACE_ARGS_NUM == 4
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,   m->paramcount - 4);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
+				a0, a1, a2, a3, m->paramcount - 4);
 
 #elif TRACE_ARGS_NUM == 6
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,  a4,  a5,  m->paramcount - 6);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
+				a0, a1, a2, a3, a4, a5, m->paramcount - 6);
 
 #elif TRACE_ARGS_NUM == 8
-		sprintf(logtext+strlen(logtext), "%lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx, ...(%d)",
-				a0,  a1,  a2,  a3,  a4,  a5,  a6,  a7,  m->paramcount - 8);
+		sprintf(logtext + strlen(logtext),
+				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
+				a0, a1, a2, a3, a4, a5, a6, a7, m->paramcount - 8);
 #endif
 		break;
 #endif /* defined(__I386__) || defined(__POWERPC__) */
 	}
 
-	sprintf(logtext + strlen(logtext), ")");
+	strcat(logtext, ")");
+
 	log_text(logtext);
+
+	/* release memory */
+
+	MFREE(logtext, char, logtextlen);
 
 	methodindent++;
 }
 #endif
 
 
-void builtin_displaymethodstart(methodinfo *m)
-{
-	char logtext[MAXLOGTEXT];
-	sprintf(logtext, "												");
-	sprintf(logtext + methodindent, "called: ");
-	utf_sprint(logtext + strlen(logtext), m->class->name);
-	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint(logtext + strlen(logtext), m->descriptor);
+/* builtin_displaymethodstop ***************************************************
 
-	if (m->flags & ACC_PUBLIC)       sprintf(logtext + strlen(logtext), " PUBLIC");
-	if (m->flags & ACC_PRIVATE)      sprintf(logtext + strlen(logtext), " PRIVATE");
-	if (m->flags & ACC_PROTECTED)    sprintf(logtext + strlen(logtext), " PROTECTED");
-   	if (m->flags & ACC_STATIC)       sprintf(logtext + strlen(logtext), " STATIC");
-   	if (m->flags & ACC_FINAL)        sprintf(logtext + strlen(logtext), " FINAL");
-   	if (m->flags & ACC_SYNCHRONIZED) sprintf(logtext + strlen(logtext), " SYNCHRONIZED");
-   	if (m->flags & ACC_VOLATILE)     sprintf(logtext + strlen(logtext), " VOLATILE");
-   	if (m->flags & ACC_TRANSIENT)    sprintf(logtext + strlen(logtext), " TRANSIENT");
-   	if (m->flags & ACC_NATIVE)       sprintf(logtext + strlen(logtext), " NATIVE");
-   	if (m->flags & ACC_INTERFACE)    sprintf(logtext + strlen(logtext), " INTERFACE");
-   	if (m->flags & ACC_ABSTRACT)     sprintf(logtext + strlen(logtext), " ABSTRACT");
+   XXX
 
-	log_text(logtext);
-	methodindent++;
-}
-
+*******************************************************************************/
 
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 {
-	int i;
-	char logtext[MAXLOGTEXT];
+	char *logtext;
+	s4    logtextlen;
+	s4    i;
+
+	/* calculate message length */
+
+	logtextlen =
+		methodindent + strlen("finished: ") +
+		utf_strlen(m->class->name) +
+		strlen(".") +
+		utf_strlen(m->name) +
+		utf_strlen(m->descriptor) +
+		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
+
+	/* add maximal argument length */
+
+	logtextlen += get_variable_message_length("->0x%llx", -1);
+
+	/* allocate memory */
+
+	logtext = MNEW(char, logtextlen);
+
+	/* generate the message */
+
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
+
 	if (methodindent)
 		methodindent--;
 	else
 		log_text("WARNING: unmatched methodindent--");
 
-	sprintf(logtext + methodindent, "finished: ");
-	utf_sprint_classname(logtext + strlen(logtext), m->class->name);
-	sprintf(logtext + strlen(logtext), ".");
-	utf_sprint(logtext + strlen(logtext), m->name);
-	utf_sprint(logtext + strlen(logtext), m->descriptor);
+	strcpy(logtext + methodindent, "finished: ");
+	utf_strcat_classname(logtext, m->class->name);
+	strcat(logtext, ".");
+	utf_strcat(logtext, m->name);
+	utf_strcat(logtext, m->descriptor);
 
 	switch (m->returntype) {
 	case TYPE_INT:
@@ -1304,11 +1450,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		break;
 
 	case TYPE_ADDRESS:
-#if defined(__I386__) || defined(__POWERPC__)
-		sprintf(logtext + strlen(logtext), "->%p", (u1*) ((s4) l));
-#else
-		sprintf(logtext + strlen(logtext), "->%p", (u1*) l);
-#endif
+		sprintf(logtext + strlen(logtext), "->%p", (void *) (ptrint) l);
 		break;
 
 	case TYPE_FLOAT:
@@ -1319,7 +1461,12 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
 	}
+
 	log_text(logtext);
+
+	/* release memory */
+
+	MFREE(logtext, char, logtextlen);
 }
 
 
@@ -2074,10 +2221,14 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 }
 
 
-s4 builtin_dummy()
+s4 builtin_dummy(void)
 {
-	panic("Internal error: builtin_dummy called (native function is missing)");
-	return 0; /* for the compiler */
+	log_text("Internal error: builtin_dummy called (native function is missing)");
+	assert(0);
+
+	/* keep the compiler happy */
+
+	return 0;
 }
 
 
@@ -2108,10 +2259,9 @@ inline void* builtin_asm_get_stackframeinfo()
 	/*printf("stackframeinfo: %p,%p\n",&THREADINFO->_stackframeinfo,*(&THREADINFO->_stackframeinfo));*/
 	return &THREADINFO->_stackframeinfo;
 #else
-#if defined(__GNUC__)
-#warning FIXME FOR OLD THREAD IMPL (jowenn)
-#endif
-		return &_thread_nativestackframeinfo; /* no threading, at least no native*/
+	/* XXX FIXME FOR OLD THREAD IMPL (jowenn) */
+
+	return &_thread_nativestackframeinfo; /* no threading, at least no native*/
 #endif
 }
 
@@ -2126,9 +2276,10 @@ stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelem
 #endif
 	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
 	(*el)[s].method=0;
-#if defined(__GNUC__)
-#warning change this if line numbers bigger than u2 are allowed, the currently supported class file format does no allow that
-#endif
+
+	/* XXX change this if line numbers bigger than u2 are allowed, the */
+	/* currently supported class file format does no allow that */
+
 	(*el)[s].linenumber=-1; /* -1 can never be reched otherwise, since line numbers are only u2, so it is save to use that as flag */
 	return *el;
 }

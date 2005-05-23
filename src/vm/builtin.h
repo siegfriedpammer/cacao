@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2443 2005-05-11 12:50:26Z twisti $
+   $Id: builtin.h 2498 2005-05-23 08:12:52Z twisti $
 
 */
 
@@ -214,8 +214,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 						methodinfo *m);
 /* NOT AN OP */
 #endif /* defined(TRACE_ARGS_NUM) */
-void builtin_displaymethodstart(methodinfo *m);
-/* NOT AN OP */
+
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 /* NOT AN OP */
 
@@ -342,7 +341,7 @@ float    builtin_d2f(double a);
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* NOT AN OP */
 
-/* builtin_dummy just panics if it is executed. */
+/* builtin_dummy just exits if it is executed. */
 s4 builtin_dummy(void);
 /* NOT AN OP */
 
