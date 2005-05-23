@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: initialize.c 2500 2005-05-23 08:18:46Z twisti $
 
 */
 
@@ -153,14 +153,12 @@ static bool initialize_class_intern(classinfo *c)
 
 	if (c->super.cls) {
 		if (!c->super.cls->initialized) {
-			if (initverbose) {
-				char logtext[MAXLOGTEXT];
-				strcpy(logtext, "Initialize super class ");
-				utf_strcat_classname(logtext, c->super.cls->name);
-				strcat(logtext, " from ");
-				utf_strcat_classname(logtext, c->name);
-				log_text(logtext);
-			}
+			if (initverbose)
+				log_message_class_message_class("Initialize super class ",
+												c->super.cls,
+												" from ",
+												c);
+
 #ifdef JWDEBUG
 			printf("preparing to call initialize_class for super  %s\n",c->super.cls->name->text);
 #endif
@@ -176,14 +174,11 @@ static bool initialize_class_intern(classinfo *c)
 #ifdef JWDEBUG
 			printf("preparing to call initialize_class for interface  %s\n",c->interfaces[i].cls->name->text);
 #endif
-			if (initverbose) {
-				char logtext[MAXLOGTEXT];
-				strcpy(logtext, "Initialize interface class ");
-				utf_strcat_classname(logtext, c->interfaces[i].cls->name);
-				strcat(logtext, " from ");
-				utf_strcat_classname(logtext, c->name);
-				log_text(logtext);
-			}
+			if (initverbose)
+				log_message_class_message_class("Initialize interface class ",
+												c->interfaces[i].cls,
+												" from ",
+												c);
 			
 			if (!initialize_class(c->interfaces[i].cls))
 				return false;
@@ -193,20 +188,15 @@ static bool initialize_class_intern(classinfo *c)
 	m = class_findmethod(c, utf_clinit, utf_void__void);
 
 	if (!m) {
-		if (initverbose) {
-			char logtext[MAXLOGTEXT];
-			strcpy(logtext, "Class ");
-			utf_strcat_classname(logtext, c->name);
-			strcat(logtext, " has no static class initializer");
-			log_text(logtext);
-		}
+		if (initverbose)
+			log_message_class("Class has no static class initializer: ", c);
 
 		return true;
 	}
 
 	/* Sun's and IBM's JVM don't care about the static flag */
 /*  	if (!(m->flags & ACC_STATIC)) { */
-/*  		panic("Class initializer is not static!"); */
+/*  		log_text("Class initializer is not static!"); */
 
 	if (initverbose)
 		log_message_class("Starting static class initializer for class: ", c);
