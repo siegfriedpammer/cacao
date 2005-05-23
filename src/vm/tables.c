@@ -1,4 +1,4 @@
-/* vm/tables.c - 
+/* src/vm/tables.c - 
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,6 +28,7 @@
 
    Changes: Mark Probst
             Andreas Krall
+            Christian Thalinger
 
    Contains support functions for:
        - Reading of Java class files
@@ -35,7 +36,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 2195 2005-04-03 16:53:16Z edwin $
+   $Id: tables.c 2505 2005-05-23 08:23:40Z twisti $
 
 */
 
@@ -178,9 +179,11 @@ void tables_close()
 u2 desc_to_type(utf *descriptor)
 {
 	char *utf_ptr = descriptor->text;  /* current position in utf text */
-	char logtext[MAXLOGTEXT];
 
-	if (descriptor->blength < 1) panic("Type-Descriptor is empty string");
+	if (descriptor->blength < 1) {
+		log_text("Type-Descriptor is empty string");
+		assert(0);
+	}
 	
 	switch (*utf_ptr++) {
 	case 'B': 
@@ -195,9 +198,7 @@ u2 desc_to_type(utf *descriptor)
 	case '[':  return TYPE_ADDRESS;
 	}
 			
-	sprintf(logtext, "Invalid Type-Descriptor: ");
-	utf_sprint(logtext+strlen(logtext), descriptor);
-	error("%s",logtext);
+	assert(0);
 
 	return 0;
 }

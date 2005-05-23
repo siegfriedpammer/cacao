@@ -9,9 +9,11 @@
 
 /* Modified my  Joseph Wenninger*/
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "zlib.h"
 #include "unzip.h"
 #include "mm/memory.h"
@@ -715,8 +717,10 @@ void cacao_create_directoryList(unzFile file)
     return;
 
   do {
-    if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK)
-      panic("Error in ZIP archive");
+    if (unzGetCurrentFileInfo(file, &tmp, filename, 200, 0, 0, 0, 0) != UNZ_OK) {
+      log_text("Error in ZIP archive");
+      assert(0);
+    }
 
     if ((c = strstr(filename, ".class")))
       *c = '\0';
