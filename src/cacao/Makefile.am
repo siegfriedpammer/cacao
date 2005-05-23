@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2001 2005-03-05 17:07:11Z twisti $
+## $Id: Makefile.am 2520 2005-05-23 15:22:08Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -45,7 +45,9 @@ THREAD_LIB =
 endif
 
 if STATIC_CLASSPATH
-cacao_LDFLAGS =
+cacao_LDFLAGS = \
+	$(LTLIBICONV)
+
 CLASSPATH_LIBS = \
 	$(top_builddir)/src/classpath/native/jni/java-io/.libs/libjavaio.a \
 	$(top_builddir)/src/classpath/native/jni/java-nio/.libs/libjavanio.a \
@@ -55,6 +57,14 @@ CLASSPATH_LIBS = \
 	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalangreflect.a
 
 if USE_GTK_PEER
+cacao_CFLAGS = \
+	$(GTK_CFLAGS) $(CAIRO_CFLAGS) $(PANGOFT2_CFLAGS) \
+	$(XML_CFLAGS) $(XSLT_CFLAGS)
+
+cacao_LDFLAGS += \
+	$(GTK_LIBS) $(CAIRO_LIBS) $(PANGOFT2_LIBS) $(X_LIBS) -lXtst \
+	$(XML_LIBS) $(XSLT_LIBS)
+
 CLASSPATH_LIBS += \
 	$(top_builddir)/src/classpath/native/jni/gtk-peer/.libs/libgtkpeer.a
 endif
