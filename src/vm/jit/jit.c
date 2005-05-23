@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2428 2005-05-03 19:24:00Z twisti $
+   $Id: jit.c 2513 2005-05-23 10:22:29Z twisti $
 
 */
 
@@ -58,9 +58,13 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
+
+#if defined(USE_INLINING)
 #include "vm/jit/inline/inline.h"
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/parseXTA.h"
+#endif
+
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
@@ -1206,7 +1210,7 @@ functionptr jit_compile(methodinfo *m)
 	/* this is the case if a native function is called by jni */
 
 	if (m->flags & ACC_NATIVE)
-		return (functionptr) m->stubroutine;
+		return (functionptr) (ptrint) m->stubroutine;
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the method */
@@ -1258,6 +1262,7 @@ functionptr jit_compile(methodinfo *m)
 	ld = DNEW(loopdata);
 	id = DNEW(t_inlining_globals);
 
+#if defined(USE_INLINING)
 	/* RTA static analysis must be called before inlining */
 	if (opt_rt)
 		RT_jit_parse(m); /* will be called just once */
@@ -1267,10 +1272,10 @@ functionptr jit_compile(methodinfo *m)
 		XTA_jit_parse(m); /* will be called just once */
 	                      /* return value ignored for now */
 
-
 	/* must be called before reg_setup, because it can change maxlocals */
 	/* init reqd to initialize for parse even in no inlining */
 	inlining_setup(m, id);
+#endif
 
 	/* initialize the register allocator */
 	reg_setup(m, rd, id);
@@ -1494,7 +1499,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	if (compileverbose) {
 		log_message_method("Compiling done: ", m);
-		printf("method dataseg:%p, range:%p %p\n",m->mcode,(void *) ((long) m->mcode + cd->dseglen),(void *) ((long) m->mcode + m->mcodelength));
+		printf("method dataseg:%p, range:%p %p\n", (void *) (ptrint) m->mcode,(void *) ((long) m->mcode + cd->dseglen),(void *) ((long) m->mcode + m->mcodelength));
 	}
 
 #ifdef LSRA
