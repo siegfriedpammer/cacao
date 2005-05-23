@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: utf8.c 2506 2005-05-23 08:32:38Z twisti $
 
 */
 
@@ -166,8 +166,11 @@ void utf8_init(void)
 	utf_java_lang_Double           = utf_new_char("java/lang/Double");
 
 	utf_java_util_Vector           = utf_new_char("java/util/Vector");
-	utf_java_lang_reflect_Constructor = utf_new_char("java/lang/reflect/Constructor");
-	utf_java_lang_reflect_Method      = utf_new_char("java/lang/reflect/Method");
+
+	utf_java_lang_reflect_Constructor =
+		utf_new_char("java/lang/reflect/Constructor");
+
+	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
 
 	utf_InnerClasses               = utf_new_char("InnerClasses");
 	utf_ConstantValue              = utf_new_char("ConstantValue");
@@ -960,7 +963,7 @@ bool is_valid_utf(char *utf_ptr, char *end_pos)
 			if (v < min_codepoint[len]) { /* overlong UTF-8 */
 				if (!opt_liberalutf)
 					fprintf(stderr,"WARNING: Overlong UTF-8 sequence found.\n");
-				/* XXX change this to panic? */
+				/* XXX change this to exception? */
 			}
 		}
 
