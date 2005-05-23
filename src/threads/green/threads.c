@@ -178,8 +178,11 @@ initThreads(u1 *stackbottom)
 	}
 
     /* Allocate a thread to be the main thread */
-	if (!load_class_bootstrap(utf_new_char("java/lang/Thread"),&c))
-		panic("Could not load java/lang/Thread");
+	if (!load_class_bootstrap(utf_new_char("java/lang/Thread"),&c)) {
+		log_text("Could not load java/lang/Thread");
+		assert(0);
+	}
+
     liveThreads = the_main_thread = 
         (thread *) builtin_new(c);
     the_main_thread->vmThread=init_vmthread(the_main_thread);
@@ -269,15 +272,18 @@ startThread (thread* tid)
 		if (contexts[i]==0)
 			break;
 
-   if (i == MAXTHREADS)
-		panic("Too many threads");
+	if (i == MAXTHREADS) {
+		log_text("Too many threads");
+		assert(0);
+	}
 
 	assert(tid->priority >= MIN_THREAD_PRIO && tid->priority <= MAX_THREAD_PRIO);
 	contexts[i]=tid->vmThread;
 /*    tid->PrivateInfo = i + 1;
     CONTEXT(tid).free = false;*/
     if (tid->vmThread==0) {
-	panic("vmThread field not set");
+		log_text("vmThread field not set");
+		assert(0);
 /*	tid->vmThread=init_vmthread(tid);*/
     }
 
@@ -371,8 +377,11 @@ firstStartThread(void)
 	/* Find the run()V method and call it */
 	method = class_findmethod(currentThread->vmThread->header.vftbl->class,
 							  utf_new_char("run"), utf_new_char("()V"));
-	if (method == 0)
-		panic("Cannot find method \'void run ()\'");
+
+	if (method == 0) {
+		log_text("Cannot find method \'void run ()\'");
+		assert(0);
+	}
 
 	asm_calljavafunction(method, currentThread->vmThread, NULL, NULL, NULL);
 
@@ -602,7 +611,10 @@ killThread(thread* tid)
 				break;
 			}
 		}
-		if (i1==MAXTHREADS) panic("Thread not found in killThread");
+		if (i1==MAXTHREADS) {
+			log_text("Thread not found in killThread");
+			assert(0);
+		}
 
 	} else context=tid->vmThread;
 

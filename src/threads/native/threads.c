@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2417 2005-04-29 19:17:55Z twisti $
+   $Id: threads.c 2517 2005-05-23 10:33:06Z twisti $
 
 */
 
@@ -301,20 +301,26 @@ static void cast_darwinstop()
 			kern_return_t r;
 
 			r = thread_suspend(thread);
-			if (r != KERN_SUCCESS)
-				panic("thread_suspend failed");
+			if (r != KERN_SUCCESS) {
+				log_text("thread_suspend failed");
+				assert(0);
+			}
 
 			r = thread_get_state(thread, flavor,
 				(natural_t*)&thread_state, &thread_state_count);
-			if (r != KERN_SUCCESS)
-				panic("thread_get_state failed");
+			if (r != KERN_SUCCESS) {
+				log_text("thread_get_state failed");
+				assert(0);
+			}
 
 			thread_restartcriticalsection(&thread_state);
 
 			r = thread_set_state(thread, flavor,
 				(natural_t*)&thread_state, thread_state_count);
-			if (r != KERN_SUCCESS)
-				panic("thread_set_state failed");
+			if (r != KERN_SUCCESS) {
+				log_text("thread_set_state failed");
+				assert(0);
+			}
 		}
 		tobj = tobj->info.next;
 	} while (tobj != mainthreadobj);
@@ -333,8 +339,10 @@ static void cast_darwinresume()
 			kern_return_t r;
 
 			r = thread_resume(thread);
-			if (r != KERN_SUCCESS)
-				panic("thread_resume failed");
+			if (r != KERN_SUCCESS) {
+				log_text("thread_resume failed");
+				assert(0);
+			}
 		}
 		tobj = tobj->info.next;
 	} while (tobj != mainthreadobj);
@@ -668,8 +676,10 @@ void startThread(thread *t)
 
 	sem_init(&sem, 0, 0);
 	
-	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup))
-		panic("pthread_create failed");
+	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup)) {
+		log_text("pthread_create failed");
+		assert(0);
+	}
 
 	/* Wait here until the thread has entered itself into the thread list */
 	sem_wait(&sem);

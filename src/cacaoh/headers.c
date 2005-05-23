@@ -30,15 +30,15 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2464 2005-05-12 23:55:10Z twisti $
+   $Id: headers.c 2517 2005-05-23 10:33:06Z twisti $
 
 */
 
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "config.h"
 
@@ -385,16 +385,18 @@ static char *printtype(char *utf_ptr)
 		case 'F':  fprintf (file, "java_floatarray*"); break;
 		case 'D':  fprintf (file, "java_doublearray*"); break;
 				
-		case '[':  fprintf (file, "java_objectarray*");					       
-			while ((c = utf_nextu2(&utf_ptr)) == '[') ;
-			if (c=='L') 
+		case '[': fprintf(file, "java_objectarray*");
+			while ((c = utf_nextu2(&utf_ptr)) == '[');
+			if (c == 'L')
 				while (utf_nextu2(&utf_ptr) != ';');
 			break;
                            
-		case 'L':  fprintf (file, "java_objectarray*");
-			while ( utf_nextu2(&utf_ptr) != ';');
+		case 'L':  fprintf(file, "java_objectarray*");
+			while (utf_nextu2(&utf_ptr) != ';');
 			break;
-		default: panic ("invalid type descriptor");
+		default:
+			log_text("invalid type descriptor");
+			assert(0);
 		}
 		break;
 		
@@ -405,7 +407,9 @@ static char *printtype(char *utf_ptr)
 		fprintf (file, "*");
 		break;
 					
-	default:  panic ("Unknown type in field descriptor");
+	default:
+		log_text("Unknown type in field descriptor");
+		assert(0);
 	}
 	
 	return utf_ptr;
@@ -568,10 +572,12 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	}
 
    	file = fopen(header_filename, "w");
-   	if (!file)
-		panic("Can not open file to store header information");
+   	if (!file) {
+		log_text("Can not open file to store header information");
+		assert(0);
+	}
 
-   	fprintf(file, "/* This file is machine generated, don't edit it !*/\n\n");
+   	fprintf(file, "/* This file is machine generated, don't edit it! */\n\n");
 
 	/* convert to uppercase */
 	for (i = 0; classname[i]; i++) {
