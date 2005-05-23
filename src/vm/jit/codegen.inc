@@ -1,4 +1,4 @@
-/* vm/jit/codegen.inc - architecture independent code generator
+/* src/vm/jit/codegen.inc - architecture independent code generator
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -47,13 +47,12 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2451 2005-05-11 15:31:42Z twisti $
+   $Id: codegen.inc 2507 2005-05-23 08:34:04Z twisti $
 
 */
 
-#ifndef _CODEGEN_INC_H_
-#define _CODEGEN_INC_H_
 
+#include <assert.h>
 #include <string.h>
 
 #if !defined(STATIC_CLASSPATH)
@@ -665,7 +664,6 @@ functionptr codegen_findmethod(functionptr pc)
 		tables_unlock();
 #endif
 #endif
-		{
 #ifdef JWDEBUG_X86
 			{
 				void *bt[5];
@@ -673,11 +671,9 @@ functionptr codegen_findmethod(functionptr pc)
 				backtrace_symbols_fd(bt,5,2);
 			}
 #endif
-			char msg[63];
-			sprintf(msg,"cannot find function (%p)",pc);
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-								   msg);
-		}
+		assert(0);
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Cannot find Java function at %p", pc);
 	}
 
 #if defined(USE_THREADS)
@@ -763,10 +759,11 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	m->entrypoint = epoint = (functionptr) ((ptrint) m->mcode + cd->dseglen);
 
 	/* jump table resolving */
+
 	jr = cd->jumpreferences;
 	while (jr != NULL) {
-		*((functionptr *) ((long) epoint + jr->tablepos)) =
-			(functionptr) ((long) epoint + (long) jr->target->mpc);
+		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
+			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
 		jr = jr->next;
 	}
 
@@ -774,24 +771,18 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	/* line number table resolving */
 	{
 		linenumberref *lr;
-#if POINTERSIZE == 8
-		s8 lrtlen = 0;
-#else
-		s4 lrtlen = 0;
-#endif
+		ptrint lrtlen = 0;
+
 		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
 			lrtlen++;
-			*((functionptr *) ((long) epoint + (long) lr->tablepos)) =
-				(functionptr) ((long) epoint + (long) lr->targetmpc);
+			*((functionptr *) ((ptrint) epoint + (ptrint) lr->tablepos)) =
+				(functionptr) ((ptrint) epoint + (ptrint) lr->targetmpc);
 		}
 		
-		*((functionptr *) ((long) epoint + cd->linenumbertablestartpos)) =
-			(functionptr) ((long) epoint + cd->linenumbertab);
-#if POINTERSIZE == 8
-		*((s8 *) ((s8) epoint + cd->linenumbertablesizepos)) = lrtlen;
-#else
-		*((s4 *) ((s4) epoint + cd->linenumbertablesizepos)) = lrtlen;
-#endif
+		*((functionptr *) ((ptrint) epoint + cd->linenumbertablestartpos)) =
+			(functionptr) ((ptrint) epoint + cd->linenumbertab);
+
+		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
 #endif
 
@@ -818,14 +809,14 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode *) ((long) m->mcode + alignedlen);
+		threadcritnode *n = (threadcritnode *) ((ptrint) m->mcode + alignedlen);
 		s4 i;
 		threadcritnodetemp *nt = cd->threadcrit;
 
 		for (i = 0; i < cd->threadcritcount; i++) {
-			n->mcodebegin = (u1 *) (long) m->mcode + nt->mcodebegin;
-			n->mcodeend = (u1 *) (long) m->mcode + nt->mcodeend;
-			n->mcoderestart = (u1 *) (long) m->mcode + nt->mcoderestart;
+			n->mcodebegin = (u1 *) (ptrint) m->mcode + nt->mcodebegin;
+			n->mcodeend = (u1 *) (ptrint) m->mcode + nt->mcodeend;
+			n->mcoderestart = (u1 *) (ptrint) m->mcode + nt->mcoderestart;
 			thread_registercritical(n);
 			n++;
 			nt = nt->next;
@@ -957,7 +948,9 @@ static size_t codegen_overloadPartLen(utf *desc) {
                                 break;
                         case '(':
                                 break;
-                        default: panic ("invalid method descriptor");
+                        default:
+							log_text("invalid method descriptor");
+							assert(0);
                 }
         }
 	return len;
@@ -999,7 +992,9 @@ static void codegen_fillInOverloadPart(char *target,utf *desc) {
                                 break;
                         case '(':
                                 break;
-                        default: panic ("invalid method descriptor");
+                        default:
+							log_text("invalid method descriptor");
+							assert(0);
                 }
         }
 	*insertpos='\0';
@@ -1123,8 +1118,6 @@ static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmp
 }
 #endif
 
-
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
