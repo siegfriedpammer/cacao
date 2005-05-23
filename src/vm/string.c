@@ -30,12 +30,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: string.c 2504 2005-05-23 08:22:45Z twisti $
 
 */
 
 
 #include <assert.h>
+
 #include "config.h"
 #include "types.h"
 
@@ -188,9 +189,11 @@ void stringtable_update(void)
                                                                
 				js = (java_lang_String *) s->string;
                                
-				if (!js || !js->value) 
+				if (!js || !js->value) {
 					/* error in hashtable found */
-					panic("invalid literalstring in hashtable");
+					log_text("invalid literalstring in hashtable");
+					assert(0);
+				}
 
 				a = js->value;
 
@@ -394,6 +397,23 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 	java_lang_String *str = (java_lang_String *) string;
 
 	return utf_new_u2(str->value->data + str->offset, str->count, isclassname);
+}
+
+
+/* javastring_strlen ***********************************************************
+
+   Returns the length of the Java string.
+	
+*******************************************************************************/
+
+s4 javastring_strlen(java_objectheader *so)
+{
+	java_lang_String *s = (java_lang_String *) so;
+	
+	if (!s)
+		return 0;
+
+	return s->count;
 }
 
 

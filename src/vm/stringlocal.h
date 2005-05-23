@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2458 2005-05-12 23:02:07Z twisti $
+   $Id: stringlocal.h 2504 2005-05-23 08:22:45Z twisti $
 
 */
 
@@ -123,6 +123,9 @@ char *javastring_tochar(java_objectheader *s);
 
 /* make utf symbol from javastring */
 utf *javastring_toutf(java_lang_String *string, bool isclassname);
+
+/* returns length of javastring */
+s4 javastring_strlen(java_objectheader *so);
 
 /* creates a new javastring with the text of the u2-array */
 java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
