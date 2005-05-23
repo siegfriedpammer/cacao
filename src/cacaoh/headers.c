@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2517 2005-05-23 10:33:06Z twisti $
+   $Id: headers.c 2518 2005-05-23 11:57:59Z twisti $
 
 */
 
@@ -165,8 +165,24 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
 void throw_exception(void) { assert(0); }
 void throw_exception_exit(void) { assert(0); }
-java_objectheader *new_verifyerror(methodinfo *m, const char *message) { assert(0); }
-java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable) { assert(0); }
+
+java_objectheader *new_verifyerror(methodinfo *m, const char *message)
+{
+	assert(0);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable)
+{
+	assert(0);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
 
 
 void throw_cacao_exception_exit(const char *exception, const char *message, ...)
@@ -187,6 +203,10 @@ java_objectheader *new_exception(const char *classname)
 {
 	fprintf(stderr, "%s\n", classname);
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -194,6 +214,10 @@ java_objectheader *new_exception_message(const char *classname, const char *mess
 {
 	fprintf(stderr, "%s: %s\n", classname, message);
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -204,6 +228,10 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 	fputc('\n', stderr);
 
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -221,6 +249,10 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	fputc('\n', stderr);
 
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -235,6 +267,10 @@ java_objectheader *new_internalerror(const char *message, ...)
 	va_end(ap);
 
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -252,6 +288,10 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 	va_end(ap);
 
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -259,6 +299,10 @@ java_objectheader *new_negativearraysizeexception(void)
 {
 	fprintf(stderr, "%s", string_java_lang_NegativeArraySizeException);
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
@@ -266,6 +310,10 @@ java_objectheader *new_nullpointerexception(void)
 {
 	fprintf(stderr, "%s", string_java_lang_NullPointerException);
 	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
