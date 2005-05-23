@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2482 2005-05-19 08:48:55Z jowenn $
+   $Id: class.c 2499 2005-05-23 08:17:53Z twisti $
 
 */
 
@@ -181,12 +181,8 @@ classinfo *class_create_classinfo(utf *classname)
 	if (!classname)
 		classname = utf_not_named_yet;
 
-	if (initverbose) {
-		char logtext[MAXLOGTEXT];
-		sprintf(logtext, "Creating class: ");
-		utf_sprint_classname(logtext + strlen(logtext), classname);
-		log_text(logtext);
-	}
+	if (initverbose)
+		log_message_utf("Creating class: ", classname);
 
 	c = GCNEW(classinfo, 1); /*JOWENN: NEW*/
 	/*c=NEW(classinfo);*/
@@ -485,8 +481,10 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     s4 namelen;
     char *namebuf;
 
-	if (dim < 1)
-		panic("Invalid array dimension requested");
+	if (dim < 1) {
+		log_text("Invalid array dimension requested");
+		assert(0);
+	}
 
     /* Assemble the array class name */
     namelen = element->name->blength;
