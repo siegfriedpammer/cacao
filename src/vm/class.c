@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2499 2005-05-23 08:17:53Z twisti $
+   $Id: class.c 2523 2005-05-23 18:13:52Z edwin $
 
 */
 
@@ -394,7 +394,9 @@ void class_free(classinfo *c)
 /* get_array_class *************************************************************
 
    Returns the array class with the given name for the given
-   classloader.
+   classloader, or NULL if an exception occurred.
+
+   Note: This function does eager loading. 
 
 *******************************************************************************/
 
@@ -405,16 +407,15 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 	
 	/* lookup this class in the classcache */
 	c = classcache_lookup(initloader,name);
-	if (c)
-		return c;
-	c = classcache_lookup_defined(defloader,name);
-	if (c)
-		return c;
+	if (!c)
+		c = classcache_lookup_defined(defloader,name);
 
-	/* we have to create it */
-	c = class_create_classinfo(name);
-	if (!load_newly_created_array(c,initloader))
-		return NULL;
+	if (!c) {
+		/* we have to create it */
+		c = class_create_classinfo(name);
+		if (!load_newly_created_array(c,initloader))
+			return NULL;
+	}
 
 	CLASS_ASSERT(c);
 	CLASS_ASSERT(c->loaded);
