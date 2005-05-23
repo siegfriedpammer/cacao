@@ -28,11 +28,17 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2036 2005-03-18 13:23:40Z twisti $
+## $Id: Makefile.am 2516 2005-05-23 10:31:50Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+
+#if DISABLE_GC
+#GC_LIB =
+#else
+GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
+#endif
 
 if USE_THREADS
 if NATIVE_THREADS
@@ -65,7 +71,7 @@ cacaoh_SOURCES = \
 
 cacaoh_LDADD = \
 	libcacaoh.la \
-	$(top_builddir)/src/boehm-gc/libgc.la
+	$(GC_LIB)
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
 
