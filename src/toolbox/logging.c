@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 2299 2005-04-14 05:17:27Z edwin $
+   $Id: logging.c 2508 2005-05-23 08:50:25Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "config.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+#include "toolbox/util.h"
 #include "vm/global.h"
 #include "vm/tables.h"
 #include "vm/statistics.h"
@@ -69,35 +70,40 @@ void log_init(const char *fname)
 }
 
 
-/*********************** Function: dolog ************************************
+/* dolog ***********************************************************************
 
-Writes logtext to the protocol file (if opened) or to stdout.
+   Writes logtext to the protocol file (if opened) or to stdout.
 
-**************************************************************************/
+*******************************************************************************/
 
-void dolog(const char *txt, ...)
+void dolog(const char *text, ...)
 {
-	char logtext[MAXLOGTEXT];
 	va_list ap;
-
-	va_start(ap, txt);
-	vsprintf(logtext, txt, ap);
-	va_end(ap);
 
 	if (logfile) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		fprintf(logfile, "[%p] %s\n",(void*)THREADOBJECT,logtext);
-#else
-		fprintf(logfile, "%s\n",logtext);
+		fprintf(logfile, "[%p] ", (void *) THREADOBJECT);
 #endif
+
+		va_start(ap, text);
+		vfprintf(logfile, text, ap);
+		va_end(ap);
+
 		fflush(logfile);
 
 	} else {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		fprintf(stdout,"LOG: [%p] %s\n",(void*)THREADOBJECT,logtext);
+		fprintf(stdout, "LOG: [%p] ", (void *) THREADOBJECT);
 #else
-		fprintf(stdout,"LOG: %s\n",logtext);
+		fputs("LOG: ", stdout);
 #endif
+
+		va_start(ap, text);
+		vfprintf(stdout, text, ap);
+		va_end(ap);
+
+		fprintf(stdout, "\n");
+
 		fflush(stdout);
 	}
 }
@@ -194,9 +200,35 @@ void log_cputime(void)
 #endif
 
 
-/* log_message_method **********************************************************
+/* log_message_utf *************************************************************
 
-   outputs log text like this:
+   Outputs log text like this:
+
+   LOG: Creating class: java/lang/Object
+
+*******************************************************************************/
+
+void log_message_utf(const char *msg, utf *u)
+{
+	char *buf;
+	s4    len;
+
+	len = strlen(msg) + utf_strlen(u) + strlen("0");
+
+	buf = MNEW(char, len);
+
+	strcpy(buf, msg);
+	utf_strcat(buf, u);
+
+	log_text(buf);
+
+	MFREE(buf, char, len);
+}
+
+
+/* log_message_class ***********************************************************
+
+   Outputs log text like this:
 
    LOG: Loading class: java/lang/Object
 
@@ -204,15 +236,34 @@ void log_cputime(void)
 
 void log_message_class(const char *msg, classinfo *c)
 {
+	log_message_utf(msg, c->name);
+}
+
+
+/* log_message_class_message_class *********************************************
+
+   Outputs log text like this:
+
+   LOG: Initialize super class java/lang/Object from java/lang/VMThread
+
+*******************************************************************************/
+
+void log_message_class_message_class(const char *msg1, classinfo *c1,
+									 const char *msg2, classinfo *c2)
+{
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_strlen(c->name) + strlen("0");
+	len =
+		strlen(msg1) + utf_strlen(c1->name) +
+		strlen(msg2) + utf_strlen(c2->name) + strlen("0");
 
 	buf = MNEW(char, len);
 
-	strcpy(buf, msg);
-	utf_strcat(buf, c->name);
+	strcpy(buf, msg1);
+	utf_strcat(buf, c1->name);
+	strcat(buf, msg2);
+	utf_strcat(buf, c2->name);
 
 	log_text(buf);
 
@@ -222,7 +273,7 @@ void log_message_class(const char *msg, classinfo *c)
 
 /* log_message_method **********************************************************
 
-   outputs log text like this:
+   Outputs log text like this:
 
    LOG: Compiling: java.lang.Object.clone()Ljava/lang/Object;
 
@@ -247,43 +298,6 @@ void log_message_method(const char *msg, methodinfo *m)
 	log_text(buf);
 
 	MFREE(buf, char, len);
-}
-
-
-/* error ***********************************************************************
-
-   Like dolog(), but terminates the program immediately.
-
-*******************************************************************************/
-
-void error(const char *txt, ...)
-{
-	char logtext[MAXLOGTEXT];
-	va_list ap;
-
-	va_start(ap, txt);
-	vsprintf(logtext, txt, ap);
-	va_end(ap);
-
-	if (logfile) {
-		fprintf(logfile, "ERROR: %s\n", logtext);
-	}
-
-	fprintf(stderr, "ERROR: %s\n", logtext);
-
-	exit(1);
-}
-
-
-/* panic ***********************************************************************
-
-   Like error(), takes the text to output as an argument.
-
-*******************************************************************************/
-
-void panic(const char *txt)
-{
-	error("%s", txt);
 }
 
 

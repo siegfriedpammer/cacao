@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 2419 2005-04-30 11:51:55Z jowenn $
+   $Id: logging.h 2508 2005-05-23 08:50:25Z twisti $
 
 */
 
@@ -68,20 +68,17 @@ void log_nl(void);
 void log_cputime(void);
 #endif
 
+/* log message functions */
+void log_message_utf(const char *msg, utf *u);
 void log_message_class(const char *msg, classinfo *c);
+void log_message_class_message_class(const char *msg1, classinfo *c1,
+									 const char *msg2, classinfo *c2);
 void log_message_method(const char *msg, methodinfo *m);
 
 void dolog(const char *txt, ...);
 
 /* same as dolog without "LOG: " and newline*/
 void dolog_plain(const char *txt, ...);
-
-void error(const char *txt, ...);
-
-/* XXX this is just a quick hack on darwin */
-#if !defined(__DARWIN__)
-void panic(const char *txt);
-#endif
 
 FILE *get_logfile(void);                        /* return the current logfile */
 
