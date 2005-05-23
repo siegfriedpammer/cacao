@@ -31,11 +31,12 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2446 2005-05-11 12:54:04Z twisti $
+   $Id: parse.c 2514 2005-05-23 10:23:09Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <string.h>
 
 #include "config.h"
@@ -99,7 +100,7 @@ static exceptiontable* fillextable(methodinfo *m,
 	/*if (m->exceptiontablelength > 0) {
 	  METHINFOx(m);
 	  printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
-	  panic("exceptiontablelength > 0");
+	  assert(0);
 	  }*/
 
 	b_count = *block_count;
@@ -115,12 +116,16 @@ static exceptiontable* fillextable(methodinfo *m,
 /*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
   fflush(stdout); } ***/   
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
-		if (p <= raw_extable[src].startpc)
-			panic("Invalid exception handler range");
+		if (p <= raw_extable[src].startpc) {
+			log_text("Invalid exception handler range");
+			assert(0);
+		}
 
 		if (p >inline_env->method->jcodelength) {
-			panic("Invalid exception handler end is after code end");
+			log_text("Invalid exception handler end is after code end");
+			assert(0);
 		}
+
 		if (p<inline_env->method->jcodelength) insertBlock=1; else insertBlock=0;
                 /*if (label_index !=NULL) printf("%s:translating endpc:%ld to %ld, label_index:%p\n",m->name->text,p,label_index[p],label_index); else
 			printf("%s:fillextab: endpc:%ld\n",m->name->text,p);*/
@@ -178,6 +183,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	u2 skipBasicBlockChange;
 
+#if defined(USE_INLINING)
 METHINFOt(m,"\nPARSING: ",DEBUG4);
 if ((opt_rt) || (opt_xta)) {
   FILE *Missed;
@@ -204,16 +210,20 @@ if ((opt_rt) || (opt_xta)) {
       }
    } 
 }
-	/* INLINING */
+#endif
 
+#if defined(USE_INLINING)
 	if (useinlining) {
 		label_index = inlinfo->label_index;
 		m->maxstack = inline_env->cummaxstack;
 		/*JOWENN m->exceptiontablelength = inline_env->cumextablelength;*/
-		tmpinlinf = (inlining_methodinfo*) 
-				list_first(inlinfo->inlinedmethods);
-		if (tmpinlinf != NULL) nextgp = tmpinlinf->startgp;
+
+		tmpinlinf = (inlining_methodinfo *) list_first(inlinfo->inlinedmethods);
+
+		if (tmpinlinf != NULL)
+			nextgp = tmpinlinf->startgp;
 	}
+#endif
 
 /**** static analysis has to be called before inlining
         which has to be called before reg_set
@@ -307,7 +317,7 @@ if (m->exceptiontablelength > 0)
 			}
 		}
 
-		/*INLINING*/
+#if defined(USE_INLINING)
 		if ((useinlining) && (gp == nextgp)) {
 			u1 *tptr;
 			bool *readonly = NULL;
@@ -320,8 +330,11 @@ if (m->exceptiontablelength > 0)
 
 			opcode = code_get_u1(p,inline_env->method);
 			nextp = p += jcommandsize[opcode];
-			if (nextp > inline_env->method->jcodelength)
-				panic("Unexpected end of bytecode");
+			if (nextp > inline_env->method->jcodelength) {
+				log_text("Unexpected end of bytecode");
+				assert(0);
+			}
+
 			tmpinlinf = list_first(inlinfo->inlinedmethods);
 			firstlocal = tmpinlinf->firstlocal;
 			label_index = tmpinlinf->label_index;
@@ -383,7 +396,8 @@ METHINFO(inline_env->method,DEBUG);
 			    label_index, &b_count, inline_env);
 			continue;
 		}
-	  
+#endif /* defined(USE_INLINING) */
+
 		opcode = code_get_u1(p,inline_env->method);            /* fetch op code  */
 	 if (DEBUG==true) 
 		{
@@ -413,8 +427,12 @@ fflush(stdout);
 		}
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
-		if (nextp > inline_env->method->jcodelength)
-			panic("Unexpected end of bytecode");
+
+		if (nextp > inline_env->method->jcodelength) {
+			log_text("Unexpected end of bytecode");
+			assert(0);
+		}
+
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 SHOWOPCODE(DEBUG4)
 		switch (opcode) {
@@ -441,8 +459,10 @@ SHOWOPCODE(DEBUG4)
 
 		pushconstantitem:
 
-			if (i >= inline_env->method->class->cpcount) 
-				error("Attempt to access constant outside range: %d >= %d", i, inline_env->method->class->cpcount);
+			if (i >= inline_env->method->class->cpcount) {
+				dolog("Attempt to access constant outside range: %d >= %d", i, inline_env->method->class->cpcount);
+				assert(0);
+			}
 
 			switch (inline_env->method->class->cptags[i]) {
 			case CONSTANT_Integer:
@@ -460,7 +480,9 @@ SHOWOPCODE(DEBUG4)
 			case CONSTANT_String:
 				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
 				break;
-			default: panic("Invalid constant type to push");
+			default:
+				log_text("Invalid constant type to push");
+				assert(0);
 			}
 			break;
 
@@ -653,7 +675,9 @@ SHOWOPCODE(DEBUG4)
 			case 11:
 				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR, currentline);
 				break;
-			default: panic("Invalid array-type to create");
+			default:
+				log_text("Invalid array-type to create");
+				assert(0);
 			}
 			OP(ICMD_CHECKEXCEPTION);
 			break;
@@ -723,7 +747,9 @@ SHOWOPCODE(DEBUG4)
 					OP2AT(opcode, v, c->vftbl, NULL, currentline);
 
 				} else {
-					OP2AT(opcode, v, cr, PATCHER_builtin_multianewarray, currentline);
+					OP2AT(opcode, v, cr,
+						  (voidptr) (ptrint) PATCHER_builtin_multianewarray,
+						  currentline);
 				}
 #else
 /*   				vftbl *arrayvftbl = */
@@ -853,21 +879,25 @@ SHOWOPCODE(DEBUG4)
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 8 > inline_env->method->jcodelength)
-					panic("Unexpected end of bytecode");
+
+				if (nextp + 8 > inline_env->method->jcodelength) {
+					log_text("Unexpected end of bytecode");
+					assert(0);
+				}
+
 				if (!useinlining) {
 					tablep = (s4 *) (inline_env->method->jcode + nextp);
 
 				} else {
-					num = code_get_u4(nextp + 4,inline_env->method);
+					num = code_get_u4(nextp + 4, inline_env->method);
 					tablep = DMNEW(s4, num * 2 + 2);
 				}
 
-				OP2A(opcode, 0, tablep,currentline);
+				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
-				j =  p + code_get_s4(nextp,inline_env->method);
+				j =  p + code_get_s4(nextp, inline_env->method);
 				if (useinlining) 
 					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
@@ -878,18 +908,21 @@ SHOWOPCODE(DEBUG4)
 
 				/* number of pairs */
 
-				num = code_get_u4(nextp,inline_env->method);
+				num = code_get_u4(nextp, inline_env->method);
 				*tablep = num;
 				tablep++;
 				nextp += 4;
 
-				if (nextp + 8*(num) > inline_env->method->jcodelength)
-					panic("Unexpected end of bytecode");
+				if (nextp + 8 * num > inline_env->method->jcodelength) {
+					/* XXX TODO VerifyError */
+					log_text("Unexpected end of bytecode");
+					assert(0);
+				}
 
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = code_get_s4(nextp,inline_env->method);
+					j = code_get_s4(nextp, inline_env->method);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -925,8 +958,12 @@ SHOWOPCODE(DEBUG4)
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 12 > inline_env->method->jcodelength)
-					panic("Unexpected end of bytecode");
+				if (nextp + 12 > inline_env->method->jcodelength) {
+					/* XXX TODO VerifyError */
+					log_text("Unexpected end of bytecode");
+					assert(0);
+				}
+
 				if (!useinlining) {
 					tablep = (s4 *) (inline_env->method->jcode + nextp);
 
@@ -935,11 +972,11 @@ SHOWOPCODE(DEBUG4)
 					tablep = DMNEW(s4, num + 1 + 3);
 				}
 
-				OP2A(opcode, 0, tablep,currentline);
+				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
-				j = p + code_get_s4(nextp,inline_env->method);
+				j = p + code_get_s4(nextp, inline_env->method);
 				if (useinlining)
 					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
@@ -950,24 +987,31 @@ SHOWOPCODE(DEBUG4)
 
 				/* lower bound */
 
-				j = code_get_s4(nextp,inline_env->method);
+				j = code_get_s4(nextp, inline_env->method);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 
 				/* upper bound */
 
-				num = code_get_s4(nextp,inline_env->method);
+				num = code_get_s4(nextp, inline_env->method);
 				*tablep = num;   /* restore for little endian */
 				tablep++;
 				nextp += 4;
 
 				num -= j;  /* difference of upper - lower */
-				if (num < 0)
-					panic("invalid TABLESWITCH: upper bound < lower bound");
 
-				if (nextp + 4*(num+1) > inline_env->method->jcodelength)
-					panic("Unexpected end of bytecode");
+				if (num < 0) {
+					/* XXX TODO VerifyError */
+					log_text("invalid TABLESWITCH: upper bound < lower bound");
+					assert(0);
+				}
+
+				if (nextp + 4 * (num + 1) > inline_env->method->jcodelength) {
+					/* XXX TODO VerifyError */
+					log_text("Unexpected end of bytecode");
+					assert(0);
+				}
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp,inline_env->method);
@@ -1592,8 +1636,10 @@ if (DEBUG4==true) {
 		case 253:
 		case 254:
 		case 255:
-			printf("Illegal opcode %d at instr %d\n", opcode, ipc);
-			panic("Illegal opcode encountered");
+			*exceptionptr =
+				new_internalerror("Illegal opcode %d at instr %d\n",
+								  opcode, ipc);
+			return NULL;
 			break;
 
 		default:
@@ -1603,11 +1649,12 @@ if (DEBUG4==true) {
 		} /* end switch */
 
 		/* If WIDE was used correctly, iswide should have been reset by now. */
-		if (iswide && opcode != JAVA_WIDE)
-			panic("Illegal instruction: WIDE before incompatible opcode");
-		
-		/* INLINING */
-		  
+		if (iswide && opcode != JAVA_WIDE) {
+			log_text("Illegal instruction: WIDE before incompatible opcode");
+			assert(0);
+		}
+
+#if defined(USE_INLINING)
 		/* if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { */ /* end of an inlined method */
 		if (inline_env->isinlinedmethod && (nextp >= inline_env->method->jcodelength) ) { /* end of an inlined method */
 			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
@@ -1628,14 +1675,17 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 			label_index=inlinfo->label_index;
 			firstlocal = inlinfo->firstlocal;
 		}
+#endif /* defined(USE_INLINING) */
 
 	} /* end for */
 
 
 	if (p != m->jcodelength) {
 		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
-		panic("Command-sequence crosses code-boundary");
+		log_text("Command-sequence crosses code-boundary");
+		assert(0);
 	}
+
 	if (!blockend) {
 		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
 		return NULL;
@@ -1684,11 +1734,15 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
   		for (p = 0; p < inline_env->cumjcodelength; p++) { 
 		/* for (p = 0; p < m->jcodelength; p++) { */
 			if (m->basicblockindex[p] & 1) {
-				/* check if this block starts at the beginning of an instruction */
+				/* Check if this block starts at the beginning of an          */
+				/* instruction.                                               */
+
 				if (!instructionstart[p]) {
-					printf("Basic Block beginn: %d\n",p);
-					panic("Branch into middle of instruction");
+					/* XXX TODO throw exception? which one? */
+					dolog("Branch into middle of instruction: Basic Block beginn: %d\n", p);
+					assert(0);
 				}
+
 				/* allocate the block */
 				bptr->iinstr = m->instructions + (m->basicblockindex[p] >> 1);
 				bptr->debug_nr = m->c_debug_nr++;
@@ -1739,8 +1793,11 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
 	    }
 	}
-	
-	if (useinlining) inlining_cleanup(inline_env);
+
+#if defined(USE_INLINING)	
+	if (useinlining)
+		inlining_cleanup(inline_env);
+#endif
 
 	/* just return methodinfo* to signal everything was ok */
 
