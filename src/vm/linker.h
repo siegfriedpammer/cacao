@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: linker.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: linker.h 2501 2005-05-23 08:19:53Z twisti $
 */
 
 
@@ -162,9 +162,6 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 bool linker_init(void);
 classinfo *link_class(classinfo *c);
-
-/* debug print arraydescriptor */
-void print_arraydescriptor(FILE *file, arraydescriptor *desc);
 
 #endif /* _LINKER_H */
 

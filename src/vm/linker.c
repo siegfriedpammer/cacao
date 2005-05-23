@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: linker.c 2501 2005-05-23 08:19:53Z twisti $
 
 */
 
@@ -188,8 +188,11 @@ bool linker_init(void)
     pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
     pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
     pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
-	if (!classcache_store(NULL, pseudo_class_Arraystub))
-		panic("could not cache pseudo_class_Arraystub");
+
+	if (!classcache_store(NULL, pseudo_class_Arraystub)) {
+		log_text("could not cache pseudo_class_Arraystub");
+		assert(0);
+	}
 
     if (!link_class(pseudo_class_Arraystub))
 		return false;
@@ -199,8 +202,11 @@ bool linker_init(void)
 	pseudo_class_Null = class_create_classinfo(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super.cls = class_java_lang_Object;
-	if (!classcache_store(NULL, pseudo_class_Null))
-		panic("could not cache pseudo_class_Null");
+
+	if (!classcache_store(NULL, pseudo_class_Null)) {
+		log_text("could not cache pseudo_class_Null");
+		assert(0);
+	}
 
 	if (!link_class(pseudo_class_Null))
 		return false;
@@ -211,8 +217,11 @@ bool linker_init(void)
 	pseudo_class_New->loaded = true;
 	pseudo_class_New->linked = true; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
-	if (!classcache_store(NULL,pseudo_class_New))
-		panic("could not cache pseudo_class_New");
+
+	if (!classcache_store(NULL, pseudo_class_New)) {
+		log_text("could not cache pseudo_class_New");
+		assert(0);
+	}
 
 	/* create classes representing primitive types */
 
@@ -452,7 +461,8 @@ static classinfo *link_class_intern(classinfo *c)
 
 		if (super->flags & ACC_INTERFACE) {
 			/* java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class */
-			panic("Interface specified as super class");
+			log_text("Interface specified as super class");
+			assert(0);
 		}
 
 		/* Don't allow extending final classes */
@@ -808,14 +818,22 @@ static arraydescriptor *link_array(classinfo *c)
 		desc->dataoffset = OFFSET(java_objectarray, data);
 		
 		compvftbl = comp->vftbl;
-		if (!compvftbl)
-			panic("Component class has no vftbl");
+
+		if (!compvftbl) {
+			log_text("Component class has no vftbl");
+			assert(0);
+		}
+
 		desc->componentvftbl = compvftbl;
 		
 		if (compvftbl->arraydesc) {
 			desc->elementvftbl = compvftbl->arraydesc->elementvftbl;
-			if (compvftbl->arraydesc->dimension >= 255)
-				panic("Creating array of dimension >255");
+
+			if (compvftbl->arraydesc->dimension >= 255) {
+				log_text("Creating array of dimension >255");
+				assert(0);
+			}
+
 			desc->dimension = compvftbl->arraydesc->dimension + 1;
 			desc->elementtype = compvftbl->arraydesc->elementtype;
 
@@ -877,7 +895,8 @@ static arraydescriptor *link_array(classinfo *c)
 			break;
 
 		default:
-			panic("Invalid array class name");
+			log_text("Invalid array class name");
+			assert(0);
 		}
 		
 		desc->componentvftbl = NULL;
@@ -918,14 +937,9 @@ static void linker_compute_subclasses(classinfo *c)
 
 	classvalue = 0;
 
-	/* this is the java.lang.Object special case */
+	/* compute class values */
 
-	if (!class_java_lang_Object) {
-		linker_compute_class_values(c);
-
-	} else {
-		linker_compute_class_values(class_java_lang_Object);
-	}
+	linker_compute_class_values(class_java_lang_Object);
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
@@ -974,8 +988,10 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 	s4     i   = ic->index;
 	vftbl_t *v = c->vftbl;
 
-	if (i >= v->interfacetablelength)
-		panic ("Inernal error: interfacetable overflow");
+	if (i >= v->interfacetablelength) {
+		log_text("Inernal error: interfacetable overflow");
+		assert(0);
+	}
 
 	if (v->interfacetable[-i])
 		return;
@@ -1044,43 +1060,6 @@ static s4 class_highestinterface(classinfo *c)
 	}
 
 	return h;
-}
-
-
-/***************** Function: print_arraydescriptor ****************************
-
-	Debug helper for displaying an arraydescriptor
-	
-*******************************************************************************/
-
-void print_arraydescriptor(FILE *file, arraydescriptor *desc)
-{
-	if (!desc) {
-		fprintf(file, "<NULL>");
-		return;
-	}
-
-	fprintf(file, "{");
-	if (desc->componentvftbl) {
-		if (desc->componentvftbl->class)
-			utf_fprint(file, desc->componentvftbl->class->name);
-		else
-			fprintf(file, "<no classinfo>");
-	}
-	else
-		fprintf(file, "0");
-		
-	fprintf(file, ",");
-	if (desc->elementvftbl) {
-		if (desc->elementvftbl->class)
-			utf_fprint(file, desc->elementvftbl->class->name);
-		else
-			fprintf(file, "<no classinfo>");
-	}
-	else
-		fprintf(file, "0");
-	fprintf(file, ",%d,%d,%d,%d}", desc->arraytype, desc->dimension,
-			desc->dataoffset, desc->componentsize);
 }
 
 
