@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2482 2005-05-19 08:48:55Z jowenn $
+   $Id: loader.c 2502 2005-05-23 08:21:10Z twisti $
 
 */
 
@@ -1049,7 +1049,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 				!is_valid_utf((char *) (cb->pos + 1),
 							  (char *) (cb->pos + 1 + length))) {
 				dolog("Invalid UTF-8 string (constant pool index %d)",idx);
-				panic("Invalid UTF-8 string");
+				assert(0);
 			}
 			/* insert utf-string into the utf-symboltable */
 			cpinfos[idx] = utf_new_intern((char *) (cb->pos + 1), length);
@@ -1428,12 +1428,16 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 		return false;
 
 	if (opt_verify) {
-		if (!is_valid_name_utf(m->name))
-			panic("Method with invalid name");
+		if (!is_valid_name_utf(m->name)) {
+			log_text("Method with invalid name");
+			assert(0);
+		}
 
-		if (m->name->text[0] == '<'
-			&& m->name != utf_init && m->name != utf_clinit)
-			panic("Method with invalid special name");
+		if (m->name->text[0] == '<' &&
+			m->name != utf_init && m->name != utf_clinit) {
+			log_text("Method with invalid special name");
+			assert(0);
+		}
 	}
 	
 	if (!(m->flags & ACC_STATIC))
@@ -1481,8 +1485,10 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 
 			if (m->name == utf_init) {
 				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
-								ACC_NATIVE | ACC_ABSTRACT))
-					panic("Instance initialization method has invalid flags set");
+								ACC_NATIVE | ACC_ABSTRACT)) {
+					log_text("Instance initialization method has invalid flags set");
+					assert(0);
+				}
 			}
 		}
 	}
@@ -2125,7 +2131,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 ma, mi;
 	s4 dumpsize;
 	descriptor_pool *descpool;
-	char msg[MAXLOGTEXT];               /* maybe we get an exception */ /* XXX BUFFER OVERFLOW! */
 #if defined(STATISTICS)
 	u4 classrefsize;
 	u4 descsize;
@@ -2135,9 +2140,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	/* get the classbuffer's class */
+
 	c = cb->class;
 
 	/* maybe the class is already loaded */
+
 	if (c->loaded)
 		return c;
 
@@ -2155,19 +2162,23 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	/* output for debugging purposes */
+
 	if (loadverbose)
 		log_message_class("Loading class: ", c);
 	
 	/* mark start of dump memory area */
+
 	dumpsize = dump_size();
 
 	/* class is somewhat loaded */
+
 	c->loaded = true;
 
 	if (!check_classbuffer_size(cb, 4 + 2 + 2))
 		goto return_exception;
 
 	/* check signature */
+
 	if (suck_u4(cb) != MAGIC) {
 		*exceptionptr = new_classformaterror(c, "Bad magic number");
 
@@ -2175,6 +2186,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* check version */
+
 	mi = suck_u2(cb);
 	ma = suck_u2(cb);
 
@@ -2188,9 +2200,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* create a new descriptor pool */
+
 	descpool = descriptor_pool_new(c);
 	
 	/* load the constant pool */
+
 	if (!load_constantpool(cb,descpool))
 		goto return_exception;
 
@@ -2202,12 +2216,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	c->impldBy = NULL;
 
 	/* ACC flags */
+
 	if (!check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->flags = suck_u2(cb);
 
 	/* check ACC flags consistency */
+
 	if (c->flags & ACC_INTERFACE) {
 		if (!(c->flags & ACC_ABSTRACT)) {
 			/* We work around this because interfaces in JDK 1.1 are
@@ -2240,6 +2256,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 
 	/* this class */
+
 	i = suck_u2(cb);
 	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 		goto return_exception;
@@ -2248,8 +2265,16 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		/* we finally have a name for this class */
 		c->name = name;
 		class_set_packagename(c);
-	}
-	else if (name != c->name) {
+
+	} else if (name != c->name) {
+		char *msg;
+		s4    msglen;
+
+		msglen = utf_strlen(c->name) + strlen(" (wrong name: ") +
+			utf_strlen(name) + strlen(")") + strlen("0");
+
+		msg = MNEW(char, msglen);
+
 		utf_sprint(msg, c->name);
 		strcat(msg, " (wrong name: ");
 		utf_strcat(msg, name);
@@ -2258,16 +2283,20 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		*exceptionptr =
 			new_exception_message(string_java_lang_NoClassDefFoundError, msg);
 
+		MFREE(msg, char, msglen);
+
 		goto return_exception;
 	}
 	
 	/* retrieve superclass */
+
 	c->super.any = NULL;
 	if ((i = suck_u2(cb))) {
 		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
 			goto return_exception;
 
 		/* java.lang.Object may not have a super class. */
+
 		if (c->name == utf_java_lang_Object) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_ClassFormatError,
@@ -2277,6 +2306,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 
 		/* Interfaces must have java.lang.Object as super class. */
+
 		if ((c->flags & ACC_INTERFACE) &&
 			supername != utf_java_lang_Object) {
 			*exceptionptr =
@@ -2290,6 +2320,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		supername = NULL;
 
 		/* This is only allowed for java.lang.Object. */
+
 		if (c->name != utf_java_lang_Object) {
 			*exceptionptr = new_classformaterror(c, "Bad superclass index");
 
@@ -2298,6 +2329,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 			 
 	/* retrieve interfaces */
+
 	if (!check_classbuffer_size(cb, 2))
 		goto return_exception;
 
@@ -2750,9 +2782,11 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 			return &(c->fields[i]);					   			
     }
 
-	panic("Can not find field given in CONSTANT_Fieldref");
+	log_text("Can not find field given in CONSTANT_Fieldref");
+	assert(0);
 
 	/* keep compiler happy */
+
 	return NULL;
 }
 
@@ -2871,7 +2905,9 @@ methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
 		log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
 		log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
 		log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
-		panic("Method not found");
+
+		log_text("Method not found");
+		assert(0);
 	}
 
 	return mi;
@@ -3212,7 +3248,8 @@ void class_showconstanti(classinfo *c, int ii)
 			utf_display(e);
 			break;
 		default: 
-			panic("Invalid type of ConstantPool-Entry");
+			log_text("Invalid type of ConstantPool-Entry");
+			assert(0);
 		}
 	}
 	printf("\n");
@@ -3293,7 +3330,8 @@ void class_showconstantpool (classinfo *c)
 				utf_display (e);
 				break;
 			default: 
-				panic ("Invalid type of ConstantPool-Entry");
+				log_text("Invalid type of ConstantPool-Entry");
+				assert(0);
 			}
 		}
 
