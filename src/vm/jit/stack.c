@@ -29,11 +29,12 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2474 2005-05-13 14:02:17Z twisti $
+   $Id: stack.c 2496 2005-05-23 08:06:06Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -207,27 +208,31 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		STACKRESET;
 		deadcode = true;
 		/*printf("Block count :%d\n",b_count);*/
+
 		while (--b_count >= 0) {
 			if (bptr->flags == BBDELETED) {
 				/* do nothing */
 				/*log_text("BBDELETED");*/
-			}
-			else if (superblockend && (bptr->flags < BBREACHED))
+
+			} else if (superblockend && (bptr->flags < BBREACHED)) {
 				repeat = true;
-			else if (bptr->flags <= BBREACHED) {
-				if (superblockend)
+
+			} else if (bptr->flags <= BBREACHED) {
+				if (superblockend) {
 					stackdepth = bptr->indepth;
-				else if (bptr->flags < BBREACHED) {
+
+				} else if (bptr->flags < BBREACHED) {
 					COPYCURSTACK(copy);
 					bptr->instack = copy;
 					bptr->indepth = stackdepth;
-				}
-				else if (bptr->indepth != stackdepth) {
+
+				} else if (bptr->indepth != stackdepth) {
 					show_icmd_method(m, cd, rd);
 					printf("Block: %d, required depth: %d, current depth: %d\n", bptr->debug_nr, bptr->indepth, stackdepth);
-					panic("Stack depth mismatch");
-					
+					log_text("Stack depth mismatch");
+					assert(0);
 				}
+
 				curstack = bptr->instack;
 				deadcode = false;
 				superblockend = false;
@@ -235,6 +240,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				len = bptr->icount;
 				iptr = bptr->iinstr;
 				b_index = bptr - m->basicblocks;
+
 				while (--len >= 0)  {
 					opcode = iptr->opc;
 					 /* XXX TWISTI: why is this set to NULL here? */

@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2467 2005-05-13 09:05:00Z twisti $
+   $Id: codegen.h 2496 2005-05-23 08:06:06Z twisti $
 
 */
 
@@ -178,7 +178,12 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     if a and b are the same float-register, no code will be generated
 */
 
-#define M_FLTMOVE(reg,dreg) panic("M_FLTMOVE");
+#define M_FLTMOVE(reg,dreg) \
+    do { \
+        log_text("M_FLTMOVE"); \
+        assert(0); \
+    } while (0)
+
 
 #define M_LNGMEMMOVE(reg,dreg) \
     do { \

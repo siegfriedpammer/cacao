@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2446 2005-05-11 12:54:04Z twisti $
+   $Id: reg.inc 2496 2005-05-23 08:06:06Z twisti $
 
 */
 
@@ -1613,8 +1613,9 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					break;
 
 				default:
-					printf("ICMD %d at %d\n", iptr->opc, (s4) (iptr - m->instructions));
-					panic("Missing ICMD code during register allocation");
+					throw_cacao_exception_exit(string_java_lang_InternalError,
+											   "Unknown ICMD %d during register allocation",
+											   iptr->opc);
 				} /* switch */
 				iptr++;
 			} /* while instructions */

@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: codegen.c 2496 2005-05-23 08:06:06Z twisti $
 
 */
 
@@ -192,8 +192,9 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 
 	} else {
 		faultaddr += (long) ((instr << 16) >> 16);
-		fprintf(stderr, "faulting address: 0x%016lx\n", faultaddr);
-		panic("Stack overflow");
+
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "faulting address: 0x%016lx\n", faultaddr);
 	}
 }
 
