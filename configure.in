@@ -200,6 +200,19 @@ dnl Features
 
 dnl check arguments
 
+dnl check for garbage collector
+AC_ARG_ENABLE([gc], [AS_HELP_STRING(--disable-gc,disable garbage collector [[default=yes]])])
+
+AC_MSG_CHECKING(whether GC should be disabled)
+if test x"$disable_gc" = "xyes"; then
+	AC_MSG_RESULT(yes)
+	AM_CONDITIONAL([DISABLE_GC], [true])
+else
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([DISABLE_GC], [false])
+fi
+
+
 dnl check for statistics
 AC_ARG_ENABLE([statistics], [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])])
 
@@ -291,6 +304,20 @@ else
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([LSRA], 1, [use lsra])
 fi
+
+
+dnl check for inlining
+dnl AC_ARG_ENABLE([inlining], [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])])
+
+dnl AC_MSG_CHECKING(whether method inlining should be disabled)
+dnl if test x"$enable_inlining" = "xno"; then
+dnl	AC_MSG_RESULT(yes)
+dnl	AM_CONDITIONAL([USE_INLINING], [false])
+dnl else
+dnl	AC_MSG_RESULT(no)
+	AC_DEFINE([USE_INLINING], 1, [use method inlining])
+	AM_CONDITIONAL([USE_INLINING], [true])
+dnl fi
 
 
 dnl check for instruction scheduler
