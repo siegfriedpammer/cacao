@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: stack.h 2497 2005-05-23 08:06:46Z twisti $
 
 */
 
@@ -57,7 +57,31 @@
 /* SIGNALING ERRORS                                 */
 /*--------------------------------------------------*/
 
-#define TYPEPANIC  {panic("Stack type mismatch");}
+#define TYPE_VERIFYERROR(t) \
+    do { \
+        char *type; \
+        switch ((t)) { \
+        case TYPE_INT: \
+			type = "integer"; \
+			break; \
+		case TYPE_LNG: \
+			type = "long"; \
+			break; \
+		case TYPE_FLT: \
+			type = "float"; \
+			break; \
+		case TYPE_DBL: \
+			type = "double"; \
+			break; \
+		case TYPE_ADR: \
+			type = "object/array"; \
+			break; \
+		} \
+        *exceptionptr = new_verifyerror(m, \
+										"Expecting to find %s on stack", \
+										type); \
+        return NULL; \
+    } while (0)
 
 
 /*--------------------------------------------------*/
@@ -125,19 +149,45 @@
 /*--------------------------------------------------*/
 
 /* resetting to an empty operand stack */
-#define STACKRESET {curstack=0;stackdepth=0;}
+
+#define STACKRESET \
+    do { \
+        curstack = 0; \
+        stackdepth = 0; \
+    } while (0)
+
 
 /* set the output stack of the current instruction */
-#define SETDST      {iptr->dst=curstack;}
+
+#define SETDST    iptr->dst = curstack;
+
 
 /* The following macros do NOT check stackdepth, set stackdepth or iptr->dst */
-#define POP(s)      {if(s!=curstack->type){TYPEPANIC;}										\
-                     if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;\
-                     curstack=curstack->prev;}
-#define POPANY      {if(curstack->varkind==UNDEFVAR)curstack->varkind=TEMPVAR;	\
-                     curstack=curstack->prev;}
-#define COPY(s,d)   {(d)->flags=0;(d)->type=(s)->type;\
-                     (d)->varkind=(s)->varkind;(d)->varnum=(s)->varnum;}
+
+#define POP(s) \
+    do { \
+        if ((s) != curstack->type) { \
+            TYPE_VERIFYERROR((s)); \
+        } \
+        if (curstack->varkind == UNDEFVAR) \
+            curstack->varkind = TEMPVAR; \
+        curstack = curstack->prev; \
+    } while (0)
+
+#define POPANY \
+    do { \
+        if (curstack->varkind == UNDEFVAR) \
+            curstack->varkind = TEMPVAR; \
+        curstack = curstack->prev; \
+    } while (0)
+
+#define COPY(s,d) \
+    do { \
+        (d)->flags = 0; \
+        (d)->type = (s)->type; \
+        (d)->varkind = (s)->varkind; \
+        (d)->varnum = (s)->varnum; \
+    } while (0)
 
 
 /*--------------------------------------------------*/
@@ -289,11 +339,12 @@
             stackptr t = (b)->instack; \
 		    if ((b)->indepth != stackdepth) { \
 			    show_icmd_method(m, cd, rd); \
-                panic("Stack depth mismatch"); \
+                log_text("Stack depth mismatch"); \
+                assert(0); \
             } \
 		    while (s) { \
                 if (s->type != t->type) \
-				    TYPEPANIC; \
+				    TYPE_VERIFYERROR(t->type); \
 			    s = s->prev; \
                 t = t->prev; \
 			} \
@@ -301,7 +352,7 @@
     } while (0)
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
