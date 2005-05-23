@@ -28,15 +28,20 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2354 2005-04-22 14:50:12Z christian $
+## $Id: Makefile.am 2512 2005-05-23 10:21:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
 
-SUBDIRS = inline loop tools verify @ARCH_DIR@
+SUBDIRS = loop tools verify @ARCH_DIR@
 
 DIST_SUBDIRS = inline loop schedule tools verify alpha i386 mips powerpc x86_64
+
+if USE_INLINING
+INLINE_LIB = inline/libinline.la
+SUBDIRS += inline
+endif
 
 if USE_SCHEDULER
 SCHEDULE_LIB = schedule/libschedule.la
@@ -68,7 +73,7 @@ libjit_la_SOURCES = \
 	stacktrace.h
 
 libjit_la_LIBADD = \
-	inline/libinline.la \
+	$(INLINE_LIB) \
 	loop/libloop.la \
 	$(SCHEDULE_LIB) \
 	verify/libverify.la \
