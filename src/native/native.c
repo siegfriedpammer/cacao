@@ -30,31 +30,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2491 2005-05-21 14:58:28Z twisti $
+   $Id: native.c 2519 2005-05-23 12:04:09Z twisti $
 
 */
 
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <math.h>
-#include <string.h>
 #include <assert.h>
-#include <sys/time.h>
-#include <utime.h>
-
-/* Include files for IO functions */
-
-#include <fcntl.h>
-#include <dirent.h>
-#include <sys/types.h>
-#ifdef _OSF_SOURCE 
-#include <sys/mode.h>
-#endif
-#include <sys/stat.h>
 
 #include "config.h"
+#include "types.h"
 #include "cacao/cacao.h"
 #include "mm/memory.h"
 #include "native/jni.h"
@@ -66,11 +50,11 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/resolve.h"
 
 
 /* include table of native functions ******************************************/
