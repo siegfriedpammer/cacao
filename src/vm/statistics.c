@@ -26,11 +26,12 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: statistics.c 2503 2005-05-23 08:22:03Z twisti $
 
 */
 
 
+#include <string.h> 
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -38,7 +39,6 @@
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include <string.h> 
 
 
 /* global variables */
@@ -252,7 +252,7 @@ void jniinvokation() {
 	
 *******************************************************************************/
 
-s8 getcputime()
+s8 getcputime(void)
 {
 	struct rusage ru;
 	int sec, usec;
@@ -271,7 +271,7 @@ s8 getcputime()
 
 *******************************************************************************/
 
-void loadingtime_start()
+void loadingtime_start(void)
 {
 	loadingtime_recursion++;
 
@@ -286,7 +286,7 @@ void loadingtime_start()
 
 *******************************************************************************/
 
-void loadingtime_stop()
+void loadingtime_stop(void)
 {
 	if (loadingtime_recursion == 1) {
 		loadingstoptime = getcputime();
@@ -303,7 +303,7 @@ void loadingtime_stop()
 
 *******************************************************************************/
 
-void compilingtime_start()
+void compilingtime_start(void)
 {
 	compilingtime_recursion++;
 
@@ -318,7 +318,7 @@ void compilingtime_start()
 
 *******************************************************************************/
 
-void compilingtime_stop()
+void compilingtime_stop(void)
 {
 	if (compilingtime_recursion == 1) {
 		compilingstoptime = getcputime();
@@ -335,43 +335,41 @@ void compilingtime_stop()
 
 *******************************************************************************/
 
-void print_times()
+void print_times(void)
 {
-	s8 totaltime = getcputime();
-	s8 runtime = totaltime - loadingtime - compilingtime;
-	char logtext[MAXLOGTEXT];
+	s8 totaltime;
+	s8 runtime;
+
+	totaltime = getcputime();
+	runtime = totaltime - loadingtime - compilingtime;
 
 #if defined(__I386__) || defined(__POWERPC__)
-	sprintf(logtext, "Time for loading classes: %lld secs, %lld millis",
+	dolog("Time for loading classes: %lld secs, %lld millis",
 #else
-	sprintf(logtext, "Time for loading classes: %ld secs, %ld millis",
+	dolog("Time for loading classes: %ld secs, %ld millis",
 #endif
-			loadingtime / 1000000, (loadingtime % 1000000) / 1000);
-	log_text(logtext);
+		  loadingtime / 1000000, (loadingtime % 1000000) / 1000);
 
 #if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Time for compiling code:  %lld secs, %lld millis",
+	dolog("Time for compiling code:  %lld secs, %lld millis",
 #else
-	sprintf(logtext, "Time for compiling code:  %ld secs, %ld millis",
+	dolog("Time for compiling code:  %ld secs, %ld millis",
 #endif
-			compilingtime / 1000000, (compilingtime % 1000000) / 1000);
-	log_text(logtext);
+		  compilingtime / 1000000, (compilingtime % 1000000) / 1000);
 
 #if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Time for running program: %lld secs, %lld millis",
+	dolog("Time for running program: %lld secs, %lld millis",
 #else
-	sprintf(logtext, "Time for running program: %ld secs, %ld millis",
+	dolog("Time for running program: %ld secs, %ld millis",
 #endif
-			runtime / 1000000, (runtime % 1000000) / 1000);
-	log_text(logtext);
+		  runtime / 1000000, (runtime % 1000000) / 1000);
 
 #if defined(__I386__) || defined(__POWERPC__) 
-	sprintf(logtext, "Total time: %lld secs, %lld millis",
+	dolog("Total time: %lld secs, %lld millis",
 #else
-	sprintf(logtext, "Total time: %ld secs, %ld millis",
+	dolog("Total time: %ld secs, %ld millis",
 #endif
-			totaltime / 1000000, (totaltime % 1000000) / 1000);
-	log_text(logtext);
+		  totaltime / 1000000, (totaltime % 1000000) / 1000);
 }
 
 
@@ -381,215 +379,156 @@ void print_times()
 
 *******************************************************************************/
 
-void print_stats()
+void print_stats(void)
 {
-	char logtext[MAXLOGTEXT];
+	dolog("Number of JitCompiler Calls: %d", count_jit_calls);
+	dolog("Number of compiled Methods: %d", count_methods);
 
-	sprintf(logtext, "Number of JitCompiler Calls: %d", count_jit_calls);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled Methods: %d", count_methods);
-	log_text(logtext);
-        if (opt_rt) {
-	  sprintf(logtext, "Number of Methods marked Used: %d", count_methods_marked_used);
-	  log_text(logtext);
-	  }
-	sprintf(logtext, "Number of max basic blocks per method: %d", count_max_basic_blocks);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled basic blocks: %d", count_basic_blocks);
-	log_text(logtext);
-	sprintf(logtext, "Number of max JavaVM-Instructions per method: %d", count_max_javainstr);
-	log_text(logtext);
-	sprintf(logtext, "Number of compiled JavaVM-Instructions: %d", count_javainstr);
-	log_text(logtext);
-	sprintf(logtext, "Size of compiled JavaVM-Instructions:   %d(%d)", count_javacodesize,
-			count_javacodesize - count_methods * 18);
-	log_text(logtext);
-	sprintf(logtext, "Size of compiled Exception Tables:      %d", count_javaexcsize);
-	log_text(logtext);
-	sprintf(logtext, "Number of Machine-Instructions: %d", count_code_len >> 2);
-	log_text(logtext);
-	sprintf(logtext, "Number of Spills (write to memory): %d", count_spills);
-	log_text(logtext);
-	sprintf(logtext, "Number of Spills (read from memory): %d", count_spills_read);
-	log_text(logtext);
-	sprintf(logtext, "Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
-	log_text(logtext);
-	sprintf(logtext, "Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
-	log_text(logtext);
-	sprintf(logtext, "Number of Const    Pseudocommands: %6d (zero:%5d)", count_pcmd_load, count_pcmd_zero);
-	log_text(logtext);
-	sprintf(logtext, "Number of ConstAlu Pseudocommands: %6d (cmp: %5d, store:%5d)", count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
-	log_text(logtext);
-	sprintf(logtext, "Number of Move     Pseudocommands: %6d", count_pcmd_move);
-	log_text(logtext);
-	sprintf(logtext, "Number of Load     Pseudocommands: %6d", count_load_instruction);
-	log_text(logtext);
-	sprintf(logtext, "Number of Store    Pseudocommands: %6d (combined: %5d)", count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
-	log_text(logtext);
-	sprintf(logtext, "Number of OP       Pseudocommands: %6d", count_pcmd_op);
-	log_text(logtext);
-	sprintf(logtext, "Number of DUP      Pseudocommands: %6d", count_dup_instruction);
-	log_text(logtext);
-	sprintf(logtext, "Number of Mem      Pseudocommands: %6d", count_pcmd_mem);
-	log_text(logtext);
-	sprintf(logtext, "Number of Method   Pseudocommands: %6d", count_pcmd_met);
-	log_text(logtext);
-	sprintf(logtext, "Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
-			count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
-	log_text(logtext);
-	sprintf(logtext, "Number of Table    Pseudocommands: %6d", count_pcmd_table);
-	log_text(logtext);
-	sprintf(logtext, "Number of Useful   Pseudocommands: %6d", count_pcmd_table +
-			count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
-	log_text(logtext);
-	sprintf(logtext, "Number of Null Pointer Checks:     %6d", count_check_null);
-	log_text(logtext);
-	sprintf(logtext, "Number of Array Bound Checks:      %6d", count_check_bound);
-	log_text(logtext);
-	sprintf(logtext, "Number of Try-Blocks: %d", count_tryblocks);
-	log_text(logtext);
-	sprintf(logtext, "Maximal count of stack elements:   %d", count_max_new_stack);
-	log_text(logtext);
-	sprintf(logtext, "Upper bound of max stack elements: %d", count_upper_bound_new_stack);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of stack sizes at block boundary");
-	log_text(logtext);
-	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9  >=10");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_block_stack[0],
-			count_block_stack[1], count_block_stack[2], count_block_stack[3], count_block_stack[4],
-			count_block_stack[5], count_block_stack[6], count_block_stack[7], count_block_stack[8],
-			count_block_stack[9], count_block_stack[10]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store stack depth");
-	log_text(logtext);
-	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9  >=10");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_depth[0],
-			count_store_depth[1], count_store_depth[2], count_store_depth[3], count_store_depth[4],
-			count_store_depth[5], count_store_depth[6], count_store_depth[7], count_store_depth[8],
-			count_store_depth[9], count_store_depth[10]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store creator chains first part");
-	log_text(logtext);
-	sprintf(logtext, "     0     1     2     3     4     5     6     7     8     9");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_length[0],
-			count_store_length[1], count_store_length[2], count_store_length[3], count_store_length[4],
-			count_store_length[5], count_store_length[6], count_store_length[7], count_store_length[8],
-			count_store_length[9]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of store creator chains second part");
-	log_text(logtext);
-	sprintf(logtext, "    10    11    12    13    14    15    16    17    18    19  >=20");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_store_length[10],
-			count_store_length[11], count_store_length[12], count_store_length[13], count_store_length[14],
-			count_store_length[15], count_store_length[16], count_store_length[17], count_store_length[18],
-			count_store_length[19], count_store_length[20]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of analysis iterations");
-	log_text(logtext);
-	sprintf(logtext, "     1     2     3     4   >=5");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d", count_analyse_iterations[0], count_analyse_iterations[1],
-			count_analyse_iterations[2], count_analyse_iterations[3], count_analyse_iterations[4]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of basic blocks per method");
-	log_text(logtext);
-	sprintf(logtext, "   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%6d%6d%6d%6d", count_method_bb_distribution[0],
-			count_method_bb_distribution[1], count_method_bb_distribution[2], count_method_bb_distribution[3],
-			count_method_bb_distribution[4], count_method_bb_distribution[5], count_method_bb_distribution[6],
-			count_method_bb_distribution[7], count_method_bb_distribution[8]);
-	log_text(logtext);
-	sprintf(logtext, "Distribution of basic block sizes");
-	log_text(logtext);
-	sprintf(logtext, "     0     1     2     3     4    5    6    7    8    9  <13  <15  <17  <19  <21  <26  <31  >30");
-	log_text(logtext);
-	sprintf(logtext, "%6d%6d%6d%6d%6d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
-			count_block_size_distribution[0], count_block_size_distribution[1], count_block_size_distribution[2],
-			count_block_size_distribution[3], count_block_size_distribution[4], count_block_size_distribution[5],
-			count_block_size_distribution[6], count_block_size_distribution[7], count_block_size_distribution[8],
-			count_block_size_distribution[9], count_block_size_distribution[10], count_block_size_distribution[11],
-			count_block_size_distribution[12], count_block_size_distribution[13], count_block_size_distribution[14],
-			count_block_size_distribution[15], count_block_size_distribution[16], count_block_size_distribution[17]);
-	log_text(logtext);
-	sprintf(logtext, "Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Class Infos (Kb):%10.3f", (float) (count_class_infos) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Const Pool (Kb): %10.3f", (float) (count_const_pool_len + count_utf_len) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Class refs (Kb): %10.3f", (float) (count_classref_len) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of descriptors(Kb): %10.3f", (float) (count_parsed_desc_len) / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Size of VMCode (Kb):     %10.3f(%d)", (float) count_vmcode_len / 1024,
-			count_vmcode_len - 18 * count_all_methods);
-	log_text(logtext);
-	sprintf(logtext, "Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
-	log_text(logtext);
-	sprintf(logtext, "Number of class loads:   %d", count_class_loads);
-	log_text(logtext);
-	sprintf(logtext, "Number of class inits:   %d", count_class_inits);
-	log_text(logtext);
-	sprintf(logtext, "Number of loaded Methods: %d\n", count_all_methods);
-	log_text(logtext);
+	if (opt_rt)
+		dolog("Number of Methods marked Used: %d", count_methods_marked_used);
 
-	sprintf(logtext, "Calls of utf_new: %22d", count_utf_new);
-	log_text(logtext);
-	sprintf(logtext, "Calls of utf_new (element found): %6d\n", count_utf_new_found);
-	log_text(logtext);
+	dolog("Number of max basic blocks per method: %d", count_max_basic_blocks);
+	dolog("Number of compiled basic blocks: %d", count_basic_blocks);
+	dolog("Number of max JavaVM-Instructions per method: %d",
+		  count_max_javainstr);
+	dolog("Number of compiled JavaVM-Instructions: %d", count_javainstr);
+	dolog("Size of compiled JavaVM-Instructions:   %d(%d)",
+		  count_javacodesize, count_javacodesize - count_methods * 18);
+	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
+	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
+	dolog("Number of Spills (write to memory): %d", count_spills);
+	dolog("Number of Spills (read from memory): %d", count_spills_read);
+	dolog("Number of Activ    Pseudocommands: %6d", count_pcmd_activ);
+	dolog("Number of Drop     Pseudocommands: %6d", count_pcmd_drop);
+	dolog("Number of Const    Pseudocommands: %6d (zero:%5d)",
+		  count_pcmd_load, count_pcmd_zero);
+	dolog("Number of ConstAlu Pseudocommands: %6d (cmp: %5d, store:%5d)",
+		  count_pcmd_const_alu, count_pcmd_const_bra, count_pcmd_const_store);
+	dolog("Number of Move     Pseudocommands: %6d", count_pcmd_move);
+	dolog("Number of Load     Pseudocommands: %6d", count_load_instruction);
+	dolog("Number of Store    Pseudocommands: %6d (combined: %5d)",
+		  count_pcmd_store, count_pcmd_store - count_pcmd_store_comb);
+	dolog("Number of OP       Pseudocommands: %6d", count_pcmd_op);
+	dolog("Number of DUP      Pseudocommands: %6d", count_dup_instruction);
+	dolog("Number of Mem      Pseudocommands: %6d", count_pcmd_mem);
+	dolog("Number of Method   Pseudocommands: %6d", count_pcmd_met);
+	dolog("Number of Branch   Pseudocommands: %6d (rets:%5d, Xrets: %5d)",
+		  count_pcmd_bra, count_pcmd_return, count_pcmd_returnx);
+	dolog("Number of Table    Pseudocommands: %6d", count_pcmd_table);
+	dolog("Number of Useful   Pseudocommands: %6d", count_pcmd_table +
+		  count_pcmd_bra + count_pcmd_load + count_pcmd_mem + count_pcmd_op);
+	dolog("Number of Null Pointer Checks:     %6d", count_check_null);
+	dolog("Number of Array Bound Checks:      %6d", count_check_bound);
+	dolog("Number of Try-Blocks: %d", count_tryblocks);
+	dolog("Maximal count of stack elements:   %d", count_max_new_stack);
+	dolog("Upper bound of max stack elements: %d", count_upper_bound_new_stack);
+	dolog("Distribution of stack sizes at block boundary");
+	dolog("     0     1     2     3     4     5     6     7     8     9  >=10");
+	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+		  count_block_stack[0], count_block_stack[1], count_block_stack[2],
+		  count_block_stack[3], count_block_stack[4], count_block_stack[5],
+		  count_block_stack[6], count_block_stack[7], count_block_stack[8],
+		  count_block_stack[9], count_block_stack[10]);
+	dolog("Distribution of store stack depth");
+	dolog("     0     1     2     3     4     5     6     7     8     9  >=10");
+	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+		  count_store_depth[0], count_store_depth[1], count_store_depth[2],
+		  count_store_depth[3], count_store_depth[4], count_store_depth[5],
+		  count_store_depth[6], count_store_depth[7], count_store_depth[8],
+		  count_store_depth[9], count_store_depth[10]);
+	dolog("Distribution of store creator chains first part");
+	dolog("     0     1     2     3     4     5     6     7     8     9");
+	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+		  count_store_length[0], count_store_length[1], count_store_length[2],
+		  count_store_length[3], count_store_length[4], count_store_length[5],
+		  count_store_length[6], count_store_length[7], count_store_length[8],
+		  count_store_length[9]);
+	dolog("Distribution of store creator chains second part");
+	dolog("    10    11    12    13    14    15    16    17    18    19  >=20");
+	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+		  count_store_length[10], count_store_length[11],
+		  count_store_length[12], count_store_length[13],
+		  count_store_length[14], count_store_length[15],
+		  count_store_length[16], count_store_length[17],
+		  count_store_length[18], count_store_length[19],
+		  count_store_length[20]);
+	dolog("Distribution of analysis iterations");
+	dolog("     1     2     3     4   >=5");
+	dolog("%6d%6d%6d%6d%6d",
+		  count_analyse_iterations[0], count_analyse_iterations[1],
+		  count_analyse_iterations[2], count_analyse_iterations[3],
+		  count_analyse_iterations[4]);
+	dolog("Distribution of basic blocks per method");
+	dolog("   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
+	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+		  count_method_bb_distribution[0], count_method_bb_distribution[1],
+		  count_method_bb_distribution[2], count_method_bb_distribution[3],
+		  count_method_bb_distribution[4], count_method_bb_distribution[5],
+		  count_method_bb_distribution[6], count_method_bb_distribution[7],
+		  count_method_bb_distribution[8]);
+	dolog("Distribution of basic block sizes");
+	dolog("     0     1     2     3     4    5    6    7    8    9  <13  <15  <17  <19  <21  <26  <31  >30");
+	dolog("%6d%6d%6d%6d%6d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
+		  count_block_size_distribution[0], count_block_size_distribution[1],
+		  count_block_size_distribution[2], count_block_size_distribution[3],
+		  count_block_size_distribution[4], count_block_size_distribution[5],
+		  count_block_size_distribution[6], count_block_size_distribution[7],
+		  count_block_size_distribution[8], count_block_size_distribution[9],
+		  count_block_size_distribution[10], count_block_size_distribution[11],
+		  count_block_size_distribution[12], count_block_size_distribution[13],
+		  count_block_size_distribution[14], count_block_size_distribution[15],
+		  count_block_size_distribution[16], count_block_size_distribution[17]);
+	dolog("Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
+	dolog("Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
+	dolog("Size of Class Infos (Kb):%10.3f", (float) count_class_infos / 1024);
+	dolog("Size of Const Pool (Kb): %10.3f",
+		  (float) (count_const_pool_len + count_utf_len) / 1024);
+	dolog("Size of Class refs (Kb): %10.3f", (float) count_classref_len / 1024);
+	dolog("Size of descriptors(Kb): %10.3f",
+		  (float) count_parsed_desc_len / 1024);
+	dolog("Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
+	dolog("Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
+	dolog("Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
+	dolog("Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
+	dolog("Size of VMCode (Kb):     %10.3f(%d)",
+		  (float) count_vmcode_len / 1024,
+		  count_vmcode_len - 18 * count_all_methods);
+	dolog("Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
+	dolog("Number of class loads:   %d", count_class_loads);
+	dolog("Number of class inits:   %d", count_class_inits);
+	dolog("Number of loaded Methods: %d\n", count_all_methods);
+
+	dolog("Calls of utf_new: %22d", count_utf_new);
+	dolog("Calls of utf_new (element found): %6d\n", count_utf_new_found);
 
 
 	/* LSRA statistics ********************************************************/
-	sprintf(logtext, "Moves reg -> reg:     %6d",count_mov_reg_reg );
-	log_text(logtext);
-	sprintf(logtext, "Moves mem -> reg:     %6d",count_mov_mem_reg );
-	log_text(logtext);
-	sprintf(logtext, "Moves reg -> mem:     %6d",count_mov_reg_mem );
-	log_text(logtext);
-	sprintf(logtext, "Moves mem -> mem:     %6d",count_mov_mem_mem );
-	log_text(logtext);
 
-	sprintf(logtext, "Methods allocated by LSRA:         %6d", count_methods_allocated_by_lsra);
-	log_text(logtext);
-	sprintf(logtext, "Conflicts between local Variables: %6d", count_locals_conflicts);
-	log_text(logtext);
-	sprintf(logtext, "Local Variables held in Memory:    %6d", count_locals_spilled);
-	log_text(logtext);
-	sprintf(logtext, "Local Variables held in Registers: %6d", count_locals_register);
-	log_text(logtext);
-	sprintf(logtext, "Stackslots held in Memory:         %6d", count_ss_spilled);
-	log_text(logtext);
-	sprintf(logtext, "Stackslots held in Registers:      %6d",count_ss_register );
-	log_text(logtext);
-	sprintf(logtext, "Memory moves at BB Boundaries:     %6d",count_mem_move_bb );
-	log_text(logtext);
-	sprintf(logtext, "Number of interface slots:         %6d\n",count_interface_size );
-	log_text(logtext);
-	sprintf(logtext, "Number of Argument stack slots in register:  %6d",count_argument_reg_ss );
-	log_text(logtext);
-	sprintf(logtext, "Number of Argument stack slots in memory:    %6d\n",count_argument_mem_ss );
-	log_text(logtext);
-	sprintf(logtext, "Number of Methods kept in registers:         %6d\n",count_method_in_register );
-	log_text(logtext);
+	dolog("Moves reg -> reg:     %6d", count_mov_reg_reg);
+	dolog("Moves mem -> reg:     %6d", count_mov_mem_reg);
+	dolog("Moves reg -> mem:     %6d", count_mov_reg_mem);
+	dolog("Moves mem -> mem:     %6d", count_mov_mem_mem);
+
+	dolog("Methods allocated by LSRA:         %6d",
+		  count_methods_allocated_by_lsra);
+	dolog("Conflicts between local Variables: %6d", count_locals_conflicts);
+	dolog("Local Variables held in Memory:    %6d", count_locals_spilled);
+	dolog("Local Variables held in Registers: %6d", count_locals_register);
+	dolog("Stackslots held in Memory:         %6d", count_ss_spilled);
+	dolog("Stackslots held in Registers:      %6d", count_ss_register);
+	dolog("Memory moves at BB Boundaries:     %6d", count_mem_move_bb);
+	dolog("Number of interface slots:         %6d\n", count_interface_size);
+	dolog("Number of Argument stack slots in register:  %6d",
+		  count_argument_reg_ss);
+	dolog("Number of Argument stack slots in memory:    %6d\n",
+		  count_argument_mem_ss);
+	dolog("Number of Methods kept in registers:         %6d\n",
+		  count_method_in_register);
+
 		
 	/****if (useinlining)  ***/
 	 {
-		u2 ii;
+		u2 i;
 		char * in_not_reasons[IN_MAX] = {
         					"unqVirt    | ",
 					        "unqIntf    | ",
@@ -602,82 +541,100 @@ void print_stats()
 					        "notUnqIntf |"
 					        };
 
-		sprintf(logtext, "Number of Methods Inlined :                              \t%6d",count_in );
-		log_text(logtext);
-		if (inlinevirtuals) {
-		  sprintf(logtext, "Number of Unique Virtual Methods inlined:                \t%6d",count_in_uniqVirt);
-		  log_text(logtext);
-		  sprintf(logtext, "Number of Unique Implemented Interface Methods inlined:    %6d",count_in_uniqIntf);
-		  log_text(logtext);
-		  }
-		sprintf(logtext, "Number of Methods Inlines (total) rejected:              \t%6d",count_in_rejected);
-		log_text(logtext);
-		sprintf(logtext, "Number of Methods Inlined rejected for multiple reasons: \t%6d",count_in_rejected_mult);
-		log_text(logtext);
-		sprintf(logtext, "Number of Methods where Inline max depth hit:            \t%6d",count_in_maxDepth);
-		log_text(logtext);
-		sprintf(logtext, "Number of Methods Inlined rejected for max methods       \t%6d\n",count_in_maxMethods);
-		log_text(logtext);
-		sprintf(logtext, "Number of Methods calls fom Outsider Class not inlined:  \t%6d",count_in_outsiders);
-		log_text(logtext);
+		dolog("Number of Methods Inlined :                              \t%6d",
+			  count_in);
 
-		sprintf(logtext, "Number of Unique Virtual Methods not inlined:            \t%6d",count_in_uniqueVirt_not_inlined);
-		log_text(logtext);
-		sprintf(logtext, "Number of Unique Implemented Interface Methods not inlined:%6d",count_in_uniqueInterface_not_inlined);
-		log_text(logtext);
+		if (inlinevirtuals) {
+			dolog("Number of Unique Virtual Methods inlined:                \t%6d",
+				  count_in_uniqVirt);
+			dolog("Number of Unique Implemented Interface Methods inlined:    %6d",
+				  count_in_uniqIntf);
+		}
+
+		dolog("Number of Methods Inlines (total) rejected:              \t%6d",
+			  count_in_rejected);
+		dolog("Number of Methods Inlined rejected for multiple reasons: \t%6d",
+			  count_in_rejected_mult);
+		dolog("Number of Methods where Inline max depth hit:            \t%6d",
+			  count_in_maxDepth);
+		dolog("Number of Methods Inlined rejected for max methods       \t%6d\n",
+			  count_in_maxMethods);
+		dolog("Number of Methods calls fom Outsider Class not inlined:  \t%6d",
+			  count_in_outsiders);
+
+		dolog("Number of Unique Virtual Methods not inlined:            \t%6d",
+			  count_in_uniqueVirt_not_inlined);
+		dolog("Number of Unique Implemented Interface Methods not inlined:%6d\n",
+			  count_in_uniqueInterface_not_inlined);
+
 #define INLINEDETAILS
 #ifdef  INLINEDETAILS
-		sprintf(logtext, "\nDetails about Not Inlined Reasons :");
-		log_text(logtext);
-		for (ii=0;ii<512;ii++) {
-			if (count_in_not[ii]>0) {
-				char logtext2[MAXLOGTEXT]="\t";
+		dolog("Details about Not Inlined Reasons:");
+
+		for (i = 0; i < 512; i++) {
+			if (count_in_not[i] > 0) {
+				/* XXX Please reimplement me! I'm ugly and insecure! */
+				char logtext2[1024]="\t";
 
 				if (inlinevirtuals) {
-				  if (ii & IN_UNIQUEVIRT) strcat(logtext2, in_not_reasons[N_UNIQUEVIRT]); 
-				  if (ii & IN_UNIQUE_INTERFACE) strcat(logtext2,  in_not_reasons[N_UNIQUE_INTERFACE]);
-				  if (ii & IN_NOT_UNIQUE_VIRT) strcat(logtext2,  in_not_reasons[N_NOT_UNIQUE_VIRT]);
-				  if (ii & IN_NOT_UNIQUE_INTERFACE) strcat(logtext2,  in_not_reasons[N_NOT_UNIQUE_INTERFACE]);
-				  }
-				if (ii & IN_OUTSIDERS) strcat(logtext2,  in_not_reasons[N_OUTSIDERS]);
-				if (ii & IN_MAXDEPTH) strcat(logtext2,  in_not_reasons[N_MAXDEPTH]);
-				if (ii & IN_MAXCODE) strcat(logtext2,  in_not_reasons[N_MAXCODE]);
-				if (ii & IN_JCODELENGTH) strcat(logtext2,  in_not_reasons[N_JCODELENGTH]);
-				if (ii & IN_EXCEPTION) strcat(logtext2,  in_not_reasons[N_EXCEPTION]);
-				sprintf(logtext, "  [%X]=%6d    %s",ii, count_in_not[ii], logtext2 );
-				log_text(logtext);
+					if (i & IN_UNIQUEVIRT)
+						strcat(logtext2, in_not_reasons[N_UNIQUEVIRT]);
+
+					if (i & IN_UNIQUE_INTERFACE)
+						strcat(logtext2, in_not_reasons[N_UNIQUE_INTERFACE]);
+
+					if (i & IN_NOT_UNIQUE_VIRT)
+						strcat(logtext2, in_not_reasons[N_NOT_UNIQUE_VIRT]);
+
+					if (i & IN_NOT_UNIQUE_INTERFACE)
+						strcat(logtext2, in_not_reasons[N_NOT_UNIQUE_INTERFACE]);
 				}
-			}	
-#endif
+
+				if (i & IN_OUTSIDERS)
+					strcat(logtext2, in_not_reasons[N_OUTSIDERS]);
+
+				if (i & IN_MAXDEPTH)
+					strcat(logtext2, in_not_reasons[N_MAXDEPTH]);
+
+				if (i & IN_MAXCODE)
+					strcat(logtext2, in_not_reasons[N_MAXCODE]);
+
+				if (i & IN_JCODELENGTH)
+					strcat(logtext2, in_not_reasons[N_JCODELENGTH]);
+
+				if (i & IN_EXCEPTION)
+					strcat(logtext2, in_not_reasons[N_EXCEPTION]);
+
+				dolog("  [%X]=%6d    %s", i, count_in_not[i], logtext2);
+			}
 		}
+#endif
+	 }
 
 
 	 /* instruction scheduler statistics **************************************/
 
-	 sprintf(logtext, "Instruction scheduler statistics:");
-	 log_text(logtext);
-	 sprintf(logtext, "Number of basic blocks:       %7d", count_schedule_basic_blocks);
-	 log_text(logtext);
-	 sprintf(logtext, "Number of nodes:              %7d", count_schedule_nodes);
-	 log_text(logtext);
-	 sprintf(logtext, "Number of leaders nodes:      %7d", count_schedule_leaders);
-	 log_text(logtext);
-	 sprintf(logtext, "Number of max. leaders nodes: %7d", count_schedule_max_leaders);
-	 log_text(logtext);
-	 sprintf(logtext, "Length of critical path:      %7d\n", count_schedule_critical_path);
-	 log_text(logtext);
+#if defined(USE_SCHEDULER)
+	 dolog("Instruction scheduler statistics:");
+	 dolog("Number of basic blocks:       %7d", count_schedule_basic_blocks);
+	 dolog("Number of nodes:              %7d", count_schedule_nodes);
+	 dolog("Number of leaders nodes:      %7d", count_schedule_leaders);
+	 dolog("Number of max. leaders nodes: %7d", count_schedule_max_leaders);
+	 dolog("Length of critical path:      %7d\n", count_schedule_critical_path);
+#endif
 
 
-	/* call statistics */
-	log_text("Function call statistics:");
-	sprintf(logtext,"Number of native function invokations:           %ld", count_native_function_calls);
-	log_text(logtext);
-	sprintf(logtext,"Number of compiled function invokations:         %ld", count_compiled_function_calls);
-	log_text(logtext);
-	sprintf(logtext,"Number of jni->CallXMethod function invokations: %ld", count_jni_callXmethod_calls);
-	log_text(logtext);
-	sprintf(logtext,"Overall number of jni invokations:               %ld", count_jni_calls);
-	log_text(logtext);
+	/* call statistics ********************************************************/
+
+	 dolog("Function call statistics:");
+	 dolog("Number of native function invokations:           %ld",
+		   count_native_function_calls);
+	 dolog("Number of compiled function invokations:         %ld",
+		   count_compiled_function_calls);
+	 dolog("Number of jni->CallXMethod function invokations: %ld",
+		   count_jni_callXmethod_calls);
+	 dolog("Overall number of jni invokations:               %ld",
+		   count_jni_calls);
 }
 
 
