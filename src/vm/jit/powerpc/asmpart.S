@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2297 2005-04-13 12:50:07Z christian $
+   $Id: asmpart.S 2525 2005-05-24 10:28:20Z twisti $
 
 */
 
@@ -43,96 +43,6 @@
 #include "vm/jit/powerpc/offsets.h"
 #include "vm/jit/powerpc/asmoffsets.h"
 
-
-#define itmp1 r11
-#define itmp2 r12
-#define itmp3 r0
-
-#define xptr itmp1
-#define xpc itmp2
-
-#define pv r13
-#define mptr r12
-#define mptrn 12
-
-
-#if defined(__DARWIN__)
-
-/* Defines for darwin's old gnu assembler *************************************/
-
-/* internal defines ***********************************************************/
-
-#define asm_calljavafunction                  _asm_calljavafunction
-#define asm_calljavafunction_int              _asm_calljavafunction_int
-
-#define asm_calljavafunction2                 _asm_calljavafunction2
-#define asm_calljavafunction2int              _asm_calljavafunction2int
-#define asm_calljavafunction2long             _asm_calljavafunction2long
-#define asm_calljavafunction2float            _asm_calljavafunction2float
-#define asm_calljavafunction2double           _asm_calljavafunction2double
-
-#define asm_call_jit_compiler                 _asm_call_jit_compiler
-
-#define asm_handle_nat_exception              _asm_handle_nat_exception
-#define asm_handle_exception                  _asm_handle_exception
-#define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
-
-#define asm_check_clinit                      _asm_check_clinit
-
-#define asm_builtin_checkarraycast            _asm_builtin_checkarraycast
-#define asm_builtin_aastore                   _asm_builtin_aastore
-
-#define asm_builtin_monitorenter              _asm_builtin_monitorenter
-#define asm_builtin_monitorexit               _asm_builtin_monitorexit
-
-#define asm_builtin_idiv                      _asm_builtin_idiv
-#define asm_builtin_irem                      _asm_builtin_irem
-#define asm_builtin_ldiv                      _asm_builtin_ldiv
-#define asm_builtin_lrem                      _asm_builtin_lrem
-
-#define asm_cacheflush                        _asm_cacheflush
-#define asm_initialize_thread_stack           _asm_initialize_thread_stack
-#define asm_perform_threadswitch              _asm_perform_threadswitch
-#define asm_switchstackandcall                _asm_switchstackandcall
-#define asm_criticalsections                  _asm_criticalsections
-#define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
-
-
-/* external defines ***********************************************************/
-
-#define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
-#define builtin_canstore                      _builtin_canstore
-#define builtin_checkarraycast                _builtin_checkarraycast
-#define builtin_ldiv                          _builtin_ldiv
-#define builtin_lrem                          _builtin_lrem
-
-#if defined(USE_THREADS)
-#define builtin_monitorenter                  _builtin_monitorenter
-#define builtin_monitorexit                   _builtin_monitorexit
-#endif
-
-#define builtin_throw_exception               _builtin_throw_exception
-#define builtin_trace_exception               _builtin_trace_exception
-#define initialize_class                      _initialize_class
-#define link_class                            _link_class
-#define load_class_bootstrap                  _load_class_bootstrap
-#define jit_compile                           _jit_compile
-#define new_arithmeticexception               _new_arithmeticexception
-#define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
-#define new_arraystoreexception               _new_arraystoreexception
-#define new_classcastexception                _new_classcastexception
-#define new_nullpointerexception              _new_nullpointerexception
-
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-#if 0
-#define _exceptionptr                         __exceptionptr
-#endif
-
-_exceptionptr:
-	.globl		__exceptionptr
-#endif
-
-#endif /* defined(__DARWIN__) */
 
 #if defined(__DARWIN__)
 
@@ -172,6 +82,223 @@ _exceptionptr:
 #endif /* defined(__DARWIN__) */
 
 
+/* register defines ***********************************************************/
+
+#define sp    r1
+
+#define a0    r3
+#define a1    r4
+#define a2    r5
+#define a3    r6
+#define a4    r7
+#define a5    r8
+#define a6    r9
+#define a7    r10
+
+#define pv    r13
+
+#define s0    r14
+#define s1    r15
+
+#define t0    r16
+#define t1    r17
+#define t2    r18
+#define t3    r19
+#define t4    r20
+#define t5    r21
+#define t6    r22
+#define t7    r23
+
+#define s2    r24
+#define s3    r25
+#define s4    r26
+#define s5    r27
+#define s6    r28
+#define s7    r29
+#define s8    r30
+#define s9    r31
+
+#define v0    a0
+#define v1    a1
+
+#define itmp1 r11
+#define itmp2 r12
+#define itmp3 r0
+
+#define xptr  itmp1
+#define xpc   itmp2
+
+#define mptr  r12
+#define mptrn 12
+
+
+#define fa0   fr1
+#define fa1   fr2
+#define fa2   fr3
+#define fa3   fr4
+#define fa4   fr5
+#define fa5   fr6
+#define fa6   fr7
+
+#define fa7   fr8
+#define fa8   fr9
+#define fa9   fr10
+#define fa10  fr11
+#define fa11  fr12
+#define fa12  fr13
+
+#define fs0   fr14
+#define fs1   fr15
+
+#define ft0   fr18
+#define ft1   fr19
+#define ft2   fr20
+#define ft3   fr21
+#define ft4   fr22
+#define ft5   fr23
+
+#define fs2   fr24
+#define fs3   fr25
+#define fs4   fr26
+#define fs5   fr27
+#define fs6   fr28
+#define fs7   fr29
+#define fs8   fr30
+#define fs9   fr31
+
+#define fv0   fa0
+
+
+/* save and restore macros ****************************************************/
+
+#define SAVE_ARGUMENT_REGISTERS(off) \
+	stw     a0,(0+(off))*4(sp); \
+	stw     a1,(1+(off))*4(sp); \
+	stw     a2,(2+(off))*4(sp); \
+	stw     a3,(3+(off))*4(sp); \
+	stw     a4,(4+(off))*4(sp); \
+	stw     a5,(5+(off))*4(sp); \
+	stw     a6,(6+(off))*4(sp); \
+	stw     a7,(7+(off))*4(sp); \
+	\
+	stfd    fa0,(8+(off))*4)(sp); \
+	stfd    fa1,(10+(off))*4)(sp); \
+	stfd    fa2,(12+(off))*4)(sp); \
+	stfd    fa3,(14+(off))*4)(sp); \
+	stfd    fa4,(16+(off))*4)(sp); \
+	stfd    fa5,(18+(off))*4)(sp); \
+	stfd    fa6,(20+(off))*4)(sp); \
+	stfd    fa7,(22+(off))*4)(sp); \
+	stfd    fa8,(24+(off))*4)(sp); \
+	stfd    fa9,(26+(off))*4)(sp); \
+	stfd    fa10,(28+(off))*4)(sp); \
+	stfd    fa11,(30+(off))*4)(sp); \
+	stfd    fa12,(32+(off))*4)(sp);
+
+#define RESTORE_ARGUMENT_REGISTERS(off) \
+	lwz     a0,(0+(off))*4(sp); \
+	lwz     a1,(1+(off))*4(sp); \
+	lwz     a2,(2+(off))*4(sp); \
+	lwz     a3,(3+(off))*4(sp); \
+	lwz     a4,(4+(off))*4(sp); \
+	lwz     a5,(5+(off))*4(sp); \
+	lwz     a6,(6+(off))*4(sp); \
+	lwz     a7,(7+(off))*4(sp); \
+	\
+	lfd     fa0,(8+(off))*4)(sp); \
+	lfd     fa1,(10+(off))*4)(sp); \
+	lfd     fa2,(12+(off))*4)(sp); \
+	lfd     fa3,(14+(off))*4)(sp); \
+	lfd     fa4,(16+(off))*4)(sp); \
+	lfd     fa5,(18+(off))*4)(sp); \
+	lfd     fa6,(20+(off))*4)(sp); \
+	lfd     fa7,(22+(off))*4)(sp); \
+	lfd     fa8,(24+(off))*4)(sp); \
+	lfd     fa9,(26+(off))*4)(sp); \
+	lfd     fa10,(28+(off))*4)(sp); \
+	lfd     fa11,(30+(off))*4)(sp); \
+	lfd     fa12,(32+(off))*4)(sp);
+
+
+#if defined(__DARWIN__)
+
+/* Defines for darwin's old gnu assembler *************************************/
+
+/* internal defines ***********************************************************/
+
+#define asm_calljavafunction                  _asm_calljavafunction
+#define asm_calljavafunction_int              _asm_calljavafunction_int
+
+#define asm_calljavafunction2                 _asm_calljavafunction2
+#define asm_calljavafunction2int              _asm_calljavafunction2int
+#define asm_calljavafunction2long             _asm_calljavafunction2long
+#define asm_calljavafunction2float            _asm_calljavafunction2float
+#define asm_calljavafunction2double           _asm_calljavafunction2double
+
+#define asm_call_jit_compiler                 _asm_call_jit_compiler
+
+#define asm_handle_nat_exception              _asm_handle_nat_exception
+#define asm_handle_exception                  _asm_handle_exception
+#define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
+
+#define asm_wrapper_patcher                   _asm_wrapper_patcher
+
+#define asm_builtin_arraycheckcast            _asm_builtin_arraycheckcast
+#define asm_builtin_aastore                   _asm_builtin_aastore
+
+#define asm_builtin_monitorenter              _asm_builtin_monitorenter
+#define asm_builtin_monitorexit               _asm_builtin_monitorexit
+
+#define asm_builtin_idiv                      _asm_builtin_idiv
+#define asm_builtin_irem                      _asm_builtin_irem
+#define asm_builtin_ldiv                      _asm_builtin_ldiv
+#define asm_builtin_lrem                      _asm_builtin_lrem
+
+#define asm_cacheflush                        _asm_cacheflush
+#define asm_initialize_thread_stack           _asm_initialize_thread_stack
+#define asm_perform_threadswitch              _asm_perform_threadswitch
+#define asm_switchstackandcall                _asm_switchstackandcall
+#define asm_criticalsections                  _asm_criticalsections
+#define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
+
+
+/* external defines ***********************************************************/
+
+#define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
+#define builtin_canstore                      _builtin_canstore
+#define builtin_arraycheckcast                _builtin_arraycheckcast
+#define builtin_ldiv                          _builtin_ldiv
+#define builtin_lrem                          _builtin_lrem
+
+#if defined(USE_THREADS)
+#define builtin_monitorenter                  _builtin_monitorenter
+#define builtin_monitorexit                   _builtin_monitorexit
+#endif
+
+#define builtin_throw_exception               _builtin_throw_exception
+#define builtin_trace_exception               _builtin_trace_exception
+#define initialize_class                      _initialize_class
+#define link_class                            _link_class
+#define load_class_bootstrap                  _load_class_bootstrap
+#define jit_compile                           _jit_compile
+#define new_arithmeticexception               _new_arithmeticexception
+#define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
+#define new_arraystoreexception               _new_arraystoreexception
+#define new_classcastexception                _new_classcastexception
+#define new_nullpointerexception              _new_nullpointerexception
+
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if 0
+#define _exceptionptr                         __exceptionptr
+#endif
+
+_exceptionptr:
+	.globl		__exceptionptr
+#endif
+
+#endif /* defined(__DARWIN__) */
+
+
 	.text
 
 	.align 2
@@ -191,9 +318,9 @@ _exceptionptr:
 	.globl asm_handle_exception
 	.globl asm_handle_nullptr_exception
 
-	.globl asm_check_clinit
+	.globl asm_wrapper_patcher
 
-	.globl asm_builtin_checkarraycast
+	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
 #if defined(USE_THREADS)
@@ -886,43 +1013,58 @@ ex_flt2:
 	b       ex_stack_loop
 
 
-/********************* asm_check_clinit ****************************************
-*                                                                              *
-*   call static class initializer for PUT/GETSTATIC instructions               *
-*                                                                              *
+/* asm_wrapper_patcher *********************************************************
+
+   XXX
+
+   Stack layout:
+     16   return address into JIT code (patch position)
+     12   pointer to virtual java_objectheader
+      8   machine code (which is patched back later)
+      4   unresolved class/method/field reference
+      0   patcher function pointer to call
+
 *******************************************************************************/
 
-asm_check_clinit:
+asm_wrapper_patcher:
 	lwz     itmp2,offclassinit(itmp1)
 	mr.     itmp2,itmp2
 	bne     L_is_initialized
 
 	mflr	r0
+#if defined(__DARWIN__)
 	stw     r0,8(r1)
+#else
+	stw     r0,4(r1)
+#endif
 	stwu    r1,-(36*8)(r1)        /* keep stack 16-bytes aligned              */
 
-	stw     r3,4*8(r1)            /* save argument registers                  */
-	stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
-	stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
-	stw     r6,7*8(r1)
-	stw     r7,8*8(r1)
-	stw     r8,9*8(r1)
-	stw     r9,10*8(r1)
-	stw     r10,11*8(r1)
+#if 1
+       stw     r3,4*8(r1)            /* save argument registers                  */
+       stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
+       stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
+       stw     r6,7*8(r1)
+       stw     r7,8*8(r1)
+       stw     r8,9*8(r1)
+       stw     r9,10*8(r1)
+       stw     r10,11*8(r1)
 
-	stfd    fr1,12*8(r1)
-	stfd    fr2,13*8(r1)
-	stfd    fr3,14*8(r1)
-	stfd    fr4,15*8(r1)
-	stfd    fr5,16*8(r1)
-	stfd    fr6,17*8(r1)
-	stfd    fr7,18*8(r1)
-	stfd    fr8,19*8(r1)
-	stfd    fr9,20*8(r1)
-	stfd    fr10,21*8(r1)
-	stfd    fr11,22*8(r1)
-	stfd    fr12,23*8(r1)
-	stfd    fr13,24*8(r1)
+       stfd    fr1,12*8(r1)
+       stfd    fr2,13*8(r1)
+       stfd    fr3,14*8(r1)
+       stfd    fr4,15*8(r1)
+       stfd    fr5,16*8(r1)
+       stfd    fr6,17*8(r1)
+       stfd    fr7,18*8(r1)
+       stfd    fr8,19*8(r1)
+       stfd    fr9,20*8(r1)
+       stfd    fr10,21*8(r1)
+       stfd    fr11,22*8(r1)
+       stfd    fr12,23*8(r1)
+       stfd    fr13,24*8(r1)
+#else
+	SAVE_ARGUMENT_REGISTERS(6+1)  /* save 8 int/13 float argument registers   */
+#endif
 
 	stw     r2,25*8(r1)
 	stw     r16,26*8(r1)
@@ -934,33 +1076,38 @@ asm_check_clinit:
 	stw     r22,32*8(r1)
 	stw     r23,33*8(r1)
 
+	stw     pv,34*8(r1)
 
 	mr      r3,itmp1
 	bl      initialize_class
 	mr      itmp1,r3              /* save return value in temp register       */
 
-	lwz     r3,4*8(r1)
-	lwz     r4,5*8(r1)
-	lwz     r5,6*8(r1)
-	lwz     r6,7*8(r1)
-	lwz     r7,8*8(r1)
-	lwz     r8,9*8(r1)
-	lwz     r9,10*8(r1)
-	lwz     r10,11*8(r1)
+#if 1
+       lwz     r3,4*8(r1)
+       lwz     r4,5*8(r1)
+       lwz     r5,6*8(r1)
+       lwz     r6,7*8(r1)
+       lwz     r7,8*8(r1)
+       lwz     r8,9*8(r1)
+       lwz     r9,10*8(r1)
+       lwz     r10,11*8(r1)
 
-	lfd     fr1,12*8(r1)
-	lfd     fr2,13*8(r1)
-	lfd     fr3,14*8(r1)
-	lfd     fr4,15*8(r1)
-	lfd     fr5,16*8(r1)
-	lfd     fr6,17*8(r1)
-	lfd     fr7,18*8(r1)
-	lfd     fr8,19*8(r1)
-	lfd     fr9,20*8(r1)
-	lfd     fr10,21*8(r1)
-	lfd     fr11,22*8(r1)
-	lfd     fr12,23*8(r1)
-	lfd     fr13,24*8(r1)
+       lfd     fr1,12*8(r1)
+       lfd     fr2,13*8(r1)
+       lfd     fr3,14*8(r1)
+       lfd     fr4,15*8(r1)
+       lfd     fr5,16*8(r1)
+       lfd     fr6,17*8(r1)
+       lfd     fr7,18*8(r1)
+       lfd     fr8,19*8(r1)
+       lfd     fr9,20*8(r1)
+       lfd     fr10,21*8(r1)
+       lfd     fr11,22*8(r1)
+       lfd     fr12,23*8(r1)
+       lfd     fr13,24*8(r1)
+#else
+	RESTORE_ARGUMENT_REGISTERS(6+1)/* restore 8 int/13 float argument reg.    */
+#endif
 
 	lwz     r2,25*8(r1)
 	lwz     r16,26*8(r1)
@@ -971,6 +1118,8 @@ asm_check_clinit:
 	lwz     r21,31*8(r1)
 	lwz     r22,32*8(r1)
 	lwz     r23,33*8(r1)		
+
+	lwz     pv,34*8(r1)
 
 	lwz     r0,(36*8)+8(r1)
 	mtlr    r0
@@ -1008,19 +1157,19 @@ L_initializererror:
 	b       asm_handle_nat_exception
 
 
-/******************* function asm_builtin_checkarraycast ***********************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
+/* asm_builtin_arraycheckcast **************************************************
+
+   Does the cast check and eventually throws an exception.
+
 *******************************************************************************/
 		
-asm_builtin_checkarraycast:
+asm_builtin_arraycheckcast:
 	mflr    r0
 	stw     r0,8(r1)
 	stwu    r1,-48(r1)
 
 	stw     r3,32(r1)
-	bl      builtin_checkarraycast
+	bl      builtin_arraycheckcast
 
 	lwz     r0,48+8(r1)
 	mtlr    r0

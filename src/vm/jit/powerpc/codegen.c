@@ -1,4 +1,4 @@
-/* vm/jit/powerpc/codegen.c - machine code generator for 32-bit powerpc
+/* src/vm/jit/powerpc/codegen.c - machine code generator for 32-bit PowerPC
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2488 2005-05-20 17:46:29Z twisti $
+   $Id: codegen.c 2525 2005-05-24 10:28:20Z twisti $
 
 */
 
@@ -44,10 +44,12 @@
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
+#include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
@@ -155,7 +157,8 @@ int cacao_catch_Handler(mach_port_t thread)
 		return 1;
 	}
 
-	throw_cacao_exception_exit(string_java_lang_InternalError, "Segmentation fault at %p", regs[reg]);
+	throw_cacao_exception_exit(string_java_lang_InternalError,
+				   "Segmentation fault at %p", regs[reg]);
 #endif
 
 	return 0;
@@ -691,7 +694,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	case ICMD_INLINE_END:
 			break;
 
-		case ICMD_NULLCHECKPOP: /* ..., objectref  ==> ...                    */
+		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_TST(s1);
@@ -1835,27 +1838,29 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-            /* if class isn't yet initialized, do it */
-            if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-                /* call helper function which patches this code */
-                a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
-                M_ALD(REG_ITMP1, REG_PV, a);
-                a = dseg_addaddress(cd, asm_check_clinit);
-                M_ALD(REG_PV, REG_PV, a);
-                M_MTCTR(REG_PV);
-                M_JSR;
 
-                /* recompute pv */
-                s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-                M_MFLR(REG_ITMP1);
-                if (s1 <= 32768) M_LDA(REG_PV, REG_ITMP1, -s1);
-                else {
-                    s4 ml = -s1, mh = 0;
-                    while (ml < -32768) { ml += 65536; mh--; }
-                    M_LDA(REG_PV, REG_ITMP1, ml);
-                    M_LDAH(REG_PV, REG_PV, mh);
-                }
-            }
+			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
+				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
+
+				M_ALD(REG_ITMP1, REG_PV, a);
+				a = dseg_addaddress(cd, asm_wrapper_patcher);
+				M_ALD(REG_ITMP2, REG_PV, a);
+				M_MTCTR(REG_ITMP2);
+				M_JSR;
+
+#if 0
+				/* recompute pv */
+				s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_MFLR(REG_ITMP1);
+				if (s1 <= 32768) M_LDA(REG_PV, REG_ITMP1, -s1);
+				else {
+					s4 ml = -s1, mh = 0;
+					while (ml < -32768) { ml += 65536; mh--; }
+					M_LDA(REG_PV, REG_ITMP1, ml);
+					M_LDAH(REG_PV, REG_PV, mh);
+				}
+#endif
+			}
 
 			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
@@ -1891,17 +1896,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
-
-			/* if class isn't yet initialized, do it */
+#if 1
 			if (!((fieldinfo *) iptr->val.a)->class->initialized) {
-				/* call helper function which patches this code */
 				a = dseg_addaddress(cd, ((fieldinfo *) iptr->val.a)->class);
 				M_ALD(REG_ITMP1, REG_PV, a);
-				a = dseg_addaddress(cd, asm_check_clinit);
-				M_ALD(REG_PV, REG_PV, a);
-				M_MTCTR(REG_PV);
+				a = dseg_addaddress(cd, asm_wrapper_patcher);
+				M_ALD(REG_ITMP2, REG_PV, a);
+				M_MTCTR(REG_ITMP2);
 				M_JSR;
 
+#if 0
 				/* recompute pv */
 				s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
@@ -1912,8 +1916,26 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_LDA(REG_PV, REG_ITMP1, ml);
 					M_LDAH(REG_PV, REG_PV, mh);
 				}
+#endif
 			}
+#else
+			{
+				fieldinfo *fi = iptr->val.a;
 
+				if (!fi->class->initialized) {
+					codegen_addpatchref(cd, mcodeptr,
+/*										PATCHER_clinit, fi->class);*/
+										NULL, fi->class);
+
+					if (showdisassemble)
+						M_NOP;
+				}
+
+				a = (ptrint) &(fi->value);
+  			}
+
+			a = dseg_addaddress(cd, a);
+#endif
 			a = dseg_addaddress(cd, &(((fieldinfo *) iptr->val.a)->value));
 			M_ALD(REG_ITMP1, REG_PV, a);
 			switch (iptr->op1) {
@@ -2733,10 +2755,6 @@ gen_method: {
 
 					d = lm->returntype;
 					goto makeactualcall;
-
-				default:
-					d = 0;
-					error ("Unkown ICMD-Command: %d", iptr->opc);
 				}
 
 makeactualcall:
@@ -2971,7 +2989,7 @@ makeactualcall:
 
 			M_LDA(rd->argintregs[2], REG_SP, (INT_ARG_CNT + 6) * 4);
 
-			a = dseg_addaddress(cd, (void *) builtin_nmultianewarray);
+			a = dseg_addaddress(cd, BUILTIN_multianewarray);
 			M_ALD(REG_PV, REG_PV, a);
 			M_MTCTR(REG_PV);
 			M_JSR;
@@ -2991,8 +3009,9 @@ makeactualcall:
 			break;
 
 
-		default: error ("Unknown pseudo command: %d", iptr->opc);
-	
+		default:
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   "Unknown ICMD %d", iptr->opc);
 	} /* switch */
 		
 	} /* for instruction */
@@ -3261,11 +3280,11 @@ makeactualcall:
 			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
 			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
-            a = dseg_addaddress(cd, new_nullpointerexception);
-            M_ALD(REG_ITMP2, REG_PV, a);
-            M_MTCTR(REG_ITMP2);
-            M_JSR;
-            M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+			a = dseg_addaddress(cd, new_nullpointerexception);
+			M_ALD(REG_ITMP2, REG_PV, a);
+			M_MTCTR(REG_ITMP2);
+			M_JSR;
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
@@ -3276,11 +3295,99 @@ makeactualcall:
 			M_RTS;
 		}
 	}
+
+	/* generate patcher stub call code */
+
+	{
+		patchref *pref;
+		u4        mcode;
+		s4       *tmpmcodeptr;
+
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
+			/* check code segment size */
+
+			MCODECHECK(13 + 4 + 1);
+
+			/* Get machine code which is patched back in later. The call is   */
+			/* 1 instruction word long.                                       */
+
+			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
+			mcode = *xcodeptr;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			/* create a virtual java_objectheader */
+
+			/* align data structure to 8-byte */
+
+			ALIGNCODENOP;
+
+			*((ptrint *) (mcodeptr + 0)) = 0;                        /* vftbl */
+			*((ptrint *) (mcodeptr + 1)) = (ptrint) get_dummyLR(); /* monitorPtr */
+
+			mcodeptr += 2 * 1;                 /* mcodeptr is a `u4*' pointer */
+#endif
+
+			/* patch in the call to call the following code (done at compile  */
+			/* time)                                                          */
+
+			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
+			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+
+			M_BL(tmpmcodeptr - (xcodeptr + 1));
+
+			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+
+#if 0
+			/* create stack frame */
+
+			M_IADD_IMM(REG_SP, -5 * 4, REG_SP);
+
+			/* move return address onto stack */
+
+			M_AST(REG_ITMP3, REG_SP, 4 * 4);
+
+			/* move pointer to java_objectheader onto stack */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+			M_BL(0);
+			M_MFLR(REG_ITMP3);
+			M_IADD_IMM(REG_ITMP3, -(3 * 4 + 2 * 4), REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 3 * 4);
+#else
+			M_AST(REG_ZERO, REG_SP, 3 * 4);
+#endif
+
+			/* move machine code onto stack */
+
+			a = dseg_adds4(cd, mcode);
+			M_ILD(REG_ITMP3, REG_PV, a);
+			M_IST(REG_ITMP3, REG_SP, 2 * 4);
+
+			/* move class/method/field reference onto stack */
+
+			a = dseg_addaddress(cd, pref->ref);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+
+			/* move patcher function pointer onto stack */
+
+			a = dseg_addaddress(cd, pref->patcher);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_AST(REG_ITMP3, REG_SP, 0 * 4);
+
+			a = dseg_addaddress(cd, asm_wrapper_patcher);
+			M_ALD(REG_ITMP3, REG_PV, a);
+			M_MTCTR(REG_ITMP3);
+			M_RTS;
+#endif
+		}
 	}
 
-	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
+	}
 
-    asm_cacheflush((void *) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
+	codegen_finish(m, cd, (ptrint) ((u1 *) mcodeptr - cd->mcodebase));
+
+	asm_cacheflush((void *) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 }
 
 
@@ -3383,7 +3490,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	*(cs-6) = (u4) m;
 	*(cs-7) = (u4) builtin_displaymethodstop;
 	*(cs-8) = (u4) m->class;
-	*(cs-9) = (u4) asm_check_clinit;
+	*(cs-9) = (u4) asm_wrapper_patcher;
 
 	M_MFLR(REG_ITMP1);
 	M_AST(REG_ITMP1, REG_SP, 8);        /* store return address               */
@@ -3408,7 +3515,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		if (!m->class->initialized) {
 			/* call helper function which patches this code */
 			M_ALD(REG_ITMP1, REG_PV, -8 * 4);     /* class                    */
-			M_ALD(REG_PV, REG_PV, -9 * 4);        /* asm_check_clinit         */
+			M_ALD(REG_PV, REG_PV, -9 * 4);        /* asm_wrapper_patcher      */
 			M_MTCTR(REG_PV);
 			M_JSR;
 			disp = -(s4) (mcodeptr - cs) * 4;
