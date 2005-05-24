@@ -389,6 +389,7 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 
 	dnl taken from GNU classpath configure.ac
 	if test x"${USE_GTK_PEER}" = "xyes"; then
+		AC_ERROR(XXX this is not supported yet)
 		AC_PATH_XTRA
 		if test "$no_x" = yes; then
 			AC_MSG_ERROR([GTK+ peers requested but no X library available])
@@ -400,19 +401,13 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 		PKG_CHECK_MODULES(GTK, gtk+-2.0 >= 2.4 gthread-2.0 >= 2.2 libart-2.0 gdk-pixbuf-2.0)
 		AC_SUBST(GTK_CFLAGS)
 		AC_SUBST(GTK_LIBS)
+
+		AC_SUBST(CAIRO_LIBS)
+		AC_SUBST(CAIRO_CFLAGS)
 	fi
 	PKG_CHECK_MODULES(PANGOFT2, pangoft2)
-	AC_SUBST(CAIRO_LIBS)
-	AC_SUBST(CAIRO_CFLAGS)
 	AC_SUBST(PANGOFT2_LIBS)
 	AC_SUBST(PANGOFT2_CFLAGS)
-
-	PKG_CHECK_MODULES(XML, libxml-2.0 >= 2.6.8)
-	PKG_CHECK_MODULES(XSLT, libxslt >= 1.1.11)
-	AC_SUBST(XML_LIBS)
-	AC_SUBST(XML_CFLAGS)
-	AC_SUBST(XSLT_LIBS)
-	AC_SUBST(XSLT_CFLAGS)
 else
 	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
