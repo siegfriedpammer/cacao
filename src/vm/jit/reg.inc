@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2496 2005-05-23 08:06:06Z twisti $
+   $Id: reg.inc 2526 2005-05-24 15:41:24Z christian $
 
 */
 
@@ -912,7 +912,7 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 	tryagain = (s->flags & SAVEDVAR) ? 1 : 2;
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
-	regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
+	intregsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
 	intregsneeded=0;
 #endif
@@ -1113,7 +1113,7 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 	s4 memneeded;
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
-	regsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
+	intregsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
 	intregsneeded=0;
 #endif
