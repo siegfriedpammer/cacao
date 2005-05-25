@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2473 2005-05-13 14:01:19Z twisti $
+   $Id: patcher.h 2527 2005-05-25 08:07:57Z twisti $
 
 */
 
@@ -37,6 +37,41 @@
 
 #include "types.h"
 #include "vm/global.h"
+
+
+/* patcher macros *************************************************************/
+
+#if defined(USE_THREADS)
+
+#define PATCHER_MONITORENTER \
+	/* enter a monitor on the patching position */       \
+	                                                     \
+	builtin_monitorenter(o);                             \
+	                                                     \
+	/* check if the position has already been patched */ \
+	                                                     \
+	if (o->vftbl) {                                      \
+		builtin_monitorexit(o);                          \
+	                                                     \
+		return true;                                     \
+	}                                                    \
+
+
+#define PATCHER_MONITOREXIT \
+	/* mark position as patched */                       \
+	                                                     \
+	o->vftbl = (vftbl_t *) 1;                            \
+	                                                     \
+	/* leave the monitor on the patching position */     \
+	                                                     \
+	builtin_monitorexit(o);                              \
+
+#else
+
+#define PATCHER_MONITORENTER    /* nop */
+#define PATCHER_MONITOREXIT     /* nop */
+
+#endif /* defined(USE_THREADS) */
 
 
 /* function prototypes ********************************************************/
