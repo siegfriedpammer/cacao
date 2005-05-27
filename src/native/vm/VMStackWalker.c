@@ -28,16 +28,19 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 2358 2005-04-22 22:01:51Z jowenn $
+   $Id: VMStackWalker.c 2529 2005-05-27 13:18:48Z twisti $
 
 */
 
 
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_ClassLoader.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/tables.h"
+
 
 /*
  * Class:     gnu/classpath/VMStackWalker
@@ -46,16 +49,60 @@
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
-	if (cacao_initializing)
-		return 0;
+/*  	if (cacao_initializing) */
+/*  		return NULL; */
 
 #if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__)
 	return cacao_createClassContextArray();
 #else
-
-	/* XXX TWISTI: only a quick hack */
-
 	return builtin_anewarray(0, class_java_lang_Class);
+#endif
+}
+
+
+/*
+ * Class:     gnu/classpath/VMStackWalker
+ * Method:    getCallingClass
+ * Signature: ()Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
+{
+#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__)
+	java_objectarray *oa;
+
+	oa = cacao_createClassContextArray();
+
+	if (oa->header.size < 2)
+		return NULL;
+
+	return (java_lang_Class *) oa->data[1];
+#else
+	return NULL;
+#endif
+}
+
+
+/*
+ * Class:     gnu/classpath/VMStackWalker
+ * Method:    getCallingClassLoader
+ * Signature: ()Ljava/lang/ClassLoader;
+ */
+JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
+{
+#if defined(__I386__) || defined(__ALPHA__) || defined (__X86_64__)
+	java_objectarray *oa;
+	classinfo        *c;
+
+	oa = cacao_createClassContextArray();
+
+	if (oa->header.size < 2)
+		return NULL;
+
+	c = (classinfo *) oa->data[1];
+
+	return (java_lang_ClassLoader *) c->classloader;
+#else
+	return NULL;
 #endif
 }
 
