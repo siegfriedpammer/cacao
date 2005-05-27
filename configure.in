@@ -383,7 +383,6 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
 
-
 	dnl check for some classpath related stuff when we link statically
 	AM_ICONV_LINK
 
@@ -404,10 +403,10 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 
 		AC_SUBST(CAIRO_LIBS)
 		AC_SUBST(CAIRO_CFLAGS)
+		PKG_CHECK_MODULES(PANGOFT2, pangoft2)
+		AC_SUBST(PANGOFT2_LIBS)
+		AC_SUBST(PANGOFT2_CFLAGS)
 	fi
-	PKG_CHECK_MODULES(PANGOFT2, pangoft2)
-	AC_SUBST(PANGOFT2_LIBS)
-	AC_SUBST(PANGOFT2_CFLAGS)
 else
 	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
