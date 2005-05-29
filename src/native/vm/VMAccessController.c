@@ -1,4 +1,4 @@
-/* native/vm/VMAccessController.c - java/security/VMAccessController
+/* src/native/vm/VMAccessController.c - java/security/VMAccessController
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -25,18 +25,19 @@
    Contact: cacao@complang.tuwien.ac.at
 
    Authors: Joseph Wenninger
-   $Id: VMAccessController.c 2485 2005-05-20 12:02:25Z jowenn $
+
+   Changes: Christian Thalinger
+
+   $Id: VMAccessController.c 2530 2005-05-29 21:39:20Z twisti $
 
 */
 
+
 #include "native/jni.h"
-#include "vm/global.h"
-#include "native/include/java_security_VMAccessController.h"
-#include "vm/class.h"
 #include "vm/builtin.h"
-#include "toolbox/logging.h"
+#include "vm/class.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/loader.h"
+
 
 /*
  * Class:     java/security/VMAccessController
@@ -47,11 +48,36 @@ JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getSta
 #if defined(__I386__) || defined(__ALPHA__) || defined (__x86_64__)
 	return cacao_getStackForVMAccessController();
 #else
-	java_objectarray *result=builtin_anewarray(2,arrayclass_java_lang_Object);
-        if (result==0) panic("getStackCollector (very out of memory)");
-        result->data[0]=(java_objectheader*)builtin_anewarray(0,class_java_lang_Class);
-        result->data[1]=(java_objectheader*)builtin_anewarray(0,class_java_lang_String);
+	java_objectarray *result;
+	java_objectarray *classes;
+	java_objectarray *methodnames;
+
+	if (!(result = builtin_anewarray(2, arrayclass_java_lang_Object)))
+		return NULL;
+
+	if (!(classes = builtin_anewarray(0, class_java_lang_Class)))
+		return NULL;
+
+	if (!(methodnames = builtin_anewarray(0, class_java_lang_String)))
+		return NULL;
+
+	result->data[0] = (java_objectheader *) classes;
+	result->data[1] = (java_objectheader *) methodnames;
+
 	return result;
 #endif
 }
 
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
