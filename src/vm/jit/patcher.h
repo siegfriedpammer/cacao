@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2527 2005-05-25 08:07:57Z twisti $
+   $Id: patcher.h 2535 2005-05-31 15:39:06Z twisti $
 
 */
 
@@ -58,18 +58,23 @@
 
 
 #define PATCHER_MONITOREXIT \
+	/* leave the monitor on the patching position */     \
+	                                                     \
+	builtin_monitorexit(o);
+
+
+#define PATCHER_MARK_PATCHED_MONITOREXIT \
 	/* mark position as patched */                       \
 	                                                     \
 	o->vftbl = (vftbl_t *) 1;                            \
 	                                                     \
-	/* leave the monitor on the patching position */     \
-	                                                     \
-	builtin_monitorexit(o);                              \
+	PATCHER_MONITOREXIT
 
 #else
 
-#define PATCHER_MONITORENTER    /* nop */
-#define PATCHER_MONITOREXIT     /* nop */
+#define PATCHER_MONITORENTER                 /* nop */
+#define PATCHER_MONITOREXIT                  /* nop */
+#define PATCHER_MARK_PATCHED_MONITOREXIT     /* nop */
 
 #endif /* defined(USE_THREADS) */
 
@@ -95,9 +100,11 @@ bool patcher_get_putfield(u1 *sp);
 #endif /* defined(__I386__) */
 
 #if defined(__I386__) || defined(__X86_64__)
+
 bool patcher_putfieldconst(u1 *sp);
 #define PATCHER_putfieldconst (functionptr) patcher_putfieldconst
-#endif
+
+#endif /* defined(__I386__) || defined(__X86_64__) */
 
 bool patcher_builtin_new(u1 *sp);
 #define PATCHER_builtin_new (functionptr) patcher_builtin_new
@@ -129,7 +136,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp);
 bool patcher_checkcast_instanceof_interface(u1 *sp);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__)
 
 bool patcher_checkcast_class(u1 *sp);
 #define PATCHER_checkcast_class (functionptr) patcher_checkcast_class
@@ -137,12 +144,12 @@ bool patcher_checkcast_class(u1 *sp);
 bool patcher_instanceof_class(u1 *sp);
 #define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
 
-#else /* defined(__I386__) || defined(__X86_64__) */
+#else /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) */
 
 bool patcher_checkcast_instanceof_class(u1 *sp);
 #define PATCHER_checkcast_instanceof_class (functionptr) patcher_checkcast_instanceof_class
 
-#endif /* defined(__I386__) || defined(__X86_64__) */
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(__POWERPC__) */
 
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit
