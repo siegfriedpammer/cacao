@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2498 2005-05-23 08:12:52Z twisti $
+   $Id: builtin.c 2542 2005-05-31 16:04:10Z twisti $
 
 */
 
@@ -48,7 +48,9 @@
 
 #include "config.h"
 #include "arch.h"
+#include "md-abi.h"
 #include "types.h"
+
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/native.h"
@@ -258,14 +260,12 @@ builtin_descriptor builtin_desc[] = {
 	{255,BUILTIN_drem            ,ICMD_BUILTIN2,TYPE_DOUBLE,TYPE_DOUBLE,TYPE_VOID  ,TYPE_DOUBLE,0,0,"drem"},
 
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 	/* assembler code patching functions */
 
-	{ 255, PATCHER_builtin_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (calling patcher_builtin_new)" },
-	{ 255, PATCHER_builtin_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (calling patcher_builtin_newarray)" },
-	{ 255, PATCHER_builtin_arraycheckcast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "arraycheckcast (calling patcher_builtin_arraycheckcast)" },
-	{ 255, PATCHER_builtin_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (calling patcher_builtin_arrayinstanceof)" },
-#endif
+	{ 255, PATCHER_builtin_new            , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "new (NOT RESOLVED)" },
+	{ 255, PATCHER_builtin_newarray       , ICMD_BUILTIN1, TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , TYPE_ADR   , 0, 0, "newarray (NOT RESOLVED)" },
+	{ 255, PATCHER_builtin_arraycheckcast , ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_VOID  , 0, 0, "arraycheckcast (NOT RESOLVED)" },
+	{ 255, PATCHER_builtin_arrayinstanceof, ICMD_BUILTIN2, TYPE_ADR   , TYPE_ADR   , TYPE_VOID  , TYPE_INT   , 0, 0, "arrayinstanceof (NOT RESOLVED)" },
 
 
 	/* this record marks the end of the list */
@@ -1441,7 +1441,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		sprintf(logtext + strlen(logtext), "->%d", (s4) l);
 		break;
 
-	case TYPE_LONG:
+	case TYPE_LNG:
 #if defined(__I386__) || defined(__POWERPC__)
 		sprintf(logtext + strlen(logtext), "->%lld", (s8) l);
 #else
@@ -1449,15 +1449,15 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 #endif
 		break;
 
-	case TYPE_ADDRESS:
+	case TYPE_ADR:
 		sprintf(logtext + strlen(logtext), "->%p", (void *) (ptrint) l);
 		break;
 
-	case TYPE_FLOAT:
+	case TYPE_FLT:
 		sprintf(logtext + strlen(logtext), "->%g", f);
 		break;
 
-	case TYPE_DOUBLE:
+	case TYPE_DBL:
 		sprintf(logtext + strlen(logtext), "->%g", d);
 		break;
 	}
