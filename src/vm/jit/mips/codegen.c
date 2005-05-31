@@ -33,7 +33,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2489 2005-05-20 17:51:34Z twisti $
+   $Id: codegen.c 2531 2005-05-31 10:30:31Z twisti $
 
 */
 
@@ -391,7 +391,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		s1 = rd->maxmemuse;
 
 		if (runverbose) {
-			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8);
+			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LST(rd->argintregs[p], REG_SP, p * 8);
@@ -399,15 +399,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			for (p = 0; p < FLT_ARG_CNT; p++)
 				M_DST(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
-			if (m->isleafmethod) {
-				for (p = 0; p < INT_TMP_CNT; p++)
-					M_LST(rd->tmpintregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-				for (p = 0; p < FLT_TMP_CNT; p++)
-					M_DST(rd->tmpfltregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-			}
-
-			s1 += INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT;
+			s1 += INT_ARG_CNT + FLT_ARG_CNT;
 		}
 
 		/* decide which monitor enter function to call */
@@ -442,15 +434,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DLD(rd->argfltregs[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 
-			if (m->isleafmethod) {
-				for (p = 0; p < INT_TMP_CNT; p++)
-					M_LLD(rd->tmpintregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + p) * 8);
-
-				for (p = 0; p < FLT_TMP_CNT; p++)
-					M_DLD(rd->tmpfltregs[p], REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
-			}
-
-			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8);
+			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 		}
 	}
 #endif
