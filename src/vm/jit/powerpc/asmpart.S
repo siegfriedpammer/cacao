@@ -30,273 +30,17 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2525 2005-05-24 10:28:20Z twisti $
+   $Id: asmpart.S 2540 2005-05-31 16:01:11Z twisti $
 
 */
 
 
-#if defined(__LINUX__)
-# include <asm/ppc_asm.h>
-#endif
-
 #include "config.h"
+#include "md-abi.h"
+#include "md-asm.h"
+
 #include "vm/jit/powerpc/offsets.h"
 #include "vm/jit/powerpc/asmoffsets.h"
-
-
-#if defined(__DARWIN__)
-
-#define fr0     f0
-#define fr1     f1
-#define fr2     f2
-#define fr3     f3
-#define fr4     f4
-#define fr5     f5
-#define fr6     f6
-#define fr7     f7
-#define fr8     f8
-#define fr9     f9
-#define fr10    f10
-#define fr11    f11
-#define fr12    f12
-#define fr13    f13
-#define fr14    f14
-#define fr15    f15
-#define fr16    f16
-#define fr17    f17
-#define fr18    f18
-#define fr19    f19
-#define fr20    f20
-#define fr21    f21
-#define fr22    f22
-#define fr23    f23
-#define fr24    f24
-#define fr25    f25
-#define fr26    f26
-#define fr27    f27
-#define fr28    f28
-#define fr29    f29
-#define fr30    f30
-#define fr31    f31
-
-#endif /* defined(__DARWIN__) */
-
-
-/* register defines ***********************************************************/
-
-#define sp    r1
-
-#define a0    r3
-#define a1    r4
-#define a2    r5
-#define a3    r6
-#define a4    r7
-#define a5    r8
-#define a6    r9
-#define a7    r10
-
-#define pv    r13
-
-#define s0    r14
-#define s1    r15
-
-#define t0    r16
-#define t1    r17
-#define t2    r18
-#define t3    r19
-#define t4    r20
-#define t5    r21
-#define t6    r22
-#define t7    r23
-
-#define s2    r24
-#define s3    r25
-#define s4    r26
-#define s5    r27
-#define s6    r28
-#define s7    r29
-#define s8    r30
-#define s9    r31
-
-#define v0    a0
-#define v1    a1
-
-#define itmp1 r11
-#define itmp2 r12
-#define itmp3 r0
-
-#define xptr  itmp1
-#define xpc   itmp2
-
-#define mptr  r12
-#define mptrn 12
-
-
-#define fa0   fr1
-#define fa1   fr2
-#define fa2   fr3
-#define fa3   fr4
-#define fa4   fr5
-#define fa5   fr6
-#define fa6   fr7
-
-#define fa7   fr8
-#define fa8   fr9
-#define fa9   fr10
-#define fa10  fr11
-#define fa11  fr12
-#define fa12  fr13
-
-#define fs0   fr14
-#define fs1   fr15
-
-#define ft0   fr18
-#define ft1   fr19
-#define ft2   fr20
-#define ft3   fr21
-#define ft4   fr22
-#define ft5   fr23
-
-#define fs2   fr24
-#define fs3   fr25
-#define fs4   fr26
-#define fs5   fr27
-#define fs6   fr28
-#define fs7   fr29
-#define fs8   fr30
-#define fs9   fr31
-
-#define fv0   fa0
-
-
-/* save and restore macros ****************************************************/
-
-#define SAVE_ARGUMENT_REGISTERS(off) \
-	stw     a0,(0+(off))*4(sp); \
-	stw     a1,(1+(off))*4(sp); \
-	stw     a2,(2+(off))*4(sp); \
-	stw     a3,(3+(off))*4(sp); \
-	stw     a4,(4+(off))*4(sp); \
-	stw     a5,(5+(off))*4(sp); \
-	stw     a6,(6+(off))*4(sp); \
-	stw     a7,(7+(off))*4(sp); \
-	\
-	stfd    fa0,(8+(off))*4)(sp); \
-	stfd    fa1,(10+(off))*4)(sp); \
-	stfd    fa2,(12+(off))*4)(sp); \
-	stfd    fa3,(14+(off))*4)(sp); \
-	stfd    fa4,(16+(off))*4)(sp); \
-	stfd    fa5,(18+(off))*4)(sp); \
-	stfd    fa6,(20+(off))*4)(sp); \
-	stfd    fa7,(22+(off))*4)(sp); \
-	stfd    fa8,(24+(off))*4)(sp); \
-	stfd    fa9,(26+(off))*4)(sp); \
-	stfd    fa10,(28+(off))*4)(sp); \
-	stfd    fa11,(30+(off))*4)(sp); \
-	stfd    fa12,(32+(off))*4)(sp);
-
-#define RESTORE_ARGUMENT_REGISTERS(off) \
-	lwz     a0,(0+(off))*4(sp); \
-	lwz     a1,(1+(off))*4(sp); \
-	lwz     a2,(2+(off))*4(sp); \
-	lwz     a3,(3+(off))*4(sp); \
-	lwz     a4,(4+(off))*4(sp); \
-	lwz     a5,(5+(off))*4(sp); \
-	lwz     a6,(6+(off))*4(sp); \
-	lwz     a7,(7+(off))*4(sp); \
-	\
-	lfd     fa0,(8+(off))*4)(sp); \
-	lfd     fa1,(10+(off))*4)(sp); \
-	lfd     fa2,(12+(off))*4)(sp); \
-	lfd     fa3,(14+(off))*4)(sp); \
-	lfd     fa4,(16+(off))*4)(sp); \
-	lfd     fa5,(18+(off))*4)(sp); \
-	lfd     fa6,(20+(off))*4)(sp); \
-	lfd     fa7,(22+(off))*4)(sp); \
-	lfd     fa8,(24+(off))*4)(sp); \
-	lfd     fa9,(26+(off))*4)(sp); \
-	lfd     fa10,(28+(off))*4)(sp); \
-	lfd     fa11,(30+(off))*4)(sp); \
-	lfd     fa12,(32+(off))*4)(sp);
-
-
-#if defined(__DARWIN__)
-
-/* Defines for darwin's old gnu assembler *************************************/
-
-/* internal defines ***********************************************************/
-
-#define asm_calljavafunction                  _asm_calljavafunction
-#define asm_calljavafunction_int              _asm_calljavafunction_int
-
-#define asm_calljavafunction2                 _asm_calljavafunction2
-#define asm_calljavafunction2int              _asm_calljavafunction2int
-#define asm_calljavafunction2long             _asm_calljavafunction2long
-#define asm_calljavafunction2float            _asm_calljavafunction2float
-#define asm_calljavafunction2double           _asm_calljavafunction2double
-
-#define asm_call_jit_compiler                 _asm_call_jit_compiler
-
-#define asm_handle_nat_exception              _asm_handle_nat_exception
-#define asm_handle_exception                  _asm_handle_exception
-#define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
-
-#define asm_wrapper_patcher                   _asm_wrapper_patcher
-
-#define asm_builtin_arraycheckcast            _asm_builtin_arraycheckcast
-#define asm_builtin_aastore                   _asm_builtin_aastore
-
-#define asm_builtin_monitorenter              _asm_builtin_monitorenter
-#define asm_builtin_monitorexit               _asm_builtin_monitorexit
-
-#define asm_builtin_idiv                      _asm_builtin_idiv
-#define asm_builtin_irem                      _asm_builtin_irem
-#define asm_builtin_ldiv                      _asm_builtin_ldiv
-#define asm_builtin_lrem                      _asm_builtin_lrem
-
-#define asm_cacheflush                        _asm_cacheflush
-#define asm_initialize_thread_stack           _asm_initialize_thread_stack
-#define asm_perform_threadswitch              _asm_perform_threadswitch
-#define asm_switchstackandcall                _asm_switchstackandcall
-#define asm_criticalsections                  _asm_criticalsections
-#define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
-
-
-/* external defines ***********************************************************/
-
-#define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
-#define builtin_canstore                      _builtin_canstore
-#define builtin_arraycheckcast                _builtin_arraycheckcast
-#define builtin_ldiv                          _builtin_ldiv
-#define builtin_lrem                          _builtin_lrem
-
-#if defined(USE_THREADS)
-#define builtin_monitorenter                  _builtin_monitorenter
-#define builtin_monitorexit                   _builtin_monitorexit
-#endif
-
-#define builtin_throw_exception               _builtin_throw_exception
-#define builtin_trace_exception               _builtin_trace_exception
-#define initialize_class                      _initialize_class
-#define link_class                            _link_class
-#define load_class_bootstrap                  _load_class_bootstrap
-#define jit_compile                           _jit_compile
-#define new_arithmeticexception               _new_arithmeticexception
-#define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
-#define new_arraystoreexception               _new_arraystoreexception
-#define new_classcastexception                _new_classcastexception
-#define new_nullpointerexception              _new_nullpointerexception
-
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-#if 0
-#define _exceptionptr                         __exceptionptr
-#endif
-
-_exceptionptr:
-	.globl		__exceptionptr
-#endif
-
-#endif /* defined(__DARWIN__) */
 
 
 	.text
@@ -322,11 +66,6 @@ _exceptionptr:
 
 	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
-
-#if defined(USE_THREADS)
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-#endif
 
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
@@ -357,7 +96,7 @@ _exceptionptr:
 		
 	.align 2
 
-    .long   0                         /* catch type all                       */
+	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler         /* handler pc                           */
 	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
@@ -376,36 +115,37 @@ asm_calljavafunction_int:
 	stw     r31,-4(r1)
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-148(r1)
 
 	bl      0f
 0:
 	mflr    r31
 
-	stw		r16,40(r1)
-	stw		r17,44(r1)
-	stw		r18,48(r1)
-	stw		r19,52(r1)
-	stw		r20,56(r1)
-	stw		r21,60(r1)
-	stw		r22,64(r1)
-	stw		r23,68(r1)
-	stfd	fr16,72(r1)
-	stfd	fr17,80(r1)
-	stfd	fr18,88(r1)
-	stfd	fr19,96(r1)
-	stfd	fr20,104(r1)
-	stfd	fr21,112(r1)
-	stfd	fr22,120(r1)
-	stfd	fr23,128(r1)
+	stw     t0,40(r1)
+	stw     t1,44(r1)
+	stw     t2,48(r1)
+	stw     t3,52(r1)
+	stw     t4,56(r1)
+	stw     t5,60(r1)
+	stw     t6,64(r1)
+	stw     t7,68(r1)
 
-	stw     r3,36(r1)
+	stfd	ftmp1,72(r1)
+	stfd	ftmp2,80(r1)
+	stfd	ft0,88(r1)
+	stfd	ft1,96(r1)
+	stfd	ft2,104(r1)
+	stfd	ft3,112(r1)
+	stfd	ft4,120(r1)
+	stfd	ft5,128(r1)
+
+	stw     a0,36(r1)
 	addi    itmp1,r1,36
-	mr      r3,r4
-	mr      r4,r5
-	mr      r5,r6
-	mr      r6,r7
+	mr      a0,a1
+	mr      a1,a2
+	mr      a2,a3
+	mr      a3,a4
 
 #if defined(__DARWIN__)
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
@@ -429,24 +169,25 @@ asm_calljavafunction_int:
 #endif
 
 calljava_regrestore:
-	lwz     r16,40(r1)
-	lwz		r17,44(r1)
-	lwz		r18,48(r1)
-	lwz		r19,52(r1)
-	lwz		r20,56(r1)
-	lwz		r21,60(r1)
-	lwz		r22,64(r1)
-	lwz		r23,68(r1)
-	lfd		fr16,72(r1)
-	lfd		fr17,80(r1)
-	lfd		fr18,88(r1)
-	lfd		fr19,96(r1)
-	lfd		fr20,104(r1)
-	lfd		fr21,112(r1)
-	lfd		fr22,120(r1)
-	lfd		fr23,128(r1)
+	lwz     t0,40(r1)
+	lwz     t1,44(r1)
+	lwz     t2,48(r1)
+	lwz     t3,52(r1)
+	lwz     t4,56(r1)
+	lwz     t5,60(r1)
+	lwz     t6,64(r1)
+	lwz     t7,68(r1)
 
-	lwz     r0,148+8(r1)
+	lfd     ftmp1,72(r1)
+	lfd     ftmp2,80(r1)
+	lfd     ft0,88(r1)
+	lfd     ft1,96(r1)
+	lfd     ft2,104(r1)
+	lfd     ft3,112(r1)
+	lfd     ft4,120(r1)
+	lfd     ft5,128(r1)
+
+	lwz     r0,148+LA_LR_OFFSET(r1)
 	mtlr    r0
 	addi    r1,r1,148
 	lwz     pv,-12(r1)
@@ -457,6 +198,7 @@ calljava_regrestore:
 calljava_xhandler:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
+	li      v0,0                      /* return NULL                          */
 	b       calljava_regrestore
 
 
@@ -486,16 +228,16 @@ asm_calljavafunction2double:
 	stw     r31,-4(r1)
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-148(r1)
 	bl      0f
 0:
 	mflr    r31
 
 	stw     r16,40(r1)
-	stw	    r17,44(r1)
+	stw     r17,44(r1)
 	stw     r18,48(r1)
-	stw	    r19,52(r1)
+	stw     r19,52(r1)
 	stw     r20,56(r1)
 	stw     r21,60(r1)
 	stw     r22,64(r1)
@@ -525,19 +267,19 @@ asm_calljavafunction2double:
 	lwz     r4,offjniitem+sizejniblock*1+4(itmp1)
 	mr.     itmp2,itmp2
 	ble     calljava_argsloaded
-    addi    itmp2,itmp2,-1
+	addi    itmp2,itmp2,-1
 
-    addi    itmp2,itmp2,-1
-    lwz     r5,offjniitem+sizejniblock*2+4(itmp1)
-    mr.     itmp2,itmp2
-    ble     calljava_argsloaded
-    addi    itmp2,itmp2,-1
+	addi    itmp2,itmp2,-1
+	lwz     r5,offjniitem+sizejniblock*2+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
+	addi    itmp2,itmp2,-1
 
-    addi    itmp2,itmp2,-1
-    lwz     r6,offjniitem+sizejniblock*3+4(itmp1)
-    mr.     itmp2,itmp2
-    ble     calljava_argsloaded
-    addi    itmp2,itmp2,-1
+	addi    itmp2,itmp2,-1
+	lwz     r6,offjniitem+sizejniblock*3+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
+	addi    itmp2,itmp2,-1
 
 calljava_argsloaded:
 	addi    itmp1,r1,36
@@ -562,24 +304,24 @@ calljava_argsloaded:
 #endif
 
 calljava_regrestore2:
-	lwz		r16,40(r1)
-	lwz		r17,44(r1)
-	lwz		r18,48(r1)
-	lwz		r19,52(r1)
-	lwz		r20,56(r1)
-	lwz		r21,60(r1)
-	lwz		r22,64(r1)
-	lwz		r23,68(r1)
-	lfd		fr16,72(r1)
-	lfd		fr17,80(r1)
-	lfd		fr18,88(r1)
-	lfd		fr19,96(r1)
-	lfd		fr20,104(r1)
-	lfd		fr21,112(r1)
-	lfd		fr22,120(r1)
-	lfd		fr23,128(r1)
+	lwz     r16,40(r1)
+	lwz     r17,44(r1)
+	lwz     r18,48(r1)
+	lwz     r19,52(r1)
+	lwz     r20,56(r1)
+	lwz     r21,60(r1)
+	lwz     r22,64(r1)
+	lwz     r23,68(r1)
+	lfd     fr16,72(r1)
+	lfd     fr17,80(r1)
+	lfd     fr18,88(r1)
+	lfd     fr19,96(r1)
+	lfd     fr20,104(r1)
+	lfd     fr21,112(r1)
+	lfd     fr22,120(r1)
+	lfd     fr23,128(r1)
 
-	lwz     r0,148+8(r1)
+	lwz     r0,148+LA_LR_OFFSET(r1)
 	mtlr    r0
 	addi    r1,r1,148
 	lwz     pv,-12(r1)
@@ -590,6 +332,7 @@ calljava_regrestore2:
 calljava_xhandler2:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
+	li      v0,0                      /* return NULL                          */
 	b       calljava_regrestore2
 
 
@@ -598,7 +341,7 @@ asm_call_jit_compiler:
 	mflr    itmp1
 	stw     r31,-4(r1)
 	stw     r29,-12(r1)
-	stw     itmp1,8(r1)
+	stw     itmp1,LA_LR_OFFSET(r1)
 	stwu    r1,-176(r1)
 	mr      r31,pv
 
@@ -621,26 +364,29 @@ asm_call_jit_compiler:
 noregchange:
 	lwz     itmp1,168(r1)
 	mr      r29,mptr
-	stw     r3,28(r1)
-	stw     r4,32(r1)
-	stw     r5,36(r1)
-	stw     r6,40(r1)
-	stw     r7,44(r1)
-	stw     r8,48(r1)
-	stw     r9,52(r1)
-	stfd    fr1,56(r1)
-	stfd    fr2,64(r1)
-	stfd    fr3,72(r1)
-	stfd    fr4,80(r1)
-	stfd    fr5,88(r1)
-	stfd    fr6,96(r1)
-	stfd    fr7,104(r1)
-	stfd    fr8,112(r1)
-	stfd    fr9,120(r1)
-	stfd    fr10,128(r1)
-	stfd    fr11,136(r1)
-	stfd    fr12,144(r1)
-	stfd    fr13,152(r1)
+
+	stw     a0,28(r1)
+	stw     a1,32(r1)
+	stw     a2,36(r1)
+	stw     a3,40(r1)
+	stw     a4,44(r1)
+	stw     a5,48(r1)
+	stw     a6,52(r1)
+
+	stfd    fa0,56(r1)
+	stfd    fa1,64(r1)
+	stfd    fa2,72(r1)
+	stfd    fa3,80(r1)
+	stfd    fa4,88(r1)
+	stfd    fa5,96(r1)
+	stfd    fa6,104(r1)
+	stfd    fa7,112(r1)
+	stfd    fa8,120(r1)
+	stfd    fa9,128(r1)
+	stfd    fa10,136(r1)
+	stfd    fa11,144(r1)
+	stfd    fa12,152(r1)
+
 	stw     r10,160(r1)
 
 	lwz     r3,0(itmp1)
@@ -648,29 +394,32 @@ noregchange:
 	mr      pv,r3
 
 	mr      mptr,r29
-	lwz     r3,28(r1)
-	lwz	  	r4,32(r1)
-	lwz	  	r5,36(r1)
-	lwz	  	r6,40(r1)
-	lwz	  	r7,44(r1)
-	lwz	  	r8,48(r1)
-	lwz	  	r9,52(r1)
-	lfd	  	fr1,56(r1)
-	lfd	  	fr2,64(r1)
-	lfd	  	fr3,72(r1)
-	lfd	  	fr4,80(r1)
-	lfd	  	fr5,88(r1)
-	lfd	  	fr6,96(r1)
-	lfd	  	fr7,104(r1)
-	lfd	  	fr8,112(r1)
-	lfd	  	fr9,120(r1)
-	lfd	  	fr10,128(r1)
-	lfd	  	fr11,136(r1)
-	lfd	  	fr12,144(r1)
-	lfd	  	fr13,152(r1)
-	lwz	  	r10,160(r1)
 
-	lwz     itmp1,176+8(r1)
+	lwz     a0,28(r1)
+	lwz     a1,32(r1)
+	lwz     a2,36(r1)
+	lwz     a3,40(r1)
+	lwz     a4,44(r1)
+	lwz     a5,48(r1)
+	lwz     a6,52(r1)
+
+	lfd     fa0,56(r1)
+	lfd     fa1,64(r1)
+	lfd     fa2,72(r1)
+	lfd     fa3,80(r1)
+	lfd     fa4,88(r1)
+	lfd     fa5,96(r1)
+	lfd     fa6,104(r1)
+	lfd     fa7,112(r1)
+	lfd     fa8,120(r1)
+	lfd     fa9,128(r1)
+	lfd     fa10,136(r1)
+	lfd     fa11,144(r1)
+	lfd     fa12,152(r1)
+
+	lwz     r10,160(r1)
+
+	lwz     itmp1,176+LA_LR_OFFSET(r1)
 	lwz     itmp3,-12(itmp1)
 	extsh   itmp3,itmp3
 	add     mptr,mptr,itmp3
@@ -678,7 +427,7 @@ noregchange:
 
 	mtctr   pv
 
-	lwz     r0,176+8(r1)
+	lwz     r0,176+LA_LR_OFFSET(r1)
 	mtlr    r0
 	addi    r1,r1,176
 	lwz     r29,-12(r1)
@@ -695,13 +444,14 @@ noregchange:
 *******************************************************************************/
 		
 asm_handle_nullptr_exception:
-	stwu	r1,-32(r1)
-	stw		xpc,24(r1)
-	bl		new_nullpointerexception
-	lwz		xpc,24(r1)
-	addi	r1,r1,32
+	stwu    r1,-(LA_SIZE+1*4)(r1)
+	stw     xpc,24(r1)
+	bl      new_nullpointerexception
+	lwz     xpc,24(r1)
+	addi    r1,r1,(LA_SIZE+1*4)
 	mr      xptr,r3
 	b		asm_handle_exception
+
 
 /********************* function asm_handle_exception ***************************
 *                                                                              *
@@ -1027,45 +777,38 @@ ex_flt2:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-	lwz     itmp2,offclassinit(itmp1)
-	mr.     itmp2,itmp2
-	bne     L_is_initialized
-
 	mflr	r0
-#if defined(__DARWIN__)
-	stw     r0,8(r1)
-#else
-	stw     r0,4(r1)
-#endif
-	stwu    r1,-(36*8)(r1)        /* keep stack 16-bytes aligned              */
+	stw     r0,8*4+LA_LR_OFFSET(r1) /* skip stack frame of patcher stub       */
+	stwu    r1,-((6+1+37)*4)(r1)  /* keep stack 16-bytes aligned: 6+1+37 = 44 */
 
 #if 1
-       stw     r3,4*8(r1)            /* save argument registers                  */
-       stw     r4,5*8(r1)            /* preserve linkage area (24 bytes)         */
-       stw     r5,6*8(r1)            /* and 4 bytes (better 8) for 1 argument    */
-       stw     r6,7*8(r1)
-       stw     r7,8*8(r1)
-       stw     r8,9*8(r1)
-       stw     r9,10*8(r1)
-       stw     r10,11*8(r1)
+	stw     a0,(6+1+0)*4(r1)      /* save argument registers                  */
+	stw     a1,(6+1+1)*4(r1)      /* preserve linkage area (24 bytes)         */
+	stw     a2,(6+1+2)*4(r1)      /* and 4 bytes for 1 argument               */
+	stw     a3,(6+1+3)*4(r1)
+	stw     a4,(6+1+4)*4(r1)
+	stw     a5,(6+1+5)*4(r1)
+	stw     a6,(6+1+6)*4(r1)
+	stw     a7,(6+1+7)*4(r1)
 
-       stfd    fr1,12*8(r1)
-       stfd    fr2,13*8(r1)
-       stfd    fr3,14*8(r1)
-       stfd    fr4,15*8(r1)
-       stfd    fr5,16*8(r1)
-       stfd    fr6,17*8(r1)
-       stfd    fr7,18*8(r1)
-       stfd    fr8,19*8(r1)
-       stfd    fr9,20*8(r1)
-       stfd    fr10,21*8(r1)
-       stfd    fr11,22*8(r1)
-       stfd    fr12,23*8(r1)
-       stfd    fr13,24*8(r1)
+	stfd    fa0,(6+1+8)*4(sp)
+	stfd    fa1,(6+1+10)*4(sp)
+	stfd    fa2,(6+1+12)*4(sp)
+	stfd    fa3,(6+1+14)*4(sp)
+	stfd    fa4,(6+1+16)*4(sp)
+	stfd    fa5,(6+1+18)*4(sp)
+	stfd    fa6,(6+1+20)*4(sp)
+	stfd    fa7,(6+1+22)*4(sp)
+	stfd    fa8,(6+1+24)*4(sp)
+	stfd    fa9,(6+1+26)*4(sp)
+	stfd    fa10,(6+1+28)*4(sp)
+	stfd    fa11,(6+1+30)*4(sp)
+	stfd    fa12,(6+1+32)*4(sp)
 #else
 	SAVE_ARGUMENT_REGISTERS(6+1)  /* save 8 int/13 float argument registers   */
 #endif
 
+#if 0
 	stw     r2,25*8(r1)
 	stw     r16,26*8(r1)
 	stw     r17,27*8(r1)
@@ -1075,40 +818,46 @@ asm_wrapper_patcher:
 	stw     r21,31*8(r1)
 	stw     r22,32*8(r1)
 	stw     r23,33*8(r1)
+#endif
 
-	stw     pv,34*8(r1)
+	stw     itmp1,(6+1+34)*4(sp)
+	stw     itmp2,(6+1+35)*4(sp)
+	stw     pv,(6+1+36)*4(sp)
 
-	mr      r3,itmp1
-	bl      initialize_class
-	mr      itmp1,r3              /* save return value in temp register       */
+	addi    a0,sp,(1+6+1+37)*4    /* pass sp, skip patcher function pointer   */
+	lwz     pv,(0+6+1+37)*4(sp)   /* get function pointer                     */
+	mtctr   pv                    /* call the patcher function                */
+	bctrl
+	mr      itmp3,r3              /* save return value in temp register       */
 
 #if 1
-       lwz     r3,4*8(r1)
-       lwz     r4,5*8(r1)
-       lwz     r5,6*8(r1)
-       lwz     r6,7*8(r1)
-       lwz     r7,8*8(r1)
-       lwz     r8,9*8(r1)
-       lwz     r9,10*8(r1)
-       lwz     r10,11*8(r1)
+	lwz     a0,(6+1+0)*4(r1)
+	lwz     a1,(6+1+1)*4(r1)
+	lwz     a2,(6+1+2)*4(r1)
+	lwz     a3,(6+1+3)*4(r1)
+	lwz     a4,(6+1+4)*4(r1)
+	lwz     a5,(6+1+5)*4(r1)
+	lwz     a6,(6+1+6)*4(r1)
+	lwz     a7,(6+1+7)*4(r1)
 
-       lfd     fr1,12*8(r1)
-       lfd     fr2,13*8(r1)
-       lfd     fr3,14*8(r1)
-       lfd     fr4,15*8(r1)
-       lfd     fr5,16*8(r1)
-       lfd     fr6,17*8(r1)
-       lfd     fr7,18*8(r1)
-       lfd     fr8,19*8(r1)
-       lfd     fr9,20*8(r1)
-       lfd     fr10,21*8(r1)
-       lfd     fr11,22*8(r1)
-       lfd     fr12,23*8(r1)
-       lfd     fr13,24*8(r1)
+	lfd     fa0,(6+1+8)*4(sp)
+	lfd     fa1,(6+1+10)*4(sp)
+	lfd     fa2,(6+1+12)*4(sp)
+	lfd     fa3,(6+1+14)*4(sp)
+	lfd     fa4,(6+1+16)*4(sp)
+	lfd     fa5,(6+1+18)*4(sp)
+	lfd     fa6,(6+1+20)*4(sp)
+	lfd     fa7,(6+1+22)*4(sp)
+	lfd     fa8,(6+1+24)*4(sp)
+	lfd     fa9,(6+1+26)*4(sp)
+	lfd     fa10,(6+1+28)*4(sp)
+	lfd     fa11,(6+1+30)*4(sp)
+	lfd     fa12,(6+1+32)*4(sp)
 #else
 	RESTORE_ARGUMENT_REGISTERS(6+1)/* restore 8 int/13 float argument reg.    */
 #endif
 
+#if 0
 	lwz     r2,25*8(r1)
 	lwz     r16,26*8(r1)
 	lwz     r17,27*8(r1)
@@ -1118,43 +867,46 @@ asm_wrapper_patcher:
 	lwz     r21,31*8(r1)
 	lwz     r22,32*8(r1)
 	lwz     r23,33*8(r1)		
+#endif
 
-	lwz     pv,34*8(r1)
+	lwz     itmp1,(4+6+1+37)*4(sp)/* get return address (into JIT code)       */
+	mtlr    itmp1
 
-	lwz     r0,(36*8)+8(r1)
-	mtlr    r0
-	addi    r1,r1,(36*8)
+	lwz     itmp1,(6+1+34)*4(sp)
+	lwz     itmp2,(6+1+35)*4(sp)
+	lwz     pv,(6+1+36)*4(sp)
 
-	mr.     itmp1,itmp1           /* check for an exception                   */
-	beq     L_initializererror
+	addi    r1,r1,(8+6+1+37)*4    /* remove stack frame + patcher stub stack  */
 
-L_is_initialized:
-	blr
+	mr.     itmp3,itmp3           /* check for an exception                   */
+	beq     L_asm_wrapper_patcher_exception
 
-L_initializererror:
+	blr                           /* jump to new patched code                 */
+
+L_asm_wrapper_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
-	stw     r0,8(r1)
-	stwu    r1,-4*8(r1)           /* preserve linkage area (24 bytes)         */
+	stw     r0,LA_LR_OFFSET(r1)
+	stwu    r1,-LA_SIZE_ALIGNED(r1) /* preserve linkage area                  */
 	bl      builtin_asm_get_exceptionptrptr
-	lwz     r0,(4*8)+8(r1)
+	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(r1)
 	mtlr    r0	
-	addi    r1,r1,4*8
+	addi    r1,r1,LA_SIZE_ALIGNED
 #else
 # if defined(__DARWIN__)
-	lwz     r3,lo16(_exceptionptr-0b)(pv)
+	lwz     v0,lo16(_exceptionptr-0b)(pv)
 # else
-	lis     r3,_exceptionptr@ha
-	addi    r3,r3,_exceptionptr@l
+	lis     v0,_exceptionptr@ha
+	addi    v0,v0,_exceptionptr@l
 # endif
 #endif
 
-	lwz     xptr,0(r3)            /* get the exception pointer                */
-	li      r0,0
-	stw     r0,0(r3)              /* clear the exception pointer              */
+	lwz     xptr,0(v0)            /* get the exception pointer                */
+	li      itmp3,0
+	stw     itmp3,0(v0)           /* clear the exception pointer              */
 
 	mflr    xpc
-	b       asm_handle_nat_exception
+	b       asm_handle_exception
 
 
 /* asm_builtin_arraycheckcast **************************************************
@@ -1165,13 +917,13 @@ L_initializererror:
 		
 asm_builtin_arraycheckcast:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-48(r1)
 
 	stw     r3,32(r1)
 	bl      builtin_arraycheckcast
 
-	lwz     r0,48+8(r1)
+	lwz     r0,48+LA_LR_OFFSET(r1)
 	mtlr    r0
 	mr.     r3,r3
 	beq     nb_carray_throw
@@ -1182,12 +934,12 @@ asm_builtin_arraycheckcast:
 nb_carray_throw:
 	addi    r1,r1,48
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_classcastexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
@@ -1203,7 +955,7 @@ asm_builtin_aastore:
 	mr.     r3,r3
 	beq     nb_aastore_null
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-48(r1)
 
 	lwz     itmp1,offarraysize(r3)
@@ -1216,7 +968,7 @@ asm_builtin_aastore:
 	stw     r4,36(r1)
 	bl      builtin_canstore
 
-	lwz     r0,48+8(r1)
+	lwz     r0,48+LA_LR_OFFSET(r1)
 	mtlr    r0
 	lwz     itmp1,32(r1)
 	lwz     itmp2,36(r1)
@@ -1228,12 +980,12 @@ asm_builtin_aastore:
 
 nb_aastore_null:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_nullpointerexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
@@ -1241,72 +993,30 @@ nb_aastore_null:
 nb_aastore_bound:
 	addi    r1,r1,48
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-(24+1*4)(r1)
 	mr      r3,r4                 /* move index into a0                       */
 	bl      new_arrayindexoutofboundsexception
 	mr      xptr,r3
 	addi    r1,r1,(24+1*4)
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
 
 nb_aastore_store:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_arraystoreexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
 
 
-#if defined(USE_THREADS)
-asm_builtin_monitorenter:
-	mr.     r3,r3
-	beq     nb_monitorenter
-	b       builtin_monitorenter
-
-nb_monitorenter:
-	mflr    r0
-	stw     r0,8(r1)
-	stwu    r1,-24(r1)
-	bl      new_nullpointerexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,8(r1)
-/*	addi    xpc,r0,-4 */
-	mr      xpc,r0
-	addi    xpc,xpc,-4
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-asm_builtin_monitorexit:
-	mr.     r3,r3
-	beq     nb_monitorexit
-	b       builtin_monitorexit
-
-nb_monitorexit:
-	mflr    r0
-	stw     r0,8(r1)
-	stwu    r1,-24(r1)
-	bl      new_nullpointerexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,8(r1)
-/*	addi    xpc,r0,-4 */
-	mr      xpc,r0
-	addi    xpc,xpc,-4
-	mtlr    r0
-	b       asm_handle_nat_exception
-#endif
-
-	
 asm_builtin_idiv:
 	mr.     r4,r4
 	beq     nb_idiv
@@ -1323,12 +1033,12 @@ normal_idiv:
 
 nb_idiv:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
@@ -1354,12 +1064,12 @@ normal_irem:
 
 nb_irem:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
@@ -1372,12 +1082,12 @@ asm_builtin_ldiv:
 
 nb_ldiv:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception
@@ -1390,12 +1100,12 @@ asm_builtin_lrem:
 
 nb_lrem:
 	mflr    r0
-	stw     r0,8(r1)
+	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-24(r1)
 	bl      new_arithmeticexception
 	mr      xptr,r3
 	addi    r1,r1,24
-	lwz     r0,8(r1)
+	lwz     r0,LA_LR_OFFSET(r1)
 	mr      xpc,r0
 	mtlr    r0
 	b       asm_handle_nat_exception

@@ -1,5 +1,5 @@
-/* vm/jit/powerpc/codegen.h - code generation macros and definitions for
-                              32-bit powerpc
+/* src/vm/jit/powerpc/codegen.h - code generation macros and definitions for
+                              32-bit PowerPC
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,9 @@
    Authors: Andreas Krall
             Stefan Ring
 
-   $Id: codegen.h 2297 2005-04-13 12:50:07Z christian $
+   Changes: Christian Thalinger
+
+   $Id: codegen.h 2540 2005-05-31 16:01:11Z twisti $
 
 */
 
@@ -36,108 +38,11 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
+#include "md-abi.h"
+
 #include "vm/global.h"
 #include "vm/jit/reg.h"
 
-/* SET_ARG_STACKSLOTS ***************************************************
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
---- in
-i,call_argcount:  Number of arguments for this method
-curstack:         instack of the method invokation
-call_returntype:  return type
-
---- uses
-i, copy
-
---- out
-copy:             Points to first stackslot after the parameters
-rd->argintreguse: max. number of used integer argument register so far
-rd->argfltreguse: max. number of used float argument register so far
-rd->ifmemuse:     max. number of stackslots used for spilling parameters
-                  so far
-************************************************************************/
-#define SET_ARG_STACKSLOTS {											\
-		s4 iarg = 0;													\
-		s4 farg = 0;													\
-		s4 iarg_max = 0;												\
-		s4 stacksize;													\
-																		\
-		stacksize = 6;													\
-																		\
-		copy = curstack;												\
-		for (;i > 0; i--) {												\
-			stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
-			if (IS_FLT_DBL_TYPE(copy->type))							\
-				farg++;													\
-			copy = copy->prev;											\
-		}																\
-		if (rd->argfltreguse < farg)                                    \
-			rd->argfltreguse = farg;									\
-																		\
-		/* REG_FRESULT == FLOAT ARGUMENT REGISTER 0 */					\
-		if (IS_FLT_DBL_TYPE(call_returntype))							\
-			if (rd->argfltreguse < 1)									\
-				rd->argfltreguse = 1;									\
-																		\
-		if (stacksize > rd->ifmemuse)									\
-			rd->ifmemuse = stacksize;									\
-																		\
-		i = call_argcount;												\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			stacksize -= (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
-			if (IS_FLT_DBL_TYPE(copy->type)) {							\
-				farg--;													\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;									\
-					copy->varkind = ARGVAR;								\
-					if (farg < rd->fltreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argfltregs[farg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = stacksize;						\
-					}													\
-				}														\
-			} else {													\
-				iarg = stacksize - 6;									\
-				if (iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1) > iarg_max) \
-					iarg_max = iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1); \
-																		\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;									\
-					copy->varkind = ARGVAR;								\
-					if ((iarg+((IS_2_WORD_TYPE(copy->type)) ? 1 : 0)) < rd->intreg_argnum) { \
-						copy->flags = 0;								\
-						copy->regoff = rd->argintregs[iarg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = stacksize;						\
-					}													\
-				}														\
-			}															\
-			copy = copy->prev;											\
-		}																\
-		if (rd->argintreguse < iarg_max)								\
-			rd->argintreguse = iarg_max;								\
-		if (IS_INT_LNG_TYPE(call_returntype)) {							\
-			/* REG_RESULT  == INTEGER ARGUMENT REGISTER 0 */			\
-			/* REG_RESULT2 == INTEGER ARGUMENT REGISTER 1 */			\
-			if (IS_2_WORD_TYPE(call_returntype)) {						\
-				if (rd->argintreguse < 2)								\
-					rd->argintreguse = 2;								\
-			} else {													\
-				if (rd->argintreguse < 1)								\
-					rd->argintreguse = 1;								\
-			}															\
-		}																\
-	}
 
 /* additional functions and macros to generate code ***************************/
 
@@ -174,6 +79,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define MCODECHECK(icnt) \
 	if ((mcodeptr + (icnt)) > cd->mcodeend) \
         mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+
 
 /* M_INTMOVE:
      generates an integer-move from register a to b.
@@ -305,158 +211,170 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 					}\
 				}
 
-#define ALIGNCODENOP {if((int)((long)mcodeptr&7)){M_NOP;}}
+
+#define ALIGNCODENOP \
+    if ((s4) ((ptrint) mcodeptr & 7)) { \
+        M_NOP; \
+    }
 
 
 /* macros to create code ******************************************************/
 
 #define M_OP3(x,y,oe,rc,d,a,b) \
-	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((b)<<11) | ((oe)<<10) | ((y)<<1) | (rc))
+	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
 
 #define M_OP4(x,y,rc,d,a,b,c) \
-	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((b)<<11) | ((c)<<6) | ((y)<<1) | (rc))
+	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc))
 
 #define M_OP2_IMM(x,d,a,i) \
-	*mcodeptr++ = (((x)<<26) | ((d)<<21) | ((a)<<16) | ((i)&0xffff))
+	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff))
 
-#define M_BRMASK (((1<<16)-1)&~3)
-#define M_BRAMASK (((1<<26)-1)&~3)
+#define M_BRMASK (((1 << 16) - 1) & ~3)
+#define M_BRAMASK (((1 << 26) - 1) & ~3)
 
 #define M_BRA(x,i,a,l) \
-	*mcodeptr++ = (((x)<<26) | (((i)*4+4)&M_BRAMASK) | ((a)<<1) | (l));
+	*(mcodeptr++) = (((x) << 26) | (((i) * 4 + 4) & M_BRAMASK) | ((a) << 1) | (l));
 
 #define M_BRAC(x,bo,bi,i,a,l) \
-	*mcodeptr++ = (((x)<<26) | ((bo)<<21) | ((bi)<<16) | (((i)*4+4)&M_BRMASK) | ((a)<<1) | (l));
+	*(mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l));
 
-#define M_IADD(a,b,c) M_OP3(31, 266, 0, 0, c, a, b)
-#define M_IADD_IMM(a,b,c) M_OP2_IMM(14, c, a, b)
-#define M_ADDC(a,b,c) M_OP3(31, 10, 0, 0, c, a, b)
-#define M_ADDIC(a,b,c) M_OP2_IMM(12, c, a, b)
-#define M_ADDICTST(a,b,c) M_OP2_IMM(13, c, a, b)
-#define M_ADDE(a,b,c) M_OP3(31, 138, 0, 0, c, a, b)
-#define M_ADDZE(a,b) M_OP3(31, 202, 0, 0, b, a, 0)
-#define M_ADDME(a,b) M_OP3(31, 234, 0, 0, b, a, 0)
-#define M_ISUB(a,b,c) M_OP3(31, 40, 0, 0, c, b, a)
-#define M_ISUBTST(a,b,c) M_OP3(31, 40, 0, 1, c, b, a)
-#define M_SUBC(a,b,c) M_OP3(31, 8, 0, 0, c, b, a)
-#define M_SUBIC(a,b,c) M_OP2_IMM(8, c, b, a)
-#define M_SUBE(a,b,c) M_OP3(31, 136, 0, 0, c, b, a)
-#define M_SUBZE(a,b) M_OP3(31, 200, 0, 0, b, a, 0)
-#define M_SUBME(a,b) M_OP3(31, 232, 0, 0, b, a, 0)
-#define M_AND(a,b,c) M_OP3(31, 28, 0, 0, a, c, b)
-#define M_AND_IMM(a,b,c) M_OP2_IMM(28, a, c, b)
-#define M_ANDIS(a,b,c) M_OP2_IMM(29, a, c, b)
-#define M_OR(a,b,c) M_OP3(31, 444, 0, 0, a, c, b)
-#define M_OR_IMM(a,b,c) M_OP2_IMM(24, a, c, b)
-#define M_ORIS(a,b,c) M_OP2_IMM(25, a, c, b)
-#define M_XOR(a,b,c) M_OP3(31, 316, 0, 0, a, c, b)
-#define M_XOR_IMM(a,b,c) M_OP2_IMM(26, a, c, b)
-#define M_XORIS(a,b,c) M_OP2_IMM(27, a, c, b)
-#define M_SLL(a,b,c) M_OP3(31, 24, 0, 0, a, c, b)
-#define M_SRL(a,b,c) M_OP3(31, 536, 0, 0, a, c, b)
-#define M_SRA(a,b,c) M_OP3(31, 792, 0, 0, a, c, b)
-#define M_SRA_IMM(a,b,c) M_OP3(31, 824, 0, 0, a, c, b)
-#define M_IMUL(a,b,c) M_OP3(31, 235, 0, 0, c, a, b)
-#define M_IMUL_IMM(a,b,c) M_OP2_IMM(7, c, a, b)
-#define M_IDIV(a,b,c) M_OP3(31, 491, 0, 0, c, a, b)
-#define M_NEG(a,b) M_OP3(31, 104, 0, 0, b, a, 0)
-#define M_NOT(a,b) M_OP3(31, 124, 0, 0, a, b, a)
 
-#define M_SUBFIC(a,b,c) M_OP2_IMM(8, c, a, b)
-#define M_SUBFZE(a,b) M_OP3(31, 200, 0, 0, b, a, 0)
-#define M_RLWINM(a,b,c,d,e) M_OP4(21, d, 0, a, e, b, c)
-#define M_ADDZE(a,b) M_OP3(31, 202, 0, 0, b, a, 0)
-#define M_SLL_IMM(a,b,c) M_RLWINM(a,b,0,31-(b),c)
-#define M_SRL_IMM(a,b,c) M_RLWINM(a,32-(b),b,31,c)
-#define M_ADDIS(a,b,c) M_OP2_IMM(15, c, a, b)
-#define M_STFIWX(a,b,c) M_OP3(31, 983, 0, 0, a, b, c)
-#define M_LWZX(a,b,c) M_OP3(31, 23, 0, 0, a, b, c)
-#define M_LHZX(a,b,c) M_OP3(31, 279, 0, 0, a, b, c)
-#define M_LHAX(a,b,c) M_OP3(31, 343, 0, 0, a, b, c)
-#define M_LBZX(a,b,c) M_OP3(31, 87, 0, 0, a, b, c)
-#define M_LFSX(a,b,c) M_OP3(31, 535, 0, 0, a, b, c)
-#define M_LFDX(a,b,c) M_OP3(31, 599, 0, 0, a, b, c)
-#define M_STWX(a,b,c) M_OP3(31, 151, 0, 0, a, b, c)
-#define M_STHX(a,b,c) M_OP3(31, 407, 0, 0, a, b, c)
-#define M_STBX(a,b,c) M_OP3(31, 215, 0, 0, a, b, c)
-#define M_STFSX(a,b,c) M_OP3(31, 663, 0, 0, a, b, c)
-#define M_STFDX(a,b,c) M_OP3(31, 727, 0, 0, a, b, c)
-#define M_STWU(a,b,c) M_OP2_IMM(37, a, b, c)
-#define M_LDAH(a,b,c) M_ADDIS(b, c, a)
-#define M_TRAP M_OP3(31, 4, 0, 0, 31, 0, 0)
+/* instruction macros *********************************************************/
 
-#define M_NOP M_OR_IMM(0, 0, 0)
-#define M_MOV(a,b) M_OR(a, a, b)
-#define M_TST(a) M_OP3(31, 444, 0, 1, a, a, a)
+#define M_IADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b)
+#define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
+#define M_ADDC(a,b,c)                   M_OP3(31, 10, 0, 0, c, a, b)
+#define M_ADDIC(a,b,c)                  M_OP2_IMM(12, c, a, b)
+#define M_ADDICTST(a,b,c)               M_OP2_IMM(13, c, a, b)
+#define M_ADDE(a,b,c)                   M_OP3(31, 138, 0, 0, c, a, b)
+#define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
+#define M_ADDME(a,b)                    M_OP3(31, 234, 0, 0, b, a, 0)
+#define M_ISUB(a,b,c)                   M_OP3(31, 40, 0, 0, c, b, a)
+#define M_ISUBTST(a,b,c)                M_OP3(31, 40, 0, 1, c, b, a)
+#define M_SUBC(a,b,c)                   M_OP3(31, 8, 0, 0, c, b, a)
+#define M_SUBIC(a,b,c)                  M_OP2_IMM(8, c, b, a)
+#define M_SUBE(a,b,c)                   M_OP3(31, 136, 0, 0, c, b, a)
+#define M_SUBZE(a,b)                    M_OP3(31, 200, 0, 0, b, a, 0)
+#define M_SUBME(a,b)                    M_OP3(31, 232, 0, 0, b, a, 0)
 
-#define M_DADD(a,b,c) M_OP3(63, 21, 0, 0, c, a, b)
-#define M_FADD(a,b,c) M_OP3(59, 21, 0, 0, c, a, b)
-#define M_DSUB(a,b,c) M_OP3(63, 20, 0, 0, c, a, b)
-#define M_FSUB(a,b,c) M_OP3(59, 20, 0, 0, c, a, b)
-#define M_DMUL(a,b,c) M_OP4(63, 25, 0, c, a, 0, b)
-#define M_FMUL(a,b,c) M_OP4(59, 25, 0, c, a, 0, b)
-#define M_DDIV(a,b,c) M_OP3(63, 18, 0, 0, c, a, b)
-#define M_FDIV(a,b,c) M_OP3(59, 18, 0, 0, c, a, b)
+#define M_AND(a,b,c)                    M_OP3(31, 28, 0, 0, a, c, b)
+#define M_AND_IMM(a,b,c)                M_OP2_IMM(28, a, c, b)
+#define M_ANDIS(a,b,c)                  M_OP2_IMM(29, a, c, b)
+#define M_OR(a,b,c)                     M_OP3(31, 444, 0, 0, a, c, b)
+#define M_OR_IMM(a,b,c)                 M_OP2_IMM(24, a, c, b)
+#define M_ORIS(a,b,c)                   M_OP2_IMM(25, a, c, b)
+#define M_XOR(a,b,c)                    M_OP3(31, 316, 0, 0, a, c, b)
+#define M_XOR_IMM(a,b,c)                M_OP2_IMM(26, a, c, b)
+#define M_XORIS(a,b,c)                  M_OP2_IMM(27, a, c, b)
 
-#define M_FABS(a,b) M_OP3(63, 264, 0, 0, b, 0, a)
-#define M_CVTDL(a,b) M_OP3(63, 14, 0, 0, b, 0, a)
-#define M_CVTDL_C(a,b) M_OP3(63, 15, 0, 0, b, 0, a)
-#define M_CVTDF(a,b) M_OP3(63, 12, 0, 0, b, 0, a)
-#define M_FMOV(a,b) M_OP3(63, 72, 0, 0, b, 0, a)
-#define M_FMOVN(a,b) M_OP3(63, 40, 0, 0, b, 0, a)
-#define M_DSQRT(a,b) M_OP3(63, 22, 0, 0, b, 0, a)
-#define M_FSQRT(a,b) M_OP3(59, 22, 0, 0, b, 0, a)
+#define M_SLL(a,b,c)                    M_OP3(31, 24, 0, 0, a, c, b)
+#define M_SRL(a,b,c)                    M_OP3(31, 536, 0, 0, a, c, b)
+#define M_SRA(a,b,c)                    M_OP3(31, 792, 0, 0, a, c, b)
+#define M_SRA_IMM(a,b,c)                M_OP3(31, 824, 0, 0, a, c, b)
 
-#define M_FCMPU(a,b) M_OP3(63, 0, 0, 0, 0, a, b)
-#define M_FCMPO(a,b) M_OP3(63, 32, 0, 0, 0, a, b)
+#define M_IMUL(a,b,c)                   M_OP3(31, 235, 0, 0, c, a, b)
+#define M_IMUL_IMM(a,b,c)               M_OP2_IMM(7, c, a, b)
+#define M_IDIV(a,b,c)                   M_OP3(31, 491, 0, 0, c, a, b)
 
-#define M_BST(a,b,c) M_OP2_IMM(38, a, b, c)
-#define M_SST(a,b,c) M_OP2_IMM(44, a, b, c)
-#define M_IST(a,b,c) M_OP2_IMM(36, a, b, c)
-#define M_AST(a,b,c) M_OP2_IMM(36, a, b, c)
-#define M_BLDU(a,b,c) M_OP2_IMM(34, a, b, c)
-#define M_SLDU(a,b,c) M_OP2_IMM(40, a, b, c)
-#define M_ILD(a,b,c) M_OP2_IMM(32, a, b, c)
-#define M_ALD(a,b,c) M_OP2_IMM(32, a, b, c)
+#define M_NEG(a,b)                      M_OP3(31, 104, 0, 0, b, a, 0)
+#define M_NOT(a,b)                      M_OP3(31, 124, 0, 0, a, b, a)
 
-#define M_BSEXT(a,b) M_OP3(31, 954, 0, 0, a, b, 0)
-#define M_SSEXT(a,b) M_OP3(31, 922, 0, 0, a, b, 0)
-#define M_CZEXT(a,b) M_RLWINM(a,0,16,31,b)
+#define M_SUBFIC(a,b,c)                 M_OP2_IMM(8, c, a, b)
+#define M_SUBFZE(a,b)                   M_OP3(31, 200, 0, 0, b, a, 0)
+#define M_RLWINM(a,b,c,d,e)             M_OP4(21, d, 0, a, e, b, c)
+#define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
+#define M_SLL_IMM(a,b,c)                M_RLWINM(a,b,0,31-(b),c)
+#define M_SRL_IMM(a,b,c)                M_RLWINM(a,32-(b),b,31,c)
+#define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
+#define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)
+#define M_LWZX(a,b,c)                   M_OP3(31, 23, 0, 0, a, b, c)
+#define M_LHZX(a,b,c)                   M_OP3(31, 279, 0, 0, a, b, c)
+#define M_LHAX(a,b,c)                   M_OP3(31, 343, 0, 0, a, b, c)
+#define M_LBZX(a,b,c)                   M_OP3(31, 87, 0, 0, a, b, c)
+#define M_LFSX(a,b,c)                   M_OP3(31, 535, 0, 0, a, b, c)
+#define M_LFDX(a,b,c)                   M_OP3(31, 599, 0, 0, a, b, c)
+#define M_STWX(a,b,c)                   M_OP3(31, 151, 0, 0, a, b, c)
+#define M_STHX(a,b,c)                   M_OP3(31, 407, 0, 0, a, b, c)
+#define M_STBX(a,b,c)                   M_OP3(31, 215, 0, 0, a, b, c)
+#define M_STFSX(a,b,c)                  M_OP3(31, 663, 0, 0, a, b, c)
+#define M_STFDX(a,b,c)                  M_OP3(31, 727, 0, 0, a, b, c)
+#define M_STWU(a,b,c)                   M_OP2_IMM(37, a, b, c)
+#define M_LDAH(a,b,c)                   M_ADDIS(b, c, a)
+#define M_TRAP                          M_OP3(31, 4, 0, 0, 31, 0, 0)
 
-#define M_BR(a) M_BRA(18, a, 0, 0);
-#define M_BL(a) M_BRA(18, a, 0, 1);
-#define M_RET M_OP3(19, 16, 0, 0, 20, 0, 0);
-#define M_JSR M_OP3(19, 528, 0, 1, 20, 0, 0);
-#define M_RTS M_OP3(19, 528, 0, 0, 20, 0, 0);
+#define M_NOP                           M_OR_IMM(0, 0, 0)
+#define M_MOV(a,b)                      M_OR(a, a, b)
+#define M_TST(a)                        M_OP3(31, 444, 0, 1, a, a, a)
 
-#define M_CMP(a,b) M_OP3(31, 0, 0, 0, 0, a, b);
-#define M_CMPU(a,b) M_OP3(31, 32, 0, 0, 0, a, b);
-#define M_CMPI(a,b) M_OP2_IMM(11, 0, a, b);
-#define M_CMPUI(a,b) M_OP2_IMM(10, 0, a, b);
+#define M_DADD(a,b,c)                   M_OP3(63, 21, 0, 0, c, a, b)
+#define M_FADD(a,b,c)                   M_OP3(59, 21, 0, 0, c, a, b)
+#define M_DSUB(a,b,c)                   M_OP3(63, 20, 0, 0, c, a, b)
+#define M_FSUB(a,b,c)                   M_OP3(59, 20, 0, 0, c, a, b)
+#define M_DMUL(a,b,c)                   M_OP4(63, 25, 0, c, a, 0, b)
+#define M_FMUL(a,b,c)                   M_OP4(59, 25, 0, c, a, 0, b)
+#define M_DDIV(a,b,c)                   M_OP3(63, 18, 0, 0, c, a, b)
+#define M_FDIV(a,b,c)                   M_OP3(59, 18, 0, 0, c, a, b)
 
-#define M_BLT(a) M_BRAC(16, 12, 0, a, 0, 0);
-#define M_BLE(a) M_BRAC(16, 4, 1, a, 0, 0);
-#define M_BGT(a) M_BRAC(16, 12, 1, a, 0, 0);
-#define M_BGE(a) M_BRAC(16, 4, 0, a, 0, 0);
-#define M_BEQ(a) M_BRAC(16, 12, 2, a, 0, 0);
-#define M_BNE(a) M_BRAC(16, 4, 2, a, 0, 0);
-#define M_BNAN(a) M_BRAC(16, 12, 3, a, 0, 0);
+#define M_FABS(a,b)                     M_OP3(63, 264, 0, 0, b, 0, a)
+#define M_CVTDL(a,b)                    M_OP3(63, 14, 0, 0, b, 0, a)
+#define M_CVTDL_C(a,b)                  M_OP3(63, 15, 0, 0, b, 0, a)
+#define M_CVTDF(a,b)                    M_OP3(63, 12, 0, 0, b, 0, a)
+#define M_FMOV(a,b)                     M_OP3(63, 72, 0, 0, b, 0, a)
+#define M_FMOVN(a,b)                    M_OP3(63, 40, 0, 0, b, 0, a)
+#define M_DSQRT(a,b)                    M_OP3(63, 22, 0, 0, b, 0, a)
+#define M_FSQRT(a,b)                    M_OP3(59, 22, 0, 0, b, 0, a)
 
-#define M_DLD(a,b,c) M_OP2_IMM(50, a, b, c)
-#define M_DST(a,b,c) M_OP2_IMM(54, a, b, c)
-#define M_FLD(a,b,c) M_OP2_IMM(48, a, b, c)
-#define M_FST(a,b,c) M_OP2_IMM(52, a, b, c)
+#define M_FCMPU(a,b)                    M_OP3(63, 0, 0, 0, 0, a, b)
+#define M_FCMPO(a,b)                    M_OP3(63, 32, 0, 0, 0, a, b)
 
-#define M_MFLR(a) M_OP3(31, 339, 0, 0, a, 8, 0)
-#define M_MFXER(a) M_OP3(31, 339, 0, 0, a, 1, 0)
-#define M_MFCTR(a) M_OP3(31, 339, 0, 0, a, 9, 0)
-#define M_MTLR(a) M_OP3(31, 467, 0, 0, a, 8, 0)
-#define M_MTXER(a) M_OP3(31, 467, 0, 0, a, 1, 0)
-#define M_MTCTR(a) M_OP3(31, 467, 0, 0, a, 9, 0)
+#define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)
+#define M_SST(a,b,c)                    M_OP2_IMM(44, a, b, c)
+#define M_IST(a,b,c)                    M_OP2_IMM(36, a, b, c)
+#define M_AST(a,b,c)                    M_OP2_IMM(36, a, b, c)
+#define M_BLDU(a,b,c)                   M_OP2_IMM(34, a, b, c)
+#define M_SLDU(a,b,c)                   M_OP2_IMM(40, a, b, c)
+#define M_ILD(a,b,c)                    M_OP2_IMM(32, a, b, c)
+#define M_ALD(a,b,c)                    M_OP2_IMM(32, a, b, c)
 
-#define M_LDA(a,b,c) M_IADD_IMM(b, c, a)
-#define M_LDATST(a,b,c) M_ADDICTST(b, c, a)
-#define M_CLR(a) M_IADD_IMM(0, 0, a)
+#define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
+#define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
+#define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)
+
+#define M_BR(a)                         M_BRA(18, a, 0, 0);
+#define M_BL(a)                         M_BRA(18, a, 0, 1);
+#define M_RET                           M_OP3(19, 16, 0, 0, 20, 0, 0);
+#define M_JSR                           M_OP3(19, 528, 0, 1, 20, 0, 0);
+#define M_RTS                           M_OP3(19, 528, 0, 0, 20, 0, 0);
+
+#define M_CMP(a,b)                      M_OP3(31, 0, 0, 0, 0, a, b);
+#define M_CMPU(a,b)                     M_OP3(31, 32, 0, 0, 0, a, b);
+#define M_CMPI(a,b)                     M_OP2_IMM(11, 0, a, b);
+#define M_CMPUI(a,b)                    M_OP2_IMM(10, 0, a, b);
+
+#define M_BLT(a)                        M_BRAC(16, 12, 0, a, 0, 0);
+#define M_BLE(a)                        M_BRAC(16, 4, 1, a, 0, 0);
+#define M_BGT(a)                        M_BRAC(16, 12, 1, a, 0, 0);
+#define M_BGE(a)                        M_BRAC(16, 4, 0, a, 0, 0);
+#define M_BEQ(a)                        M_BRAC(16, 12, 2, a, 0, 0);
+#define M_BNE(a)                        M_BRAC(16, 4, 2, a, 0, 0);
+#define M_BNAN(a)                       M_BRAC(16, 12, 3, a, 0, 0);
+
+#define M_DLD(a,b,c)                    M_OP2_IMM(50, a, b, c)
+#define M_DST(a,b,c)                    M_OP2_IMM(54, a, b, c)
+#define M_FLD(a,b,c)                    M_OP2_IMM(48, a, b, c)
+#define M_FST(a,b,c)                    M_OP2_IMM(52, a, b, c)
+
+#define M_MFLR(a)                       M_OP3(31, 339, 0, 0, a, 8, 0)
+#define M_MFXER(a)                      M_OP3(31, 339, 0, 0, a, 1, 0)
+#define M_MFCTR(a)                      M_OP3(31, 339, 0, 0, a, 9, 0)
+#define M_MTLR(a)                       M_OP3(31, 467, 0, 0, a, 8, 0)
+#define M_MTXER(a)                      M_OP3(31, 467, 0, 0, a, 1, 0)
+#define M_MTCTR(a)                      M_OP3(31, 467, 0, 0, a, 9, 0)
+
+#define M_LDA(a,b,c)                    M_IADD_IMM(b, c, a)
+#define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
+#define M_CLR(a)                        M_IADD_IMM(0, 0, a)
+#define M_AADD_IMM(a,b,c)               M_IADD_IMM(a, b, c)
 
 
 /* function gen_resolvebranch **************************************************
