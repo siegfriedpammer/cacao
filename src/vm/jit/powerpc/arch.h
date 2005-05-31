@@ -28,53 +28,13 @@
 
    Changes:
 
-   $Id: arch.h 2356 2005-04-22 17:33:35Z christian $
+   $Id: arch.h 2538 2005-05-31 15:55:01Z twisti $
 
 */
 
 
 #ifndef _ARCH_H
 #define _ARCH_H
-
-
-/* preallocated registers *****************************************************/
-
-/* integer registers */
-  
-#define REG_RESULT       3   /* to deliver method results                     */
-#define REG_RESULT2      4   /* to deliver long method results                */
-
-/*#define REG_RA          26*/  /* return address                                */
-#define REG_PV          13   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   12   /* pointer to the place from where the procedure */
-                             /* vector has been fetched                       */
-#define REG_ITMP1       11   /* temporary register                            */
-#define REG_ITMP2       12   /* temporary register and method pointer         */
-#define REG_ITMP3        0   /* temporary register                            */
-
-#define REG_ITMP1_XPTR  11   /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   12   /* exception pc = temporary register 2           */
-
-#define REG_SP           1   /* stack pointer                                 */
-#define REG_ZERO         0   /* allways zero                                  */
-
-/* floating point registers */
-
-#define REG_FRESULT      1   /* to deliver floating point method results      */
-#define REG_FTMP1       16   /* temporary floating point register             */
-#define REG_FTMP2       17   /* temporary floating point register             */
-#define REG_FTMP3        0   /* temporary floating point register             */
-
-#define REG_IFTMP        0   /* temporary integer and floating point register */
-
-
-/*#define INT_SAV_CNT     19*/   /* number of int callee saved registers          */
-#define INT_ARG_CNT      8   /* number of int argument registers              */
-
-/*#define FLT_SAV_CNT     18*/   /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     13   /* number of flt argument registers              */
-
-#define TRACE_ARGS_NUM   8
 
 
 /* define architecture features ***********************************************/
@@ -122,6 +82,7 @@
 #define SPECIALMEMUSE
 #define HAS_4BYTE_STACKSLOT
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
+
 #endif /* _ARCH_H */
 
 
