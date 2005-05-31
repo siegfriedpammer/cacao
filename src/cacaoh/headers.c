@@ -30,13 +30,14 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2518 2005-05-23 11:57:59Z twisti $
+   $Id: headers.c 2543 2005-05-31 18:36:17Z twisti $
 
 */
 
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -64,6 +65,13 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+
+/* for raising exceptions from native methods */
+
+#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+java_objectheader *_exceptionptr = NULL;
+#endif
 
 
 /******* replace some external functions  *********/
