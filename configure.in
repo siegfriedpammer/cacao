@@ -69,12 +69,15 @@ CFLAGS="-O0 -g3 $CFLAGS"
 
 case "$host_os" in
 *linux* | *Linux* )
+	OS_DIR="linux"
         CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
 	;;
 *darwin* )
+	OS_DIR="darwin"
         CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__DARWIN__"
         ;;
 *irix* )
+	OS_DIR="irix"
         CFLAGS="$CFLAGS -D__IRIX__"
         ;;
 * )
@@ -85,6 +88,7 @@ esac
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [Architecture directory])
 AC_SUBST(ARCH_DIR)
+AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
 
 
