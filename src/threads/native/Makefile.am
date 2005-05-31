@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 2544 2005-05-31 22:35:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@
 
 noinst_LTLIBRARIES = libthreads.la
 
