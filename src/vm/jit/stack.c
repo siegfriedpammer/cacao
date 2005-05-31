@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2496 2005-05-23 08:06:06Z twisti $
+   $Id: stack.c 2541 2005-05-31 16:02:14Z twisti $
 
 */
 
@@ -40,7 +40,9 @@
 
 #include "disass.h"
 #include "types.h"
+#include "md-abi.h"
 #include "codegen.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "toolbox/logging.h"
@@ -1894,19 +1896,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_INVOKESTATIC:
 						COUNT(count_pcmd_met);
 						{
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 							unresolved_method *um = iptr->target; 	 
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
 							call_argcount = iptr->op1; 	 
 							call_returntype = um->methodref->parseddesc.md->returntype.type; 	 
-#else
-							methodinfo *lm = iptr->val.a;
-							if (lm->flags & ACC_STATIC)
-								{COUNT(count_check_null);}
-							call_argcount = iptr->op1;
-							call_returntype = lm->returntype;
-#endif
 
 						_callhandling:
 							i = call_argcount;
@@ -2608,7 +2602,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->val.a) 	 
 			printf(" %d, ", ((fieldinfo *) iptr->val.a)->offset);
 		else 	 
@@ -2619,21 +2612,10 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type ");
 		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
 		printf(")"); 
-#else 	 
-		printf(" %d,", ((fieldinfo *) iptr->val.a)->offset); 	 
-		printf(" ");
-		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
-		printf(".");
-		utf_display(((fieldinfo *) iptr->val.a)->name);
-		printf(" (type ");
-		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
-		printf(")");
-#endif
 		break;
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->val.a)
 			printf(" ");
 		else
@@ -2644,15 +2626,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type ");
 		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
 		printf(")");
-#else 	 
-		printf(" ");
-		utf_display_classname(((fieldinfo *) iptr->val.a)->class->name);
-		printf(".");
-		utf_display(((fieldinfo *) iptr->val.a)->name);
-		printf(" (type ");
-		utf_display(((fieldinfo *) iptr->val.a)->descriptor);
-		printf(")");
-#endif
 		break;
 
 	case ICMD_PUTSTATICCONST:
@@ -2782,20 +2755,17 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_MULTIANEWARRAY:
-		{
-			vftbl_t *vft;
+		if (iptr->target) {
+			printf(" (NOT RESOLVED) %d ",iptr->op1);
+			utf_display(((constant_classref *) iptr->val.a)->name);
+		} else {
 			printf(" %d ",iptr->op1);
-			vft = (vftbl_t *)iptr->val.a;
-			if (vft)
-				utf_display_classname(vft->class->name);
-			else
-				printf("<null>");
+			utf_display_classname(((vftbl_t *) iptr->val.a)->class->name);
 		}
 		break;
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->op1) {
 			classinfo *c = iptr->val.a;
 			if (c) {
@@ -2807,16 +2777,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 				printf(" (NOT RESOLVED) ");
 			}
 			utf_display_classname(((constant_classref *) iptr->target)->name);
-		}
-		break;
-#endif
-		if (iptr->op1) {
-			classinfo *c = iptr->val.a;
-			if (c->flags & ACC_INTERFACE)
-				printf(" (INTERFACE) ");
-			else
-				printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			utf_display_classname(c->name);
 		}
 		break;
 
@@ -2836,7 +2796,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (!iptr->val.a)
 			printf(" (NOT RESOLVED) ");
 		else
@@ -2845,13 +2804,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(".");
 		utf_display(((unresolved_method *) iptr->target)->methodref->name);
 		utf_display(((unresolved_method *) iptr->target)->methodref->descriptor);
-#else
-		printf(" ");
-		utf_display_classname(((methodinfo *) iptr->val.a)->class->name);
-		printf(".");
-		utf_display(((methodinfo *) iptr->val.a)->name);
-		utf_display(((methodinfo *) iptr->val.a)->descriptor);
-#endif
 		break;
 
 	case ICMD_IFEQ:

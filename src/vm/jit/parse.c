@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2514 2005-05-23 10:23:09Z twisti $
+   $Id: parse.c 2541 2005-05-31 16:02:14Z twisti $
 
 */
 
@@ -686,12 +686,10 @@ SHOWOPCODE(DEBUG4)
 			OP(ICMD_CHECKASIZE);
 			i = code_get_u2(p + 1, inline_env->method);
 			{
-				classinfo *component;
 				constant_classref *compr;
 				constant_classref *cr;
 				classinfo         *c;
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!(cr = class_get_classref_multiarray_of(1, compr)))
@@ -709,20 +707,6 @@ SHOWOPCODE(DEBUG4)
 					BUILTIN2T(PATCHER_builtin_newarray, TYPE_ADR, cr, currentline);
 				}
 				s_count++;
-#else
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-
-				if (!resolve_classref(inline_env->method,
-							cr,resolveEager,true,&component))
-					return NULL;
-
-				c = class_array_of(component,true);
-				if (!c)
-					return NULL;
-  				LOADCONST_A_BUILTIN(c->vftbl);
-				s_count++;
-				BUILTIN2(BUILTIN_newarray, TYPE_ADR, currentline);
-#endif
 			}
 			OP(ICMD_CHECKEXCEPTION);
 			break;
@@ -731,13 +715,10 @@ SHOWOPCODE(DEBUG4)
 			inline_env->method->isleafmethod = false;
 			i = code_get_u2(p + 1, inline_env->method);
 			{
- 				classinfo *component;
+				constant_classref *cr;
 				classinfo *c;
-			    constant_classref *cr;
-				vftbl_t *arrayvftbl;
 				s4 v = code_get_u1(p + 3, inline_env->method);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
@@ -751,25 +732,6 @@ SHOWOPCODE(DEBUG4)
 						  (voidptr) (ptrint) PATCHER_builtin_multianewarray,
 						  currentline);
 				}
-#else
-/*   				vftbl *arrayvftbl = */
-/*  					((classinfo *) class_getconstant(class, i, CONSTANT_Class))->vftbl; */
-/*   				OP2A(opcode, v, arrayvftbl,currentline); */
-
-				
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-
-				if (!resolve_classref_or_classinfo(inline_env->method,
-							CLASSREF_OR_CLASSINFO(cr),resolveEager,true,&component))
-					return NULL;
-
- 				arrayvftbl = component->vftbl;
- 				OP2A(opcode, v, arrayvftbl, currentline);
-
-/*   				classinfo *arrayclass = */
-/*  					(classinfo *) class_getconstant(class, i, CONSTANT_Class); */
-/*   				OP2A(opcode, v, arrayclass, currentline); */
-#endif
 			}
 			break;
 
@@ -1039,19 +1001,15 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_GETSTATIC:
 		case JAVA_PUTSTATIC:
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
-#endif
 			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref  *fr;
 				unresolved_field *uf;
 				fieldinfo        *fi;
-				classinfo        *c;
 
 				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
@@ -1073,60 +1031,12 @@ SHOWOPCODE(DEBUG4)
 					iptr->val.a = fi;
 				}
 				PINC;
-#if defined(__MIPS__)
+#if defined(__MIPS__) || defined(__POWERPC__)
 				if (!fi || !fi->class->initialized)
 					inline_env->method->isleafmethod = false;
 #endif
-#else
-				{
-				classinfo *frclass;
-				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
-					return NULL;
-
-				fi = class_resolvefield(frclass,
-										fr->name,
-										fr->descriptor,
-										inline_env->method->class,
-										true);
-
-				if (!fi)
-					return NULL;
-
-				OP2A(opcode, fi->type, fi, currentline);
-				if (!fi->class->initialized) {
-					inline_env->method->isleafmethod = false;
-				}
-				}
-#endif
 			}
 			break;
-
-#if !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__) && !defined(__MIPS__)
-		case JAVA_PUTFIELD:
-		case JAVA_GETFIELD:
-			i = code_get_u2(p + 1,inline_env->method);
-			{
-				constant_FMIref *fr;
-				fieldinfo *fi;
-				classinfo *frclass;
-
-				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
-				if (!resolve_classref(inline_env->method,fr->classref,resolveEager,true,&frclass))
-					return NULL;
-
-				fi = class_resolvefield(frclass,
-										fr->name,
-										fr->descriptor,
-										inline_env->method->class,
-										true);
-
-				if (!fi)
-					return NULL;
-
-				OP2A(opcode, fi->type, fi, currentline);
-			}
-			break;
-#endif
 
 
 			/* method invocation *****/
@@ -1134,15 +1044,13 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_INVOKESTATIC:
 			i = code_get_u2(p + 1, inline_env->method);
 			{
-				constant_FMIref *mr;
-				methodinfo *mi;
+				constant_FMIref   *mr;
 				unresolved_method *um;
-				classinfo *mrclass;
+				methodinfo        *mi;
 
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1166,33 +1074,6 @@ SHOWOPCODE(DEBUG4)
 					iptr->val.a = mi;
 				}
 				PINC;
-#else
-				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
-					return NULL;
-
-				mi = class_resolveclassmethod(mrclass,
-											  mr->name,
-											  mr->descriptor,
-											  inline_env->method->class,
-											  true);
-
-				if (!mi)
-					return NULL;
-
-if (DEBUG4==true) { 
-	method_display_w_class(mi); 
-	printf("\tINVOKE STAT\n");
-        fflush(stdout);}
-
-				if (!(mi->flags & ACC_STATIC)) {
-					*exceptionptr =
-						new_exception(string_java_lang_IncompatibleClassChangeError);
-					return NULL;
-				}
-
-				method_descriptor2types(mi);
-				OP2A(opcode, mi->paramcount, mi, currentline);
-#endif
 			}
 			break;
 
@@ -1200,15 +1081,13 @@ if (DEBUG4==true) {
 		case JAVA_INVOKEVIRTUAL:
 			i = code_get_u2(p + 1, inline_env->method);
 			{
-				constant_FMIref *mr;
-				methodinfo *mi;
+				constant_FMIref   *mr;
 				unresolved_method *um;
-				classinfo *mrclass;
+				methodinfo        *mi;
 
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1232,48 +1111,19 @@ if (DEBUG4==true) {
 					iptr->val.a = mi;
 				}
 				PINC;
-#else
-				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
-					return NULL;
-
-				mi = class_resolveclassmethod(mrclass,
-											  mr->name,
-											  mr->descriptor,
-											  inline_env->method->class,
-											  true);
-
-				if (!mi)
-					return NULL;
-
-if (DEBUG4==true) { 
-	method_display_w_class(mi); 
-	printf("\tINVOKE SPEC/VIRT\n");
-        fflush(stdout);}
-
-				if (mi->flags & ACC_STATIC) {
-					*exceptionptr =
-						new_exception(string_java_lang_IncompatibleClassChangeError);
-					return NULL;
-				}
-
-				method_descriptor2types(mi);
-				OP2A(opcode, mi->paramcount, mi, currentline);
-#endif
 			}
 			break;
 
 		case JAVA_INVOKEINTERFACE:
 			i = code_get_u2(p + 1,inline_env->method);
 			{
-				constant_FMIref *mr;
-				methodinfo *mi;
-				classinfo *mrclass;
+				constant_FMIref   *mr;
 				unresolved_method *um;
+				methodinfo        *mi;
 				
 				inline_env->method->isleafmethod = false;
 
 				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
@@ -1297,32 +1147,6 @@ if (DEBUG4==true) {
 					iptr->val.a = mi;
 				}
 				PINC;
-#else
-				if (!resolve_classref(inline_env->method,mr->classref,resolveEager,true,&mrclass))
-					return NULL;
-
-				mi = class_resolveinterfacemethod(mrclass,
-												  mr->name,
-												  mr->descriptor,
-												  inline_env->method->class,
-												  true);
-				if (!mi)
-					return NULL;
-
-				if (mi->flags & ACC_STATIC) {
-					*exceptionptr =
-						new_exception(string_java_lang_IncompatibleClassChangeError);
-					return NULL;
-				}
-
-if (DEBUG4==true) { 
-	method_display_w_class(mi); 
-	printf("\tINVOKE INTERFACE\n");
-        fflush(stdout);}
-
-				method_descriptor2types(mi);
-				OP2A(opcode, mi->paramcount, mi, currentline);
-#endif
 			}
 			break;
 
@@ -1331,19 +1155,18 @@ if (DEBUG4==true) {
 		case JAVA_NEW:
 			{
 				constant_classref *cr;
-				classinfo         *cls;
+				classinfo         *c;
 				
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 				i = code_get_u2(p + 1, inline_env->method);
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
 					return NULL;
 
 				/* <clinit> can throw an exception over native code */
 
-				if (cls && cls->initialized) {
-					LOADCONST_A_BUILTIN(cls);
+				if (c && c->initialized) {
+					LOADCONST_A_BUILTIN(c);
 					BUILTIN1T(BUILTIN_new, TYPE_ADR, NULL, currentline);
 
 				} else {
@@ -1353,16 +1176,6 @@ if (DEBUG4==true) {
 
 				s_count++;
 				OP(ICMD_CHECKEXCEPTION);
-#else
-				i = code_get_u2(p + 1,inline_env->method);
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
-				if (!resolve_classref(inline_env->method,cr,resolveEager,true,&cls))
-					return NULL;
-				LOADCONST_A_BUILTIN(cls);
-				s_count++;
-				BUILTIN1(BUILTIN_new, TYPE_ADR, currentline);
-				OP(ICMD_CHECKEXCEPTION);
-#endif
 			}
 			break;
 
@@ -1370,18 +1183,17 @@ if (DEBUG4==true) {
 			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_classref *cr;
-				classinfo *cls;
+				classinfo         *c;
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
 					return NULL;
 
 				if (cr->name->text[0] == '[') {
 					/* array type cast-check */
-					if (cls) {
-						LOADCONST_A_BUILTIN(cls->vftbl);
+					if (c) {
+						LOADCONST_A_BUILTIN(c->vftbl);
 						BUILTIN2T(BUILTIN_arraycheckcast, TYPE_ADR, NULL, currentline);
 
 					} else {
@@ -1392,31 +1204,11 @@ if (DEBUG4==true) {
 
 				} else {
 					/* object type cast-check */
-					OP2AT(opcode, 1, cls, cr, currentline);
+					OP2AT(opcode, 1, c, cr, currentline);
 				}
-#if defined(__MIPS__)
-				if (!cls)
+#if defined(__MIPS__) || defined(__POWERPC__)
+				if (!c)
 					inline_env->method->isleafmethod = false;
-#endif
-#else
-				if (!resolve_classref(inline_env->method,
-							cr,resolveEager,true,&cls))
-					return NULL;
-
-				if (cls->vftbl->arraydesc) {
-					/* array type cast-check */
-					LOADCONST_A_BUILTIN(cls->vftbl);
-					s_count++;
-					BUILTIN2(BUILTIN_arraycheckcast, TYPE_ADR,currentline);
-
-				} else { /* object type cast-check */
-					/*
-					  + 						  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
-					  + 						  s_count++;
-					  + 						  BUILTIN2(BUILTIN_checkcast, TYPE_ADR,currentline);
-					  + 						*/
-					OP2A(opcode, 1, cls, currentline);
-				}
 #endif
 			}
 			break;
@@ -1425,18 +1217,17 @@ if (DEBUG4==true) {
 			i = code_get_u2(p + 1,inline_env->method);
 			{
 				constant_classref *cr;
-				classinfo *cls;
+				classinfo         *c;
 				
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &cls))
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
 					return NULL;
 
 				if (cr->name->text[0] == '[') {
 					/* array type cast-check */
-					if (cls) {
-						LOADCONST_A_BUILTIN(cls->vftbl);
+					if (c) {
+						LOADCONST_A_BUILTIN(c->vftbl);
 						BUILTIN2T(BUILTIN_arrayinstanceof, TYPE_INT, NULL, currentline);
 
 					} else {
@@ -1447,31 +1238,11 @@ if (DEBUG4==true) {
 
 				} else {
 					/* object type cast-check */
-					OP2AT(opcode, 1, cls, cr, currentline);
+					OP2AT(opcode, 1, c, cr, currentline);
 				}
-#if defined(__MIPS__)
-				if (!cls)
+#if defined(__MIPS__) || defined(__POWERPC__)
+				if (!c)
 					inline_env->method->isleafmethod = false;
-#endif
-#else
-				if (!resolve_classref(inline_env->method,
-							cr,resolveEager,true,&cls))
-					return NULL;
-
-				if (cls->vftbl->arraydesc) {
-					/* array type cast-check */
-					LOADCONST_A_BUILTIN(cls->vftbl);
-					s_count++;
-					BUILTIN2(BUILTIN_arrayinstanceof, TYPE_INT, currentline);
-				}
-				else { /* object type cast-check */
-					/*
-					  LOADCONST_A_BUILTIN(class_getconstant(class, i, CONSTANT_Class));
-					  s_count++;
-					  BUILTIN2(BUILTIN_instanceof, TYPE_INT,currentline);
-					  + 						*/
-					OP2A(opcode, 1, cls, currentline);
-				}
 #endif
 			}
 			break;

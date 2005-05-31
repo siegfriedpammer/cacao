@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2526 2005-05-24 15:41:24Z christian $
+   $Id: reg.inc 2541 2005-05-31 16:02:14Z twisti $
 
 */
 
@@ -914,12 +914,12 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	intregsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
-	intregsneeded=0;
+	intregsneeded = 0;
 #endif
 #if defined(HAS_4BYTE_STACKSLOT)
 	memneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
-	memneeded=0;
+	memneeded = 0;
 #endif
 
 	for(; tryagain; --tryagain) {
@@ -1115,12 +1115,12 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	intregsneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
-	intregsneeded=0;
+	intregsneeded = 0;
 #endif
 #if defined(HAS_4BYTE_STACKSLOT)
 	memneeded = (IS_2_WORD_TYPE(s->type)) ? 1 : 0;
 #else
-	memneeded=0;
+	memneeded = 0;
 #endif
 
 	if (s->flags & INMEMORY) {
@@ -1582,11 +1582,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
-#else
-					if (((methodinfo *) iptr->val.a)->returntype != TYPE_VOID)
-#endif
 						reg_new_temp(rd, dst);
 					break;
 
