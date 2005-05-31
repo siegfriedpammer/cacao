@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2207 2005-04-04 09:28:38Z twisti $
+## $Id: Makefile.am 2534 2005-05-31 15:06:06Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
 
 AM_CCASFLAGS = $(INCLUDES)
 
@@ -53,9 +53,19 @@ libarch_la_SOURCES = \
 	dis-asm.h \
 	disass.c \
 	disass.h \
+	patcher.c \
 	ppc-dis.c \
 	ppc-opc.c \
 	ppc.h
+
+EXTRA_DIST = \
+	darwin/md-abi.h \
+	darwin/md-abi.inc \
+	darwin/md-asm.h \
+	\
+	linux/md-abi.h \
+	linux/md-abi.inc \
+	linux/md-asm.h
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
