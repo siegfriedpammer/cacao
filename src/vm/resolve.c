@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: resolve.c 2572 2005-06-06 15:36:12Z twisti $
 
 */
 
@@ -241,7 +241,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 }
 
 bool 
-resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result)
+resolve_class_from_typedesc(typedesc *d, bool link, classinfo **result)
 {
 	classinfo *cls;
 	
@@ -608,9 +608,7 @@ resolve_field(unresolved_field *ref,
 
 /* for documentation see resolve.h */
 bool
-resolve_method(unresolved_method *ref,
-			   resolve_mode_t mode,
-			   methodinfo **result)
+resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 {
 	classinfo *referer;
 	classinfo *container;
@@ -650,34 +648,47 @@ resolve_method(unresolved_method *ref,
 	/* now we must find the declaration of the method in `container`
 	 * or one of its superclasses */
 
-	if ((container->flags & ACC_INTERFACE) != 0) {
+	if (container->flags & ACC_INTERFACE) {
 		mi = class_resolveinterfacemethod(container,
-									      ref->methodref->name,ref->methodref->descriptor,
-									      referer,true);
-	}
-	else {
+									      ref->methodref->name,
+										  ref->methodref->descriptor,
+									      referer, true);
+
+	} else {
 		mi = class_resolveclassmethod(container,
-									  ref->methodref->name,ref->methodref->descriptor,
-									  referer,true);
+									  ref->methodref->name,
+									  ref->methodref->descriptor,
+									  referer, true);
 	}
+
 	if (!mi)
 		return false; /* exception */ /* XXX set exceptionptr? */
 
 	/* { the method reference has been resolved } */
+
 	declarer = mi->class;
 	RESOLVE_ASSERT(declarer);
 
 	/* check static */
-	if (((mi->flags & ACC_STATIC) != 0) != ((ref->flags & RESOLVE_STATIC) != 0)) {
-		/* a static method is accessed via an instance, or vice versa */
-		*exceptionptr = new_exception_message(string_java_lang_IncompatibleClassChangeError,
+
+	if (((mi->flags & ACC_STATIC) != 0) != ((ref->flags & RESOLVE_STATIC) != 0)) {		/* a static method is accessed via an instance, or vice versa */
+		*exceptionptr =
+			new_exception_message(string_java_lang_IncompatibleClassChangeError,
 				(mi->flags & ACC_STATIC) ? "static method called via instance"
 				                         : "instance method called without instance");
-		return false; /* exception */
+		return false;
 	}
 
-	/* for non-static methods we have to check the constraints on the instance type */
-	if ((ref->flags & RESOLVE_STATIC) == 0) {
+	/* have the method params already been parsed? no, do it. */
+
+	if (!mi->parseddesc->params)
+		if (!descriptor_params_from_paramtypes(mi->parseddesc, mi->flags))
+			return false;
+		
+	/* for non-static methods we have to check the constraints on the         */
+	/* instance type                                                          */
+
+	if (!(ref->flags & RESOLVE_STATIC)) {
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(container),
@@ -696,10 +707,11 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* check subtype constraints for TYPE_ADR parameters */
+
 	RESOLVE_ASSERT(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
 	paramtypes = mi->parseddesc->paramtypes;
 	
-	for (i=0; i<mi->parseddesc->paramcount; ++i) {
+	for (i = 0; i < mi->parseddesc->paramcount; i++) {
 		if (paramtypes[i].type == TYPE_ADR) {
 			if (ref->paramconstraints) {
 				if (!resolve_and_check_subtype_set(referer,ref->referermethod,
@@ -718,6 +730,7 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* check access rights */
+
 	if (!is_accessible_member(referer,declarer,mi->flags)) {
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
 				"method is not accessible XXX add message");
@@ -725,6 +738,7 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* check protected access */
+
 	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
@@ -740,9 +754,11 @@ resolve_method(unresolved_method *ref,
 	}
 
 	/* impose loading constraints on parameters (including instance) */
-	paramtypes = mi->parseddesc->paramtypes - instancecount;
-	for (i=0; i<mi->parseddesc->paramcount + instancecount; ++i) {
-		if (i<instancecount || paramtypes[i].type == TYPE_ADR) {
+
+	paramtypes = mi->parseddesc->paramtypes;
+
+	for (i = 0; i < mi->parseddesc->paramcount; i++) {
+		if (i < instancecount || paramtypes[i].type == TYPE_ADR) {
 			utf *name;
 			
 			if (i < instancecount)
@@ -750,12 +766,14 @@ resolve_method(unresolved_method *ref,
 			else
 				name = paramtypes[i].classref->name;
 			
-			if (!classcache_add_constraint(referer->classloader,declarer->classloader,name))
+			if (!classcache_add_constraint(referer->classloader,
+										   declarer->classloader, name))
 				return false; /* exception */
 		}
 	}
 
 	/* impose loading constraing onto return type */
+
 	if (ref->methodref->parseddesc.md->returntype.type == TYPE_ADR) {
 		if (!classcache_add_constraint(referer->classloader,declarer->classloader,
 				ref->methodref->parseddesc.md->returntype.classref->name))
@@ -879,8 +897,9 @@ create_unresolved_class(methodinfo *refmethod,
 	return ref;
 }
 
+
 unresolved_field *
-create_unresolved_field(classinfo *referer,methodinfo *refmethod,
+create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 						instruction *iptr,
 						stackelement *stack)
 {
@@ -916,7 +935,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 		case ICMD_PUTFIELDCONST:
 			ref->flags |= RESOLVE_PUTFIELD;
 			if (stack) instanceslot = stack;
-			fieldref = INSTRUCTION_PUTCONST_FIELDREF(iptr);
+			fieldref = (constant_FMIref *) iptr[1].val.a;
 			break;
 
 		case ICMD_PUTSTATIC:
@@ -927,7 +946,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 
 		case ICMD_PUTSTATICCONST:
 			ref->flags |= RESOLVE_PUTFIELD | RESOLVE_STATIC;
-			fieldref = INSTRUCTION_PUTCONST_FIELDREF(iptr);
+			fieldref = (constant_FMIref *) iptr[1].val.a;
 			break;
 
 		case ICMD_GETFIELD:
@@ -1010,7 +1029,7 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
 }
 
 unresolved_method *
-create_unresolved_method(classinfo *referer,methodinfo *refmethod,
+create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 						 instruction *iptr,
 						 stackelement *stack)
 {
