@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2534 2005-05-31 15:06:06Z twisti $
+## $Id: Makefile.am 2557 2005-06-06 14:53:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
+
+SUBDIRS = @OS_DIR@
 
 AM_CCASFLAGS = $(INCLUDES)
 
@@ -57,6 +59,9 @@ libarch_la_SOURCES = \
 	ppc-dis.c \
 	ppc-opc.c \
 	ppc.h
+
+libarch_la_LIBADD = \
+	@OS_DIR@/libmd.la
 
 EXTRA_DIST = \
 	darwin/md-abi.h \
