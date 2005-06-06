@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2502 2005-05-23 08:21:10Z twisti $
+   $Id: loader.c 2571 2005-06-06 15:34:32Z twisti $
 
 */
 
@@ -113,6 +113,7 @@ static int loader_recursion = 0;
 
 classpath_info *classpath_entries = NULL;
 
+
 /* loader_init *****************************************************************
 
    Initializes all lists and loads all classes required for the system
@@ -122,9 +123,9 @@ classpath_info *classpath_entries = NULL;
  
 bool loader_init(u1 *stackbottom)
 {
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	classpath_info *cpi;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* Initialize the monitor pointer for zip/jar file locking.               */
 
 	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
@@ -204,8 +205,9 @@ bool loader_init(u1 *stackbottom)
 	if (!load_class_bootstrap(utf_java_lang_reflect_Method, &class_java_lang_reflect_Method))
 		return false;
 
-       if (! load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"),&arrayclass_java_lang_Object))
+	if (!load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"), &arrayclass_java_lang_Object))
 		return false;
+
 #if defined(USE_THREADS)
 	if (stackbottom != 0)
 		initLocks();
@@ -767,7 +769,7 @@ static bool skipattributes(classbuffer *cb, u4 num)
 
 *******************************************************************************/
 
-static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
+static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 {
 
 	/* The following structures are used to save information which cannot be 
@@ -1067,18 +1069,6 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 		}  /* end switch */
 	} /* end while */
 
-	/* add all class references to the descriptor_pool */
-	for (nfc=forward_classes; nfc; nfc=nfc->next) {
-		utf *name = class_getconstant(c,nfc->name_index,CONSTANT_Utf8);
-		if (!descriptor_pool_add_class(descpool,name))
-			return false;
-	}
-	/* add all descriptors in NameAndTypes to the descriptor_pool */
-	for (nfn=forward_nameandtypes; nfn; nfn=nfn->next) {
-		utf *desc = class_getconstant(c,nfn->sig_index,CONSTANT_Utf8);
-		if (!descriptor_pool_add(descpool,desc,NULL))
-			return false;
-	}
 
 	/* resolve entries in temporary structures */
 
@@ -1091,6 +1081,11 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 				new_classformaterror(c, "Class reference with invalid name");
 			return false;
 		}
+
+		/* add all class references to the descriptor_pool */
+
+		if (!descriptor_pool_add_class(descpool, name))
+			return false;
 
 		cptags[forward_classes->thisindex] = CONSTANT_Class;
 		/* the classref is created later */
@@ -1165,12 +1160,19 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 			count_const_pool_len += sizeof(constant_FMIref);
 #endif
 		/* resolve simple name and descriptor */
+
 		nat = class_getconstant(c,
 								forward_fieldmethints->nameandtype_index,
 								CONSTANT_NameAndType);
 
+		/* add all descriptors in {Field,Method}ref to the descriptor_pool */
+
+		if (!descriptor_pool_add(descpool, nat->descriptor, NULL))
+			return false;
+
 		/* the classref is created later */
-		fmi->classref = (constant_classref*) (size_t) forward_fieldmethints->class_index;
+
+		fmi->classref = (constant_classref *) (size_t) forward_fieldmethints->class_index;
 		fmi->name = nat->name;
 		fmi->descriptor = nat->descriptor;
 
@@ -1197,7 +1199,7 @@ static bool load_constantpool(classbuffer *cb,descriptor_pool *descpool)
 
 #define field_load_NOVALUE  0xffffffff /* must be bigger than any u2 value! */
 
-static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
+static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 {
 	classinfo *c;
 	u4 attrnum, i;
@@ -1214,13 +1216,16 @@ static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
+
 	f->name = u;
 
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
+
 	f->descriptor = u;
 	f->parseddesc = NULL;
-	if (!descriptor_pool_add(descpool,u,NULL))
+
+	if (!descriptor_pool_add(descpool, u, NULL))
 		return false;
 
 	if (opt_verify) {
@@ -1385,7 +1390,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f,descriptor_pool *descpool)
 	
 *******************************************************************************/
 
-static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool)
+static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 {
 	classinfo *c;
 	int argcount;
@@ -1418,13 +1423,16 @@ static bool load_method(classbuffer *cb, methodinfo *m,descriptor_pool *descpool
 
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
+
 	m->name = u;
 
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
+
 	m->descriptor = u;
 	m->parseddesc = NULL;
-	if (!descriptor_pool_add(descpool,u,&argcount))
+
+	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
 
 	if (opt_verify) {
@@ -2202,10 +2210,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* create a new descriptor pool */
 
 	descpool = descriptor_pool_new(c);
-	
+
 	/* load the constant pool */
 
-	if (!load_constantpool(cb,descpool))
+	if (!load_constantpool(cb, descpool))
 		goto return_exception;
 
 	/*JOWENN*/
@@ -2370,15 +2378,19 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* create the class reference table */
-	c->classrefs = descriptor_pool_create_classrefs(descpool,&(c->classrefcount));
+
+	c->classrefs =
+		descriptor_pool_create_classrefs(descpool, &(c->classrefcount));
 
 	/* allocate space for the parsed descriptors */
+
 	descriptor_pool_alloc_parsed_descriptors(descpool);
-	c->parseddescs = descriptor_pool_get_parsed_descriptors(descpool,&(c->parseddescsize));
+	c->parseddescs =
+		descriptor_pool_get_parsed_descriptors(descpool, &(c->parseddescsize));
 
 #if defined(STATISTICS)
 	if (opt_stat) {
-		descriptor_pool_get_sizes(descpool,&classrefsize,&descsize);
+		descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
 		count_classref_len += classrefsize;
 		count_parsed_desc_len += descsize;
 	}
@@ -2393,6 +2405,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* set the super class reference */
+
 	if (supername) {
 		c->super.ref = descriptor_pool_lookup_classref(descpool, supername);
 		if (!c->super.ref)
@@ -2400,53 +2413,32 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* set the super interfaces references */
+
 	for (i = 0; i < c->interfacescount; i++) {
-		c->interfaces[i].ref = descriptor_pool_lookup_classref(descpool, (utf *) c->interfaces[i].any);
+		c->interfaces[i].ref =
+			descriptor_pool_lookup_classref(descpool,
+											(utf *) c->interfaces[i].any);
 		if (!c->interfaces[i].ref)
 			goto return_exception;
 	}
 
-	/* parse the loaded descriptors */
-	for (i = 0; i < c->cpcount; i++) {
-		constant_FMIref *fmi;
-		int index;
-		
-		switch (c->cptags[i]) {
-			case CONSTANT_Fieldref:
-				fmi = (constant_FMIref *) c->cpinfos[i];
-				fmi->parseddesc.fd = 
-					descriptor_pool_parse_field_descriptor(descpool, fmi->descriptor);
-				if (!fmi->parseddesc.fd)
-					goto return_exception;
-				index = (int) (size_t) fmi->classref;
-				fmi->classref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
-				if (!fmi->classref)
-					goto return_exception;
-				break;
-			case CONSTANT_Methodref:
-			case CONSTANT_InterfaceMethodref:
-				fmi = (constant_FMIref *) c->cpinfos[i];
-				fmi->parseddesc.md = 
-					descriptor_pool_parse_method_descriptor(descpool, fmi->descriptor);
-				if (!fmi->parseddesc.md)
-					goto return_exception;
-				index = (int) (size_t) fmi->classref;
-				fmi->classref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
-				if (!fmi->classref)
-					goto return_exception;
-				break;
-		}
-	}
+	/* parse field descriptors */
 
 	for (i = 0; i < c->fieldscount; i++) {
-		c->fields[i].parseddesc = descriptor_pool_parse_field_descriptor(descpool, c->fields[i].descriptor);
+		c->fields[i].parseddesc =
+			descriptor_pool_parse_field_descriptor(descpool,
+												   c->fields[i].descriptor);
 		if (!c->fields[i].parseddesc)
 			goto return_exception;
 	}
 
+	/* parse method descriptors */
+
 	for (i = 0; i < c->methodscount; i++) {
-		methodinfo *m = c->methods + i;
-		m->parseddesc = descriptor_pool_parse_method_descriptor(descpool, m->descriptor);
+		methodinfo *m = &c->methods[i];
+		m->parseddesc =
+			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
+													m->flags);
 		if (!m->parseddesc)
 			goto return_exception;
 
@@ -2468,8 +2460,49 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 	}
 
+	/* parse the loaded descriptors */
+
+	for (i = 0; i < c->cpcount; i++) {
+		constant_FMIref *fmi;
+		s4               index;
+		
+		switch (c->cptags[i]) {
+		case CONSTANT_Fieldref:
+			fmi = (constant_FMIref *) c->cpinfos[i];
+			fmi->parseddesc.fd =
+				descriptor_pool_parse_field_descriptor(descpool,
+													   fmi->descriptor);
+			if (!fmi->parseddesc.fd)
+				goto return_exception;
+			index = (int) (size_t) fmi->classref;
+			fmi->classref =
+				(constant_classref *) class_getconstant(c, index,
+														CONSTANT_Class);
+			if (!fmi->classref)
+				goto return_exception;
+			break;
+		case CONSTANT_Methodref:
+		case CONSTANT_InterfaceMethodref:
+			fmi = (constant_FMIref *) c->cpinfos[i];
+			fmi->parseddesc.md =
+				descriptor_pool_parse_method_descriptor(descpool,
+														fmi->descriptor,
+														ACC_UNDEF);
+			if (!fmi->parseddesc.md)
+				goto return_exception;
+			index = (int) (size_t) fmi->classref;
+			fmi->classref =
+				(constant_classref *) class_getconstant(c, index,
+														CONSTANT_Class);
+			if (!fmi->classref)
+				goto return_exception;
+			break;
+		}
+	}
+
 	/* Check if all fields and methods can be uniquely
 	 * identified by (name,descriptor). */
+
 	if (opt_verify) {
 		/* We use a hash table here to avoid making the
 		 * average case quadratic in # of methods, fields.
@@ -2571,6 +2604,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	/* load attribute structures */
+
 	if (!check_classbuffer_size(cb, 2))
 		goto return_exception;
 
@@ -2595,6 +2629,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	/* release dump area */
+
 	dump_release(dumpsize);
 	
 	if (loadverbose)
@@ -2605,9 +2640,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 return_exception:
 	/* release dump area */
+
 	dump_release(dumpsize);
 
 	/* an exception has been thrown */
+
 	LOADER_DEC();
 	return NULL;
 }
@@ -2728,8 +2765,8 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);
 
-	classrefs = MNEW(constant_classref,1);
-	CLASSREF_INIT(classrefs[0],c,utf_java_lang_Object);
+	classrefs = MNEW(constant_classref, 1);
+	CLASSREF_INIT(classrefs[0], c, utf_java_lang_Object);
 
 	clonedesc = NEW(methoddesc);
 	clonedesc->returntype.type = TYPE_ADDRESS;
@@ -2738,14 +2775,20 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	clonedesc->paramcount = 0;
 	clonedesc->paramslots = 0;
 
+	/* parse the descriptor to get the register allocation */
+
+	if (!descriptor_params_from_paramtypes(clonedesc, ACC_NONE))
+		return false;
+
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
 	clone->flags = ACC_PUBLIC;
-	clone->name = utf_new_char("clone");
+	clone->name = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
 	clone->class = c;
-	clone->stubroutine = createnativestub((functionptr) &builtin_clone_array, clone);
+	clone->stubroutine =
+		createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO;
 
 	/* XXX: field: length? */
