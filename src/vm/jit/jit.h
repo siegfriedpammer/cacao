@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2361 2005-04-24 17:55:03Z twisti $
+   $Id: jit.h 2566 2005-06-06 15:25:56Z twisti $
 
 */
 
@@ -129,9 +129,6 @@ struct instruction {
 
 #define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
 	((fieldinfo *)((iptr)[1].val.a))
-
-#define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
-	((constant_FMIref *)((iptr)[1].val.a))
 
 
 /**************************** basic block structure ***************************/
@@ -804,11 +801,11 @@ extern int jcommandsize[256];
 
 #define ICMD_LMULPOW2         215
 
-#define ICMD_INLINE_START     251       /* before the first instruction of an inlined method */
-#define ICMD_INLINE_END       252       /* after the last instruction of an inlined method */
-#define ICMD_BUILTIN3         253       /* internal opcode */
-#define ICMD_BUILTIN2         254       /* internal opcode */
-#define ICMD_BUILTIN1         255       /* internal opcode */
+#define ICMD_INLINE_START     251       /* instruction before inlined method  */
+#define ICMD_INLINE_END       252       /* instruction after inlined method   */
+
+#define ICMD_BUILTIN          255       /* internal opcode                    */
+
 #define ICMD_READONLY_ARG     1024      /* used for inlining, opcodes 1024-1028 are used */
 #define ICMD_CLEAR_ARGREN     1029      /* indicates the start of a new inlined method argument renaming must be reset */
 
