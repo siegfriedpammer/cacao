@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2538 2005-05-31 15:55:01Z twisti $
+   $Id: arch.h 2556 2005-06-06 14:52:51Z twisti $
 
 */
 
@@ -36,10 +36,8 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
-
 /* define architecture features ***********************************************/
 
-#define POINTERSIZE                      4
 #define WORDS_BIGENDIAN                  1
 
 #define U8_AVAILABLE                     1
@@ -75,9 +73,6 @@
 
 /* #define CONDITIONAL_LOADCONST           1 */
 #define NOLONG_CONDITIONAL
-
-/* #define CONSECUTIVE_INTEGER_ARGS */
-#define CONSECUTIVE_FLOAT_ARGS
 
 #define SPECIALMEMUSE
 #define HAS_4BYTE_STACKSLOT
