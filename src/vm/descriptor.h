@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2182 2005-04-01 20:56:33Z edwin $
+   $Id: descriptor.h 2570 2005-06-06 15:32:16Z twisti $
 
 */
 
@@ -40,9 +40,13 @@
 
 typedef struct descriptor_pool descriptor_pool;
 
+
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/method.h"
 #include "vm/references.h"
 #include "vm/tables.h"
+
 
 /* data structures ************************************************************/ 
 
@@ -103,11 +107,22 @@ struct typedesc {
 /*       So short is PRIMITIVETYPE_SHORT, char is PRIMITIVETYPE_CHAR.         */
 /*       For non-primitive types decltype is TYPE_ADR.                        */
 
+typedef struct paramdesc paramdesc;
+
+struct paramdesc {
+	bool inmemory;              /* argument in register or on stack           */
+	s4   regoff;                /* register index or stack offset             */
+};
+
 struct methoddesc {
-	s2                 paramcount; /* number of parameters                    */
-	s2                 paramslots; /* like above but LONG,DOUBLE count twice  */
-	typedesc           returntype; /* parsed descriptor of the return type    */
-	typedesc           paramtypes[1]; /* parameter types, variable length!    */
+	s2         paramcount;      /* number of parameters                       */
+	s2         paramslots;      /* like above but LONG,DOUBLE count twice     */
+	s4         argintreguse;    /* number of used integer argument registers  */
+	s4         argfltreguse;    /* number of used float argument registers    */
+	s4         memuse;          /* number of stack slots used                 */
+	paramdesc *params;
+	typedesc   returntype;      /* parsed descriptor of the return type       */
+	typedesc   paramtypes[1];   /* parameter types, variable length!          */
 };
 
 
@@ -125,6 +140,7 @@ struct methoddesc {
 
 void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
 
+
 /* descriptor_debug_print_methoddesc *******************************************
  
    Print the given methoddesc to the given stream
@@ -136,6 +152,7 @@ void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
 *******************************************************************************/
 
 void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
+
 
 /* descriptor_pool_new *********************************************************
  
@@ -150,6 +167,7 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 *******************************************************************************/
 
 descriptor_pool * descriptor_pool_new(classinfo *referer);
+
 
 /* descriptor_pool_add_class ***************************************************
  
@@ -166,6 +184,7 @@ descriptor_pool * descriptor_pool_new(classinfo *referer);
 *******************************************************************************/
 
 bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
+
 
 /* descriptor_pool_add *********************************************************
  
@@ -187,6 +206,7 @@ bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
 
 bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
 
+
 /* descriptor_pool_create_classrefs ********************************************
  
    Create a table containing all the classrefs which were added to the pool
@@ -206,6 +226,7 @@ bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);
 
+
 /* descriptor_pool_lookup_classref *********************************************
  
    Return the constant_classref for the given class name
@@ -222,6 +243,7 @@ constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 
 constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *classname);
 
+
 /* descriptor_pool_alloc_parsed_descriptors ************************************
  
    Allocate space for the parsed descriptors
@@ -236,6 +258,7 @@ constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *c
 *******************************************************************************/
 
 void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
+
 
 /* descriptor_pool_parse_field_descriptor **************************************
  
@@ -255,7 +278,8 @@ void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
 
 *******************************************************************************/
 
-typedesc * descriptor_pool_parse_field_descriptor(descriptor_pool *pool,utf *desc);
+typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc);
+
 
 /* descriptor_pool_parse_method_descriptor *************************************
  
@@ -263,7 +287,8 @@ typedesc * descriptor_pool_parse_field_descriptor(descriptor_pool *pool,utf *des
 
    IN:
        pool.............the descriptor_pool
-	   desc.............the method descriptor
+       desc.............the method descriptor
+       mflags...........the method flags
 
    RETURN VALUE:
        a pointer to the parsed method descriptor, or
@@ -275,7 +300,10 @@ typedesc * descriptor_pool_parse_field_descriptor(descriptor_pool *pool,utf *des
 
 *******************************************************************************/
 
-methoddesc * descriptor_pool_parse_method_descriptor(descriptor_pool *pool,utf *desc);
+methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags);
+
+
+bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
 
 /* descriptor_pool_get_parsed_descriptors **************************************
  
@@ -298,8 +326,8 @@ methoddesc * descriptor_pool_parse_method_descriptor(descriptor_pool *pool,utf *
 
 *******************************************************************************/
 
-void * descriptor_pool_get_parsed_descriptors(descriptor_pool *pool,
-											  s4 *size);
+void *descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size);
+
 
 /* descriptor_pool_get_sizes ***************************************************
  
@@ -320,8 +348,9 @@ void * descriptor_pool_get_parsed_descriptors(descriptor_pool *pool,
 
 *******************************************************************************/
 
-void descriptor_pool_get_sizes(descriptor_pool *pool,
-							   u4 *classrefsize,u4 *descsize);
+void descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize,
+							   u4 *descsize);
+
 
 /* descriptor_debug_print_typedesc *********************************************
  
@@ -333,7 +362,8 @@ void descriptor_pool_get_sizes(descriptor_pool *pool,
 
 *******************************************************************************/
 
-void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
+void descriptor_debug_print_typedesc(FILE *file, typedesc *d);
+
 
 /* descriptor_debug_print_methoddesc *******************************************
  
@@ -345,7 +375,8 @@ void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
 
 *******************************************************************************/
 
-void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
+void descriptor_debug_print_methoddesc(FILE *file, methoddesc *d);
+
 
 /* descriptor_pool_debug_dump **************************************************
  
@@ -357,7 +388,8 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 
 *******************************************************************************/
 
-void descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file);
+void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
+
 
 /* macros for descriptor parsing **********************************************/
 
