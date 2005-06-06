@@ -31,14 +31,14 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 2361 2005-04-24 17:55:03Z twisti $
+   $Id: tracing.c 2563 2005-06-06 15:22:56Z twisti $
 
 */
 
 
-/*  #include <stdio.h> */
-
 #include "mm/memory.h"
+#include "vm/builtin.h"
+#include "vm/resolve.h"
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/loop/tracing.h"
 
@@ -214,33 +214,35 @@ Trace* array_length(Trace* a)
 
 Trace* tracing(basicblock *block, int index, int temp)
 {
-	int args, retval;
-	instruction *ip;
-	methodinfo *m;
+	instruction        *iptr;
+	methodinfo         *m;
+	unresolved_method  *um;
+	builtintable_entry *bte;
+	methoddesc         *md;
+	s4                  args;
+	s4                  retval;
 
 	if (index >= 0) {
-		ip = block->iinstr+index;
+		iptr = block->iinstr + index;
 
-/*	printf("TRACING with %d %d %d\n", index, temp, ip->opc);
-*/
-		switch (ip->opc) {
+		switch (iptr->opc) {
 		
-		/* nop, nullcheckpop													*/
-		case ICMD_NOP:				/* ...  ==> ...								*/
-			return tracing(block, index-1, temp);
+		/* nop, nullcheckpop                                                  */
+		case ICMD_NOP:              /* ...  ==> ...                           */
+			return tracing(block, index - 1, temp);
 			break;
       
-		case ICMD_CHECKNULL:		/* ..., objectref  ==> ..., objectref		*/
+		case ICMD_CHECKNULL:        /* ..., objectref  ==> ..., objectref     */
 			return tracing(block, index-1, temp);
 			break;
 
-		/* Constants															*/
+		/* Constants                                                          */
 		case ICMD_LCONST:				
 		case ICMD_DCONST:
 		case ICMD_FCONST:
 		case ICMD_ACONST:
 			if (temp > 0)				
-				return tracing(block, index-1, temp-1);		
+				return tracing(block, index - 1, temp - 1);
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;						
@@ -249,7 +251,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)		/* if the target argument is not on top			*/
 				return tracing(block, index-1, temp-1);	/* look further			*/
 			else
-				return create_trace(TRACE_ICONST, -1, ip->val.i, index);
+				return create_trace(TRACE_ICONST, -1, iptr->val.i, index);
 			break;				/* else, return the value, found at this instr.	*/
 
 		/* Load/Store															*/
@@ -266,14 +268,14 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 		    else
-				return create_trace(TRACE_IVAR, ip->op1, 0, index);
+				return create_trace(TRACE_IVAR, iptr->op1, 0, index);
 			break;
 
 		case ICMD_ALOAD:    
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 			else
-				return create_trace(TRACE_AVAR, ip->op1, 0, index);			
+				return create_trace(TRACE_AVAR, iptr->op1, 0, index);			
 			break;
 		
 		case ICMD_LSTORE:    
@@ -417,7 +419,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 				return tracing(block, index-1, temp);
 			else					/* when a constant is added, create a		*/
 									/* constant-trace and use add function		*/
-				return add(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, ip->val.i, index));
+				return add(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->val.i, index));
 			break;
 
 		case ICMD_ISUB:				/* ..., val1, val2  ==> ..., val1 - val2	*/
@@ -431,7 +433,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)
 				return tracing(block, index-1, temp);
 			else
-				return sub(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, ip->val.i, index));
+				return sub(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->val.i, index));
 			break;
 
 		case ICMD_LADD:				/* ..., val1, val2  ==> ..., val1 + val2	*/
@@ -560,55 +562,53 @@ Trace* tracing(basicblock *block, int index, int temp)
 			return tracing(block, index-1, temp+3);
 			break;
  
-		case ICMD_PUTSTATIC:		/* ..., value  ==> ...						*/
-		case ICMD_PUTFIELD:			/* ..., value  ==> ...						*/
-			return tracing(block, index-1, temp+1);
+		case ICMD_PUTSTATIC:        /* ..., value  ==> ...                    */
+		case ICMD_PUTFIELD:         /* ..., value  ==> ...                    */
+			return tracing(block, index - 1, temp + 1);
 			break;
  
-		case ICMD_GETSTATIC:		/* ...  ==> ..., value						*/
-		case ICMD_GETFIELD:			/* ...  ==> ..., value						*/
+		case ICMD_GETSTATIC:        /* ...  ==> ..., value                    */
+		case ICMD_GETFIELD:         /* ...  ==> ..., value                    */
 			if (temp > 0)
-				return tracing(block, index-1, temp-1);
+				return tracing(block, index-1, temp - 1);
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
 
 
-		/* branch: should not be encountered, but function calls possible		*/
-		case ICMD_INVOKESTATIC:		/* ..., [arg1, [arg2 ...]] ==> ...			*/
-			m = ip->val.a;			/* get method pointer and					*/
-			args = ip->op1;			/* number of arguments						*/
-			if (m->returntype != TYPE_VOID)
-				retval = 1;			/* if function returns a value, it is on	*/
-			else					/* top of stack								*/
+		/* branch: should not be encountered, but function calls possible     */
+
+		case ICMD_INVOKESTATIC:     /* ..., [arg1, [arg2 ...]] ==> ...        */
+		case ICMD_INVOKESPECIAL:    /* ..., objectref, [arg1, [arg2 ...]] ==> . */
+		case ICMD_INVOKEVIRTUAL:
+		case ICMD_INVOKEINTERFACE:
+			m = iptr->val.a;        /* get method pointer and                 */
+			args = iptr->op1;       /* number of arguments                    */
+
+			if (m)
+				md = m->parseddesc;
+			else {
+				um = iptr->target;
+				md = um->methodref->parseddesc.md;
+			}
+
+			if (md->returntype.type != TYPE_VOID)
+				retval = 1;         /* if function returns a value, it is on  */
+			else                    /* top of stack                           */
 				retval = 0;
       
-			if (temp > 0)			/* temp is increased by number of arguments	*/
-									/* less a possible result value				*/
-				return tracing(block, index-1, temp+(args-retval));
+			if (temp > 0)           /* temp is increased by number of         */
+			                        /* arguments a possible result value      */
+				return tracing(block, index - 1, temp + (args - retval));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
 
-		case ICMD_INVOKESPECIAL:	/* ..., objectref, [arg1, [arg2 ...]] ==> .	*/
-		case ICMD_INVOKEVIRTUAL:	/* ..., objectref, [arg1, [arg2 ...]] ==> .	*/
-		case ICMD_INVOKEINTERFACE:	/* ..., objectref, [arg1, [arg2 ...]] ==> . */
-			m = ip->val.a;
-			args = ip->op1; 
-			if (m->returntype != TYPE_VOID)
-				retval = 1;
-			else
-				retval = 0;
-			
-			if (temp > 0)			/* same as above but add 1 for object ref	*/
-				return tracing(block, index-1, temp+(args-retval+1));
-			else
-				return create_trace(TRACE_UNKNOWN, -1, 0, index);
-			break;
- 
-		/* special																*/  
-		case ICMD_INSTANCEOF:		/* ..., objectref ==> ..., intresult		*/
-		case ICMD_CHECKCAST:		/* ..., objectref ==> ..., objectref		*/
+
+		/* special                                                            */
+
+		case ICMD_INSTANCEOF:       /* ..., objectref ==> ..., intresult      */
+		case ICMD_CHECKCAST:        /* ..., objectref ==> ..., objectref      */
 			if (temp > 0)
 				return tracing(block, index-1, temp);
 			else
@@ -616,55 +616,39 @@ Trace* tracing(basicblock *block, int index, int temp)
 			break;
       
 		case ICMD_MULTIANEWARRAY:	/* ..., cnt1, [cnt2, ...] ==> ..., arrayref	*/
-									/* op1 = dimension							*/ 
+									/* op1 = dimension                        */
 
-			if (temp > 0)			/* temp increased by number of dimensions	*/
-									/* minus one for array ref					*/
-				return tracing(block, index-1, temp+(ip->op1 - 1));
+			if (temp > 0)           /* temp increased by number of dimensions */
+									/* minus one for array ref                */
+				return tracing(block, index - 1, temp + (iptr->op1 - 1));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
        
-		case ICMD_BUILTIN3:			/* ..., arg1, arg2, arg3 ==> ...			*/
-			if (ip->op1 != TYPE_VOID)
+		case ICMD_BUILTIN:         /* ..., [arg1, [arg2 ...]] ==> ...         */
+			bte = iptr->val.a;
+			md = bte->md;
+			args = iptr->op1;
+			if (md->returntype.type != TYPE_VOID)
 				retval = 1;
 			else
 				retval = 0;
       
-			if (temp > 0)			/* increase temp by 3 minus possible return	*/
-									/* value									*/
-				return tracing(block, index-1, temp+(3-retval));
+			if (temp > 0)           /* temp is increased by number of         */
+			                        /* arguments less a possible result value */
+				return tracing(block, index - 1, temp + (args - retval));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
 
-		case ICMD_BUILTIN2:			/* ..., arg1, arg2 ==> ...					*/
-			if (ip->op1 != TYPE_VOID)
-				retval = 1;
-			else
-				retval = 0;
-			if (temp > 0)
-				return tracing(block, index-1, temp+(2-retval));
-			else
-				return create_trace(TRACE_UNKNOWN, -1, 0, index);
-			break;
 
-		case ICMD_BUILTIN1:     /* ..., arg1 ==> ...							*/
-			if (ip->op1 != TYPE_VOID)
-				retval = 1;
-			else
-				retval = 0;
-			if (temp > 0)
-				return tracing(block, index-1, temp+(1-retval));
-			else
-				return create_trace(TRACE_UNKNOWN, -1, 0, index);
-			break;
+		/* others                                                             */
 
-		/* others																*/
 		default:
 			return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			}	/* switch	*/
 		}		/* if		*/
+
 	else
 		return create_trace(TRACE_UNKNOWN, -1, 0, index);
 }
