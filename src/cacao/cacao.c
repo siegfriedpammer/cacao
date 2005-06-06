@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2456 2005-05-12 22:59:04Z twisti $
+   $Id: cacao.c 2550 2005-06-06 14:44:06Z twisti $
 
 */
 
@@ -860,11 +860,17 @@ int main(int argc, char **argv)
 #endif
 
 	/* install architecture dependent signal handler used for exceptions */
+
 	init_exceptions();
 
-	/* initializes jit compiler and codegen stuff */
-	jit_init();
+	/* initialize the codegen sub systems */
 
+	codegen_init();
+
+	/* initializes jit compiler */
+
+	jit_init();
+	
 	/* initialize some cacao subsystems */
 
 	utf8_init();
@@ -879,6 +885,9 @@ int main(int argc, char **argv)
 		throw_main_exception_exit();
 
 	if (!exceptions_init())
+		throw_main_exception_exit();
+
+	if (!builtin_init())
 		throw_main_exception_exit();
 
 #if defined(USE_THREADS)
