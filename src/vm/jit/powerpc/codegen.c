@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2540 2005-05-31 16:01:11Z twisti $
+   $Id: codegen.c 2568 2005-06-06 15:28:11Z twisti $
 
 */
 
@@ -40,11 +40,13 @@
 
 #include "config.h"
 
+#include "md.h"
+#include "md-abi.h"
+#include "md-abi.inc"
+
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
 #include "vm/jit/powerpc/types.h"
-#include "vm/jit/powerpc/darwin/md-abi.h"
-#include "vm/jit/powerpc/darwin/md-abi.inc"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
@@ -78,66 +80,6 @@ void thread_restartcriticalsection(void *u)
 }
 #endif
 
-#if defined(__DARWIN__)
-#include <mach/message.h>
-
-int cacao_catch_Handler(mach_port_t thread)
-{
-#if defined(USE_THREADS)
-	unsigned int *regs;
-	unsigned int crashpc;
-	s4 instr, reg;
-	java_objectheader *xptr;
-
-	/* Mach stuff */
-	thread_state_flavor_t flavor = PPC_THREAD_STATE;
-	mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
-	ppc_thread_state_t thread_state;
-	kern_return_t r;
-	
-	if (checknull)
-		return 0;
-
-	r = thread_get_state(thread, flavor,
-		(natural_t*)&thread_state, &thread_state_count);
-	if (r != KERN_SUCCESS) {
-		log_text("thread_get_state failed");
-		assert(0);
-	}
-
-	regs = &thread_state.r0;
-	crashpc = thread_state.srr0;
-
-	instr = *(s4*) crashpc;
-	reg = (instr >> 16) & 31;
-
-	if (!regs[reg]) {
-/*      This is now handled in asmpart because it needs to run in the throwing
- *      thread */
-/*		xptr = new_nullpointerexception(); */
-
-		regs[REG_ITMP2_XPC] = crashpc;
-/*		regs[REG_ITMP1_XPTR] = (u4) xptr; */
-		thread_state.srr0 = (u4) asm_handle_nullptr_exception;
-
-		r = thread_set_state(thread, flavor,
-			(natural_t*)&thread_state, thread_state_count);
-		if (r != KERN_SUCCESS) {
-			log_text("thread_set_state failed");
-			assert(0);
-		}
-
-		return 1;
-	}
-
-	throw_cacao_exception_exit(string_java_lang_InternalError,
-				   "Segmentation fault at %p", regs[reg]);
-#endif
-
-	return 0;
-}
-#endif /* __DARWIN__ */
-
 
 void init_exceptions(void)
 {
@@ -146,81 +88,6 @@ void init_exceptions(void)
 #if !defined(__DARWIN__)
 	nregdescint[2] = REG_RES;
 #endif
-}
-
-void adjust_argvars(stackptr s, int d, int *fa, int *ia)
-{
-	if (!d) {
-		*fa = 0; *ia = 0;
-		return;
-	}
-	adjust_argvars(s->prev, d-1, fa, ia);
-	if (s->varkind == ARGVAR)
-		s->varnum = (IS_FLT_DBL_TYPE(s->type)) ? *fa : *ia;
-	*fa += (IS_FLT_DBL_TYPE(s->type) != 0);
-	*ia += (IS_2_WORD_TYPE(s->type)) ? 2 : 1;
-}
-
-
-#define intmaxf(a,b) (((a)<(b)) ? (b) : (a))
-
-void preregpass(methodinfo *m, registerdata *rd)
-{
-	int paramsize;
-	stackptr    src;
-	basicblock  *bptr;
-	instruction *iptr;
-	int s3, len;
-
-	rd->ifmemuse = 0;
-
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
-		len = bptr->icount;
-		for (iptr = bptr->iinstr, src = bptr->instack;
-		    len > 0;
-		    src = iptr->dst, len--, iptr++)
-		{
-			if (bptr->flags < BBREACHED)
-				continue;
-			switch (iptr->opc) {
-				case ICMD_BUILTIN1:
-					s3 = 1;
-					goto countparams;
-				case ICMD_BUILTIN2:
-					s3 = 2;
-					goto countparams;
-				case ICMD_BUILTIN3:
-					s3 = 3;
-					goto countparams;
-
-				case ICMD_INVOKEVIRTUAL:
-				case ICMD_INVOKESPECIAL:
-				case ICMD_INVOKESTATIC:
-				case ICMD_INVOKEINTERFACE:
-					s3 = iptr->op1;
-countparams:
-					{
-						int ia, fa;
-						adjust_argvars(src, s3, &fa, &ia);
-					}
-					paramsize = 0;
-					for (; --s3 >= 0; src = src->prev) {
-						paramsize += IS_2_WORD_TYPE(src->type) ? 2 : 1;
-					}
-					rd->ifmemuse = intmaxf(rd->ifmemuse, paramsize);
-					break;
-
-				case ICMD_MULTIANEWARRAY:
-					s3 = iptr->op1;
-					paramsize = rd->intreg_argnum + s3;
-					rd->ifmemuse = intmaxf(rd->ifmemuse, paramsize);
-					break;
-			}
-		}
-	}
-
-	rd->ifmemuse += 6;
-	rd->maxmemuse = rd->ifmemuse;
 }
 
 
@@ -232,18 +99,21 @@ countparams:
 
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	s4 len, s1, s2, s3, d;
-	ptrint a;
-	s4 parentargs_base;
-	s4          *mcodeptr;
-	stackptr    src;
-	varinfo     *var;
-	basicblock  *bptr;
-	instruction *iptr;
+	s4              len, s1, s2, s3, d;
+	ptrint          a;
+	s4              parentargs_base;
+	s4             *mcodeptr;
+	stackptr        src;
+	varinfo        *var;
+	basicblock     *bptr;
+	instruction    *iptr;
 	exceptiontable *ex;
+	methodinfo     *lm;                 /* local methodinfo for ICMD_INVOKE*  */
+	builtintable_entry *bte;
+	methoddesc     *md;
 
 	{
-	s4 i, p, pa, t, l;
+	s4 i, p, t, l;
 	s4 savedregs_num;
 
 	savedregs_num = 0;
@@ -266,7 +136,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	parentargs_base = (parentargs_base + 3) & ~3;
 
-#if POINTERSIZE == 4
+#if SIZEOF_VOID_P == 4
 	(void) dseg_addaddress(cd, m);                          /* Filler         */
 #endif
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
@@ -331,84 +201,79 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* take arguments out of register or stack frame */
 
-	{
-		int narg=0, niarg=0;
-		int arg, iarg;
+	md = m->parseddesc;
 
- 	for (p = 0, l = 0; p < m->paramcount; p++) {
-		arg = narg; iarg = niarg;
- 		t = m->paramtypes[p];
+ 	for (p = 0, l = 0; p < md->paramcount; p++) {
+ 		t = md->paramtypes[p].type;
  		var = &(rd->locals[l][t]);
- 		l++, niarg++;
+ 		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
- 			l++, niarg++;
+ 			l++;
  		if (var->type < 0)
  			continue;
+		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
- 			if (iarg < INT_ARG_CNT -
-				(IS_2_WORD_TYPE(t)!=0)) {        /* register arguments    */
+			s2 = rd->argintregs[s1];
+ 			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_TINTMOVE(t, rd->argintregs[iarg], var->regoff);
+ 					M_TINTMOVE(t, s2, var->regoff);
 
 				} else {                             /* reg arg -> spilled    */
-					M_IST(rd->argintregs[iarg], REG_SP, 4 * var->regoff);
+					M_IST(s2, REG_SP, var->regoff * 4);
 					if (IS_2_WORD_TYPE(t))
-						M_IST(rd->secondregs[rd->argintregs[iarg]], REG_SP, 4 * var->regoff + 4);
+						M_IST(rd->secondregs[s2], REG_SP, 4 * var->regoff + 4);
 				}
 
 			} else {                                 /* stack arguments       */
- 				pa = iarg + 6;
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
-					M_ILD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+					M_ILD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
 					if (IS_2_WORD_TYPE(t))
-						M_ILD(rd->secondregs[var->regoff], REG_SP, 4 * (parentargs_base + pa) + 4);
+						M_ILD(rd->secondregs[var->regoff], REG_SP, (parentargs_base + s1) * 4 + 4);
 
 				} else {                             /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa));
- 					M_IST(REG_ITMP1, REG_SP, 4 * var->regoff);
+ 					M_ILD(REG_ITMP1, REG_SP, (parentargs_base + s1) * 4);
+ 					M_IST(REG_ITMP1, REG_SP, var->regoff * 4);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, 4 * (parentargs_base + pa) + 4);
-						M_IST(REG_ITMP1, REG_SP, 4 * var->regoff + 4);
+						M_ILD(REG_ITMP1, REG_SP, (parentargs_base + s1) * 4 + 4);
+						M_IST(REG_ITMP1, REG_SP, var->regoff * 4 + 4);
 					}
 				}
 			}
 
 		} else {                                     /* floating args         */
-			++narg;
- 			if (arg < FLT_ARG_CNT) {                 /* register arguments    */
+ 			if (!md->params[p].inmemory) {           /* register arguments    */
+				s2 = rd->argfltregs[s1];
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_FLTMOVE(rd->argfltregs[arg], var->regoff);
+ 					M_FLTMOVE(s2, var->regoff);
 
  				} else {			                 /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t))
-						M_DST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+						M_DST(s2, REG_SP, var->regoff * 4);
 					else
-						M_FST(rd->argfltregs[arg], REG_SP, 4 * var->regoff);
+						M_FST(s2, REG_SP, var->regoff * 4);
  				}
 
  			} else {                                 /* stack arguments       */
- 				pa = iarg + 6;
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+						M_DLD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
 
 					else
-						M_FLD(var->regoff, REG_SP, 4 * (parentargs_base + pa));
+						M_FLD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
 
  				} else {                             /* stack-arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
-						M_DST(REG_FTMP1, REG_SP, 4 * var->regoff);
+						M_DLD(REG_FTMP1, REG_SP, (parentargs_base + s1) * 4);
+						M_DST(REG_FTMP1, REG_SP, var->regoff * 4);
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, 4 * (parentargs_base + pa));
-						M_FST(REG_FTMP1, REG_SP, 4 * var->regoff);
+						M_FLD(REG_FTMP1, REG_SP, (parentargs_base + s1) * 4);
+						M_FST(REG_FTMP1, REG_SP, var->regoff * 4);
 					}
-			}
+				}
 			}
 		}
 	} /* end for */
-	}
 
 	/* save monitorenter argument */
 
@@ -479,16 +344,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		M_MFLR(REG_ITMP3);
 		/* XXX must be a multiple of 16 */
-		M_LDA(REG_SP, REG_SP, -(24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
 
-		M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+		M_IST(REG_ITMP3, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 		M_CLR(REG_ITMP1);    /* clear help register */
 
 		/* save all arguments into the reserved stack space */
 
-		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
+		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = md->paramtypes[p].type;
 
 			if (IS_INT_LNG_TYPE(t)) {
 				/* overlapping u8's are on the stack */
@@ -496,20 +361,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					s1 = rd->argintregs[p + longargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-						M_IST(s1, REG_SP, 24 + p * 8 + 4);
+						M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
+						M_IST(s1, REG_SP, LA_SIZE + p * 8 + 4);
 
 					} else {
-						M_IST(s1, REG_SP, 24 + p  * 8);
-						M_IST(rd->secondregs[s1], REG_SP, 24 + p * 8 + 4);
+						M_IST(s1, REG_SP, LA_SIZE + p  * 8);
+						M_IST(rd->secondregs[s1], REG_SP, LA_SIZE + p * 8 + 4);
 						longargs++;
 					}
 
 				} else {
 					a = dseg_adds4(cd, 0xdeadbeef);
 					M_ILD(REG_ITMP1, REG_PV, a);
-					M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-					M_IST(REG_ITMP1, REG_SP, 24 + p * 8 + 4);
+					M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
+					M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8 + 4);
 				}
 
 			} else {
@@ -517,12 +382,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					s1 = rd->argfltregs[fltargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-						M_FST(s1, REG_SP, 24 + p * 8 + 4);
+						M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
+						M_FST(s1, REG_SP, LA_SIZE + p * 8 + 4);
 						fltargs++;
 						
 					} else {
-						M_DST(s1, REG_SP, 24 + p * 8);
+						M_DST(s1, REG_SP, LA_SIZE + p * 8);
 						dblargs++;
 					}
 
@@ -532,18 +397,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 		}
 
-		/* TODO: save remaining integer and flaot argument registers */
-
 		/* load first 4 arguments into integer argument registers */
 
 		for (p = 0; p < 8; p++) {
 			d = rd->argintregs[p];
-			M_ILD(d, REG_SP, 24 + p * 4);
+			M_ILD(d, REG_SP, LA_SIZE + p * 4);
 		}
 
 		p = dseg_addaddress(cd, m);
 		M_ALD(REG_ITMP1, REG_PV, p);
-		M_AST(REG_ITMP1, REG_SP, 11 * 8);    /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
+#if defined(__DARWIN__)
+		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8); /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
+#else
+		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
+#endif
 		p = dseg_addaddress(cd, (void *) builtin_trace_args);
 		M_ALD(REG_ITMP2, REG_PV, p);
 		M_MTCTR(REG_ITMP2);
@@ -555,19 +422,19 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		/* restore arguments from the reserved stack space */
 
-		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
+		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = md->paramtypes[p].type;
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if ((p + longargs + dblargs) < INT_ARG_CNT) {
 					s1 = rd->argintregs[p + longargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_ILD(s1, REG_SP, 24 + p * 8 + 4);
+						M_ILD(s1, REG_SP, LA_SIZE + p * 8 + 4);
 
 					} else {
-						M_ILD(s1, REG_SP, 24 + p  * 8);
-						M_ILD(rd->secondregs[s1], REG_SP, 24 + p * 8 + 4);
+						M_ILD(s1, REG_SP, LA_SIZE + p * 8);
+						M_ILD(rd->secondregs[s1], REG_SP, LA_SIZE + p * 8 + 4);
 						longargs++;
 					}
 				}
@@ -577,20 +444,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					s1 = rd->argfltregs[fltargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_FLD(s1, REG_SP, 24 + p * 8 + 4);
+						M_FLD(s1, REG_SP, LA_SIZE + p * 8 + 4);
 						fltargs++;
 
 					} else {
-						M_DLD(s1, REG_SP, 24 + p * 8);
+						M_DLD(s1, REG_SP, LA_SIZE + p * 8);
 						dblargs++;
 					}
 				}
 			}
 		}
 
-		M_ILD(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+		M_ILD(REG_ITMP3, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
-		M_LDA(REG_SP, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
 		M_MTLR(REG_ITMP3);
 	}
 
@@ -691,12 +558,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->icount;
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 
-	MCODECHECK(64);           /* an instruction usually needs < 64 words      */
-	switch (iptr->opc) {
-		case ICMD_NOP:        /* ...  ==> ...                                 */
-	case ICMD_INLINE_START:
-	case ICMD_INLINE_END:
-			break;
+			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
+
+			switch (iptr->opc) {
+			case ICMD_NOP:    /* ...  ==> ...                                 */
+			case ICMD_INLINE_START:
+			case ICMD_INLINE_END:
+				break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
@@ -1619,7 +1487,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
 			M_LWZX(d, s1, REG_ITMP2);
@@ -1634,11 +1502,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD(s1, REG_ITMP2, REG_ITMP2);
 			M_ILD(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
-			M_ILD(rd->secondregs[d], REG_ITMP2, OFFSET(java_longarray, data[0])+4);
+			M_ILD(rd->secondregs[d], REG_ITMP2, OFFSET(java_longarray, data[0]) + 4);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1650,7 +1518,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
 			M_LWZX(d, s1, REG_ITMP2);
@@ -1665,7 +1533,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
 			M_LFSX(d, s1, REG_ITMP2);
@@ -1680,7 +1548,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
 			M_LFDX(d, s1, REG_ITMP2);
@@ -1695,7 +1563,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
 			M_LBZX(d, s1, REG_ITMP2);
 			M_BSEXT(d, d);
@@ -1710,7 +1578,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
 			M_LHAX(d, s1, REG_ITMP2);
@@ -1725,7 +1593,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
 			M_LHZX(d, s1, REG_ITMP2);
@@ -1739,10 +1607,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_int0(s3, src, REG_ITMP3, 1, 0);
 			M_SLL_IMM(s2, 3, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_longarray, data[0]), REG_ITMP2);
 			M_STWX(s3, s1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
 			var_to_reg_int0(s3, src, REG_ITMP3, 0, 1);
@@ -1756,7 +1624,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
@@ -1770,7 +1638,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_floatarray, data[0]), REG_ITMP2);
@@ -1784,7 +1652,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_flt(s3, src, REG_FTMP3);
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_doublearray, data[0]), REG_ITMP2);
@@ -1798,7 +1666,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
 			M_STBX(s3, s1, REG_ITMP2);
@@ -1811,7 +1679,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
@@ -1825,7 +1693,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-				}
+			}
 			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
@@ -2401,13 +2269,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
 
-
-
 nowperformreturn:
 			{
 			s4 i, p;
 			
 			p = parentargs_base;
+
 			/* call trace function */
 
 			if (runverbose) {
@@ -2417,21 +2284,32 @@ nowperformreturn:
 				M_IST(REG_RESULT, REG_SP, 48+8);
 				M_AST(REG_ITMP3, REG_SP, 48+12);
 				M_IST(REG_RESULT2, REG_SP, 48+16);
-				a = dseg_addaddress(cd, m);
 
 				/* keep this order */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
+#if defined(__DARWIN__)
 					M_MOV(REG_RESULT, rd->argintregs[2]);
 					M_CLR(rd->argintregs[1]);
+#else
+					M_MOV(REG_RESULT, rd->argintregs[3]);
+					M_CLR(rd->argintregs[2]);
+#endif
 					break;
 
 				case ICMD_LRETURN:
+#if defined(__DARWIN__)
 					M_MOV(REG_RESULT2, rd->argintregs[2]);
 					M_MOV(REG_RESULT, rd->argintregs[1]);
+#else
+					M_MOV(REG_RESULT2, rd->argintregs[3]);
+					M_MOV(REG_RESULT, rd->argintregs[2]);
+#endif
 					break;
 				}
+
+				a = dseg_addaddress(cd, m);
 				M_ALD(rd->argintregs[0], REG_PV, a);
 
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
@@ -2508,11 +2386,8 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 
-			if (parentargs_base) {
+			if (parentargs_base)
 				M_LDA(REG_SP, REG_SP, parentargs_base * 4);
-			}
-
-
 
 			M_RET;
 			ALIGNCODENOP;
@@ -2615,104 +2490,71 @@ nowperformreturn:
 			}
 
 
-		case ICMD_BUILTIN3:     /* ..., arg1, arg2, arg3 ==> ...              */
-		                        /* op1 = return type, val.a = function pointer*/
-			s3 = 3;
-			goto gen_method;
+		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
+		                        /* op1 = arg count val.a = builtintable entry */
 
-		case ICMD_BUILTIN2:     /* ..., arg1, arg2 ==> ...                    */
-		                        /* op1 = return type, val.a = function pointer*/
-			s3 = 2;
-			goto gen_method;
-
-		case ICMD_BUILTIN1:     /* ..., arg1 ==> ...                          */
-		                        /* op1 = return type, val.a = function pointer*/
-			s3 = 1;
+			bte = iptr->val.a;
+			md = bte->md;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
 		                        /* op1 = arg count, val.a = method pointer    */
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEINTERFACE:
 
-		case ICMD_INVOKEVIRTUAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
+			lm = iptr->val.a;
 
-		case ICMD_INVOKEINTERFACE:/*.., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
+			if (lm)
+				md = lm->parseddesc;
+			else {
+				unresolved_method *um = iptr->target;
+				md = um->methodref->parseddesc.md;
+			}
 
+gen_method:
 			s3 = iptr->op1;
-
-gen_method: {
-			methodinfo *lm;
 
 			MCODECHECK((s3 << 1) + 64);
 
-			{
-			/* copy arguments to registers or stack location                  */
+			/* copy arguments to registers or stack location */
 
-				stackptr srcsave = src;
-				int s3save = s3;
-				int fltcnt = 0;
-				int argsize = 0;
-			for (; --s3 >= 0; src = src->prev) {
-				argsize += IS_2_WORD_TYPE(src->type) ? 2 : 1;
-				if (IS_FLT_DBL_TYPE(src->type))
-					++fltcnt;
-				}
-
-			for (s3 = s3save, src = srcsave; --s3 >= 0; src = src->prev) {
-				argsize -= IS_2_WORD_TYPE(src->type) ? 2 : 1;
-				if (IS_FLT_DBL_TYPE(src->type))
-					--fltcnt;
+			for (s3 = s3 - 1; s3 >= 0; s3--, src = src->prev) {
 				if (src->varkind == ARGVAR)
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
-					if (argsize < INT_ARG_CNT) {
-						s1 = rd->argintregs[argsize];
+					if (!md->params[s3].inmemory) {
+						s1 = rd->argintregs[md->params[s3].regoff];
 						var_to_reg_int(d, src, s1);
-						if (argsize < INT_ARG_CNT-1) {
-							M_TINTMOVE(src->type, d, s1);
-
-						} else {
-							M_INTMOVE(d, s1);
-							if (IS_2_WORD_TYPE(src->type))
-								M_IST(rd->secondregs[d], REG_SP, 4 * (argsize + 6) + 4);
-						}
-
+						M_TINTMOVE(src->type, d, s1);
 					} else {
 						var_to_reg_int(d, src, REG_ITMP1);
-						M_IST(d, REG_SP, 4 * (argsize + 6));
+						M_IST(d, REG_SP, md->params[s3].regoff * 4);
 						if (IS_2_WORD_TYPE(src->type))
-							M_IST(rd->secondregs[d], REG_SP, 4 * (argsize + 6) + 4);
+							M_IST(rd->secondregs[d], 
+								  REG_SP, md->params[s3].regoff * 4 + 4);
 					}
-
+						
 				} else {
-					if (fltcnt < FLT_ARG_CNT) {
-						s1 = rd->argfltregs[fltcnt];
+					if (!md->params[s3].inmemory) {
+						s1 = rd->argfltregs[md->params[s3].regoff];
 						var_to_reg_flt(d, src, s1);
 						M_FLTMOVE(d, s1);
-
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
-							M_DST(d, REG_SP, 4 * (argsize + 6));
+							M_DST(d, REG_SP, md->params[s3].regoff * 4);
 						else
-							M_FST(d, REG_SP, 4 * (argsize + 6));
+							M_FST(d, REG_SP, md->params[s3].regoff * 4);
 					}
 				}
 			} /* end of for */
-			}
 
-			lm = iptr->val.a;
 			switch (iptr->opc) {
-			case ICMD_BUILTIN3:
-			case ICMD_BUILTIN2:
-			case ICMD_BUILTIN1:
+			case ICMD_BUILTIN:
 				if (iptr->target) {
-					codegen_addpatchref(cd, mcodeptr,
-										(functionptr) lm, iptr->target);
+					codegen_addpatchref(cd, mcodeptr, bte->fp, iptr->target);
 
 					if (showdisassemble)
 						M_NOP;
@@ -2720,11 +2562,11 @@ gen_method: {
 					a = 0;
 
 				} else {
-					a = (ptrint) lm;
+					a = (ptrint) bte->fp;
 				}
 
 				a = dseg_addaddress(cd, a);
-				d = iptr->op1;
+				d = md->returntype.type;
 
 				M_ALD(REG_PV, REG_PV, a); /* Pointer to built-in-function */
 				break;
@@ -2745,11 +2587,11 @@ gen_method: {
 						M_NOP;
 
 					a = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					a = (ptrint) lm->stubroutine;
-					d = lm->parseddesc->returntype.type;
+					d = md->returntype.type;
 				}
 
 				a = dseg_addaddress(cd, a);
@@ -2769,12 +2611,12 @@ gen_method: {
 						M_NOP;
 
 					s1 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = lm->parseddesc->returntype.type;
+					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
@@ -2796,7 +2638,7 @@ gen_method: {
 
 					s1 = 0;
 					s2 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
@@ -2804,7 +2646,7 @@ gen_method: {
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 
-					d = lm->parseddesc->returntype.type;
+					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
@@ -2842,7 +2684,6 @@ gen_method: {
 					M_FLTMOVE(REG_FRESULT, s1);
 					store_reg_to_var_flt(iptr->dst, s1);
 				}
-			}
 			}
 			break;
 
@@ -3176,9 +3017,12 @@ gen_method: {
 
 				/* copy SAVEDVAR sizes to stack */
 
-				if (src->varkind != ARGVAR) {
-					M_IST(s2, REG_SP, (s1 + INT_ARG_CNT + 6) * 4);
-				}
+				if (src->varkind != ARGVAR)
+#if defined(__DARWIN__)
+					M_IST(s2, REG_SP, LA_SIZE + (s1 + INT_ARG_CNT) * 4);
+#else
+					M_IST(s2, REG_SP, LA_SIZE + s1 * 4);
+#endif
 			}
 
 			/* is patcher function set? */
@@ -3207,7 +3051,11 @@ gen_method: {
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_LDA(rd->argintregs[2], REG_SP, (INT_ARG_CNT + 6) * 4);
+#if defined(__DARWIN__)
+			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE + INT_ARG_CNT * 4);
+#else
+			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE);
+#endif
 
 			a = dseg_addaddress(cd, BUILTIN_multianewarray);
 			M_ALD(REG_PV, REG_PV, a);
@@ -3222,7 +3070,7 @@ gen_method: {
 				while (ml < -32768) {ml += 65536; mh--;}
 				M_LDA(REG_PV, REG_ITMP1, ml);
 				M_LDAH(REG_PV, REG_PV, mh);
-			    }
+		    }
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
@@ -3663,11 +3511,20 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	s4 *mcodeptr;                       /* code generation pointer            */
 	s4 stackframesize;                  /* size of stackframe if needed       */
 	s4 disp;
-	codegendata  *cd;
-	registerdata *rd;
+	s4                  dumpsize;
+	codegendata        *cd;
+	registerdata       *rd;
 	t_inlining_globals *id;
-	s4 dumpsize;
-	s4 i;
+	methoddesc         *md;
+	methoddesc         *nmd;
+	s4                  nativeparams;
+	s4                  i, j;           /* count variables                    */
+	s4                  t;
+	s4                  s1, s2;
+
+	/* set some variables */
+
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* mark start of dump memory area */
 
@@ -3682,9 +3539,31 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-	method_descriptor2types(m);                /* set paramcount and paramtypes      */
+	/* create new method descriptor with additional native parameters */
 
-	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
+	md = m->parseddesc;
+	
+	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
+							   md->paramcount * sizeof(typedesc) +
+							   nativeparams * sizeof(typedesc));
+
+	nmd->paramcount = md->paramcount + nativeparams;
+
+	nmd->params = DMNEW(paramdesc, nmd->paramcount);
+
+	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
+
+	if (m->flags & ACC_STATIC)
+		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
+
+	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
+		  md->paramcount);
+
+	md_param_alloc(nmd);
+
+	/* calculate native stub size */
+
+	stubsize = NATIVESTUB_SIZE;
 
 	s = CNEW(s4, stubsize);
 	cs = s + NATIVESTUB_OFFSET;
@@ -3695,14 +3574,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	cd->mcodebase = (u1 *) mcodeptr;
 	cd->patchrefs = NULL;
 
-	*(cs-1)  = (u4) f;                   /* address of native method           */
+	*(cs-1)  = (u4) f;                  /* address of native method           */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	*(cs-2)  = (u4) builtin_get_exceptionptrptr;
 #else
-	*(cs-2)  = (u4) (&_exceptionptr);    /* address of exceptionptr            */
+	*(cs-2)  = (u4) (&_exceptionptr);   /* address of exceptionptr            */
 #endif
-	*(cs-3)  = (u4) asm_handle_nat_exception; /* addr of asm exception handler */
-	*(cs-4)  = (u4) (&env);              /* addr of jni_environement           */
+	*(cs-3)  = (u4) asm_handle_nat_exception; /* addr of asm exception handler*/
+	*(cs-4)  = (u4) (&env);             /* addr of jni_environement           */
 	*(cs-5)  = (u4) builtin_trace_args;
 	*(cs-6)  = (u4) m;
 	*(cs-7)  = (u4) builtin_displaymethodstop;
@@ -3723,55 +3602,44 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_AST(REG_ITMP1, REG_SP, LA_LR_OFFSET); /* store return address           */
 
 	/* Build up new Stackframe for native call */
-	stackframesize = 24; /* 24 Bytes Linkage Area */
-	stackframesize += (m->flags & ACC_STATIC) ? 8 : 4; /*1 or 2 additional int parameters */
-	for (i = 0; i < m->paramcount; i++) {
-		stackframesize += IS_2_WORD_TYPE(m->paramtypes[i]) ? 8 : 4;
-	}
 
-	if (stackframesize < (24+32)) { /* 24 Byte Linkage Area + 32 Bytes minimum Argument area */
-		stackframesize = 24+32;
-	}
-	stackframesize = stackframesize + 8; /* Reserve Space to store Result registers */
+	stackframesize = nmd->memuse;
+
 	stackframesize = (stackframesize + 3) & ~3; /* Keep Stack 16 Byte aligned */
-	M_STWU(REG_SP, REG_SP, -stackframesize);      /* build up stackframe                */
+	M_STWU(REG_SP, REG_SP, -(stackframesize * 4)); /* build up stackframe     */
 
 	/* if function is static, check for initialized */
 
-	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
+	if ((m->flags & ACC_STATIC) && !m->class->initialized)
 		codegen_addpatchref(cd, mcodeptr, NULL, NULL);
-	}
 
 	if (runverbose) {
-		s4 p, t, s1, d, a;
 		s4 longargs = 0;
 		s4 fltargs = 0;
 		s4 dblargs = 0;
 
-/*          M_MFLR(REG_ITMP3); */
 		/* XXX must be a multiple of 16 */
-		M_LDA(REG_SP, REG_SP, -(24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
-
-/*          M_IST(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8); */
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
 
 		M_CLR(REG_ITMP1);
 
 		/* save all arguments into the reserved stack space */
-		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
+
+		for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
+			t = md->paramtypes[i].type;
 
 			if (IS_INT_LNG_TYPE(t)) {
 				/* overlapping u8's are on the stack */
-				if ((p + longargs + dblargs) < (INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
-					s1 = rd->argintregs[p + longargs + dblargs];
+				if ((i + longargs + dblargs) < (INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
+					s1 = rd->argintregs[i + longargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-						M_IST(s1, REG_SP, 24 + p * 8 + 4);
+						M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
+						M_IST(s1, REG_SP, LA_SIZE + i * 8 + 4);
 
 					} else {
-						M_IST(s1, REG_SP, 24 + p  * 8);
-						M_IST(rd->secondregs[s1], REG_SP, 24 + p * 8 + 4);
+						M_IST(s1, REG_SP, LA_SIZE + i  * 8);
+						M_IST(rd->secondregs[s1], REG_SP, LA_SIZE + i * 8 + 4);
 						longargs++;
 					}
 
@@ -3780,8 +3648,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 					/* a = dseg_adds4(cd, 0xdeadbeef);
 					M_ILD(REG_ITMP1, REG_PV, a); */
 					M_LDA(REG_ITMP1, REG_ZERO, -1);
-					M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-					M_IST(REG_ITMP1, REG_SP, 24 + p * 8 + 4);
+					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
+					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8 + 4);
 				}
 
 			} else {
@@ -3789,12 +3657,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 					s1 = rd->argfltregs[fltargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, 24 + p * 8);
-						M_FST(s1, REG_SP, 24 + p * 8 + 4);
+						M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
+						M_FST(s1, REG_SP, LA_SIZE + i * 8 + 4);
 						fltargs++;
 
 					} else {
-						M_DST(s1, REG_SP, 24 + p * 8);
+						M_DST(s1, REG_SP, LA_SIZE + i * 8);
 						dblargs++;
 					}
 
@@ -3804,131 +3672,128 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-        /* TODO: save remaining integer and flaot argument registers */
+        /* TODO: save remaining integer and float argument registers */
 
 		/* load first 4 arguments into integer argument registers */
-		for (p = 0; p < INT_ARG_CNT; p++) {
-			d = rd->argintregs[p];
-			M_ILD(d, REG_SP, LA_SIZE + p * 4);
-		}
 
-		M_ALD(REG_ITMP1, REG_PV, -6 * 4);
-		M_AST(REG_ITMP1, REG_SP, 11 * 8);    /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
+		for (i = 0; i < INT_ARG_CNT; i++)
+			M_ILD(rd->argintregs[i], REG_SP, LA_SIZE + i * 4);
+
+        M_ALD(REG_ITMP1, REG_PV, -6 * 4);
+#if defined(__DARWIN__)
+        M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8); /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
+#else
+        M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
+#endif
 		M_ALD(REG_ITMP2, REG_PV, -5 * 4);
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
-        longargs = 0;
-        fltargs = 0;
-        dblargs = 0;
+		longargs = 0;
+		fltargs = 0;
+		dblargs = 0;
 
-        /* restore arguments into the reserved stack space */
-        for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-            t = m->paramtypes[p];
+		/* restore arguments into the reserved stack space */
 
-            if (IS_INT_LNG_TYPE(t)) {
-                if ((p + longargs + dblargs) < INT_ARG_CNT) {
-                    s1 = rd->argintregs[p + longargs + dblargs];
+		for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
+			t = md->paramtypes[i].type;
 
-                    if (!IS_2_WORD_TYPE(t)) {
-                        M_ILD(s1, REG_SP, 24 + p * 8 + 4);
+			if (IS_INT_LNG_TYPE(t)) {
+				if ((i + longargs + dblargs) < INT_ARG_CNT) {
+					s1 = rd->argintregs[i + longargs + dblargs];
 
-                    } else {
-                        M_ILD(s1, REG_SP, 24 + p  * 8);
-                        M_ILD(rd->secondregs[s1], REG_SP, 24 + p * 8 + 4);
-                        longargs++;
-                    }
-                }
+					if (!IS_2_WORD_TYPE(t)) {
+						M_ILD(s1, REG_SP, LA_SIZE + i * 8 + 4);
 
-            } else {
-                if ((fltargs + dblargs) < FLT_ARG_CNT) {
-                    s1 = rd->argfltregs[fltargs + dblargs];
-
-                    if (!IS_2_WORD_TYPE(t)) {
-                        M_FLD(s1, REG_SP, 24 + p * 8 + 4);
-                        fltargs++;
-
-                    } else {
-                        M_DLD(s1, REG_SP, 24 + p * 8);
-                        dblargs++;
-                    }
-                }
-            }
-        }
-
-/*          M_ILD(REG_ITMP3, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT) * 8); */
-
-        M_LDA(REG_SP, REG_SP, 24 + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
-/*          M_MTLR(REG_ITMP3); */
-	}
-
-	/* save argument registers on stack -- if we have to            */
-	/* and copy spilled argument regs from old stack to the new one */
-	{
-		s4 farg = 0;
-		s4 iarg;
-		s4 paramsize;
-		s4 stack_off;
-		s4 shift;
-
-		stack_off = 0;
-		shift = (m->flags & ACC_STATIC) ? 2 : 1;
-		for (i = 0; i < m->paramcount; i++) {
-			paramsize = IS_2_WORD_TYPE(m->paramtypes[i]) ? 2 : 1;
-			if (IS_FLT_DBL_TYPE(m->paramtypes[i])) {
-				farg++;
-				if (farg >= FLT_ARG_CNT) { /* spilled float arg -> copy from old stack */
-					if (paramsize == 1) { /* float arg */
-						M_FLD(REG_FTMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
-						M_FST(REG_FTMP1, REG_SP, 24 + 4*(shift + stack_off));
-					} else { /* double arg */
-						M_DLD(REG_FTMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
-						M_DST(REG_FTMP1, REG_SP, 24 + 4*(shift + stack_off));
+					} else {
+						M_ILD(s1, REG_SP, LA_SIZE + i * 8);
+						M_ILD(rd->secondregs[s1], REG_SP, LA_SIZE + i * 8 + 4);
+						longargs++;
 					}
 				}
-			} else { /* int arg */
-				iarg = stack_off; /* int register are not consecutive like the float*/
-				if (iarg + paramsize -1 < INT_ARG_CNT) {
-					if ( iarg + paramsize -1 == INT_ARG_CNT - shift ) {
-						/* int arg reg(s) spilled through shift to stack */
-						M_IST( rd->argintregs[iarg], REG_SP, 24 + 4 * (shift + stack_off));
-						if (paramsize == 2) /* spill secondreg, too */
-							M_IST( rd->argintregs[iarg+1], REG_SP, 24 + 4 * (shift + stack_off) + 4);
-					}
-				} else { /* already spilled int arg -> copy from old stack */
-					M_ILD(REG_ITMP1, REG_SP, stackframesize + 24 + 4 * stack_off);
-					M_IST(REG_ITMP1, REG_SP, 24 + 4 * (shift + stack_off));
-					if (paramsize == 2) { /* long arg -> copy second half, too */
-						M_ILD(REG_ITMP1, REG_SP, stackframesize + 24 + 4 * stack_off + 4);
-						M_IST(REG_ITMP1, REG_SP, 24 + 4*(shift + stack_off) + 4);
+
+			} else {
+				if ((fltargs + dblargs) < FLT_ARG_CNT) {
+					s1 = rd->argfltregs[fltargs + dblargs];
+
+					if (!IS_2_WORD_TYPE(t)) {
+						M_FLD(s1, REG_SP, LA_SIZE + i * 8 + 4);
+						fltargs++;
+
+					} else {
+						M_DLD(s1, REG_SP, LA_SIZE + i * 8);
+						dblargs++;
 					}
 				}
 			}
-			stack_off += paramsize;
 		}
 
-		/* now shift integer argument registers */
-		for (i = m->paramcount - 1; i >=0; i--) {
-			paramsize = IS_2_WORD_TYPE(m->paramtypes[i]) ? 2 : 1;
-			stack_off -= paramsize;
-			if (IS_INT_LNG_TYPE(m->paramtypes[i])) {
-				iarg = stack_off;
-				if ( iarg + paramsize -1 < INT_ARG_CNT - shift ) {
-					/* shift integer arg */
-					if (paramsize == 2)
-						M_MOV(rd->argintregs[iarg+1], rd->argintregs[iarg + shift + 1]);
-					M_MOV(rd->argintregs[iarg], rd->argintregs[iarg + shift]);
-				} /* else are already spilled to memory */
+        M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
+	}
+
+	/* copy or spill arguments to new locations */
+
+	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+		t = md->paramtypes[i].type;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[i].inmemory) {
+				s1 = rd->argintregs[md->params[i].regoff];
+
+				if (!nmd->params[j].inmemory) {
+					s2 = rd->argintregs[nmd->params[j].regoff];
+					M_TINTMOVE(t, s1, s2);
+
+				} else {
+					s2 = nmd->params[j].regoff;
+
+					M_IST(s1, REG_SP, s2 * 4);
+					if (IS_2_WORD_TYPE(t))
+						M_IST(rd->secondregs[s1], REG_SP, s2 * 4 + 4);
+				}
+
+			} else {
+				s1 = md->params[i].regoff + stackframesize;
+				s2 = nmd->params[j].regoff;
+
+				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
+				M_IST(REG_ITMP1, REG_SP, s2 * 4);
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(REG_ITMP1, REG_SP, s1 * 4 + 4);
+					M_IST(REG_ITMP1, REG_SP, s2 * 4 + 4);
+				}
+			}
+
+		} else {
+			/* We only copy spilled float arguments, as the float argument    */
+			/* registers keep unchanged.                                      */
+
+			if (md->params[i].inmemory) {
+				s1 = md->params[i].regoff + stackframesize;
+				s2 = nmd->params[j].regoff;
+
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(REG_FTMP1, REG_SP, s1 * 4);
+					M_DST(REG_FTMP1, REG_SP, s2 * 4);
+
+				} else {
+					M_FLD(REG_FTMP1, REG_SP, s1 * 4 + 4);
+					M_FST(REG_FTMP1, REG_SP, s2 * 4 + 4);
+				}
 			}
 		}
 	}
+
+	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC)
-		/* put class into second argument register */
 		M_ALD(rd->argintregs[1], REG_PV, -8 * 4);
 
 	/* put env into first argument register */
+
 	M_ALD(rd->argintregs[0], REG_PV, -4 * 4);
+
+	/* generate the actual native call */
 
 	M_ALD(REG_PV, REG_PV, -1 * 4);      /* load adress of native method       */
 	M_MTCTR(REG_PV);
@@ -3938,6 +3803,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_LDA(REG_PV, REG_ITMP1, disp);     /* recompute pv from ra               */
 
 	/* 20 instructions */
+
 	if (runverbose) {
 		M_MFLR(REG_ITMP3);
 		M_LDA(REG_SP, REG_SP, -10 * 8);
@@ -3950,13 +3816,23 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		switch (m->returntype) {
 		case TYPE_INT:
 		case TYPE_ADDRESS:
+#if defined(__DARWIN__)
 			M_MOV(REG_RESULT, rd->argintregs[2]);
 			M_CLR(rd->argintregs[1]);
+#else
+			M_MOV(REG_RESULT, rd->argintregs[3]);
+			M_CLR(rd->argintregs[2]);
+#endif
 			break;
 
 		case TYPE_LONG:
+#if defined(__DARWIN__)
 			M_MOV(REG_RESULT2, rd->argintregs[2]);
 			M_MOV(REG_RESULT, rd->argintregs[1]);
+#else
+			M_MOV(REG_RESULT2, rd->argintregs[3]);
+			M_MOV(REG_RESULT, rd->argintregs[2]);
+#endif
 			break;
 		}
 		M_ALD(rd->argintregs[0], REG_PV, -6 * 4);
@@ -3975,15 +3851,20 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	if (IS_FLT_DBL_TYPE(m->returntype))
-		if (IS_2_WORD_TYPE(m->returntype))
-			M_DST(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
-		else
-			M_FST(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
-	else {
-		M_IST(REG_RESULT, REG_SP, stackframesize-8 /*56*/);
-		if (IS_2_WORD_TYPE(m->returntype))
-			M_IST(REG_RESULT2, REG_SP, stackframesize-4 /* 60*/);
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+		M_IST(REG_RESULT2, REG_SP, stackframesize * 4 - 4 /* 60*/);
+		/* fall through */
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
 	}
 
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* builtin_get_exceptionptrptr        */
@@ -3994,15 +3875,20 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_LDA(REG_PV, REG_ITMP1, disp);
 	M_MOV(REG_RESULT, REG_ITMP2);
 
-	if (IS_FLT_DBL_TYPE(m->returntype))
-		if (IS_2_WORD_TYPE(m->returntype))
-			M_DLD(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
-		else
-			M_FLD(REG_FRESULT, REG_SP, stackframesize-8 /*56*/);
-	else {
-		M_ILD(REG_RESULT, REG_SP, stackframesize-8 /*56*/);
-		if (IS_2_WORD_TYPE(m->returntype))
-			M_ILD(REG_RESULT2, REG_SP, stackframesize-4 /*60*/);
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+		M_ILD(REG_RESULT2, REG_SP, stackframesize * 4 - 4 /*60*/);
+		/* fall through */
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		break;
 	}
 #else
 	M_ALD(REG_ITMP2, REG_PV, -2 * 4);   /* get address of exceptionptr        */
@@ -4011,19 +3897,19 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_TST(REG_ITMP1_XPTR);
 	M_BNE(4);                           /* if no exception then return        */
 
-	M_ALD(REG_ITMP1, REG_SP, stackframesize + 8);   /* load return address                */
+	M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
 	M_MTLR(REG_ITMP1);
-	M_LDA(REG_SP, REG_SP, stackframesize);          /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
 
 	M_RET;
 
 	M_CLR(REG_ITMP3);
 	M_AST(REG_ITMP3, REG_ITMP2, 0);     /* store NULL into exceptionptr       */
 
-	M_ALD(REG_ITMP2, REG_SP, stackframesize + 8);   /* load return address                */
+	M_ALD(REG_ITMP2, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
 	M_MTLR(REG_ITMP2);
 
-	M_LDA(REG_SP, REG_SP, stackframesize);          /* remove stackframe                  */
+	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
 
 	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC); /* fault address                */
 

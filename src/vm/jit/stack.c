@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2541 2005-05-31 16:02:14Z twisti $
+   $Id: stack.c 2568 2005-06-06 15:28:11Z twisti $
 
 */
 
@@ -87,23 +87,24 @@
 
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	int b_count;
-	int b_index;
-	int stackdepth;
-	stackptr curstack;
-	stackptr new;
-	stackptr copy;
-	int opcode, i, len, loops;
-	int superblockend, repeat, deadcode;
-	instruction *iptr;
-	basicblock *bptr;
-	basicblock *tbptr;
-	s4 *s4ptr;
-	void* *tptr;
-	s4 *argren;
+	int           b_count;
+	int           b_index;
+	int           stackdepth;
+	stackptr      curstack;
+	stackptr      new;
+	stackptr      copy;
+	int           opcode, i, len, loops;
+	int           superblockend, repeat, deadcode;
+	instruction  *iptr;
+	basicblock   *bptr;
+	basicblock   *tbptr;
+	s4           *s4ptr;
+	void        **tptr;
+	s4           *argren;
 
-	s4 call_argcount;
-	s4 call_returntype;
+	builtintable_entry *bte;
+	unresolved_method  *um;
+	methoddesc         *md;
 
 #ifdef LSRA
 	m->maxlifetimes = 0;
@@ -209,12 +210,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		repeat = false;
 		STACKRESET;
 		deadcode = true;
-		/*printf("Block count :%d\n",b_count);*/
 
 		while (--b_count >= 0) {
 			if (bptr->flags == BBDELETED) {
 				/* do nothing */
-				/*log_text("BBDELETED");*/
 
 			} else if (superblockend && (bptr->flags < BBREACHED)) {
 				repeat = true;
@@ -248,42 +247,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					 /* XXX TWISTI: why is this set to NULL here? */
  /*                 iptr->target = NULL; */
 
-/*  					dolog("p: %04d op: %s stack: %p", iptr - instr, icmd_names[opcode], curstack); */
-
 #if defined(USEBUILTINTABLE)
-					{
-#if 0
-						stdopdescriptor *breplace;
-						breplace = find_builtin(opcode);
+					bte = builtintable_get_automatic(opcode);
 
-						if (breplace && opcode == breplace->opcode) {
-							iptr[0].opc = breplace->icmd;
-							iptr[0].op1 = breplace->type_d;
-							iptr[0].val.fp = breplace->builtin;
-							m->isleafmethod = false;
-							switch (breplace->icmd) {
-							case ICMD_BUILTIN1:
-								goto builtin1;
-							case ICMD_BUILTIN2:
-								goto builtin2;
-							}
-						}
-#endif
-						builtin_descriptor *breplace;
-						breplace = find_builtin(opcode);
-
-						if (breplace && opcode == breplace->opcode) {
-							iptr[0].opc = breplace->icmd;
-							iptr[0].op1 = breplace->type_d;
-							iptr[0].val.fp = breplace->builtin;
-							m->isleafmethod = false;
-							switch (breplace->icmd) {
-							case ICMD_BUILTIN1:
-								goto builtin1;
-							case ICMD_BUILTIN2:
-								goto builtin2;
-							}
-						}
+					if (bte && bte->opcode == opcode) {
+						iptr->opc = ICMD_BUILTIN;
+						iptr->op1 = bte->md->paramcount;
+						iptr->val.a = bte;
+						m->isleafmethod = false;
+						goto builtin;
 					}
 #endif /* defined(USEBUILTINTABLE) */
 					
@@ -967,7 +939,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_CONST_STORE
 						if (len > 0 && iptr->val.a == 0) {
 							switch (iptr[1].opc) {
-							case ICMD_BUILTIN3:
+							case ICMD_BUILTIN:
 								if (iptr[1].val.fp != BUILTIN_aastore) {
 									PUSHCONST(TYPE_ADR);
 									break;
@@ -976,7 +948,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
 								switch (iptr[1].opc) {
-								case ICMD_BUILTIN3:
+								case ICMD_BUILTIN:
 									iptr[0].opc = ICMD_AASTORECONST;
 									OPTT2_0(TYPE_INT, TYPE_ADR);
 									break;
@@ -1605,23 +1577,23 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						
 					case ICMD_IDIV:
 #if !SUPPORT_DIVISION
-						iptr[0].opc = ICMD_BUILTIN2;
-						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.fp = BUILTIN_idiv;
+						bte = builtintable_get_internal(BUILTIN_idiv);
+						iptr->opc = ICMD_BUILTIN;
+						iptr->op1 = bte->md->paramcount;
+						iptr->val.a = bte;
 						m->isleafmethod = false;
-						goto builtin2;
+						goto builtin;
 #endif
 
 					case ICMD_IREM:
 #if !SUPPORT_DIVISION
-						/*log_text("ICMD_IREM: !SUPPORT_DIVISION");*/
-						iptr[0].opc = ICMD_BUILTIN2;
-						iptr[0].op1 = TYPE_INT;
-						iptr[0].val.fp = BUILTIN_irem;
+						bte = builtintable_get_internal(BUILTIN_irem);
+						iptr->opc = ICMD_BUILTIN;
+						iptr->op1 = bte->md->paramcount;
+						iptr->val.a = bte;
 						m->isleafmethod = false;
-						goto builtin2;
+						goto builtin;
 #endif
-						/*log_text("ICMD_IREM: SUPPORT_DIVISION");*/
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
@@ -1638,20 +1610,22 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					case ICMD_LDIV:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-						iptr[0].opc = ICMD_BUILTIN2;
-						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.fp = BUILTIN_ldiv;
+						bte = builtintable_get_internal(BUILTIN_ldiv);
+						iptr->opc = ICMD_BUILTIN;
+						iptr->op1 = bte->md->paramcount;
+						iptr->val.a = bte;
 						m->isleafmethod = false;
-						goto builtin2;
+						goto builtin;
 #endif
 
 					case ICMD_LREM:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-						iptr[0].opc = ICMD_BUILTIN2;
-						iptr[0].op1 = TYPE_LNG;
-						iptr[0].val.fp = BUILTIN_lrem;
+						bte = builtintable_get_internal(BUILTIN_lrem);
+						iptr->opc = ICMD_BUILTIN;
+						iptr->op1 = bte->md->paramcount;
+						iptr->val.a = bte;
 						m->isleafmethod = false;
-						goto builtin2;
+						goto builtin;
 #endif
 
 					case ICMD_LMUL:
@@ -1868,61 +1842,62 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						OP1_0ANY;
 						break;
 
-						/* pop many push any */
-				case ICMD_BUILTIN3:
-						call_argcount = 3;
-						call_returntype = iptr->op1;
-						goto _callhandling;
-					case ICMD_BUILTIN2:
-#if defined(USEBUILTINTABLE) || !SUPPORT_DIVISION
-					/* Just prevent a compiler warning... */
-					builtin2:
-#endif
-						call_argcount = 2;
-						call_returntype = iptr->op1;
-						goto _callhandling;
-					case ICMD_BUILTIN1:
+					/* pop many push any */
+
+					case ICMD_BUILTIN:
 #if defined(USEBUILTINTABLE)
 					/* Just prevent a compiler warning... */
-					builtin1:
-#endif	
-						call_argcount = 1;
-						call_returntype = iptr->op1;
+					builtin:
+#endif
+						bte = (builtintable_entry *) iptr->val.a;
+						md = bte->md;
 						goto _callhandling;
 
-					case ICMD_INVOKEVIRTUAL:
-					case ICMD_INVOKESPECIAL:
-					case ICMD_INVOKEINTERFACE:
 					case ICMD_INVOKESTATIC:
+					case ICMD_INVOKESPECIAL:
+					case ICMD_INVOKEVIRTUAL:
+					case ICMD_INVOKEINTERFACE:
 						COUNT(count_pcmd_met);
-						{
-							unresolved_method *um = iptr->target; 	 
+						um = iptr->target;
+						md = um->methodref->parseddesc.md;
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
-							call_argcount = iptr->op1; 	 
-							call_returntype = um->methodref->parseddesc.md->returntype.type; 	 
+					_callhandling:
+						i = iptr->op1;
 
-						_callhandling:
-							i = call_argcount;
+						if (i > rd->arguments_num)
+							rd->arguments_num = i;
+						REQUIRE(i);
 
-							if (i > rd->arguments_num)
-								rd->arguments_num = i;
-							REQUIRE(i);
-
-							/* Macro in codegen.h */
-							SET_ARG_STACKSLOTS;
-
-							while (copy) {
-								copy->flags |= SAVEDVAR;
-								copy = copy->prev;
+						copy = curstack;
+						for (i-- ; i >= 0; i--) {
+							if (!(copy->flags & SAVEDVAR)) {
+								copy->varkind = ARGVAR;
+								copy->varnum = i;
+								if (md->params[i].inmemory) {
+									copy->flags = INMEMORY;
+									copy->regoff = md->params[i].regoff;
+								} else {
+									copy->flags = 0;
+									if (IS_FLT_DBL_TYPE(copy->type))
+										copy->regoff = rd->argfltregs[md->params[i].regoff];
+									else
+										copy->regoff = rd->argintregs[md->params[i].regoff];
+								}
 							}
-							i = call_argcount;
-
-							POPMANY(i);
-							if (call_returntype != TYPE_VOID)
-								OP0_1(call_returntype);
-							break;
+							copy = copy->prev;
 						}
+
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+
+						i = iptr->op1;
+						POPMANY(i);
+						if (md->returntype.type != TYPE_VOID)
+							OP0_1(md->returntype.type);
+						break;
 
 					case ICMD_INLINE_START:
 					case ICMD_INLINE_END:
@@ -1936,9 +1911,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						i = iptr->op1;
 
 						REQUIRE(i);
-#ifdef SPECIALMEMUSE
-						if (rd->ifmemuse < (i + rd->intreg_argnum + 6))
-							rd->ifmemuse = i + rd->intreg_argnum + 6; 
+#if defined(SPECIALMEMUSE)
+# if defined(__DARWIN__)
+						if (rd->ifmemuse < (i + INT_ARG_CNT + LA_WORD_SIZE))
+							rd->ifmemuse = i + LA_WORD_SIZE + INT_ARG_CNT;
+# else
+						if (rd->ifmemuse < (i + LA_WORD_SIZE + 3))
+							rd->ifmemuse = i + LA_WORD_SIZE + 3;
+# endif
 #else
 # if defined(__I386__)
 						if (rd->ifmemuse < i + 3)
@@ -1956,9 +1936,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							if (!(copy->flags & SAVEDVAR)) {
 								copy->varkind = ARGVAR;
 								copy->varnum = i + INT_ARG_CNT;
-								copy->flags|=INMEMORY;
+								copy->flags |= INMEMORY;
 #if defined(SPECIALMEMUSE)
-								copy->regoff = i + rd->intreg_argnum + 6;
+# if defined(__DARWIN__)
+								copy->regoff = i + LA_WORD_SIZE + INT_ARG_CNT;
+# else
+								copy->regoff = i + LA_WORD_SIZE + 3;
+# endif
 #else
 # if defined(__I386__)
 								copy->regoff = i + 3;
@@ -2246,15 +2230,6 @@ static void print_reg(stackptr s) {
 		
 }
 #endif
-
-
-char *icmd_builtin_name(functionptr bptr)
-{
-	builtin_descriptor *bdesc = builtin_desc;
-	while ((bdesc->opcode != 0) && (bdesc->builtin != bptr))
-		bdesc++;
-	return (bdesc->opcode) ? bdesc->name : "<NOT IN TABLE>";
-}
 
 
 static char *jit_type[] = {
@@ -2651,7 +2626,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %g,", iptr->val.d);
 			break;
 		}
-#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__) || defined(__MIPS__)
 		if (iptr->opc == ICMD_PUTFIELDCONST) 	 
 			printf(" NOT RESOLVED,"); 	 
 		printf(" "); 	 
@@ -2661,17 +2635,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		printf(" (type "); 	 
 		utf_display(((unresolved_field *) iptr[1].target)->fieldref->descriptor); 	 
 		printf(")"); 	 
-#else 	 
-		if (iptr->opc == ICMD_PUTFIELDCONST)
-			printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
-		printf(" ");
-		utf_display_classname(((fieldinfo *) iptr[1].val.a)->class->name);
-		printf(".");
-		utf_display(((fieldinfo *) iptr[1].val.a)->name);
-		printf(" (type ");
-		utf_display(((fieldinfo *) iptr[1].val.a)->descriptor);
-		printf(")");
-#endif
 		break;
 
 	case ICMD_IINC:
@@ -2786,10 +2749,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INLINE_END:
 		break;
 
-	case ICMD_BUILTIN3:
-	case ICMD_BUILTIN2:
-	case ICMD_BUILTIN1:
-		printf(" %s", icmd_builtin_name((functionptr) iptr->val.fp));
+	case ICMD_BUILTIN:
+		printf(" %s", ((builtintable_entry *) iptr->val.a)->name);
 		break;
 
 	case ICMD_INVOKEVIRTUAL:

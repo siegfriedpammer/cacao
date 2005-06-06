@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2497 2005-05-23 08:06:46Z twisti $
+   $Id: stack.h 2568 2005-06-06 15:28:11Z twisti $
 
 */
 
@@ -208,8 +208,22 @@
 #define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
 #define OP1_0(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
 #define OP1_0ANY    {REQUIRE_1;POPANY;SETDST;stackdepth--;}
-#define OP0_1(s)    {NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
-#define OP1_1(s,d)  {REQUIRE_1;POP(s);NEWSTACKn(d,stackdepth-1);SETDST;}
+
+#define OP0_1(s) \
+    do { \
+        NEWSTACKn((s),stackdepth); \
+        SETDST; \
+        stackdepth++; \
+    } while (0)
+
+#define OP1_1(s,d) \
+    do { \
+        REQUIRE_1; \
+        POP((s)); \
+        NEWSTACKn((d),stackdepth - 1);\
+        SETDST; \
+    } while (0)
+
 #define OP2_0(s)    {REQUIRE_2;POP(s);POP(s);SETDST;stackdepth-=2;}
 #define OPTT2_0(t,b){REQUIRE_2;POP(t);POP(b);SETDST;stackdepth-=2;}
 #define OP2_1(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);SETDST;stackdepth--;}
@@ -222,7 +236,17 @@
                      NEWSTACKn(s,stackdepth-1);SETDST;}
 #define OP3TIA_0(s) {REQUIRE_3;POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
 #define OP3_0(s)    {REQUIRE_3;POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
-#define POPMANY(i)  {REQUIRE(i);stackdepth-=i;while(--i>=0){POPANY;}SETDST;}
+
+#define POPMANY(i) \
+    do { \
+        REQUIRE((i)); \
+        stackdepth -= (i); \
+        while(--(i) >= 0) { \
+            POPANY; \
+        } \
+        SETDST; \
+    } while (0)
+
 #define DUP         {REQUIRE_1;NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
                     stackdepth++;}
 #define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
@@ -291,29 +315,29 @@
  * instruction of the block has been processed).
  */
 
-#define BBEND(s,i){ \
-	i = stackdepth - 1; \
-	copy = s; \
+#define BBEND(s,i) { \
+	(i) = stackdepth - 1; \
+	copy = (s); \
 	while (copy) { \
-		if ((copy->varkind == STACKVAR) && (copy->varnum > i)) \
+		if ((copy->varkind == STACKVAR) && (copy->varnum > (i))) \
 			copy->varkind = TEMPVAR; \
 		else { \
 			copy->varkind = STACKVAR; \
-			copy->varnum = i;\
+			copy->varnum = (i);\
 		} \
-		rd->interfaces[i][copy->type].type = copy->type; \
-		rd->interfaces[i][copy->type].flags |= copy->flags; \
-		i--; copy = copy->prev; \
+		rd->interfaces[(i)][copy->type].type = copy->type; \
+		rd->interfaces[(i)][copy->type].flags |= copy->flags; \
+		(i)--; copy = copy->prev; \
 	} \
-	i = bptr->indepth - 1; \
+	(i) = bptr->indepth - 1; \
 	copy = bptr->instack; \
 	while (copy) { \
-		rd->interfaces[i][copy->type].type = copy->type; \
+		rd->interfaces[(i)][copy->type].type = copy->type; \
 		if (copy->varkind == STACKVAR) { \
 			if (copy->flags & SAVEDVAR) \
-				rd->interfaces[i][copy->type].flags |= SAVEDVAR; \
+				rd->interfaces[(i)][copy->type].flags |= SAVEDVAR; \
 		} \
-		i--; copy = copy->prev; \
+		(i)--; copy = copy->prev; \
 	} \
 }
 
@@ -357,7 +381,6 @@
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
 void icmd_print_stack(codegendata *cd, stackptr s);
-char *icmd_builtin_name(functionptr bptr);
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
 void show_icmd(instruction *iptr, bool deadcode);

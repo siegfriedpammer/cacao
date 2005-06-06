@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2541 2005-05-31 16:02:14Z twisti $
+   $Id: parse.c 2568 2005-06-06 15:28:11Z twisti $
 
 */
 
@@ -176,6 +176,11 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	int firstlocal = 0;         /* first local variable of method     */
 	exceptiontable* nextex;     /* points next free entry in extable  */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
+
+	constant_classref  *cr;
+	constant_classref  *compr;
+	classinfo          *c;
+	builtintable_entry *bte;
 
 	u2 lineindex = 0;
 	u2 currentline = 0;
@@ -450,12 +455,12 @@ SHOWOPCODE(DEBUG4)
 			break;
 
 		case JAVA_LDC1:
-			i = code_get_u1(p+1,inline_env->method);
-
+			i = code_get_u1(p + 1, inline_env->method);
 			goto pushconstantitem;
+
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 
 		pushconstantitem:
 
@@ -646,68 +651,65 @@ SHOWOPCODE(DEBUG4)
 			nextp = p + 1;
 			break;
 
-			/* managing arrays ************************************************/
+		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
 			OP(ICMD_CHECKASIZE);
 			switch (code_get_s1(p + 1, inline_env->method)) {
 			case 4:
-				BUILTIN1(BUILTIN_newarray_boolean, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
 			case 5:
-				BUILTIN1(BUILTIN_newarray_char, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_char);
 				break;
 			case 6:
-				BUILTIN1(BUILTIN_newarray_float, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_float);
 				break;
 			case 7:
-				BUILTIN1(BUILTIN_newarray_double, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_double);
 				break;
 			case 8:
-				BUILTIN1(BUILTIN_newarray_byte, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_byte);
 				break;
 			case 9:
-				BUILTIN1(BUILTIN_newarray_short, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_short);
 				break;
 			case 10:
-				BUILTIN1(BUILTIN_newarray_int, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_int);
 				break;
 			case 11:
-				BUILTIN1(BUILTIN_newarray_long, TYPE_ADR, currentline);
+				bte = builtintable_get_internal(BUILTIN_newarray_long);
 				break;
 			default:
 				log_text("Invalid array-type to create");
 				assert(0);
 			}
+			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_ANEWARRAY:
 			OP(ICMD_CHECKASIZE);
 			i = code_get_u2(p + 1, inline_env->method);
-			{
-				constant_classref *compr;
-				constant_classref *cr;
-				classinfo         *c;
+			compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			if (!(cr = class_get_classref_multiarray_of(1, compr)))
+				return NULL;
 
-				if (!(cr = class_get_classref_multiarray_of(1, compr)))
-					return NULL;
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+				return NULL;
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
-					return NULL;
+			if (c) {
+				bte = builtintable_get_internal(BUILTIN_newarray);
+				LOADCONST_A_BUILTIN(c->vftbl);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 
-				if (c) {
-					LOADCONST_A_BUILTIN(c->vftbl);
-					BUILTIN2T(BUILTIN_newarray, TYPE_ADR, NULL, currentline);
-
-				} else {
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN2T(PATCHER_builtin_newarray, TYPE_ADR, cr, currentline);
-				}
-				s_count++;
+			} else {
+				bte = builtintable_get_internal(PATCHER_builtin_newarray);
+				LOADCONST_A_BUILTIN(cr);
+				BUILTIN(bte, bte->md->paramcount, cr, currentline);
 			}
+			s_count++;
 			OP(ICMD_CHECKEXCEPTION);
 			break;
 
@@ -831,7 +833,7 @@ SHOWOPCODE(DEBUG4)
 			break;
 				
 
-			/* table jumps ********************************/
+		/* table jumps ********************************************************/
 
 		case JAVA_LOOKUPSWITCH:
 			{
@@ -993,29 +995,31 @@ SHOWOPCODE(DEBUG4)
 			}
 
 
-			/* load and store of object fields *******************/
+		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
-			BUILTIN3(BUILTIN_aastore, TYPE_VOID, currentline);
+			bte = builtintable_get_internal(BUILTIN_aastore);
+			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			break;
 
 		case JAVA_GETSTATIC:
 		case JAVA_PUTSTATIC:
 		case JAVA_GETFIELD:
 		case JAVA_PUTFIELD:
-			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref  *fr;
 				unresolved_field *uf;
 				fieldinfo        *fi;
 
-				fr = class_getconstant(inline_env->method->class, i, CONSTANT_Fieldref);
+				i = code_get_u2(p + 1, inline_env->method);
+				fr = class_getconstant(inline_env->method->class, i,
+									   CONSTANT_Fieldref);
+
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
 												   inline_env->method,
-												   iptr,
-												   NULL)))
+												   iptr, NULL)))
 					return NULL;
 
 				/* store unresolved_field pointer */
@@ -1039,24 +1043,31 @@ SHOWOPCODE(DEBUG4)
 			break;
 
 
-			/* method invocation *****/
+		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
 			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref   *mr;
+				methoddesc        *md;
 				unresolved_method *um;
 				methodinfo        *mi;
 
 				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount, mr, currentline);
+				mr = class_getconstant(inline_env->method->class, i,
+									   CONSTANT_Methodref);
+
+				md = mr->parseddesc.md;
+
+				if (!md->params)
+					if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
+						return NULL;
+
+				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method,
-											  iptr,
-											  NULL);
+											  inline_env->method, iptr, NULL);
 
 				if (!um)
 					return NULL;
@@ -1079,21 +1090,28 @@ SHOWOPCODE(DEBUG4)
 
 		case JAVA_INVOKESPECIAL:
 		case JAVA_INVOKEVIRTUAL:
-			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref   *mr;
+				methoddesc        *md;
 				unresolved_method *um;
 				methodinfo        *mi;
 
 				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(inline_env->method->class, i, CONSTANT_Methodref);
-				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
+				i = code_get_u2(p + 1, inline_env->method);
+				mr = class_getconstant(inline_env->method->class, i,
+									   CONSTANT_Methodref);
+
+				md = mr->parseddesc.md;
+
+				if (!md->params)
+					if (!descriptor_params_from_paramtypes(md, 0))
+						return NULL;
+				
+				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method,
-											  iptr,
-											  NULL);
+											  inline_env->method, iptr, NULL);
 
 				if (!um)
 					return NULL;
@@ -1115,21 +1133,28 @@ SHOWOPCODE(DEBUG4)
 			break;
 
 		case JAVA_INVOKEINTERFACE:
-			i = code_get_u2(p + 1,inline_env->method);
+			i = code_get_u2(p + 1, inline_env->method);
 			{
 				constant_FMIref   *mr;
+				methoddesc        *md;
 				unresolved_method *um;
 				methodinfo        *mi;
 				
 				inline_env->method->isleafmethod = false;
 
-				mr = class_getconstant(inline_env->method->class, i, CONSTANT_InterfaceMethodref);
-				OP2A_NOINC(opcode, mr->parseddesc.md->paramcount + 1, mr, currentline);
+				mr = class_getconstant(inline_env->method->class, i,
+									   CONSTANT_InterfaceMethodref);
+
+				md = mr->parseddesc.md;
+
+				if (!md->params)
+					if (!descriptor_params_from_paramtypes(md, 0))
+						return NULL;
+
+				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method,
-											  iptr,
-											  NULL);
+											  inline_env->method, iptr, NULL);
 
 				if (!um)
 					return NULL;
@@ -1150,108 +1175,99 @@ SHOWOPCODE(DEBUG4)
 			}
 			break;
 
-			/* miscellaneous object operations *******/
+		/* miscellaneous object operations ************************************/
 
 		case JAVA_NEW:
-			{
-				constant_classref *cr;
-				classinfo         *c;
-				
-				i = code_get_u2(p + 1, inline_env->method);
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1, inline_env->method);
+			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
-					return NULL;
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+								  &c))
+				return NULL;
 
-				/* <clinit> can throw an exception over native code */
+			if (c && c->initialized) {
+				bte = builtintable_get_internal(BUILTIN_new);
+				LOADCONST_A_BUILTIN(c);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 
-				if (c && c->initialized) {
-					LOADCONST_A_BUILTIN(c);
-					BUILTIN1T(BUILTIN_new, TYPE_ADR, NULL, currentline);
-
-				} else {
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN1T(PATCHER_builtin_new, TYPE_ADR, cr, currentline);
-				}
-
-				s_count++;
-				OP(ICMD_CHECKEXCEPTION);
+			} else {
+				bte = builtintable_get_internal(PATCHER_builtin_new);
+				LOADCONST_A_BUILTIN(cr);
+				BUILTIN(bte, bte->md->paramcount, cr, currentline);
 			}
+
+			s_count++;
+			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_CHECKCAST:
 			i = code_get_u2(p + 1, inline_env->method);
-			{
-				constant_classref *cr;
-				classinfo         *c;
-				
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
-					return NULL;
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+				return NULL;
 
-				if (cr->name->text[0] == '[') {
-					/* array type cast-check */
-					if (c) {
-						LOADCONST_A_BUILTIN(c->vftbl);
-						BUILTIN2T(BUILTIN_arraycheckcast, TYPE_ADR, NULL, currentline);
-
-					} else {
-						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2T(PATCHER_builtin_arraycheckcast, TYPE_ADR, cr, currentline);
-					}
-					s_count++;
+			if (cr->name->text[0] == '[') {
+				/* array type cast-check */
+				if (c) {
+					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
+					LOADCONST_A_BUILTIN(c->vftbl);
+					BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 
 				} else {
-					/* object type cast-check */
-					OP2AT(opcode, 1, c, cr, currentline);
+					bte = builtintable_get_internal(PATCHER_builtin_arraycheckcast);
+					LOADCONST_A_BUILTIN(cr);
+					BUILTIN(bte, bte->md->paramcount, cr, currentline);
 				}
-#if defined(__MIPS__) || defined(__POWERPC__)
-				if (!c)
-					inline_env->method->isleafmethod = false;
-#endif
+				s_count++;
+
+			} else {
+				/* object type cast-check */
+				OP2AT(opcode, 1, c, cr, currentline);
 			}
+#if defined(__MIPS__) || defined(__POWERPC__)
+			if (!c)
+				inline_env->method->isleafmethod = false;
+#endif
 			break;
 
 		case JAVA_INSTANCEOF:
 			i = code_get_u2(p + 1,inline_env->method);
-			{
-				constant_classref *cr;
-				classinfo         *c;
-				
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
-					return NULL;
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+				return NULL;
 
-				if (cr->name->text[0] == '[') {
-					/* array type cast-check */
-					if (c) {
-						LOADCONST_A_BUILTIN(c->vftbl);
-						BUILTIN2T(BUILTIN_arrayinstanceof, TYPE_INT, NULL, currentline);
-
-					} else {
-						LOADCONST_A_BUILTIN(cr);
-						BUILTIN2T(PATCHER_builtin_arrayinstanceof, TYPE_INT, cr, currentline);
-					}
-					s_count++;
+			if (cr->name->text[0] == '[') {
+				/* array type cast-check */
+				if (c) {
+					bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
+					LOADCONST_A_BUILTIN(c->vftbl);
+					BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 
 				} else {
-					/* object type cast-check */
-					OP2AT(opcode, 1, c, cr, currentline);
+					bte = builtintable_get_internal(PATCHER_builtin_arrayinstanceof);
+					LOADCONST_A_BUILTIN(cr);
+					BUILTIN(bte, bte->md->paramcount, cr, currentline);
 				}
-#if defined(__MIPS__) || defined(__POWERPC__)
-				if (!c)
-					inline_env->method->isleafmethod = false;
-#endif
+				s_count++;
+
+			} else {
+				/* object type cast-check */
+				OP2AT(opcode, 1, c, cr, currentline);
 			}
+#if defined(__MIPS__) || defined(__POWERPC__)
+			if (!c)
+				inline_env->method->isleafmethod = false;
+#endif
 			break;
 
 		case JAVA_MONITORENTER:
 #if defined(USE_THREADS)
 			if (checksync) {
 				OP(ICMD_CHECKNULL);
-				BUILTIN1(BUILTIN_monitorenter, TYPE_VOID, currentline);
+				bte = builtintable_get_internal(BUILTIN_monitorenter);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else
 #endif
 				{
@@ -1263,7 +1279,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_MONITOREXIT:
 #if defined(USE_THREADS)
 			if (checksync) {
-				BUILTIN1(BUILTIN_monitorexit, TYPE_VOID, currentline);
+				bte = builtintable_get_internal(BUILTIN_monitorexit);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else
 #endif
 				{
@@ -1271,14 +1288,13 @@ SHOWOPCODE(DEBUG4)
 				}
 			break;
 
-			/* any other basic operation **************************************/
+		/* any other basic operation ******************************************/
 
 		case JAVA_IDIV:
 			OP(opcode);
 			break;
 
 		case JAVA_IREM:
-			/*log_text("parse.c: adding IREM to bytecode list");*/
 			OP(opcode);
 			break;
 
@@ -1294,7 +1310,8 @@ SHOWOPCODE(DEBUG4)
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2(BUILTIN_frem, TYPE_FLOAT,currentline);
+			bte = builtintable_get_internal(BUILTIN_frem);
+			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 #endif
 			break;
 
@@ -1302,14 +1319,16 @@ SHOWOPCODE(DEBUG4)
 #if defined(__I386__)
 			OP(opcode);
 #else
-			BUILTIN2(BUILTIN_drem, TYPE_DOUBLE,currentline);
+			bte = builtintable_get_internal(BUILTIN_drem);
+			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 #endif
 			break;
 
 		case JAVA_F2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_f2i, TYPE_INT,currentline);
+				bte = builtintable_get_internal(BUILTIN_f2i);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else
 #endif
 				{
@@ -1320,7 +1339,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_F2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_f2l, TYPE_LONG,currentline);
+				bte = builtintable_get_internal(BUILTIN_f2l);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else 
 #endif
 				{
@@ -1331,7 +1351,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_D2I:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_d2i, TYPE_INT,currentline);
+				bte = builtintable_get_internal(BUILTIN_d2i);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else
 #endif
 				{
@@ -1342,7 +1363,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_D2L:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
-				BUILTIN1(BUILTIN_d2l, TYPE_LONG,currentline);
+				bte = builtintable_get_internal(BUILTIN_d2l);
+				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
 			} else
 #endif
 				{
@@ -1588,4 +1610,3 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
  * tab-width: 4
  * End:
  */
-
