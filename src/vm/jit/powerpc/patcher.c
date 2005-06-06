@@ -28,12 +28,14 @@
 
    Changes:
 
-   $Id: patcher.c 2537 2005-05-31 15:54:27Z twisti $
+   $Id: patcher.c 2555 2005-06-06 14:51:38Z twisti $
 
 */
 
 
 #include "vm/jit/powerpc/types.h"
+
+#include "mm/memory.h"
 #include "vm/builtin.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
