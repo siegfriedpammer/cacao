@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2492 2005-05-21 14:58:36Z twisti $
+   $Id: jni.c 2574 2005-06-06 15:38:52Z twisti $
 
 */
 
@@ -119,191 +119,210 @@ static jmethodID removemid = NULL;
 #define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
 #define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val); 
 
-static void fill_callblock(void *obj, methoddesc *descr, jni_callblock blk[], va_list data, int rettype)
+
+static void fill_callblock(void *obj, methoddesc *descr, jni_callblock blk[],
+						   va_list data, int rettype)
 {
-    int cnt;
-    u4 dummy;
-	int i;
-	typedesc *paramtype;
+	typedesc *paramtypes;
+    u4        dummy;
+	s4        i;
+
+	paramtypes = descr->paramtypes;
+
+	/* if method is non-static fill first block and skip `this' pointer */
+
+	i = 0;
 
 	if (obj) {
 		/* the this pointer */
 		blk[0].itemtype = TYPE_ADR;
 		blk[0].item = PTR_TO_ITEM(obj);
-		cnt = 1;
-	} 
-	else 
-		cnt = 0;
 
-	paramtype = descr->paramtypes;
-	for (i=0; i<descr->paramcount; ++i,++cnt,++paramtype) {
-		switch (paramtype->decltype) {
-			/* primitive types */
+		paramtypes++;
+		i++;
+	} 
+
+	for (; i < descr->paramcount; i++, paramtypes++) {
+		switch (paramtypes->decltype) {
+		/* primitive types */
 		case PRIMITIVETYPE_BYTE:
 		case PRIMITIVETYPE_CHAR:
 		case PRIMITIVETYPE_SHORT: 
 		case PRIMITIVETYPE_BOOLEAN: 
-			blk[cnt].itemtype = TYPE_INT;
-			blk[cnt].item = (u8) va_arg(data, int);
+			blk[i].itemtype = TYPE_INT;
+			blk[i].item = (u8) va_arg(data, int);
 			break;
 
 		case PRIMITIVETYPE_INT:
-			blk[cnt].itemtype = TYPE_INT;
+			blk[i].itemtype = TYPE_INT;
 			dummy = va_arg(data, u4);
-			/*printf("fill_callblock: pos:%d, value:%d\n",cnt,dummy);*/
-			blk[cnt].item = (u8) dummy;
+			blk[i].item = (u8) dummy;
 			break;
 
 		case PRIMITIVETYPE_LONG:
-			blk[cnt].itemtype = TYPE_LNG;
-			blk[cnt].item = (u8) va_arg(data, jlong);
+			blk[i].itemtype = TYPE_LNG;
+			blk[i].item = (u8) va_arg(data, jlong);
 			break;
 
 		case PRIMITIVETYPE_FLOAT:
-			blk[cnt].itemtype = TYPE_FLT;
-			*((jfloat *) (&blk[cnt].item)) = (jfloat) va_arg(data, jdouble);
+			blk[i].itemtype = TYPE_FLT;
+			*((jfloat *) (&blk[i].item)) = (jfloat) va_arg(data, jdouble);
 			break;
 
 		case PRIMITIVETYPE_DOUBLE:
-			blk[cnt].itemtype = TYPE_DBL;
-			*((jdouble *) (&blk[cnt].item)) = (jdouble) va_arg(data, jdouble);
+			blk[i].itemtype = TYPE_DBL;
+			*((jdouble *) (&blk[i].item)) = (jdouble) va_arg(data, jdouble);
 			break;
 
 		case TYPE_ADR: 
-			blk[cnt].itemtype = TYPE_ADR;
-			blk[cnt].item = PTR_TO_ITEM(va_arg(data, void*));
+			blk[i].itemtype = TYPE_ADR;
+			blk[i].item = PTR_TO_ITEM(va_arg(data, void*));
 			break;
 		}
 	}
 
-	/*the standard doesn't say anything about return value checking, but it appears to be usefull*/
+	/* The standard doesn't say anything about return value checking, but it  */
+	/* appears to be useful.                                                  */
+
 	if (rettype != descr->returntype.decltype)
 		log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
 }
 
+
 /* XXX it could be considered if we should do typechecking here in the future */
-static bool fill_callblock_objA(void *obj, methoddesc *descr, jni_callblock blk[], java_objectarray* params,
+static bool fill_callblock_objA(void *obj, methoddesc *descr,
+								jni_callblock blk[], java_objectarray* params,
 								int *rettype)
 {
-    jobject param;
-    int cnt;
-    int cnts;
-	typedesc *paramtype;
+    jobject    param;
+	typedesc  *paramtypes;
+	classinfo *c;
+    s4         i;
 
-    /* determine number of parameters */
+	paramtypes = descr->paramtypes;
+
+	/* if method is non-static fill first block and skip `this' pointer */
+
+	i = 0;
+
 	if (obj) {
 		/* this pointer */
 		blk[0].itemtype = TYPE_ADR;
 		blk[0].item = PTR_TO_ITEM(obj);
-		cnt=1;
-	} else {
-		cnt = 0;
+
+		paramtypes++;
+		i++;
 	}
 
-	paramtype = descr->paramtypes;
-	for (cnts=0; cnts < descr->paramcount; ++cnts,++cnt,++paramtype) {
-		switch (paramtype->type) {
-			/* primitive types */
-			case TYPE_INT:
-			case TYPE_LONG:
-			case TYPE_FLOAT:
-			case TYPE_DOUBLE:
-			
-				param = params->data[cnts];
-				if (!param)
+	for (; i < descr->paramcount; i++, paramtypes++) {
+		switch (paramtypes->type) {
+		/* primitive types */
+		case TYPE_INT:
+		case TYPE_LONG:
+		case TYPE_FLOAT:
+		case TYPE_DOUBLE:
+			param = params->data[i];
+			if (!param)
+				goto illegal_arg;
+
+			/* internally used data type */
+			blk[i].itemtype = paramtypes->type;
+
+			/* convert the value according to its declared type */
+
+			c = param->vftbl->class;
+
+			switch (paramtypes->decltype) {
+			case PRIMITIVETYPE_BOOLEAN:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Boolean *) param)->value;
+				else
 					goto illegal_arg;
-
-				/* internally used data type */
-				blk[cnt].itemtype = paramtype->type;
-
-				/* convert the value according to its declared type */
-				switch (paramtype->decltype) {
-						case PRIMITIVETYPE_BOOLEAN:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Boolean *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_BYTE:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_CHAR:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Character *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_SHORT:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_INT:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_LONG:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Long *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Integer *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Short *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-								blk[cnt].item = (u8) ((java_lang_Byte *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_FLOAT:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						case PRIMITIVETYPE_DOUBLE:
-							if (param->vftbl->class == primitivetype_table[paramtype->decltype].class_wrap)
-								*((jdouble *) (&blk[cnt].item)) = (jdouble) ((java_lang_Float *) param)->value;
-							else if (param->vftbl->class == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
-								*((jfloat *) (&blk[cnt].item)) = (jfloat) ((java_lang_Float *) param)->value;
-							else
-								goto illegal_arg;
-							break;
-						default:
-							goto illegal_arg;
-				} /* end declared type switch */
 				break;
+
+			case PRIMITIVETYPE_BYTE:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_CHAR:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Character *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_SHORT:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_INT:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Integer *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
+					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_LONG:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					blk[i].item = (u8) ((java_lang_Long *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
+					blk[i].item = (u8) ((java_lang_Integer *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
+					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
+					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_FLOAT:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					*((jfloat *) (&blk[i].item)) = (jfloat) ((java_lang_Float *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			case PRIMITIVETYPE_DOUBLE:
+				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
+					*((jdouble *) (&blk[i].item)) = (jdouble) ((java_lang_Float *) param)->value;
+				else if (c == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
+					*((jfloat *) (&blk[i].item)) = (jfloat) ((java_lang_Float *) param)->value;
+				else
+					goto illegal_arg;
+				break;
+
+			default:
+				goto illegal_arg;
+			} /* end declared type switch */
+			break;
 		
 			case TYPE_ADDRESS:
-				{
-					classinfo *cls;
-				   
-					if (!resolve_class_from_typedesc(paramtype,true,&cls))
-						return false; /* exception */
-					if (params->data[cnts] != 0) {
-						if (paramtype->arraydim > 0) {
-							if (!builtin_arrayinstanceof(params->data[cnts], cls->vftbl))
-								goto illegal_arg;
-						}
-						else {
-							if (!builtin_instanceof(params->data[cnts], cls))
-								goto illegal_arg;
-						}
+				if (!resolve_class_from_typedesc(paramtypes, true, &c))
+					return false; /* exception */
+				if (params->data[i] != 0) {
+					if (paramtypes->arraydim > 0) {
+						if (!builtin_arrayinstanceof(params->data[i], c->vftbl))
+							goto illegal_arg;
+
+					} else {
+						if (!builtin_instanceof(params->data[i], c))
+							goto illegal_arg;
 					}
-					blk[cnt].itemtype = TYPE_ADR;
-					blk[cnt].item = PTR_TO_ITEM(params->data[cnts]);
 				}
+				blk[i].itemtype = TYPE_ADR;
+				blk[i].item = PTR_TO_ITEM(params->data[i]);
 				break;			
 
 			default:
@@ -314,6 +333,7 @@ static bool fill_callblock_objA(void *obj, methoddesc *descr, jni_callblock blk[
 
 	if (rettype)
 		*rettype = descr->returntype.decltype;
+
 	return true;
 
 illegal_arg:
@@ -322,20 +342,27 @@ illegal_arg:
 }
 
 
-static jmethodID get_virtual(jobject obj,jmethodID methodID) {
-	if (obj->vftbl->class==methodID->class) return methodID;
-	return class_resolvemethod (obj->vftbl->class, methodID->name, methodID->descriptor);
+static jmethodID get_virtual(jobject obj, jmethodID methodID)
+{
+	if (obj->vftbl->class == methodID->class)
+		return methodID;
+
+	return class_resolvemethod(obj->vftbl->class, methodID->name,
+							   methodID->descriptor);
 }
 
 
-static jmethodID get_nonvirtual(jclass clazz,jmethodID methodID) {
-	if (clazz==methodID->class) return methodID;
-/*class_resolvemethod -> classfindmethod? (JOWENN)*/
-	return class_resolvemethod (clazz, methodID->name, methodID->descriptor);
+static jmethodID get_nonvirtual(jclass clazz, jmethodID methodID)
+{
+	if (clazz == methodID->class)
+		return methodID;
+
+	/* class_resolvemethod -> classfindmethod? (JOWENN) */
+	return class_resolvemethod(clazz, methodID->name, methodID->descriptor);
 }
 
 
-static jobject callObjectMethod (jobject obj, jmethodID methodID, va_list args)
+static jobject callObjectMethod(jobject obj, jmethodID methodID, va_list args)
 { 	
 	int argcount;
 	jni_callblock *blk;
@@ -609,19 +636,22 @@ jint GetVersion(JNIEnv *env)
 
 *******************************************************************************/
 
-jclass DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize bufLen)
+jclass DefineClass(JNIEnv *env, const char *name, jobject loader,
+				   const jbyte *buf, jsize bufLen)
 {
-	jclass c;
+	java_lang_ClassLoader *cl;
+	java_lang_String      *s;
+	java_bytearray        *ba;
+	jclass                 c;
+
 	STATS(jniinvokation();)
 
-	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env,
-														  NULL,
-														  (java_lang_ClassLoader *) loader,
-														  javastring_new_char(name),
-														  (java_bytearray *) buf,
-														  0,
-														  bufLen,
-														  NULL);
+	cl = (java_lang_ClassLoader *) loader;
+	s = javastring_new_char(name);
+	ba = (java_bytearray *) buf;
+
+	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env, NULL, cl, s, ba,
+														  0, bufLen, NULL);
 
 	return c;
 }
@@ -4065,14 +4095,21 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 
 	argcount = methodID->parseddesc->paramcount;
 
+	/* if method is non-static, remove the `this' pointer */
+
+	if (!(methodID->flags & ACC_STATIC))
+		argcount--;
+
 	/* the method is an instance method the obj has to be an instance of the 
 	   class the method belongs to. For static methods the obj parameter
 	   is ignored. */
+
 	if (!(methodID->flags & ACC_STATIC) && obj &&
 		(!builtin_instanceof((java_objectheader *) obj, methodID->class))) {
-		*exceptionptr = new_exception_message(string_java_lang_IllegalArgumentException,
+		*exceptionptr =
+			new_exception_message(string_java_lang_IllegalArgumentException,
 											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
-		return 0;
+		return NULL;
 	}
 
 
@@ -4080,34 +4117,39 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. invokeNativeHelper does not support that");
-		return 0;
+		return NULL;
 	}
 #endif
-	if (((params==0) && (argcount != 0)) || (params && (params->header.size != argcount))) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		return 0;
+
+	if (((params == NULL) && (argcount != 0)) ||
+		(params && (params->header.size != argcount))) {
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalArgumentException);
+		return NULL;
 	}
 
 
-	if (((methodID->flags & ACC_STATIC)==0) && (0==obj))  {
+	if (!(methodID->flags & ACC_STATIC) && !obj)  {
 		*exceptionptr =
 			new_exception_message(string_java_lang_NullPointerException,
 								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
-		return 0;
+		return NULL;
 	}
 
-	if ((methodID->flags & ACC_STATIC) && (obj)) obj = 0;
+	if ((methodID->flags & ACC_STATIC) && (obj))
+		obj = NULL;
 
 	if (obj) {
-		if ( (methodID->flags & ACC_ABSTRACT) || (methodID->class->flags & ACC_INTERFACE) ) {
-			methodID=get_virtual(obj,methodID);
+		if ((methodID->flags & ACC_ABSTRACT) ||
+			(methodID->class->flags & ACC_INTERFACE) ) {
+			methodID = get_virtual(obj, methodID);
 		}
 	}
 
-	blk = MNEW(jni_callblock, /*4 */argcount+2);
+	blk = MNEW(jni_callblock, /*4 */argcount + 2);
 
-	if (!fill_callblock_objA(obj, methodID->parseddesc, blk, params,&retT))
-		return 0; /* exception */
+	if (!fill_callblock_objA(obj, methodID->parseddesc, blk, params, &retT))
+		return NULL; /* exception */
 
 	switch (retT) {
 	case TYPE_VOID:
@@ -4272,7 +4314,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, struct methodinfo *methodID,
 		{
 			ivte = builtin_new(ivtec);
 			asm_calljavafunction(class_resolvemethod(ivtec,
-													 utf_new_char("<init>"),
+													 utf_init,
 													 utf_new_char("(Ljava/lang/Throwable;)V")),
 								 ivte,
 								 exceptionToWrap,
