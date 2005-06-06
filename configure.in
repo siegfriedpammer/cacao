@@ -39,7 +39,7 @@ dnl	CFLAGS="-mabi=64 -D__MIPS__ -D__MIPSEB__"
 dnl	LDFLAGS="-mabi=64"
 	;;
 
-powerpc | ppc )
+powerpc )
 	ARCH_DIR="powerpc"
         STATIC_CLASSPATH="1"
 	CFLAGS="-D__POWERPC__"
@@ -136,6 +136,9 @@ AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
 
 dnl Checks for libraries.
 AC_CHECK_LIB(m, fmod)
+
+dnl Checking sizeof void *
+AC_COMPILE_CHECK_SIZEOF(void *)
 
 dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
 if test $ac_cv_func_mmap_fixed_mapped = yes; then
@@ -478,6 +481,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/loop/Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/powerpc/Makefile]
+		[src/vm/jit/powerpc/darwin/Makefile]
+		[src/vm/jit/powerpc/linux/Makefile]
 		[src/vm/jit/schedule/Makefile]
 		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
