@@ -28,16 +28,13 @@
 
    Changes:
 
-   $Id: md-abi.h 2554 2005-06-06 14:48:21Z twisti $
+   $Id: md-abi.h 2576 2005-06-06 21:21:19Z twisti $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
-
-#include "vm/descriptor.h"
-
 
 /* preallocated registers *****************************************************/
 
@@ -93,11 +90,6 @@
 #define LA_LR_OFFSET     4   /* link register offset in linkage area          */
 
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
-
-
-/* function prototypes ********************************************************/
-
-void md_param_alloc(methoddesc *md);
 
 #endif /* _MD_ABI_H */
 

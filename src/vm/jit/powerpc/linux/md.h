@@ -28,14 +28,19 @@
 
    Changes:
 
-   $Id: md.h 2554 2005-06-06 14:48:21Z twisti $
+   $Id: md.h 2576 2005-06-06 21:21:19Z twisti $
 
 */
 
 #ifndef _MD_H
 #define _MD_H
 
+#include "vm/descriptor.h"
+
+
 /* function prototypes ********************************************************/
+
+void md_param_alloc(methoddesc *md);
 
 #endif /* _MD_H_ */
 
