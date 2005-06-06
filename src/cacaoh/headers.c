@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2543 2005-05-31 18:36:17Z twisti $
+   $Id: headers.c 2551 2005-06-06 14:44:56Z twisti $
 
 */
 
@@ -143,15 +143,6 @@ void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void 
 
 void asm_handle_builtin_exception(classinfo *c) {}
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
-
-#if defined(__DARWIN__)
-int cacao_catch_Handler(void) {}
-#endif
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-threadcritnode asm_criticalsections;
-void thread_restartcriticalsection(ucontext_t *uc) {}
-#endif
 
 
 void setVMClassField(classinfo *c) {}
@@ -323,6 +314,20 @@ java_objectheader *new_nullpointerexception(void)
 
 	return NULL;
 }
+
+
+/* machine dependent stuff ****************************************************/
+
+#if defined(__DARWIN__)
+int cacao_catch_Handler(void) {}
+#endif
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+threadcritnode asm_criticalsections;
+void thread_restartcriticalsection(ucontext_t *uc) {}
+#endif
+
+void md_param_alloc(methoddesc *md) {}
 
 
 /************************ global variables **********************/
