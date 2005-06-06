@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2533 2005-05-31 14:35:28Z twisti $
+## $Id: Makefile.am 2569 2005-06-06 15:28:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -57,6 +57,7 @@ libvmcore_la_SOURCES = \
 	access.h \
 	builtin.c \
 	builtin.h \
+	builtintable.inc \
 	class.c \
 	class.h \
 	classcache.c \
