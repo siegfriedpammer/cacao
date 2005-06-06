@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2436 2005-05-04 12:39:53Z christian $
+   $Id: lsra.inc 2567 2005-06-06 15:26:26Z twisti $
 
 */
 #include <stdio.h>
@@ -2398,6 +2398,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 				lsra_new_stack(ls,dst,b_index,iindex);
 			break;
 
+#if 0
 		case ICMD_BUILTIN3:
 			lsra_from_stack(ls, src,b_index,iindex);
 			src = src->prev;
@@ -2410,6 +2411,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 			if (iptr->op1 != TYPE_VOID)
 				lsra_new_stack(ls,dst,b_index,iindex);
 			break;
+#endif
 
 		case ICMD_MULTIANEWARRAY:
 			i = iptr->op1;
