@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2427 2005-05-01 12:27:54Z jowenn $
+   $Id: utf8.h 2560 2005-06-06 15:20:41Z twisti $
 
 */
 
@@ -101,6 +101,7 @@ extern utf *utf_SourceFile;
 
 extern utf *utf_init;
 extern utf *utf_clinit;
+extern utf *utf_clone;
 extern utf *utf_finalize;
 
 extern utf *utf_printStackTrace;
