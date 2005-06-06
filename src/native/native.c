@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2519 2005-05-23 12:04:09Z twisti $
+   $Id: native.c 2575 2005-06-06 15:39:58Z twisti $
 
 */
 
@@ -713,29 +713,49 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 
 /* get_parametertypes **********************************************************
 
-   use the descriptor of a method to generate a java/lang/Class array
-   which contains the classes of the parametertypes of the method
+   Use the descriptor of a method to generate a java/lang/Class array
+   which contains the classes of the parametertypes of the method.
 
 *******************************************************************************/
 
-java_objectarray* get_parametertypes(methodinfo *m) 
+java_objectarray *get_parametertypes(methodinfo *m) 
 {
-    methoddesc *descr =  m->parseddesc;    /* method-descriptor */ 
-    java_objectarray* result;
-    int parametercount = descr->paramcount;
-    int i;
+	methoddesc       *md;
+    typedesc         *paramtypes;
+    s4                paramcount;
+    java_objectarray *result;
+    s4                i;
+
+	md = m->parseddesc;
+
+	/* is the descriptor fully parsed? */
+
+	if (!m->parseddesc->params)
+		if (!descriptor_params_from_paramtypes(md, m->flags))
+			return NULL;
+
+	paramtypes = md->paramtypes;
+    paramcount = md->paramcount;
+
+	/* skip `this' pointer */
+
+	if (!(m->flags & ACC_STATIC)) {
+		paramtypes++;
+		paramcount--;
+	}
 
     /* create class-array */
-	assert(class_java_lang_Class);
 
-    result = builtin_anewarray(parametercount, class_java_lang_Class);
+    result = builtin_anewarray(paramcount, class_java_lang_Class);
 
     /* get classes */
-    for (i = 0; i < parametercount; i++) {
-		if (!resolve_class_from_typedesc(descr->paramtypes + i,false,
-					(classinfo **) (result->data + i)))
-			return NULL; /* exception */
-		use_class_as_object((classinfo*) result->data[i]);
+
+    for (i = 0; i < paramcount; i++) {
+		if (!resolve_class_from_typedesc(&paramtypes[i], false,
+										 (classinfo **) (result->data[i])))
+			return NULL;
+
+		use_class_as_object((classinfo *) result->data[i]);
 	}
 
     return result;
