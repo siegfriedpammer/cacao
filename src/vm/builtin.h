@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2498 2005-05-23 08:12:52Z twisti $
+   $Id: builtin.h 2558 2005-06-06 15:00:29Z twisti $
 
 */
 
@@ -73,46 +73,25 @@
 #define isnanf       isnan
 
 
-/**********************************************************************/
-/* BUILTIN FUNCTIONS TABLE                                            */
-/**********************************************************************/
+/* builtin functions table ****************************************************/
 
-/* IMPORTANT:
- * For each builtin function which is used in a BUILTIN* opcode there
- * must be an entry in the builtin_desc table in jit/jit.c.
- */
- 
-typedef struct builtin_descriptor builtin_descriptor;
+typedef struct builtintable_entry builtintable_entry;
 
-/* There is a builtin_descriptor in builtin_desc for every builtin
- * function used in BUILTIN* opcodes.
- */
-struct builtin_descriptor {
-	int         opcode;   /* opcode which is replaced by this builtin */
-	                      /* (255 means no automatic replacement,     */
-	                      /*    0 means end of list.)                 */
-	functionptr builtin;  /* the builtin function (specify BUILTIN_...*/
-	                      /* macro)                                   */
-	int         icmd;     /* the BUILTIN* opcode to use (# of args)   */
-	u1          type_s1;  /* type of 1st argument                     */
-	u1          type_s2;  /* type of 2nd argument, or TYPE_VOID       */
-	u1          type_s3;  /* type of 3rd argument, or TYPE_VOID       */
-	u1          type_d;   /* type of result (may be TYPE_VOID)        */
-	bool        supported;/* is <opcode> supported without builtin?   */
-	bool        isfloat;  /* is this a floating point operation?      */
-	char        *name;    /* display name of the builtin function     */
+struct builtintable_entry {
+	s4           opcode;                /* opcode which is replaced           */
+	functionptr  fp;                    /* function pointer of builtin        */
+	char        *descriptor;
+	char        *name;
+	methoddesc  *md;
 };
 
-extern builtin_descriptor builtin_desc[];
 
-/**********************************************************************/
-/* GLOBAL VARIABLES                                                   */
-/**********************************************************************/
+/* function prototypes ********************************************************/
 
-#if defined(USEBUILTINTABLE)
-void sort_builtintable(void);
-builtin_descriptor *find_builtin(int opcode);
-#endif /* defined(USEBUILTINTABLE) */
+bool builtin_init(void);
+
+builtintable_entry *builtintable_get_internal(functionptr fp);
+builtintable_entry *builtintable_get_automatic(s4 opcode);
 
 
 /**********************************************************************/
