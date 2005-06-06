@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 2493 2005-05-21 14:59:14Z twisti $
+   $Id: Constructor.c 2547 2005-06-06 14:41:42Z twisti $
 
 */
 
@@ -57,16 +57,16 @@
  * Method:    newInstance
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *parameters, java_lang_Class *clazz, s4 par3)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
 	/* XXX fix me for parameters float/double and long long  parameters */
 
-	methodinfo *m;
+	methodinfo        *m;
 	java_objectheader *o;
 
 	/* find initializer */
 
-	if (!parameters) {
+	if (!args) {
 		if (this->parameterTypes->header.size != 0) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_IllegalArgumentException,
@@ -75,7 +75,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		}
 
 	} else {
-		if (this->parameterTypes->header.size != parameters->header.size) {
+		if (this->parameterTypes->header.size != args->header.size) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_IllegalArgumentException,
 									  "wrong number of arguments");
@@ -83,33 +83,32 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 		}
 	}
 
-	if (this->slot >= ((classinfo *) clazz)->methodscount) {
+	if (this->slot >= ((classinfo *) declaringClass)->methodscount) {
 		log_text("illegal index in methods table");
 		return 0;
 	}
 
-	o = builtin_new((classinfo *) clazz);         /*          create object */
+	o = builtin_new((classinfo *) declaringClass);           /* create object */
+
 	if (!o) {
 		log_text("Objet instance could not be created");
 		return NULL;
 	}
         
-	/*	log_text("o!=NULL\n");*/
+	m = &((classinfo *) declaringClass)->methods[this->slot];
 
-
-	m = &((classinfo *)clazz)->methods[this->slot];
-	if (!((m->name == utf_new_char("<init>"))))
+	if (!(m->name == utf_init))
 		/* && 
 		   (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
 		{
 			if (opt_verbose) {
 				char logtext[MAXLOGTEXT];
 				sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
-				utf_sprint(logtext + strlen(logtext), ((classinfo *) clazz)->name);
+				utf_sprint(logtext + strlen(logtext), ((classinfo *) declaringClass)->name);
 				log_text(logtext);
 				log_plain_utf( create_methodsig(this->parameterTypes,"V"));
 				log_plain("\n");
-				class_showconstantpool((classinfo *) clazz);
+				class_showconstantpool((classinfo *) declaringClass);
 			}
 
 			/* XXX throw an exception here, although this should never happen */
@@ -123,19 +122,19 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 	switch (this->parameterTypes->header.size) {
 	case 0: exceptionptr=asm_calljavamethod (m, o, NULL, NULL, NULL);
 		break;
-	case 1: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], NULL, NULL);
+	case 1: exceptionptr=asm_calljavamethod (m, o, args->data[0], NULL, NULL);
 		break;
-	case 2: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], NULL);
+	case 2: exceptionptr=asm_calljavamethod (m, o, args->data[0], args->data[1], NULL);
 		break;
-	case 3: exceptionptr=asm_calljavamethod (m, o, parameters->data[0], parameters->data[1], 
-											 parameters->data[2]);
+	case 3: exceptionptr=asm_calljavamethod (m, o, args->data[0], args->data[1], 
+											 args->data[2]);
 	break;
 	default:
 		log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
 #endif
 
-	(void) jni_method_invokeNativeHelper(env, m ,o, parameters); 
+	(void) jni_method_invokeNativeHelper(env, m, o, args); 
 
 	return (java_lang_Object *) o;
 }
