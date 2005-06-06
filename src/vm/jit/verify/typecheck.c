@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2484 2005-05-20 11:20:21Z twisti $
+   $Id: typecheck.c 2562 2005-06-06 15:22:21Z twisti $
 
 */
 
@@ -981,7 +981,6 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
     bool maythrow;               /* true if this instruction may throw */
     static utf *name_init;                                 /* "<init>" */
     bool initmethod;             /* true if this is an "<init>" method */
-	builtin_descriptor *builtindesc;    /* temp. descriptor of builtin */
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
@@ -1940,7 +1939,8 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  }
                           maythrow = true;
                           break;
-                          
+
+#if 0
                       case ICMD_BUILTIN3:
 						  TYPECHECK_COUNT(stat_ins_builtin);
                           if (ISBUILTIN(BUILTIN_aastore)) {
@@ -2076,7 +2076,8 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  }
                           maythrow = true;
                           break;
-                                                     
+#endif
+
                           /****************************************/
                           /* SIMPLE EXCEPTION THROWING TESTS      */
 
