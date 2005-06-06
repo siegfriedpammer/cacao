@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 2459 2005-05-12 23:21:10Z twisti $
+   $Id: VMObject.c 2548 2005-06-06 14:42:29Z twisti $
 
 */
 
@@ -89,17 +89,20 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
-	classinfo *c;
-	java_lang_Object *new;
-	arraydescriptor *desc;
-    
+	classinfo         *c;
+	java_lang_Object  *new;
+	arraydescriptor   *desc;
+
+	/* we are cloning an array */
+
 	if ((desc = this->header.vftbl->arraydesc) != NULL) {
-		/* We are cloning an array */
         
 		u4 size = desc->dataoffset + desc->componentsize * ((java_arrayheader *) this)->size;
         
 		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
-		memcpy(new, this, size);
+
+		MCOPY(new, this, u1, size);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 		initObjectLock((java_objectheader *) new);
 #endif
@@ -107,7 +110,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 		return new;
 	}
     
-    /* We are cloning a non-array */
+    /* we are cloning a non-array */
+
     if (!builtin_instanceof((java_objectheader *) this, class_java_lang_Cloneable)) {
         *exceptionptr =
 			new_exception(string_java_lang_CloneNotSupportedException);
@@ -121,7 +125,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     if (!new)
         return NULL;
 
-    memcpy(new, this, c->instancesize);
+    MCOPY(new, this, u1, c->instancesize);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock((java_objectheader *) new);
 #endif
