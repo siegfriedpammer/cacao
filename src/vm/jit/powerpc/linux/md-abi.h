@@ -28,13 +28,16 @@
 
    Changes:
 
-   $Id: md-abi.h 2539 2005-05-31 15:55:54Z twisti $
+   $Id: md-abi.h 2554 2005-06-06 14:48:21Z twisti $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
+
+#include "vm/descriptor.h"
+
 
 /* preallocated registers *****************************************************/
 
@@ -83,119 +86,18 @@
 
 /* ABI defines ****************************************************************/
 
-#define LA_SIZE         20   /* linkage area size                             */
-#define LA_SIZE_ALIGNED 32   /* linkage area size aligned to 16-byte          */
-#define LA_WORD_SIZE     5   /* linkage area size in words: 5 * 4 = 20        */
+#define LA_SIZE          8   /* linkage area size                             */
+#define LA_SIZE_ALIGNED 16   /* linkage area size aligned to 16-byte          */
+#define LA_WORD_SIZE     2   /* linkage area size in words: 2 * 4 = 8         */
 
 #define LA_LR_OFFSET     4   /* link register offset in linkage area          */
 
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
 
 
-/* SET_ARG_STACKSLOTS **********************************************************
+/* function prototypes ********************************************************/
 
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
---- in
-i,call_argcount:  Number of arguments for this method
-curstack:         instack of the method invokation
-call_returntype:  return type
-
---- uses
-i, copy
-
---- out
-copy:             Points to first stackslot after the parameters
-rd->argintreguse: max. number of used integer argument register so far
-rd->argfltreguse: max. number of used float argument register so far
-rd->ifmemuse:     max. number of stackslots used for spilling parameters
-                  so far
-
-*******************************************************************************/
-
-#define SET_ARG_STACKSLOTS \
-	do { \
-		s4 iarg = 0; \
-		s4 farg = 0; \
-		s4 iarg_max = 0; \
-		s4 stacksize; \
-		\
-		stacksize = 6; \
-		\
-		copy = curstack; \
-		for (;i > 0; i--) { \
-			stacksize += (IS_2_WORD_TYPE(copy->type)) ? 2 : 1; \
-			if (IS_FLT_DBL_TYPE(copy->type)) \
-				farg++; \
-			copy = copy->prev; \
-		} \
-		if (rd->argfltreguse < farg) \
-			rd->argfltreguse = farg; \
-		\
-		/* REG_FRESULT == FLOAT ARGUMENT REGISTER 0 */					\
-		if (IS_FLT_DBL_TYPE(call_returntype))							\
-			if (rd->argfltreguse < 1)									\
-				rd->argfltreguse = 1;									\
-																		\
-		if (stacksize > rd->ifmemuse)									\
-			rd->ifmemuse = stacksize;									\
-																		\
-		i = call_argcount;												\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			stacksize -= (IS_2_WORD_TYPE(copy->type)) ? 2 : 1;			\
-			if (IS_FLT_DBL_TYPE(copy->type)) {							\
-				farg--;													\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;									\
-					copy->varkind = ARGVAR;								\
-					if (farg < rd->fltreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argfltregs[farg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = stacksize;						\
-					}													\
-				}														\
-			} else {													\
-				iarg = stacksize - 6;									\
-				if (iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1) > iarg_max) \
-					iarg_max = iarg+(IS_2_WORD_TYPE(copy->type) ? 2 : 1); \
-																		\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = i;									\
-					copy->varkind = ARGVAR;								\
-					if ((iarg+((IS_2_WORD_TYPE(copy->type)) ? 1 : 0)) < rd->intreg_argnum) { \
-						copy->flags = 0;								\
-						copy->regoff = rd->argintregs[iarg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = stacksize;						\
-					} \
-				} \
-			} \
-			copy = copy->prev; \
-		} \
-		if (rd->argintreguse < iarg_max) \
-			rd->argintreguse = iarg_max; \
-		if (IS_INT_LNG_TYPE(call_returntype)) { \
-			/* REG_RESULT  == INTEGER ARGUMENT REGISTER 0 */ \
-			/* REG_RESULT2 == INTEGER ARGUMENT REGISTER 1 */ \
-			if (IS_2_WORD_TYPE(call_returntype)) { \
-				if (rd->argintreguse < 2) \
-					rd->argintreguse = 2; \
-			} else { \
-				if (rd->argintreguse < 1) \
-					rd->argintreguse = 1; \
-			} \
-		} \
-	} while (0)
-
+void md_param_alloc(methoddesc *md);
 
 #endif /* _MD_ABI_H */
 
