@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2513 2005-05-23 10:22:29Z twisti $
+   $Id: jit.c 2565 2005-06-06 15:25:39Z twisti $
 
 */
 
@@ -948,9 +948,9 @@ char *icmd_names[256] = {
 	"INLINE_START   ", /*             251 */
 	"INLINE_END     ", /*             252 */
 
-	"BUILTIN3       ", /*             253 */
-	"BUILTIN2       ", /*             254 */
-	"BUILTIN1       "  /*             255 */
+	"UNDEF253", "UNDEF254",
+
+	"BUILTIN        "  /*             255 */
 };
 
 
@@ -1372,7 +1372,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	if (opt_stat) {
 		count_tryblocks += m->exceptiontablelength;
 		count_javacodesize += m->jcodelength + 18;
-		count_javaexcsize += m->exceptiontablelength * POINTERSIZE;
+		count_javaexcsize += m->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
 
@@ -1521,15 +1521,15 @@ void compile_all_class_methods(classinfo *c)
 }
 
 
-/* functions for compiler initialisation and finalisation *********************/
+/* jit_init ********************************************************************
+
+   XXX
+
+*******************************************************************************/
 
 void jit_init(void)
 {
 	s4 i;
-
-#if defined(USEBUILTINTABLE)
-	sort_builtintable();
-#endif
 
 #if defined(__ALPHA__)
 	has_ext_instr_set = ! has_no_x_instr_set();
