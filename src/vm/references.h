@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 2189 2005-04-02 02:05:59Z edwin $
+   $Id: references.h 2561 2005-06-06 15:21:19Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 
 #include "vm/global.h"
 #include "vm/utf8.h"
+
 
 /*----------------------------------------------------------------------------*/
 /* References                                                                 */
@@ -61,6 +62,7 @@ typedef struct classinfo classinfo;
 typedef struct typedesc typedesc;
 typedef struct methoddesc methoddesc;
 
+
 /* structs ********************************************************************/
 
 /* constant_classref **********************************************************/
@@ -71,6 +73,7 @@ typedef struct constant_classref {
 	utf       *name;              /* name of the class refered to             */
 } constant_classref;
 
+
 /* classref_or_classinfo ******************************************************/
 
 typedef union {
@@ -78,6 +81,7 @@ typedef union {
 	classinfo         *cls;       /* an already loaded class                  */
 	void              *any;       /* used for general access (x != NULL,...)  */
 } classref_or_classinfo;
+
 
 /* parseddesc *****************************************************************/
 
@@ -87,6 +91,7 @@ typedef union parseddesc {
 	void              *any;       /* used for simple test against NULL        */
 } parseddesc;
 
+
 /* constant_FMIref ************************************************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
@@ -95,6 +100,7 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
 	parseddesc parseddesc;  /* parsed descriptor                              */
 } constant_FMIref;
+
 
 /* macros *********************************************************************/
 
@@ -111,10 +117,13 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 	(*((classref_or_classinfo *)(&(value))))
 
 /* initialize a constant_classref with referer `ref` and name `classname`     */
-#define CLASSREF_INIT(c,ref,classname)                          \
-			do { (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL;      \
-				 (c).referer = (ref);                           \
-				 (c).name = (classname); } while (0)
+
+#define CLASSREF_INIT(c,ref,classname) \
+    do { \
+        (c).pseudo_vftbl = CLASSREF_PSEUDO_VFTBL; \
+        (c).referer = (ref); \
+        (c).name = (classname); \
+    } while (0)
 
 #endif /* _REFERENCES_H_ */
 
