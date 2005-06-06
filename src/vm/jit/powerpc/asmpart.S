@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2540 2005-05-31 16:01:11Z twisti $
+   $Id: asmpart.S 2564 2005-06-06 15:24:15Z twisti $
 
 */
 
@@ -118,9 +118,11 @@ asm_calljavafunction_int:
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-148(r1)
 
+#if defined(__DARWIN__)
 	bl      0f
 0:
 	mflr    r31
+#endif
 
 	stw     t0,40(r1)
 	stw     t1,44(r1)
@@ -151,7 +153,9 @@ asm_calljavafunction_int:
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
 	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
 #else
-	addi    mptr,r31,(asm_call_jit_compiler-0b)@l
+/*	addi    mptr,r31,(asm_call_jit_compiler-0b)@l*/
+	lis     mptr,asm_call_jit_compiler@ha
+	addi    mptr,mptr,asm_call_jit_compiler@l
 #endif
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
@@ -336,6 +340,12 @@ calljava_xhandler2:
 	b       calljava_regrestore2
 
 
+/* asm_call_jit_compiler *******************************************************
+
+   Invokes the compiler for untranslated JavaVM methods.
+
+*******************************************************************************/
+
 asm_call_jit_compiler:
 	stw     itmp1,-8(r1)
 	mflr    itmp1
@@ -501,8 +511,8 @@ asm_handle_exception:
 
 	li      r9,1
 ex_stack_loop:
-	addi    r1,r1,-4*4
-	stw     xptr,0*4(r1)
+	addi    r1,r1,-4*4            /* allocate stack                           */
+	stw     xptr,0*4(r1)          /* save used register                       */
 	stw     xpc,1*4(r1)
 	mflr    xptr
 	stw     xptr,2*4(r1)
@@ -601,7 +611,7 @@ L_class_loaded:
 
 L_class_linked:
 _crit_restart1:
-	lwz     r7,13*4(r1)	
+	lwz     r7,13*4(r1)
 _crit_begin1:
 	lwz     r6,offobjvftbl(xptr)  /* r6 = vftblptr(xptr)                      */
 	lwz     r7,offclassvftbl(r7)  /* r7 = vftblptr(catchtype) class (not obj) */
@@ -644,9 +654,9 @@ ex_jump:
 	bctr
 
 ex_table_cont:
-	addi    r4,r4,ExEntrySize
-	addic.  r3,r3,-1
-	bgt     ex_table_loop
+	addi    r4,r4,ExEntrySize     /* next exception table entry               */
+	addic.  r3,r3,-1              /* decrement entry counter                  */
+	bgt     ex_table_loop         /* if (t0 > 0) next entry                   */
 
 empty_table:
 	mr.     r9,r9                 /* if here the first time, then             */
@@ -654,9 +664,9 @@ empty_table:
 	addi    r1,r1,18*4            /* deallocate stack and                     */
 	li      r9,0                  /* clear the no unwind flag                 */
 ex_already_cleared:
-	lwz     r3,IsSync(pv)
+	lwz     r3,IsSync(pv)         /* t0 = SyncOffset                          */
 	mr.     r3,r3
-	beq     no_monitor_exit
+	beq     no_monitor_exit       /* if zero no monitorexit                   */
 
 #if defined(USE_THREADS)
 	add     r3,r1,r3
@@ -694,7 +704,7 @@ no_monitor_exit:
 	lwz     r4,IsLeaf(pv)         /* r4 = is leaf procedure                   */
 	mr.     r4,r4
 	bne     ex_no_restore         /* if (leaf) skip                           */
-	lwz     r4,8(r3)              /* restore ra                               */
+	lwz     r4,LA_LR_OFFSET(r3)   /* restore ra                               */
 	mtlr    r4                    /* t0--                                     */
 ex_no_restore:
 	mflr    r4                    /* the new xpc is ra                        */
@@ -712,16 +722,17 @@ ex_int1:
 	subf    r5,r4,r5
 	mtctr   r5
 	bctr
-	lwz     r14,-40(r3)
-	lwz     r15,-36(r3)
-	lwz     r24,-32(r3)
-	lwz     r25,-28(r3)
-	lwz     r26,-24(r3)
-	lwz     r27,-20(r3)
-	lwz     r28,-16(r3)
-	lwz     r29,-12(r3)
-	lwz     r30,-8(r3)
-	lwz     r31,-4(r3)
+	lwz     s0,-40(r3)
+	lwz     s1,-36(r3)
+	lwz     s2,-32(r3)
+	lwz     s3,-28(r3)
+	lwz     s4,-24(r3)
+	lwz     s5,-20(r3)
+	lwz     s6,-16(r3)
+	lwz     s7,-12(r3)
+	lwz     s8,-8(r3)
+	lwz     s9,-4(r3)
+
 ex_int2:
 	subf    r3,r4,r3
 
@@ -738,16 +749,17 @@ ex_flt1:
 	subf    r5,r4,r5
 	mtctr   r5
 	bctr
-	lfd     fr14,-80(r3)
-	lfd     fr15,-72(r3)
-	lfd     fr24,-64(r3)
-	lfd     fr25,-56(r3)
-	lfd     fr26,-48(r3)
-	lfd     fr27,-40(r3)
-	lfd     fr28,-32(r3)
-	lfd     fr29,-24(r3)
-	lfd     fr30,-16(r3)
-	lfd     fr31,-8(r3)
+	lfd     fs0,-80(r3)
+	lfd     fs1,-72(r3)
+	lfd     fs2,-64(r3)
+	lfd     fs3,-56(r3)
+	lfd     fs4,-48(r3)
+	lfd     fs5,-40(r3)
+	lfd     fs6,-32(r3)
+	lfd     fs7,-24(r3)
+	lfd     fs8,-16(r3)
+	lfd     fs9,-8(r3)
+
 ex_flt2:
 	mtlr    xpc
 	lwz     itmp3,4(xpc)
