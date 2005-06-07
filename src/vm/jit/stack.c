@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2568 2005-06-06 15:28:11Z twisti $
+   $Id: stack.c 2577 2005-06-07 08:37:09Z christian $
 
 */
 
@@ -1864,6 +1864,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 /*                              {COUNT(count_check_null);} */ 	 
 					_callhandling:
 						i = iptr->op1;
+
+						if (md->memuse > rd->ifmemuse)
+							rd->ifmemuse = md->memuse;
+						if (md->argintreguse > rd->argintreguse)
+							rd->argintreguse = md->argintreguse;
+						if (md->argfltreguse > rd->argintreguse)
+							rd->argfltreguse = md->argintreguse;
 
 						if (i > rd->arguments_num)
 							rd->arguments_num = i;
