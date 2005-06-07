@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2578 2005-06-07 15:07:55Z twisti $
+   $Id: codegen.c 2580 2005-06-07 16:04:15Z twisti $
 
 */
 
@@ -3610,8 +3610,12 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* if function is static, check for initialized */
 
-	if ((m->flags & ACC_STATIC) && !m->class->initialized)
+	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
 		codegen_addpatchref(cd, mcodeptr, NULL, NULL);
+
+		if (showdisassemble)
+			M_NOP;
+	}
 
 	if (runverbose) {
 		s4 longargs = 0;
@@ -3672,18 +3676,18 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-        /* TODO: save remaining integer and float argument registers */
+		/* TODO: save remaining integer and float argument registers */
 
 		/* load first 4 arguments into integer argument registers */
 
 		for (i = 0; i < INT_ARG_CNT; i++)
 			M_ILD(rd->argintregs[i], REG_SP, LA_SIZE + i * 4);
 
-        M_ALD(REG_ITMP1, REG_PV, -6 * 4);
+		M_ALD(REG_ITMP1, REG_PV, -6 * 4);
 #if defined(__DARWIN__)
-        M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8); /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
+		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8); /* 24 (linkage area) + 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
 #else
-        M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
+		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
 #endif
 		M_ALD(REG_ITMP2, REG_PV, -5 * 4);
 		M_MTCTR(REG_ITMP2);
@@ -3728,7 +3732,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			}
 		}
 
-        M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
 	}
 
 	/* copy or spill arguments to new locations */
@@ -3777,8 +3781,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 					M_DST(REG_FTMP1, REG_SP, s2 * 4);
 
 				} else {
-					M_FLD(REG_FTMP1, REG_SP, s1 * 4 + 4);
-					M_FST(REG_FTMP1, REG_SP, s2 * 4 + 4);
+					M_FLD(REG_FTMP1, REG_SP, s1 * 4);
+					M_FST(REG_FTMP1, REG_SP, s2 * 4);
 				}
 			}
 		}
@@ -3802,15 +3806,20 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	M_MFLR(REG_ITMP1);
 	M_LDA(REG_PV, REG_ITMP1, disp);     /* recompute pv from ra               */
 
-	/* 20 instructions */
+	/* 16 instructions */
 
 	if (runverbose) {
-		M_MFLR(REG_ITMP3);
-		M_LDA(REG_SP, REG_SP, -10 * 8);
-		M_DST(REG_FRESULT, REG_SP, 48+0);
-		M_IST(REG_RESULT, REG_SP, 48+8);
-		M_AST(REG_ITMP3, REG_SP, 48+12);
-		M_IST(REG_RESULT2, REG_SP, 48+16);
+#if defined(__DARWIN__)
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4));
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
+		M_IST(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
+		M_DST(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
+#else
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (2 + 2) * 4));
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + 0 * 4);
+		M_IST(REG_RESULT2, REG_SP, LA_SIZE + 1 * 4);
+		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
+#endif
 
 		/* keep this order */
 		switch (m->returntype) {
@@ -3835,19 +3844,26 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 #endif
 			break;
 		}
-		M_ALD(rd->argintregs[0], REG_PV, -6 * 4);
 
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
+		M_ALD(rd->argintregs[0], REG_PV, -6 * 4);
+
 		M_ALD(REG_ITMP2, REG_PV, -7 * 4);/* builtin_displaymethodstop         */
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
-		M_DLD(REG_FRESULT, REG_SP, 48+0);
-		M_ILD(REG_RESULT, REG_SP, 48+8);
-		M_ALD(REG_ITMP3, REG_SP, 48+12);
-		M_ILD(REG_RESULT2, REG_SP, 48+16);
-		M_LDA(REG_SP, REG_SP, 10 * 8);
-		M_MTLR(REG_ITMP3);
+
+#if defined(__DARWIN__)
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
+		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
+		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4);
+#else
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 0 * 4);
+		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 1 * 4);
+		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + (2 + 2) * 4);
+#endif
 	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
