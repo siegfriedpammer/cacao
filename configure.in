@@ -20,6 +20,12 @@ alpha | alphaev56 )
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
 
+arm )
+	ARCH_DIR="arm"
+	STATIC_CLASSPATH="1"
+	CFLAGS="-D__ARM__"
+	;;
+
 i386 | i486 | i586 | i686 )
 	ARCH_DIR="i386"
         STATIC_CLASSPATH="0"
