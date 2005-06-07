@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2568 2005-06-06 15:28:11Z twisti $
+   $Id: codegen.c 2578 2005-06-07 15:07:55Z twisti $
 
 */
 
@@ -3021,7 +3021,7 @@ gen_method:
 #if defined(__DARWIN__)
 					M_IST(s2, REG_SP, LA_SIZE + (s1 + INT_ARG_CNT) * 4);
 #else
-					M_IST(s2, REG_SP, LA_SIZE + s1 * 4);
+					M_IST(s2, REG_SP, LA_SIZE + (s1 + 3) * 4);
 #endif
 			}
 
@@ -3054,7 +3054,7 @@ gen_method:
 #if defined(__DARWIN__)
 			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE + INT_ARG_CNT * 4);
 #else
-			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE);
+			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE + 3 * 4);
 #endif
 
 			a = dseg_addaddress(cd, BUILTIN_multianewarray);
