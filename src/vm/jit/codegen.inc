@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2507 2005-05-23 08:34:04Z twisti $
+   $Id: codegen.inc 2589 2005-06-08 10:59:04Z twisti $
 
 */
 
@@ -801,7 +801,8 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 		dr = cd->datareferences;
 		while (dr != NULL) {
-			*((functionptr *) ((ptrint) epoint + (ptrint) dr->pos - POINTERSIZE)) = epoint;
+			*((functionptr *) ((ptrint) epoint + (ptrint) dr->pos -
+							   SIZEOF_VOID_P)) = epoint;
 			dr = dr->next;
 		}
 	}

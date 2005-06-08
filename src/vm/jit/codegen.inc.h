@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2318 2005-04-21 19:44:18Z twisti $
+   $Id: codegen.inc.h 2589 2005-06-08 10:59:04Z twisti $
 
 */
 
@@ -60,7 +60,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
 
-#if POINTERSIZE == 8
+#if SIZEOF_VOID_P == 8
 #define dseg_addaddress(cd,value)    dseg_adds8((cd), (s8) (value))
 #else
 #define dseg_addaddress(cd,value)    dseg_adds4((cd), (s4) (value))
