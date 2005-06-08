@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2496 2005-05-23 08:06:06Z twisti $
+   $Id: codegen.h 2605 2005-06-08 14:41:35Z christian $
 
 */
 
@@ -43,66 +43,6 @@
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
 #define LSRA_USES_REG_RES
 #endif
-
-/* SET_ARG_STACKSLOTS ***************************************************
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
---- in
-i:                Number of arguments for this method
-curstack:         instack of the method invokation
-
---- uses
-i, copy
-
---- out
-copy:             Points to first stackslot after the parameters
-rd->ifmemuse:     max. number of stackslots used for spilling parameters
-                  so far
-************************************************************************/
-#if defined(HAS_4BYTE_STACKSLOT)
-#define SET_ARG_STACKSLOTS {								\
-		s4 stacksize = 0;									\
-		copy = curstack;									\
-		while (--i >= 0) {									\
-			stacksize+=IS_2_WORD_TYPE(copy->type)?2:1;		\
-			copy = copy->prev;								\
-		}													\
-		i=call_argcount;									\
-		copy=curstack;										\
-		if (stacksize > rd->ifmemuse)						\
-			rd->ifmemuse = stacksize;						\
-		while (--i >= 0) {									\
-			stacksize -= IS_2_WORD_TYPE(copy->type)?2:1;	\
-			if (!(copy->flags & SAVEDVAR)) {				\
-				copy->varkind = ARGVAR;						\
-				copy->varnum = i;							\
-				copy->flags |= INMEMORY;					\
-				copy->regoff = stacksize;					\
-			}												\
-			copy = copy->prev;								\
-		}													\
-	}
-#else
-#define SET_ARG_STACKSLOTS {					\
-		copy = curstack;						\
-		if (i > rd->ifmemuse)					\
-			rd->ifmemuse = i;					\
-		while (--i >= 0) {						\
-			if (!(copy->flags & SAVEDVAR)) {	\
-				copy->varkind = ARGVAR;			\
-				copy->varnum = i;				\
-				copy->flags |= INMEMORY;		\
-				copy->regoff = i;				\
-			}									\
-			copy = copy->prev;					\
-		}										\
-	}
-#endif /*  defined(HAS_4BYTE_STACKSLOTS) */
 
 /* additional functions and macros to generate code ***************************/
 

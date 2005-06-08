@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2481 2005-05-17 09:05:33Z twisti $
+   $Id: codegen.c 2605 2005-06-08 14:41:35Z christian $
 
 */
 
@@ -44,6 +44,10 @@
 #endif
 
 #include "config.h"
+
+#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/md-abi.inc"
+
 #include "cacao/cacao.h"
 #include "native/jni.h"
 #include "native/native.h"
@@ -63,33 +67,6 @@
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/types.h"
 #include "vm/jit/i386/asmoffsets.h"
-
-
-/* register descripton - array ************************************************/
-
-/* #define REG_RES   0         reserved register for OS or code generator     */
-/* #define REG_RET   1         return value register                          */
-/* #define REG_EXC   2         exception value register (only old jit)        */
-/* #define REG_SAV   3         (callee) saved register                        */
-/* #define REG_TMP   4         scratch temporary register (caller saved)      */
-/* #define REG_ARG   5         argument register (caller saved)               */
-
-/* #define REG_END   -1        last entry in tables */
-
-static int nregdescint[] = {
-    REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_SAV, REG_SAV, REG_SAV,
-    REG_END
-};
-
-
-static int nregdescfloat[] = {
-  /* rounding problems with callee saved registers */
-/*      REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
-/*      REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
-    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
-    REG_END
-};
-
 
 /*******************************************************************************
 
@@ -249,11 +226,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	s4 parentargs_base;
 	u2 currentline;
 	s4 fpu_st_offset = 0;
+	methodinfo     *lm;                 /* local methodinfo for ICMD_INVOKE*  */
+	builtintable_entry *bte;
+	methoddesc     *md;
 
 	exceptiontable *ex;
 
 	{
-	s4 i, p, pa, t, l;
+	s4 i, p, t, l;
   	s4 savedregs_num = 0;
 	s4 stack_off = 0;
 
@@ -344,87 +324,114 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* take arguments out of register or stack frame */
 
+	md = m->parseddesc;
+
 	stack_off = 0;
- 	for (p = 0, l = 0; p < m->paramcount; p++) {
- 		t = m->paramtypes[p];
+ 	for (p = 0, l = 0; p < md->paramcount; p++) {
+ 		t = md->paramtypes[p].type;
  		var = &(rd->locals[l][t]);
  		l++;
  		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
  			l++;
- 		if (var->type >= 0) {
-			if (IS_INT_LNG_TYPE(t)) {                /* integer args          */
-				if (p < rd->intreg_argnum) {         /* register arguments    */
-					log_text("integer register argument");
-					assert(0);
-					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
-						/*   					M_INTMOVE (argintregs[p], r); */
-
-					} else {                         /* reg arg -> spilled    */
-						/*   					M_LST (argintregs[p], REG_SP, 8 * r); */
-					}
-				} else {                             /* stack arguments       */
-					/* pa = p - rd->intreg_argnum; */
-					if (!(var->flags & INMEMORY)) {  /* stack arg -> register */
-						i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4, var->regoff);      /* + 4 for return address */
-					} else {                         /* stack arg -> spilled  */
-						if (!IS_2_WORD_TYPE(t)) {
-							/* i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4, REG_ITMP1) */;    /* + 4 for return address */
-/* 							i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 4); */
-							var->regoff = parentargs_base + stack_off + 1;
-
-						} else {
-							/* i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4, REG_ITMP1); */    /* + 4 for return address */
-/* 							i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 4); */
-							/* i386_mov_membase_reg(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4 + 4, REG_ITMP1); *//* + 4 for return address */
-/* 							i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4); */
-							var->regoff = parentargs_base + stack_off + 1;
-						}
-					}
+ 		if (var->type < 0)
+			continue;
+		s1 = md->params[p].regoff;
+		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
+			if (!md->params[p].inmemory) {           /* register arguments    */
+				log_text("integer register argument");
+				assert(0);
+				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
+					/* rd->argintregs[md->params[p].regoff -> var->regoff     */
+				} else {                             /* reg arg -> spilled    */
+					/* rd->argintregs[md->params[p].regoff -> var->regoff * 4 */
 				}
-		
-			} else {                                 /* floating args         */
-				if (p < rd->fltreg_argnum) {         /* register arguments    */
-					log_text("There are no float argument registers!");
-					assert(0);
+			} else {                                 /* stack arguments       */
+				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
+					i386_mov_membase_reg(           /* + 4 for return address */
+					   cd, REG_SP, (parentargs_base + s1) * 4 + 4, var->regoff);
+					                                /* + 4 for return address */
+				} else {                             /* stack arg -> spilled  */
+					if (!IS_2_WORD_TYPE(t)) {
+#if 0
+						i386_mov_membase_reg(       /* + 4 for return address */
+					         cd, REG_SP, (parentargs_base + s1) * 4 + 4,
+							 REG_ITMP1);    
+						i386_mov_reg_membase(
+						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
+#else
+						                  /* reuse Stackslotand avoid copying */
+						var->regoff = parentargs_base + s1 + 1;
+#endif
 
-					if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
-					} else {			             /* reg arg -> spilled    */
-					}
-
-				} else {                             /* stack arguments       */
-					/* pa = p - rd->fltreg_argnum; */
-					if (!(var->flags & INMEMORY)) {  /* stack-arg -> register */
-						if (t == TYPE_FLT) {
-							i386_flds_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4);
-							fpu_st_offset++;
-							i386_fstp_reg(cd, var->regoff + fpu_st_offset);
-							fpu_st_offset--;
-
-						} else {
-							i386_fldl_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4);
-							fpu_st_offset++;
-							i386_fstp_reg(cd, var->regoff + fpu_st_offset);
-							fpu_st_offset--;
-						}
-
-					} else {                         /* stack-arg -> spilled  */
-/*   					i386_mov_membase_reg(cd, REG_SP, (parentargs_base + pa) * 8 + 4, REG_ITMP1); */
-/*   					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, r * 8); */
-						if (t == TYPE_FLT) {
-/* 							i386_flds_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4); */
-/* 							i386_fstps_membase(cd, REG_SP, var->regoff * 4); */
-							var->regoff = parentargs_base + stack_off + 1;
-
-						} else {
-/* 							i386_fldl_membase(cd, REG_SP, (parentargs_base + stack_off) * 4 + 4); */
-/* 							i386_fstpl_membase(cd, REG_SP, var->regoff * 4); */
-							var->regoff = parentargs_base + stack_off + 1;
-						}
+					} else {
+#if 0
+						i386_mov_membase_reg(       /* + 4 for return address */
+						    cd, REG_SP, (parentargs_base + s1) * 4 + 4,
+							REG_ITMP1);
+						i386_mov_reg_membase(
+						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
+						i386_mov_membase_reg(       /* + 4 for return address */
+                            cd, REG_SP, (parentargs_base + s1) * 4 + 4 + 4,
+                            REG_ITMP1);             
+						i386_mov_reg_membase(
+					        cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4);
+#else
+						                  /* reuse Stackslotand avoid copying */
+						var->regoff = parentargs_base + s1 + 1;
+#endif
 					}
 				}
 			}
+		
+		} else {                                     /* floating args         */
+			if (!md->params[p].inmemory) {           /* register arguments    */
+				log_text("There are no float argument registers!");
+				assert(0);
+				if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
+					/* rd->argfltregs[md->params[p].regoff -> var->regoff     */
+				} else {			             /* reg arg -> spilled    */
+					/* rd->argfltregs[md->params[p].regoff -> var->regoff * 4 */
+				}
+
+			} else {                                 /* stack arguments       */
+				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
+					if (t == TYPE_FLT) {
+						i386_flds_membase(
+                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+						fpu_st_offset++;
+						i386_fstp_reg(cd, var->regoff + fpu_st_offset);
+						fpu_st_offset--;
+
+					} else {
+						i386_fldl_membase(
+                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+						fpu_st_offset++;
+						i386_fstp_reg(cd, var->regoff + fpu_st_offset);
+						fpu_st_offset--;
+					}
+
+				} else {                             /* stack-arg -> spilled  */
+#if 0
+					i386_mov_membase_reg(
+                        cd, REG_SP, (parentargs_base + s1) * 4 + 4, REG_ITMP1);
+					i386_mov_reg_membase(
+					    cd, REG_ITMP1, REG_SP, var->regoff * 4);
+					if (t == TYPE_FLT) {
+						i386_flds_membase(
+						    cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+						i386_fstps_membase(cd, REG_SP, var->regoff * 4);
+					} else {
+						i386_fldl_membase(
+                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+						i386_fstpl_membase(cd, REG_SP, var->regoff * 4);
+					}
+#else
+						                  /* reuse Stackslotand avoid copying */
+						var->regoff = parentargs_base + s1 + 1;
+#endif
+				}
+			}
 		}
-		stack_off += (IS_2_WORD_TYPE(t)) ? 2 : 1;
 	}  /* end for */
 
 	/* call monitorenter function */
@@ -467,8 +474,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		for (p = 0; p < INT_TMP_CNT; p++)
 			M_IST(rd->tmpintregs[p], REG_SP, TRACE_ARGS_NUM * 8 + 4 + p * 4);
 
-		for (p = 0, l=0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
+		for (p = 0, l = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = md->paramtypes[p].type;
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
@@ -477,18 +484,18 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base  + stack_off) * 4 + 4 + 4, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
-/*  				} else if (t == TYPE_ADR) { */
-				} else {
+ 				} else if (t == TYPE_ADR) {
+/* 				} else { */
 					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
-/*  				} else { */
-/*  					i386_mov_membase_reg(cd, REG_SP, 4 + (parentargs_base + TRACE_ARGS_NUM + p) * 8 + 4, EAX); */
-/*  					i386_cltd(cd); */
-/*  					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8); */
-/*  					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4); */
+ 				} else {
+ 					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, EAX);
+ 					i386_cltd(cd);
+ 					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
+ 					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
 				}
 
 			} else {
@@ -508,7 +515,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		/* fill up the remaining arguments */
 		i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
+		for (p = md->paramcount; p < TRACE_ARGS_NUM; p++) {
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 		}
@@ -4327,125 +4334,94 @@ nowperformreturn:
 			}
 			break;
 
-
-		case ICMD_BUILTIN3:     /* ..., arg1, arg2, arg3 ==> ...              */
-		                        /* op1 = return type, val.a = function pointer*/
+		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
+		                        /* op1 = arg count val.a = builtintable entry */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
-			s3 = 3;
-			goto gen_method;
-
-		case ICMD_BUILTIN2:     /* ..., arg1, arg2 ==> ...                    */
-		                        /* op1 = return type, val.a = function pointer*/
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
-			s3 = 2;
-			goto gen_method;
-
-		case ICMD_BUILTIN1:     /* ..., arg1 ==> ...                          */
-		                        /* op1 = return type, val.a = function pointer*/
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
-			s3 = 1;
+			bte = (builtintable_entry *) iptr->val.a;
+			md = bte->md;
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
 		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
+		case ICMD_INVOKEINTERFACE:
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
 
-		case ICMD_INVOKEVIRTUAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
+			lm = iptr->val.a;
 
-		case ICMD_INVOKEINTERFACE:/*.., objectref, [arg1, [arg2 ...]] ==> ... */
-		                        /* op1 = arg count, val.a = method pointer    */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
+			if (lm)
+				md = lm->parseddesc;
+			else {
+				unresolved_method *um = iptr->target;
+				md = um->methodref->parseddesc.md;
+			}
 
+gen_method:
 			s3 = iptr->op1;
-
-gen_method: {
-			methodinfo *lm;
-			s4 stack_off = 0;
-			s4 arg_num;
-			stackptr src_save;
 
 			MCODECHECK((s3 << 1) + 64);
 
 			/* copy arguments to registers or stack location                  */
-			arg_num=s3;
-			src_save = src;
-			for (; --s3 >= 0; src = src->prev)
-				stack_off += IS_2_WORD_TYPE(src->type) ? 2 : 1;
 
-			s3 = arg_num;
-			src = src_save;
-			
-			for (; --s3 >= 0; src = src->prev) {
-				stack_off -= IS_2_WORD_TYPE(src->type) ? 2 : 1;
-
+			for (s3 = s3 - 1; s3 >= 0; s3--, src = src->prev) {
 				if (src->varkind == ARGVAR)
 					continue;
-
 				if (IS_INT_LNG_TYPE(src->type)) {
-					if (s3 < rd->intreg_argnum) {
+					if (!md->params[s3].inmemory) {
 						log_text("No integer argument registers available!");
 						assert(0);
-
 					} else {
 						if (!IS_2_WORD_TYPE(src->type)) {
 							if (src->flags & INMEMORY) {
-								i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-								i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stack_off * 4);
+								i386_mov_membase_reg(
+                                    cd, REG_SP, src->regoff * 4, REG_ITMP1);
+								i386_mov_reg_membase(
+                                    cd, REG_ITMP1, REG_SP,
+									md->params[s3].regoff * 4);
 							} else {
-								i386_mov_reg_membase(cd, src->regoff, REG_SP, stack_off * 4);
+								i386_mov_reg_membase(
+							        cd, src->regoff, REG_SP,
+									md->params[s3].regoff * 4);
 							}
 
 						} else {
 							if (src->flags & INMEMORY) {
-								M_LNGMEMMOVE(src->regoff, stack_off);
-
+								M_LNGMEMMOVE(
+								    src->regoff, md->params[s3].regoff * 4);
 							} else {
 								log_text("copy arguments: longs have to be in memory");
 								assert(0);
 							}
 						}
 					}
-
 				} else {
-					if (s3 < rd->fltreg_argnum) {
+					if (!md->params[s3].inmemory) {
 						log_text("No float argument registers available!");
 						assert(0);
-
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
 						if (src->type == TYPE_FLT) {
-							i386_fstps_membase(cd, REG_SP, stack_off * 4);
+							i386_fstps_membase(
+							    cd, REG_SP, md->params[s3].regoff * 4);
 
 						} else {
-							i386_fstpl_membase(cd, REG_SP, stack_off * 4);
+							i386_fstpl_membase(
+							    cd, REG_SP, md->params[s3].regoff * 4);
 						}
 					}
 				}
 			} /* end of for */
 
-			lm = iptr->val.a;
 			switch (iptr->opc) {
-			case ICMD_BUILTIN3:
-			case ICMD_BUILTIN2:
-			case ICMD_BUILTIN1:
-				d = iptr->op1;
+			case ICMD_BUILTIN:
+				d = md->returntype.type;
 
 				if (iptr->target) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										(functionptr) lm, iptr->target);
+					codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target);
 
 					if (showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4454,7 +4430,7 @@ gen_method: {
 					a = 0;
 
 				} else {
-					a = (ptrint) lm;
+					a = (ptrint) bte->fp;
 				}
 
 				i386_mov_imm_reg(cd, a, REG_ITMP1);
@@ -4482,7 +4458,7 @@ gen_method: {
 					}
 
 					a = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					a = (ptrint) lm->stubroutine;
@@ -4508,12 +4484,12 @@ gen_method: {
 					}
 
 					s1 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
-					d = lm->parseddesc->returntype.type;
+					d = md->returntype.type;
 				}
 
 				i386_mov_membase_reg(cd, REG_ITMP1,
@@ -4539,7 +4515,7 @@ gen_method: {
 
 					s1 = 0;
 					s2 = 0;
-					d = um->methodref->parseddesc.md->returntype.type;
+					d = md->returntype.type;
 
 				} else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
@@ -4547,7 +4523,7 @@ gen_method: {
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 
-					d = lm->parseddesc->returntype.type;
+					d = md->returntype.type;
 				}
 
 				i386_mov_membase_reg(cd, REG_ITMP1,
@@ -4567,9 +4543,11 @@ gen_method: {
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
 						if (iptr->dst->flags & INMEMORY) {
-							i386_mov_reg_membase(cd, REG_RESULT, REG_SP, iptr->dst->regoff * 4);
-							i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, iptr->dst->regoff * 4 + 4);
-
+							i386_mov_reg_membase(
+                                cd, REG_RESULT, REG_SP, iptr->dst->regoff * 4);
+							i386_mov_reg_membase(
+                                cd, REG_RESULT2, REG_SP,
+								iptr->dst->regoff * 4 + 4);
 						} else {
   							log_text("RETURN: longs have to be in memory");
 							assert(0);
@@ -4589,7 +4567,6 @@ gen_method: {
 					fpu_st_offset++;
 					store_reg_to_var_flt(iptr->dst, d);
 				}
-			}
 			}
 			break;
 
@@ -5700,9 +5677,16 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	codegendata        *cd;
 	registerdata       *rd;
 	t_inlining_globals *id;
+	methoddesc         *md;
+	methoddesc         *nmd;
+	s4                  nativeparams;
+	s4                  i, j;           /* count variables                    */
+	s4                  t;
+	s4                  s1, s2;
 	s4                  dumpsize;
-	s4                  i;
+#if 0
 	u1                 *tptr;
+#endif
 	s4                  stackframesize;
 	s4                  stackframeoffset;
 	bool                require_clinit_call;
@@ -5711,9 +5695,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	u1                 *jmpInstrPos;
 	s4                 *jmpInstrPatchPos;
 
+	/* set some variables */
+
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
+
 	/* initial 4 bytes is space for jni env, + 4 byte thread pointer + 4 byte */
 	/* previous pointer + method info + 4 offset native                       */
-	stackframesize = 4 + 16;
+		/* already handled by nmd->memuse */
+	stackframesize = /* 4 + */ 16;
 	stackframeoffset = 4;
 
 	/* mark start of dump memory area */
@@ -5731,7 +5720,27 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	inlining_setup(m, id);
 	reg_setup(m, rd, id);
 
-	method_descriptor2types(m);                /* set paramcount and paramtypes      */
+	/* create new method descriptor with additional native parameters */
+
+	md = m->parseddesc;
+	
+	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
+							   md->paramcount * sizeof(typedesc) +
+							   nativeparams * sizeof(typedesc));
+
+	nmd->paramcount = md->paramcount + nativeparams;
+
+	nmd->params = DMNEW(paramdesc, nmd->paramcount);
+
+	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
+
+	if (m->flags & ACC_STATIC)
+		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
+
+	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
+		  md->paramcount);
+
+	md_param_alloc(nmd);
 
 	require_clinit_call = (m->flags & ACC_STATIC) && !m->class->initialized;
 
@@ -5772,7 +5781,8 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	/* if function is static, check for initialized */
 
 	if (m->flags & ACC_STATIC) {
-		stackframesize += 4;
+		/* already handled by nmd->memuse */
+/*  		stackframesize += 4; */
 		stackframeoffset += 4;
 
 		/* if class isn't yet initialized, do it */
@@ -5791,23 +5801,27 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 		i386_alu_imm_reg(cd, ALU_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
     
-		for (p = 0; p < m->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = m->paramtypes[p];
+		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
+			t = md->paramtypes[p].type;
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off + 4, REG_ITMP2);
+					i386_mov_membase_reg(cd, REG_SP,
+					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP,
+				        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off + 4, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else if (t == TYPE_ADR) {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP,
+                        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, EAX);
+					i386_mov_membase_reg(cd, REG_SP,
+                        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, EAX);
 					i386_cltd(cd);
 					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
 					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
@@ -5815,13 +5829,15 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			} else {
 				if (!IS_2_WORD_TYPE(t)) {
-					i386_flds_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
+					i386_flds_membase(cd, REG_SP,
+					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
 					i386_fstps_membase(cd, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
 					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
-					i386_fldl_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
+					i386_fldl_membase(cd, REG_SP,
+					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
 					i386_fstpl_membase(cd, REG_SP, p * 8);
 				}
 			}
@@ -5829,7 +5845,7 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 		}
 	
 		i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
-		for (p = m->paramcount; p < TRACE_ARGS_NUM; p++) {
+		for (p = md->paramcount; p < TRACE_ARGS_NUM; p++) {
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 		}
@@ -5854,10 +5870,14 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_ffree_reg(cd, 7);
 
 	/* calculate stackframe size for native function */
-	tptr = m->paramtypes;
-	for (i = 0; i < m->paramcount; i++) {
+#if 0
+	tptr = md->paramtypes;
+	for (i = 0; i < md->paramcount; i++) {
 		stackframesize += IS_2_WORD_TYPE(*tptr++) ? 8 : 4;
 	}
+#else
+	stackframesize += nmd->memuse * 4;
+#endif
 
 /* align Stackframe to 8 Byte */
 /* 	if ((stackframesize + 1) & 1)  */
@@ -5869,9 +5889,11 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	i386_mov_imm_membase(cd, (s4) m, REG_SP,stackframesize-8);
 	i386_mov_imm_reg(cd, (s4) builtin_asm_get_stackframeinfo, REG_ITMP1);
 	i386_call_reg(cd, REG_ITMP1);
-	i386_mov_reg_membase(cd, REG_RESULT,REG_SP,stackframesize-12); /*save thread specific pointer*/
+                                                /*save thread specific pointer*/
+	i386_mov_reg_membase(cd, REG_RESULT,REG_SP,stackframesize-12); 
 	i386_mov_membase_reg(cd, REG_RESULT,0,REG_ITMP2); 
-	i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16); /*save previous value of memory adress pointed to by thread specific pointer*/
+  /*save previous value of memory adress pointed to by thread specific pointer*/
+	i386_mov_reg_membase(cd, REG_ITMP2,REG_SP,stackframesize-16);
 	i386_mov_reg_reg(cd, REG_SP,REG_ITMP2);
 	i386_alu_imm_reg(cd, ALU_ADD,stackframesize-16,REG_ITMP2);
 	i386_mov_reg_membase(cd, REG_ITMP2,REG_RESULT,0);
@@ -5922,26 +5944,55 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 /* RESOLVE NATIVE METHOD -- END*/
 
 	/* copy arguments into new stackframe */
-
+#if 0
 	{
 		s4 stack_off = 0;
 
 		tptr = m->paramtypes;
 		for (i = 0; i < m->paramcount; i++) {
 			if (IS_2_WORD_TYPE(*tptr++)) {
-				i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + stack_off, REG_ITMP1);
-				i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + stack_off + 4, REG_ITMP2);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset + stack_off);
-				i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, stackframeoffset + stack_off + 4);
+				i386_mov_membase_reg(
+                    cd, REG_SP, stackframesize + (1 * 4) + stack_off,
+					REG_ITMP1);
+				i386_mov_membase_reg(
+                    cd, REG_SP, stackframesize + (1 * 4) + stack_off + 4,
+					REG_ITMP2);
+				i386_mov_reg_membase(
+                    cd, REG_ITMP1, REG_SP, stackframeoffset + stack_off);
+				i386_mov_reg_membase(
+				    cd, REG_ITMP2, REG_SP, stackframeoffset + stack_off + 4);
 				stack_off += 8;
 
 			} else {
-				i386_mov_membase_reg(cd, REG_SP, stackframesize + (1 * 4) + stack_off, REG_ITMP1);
-				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, stackframeoffset + stack_off);
+				i386_mov_membase_reg(
+			        cd, REG_SP, stackframesize + (1 * 4) + stack_off,
+					REG_ITMP1);
+				i386_mov_reg_membase(
+				    cd, REG_ITMP1, REG_SP, stackframeoffset + stack_off);
 				stack_off += 4;
 			}
 		}
 	}
+#endif
+	/* copy arguments into new stackframe */
+	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+		t = md->paramtypes[i].type;
+
+		if (!md->params[i].inmemory) {
+			/* no integer argument registers */
+		} else {       /* float/double in memory can be copied like int/longs */
+			s1 = md->params[i].regoff * 4 + stackframesize + (1 * 4);
+			s2 = nmd->params[j].regoff * 4;
+
+			i386_mov_membase_reg(cd, REG_SP, s1, REG_ITMP1);
+			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s2);
+			if (IS_2_WORD_TYPE(t)) {
+				i386_mov_membase_reg(cd, REG_SP, s1 + 4, REG_ITMP1);
+				i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, s2 + 4);
+			}
+		}
+	}
+
 
 	/* if function is static, put class into second argument */
 

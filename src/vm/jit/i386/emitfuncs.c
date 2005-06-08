@@ -26,12 +26,13 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2466 2005-05-13 09:04:04Z twisti $
+   $Id: emitfuncs.c 2605 2005-06-08 14:41:35Z christian $
 
 */
 
 #include "vm/statistics.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/types.h"
