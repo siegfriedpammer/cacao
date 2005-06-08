@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1980 2005-03-04 15:20:34Z twisti $
+## $Id: Makefile.am 2602 2005-06-08 12:51:03Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = kaffe native
+SUBDIRS = codepatching kaffe native
 
 EXTRA_DIST = \
 	x.java x.output \
@@ -45,7 +45,7 @@ EXTRA_DIST = \
 	GCBench.java \
 	JavaPerformance.java
 
-JAVA = $(top_srcdir)/src/cacao/cacao
+JAVA = $(top_srcdir)/src/cacao/cacao -noverify
 JAVAC = jikes -nowarn
 
 checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst
