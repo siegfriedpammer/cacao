@@ -28,96 +28,19 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2448 2005-05-11 13:03:20Z twisti $
+   $Id: asmpart.S 2586 2005-06-08 10:56:49Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include "md-abi.h"
+#include "md-asm.h"
+
 #include "vm/jit/x86_64/arch.h"
-#include "vm/jit/x86_64/offsets.h"
 #include "vm/jit/x86_64/asmoffsets.h"
-
-
-/* define it like the risc way */
-
-#define v0       %rax
-#define v0l      %eax
-
-#define a0       %rdi
-#define a1       %rsi
-#define a2       %rdx
-#define a3       %rcx
-#define a4       %r8
-#define a5       %r9
-
-#define fa0      %xmm0
-#define fa1      %xmm1
-#define fa2      %xmm2
-#define fa3      %xmm3
-#define fa4      %xmm4
-#define fa5      %xmm5
-#define fa6      %xmm6
-#define fa7      %xmm7
-
-#define itmp1    %rax
-#define itmp2    %r10
-#define itmp3    %r11
-
-#define itmp1l   %eax
-#define itmp2l   %r10d
-#define itmp3l   %r11d
-
-#define itmp1b   %al
-#define itmp2b   %r10b
-#define itmp3b   %r11b
-
-#define xptr     itmp1
-#define xpc      itmp2
-
-
-/* save and restore macros ****************************************************/
-
-#define SAVE_ARGUMENT_REGISTERS \
-	mov     a0,0*8(%rsp)		; \
-	mov     a1,1*8(%rsp)		; \
-	mov     a2,2*8(%rsp)		; \
-	mov     a3,3*8(%rsp)		; \
-	mov     a4,4*8(%rsp)		; \
-	mov     a5,5*8(%rsp)		; \
-	movq    fa0,6*8(%rsp)		; \
-	movq    fa1,7*8(%rsp)		; \
-	movq    fa2,8*8(%rsp)		; \
-	movq    fa3,9*8(%rsp)		; \
-	movq    fa4,10*8(%rsp)		; \
-	movq    fa5,11*8(%rsp)		; \
-	movq    fa6,12*8(%rsp)		; \
-	movq    fa7,13*8(%rsp)		;
-
-
-#define RESTORE_ARGUMENT_REGISTERS \
-	mov     0*8(%rsp),a0		; \
-	mov     1*8(%rsp),a1		; \
-	mov     2*8(%rsp),a2		; \
-	mov     3*8(%rsp),a3		; \
-	mov     4*8(%rsp),a4		; \
-	mov     5*8(%rsp),a5		; \
-	movq    6*8(%rsp),fa0		; \
-	movq    7*8(%rsp),fa1		; \
-	movq    8*8(%rsp),fa2		; \
-	movq    9*8(%rsp),fa3		; \
-	movq    10*8(%rsp),fa4		; \
-	movq    11*8(%rsp),fa5		; \
-	movq    12*8(%rsp),fa6		; \
-	movq    13*8(%rsp),fa7		; 
-
-
-#define SAVE_TEMPORARY_REGISTERS \
-	mov     %rbx,14*8(%rsp)
-
-
-#define RESTORE_TEMPORARY_REGISTERS \
-	mov     14*8(%rsp),%rbx
+#include "vm/jit/x86_64/offsets.h"
 
 
 	.text
@@ -471,87 +394,41 @@ asm_call_jit_compiler:
 
 	mov     %rbx,(%rsp)             /* save register                          */
         
-        mov     8(%rsp),%r11    /* get return address                         */
-        mov     -1(%r11),%bl	/* get function code                          */
-        cmp     $0xd2,%bl		/* called with `call *REG_ITMP2' (%r10)?      */
-        jne     L_not_static_special
+	mov     8(%rsp),%r11        /* get return address                         */
+	mov     -1(%r11),%bl        /* get function code                          */
+	cmp     $0xd2,%bl           /* called with `call *REG_ITMP2' (%r10)?      */
+	jne     L_not_static_special
 
-        sub     $11,%r11        /* calculate address of immediate             */
-        jmp		L_call_jit_compile
+	sub     $11,%r11            /* calculate address of immediate             */
+	jmp     L_call_jit_compile
 		
 L_not_static_special:
-		cmp     $0xd0,%bl		/* called with `call *REG_ITMP1' (%rax)       */
-		jne     L_not_virtual_interface
+	cmp     $0xd0,%bl           /* called with `call *REG_ITMP1' (%rax)       */
+	jne     L_not_virtual_interface
 		
-		sub     $7,%r11         /* calculate address of offset                */
-		mov     (%r11),%r11d    /* get offset (32-bit)                        */
-		add     %r10,%r11       /* add base address to get method address     */
-		jmp     L_call_jit_compile
+	sub     $7,%r11             /* calculate address of offset                */
+	mov     (%r11),%r11d        /* get offset (32-bit)                        */
+	add     %r10,%r11           /* add base address to get method address     */
+	jmp     L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavamethod             */
-		xor     %r11,%r11
+	xor     %r11,%r11
 		
 L_call_jit_compile:
-        mov     (%rsp),%rbx     /* restore register                           */
+	mov     (%rsp),%rbx         /* restore register                           */
         
-        sub     $(24*8),%rsp    /* 8 + 6*8 + 8*8 + 8*8                        */
+	sub     $(24*8),%rsp        /* 8 + 6*8 + 8*8 + 8*8                        */
         
-  		mov     %r11,0*8(%rsp)  /* save address for method pointer            */
+	mov     %r11,0*8(%rsp)      /* save address for method pointer            */
 
-        mov     a0,1*8(%rsp)    /* save arguments                             */
-        mov     a1,2*8(%rsp)
-        mov     a2,3*8(%rsp)
-        mov     a3,4*8(%rsp)
-        mov     a4,5*8(%rsp)
-        mov     a5,6*8(%rsp)
+	SAVE_ARGUMENT_REGISTERS(1)
 
-        movq    fa0,7*8(%rsp)
-        movq    fa1,8*8(%rsp)
-        movq    fa2,9*8(%rsp)
-        movq    fa3,10*8(%rsp)
-        movq    fa4,11*8(%rsp)
-        movq    fa5,12*8(%rsp)
-        movq    fa6,13*8(%rsp)
-        movq    fa7,14*8(%rsp)
+	mov     %rax,%rdi           /* pass method pointer                        */
+	call	jit_compile
 
-        movq    %xmm8,15*8(%rsp)/* we use them as callee saved registers      */
-        movq    %xmm9,16*8(%rsp)
-        movq    %xmm10,17*8(%rsp)
-        movq    %xmm11,18*8(%rsp)
-        movq    %xmm12,19*8(%rsp)
-        movq    %xmm13,20*8(%rsp)
-        movq    %xmm14,21*8(%rsp)
-        movq    %xmm15,22*8(%rsp)
+	mov     0*8(%rsp),%r11      /* restore address for method pointer         */
 
-        mov     %rax,%rdi       /* pass method pointer                        */
-		call	jit_compile
-
-        mov     0*8(%rsp),%r11
-        
-        mov     1*8(%rsp),a0
-        mov     2*8(%rsp),a1
-        mov     3*8(%rsp),a2
-        mov     4*8(%rsp),a3
-        mov     5*8(%rsp),a4
-        mov     6*8(%rsp),a5
-
-	movq    7*8(%rsp),fa0
-	movq    8*8(%rsp),fa1
-	movq    9*8(%rsp),fa2
-	movq    10*8(%rsp),fa3
-	movq    11*8(%rsp),fa4
-	movq    12*8(%rsp),fa5
-	movq    13*8(%rsp),fa6
-	movq    14*8(%rsp),fa7
-
-	movq    15*8(%rsp),%xmm8
-	movq    16*8(%rsp),%xmm9
-	movq    17*8(%rsp),%xmm10
-	movq    18*8(%rsp),%xmm11
-	movq    19*8(%rsp),%xmm12
-	movq    20*8(%rsp),%xmm13
-	movq    21*8(%rsp),%xmm14
-	movq    22*8(%rsp),%xmm15
+	RESTORE_ARGUMENT_REGISTERS(1)
 
 	add     $(24*8),%rsp
 	add     $8,%rsp                 /* keep stack 16-byte aligned             */
@@ -859,8 +736,8 @@ noflt:
 asm_wrapper_patcher:
 	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
 
-	SAVE_ARGUMENT_REGISTERS
-	SAVE_TEMPORARY_REGISTERS
+	SAVE_ARGUMENT_REGISTERS(0)
+	SAVE_TEMPORARY_REGISTERS(14)
 
 	mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
 	mov     itmp2,16*8(%rsp)            /* can be used by some instructions   */
@@ -871,8 +748,8 @@ asm_wrapper_patcher:
 	call    *itmp3                      /* call the patcher function          */
 	mov     v0,itmp3                    /* save return value                  */
 
-	RESTORE_ARGUMENT_REGISTERS
-	RESTORE_TEMPORARY_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS(0)
+	RESTORE_TEMPORARY_REGISTERS(14)
 
 	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
 	mov     16*8(%rsp),itmp2            /* can be used by some instructions   */
@@ -918,12 +795,12 @@ L_asm_wrapper_patcher_exception:
 asm_builtin_f2i:
 	sub     $(14*8),%rsp
 	
-	SAVE_ARGUMENT_REGISTERS
+	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    %xmm8,%xmm0
 	call    builtin_f2i
 	
-	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(14*8),%rsp
 	ret
@@ -932,12 +809,12 @@ asm_builtin_f2i:
 asm_builtin_f2l:
 	sub     $(14*8),%rsp
 	
-	SAVE_ARGUMENT_REGISTERS
+	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    %xmm8,%xmm0
 	call    builtin_f2l
 	
-	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(14*8),%rsp
 	ret
@@ -946,12 +823,12 @@ asm_builtin_f2l:
 asm_builtin_d2i:
 	sub     $(14*8),%rsp
 	
-	SAVE_ARGUMENT_REGISTERS
+	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    %xmm8,%xmm0
 	call    builtin_d2i
 	
-	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(14*8),%rsp
 	ret
@@ -960,12 +837,12 @@ asm_builtin_d2i:
 asm_builtin_d2l:
 	sub     $(14*8),%rsp
 	
-	SAVE_ARGUMENT_REGISTERS
+	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    %xmm8,%xmm0
 	call    builtin_d2l
 	
-	RESTORE_ARGUMENT_REGISTERS
+	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(14*8),%rsp
 	ret
