@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 2559 2005-06-06 15:01:54Z twisti $
+   $Id: global.h 2591 2005-06-08 11:03:00Z twisti $
 
 */
 
@@ -152,6 +152,9 @@ typedef struct java_objectarray java_objectarray;
 #define MAJOR_VERSION     48
 #define MINOR_VERSION     0
 
+
+/* Constant pool tags *********************************************************/
+
 #define CONSTANT_Class                 7
 #define CONSTANT_Fieldref              9
 #define CONSTANT_Methodref            10
@@ -167,6 +170,8 @@ typedef struct java_objectarray java_objectarray;
 #define CONSTANT_UNUSED                0
 
 
+/* Class/Field/Method access and property flags *******************************/
+
 #define ACC_UNDEF               -1      /* used internally                    */
 #define ACC_NONE                 0      /* used internally                    */
 
@@ -178,11 +183,16 @@ typedef struct java_objectarray java_objectarray;
 #define ACC_SUPER           0x0020
 #define ACC_SYNCHRONIZED    0x0020
 #define ACC_VOLATILE        0x0040
+#define ACC_BRIDGE          0x0040
 #define ACC_TRANSIENT       0x0080
+#define ACC_VARARGS         0x0080
 #define ACC_NATIVE          0x0100
 #define ACC_INTERFACE       0x0200
 #define ACC_ABSTRACT        0x0400
 #define ACC_STRICT          0x0800
+#define ACC_SYNTHETIC       0x1000
+#define ACC_ANNOTATION      0x2000
+#define ACC_ENUM            0x4000
 
 
 /* data structure for calls from c code to java methods */
