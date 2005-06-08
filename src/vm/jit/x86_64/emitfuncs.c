@@ -28,10 +28,12 @@
 
    Changes:
 
-   $Id: emitfuncs.c 2265 2005-04-11 09:58:52Z twisti $
+   $Id: emitfuncs.c 2584 2005-06-08 10:55:34Z twisti $
 
 */
 
+
+#include "md-abi.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/x86_64/codegen.h"
