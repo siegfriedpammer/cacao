@@ -1,4 +1,4 @@
-/* vm/jit/alpha/codegen.h - code generation macros and definitions for alpha
+/* vm/jit/alpha/codegen.h - code generation macros and definitions for Alpha
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,7 +27,9 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: codegen.h 2397 2005-04-27 12:44:54Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: codegen.h 2612 2005-06-08 19:43:46Z twisti $
 
 */
 
@@ -37,83 +39,9 @@
 
 #include <ucontext.h>
 
-/* SET_ARG_STACKSLOTS ***************************************************
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
---- in
-i,call_argcount:  Number of arguments for this method
-curstack:         instack of the method invokation
-
---- uses
-i, copy
-
---- out
-copy:             Points to first stackslot after the parameters
-rd->argintreguse: max. number of used integer argument register so far
-rd->argfltreguse: max. number of used float argument register so far
-rd->ifmemuse:     max. number of stackslots used for spilling parameters
-                  so far
-************************************************************************/
-#define SET_ARG_STACKSLOTS {											\
-		s4 stacksize;     /* Stackoffset for spilled arg */				\
-        s4 iarg = 0;													\
-        s4 farg = 0;													\
-																		\
-		stacksize = (i < rd->intreg_argnum)? 0 : (i - rd->intreg_argnum); \
-		if (rd->ifmemuse < stacksize)									\
-			rd->ifmemuse = stacksize;									\
-																		\
-		copy = curstack;												\
-		for (;i > 0; i--) {												\
-			if (IS_FLT_DBL_TYPE(copy->type)) {							\
-				if (farg == 0) farg = i;								\
-			} else {													\
-				if (iarg == 0) iarg = i;								\
-			}															\
-			copy = copy->prev;											\
-		}																\
-																		\
-		if (rd->argintreguse < iarg)                                    \
-			rd->argintreguse = iarg;									\
-		if (rd->argfltreguse < farg)                                    \
-			rd->argfltreguse = farg;									\
-																		\
-		i = call_argcount;												\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			if (!(copy->flags & SAVEDVAR)) {							\
-				copy->varnum = i;										\
-				copy->varkind = ARGVAR;									\
-				if (IS_FLT_DBL_TYPE(copy->type)) {						\
-					if (i < rd->fltreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argfltregs[i];				\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				} else { /* int arg */									\
-					if (i < rd->intreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argintregs[i];				\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				}														\
-			}															\
-			copy = copy->prev;											\
-		}																\
-	}
 
 /* additional functions and macros to generate code ***************************/
 
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
 #define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
@@ -280,8 +208,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 */      
 
 #define M_OP3(op,fu,a,b,c,const) \
-	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<(16-3*(const)))| \
-	((const)<<12)|((fu)<<5)|((c)) )
+	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c)))
 
 
 /* 3-address-floating-point-operation: M_FOP3 
@@ -292,7 +219,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 */ 
 
 #define M_FOP3(op,fu,a,b,c) \
-	*(mcodeptr++) = ( (((s4)(op))<<26)|((a)<<21)|((b)<<16)|((fu)<<5)|(c) )
+	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c))
 
 
 /* branch instructions: M_BRA 
@@ -562,15 +489,15 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
 #define M_JMP_CO(a,b)           M_MEM (0x1a,a,b,0xc000)        /* call cosub  */
 
 
-/* function gen_resolvebranch **************************************************
+/* gen_resolvebranch ***********************************************************
 
-	backpatches a branch instruction; Alpha branch instructions are very
-	regular, so it is only necessary to overwrite some fixed bits in the
-	instruction.
+   backpatches a branch instruction; Alpha branch instructions are very
+   regular, so it is only necessary to overwrite some fixed bits in the
+   instruction.
 
-	parameters: ip ... pointer to instruction after branch (void*)
-	            so ... offset of instruction after branch  (s4)
-	            to ... offset of branch target             (s4)
+   parameters: ip ... pointer to instruction after branch (void*)
+               so ... offset of instruction after branch  (s4)
+               to ... offset of branch target             (s4)
 
 *******************************************************************************/
 
@@ -578,7 +505,7 @@ rd->ifmemuse:     max. number of stackslots used for spilling parameters
     ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0x1fffff
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void thread_restartcriticalsection(ucontext_t*);
 
