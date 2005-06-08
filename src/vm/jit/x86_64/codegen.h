@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2415 2005-04-29 18:55:49Z twisti $
+   $Id: codegen.h 2585 2005-06-08 10:56:25Z twisti $
 
 */
 
@@ -38,79 +38,6 @@
 #include <ucontext.h>
 
 #include "vm/jit/x86_64/types.h"
-
-/* SET_ARG_STACKSLOTS *************************************************
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
--- in
-i,call_argcount:  Number of Parameters
-curstack:         stackptr to current instack
-copy    :         stackptr
-
---- uses
-i, copy
-
--- out
-copy: points to first stackslot after the parameters
-rd->ifmemuse: max. number of stackslots needed for spilled parameters so far
-rd->argintreguse: max. number of used integer argument registers used so far
-rd->fltintreguse: max. number of used float argument registers used so far          
-************************************************************************/
-#define SET_ARG_STACKSLOTS {											\
-		s4 iarg = 0;													\
-		s4 farg = 0;													\
-		s4 stacksize;     /* Stackoffset for spilled arg */				\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			(IS_FLT_DBL_TYPE(copy->type)) ? farg++ : iarg++;			\
-			copy = copy->prev;											\
-		}																\
-		stacksize  = (farg < rd->fltreg_argnum)? 0 : (farg - rd->fltreg_argnum); \
-		stacksize += (iarg < rd->intreg_argnum)? 0 : (iarg - rd->intreg_argnum); \
-		if (rd->argintreguse < iarg)									\
-			rd->argintreguse = iarg;									\
-		if (rd->argfltreguse < farg)									\
-			rd->argfltreguse = farg;									\
-		if (rd->ifmemuse < stacksize)									\
-			rd->ifmemuse = stacksize;									\
-		i = call_argcount;												\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			if (IS_FLT_DBL_TYPE(copy->type)) {							\
-				farg--;													\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = farg;								\
-					copy->varkind = ARGVAR;								\
-					if (farg < rd->fltreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argfltregs[farg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				}														\
-			} else { /* int_arg */										\
-				iarg--;													\
-				if (!(copy->flags & SAVEDVAR)) {						\
-					copy->varnum = iarg;								\
-					copy->varkind = ARGVAR;								\
-					if (iarg < rd->intreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argintregs[iarg];			\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				}														\
-			}															\
-			copy = copy->prev;											\
-		}																\
-	}																   
 
 
 /* macros to create code ******************************************************/
@@ -493,14 +420,21 @@ typedef enum {
 
 /* macros to create code ******************************************************/
 
+#define M_MOV(a,b)              x86_64_mov_reg_reg(cd, (a), (b))
+
+#define M_ILD(a,b,disp)         x86_64_movl_membase_reg(cd, (b), (disp), (a))
 #define M_LLD(a,b,disp)         x86_64_mov_membase_reg(cd, (b), (disp), (a))
 #define M_DLD(a,b,disp)         x86_64_movq_membase_reg(cd, (b), (disp), (a))
 
+#define M_IST(a,b,disp)         x86_64_movl_reg_membase(cd, (a), (b), (disp))
 #define M_LST(a,b,disp)         x86_64_mov_reg_membase(cd, (a), (b), (disp))
 #define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
 
 #define M_LADD_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_ADD, (a), (b))
 #define M_LSUB_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_SUB, (a), (b))
+
+#define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
+#define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
 
 #define M_NOP                   x86_64_nop(cd)
 
@@ -519,7 +453,7 @@ typedef enum {
     *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void thread_restartcriticalsection(ucontext_t *uc);
 
