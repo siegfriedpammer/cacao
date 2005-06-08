@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2504 2005-05-23 08:22:45Z twisti $
+   $Id: string.c 2593 2005-06-08 11:04:14Z twisti $
 
 */
 
@@ -117,6 +117,9 @@ const char *string_java_lang_NoSuchMethodException =
 
 const char *string_java_lang_NullPointerException =
     "java/lang/NullPointerException";
+
+const char *string_java_lang_reflect_InvocationTargetException =
+    "java/lang/reflect/InvocationTargetException";
 
 
 /* specify some error strings for code generation */

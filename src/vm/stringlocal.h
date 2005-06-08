@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2504 2005-05-23 08:22:45Z twisti $
+   $Id: stringlocal.h 2593 2005-06-08 11:04:14Z twisti $
 
 */
 
@@ -84,6 +84,7 @@ extern const char *string_java_lang_NegativeArraySizeException;
 extern const char *string_java_lang_NoSuchFieldException;
 extern const char *string_java_lang_NoSuchMethodException;
 extern const char *string_java_lang_NullPointerException;
+extern const char *string_java_lang_reflect_InvocationTargetException;
 
 
 /* specify some error strings for code generation */
