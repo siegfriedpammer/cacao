@@ -28,12 +28,18 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2460 2005-05-12 23:38:46Z twisti $
+## $Id: Makefile.am 2594 2005-06-08 11:05:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
+
+#if DISABLE_GC
+#GC_LIB =
+#else
+GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
+#endif
 
 noinst_PROGRAMS = gennativetable
 
@@ -41,7 +47,7 @@ gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
 	$(top_builddir)/src/cacaoh/libcacaoh.la \
-	$(top_builddir)/src/boehm-gc/libgc.la
+	$(GC_LIB)
 
 gennativetable_DEPENDENCIES = $(gennativetable_LDADD)
 
