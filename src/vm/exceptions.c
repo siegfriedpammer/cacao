@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2490 2005-05-20 23:05:49Z twisti $
+   $Id: exceptions.c 2590 2005-06-08 11:01:37Z twisti $
 
 */
 
@@ -247,72 +247,149 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 }
 
 
+/* new_exception ***************************************************************
+
+   Creates an exception object with the given name and initalizes it.
+
+*******************************************************************************/
+
 java_objectheader *new_exception(const char *classname)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
-	return native_new_and_init(c);
+	o = native_new_and_init(c);
+
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
-java_objectheader *new_exception_message(const char *classname, const char *message)
+
+/* new_exception_message *******************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given char message.
+
+*******************************************************************************/
+
+java_objectheader *new_exception_message(const char *classname,
+										 const char *message)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
+	o = native_new_and_init_string(c, javastring_new_char(message));
 
-	return native_new_and_init_string(c, javastring_new_char(message));
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
 
-java_objectheader *new_exception_throwable(const char *classname, java_lang_Throwable *throwable)
+/* new_exception_throwable *****************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/Throwable exception.
+
+*******************************************************************************/
+
+java_objectheader *new_exception_throwable(const char *classname,
+										   java_lang_Throwable *throwable)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
+	o = native_new_and_init_throwable(c, throwable);
 
-	return native_new_and_init_throwable(c, throwable);
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
+
+/* new_exception_utfmessage ****************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given utf message.
+
+*******************************************************************************/
 
 java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
+	o = native_new_and_init_string(c, javastring_new(message));
 
-	return native_new_and_init_string(c, javastring_new(message));
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
 
-java_objectheader *new_exception_javastring(const char *classname, java_lang_String *message)
+/* new_exception_javastring ****************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/String message.
+
+*******************************************************************************/
+
+java_objectheader *new_exception_javastring(const char *classname,
+											java_lang_String *message)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
+	o = native_new_and_init_string(c, message);
 
-	return native_new_and_init_string(c, message);
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
+
+/* new_exception_int ***********************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given int value.
+
+*******************************************************************************/
 
 java_objectheader *new_exception_int(const char *classname, s4 i)
 {
-	classinfo *c;
+	java_objectheader *o;
+	classinfo         *c;
    
 	if (!load_class_bootstrap(utf_new_char(classname), &c))
 		return *exceptionptr;
 
-	return native_new_and_init_int(c, i);
+	o = native_new_and_init_int(c, i);
+
+	if (!o)
+		return *exceptionptr;
+
+	return o;
 }
 
 
@@ -331,8 +408,10 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 
 	/* calculate message length */
 
+	msglen = 0;
+
 	if (c)
-		msglen = utf_strlen(c->name) + strlen(" (");
+		msglen += utf_strlen(c->name) + strlen(" (");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
