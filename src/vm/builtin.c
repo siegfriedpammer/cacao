@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2558 2005-06-06 15:00:29Z twisti $
+   $Id: builtin.c 2618 2005-06-08 20:57:25Z twisti $
 
 */
 
@@ -517,6 +517,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
     java_lang_Throwable *t;
 	char                *logtext;
 	s4                   logtextlen;
+	s4                   dumpsize;
 
 	if (opt_verbose) {
 		t = (java_lang_Throwable *) xptr;
@@ -536,7 +537,9 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 		/* allocate memory */
 
-		logtext = MNEW(char, logtextlen);
+		dumpsize = dump_size();
+
+		logtext = DMNEW(char, logtextlen);
 
 		strcpy(logtext, "Builtin exception thrown: ");
 
@@ -561,7 +564,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 		/* release memory */
 
-		MFREE(logtext, char, logtextlen);
+		dump_release(dumpsize);
 	}
 
 	*exceptionptr = xptr;
@@ -1192,6 +1195,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 	methoddesc *md;
 	char       *logtext;
 	s4          logtextlen;
+	s4          dumpsize;
 	s4          i;
 
 	md = m->parseddesc;
@@ -1214,7 +1218,9 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	/* allocate memory */
 
-	logtext = MNEW(char, logtextlen);
+	dumpsize = dump_size();
+
+	logtext = DMNEW(char, logtextlen);
 
 	for (i = 0; i < methodindent; i++)
 		logtext[i] = '\t';
@@ -1244,7 +1250,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 	case 0:
 		break;
 
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 	case 1:
 		sprintf(logtext + strlen(logtext),
 				"0x%llx",
@@ -1315,7 +1321,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 #endif
 		break;
 
-#else /* defined(__I386__) || defined(__POWERPC__) */
+#else /* SIZEOF_VOID_P == 4 */
 
 	case 1:
 		sprintf(logtext + strlen(logtext),
@@ -1385,7 +1391,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 				a0, a1, a2, a3, a4, a5, a6, a7, m->paramcount - 8);
 #endif
 		break;
-#endif /* defined(__I386__) || defined(__POWERPC__) */
+#endif /* SIZEOF_VOID_P == 4 */
 	}
 
 	strcat(logtext, ")");
@@ -1394,7 +1400,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	/* release memory */
 
-	MFREE(logtext, char, logtextlen);
+	dump_release(dumpsize);
 
 	methodindent++;
 }
@@ -1412,6 +1418,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	methoddesc *md;
 	char       *logtext;
 	s4          logtextlen;
+	s4          dumpsize;
 	s4          i;
 
 	md = m->parseddesc;
@@ -1432,7 +1439,9 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* allocate memory */
 
-	logtext = MNEW(char, logtextlen);
+	dumpsize = dump_size();
+
+	logtext = DMNEW(char, logtextlen);
 
 	/* generate the message */
 
@@ -1456,7 +1465,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		break;
 
 	case TYPE_LNG:
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 		sprintf(logtext + strlen(logtext), "->%lld", (s8) l);
 #else
 		sprintf(logtext + strlen(logtext), "->%ld", (s8) l);
@@ -1480,7 +1489,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* release memory */
 
-	MFREE(logtext, char, logtextlen);
+	dump_release(dumpsize);
 }
 
 
