@@ -1,21 +1,41 @@
-public class test {
+public class test extends Thread {
     static boolean doit = true;
 
     public static void main(String[] argv) {
+        int threadcount = 1;
+
         if (argv.length > 0) {
             for (int i = 0; i < argv.length; i++) {
-                if (argv[i].equals("skip")) {
+                if (argv[i].equals("--help")) {
+                    usage();
+
+                } else if (argv[i].equals("skip")) {
                     doit = false;
+
+                } else {
+                    threadcount = Integer.valueOf(argv[i]).intValue();
                 }
             }
         }
 
-        invokestatic();
+        System.out.println("Running with " + threadcount + " threads.");
 
-        new test();
+        for (int i = 0; i < threadcount; i++) {
+            new test().start();
+        }
+    }
+
+    static void usage() {
+        System.out.println("test [number of threads] [skip]");
+        System.exit(1);
     }
 
     public test() {
+    }
+    
+    public void run() {
+        invokestatic();
+
         getstatic();
         putstatic();
 
