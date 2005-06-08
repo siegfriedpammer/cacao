@@ -29,16 +29,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: types.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: types.h 2608 2005-06-08 19:29:36Z twisti $
 
 */
 
 
 #ifndef _TYPES_H
 #define _TYPES_H
-
-#include "vm/jit/alpha/arch.h"
-
 
 /* Define the sizes of the integer types used internally by cacao. */
 
@@ -51,13 +48,8 @@ typedef unsigned short int      u2;
 typedef signed int              s4;
 typedef unsigned int            u4;
 
-#if U8_AVAILABLE
 typedef signed long int         s8;
-typedef unsigned long int       u8; 
-#else
-typedef struct {u4 low, high;}  u8;
-#define s8 u8
-#endif
+typedef unsigned long int       u8;
 
 
 /* Define the size of a function pointer used in function pointer casts. */
