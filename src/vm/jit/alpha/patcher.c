@@ -28,12 +28,14 @@
 
    Changes:
 
-   $Id: patcher.c 2527 2005-05-25 08:07:57Z twisti $
+   $Id: patcher.c 2607 2005-06-08 19:26:04Z twisti $
 
 */
 
 
 #include "vm/jit/alpha/types.h"
+
+#include "mm/memory.h"
 #include "vm/builtin.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
@@ -81,14 +83,21 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = helper_resolve_fieldinfo(uf)))
+	if (!(fi = helper_resolve_fieldinfo(uf))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* check if the field's class is initialized */
 
-	if (!fi->class->initialized)
-		if (!initialize_class(fi->class))
+	if (!fi->class->initialized) {
+		if (!initialize_class(fi->class)) {
+			PATCHER_MONITOREXIT;
+
 			return false;
+		}
+	}
 
 	/* patch back original code */
 
@@ -111,7 +120,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -130,7 +139,7 @@ bool patcher_get_putfield(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
-	u8                 mcode;
+	u4                 mcode;
 	unresolved_field  *uf;
 	u1                *pv;
 	fieldinfo         *fi;
@@ -150,8 +159,11 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = helper_resolve_fieldinfo(uf)))
+	if (!(fi = helper_resolve_fieldinfo(uf))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -170,7 +182,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -214,8 +226,11 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -246,7 +261,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -290,8 +305,11 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -322,7 +340,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -368,8 +386,11 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -392,7 +413,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -436,8 +457,11 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -468,7 +492,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -512,8 +536,11 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -544,7 +571,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -587,8 +614,11 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
+	if (!(m = helper_resolve_methodinfo(um))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -611,7 +641,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -652,8 +682,11 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
+	if (!(m = helper_resolve_methodinfo(um))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -673,7 +706,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -715,8 +748,11 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um)))
+	if (!(m = helper_resolve_methodinfo(um))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -741,7 +777,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -782,8 +818,11 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -806,7 +845,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -849,8 +888,11 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -872,7 +914,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -915,8 +957,11 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr)))
+	if (!(c = helper_resolve_classinfo(cr))) {
+		PATCHER_MONITOREXIT;
+
 		return false;
+	}
 
 	/* patch back original code */
 
@@ -939,7 +984,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
@@ -974,9 +1019,13 @@ bool patcher_clinit(u1 *sp)
 
 	/* check if the class is initialized */
 
-	if (!c->initialized)
-		if (!initialize_class(c))
+	if (!c->initialized) {
+		if (!initialize_class(c)) {
+			PATCHER_MONITOREXIT;
+
 			return false;
+		}
+	}
 
 	/* patch back original code */
 
@@ -986,7 +1035,7 @@ bool patcher_clinit(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	PATCHER_MONITOREXIT;
+	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
 }
