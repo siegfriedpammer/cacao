@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2575 2005-06-06 15:39:58Z twisti $
+   $Id: native.c 2597 2005-06-08 11:18:01Z twisti $
 
 */
 
@@ -721,10 +721,10 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 java_objectarray *get_parametertypes(methodinfo *m) 
 {
 	methoddesc       *md;
-    typedesc         *paramtypes;
-    s4                paramcount;
+	typedesc         *paramtypes;
+	s4                paramcount;
     java_objectarray *result;
-    s4                i;
+	s4                i;
 
 	md = m->parseddesc;
 
@@ -735,7 +735,7 @@ java_objectarray *get_parametertypes(methodinfo *m)
 			return NULL;
 
 	paramtypes = md->paramtypes;
-    paramcount = md->paramcount;
+	paramcount = md->paramcount;
 
 	/* skip `this' pointer */
 
@@ -744,21 +744,21 @@ java_objectarray *get_parametertypes(methodinfo *m)
 		paramcount--;
 	}
 
-    /* create class-array */
+	/* create class-array */
 
-    result = builtin_anewarray(paramcount, class_java_lang_Class);
+	result = builtin_anewarray(paramcount, class_java_lang_Class);
 
     /* get classes */
 
-    for (i = 0; i < paramcount; i++) {
+	for (i = 0; i < paramcount; i++) {
 		if (!resolve_class_from_typedesc(&paramtypes[i], false,
-										 (classinfo **) (result->data[i])))
+										 (classinfo **) &result->data[i]))
 			return NULL;
 
 		use_class_as_object((classinfo *) result->data[i]);
 	}
 
-    return result;
+	return result;
 }
 
 
