@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 2596 2005-06-08 11:16:38Z twisti $
+   $Id: Method.c 2606 2005-06-08 18:21:28Z twisti $
 
 */
 
@@ -155,6 +155,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 		if (!(m->flags & ACC_PUBLIC)) {
 			callingMethod = cacao_callingMethod();
+			throwAccess = false;
 
 			if (m->flags & ACC_PRIVATE) {
 				if (c != callingMethod->class)
@@ -171,13 +172,13 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 						throwAccess = true;
 				}
 			}
-		}
 
-		if (throwAccess) {
-			*exceptionptr =
-				new_exception(string_java_lang_IllegalAccessException);
+			if (throwAccess) {
+				*exceptionptr =
+					new_exception(string_java_lang_IllegalAccessException);
 
-			return NULL;
+				return NULL;
+			}
 		}
 	}
 
