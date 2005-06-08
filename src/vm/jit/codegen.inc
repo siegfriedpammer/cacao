@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2589 2005-06-08 10:59:04Z twisti $
+   $Id: codegen.inc 2616 2005-06-08 20:54:54Z twisti $
 
 */
 
@@ -58,6 +58,8 @@
 #if !defined(STATIC_CLASSPATH)
 # include <dlfcn.h>
 #endif
+
+#include "disass.h"
 
 #include "mm/memory.h"
 #include "toolbox/avl.h"
@@ -847,6 +849,26 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	}
 
 	printf("  --- begin of data segment: %p\n", (void *) s4ptr);
+}
+
+
+
+/* codegen_nativestub **********************************************************
+
+   Disassembles the generated native stub.
+
+*******************************************************************************/
+
+static void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len)
+{
+	printf("Native stub: ");
+	utf_fprint_classname(stdout, m->class->name);
+	printf(".");
+	utf_fprint(stdout, m->name);
+	utf_fprint(stdout, m->descriptor);
+	printf("\n\nLength: %d\n\n", len);
+
+	disassemble(code, len);
 }
 
 
