@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 2612 2005-06-08 19:43:46Z twisti $
+   $Id: codegen.h 2613 2005-06-08 20:53:09Z twisti $
 
 */
 
@@ -41,9 +41,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
 
 #ifdef STATISTICS
 #define COUNT_SPILLS count_spills++
