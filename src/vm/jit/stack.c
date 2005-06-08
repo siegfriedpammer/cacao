@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2577 2005-06-07 08:37:09Z christian $
+   $Id: stack.c 2617 2005-06-08 20:56:37Z twisti $
 
 */
 
@@ -1845,10 +1845,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* pop many push any */
 
 					case ICMD_BUILTIN:
-#if defined(USEBUILTINTABLE)
-					/* Just prevent a compiler warning... */
 					builtin:
-#endif
 						bte = (builtintable_entry *) iptr->val.a;
 						md = bte->md;
 						goto _callhandling;
@@ -2258,7 +2255,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	utf_fprint_classname(stdout, m->class->name);
 	printf(".");
 	utf_fprint(stdout, m->name);
-	utf_fprint_classname(stdout, m->descriptor);
+	utf_fprint(stdout, m->descriptor);
 	printf("\n\nMax locals: %d\n", (int) cd->maxlocals);
 	printf("Max stack:  %d\n", (int) cd->maxstack);
 
@@ -2562,7 +2559,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LXORCONST:
 	case ICMD_LCONST:
 	case ICMD_LASTORECONST:
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 		printf(" %lld (0x%016llx)", iptr->val.l, iptr->val.l);
 #else
 		printf(" %ld (0x%016lx)", iptr->val.l, iptr->val.l);
@@ -2617,7 +2614,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 			printf(" %d,", iptr->val.i);
 			break;
 		case TYPE_LNG:
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 			printf(" %lld,", iptr->val.l);
 #else
 			printf(" %ld,", iptr->val.l);
@@ -2793,13 +2790,13 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
 		if (deadcode || !iptr->target)
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 			printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
 #else
 			printf("(%ld) op1=%d", iptr->val.l, iptr->op1);
 #endif
 		else
-#if defined(__I386__) || defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 			printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
 #else
 			printf("(%ld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
