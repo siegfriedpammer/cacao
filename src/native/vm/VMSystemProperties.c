@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2381 2005-04-26 16:10:30Z twisti $
+   $Id: VMSystemProperties.c 2595 2005-06-08 11:06:07Z twisti $
 
 */
 
@@ -96,11 +96,13 @@ void create_property(char *key, char *value)
 static void insert_property(methodinfo *m, java_util_Properties *p, char *key,
 							char *value)
 {
-	asm_calljavafunction(m,
-						 p,
-						 javastring_new_char(key),
-						 javastring_new_char(value),
-						 NULL);
+	java_lang_String *k;
+	java_lang_String *v;
+
+	k = javastring_new_char(key);
+	v = javastring_new_char(value);
+
+	asm_calljavafunction(m, p, k, v, NULL);
 }
 
 
@@ -204,27 +206,22 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #endif
 	insert_property(m, p, "gnu.classpath.boot.library.path", libpath);
 
-	/* XXX compatibility till new classpath release */
-/*  	MFREE(libpath, char, libpathlen); */
+	MFREE(libpath, char, libpathlen);
 
 
 	/* now fill java.library.path */
 
-	if (getenv("LD_LIBRARY_PATH"))
-		libpathlen += strlen(getenv("LD_LIBRARY_PATH")) + 1;
-
-/*  		libpath = MNEW(char, libpathlen); */
-	libpath = MREALLOC(libpath, char, libpathlen, libpathlen);
-
 	if (getenv("LD_LIBRARY_PATH")) {
-		strcat(libpath, ":");
+		libpathlen = strlen(getenv("LD_LIBRARY_PATH")) + 1;
+
+		libpath = MNEW(char, libpathlen);
+
 		strcat(libpath, getenv("LD_LIBRARY_PATH"));
+
+		insert_property(m, p, "java.library.path", libpath);
+
+		MFREE(libpath, char, libpathlen);
 	}
-
-	insert_property(m, p, "java.library.path", libpath);
-
-	MFREE(libpath, char, libpathlen);
-/*  	} */
 #endif
 
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
