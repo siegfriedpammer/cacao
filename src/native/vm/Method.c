@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 2493 2005-05-21 14:59:14Z twisti $
+   $Id: Method.c 2596 2005-06-08 11:16:38Z twisti $
 
 */
 
@@ -127,59 +127,64 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 
 
 /*
- * Class:     java_lang_reflect_Method
+ * Class:     java/lang/reflect/Method
  * Method:    invokeNative
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *obj, java_objectarray *params, java_lang_Class *declaringClass, s4 slot)
 {
-	struct methodinfo *mi;
+	classinfo  *c;
+	methodinfo *m;
+	jfieldID    fid;
 
-	classinfo *c = (classinfo *) declaringClass;
+	c = (classinfo *) declaringClass;
 
 	if ((slot < 0) || (slot >= c->methodscount)) {
 		log_text("error illegal slot for method in class(getParameterTypes)");
 		assert(0);
 	}
 
-	mi = &(c->methods[slot]);
+	m = &(c->methods[slot]);
 
-#if (defined(__ALPHA__) || defined(__I386__))
-	/*log_text("Checking access rights");*/
-	if (!(getField(this,jboolean,getFieldID_critical(env,this->header.vftbl->class,"flag","Z")))) {
-		int throwAccess=0;
-		struct methodinfo *callingMethod;
+#if defined(__ALPHA__) || defined(__I386__) || defined(__X86_64__)
+	fid = getFieldID_critical(env, this->header.vftbl->class, "flag", "Z");
 
-		if ((mi->flags & ACC_PUBLIC)==0) {
-			callingMethod=cacao_callingMethod();
-			if ((mi->flags & ACC_PRIVATE)!=0) {
-				if (c!=callingMethod->class) {
-					throwAccess=1;
-				}
+	if (!getField(this, jboolean, fid)) {
+		methodinfo *callingMethod;
+		bool        throwAccess;
+
+		if (!(m->flags & ACC_PUBLIC)) {
+			callingMethod = cacao_callingMethod();
+
+			if (m->flags & ACC_PRIVATE) {
+				if (c != callingMethod->class)
+					throwAccess = true;
+
 			} else {
-				if ((mi->flags & ACC_PROTECTED)!=0) {
-					if (!builtin_isanysubclass(callingMethod->class, c)) {
-						throwAccess=1;
-					} 
+				if (m->flags & ACC_PROTECTED) {
+					if (!builtin_isanysubclass(callingMethod->class, c))
+						throwAccess = true;
+
 				} else {
-					/* default visibility*/
-					if (c->packagename!=callingMethod->class->packagename) {
-						throwAccess=1;
-					}
+					/* default visibility */
+					if (c->packagename != callingMethod->class->packagename)
+						throwAccess = true;
 				}
 			}
 		}
-		if (throwAccess) {
-			*exceptionptr=0;
-			*exceptionptr = new_exception(string_java_lang_IllegalAccessException);
-			return 0;
-		}
 
+		if (throwAccess) {
+			*exceptionptr =
+				new_exception(string_java_lang_IllegalAccessException);
+
+			return NULL;
+		}
 	}
 
 #endif
 
-    return (java_lang_Object *) jni_method_invokeNativeHelper(env, mi, (jobject) obj, params);
+    return (java_lang_Object *)
+		jni_method_invokeNativeHelper(env, m, (jobject) obj, params);
 }
 
 
