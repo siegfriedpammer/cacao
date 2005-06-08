@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 2500 2005-05-23 08:18:46Z twisti $
+   $Id: initialize.c 2592 2005-06-08 11:03:52Z twisti $
 
 */
 
@@ -132,8 +132,9 @@ bool initialize_class(classinfo *c)
 
 static bool initialize_class_intern(classinfo *c)
 {
-	methodinfo *m;
-	s4 i;
+	methodinfo        *m;
+	java_objectheader *xptr;
+	s4                 i;
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int b;
 #endif
@@ -217,39 +218,25 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* we have an exception or error */
 
-	if (*exceptionptr) {
+	xptr = *exceptionptr;
+
+	if (xptr) {
 		/* class is NOT initialized */
 
 		c->initialized = false;
 
 		/* is this an exception, than wrap it */
 
-		if (builtin_instanceof(*exceptionptr, class_java_lang_Exception)) {
-			java_objectheader *xptr;
-			java_objectheader *cause;
-
-			/* get the cause */
-
-			cause = *exceptionptr;
-
+		if (builtin_instanceof(xptr, class_java_lang_Exception)) {
 			/* clear exception, because we are calling jit code again */
 
 			*exceptionptr = NULL;
 
 			/* wrap the exception */
 
-			xptr =
+			*exceptionptr =
 				new_exception_throwable(string_java_lang_ExceptionInInitializerError,
-										(java_lang_Throwable *) cause);
-
-			/* XXX should we exit here? */
-
-			if (*exceptionptr)
-				throw_exception();
-
-			/* set new exception */
-
-			*exceptionptr = xptr;
+										(java_lang_Throwable *) xptr);
 		}
 
 		return false;
