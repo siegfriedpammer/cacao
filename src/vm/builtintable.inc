@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 2545 2005-06-06 14:35:29Z twisti $
+   $Id: builtintable.inc 2619 2005-06-08 20:58:01Z twisti $
 
 */
 
@@ -47,14 +47,14 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_F2L,
 		BUILTIN_f2l,
-		"(F)L",
+		"(F)J",
 		"f2l",
 		NULL
 	},
 	{
 		ICMD_D2L,
 		BUILTIN_d2l,
-		"(D)L",
+		"(D)J",
 		"d2l",
 		NULL
 	},
