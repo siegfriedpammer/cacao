@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2583 2005-06-08 10:33:50Z twisti $
+   $Id: arch.h 2623 2005-06-09 20:31:13Z twisti $
 
 */
 
@@ -37,8 +37,6 @@
 #define _ARCH_H
 
 /* define architecture features ***********************************************/
-
-#define WORDS_BIGENDIAN                  0
 
 #define U8_AVAILABLE                     1
 

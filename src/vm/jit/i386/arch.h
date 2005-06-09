@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2605 2005-06-08 14:41:35Z christian $
+   $Id: arch.h 2623 2005-06-09 20:31:13Z twisti $
 
 */
 
@@ -49,9 +49,6 @@
 #define EDI    7
 
 /* define architecture features ***********************************************/
-
-#define POINTERSIZE                      4
-#define WORDS_BIGENDIAN                  0
 
 #define U8_AVAILABLE                     1
 

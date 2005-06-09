@@ -145,6 +145,7 @@ AC_CHECK_LIB(m, fmod)
 
 dnl Checking sizeof void *
 AC_COMPILE_CHECK_SIZEOF(void *)
+AC_C_BIGENDIAN
 
 dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
 if test $ac_cv_func_mmap_fixed_mapped = yes; then
