@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 2444 2005-05-11 12:51:53Z twisti $
+   $Id: codegen.h 2628 2005-06-09 20:39:37Z twisti $
 
 */
 
@@ -36,93 +36,8 @@
 
 #include "vm/jit/mips/types.h"
 
-/* Macro for stack.c to set Argument Stackslots */
-
-/* SET_ARG_STACKSLOTS ***************************************************
-Macro for stack.c to set Argument Stackslots
-
-Sets the first call_argcount stackslots of curstack to varkind ARGVAR, if
-they to not have the SAVEDVAR flag set. According to the calling
-conventions these stackslots are assigned argument registers or memory
-locations
-
---- in
-i,call_argcount:  Number of arguments for this method
-call_intargshift: Amount of shifted argument registers in case of native
-                  method invokation or 0.
-curstack:         instack of the method invokation
-
---- uses
-i, copy
-
---- out
-copy:             Points to first stackslot after the parameters
-rd->argintreguse: max. number of used integer argument register so far
-rd->argfltreguse: max. number of used float argument register so far
-rd->ifmemuse:     max. number of stackslots used for spilling parameters
-                  so far
-************************************************************************/
-/* Todo ****************************************************************
-Change createnativestub in codegen.c to not destroy all not used argument
-registers in case of parametershift and change ICMD_xRETURN in codege.c
-Then delete #define DONT_USE_ARGREGS and delete the corresponding #ifdef
-part in reg.inc
-************************************************************************/
-#define SET_ARG_STACKSLOTS {											\
-		s4 stacksize;     /* Stackoffset for spilled arg */				\
-        s4 iarg = 0;													\
-        s4 farg = 0;													\
-																		\
-		stacksize = (i < rd->intreg_argnum)? 0 : (i - rd->intreg_argnum); \
-		if (rd->ifmemuse < stacksize)									\
-			rd->ifmemuse = stacksize;									\
-																		\
-		copy = curstack;												\
-		for (;i > 0; i--) {												\
-			if (IS_FLT_DBL_TYPE(copy->type)) {							\
-				if (farg == 0) farg = i;								\
-			} else {													\
-				if (iarg == 0) iarg = i;								\
-			}															\
-			copy = copy->prev;											\
-		}																\
-		if (rd->argintreguse < iarg)                                    \
-			rd->argintreguse = iarg;									\
-		if (rd->argfltreguse < farg)                                    \
-			rd->argfltreguse = farg;									\
-																		\
-		i = call_argcount;												\
-		copy = curstack;												\
-		while (--i >= 0) {												\
-			if (!(copy->flags & SAVEDVAR)) {							\
-				copy->varnum = i;										\
-				copy->varkind = ARGVAR;									\
-				if (IS_FLT_DBL_TYPE(copy->type)) {						\
-					if (i < rd->fltreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argfltregs[i];				\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				} else { /* int arg */									\
-					if (i < rd->intreg_argnum) {						\
-						copy->flags = 0;								\
-						copy->regoff = rd->argintregs[i];				\
-					} else {											\
-						copy->flags = INMEMORY;							\
-						copy->regoff = --stacksize;						\
-					}													\
-				}														\
-			}															\
-			copy = copy->prev;											\
-		}																\
-	}
-
-
 /* additional functions and macros to generate code ***************************/
 
-/* #define BlockPtrOfPC(pc)        block+block_index[pc] */
 #define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
 
 
@@ -181,17 +96,21 @@ part in reg.inc
 #define M_FLTMOVE(a,b) if (a != b) { M_DMOV(a, b); }
 
 #define M_TFLTMOVE(t,a,b) \
-	{if(a!=b) \
-		if ((t)==TYPE_DBL) \
-		    {M_DMOV(a,b);} \
-		else {M_FMOV(a,b);} \
-	}
+    do { \
+        if ((a) != (b)) \
+            if ((t) == TYPE_DBL) { \
+                M_DMOV(a,b); \
+            } else { \
+                M_FMOV(a,b); \
+            } \
+    } while (0)
 
 #define M_TFLD(t,a,b,disp) \
-    if ((t)==TYPE_DBL) \
-	  {M_DLD(a,b,disp);} \
-    else \
-	  {M_FLD(a,b,disp);}
+    if ((t) == TYPE_DBL) { \
+	  M_DLD(a,b,disp); \
+    } else { \
+	  M_FLD(a,b,disp); \
+    }
 
 #define M_TFST(t,a,b,disp) \
     if ((t)==TYPE_DBL) \
@@ -567,42 +486,33 @@ part in reg.inc
 #define M_CMOVF(a,b)			M_RTYPE(0x00,a,0,b,0,1)
 #define M_CMOVT(a,b)			M_RTYPE(0x00,a,1,b,0,1)
 
+
 /*
  * Load Address pseudo instruction:
  * -n32 addressing mode -> 32 bit addrs, -64 addressing mode -> 64 bit addrs
  */
-#if POINTERSIZE==8
+#if SIZEOF_VOID_P == 8
+
 #define POINTERSHIFT 3
+
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)
 #define M_AST(a,b,disp)         M_LST(a,b,disp)
 #define M_AADD(a,b,c)           M_LADD(a,b,c)
+#define M_AADD_IMM(a,b,c)       M_LADD_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_LSLL_IMM(a,b,c)
 #define M_LDA(a,b,disp)         M_LADD_IMM(b,disp,a)            /* a = b+disp */
+
 #else
+
 #define POINTERSHIFT 2
+
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AADD(a,b,c)           M_IADD(a,b,c)
+#define M_AADD_IMM(a,b,c)       M_IADD_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
 #define M_LDA(a,b,disp)         M_IADD_IMM(b,disp,a)            /* a = b+disp */
-#endif
 
-/* macros for special commands (see an Alpha-manual for description) **********/ 
-
-#if 0
-#define M_CMOVEQ(a,b,c)         M_OP3 (0x11,0x24, a,b,c,0)     /* a==0 ? c=b  */
-#define M_CMOVNE(a,b,c)         M_OP3 (0x11,0x26, a,b,c,0)     /* a!=0 ? c=b  */
-#define M_CMOVLT(a,b,c)         M_OP3 (0x11,0x44, a,b,c,0)     /* a< 0 ? c=b  */
-#define M_CMOVGE(a,b,c)         M_OP3 (0x11,0x46, a,b,c,0)     /* a>=0 ? c=b  */
-#define M_CMOVLE(a,b,c)         M_OP3 (0x11,0x64, a,b,c,0)     /* a<=0 ? c=b  */
-#define M_CMOVGT(a,b,c)         M_OP3 (0x11,0x66, a,b,c,0)     /* a> 0 ? c=b  */
-
-#define M_CMOVEQ_IMM(a,b,c)     M_OP3 (0x11,0x24, a,b,c,1)     /* a==0 ? c=b  */
-#define M_CMOVNE_IMM(a,b,c)     M_OP3 (0x11,0x26, a,b,c,1)     /* a!=0 ? c=b  */
-#define M_CMOVLT_IMM(a,b,c)     M_OP3 (0x11,0x44, a,b,c,1)     /* a< 0 ? c=b  */
-#define M_CMOVGE_IMM(a,b,c)     M_OP3 (0x11,0x46, a,b,c,1)     /* a>=0 ? c=b  */
-#define M_CMOVLE_IMM(a,b,c)     M_OP3 (0x11,0x64, a,b,c,1)     /* a<=0 ? c=b  */
-#define M_CMOVGT_IMM(a,b,c)     M_OP3 (0x11,0x66, a,b,c,1)     /* a> 0 ? c=b  */
 #endif
 
 
