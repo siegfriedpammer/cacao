@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2444 2005-05-11 12:51:53Z twisti $
+   $Id: arch.h 2626 2005-06-09 20:36:48Z twisti $
 
 */
 
@@ -36,66 +36,7 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
-/* preallocated registers *****************************************************/
-
-/* integer registers */
-  
-#define REG_ZERO        0    /* always zero                                   */
-
-#define REG_RESULT      2    /* to deliver method results                     */
-
-#define REG_ITMP1       1    /* temporary register                            */
-#define REG_ITMP2       3    /* temporary register and method pointer         */
-#define REG_ITMP3       25   /* temporary register                            */
-
-#define REG_ARG_0       4    /* argument register                             */
-#define REG_ARG_1       5    /* argument register                             */
-#define REG_ARG_2       6    /* argument register                             */
-#define REG_ARG_3       7    /* argument register                             */
-#define REG_ARG_4       8    /* argument register                             */
-#define REG_ARG_5       9    /* argument register                             */
-
-#define REG_RA          31   /* return address                                */
-#define REG_SP          29   /* stack pointer                                 */
-#define REG_GP          28   /* global pointer                                */
-
-#define REG_PV          30   /* procedure vector, must be provided by caller  */
-#define REG_METHODPTR   25   /* pointer to the place from where the procedure */
-                             /* vector has been fetched                       */
-#define REG_ITMP1_XPTR  1    /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   3    /* exception pc = temporary register 2           */
-
-
-/* floating point registers */
-
-#define REG_FRESULT     0    /* to deliver floating point method results      */
-
-#define REG_FTMP1       1    /* temporary floating point register             */
-#define REG_FTMP2       2    /* temporary floating point register             */
-#define REG_FTMP3       3    /* temporary floating point register             */
-
-#define REG_IFTMP       1    /* temporary integer and floating point register */
-
-
-#define INT_REG_CNT     32   /* number of integer registers                   */
-#define INT_SAV_CNT     8    /* number of int callee saved registers          */
-#define INT_ARG_CNT     8    /* number of int argument registers              */
-#define INT_TMP_CNT     5    /* number of integer temporary registers         */
-#define INT_RES_CNT     3    /* number of integer reserved registers          */
-
-#define FLT_REG_CNT     32   /* number of float registers                     */
-#define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     8    /* number of flt argument registers              */
-#define FLT_TMP_CNT     15   /* number of float temporary registers           */
-#define FLT_RES_CNT     3    /* number of float reserved registers            */
-
-#define TRACE_ARGS_NUM  8
-
-
 /* define architecture features ***********************************************/
-
-#define POINTERSIZE                      8
-#define WORDS_BIGENDIAN                  1
 
 #define U8_AVAILABLE                     1
 
@@ -129,9 +70,6 @@
                                             /* only store REG_ZERO            */
 
 /* #define CONDITIONAL_LOADCONST           1 */
-
-/* #define CONSECUTIVE_INTEGER_ARGS */
-/* #define CONSECUTIVE_FLOAT_ARGS */
 
 #endif /* _ARCH_H */
 
