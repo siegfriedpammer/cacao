@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2605 2005-06-08 14:41:35Z christian $
+   $Id: codegen.c 2621 2005-06-09 07:29:48Z christian $
 
 */
 
@@ -466,6 +466,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (runverbose) {
 		stack_off = 0;
+		int pa = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + parentargs_base * 4;
 
 		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
@@ -479,20 +480,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base  + stack_off) * 4 + 4 + 4, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, pa + stack_off + 4, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
  				} else if (t == TYPE_ADR) {
 /* 				} else { */
-					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
  				} else {
- 					i386_mov_membase_reg(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4, EAX);
+ 					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, EAX);
  					i386_cltd(cd);
  					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
  					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
@@ -500,17 +501,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {
 				if (!IS_2_WORD_TYPE(t)) {
-					i386_flds_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
+					i386_flds_membase(cd, REG_SP, pa + stack_off);
 					i386_fstps_membase(cd, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
 				} else {
-					i386_fldl_membase(cd, REG_SP, 4 + TRACE_ARGS_NUM * 8 + (parentargs_base + stack_off) * 4 + 4);
+					i386_fldl_membase(cd, REG_SP, pa + stack_off);
 					i386_fstpl_membase(cd, REG_SP, p * 8);
 				}
 			}
-			stack_off += (IS_2_WORD_TYPE(t)) ? 2 : 1;
+			stack_off += (IS_2_WORD_TYPE(t)) ? 8 : 4;
 		}
 
 		/* fill up the remaining arguments */
@@ -4391,7 +4392,7 @@ gen_method:
 						} else {
 							if (src->flags & INMEMORY) {
 								M_LNGMEMMOVE(
-								    src->regoff, md->params[s3].regoff * 4);
+								    src->regoff, md->params[s3].regoff);
 							} else {
 								log_text("copy arguments: longs have to be in memory");
 								assert(0);
