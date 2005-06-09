@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2618 2005-06-08 20:57:25Z twisti $
+   $Id: builtin.c 2622 2005-06-09 16:11:03Z twisti $
 
 */
 
@@ -1054,7 +1054,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 {
 	char *logtext;
 	s4    logtextlen;
-	
+	s4    dumpsize;
+
 	if (!noindent) {
 		if (methodindent)
 			methodindent--;
@@ -1084,14 +1085,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 #if SIZEOF_VOID_P == 8
 			logtextlen +=
-				get_variable_message_length(")(0x%016lx) at position 0x%016lx (",
-											(ptrint) m->entrypoint,
-											(ptrint) pos);
+				strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
 #else
-			logtextlen +=
-				get_variable_message_length(")(0x%08x) at position 0x%08x (",
-											(ptrint) m->entrypoint,
-											(ptrint) pos);
+			logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
 #endif
 
 			if (m->class->sourcefile == NULL)
@@ -1099,7 +1095,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			else
 				logtextlen += utf_strlen(m->class->sourcefile);
 
-			logtextlen += get_variable_message_length(":%d)", line);
+			logtextlen += strlen(":65536)");
 
 		} else
 			logtextlen += strlen("call_java_method");
@@ -1108,7 +1104,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 		/* allocate memory */
 
-		logtext = MNEW(char, logtextlen);
+		dumpsize = dump_size();
+
+		logtext = DMNEW(char, logtextlen);
 
 		if (xptr) {
 			strcpy(logtext, "Exception ");
@@ -1169,7 +1167,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 		/* release memory */
 
-		MFREE(logtext, char, logtextlen);
+		dump_release(dumpsize);
 	}
 
 	return xptr;
@@ -1212,9 +1210,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	/* add maximal argument length */
 
-	logtextlen += get_variable_message_length("0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-											  -1, -1, -1, -1, -1, -1, -1, -1,
-											  md->paramcount - 8);
+	logtextlen += strlen("0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, 0x123456789abcdef0, ...(255)");
 
 	/* allocate memory */
 
@@ -1435,7 +1431,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* add maximal argument length */
 
-	logtextlen += get_variable_message_length("->0x%llx", -1);
+	logtextlen += strlen("->0x123456789abcdef0");
 
 	/* allocate memory */
 
