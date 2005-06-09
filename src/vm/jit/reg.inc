@@ -29,7 +29,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: reg.inc 2568 2005-06-06 15:28:11Z twisti $
+   $Id: reg.inc 2620 2005-06-09 07:28:50Z christian $
 
 */
 
@@ -258,7 +258,6 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 #endif
 	rd->locals     = DMNEW(varinfo5, id->cumlocals);
 	rd->interfaces = DMNEW(varinfo5, id->cummaxstack);
-
 	for (v = rd->locals, i = id->cumlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_LNG].type = -1;
@@ -355,7 +354,8 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	int		intregsneeded = 0;
 	int		memneeded = 0;
 
-	/* rd->ifmemuse was already set in stack.c to allocate stack space for passing arguments to called methods */
+	/* rd->ifmemuse was already set in stack.c to allocate stack space for */
+	/* passing arguments to called methods                                 */
 	
 #if defined(__I386__)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -365,8 +365,6 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 #endif
 #ifdef INVOKE_NEW_DEBUG
-	int temp;
-
 	if (compileverbose) {
 		if (checksync && (m->flags & ACC_SYNCHRONIZED))
 			printf("ACC_SYNCHRONIZED\n");
@@ -457,13 +455,13 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								rd->ifmemuse += memneeded + 1;
 							} else
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
-#if !defined(HAS_4BYTE_STACKSLOT)
+/* #if !defined(HAS_4BYTE_STACKSLOT) */
 								if (intalloc >= 0) {
 									v->flags |= rd->interfaces[s][intalloc].flags & INMEMORY;
 									v->regoff = rd->interfaces[s][intalloc].regoff;
 								}
 								else 
-#endif /* !defined(HAS_4BYTE_STACKSLOT) */
+/* #endif *//* !defined(HAS_4BYTE_STACKSLOT) */
 									if (!m->isleafmethod &&(rd->ifargintregcnt + intregsneeded < rd->intreg_argnum)) {
 										v->regoff = rd->argintregs[rd->ifargintregcnt];
 										rd->ifargintregcnt += intregsneeded + 1;
@@ -529,12 +527,12 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							rd->ifmemuse += memneeded + 1;
 						} else
 #endif
-#if !defined(HAS_4BYTE_STACKSLOT)
+/* #if !defined(HAS_4BYTE_STACKSLOT) */
 							if (intalloc >= 0) {
 								v->flags |= rd->interfaces[s][intalloc].flags & INMEMORY;
 								v->regoff = rd->interfaces[s][intalloc].regoff;
 							} else
-#endif
+/* #endif */
 							if (rd->ifsavintregcnt > intregsneeded) {
 								rd->ifsavintregcnt -= intregsneeded + 1;
 								v->regoff = rd->savintregs[rd->ifsavintregcnt];
@@ -593,7 +591,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	int     aargcnt;
 #endif
-
+/* 	if (cd->maxlocals > 0) */
+/* 		for (tt=0; tt<=4; tt++) { */
+/* 			t = typeloop[tt]; */
+/* 			printf("s %3i t %3i tt %3i rd->locals[0][t].type %3i \n",s,t,tt,rd->locals[0][t].type); */
+/* 		} */
 
 	if (m->isleafmethod) {
 		methoddesc *md = m->parseddesc;
@@ -687,12 +689,12 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->regoff = rd->savfltregs[rd->maxsavfltreguse];
 						}
 						/* use unused argument registers as local registers */
-						else if ((p >= m->paramcount) &&
-								 (fargcnt < rd->fltreg_argnum)) {
-							v->flags = 0;
-							v->regoff = rd->argfltregs[fargcnt];
-							fargcnt++;
-						}
+/* 						else if ((p >= m->paramcount) && */
+/* 								 (fargcnt < rd->fltreg_argnum)) { */
+/* 							v->flags = 0; */
+/* 							v->regoff = rd->argfltregs[fargcnt]; */
+/* 							fargcnt++; */
+/* 						} */
 						else {
 							v->flags = INMEMORY;
 							v->regoff = rd->maxmemuse;
@@ -734,12 +736,12 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							/*
 							 * use unused argument registers as local registers
 							 */
-							else if ((p >= m->paramcount) &&
-									 (iargcnt < rd->intreg_argnum)) {
-								v->flags = 0;
-								v->regoff = rd->argintregs[iargcnt];
-  								iargcnt++;
-							}
+/* 							else if ((p >= m->paramcount) && */
+/* 									 (iargcnt < rd->intreg_argnum)) { */
+/* 								v->flags = 0; */
+/* 								v->regoff = rd->argintregs[iargcnt]; */
+/*   								iargcnt++; */
+/* 							} */
 							else {
 								v->flags = INMEMORY;
 								v->regoff = rd->maxmemuse;
@@ -770,6 +772,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 		for (tt=0; tt<=4; tt++) {
 			t = typeloop[tt];
 			v = &rd->locals[s][t];
+/* 			printf("s %3i t %3i tt %3i rd->locals[s][t].type %3i v->type %3i\n",s,t,tt,rd->locals[s][t].type, v->type); */
 			if (v->type >= 0) {
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
@@ -883,19 +886,23 @@ static void reg_init_temp(methodinfo *m, registerdata *rd)
 	rd->freeargadrtop = 0;
 #endif
 
-/*  	if (!m->isleafmethod) { */
-/*  		rd->argintreguse = rd->ifargintregcnt; */
-/*  		rd->argfltreguse = rd->ifargfltregcnt; */
-/*  #ifdef HAS_ADDRESS_REGISTER_FILE */
-/*  		rd->argadrreguse = rd->ifargadrregcnt; */
-/*  #endif */
-/*  	} else { */
+#if 0
+ 	if (!m->isleafmethod) {
+ 		rd->argintreguse = rd->ifargintregcnt;
+ 		rd->argfltreguse = rd->ifargfltregcnt;
+ #ifdef HAS_ADDRESS_REGISTER_FILE
+ 		rd->argadrreguse = rd->ifargadrregcnt;
+ #endif
+ 	} else {
+#endif
 		rd->argintreguse = rd->intreg_argnum;
 		rd->argfltreguse = rd->fltreg_argnum;
 #ifdef HAS_ADDRESS_REGISTER_FILE
 		rd->argadrreguse = rd->adrreg_argnum;
 #endif
-/*  	} */
+#if 0
+ 	}
+#endif
 }
 
 #define reg_new_temp(rd,s) if (s->varkind == TEMPVAR) reg_new_temp_func(rd, s)
@@ -1067,12 +1074,12 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 
 #if defined(NEW_MEMORY) 
 #if defined(HAS_4BYTE_STACKSLOT)
-	if ((memneeded>0) && (rd->freememtop_2 > memneeded)) {
+	if ((memneeded == 1) && (rd->freememtop_2 > 0)) {
 		rd->freememtop_2--;
 		s->regoff = rd->freemem_2[rd->freememtop_2];
 	} else
 #endif /*defined(HAS_4BYTE_STACKSLOT) */
-		if ((memneeded == 0) && (rd->freememtop > memneeded)) {
+		if ((memneeded == 0) && (rd->freememtop > 0)) {
 			rd->freememtop--;;
 			s->regoff = rd->freemem[rd->freememtop];
 		} else {
@@ -1084,7 +1091,7 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 /* 				rd->memuse++; */
 /* 			} */
 #endif /*defined(HAS_4BYTE_STACKSLOT) */
-				s->regoff = rd->memuse;
+			s->regoff = rd->memuse;
 			rd->memuse += memneeded + 1;
 			if (rd->memuse > rd->maxmemuse)
 				rd->maxmemuse = rd->memuse;

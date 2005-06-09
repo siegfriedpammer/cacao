@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2356 2005-04-22 17:33:35Z christian $
+   $Id: reg.h 2620 2005-06-09 07:28:50Z christian $
 
 */
 
@@ -35,7 +35,7 @@
 #define _REG_H
 
 /* #define INVOKE_NEW_DEBUG */
-/* #define NEW_MEMORY */
+#define NEW_MEMORY
 
 
 /* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
