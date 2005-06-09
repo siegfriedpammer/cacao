@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 2493 2005-05-21 14:59:14Z twisti $
+   $Id: Field.c 2629 2005-06-09 21:22:01Z twisti $
 
 */
 
@@ -853,10 +853,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	classinfo *c;
 	int st;
 
-	fid = class_findfield_approx((classinfo *) this->declaringClass,
-								 javastring_toutf(this->name, false));
+	c = (classinfo *) this->declaringClass;
+
+	fid = class_findfield_approx(c, javastring_toutf(this->name, false));
+
 	st = (fid->flags & ACC_STATIC); /* true if the field is static */
-	CHECKFIELDACCESS(this,fid,((classinfo *) this->declaringClass),return);
+
+	CHECKFIELDACCESS(this,fid,c,return);
 
 	if (val && (st || obj)) {
 
