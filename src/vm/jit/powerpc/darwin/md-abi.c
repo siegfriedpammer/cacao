@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 2553 2005-06-06 14:47:28Z twisti $
+   $Id: md-abi.c 2635 2005-06-10 18:42:56Z twisti $
 
 */
 
@@ -38,9 +38,6 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
-
-
-#define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
 
 
 /* md_param_alloc **************************************************************
@@ -81,14 +78,9 @@ void md_param_alloc(methoddesc *md)
 			}
 			if (iarg < INT_ARG_CNT)
 				iarg++;
-			else
-				stacksize++;
+			stacksize++;
 			break;
 		case TYPE_LNG:
-			if (iarg < INT_ARG_CNT - 1)
-				_ALIGN(iarg);
-			else
-				_ALIGN(stacksize);
 			if (iarg < INT_ARG_CNT - 1) {
 				pd->inmemory = false;
 				pd->regoff = iarg;
@@ -98,15 +90,12 @@ void md_param_alloc(methoddesc *md)
 			}
 			if (iarg < INT_ARG_CNT - 1)
 				iarg += 2;
-			else {
+			else
 				iarg = INT_ARG_CNT;
-				stacksize += 2;
-			}
+			stacksize += 2;
 			break;
 		case TYPE_FLT:
 		case TYPE_DBL:
-			if ((farg >= FLT_ARG_CNT) && IS_2_WORD_TYPE(md->paramtypes[i].type))
-				_ALIGN(stacksize);
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;
@@ -114,13 +103,14 @@ void md_param_alloc(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
-			if (farg < FLT_ARG_CNT)
+			if (farg < FLT_ARG_CNT) {
+				iarg++;     /* skip integer argument register */
 				farg++;
+			}
+			if (IS_2_WORD_TYPE(md->paramtypes[i].type))
+				stacksize += 2;
 			else
-				if (IS_2_WORD_TYPE(md->paramtypes[i].type))
-					stacksize += 2;
-				else
-					stacksize++;
+				stacksize++;
 			break;
 		}
 	}
