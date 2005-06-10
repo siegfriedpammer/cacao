@@ -28,14 +28,24 @@
 
    Changes:
 
-   $Id: md.c 2553 2005-06-06 14:47:28Z twisti $
+   $Id: md.c 2636 2005-06-10 18:43:20Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <mach/message.h>
 
+#include "config.h"
+
 #include "vm/jit/powerpc/types.h"
+#include "vm/jit/powerpc/darwin/md-abi.h"
+
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/stringlocal.h"
+#include "vm/jit/asmpart.h"
 
 
 int cacao_catch_Handler(mach_port_t thread)
@@ -44,7 +54,7 @@ int cacao_catch_Handler(mach_port_t thread)
 	unsigned int *regs;
 	unsigned int crashpc;
 	s4 instr, reg;
-	java_objectheader *xptr;
+/*	java_objectheader *xptr; */
 
 	/* Mach stuff */
 	thread_state_flavor_t flavor = PPC_THREAD_STATE;
