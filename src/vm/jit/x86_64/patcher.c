@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2581 2005-06-08 10:31:36Z twisti $
+   $Id: patcher.c 2632 2005-06-10 10:01:44Z jowenn $
 
 */
 
@@ -119,7 +119,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!helper_initialize_class(beginJavaStack, fi->class, ra)) {
+	if (!helper_initialize_class(beginJavaStack, fi->class, ra+5)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
