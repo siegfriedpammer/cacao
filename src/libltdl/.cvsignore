@@ -1,0 +1,15 @@
+.in
+.libs
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+config-h.in
+config.h
+config.log
+config.status
+configure
+libtool
+libltdl.la
+ltdl.lo
+stamp-h1
