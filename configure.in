@@ -395,7 +395,6 @@ dnl pass configure options to classpath
 if test x"${STATIC_CLASSPATH}" = "x1"; then
         AC_DEFINE([STATIC_CLASSPATH], 1, [use classpath statically linked])
 	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
-	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
 
 	dnl check for some classpath related stuff when we link statically
 	AM_ICONV_LINK
@@ -423,7 +422,6 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 	fi
 else
 	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
-	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
 fi
 
 
@@ -455,7 +453,7 @@ ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/$
 dnl now configure boehm gc and gnu classpath
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath)
+AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath src/libltdl)
 
 
 AC_CONFIG_FILES([Makefile]
