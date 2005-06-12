@@ -28,9 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2035 2005-03-18 12:45:13Z twisti $
+## $Id: Makefile.am 2638 2005-06-12 23:21:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+if DISABLE_GC
+BOEHM =
+else
+BOEHM = boehm-gc
+endif
 
 if WITH_EXTERNAL_CLASSPATH
 CLASSPATH = lib
@@ -41,8 +47,9 @@ endif
 # Keep this order!!!
 
 SUBDIRS = \
-	boehm-gc \
+	$(BOEHM) \
 	$(CLASSPATH) \
+	libltdl \
 	mm \
 	toolbox \
 	vm \
