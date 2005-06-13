@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2515 2005-05-23 10:28:54Z twisti $
+   $Id: stacktrace.c 2642 2005-06-13 13:37:57Z twisti $
 
 */
 
@@ -455,7 +455,6 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
         stacktraceelement *current;
         stacktraceelement *start;
         methodinfo *m;
-        classinfo *privilegedAction;
         size_t size;
 
         size = buffer->full;
@@ -472,14 +471,11 @@ void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
 		size=0;
 	}
 
-		if (!load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"),&privilegedAction))
-			/* XXX handle exception */;
-
         for(i=0, current = start; i < size; i++, current++) {
                 m=current->method;
 		if (!m) continue;
 
-                if (m->class == privilegedAction) {
+                if (m->class == class_java_security_PrivilegedAction) {
 			*target=NULL;
                         return;
 		}
