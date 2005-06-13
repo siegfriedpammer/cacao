@@ -1,4 +1,4 @@
-/* jit/x86_64/types.h - cacao types for x86_64
+/* src/vm/jit/x86_64/types.h - CACAO types for x86_64
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,16 +26,15 @@
 
    Authors: Christian Thalinger
 
-   $Id: types.h 1735 2004-12-07 14:33:27Z twisti $
+   Changes:
+
+   $Id: types.h 2649 2005-06-13 14:01:54Z twisti $
 
 */
 
 
 #ifndef _CACAO_TYPES_H
 #define _CACAO_TYPES_H
-
-#include "vm/jit/x86_64/arch.h"
-
 
 /* define the sizes of the integer types used internally by cacao */
 
@@ -48,13 +47,8 @@ typedef unsigned short int      u2;
 typedef signed int              s4;
 typedef unsigned int            u4;
 
-#if U8_AVAILABLE
 typedef signed long int         s8;
 typedef unsigned long int       u8;
-#else
-typedef struct {u4 low, high;}  u8;
-#define s8 u8
-#endif
 
 
 /* define size of a function pointer used in function pointer casts */
