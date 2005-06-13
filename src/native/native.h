@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2139 2005-03-30 10:24:10Z twisti $
+   $Id: native.h 2644 2005-06-13 13:42:48Z twisti $
 
 */
 
@@ -78,6 +78,9 @@ bool native_init(void);
 /* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, 
 								utf *desc, bool isstatic);
+
+/* resolve native function */
+functionptr native_resolve_function(methodinfo *m);
 
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);

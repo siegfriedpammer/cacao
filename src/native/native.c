@@ -30,12 +30,16 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2597 2005-06-08 11:18:01Z twisti $
+   $Id: native.c 2644 2005-06-13 13:42:48Z twisti $
 
 */
 
 
 #include <assert.h>
+
+#if !defined(STATIC_CLASSPATH)
+# include "src/libltdl/ltdl.h"
+#endif
 
 #include "config.h"
 #include "types.h"
@@ -289,7 +293,17 @@ bool native_init(void)
 	/* We need to access the dummy native table, not only to remove a warning */
 	/* but to be sure that the table is not optimized away (gcc does this     */
 	/* since 3.4).                                                            */
+
 	p = &dummynativetable;
+
+	/* initialize libltdl */
+
+	if (lt_dlinit()) {
+		/* XXX how can we throw an exception here? */
+		log_text(lt_dlerror());
+
+		return false;
+	}
 #endif
 
 	/* everything's ok */
@@ -415,6 +429,239 @@ functionptr native_findfunction(utf *cname, utf *mname,
   return 0;
 #endif
 }
+
+
+/* native_make_overloaded_function *********************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if !defined(STATIC_CLASSPATH)
+static char *native_make_overloaded_function(char *name, utf *desc)
+{
+	s4    namelen;
+	char *utf_ptr;
+	u2    c;
+	s4    i;
+
+	utf_ptr = desc->text;
+	namelen = strlen("__");
+
+	/* calculate additional length */
+
+	while ((c = utf_nextu2(&utf_ptr)) != ')') {
+		switch (c) {
+		case 'Z':
+		case 'B':
+		case 'C':
+		case 'S':
+		case 'I':
+		case 'J':
+		case 'F':
+		case 'D':
+			namelen++;
+			break;
+		case '[':
+			namelen += 2;
+			break;
+		case 'L':
+			namelen++;
+			while (utf_nextu2(&utf_ptr) != ';')
+				namelen++;
+			namelen += 2;
+			break;
+		case '(':
+			break;
+		default:
+			assert(0);
+		}
+	}
+
+
+	/* reallocate memory */
+
+	i = strlen(name);
+
+	DMREALLOC(name, char, i, namelen);
+
+	utf_ptr = desc->text;
+
+	name[i++] = '_';
+	name[i++] = '_';
+
+	while ((c = utf_nextu2(&utf_ptr)) != ')') {
+		switch (c) {
+		case 'Z':
+		case 'B':
+		case 'C':
+		case 'S':
+		case 'J':
+		case 'I':
+		case 'F':
+		case 'D':
+			name[i++] = c;
+			break;
+		case '[':
+			name[i++] = '_';
+			name[i++] = '3';
+			break;
+		case 'L':
+			name[i++] = 'L';
+			while ((c = utf_nextu2(&utf_ptr)) != ';')
+				if (((c >= 'a') && (c <= 'z')) ||
+					((c >= 'A') && (c <= 'Z')) ||
+					((c >= '0') && (c <= '9')))
+					name[i++] = c;
+				else
+					name[i++] = '_';
+			name[i++] = '_';
+			name[i++] = '2';
+			break;
+		case '(':
+			break;
+		default:
+			assert(0);
+		}
+	}
+
+	/* close string */
+
+	name[i] = '\0';
+
+	return name;
+}
+
+
+/* native_resolve_function *****************************************************
+
+   Resolves a native function, maybe from a dynamic library.
+
+*******************************************************************************/
+
+functionptr native_resolve_function(methodinfo *m)
+{
+	lt_dlhandle  handle;
+	lt_ptr       sym;
+	char        *name;
+	s4           namelen;
+	char        *utf_ptr;
+	char        *utf_endptr;
+	s4           dumpsize;
+	s4           i;
+
+	/* get the handle for the main program */
+
+	handle = lt_dlopen(NULL);
+
+	if (!handle) {
+		*exceptionptr =
+			new_internalerror("lt_dlopen: can't get handle for the main program");
+		return NULL;
+	}
+
+	/* calculate length of native function name */
+
+	namelen = strlen("Java_") + utf_strlen(m->class->name) + strlen("_") +
+		utf_strlen(m->name) + strlen("0");
+
+	/* check for underscores in class name */
+
+	utf_ptr = m->class->name->text;
+	utf_endptr = UTF_END(m->class->name);
+
+	while (utf_ptr < utf_endptr)
+		if (utf_nextu2(&utf_ptr) == '_')
+			namelen++;
+
+	/* check for underscores in method name */
+
+	utf_ptr = m->name->text;
+	utf_endptr = UTF_END(m->name);
+
+	while (utf_ptr < utf_endptr)
+		if (utf_nextu2(&utf_ptr) == '_')
+			namelen++;
+
+	/* allocate memory */
+
+	dumpsize = dump_size();
+
+	name = DMNEW(char, namelen);
+
+
+	/* generate name of native functions */
+
+	strcpy(name, "Java_");
+	i = strlen("Java_");
+
+	utf_ptr = m->class->name->text;
+	utf_endptr = UTF_END(m->class->name);
+
+	for (; utf_ptr < utf_endptr; utf_ptr++, i++) {
+		name[i] = *utf_ptr;
+
+		/* escape sequence for '_' is '_1' */
+
+		if (name[i] == '_')
+			name[++i] = '1';
+
+		/* replace '/' with '_' */
+
+		if (name[i] == '/')
+			name[i] = '_';
+	}
+
+	/* seperator between class and method */
+
+	name[i++] = '_';
+
+	utf_ptr = m->name->text;
+	utf_endptr = UTF_END(m->name);
+
+	for (; utf_ptr < utf_endptr; utf_ptr++, i++) {
+		name[i] = *utf_ptr;
+
+		/* escape sequence for '_' is '_1' */
+
+		if (name[i] == '_')
+			name[++i] = '1';
+	}
+
+	/* close string */
+
+	name[i] = '\0';
+
+
+	/* try to find the native function symbol */
+
+	sym = lt_dlsym(handle, name);
+
+	if (!sym) {
+		/* we didn't find the symbol yet, try to resolve an overloaded        */
+		/* function (having the types in it's name)                           */
+
+		name = native_make_overloaded_function(name, m->descriptor);
+
+		/* try to find the overloaded symbol */
+
+		sym = lt_dlsym(handle, name);
+
+		if (!sym) {
+			*exceptionptr =
+				new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
+										 m->name);
+			return NULL;
+		}
+	}
+
+	/* release memory */
+
+	dump_release(dumpsize);
+
+	return (functionptr) (ptrint) sym;
+}
+#endif /* !defined(STATIC_CLASSPATH) */
 
 
 /****************** function class_findfield_approx ****************************
@@ -657,7 +904,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 	    /* determine type of argument */
 	    if ((ch = utf_nextu2(&utf_ptr)) == '[') {
 	    	/* arrayclass */
-	        for (utf_ptr--; utf_ptr < utf_end(c->name); utf_ptr++) {
+	        for (utf_ptr--; utf_ptr < UTF_END(c->name); utf_ptr++) {
 				*pos++ = *utf_ptr; /* copy text */
 			}
 
@@ -668,7 +915,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 				char *primitive = primitivetype_table[j].wrapname;
 
 				/* compare text */
-				while (utf_pos < utf_end(c->name)) {
+				while (utf_pos < UTF_END(c->name)) {
 					if (*utf_pos++ != *primitive++) goto nomatch;
 				}
 
@@ -684,7 +931,7 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 			*pos++ = 'L';
 
 			/* copy text */
-			for (utf_ptr--; utf_ptr < utf_end(c->name); utf_ptr++) {
+			for (utf_ptr--; utf_ptr < UTF_END(c->name); utf_ptr++) {
 				*pos++ = *utf_ptr;
 			}
 
@@ -976,17 +1223,12 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
 	int i;
 	classinfo **current;
 	classinfo *c;
-	classinfo *privilegedAction;
 	size_t size;
 
 	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
 
 	/*	log_text("builtin_asm_getclassloader");
         printf("end %p, start %p, size %ld\n",end,start,size);*/
-
-	if (!class_java_lang_SecurityManager)
-		if (!load_class_bootstrap(utf_new_char("java/lang/SecurityManager"),&class_java_lang_SecurityManager))
-			return NULL;
 
 	if (size > 0) {
 		if (*start == class_java_lang_SecurityManager) {
@@ -995,13 +1237,10 @@ java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **s
 		}
 	}
 
-	if (!load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"),&privilegedAction))
-		return NULL;
-
 	for(i = 0, current = start; i < size; i++, current--) {
 		c = *current;
 
-		if (c == privilegedAction)
+		if (c == class_java_security_PrivilegedAction)
 			return NULL;
 
 		if (c->classloader)
