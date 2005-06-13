@@ -47,17 +47,13 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2616 2005-06-08 20:54:54Z twisti $
+   $Id: codegen.inc 2661 2005-06-13 14:17:37Z twisti $
 
 */
 
 
 #include <assert.h>
 #include <string.h>
-
-#if !defined(STATIC_CLASSPATH)
-# include <dlfcn.h>
-#endif
 
 #include "disass.h"
 
@@ -139,10 +135,10 @@ void codegen_init()
 
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 {
-	cd->mcodebase = MNEW(u1, MCODEINITSIZE);
+	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
 	cd->mcodesize = MCODEINITSIZE;
 	
-	cd->dsegtop = MNEW(u1, DSEGINITSIZE);
+	cd->dsegtop = DMNEW(u1, DSEGINITSIZE);
 	cd->dsegsize = DSEGINITSIZE;
 	cd->dsegtop += cd->dsegsize;
 	cd->dseglen = 0;
@@ -169,12 +165,13 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	if (useinlining && id) {
 		if (id->cumextablelength > 0) {
 			cd->exceptiontablelength = id->cumextablelength;
-			cd->exceptiontable  = DMNEW(exceptiontable, id->cumextablelength + 1);
+			cd->exceptiontable =
+				DMNEW(exceptiontable, id->cumextablelength + 1);
 		}
 
-	} else if (id && (id->method->exceptiontablelength >0)) {
+	} else if (id && (id->method->exceptiontablelength > 0)) {
 		cd->exceptiontablelength = m->exceptiontablelength;
-		cd->exceptiontable  = DMNEW(exceptiontable, m->exceptiontablelength + 1);
+		cd->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1);
 	}
 
 	if (id) {
@@ -194,22 +191,14 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 
 /* codegen_free ****************************************************************
 
-   releases temporary code and data area
+   Releases temporary code and data area.
 
 *******************************************************************************/
 
 void codegen_free(methodinfo *m, codegendata *cd)
 {
-	if (cd) {
 #if 0
-		if (cd->exceptiontablelength) {
-			cd->exceptiontablelength = m->exceptiontablelength;
-			MFREE(cd->exceptiontable, exceptiontable, cd->exceptiontablelength + 1);
-			cd->exceptiontable = 0;
-			cd->exceptiontablelength = 0;
-		}
-#endif
-
+	if (cd) {
 		if (cd->mcodebase) {
 			MFREE(cd->mcodebase, u1, cd->mcodesize);
 			cd->mcodebase = NULL;
@@ -220,6 +209,7 @@ void codegen_free(methodinfo *m, codegendata *cd)
 			cd->dsegtop = NULL;
 		}
 	}
+#endif
 }
 
 
@@ -242,10 +232,10 @@ static s4 *codegen_increase(codegendata *cd, u1 *codeptr)
 	long len;
 
 	len = codeptr - cd->mcodebase;
-	cd->mcodebase = MREALLOC(cd->mcodebase,
-							 u1,
-							 cd->mcodesize,
-							 cd->mcodesize * 2);
+	cd->mcodebase = DMREALLOC(cd->mcodebase,
+							  u1,
+							  cd->mcodesize,
+							  cd->mcodesize * 2);
 	cd->mcodesize *= 2;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
@@ -259,10 +249,12 @@ static void dseg_increase(codegendata *cd)
 {
 	u1 *newstorage;
 
-	newstorage = MNEW(u1, cd->dsegsize * 2);
+	newstorage = DMNEW(u1, cd->dsegsize * 2);
 
 	memcpy(newstorage + cd->dsegsize, cd->dsegtop - cd->dsegsize, cd->dsegsize);
+#if 0
 	MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
+#endif
 
 	cd->dsegtop = newstorage;
 	cd->dsegsize *= 2;
@@ -629,6 +621,7 @@ void codegen_insertmethod(functionptr startpc, functionptr endpc)
 		tables_unlock();
 #endif
 #endif
+		assert(0);
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "duplicate entry");
 	}
@@ -729,12 +722,20 @@ void *codegen_findmethod(void *returnAdress)
 #endif
 
 
+/* codegen_finish **************************************************************
+
+   Finishes the code generation. A new memory, large enough for both
+   data and code, is allocated and data and code are copied together
+   to their final layout, unresolved jumps are resolved, ...
+
+*******************************************************************************/
+
 static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
-	jumpref *jr;
-	functionptr epoint;
-	s4 extralen;
-	s4 alignedlen;
+	jumpref     *jr;
+	functionptr  epoint;
+	s4           extralen;
+	s4           alignedlen;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen = sizeof(threadcritnode) * cd->threadcritcount;
@@ -752,11 +753,17 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	cd->dseglen = ALIGN(cd->dseglen, MAX_ALIGN);
 	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + cd->dseglen;
 
+	/* allocate new memory */
+
 	m->mcodelength = mcodelen + cd->dseglen;
 	m->mcode = (functionptr) (ptrint) CNEW(u1, alignedlen + extralen);
 
-	MCOPY((void *) m->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
-	MCOPY((void *) ((ptrint) m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
+	/* copy data and code to their new location */
+
+	MCOPY((void *) (ptrint) m->mcode, cd->dsegtop - cd->dseglen, u1,
+		  cd->dseglen);
+	MCOPY((void *) ((ptrint) m->mcode + cd->dseglen), cd->mcodebase, u1,
+		  mcodelen);
 
 	m->entrypoint = epoint = (functionptr) ((ptrint) m->mcode + cd->dseglen);
 
@@ -838,11 +845,11 @@ void dseg_display(methodinfo *m, codegendata *cd)
 
 	printf("  --- dump of datasegment\n");
 	for (i = cd->dseglen; i > 0 ; i -= 4) {
-#if defined(__I386__) || defined(__POWERPC__)
-		printf("0x%08x:   -%6x (%6d): %8x\n",
+#if SIZEOF_VOID_P == 8
+		printf("0x%016lx:   -%6x (%6d): %8x\n",
 			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
 #else
-		printf("0x%016lx:   -%6x (%6d): %8x\n",
+		printf("0x%08x:   -%6x (%6d): %8x\n",
 			   (ptrint) s4ptr, i, i, (s4) *s4ptr);
 #endif
 		s4ptr++;
@@ -853,13 +860,68 @@ void dseg_display(methodinfo *m, codegendata *cd)
 
 
 
-/* codegen_nativestub **********************************************************
+/* codegen_createnativestub ****************************************************
+
+   Wrapper for createnativestub.
+
+*******************************************************************************/
+
+functionptr codegen_createnativestub(functionptr f, methodinfo *m)
+{
+	codegendata        *cd;
+	registerdata       *rd;
+	t_inlining_globals *id;
+	s4                  dumpsize;
+
+	/* mark dump memory */
+
+	dumpsize = dump_size();
+
+	cd = DNEW(codegendata);
+	rd = DNEW(registerdata);
+	id = DNEW(t_inlining_globals);
+
+	/* setup code generation stuff */
+
+	inlining_setup(m, id);
+	reg_setup(m, rd, id);
+	codegen_setup(m, cd, id);
+						
+	m->stubroutine = createnativestub(f, m, cd, rd);
+
+	/* entrypoint was set in codegen_finish, clear it */
+
+	m->entrypoint = NULL;
+
+#if defined(STATISTICS)
+	if (opt_stat)
+		count_nstub_len += m->mcodelength + cd->dseglen;
+#endif
+
+	/* release memory */
+
+	dump_release(dumpsize);
+
+
+	/* disassemble native stub */
+
+	if (showdisassemble)
+		codegen_disassemble_nativestub(m, (s4 *) (ptrint) m->stubroutine,
+									   m->mcodelength);
+
+	/* return stubroutine entry point */
+
+	return m->stubroutine;
+}
+
+
+/* codegen_disassemble_nativestub **********************************************
 
    Disassembles the generated native stub.
 
 *******************************************************************************/
 
-static void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len)
+void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len)
 {
 	printf("Native stub: ");
 	utf_fprint_classname(stdout, m->class->name);
@@ -868,7 +930,35 @@ static void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len)
 	utf_fprint(stdout, m->descriptor);
 	printf("\n\nLength: %d\n\n", len);
 
+#if defined(__I386__) || defined(__X86_64__)
+	disassemble((u1 *) code, len);
+#else
 	disassemble(code, len);
+#endif
+}
+
+
+/* removecompilerstub **********************************************************
+
+   Deletes a compilerstub from memory (simply by freeing it).
+
+*******************************************************************************/
+
+void removecompilerstub(functionptr stub)
+{
+	CFREE(stub, 1);
+}
+
+
+/* removenativestub ************************************************************
+
+   Removes a previously created native-stub from memory.
+    
+*******************************************************************************/
+
+void removenativestub(functionptr stub)
+{
+	CFREE(stub, 1);
 }
 
 
@@ -939,205 +1029,6 @@ static void codegen_threadcritstop(codegendata *cd, int offset)
 	cd->threadcrit = DNEW(threadcritnodetemp);
 	*(cd->threadcrit) = cd->threadcritcurrent;
 	cd->threadcritcount++;
-}
-#endif
-
-
-#ifndef STATIC_CLASSPATH
-static size_t codegen_overloadPartLen(utf *desc) {
-        char *utf_ptr=desc->text;
-        u2 c;
-	size_t len=2;
-        while ((c=utf_nextu2(&utf_ptr))!=')') {
-                switch (c) {
-                        case 'I':
-                        case 'S':
-                        case 'B':
-                        case 'C':
-                        case 'Z':
-                        case 'J':
-                        case 'F':
-                        case 'D':
-				len ++;
-				break;
-                        case '[':
-                                len = len+2;
-                                break;
-                        case 'L':
-                                len++;
-                                while ( (c=utf_nextu2(&utf_ptr)) != ';')
-                                        len++;
-                                len=len+2;
-                                break;
-                        case '(':
-                                break;
-                        default:
-							log_text("invalid method descriptor");
-							assert(0);
-                }
-        }
-	return len;
-
-}
-
-static void codegen_fillInOverloadPart(char *target,utf *desc) {
-        char *utf_ptr=desc->text;
-        u2 c;
-	char* insertpos=&target[strlen(target)];
-	*(insertpos++)='_';
-	*(insertpos++)='_';
-        while ((c=utf_nextu2(&utf_ptr))!=')') {
-                switch (c) {
-                        case 'I':
-                        case 'S':
-                        case 'B':
-                        case 'C':
-                        case 'Z':
-                        case 'J':
-                        case 'F':
-                        case 'D':
-                                *(insertpos++)=c;
-                                break;
-                        case '[':
-				*(insertpos++)='_';
-				*(insertpos++)='3';
-                                break;
-                        case 'L':
-				*(insertpos++)='L';
-                                while ( (c=utf_nextu2(&utf_ptr)) != ';')
-                                	if ( ((c>='a') && (c<='z'))  ||
-						((c>='A') && (c<='Z')) ||
-						((c>='0') && (c<='9')) )
-							*(insertpos++)=c;
-					else *(insertpos++)='_';
-				*(insertpos++)='_';
-				*(insertpos++)='2';
-                                break;
-                        case '(':
-                                break;
-                        default:
-							log_text("invalid method descriptor");
-							assert(0);
-                }
-        }
-	*insertpos='\0';
-
-}
-
-static void codegen_resolve_native(methodinfo *m,void **insertionPoint,void *jmpTarget,void **jmpPatchTarget) {
-  char *nativeName, *nativeNameEscape;
-  size_t nativeLen;
-  size_t i;
-	void *lib;
-	void *sym;
-
-#if defined(USE_THREADS)
-  builtin_monitorenter((java_objectheader*) m);
-#endif
-
-#if defined(__X86_64__)
-  if ((*((s4*)jmpPatchTarget))==((s4)jmpTarget)) {
-#else
-  if ((*jmpPatchTarget)==jmpTarget) {
-#endif
-
-#if defined(USE_THREADS)
-    builtin_monitorexit((java_objectheader*) m);
-#endif
-
-    return;
-  }
-  /*log_text("trying to resolve a native method");
-  utf_display(m->class->name);
-  utf_display(m->name);*/
-  
-  lib=dlopen(0,RTLD_NOW | RTLD_GLOBAL); /* open the application execution image */
-  if (lib) { /* it did work -> good, otherwise fail with error*/
-    int ok=0;
-    /*generate the name of the native function in the form Java_package1_package2...._classname_methodname*/
-    nativeLen=/*Java_*/5+strlen(m->class->name->text)+/*_*/1+strlen(m->name->text)+/*\0*/1;
-    nativeName=MNEW(char,nativeLen);
-    sprintf(nativeName,"Java_%s/%s",m->class->name->text,m->name->text);
-	i=5;
-    while (i<nativeLen) {
-		if (nativeName[i]=='_') { /* escape underscore */
-			nativeNameEscape = MNEW(char,nativeLen+1);
-			memcpy(nativeNameEscape,nativeName,i+1);
-			nativeNameEscape[i+1] = '1'; /* escape sequence for _ is _1 */
-			memcpy(&nativeNameEscape[i+2],&nativeName[i+1],nativeLen-i-1);
-			MFREE(nativeName,char,nativeLen);
-			i++;
-			nativeLen++;
-			nativeNameEscape[nativeLen-1]=0;
-			nativeName=nativeNameEscape;
-		}
-		if (nativeName[i]=='/') nativeName[i]='_';
-		i++;
-    } 
-
-	/*printf("\nnativename: %s\n",nativeName);*/
-
-    /*try to find the symbal fo the function */
-    sym=dlsym(lib,nativeName);
-    if (sym) {
-      ok=1; /* it worked, everything fine */
-      /*log_text("resolved");*/
-      /*printf("strlen %d, nativeLen %d\n",strlen(nativeName),nativeLen);*/
-      MFREE(nativeName,char,nativeLen);
-    } else { /* we didn't find the symbol yet, try to resolve an overlaoded function (having the types in it's name*/
-      size_t overloadedNativeLen=nativeLen+codegen_overloadPartLen(m->descriptor);
-      char *overloadedNative=MNEW(char,overloadedNativeLen);
-      sprintf(overloadedNative,"%s",nativeName);
-      MFREE(nativeName,char,nativeLen);
-      codegen_fillInOverloadPart(overloadedNative,m->descriptor);
-      /*log_text("symbol not found,trying harder (overloaded member ?)");*/
-      sym=dlsym(lib,overloadedNative);
-      if (sym) {
-        MFREE(overloadedNative,char,overloadedNativeLen);
-        ok=1; /* we eventually found the native function -> everything ok*/
-        /*log_text("resolved");*/
-      } else { 
-         /* we failed to find the native function within the execution image (app + loaded libraries) -> will cause an exit*/
-		 dolog("\nnative function not found: %s",overloadedNative);
-         MFREE(overloadedNative,char,overloadedNativeLen);
-         log_text("It was not possible to find the native function implementation. Not even in overloading case");
-      }
-   }
-    /* patch the address of the native function into the stub and make the stub jump over this function call in the future */
-    if (ok) {
-      (*insertionPoint)=sym;
-#if defined(__X86_64__)
-      (*((s4*)jmpPatchTarget))=(s4)jmpTarget;
-#else
-      (*jmpPatchTarget)=jmpTarget;
-#endif
-
-#if defined(USE_THREADS)
-      builtin_monitorexit((java_objectheader *) m );
-#endif
-
-      return;
-    }
-
-  } else log_text("library not found");
-  
-  /* There was an error, either the app image could not be opened or the native does not exist in the application and the
-     loaded libraries. Show an additional error and exit the vm*/
-  {
-    char *info;
-    size_t slen;
-    slen=2+strlen(m->class->name->text)+strlen(m->name->text)+strlen(m->descriptor->text);
-    info=(char*)MNEW(char,slen);
-    sprintf(info,"%s.%s%s",m->class->name->text,m->name->text,m->descriptor->text);
-    
-#if defined(USE_THREADS)
-    builtin_monitorexit((java_objectheader *) m );
-#endif
-
-    throw_cacao_exception_exit(string_java_lang_LinkageError,
-                                                       info);
-  }
-  
 }
 #endif
 
