@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2493 2005-05-21 14:59:14Z twisti $
+   $Id: VMThrowable.c 2648 2005-06-13 14:00:04Z twisti $
 
 */
 
@@ -84,16 +84,9 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 {
 	long resultPos;
 	methodinfo *m;
-	classinfo *c;
 	java_objectarray *oa;
 
-	if (!load_class_bootstrap(utf_new_char("java/lang/StackTraceElement"),&c))
-		return NULL;
-	if (!c->linked)
-		if (!link_class(c))
-			return NULL;
-
-	m = class_findmethod(c,
+	m = class_findmethod(class_java_lang_StackTraceElement,
 						 utf_init,
 						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
 
@@ -102,7 +95,7 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 		assert(0);
 	}
 
-	oa = builtin_anewarray(size, c);
+	oa = builtin_anewarray(size, class_java_lang_StackTraceElement);
 
 	if (!oa)
 		return 0;
@@ -110,15 +103,15 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 /*	printf("Should return an array with %ld element(s)\n",size);*/
 	/*pos--;*/
 	
-	for(resultPos=0;size>0;size--,el++,resultPos++) {
+	for(resultPos = 0; size > 0; size--, el++, resultPos++) {
 		java_objectheader *element;
 
-		if (el->method==0) {
+		if (el->method == NULL) {
 			resultPos--;
 			continue;
 		}
 
-		element=builtin_new(c);
+		element = builtin_new(class_java_lang_StackTraceElement);
 		if (!element) {
 			log_text("Memory for stack trace element could not be allocated");
 			assert(0);
@@ -134,28 +127,50 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
 			javastring_new(el->method->name),
 			el->method->flags & ACC_NATIVE);
 #else
-		if (!(el->method->flags & ACC_NATIVE))setfield_critical(c,element,"fileName",          
-		"Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(el->method->class->sourcefile));
+		if (!(el->method->flags & ACC_NATIVE))
+			setfield_critical(class_java_lang_StackTraceElement,
+							  element,
+							  "fileName",
+							  "Ljava/lang/String;",
+							  jobject,
+							  (jobject) javastring_new(el->method->class->sourcefile));
+
 /*  		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject,  */
 /*  		(jobject) javastring_new(el->method->class->name)); */
-		setfield_critical(c,element,"declaringClass",          "Ljava/lang/String;",  jobject, 
-		(jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) el->method->class));
-		setfield_critical(c,element,"methodName",          "Ljava/lang/String;",  jobject, 
-		(jobject) javastring_new(el->method->name));
-		setfield_critical(c,element,"lineNumber",          "I",  jint, 
-		(jint) ((el->method->flags & ACC_NATIVE) ? -1:(el->linenumber)));
-		setfield_critical(c,element,"isNative",          "Z",  jboolean, 
-		(jboolean) ((el->method->flags & ACC_NATIVE) ? 1:0));
 
+		setfield_critical(class_java_lang_StackTraceElement,
+						  element,
+						  "declaringClass",
+						  "Ljava/lang/String;",
+						  jobject, 
+						  (jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) el->method->class));
 
+		setfield_critical(class_java_lang_StackTraceElement,
+						  element,
+						  "methodName",
+						  "Ljava/lang/String;",
+						  jobject,
+						  (jobject) javastring_new(el->method->name));
+
+		setfield_critical(class_java_lang_StackTraceElement,
+						  element,
+						  "lineNumber",
+						  "I",
+						  jint, 
+						  (jint) ((el->method->flags & ACC_NATIVE) ? -1 : (el->linenumber)));
+
+		setfield_critical(class_java_lang_StackTraceElement,
+						  element,
+						  "isNative",
+						  "Z",
+						  jboolean, 
+						  (jboolean) ((el->method->flags & ACC_NATIVE) ? 1 : 0));
 #endif			
 
-		oa->data[resultPos]=element;
+		oa->data[resultPos] = element;
 	}
 
 	return oa;
-
 }
 
 
