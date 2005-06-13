@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2501 2005-05-23 08:19:53Z twisti $
+   $Id: linker.c 2667 2005-06-13 14:26:04Z twisti $
 
 */
 
@@ -172,7 +172,27 @@ bool linker_init(void)
 		return false;
 
 
+	/* some classes which may be used more often */
+
+	if (!link_class(class_java_lang_StackTraceElement))
+		return false;
+
+	if (!link_class(class_java_lang_reflect_Constructor))
+		return false;
+
+	if (!link_class(class_java_lang_reflect_Field))
+		return false;
+
+	if (!link_class(class_java_lang_reflect_Method))
+		return false;
+
+	if (!link_class(class_java_security_PrivilegedAction))
+		return false;
+
 	if (!link_class(class_java_util_Vector))
+		return false;
+
+	if (!link_class(arrayclass_java_lang_Object))
 		return false;
 
 
@@ -247,19 +267,23 @@ bool linker_init(void)
 static bool link_primitivetype_table(void)
 {  
 	classinfo *c;
-	s4 i;
+	utf       *u;
+	s4         i;
 
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
 		/* skip dummies */
+
 		if (!primitivetype_table[i].name)
 			continue;
 		
 		/* create primitive class */
+
 		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
 		c->classUsed = NOTUSED; /* not used initially CO-RT */
 		c->impldBy = NULL;
 		
 		/* prevent loader from loading primitive class */
+
 		c->loaded = true;
 		if (!classcache_store(NULL,c)) {
 			log_text("Could not cache primitive class");
@@ -271,22 +295,32 @@ static bool link_primitivetype_table(void)
 		primitivetype_table[i].class_primitive = c;
 
 		/* create class for wrapping the primitive type */
-		if (!load_class_bootstrap(utf_new_char(primitivetype_table[i].wrapname),&c))
+
+		u = utf_new_char(primitivetype_table[i].wrapname);
+
+		if (!(c = load_class_bootstrap(u)))
 			return false;
+
 		primitivetype_table[i].class_wrap = c;
 		primitivetype_table[i].class_wrap->classUsed = NOTUSED; /* not used initially CO-RT */
 		primitivetype_table[i].class_wrap->impldBy = NULL;
 
 		/* create the primitive array class */
+
 		if (primitivetype_table[i].arrayname) {
-			c = class_create_classinfo(utf_new_char(primitivetype_table[i].arrayname));
+			u = utf_new_char(primitivetype_table[i].arrayname);
+			c = class_create_classinfo(u);
+
 			if (!load_newly_created_array(c, NULL))
 				return false;
+
 			primitivetype_table[i].arrayclass = c;
+
 			assert(c->loaded);
 			if (!c->linked)
 				if (!link_class(c))
 					return false;
+
 			primitivetype_table[i].arrayvftbl = c->vftbl;
 		}
 	}
@@ -337,9 +371,11 @@ classinfo *link_class(classinfo *c)
 #endif
 
 	/* call the internal function */
+
 	r = link_class_intern(c);
 
 	/* if return value is NULL, we had a problem and the class is not linked */
+
 	if (!r)
 		c->linked = false;
 
@@ -383,6 +419,7 @@ static classinfo *link_class_intern(classinfo *c)
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 
 	/* maybe the class is already linked */
+
 	if (c->linked)
 		return c;
 
@@ -390,11 +427,13 @@ static classinfo *link_class_intern(classinfo *c)
 		log_message_class("Linking class: ", c);
 
 	/* the class must be loaded */
+
 	if (!c->loaded)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Trying to link unloaded class");
 
 	/* ok, this class is somewhat linked */
+
 	c->linked = true;
 
 	arraydesc = NULL;
@@ -403,8 +442,11 @@ static classinfo *link_class_intern(classinfo *c)
 
 	for (i = 0; i < c->interfacescount; i++) {
 		/* resolve this super interface */
-		if (!resolve_classref_or_classinfo(NULL,c->interfaces[i],resolveEager,false,&tc))
+
+		if (!resolve_classref_or_classinfo(NULL, c->interfaces[i], resolveEager,
+										   false, &tc))
 			return NULL;
+
 		c->interfaces[i].cls = tc;
 		
 		/* detect circularity */
@@ -433,9 +475,10 @@ static classinfo *link_class_intern(classinfo *c)
 	/* check super class */
 
 	super = NULL;
-	if (c->super.any == NULL) {          /* class java.lang.Object */
+
+	if (c->super.any == NULL) {                     /* class java.lang.Object */
 		c->index = 0;
-        c->classUsed = USED;     /* Object class is always used CO-RT*/
+        c->classUsed = USED;              /* Object class is always used CO-RT*/
 		c->impldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
@@ -445,11 +488,14 @@ static classinfo *link_class_intern(classinfo *c)
 
 	} else {
 		/* resolve super class */
-		if (!resolve_classref_or_classinfo(NULL,c->super,resolveEager,false,&super))
+
+		if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, false,
+										   &super))
 			return NULL;
 		c->super.cls = super;
 		
 		/* detect circularity */
+
 		if (super == c) {
 			*exceptionptr =
 				new_exception_utfmessage(string_java_lang_ClassCircularityError,
@@ -466,6 +512,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		/* Don't allow extending final classes */
+
 		if (super->flags & ACC_FINAL) {
 			*exceptionptr =
 				new_exception_message(string_java_lang_VerifyError,
@@ -478,6 +525,7 @@ static classinfo *link_class_intern(classinfo *c)
 				return NULL;
 
 		/* handle array classes */
+
 		if (c->name->text[0] == '[')
 			if (!(arraydesc = link_array(c)))
   				return NULL;
@@ -676,13 +724,12 @@ static classinfo *link_class_intern(classinfo *c)
 
 			} else {
 				functionptr f = native_findfunction(c->name,
-										m->name,
-										m->descriptor,
-										(m->flags & ACC_STATIC));
+													m->name, m->descriptor,
+													(m->flags & ACC_STATIC));
 #if defined(STATIC_CLASSPATH)
 				if (f)
 #endif
-					m->stubroutine = createnativestub(f, m);
+					m->stubroutine = codegen_createnativestub(f, m);
 			}
 		}
 
@@ -739,17 +786,22 @@ static classinfo *link_class_intern(classinfo *c)
 	/* resolve exception class references */
 
 	for (i = 0; i < c->methodscount; i++) {
-		methodinfo *m = c->methods + i;
-		for (j=0; j<m->exceptiontablelength; ++j) {
+		methodinfo *m = &(c->methods[i]);
+
+		for (j = 0; j < m->exceptiontablelength; j++) {
 			if (!m->exceptiontable[j].catchtype.any)
 				continue;
-			if (!resolve_classref_or_classinfo(NULL,m->exceptiontable[j].catchtype,
-						resolveEager,false,&(m->exceptiontable[j].catchtype.cls)))
+			if (!resolve_classref_or_classinfo(NULL,
+											   m->exceptiontable[j].catchtype,
+											   resolveEager, false,
+											   &(m->exceptiontable[j].catchtype.cls)))
 				return NULL;
 		}
-		for (j=0; j<m->thrownexceptionscount; ++j)
-			if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[j],
-						resolveEager,false,&(m->thrownexceptions[j].cls)))
+
+		for (j = 0; j < m->thrownexceptionscount; j++)
+			if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[j],
+											   resolveEager, false,
+											   &(m->thrownexceptions[j].cls)))
 				return NULL;
 	}
 	
