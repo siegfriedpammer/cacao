@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2523 2005-05-23 18:13:52Z edwin $
+   $Id: class.c 2662 2005-06-13 14:19:34Z twisti $
 
 */
 
@@ -118,12 +118,18 @@ classinfo *class_java_lang_Long = NULL;
 classinfo *class_java_lang_Float = NULL;
 classinfo *class_java_lang_Double = NULL;
 
+
 /* some classes which may be used more often */
 
-classinfo *class_java_util_Vector = NULL;
+classinfo *class_java_lang_StackTraceElement = NULL;
 classinfo *class_java_lang_reflect_Constructor = NULL;
+classinfo *class_java_lang_reflect_Field = NULL;
 classinfo *class_java_lang_reflect_Method = NULL;
-classinfo *arrayclass_java_lang_Object=NULL;
+classinfo *class_java_security_PrivilegedAction = NULL;
+classinfo *class_java_util_Vector = NULL;
+
+classinfo *arrayclass_java_lang_Object = NULL;
+
 
 /* pseudo classes for the typechecker */
 
@@ -146,7 +152,7 @@ void class_set_packagename(classinfo *c)
 	else {
 		/* Find the package name */
 		/* Classes in the unnamed package keep packagename == NULL. */
-		char *p = utf_end(c->name) - 1;
+		char *p = UTF_END(c->name) - 1;
 		char *start = c->name->text;
 		for (;p > start; --p) {
 			if (*p == '/') {
