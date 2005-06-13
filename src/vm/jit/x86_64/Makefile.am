@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2582 2005-06-08 10:33:14Z twisti $
+## $Id: Makefile.am 2653 2005-06-13 14:10:09Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -43,8 +43,6 @@ noinst_HEADERS = \
 	machine-instr.h \
 	types.h \
 	\
-	md.h \
-	md-abi.h \
 	md-abi.inc \
 	md-asm.h
 
@@ -67,7 +65,10 @@ libarch_la_SOURCES = \
 	patcher.c \
 	symcat.h \
 	\
-	md-abi.c
+	md-abi.c \
+	md-abi.h \
+	md.c \
+	md.h
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
