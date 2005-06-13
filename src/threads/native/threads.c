@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2517 2005-05-23 10:33:06Z twisti $
+   $Id: threads.c 2673 2005-06-13 14:38:12Z twisti $
 
 */
 
@@ -495,10 +495,12 @@ initThreads(u1 *stackbottom)
 	threadobject *tempthread = mainthreadobj;
 	methodinfo *method;
 
-	if (!load_class_bootstrap(utf_new_char("java/lang/VMThread"),&threadclass))
+	if (!(threadclass = load_class_bootstrap(utf_new_char("java/lang/VMThread"))))
 		throw_exception_exit();
+
 	if (!threadclass)
 		throw_exception_exit();
+
 	if (!link_class(threadclass))
 		throw_exception_exit();
 
@@ -534,8 +536,10 @@ initThreads(u1 *stackbottom)
 		throw_exception_exit();
 
 	/* Create a Thread */
-	if (!load_class_bootstrap(utf_new_char("java/lang/Thread"),&threadclass))
+
+	if (!(threadclass = load_class_bootstrap(utf_new_char("java/lang/Thread"))))
 		throw_exception_exit();
+
 	mainthread = (java_lang_Thread*) builtin_new(threadclass);
 	mainthreadobj->o.thread = mainthread;
 
