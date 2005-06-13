@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2645 2005-06-13 13:53:57Z twisti $
+   $Id: VMClass.c 2655 2005-06-13 14:12:34Z twisti $
 
 */
 
@@ -479,13 +479,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 
 java_lang_reflect_Method* cacao_getMethod0(JNIEnv *env, java_lang_Class *that, java_lang_String *name, java_objectarray *types, s4 which)
 {
-	classinfo *c;
     classinfo *clazz;
     java_lang_reflect_Method* o;                     /* result: Method-object */
     java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
     methodinfo *m;                            /* the method to be represented */
 
-	c = ;
     clazz = (classinfo *) that;
 
     o = (java_lang_reflect_Method *)
