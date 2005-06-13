@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2593 2005-06-08 11:04:14Z twisti $
+   $Id: string.c 2663 2005-06-13 14:20:15Z twisti $
 
 */
 
@@ -159,6 +159,9 @@ const char *string_java_lang_NoSuchMethodError =
 
 const char *string_java_lang_OutOfMemoryError =
     "java/lang/OutOfMemoryError";
+
+const char *string_java_lang_UnsatisfiedLinkError =
+    "java/lang/UnsatisfiedLinkError";
 
 const char *string_java_lang_UnsupportedClassVersionError =
     "java/lang/UnsupportedClassVersionError";
@@ -479,20 +482,25 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	}
 
     /* location in hashtable found, complete arrayheader */
-    stringdata->header.objheader.vftbl = primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
+
+    stringdata->header.objheader.vftbl =
+		primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
     stringdata->header.size = length;
 
+	/* XXX TWISTI: is this necessary? */
 	if (!class_java_lang_String)
-		load_class_bootstrap(utf_java_lang_String,&class_java_lang_String);
+		class_java_lang_String = load_class_bootstrap(utf_java_lang_String);
+
 	assert(class_java_lang_String);
 	assert(class_java_lang_String->loaded);
 
 	/* if we use eager loading, we have to check loaded String class */
-	if (opt_eager) {
+
+	if (opt_eager)
 		list_addfirst(&unlinkedclasses, class_java_lang_String);
-	}
 
 	/* create new javastring */
+
 	js = NEW(java_lang_String);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&js->header);

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2593 2005-06-08 11:04:14Z twisti $
+   $Id: stringlocal.h 2663 2005-06-13 14:20:15Z twisti $
 
 */
 
@@ -101,6 +101,7 @@ extern const char *string_java_lang_NoClassDefFoundError;
 extern const char *string_java_lang_NoSuchFieldError;
 extern const char *string_java_lang_NoSuchMethodError;
 extern const char *string_java_lang_OutOfMemoryError;
+extern const char *string_java_lang_UnsatisfiedLinkError;
 extern const char *string_java_lang_UnsupportedClassVersionError;
 extern const char *string_java_lang_VerifyError;
 extern const char *string_java_lang_VirtualMachineError;
