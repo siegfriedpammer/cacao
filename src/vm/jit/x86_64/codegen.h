@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2585 2005-06-08 10:56:25Z twisti $
+   $Id: codegen.h 2652 2005-06-13 14:03:16Z twisti $
 
 */
 
@@ -252,9 +252,6 @@ typedef enum {
 
 
 /* additional functions and macros to generate code ***************************/
-
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
 
 #ifdef STATISTICS
 #define COUNT_SPILLS count_spills++
