@@ -82,6 +82,10 @@ case "$host_os" in
 	OS_DIR="darwin"
         CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__DARWIN__"
         ;;
+*freebsd* )
+	OS_DIR="freebsd"
+	CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__FREEBSD__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+	;;
 *irix* )
 	OS_DIR="irix"
         CFLAGS="$CFLAGS -D__IRIX__"
@@ -491,6 +495,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/alpha/Makefile]
 		[src/vm/jit/arm/Makefile]
 		[src/vm/jit/i386/Makefile]
+		[src/vm/jit/i386/linux/Makefile]
+		[src/vm/jit/i386/freebsd/Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/loop/Makefile]
 		[src/vm/jit/mips/Makefile]
