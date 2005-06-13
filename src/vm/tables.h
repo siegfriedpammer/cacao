@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: tables.h 2117 2005-03-29 21:55:30Z twisti $
+   $Id: tables.h 2665 2005-06-13 14:22:44Z twisti $
 
 */
 
@@ -109,9 +109,6 @@ struct hashtable {
 
 
 #define CLASS(name)     (unicode_getclasslink(unicode_new_char(name)))
-
-/* to determine the end of utf strings */
-#define utf_end(utf) ((char *) utf->text+utf->blength)
 
 extern hashtable utf_hash;     /* hashtable for utf8-symbols */
 extern hashtable string_hash;  /* hashtable for javastrings  */
