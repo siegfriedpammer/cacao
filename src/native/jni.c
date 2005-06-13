@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2598 2005-06-08 11:26:49Z twisti $
+   $Id: jni.c 2674 2005-06-13 14:40:40Z twisti $
 
 */
 
@@ -674,10 +674,18 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader,
 
 jclass FindClass(JNIEnv *env, const char *name)
 {
-	classinfo *c = NULL;  
+	classinfo *c;
+	utf       *u;
 	STATS(jniinvokation();)
-  
-	if (!load_class_bootstrap(utf_new_char_classname((char *) name), &c))
+
+	u = utf_new_char_classname((char *) name);
+
+	/* XXX check stacktrace for classloader, if one found use it, otherwise */
+	/* use the system classloader */
+
+	log_text("FindClass: implement me CORRECTLY!");
+
+	if (!(c = load_class_bootstrap(u)))
 		return NULL;
 
 	if (!link_class(c))
