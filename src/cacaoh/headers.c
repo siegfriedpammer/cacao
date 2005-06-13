@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2551 2005-06-06 14:44:56Z twisti $
+   $Id: headers.c 2672 2005-06-13 14:30:05Z twisti $
 
 */
 
@@ -129,12 +129,11 @@ long compare_and_swap(long *p, long oldval, long newval)
 
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
 
-u1 *createcompilerstub(methodinfo *m) { return NULL; }
-u1 *createnativestub(functionptr f, methodinfo *m) { return NULL; }
-u1 *oldcreatenativestub(functionptr f, methodinfo *m) { return NULL; }
+functionptr createcompilerstub(methodinfo *m) { return NULL; }
+functionptr codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
 
-void removecompilerstub(u1 *stub) {}
-void removenativestub(u1 *stub) {}
+void removecompilerstub(functionptr stub) {}
+void removenativestub(functionptr stub) {}
 
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
