@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2482 2005-05-19 08:48:55Z jowenn $
+   $Id: stacktrace.h 2660 2005-06-13 14:16:26Z twisti $
 
 */
 
@@ -69,7 +69,7 @@ struct native_stackframeinfo {
 
 
 struct stacktraceelement {
-#if POINTERSIZE == 8
+#if SIZEOF_VOID_P == 8
 	u8          linenumber;
 #else
 	u4          linenumber;
