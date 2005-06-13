@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 2584 2005-06-08 10:55:34Z twisti $
+   $Id: emitfuncs.c 2650 2005-06-13 14:02:27Z twisti $
 
 */
 
@@ -532,7 +532,7 @@ void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr
 		}
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 }
 
 
@@ -564,7 +564,7 @@ void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *ip
 		}
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 }
 
 
@@ -587,7 +587,7 @@ void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction 
 		x86_64_alul_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 }
 
 
@@ -610,7 +610,7 @@ void x86_64_emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction 
 		x86_64_alu_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 }
 
 
