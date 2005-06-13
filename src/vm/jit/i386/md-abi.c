@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 2605 2005-06-08 14:41:35Z christian $
+   $Id: md-abi.c 2676 2005-06-13 16:20:32Z twisti $
 
 */
 
@@ -56,24 +56,27 @@ md->argintreguse:         max number of integer arguments used
 md->argfltreguse:         max number of float arguments used
 
 *******************************************************************************/
+
 void md_param_alloc(methoddesc *md)
 {
-  paramdesc *pd;
-  s4        stacksize;
-  int       i;
+	paramdesc *pd;
+	s4        stacksize;
+	s4        i;
 
-  pd = md->params;
-  stacksize = 0;
+	pd = md->params;
+	stacksize = 0;
 
-  for (i = 0; i < md->paramcount; i++, pd++) {
-    pd->inmemory = true;
-    pd->regoff = stacksize;
-    stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2 : 1;
-  }
-  md->memuse = stacksize;
-  md->argintreguse = 0;
-  md->argfltreguse = 0;
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		pd->inmemory = true;
+		pd->regoff = stacksize;
+		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2 : 1;
+	}
+
+	md->memuse = stacksize;
+	md->argintreguse = 0;
+	md->argfltreguse = 0;
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

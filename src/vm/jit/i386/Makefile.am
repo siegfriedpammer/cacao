@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2605 2005-06-08 14:41:35Z christian $
+## $Id: Makefile.am 2676 2005-06-13 16:20:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
+
+SUBDIRS = $(OS_DIR)
 
 AM_CCASFLAGS = $(INCLUDES)
 
@@ -41,8 +43,10 @@ CLEANFILES = offsets.h
 noinst_HEADERS = \
 	arch.h \
 	machine-instr.h \
+	types.h \
+	\
 	md-abi.h \
-	types.h
+	md-abi.inc
 
 noinst_LTLIBRARIES = libarch.la
 
@@ -60,10 +64,13 @@ libarch_la_SOURCES = \
 	emitfuncs.c \
 	emitfuncs.h \
 	i386-dis.c \
-	md-abi.inc \
-	md-abi.c \
 	patcher.c \
-	symcat.h
+	symcat.h \
+	\
+	md-abi.c
+
+libarch_la_LIBADD = \
+	$(OS_DIR)/libmd.la
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 

@@ -28,12 +28,14 @@
 
    Changes:
 
-   $Id: patcher.c 2536 2005-05-31 15:53:36Z twisti $
+   $Id: patcher.c 2676 2005-06-13 16:20:32Z twisti $
 
 */
 
 
 #include "vm/jit/i386/types.h"
+
+#include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
@@ -1109,6 +1111,61 @@ bool patcher_clinit(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return true;
+}
+
+
+/* patcher_resolve_native ******************************************************
+
+   XXX
+
+*******************************************************************************/
+
+bool patcher_resolve_native(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	methodinfo        *m;
+	functionptr        f;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 4));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 4));
+	mcode =                       *((u8 *)     (sp + 1 * 4));
+	m     = (methodinfo *)        *((ptrint *) (sp + 0 * 4));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 5;
+	*((ptrint *) (sp + 4 * 4)) = (ptrint) ra;
+
+	PATCHER_MONITORENTER;
+
+	/* resolve native function */
+
+	if (!(f = native_resolve_function(m))) {
+		PATCHER_MONITOREXIT;
+
+		return false;
+	}
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
+	/* patch native function pointer */
+
+	*((ptrint *) (ra + 1)) = (ptrint) f;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
