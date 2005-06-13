@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2535 2005-05-31 15:39:06Z twisti $
+   $Id: patcher.h 2659 2005-06-13 14:15:32Z twisti $
 
 */
 
@@ -153,6 +153,9 @@ bool patcher_checkcast_instanceof_class(u1 *sp);
 
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit
+
+bool patcher_resolve_native(u1 *sp);
+#define PATCHER_resolve_native (functionptr) patcher_resolve_native
 
 #endif /* _PATCHER_H */
 
