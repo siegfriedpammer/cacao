@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: descriptor.c 2570 2005-06-06 15:32:16Z twisti $
+   $Id: descriptor.c 2668 2005-06-13 14:26:55Z twisti $
 
 */
 
@@ -358,7 +358,7 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 	/* check if the name is a valid classname */
 
-	if (!is_valid_name(name->text,utf_end(name))) {
+	if (!is_valid_name(name->text,UTF_END(name))) {
 		*exceptionptr = new_classformaterror(pool->referer,
 											 "Invalid class name");
 		return false; /* exception */
@@ -439,7 +439,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* now check the descriptor */
 
-	end_pos = utf_end(desc);
+	end_pos = UTF_END(desc);
 	
 	if (*utf_ptr == '(') {
 		/* a method descriptor */
@@ -697,7 +697,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 	td = (typedesc *) pool->descriptors_next;
 	pool->descriptors_next += sizeof(typedesc);
 	
-	if (!descriptor_to_typedesc(pool, desc->text, utf_end(desc), NULL, td))
+	if (!descriptor_to_typedesc(pool, desc->text, UTF_END(desc), NULL, td))
 		return NULL;
 
 	*(pool->descriptor_kind_next++) = 'f';
@@ -765,7 +765,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
 	utf_ptr = desc->text;
-	end_pos = utf_end(desc);
+	end_pos = UTF_END(desc);
 
 	if (*utf_ptr++ != '(') {
 		*exceptionptr = new_classformaterror(pool->referer,
