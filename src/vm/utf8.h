@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 2560 2005-06-06 15:20:41Z twisti $
+   $Id: utf8.h 2664 2005-06-13 14:22:13Z twisti $
 
 */
 
@@ -54,6 +54,10 @@ struct utf {
 	int   blength;                      /* text length in bytes               */
 	char *text;                         /* pointer to text                    */
 };
+
+/* to determine the end of utf strings */
+
+#define UTF_END(u)    ((char *) u->text + u->blength)
 
 
 /* utf-symbols for pointer comparison of frequently used strings **************/
@@ -87,9 +91,11 @@ extern utf* utf_java_lang_Long;
 extern utf* utf_java_lang_Float;
 extern utf* utf_java_lang_Double;
 
-extern utf *utf_java_util_Vector;
+extern utf *utf_java_lang_StackTraceElement;
 extern utf *utf_java_lang_reflect_Constructor;
+extern utf *utf_java_lang_reflect_Field;
 extern utf *utf_java_lang_reflect_Method;
+extern utf *utf_java_util_Vector;
 
 
 extern utf *utf_InnerClasses;
@@ -104,9 +110,10 @@ extern utf *utf_clinit;
 extern utf *utf_clone;
 extern utf *utf_finalize;
 
-extern utf *utf_printStackTrace;
 extern utf *utf_fillInStackTrace;
+extern utf *utf_getSystemClassLoader;
 extern utf *utf_loadClass;
+extern utf *utf_printStackTrace;
 
 extern utf *utf_void__void;
 extern utf *utf_boolean__void;
@@ -117,6 +124,8 @@ extern utf *utf_int__void;
 extern utf *utf_long__void;
 extern utf *utf_float__void;
 extern utf *utf_double__void;
+
+extern utf *utf_void__java_lang_ClassLoader;
 extern utf *utf_void__java_lang_Object;
 extern utf *utf_void__java_lang_Throwable;
 extern utf *utf_java_lang_String__void;

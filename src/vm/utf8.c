@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2560 2005-06-06 15:20:41Z twisti $
+   $Id: utf8.c 2664 2005-06-13 14:22:13Z twisti $
 
 */
 
@@ -80,10 +80,11 @@ utf* utf_java_lang_Long;
 utf* utf_java_lang_Float;
 utf* utf_java_lang_Double;
 
-utf *utf_java_util_Vector;
+utf *utf_java_lang_StackTraceElement;
 utf *utf_java_lang_reflect_Constructor;
+utf *utf_java_lang_reflect_Field;
 utf *utf_java_lang_reflect_Method;
-
+utf *utf_java_util_Vector;
 
 utf *utf_InnerClasses;                  /* InnerClasses                       */
 utf *utf_ConstantValue;                 /* ConstantValue                      */
@@ -97,9 +98,10 @@ utf *utf_clinit;                        /* <clinit>                           */
 utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
 
-utf *utf_printStackTrace;
 utf *utf_fillInStackTrace;
+utf *utf_getSystemClassLoader;
 utf *utf_loadClass;
+utf *utf_printStackTrace;
 
 utf *utf_void__void;                    /* ()V                                */
 utf *utf_boolean__void;                 /* (Z)V                               */
@@ -110,6 +112,8 @@ utf *utf_int__void;                     /* (I)V                               */
 utf *utf_long__void;                    /* (J)V                               */
 utf *utf_float__void;                   /* (F)V                               */
 utf *utf_double__void;                  /* (D)V                               */
+
+utf *utf_void__java_lang_ClassLoader;   /* ()Ljava/lang/ClassLoader;          */
 utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
@@ -166,12 +170,15 @@ void utf8_init(void)
 	utf_java_lang_Float            = utf_new_char("java/lang/Float");
 	utf_java_lang_Double           = utf_new_char("java/lang/Double");
 
-	utf_java_util_Vector           = utf_new_char("java/util/Vector");
+	utf_java_lang_StackTraceElement =
+		utf_new_char("java/lang/StackTraceElement");
 
 	utf_java_lang_reflect_Constructor =
 		utf_new_char("java/lang/reflect/Constructor");
 
+	utf_java_lang_reflect_Field    = utf_new_char("java/lang/reflect/Field");
 	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
+	utf_java_util_Vector           = utf_new_char("java/util/Vector");
 
 	utf_InnerClasses               = utf_new_char("InnerClasses");
 	utf_ConstantValue              = utf_new_char("ConstantValue");
@@ -188,6 +195,7 @@ void utf8_init(void)
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
 	utf_loadClass                  = utf_new_char("loadClass");
+	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
 
 	utf_void__void                 = utf_new_char("()V");
 	utf_boolean__void              = utf_new_char("(Z)V");
@@ -200,6 +208,10 @@ void utf8_init(void)
 	utf_double__void               = utf_new_char("(D)V");
 	utf_void__java_lang_Object     = utf_new_char("()Ljava/lang/Object;");
 	utf_void__java_lang_Throwable  = utf_new_char("()Ljava/lang/Throwable;");
+
+	utf_void__java_lang_ClassLoader =
+		utf_new_char("()Ljava/lang/ClassLoader;");
+
 	utf_java_lang_String__void     = utf_new_char("(Ljava/lang/String;)V");
 
 	utf_java_lang_String__java_lang_Class =
@@ -658,7 +670,7 @@ u4 utf_strlen(utf *u)
 		return 0;
 	}
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
@@ -722,7 +734,7 @@ void utf_display(utf *u)
 		return;
 	}
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
@@ -754,7 +766,7 @@ void utf_display_classname(utf *u)
 		return;
 	}
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
@@ -786,7 +798,7 @@ void utf_sprint(char *buffer, utf *u)
 		return;
 	}
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) 
@@ -816,7 +828,7 @@ void utf_sprint_classname(char *buffer, utf *u)
 		return;
 	}
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
@@ -869,7 +881,7 @@ void utf_fprint(FILE *file, utf *u)
 	if (!u)
 		return;
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) { 
@@ -896,7 +908,7 @@ void utf_fprint_classname(FILE *file, utf *u)
     if (!u)
 		return;
 
-	endpos = utf_end(u);
+	endpos = UTF_END(u);
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) { 
@@ -1010,7 +1022,7 @@ bool is_valid_name(char *utf_ptr, char *end_pos)
 
 bool is_valid_name_utf(utf *u)
 {
-	return is_valid_name(u->text,utf_end(u));
+	return is_valid_name(u->text, UTF_END(u));
 }
 
 
