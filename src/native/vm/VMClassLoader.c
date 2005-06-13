@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 2438 2005-05-04 15:07:45Z twisti $
+   $Id: VMClassLoader.c 2646 2005-06-13 13:56:16Z twisti $
 
 */
 
@@ -79,13 +79,15 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
-	/* thrown by SUN jdk */
+	/* thrown by SUN JVM */
+
 	if (len == 0) {
 		*exceptionptr = new_classformaterror(NULL, "Truncated class file");
 		return NULL;
 	}
 
 	/* synchronize */
+
 	LOADER_LOCK();
 
 	if (name) {
@@ -170,10 +172,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	use_class_as_object(c);
 
 	LOADER_UNLOCK();
+
 	return (java_lang_Class *) c;
 
 return_exception:
 	LOADER_UNLOCK();
+
 	return NULL;
 }
 
@@ -199,7 +203,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 
 	/* get primitive class */
 
-	if (!load_class_bootstrap(u, &c) || !initialize_class(c))
+	if (!(c = load_class_bootstrap(u)) || !initialize_class(c))
 		return NULL;
 
 	use_class_as_object(c);
@@ -254,7 +258,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	/* load class */
 
-	if (!load_class_bootstrap(u,&c))
+	if (!(c = load_class_bootstrap(u)))
 		goto exception;
 
 	/* resolve class -- if requested */
