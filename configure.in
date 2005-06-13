@@ -113,9 +113,14 @@ AC_PROG_CC
 AM_PROG_AS
 AC_PROG_RANLIB
 AC_DISABLE_SHARED
-AC_PROG_LIBTOOL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+
+dnl libtool stuff
+AC_LIBTOOL_DLOPEN
+AC_LIBLTDL_CONVENIENCE
+AC_PROG_LIBTOOL
+AC_SUBST(LIBLTDL)
 
 dnl Checks for header files.
 AC_HEADER_DIRENT
@@ -395,6 +400,7 @@ dnl pass configure options to classpath
 if test x"${STATIC_CLASSPATH}" = "x1"; then
         AC_DEFINE([STATIC_CLASSPATH], 1, [use classpath statically linked])
 	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
+	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
 
 	dnl check for some classpath related stuff when we link statically
 	AM_ICONV_LINK
@@ -422,6 +428,7 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 	fi
 else
 	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
+	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
 fi
 
 
