@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2632 2005-06-10 10:01:44Z jowenn $
+   $Id: patcher.c 2651 2005-06-13 14:02:52Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include "vm/jit/x86_64/types.h"
 
 #include "mm/memory.h"
+#include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/field.h"
@@ -119,7 +120,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!helper_initialize_class(beginJavaStack, fi->class, ra+5)) {
+	if (!helper_initialize_class(beginJavaStack, fi->class, ra + 5)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -1047,7 +1048,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* check if the class is initialized */
 
-	if (!helper_initialize_class(beginJavaStack, c, ra)) {
+	if (!helper_initialize_class(beginJavaStack, c, ra + 5)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -1056,6 +1057,64 @@ bool patcher_clinit(u1 *sp)
 	/* patch back original code */
 
 	*((u8 *) ra) = mcode;
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return true;
+}
+
+
+/* patcher_resolve_native ******************************************************
+
+   XXX
+
+*******************************************************************************/
+
+bool patcher_resolve_native(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	methodinfo        *m;
+	functionptr        f;
+	void              *beginJavaStack;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	m     = (methodinfo *)        *((ptrint *) (sp + 0 * 8));
+
+	beginJavaStack =      (void*) (sp + 3 * 8);
+
+	/* calculate and set the new return address */
+
+	ra = ra - 5;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+
+	PATCHER_MONITORENTER;
+
+	/* resolve native function */
+
+	if (!(f = native_resolve_function(m))) {
+		PATCHER_MONITOREXIT;
+
+		return false;
+	}
+
+	/* patch back original code */
+
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 5;
+
+	/* patch native function pointer */
+
+	*((ptrint *) (ra + 2)) = (ptrint) f;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
