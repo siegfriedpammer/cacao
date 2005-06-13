@@ -42,7 +42,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Changes: Christian Thalinger
 
-   $Id: parseXTA.c 2487 2005-05-20 17:43:27Z twisti $
+   $Id: parseXTA.c 2657 2005-06-13 14:14:44Z twisti $
 
 */
 
@@ -223,7 +223,7 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			class = strtok(desc,";");
 			desc = strtok(NULL,"\0");
 			/* get/save classinfo ptr */
-			if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+			if (!(clsinfo = load_class_bootstrap(utf_new_char(class)))) {
 				log_text("could not load class in descriptor2typesL");
 				assert(0);
 			}
@@ -243,7 +243,7 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 				class = strtok(desc,";");
 				desc = strtok(NULL,"\0");
 				/* get/save classinfo ptr */
-				if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+				if (!(clsinfo = load_class_bootstrap(utf_new_char(class)))) {
 					log_text("could not load class in descriptor2typesL");
 					assert(0);
 				}
@@ -294,7 +294,7 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 			  
 		/* get class string */
 		class = strtok(desc,";");
-		if (!load_class_bootstrap(utf_new_char(class),&clsinfo)) {
+		if (!(clsinfo = load_class_bootstrap(utf_new_char(class)))) {
 			log_text("could not load class in descriptor2typesL");
 			assert(0);
 		}
@@ -762,7 +762,7 @@ bool xtaAddFldClassTypeInfo(fieldinfo *fi) {
 				desc = MNEW(char, 256);
 				strcpy(desc,++utf_ptr);
 				cname = strtok(desc,";");
-				if (!load_class_bootstrap(utf_new_char(cname),&class)) {
+				if (!(class = load_class_bootstrap(utf_new_char(cname)))) {
 					log_text("could not load class in xtaAddFldClassTypeInfo");
 					assert(0);
 				}
@@ -1553,7 +1553,7 @@ else
 
 /*-- Get meth ptr for class.meth desc and add to XTA worklist --*/
 #define SYSADD(cls,meth,desc, is_mono_poly, txt) \
-  load_class_bootstrap(utf_new_char(cls),&c); \
+  c = load_class_bootstrap(utf_new_char(cls)); \
   LAZYLOADING(c) \
   callmeth = class_resolveclassmethod(c, \
     utf_new_char(meth), \

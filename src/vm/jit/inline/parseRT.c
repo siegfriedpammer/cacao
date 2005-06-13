@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: parseRT.c 2487 2005-05-20 17:43:27Z twisti $
+   $Id: parseRT.c 2657 2005-06-13 14:14:44Z twisti $
 
 */
 
@@ -812,7 +812,7 @@ else
 
 /*-- Get meth ptr for class.meth desc and add to RTA worklist --*/
 #define SYSADD(cls,meth,desc,txt) \
-        load_class_bootstrap(utf_new_char(cls),&c); \
+        c = load_class_bootstrap(utf_new_char(cls)); \
         LAZYLOADING(c) \
         callmeth = class_resolveclassmethod(c, \
               utf_new_char(meth), \
