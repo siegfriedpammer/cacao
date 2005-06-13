@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 2493 2005-05-21 14:59:14Z twisti $
+   $Id: VMRuntime.c 2647 2005-06-13 13:56:42Z twisti $
 
 */
 
@@ -46,7 +46,7 @@
 #endif
 
 #if !defined(STATIC_CLASSPATH)
-# include <dlfcn.h>
+# include "src/libltdl/ltdl.h"
 #endif
 
 #include "cacao/cacao.h"
@@ -255,48 +255,26 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
-	int retVal=0;
+	utf *name;
 
-#ifdef JOWENN_DEBUG
-	char *buffer;
-	int buffer_len;
-#endif
-	utf *data;
-
-#ifdef JOWENN_DEBUG
-	log_text("Java_java_lang_VMRuntime_nativeLoad");
-#endif
-
-	data = javastring_toutf(filename, 0);
-	
-	if (!data) {
-		log_text("nativeLoad: Error: empty string");
-		return 1;
+	if (!filename) {
+		*exceptionptr = new_nullpointerexception();
+		return 0;
 	}
+
+	name = javastring_toutf(filename, 0);
 	
-#if JOWENN_DEBUG	
-	buffer_len = utf_strlen(data) + 40;
-
-	buffer = MNEW(char, buffer_len);
-	strcpy(buffer, "Java_java_lang_VMRuntime_nativeLoad:");
-	utf_sprint(buffer + strlen((char *) data), data);
-	log_text(buffer);	
-        
-  
-	MFREE(buffer, char, buffer_len);
-#endif
-
-#ifndef STATIC_CLASSPATH
-	/*here it could be interesting to store the references in a list eg for nicely cleaning up or for certain platforms*/
-        if (dlopen(data->text,RTLD_NOW | RTLD_GLOBAL)) {
-		/*log_text("LIBLOADED");*/
-                retVal=1;
-        }
+#if defined(STATIC_CLASSPATH)
+	return 1;
 #else
-	retVal=1;
-#endif
+	/* here it could be interesting to store the references in a list eg for  */
+	/* nicely cleaning up or for certain platforms */
 
-	return retVal;
+	if (lt_dlopenext(name->text))
+		return 1;
+
+	return 0;
+#endif
 }
 
 
@@ -307,9 +285,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, java_lang_String *libname)
 {
-	char *buffer;
-	int buffer_len;
-	utf *u;
+	utf              *u;
+	char             *buffer;
+	s4                buffer_len;
+	s4                dumpsize;
 	java_lang_String *s;
 
 	if (!libname) {
@@ -318,27 +297,26 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	}
 
 	u = javastring_toutf(libname, 0);
-	
-	if (!u) {
-		log_text("nativeGetLibName: Error: empty string");
-		return 0;;
-	}
-	
-	buffer_len = utf_strlen(u) + 6 /*lib .so */ +1 /*0*/;
-	buffer = MNEW(char, buffer_len);
 
-	sprintf(buffer, "lib");
-	utf_sprint(buffer + 3, u);
+	/* calculate length of library name */
+
+	buffer_len = strlen("lib") + utf_strlen(u) + strlen(".so") + strlen("0");
+
+	dumpsize = dump_size();
+	buffer = DMNEW(char, buffer_len);
+
+	/* generate library name, we use lt_dlopenext so we don't need an */
+	/* extension */
+
+	strcpy(buffer, "lib");
+	utf_strcat(buffer, u);
 	strcat(buffer, ".so");
 
-#ifdef JOWENN_DEBUG
-	log_text("nativeGetLibName:");
-	log_text(buffer);
-#endif
-	
-	s = javastring_new_char(buffer);	
+	s = javastring_new_char(buffer);
 
-	MFREE(buffer, char, buffer_len);
+	/* release memory */
+
+	dump_release(dumpsize);
 
 	return s;
 }
