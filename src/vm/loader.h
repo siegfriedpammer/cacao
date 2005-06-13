@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2456 2005-05-12 22:59:04Z twisti $
+   $Id: loader.h 2671 2005-06-13 14:29:42Z twisti $
 */
 
 
@@ -170,7 +170,7 @@ void loader_close(void);
 /* class loading functions */
 bool load_class_from_sysloader(utf *name, classinfo **result);
 bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result);
-bool load_class_bootstrap(utf *name,classinfo **result);
+classinfo *load_class_bootstrap(utf *name);
 /* (don't use the following directly:) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 bool load_newly_created_array(classinfo *c,java_objectheader *loader);

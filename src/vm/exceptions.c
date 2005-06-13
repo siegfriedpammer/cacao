@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2590 2005-06-08 11:01:37Z twisti $
+   $Id: exceptions.c 2671 2005-06-13 14:29:42Z twisti $
 
 */
 
@@ -74,55 +74,55 @@ bool exceptions_init(void)
 {
 	/* java/lang/Throwable */
 
-	if (!load_class_bootstrap(utf_java_lang_Throwable,
-							  &class_java_lang_Throwable) ||
+	if (!(class_java_lang_Throwable =
+		  load_class_bootstrap(utf_java_lang_Throwable)) ||
 		!link_class(class_java_lang_Throwable))
 		return false;
 
 
 	/* java/lang/VMThrowable */
 
-	if (!load_class_bootstrap(utf_java_lang_VMThrowable,
-							  &class_java_lang_VMThrowable) ||
+	if (!(class_java_lang_VMThrowable =
+		  load_class_bootstrap(utf_java_lang_VMThrowable)) ||
 		!link_class(class_java_lang_VMThrowable))
 		return false;
 
 
 	/* java/lang/Error */
 
-	if (!load_class_bootstrap(utf_java_lang_Error, &class_java_lang_Error) ||
+	if (!(class_java_lang_Error = load_class_bootstrap(utf_java_lang_Error)) ||
 		!link_class(class_java_lang_Error))
 		return false;
 
 
 	/* java/lang/Exception */
 
-	if (!load_class_bootstrap(utf_java_lang_Exception,
-							  &class_java_lang_Exception) ||
+	if (!(class_java_lang_Exception =
+		  load_class_bootstrap(utf_java_lang_Exception)) ||
 		!link_class(class_java_lang_Exception))
 		return false;
 
 
 	/* java/lang/NoClassDefFoundError */
 
-	if (!load_class_bootstrap(utf_java_lang_NoClassDefFoundError,
-							  &class_java_lang_NoClassDefFoundError) ||
+	if (!(class_java_lang_NoClassDefFoundError =
+		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
 		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
 
 
 	/* java/lang/OutOfMemoryError */
 
-	if (!load_class_bootstrap(utf_java_lang_OutOfMemoryError,
-							  &class_java_lang_OutOfMemoryError) ||
+	if (!(class_java_lang_OutOfMemoryError =
+		  load_class_bootstrap(utf_java_lang_OutOfMemoryError)) ||
 		!link_class(class_java_lang_OutOfMemoryError))
 		return false;
 
 
 	/* java/lang/ClassNotFoundException */
 
-	if (!load_class_bootstrap(utf_java_lang_ClassNotFoundException,
-							  &class_java_lang_ClassNotFoundException) ||
+	if (!(class_java_lang_ClassNotFoundException =
+		  load_class_bootstrap(utf_java_lang_ClassNotFoundException)) ||
 		!link_class(class_java_lang_ClassNotFoundException))
 		return false;
 
@@ -257,8 +257,8 @@ java_objectheader *new_exception(const char *classname)
 {
 	java_objectheader *o;
 	classinfo         *c;
-   
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init(c);
@@ -283,7 +283,7 @@ java_objectheader *new_exception_message(const char *classname,
 	java_objectheader *o;
 	classinfo         *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init_string(c, javastring_new_char(message));
@@ -308,7 +308,7 @@ java_objectheader *new_exception_throwable(const char *classname,
 	java_objectheader *o;
 	classinfo         *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init_throwable(c, throwable);
@@ -332,7 +332,7 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 	java_objectheader *o;
 	classinfo         *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init_string(c, javastring_new(message));
@@ -357,7 +357,7 @@ java_objectheader *new_exception_javastring(const char *classname,
 	java_objectheader *o;
 	classinfo         *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init_string(c, message);
@@ -381,7 +381,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 	java_objectheader *o;
 	classinfo         *c;
    
-	if (!load_class_bootstrap(utf_new_char(classname), &c))
+	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
 	o = native_new_and_init_int(c, i);

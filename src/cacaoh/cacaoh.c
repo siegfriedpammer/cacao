@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 2193 2005-04-02 19:33:43Z edwin $
+   $Id: cacaoh.c 2671 2005-06-13 14:29:42Z twisti $
 
 */
 
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 	
 		/* exceptions are catched with new_exception call */
 
-		if (!load_class_bootstrap(utf_new_char(cp),&c))
+		if (!(c = load_class_bootstrap(utf_new_char(cp))))
 			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
 									   cp);
 

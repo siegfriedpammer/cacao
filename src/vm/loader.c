@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2571 2005-06-06 15:34:32Z twisti $
+   $Id: loader.c 2671 2005-06-13 14:29:42Z twisti $
 
 */
 
@@ -136,76 +136,102 @@ bool loader_init(u1 *stackbottom)
 
 	/* load some important classes */
 
-	if (!load_class_bootstrap(utf_java_lang_Object, &class_java_lang_Object))
+	if (!(class_java_lang_Object = load_class_bootstrap(utf_java_lang_Object)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_String, &class_java_lang_String))
+	if (!(class_java_lang_String = load_class_bootstrap(utf_java_lang_String)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Cloneable, &class_java_lang_Cloneable))
+	if (!(class_java_lang_Cloneable =
+		  load_class_bootstrap(utf_java_lang_Cloneable)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_io_Serializable, &class_java_io_Serializable))
+	if (!(class_java_io_Serializable =
+		  load_class_bootstrap(utf_java_io_Serializable)))
 		return false;
 
 
 	/* load classes for wrapping primitive types */
 
-	if (!load_class_bootstrap(utf_java_lang_Void, &class_java_lang_Void))
+	if (!(class_java_lang_Void = load_class_bootstrap(utf_java_lang_Void)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Boolean, &class_java_lang_Boolean))
+	if (!(class_java_lang_Boolean =
+		  load_class_bootstrap(utf_java_lang_Boolean)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Byte, &class_java_lang_Byte))
+	if (!(class_java_lang_Byte = load_class_bootstrap(utf_java_lang_Byte)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Character, &class_java_lang_Character))
+	if (!(class_java_lang_Character =
+		  load_class_bootstrap(utf_java_lang_Character)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Short, &class_java_lang_Short))
+	if (!(class_java_lang_Short = load_class_bootstrap(utf_java_lang_Short)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Integer, &class_java_lang_Integer))
+	if (!(class_java_lang_Integer =
+		  load_class_bootstrap(utf_java_lang_Integer)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Long, &class_java_lang_Long))
+	if (!(class_java_lang_Long = load_class_bootstrap(utf_java_lang_Long)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Float, &class_java_lang_Float))
+	if (!(class_java_lang_Float = load_class_bootstrap(utf_java_lang_Float)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_Double, &class_java_lang_Double))
+	if (!(class_java_lang_Double = load_class_bootstrap(utf_java_lang_Double)))
 		return false;
 
 
 	/* load some other important classes */
 
-	if (!load_class_bootstrap(utf_java_lang_Class, &class_java_lang_Class))
+	if (!(class_java_lang_Class = load_class_bootstrap(utf_java_lang_Class)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_ClassLoader, &class_java_lang_ClassLoader))
+	if (!(class_java_lang_ClassLoader =
+		  load_class_bootstrap(utf_java_lang_ClassLoader)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_SecurityManager, &class_java_lang_SecurityManager))
+	if (!(class_java_lang_SecurityManager =
+		  load_class_bootstrap(utf_java_lang_SecurityManager)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_System, &class_java_lang_System))
+	if (!(class_java_lang_System = load_class_bootstrap(utf_java_lang_System)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_ThreadGroup, &class_java_lang_ThreadGroup))
+	if (!(class_java_lang_ThreadGroup =
+		  load_class_bootstrap(utf_java_lang_ThreadGroup)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_util_Vector, &class_java_util_Vector))
+
+	/* some classes which may be used more often */
+
+	if (!(class_java_lang_StackTraceElement =
+		  load_class_bootstrap(utf_java_lang_StackTraceElement)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_reflect_Constructor, &class_java_lang_reflect_Constructor))
+	if (!(class_java_lang_reflect_Constructor =
+		  load_class_bootstrap(utf_java_lang_reflect_Constructor)))
 		return false;
 
-	if (!load_class_bootstrap(utf_java_lang_reflect_Method, &class_java_lang_reflect_Method))
+	if (!(class_java_lang_reflect_Field =
+		  load_class_bootstrap(utf_java_lang_reflect_Field)))
 		return false;
 
-	if (!load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"), &arrayclass_java_lang_Object))
+	if (!(class_java_lang_reflect_Method =
+		  load_class_bootstrap(utf_java_lang_reflect_Method)))
+		return false;
+
+	if (!(class_java_security_PrivilegedAction =
+		  load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"))))
+		return false;
+
+	if (!(class_java_util_Vector = load_class_bootstrap(utf_java_util_Vector)))
+		return false;
+
+	if (!(arrayclass_java_lang_Object =
+		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
 		return false;
 
 #if defined(USE_THREADS)
@@ -505,7 +531,7 @@ void suck_init(char *classpath)
 void loader_load_all_classes(void)
 {
 	classpath_info *cpi;
-	classinfo *c;
+	classinfo      *c;
 
 	for (cpi = classpath_entries; cpi != 0; cpi = cpi->next) {
 #if defined(USE_ZLIB)
@@ -520,7 +546,7 @@ void loader_load_all_classes(void)
 				/* check for .properties files */
 
 				if (!strstr(ce->name->text, ".properties"))
-					load_class_bootstrap(ce->name, &c);
+					c = load_class_bootstrap(ce->name);
 
 				ce = ce->next;
 			}
@@ -654,8 +680,16 @@ classbuffer *suck_start(classinfo *c)
 	}
 
 	if (opt_verbose)
-		if (!found)
+		if (!found) {
 			dolog("Warning: Can not open class file '%s'", filename);
+
+			if (strcmp(filename, "org/mortbay/util/MultiException.class") == 0) {
+				static int i = 0;
+				i++;
+				if (i == 3)
+					assert(0);
+			}
+		}
 
 	MFREE(filename, char, filenamelen);
 
@@ -1088,6 +1122,18 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			return false;
 
 		cptags[forward_classes->thisindex] = CONSTANT_Class;
+
+		if (opt_eager) {
+			classinfo *tc;
+
+			if (!(tc = load_class_bootstrap(name)))
+				return false;
+
+			/* link the class later, because we cannot link the class currently
+			   loading */
+			list_addfirst(&unlinkedclasses, tc);
+		}
+
 		/* the classref is created later */
 		cpinfos[forward_classes->thisindex] = name;
 
@@ -1842,17 +1888,17 @@ bool load_class_from_sysloader(utf *name,classinfo **result)
 	LOADER_ASSERT(class_java_lang_ClassLoader->linked);
 	
 	m = class_resolveclassmethod(class_java_lang_ClassLoader,
-								 utf_new_char("getSystemClassLoader"), /* XXX use variable */
-								 utf_new_char("()Ljava/lang/ClassLoader;"), /* XXX use variable */
+								 utf_getSystemClassLoader,
+								 utf_void__java_lang_ClassLoader,
 								 class_java_lang_Object,
 								 false);
 
 	if (!m)
-		return false; /* exception */
+		return false;
 
 	cl = (java_objectheader *) asm_calljavafunction(m, NULL, NULL, NULL, NULL);
 	if (!cl)
-		return false; /* exception */
+		return false;
 
 	LOADER_INC();
 	success = load_class_from_classloader(name,cl,result);
@@ -1878,7 +1924,7 @@ bool load_class_from_sysloader(utf *name,classinfo **result)
 
 *******************************************************************************/
 
-bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **result)
+bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result)
 {
 	classinfo *r;
 	bool success;
@@ -1899,7 +1945,9 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 	LOADER_ASSERT(result);
 
 	/* lookup if this class has already been loaded */
-	*result = classcache_lookup(cl,name);
+
+	*result = classcache_lookup(cl, name);
+
 #ifdef LOADER_VERBOSE
 	if (*result)
 		dolog("        cached -> %p",(void*)(*result));
@@ -1919,28 +1967,28 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 			int len = name->blength - 1;
 			classinfo *comp;
 			switch (*utf_ptr) {
-				case 'L':
-					utf_ptr++;
-					len -= 2;
-					/* FALLTHROUGH */
-				case '[':
-					/* load the component class */
-					LOADER_INC();
-					if (!load_class_from_classloader(utf_new(utf_ptr,len),cl,&comp)) {
-						LOADER_DEC();
-						return false;
-					}
+			case 'L':
+				utf_ptr++;
+				len -= 2;
+				/* FALLTHROUGH */
+			case '[':
+				/* load the component class */
+				LOADER_INC();
+				if (!load_class_from_classloader(utf_new(utf_ptr,len),cl,&comp)) {
 					LOADER_DEC();
-					/* create the array class */
-					*result = class_array_of(comp,false);
-					return (*result != 0);
-					break;
-				default:
-					/* primitive array classes are loaded by the bootstrap loader */
-					LOADER_INC();
-					success = load_class_bootstrap(name,result);
-					LOADER_DEC();
-					return success;
+					return false;
+				}
+				LOADER_DEC();
+				/* create the array class */
+				*result = class_array_of(comp, false);
+				return (*result != 0);
+				break;
+			default:
+				/* primitive array classes are loaded by the bootstrap loader */
+				LOADER_INC();
+				*result = load_class_bootstrap(name);
+				LOADER_DEC();
+				return (*result != NULL);
 			}
 		}
 		
@@ -1963,7 +2011,8 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 		LOADER_DEC();
 
 		/* store this class in the loaded class cache */
-		if (r && !classcache_store(cl,r)) {
+
+		if (r && !classcache_store(cl, r)) {
 			r->loaded = false;
 			class_free(r);
 			r = NULL; /* exception */
@@ -1974,9 +2023,11 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 	} 
 
 	LOADER_INC();
-	success = load_class_bootstrap(name,result);
+	r = load_class_bootstrap(name);
 	LOADER_DEC();
-	return success;
+
+	*result = r;
+	return (r != NULL);
 }
 
 
@@ -1988,11 +2039,9 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
        name.............the classname
 
    OUT:
-       *result..........set to the loaded class
 
    RETURN VALUE:
-       true.............everything ok
-	   false............an exception has been thrown
+       loaded classinfo
 
    SYNCHRONIZATION:
        load_class_bootstrap is synchronized. It can be treated as an
@@ -2000,31 +2049,32 @@ bool load_class_from_classloader(utf *name,java_objectheader *cl,classinfo **res
 
 *******************************************************************************/
 
-bool load_class_bootstrap(utf *name, classinfo **result)
+classinfo *load_class_bootstrap(utf *name)
 {
 	classbuffer *cb;
-	classinfo *c;
-	classinfo *r;
+	classinfo   *c;
+	classinfo   *r;
 #ifdef LOADER_VERBOSE
 	char logtext[MAXLOGTEXT];
 #endif
 
 	/* for debugging */
+
 	LOADER_ASSERT(name);
-	LOADER_ASSERT(result);
 	LOADER_INC();
 
 	/* synchronize */
+
 	LOADER_LOCK();
 
 	/* lookup if this class has already been loaded */
-	*result = classcache_lookup(NULL, name);
-	if (*result)
+
+	if ((r = classcache_lookup(NULL, name)))
 		goto success;
 
 	/* check if this class has already been defined */
-	*result = classcache_lookup_defined(NULL, name);
-	if (*result)
+
+	if ((r = classcache_lookup_defined(NULL, name)))
 		goto success;
 
 #ifdef LOADER_VERBOSE
@@ -2035,19 +2085,22 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 #endif
 
 	/* create the classinfo */
+
 	c = class_create_classinfo(name);
 	
 	/* handle array classes */
+
 	if (name->text[0] == '[') {
 		if (!load_newly_created_array(c, NULL))
 			goto return_exception;
 		LOADER_ASSERT(c->loaded);
-		*result = c;
+		r = c;
 		goto success;
 	}
 
 #if defined(STATISTICS)
 	/* measure time */
+
 	if (getcompilingtime)
 		compilingtime_stop();
 
@@ -2058,7 +2111,8 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	/* load classdata, throw exception on error */
 
 	if ((cb = suck_start(c)) == NULL) {
-		/* this means, the classpath was not set properly */
+		/* this normally means, the classpath was not set properly */
+
 		if (name == utf_java_lang_Object)
 			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
 									   "java/lang/Object");
@@ -2070,13 +2124,16 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	}
 	
 	/* load the class from the buffer */
+
 	r = load_class_from_classbuffer(cb);
 
 	/* free memory */
+
 	suck_stop(cb);
 
 #if defined(STATISTICS)
 	/* measure time */
+
 	if (getloadingtime)
 		loadingtime_stop();
 
@@ -2086,11 +2143,13 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 
 	if (!r) {
 		/* the class could not be loaded, free the classinfo struct */
+
 		class_free(c);
 	}
 
 	/* store this class in the loaded class cache    */
 	/* this step also checks the loading constraints */
+
 	if (r && !classcache_store(NULL, c)) {
 		class_free(c);
 		r = NULL; /* exception */
@@ -2099,18 +2158,17 @@ bool load_class_bootstrap(utf *name, classinfo **result)
 	if (!r)
 		goto return_exception;
 
-	*result = r;
-
 success:
 	LOADER_UNLOCK();
 	LOADER_DEC();
-	return true;
+
+	return r;
 
 return_exception:
-	*result = NULL;
 	LOADER_UNLOCK();
 	LOADER_DEC();
-	return false;
+
+	return NULL;
 }
 
 
@@ -2650,26 +2708,25 @@ return_exception:
 }
 
 
-
 /* load_newly_created_array ****************************************************
 
-    Load a newly created array class.
+   Load a newly created array class.
 
-	Note:
-		This is an internal function. Do not use it unless you know exactly
-		what you are doing!
+   Note:
+   This is an internal function. Do not use it unless you know exactly
+   what you are doing!
 
-		Use one of the load_class_... functions for general array class loading.
+   Use one of the load_class_... functions for general array class loading.
 
 *******************************************************************************/
 
-bool load_newly_created_array(classinfo *c,java_objectheader *loader)
+bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 {
-	classinfo *comp = NULL;
-	methodinfo *clone;
-	methoddesc *clonedesc;
+	classinfo         *comp = NULL;
+	methodinfo        *clone;
+	methoddesc        *clonedesc;
 	constant_classref *classrefs;
-	int namelen;
+	s4                 namelen;
 	java_objectheader *definingloader = NULL;
 
 #ifdef LOADER_VERBOSE
@@ -2681,6 +2738,7 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 #endif
 
 	/* Check array class name */
+
 	namelen = c->name->blength;
 	if (namelen < 2 || c->name->text[0] != '[') {
 		*exceptionptr = new_internalerror("Invalid array class name");
@@ -2688,6 +2746,7 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	}
 
 	/* Check the component type */
+
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. We have to create the component class. */
@@ -2703,7 +2762,7 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 		LOADER_DEC();
 		LOADER_ASSERT(comp->loaded);
 		if (opt_eager)
-			if (!link_class(c))
+			if (!link_class(comp))
 				return false;
 		definingloader = comp->classloader;
 		break;
@@ -2727,7 +2786,7 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 		LOADER_DEC();
 		LOADER_ASSERT(comp->loaded);
 		if (opt_eager)
-			if (!link_class(c))
+			if (!link_class(comp))
 				return false;
 		definingloader = comp->classloader;
 		break;
@@ -2738,6 +2797,7 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	LOADER_ASSERT(class_java_io_Serializable);
 
 	/* Setup the array class */
+
 	c->super.cls = class_java_lang_Object;
 	c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
@@ -2788,12 +2848,13 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	clone->parseddesc = clonedesc;
 	clone->class = c;
 	clone->stubroutine =
-		createnativestub((functionptr) &builtin_clone_array, clone);
+		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO;
 
 	/* XXX: field: length? */
 
 	/* array classes are not loaded from class files */
+
 	c->loaded = true;
 	c->parseddescs = (u1*) clonedesc;
 	c->parseddescsize = sizeof(methodinfo);
@@ -2802,7 +2863,8 @@ bool load_newly_created_array(classinfo *c,java_objectheader *loader)
 	c->classloader = definingloader;
 
 	/* insert class into the loaded class cache */
-	if (!classcache_store(loader,c))
+
+	if (!classcache_store(loader, c))
 		return false;
 
 	return true;
@@ -2919,7 +2981,7 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 {
 	methodinfo *m;
-	s4 i;
+	s4          i;
 
 	for (i = 0; i < c->methodscount; i++) {
 		m = &(c->methods[i]);
@@ -2981,8 +3043,8 @@ methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc)
 				char *desc_utf_ptr = desc->text;      
 				char *meth_utf_ptr = meth_descr->text;					  
 				/* points behind utf strings */
-				char *desc_end = utf_end(desc);         
-				char *meth_end = utf_end(meth_descr);   
+				char *desc_end = UTF_END(desc);         
+				char *meth_end = UTF_END(meth_descr);   
 				char ch;
 
 				/* compare argument types */
@@ -2992,7 +3054,7 @@ methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc)
 						break; /* no match */
 
 					if (ch == ')')
-						return &(c->methods[i]);   /* all parameter types equal */
+						return &(c->methods[i]); /* all parameter types equal */
 				}
 			}
 		}
@@ -3057,7 +3119,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 													   utf *name, utf *desc)
 {
 	methodinfo *m;
-	s4 i;
+	s4          i;
 	
 	m = class_findmethod(c, name, desc);
 
@@ -3067,7 +3129,8 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 	/* try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls, name, desc);
+		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
+												name, desc);
 
 		if (m)
 			return m;
@@ -3108,7 +3171,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 		return mi;
 
 	/* try class java.lang.Object */
-	LOADER_ASSERT(class_java_lang_Object);
+
 	mi = class_findmethod(class_java_lang_Object, name, desc);
 
 	if (mi)
@@ -3124,11 +3187,11 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 
 /* class_resolveclassmethod ****************************************************
 	
-    Resolves a reference from REFERER to a method with NAME and DESC in
-    class C.
+   Resolves a reference from REFERER to a method with NAME and DESC in
+   class C.
 
-    If the method cannot be resolved the return value is NULL. If EXCEPT is
-    true *exceptionptr is set, too.
+   If the method cannot be resolved the return value is NULL. If
+   EXCEPT is true *exceptionptr is set, too.
 
 *******************************************************************************/
 
@@ -3167,7 +3230,8 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	/* try the superinterfaces */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		mi = class_resolveinterfacemethod_intern(c->interfaces[i].cls, name, desc);
+		mi = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
+												 name, desc);
 
 		if (mi)
 			goto found;
