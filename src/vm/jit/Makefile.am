@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2533 2005-05-31 14:35:28Z twisti $
+## $Id: Makefile.am 2658 2005-06-13 14:14:47Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,7 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_src
 
 SUBDIRS = loop tools verify @ARCH_DIR@
 
-DIST_SUBDIRS = inline loop schedule tools verify alpha i386 mips powerpc x86_64
+DIST_SUBDIRS = inline loop schedule tools verify alpha arm i386 mips powerpc x86_64
 
 if USE_INLINING
 INLINE_LIB = inline/libinline.la
