@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2680 2005-06-14 17:14:08Z twisti $
+   $Id: linker.c 2692 2005-06-14 18:11:35Z twisti $
 
 */
 
@@ -734,7 +734,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		if (!(m->flags & ACC_STATIC))
-			v->table[m->vftblindex] = m->stubroutine;
+			v->table[m->vftblindex] = (methodptr) m->stubroutine;
 	}
 
 	/* compute instance size and offset of each field */
