@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2696 2005-06-14 22:31:37Z twisti $
+   $Id: native.c 2700 2005-06-14 23:31:06Z twisti $
 
 */
 
@@ -576,6 +576,7 @@ functionptr native_findfunction(utf *cname, utf *mname,
 #if !defined(STATIC_CLASSPATH)
 static char *native_make_overloaded_function(char *name, utf *desc)
 {
+	char *newname;
 	s4    namelen;
 	char *utf_ptr;
 	u2    c;
@@ -619,12 +620,13 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 
 	i = strlen(name);
 
-	DMREALLOC(name, char, i, namelen);
+	newname = DMNEW(char, namelen);
+	MCOPY(newname, name, char, i);
 
 	utf_ptr = desc->text;
 
-	name[i++] = '_';
-	name[i++] = '_';
+	newname[i++] = '_';
+	newname[i++] = '_';
 
 	while ((c = utf_nextu2(&utf_ptr)) != ')') {
 		switch (c) {
@@ -636,23 +638,23 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 		case 'I':
 		case 'F':
 		case 'D':
-			name[i++] = c;
+			newname[i++] = c;
 			break;
 		case '[':
-			name[i++] = '_';
-			name[i++] = '3';
+			newname[i++] = '_';
+			newname[i++] = '3';
 			break;
 		case 'L':
-			name[i++] = 'L';
+			newname[i++] = 'L';
 			while ((c = utf_nextu2(&utf_ptr)) != ';')
 				if (((c >= 'a') && (c <= 'z')) ||
 					((c >= 'A') && (c <= 'Z')) ||
 					((c >= '0') && (c <= '9')))
-					name[i++] = c;
+					newname[i++] = c;
 				else
-					name[i++] = '_';
-			name[i++] = '_';
-			name[i++] = '2';
+					newname[i++] = '_';
+			newname[i++] = '_';
+			newname[i++] = '2';
 			break;
 		case '(':
 			break;
@@ -663,9 +665,9 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 
 	/* close string */
 
-	name[i] = '\0';
+	newname[i] = '\0';
 
-	return name;
+	return newname;
 }
 
 
@@ -679,6 +681,7 @@ functionptr native_resolve_function(methodinfo *m)
 {
 	lt_ptr                     sym;
 	char                      *name;
+	char                      *newname;
 	s4                         namelen;
 	char                      *utf_ptr;
 	char                      *utf_endptr;
@@ -769,11 +772,11 @@ functionptr native_resolve_function(methodinfo *m)
 		/* we didn't find the symbol yet, try to resolve an overloaded        */
 		/* function (having the types in it's name)                           */
 
-		name = native_make_overloaded_function(name, m->descriptor);
+		newname = native_make_overloaded_function(name, m->descriptor);
 
 		/* try to find the overloaded symbol */
 
-		sym = lt_dlsym(mainhandle, name);
+		sym = lt_dlsym(mainhandle, newname);
 	}
 
 	/* if symbol not found, check the library hash entries of the classloader */
@@ -789,10 +792,8 @@ functionptr native_resolve_function(methodinfo *m)
 		while (ne && !sym) {
 			sym = lt_dlsym(ne->handle, name);
 
-			if (!sym) {
-				name = native_make_overloaded_function(name, m->descriptor);
-				sym = lt_dlsym(ne->handle, name);
-			}
+			if (!sym)
+				sym = lt_dlsym(ne->handle, newname);
 
 			ne = ne->hashlink;
 		}
