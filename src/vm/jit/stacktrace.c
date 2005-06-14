@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2642 2005-06-13 13:37:57Z twisti $
+   $Id: stacktrace.c 2681 2005-06-14 17:14:44Z twisti $
 
 */
 
@@ -449,45 +449,37 @@ java_objectarray *cacao_createClassContextArray() {
 }
 
 
-static
-void classLoaderCollector(void **target, stackTraceBuffer *buffer) {
-        int i;
-        stacktraceelement *current;
-        stacktraceelement *start;
-        methodinfo *m;
-        size_t size;
+static void classLoaderCollector(void **target, stackTraceBuffer *buffer)
+{
+	stacktraceelement *current;
+	stacktraceelement *start;
+	methodinfo        *m;
+	ptrint             size;
+	s4                 i;
 
-        size = buffer->full;
+	size = buffer->full;
+	start = &(buffer->start[0]);
 
-        if (size > 1) {
-		size--;
-		start=&(buffer->start[1]);
-                if (start->method && (start->method->class == class_java_lang_SecurityManager)) {
-                        size--;
-                        start--;
-                }
-        } else {
-		start=0;
-		size=0;
-	}
+	for(i = 0, current = start; i < size; i++, current++) {
+		m = current->method;
 
-        for(i=0, current = start; i < size; i++, current++) {
-                m=current->method;
-		if (!m) continue;
+		if (!m)
+			continue;
 
-                if (m->class == class_java_security_PrivilegedAction) {
-			*target=NULL;
-                        return;
-		}
-
-                if (m->class->classloader) {
-                        *target= (java_lang_ClassLoader *) m->class->classloader;
+		if (m->class == class_java_security_PrivilegedAction) {
+			*target = NULL;
 			return;
 		}
-        }
 
-        *target=NULL;
+		if (m->class->classloader) {
+			*target = (java_lang_ClassLoader *) m->class->classloader;
+			return;
+		}
+	}
+
+	*target = NULL;
 }
+
 
 java_objectheader *cacao_currentClassLoader() {
 	java_objectheader *header=0;
