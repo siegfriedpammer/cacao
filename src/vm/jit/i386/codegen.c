@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2676 2005-06-13 16:20:32Z twisti $
+   $Id: codegen.c 2704 2005-06-14 23:52:50Z twisti $
 
 */
 
@@ -340,7 +340,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (runverbose) {
 		stack_off = 0;
-		int pa = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + parentargs_base * 4;
+		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + parentargs_base * 4;
 
 		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
@@ -354,20 +354,20 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, s1 + stack_off, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_mov_membase_reg(cd, REG_SP, pa + stack_off + 4, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, s1 + stack_off + 4, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
  				} else if (t == TYPE_ADR) {
 /* 				} else { */
-					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, REG_ITMP1);
+					i386_mov_membase_reg(cd, REG_SP, s1 + stack_off, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
  				} else {
- 					i386_mov_membase_reg(cd, REG_SP, pa + stack_off, EAX);
+ 					i386_mov_membase_reg(cd, REG_SP, s1 + stack_off, EAX);
  					i386_cltd(cd);
  					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
  					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
@@ -375,13 +375,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {
 				if (!IS_2_WORD_TYPE(t)) {
-					i386_flds_membase(cd, REG_SP, pa + stack_off);
+					i386_flds_membase(cd, REG_SP, s1 + stack_off);
 					i386_fstps_membase(cd, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
 					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
 
 				} else {
-					i386_fldl_membase(cd, REG_SP, pa + stack_off);
+					i386_fldl_membase(cd, REG_SP, s1 + stack_off);
 					i386_fstpl_membase(cd, REG_SP, p * 8);
 				}
 			}
@@ -4910,7 +4910,8 @@ gen_method:
 
 			if (iptr->target) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									(functionptr) iptr->target, iptr->val.a);
+									(functionptr) (ptrint) iptr->target,
+									iptr->val.a);
 
 				if (showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
