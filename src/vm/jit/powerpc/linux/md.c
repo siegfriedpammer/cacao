@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2682 2005-06-14 17:18:38Z twisti $
+   $Id: md.c 2688 2005-06-14 17:39:59Z twisti $
 
 */
 
@@ -62,7 +62,7 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 	java_objectheader *xptr;
 
  	uc = (ucontext_t *) _p;
- 	mc = _uc->uc_mcontext.uc_regs;
+ 	mc = uc->uc_mcontext.uc_regs;
 
 	act.sa_sigaction = catch_NullPointerException;
 	act.sa_flags = SA_SIGINFO;
