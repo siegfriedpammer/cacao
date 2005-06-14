@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2595 2005-06-08 11:06:07Z twisti $
+   $Id: VMSystemProperties.c 2689 2005-06-14 17:40:25Z twisti $
 
 */
 
@@ -130,6 +130,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	} u;
 
 #if !defined(STATIC_CLASSPATH)
+	char *ld_library_path;
 	char *libpath;
 	s4    libpathlen;
 #endif
@@ -211,16 +212,22 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* now fill java.library.path */
 
-	if (getenv("LD_LIBRARY_PATH")) {
-		libpathlen = strlen(getenv("LD_LIBRARY_PATH")) + 1;
+	ld_library_path = getenv("LD_LIBRARY_PATH");
+
+	if (ld_library_path) {
+		libpathlen = strlen(".:") + strlen(ld_library_path) + strlen("0");
 
 		libpath = MNEW(char, libpathlen);
 
-		strcat(libpath, getenv("LD_LIBRARY_PATH"));
+		strcpy(libpath, ".:");
+		strcat(libpath, ld_library_path);
 
 		insert_property(m, p, "java.library.path", libpath);
 
 		MFREE(libpath, char, libpathlen);
+
+	} else {
+		insert_property(m, p, "java.library.path", ".");
 	}
 #endif
 
