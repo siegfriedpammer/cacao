@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2644 2005-06-13 13:42:48Z twisti $
+   $Id: native.c 2690 2005-06-14 17:48:49Z twisti $
 
 */
 
@@ -1177,79 +1177,6 @@ for (i=0;i<NATIVECALLSSIZE; i++) {
 
 return true;
 }
-
-/*--------------------------------------------------------*/
-
-
-java_objectarray *builtin_asm_createclasscontextarray(classinfo **end, classinfo **start)
-{
-	/* XXX platform dependend */
-
-	java_objectarray *tmpArray;
-	int i;
-	classinfo **current;
-	classinfo *c;
-	size_t size;
-
-	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
-
-	/*printf("end %p, start %p, size %ld\n",end,start,size);*/
-
-	if (size > 0) {
-		if (*start == class_java_lang_SecurityManager) {
-			size--;
-			start--;
-		}
-	}
-
-	tmpArray = builtin_anewarray(size, class_java_lang_Class);
-
-	for(i = 0, current = start; i < size; i++, current--) {
-		c = *current;
-		/*		printf("%d\n",i);
-                utf_display(c->name);*/
-		use_class_as_object(c);
-		tmpArray->data[i] = (java_objectheader *) c;
-	}
-
-	return tmpArray;
-}
-
-
-java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end, classinfo **start)
-{
-	/* XXX platform dependend */
-
-	int i;
-	classinfo **current;
-	classinfo *c;
-	size_t size;
-
-	size = (((size_t) start) - ((size_t) end)) / sizeof(classinfo*);
-
-	/*	log_text("builtin_asm_getclassloader");
-        printf("end %p, start %p, size %ld\n",end,start,size);*/
-
-	if (size > 0) {
-		if (*start == class_java_lang_SecurityManager) {
-			size--;
-			start--;
-		}
-	}
-
-	for(i = 0, current = start; i < size; i++, current--) {
-		c = *current;
-
-		if (c == class_java_security_PrivilegedAction)
-			return NULL;
-
-		if (c->classloader)
-			return (java_lang_ClassLoader *) c->classloader;
-	}
-
-	return NULL;
-}
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

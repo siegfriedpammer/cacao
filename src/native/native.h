@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2644 2005-06-13 13:42:48Z twisti $
+   $Id: native.h 2690 2005-06-14 17:48:49Z twisti $
 
 */
 
@@ -116,11 +116,6 @@ java_objectarray* get_parametertypes(methodinfo *m);
 java_objectarray* get_exceptiontypes(methodinfo *m);
 classinfo *get_returntype(methodinfo *m);
 
-
-
-
-java_objectarray *builtin_asm_createclasscontextarray(classinfo **end,classinfo **start);
-java_lang_ClassLoader *builtin_asm_getclassloader(classinfo **end,classinfo **start);
 
 /*----- For Static Analysis of Natives by parseRT -----*/
 
