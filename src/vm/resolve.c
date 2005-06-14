@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2572 2005-06-06 15:36:12Z twisti $
+   $Id: resolve.c 2680 2005-06-14 17:14:08Z twisti $
 
 */
 
@@ -142,7 +142,8 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 
 		/* load the class */
 		if (!cls) {
-			if (!load_class_from_classloader(classname,referer->classloader,&cls))
+			if (!(cls = load_class_from_classloader(classname,
+													referer->classloader)))
 				return false; /* exception */
 		}
 	}

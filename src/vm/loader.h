@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2671 2005-06-13 14:29:42Z twisti $
+   $Id: loader.h 2680 2005-06-14 17:14:08Z twisti $
 */
 
 
@@ -168,12 +168,13 @@ inline u4 suck_u4(classbuffer *cb);
 void loader_close(void);
 
 /* class loading functions */
-bool load_class_from_sysloader(utf *name, classinfo **result);
-bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result);
+classinfo *load_class_from_sysloader(utf *name);
+classinfo *load_class_from_classloader(utf *name, java_objectheader *cl);
 classinfo *load_class_bootstrap(utf *name);
-/* (don't use the following directly:) */
+
+/* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
-bool load_newly_created_array(classinfo *c,java_objectheader *loader);
+bool load_newly_created_array(classinfo *c, java_objectheader *loader);
 
 /* search class for a field */
 fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);

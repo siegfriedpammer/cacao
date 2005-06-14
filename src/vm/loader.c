@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2671 2005-06-13 14:29:42Z twisti $
+   $Id: loader.c 2680 2005-06-14 17:14:08Z twisti $
 
 */
 
@@ -1852,28 +1852,24 @@ static bool load_attributes(classbuffer *cb, u4 num)
 	return true;
 }
 
+
 /* load_class_from_sysloader ***************************************************
 
    Load the class with the given name using the system class loader
 
    IN:
        name.............the classname
-	   
-
-   OUT:
-       *result..........set to the loaded class
 
    RETURN VALUE:
-       true.............everything ok
-	   false............an exception has been thrown
+       the loaded class
 
 *******************************************************************************/
 
-bool load_class_from_sysloader(utf *name,classinfo **result)
+classinfo *load_class_from_sysloader(utf *name)
 {
-	methodinfo *m;
+	methodinfo        *m;
 	java_objectheader *cl;
-	bool success;
+	classinfo         *r;
 
 #ifdef LOADER_VERBOSE
 	char logtext[MAXLOGTEXT];
@@ -1901,9 +1897,10 @@ bool load_class_from_sysloader(utf *name,classinfo **result)
 		return false;
 
 	LOADER_INC();
-	success = load_class_from_classloader(name,cl,result);
+	r = load_class_from_classloader(name, cl);
 	LOADER_DEC();
-	return success;
+
+	return r;
 }
 
 /* load_class_from_classloader *************************************************
@@ -1914,20 +1911,14 @@ bool load_class_from_sysloader(utf *name,classinfo **result)
        name.............the classname
 	   cl...............user-defined class loader
 	   
-
-   OUT:
-       *result..........set to the loaded class
-
    RETURN VALUE:
-       true.............everything ok
-	   false............an exception has been thrown
+       the loaded class
 
 *******************************************************************************/
 
-bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **result)
+classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 {
 	classinfo *r;
-	bool success;
 
 #ifdef LOADER_VERBOSE
 	char logtext[MAXLOGTEXT];
@@ -1942,19 +1933,18 @@ bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **r
 #endif
 
 	LOADER_ASSERT(name);
-	LOADER_ASSERT(result);
 
 	/* lookup if this class has already been loaded */
 
-	*result = classcache_lookup(cl, name);
+	r = classcache_lookup(cl, name);
 
 #ifdef LOADER_VERBOSE
 	if (*result)
 		dolog("        cached -> %p",(void*)(*result));
 #endif
 
-	if (*result)
-		return true;
+	if (r)
+		return r;
 
 	/* if other class loader than bootstrap, call it */
 
@@ -1963,9 +1953,14 @@ bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **r
 
 		/* handle array classes */
 		if (name->text[0] == '[') {
-			char *utf_ptr = name->text + 1;
-			int len = name->blength - 1;
+			char      *utf_ptr;
+			s4         len;
 			classinfo *comp;
+			utf       *u;
+
+			utf_ptr = name->text + 1;
+			len = name->blength - 1;
+
 			switch (*utf_ptr) {
 			case 'L':
 				utf_ptr++;
@@ -1973,22 +1968,23 @@ bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **r
 				/* FALLTHROUGH */
 			case '[':
 				/* load the component class */
+				u = utf_new(utf_ptr, len);
 				LOADER_INC();
-				if (!load_class_from_classloader(utf_new(utf_ptr,len),cl,&comp)) {
+				if (!(comp = load_class_from_classloader(u, cl))) {
 					LOADER_DEC();
 					return false;
 				}
 				LOADER_DEC();
 				/* create the array class */
-				*result = class_array_of(comp, false);
-				return (*result != 0);
+				r = class_array_of(comp, false);
+				return r;
 				break;
 			default:
 				/* primitive array classes are loaded by the bootstrap loader */
 				LOADER_INC();
-				*result = load_class_bootstrap(name);
+				r = load_class_bootstrap(name);
 				LOADER_DEC();
-				return (*result != NULL);
+				return r;
 			}
 		}
 		
@@ -2018,16 +2014,14 @@ bool load_class_from_classloader(utf *name, java_objectheader *cl, classinfo **r
 			r = NULL; /* exception */
 		}
 
-		*result = r;
-		return (r != NULL);
+		return r;
 	} 
 
 	LOADER_INC();
 	r = load_class_bootstrap(name);
 	LOADER_DEC();
 
-	*result = r;
-	return (r != NULL);
+	return r;
 }
 
 
@@ -2728,6 +2722,7 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 	constant_classref *classrefs;
 	s4                 namelen;
 	java_objectheader *definingloader = NULL;
+	utf               *u;
 
 #ifdef LOADER_VERBOSE
 	char logtext[MAXLOGTEXT];
@@ -2750,12 +2745,10 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. We have to create the component class. */
+
+		u = utf_new_intern(c->name->text + 1, namelen - 1);
 		LOADER_INC();
-		if (!load_class_from_classloader(utf_new_intern(c->name->text + 1,
-														namelen - 1),
-										 loader,
-										 &comp)) 
-		{
+		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
 			return false;
 		}
@@ -2774,12 +2767,10 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 			return false;
 		}
 
+		u = utf_new_intern(c->name->text + 2, namelen - 3);
+
 		LOADER_INC();
-		if (!load_class_from_classloader(utf_new_intern(c->name->text + 2,
-														namelen - 3),
-										 loader,
-										 &comp)) 
-		{
+		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
 			return false;
 		}
