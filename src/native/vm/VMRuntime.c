@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 2647 2005-06-13 13:56:42Z twisti $
+   $Id: VMRuntime.c 2696 2005-06-14 22:31:37Z twisti $
 
 */
 
@@ -255,7 +255,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
-	utf *name;
+	utf         *name;
+	lt_dlhandle  handle;
 
 	if (!filename) {
 		*exceptionptr = new_nullpointerexception();
@@ -270,10 +271,14 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	/* here it could be interesting to store the references in a list eg for  */
 	/* nicely cleaning up or for certain platforms */
 
-	if (lt_dlopenext(name->text))
-		return 1;
+	if (!(handle = lt_dlopenext(name->text)))
+		return 0;
 
-	return 0;
+	/* insert the library name into the library hash */
+
+	native_library_hash_add(name, loader, handle);
+
+	return 1;
 #endif
 }
 

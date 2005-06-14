@@ -28,13 +28,17 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2690 2005-06-14 17:48:49Z twisti $
+   $Id: native.h 2696 2005-06-14 22:31:37Z twisti $
 
 */
 
 
 #ifndef _NATIVE_H
 #define _NATIVE_H
+
+#if !defined(STATIC_CLASSPATH)
+# include "src/libltdl/ltdl.h"
+#endif
 
 #include "vm/class.h"
 #include "vm/global.h"
@@ -48,8 +52,29 @@
 
 /* table for locating native methods */
 
+typedef struct library_hash_loader_entry library_hash_loader_entry;
+typedef struct library_hash_name_entry library_hash_name_entry;
 typedef struct nativeref nativeref;
 typedef struct nativecompref nativecompref;
+
+
+/* library_hash_loader_entry **************************************************/
+
+struct library_hash_loader_entry {
+	java_objectheader         *loader;  /* class loader                       */
+	library_hash_name_entry   *namelink;/* libraries loaded by this loader    */
+	library_hash_loader_entry *hashlink;/* link for external chaining         */
+};
+
+
+/* library_hash_name_entry ****************************************************/
+
+struct library_hash_name_entry {
+	utf                     *name;      /* library name                       */
+	lt_dlhandle              handle;    /* libtool library handle             */
+	library_hash_name_entry *hashlink;  /* link for external chaining         */
+};
+
 
 struct nativeref {
 	char       *classname;
@@ -72,8 +97,12 @@ struct nativecompref {
 
 void use_class_as_object(classinfo *c);
 
-/* load classes required for native methods */
+/* initialize native subsystem */
 bool native_init(void);
+
+/* add a library to the library hash */
+void native_library_hash_add(utf *filename, java_objectheader *loader,
+							 lt_dlhandle handle);
 
 /* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, 

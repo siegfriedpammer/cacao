@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2690 2005-06-14 17:48:49Z twisti $
+   $Id: native.c 2696 2005-06-14 22:31:37Z twisti $
 
 */
 
@@ -279,6 +279,12 @@ static struct nativeCall nativeCalls[] =
 struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
 
+/* global variables ***********************************************************/
+
+static hashtable library_hash;
+static lt_dlhandle mainhandle;
+
+
 /* native_loadclasses **********************************************************
 
    Load classes required for native methods.
@@ -304,11 +310,141 @@ bool native_init(void)
 
 		return false;
 	}
+
+	/* get the handle for the main program */
+
+	if (!(mainhandle = lt_dlopen(NULL)))
+		return false;
+
+	/* initialize library hashtable, 10 entries should be enough */
+
+	init_hashtable(&library_hash, 10);
+
 #endif
 
 	/* everything's ok */
 
 	return true;
+}
+
+
+/* native_library_hash_add *****************************************************
+
+   Adds an entry to the native library hashtable.
+
+*******************************************************************************/
+
+void native_library_hash_add(utf *filename, java_objectheader *loader,
+							 lt_dlhandle handle)
+{
+	library_hash_loader_entry *le;
+	library_hash_name_entry   *ne;      /* library name                       */
+	u4   key;                           /* hashkey                            */
+	u4   slot;                          /* slot in hashtable                  */
+	u4   i;
+
+	key = (u4) (ptrint) loader;         /* we use the classinfo pointer       */
+	slot = key & (library_hash.size - 1);
+	le = library_hash.ptr[slot];
+
+	/* search external hash chain for the entry */
+
+	while (le) {
+		if (le->loader == loader)
+			break;
+
+		le = le->hashlink;                  /* next element in external chain */
+	}
+
+	/* no loader found? create a new entry */
+
+	if (!le) {
+		le = NEW(library_hash_loader_entry);
+
+		le->loader = loader;
+		le->namelink = NULL;
+
+		/* insert entry into hashtable */
+
+		le->hashlink = (library_hash_loader_entry *) library_hash.ptr[slot];
+		library_hash.ptr[slot] = le;
+
+		/* update number of hashtable-entries */
+
+		library_hash.entries++;
+	}
+
+
+	/* search for library name */
+
+	ne = le->namelink;
+
+	while (ne) {
+		if (ne->name->blength == filename->blength) {
+			for (i = 0; i < (u4) filename->blength; i++)
+				if (ne->name->text[i] != filename->text[i])
+					goto nomatch;
+
+			/* entry found in hashtable */
+
+			return;
+		}
+
+	nomatch:
+		ne = ne->hashlink;                  /* next element in external chain */
+	}
+
+	/* not found? add the library name to the classloader */
+
+	ne = NEW(library_hash_name_entry);
+
+	ne->name = filename;
+	ne->handle = handle;
+
+	/* insert entry into external chain */
+
+	ne->hashlink = le->namelink;
+	le->namelink = ne;
+
+
+	/* check for hashtable size */
+
+	if (library_hash.entries > (library_hash.size * 2)) {
+
+		/* reorganization of hashtable, average length of 
+		   the external chains is approx. 2                */
+
+		hashtable           newhash;                     /* the new hashtable */
+
+		/* create new hashtable, double the size */
+
+		init_hashtable(&newhash, library_hash.size * 2);
+		newhash.entries = library_hash.entries;
+
+		/* transfer elements to new hashtable */
+
+		for (i = 0; i < library_hash.size; i++) {
+			le = (library_hash_loader_entry *) library_hash.ptr[i];
+
+			while (le) {
+				library_hash_loader_entry *nextl = le->hashlink;
+				u4 newslot = ((u4) (ptrint) le) & (newhash.size - 1);
+
+				le->hashlink =
+					(library_hash_loader_entry *) newhash.ptr[newslot];
+
+				newhash.ptr[newslot] = le;
+
+				le = nextl;
+			}
+		}
+
+		/* dispose old table */
+
+		MFREE(library_hash.ptr, void *, library_hash.size);
+
+		library_hash = newhash;
+	}
 }
 
 
@@ -541,24 +677,18 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 
 functionptr native_resolve_function(methodinfo *m)
 {
-	lt_dlhandle  handle;
-	lt_ptr       sym;
-	char        *name;
-	s4           namelen;
-	char        *utf_ptr;
-	char        *utf_endptr;
-	s4           dumpsize;
-	s4           i;
+	lt_ptr                     sym;
+	char                      *name;
+	s4                         namelen;
+	char                      *utf_ptr;
+	char                      *utf_endptr;
+	s4                         dumpsize;
+	library_hash_loader_entry *le;
+	library_hash_name_entry   *ne;
+	u4                         key;     /* hashkey                            */
+	u4                         slot;    /* slot in hashtable                  */
+	u4                         i;
 
-	/* get the handle for the main program */
-
-	handle = lt_dlopen(NULL);
-
-	if (!handle) {
-		*exceptionptr =
-			new_internalerror("lt_dlopen: can't get handle for the main program");
-		return NULL;
-	}
 
 	/* calculate length of native function name */
 
@@ -633,11 +763,9 @@ functionptr native_resolve_function(methodinfo *m)
 	name[i] = '\0';
 
 
-	/* try to find the native function symbol */
+	/* try to find the native function symbol in the main program */
 
-	sym = lt_dlsym(handle, name);
-
-	if (!sym) {
+	if (!(sym = lt_dlsym(mainhandle, name))) {
 		/* we didn't find the symbol yet, try to resolve an overloaded        */
 		/* function (having the types in it's name)                           */
 
@@ -645,15 +773,37 @@ functionptr native_resolve_function(methodinfo *m)
 
 		/* try to find the overloaded symbol */
 
-		sym = lt_dlsym(handle, name);
+		sym = lt_dlsym(mainhandle, name);
+	}
 
-		if (!sym) {
-			*exceptionptr =
-				new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
-										 m->name);
-			return NULL;
+	/* if symbol not found, check the library hash entries of the classloader */
+	/* of the methods's class                                                 */
+
+	if (!sym) {
+		key = (u4) (ptrint) m->class->classloader;
+		slot = key & (library_hash.size - 1);
+		le = library_hash.ptr[slot];
+
+		ne = le->namelink;
+
+		while (ne && !sym) {
+			sym = lt_dlsym(ne->handle, name);
+
+			if (!sym) {
+				name = native_make_overloaded_function(name, m->descriptor);
+				sym = lt_dlsym(ne->handle, name);
+			}
+
+			ne = ne->hashlink;
 		}
 	}
+
+	/* no symbol found? throw exception */
+
+	if (!sym)
+		*exceptionptr =
+			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
+									 m->name);
 
 	/* release memory */
 
