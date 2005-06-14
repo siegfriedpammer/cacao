@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2661 2005-06-13 14:17:37Z twisti $
+   $Id: codegen.inc 2694 2005-06-14 18:35:52Z twisti $
 
 */
 
@@ -288,7 +288,7 @@ static s4 dseg_adds4(codegendata *cd, s4 value)
 }
 
 
-#if !defined(__I386__)
+#if !defined(__I386__) && !defined(__POWERPC__)
 static s4 dseg_adds8_increase(codegendata *cd, s8 value)
 {
 	dseg_increase(cd);
@@ -382,6 +382,7 @@ static void dseg_addtarget(codegendata *cd, basicblock *target)
 }
 
 
+#if defined(__I386__) || defined(__X86_64__)
 static void dseg_adddata(codegendata *cd, u1 *ptr)
 {
 	dataref *dr;
@@ -391,6 +392,7 @@ static void dseg_adddata(codegendata *cd, u1 *ptr)
 	dr->next = cd->datareferences;
 	cd->datareferences = dr;
 }
+#endif
 
 
 static void dseg_addlinenumbertablesize(codegendata *cd)
