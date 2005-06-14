@@ -3692,7 +3692,7 @@ foreachfile_callback (dirname, data1, data2)
      lt_ptr data2;
 {
   int (*func) LT_PARAMS((const char *filename, lt_ptr data))
-	= (int (*) LT_PARAMS((const char *filename, lt_ptr data))) data1;
+	= (int (*) LT_PARAMS((const char *filename, lt_ptr data))) (long) data1;
 
   int	  is_done  = 0;
   char   *argz     = 0;
@@ -3736,34 +3736,36 @@ lt_dlforeachfile (search_path, func, data)
       /* If a specific path was passed, search only the directories
 	 listed in it.  */
       is_done = foreach_dirinpath (search_path, 0,
-				   foreachfile_callback, (void *) func, data);
+				   foreachfile_callback, (void *) (long) func,
+                                   data);
     }
   else
     {
       /* Otherwise search the default paths.  */
       is_done = foreach_dirinpath (user_search_path, 0,
-				   foreachfile_callback, (void *) func, data);
+				   foreachfile_callback, (void *) (long) func,
+                                   data);
       if (!is_done)
 	{
 	  is_done = foreach_dirinpath (getenv("LTDL_LIBRARY_PATH"), 0,
-				       foreachfile_callback, (void *) func,
-				       data);
+				       foreachfile_callback,
+                                       (void *) (long) func, data);
 	}
 
 #ifdef LTDL_SHLIBPATH_VAR
       if (!is_done)
 	{
 	  is_done = foreach_dirinpath (getenv(LTDL_SHLIBPATH_VAR), 0,
-				       foreachfile_callback, (void *) func,
-				       data);
+				       foreachfile_callback,
+                                       (void *) (long) func, data);
 	}
 #endif
 #ifdef LTDL_SYSSEARCHPATH
       if (!is_done)
 	{
 	  is_done = foreach_dirinpath (getenv(LTDL_SYSSEARCHPATH), 0,
-				       foreachfile_callback, (void *) func,
-				       data);
+				       foreachfile_callback,
+                                       (void *) (long) func, data);
 	}
 #endif
     }
