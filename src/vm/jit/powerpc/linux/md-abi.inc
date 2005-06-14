@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.inc 2539 2005-05-31 15:55:54Z twisti $
+   $Id: md-abi.inc 2685 2005-06-14 17:25:01Z twisti $
 
 */
 
@@ -42,7 +42,8 @@
 /* register descripton array **************************************************/
 
 static int nregdescint[] = {
-	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+/*  	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, */
+	REG_RES, REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
