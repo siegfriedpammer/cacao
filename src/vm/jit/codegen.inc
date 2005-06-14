@@ -47,13 +47,16 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2694 2005-06-14 18:35:52Z twisti $
+   $Id: codegen.inc 2699 2005-06-14 23:29:32Z twisti $
 
 */
 
 
 #include <assert.h>
 #include <string.h>
+
+#include "config.h"
+#include "types.h"
 
 #include "disass.h"
 
@@ -71,9 +74,11 @@
 #endif
 
 #include "vm/exceptions.h"
+#include "vm/method.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
+#include "vm/jit/jit.h"
 
 #undef JWDEBUG_X86
 
@@ -96,7 +101,7 @@ static int methodtree_comparator(const void *pc, const void *element,
 
 *******************************************************************************/
 
-void codegen_init()
+void codegen_init(void)
 {
 #if defined(__I386__) || defined(__X86_64__)
 	/* this tree is global, not method specific */
@@ -219,7 +224,7 @@ void codegen_free(methodinfo *m, codegendata *cd)
 
 *******************************************************************************/
 
-void codegen_close()
+void codegen_close(void)
 {
 	/* TODO: release avl tree on i386 and x86_64 */
 }
@@ -251,10 +256,8 @@ static void dseg_increase(codegendata *cd)
 
 	newstorage = DMNEW(u1, cd->dsegsize * 2);
 
-	memcpy(newstorage + cd->dsegsize, cd->dsegtop - cd->dsegsize, cd->dsegsize);
-#if 0
-	MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
-#endif
+	MCOPY(newstorage + cd->dsegsize, cd->dsegtop - cd->dsegsize, u1,
+		  cd->dsegsize);
 
 	cd->dsegtop = newstorage;
 	cd->dsegsize *= 2;
