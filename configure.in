@@ -28,7 +28,6 @@ arm )
 
 i386 | i486 | i586 | i686 )
 	ARCH_DIR="i386"
-        STATIC_CLASSPATH="0"
 	CFLAGS="-D__I386__ $CFLAGS"
 	;;
 
@@ -47,13 +46,11 @@ dnl	LDFLAGS="-mabi=64"
 
 powerpc )
 	ARCH_DIR="powerpc"
-        STATIC_CLASSPATH="1"
 	CFLAGS="-D__POWERPC__"
 	;;
 
 x86_64 )
 	ARCH_DIR="x86_64"
-        STATIC_CLASSPATH="0"
 	CFLAGS="-D__X86_64__"
 	;;
 
