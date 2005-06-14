@@ -28,13 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2633 2005-06-10 18:22:29Z twisti $
+## $Id: Makefile.am 2702 2005-06-14 23:39:42Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
 
 SUBDIRS = @OS_DIR@
+
+DIST_SUBDIRS = darwin linux
 
 AM_CCASFLAGS = $(INCLUDES)
 
