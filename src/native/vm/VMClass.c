@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2655 2005-06-13 14:12:34Z twisti $
+   $Id: VMClass.c 2687 2005-06-14 17:29:18Z twisti $
 
 */
 
@@ -924,7 +924,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv 
 
 	/* load the array class */
 
-	if (!load_class_from_classloader(u,(java_objectheader*)classloader,&c))
+	if (!(c = load_class_from_classloader(u, (java_objectheader *)classloader)))
 		return NULL;
 
 	use_class_as_object(c);
