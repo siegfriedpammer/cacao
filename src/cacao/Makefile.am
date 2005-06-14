@@ -28,11 +28,21 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2670 2005-06-13 14:28:37Z twisti $
+## $Id: Makefile.am 2678 2005-06-14 16:08:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+
+if DISABLE_GC
+if NATIVE_THREADS
+GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
+else
+GC_LIB =
+endif
+else
+GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
+endif
 
 if USE_THREADS
 if NATIVE_THREADS
@@ -96,7 +106,7 @@ cacao_SOURCES = \
 
 cacao_LDADD = \
 	libcacao.la \
-	$(top_builddir)/src/boehm-gc/libgc.la \
+	$(GC_LIB) \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = $(cacao_LDADD)

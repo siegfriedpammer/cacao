@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 2510 2005-05-23 10:19:31Z twisti $
+   $Id: nogc.c 2678 2005-06-14 16:08:58Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 
 
@@ -96,24 +97,6 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
-	size_t heapcurrentsize;
-
-	GC_INIT();
-
-	/* set the maximal heap size */
-	GC_set_max_heap_size(heapmaxsize);
-
-	/* set the initial heap size */
-	heapcurrentsize = GC_get_heap_size();
-	if (heapstartsize > heapcurrentsize) {
-		GC_expand_hp(heapstartsize - heapcurrentsize);
-	}
-
-	/* define OOM function */
-/*  	GC_oom_fn = gc_out_of_memory; */
-
-	/* suppress warnings */
-	GC_set_warn_proc(gc_ignore_warnings);
 }
 
 
