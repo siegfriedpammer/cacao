@@ -99,19 +99,11 @@ AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
 
 
-dnl define install prefix
-if test "x$prefix" = xNONE; then
-	CACAO_INSTALL_PREFIX=$ac_default_prefix
-else
-	CACAO_INSTALL_PREFIX=$prefix
-fi
-AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [Installation prefix])
-AC_SUBST(CACAO_INSTALL_PREFIX)
-
-
 dnl Checks for programs.
 AC_PROG_CC
 AM_PROG_AS
+AC_PROG_LD
+AC_PROG_LD_GNU
 AC_PROG_RANLIB
 AC_DISABLE_SHARED
 AC_PROG_LN_S
@@ -197,6 +189,25 @@ if test $ac_cv_func_mmap_fixed_mapped = yes; then
 		AC_DEFINE([HAVE_MAP_ANON], 1, [Define if <sys/mman.h> defines MAP_ANON])
 	fi
 fi
+
+
+dnl check which ld flags are required to export symbols
+if test x"$with_gnu_ld" = "xyes"; then
+	EXPORT_SYMBOLS_FLAGS="-Wl,--export-dynamic"
+else
+	EXPORT_SYMBOLS_FLAGS=""
+fi
+AC_SUBST(EXPORT_SYMBOLS_FLAGS)
+
+
+dnl define install prefix
+if test "x$prefix" = "xNONE"; then
+	CACAO_INSTALL_PREFIX=$ac_default_prefix
+else
+	CACAO_INSTALL_PREFIX=$prefix
+fi
+AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [Installation prefix])
+AC_SUBST(CACAO_INSTALL_PREFIX)
 
 
 dnl Features
