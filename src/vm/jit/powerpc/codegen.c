@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2686 2005-06-14 17:28:36Z twisti $
+   $Id: codegen.c 2693 2005-06-14 18:34:47Z twisti $
 
 */
 
@@ -89,18 +89,18 @@ void thread_restartcriticalsection(void *u)
 
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	s4              len, s1, s2, s3, d;
-	ptrint          a;
-	s4              parentargs_base;
-	s4             *mcodeptr;
-	stackptr        src;
-	varinfo        *var;
-	basicblock     *bptr;
-	instruction    *iptr;
-	exceptiontable *ex;
-	methodinfo     *lm;                 /* local methodinfo for ICMD_INVOKE*  */
+	s4                  len, s1, s2, s3, d, off;
+	ptrint              a;
+	s4                  parentargs_base;
+	s4                 *mcodeptr;
+	stackptr            src;
+	varinfo            *var;
+	basicblock         *bptr;
+	instruction        *iptr;
+	exceptiontable     *ex;
+	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
-	methoddesc     *md;
+	methoddesc         *md;
 
 	{
 	s4 i, p, t, l;
@@ -1925,7 +1925,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			M_BR(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			ALIGNCODENOP;
 			break;
 
@@ -1938,7 +1938,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_IADD_IMM(REG_ITMP1, m->isleafmethod ? 16 : 12, REG_ITMP1);
 			if (m->isleafmethod) M_MTLR(REG_ITMP2);
 			M_BR(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_RET:          /* ... ==> ...                                */
@@ -1960,7 +1960,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_TST(s1);
 			M_BEQ(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
@@ -1969,7 +1969,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_TST(s1);
 			M_BNE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IFLT:
@@ -2009,7 +2009,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_BEQ(0);
 					break;
 				}
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 
@@ -2035,7 +2035,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BEQ(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -2050,7 +2050,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BLT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
 
@@ -2058,13 +2058,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
 				M_BLT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(3);
   				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BLT(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
@@ -2080,7 +2080,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BLT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
 
@@ -2088,13 +2088,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
 				M_BLT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(3);
   				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BLE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
@@ -2119,7 +2119,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BNE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -2135,7 +2135,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BGT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
 
@@ -2143,13 +2143,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
 				M_BGT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(3);
   				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BGT(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 			
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
@@ -2164,7 +2164,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BGT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
 
@@ -2172,13 +2172,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
 				M_BGT(0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(3);
   				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
 				M_CMP(s1, REG_ITMP3)
 			}
 			M_BGE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 			/* CUT: alle _L */
@@ -2190,7 +2190,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BEQ(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
@@ -2201,7 +2201,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BNE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
@@ -2211,7 +2211,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BLT(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
@@ -2221,7 +2221,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BGT(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
@@ -2231,7 +2231,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BLE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
@@ -2241,7 +2241,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
 			M_BGE(0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
@@ -3117,7 +3117,7 @@ gen_method:
 	{
 	/* generate bound check stubs */
 
-	s4 *xcodeptr = NULL;
+	s4        *xcodeptr = NULL;
 	branchref *bref;
 
 	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
@@ -3132,7 +3132,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			off = xcodeptr - mcodeptr - 1;
+			M_BR(off);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3180,7 +3181,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			off = xcodeptr - mcodeptr - 1;
+			M_BR(off);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3226,7 +3228,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			off = xcodeptr - mcodeptr - 1;
+			M_BR(off);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3272,7 +3275,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			off = xcodeptr - mcodeptr - 1;
+			M_BR(off);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3330,7 +3334,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			off = xcodeptr - mcodeptr - 1;
+			M_BR(off);
 
 		} else {
 			xcodeptr = mcodeptr;

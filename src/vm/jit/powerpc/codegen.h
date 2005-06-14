@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 2540 2005-05-31 16:01:11Z twisti $
+   $Id: codegen.h 2693 2005-06-14 18:34:47Z twisti $
 
 */
 
@@ -46,10 +46,7 @@
 
 /* additional functions and macros to generate code ***************************/
 
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
-
-#ifdef STATISTICS
+#if defined(STATISTICS)
 #define COUNT_SPILLS count_spills++
 #else
 #define COUNT_SPILLS
@@ -229,14 +226,14 @@
 #define M_OP2_IMM(x,d,a,i) \
 	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff))
 
-#define M_BRMASK (((1 << 16) - 1) & ~3)
-#define M_BRAMASK (((1 << 26) - 1) & ~3)
+#define M_BRMASK     0x0000fffc                     /* (((1 << 16) - 1) & ~3) */
+#define M_BRAMASK    0x03fffffc                     /* (((1 << 26) - 1) & ~3) */
 
 #define M_BRA(x,i,a,l) \
-	*(mcodeptr++) = (((x) << 26) | (((i) * 4 + 4) & M_BRAMASK) | ((a) << 1) | (l));
+	*(mcodeptr++) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l))
 
 #define M_BRAC(x,bo,bi,i,a,l) \
-	*(mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l));
+	*(mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l))
 
 
 /* instruction macros *********************************************************/
