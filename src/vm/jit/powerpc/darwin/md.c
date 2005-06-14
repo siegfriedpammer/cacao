@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2636 2005-06-10 18:43:20Z twisti $
+   $Id: md.c 2684 2005-06-14 17:23:36Z twisti $
 
 */
 
@@ -47,6 +47,12 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
+
+/* cacao_catch_Handler *********************************************************
+
+   XXX
+
+*******************************************************************************/
 
 int cacao_catch_Handler(mach_port_t thread)
 {
@@ -102,6 +108,18 @@ int cacao_catch_Handler(mach_port_t thread)
 #endif
 
 	return 0;
+}
+
+
+/* init_exceptions *************************************************************
+
+   Initialize signals for hardware exception checks.
+
+*******************************************************************************/
+
+void init_exceptions(void)
+{
+	GC_dirty_init(1);
 }
 
 
