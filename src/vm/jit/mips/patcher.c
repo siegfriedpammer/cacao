@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2624 2005-06-09 20:35:21Z twisti $
+   $Id: patcher.c 2708 2005-06-15 13:44:10Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 #include "config.h"
 #include "vm/jit/mips/types.h"
 
+#include "mm/memory.h"
+#include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
@@ -1051,6 +1053,73 @@ bool patcher_clinit(u1 *sp)
 
 	*((u4 *) (ra + 0)) = mcode;
 	*((u4 *) (ra + 4)) = mcode >> 32;
+
+	/* synchronize instruction cache */
+
+	docacheflush(ra, 2 * 4);
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return true;
+}
+
+
+/* patcher_resolve_native ******************************************************
+
+   XXX
+
+*******************************************************************************/
+
+bool patcher_resolve_native(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u8                 mcode;
+	methodinfo        *m;
+	u1                *pv;
+	functionptr        f;
+	s2                 offset;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
+	mcode =                       *((u8 *)     (sp + 1 * 8));
+	m     = (methodinfo *)        *((ptrint *) (sp + 0 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+
+	PATCHER_MONITORENTER;
+
+	/* resolve native function */
+
+	if (!(f = native_resolve_function(m))) {
+		PATCHER_MONITOREXIT;
+
+		return false;
+	}
+
+	/* patch back original code */
+
+	*((u4 *) (ra + 0 * 4)) = mcode;
+	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (showdisassemble)
+		ra = ra + 2 * 4;
+
+	/* get the offset from machine instruction */
+
+	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
+
+	/* patch native function pointer */
+
+	*((ptrint *) (pv + offset)) = (ptrint) f;
 
 	/* synchronize instruction cache */
 
