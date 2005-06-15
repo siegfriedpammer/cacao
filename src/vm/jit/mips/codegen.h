@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 2628 2005-06-09 20:39:37Z twisti $
+   $Id: codegen.h 2715 2005-06-15 14:13:23Z twisti $
 
 */
 
@@ -499,6 +499,7 @@
 #define M_AST(a,b,disp)         M_LST(a,b,disp)
 #define M_AADD(a,b,c)           M_LADD(a,b,c)
 #define M_AADD_IMM(a,b,c)       M_LADD_IMM(a,b,c)
+#define M_ASUB_IMM(a,b,c)       M_LSUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_LSLL_IMM(a,b,c)
 #define M_LDA(a,b,disp)         M_LADD_IMM(b,disp,a)            /* a = b+disp */
 
@@ -510,6 +511,7 @@
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AADD(a,b,c)           M_IADD(a,b,c)
 #define M_AADD_IMM(a,b,c)       M_IADD_IMM(a,b,c)
+#define M_ASUB_IMM(a,b,c)       M_ISUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
 #define M_LDA(a,b,disp)         M_IADD_IMM(b,disp,a)            /* a = b+disp */
 
