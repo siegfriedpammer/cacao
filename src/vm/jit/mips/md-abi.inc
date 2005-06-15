@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.inc 2631 2005-06-09 21:23:11Z twisti $
+   $Id: md-abi.inc 2713 2005-06-15 14:10:47Z twisti $
 
 */
 
@@ -36,10 +36,16 @@
 #ifndef _MD_ABI_INC
 #define _MD_ABI_INC
 
+#include "config.h"
+
 #include "vm/jit/jit.h"
 
 
 /* register descripton array **************************************************/
+
+#if SIZEOF_VOID_P == 8
+
+/* MIPS64 */
 
 static int nregdescint[] = {
 	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
@@ -56,6 +62,38 @@ static int nregdescfloat[] = {
 	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
 	REG_END
 };
+
+#else /* SIZEOF_VOID_P == 8 */
+
+/* MIPS32 */
+
+static int nregdescint[] = {
+	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END
+};
+
+#if 1
+
+static int nregdescfloat[] = {
+	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+	REG_END
+};
+
+#else
+
+static int nregdescfloat[] = {
+	REG_END
+};
+
+#endif
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 #endif /* _MD_ABI_INC */
 

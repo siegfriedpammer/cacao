@@ -28,13 +28,16 @@
 
    Changes:
 
-   $Id: md-abi.h 2631 2005-06-09 21:23:11Z twisti $
+   $Id: md-abi.h 2713 2005-06-15 14:10:47Z twisti $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
+
+#include "config.h"
+
 
 /* preallocated registers *****************************************************/
 
@@ -47,13 +50,6 @@
 #define REG_ITMP1       1    /* temporary register                            */
 #define REG_ITMP2       3    /* temporary register and method pointer         */
 #define REG_ITMP3       25   /* temporary register                            */
-
-#define REG_ARG_0       4    /* argument register                             */
-#define REG_ARG_1       5    /* argument register                             */
-#define REG_ARG_2       6    /* argument register                             */
-#define REG_ARG_3       7    /* argument register                             */
-#define REG_ARG_4       8    /* argument register                             */
-#define REG_ARG_5       9    /* argument register                             */
 
 #define REG_RA          31   /* return address                                */
 #define REG_SP          29   /* stack pointer                                 */
@@ -77,6 +73,10 @@
 #define REG_IFTMP       1    /* temporary integer and floating point register */
 
 
+#if SIZEOF_VOID_P == 8
+
+/* MIPS64 defines */
+
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
 #define INT_ARG_CNT     8    /* number of int argument registers              */
@@ -90,6 +90,38 @@
 #define FLT_RES_CNT     3    /* number of float reserved registers            */
 
 #define TRACE_ARGS_NUM  8
+
+#else /* SIZEOF_VOID_P == 8 */
+
+/* MIPS32 defines */
+
+#define INT_REG_CNT     32   /* number of integer registers                   */
+#define INT_SAV_CNT     8    /* number of int callee saved registers          */
+#define INT_ARG_CNT     4    /* number of int argument registers              */
+#define INT_TMP_CNT     9    /* number of integer temporary registers         */
+#define INT_RES_CNT     3    /* number of integer reserved registers          */
+
+#if 0
+
+#define FLT_REG_CNT     32   /* number of float registers                     */
+#define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
+#define FLT_ARG_CNT     8    /* number of flt argument registers              */
+#define FLT_TMP_CNT     15   /* number of float temporary registers           */
+#define FLT_RES_CNT     3    /* number of float reserved registers            */
+
+#else
+
+#define FLT_REG_CNT     0    /* number of float registers                     */
+#define FLT_SAV_CNT     0    /* number of flt callee saved registers          */
+#define FLT_ARG_CNT     0    /* number of flt argument registers              */
+#define FLT_TMP_CNT     0    /* number of float temporary registers           */
+#define FLT_RES_CNT     0    /* number of float reserved registers            */
+
+#endif
+
+#define TRACE_ARGS_NUM  4
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 #endif /* _MD_ABI_H */
 
