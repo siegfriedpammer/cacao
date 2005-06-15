@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2627 2005-06-09 20:39:00Z twisti $
+   $Id: asmpart.S 2714 2005-06-15 14:12:59Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 	.set    noat
 
 
-/********************* exported functions and variables ***********************/
+/* exported functions and variables *******************************************/
 
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction_int
@@ -64,15 +64,11 @@
 	.globl asm_builtin_arraycheckcast
 	.globl asm_builtin_aastore
 
-#if defined(USE_THREADS)
-	.globl asm_builtin_monitorenter
-	.globl asm_builtin_monitorexit
-#endif
-
 	.globl asm_builtin_idiv
 	.globl asm_builtin_irem
 	.globl asm_builtin_ldiv
 	.globl asm_builtin_lrem
+
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
@@ -120,11 +116,12 @@
 asm_calljavafunction:
 asm_calljavafunction_int:
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
-	sd      ra,0(sp)                  /* save return address                  */
+	ast     ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
+
 	bal     call_java_pc
-	sd      pv,3*8(sp)                /* procedure vector                     */
+	ast     pv,3*8(sp)                /* procedure vector (delay slot)        */
 call_java_pc:
 	aaddiu  pv,ra,-4*4
 
@@ -136,8 +133,8 @@ call_java_pc:
 	sdc1    fss3,7*8(sp)
 	sdc1    fss4,8*8(sp)
 	sdc1    fss5,9*8(sp)
-	sd      a0,2*8(sp)                /* save method pointer for compiler     */
-	aaddiu  itmp1,sp,16               /* pass pointer to methodptr via itmp1  */
+
+	move    itmp1,a0                  /* pass method pointer via tmp1         */
 
 	move    a0,a1                     /* pass the remaining parameters        */
 	move    a1,a2
@@ -153,13 +150,13 @@ call_java_pc:
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
-	aaddiu  pv,ra,-23*4               /* recompute procedure vector           */
+	aaddiu  pv,ra,-22*4               /* recompute procedure vector           */
 
 	.set    reorder
 
 calljava_return:
-	ld      ra,0(sp)                  /* restore return address               */
-	ld      pv,3*8(sp)                /* restore procedure vector             */
+	ald     ra,0(sp)                  /* restore return address               */
+	ald     pv,3*8(sp)                /* restore procedure vector             */
 
 	ldc1    fss0,4*8(sp)              /* restore non JavaABI saved flt regs   */
 	ldc1    fss1,5*8(sp)
@@ -167,6 +164,7 @@ calljava_return:
 	ldc1    fss3,7*8(sp)
 	ldc1    fss4,8*8(sp)
 	ldc1    fss5,9*8(sp)
+
 	aaddiu  sp,sp,10*8                /* free stack space                     */
 	j       ra                        /* return                               */
 
@@ -201,14 +199,14 @@ asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
-	sd      ra,0(sp)                  /* save return address                  */
+	ast     ra,0(sp)                  /* save return address                  */
 
 	.set    noreorder
 	bal     call_java_pc2
-	sd      pv,1*8(sp)                /* procedure vector                     */
+	ast     pv,1*8(sp)                /* procedure vector                     */
 call_java_pc2:
 	aaddiu  pv,ra,-4*4
-	sd      s7,3*8(sp)
+	ast     s7,3*8(sp)
 
 	.set    reorder
 	
@@ -218,7 +216,9 @@ call_java_pc2:
 	sdc1    fss3,8*8(sp)
 	sdc1    fss4,9*8(sp)
 	sdc1    fss5,10*8(sp)
-	sd      a0,4*8(sp)                /* save method pointer for compiler     */
+
+	ast     a0,4*8(sp)                /* save method pointer for compiler     */
+
 	move    t0,a3
 	move    s7,a1
 
@@ -263,12 +263,12 @@ call_java_pc2:
 	daddi   s7,s7,-1
 		
 calljava_argsloaded:
-    move    t8,sp
+	move    t8,sp                      /* save stack pointer                  */
 	blez    s7,calljava_nocopy
 	subu    t1,zero,s7
 	sll     t2,t1,3
-	daddu   sp,sp,t2
-	daddu   t2,t2,t8
+	aaddu   sp,sp,t2
+	aaddu   t2,t2,t8
 
 calljava_copyloop:
     ald     t3,offjniitem+sizejniblock*8(t0)
@@ -279,7 +279,7 @@ calljava_copyloop:
 	bnez    t1,calljava_copyloop
 
 calljava_nocopy:
-	ala     itmp1,32(t8)              /* pass pointer to methodptr via itmp1  */
+	ald     itmp1,4*8(t8)             /* pass method pointer via itmp1        */
 
 	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
 	ast     mptr,16(sp)               /* store function address               */
@@ -295,9 +295,9 @@ calljava_nocopy:
 	.set    reorder
 
 calljava_return2:
-	ld      ra,0(sp)                  /* restore return address               */
-	ld      pv,8(sp)                  /* restore procedure vector             */
-	ld      s7,24(sp)
+	ald     ra,0(sp)                  /* restore return address               */
+	ald     pv,8(sp)                  /* restore procedure vector             */
+	ald     s7,3*8(sp)
 
 	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
 	ldc1    fss1,6*8(sp)
@@ -305,11 +305,12 @@ calljava_return2:
 	ldc1    fss3,8*8(sp)
 	ldc1    fss4,9*8(sp)
 	ldc1    fss5,10*8(sp)
+
 	aaddiu  sp,sp,12*8                /* free stack space                     */
 	j       ra                        /* return                               */
 
 calljava_xhandler2:
-    sll     s7,s7,3
+	asll    s7,s7,3
 	aaddu   sp,s7,sp
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
@@ -358,44 +359,17 @@ asm_call_jit_compiler:
 
 noregchange:
 	aaddiu  sp,sp,-18*8           /* allocate stack space                     */
-	sd      a0,0*8(sp)            /* save all argument registers              */
-	sd      a1,1*8(sp)            /* they could be used by method             */
-	sd      a2,2*8(sp)
-	sd      a3,3*8(sp)
-	sd      a4,4*8(sp)
-	sd      a5,5*8(sp)
-	sd      a6,6*8(sp)
-	sd      a7,7*8(sp)
-	sdc1    fa0,8*8(sp)
-	sdc1    fa1,9*8(sp)
-	sdc1    fa2,10*8(sp)
-	sdc1    fa3,11*8(sp)
-	sdc1    fa4,12*8(sp)
-	sdc1    fa5,13*8(sp)
-	sdc1    fa6,14*8(sp)
-	sdc1    fa7,15*8(sp)
+
+	SAVE_ARGUMENT_REGISTERS(0)
+
 	sd      mptr,16*8(sp)         /* save method pointer                      */
 	sd      ra,17*8(sp)           /* save return address                      */
 
-	ald     a0,0(itmp1)           /* pass 'methodinfo' pointer to             */
+	move    a0,itmp1              /* pass 'methodinfo' pointer to             */
 	jal     jit_compile           /* jit compiler                             */
 
-	ld      a0,0*8(sp)            /* restore argument registers               */
-	ld      a1,1*8(sp)            /* they could be used by method             */
-	ld      a2,2*8(sp)
-	ld      a3,3*8(sp)
-	ld      a4,4*8(sp)
-	ld      a5,5*8(sp)
-	ld      a6,6*8(sp)
-	ld      a7,7*8(sp)
-	ldc1    fa0,8*8(sp)
-	ldc1    fa1,9*8(sp)
-	ldc1    fa2,10*8(sp)
-	ldc1    fa3,11*8(sp)
-	ldc1    fa4,12*8(sp)
-	ldc1    fa5,13*8(sp)
-	ldc1    fa6,14*8(sp)
-	ldc1    fa7,15*8(sp)
+	RESTORE_ARGUMENT_REGISTERS(0)
+
 	ld      mptr,16*8(sp)         /* restore method pointer                   */
 	ld      ra,17*8(sp)           /* restore return address                   */
 	aaddiu  sp,sp,18*8            /* deallocate stack area                    */
@@ -416,16 +390,16 @@ noregchange:
 
 L_asm_call_jit_compiler_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
+	aaddiu  sp,sp,-2*8
+	ast     ra,0*8(sp)
 	jal     builtin_asm_get_exceptionptrptr
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
+	ald     ra,0*8(sp)
+	aaddiu  sp,sp,2*8
 #else
 	la      v0,_exceptionptr
 #endif
-	ld      xptr,0(v0)            /* get the exception pointer                */
-	sd      zero,0(v0)            /* clear the exception pointer              */
+	ald     xptr,0(v0)            /* get the exception pointer                */
+	ast     zero,0(v0)            /* clear the exception pointer              */
 
 	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
 	b       asm_handle_nat_exception
@@ -457,6 +431,7 @@ asm_handle_nat_exception:
 
 asm_handle_exception:
 	aaddiu  sp,sp,-14*8           /* allocate stack                           */
+
 	sd      v0,0*8(sp)            /* save possible used registers             */
 	sd      t0,1*8(sp)            /* also registers used by trace_exception   */
 	sd      t1,2*8(sp)
@@ -750,127 +725,9 @@ L_asm_wrapper_patcher_exception:
 	sd      zero,0(v0)            /* clear the exception pointer              */
 	b       asm_handle_exception
 
-#if 0
-	                              /* check if class is initialized            */
-	lw      itmp3,offclassinit(itmp1)
-	bnez    itmp3,L_is_initialized
-	
-	move    a0,itmp1              /* move class pointer to a0                 */
-	jal     initialize_class
-		
-	beqz    v0,L_initializererror
-
-L_is_initialized:
-	ld      itmp1,(16+21+1)*8(sp) /* get machine code                         */
-	ld      ra,(16+21+2)*8(sp)    /* load method return address (for leafs)   */
-
-	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
-	sw      itmp1,0(ra)           /* patch first instruction                  */
-	dsrl32  itmp1,itmp1,0         /* get high 32 bit                          */
-	sw      itmp1,4(ra)           /* patch second instruction                 */
-
-	move    a0,ra                 /* start of flush area                      */
-	addiu   a1,zero,2*4           /* 2 instruction words long                 */
-	jal     docacheflush          /* flush!                                   */
-	
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(16)/* restore 5 int/16 float temporary reg.   */
-
-	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
-	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
-	ld      ra,(16+21+2)*8(sp)    /* restore method return address (for leafs)*/
-	ld      pv,(16+21+3)*8(sp)    /* restore pv of calling java function      */
-
-	daddiu  sp,sp,(16+21+4+1)*8   /* remove stack frame                       */
-
-	daddiu  ra,ra,-2*4            /* go back 2 instructions (jal + nop delay) */
-	jr      ra
-
-L_initializererror:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	jal     builtin_asm_get_exceptionptrptr
-#else
-	la      v0,_exceptionptr
-#endif
-	ld      xptr,0(v0)            /* get the exception pointer                */
-	sd      zero,0(v0)            /* clear the exception pointer              */
-
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(16)/* restore 5 int/16 float temporary reg.   */
-
-	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
-	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
-	ld      ra,(16+21+2)*8(sp)    /* restore method return address (for leafs)*/
-	ld      pv,(16+21+3)*8(sp)    /* restore pv of calling java function      */
-
-	daddiu  sp,sp,(16+21+4+1)*8   /* remove stack frame                       */
-
-	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
-	b       asm_handle_exception
-#endif
-
 	.end	asm_wrapper_patcher
 
 		
-/********************* function asm_builtin_monitorenter ***********************
-*                                                                              *
-*   Does null check and calls monitorenter or throws an exception              *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-	.ent    asm_builtin_monitorenter
-
-asm_builtin_monitorenter:
-	beqz    a0,nb_monitorenter        /* if (null) throw exception            */
-	ala     t9,builtin_monitorenter   /* else call builtin_monitorenter       */
-	j       t9
-
-nb_monitorenter:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	ald     a0,string_java_lang_NullPointerException
-	jal     new_exception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_monitorenter
-#endif
-
-
-/********************* function asm_builtin_monitorexit ************************
-*                                                                              *
-*   Does null check and calls monitorexit or throws an exception               *
-*                                                                              *
-*******************************************************************************/
-
-#if defined(USE_THREADS)
-	.ent    asm_builtin_monitorexit
-
-asm_builtin_monitorexit:
-	beqz    a0,nb_monitorexit         /* if (null) throw exception            */
-	ala     t9,builtin_monitorexit    /* else call builtin_monitorexit        */
-	j       t9
-
-nb_monitorexit:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_nullpointerexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_monitorexit
-#endif
-
-
 /************************ function asm_builtin_idiv ****************************
 *                                                                              *
 *   Does null check and calls idiv or throws an exception                      *
@@ -1225,17 +1082,21 @@ asm_criticalsections:
 	.text
 
 	.ent    compare_and_swap
+
 compare_and_swap:
 1:
-	lld		v0,0(a0)
-	bne		v0,a1,2f
+	all     v0,0(a0)
+	bne     v0,a1,2f
 	move    t0,a2
-	scd		t0,0(a0)
-	beqz	t0,1b
+	asc     t0,0(a0)
+	beqz    t0,1b
 2:
 	sync
-	j		ra
+	j       ra
+
 	.end    compare_and_swap
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
