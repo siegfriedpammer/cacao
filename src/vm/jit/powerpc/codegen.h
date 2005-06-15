@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 2693 2005-06-14 18:34:47Z twisti $
+   $Id: codegen.h 2709 2005-06-15 13:57:07Z christian $
 
 */
 
@@ -45,6 +45,26 @@
 
 
 /* additional functions and macros to generate code ***************************/
+
+/* PowerPC is Big Endian -> High Reg == second reg */
+/*                          Low Reg == first ("normal") reg */
+#define GET_FIRST_REG(a)   ((a) &  0x0000ffff)
+#define GET_SECOND_REG(a)  (((a) & 0xffff0000) >> 16)
+
+#define SET_FIRST_REG(regoff,b) \
+	do { (regoff) &= 0xffff0000; (regoff) |= (b) &  0x0000ffff; } while(0)
+#define SET_SECOND_REG(regoff,b) \
+do { \
+    (regoff) &= 0x0000ffff; (regoff) |= ((b) &  0x0000ffff) << 16; \
+} while(0)
+
+#define GET_LOW_REG(a)  GET_SECOND_REG(a)
+#define GET_HIGH_REG(a) GET_FIRST_REG(a)
+
+#define PACK_REGS(low,high) \
+	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
+#define SET_HIGH_REG(regoff,b) SET_FIRST_REG(regoff, b)
+#define SET_LOW_REG(regoff,b) SET_SECOND_REG(regoff, b)
 
 #if defined(STATISTICS)
 #define COUNT_SPILLS count_spills++
@@ -88,10 +108,10 @@
 #define M_TINTMOVE(t,a,b) \
 	if ((t) == TYPE_LNG) { \
 		if ((a) <= (b)) \
-            M_INTMOVE(rd->secondregs[(a)], rd->secondregs[(b)]); \
-		M_INTMOVE((a), (b)); \
+            M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
+		M_INTMOVE( GET_HIGH_REG((a)),  GET_HIGH_REG((b))); \
         if ((a) > (b)) \
-            M_INTMOVE(rd->secondregs[(a)], rd->secondregs[(b)]); \
+			M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
 	} else { \
 		M_INTMOVE((a), (b)); \
     }
@@ -119,18 +139,25 @@
             fetching (this wil be either tempregnum or the register
             number allready given to v)
 */
-
 #define var_to_reg_int0(regnr,v,tempnr,a,b) { \
 	if ((v)->flags & INMEMORY) { \
 		COUNT_SPILLS; \
-        if ((a)) M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+        if ((a)) M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
 		regnr = tempnr; \
 		if ((b) && IS_2_WORD_TYPE((v)->type)) \
-			M_ILD((a) ? rd->secondregs[(tempnr)] : (tempnr), REG_SP, 4 * (v)->regoff + 4); \
-    } else \
-        regnr = (!(a) && (b)) ? rd->secondregs[(v)->regoff] : (v)->regoff; \
+			M_ILD((a) ? GET_LOW_REG((tempnr)) : GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff + 4); \
+    } else { \
+		if ((a) && (b)) { \
+			regnr = (v)->regoff; \
+		} else { \
+			regnr = (b) ? GET_LOW_REG((v)->regoff) : GET_HIGH_REG((v)->regoff); \
+		} \
+	} \
 }
+
 #define var_to_reg_int(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,1)
+#define var_to_reg_int_low(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,0,1)
+#define var_to_reg_int_high(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,0)
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \
@@ -155,13 +182,12 @@
     tempregnum ... Number of the temporary registers as returned by
                    reg_of_var.
 */	
-
 #define store_reg_to_var_int0(sptr, tempregnum, a, b) {       \
 	if ((sptr)->flags & INMEMORY) {                    \
 		COUNT_SPILLS;                                  \
-		if (a) M_IST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
+		if (a) M_IST(GET_HIGH_REG((tempregnum)), REG_SP, 4 * (sptr)->regoff); \
 		if ((b) && IS_2_WORD_TYPE((sptr)->type)) \
-			M_IST(rd->secondregs[tempregnum], REG_SP, 4 * (sptr)->regoff + 4); \
+			M_IST(GET_LOW_REG((tempregnum)), REG_SP, 4 * (sptr)->regoff + 4); \
 		}                                              \
 	}
 
@@ -188,8 +214,8 @@
     }
 
 #define LCONST(reg,c) \
-    ICONST((reg), (s4) ((s8) (c) >> 32)); \
-    ICONST(rd->secondregs[(reg)], (s4) ((s8) (c)));
+    ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
+    ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c)));
 
 
 #define M_COPY(from,to) \

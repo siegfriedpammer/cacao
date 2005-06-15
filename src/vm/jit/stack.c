@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: stack.c 2617 2005-06-08 20:56:37Z twisti $
+   $Id: stack.c 2709 2005-06-15 13:57:07Z christian $
 
 */
 
@@ -1884,9 +1884,17 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								} else {
 									copy->flags = 0;
 									if (IS_FLT_DBL_TYPE(copy->type))
-										copy->regoff = rd->argfltregs[md->params[i].regoff];
-									else
-										copy->regoff = rd->argintregs[md->params[i].regoff];
+										copy->regoff =
+										   rd->argfltregs[md->params[i].regoff];
+									else {
+										copy->regoff =
+									       rd->argintregs[md->params[i].regoff];
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+										if (IS_2_WORD_TYPE(copy->type))
+											SET_SECOND_REG( copy->regoff,
+									  rd->argintregs[md->params[i].regoff + 1]);
+#endif
+									}
 								}
 							}
 							copy = copy->prev;
@@ -2126,7 +2134,15 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" F%02d", s->regoff);
 				else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					if (IS_2_WORD_TYPE(s->type))
+						printf(" %3s/%3s", regs[GET_FIRST_REG(s->regoff)],
+                            regs[GET_SECOND_REG(s->regoff)]);
+					else
+						printf(" %3s", regs[GET_FIRST_REG(s->regoff)]);
+#else
 					printf(" %3s", regs[s->regoff]);
+#endif
 				}
 				break;
 			case STACKVAR:
@@ -2159,7 +2175,15 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else if (IS_FLT_DBL_TYPE(s->type))
 					printf(" f%02d", s->regoff);
 				else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					if (IS_2_WORD_TYPE(s->type))
+						printf(" %3s/%3s", regs[GET_FIRST_REG(s->regoff)],
+                            regs[GET_SECOND_REG(s->regoff)]);
+					else
+						printf(" %3s", regs[GET_FIRST_REG(s->regoff)]);
+#else
 					printf(" %3s", regs[s->regoff]);
+#endif
 				}
 				break;
 			case STACKVAR:
@@ -2292,7 +2316,17 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 					printf("f%02d", rd->locals[i][j].regoff);
 				else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+					if (IS_2_WORD_TYPE(j))
+						printf(" %3s/%3s",
+						    regs[GET_FIRST_REG(rd->locals[i][j].regoff)],
+                            regs[GET_SECOND_REG(rd->locals[i][j].regoff)]);
+					else
+						printf("%3s",
+						    regs[GET_FIRST_REG(rd->locals[i][j].regoff)]);
+#else
 					printf("%3s", regs[rd->locals[i][j].regoff]);
+#endif
 				}
 			}
 		printf("\n");
@@ -2322,7 +2356,17 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("F%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->interfaces[i][j].regoff]);
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (IS_2_WORD_TYPE(j))
+								printf(" %3s/%3s",
+                             regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)],
+                             regs[GET_SECOND_REG(rd->interfaces[i][j].regoff)]);
+							else
+								printf("%3s",
+                              regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)]);
+#else
+					printf("%3s", regs[rd->interfaces[i][j].regoff]);
+#endif
 						}
 					}
 					else {
@@ -2335,7 +2379,17 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 							printf("f%02d", rd->interfaces[i][j].regoff);
 						else {
-							printf("%3s", regs[rd->interfaces[i][j].regoff]);
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+							if (IS_2_WORD_TYPE(j))
+								printf(" %3s/%3s",
+                             regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)],
+							 regs[GET_SECOND_REG(rd->interfaces[i][j].regoff)]);
+							else
+								printf("%3s",
+                              regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)]);
+#else
+								printf("%3s",regs[rd->interfaces[i][j].regoff]);
+#endif
 						}
 					}
 				}

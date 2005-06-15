@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2620 2005-06-09 07:28:50Z christian $
+   $Id: reg.h 2709 2005-06-15 13:57:07Z christian $
 
 */
 
@@ -118,10 +118,6 @@ struct registerdata {
 	int freesavadrtop;              /* free saved address register count      */
 	int ifargadrregcnt;             /* iface argument address register count     */
 	int freeargadrtop;              /* free argument address register count      */
-#endif
-
-#ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
-	int *secondregs;                /* used for longs in 2 32 bit registers   */
 #endif
 
 #if defined(NEW_MEMORY) && defined(HAS_4BYTE_STACKSLOT)
