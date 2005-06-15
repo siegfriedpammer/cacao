@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 2696 2005-06-14 22:31:37Z twisti $
+   $Id: VMRuntime.c 2706 2005-06-15 13:38:58Z twisti $
 
 */
 
@@ -46,7 +46,7 @@
 #endif
 
 #if !defined(STATIC_CLASSPATH)
-# include "src/libltdl/ltdl.h"
+# include "libltdl/ltdl.h"
 #endif
 
 #include "cacao/cacao.h"
@@ -256,18 +256,20 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
 	utf         *name;
+#if !defined(STATIC_CLASSPATH)
 	lt_dlhandle  handle;
+#endif
 
 	if (!filename) {
 		*exceptionptr = new_nullpointerexception();
 		return 0;
 	}
 
-	name = javastring_toutf(filename, 0);
-	
 #if defined(STATIC_CLASSPATH)
 	return 1;
 #else
+	name = javastring_toutf(filename, 0);
+	
 	/* here it could be interesting to store the references in a list eg for  */
 	/* nicely cleaning up or for certain platforms */
 
@@ -276,7 +278,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	/* insert the library name into the library hash */
 
-	native_library_hash_add(name, loader, handle);
+	native_library_hash_add(name, (java_objectheader *) loader, handle);
 
 	return 1;
 #endif
