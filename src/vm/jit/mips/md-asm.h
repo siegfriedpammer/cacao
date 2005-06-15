@@ -28,13 +28,15 @@
 
    Changes:
 
-   $Id: md-asm.h 2631 2005-06-09 21:23:11Z twisti $
+   $Id: md-asm.h 2712 2005-06-15 14:10:07Z twisti $
 
 */
 
 
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
+
+#include "config.h"
 
 
 /* register defines ***********************************************************/
@@ -84,6 +86,7 @@
 #define mptr    itmp3
 #define mptrreg 25
 
+
 #define fv0     $f0
 #define ft0     $f1
 #define ft1     $f2
@@ -127,6 +130,9 @@
 #define fss4    $f29
 #define fss5    $f31
 
+
+#if SIZEOF_VOID_P == 8
+
 #define aaddu   daddu
 #define asubu   dsubu
 #define aaddiu  daddiu
@@ -135,6 +141,25 @@
 #define ala     dla
 #define asll    dsll
 #define ashift  3
+
+#define all     lld
+#define asc     scd
+
+#else
+
+#define aaddu   addu
+#define asubu   subu
+#define aaddiu  addiu
+#define ald     lw
+#define ast     sw
+#define ala     dla
+#define asll    dsll
+#define ashift  3
+
+#define all     ll
+#define asc     sc
+
+#endif
 
 
 /* save and restore macros ****************************************************/
