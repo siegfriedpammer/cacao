@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2700 2005-06-14 23:31:06Z twisti $
+   $Id: native.c 2707 2005-06-15 13:40:36Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 #include <assert.h>
 
 #if !defined(STATIC_CLASSPATH)
-# include "src/libltdl/ltdl.h"
+# include "libltdl/ltdl.h"
 #endif
 
 #include "config.h"
@@ -334,6 +334,7 @@ bool native_init(void)
 
 *******************************************************************************/
 
+#if !defined(STATIC_CLASSPATH)
 void native_library_hash_add(utf *filename, java_objectheader *loader,
 							 lt_dlhandle handle)
 {
@@ -446,6 +447,7 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 		library_hash = newhash;
 	}
 }
+#endif /* !defined(STATIC_CLASSPATH) */
 
 
 /*********************** Function: native_findfunction *************************

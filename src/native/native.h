@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2696 2005-06-14 22:31:37Z twisti $
+   $Id: native.h 2707 2005-06-15 13:40:36Z twisti $
 
 */
 
@@ -37,7 +37,7 @@
 #define _NATIVE_H
 
 #if !defined(STATIC_CLASSPATH)
-# include "src/libltdl/ltdl.h"
+# include "libltdl/ltdl.h"
 #endif
 
 #include "vm/class.h"
@@ -52,11 +52,13 @@
 
 /* table for locating native methods */
 
-typedef struct library_hash_loader_entry library_hash_loader_entry;
-typedef struct library_hash_name_entry library_hash_name_entry;
 typedef struct nativeref nativeref;
 typedef struct nativecompref nativecompref;
 
+
+#if !defined(STATIC_CLASSPATH)
+typedef struct library_hash_loader_entry library_hash_loader_entry;
+typedef struct library_hash_name_entry library_hash_name_entry;
 
 /* library_hash_loader_entry **************************************************/
 
@@ -74,6 +76,7 @@ struct library_hash_name_entry {
 	lt_dlhandle              handle;    /* libtool library handle             */
 	library_hash_name_entry *hashlink;  /* link for external chaining         */
 };
+#endif
 
 
 struct nativeref {
@@ -100,16 +103,18 @@ void use_class_as_object(classinfo *c);
 /* initialize native subsystem */
 bool native_init(void);
 
-/* add a library to the library hash */
-void native_library_hash_add(utf *filename, java_objectheader *loader,
-							 lt_dlhandle handle);
-
 /* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, 
 								utf *desc, bool isstatic);
 
+#if !defined(STATIC_CLASSPATH)
+/* add a library to the library hash */
+void native_library_hash_add(utf *filename, java_objectheader *loader,
+							 lt_dlhandle handle);
+
 /* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
+#endif
 
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);
