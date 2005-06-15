@@ -16,7 +16,7 @@ dnl system type
 case "$host_cpu" in
 alpha | alphaev56 )
 	ARCH_DIR="alpha"
-        STATIC_CLASSPATH="1"
+        STATIC_CLASSPATH="0"
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
 
