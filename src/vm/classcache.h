@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 2195 2005-04-03 16:53:16Z edwin $
+   $Id: classcache.h 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -169,22 +169,73 @@ classinfo * classcache_lookup(classloader *initloader,utf *classname);
 
 classinfo * classcache_lookup_defined(classloader *defloader,utf *classname);
 
-/* classcache_store ************************************************************
+/* classcache_store_unique *****************************************************
    
-   Store a loaded class
+   Store a loaded class as loaded by the bootstrap loader. This is a wrapper 
+   aroung classcache_store that throws an exception if a class with the same 
+   name has already been loaded by the bootstrap loader.
+
+   This function is used to register a few special classes during startup.
+   It should not be used otherwise.
   
    IN:
-       initloader.......initiating loader used to load the class
        cls..............class object to cache
   
    RETURN VALUE:
-       true.............everything ok, the class was stored in
-                        the cache if necessary,
+       true.............everything ok, the class was stored.
        false............an exception has been thrown.
+   
+   Note: synchronized with global tablelock
    
 *******************************************************************************/
 
-bool classcache_store(classloader *initloader,classinfo *cls);
+bool classcache_store_unique(classinfo *cls);
+
+/* classcache_store ************************************************************
+   
+   Store a loaded class. If a class of the same name has already been stored
+   with the same initiating loader, then the given class CLS is freed (if
+   possible) and the previously stored class is returned.
+  
+   IN:
+       initloader.......initiating loader used to load the class
+	                    (may be NULL indicating the bootstrap loader)
+       cls..............class object to cache
+	   mayfree..........true if CLS may be freed in case another class is
+	                    returned
+  
+   RETURN VALUE:
+       cls..............everything ok, the class was stored in the cache,
+	   other classinfo..another class with the same (initloader,name) has been
+	                    stored earlier. CLS has been freed and the earlier
+						stored class is returned.
+       NULL.............an exception has been thrown.
+   
+   Note: synchronized with global tablelock
+   
+*******************************************************************************/
+
+classinfo * classcache_store(classloader *initloader,classinfo *cls,bool mayfree);
+
+/* classcache_store_defined ****************************************************
+   
+   Store a loaded class after it has been defined. If the class has already
+   been defined by the same defining loader in another thread, free the given
+   class and returned the one which has been defined earlier.
+  
+   IN:
+       cls..............class object to store. classloader must be set
+	                    (classloader may be NULL, for bootloader)
+  
+   RETURN VALUE:
+       cls..............everything ok, the class was stored the cache,
+	   other classinfo..the class had already been defined, CLS was freed, the
+	                    class which was defined earlier is returned,
+       NULL.............an exception has been thrown.
+   
+*******************************************************************************/
+
+classinfo * classcache_store_defined(classinfo *cls);
 
 /* classcache_add_constraint ***************************************************
  

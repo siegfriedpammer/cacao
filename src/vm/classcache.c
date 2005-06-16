@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 2458 2005-05-12 23:02:07Z twisti $
+   $Id: classcache.c 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -422,40 +422,52 @@ classcache_lookup_defined(
 
 /* classcache_store ************************************************************
    
-   Store a loaded class
+   Store a loaded class. If a class of the same name has already been stored
+   with the same initiating loader, then the given class CLS is freed (if
+   possible) and the previously stored class is returned.
   
    IN:
        initloader.......initiating loader used to load the class
+	                    (may be NULL indicating the bootstrap loader)
        cls..............class object to cache
+	   mayfree..........true if CLS may be freed in case another class is
+	                    returned
   
    RETURN VALUE:
-       true.............everything ok, the class was stored in
-                        the cache if necessary,
-       false............an exception has been thrown.
+       cls..............everything ok, the class was stored in the cache,
+	   other classinfo..another class with the same (initloader,name) has been
+	                    stored earlier. CLS has been freed and the earlier
+						stored class is returned.
+       NULL.............an exception has been thrown.
    
    Note: synchronized with global tablelock
    
 *******************************************************************************/
 
-bool
+/*@shared@*/ /*@null@*/ classinfo *
 classcache_store(
 	/*@shared@*/ /*@null@*/ classloader * initloader,
-	/*@shared@*/ classinfo * cls)
+	/*@shared@*/ classinfo * cls,
+	bool mayfree)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
-
+#ifdef CLASSCACHE_VERBOSE
+	char logbuffer[1024];
+#endif
+	
 	CLASSCACHE_ASSERT(cls != NULL);
 	CLASSCACHE_ASSERT(cls->loaded != 0);
 
-#ifdef CLASSCACHE_VERBOSE
-	fprintf(stderr, "classcache_store(%p,", initloader);
-	utf_fprint_classname(stderr, cls->name);
-	fprintf(stderr, ")\n");
-#endif
-
 	CLASSCACHE_LOCK();
+
+#ifdef CLASSCACHE_VERBOSE
+	sprintf(logbuffer,"classcache_store (%p,%d,", (void*)initloader,mayfree);
+	utf_strcat(logbuffer, cls->name);
+	strcat(logbuffer,")");
+	log_text(logbuffer);
+#endif
 
 	en = classcache_new_name(cls->name);
 
@@ -464,14 +476,21 @@ classcache_store(
 	/* iterate over all class entries */
 	for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
 
-#ifdef CLASSCACHE_DEBUG
 		/* check if this entry has already been loaded by initloader */
-		/* It never should have been loaded before! */
 		for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
-			if (lden->loader == initloader)
-				CLASSCACHE_ASSERT(false);
-		}
+			if (lden->loader == initloader) {
+				/* A class with the same (initloader,name) pair has been stored already. */
+				/* We free the given class and return the earlier one.                   */
+#ifdef CLASSCACHE_VERBOSE
+				dolog("replacing %p with earlier loaded class %p",cls,clsen->classobj);
 #endif
+				CLASSCACHE_ASSERT(clsen->classobj != NULL);
+				if (mayfree)
+					class_free(cls);
+				cls = clsen->classobj;
+				goto return_success;
+			}
+		}
 
 		/* check if initloader is constrained to this entry */
 		for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
@@ -511,11 +530,125 @@ classcache_store(
 
   return_success:
 	CLASSCACHE_UNLOCK();
-	return true;
+	return cls;
 
   return_exception:
 	CLASSCACHE_UNLOCK();
-	return false;				/* exception */
+	return NULL;				/* exception */
+}
+
+/* classcache_store_unique *****************************************************
+   
+   Store a loaded class as loaded by the bootstrap loader. This is a wrapper 
+   aroung classcache_store that throws an exception if a class with the same 
+   name has already been loaded by the bootstrap loader.
+
+   This function is used to register a few special classes during startup.
+   It should not be used otherwise.
+  
+   IN:
+       cls..............class object to cache
+  
+   RETURN VALUE:
+       true.............everything ok, the class was stored.
+       false............an exception has been thrown.
+   
+   Note: synchronized with global tablelock
+   
+*******************************************************************************/
+
+bool 
+classcache_store_unique(
+		/*@shared@*/ classinfo *cls)
+{
+	/*@shared@*/ classinfo *result;
+
+	result = classcache_store(NULL,cls,false);
+	if (result == NULL)
+		return false;
+
+	if (result != cls) {
+		*exceptionptr = new_internalerror("class already stored in the class cache");
+		return false;
+	}
+
+	return true;
+}
+
+/* classcache_store_defined ****************************************************
+   
+   Store a loaded class after it has been defined. If the class has already
+   been defined by the same defining loader in another thread, free the given
+   class and returned the one which has been defined earlier.
+  
+   IN:
+       cls..............class object to store. classloader must be set
+	                    (classloader may be NULL, for bootloader)
+  
+   RETURN VALUE:
+       cls..............everything ok, the class was stored the cache,
+	   other classinfo..the class had already been defined, CLS was freed, the
+	                    class which was defined earlier is returned,
+       NULL.............an exception has been thrown.
+   
+*******************************************************************************/
+
+/*@shared@*/ /*@null@*/ classinfo * 
+classcache_store_defined(/*@shared@*/ classinfo *cls)
+{
+	classcache_name_entry *en;
+	classcache_class_entry *clsen;
+#ifdef CLASSCACHE_VERBOSE
+	char logbuffer[1024];
+#endif
+
+	CLASSCACHE_ASSERT(cls != NULL);
+	CLASSCACHE_ASSERT(cls->loaded != 0);
+
+	CLASSCACHE_LOCK();
+
+#ifdef CLASSCACHE_VERBOSE
+	sprintf(logbuffer,"classcache_store_defined (%p,", (void*)cls->classloader);
+	utf_strcat(logbuffer, cls->name);
+	strcat(logbuffer,")");
+	log_text(logbuffer);
+#endif
+
+	en = classcache_new_name(cls->name);
+
+	CLASSCACHE_ASSERT(en != NULL);
+
+	/* iterate over all class entries */
+	for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+		
+		/* check if this class has been defined by the same classloader */
+		if (clsen->classobj != NULL && clsen->classobj->classloader == cls->classloader) {
+			/* we found an earlier definition, delete the newer one */
+#ifdef CLASSCACHE_VERBOSE
+			dolog("replacing %p with earlier defined class %p",cls,clsen->classobj);
+#endif
+			/* we assert that the earlier object is not the same that we were given */
+			CLASSCACHE_ASSERT(clsen->classobj != cls);
+			class_free(cls);
+			cls = clsen->classobj;
+			goto return_success;
+		}
+	}
+
+	/* create a new class entry for this class object */
+	/* the list of initiating loaders is empty at this point */
+
+	clsen = NEW(classcache_class_entry);
+	clsen->classobj = cls;
+	clsen->loaders = NULL;
+	clsen->constraints = NULL;
+
+	clsen->next = en->classes;
+	en->classes = clsen;
+
+return_success:
+	CLASSCACHE_UNLOCK();
+	return cls;
 }
 
 /* classcache_find_loader ******************************************************

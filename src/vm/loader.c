@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2680 2005-06-14 17:14:08Z twisti $
+   $Id: loader.c 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -1861,7 +1861,8 @@ static bool load_attributes(classbuffer *cb, u4 num)
        name.............the classname
 
    RETURN VALUE:
-       the loaded class
+       the loaded class, or
+	   NULL if an exception has been thrown
 
 *******************************************************************************/
 
@@ -1912,7 +1913,8 @@ classinfo *load_class_from_sysloader(utf *name)
 	   cl...............user-defined class loader
 	   
    RETURN VALUE:
-       the loaded class
+       the loaded class, or
+	   NULL if an exception has been thrown
 
 *******************************************************************************/
 
@@ -2006,12 +2008,20 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 											   NULL, NULL);
 		LOADER_DEC();
 
-		/* store this class in the loaded class cache */
-
-		if (r && !classcache_store(cl, r)) {
-			r->loaded = false;
-			class_free(r);
-			r = NULL; /* exception */
+		if (r) {
+			/* store this class in the loaded class cache */
+			/* If another class with the same (initloader,name) pair has been */ 
+			/* stored earlier it will be returned by classcache_store         */
+			/* In this case classcache_store may not free the class because it*/
+			/* has already been exposed to Java code which may have kept      */
+			/* references to that class.                                      */
+		    classinfo *c = classcache_store(cl,r,false);
+			if (c == NULL) {
+				/* exception, free the loaded class */
+				r->loaded = false;
+				class_free(r);
+			}
+			r = c;
 		}
 
 		return r;
@@ -2032,10 +2042,9 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
    IN:
        name.............the classname
 
-   OUT:
-
    RETURN VALUE:
-       loaded classinfo
+       loaded classinfo, or
+	   NULL if an exception has been thrown
 
    SYNCHRONIZATION:
        load_class_bootstrap is synchronized. It can be treated as an
@@ -2057,18 +2066,9 @@ classinfo *load_class_bootstrap(utf *name)
 	LOADER_ASSERT(name);
 	LOADER_INC();
 
-	/* synchronize */
-
-	LOADER_LOCK();
-
 	/* lookup if this class has already been loaded */
 
 	if ((r = classcache_lookup(NULL, name)))
-		goto success;
-
-	/* check if this class has already been defined */
-
-	if ((r = classcache_lookup_defined(NULL, name)))
 		goto success;
 
 #ifdef LOADER_VERBOSE
@@ -2085,7 +2085,8 @@ classinfo *load_class_bootstrap(utf *name)
 	/* handle array classes */
 
 	if (name->text[0] == '[') {
-		if (!load_newly_created_array(c, NULL))
+		c = load_newly_created_array(c, NULL);
+		if (c == NULL)
 			goto return_exception;
 		LOADER_ASSERT(c->loaded);
 		r = c;
@@ -2140,26 +2141,28 @@ classinfo *load_class_bootstrap(utf *name)
 
 		class_free(c);
 	}
-
-	/* store this class in the loaded class cache    */
-	/* this step also checks the loading constraints */
-
-	if (r && !classcache_store(NULL, c)) {
-		class_free(c);
-		r = NULL; /* exception */
+	else {
+		/* store this class in the loaded class cache    */
+		/* this step also checks the loading constraints */
+		/* If the class has been loaded before, the      */
+		/* earlier loaded class is returned.             */
+	   	classinfo *res = classcache_store(NULL,c,true);
+		if (!res) {
+			/* exception */
+			class_free(c);
+		}
+		r = res;
 	}
 
 	if (!r)
 		goto return_exception;
 
 success:
-	LOADER_UNLOCK();
 	LOADER_DEC();
 
 	return r;
 
 return_exception:
-	LOADER_UNLOCK();
 	LOADER_DEC();
 
 	return NULL;
@@ -2706,15 +2709,21 @@ return_exception:
 
    Load a newly created array class.
 
-   Note:
-   This is an internal function. Do not use it unless you know exactly
-   what you are doing!
+	RETURN VALUE:
+	    c....................the array class C has been loaded
+		other classinfo......the array class was found in the class cache, 
+		                     C has been freed
+	    NULL.................an exception has been thrown
 
-   Use one of the load_class_... functions for general array class loading.
+	Note:
+		This is an internal function. Do not use it unless you know exactly
+		what you are doing!
+
+		Use one of the load_class_... functions for general array class loading.
 
 *******************************************************************************/
 
-bool load_newly_created_array(classinfo *c, java_objectheader *loader)
+classinfo * load_newly_created_array(classinfo *c,java_objectheader *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;
@@ -2737,7 +2746,7 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 	namelen = c->name->blength;
 	if (namelen < 2 || c->name->text[0] != '[') {
 		*exceptionptr = new_internalerror("Invalid array class name");
-		return false;
+		return NULL;
 	}
 
 	/* Check the component type */
@@ -2750,13 +2759,13 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
-			return false;
+			return NULL;
 		}
 		LOADER_DEC();
 		LOADER_ASSERT(comp->loaded);
 		if (opt_eager)
-			if (!link_class(comp))
-				return false;
+			if (!link_class(c))
+				return NULL;
 		definingloader = comp->classloader;
 		break;
 
@@ -2764,7 +2773,7 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 		/* c is an array of objects. */
 		if (namelen < 4 || c->name->text[namelen - 1] != ';') {
 			*exceptionptr = new_internalerror("Invalid array class name");
-			return false;
+			return NULL;
 		}
 
 		u = utf_new_intern(c->name->text + 2, namelen - 3);
@@ -2772,13 +2781,13 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
-			return false;
+			return NULL;
 		}
 		LOADER_DEC();
 		LOADER_ASSERT(comp->loaded);
 		if (opt_eager)
-			if (!link_class(comp))
-				return false;
+			if (!link_class(c))
+				return NULL;
 		definingloader = comp->classloader;
 		break;
 	}
@@ -2854,11 +2863,8 @@ bool load_newly_created_array(classinfo *c, java_objectheader *loader)
 	c->classloader = definingloader;
 
 	/* insert class into the loaded class cache */
-
-	if (!classcache_store(loader, c))
-		return false;
-
-	return true;
+	/* XXX free classinfo if NULL returned? */
+	return classcache_store(loader,c,true);
 }
 
 

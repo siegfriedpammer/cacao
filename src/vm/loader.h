@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2680 2005-06-14 17:14:08Z twisti $
+   $Id: loader.h 2725 2005-06-16 19:10:35Z edwin $
 */
 
 
@@ -174,7 +174,7 @@ classinfo *load_class_bootstrap(utf *name);
 
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
-bool load_newly_created_array(classinfo *c, java_objectheader *loader);
+classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
 
 /* search class for a field */
 fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
@@ -204,18 +204,6 @@ classinfo *class_primitive_from_sig(char sig);
 /* debug helpers */
 void fprintflags(FILE *fp, u2 f);
 void printflags(u2 f);
-
-/******************************************************************************/
-/* SYNCHRONIZATION                                                            */
-/******************************************************************************/
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#  define LOADER_LOCK()    tables_lock()
-#  define LOADER_UNLOCK()  tables_unlock()
-#else
-#  define LOADER_LOCK()
-#  define LOADER_UNLOCK()
-#endif
 
 #endif /* _LOADER_H */
 

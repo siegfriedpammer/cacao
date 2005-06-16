@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 2646 2005-06-13 13:56:16Z twisti $
+   $Id: VMClassLoader.c 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -86,9 +86,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		return NULL;
 	}
 
-	/* synchronize */
-
-	LOADER_LOCK();
+	if (this == NULL) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
 
 	if (name) {
 		/* convert '.' to '/' in java string */
@@ -97,7 +98,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		/* check if this class has already been defined */
 		c = classcache_lookup_defined((java_objectheader *) this, utfname);
 		if (c) {
-			LOADER_UNLOCK();
 			return (java_lang_Class *) c;
 		}
 	}
@@ -149,20 +149,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 		class_free(c);
 
-		goto return_exception;
-	}
-
-	if (r && !name) {
-		/* The name of the class was read from the classbuffer. We have to */
-		/* check if there already was a class definined with this name.    */
-		r = classcache_lookup_defined((java_objectheader *) this,c->name);
-
-		if (r) {
-			/* Yes, there was already a class with this name. We have to   */
-			/* throw ours away.                                            */
-			class_free(c);
-			c = r;
-		}
+		return NULL;
 	}
 
 	/* set ProtectionDomain */
@@ -171,14 +158,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	use_class_as_object(c);
 
-	LOADER_UNLOCK();
+	/* store the newly defined class in the class cache. This call also checks */
+	/* whether a class of the same name has already been defined by the same   */
+	/* defining loader, and if so, replaces the newly created class by the one */
+	/* defined earlier.                                                        */
+	/* Important: The classinfo given to classcache_store_defined must be fully*/
+	/*            prepared because another thread may return this pointer after*/
+	/*            the lookup at to top of this function directly after the     */
+	/*            class cache lock has been released.                          */
+
+	c = classcache_store_defined(c);
 
 	return (java_lang_Class *) c;
-
-return_exception:
-	LOADER_UNLOCK();
-
-	return NULL;
 }
 
 

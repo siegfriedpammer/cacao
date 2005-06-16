@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2662 2005-06-13 14:19:34Z twisti $
+   $Id: class.c 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -419,7 +419,8 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 	if (!c) {
 		/* we have to create it */
 		c = class_create_classinfo(name);
-		if (!load_newly_created_array(c,initloader))
+		c = load_newly_created_array(c,initloader);
+		if (c == NULL)
 			return NULL;
 	}
 

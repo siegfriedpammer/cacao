@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2692 2005-06-14 18:11:35Z twisti $
+   $Id: linker.c 2725 2005-06-16 19:10:35Z edwin $
 
 */
 
@@ -209,7 +209,7 @@ bool linker_init(void)
     pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
     pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
 
-	if (!classcache_store(NULL, pseudo_class_Arraystub)) {
+	if (!classcache_store_unique(pseudo_class_Arraystub)) {
 		log_text("could not cache pseudo_class_Arraystub");
 		assert(0);
 	}
@@ -223,7 +223,7 @@ bool linker_init(void)
 	pseudo_class_Null->loaded = true;
     pseudo_class_Null->super.cls = class_java_lang_Object;
 
-	if (!classcache_store(NULL, pseudo_class_Null)) {
+	if (!classcache_store_unique(pseudo_class_Null)) {
 		log_text("could not cache pseudo_class_Null");
 		assert(0);
 	}
@@ -238,7 +238,7 @@ bool linker_init(void)
 	pseudo_class_New->linked = true; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
 
-	if (!classcache_store(NULL, pseudo_class_New)) {
+	if (!classcache_store_unique(pseudo_class_New)) {
 		log_text("could not cache pseudo_class_New");
 		assert(0);
 	}
@@ -285,7 +285,7 @@ static bool link_primitivetype_table(void)
 		/* prevent loader from loading primitive class */
 
 		c->loaded = true;
-		if (!classcache_store(NULL,c)) {
+		if (!classcache_store_unique(c)) {
 			log_text("Could not cache primitive class");
 			return false;
 		}
@@ -310,8 +310,8 @@ static bool link_primitivetype_table(void)
 		if (primitivetype_table[i].arrayname) {
 			u = utf_new_char(primitivetype_table[i].arrayname);
 			c = class_create_classinfo(u);
-
-			if (!load_newly_created_array(c, NULL))
+			c = load_newly_created_array(c, NULL);
+			if (c == NULL)
 				return false;
 
 			primitivetype_table[i].arrayclass = c;
