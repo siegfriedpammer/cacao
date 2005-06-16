@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 2720 2005-06-16 09:09:04Z christian $
+   $Id: md-abi.c 2722 2005-06-16 11:55:22Z twisti $
 
 */
 
@@ -76,6 +76,7 @@ void md_param_alloc(methoddesc *md)
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
+			stacksize++;
 			break;
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT - 1) {
@@ -87,26 +88,39 @@ void md_param_alloc(methoddesc *md)
 				pd->regoff = stacksize;
 				iarg = INT_ARG_CNT;
 			}
+			stacksize += 2;
 			break;
 		case TYPE_FLT:
-		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;
-				iarg++;     /* skip integer argument register */
+				iarg++;     /* skip 1 integer argument register */
 				farg++;
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
 			}
+			stacksize++;
+			break;
+		case TYPE_DBL:
+			if (farg < FLT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff = farg;
+				iarg += 2;  /* skip 2 integer argument registers */
+				farg++;
+			} else {
+				pd->inmemory = true;
+				pd->regoff = stacksize;
+			}
+			stacksize += 2;
+			break;
 		}
-		stacksize += (IS_2_WORD_TYPE(md->paramtypes[i].type)) ? 2 : 1;
 	}
 
 	/* fill register and stack usage */
 
 	if (IS_INT_LNG_TYPE(md->returntype.type))
-		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1) )
+		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
 			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
 
 	md->argintreguse = iarg;
