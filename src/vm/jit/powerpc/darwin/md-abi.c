@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 2709 2005-06-15 13:57:07Z christian $
+   $Id: md-abi.c 2720 2005-06-16 09:09:04Z christian $
 
 */
 
@@ -105,15 +105,10 @@ void md_param_alloc(methoddesc *md)
 
 	/* fill register and stack usage */
 
-	if (runverbose) {
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 3 : 2) )
-				iarg = IS_2_WORD_TYPE(md->returntype.type) ? 3 : 2;
-	} else {
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1) )
-				iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
-	}
+	if (IS_INT_LNG_TYPE(md->returntype.type))
+		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1) )
+			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
+
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse = stacksize;
