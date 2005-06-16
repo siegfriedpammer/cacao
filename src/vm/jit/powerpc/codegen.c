@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2709 2005-06-15 13:57:07Z christian $
+   $Id: codegen.c 2724 2005-06-16 11:57:46Z twisti $
 
 */
 
@@ -3291,11 +3291,11 @@ gen_method:
 			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
 			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
-            a = dseg_addaddress(cd, new_negativearraysizeexception);
-            M_ALD(REG_ITMP2, REG_PV, a);
-            M_MTCTR(REG_ITMP2);
-            M_JSR;
-            M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+			a = dseg_addaddress(cd, new_negativearraysizeexception);
+			M_ALD(REG_ITMP2, REG_PV, a);
+			M_MTCTR(REG_ITMP2);
+			M_JSR;
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
@@ -3336,13 +3336,13 @@ gen_method:
 			xcodeptr = mcodeptr;
 
 			M_STWU(REG_SP, REG_SP, -(24 + 1 * 4));
-            M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
+			M_IST(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 
-            a = dseg_addaddress(cd, new_classcastexception);
-            M_ALD(REG_ITMP2, REG_PV, a);
-            M_MTCTR(REG_ITMP2);
-            M_JSR;
-            M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+			a = dseg_addaddress(cd, new_classcastexception);
+			M_ALD(REG_ITMP2, REG_PV, a);
+			M_MTCTR(REG_ITMP2);
+			M_JSR;
+			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 			M_ILD(REG_ITMP2_XPC, REG_SP, 24 + 0 * 4);
 			M_IADD_IMM(REG_SP, 24 + 1 * 4, REG_SP);
@@ -3503,9 +3503,14 @@ gen_method:
 			/* order reversed because of data segment layout */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			a = dseg_addaddress(cd, NULL);                      /* vftbl      */
+			off = dseg_addaddress(cd, NULL);                      /* vftbl      */
 
-			M_LDA(REG_ITMP3, REG_PV, a);
+			if (off >= -32768) {
+				M_LDA(REG_ITMP3, REG_PV, off);
+			} else {
+				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
+				M_LDA(REG_ITMP3, REG_ITMP3, off);
+			}
 			M_AST(REG_ITMP3, REG_SP, 3 * 4);
 #else
 			M_CLR(REG_ITMP3);
@@ -3514,24 +3519,44 @@ gen_method:
 
 			/* move machine code onto stack */
 
-			a = dseg_adds4(cd, mcode);
-			M_ILD(REG_ITMP3, REG_PV, a);
+			off = dseg_adds4(cd, mcode);
+			if (off >= -32768) {
+				M_ILD(REG_ITMP3, REG_PV, off);
+			} else {
+				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
+				M_ILD(REG_ITMP3, REG_ITMP3, off);
+			}
 			M_IST(REG_ITMP3, REG_SP, 2 * 4);
 
 			/* move class/method/field reference onto stack */
 
-			a = dseg_addaddress(cd, pref->ref);
-			M_ALD(REG_ITMP3, REG_PV, a);
+			off = dseg_addaddress(cd, pref->ref);
+			if (off >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, off);
+			} else {
+				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, off);
+			}
 			M_AST(REG_ITMP3, REG_SP, 1 * 4);
 
 			/* move patcher function pointer onto stack */
 
-			a = dseg_addaddress(cd, pref->patcher);
-			M_ALD(REG_ITMP3, REG_PV, a);
+			off = dseg_addaddress(cd, pref->patcher);
+			if (off >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, off);
+			} else {
+				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, off);
+			}
 			M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
-			a = dseg_addaddress(cd, asm_wrapper_patcher);
-			M_ALD(REG_ITMP3, REG_PV, a);
+			off = dseg_addaddress(cd, asm_wrapper_patcher);
+			if (off >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, off);
+			} else {
+				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, off);
+			}
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
 		}
@@ -3623,10 +3648,18 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	md_param_alloc(nmd);
 
 
+
+	/* calculate stackframe size */
+
+	stackframesize = nmd->memuse;
+
+	stackframesize = (stackframesize + 3) & ~3; /* Keep Stack 16 Byte aligned */
+
+
 	/* create method header */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, 0 * 8);                           /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
 	(void) dseg_adds4(cd, 0);                               /* IntSave        */
@@ -3641,15 +3674,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 
+	/* generate code */
+
 	M_MFLR(REG_ITMP1);
-	M_AST(REG_ITMP1, REG_SP, LA_LR_OFFSET); /* store return address           */
+	M_AST(REG_ITMP1, REG_SP, LA_LR_OFFSET);
+	M_STWU(REG_SP, REG_SP, -(stackframesize * 4));
 
-	/* Build up new Stackframe for native call */
-
-	stackframesize = nmd->memuse;
-
-	stackframesize = (stackframesize + 3) & ~3; /* Keep Stack 16 Byte aligned */
-	M_STWU(REG_SP, REG_SP, -(stackframesize * 4)); /* build up stackframe     */
 
 	/* if function is static, check for initialized */
 
