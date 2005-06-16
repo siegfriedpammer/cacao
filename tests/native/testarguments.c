@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.c 1756 2004-12-13 10:09:35Z twisti $
+   $Id: testarguments.c 2721 2005-06-16 11:49:27Z twisti $
 
 */
 
@@ -37,14 +37,14 @@
 #include "native/jni.h"
 
 
-JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint a, jint b, jint c, jint d, jint e, jint f, jint g, jint h, jint i, jint j)
+JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint a, jint b, jint c, jint d, jint e, jint f, jint g, jint h, jint i, jint j, jint k, jint l, jint m, jint n, jint o)
 {
     jmethodID mid;
 
-    printf("java-native: %d %d %d %d %d %d %d %d %d %d\n", a, b, c, d, e, f, g, h, i, j);
+    printf("java-native: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jisub", "(IIIIIIIIII)V");
+    mid = (*env)->GetStaticMethodID(env, clazz, "jisub", "(IIIIIIIIIIIIIII)V");
 
     if (mid == 0) {
         printf("native: couldn't find jisub\n");
@@ -52,63 +52,63 @@ JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint 
     }
 
 /*      (*env)->CallVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j); */
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j);
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
-JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong a, jlong b, jlong c, jlong d, jlong e, jlong f, jlong g, jlong h, jlong i, jlong j)
+JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong a, jlong b, jlong c, jlong d, jlong e, jlong f, jlong g, jlong h, jlong i, jlong j, jlong k, jlong l, jlong m, jlong n, jlong o)
 {
     jmethodID mid;
 
-#if defined(__I386__) || defined(__POWERPC__)
-    printf("java-native: %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", a, b, c, d, e, f, g, h, i, j);
+#if SIZEOF_VOID_P == 4
+    printf("java-native: %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 #else
-    printf("java-native: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n", a, b, c, d, e, f, g, h, i, j);
+    printf("java-native: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 #endif
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jlsub", "(JJJJJJJJJJ)V");
+    mid = (*env)->GetStaticMethodID(env, clazz, "jlsub", "(JJJJJJJJJJJJJJJ)V");
 
     if (mid == 0) {
         printf("native: couldn't find jlsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j);
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
-JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f, jfloat g, jfloat h, jfloat i, jfloat j)
+JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f, jfloat g, jfloat h, jfloat i, jfloat j, jfloat k, jfloat l, jfloat m, jfloat n, jfloat o)
 {
     jmethodID mid;
 
-    printf("java-native: %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n", a, b, c, d, e, f, g, h, i, j);
+    printf("java-native: %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jfsub", "(FFFFFFFFFF)V");
+    mid = (*env)->GetStaticMethodID(env, clazz, "jfsub", "(FFFFFFFFFFFFFFF)V");
 
     if (mid == 0) {
         printf("native: couldn't find jfsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j);
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
 
-JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdouble a, jdouble b, jdouble c, jdouble d, jdouble e, jdouble f, jdouble g, jdouble h, jdouble i, jdouble j)
+JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdouble a, jdouble b, jdouble c, jdouble d, jdouble e, jdouble f, jdouble g, jdouble h, jdouble i, jdouble j, jdouble k, jdouble l, jdouble m, jdouble n, jdouble o)
 {
     jmethodID mid;
 
-    printf("java-native: %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g\n", a, b, c, d, e, f, g, h, i, j);
+    printf("java-native: %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     fflush(stdout);
 
-    mid = (*env)->GetStaticMethodID(env, clazz, "jdsub", "(DDDDDDDDDD)V");
+    mid = (*env)->GetStaticMethodID(env, clazz, "jdsub", "(DDDDDDDDDDDDDDD)V");
 
     if (mid == 0) {
         printf("native: couldn't find jfsub\n");
         return;
     }
 
-    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j);
+    (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
