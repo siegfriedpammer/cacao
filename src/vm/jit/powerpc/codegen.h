@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 2709 2005-06-15 13:57:07Z christian $
+   $Id: codegen.h 2723 2005-06-16 11:56:01Z twisti $
 
 */
 
@@ -357,7 +357,7 @@ do { \
 #define M_BLDU(a,b,c)                   M_OP2_IMM(34, a, b, c)
 #define M_SLDU(a,b,c)                   M_OP2_IMM(40, a, b, c)
 #define M_ILD(a,b,c)                    M_OP2_IMM(32, a, b, c)
-#define M_ALD(a,b,c)                    M_OP2_IMM(32, a, b, c)
+#define M_ALD(a,b,c)                    M_ILD(a, b, c)
 
 #define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
 #define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
