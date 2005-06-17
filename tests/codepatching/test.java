@@ -316,11 +316,35 @@ public class test extends Thread {
         }
  
         try {
+            p("putfieldconst zero (I,F): ");
+            if (doit) {
+                putfieldconstIF pfcif = new putfieldconstIF();
+                pfcif.i = 0;
+                check(pfcif.i, 0);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+ 
+        try {
             p("putfieldconst (J,D,L): ");
             if (doit) {
                 putfieldconstJDL pfcjdl = new putfieldconstJDL();
                 pfcjdl.l = 1234567890123L;
                 check(pfcjdl.l, 1234567890123L);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putfieldconst zero (J,D,L): ");
+            if (doit) {
+                putfieldconstJDL pfcjdl = new putfieldconstJDL();
+                pfcjdl.l = 0L;
+                check(pfcjdl.l, 0L);
             } else
                 ok();
         } catch (Throwable t) {
