@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2725 2005-06-16 19:10:35Z edwin $
+   $Id: linker.c 2728 2005-06-17 08:12:26Z twisti $
 
 */
 
@@ -723,10 +723,11 @@ static classinfo *link_class_intern(classinfo *c)
 				m->stubroutine = createcompilerstub(m);
 
 			} else {
-				functionptr f = native_findfunction(c->name,
-													m->name, m->descriptor,
-													(m->flags & ACC_STATIC));
+				functionptr f = NULL;
+
 #if defined(STATIC_CLASSPATH)
+				f = native_findfunction(c->name, m->name, m->descriptor,
+										(m->flags & ACC_STATIC));
 				if (f)
 #endif
 					m->stubroutine = codegen_createnativestub(f, m);
@@ -734,7 +735,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 
 		if (!(m->flags & ACC_STATIC))
-			v->table[m->vftblindex] = (methodptr) m->stubroutine;
+			v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
 	}
 
 	/* compute instance size and offset of each field */
