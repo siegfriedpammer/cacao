@@ -28,15 +28,14 @@
 
    Changes:
 
-   $Id: md.c 2675 2005-06-13 16:20:03Z twisti $
+   $Id: md.c 2729 2005-06-17 08:12:53Z twisti $
 
 */
 
 
+#include <signal.h>
 #include <stdlib.h>
 #include <ucontext.h>
-
-#include <machine/signal.h>
 
 #include "config.h"
 #include "vm/jit/x86_64/md-abi.h"
