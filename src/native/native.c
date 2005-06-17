@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2707 2005-06-15 13:40:36Z twisti $
+   $Id: native.c 2727 2005-06-17 08:11:34Z twisti $
 
 */
 
@@ -342,9 +342,10 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 	library_hash_name_entry   *ne;      /* library name                       */
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
-	u4   i;
 
-	key = (u4) (ptrint) loader;         /* we use the classinfo pointer       */
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
+
+	key = ((u4) (ptrint) loader) >> 4;         /* align to 16-byte boundaries */
 	slot = key & (library_hash.size - 1);
 	le = library_hash.ptr[slot];
 
@@ -381,17 +382,9 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 	ne = le->namelink;
 
 	while (ne) {
-		if (ne->name->blength == filename->blength) {
-			for (i = 0; i < (u4) filename->blength; i++)
-				if (ne->name->text[i] != filename->text[i])
-					goto nomatch;
-
-			/* entry found in hashtable */
-
+		if (ne->name == filename)
 			return;
-		}
 
-	nomatch:
 		ne = ne->hashlink;                  /* next element in external chain */
 	}
 
@@ -406,65 +399,25 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
-
-
-	/* check for hashtable size */
-
-	if (library_hash.entries > (library_hash.size * 2)) {
-
-		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */
-
-		hashtable           newhash;                     /* the new hashtable */
-
-		/* create new hashtable, double the size */
-
-		init_hashtable(&newhash, library_hash.size * 2);
-		newhash.entries = library_hash.entries;
-
-		/* transfer elements to new hashtable */
-
-		for (i = 0; i < library_hash.size; i++) {
-			le = (library_hash_loader_entry *) library_hash.ptr[i];
-
-			while (le) {
-				library_hash_loader_entry *nextl = le->hashlink;
-				u4 newslot = ((u4) (ptrint) le) & (newhash.size - 1);
-
-				le->hashlink =
-					(library_hash_loader_entry *) newhash.ptr[newslot];
-
-				newhash.ptr[newslot] = le;
-
-				le = nextl;
-			}
-		}
-
-		/* dispose old table */
-
-		MFREE(library_hash.ptr, void *, library_hash.size);
-
-		library_hash = newhash;
-	}
 }
 #endif /* !defined(STATIC_CLASSPATH) */
 
 
-/*********************** Function: native_findfunction *************************
+/* native_findfunction *********************************************************
 
-	Looks up a method (must have the same class name, method name, descriptor
-	and 'static'ness) and returns a function pointer to it.
-	Returns: function pointer or NULL (if there is no such method)
+   Looks up a method (must have the same class name, method name,
+   descriptor and 'static'ness) and returns a function pointer to it.
+   Returns: function pointer or NULL (if there is no such method)
 
-	Remark: For faster operation, the names/descriptors are converted from C
-		strings to Unicode the first time this function is called.
+   Remark: For faster operation, the names/descriptors are converted
+   from C strings to Unicode the first time this function is called.
 
 *******************************************************************************/
 
-functionptr native_findfunction(utf *cname, utf *mname, 
-								utf *desc, bool isstatic)
+#if defined(STATIC_CLASSPATH)
+functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
+								bool isstatic)
 {
-#ifdef STATIC_CLASSPATH
 	int i;
 	/* entry of table for fast string comparison */
 	struct nativecompref *n;
@@ -490,53 +443,12 @@ functionptr native_findfunction(utf *cname, utf *mname,
 		nativecompdone = true;
 	}
 
-#ifdef JOWENN_DEBUG
-	buffer_len = 
-		utf_strlen(cname) + utf_strlen(mname) + utf_strlen(desc) + 64;
-	
-	buffer = MNEW(char, buffer_len);
-
-	strcpy(buffer, "searching matching function in native table:");
-	utf_sprint(buffer+strlen(buffer), mname);
-	strcpy(buffer+strlen(buffer), ": ");
-	utf_sprint(buffer+strlen(buffer), desc);
-	strcpy(buffer+strlen(buffer), " for class ");
-	utf_sprint(buffer+strlen(buffer), cname);
-
-	log_text(buffer);	
-
-	MFREE(buffer, char, buffer_len);
-#endif
-		
 	for (i = 0; i < NATIVETABLESIZE; i++) {
 		n = &(nativecomptable[i]);
 
 		if (cname == n->classname && mname == n->methodname &&
 		    desc == n->descriptor && isstatic == n->isstatic)
 			return n->func;
-#ifdef JOWENN_DEBUG
-			else {
-				if (cname == n->classname && mname == n->methodname )  log_text("static and descriptor mismatch");
-			
-				else {
-					buffer_len = 
-					  utf_strlen(n->classname) + utf_strlen(n->methodname) + utf_strlen(n->descriptor) + 64;
-	
-					buffer = MNEW(char, buffer_len);
-
-					strcpy(buffer, "comparing with:");
-					utf_sprint(buffer+strlen(buffer), n->methodname);
-					strcpy (buffer+strlen(buffer), ": ");
-					utf_sprint(buffer+strlen(buffer), n->descriptor);
-					strcpy(buffer+strlen(buffer), " for class ");
-					utf_sprint(buffer+strlen(buffer), n->classname);
-
-					log_text(buffer);	
-
-					MFREE(buffer, char, buffer_len);
-				}
-			} 
-#endif
 	}
 
 		
@@ -558,15 +470,11 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 	MFREE(buffer, char, buffer_len);
 
-/*  	exit(1); */
-
 	/* keep compiler happy */
+
 	return NULL;
-#else
-/* dynamic classpath */
-  return 0;
-#endif
 }
+#endif /* defined(STATIC_CLASSPATH) */
 
 
 /* native_make_overloaded_function *********************************************
@@ -785,28 +693,40 @@ functionptr native_resolve_function(methodinfo *m)
 	/* of the methods's class                                                 */
 
 	if (!sym) {
-		key = (u4) (ptrint) m->class->classloader;
+		/* normally addresses are aligned to 4, 8 or 16 bytes */
+
+		key = ((u4) (ptrint) m->class->classloader) >> 4; /* align to 16-byte */
 		slot = key & (library_hash.size - 1);
 		le = library_hash.ptr[slot];
 
-		ne = le->namelink;
+		/* iterate through loaders in this hash slot */
 
-		while (ne && !sym) {
-			sym = lt_dlsym(ne->handle, name);
+		while (le && !sym) {
+			/* iterate through names in this loader */
 
-			if (!sym)
-				sym = lt_dlsym(ne->handle, newname);
+			ne = le->namelink;
+			
+			while (ne && !sym) {
+				sym = lt_dlsym(ne->handle, name);
 
-			ne = ne->hashlink;
+				if (!sym)
+					sym = lt_dlsym(ne->handle, newname);
+
+				ne = ne->hashlink;
+			}
+
+			le = le->hashlink;
 		}
 	}
 
 	/* no symbol found? throw exception */
 
-	if (!sym)
+	if (!sym) {
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
 									 m->name);
+		log_text(lt_dlerror());
+	}
 
 	/* release memory */
 
