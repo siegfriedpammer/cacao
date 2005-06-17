@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2586 2005-06-08 10:56:49Z twisti $
+   $Id: asmpart.S 2733 2005-06-17 12:18:29Z twisti $
 
 */
 
@@ -240,6 +240,7 @@ L_register_copy_done:
 	sub     %r13,%rbp                 /* - float arguments in registers       */
 	jle     L_copy_done               /* are all assigned to registers?       */
 
+	and     $0xfffffffffffffffe,%rbp  /* keep stack 16-byte aligned           */
 	shl     $3,%rbp                   /* calculate stack size                 */
 	sub     %rbp,%rsp                 /* stack frame for arguments            */
 	mov     %rsp,%rbx                 /* use %rbx as temp sp                  */
