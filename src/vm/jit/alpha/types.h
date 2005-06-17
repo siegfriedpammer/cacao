@@ -1,4 +1,4 @@
-/* vm/jit/alpha/types.h - machine specific definitions for alpha
+/* src/vm/jit/alpha/types.h - machine specific definitions for Alpha
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: types.h 2608 2005-06-08 19:29:36Z twisti $
+   $Id: types.h 2731 2005-06-17 12:14:45Z twisti $
 
 */
 
@@ -71,5 +71,3 @@ typedef u8                      ptrint;
  * tab-width: 4
  * End:
  */
-
-
