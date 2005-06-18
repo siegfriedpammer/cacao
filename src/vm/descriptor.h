@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2570 2005-06-06 15:32:16Z twisti $
+   $Id: descriptor.h 2737 2005-06-18 14:55:20Z edwin $
 
 */
 
@@ -39,7 +39,7 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct descriptor_pool descriptor_pool;
-
+typedef struct paramdesc paramdesc;
 
 #include "vm/class.h"
 #include "vm/global.h"
@@ -107,8 +107,6 @@ struct typedesc {
 /*       So short is PRIMITIVETYPE_SHORT, char is PRIMITIVETYPE_CHAR.         */
 /*       For non-primitive types decltype is TYPE_ADR.                        */
 
-typedef struct paramdesc paramdesc;
-
 struct paramdesc {
 	bool inmemory;              /* argument in register or on stack           */
 	s4   regoff;                /* register index or stack offset             */
@@ -120,11 +118,26 @@ struct methoddesc {
 	s4         argintreguse;    /* number of used integer argument registers  */
 	s4         argfltreguse;    /* number of used float argument registers    */
 	s4         memuse;          /* number of stack slots used                 */
-	paramdesc *params;
+	paramdesc *params;          /* allocated parameter descriptions [3]       */
 	typedesc   returntype;      /* parsed descriptor of the return type       */
 	typedesc   paramtypes[1];   /* parameter types, variable length!          */
 };
 
+/* [3]...If params is NULL, the parameter descriptions have not yet been      */
+/*       allocated. In this case ___the possible 'this' pointer of the method */
+/*       is NOT counted in paramcount/paramslots and it is NOT included in    */
+/*       the paramtypes array___.                                             */
+/*       If params != NULL, the parameter descriptions have been              */
+/*       allocated, and the 'this' pointer of the method, if any, IS included.*/
+/*       In case the method has no parameters at all, the special value       */
+/*       METHODDESC_NO_PARAMS is used (see below).                            */
+
+/* METHODDESC_NO_PARAMS is a special value for the methoddesc.params field    */
+/* indicating that the method is a static method without any parameters.      */
+/* This special value must be != NULL and it may only be set if               */
+/* md->paramcount == 0.                                                       */
+
+#define METHODDESC_NOPARAMS  ((paramdesc*)1)
 
 /* function prototypes ********************************************************/
 
@@ -302,6 +315,27 @@ typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *des
 
 methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags);
 
+/* descriptor_params_from_paramtypes *******************************************
+ 
+   Create the paramdescs for a method descriptor. This function is called
+   when we know whether the method is static or not. This function may only
+   be called once for each methoddesc, and only if md->params == NULL.
+
+   IN:
+       md...............the parsed method descriptor
+	                    md->params MUST be NULL.
+	   mflags...........the ACC_* access flags of the method. Only the
+	                    ACC_STATIC bit is checked.
+						The value ACC_UNDEF is NOT allowed.
+
+   RETURN VALUE:
+       true.............the paramdescs were created successfully
+	   false............an exception has been thrown
+
+   POSTCONDITION:
+       md->parms != NULL
+
+*******************************************************************************/
 
 bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
 
@@ -389,49 +423,6 @@ void descriptor_debug_print_methoddesc(FILE *file, methoddesc *d);
 *******************************************************************************/
 
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
-
-
-/* macros for descriptor parsing **********************************************/
-
-/* XXX These should be moved to descriptor.c */
-
-/* SKIP_FIELDDESCRIPTOR:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
- *
- * CAUTION: This macro does not check for an unexpected end of the
- * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
- */
-#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
-	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
-		if (*(utf_ptr)++=='L')									\
-			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
-
-/* SKIP_FIELDDESCRIPTOR_SAFE:
- * utf_ptr must point to the first character of a field descriptor.
- * After the macro call utf_ptr points to the first character after
- * the field descriptor.
- *
- * Input:
- *     utf_ptr....points to first char of descriptor
- *     end_ptr....points to first char after the end of the string
- *     errorflag..must be initialized (to false) by the caller!
- * Output:
- *     utf_ptr....points to first char after the descriptor
- *     errorflag..set to true if the string ended unexpectedly
- */
-#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
-	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
-		if ((utf_ptr) == (end_ptr))										\
-			(errorflag) = true;											\
-		else															\
-			if (*(utf_ptr)++=='L') {									\
-				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
-					/* skip */;											\
-				if ((utf_ptr)[-1] != ';')								\
-					(errorflag) = true; }} while(0)
-
 
 #endif /* _DESCRIPTOR_H */
 

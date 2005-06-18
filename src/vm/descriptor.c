@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: descriptor.c 2668 2005-06-13 14:26:55Z twisti $
+   $Id: descriptor.c 2737 2005-06-18 14:55:20Z edwin $
 
 */
 
@@ -74,6 +74,49 @@ struct descriptor_hash_entry {
 	parseddesc             parseddesc;
 	s2                     paramslots; /* number of params, LONG/DOUBLE counted as 2 */
 };
+
+
+/****************************************************************************/
+/* MACROS FOR DESCRIPTOR PARSING (private to descriptor.c)                  */
+/****************************************************************************/
+
+/* SKIP_FIELDDESCRIPTOR:
+ * utf_ptr must point to the first character of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * CAUTION: This macro does not check for an unexpected end of the
+ * descriptor. Better use SKIP_FIELDDESCRIPTOR_SAFE.
+ */
+#define SKIP_FIELDDESCRIPTOR(utf_ptr)							\
+	do { while (*(utf_ptr)=='[') (utf_ptr)++;					\
+		if (*(utf_ptr)++=='L')									\
+			while(*(utf_ptr)++ != ';') /* skip */; } while(0)
+
+/* SKIP_FIELDDESCRIPTOR_SAFE:
+ * utf_ptr must point to the first character of a field descriptor.
+ * After the macro call utf_ptr points to the first character after
+ * the field descriptor.
+ *
+ * Input:
+ *     utf_ptr....points to first char of descriptor
+ *     end_ptr....points to first char after the end of the string
+ *     errorflag..must be initialized (to false) by the caller!
+ * Output:
+ *     utf_ptr....points to first char after the descriptor
+ *     errorflag..set to true if the string ended unexpectedly
+ */
+#define SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr,end_ptr,errorflag)			\
+	do { while ((utf_ptr) != (end_ptr) && *(utf_ptr)=='[') (utf_ptr)++;	\
+		if ((utf_ptr) == (end_ptr))										\
+			(errorflag) = true;											\
+		else															\
+			if (*(utf_ptr)++=='L') {									\
+				while((utf_ptr) != (end_ptr) && *(utf_ptr)++ != ';')	\
+					/* skip */;											\
+				if ((utf_ptr)[-1] != ';')								\
+					(errorflag) = true; }} while(0)
+
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -833,6 +876,14 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 			md_param_alloc(md);
 		}
+		else {
+			md->params = METHODDESC_NOPARAMS;
+		}
+	}
+	else {
+		/* params will be allocated later by descriptor_params_from_paramtypes */
+		/* if necessary                                                        */
+		md->params = NULL;
 	}
 
 	*(pool->descriptor_kind_next++) = 'm';
@@ -842,14 +893,25 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	return md;
 }
 
-
 /* descriptor_params_from_paramtypes *******************************************
  
-   XXX
+   Create the paramdescs for a method descriptor. This function is called
+   when we know whether the method is static or not. This function may only
+   be called once for each methoddesc, and only if md->params == NULL.
 
    IN:
+       md...............the parsed method descriptor
+	                    md->params MUST be NULL.
+	   mflags...........the ACC_* access flags of the method. Only the
+	                    ACC_STATIC bit is checked.
+						The value ACC_UNDEF is NOT allowed.
 
    RETURN VALUE:
+       true.............the paramdescs were created successfully
+	   false............an exception has been thrown
+
+   POSTCONDITION:
+       md->parms != NULL
 
 *******************************************************************************/
 
@@ -858,6 +920,8 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 	typedesc *td;
 
 	DESCRIPTOR_ASSERT(md);
+	DESCRIPTOR_ASSERT(md->params == NULL);
+	DESCRIPTOR_ASSERT(mflags != ACC_UNDEF);
 
 	td = md->paramtypes;
 
@@ -875,7 +939,7 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		td->type = TYPE_ADR;
 		td->decltype = TYPE_ADR;
 		td->arraydim = 0;
-		td->classref = NULL;
+		td->classref = NULL; /* XXX classref to invokant class */
 
 		md->paramcount++;
 		md->paramslots++;
@@ -891,6 +955,9 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		/* fill the paramdesc */
 
 		md_param_alloc(md);
+	}
+	else {
+		md->params = METHODDESC_NOPARAMS;
 	}
 
 	return true;
