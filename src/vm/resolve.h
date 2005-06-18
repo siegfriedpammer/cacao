@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2227 2005-04-05 23:00:37Z edwin $
+   $Id: resolve.h 2738 2005-06-18 16:37:34Z edwin $
 
 */
 
@@ -392,7 +392,8 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	   					may be NULL, if no typeinfo is available
 
    RETURN VALUE:
-       a pointer to a new unresolved_class struct
+       a pointer to a new unresolved_class struct, or
+	   NULL if an exception has been thrown
 
 *******************************************************************************/
 
@@ -409,18 +410,39 @@ create_unresolved_class(methodinfo *refmethod,
        referer..........the class containing the reference
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
-	   stack............the input stack of the instruction
-	                    NULL if no typeinfo is available
 
    RETURN VALUE:
-       a pointer to a new unresolved_field struct
+       a pointer to a new unresolved_field struct, or
+	   NULL if an exception has been thrown
 
 *******************************************************************************/
 
 unresolved_field *
 create_unresolved_field(classinfo *referer,methodinfo *refmethod,
-						instruction *iptr,
-						stackelement *stack);
+						instruction *iptr);
+
+/* constrain_unresolved_field **************************************************
+ 
+   Record subtype constraints for a field access.
+  
+   IN:
+       ref..............the unresolved_field structure of the access
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
+	   stack............the input stack of the instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+bool
+constrain_unresolved_field(unresolved_field *ref,
+						   classinfo *referer,methodinfo *refmethod,
+						   instruction *iptr,
+						   stackelement *stack);
 
 /* create_unresolved_method ****************************************************
  
@@ -430,18 +452,39 @@ create_unresolved_field(classinfo *referer,methodinfo *refmethod,
        referer..........the class containing the reference
 	   refmethod........the method triggering the resolution (if any)
 	   iptr.............the INVOKE* instruction
-	   stack............the input stack of the instruction
-	                    NULL if no typeinfo is available
 
    RETURN VALUE:
-       a pointer to a new unresolved_method struct
+       a pointer to a new unresolved_method struct, or
+	   NULL if an exception has been thrown
 
 *******************************************************************************/
 
 unresolved_method *
 create_unresolved_method(classinfo *referer,methodinfo *refmethod,
-						 instruction *iptr,
-						 stackelement *stack);
+						 instruction *iptr);
+
+/* constrain_unresolved_method *************************************************
+ 
+   Record subtype constraints for the arguments of a method call.
+  
+   IN:
+       ref..............the unresolved_method structure of the call
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the INVOKE* instruction
+	   stack............the input stack of the instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+bool
+constrain_unresolved_method(unresolved_method *ref,
+						 	classinfo *referer,methodinfo *refmethod,
+						 	instruction *iptr,
+						 	stackelement *stack);
 
 /* unresolved_class_free *******************************************************
  

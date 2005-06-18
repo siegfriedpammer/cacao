@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2680 2005-06-14 17:14:08Z twisti $
+   $Id: resolve.c 2738 2005-06-18 16:37:34Z edwin $
 
 */
 
@@ -863,6 +863,22 @@ empty_set:
 	return true;
 }
 
+/* create_unresolved_class *****************************************************
+ 
+   Create an unresolved_class struct for the given class reference
+  
+   IN:
+	   refmethod........the method triggering the resolution (if any)
+	   classref.........the class reference
+	   valuetype........value type to check against the resolved class
+	   					may be NULL, if no typeinfo is available
+
+   RETURN VALUE:
+       a pointer to a new unresolved_class struct, or
+	   NULL if an exception has been thrown
+
+*******************************************************************************/
+
 unresolved_class *
 create_unresolved_class(methodinfo *refmethod,
 						constant_classref *classref,
@@ -898,19 +914,27 @@ create_unresolved_class(methodinfo *refmethod,
 	return ref;
 }
 
+/* create_unresolved_field *****************************************************
+ 
+   Create an unresolved_field struct for the given field access instruction
+  
+   IN:
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
+
+   RETURN VALUE:
+       a pointer to a new unresolved_field struct, or
+	   NULL if an exception has been thrown
+
+*******************************************************************************/
 
 unresolved_field *
 create_unresolved_field(classinfo *referer, methodinfo *refmethod,
-						instruction *iptr,
-						stackelement *stack)
+						instruction *iptr)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
-	stackelement *instanceslot = NULL;
-	int type;
-	typeinfo tinfo;
-	typeinfo *tip = NULL;
-	typedesc *fd;
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_field\n");
@@ -922,27 +946,22 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 	ref = NEW(unresolved_field);
 	ref->flags = 0;
 	ref->referermethod = refmethod;
+	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->valueconstraints);
 
 	switch (iptr[0].opc) {
 		case ICMD_PUTFIELD:
 			ref->flags |= RESOLVE_PUTFIELD;
-			if (stack) {
-				instanceslot = stack->prev;
-				tip = &(stack->typeinfo);
-			}
 			fieldref = (constant_FMIref *) iptr[0].val.a;
 			break;
 
 		case ICMD_PUTFIELDCONST:
 			ref->flags |= RESOLVE_PUTFIELD;
-			if (stack) instanceslot = stack;
 			fieldref = (constant_FMIref *) iptr[1].val.a;
 			break;
 
 		case ICMD_PUTSTATIC:
 			ref->flags |= RESOLVE_PUTFIELD | RESOLVE_STATIC;
 			fieldref = (constant_FMIref *) iptr[0].val.a;
-			if (stack) tip = &(stack->typeinfo);
 			break;
 
 		case ICMD_PUTSTATICCONST:
@@ -951,7 +970,6 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 			break;
 
 		case ICMD_GETFIELD:
-			if (stack) instanceslot = stack;
 			fieldref = (constant_FMIref *) iptr[0].val.a;
 			break;
 			
@@ -962,7 +980,85 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 	}
 	
 	RESOLVE_ASSERT(fieldref);
-	RESOLVE_ASSERT(!stack || instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
+	fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+#endif
+
+	ref->fieldref = fieldref;
+
+	return ref;
+}
+
+/* constrain_unresolved_field **************************************************
+ 
+   Record subtype constraints for a field access.
+  
+   IN:
+       ref..............the unresolved_field structure of the access
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the {GET,PUT}{FIELD,STATIC}{,CONST} instruction
+	   stack............the input stack of the instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+bool
+constrain_unresolved_field(unresolved_field *ref,
+						   classinfo *referer, methodinfo *refmethod,
+						   instruction *iptr,
+						   stackelement *stack)
+{
+	unresolved_field *ref;
+	constant_FMIref *fieldref;
+	stackelement *instanceslot = NULL;
+	int type;
+	typeinfo tinfo;
+	typeinfo *tip = NULL;
+	typedesc *fd;
+
+	RESOLVE_ASSERT(ref);
+	RESOLVE_ASSERT(stack);
+
+	fieldref = ref->fieldref;
+	RESOLVE_ASSERT(fieldref);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"constrain_unresolved_field\n");
+	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+#endif
+
+	switch (iptr[0].opc) {
+		case ICMD_PUTFIELD:
+			instanceslot = stack->prev;
+			tip = &(stack->typeinfo);
+			break;
+
+		case ICMD_PUTFIELDCONST:
+			instanceslot = stack;
+			break;
+
+		case ICMD_PUTSTATIC:
+			tip = &(stack->typeinfo);
+			break;
+
+		case ICMD_GETFIELD:
+			instanceslot = stack;
+			break;
+	}
+	
+	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 	fd = fieldref->parseddesc.fd;
 	RESOLVE_ASSERT(fd);
 
@@ -975,8 +1071,6 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
-	ref->fieldref = fieldref;
-	
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
 		typeinfo *insttip;
@@ -997,7 +1091,7 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 					&(ref->instancetypes),insttip,fieldref->classref))
-			return NULL;
+			return false;
 	}
 	else {
 		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
@@ -1005,7 +1099,7 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 	
 	/* record subtype constraints for the value type, if any */
 	type = fd->type;
-	if (stack && type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
+	if (type == TYPE_ADR && ((ref->flags & RESOLVE_PUTFIELD) != 0)) {
 		if (!tip) {
 			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
 			tip = &tinfo;
@@ -1020,33 +1114,39 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 					&(ref->valueconstraints),tip,fieldref->parseddesc.fd->classref))
-			return NULL;
+			return false;
 	}
 	else {
 		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->valueconstraints);
 	}
 
-	return ref;
+	return true;
 }
+
+/* create_unresolved_method ****************************************************
+ 
+   Create an unresolved_method struct for the given method invocation
+  
+   IN:
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the INVOKE* instruction
+
+   RETURN VALUE:
+       a pointer to a new unresolved_method struct, or
+	   NULL if an exception has been thrown
+
+*******************************************************************************/
 
 unresolved_method *
 create_unresolved_method(classinfo *referer, methodinfo *refmethod,
-						 instruction *iptr,
-						 stackelement *stack)
+						 instruction *iptr)
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
-	stackelement *instanceslot = NULL;
-	stackelement *param;
-	methoddesc *md;
-	typeinfo tinfo;
-	int i,j;
-	int type;
 
 	methodref = (constant_FMIref *) iptr[0].val.a;
 	RESOLVE_ASSERT(methodref);
-	md = methodref->parseddesc.md;
-	RESOLVE_ASSERT(md);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
@@ -1064,6 +1164,7 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	ref->referermethod = refmethod;
 	ref->methodref = methodref;
 	ref->paramconstraints = NULL;
+	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
 
 	switch (iptr[0].opc) {
 		case ICMD_INVOKESTATIC:
@@ -1077,14 +1178,66 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 			RESOLVE_ASSERT(false);
 	}
 
-	if (stack && (ref->flags & RESOLVE_STATIC) == 0) {
+	return ref;
+}
+
+/* constrain_unresolved_method *************************************************
+ 
+   Record subtype constraints for the arguments of a method call.
+  
+   IN:
+       ref..............the unresolved_method structure of the call
+       referer..........the class containing the reference
+	   refmethod........the method triggering the resolution (if any)
+	   iptr.............the INVOKE* instruction
+	   stack............the input stack of the instruction
+
+   RETURN VALUE:
+       true.............everything ok
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+bool
+constrain_unresolved_method(unresolved_method *ref,
+							classinfo *referer, methodinfo *refmethod,
+						 	instruction *iptr,
+						 	stackelement *stack)
+{
+	constant_FMIref *methodref;
+	stackelement *instanceslot = NULL;
+	stackelement *param;
+	methoddesc *md;
+	typeinfo tinfo;
+	int i,j;
+	int type;
+
+	RESOLVE_ASSERT(ref);
+	RESOLVE_ASSERT(stack);
+	methodref = ref->methodref;
+	RESOLVE_ASSERT(methodref);
+	md = methodref->parseddesc.md;
+	RESOLVE_ASSERT(md);
+
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"constrain_unresolved_method\n");
+	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
+#endif
+
+	if ((ref->flags & RESOLVE_STATIC) == 0) {
 		/* find the instance slot under all the parameter slots on the stack */
 		instanceslot = stack;
 		for (i=0; i<md->paramcount; ++i)
 			instanceslot = instanceslot->prev;
 	}
 	
-	RESOLVE_ASSERT(!stack || instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
@@ -1107,41 +1260,36 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 					&(ref->instancetypes),tip,methodref->classref))
-			return NULL;
-	}
-	else {
-		UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
+			return false;
 	}
 	
 	/* record subtype constraints for the parameter types, if any */
-	if (stack) {
-		param = stack;
-		for (i=md->paramcount-1; i>=0; --i, param=param->prev) {
-			type = md->paramtypes[i].type;
-			
-			RESOLVE_ASSERT(param);
-			RESOLVE_ASSERT(type == param->type);
-			
-			if (type == TYPE_ADR) {
-				if (!ref->paramconstraints) {
-					ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
-					for (j=md->paramcount-1; j>i; --j)
-						UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
-				}
-				RESOLVE_ASSERT(ref->paramconstraints);
-				if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-							ref->paramconstraints + i,&(param->typeinfo),
-							md->paramtypes[i].classref))
-					return NULL;
+	param = stack;
+	for (i=md->paramcount-1; i>=0; --i, param=param->prev) {
+		type = md->paramtypes[i].type;
+
+		RESOLVE_ASSERT(param);
+		RESOLVE_ASSERT(type == param->type);
+
+		if (type == TYPE_ADR) {
+			if (!ref->paramconstraints) {
+				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
+				for (j=md->paramcount-1; j>i; --j)
+					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
-			else {
-				if (ref->paramconstraints)
-					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
-			}
+			RESOLVE_ASSERT(ref->paramconstraints);
+			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
+						ref->paramconstraints + i,&(param->typeinfo),
+						md->paramtypes[i].classref))
+				return false;
+		}
+		else {
+			if (ref->paramconstraints)
+				UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[i]);
 		}
 	}
 
-	return ref;
+	return true;
 }
 
 /******************************************************************************/

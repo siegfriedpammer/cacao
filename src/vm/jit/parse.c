@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2568 2005-06-06 15:28:11Z twisti $
+   $Id: parse.c 2738 2005-06-18 16:37:34Z edwin $
 
 */
 
@@ -1019,7 +1019,7 @@ SHOWOPCODE(DEBUG4)
 
 				if (!(uf = create_unresolved_field(inline_env->method->class,
 												   inline_env->method,
-												   iptr, NULL)))
+												   iptr)))
 					return NULL;
 
 				/* store unresolved_field pointer */
@@ -1067,7 +1067,7 @@ SHOWOPCODE(DEBUG4)
 				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr, NULL);
+											  inline_env->method, iptr);
 
 				if (!um)
 					return NULL;
@@ -1111,7 +1111,7 @@ SHOWOPCODE(DEBUG4)
 				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr, NULL);
+											  inline_env->method, iptr);
 
 				if (!um)
 					return NULL;
@@ -1154,7 +1154,7 @@ SHOWOPCODE(DEBUG4)
 				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr, NULL);
+											  inline_env->method, iptr);
 
 				if (!um)
 					return NULL;
