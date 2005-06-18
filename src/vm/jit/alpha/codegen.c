@@ -30,13 +30,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2614 2005-06-08 20:54:05Z twisti $
+   $Id: codegen.c 2736 2005-06-18 09:20:34Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include <signal.h>
 
 #include "config.h"
 
@@ -69,128 +68,6 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/reg.inc"
-
-
-/* NullPointerException handlers and exception handling initialisation        */
-
-typedef struct sigctx_struct {
-	long          sc_onstack;           /* sigstack state to restore          */
-	long          sc_mask;              /* signal mask to restore             */
-	long          sc_pc;                /* pc at time of signal               */
-	long          sc_ps;                /* psl to retore                      */
-	long          sc_regs[32];          /* processor regs 0 to 31             */
-	long          sc_ownedfp;           /* fp has been used                   */
-	long          sc_fpregs[32];        /* fp regs 0 to 31                    */
-	unsigned long sc_fpcr;              /* floating point control register    */
-	unsigned long sc_fp_control;        /* software fpcr                      */
-	                                    /* rest is unused                     */
-	unsigned long sc_reserved1, sc_reserved2;
-	unsigned long sc_ssize;
-	char          *sc_sbase;
-	unsigned long sc_traparg_a0;
-	unsigned long sc_traparg_a1;
-	unsigned long sc_traparg_a2;
-	unsigned long sc_fp_trap_pc;
-	unsigned long sc_fp_trigger_sum;
-	unsigned long sc_fp_trigger_inst;
-	unsigned long sc_retcode[2];
-} sigctx_struct;
-
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
-{
-	void *critical;
-	if ((critical = thread_checkcritical((void*) uc->uc_mcontext.sc_pc)) != NULL)
-		uc->uc_mcontext.sc_pc = (u8) critical;
-}
-#endif
-
-
-/* NullPointerException signal handler for hardware null pointer check */
-
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
-{
-	struct sigaction act;
-	sigset_t         nsig;
-	int              instr;
-	long             faultaddr;
-
-	ucontext_t *_uc = (ucontext_t *) _p;
-	mcontext_t *sigctx = &_uc->uc_mcontext;
-
-	instr = *((s4 *) (sigctx->sc_pc));
-	faultaddr = sigctx->sc_regs[(instr >> 16) & 0x1f];
-
-	if (faultaddr == 0) {
-		/* Reset signal handler - necessary for SysV, does no harm for BSD */
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-		sigaction(sig, &act, NULL);
-
-		sigemptyset(&nsig);
-		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-
-		sigctx->sc_regs[REG_ITMP1_XPTR] = (u8) string_java_lang_NullPointerException;
-		sigctx->sc_regs[REG_ITMP2_XPC] = sigctx->sc_pc;
-		sigctx->sc_pc = (u8) asm_throw_and_handle_exception;
-		return;
-
-	} else {
-		faultaddr += (long) ((instr << 16) >> 16);
-
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "faulting address: 0x%016lx\n", faultaddr);
-	}
-}
-
-
-#ifdef __osf__
-
-void init_exceptions(void)
-{
-
-#else /* Linux */
-
-/* Linux on Digital Alpha needs an initialisation of the ieee floating point
-	control for IEEE compliant arithmetic (option -mieee of GCC). Under
-	Digital Unix this is done automatically.
-*/
-
-#include <asm/fpu.h>
-
-extern unsigned long ieee_get_fp_control();
-extern void ieee_set_fp_control(unsigned long fp_control);
-
-void init_exceptions(void)
-{
-	struct sigaction act;
-
-	/* initialize floating point control */
-
-	ieee_set_fp_control(ieee_get_fp_control()
-						& ~IEEE_TRAP_ENABLE_INV
-						& ~IEEE_TRAP_ENABLE_DZE
-/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-						& ~IEEE_TRAP_ENABLE_OVF);
-#endif
-
-	/* install signal handlers we need to convert to exceptions */
-
-	if (!checknull) {
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-
-#if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
-}
 
 
 /* codegen *********************************************************************
@@ -4184,7 +4061,7 @@ gen_method:
 
 #define COMPSTUBSIZE    3
 
-u1 *createcompilerstub(methodinfo *m)
+functionptr createcompilerstub(methodinfo *m)
 {
 	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
 	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
@@ -4193,27 +4070,15 @@ u1 *createcompilerstub(methodinfo *m)
 	M_ALD(REG_PV, REG_PV, 16);          /* load pointer to the compiler       */
 	M_JMP(0, REG_PV);                   /* jump to the compiler, return address
 	                                       in reg 0 is used as method pointer */
-	s[1] = (u8) m;                      /* literals to be adressed            */
-	s[2] = (u8) asm_call_jit_compiler;  /* jump directly via PV from above    */
+	s[1] = (ptrint) m;                  /* literals to be adressed            */
+	s[2] = (ptrint) asm_call_jit_compiler; /* jump directly via PV from above */
 
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPSTUBSIZE * 8;
 #endif
 
-	return (u1 *) s;
-}
-
-
-/* removecompilerstub **********************************************************
-
-   Deletes a compilerstub from memory (simply by freeing it).
-
-*******************************************************************************/
-
-void removecompilerstub(u1 *stub)
-{
-	CFREE(stub, COMPSTUBSIZE * 8);
+	return (functionptr) s;
 }
 
 
@@ -4223,62 +4088,22 @@ void removecompilerstub(u1 *stub)
 
 *******************************************************************************/
 
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-
-#define NATIVESTUB_STACK          8/*ra,native result, oldThreadspecificHeadValue, addressOfThreadspecificHead, method, 0,0,ra*/
-#define NATIVESTUB_THREAD_EXTRA    (6 + 20) /*20 for additional frame creation*/
-#define NATIVESTUB_STACKTRACE_OFFSET   1
-
-#else
-
-#define NATIVESTUB_STACK          7/*ra,oldThreadspecificHeadValue, addressOfThreadspecificHead, method, 0,0,ra*/
-#define NATIVESTUB_THREAD_EXTRA    (1 + 20) /*20 for additional frame creation*/
-#define NATIVESTUB_STACKTRACE_OFFSET   0
-
-#endif
-
-#define NATIVESTUB_SIZE            (44 + NATIVESTUB_THREAD_EXTRA - 1)
-#define NATIVESTUB_STATIC_SIZE     5
-#define NATIVESTUB_VERBOSE_SIZE    (39 + 13)
-#define NATIVESTUB_OFFSET          14
-
-
-u1 *createnativestub(functionptr f, methodinfo *m)
+functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+							 registerdata *rd)
 {
-	u8                 *s;              /* memory pointer to hold the stub    */
-	u8                 *cs;
-	s4                 *mcodeptr;       /* code generation pointer            */
-	s4                  dumpsize;
-	s4                  stackframesize; /* size of stackframe if needed       */
-	s4                  disp;
-	s4                  stubsize;
-	codegendata        *cd;
-	registerdata       *rd;
-	t_inlining_globals *id;
-	methoddesc         *md;
-	methoddesc         *nmd;
-	s4                  nativeparams;
-	s4                  i, j;           /* count variables                    */
-	s4                  t;
-	s4                  s1, s2;
+	s4         *mcodeptr;               /* code generation pointer            */
+	s4          stackframesize;         /* size of stackframe if needed       */
+	s4          disp;
+	methoddesc *md;
+	methoddesc *nmd;
+	s4          nativeparams;
+	s4          i, j;                   /* count variables                    */
+	s4          t;
+	s4          s1, s2, off;
 
 	/* initialize variables */
 
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* setup registers before using it */
-
-	cd = DNEW(codegendata);
-	rd = DNEW(registerdata);
-	id = DNEW(t_inlining_globals);
-
-	inlining_setup(m, id);
-	reg_setup(m, rd, id);
 
 
 	/* create new method descriptor with additional native parameters */
@@ -4304,76 +4129,57 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 	md_param_alloc(nmd);
 
 
-	/* calculate native stub size */
+	/* calculate stack frame size */
 
-	stubsize = NATIVESTUB_SIZE;         /* calculate nativestub size          */
+	stackframesize =
+		1 +                             /* return address                     */
+		6 +                             /* dynamic stack info                 */
+		1 +                             /* methodinfo for call trace          */
+		(md->paramcount > INT_ARG_CNT ? INT_ARG_CNT : md->paramcount) +
+		nmd->memuse;
 
-	if ((m->flags & ACC_STATIC) && !m->class->initialized)
-		stubsize += NATIVESTUB_STATIC_SIZE;
 
-	if (runverbose)
-		stubsize += NATIVESTUB_VERBOSE_SIZE;
+	/* create method header */
 
-	s = CNEW(u8, stubsize);             /* memory to hold the stub            */
-	cs = s + NATIVESTUB_OFFSET;
-	mcodeptr = (s4 *) cs;               /* code generation pointer            */
+	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
+	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
+	(void) dseg_adds4(cd, 0);                               /* IsSync         */
+	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
+	(void) dseg_adds4(cd, 0);                               /* IntSave        */
+	(void) dseg_adds4(cd, 0);                               /* FltSave        */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
 
-	/* set some required varibles which are normally set by codegen_setup     */
 
-	cd->mcodebase = (u1 *) mcodeptr;
-	cd->patchrefs = NULL;
-
-	*(cs-1)  = (u8) f;                  /* address of native method           */
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	*(cs-2)  = (u8) &builtin_get_exceptionptrptr;
-#else
-	*(cs-2)  = (u8) (&_exceptionptr);   /* address of exceptionptr            */
-#endif
-	*(cs-3)  = (u8) asm_handle_nat_exception; /* addr of asm exception handler*/
-	*(cs-4)  = (u8) (&env);             /* addr of jni_environement           */
-	*(cs-5)  = (u8) builtin_trace_args;
-	*(cs-6)  = (u8) m;
-	*(cs-7)  = (u8) builtin_displaymethodstop;
-	*(cs-8)  = (u8) m->class;
-	*(cs-9)  = (u8) asm_wrapper_patcher;
-	*(cs-10) = (u8) &builtin_asm_get_stackframeinfo;
-	*(cs-11) = (u8) NULL;               /* filled with machine code           */
-	*(cs-12) = (u8) PATCHER_clinit;
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	*(cs-13) = (ptrint) get_dummyLR();  /* monitorPtr                         */
-#else
-	*(cs-13) = (ptrint) NULL;           /* monitorPtr                         */
-#endif
-	*(cs-14) = (ptrint) NULL;           /* vftbl                              */
+	/* initialize mcode variables */
+	
+	mcodeptr = (s4 *) cd->mcodebase;
+	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 
 	/* generate stub code */
 
-	M_LDA(REG_SP, REG_SP, -NATIVESTUB_STACK * 8);     /* build up stackframe  */
-	M_AST(REG_RA, REG_SP, 0 * 8);       /* store return address               */
+	M_LDA(REG_SP, REG_SP, -stackframesize * 8);
+	M_AST(REG_RA, REG_SP, (stackframesize - 1) * 8);
 
-	M_AST(REG_RA, REG_SP, (NATIVESTUB_STACKTRACE_OFFSET + 6) * 8);       /* store return address  in stackinfo helper*/
 
 	/* if function is static, check for initialized */
 
 	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addpatchref(cd, mcodeptr, NULL, NULL);
+		codegen_addpatchref(cd, mcodeptr, PATCHER_clinit, m->class);
 
 		if (showdisassemble)
 			M_NOP;
 	}
 
-	/* max. 39 +9 instructions */
+	/* call trace function */
 
 	if (runverbose) {
-		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
-		M_AST(REG_RA, REG_SP, 1 * 8);
-
 		/* save integer argument registers */
 
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		for (i = 0, j = 1; i < md->paramcount && i < INT_ARG_CNT; i++)
 			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-				M_LST(rd->argintregs[i], REG_SP, (2 + i) * 8);
+				M_LST(rd->argintregs[i], REG_SP, j++ * 8);
 
 		/* save and copy float arguments into integer registers */
 
@@ -4382,95 +4188,83 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DST(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
-					M_LLD(rd->argintregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
-
+					M_DST(rd->argfltregs[i], REG_SP, j * 8);
+					M_LLD(rd->argintregs[i], REG_SP, j * 8);
 				} else {
-					M_FST(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
-					M_ILD(rd->argintregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+					M_FST(rd->argfltregs[i], REG_SP, j * 8);
+					M_ILD(rd->argintregs[i], REG_SP, j * 8);
 				}
+				j++;
 			}
 		}
 
-		M_ALD(REG_ITMP1, REG_PV, -6 * 8);
+		off = dseg_addaddress(cd, m);
+		M_ALD(REG_ITMP1, REG_PV, off);
 		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		M_ALD(REG_PV, REG_PV, -5 * 8);
+		off = dseg_addaddress(cd, builtin_trace_args);
+		M_ALD(REG_PV, REG_PV, off);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-		M_LDA(REG_PV, REG_RA, disp);
+		disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+		M_LDA(REG_PV, REG_RA, -disp);
 
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		for (i = 0, j = 1; i < md->paramcount && i < INT_ARG_CNT; i++)
 			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-				M_LLD(rd->argintregs[i], REG_SP, (2 + i) * 8);
+				M_LLD(rd->argintregs[i], REG_SP, j++ * 8);
 
 		for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 			t = md->paramtypes[i].type;
 
 			if (IS_FLT_DBL_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+					M_DLD(rd->argfltregs[i], REG_SP, j * 8);
 				} else {
-					M_FLD(rd->argfltregs[i], REG_SP, (2 + INT_ARG_CNT + i) * 8);
+					M_FLD(rd->argfltregs[i], REG_SP, j * 8);
 				}
+				j++;
 			}
 		}
-
-		M_ALD(REG_RA, REG_SP, 1 * 8);
-		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + 2) * 8);
 	}
 
 
-	/* prepare XXX */
-
-	M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT) * 8));
-
 	/* save integer and float argument registers */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-			M_LST(rd->argintregs[i], REG_SP, i * 8);
+			M_LST(rd->argintregs[i], REG_SP, j++ * 8);
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
-			M_DST(rd->argfltregs[i], REG_SP, (INT_ARG_CNT + i) * 8);
+			M_DST(rd->argfltregs[i], REG_SP, j++ * 8);
 
-/*stack info */
-	M_ALD(REG_PV, REG_PV, -10 * 8);  /* builtin_asm_get_stackframeinfo        */
+	/* create native stack info */
+
+	off = dseg_addaddress(cd, builtin_asm_get_stackframeinfo);
+	M_ALD(REG_PV, REG_PV, off);
 	M_JSR(REG_RA, REG_PV);
-	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-	M_LDA(REG_PV, REG_RA, disp);
+	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+	M_LDA(REG_PV, REG_RA, -disp);
 
-	M_LST(REG_RESULT, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 2) * 8); /* save adress of pointer */
-	M_LLD(REG_ITMP3, REG_RESULT, 0); /* get pointer */
-	M_LST(REG_ITMP3, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 1) * 8); /* save old value */
-	M_LDA(REG_ITMP3, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 1) * 8); /* calculate new value */
-	M_LLD(REG_ITMP2, REG_ITMP3, 8);
-	M_LST(REG_ITMP3, REG_ITMP2, 0); /* store new value */
-	M_LLD(REG_ITMP2, REG_PV, -6 * 8);
-	M_LST(REG_ITMP2, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 3) * 8);
-	M_LST(REG_ZERO, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 4) * 8);
-	M_LST(REG_ZERO, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + NATIVESTUB_STACKTRACE_OFFSET + 5) * 8);
-/*stack info -end */
+	M_LST(REG_RESULT, REG_SP, (stackframesize - 5) * 8); /* save adress of pointer */
+	M_LLD(REG_ITMP2, REG_RESULT, 0); /* get pointer */
+	M_LST(REG_ITMP2, REG_SP, (stackframesize - 6) * 8); /* save old value */
+	M_LDA(REG_ITMP3, REG_SP, (stackframesize - 6) * 8); /* calculate new value */
+	M_LST(REG_ITMP3, REG_RESULT, 0); /* store new value */
+	off = dseg_addaddress(cd, m);
+	M_LLD(REG_ITMP2, REG_PV, off);
+	M_LST(REG_ITMP2, REG_SP, (stackframesize - 4) * 8);
+	M_LST(REG_ZERO, REG_SP, (stackframesize - 3) * 8);
+	M_LST(REG_ZERO, REG_SP, (stackframesize - 2) * 8);
 
 	/* restore integer and float argument registers */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
-			M_LLD(rd->argintregs[i], REG_SP, i * 8);
+			M_LLD(rd->argintregs[i], REG_SP, j++ * 8);
 
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
-			M_DLD(rd->argfltregs[i], REG_SP, (INT_ARG_CNT + i) * 8);
+			M_DLD(rd->argfltregs[i], REG_SP, j++ * 8);
 
-	M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
-
-
-	/* calculate stack frame size */
-
-	stackframesize = nmd->memuse;
-
-	if (stackframesize)
-		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 
 	/* copy or spill arguments to new locations */
 
@@ -4521,103 +4315,129 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 
 	/* put class into second argument register */
 
-	if (m->flags & ACC_STATIC)
-		M_ALD(rd->argintregs[1], REG_PV, -8 * 8);
+	if (m->flags & ACC_STATIC) {
+		off = dseg_addaddress(cd, m->class);
+		M_ALD(rd->argintregs[1], REG_PV, off);
+	}
 
 	/* put env into first argument register */
 
-	M_ALD(rd->argintregs[0], REG_PV, -4 * 8);
+	off = dseg_addaddress(cd, &env);
+	M_ALD(rd->argintregs[0], REG_PV, off);
 
 	/* do the native function call */
 
-	M_ALD(REG_PV, REG_PV, -1 * 8);      /* load adress of native method       */
+#if !defined(STATIC_CLASSPATH)
+	if (f == NULL) {
+		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m);
+
+		if (showdisassemble)
+			M_NOP;
+	}
+#endif
+
+	off = dseg_addaddress(cd, f);
+	M_ALD(REG_PV, REG_PV, off);         /* load adress of native method       */
 	M_JSR(REG_RA, REG_PV);              /* call native method                 */
-	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-	M_LDA(REG_PV, REG_RA, disp);        /* recompute pv from ra               */
+	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+	M_LDA(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
 
-	/* remove stackframe if there is one */
 
-	if (stackframesize)
-		M_LDA(REG_SP, REG_SP, stackframesize * 8);
+	/* remove native stack info */
 
-	/* 13 instructions */
+	M_LLD(REG_ITMP3, REG_SP, (stackframesize - 5) * 8); /* get address of stacktrace helper pointer */
+	M_LLD(REG_ITMP1, REG_SP, (stackframesize - 6) * 8); /* get old value */
+	M_LST(REG_ITMP1, REG_ITMP3, 0); /* set old value */
+
+
+	/* call finished trace */
 
 	if (runverbose) {
-		M_LDA(REG_SP, REG_SP, -2 * 8);
-		M_ALD(rd->argintregs[0], REG_PV, -6 * 8); /* load method adress       */
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
+
+		off = dseg_addaddress(cd, m);
+		M_ALD(rd->argintregs[0], REG_PV, off);
+
 		M_MOV(REG_RESULT, rd->argintregs[1]);
 		M_FMOV(REG_FRESULT, rd->argfltregs[2]);
 		M_FMOV(REG_FRESULT, rd->argfltregs[3]);
-		M_ALD(REG_PV, REG_PV, -7 * 8);  /* builtin_displaymethodstop          */
+
+		off = dseg_addaddress(cd, builtin_displaymethodstop);
+		M_ALD(REG_PV, REG_PV, off);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-		M_LDA(REG_PV, REG_RA, disp);
+		disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+		M_LDA(REG_PV, REG_RA, -disp);
+
 		M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
-		M_LDA(REG_SP, REG_SP, 2 * 8);
 	}
 
-	M_LLD(REG_ITMP3, REG_SP, (NATIVESTUB_STACKTRACE_OFFSET + 2) * 8); /* get address of stacktrace helper pointer */
-	M_LLD(REG_ITMP1, REG_SP, (NATIVESTUB_STACKTRACE_OFFSET + 1) * 8); /* get old value */
-	M_LST(REG_ITMP1, REG_ITMP3, 0); /* set old value */
 
 	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	if (IS_FLT_DBL_TYPE(m->returntype))
-		M_DST(REG_FRESULT, REG_SP, 1 * 8);
+	if (IS_FLT_DBL_TYPE(md->returntype.type))
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 	else
-		M_AST(REG_RESULT, REG_SP, 1 * 8);
+		M_AST(REG_RESULT, REG_SP, 0 * 8);
 
-	M_ALD(REG_PV, REG_PV, -2 * 8);      /* builtin_get_exceptionptrptr        */
+	off = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+	M_ALD(REG_PV, REG_PV, off);
 	M_JSR(REG_RA, REG_PV);
-	disp = -(s4) (mcodeptr - (s4 *) cs) * 4;
-	M_LDA(REG_PV, REG_RA, disp);
+	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+	M_LDA(REG_PV, REG_RA, -disp);
 	M_MOV(REG_RESULT, REG_ITMP3);
 
-	if (IS_FLT_DBL_TYPE(m->returntype))
-		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+	if (IS_FLT_DBL_TYPE(md->returntype.type))
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 	else
-		M_ALD(REG_RESULT, REG_SP, 1 * 8);
+		M_ALD(REG_RESULT, REG_SP, 0 * 8);
 #else
-	M_ALD(REG_ITMP3, REG_PV, -2 * 8);   /* get address of exceptionptr        */
+	off = dseg_addaddress(cd, &_exceptionptr);
+	M_ALD(REG_ITMP3, REG_PV, off);      /* get address of exceptionptr        */
 #endif
 
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
 	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
-	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, NATIVESTUB_STACK * 8); /* remove stackframe         */
+	M_ALD(REG_RA, REG_SP, (stackframesize - 1) * 8); /* load return address   */
+
+	M_LDA(REG_SP, REG_SP, stackframesize * 8);
+
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	/* handle exception */
 
 	M_AST(REG_ZERO, REG_ITMP3, 0);      /* store NULL into exceptionptr       */
 
-	M_ALD(REG_RA, REG_SP, 0 * 8);       /* load return address                */
-	M_LDA(REG_SP, REG_SP, NATIVESTUB_STACK * 8); /* remove stackframe         */
+	M_ALD(REG_RA, REG_SP, (stackframesize - 1) * 8); /* load return address   */
 	M_LDA(REG_ITMP2, REG_RA, -4);       /* move fault address into reg. itmp2 */
-	M_ALD(REG_ITMP3, REG_PV, -3 * 8);   /* load asm exception handler address */
+
+	M_LDA(REG_SP, REG_SP, stackframesize * 8);
+
+	off = dseg_addaddress(cd, asm_handle_nat_exception);
+	M_ALD(REG_ITMP3, REG_PV, off);      /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
 	
-	/* generate put/getstatic stub call code */
+
+	/* process patcher calls **************************************************/
 
 	{
 		patchref *pref;
 		s4       *xcodeptr;
+		u4        mcode;
 		s4       *tmpmcodeptr;
 
 		/* there can only be one <clinit> ref entry                           */
 		pref = cd->patchrefs;
 
-		if (pref) {
+		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
 
 			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
-			*(cs-11) = (u4) *xcodeptr;
+			mcode = (u4) *xcodeptr;
 
 			/* patch in the call to call the following code (done at compile  */
 			/* time)                                                          */
@@ -4640,72 +4460,44 @@ u1 *createnativestub(functionptr f, methodinfo *m)
 			/* move pointer to java_objectheader onto stack */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			M_LDA(REG_ITMP3, REG_PV, -14 * 8);    /* virtual objectheader     */
+			/* create a virtual java_objectheader */
+
+			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+
+			M_LDA(REG_ITMP3, REG_PV, off);
 			M_AST(REG_ITMP3, REG_SP, 3 * 8);
 #else
 			M_AST(REG_ZERO, REG_SP, 3 * 8);
 #endif
 
-			/* move machine code onto stack                                   */
+			/* move machine code onto stack */
 
-			M_ILD(REG_ITMP3, REG_PV, -11 * 8);    /* machine code             */
+			off = dseg_adds4(cd, mcode);
+			M_ILD(REG_ITMP3, REG_PV, off);
 			M_IST(REG_ITMP3, REG_SP, 2 * 8);
 
-			/* move class reference onto stack                                */
+			/* move class/method/field reference onto stack */
 
-			M_ALD(REG_ITMP3, REG_PV, -8 * 8);     /* class                    */
+			off = dseg_addaddress(cd, pref->ref);
+			M_ALD(REG_ITMP3, REG_PV, off);
 			M_AST(REG_ITMP3, REG_SP, 1 * 8);
 
-			/* move patcher function pointer onto stack                       */
+			/* move patcher function pointer onto stack */
 
-			M_ALD(REG_ITMP3, REG_PV, -12 * 8);    /* patcher function         */
+			off = dseg_addaddress(cd, pref->patcher);
+			M_ALD(REG_ITMP3, REG_PV, off);
 			M_AST(REG_ITMP3, REG_SP, 0 * 8);
 
-			M_ALD(REG_ITMP3, REG_PV, -9 * 8);     /* asm_wrapper_patcher      */
+			off = dseg_addaddress(cd, asm_wrapper_patcher);
+			M_ALD(REG_ITMP3, REG_PV, off);
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}
 	}
 
-	/* Check if the stub size is big enough to hold the whole stub generated. */
-	/* If not, this can lead into unpredictable crashes, because of heap      */
-	/* corruption.                                                            */
-	if ((s4) ((ptrint) mcodeptr - (ptrint) s) > stubsize * sizeof(u8)) {
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Native stub size %d is to small for current stub size %d",
-								   stubsize, (s4) ((ptrint) mcodeptr - (ptrint) s));
-	}
+	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
-
-	/* disassemble native stub */
-
-	if (showdisassemble)
-		codegen_disassemble_nativestub(m, (s4 *) (s + NATIVESTUB_OFFSET),
-									   (s4) ((ptrint) mcodeptr -
-											 (ptrint) (s + NATIVESTUB_OFFSET)));
-
-
-#if defined(STATISTICS)
-	if (opt_stat)
-		count_nstub_len += NATIVESTUB_SIZE * 8;
-#endif
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return (u1 *) (s + NATIVESTUB_OFFSET);
-}
-
-
-/* removenativestub ************************************************************
-
-   Removes a previously created native-stub from memory.
-    
-*******************************************************************************/
-
-void removenativestub(u1 *stub)
-{
-	CFREE((u8 *) stub - NATIVESTUBOFFSET, NATIVESTUBSIZE * 8);
+	return m->entrypoint;
 }
 
 
