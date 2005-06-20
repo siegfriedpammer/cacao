@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2673 2005-06-13 14:38:12Z twisti $
+   $Id: threads.c 2740 2005-06-20 09:56:49Z twisti $
 
 */
 
@@ -638,19 +638,17 @@ static void *threadstartup(void *t)
 	sched_yield();
 
 	/* Find the run()V method and call it */
+
 	method = class_resolveclassmethod(thread->o.header.vftbl->class,
-									  utf_new_char("run"),
-									  utf_new_char("()V"),
+									  utf_run,
+									  utf_void__void,
 									  thread->o.header.vftbl->class,
 									  true);
 
-	/* if method != NULL, we had not exception */
-	if (method) {
-		asm_calljavafunction(method, thread, NULL, NULL, NULL);
-
-	} else {
+	if (!method)
 		throw_exception();
-	}
+
+	asm_calljavafunction(method, thread, NULL, NULL, NULL);
 
 	/* Allow lock record pools to be used by other threads. They cannot be
 	 * deleted so we'd better not waste them. */
@@ -1156,6 +1154,53 @@ void broadcast_cond_for_object(java_objectheader *o)
 {
 	threadobject *t = (threadobject*) THREADOBJECT;
 	notifyOneOrAll(t, o, false);
+}
+
+
+/* thread_dump *****************************************************************
+
+   Dumps info for all threads running in the JVM. This function is
+   called when SIGQUIT (<ctrl>-\) is sent to CACAO.
+
+*******************************************************************************/
+
+void thread_dump(void)
+{
+	threadobject       *tobj;
+	nativethread       *nt;
+	java_lang_VMThread *vmt;
+	java_lang_Thread   *t;
+	utf                *name;
+
+	tobj = mainthreadobj;
+
+	printf("Full thread dump CACAO "VERSION"\n");
+
+	/* iterate over all started threads */
+
+	do {
+		/* get thread objects */
+
+		nt  = &tobj->info;
+		vmt = &tobj->o;
+		t   = vmt->thread;
+
+		/* get thread name */
+
+		name = javastring_toutf(t->name, false);
+
+		printf("\n\"");
+		utf_display(name);
+#if SIZEOF_VOID_P == 8
+		printf("\" prio=%d tid=0x%016lx\n", t->priority, nt->tid);
+#else
+		printf("\" prio=%d tid=0x%08lx\n", t->priority, nt->tid);
+#endif
+
+		/* TODO: print stacktrace */
+
+		tobj = tobj->info.next;
+	} while (tobj != mainthreadobj);
 }
 
 
