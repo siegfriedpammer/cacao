@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: descriptor.c 2737 2005-06-18 14:55:20Z edwin $
+   $Id: descriptor.c 2744 2005-06-20 11:59:14Z edwin $
 
 */
 
@@ -661,8 +661,8 @@ descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
 	
 	DESCRIPTOR_ASSERT(pool);
 
-	/* XXX TWISTI: paramcount + 1: we don't know if the method is static or   */
-	/* not, i have no better solution yet.                                    */
+	/* TWISTI: paramcount + 1: we don't know if the method is static or   */
+	/* not, i have no better solution yet.                                */
 
 	size =
 		pool->fieldcount * sizeof(typedesc) +
@@ -759,6 +759,9 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
        pool.............the descriptor_pool
        desc.............the method descriptor
        mflags...........the method flags
+	   thisclass........classref to the class containing the method.
+	   					This is ignored if mflags contains ACC_STATIC.
+						The classref is stored for inserting the 'this' argument.
 
    RETURN VALUE:
        a pointer to the parsed method descriptor, or
@@ -772,7 +775,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 
 methoddesc * 
 descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
-										s4 mflags)
+										s4 mflags,constant_classref *thisclass)
 {
 	u4 key, slot;
 	descriptor_hash_entry *d;
@@ -824,7 +827,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 		td->type = TYPE_ADR;
 		td->decltype = TYPE_ADR;
 		td->arraydim = 0;
-		td->classref = NULL;
+		td->classref = thisclass;
 
 		td++;
 		pool->descriptors_next += sizeof(typedesc);
@@ -850,9 +853,14 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	/* Skip possible `this' pointer in paramtypes array to allow a possible   */
 	/* memory move later in parse.                                            */
+	/* We store the thisclass reference, so we can later correctly fill in    */
+	/* the parameter slot of the 'this' argument.                             */
 
-	if (mflags == ACC_UNDEF)
+	if (mflags == ACC_UNDEF) {
+		td->classref = thisclass;
+		td++;
 		pool->descriptors_next += sizeof(typedesc);
+	}
 
 	/* parse return type */
 
@@ -928,9 +936,14 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 	/* check for `this' pointer */
 
 	if (!(mflags & ACC_STATIC)) {
+		constant_classref *thisclass;
+
+		/* fetch class reference from reserved param slot */
+		thisclass = td[md->paramcount].classref;
+		DESCRIPTOR_ASSERT(thisclass);
+
 		if (md->paramcount > 0) {
 			/* shift param types by 1 argument */
-
 			MMOVE(td + 1, td, typedesc, md->paramcount);
 		}
 
@@ -939,7 +952,7 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		td->type = TYPE_ADR;
 		td->decltype = TYPE_ADR;
 		td->arraydim = 0;
-		td->classref = NULL; /* XXX classref to invokant class */
+		td->classref = thisclass;
 
 		md->paramcount++;
 		md->paramslots++;
@@ -1051,7 +1064,10 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 	}
 	
 	if (d->type == TYPE_ADDRESS) {
-		utf_fprint(file,d->classref->name);
+		if (d->classref)
+			utf_fprint(file,d->classref->name);
+		else
+			fprintf(file,"<class=NULL>");
 	}
 	else {
 		switch (d->decltype) {
@@ -1070,6 +1086,32 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 	}
 	if (d->arraydim)
 		fprintf(file,"[%d]",d->arraydim);
+}
+
+/* descriptor_debug_print_paramdesc ********************************************
+ 
+   Print the given paramdesc to the given stream
+
+   IN:
+	   file.............stream to print to
+	   d................the parameter descriptor
+
+*******************************************************************************/
+
+void
+descriptor_debug_print_paramdesc(FILE *file,paramdesc *d)
+{
+	if (!d) {
+		fprintf(file,"(paramdesc *)NULL");
+		return;
+	}
+	
+	if (d->inmemory) {
+		fprintf(file,"<mem:%d>",d->regoff);
+	}
+	else {
+		fprintf(file,"<reg:%d>",d->regoff);
+	}
 }
 
 /* descriptor_debug_print_methoddesc *******************************************
@@ -1097,7 +1139,12 @@ descriptor_debug_print_methoddesc(FILE *file,methoddesc *d)
 		if (i)
 			fputc(',',file);
 		descriptor_debug_print_typedesc(file,d->paramtypes + i);
+		if (d->params) {
+			descriptor_debug_print_paramdesc(file,d->params + i);
+		}
 	}
+	if (d->params == METHODDESC_NOPARAMS)
+		fputs("<NOPARAMS>",file);
 	fputc(')',file);
 	descriptor_debug_print_typedesc(file,&(d->returntype));
 }

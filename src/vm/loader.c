@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2725 2005-06-16 19:10:35Z edwin $
+   $Id: loader.c 2744 2005-06-20 11:59:14Z edwin $
 
 */
 
@@ -2493,7 +2493,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		methodinfo *m = &c->methods[i];
 		m->parseddesc =
 			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
-													m->flags);
+													m->flags, class_get_self_classref(m->class));
 		if (!m->parseddesc)
 			goto return_exception;
 
@@ -2539,17 +2539,18 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
 			fmi = (constant_FMIref *) c->cpinfos[i];
-			fmi->parseddesc.md =
-				descriptor_pool_parse_method_descriptor(descpool,
-														fmi->descriptor,
-														ACC_UNDEF);
-			if (!fmi->parseddesc.md)
-				goto return_exception;
 			index = (int) (size_t) fmi->classref;
 			fmi->classref =
 				(constant_classref *) class_getconstant(c, index,
 														CONSTANT_Class);
 			if (!fmi->classref)
+				goto return_exception;
+			fmi->parseddesc.md =
+				descriptor_pool_parse_method_descriptor(descpool,
+														fmi->descriptor,
+														ACC_UNDEF,
+														fmi->classref);
+			if (!fmi->parseddesc.md)
 				goto return_exception;
 			break;
 		}
@@ -2825,15 +2826,19 @@ classinfo * load_newly_created_array(classinfo *c,java_objectheader *loader)
 	c->methodscount = 1;
 	c->methods = MNEW(methodinfo, c->methodscount);
 
-	classrefs = MNEW(constant_classref, 1);
-	CLASSREF_INIT(classrefs[0], c, utf_java_lang_Object);
+	classrefs = MNEW(constant_classref, 2);
+	CLASSREF_INIT(classrefs[0], c, c->name);
+	CLASSREF_INIT(classrefs[1], c, utf_java_lang_Object);
 
+	/* create descriptor for clone method */
+	/* we need one paramslot which is reserved for the 'this' parameter */
 	clonedesc = NEW(methoddesc);
 	clonedesc->returntype.type = TYPE_ADDRESS;
-	clonedesc->returntype.classref = classrefs;
+	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
 	clonedesc->paramcount = 0;
 	clonedesc->paramslots = 0;
+	clonedesc->paramtypes[0].classref = classrefs + 0;
 
 	/* parse the descriptor to get the register allocation */
 

@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2622 2005-06-09 16:11:03Z twisti $
+   $Id: builtin.c 2744 2005-06-20 11:59:14Z edwin $
 
 */
 
@@ -181,7 +181,7 @@ static bool builtintable_init(void)
 
 		builtintable_internal[i].md =
 			descriptor_pool_parse_method_descriptor(descpool, descriptor,
-													ACC_STATIC);
+													ACC_STATIC, NULL);
 	}
 
 	for (i = 0; i < entries_automatic; i++) {
@@ -193,7 +193,7 @@ static bool builtintable_init(void)
 
 		builtintable_automatic[i].md =
 			descriptor_pool_parse_method_descriptor(descpool, descriptor,
-													ACC_STATIC);
+													ACC_STATIC, NULL);
 	}
 
 	/* release dump area */

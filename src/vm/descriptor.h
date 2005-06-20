@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2737 2005-06-18 14:55:20Z edwin $
+   $Id: descriptor.h 2744 2005-06-20 11:59:14Z edwin $
 
 */
 
@@ -167,6 +167,18 @@ void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
 void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 
 
+/* descriptor_debug_print_paramdesc ********************************************
+ 
+   Print the given paramdesc to the given stream
+
+   IN:
+	   file.............stream to print to
+	   d................the parameter descriptor
+
+*******************************************************************************/
+
+void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
+
 /* descriptor_pool_new *********************************************************
  
    Allocate a new descriptor_pool
@@ -302,6 +314,9 @@ typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *des
        pool.............the descriptor_pool
        desc.............the method descriptor
        mflags...........the method flags
+	   thisclass........classref to the class containing the method.
+	   					This is ignored if mflags contains ACC_STATIC.
+						The classref is stored for inserting the 'this' argument.
 
    RETURN VALUE:
        a pointer to the parsed method descriptor, or
@@ -313,7 +328,8 @@ typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *des
 
 *******************************************************************************/
 
-methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags);
+methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
+													constant_classref *thisclass);
 
 /* descriptor_params_from_paramtypes *******************************************
  
