@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2760 2005-06-20 22:36:55Z stefan $
+   $Id: threads.c 2762 2005-06-20 23:09:59Z stefan $
 
 */
 
@@ -605,6 +605,7 @@ static void initThreadLocks(threadobject *);
 typedef struct {
 	threadobject *thread;
 	sem_t *psem;
+	sem_t *psem_first;
 } startupinfo;
 
 static void *threadstartup(void *t)
@@ -619,7 +620,7 @@ static void *threadstartup(void *t)
 	/* Seems like we've encountered a situation where info->tid was not set by
 	 * pthread_create. We alleviate this problem by waiting for pthread_create
 	 * to return. */
-	sem_wait(psem);
+	sem_wait(startup->psem_first);
 
 	t = NULL;
 #if defined(__DARWIN__)
@@ -675,22 +676,26 @@ void startThread(thread *t)
 {
 	nativethread *info = &((threadobject*) t->vmThread)->info;
 	sem_t sem;
+	sem_t sem_first;
 	startupinfo startup;
 
 	startup.thread = (threadobject*) t->vmThread;
 	startup.psem = &sem;
+	startup.psem_first = &sem_first;
 
 	sem_init(&sem, 0, 0);
+	sem_init(&sem_first, 0, 0);
 	
 	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
-	sem_post(&sem);
+	sem_post(&sem_first);
 
 	/* Wait here until the thread has entered itself into the thread list */
 	sem_wait(&sem);
 	sem_destroy(&sem);
+	sem_destroy(&sem_first);
 }
 
 /* At the end of the program, we wait for all running non-daemon threads to die
