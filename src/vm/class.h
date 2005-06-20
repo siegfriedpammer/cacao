@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2662 2005-06-13 14:19:34Z twisti $
+   $Id: class.h 2743 2005-06-20 11:54:06Z edwin $
 
 */
 
@@ -254,6 +254,10 @@ constant_classref *class_lookup_classref(classinfo *cls,utf *name);
 /* return a classref for the given class name */
 /* (does a linear search!)                    */
 constant_classref *class_get_classref(classinfo *cls,utf *name);
+
+/* return a classref to the class itself */
+/* (does a linear search!)                    */
+constant_classref *class_get_self_classref(classinfo *cls);
 
 /* return a classref for an array with the given dimension of with the */
 /* given component type */

@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2725 2005-06-16 19:10:35Z edwin $
+   $Id: class.c 2743 2005-06-20 11:54:06Z edwin $
 
 */
 
@@ -600,6 +600,25 @@ constant_classref *class_get_classref(classinfo *cls, utf *name)
 	return &(xref->classref);
 }
 
+
+/* class_get_self_classref *****************************************************
+
+   Returns the constant_classref to the class itself.
+
+   IN:
+       cls..............the class containing the reference
+
+   RETURN VALUE:
+       a pointer to a constant_classref (never NULL)
+
+*******************************************************************************/
+
+constant_classref *class_get_self_classref(classinfo *cls)
+{
+	/* XXX this should be done in a faster way. Maybe always make */
+	/* the classref of index 0 a self reference.                  */
+	return class_get_classref(cls,cls->name);
+}
 
 /* class_get_classref_multiarray_of ********************************************
 
