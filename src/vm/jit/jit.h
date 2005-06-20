@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2566 2005-06-06 15:25:56Z twisti $
+   $Id: jit.h 2751 2005-06-20 15:13:08Z edwin $
 
 */
 
@@ -130,6 +130,11 @@ struct instruction {
 #define INSTRUCTION_PUTCONST_FIELDINFO(iptr) \
 	((fieldinfo *)((iptr)[1].val.a))
 
+#define INSTRUCTION_PUTCONST_FIELDINFO_PTR(iptr) \
+	((fieldinfo **) &((iptr)[1].val.a))
+
+#define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
+	((unresolved_field *)((iptr)[1].target))
 
 /**************************** basic block structure ***************************/
  
