@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 2664 2005-06-13 14:22:13Z twisti $
+   $Id: utf8.c 2741 2005-06-20 09:57:14Z twisti $
 
 */
 
@@ -97,6 +97,7 @@ utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
 utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
+utf *utf_run;                           /* run                                */
 
 utf *utf_fillInStackTrace;
 utf *utf_getSystemClassLoader;
@@ -191,6 +192,7 @@ void utf8_init(void)
 	utf_clinit	                   = utf_new_char("<clinit>");
 	utf_clone                      = utf_new_char("clone");
 	utf_finalize	               = utf_new_char("finalize");
+	utf_run                        = utf_new_char("run");
 
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
