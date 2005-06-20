@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2734 2005-06-17 13:01:06Z twisti $
+   $Id: codegen.inc 2755 2005-06-20 18:26:03Z twisti $
 
 */
 
@@ -877,6 +877,9 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 	registerdata       *rd;
 	t_inlining_globals *id;
 	s4                  dumpsize;
+	methoddesc         *md;
+	methoddesc         *nmd;	
+	s4                  nativeparams;
 
 	/* mark dump memory */
 
@@ -892,7 +895,32 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 	reg_setup(m, rd, id);
 	codegen_setup(m, cd, id);
 						
-	m->stubroutine = createnativestub(f, m, cd, rd);
+	/* create new method descriptor with additional native parameters */
+
+	md = m->parseddesc;
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
+	
+	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
+							   md->paramcount * sizeof(typedesc) +
+							   nativeparams * sizeof(typedesc));
+
+	nmd->paramcount = md->paramcount + nativeparams;
+
+	nmd->params = DMNEW(paramdesc, nmd->paramcount);
+
+	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
+
+	if (m->flags & ACC_STATIC)
+		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
+
+	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
+		  md->paramcount);
+
+	md_param_alloc(nmd);
+
+	/* generate the code */
+
+	m->stubroutine = createnativestub(f, m, cd, rd, nmd);
 
 	/* entrypoint was set in codegen_finish, clear it */
 

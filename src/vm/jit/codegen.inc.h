@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2661 2005-06-13 14:17:37Z twisti $
+   $Id: codegen.inc.h 2755 2005-06-20 18:26:03Z twisti $
 
 */
 
@@ -200,7 +200,8 @@ void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len);
 void init_exceptions();
 
 functionptr createcompilerstub(methodinfo *m);
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, registerdata *rd);
+functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+							 registerdata *rd, methoddesc *md);
 
 void removecompilerstub(functionptr stub);
 void removenativestub(functionptr stub);

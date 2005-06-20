@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: codegen.c 2736 2005-06-18 09:20:34Z twisti $
+   $Id: codegen.c 2755 2005-06-20 18:26:03Z twisti $
 
 */
 
@@ -4089,13 +4089,12 @@ functionptr createcompilerstub(methodinfo *m)
 *******************************************************************************/
 
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd)
+							 registerdata *rd, methoddesc *nmd)
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
 	s4          disp;
 	methoddesc *md;
-	methoddesc *nmd;
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
@@ -4103,30 +4102,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* initialize variables */
 
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
-
-
-	/* create new method descriptor with additional native parameters */
-
 	md = m->parseddesc;
-	
-	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
-							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
-
-	nmd->paramcount = md->paramcount + nativeparams;
-
-	nmd->params = DMNEW(paramdesc, nmd->paramcount);
-
-	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
-
-	if (m->flags & ACC_STATIC)
-		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
-
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
-		  md->paramcount);
-
-	md_param_alloc(nmd);
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 
 	/* calculate stack frame size */
