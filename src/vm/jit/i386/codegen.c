@@ -29,7 +29,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: codegen.c 2704 2005-06-14 23:52:50Z twisti $
+   $Id: codegen.c 2756 2005-06-20 20:53:09Z twisti $
 
 */
 
@@ -5508,10 +5508,9 @@ static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionpt
 #endif
 
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd)
+							 registerdata *rd, methoddesc *nmd)
 {
 	methoddesc *md;
-	methoddesc *nmd;
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
@@ -5521,6 +5520,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* set some variables */
 
+	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* initial 4 bytes is space for jni env, + 4 byte thread pointer + 4 byte */
@@ -5529,29 +5529,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	stackframesize = /* 4 + */ 16;
 	stackframeoffset = 4;
-
-
-	/* create new method descriptor with additional native parameters */
-
-	md = m->parseddesc;
-	
-	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
-							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
-
-	nmd->paramcount = md->paramcount + nativeparams;
-
-	nmd->params = DMNEW(paramdesc, nmd->paramcount);
-
-	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
-
-	if (m->flags & ACC_STATIC)
-		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
-
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
-		  md->paramcount);
-
-	md_param_alloc(nmd);
 
 
 	/* create method header */
