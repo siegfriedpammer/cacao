@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 2417 2005-04-29 19:17:55Z twisti $
+   $Id: threads.h 2739 2005-06-20 09:53:53Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ struct nativethread {
 	threadobject      *next;
 	threadobject      *prev;
 	java_objectheader *_exceptionptr;
-        u1                _dontfillinexceptionstacktrace;
+	u1                 _dontfillinexceptionstacktrace;
 	methodinfo        *_threadrootmethod;
 	void              *_stackframeinfo;
 	pthread_t          tid;
@@ -200,6 +200,9 @@ extern volatile int stopworldwhere;
 
 void cast_stopworld();
 void cast_startworld();
+
+/* dumps all threads */
+void thread_dump(void);
 
 #endif /* _THREADS_H */
 
