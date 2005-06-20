@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2738 2005-06-18 16:37:34Z edwin $
+   $Id: resolve.c 2745 2005-06-20 12:01:34Z edwin $
 
 */
 
@@ -672,7 +672,8 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* check static */
 
-	if (((mi->flags & ACC_STATIC) != 0) != ((ref->flags & RESOLVE_STATIC) != 0)) {		/* a static method is accessed via an instance, or vice versa */
+	if (((mi->flags & ACC_STATIC) != 0) != ((ref->flags & RESOLVE_STATIC) != 0)) {
+		/* a static method is accessed via an instance, or vice versa */
 		*exceptionptr =
 			new_exception_message(string_java_lang_IncompatibleClassChangeError,
 				(mi->flags & ACC_STATIC) ? "static method called via instance"
@@ -1018,7 +1019,6 @@ constrain_unresolved_field(unresolved_field *ref,
 						   instruction *iptr,
 						   stackelement *stack)
 {
-	unresolved_field *ref;
 	constant_FMIref *fieldref;
 	stackelement *instanceslot = NULL;
 	int type;
@@ -1027,7 +1027,6 @@ constrain_unresolved_field(unresolved_field *ref,
 	typedesc *fd;
 
 	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(stack);
 
 	fieldref = ref->fieldref;
 	RESOLVE_ASSERT(fieldref);
@@ -1037,6 +1036,12 @@ constrain_unresolved_field(unresolved_field *ref,
 	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
 	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
+	fputc('\n',stderr);
+	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
 	switch (iptr[0].opc) {
@@ -1062,26 +1067,34 @@ constrain_unresolved_field(unresolved_field *ref,
 	fd = fieldref->parseddesc.fd;
 	RESOLVE_ASSERT(fd);
 
-#ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
-	fputc('\n',stderr);
-	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
-#endif
-
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
 		typeinfo *insttip;
-		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
+
+		/* The instanceslot must contain a reference to a non-array type */
+		if (!TYPEINFO_IS_REFERENCE(instanceslot->typeinfo)) {
+			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on non-reference");
+			return false;
+		}
+		if (TYPEINFO_IS_ARRAY(instanceslot->typeinfo)) {
+			*exceptionptr = new_verifyerror(refmethod, "illegal instruction: field access on array");
+			return false;
+		}
 		
 		if (((ref->flags & RESOLVE_PUTFIELD) != 0) && 
 				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
-		{   /* XXX clean up */
+		{
+			/* The instruction writes a field in an uninitialized object. */
+			/* This is only allowed when a field of an uninitialized 'this' object is */
+			/* written inside an initialization method                                */
+			
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-			classinfo *initclass = (ins) ? (classinfo*)ins[-1].val.a 
-										 : refmethod->class; /* XXX classrefs */
+			if (ins != NULL) {
+				*exceptionptr = new_verifyerror(refmethod,"accessing field of uninitialized object");
+				return false;
+			}
+			/* XXX check that class of field == refmethod->class */
+			classinfo *initclass = refmethod->class; /* XXX classrefs */
 			RESOLVE_ASSERT(initclass->loaded && initclass->linked);
 			TYPEINFO_INIT_CLASSINFO(tinfo,initclass);
 			insttip = &tinfo;
@@ -1144,9 +1157,11 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
+	bool staticmethod;
 
 	methodref = (constant_FMIref *) iptr[0].val.a;
 	RESOLVE_ASSERT(methodref);
+	staticmethod = (iptr[0].opc == ICMD_INVOKESTATIC);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
@@ -1159,24 +1174,19 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
+	/* allocate params if necessary */
+	if (!methodref->parseddesc.md->params)
+		if (!descriptor_params_from_paramtypes(methodref->parseddesc.md,
+					(staticmethod) ? ACC_STATIC : ACC_NONE))
+			return NULL;
+
+	/* create the data structure */
 	ref = NEW(unresolved_method);
-	ref->flags = 0;
+	ref->flags = (staticmethod) ? RESOLVE_STATIC : 0;
 	ref->referermethod = refmethod;
 	ref->methodref = methodref;
 	ref->paramconstraints = NULL;
 	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
-
-	switch (iptr[0].opc) {
-		case ICMD_INVOKESTATIC:
-			ref->flags |= RESOLVE_STATIC;
-			break;
-		case ICMD_INVOKEVIRTUAL:
-		case ICMD_INVOKESPECIAL:
-		case ICMD_INVOKEINTERFACE:
-			break;
-		default:
-			RESOLVE_ASSERT(false);
-	}
 
 	return ref;
 }
@@ -1211,13 +1221,14 @@ constrain_unresolved_method(unresolved_method *ref,
 	typeinfo tinfo;
 	int i,j;
 	int type;
+	int instancecount;
 
 	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(stack);
 	methodref = ref->methodref;
 	RESOLVE_ASSERT(methodref);
 	md = methodref->parseddesc.md;
 	RESOLVE_ASSERT(md);
+	RESOLVE_ASSERT(md->params != NULL);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"constrain_unresolved_method\n");
@@ -1233,11 +1244,15 @@ constrain_unresolved_method(unresolved_method *ref,
 	if ((ref->flags & RESOLVE_STATIC) == 0) {
 		/* find the instance slot under all the parameter slots on the stack */
 		instanceslot = stack;
-		for (i=0; i<md->paramcount; ++i)
+		for (i=1; i<md->paramcount; ++i)
 			instanceslot = instanceslot->prev;
+		instancecount = 1;
+	}
+	else {
+		instancecount = 0;
 	}
 	
-	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	RESOLVE_ASSERT((instanceslot && instancecount==1) || ((ref->flags & RESOLVE_STATIC) != 0));
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
@@ -1265,8 +1280,8 @@ constrain_unresolved_method(unresolved_method *ref,
 	
 	/* record subtype constraints for the parameter types, if any */
 	param = stack;
-	for (i=md->paramcount-1; i>=0; --i, param=param->prev) {
-		type = md->paramtypes[i].type;
+	for (i=md->paramcount-1-instancecount; i>=0; --i, param=param->prev) {
+		type = md->paramtypes[i+instancecount].type;
 
 		RESOLVE_ASSERT(param);
 		RESOLVE_ASSERT(type == param->type);
@@ -1274,13 +1289,13 @@ constrain_unresolved_method(unresolved_method *ref,
 		if (type == TYPE_ADR) {
 			if (!ref->paramconstraints) {
 				ref->paramconstraints = MNEW(unresolved_subtype_set,md->paramcount);
-				for (j=md->paramcount-1; j>i; --j)
+				for (j=md->paramcount-1-instancecount; j>i; --j)
 					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
 			RESOLVE_ASSERT(ref->paramconstraints);
 			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 						ref->paramconstraints + i,&(param->typeinfo),
-						md->paramtypes[i].classref))
+						md->paramtypes[i+instancecount].classref))
 				return false;
 		}
 		else {
