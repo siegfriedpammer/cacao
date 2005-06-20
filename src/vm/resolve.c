@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2748 2005-06-20 15:01:24Z twisti $
+   $Id: resolve.c 2753 2005-06-20 15:19:46Z edwin $
 
 */
 
@@ -713,12 +713,12 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	RESOLVE_ASSERT(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
 	paramtypes = mi->parseddesc->paramtypes;
 	
-	for (i = 0; i < mi->parseddesc->paramcount; i++) {
-		if (paramtypes[i].type == TYPE_ADR) {
+	for (i = 0; i < mi->parseddesc->paramcount-instancecount; i++) {
+		if (paramtypes[i+instancecount].type == TYPE_ADR) {
 			if (ref->paramconstraints) {
 				if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 							ref->paramconstraints + i,
-							CLASSREF_OR_CLASSINFO(paramtypes[i].classref),
+							CLASSREF_OR_CLASSINFO(paramtypes[i+instancecount].classref),
 							false,
 							mode,
 							resolveLinkageError,&checked))
@@ -804,10 +804,6 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
-#ifdef TYPEINFO_DEBUG
-	/*typeinfo_print(stderr,tinfo,4);*/
-	fprintf(stderr,"\n");
-#endif
 	fprintf(stderr,"    declared type:");utf_fprint(stderr,declaredtype->name);
 	fprintf(stderr,"\n");
 #endif
@@ -848,6 +844,8 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 					? tinfo->typeclass.ref->name 
 					: tinfo->typeclass.cls->name) == declaredtype->name)
 		{
+			/* the class names are the same */
+		    /* equality is guaranteed by the loading constraints */
 			goto empty_set;
 		}
 		else {
@@ -1088,6 +1086,7 @@ constrain_unresolved_field(unresolved_field *ref,
 			/* This is only allowed when a field of an uninitialized 'this' object is */
 			/* written inside an initialization method                                */
 			
+			classinfo *initclass;
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 			classinfo   *initclass;
 
@@ -1266,10 +1265,9 @@ constrain_unresolved_method(unresolved_method *ref,
 				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
 		{   /* XXX clean up */
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-			classinfo *initclass = (ins) ? (classinfo*)ins[-1].val.a 
-										 : refmethod->class; /* XXX classrefs */
-			RESOLVE_ASSERT(initclass->loaded && initclass->linked);
-			TYPEINFO_INIT_CLASSINFO(tinfo,initclass);
+			classref_or_classinfo initclass = (ins) ? CLASSREF_OR_CLASSINFO(ins[-1].val.a)
+										 : CLASSREF_OR_CLASSINFO(refmethod->class);
+			TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(tinfo,initclass);
 			tip = &tinfo;
 		}
 		else {
@@ -1444,9 +1442,9 @@ unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
 	if (ref) {
 		fprintf(file,"    referer   : ");
 		utf_fprint(file,ref->classref->referer->name); fputc('\n',file);
-		fprintf(file,"    refmethod  : ");
+		fprintf(file,"    refmethod : ");
 		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
-		fprintf(file,"    refmethodd : ");
+		fprintf(file,"    refmethodd: ");
 		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
 		utf_fprint(file,ref->classref->name); fputc('\n',file);
@@ -1472,9 +1470,9 @@ unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 	if (ref) {
 		fprintf(file,"    referer   : ");
 		utf_fprint(file,ref->fieldref->classref->referer->name); fputc('\n',file);
-		fprintf(file,"    refmethod  : ");
+		fprintf(file,"    refmethod : ");
 		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
-		fprintf(file,"    refmethodd : ");
+		fprintf(file,"    refmethodd: ");
 		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
 		utf_fprint(file,ref->fieldref->classref->name); fputc('\n',file);
@@ -1511,9 +1509,9 @@ unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 	if (ref) {
 		fprintf(file,"    referer   : ");
 		utf_fprint(file,ref->methodref->classref->referer->name); fputc('\n',file);
-		fprintf(file,"    refmethod  : ");
+		fprintf(file,"    refmethod : ");
 		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
-		fprintf(file,"    refmethodd : ");
+		fprintf(file,"    refmethodd: ");
 		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
 		utf_fprint(file,ref->methodref->classref->name); fputc('\n',file);
