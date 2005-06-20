@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 2739 2005-06-20 09:53:53Z twisti $
+   $Id: threads.h 2761 2005-06-20 22:46:55Z stefan $
 
 */
 
@@ -114,15 +114,16 @@ struct nativethread {
 
 /* threadobject ****************************************************************
 
-   DOCUMENT ME!
+   Every java.lang.VMThread object is actually an instance of this structure.
 
 *******************************************************************************/
 
 struct threadobject {
 	java_lang_VMThread  o;
-	nativethread        info;
-	ExecEnvironment     ee;
+	nativethread        info;           /* some general pthreads stuff        */
+	ExecEnvironment     ee;             /* contains our lock record pool      */
 
+	/* these are used for the wait/notify implementation                      */
 	pthread_mutex_t     waitLock;
 	pthread_cond_t      waitCond;
 	bool                interrupted;
@@ -132,6 +133,12 @@ struct threadobject {
 	dumpinfo            dumpinfo;       /* dump memory info structure         */
 };
 
+/* monitorLockRecord ***********************************************************
+
+   This is the really interesting stuff.
+   See handbook for a detailed description.
+
+*******************************************************************************/
 
 struct monitorLockRecord {
 	threadobject      *ownerThread;
@@ -146,7 +153,6 @@ struct monitorLockRecord {
 	pthread_mutex_t    resolveLock;
 	pthread_cond_t     resolveWait;
 };
-
 
 
 struct lockRecordPoolHeader {
