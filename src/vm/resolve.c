@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2754 2005-06-20 15:23:48Z edwin $
+   $Id: resolve.c 2757 2005-06-20 21:14:33Z edwin $
 
 */
 
@@ -665,6 +665,9 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	if (!mi)
 		return false; /* exception */ /* XXX set exceptionptr? */
 
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    flags: %02x\n",mi->flags);
+#endif
 	/* { the method reference has been resolved } */
 
 	declarer = mi->class;
@@ -741,7 +744,9 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* check protected access */
 
-	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
+	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)
+			&& (declarer->name->text[0] == '['))
+	{
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(referer),

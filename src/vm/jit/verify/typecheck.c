@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2750 2005-06-20 15:11:47Z edwin $
+   $Id: typecheck.c 2757 2005-06-20 21:14:33Z edwin $
 
 */
 
@@ -249,44 +249,11 @@ void typecheck_print_statistics(FILE *file) {
     } while (0)
 
 
-#define TYPECHECK_VERIFYERROR_TYPE_INT \
-    do { \
-        *exceptionptr = \
-            new_verifyerror(m, "Expecting to find integer on stack"); \
-        return NULL; \
-    } while (0)
-
-
-#define TYPECHECK_VERIFYERROR_TYPE_LNG \
-    do { \
-        *exceptionptr = \
-            new_verifyerror(m, "Expecting to find long on stack"); \
-        return NULL; \
-    } while (0)
-
-
-#define TYPECHECK_VERIFYERROR_TYPE_FLT \
-    do { \
-        *exceptionptr = \
-            new_verifyerror(m, "Expecting to find float on stack"); \
-        return NULL; \
-    } while (0)
-
-
-#define TYPECHECK_VERIFYERROR_TYPE_DBL \
-    do { \
-        *exceptionptr = \
-            new_verifyerror(m, "Expecting to find double on stack"); \
-        return NULL; \
-    } while (0)
-
-
-#define TYPECHECK_VERIFYERROR_TYPE_ADR \
-    do { \
-        *exceptionptr = \
-            new_verifyerror(m, "Expecting to find object/array on stack"); \
-        return NULL; \
-    } while (0)
+#define TYPECHECK_VERIFYERROR_TYPE_INT  TYPECHECK_VERIFYERROR("Expected to find integer on stack")
+#define TYPECHECK_VERIFYERROR_TYPE_LNG  TYPECHECK_VERIFYERROR("Expected to find long on stack")
+#define TYPECHECK_VERIFYERROR_TYPE_FLT  TYPECHECK_VERIFYERROR("Expected to find float on stack")
+#define TYPECHECK_VERIFYERROR_TYPE_DBL  TYPECHECK_VERIFYERROR("Expected to find double on stack")
+#define TYPECHECK_VERIFYERROR_TYPE_ADR  TYPECHECK_VERIFYERROR("Expected to find object on stack")
 
 
 #define TYPECHECK_VERIFYERROR_TYPE(t) \
@@ -1178,17 +1145,16 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								   localset,numlocals);
 
 				/* XXX FIXME FOR INLINING */
-
-		if(!useinlining) {
-				if (handlers[0])
-					for (i=0; i<numlocals; ++i)
-						if (localset->td[i].type == TYPE_ADR
-							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
+				if(!useinlining) {
+					if (handlers[0])
+						for (i=0; i<numlocals; ++i)
+							if (localset->td[i].type == TYPE_ADR
+									&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
 								/*show_icmd_method(m, cd, rd);*/
 								printf("Uninitialized variale: %d, block: %d\n", i, bptr->debug_nr);
 								TYPECHECK_VERIFYERROR("Uninitialized object in local variable inside try block");
 							}
-		}
+				}
 				DOLOG(typestate_print(get_logfile(),curstack,localset,numlocals));
 				LOGNL; LOGFLUSH;
 
@@ -1204,7 +1170,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                     DOLOG(show_icmd(iptr,false)); LOGNL; LOGFLUSH;
                         
                     opcode = iptr->opc;
-		    myclass = iptr->method->class;
+					myclass = iptr->method->class;
                     dst = iptr->dst;
                     maythrow = false;
 						
@@ -1288,18 +1254,13 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           
                           /* loading a returnAddress is not allowed */
 						  if (jsrencountered) {
-							  if (!typevectorset_checkreference(localset,iptr->op1))
+							  if (!typevectorset_checkreference(localset,iptr->op1)) {
 								  TYPECHECK_VERIFYERROR("illegal instruction: ALOAD loading non-reference");
-
+							  }
 							  typevectorset_copymergedtype(localset,iptr->op1,&(dst->typeinfo));
 						  }
 						  else {
 							  if (!TYPEDESC_IS_REFERENCE(localset->td[iptr->op1])) {
-								  /*show_icmd_method(m, cd, rd);*/
-								  dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n",
-									iptr->op1,iptr->method->class->name->text,
-									iptr->method->name->text,m->class->name->text,m->name->text);
-								  show_icmd(iptr, false);
 								  TYPECHECK_VERIFYERROR("illegal instruction: ALOAD loading non-reference");
 							  }
 							  TYPEINFO_COPY(localset->td[iptr->op1].info,dst->typeinfo);
@@ -1310,15 +1271,17 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           /* STORING ADDRESS TO VARIABLE          */
 
                       case ICMD_ASTORE:
-                          if (handlers[0] &&
-                              TYPEINFO_IS_NEWOBJECT(curstack->typeinfo))
+                          if (handlers[0] && TYPEINFO_IS_NEWOBJECT(curstack->typeinfo)) {
                               TYPECHECK_VERIFYERROR("Storing uninitialized object in local variable inside try block");
+						  }
 
-						  if (TYPESTACK_IS_RETURNADDRESS(curstack))
+						  if (TYPESTACK_IS_RETURNADDRESS(curstack)) {
 							  typevectorset_store_retaddr(localset,iptr->op1,&(curstack->typeinfo));
-						  else
+						  }
+						  else {
 							  typevectorset_store(localset,iptr->op1,TYPE_ADDRESS,
 												  &(curstack->typeinfo));
+						  }
                           break;
                           
                           /****************************************/
@@ -1696,7 +1659,6 @@ putfield_tail:
                       case ICMD_INVOKESPECIAL:
                       case ICMD_INVOKESTATIC:
                       case ICMD_INVOKEINTERFACE:
-						  /* XXX lazy loading */
 						  TYPECHECK_COUNT(stat_ins_invoke);
                           {
 							  unresolved_method *um = (unresolved_method *) iptr[0].target;
@@ -1718,7 +1680,6 @@ putfield_tail:
 								  return NULL;
 
 #if 0
-
 							  if (opcode == ICMD_INVOKESPECIAL) {
 								  /* XXX for INVOKESPECIAL: check if the invokation is done at all */
 								  
@@ -1729,23 +1690,12 @@ putfield_tail:
  										  TYPECHECK_VERIFYERROR("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
  								  } 
 							  }
-
-                              /* fetch parameter types and return type */
-                              i = 0;
-                              if (opcode != ICMD_INVOKESTATIC) {
-                                  ptype[0] = TYPE_ADR;
-                                  TYPEINFO_INIT_CLASSINFO(pinfo[0],mi->class);
-                                  i++;
-                              }
-                              typeinfo_init_from_methoddesc(mi->parseddesc,ptype+i,pinfo+i,
-                                                            MAXPARAMS-i,false,
-                                                            &rtype,&rinfo);
-
 #endif
 
 							  /* allocate parameters if necessary */
 							  if (!md->params)
-								  if (!descriptor_params_from_paramtypes(md,(opcode == ICMD_INVOKESTATIC) ? ACC_STATIC : ACC_NONE))
+								  if (!descriptor_params_from_paramtypes(md,
+											  (opcode == ICMD_INVOKESTATIC) ? ACC_STATIC : ACC_NONE))
 									  return NULL;
 
                               /* check parameter types */
@@ -1773,28 +1723,12 @@ putfield_tail:
                                               initclass.cls = m->class;
                                           LOGSTR("class: "); LOGNAME(initclass); LOGNL;
                                       }
-                                      else {
-#if 0
-                                          if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
-                                              TYPECHECK_VERIFYERROR("Parameter reference type mismatch in method invocation");
-#endif
-                                      }
                                   }
                                   LOG("ok");
 
                                   if (i)
 									  srcstack = srcstack->prev;
                               }
-
-#if 0
-							  /* XXX We should resolve the method and pass its
-							   * class as implementingclass to is_accessible. */
-							  /* JOWENN: FIXME (and on other invokation places of is_accessible too) */
-							  if (!is_accessible(mi->flags,mi->class,/*NULL have to check what here should really be*/ mi->class /*dont't crash right now*/, myclass,
-												 (opcode == ICMD_INVOKESTATIC) ? NULL
-												 : &(srcstack->typeinfo)))
-								  TYPECHECK_VERIFYERROR("Invoking unaccessible method");
-#endif
 
 							  LOG("checking return type");
 							  rtype = md->returntype.type;
@@ -1873,7 +1807,6 @@ putfield_tail:
                           
                       case ICMD_MULTIANEWARRAY:
 						  {
-							  /* XXX lazy loading */
 							  vftbl_t *arrayvftbl;
 							  arraydescriptor *desc;
 							  
@@ -1890,16 +1823,22 @@ putfield_tail:
 							  }
 							  
 							  /* check array descriptor */
-							  arrayvftbl = (vftbl_t*) iptr[0].val.a;
-							  if (!arrayvftbl)
-								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with unlinked class");
-							  if ((desc = arrayvftbl->arraydesc) == NULL)
-								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with non-array class");
-							  if (desc->dimension < iptr[0].op1)
-								  TYPECHECK_VERIFYERROR("MULTIANEWARRAY dimension to high");
-							  
-							  /* set the array type of the result */
-							  TYPEINFO_INIT_CLASSINFO(dst->typeinfo,arrayvftbl->class);
+							  if (iptr[0].target == NULL) {
+								  arrayvftbl = (vftbl_t*) iptr[0].val.a;
+								  if (!arrayvftbl)
+									  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with unlinked class");
+								  if ((desc = arrayvftbl->arraydesc) == NULL)
+									  TYPECHECK_VERIFYERROR("MULTIANEWARRAY with non-array class");
+								  if (desc->dimension < iptr[0].op1)
+									  TYPECHECK_VERIFYERROR("MULTIANEWARRAY dimension to high");
+
+								  /* set the array type of the result */
+								  TYPEINFO_INIT_CLASSINFO(dst->typeinfo,arrayvftbl->class);
+							  }
+							  else {
+								  /* XXX do checks in patcher */
+								  TYPEINFO_INIT_CLASSREF(dst->typeinfo,iptr[0].val.a);
+							  }
 						  }
                           maythrow = true;
                           break;
