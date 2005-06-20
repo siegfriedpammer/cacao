@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2759 2005-06-20 22:14:59Z stefan $
+   $Id: threads.c 2760 2005-06-20 22:36:55Z stefan $
 
 */
 
@@ -616,9 +616,9 @@ static void *threadstartup(void *t)
 	threadobject *tnext;
 	methodinfo *method;
 
-	/* Seems like we've encountered a situation where info->tid was not set
-	   by pthread_create. We alleviate this problem by waiting for
-	   pthread_create to return. */
+	/* Seems like we've encountered a situation where info->tid was not set by
+	 * pthread_create. We alleviate this problem by waiting for pthread_create
+	 * to return. */
 	sem_wait(psem);
 
 	t = NULL;
@@ -1088,6 +1088,8 @@ bool threadHoldsLock(threadobject *t, java_objectheader *o)
 {
 	monitorLockRecord *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
+	/* The reason why we have to check against NULL is that
+	 * dummyLR->incharge == NULL */
 	return lr && lr->o == o && lr->ownerThread == t;
 }
 
