@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: descriptor.c 2744 2005-06-20 11:59:14Z edwin $
+   $Id: descriptor.c 2747 2005-06-20 15:00:55Z edwin $
 
 */
 
@@ -1107,10 +1107,10 @@ descriptor_debug_print_paramdesc(FILE *file,paramdesc *d)
 	}
 	
 	if (d->inmemory) {
-		fprintf(file,"<mem:%d>",d->regoff);
+		fprintf(file,"<m%d>",d->regoff);
 	}
 	else {
-		fprintf(file,"<reg:%d>",d->regoff);
+		fprintf(file,"<r%d>",d->regoff);
 	}
 }
 
