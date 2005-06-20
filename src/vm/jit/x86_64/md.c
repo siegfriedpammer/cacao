@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2654 2005-06-13 14:10:45Z twisti $
+   $Id: md.c 2742 2005-06-20 09:58:48Z twisti $
 
 */
 
@@ -110,6 +110,35 @@ void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* handler_signal_quit *********************************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void handler_signal_quit(int sig, siginfo_t *siginfo, void *_p)
+{
+	struct sigaction  act;
+	sigset_t          nsig;
+
+	/* Reset signal handler - necessary for SysV, does no harm for BSD */
+
+	act.sa_sigaction = handler_signal_quit;              /* reinstall handler */
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, NULL);
+
+	sigemptyset(&nsig);
+	sigaddset(&nsig, sig);
+	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
+
+	/* do thread dump */
+
+	thread_dump();
+}
+#endif
+
+
 void init_exceptions(void)
 {
 	struct sigaction act;
@@ -135,6 +164,14 @@ void init_exceptions(void)
 	act.sa_sigaction = catch_ArithmeticException;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	/* catch SIGQUIT for thread dump */
+
+	act.sa_sigaction = handler_signal_quit;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(SIGQUIT, &act, NULL);
+#endif
 }
 
 
