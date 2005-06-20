@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2744 2005-06-20 11:59:14Z edwin $
+   $Id: builtin.c 2746 2005-06-20 13:06:15Z edwin $
 
 */
 
@@ -267,6 +267,34 @@ bool builtin_init(void)
 	return true;
 }
 
+
+/* builtintable_entry_debug_dump ***********************************************
+
+   Prints a builtintable_entry in human-readable form.
+
+*******************************************************************************/
+
+void builtintable_entry_debug_dump(FILE *file,builtintable_entry *bte)
+{
+	char *name;
+	char *desc;
+	
+	if (!bte) {
+		fprintf(file,"(builtintable_entry *)NULL");
+		return;
+	}
+
+	name = bte->name;
+	if (!name)
+		name = "<name=NULL>";
+	desc = (bte->md) ? "parsed " : bte->descriptor;
+	if (!desc)
+		desc = "<desc=NULL>";
+	fprintf(file,"BUILTIN(%d,%p,%s %s",
+			bte->opcode,(void*)bte->fp,name,desc);
+	descriptor_debug_print_methoddesc(file,bte->md);
+	fputc(')',file);
+}
 
 /* builtintable_get_internal ***************************************************
 
