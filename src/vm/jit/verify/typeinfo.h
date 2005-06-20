@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2186 2005-04-02 00:43:25Z edwin $
+   $Id: typeinfo.h 2749 2005-06-20 15:04:31Z edwin $
 
 */
 
@@ -52,9 +52,9 @@
 #define TYPEINFO_DEBUG
 /*#define TYPEINFO_VERBOSE*/
 #define TYPECHECK_DEBUG
-/*#define TYPEINFO_DEBUG_TEST
-#define TYPECHECK_VERBOSE
-#define TYPECHECK_VERBOSE_IMPORTANT*/
+/*#define TYPEINFO_DEBUG_TEST*/
+/*#define TYPECHECK_VERBOSE*/
+/*#define TYPECHECK_VERBOSE_IMPORTANT*/
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
 #define TYPECHECK_VERBOSE_OPT
 #endif
@@ -530,7 +530,7 @@ void  typedescriptor_init_from_typedesc(typedescriptor *td,
 									    typedesc *desc);
 int  typedescriptors_init_from_methoddesc(typedescriptor *td,
 										  methoddesc *desc,
-										  int buflen,bool twoword,
+										  int buflen,bool twoword,int startindex,
 										  typedescriptor *returntype);
 
 void typeinfo_clone(typeinfo *src,typeinfo *dest);
