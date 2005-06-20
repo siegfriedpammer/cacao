@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2562 2005-06-06 15:22:21Z twisti $
+   $Id: typecheck.c 2750 2005-06-20 15:11:47Z edwin $
 
 */
 
@@ -45,6 +45,7 @@
 #include "toolbox/logging.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/jit/patcher.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/tables.h"
@@ -397,10 +398,12 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 	for (;dst; dst=dst->prev, y=y->prev) {
 		if (!y) {
 			log_text("Stack depth mismatch 1");
+					/* XXX verify error */
 			assert(0);
 		}
 		if (dst->type != y->type) {
 			log_text("Stack type mismatch 1");
+					/* XXX verify error */
 			assert(0);
 		}
 		LOG3("copy %p -> %p (type %d)",y,dst,dst->type);
@@ -432,6 +435,7 @@ typestack_copy(stackptr dst,stackptr y,typevector *selected)
 	}
 	if (y) {
 		log_text("Stack depth mismatch 2");
+					/* XXX verify error */
 		assert(0);
 	}
 }
@@ -466,10 +470,12 @@ typestack_merge(stackptr dst,stackptr y)
 	for (; dst; dst = dst->prev, y=y->prev) {
 		if (!y) {
 			log_text("Stack depth mismatch 3");
+					/* XXX verify error */
 			assert(0);
 		}
 		if (dst->type != y->type) {
 			log_text("Stack type mismatch 2");
+					/* XXX verify error */
 			assert(0);
 		}
 		if (dst->type == TYPE_ADDRESS) {
@@ -477,6 +483,7 @@ typestack_merge(stackptr dst,stackptr y)
 				/* dst has returnAddress type */
 				if (!TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
 					log_text("Merging returnAddress with reference");
+					/* XXX verify error */
 					assert(0);
 				}
 			}
@@ -484,6 +491,7 @@ typestack_merge(stackptr dst,stackptr y)
 				/* dst has reference type */
 				if (TYPEINFO_IS_PRIMITIVE(y->typeinfo)) {
 					log_text("Merging reference with returnAddress");
+					/* XXX verify error */
 					assert(0);
 				}
 				changed |= typeinfo_merge(&(dst->typeinfo),&(y->typeinfo));
@@ -492,6 +500,7 @@ typestack_merge(stackptr dst,stackptr y)
 	}
 	if (y) {
 		log_text("Stack depth mismatch 4");
+					/* XXX verify error */
 		assert(0);
 	}
 	return changed;
@@ -680,9 +689,10 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 		        for (sp = ystack; sp; sp=sp->prev)
 				if (sp->type == TYPE_ADR &&
                 		TYPEINFO_IS_NEWOBJECT(sp->typeinfo)) {
-					show_icmd_method(cd->method,cd,rd);
+					/*show_icmd_method(cd->method,cd,rd);*/
 					printf("current: %d, dest: %d\n", current->debug_nr, destblock->debug_nr);
 					log_text("Branching backwards with uninitialized object on stack");
+					/* XXX verify error */
 					assert(0);
             		}
 
@@ -690,6 +700,7 @@ typestate_reach(codegendata *cd, registerdata *rd,void *localbuf,
 				if (yloc->td[i].type == TYPE_ADR &&
 					TYPEINFO_IS_NEWOBJECT(yloc->td[i].info)) {
 					log_text("Branching backwards with uninitialized object in local variable");
+					/* XXX verify error */
 					assert(0);
 				}
 		}
@@ -740,6 +751,7 @@ typestate_ret(codegendata *cd,registerdata *rd, void *localbuf,
 	for (yvec=yloc; yvec; ) {
 		if (!TYPEDESC_IS_RETURNADDRESS(yvec->td[retindex])) {
 			log_text("Illegal instruction: RET on non-returnAddress");
+			/* XXX verify error */
 			assert(0);
 		}
 
@@ -757,6 +769,7 @@ typestate_ret(codegendata *cd,registerdata *rd, void *localbuf,
 /* HELPER FUNCTIONS                                                         */
 /****************************************************************************/
 
+#if XXX
 /* If a field is checked, definingclass == implementingclass */
 static bool
 is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, classinfo *methodclass,
@@ -796,6 +809,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 			  break;
 		  default:
 			  log_text("Invalid access flags");
+					/* XXX verify error */
 			  assert(0);
 		}
 	}
@@ -829,6 +843,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 	
 	return true;
 }
+#endif
 
 /****************************************************************************/
 /* MACROS FOR LOCAL VARIABLE CHECKING                                       */
@@ -848,15 +863,18 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
  	do {typevectorset_store_twoword(localset,num,type);} while(0)
 
 
+#ifdef TYPECHECK_VERBOSE
 #define WORDCHECKFAULT \
   	do { \
-		show_icmd_method(m, cd, rd); \
 		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
 		iptr->op1,iptr->method->class->name->text, \
 			iptr->method->name->text,m->class->name->text,m->name->text); \
 		show_icmd(iptr++, false); \
 		show_icmd(iptr, false); \
 	} while (0)
+#else
+#define WORDCHECKFAULT
+#endif
 
 
 #define CHECK_ONEWORD(num,tp)											\
@@ -892,7 +910,7 @@ is_accessible(int flags,classinfo *definingclass,classinfo *implementingclass, c
 	{if ((source)->type == TYPE_ADR)								\
 			TYPEINFO_COPY((source)->typeinfo,(dest)->typeinfo);}
 
-#define ISBUILTIN(v)   (iptr->val.fp == (functionptr) (v))
+#define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
 
 /* TYPECHECK_REACH: executed, when the target block (tbptr) can be reached
  *     from the current block (bptr). The types of local variables and
@@ -961,7 +979,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 	typevector *localset;        /* typevector set for local variables */
 	typevector *lset;                             /* temporary pointer */
 	typedescriptor *td;                           /* temporary pointer */
+#ifdef XXX
 	typeinfo tempti;                             /* temporary typeinfo */
+#endif
 
 	stackptr savedstackbuf = NULL;      /* buffer for saving the stack */
 	stackptr savedstack = NULL;      /* saved instack of current block */
@@ -972,7 +992,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
     u1 *ptype;                     /* parameter types of called method */
     typeinfo *pinfo;           /* parameter typeinfos of called method */
     u1 rtype;                          /* return type of called method */
+#ifdef XXX
     typeinfo rinfo;       /* typeinfo for return type of called method */
+#endif
 	
     stackptr dst;               /* output stack of current instruction */
     basicblock **tptr;    /* pointer into target list of switch instr. */
@@ -984,6 +1006,10 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 	bool jsrencountered = false;         /* true if we there was a JSR */
 
     classinfo *myclass;
+	unresolved_field *uf;                        /* for field accesses */
+	fieldinfo **fieldinfop;                      /* for field accesses */
+	builtintable_entry *bte;
+
 
 #ifdef TYPECHECK_STATISTICS
 	int count_iterations = 0;
@@ -993,7 +1019,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 
     LOGSTR("\n==============================================================================\n");
-    DOLOG( show_icmd_method(cd->method,cd,rd));
+    /*DOLOG( show_icmd_method(cd->method,cd,rd));*/
     LOGSTR("\n==============================================================================\n");
     LOGimpSTR("Entering typecheck: ");
     LOGimpSTRu(cd->method->name);
@@ -1065,6 +1091,11 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 	td = lset->td;
 	i = validlocals;
 
+	/* allocate parameter descriptors if necessary */
+	if (!m->parseddesc->params)
+		if (!descriptor_params_from_paramtypes(m->parseddesc,m->flags))
+			return NULL;
+
     /* if this is an instance method initialize the "this" ref type */
     if (!(m->flags & ACC_STATIC)) {
 		if (!i)
@@ -1084,8 +1115,11 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
     i = typedescriptors_init_from_methoddesc(td, m->parseddesc,
 											  i,
 											  true, /* two word types use two slots */
+											  (td - lset->td), /* skip 'this' pointer */
 											  &returntype);
 	td += i;
+
+	/* variables not used for arguments are initialized to TYPE_VOID */
 	i = numlocals - (td - lset->td);
 	while (i--) {
 		td->type = TYPE_VOID;
@@ -1150,7 +1184,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 					for (i=0; i<numlocals; ++i)
 						if (localset->td[i].type == TYPE_ADR
 							&& TYPEINFO_IS_NEWOBJECT(localset->td[i].info)) {
-								show_icmd_method(m, cd, rd);
+								/*show_icmd_method(m, cd, rd);*/
 								printf("Uninitialized variale: %d, block: %d\n", i, bptr->debug_nr);
 								TYPECHECK_VERIFYERROR("Uninitialized object in local variable inside try block");
 							}
@@ -1261,7 +1295,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 						  }
 						  else {
 							  if (!TYPEDESC_IS_REFERENCE(localset->td[iptr->op1])) {
-								  show_icmd_method(m, cd, rd);
+								  /*show_icmd_method(m, cd, rd);*/
 								  dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n",
 									iptr->op1,iptr->method->class->name->text,
 									iptr->method->name->text,m->class->name->text,m->name->text);
@@ -1301,162 +1335,50 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           /****************************************/
                           /* FIELD ACCESS                         */
 
-                      case ICMD_PUTFIELD:
                       case ICMD_PUTFIELDCONST:
-						  TYPECHECK_COUNT(stat_ins_field);
-						  {
-							  fieldinfo *fi;
-							  int type;
-							  typeinfo *temptip;
-							  stackelement *invocant;
-
-							  /* determine the invocant of this instruction */
-							  /* and type and typeinfo of the value to be set */
-							  if (opcode == ICMD_PUTFIELDCONST) {
-								  fi = INSTRUCTION_PUTCONST_FIELDINFO(iptr);
-								  invocant = curstack;
-								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
-								  if (type == TYPE_ADR) {
-									  temptip = &tempti;
-									  if (!INSTRUCTION_PUTCONST_VALUE_ADR(iptr))
-										  TYPEINFO_INIT_NULLTYPE(tempti);
-									  else
-									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);
-								  }
-							  }
-							  else {
-								  /* ICMD_PUTFIELD */
-								  fi = (fieldinfo*) iptr[0].val.a;
-								  invocant = curstack->prev;
-								  type = curstack->type;
-								  if (type == TYPE_ADR)
-									  temptip = &(curstack->typeinfo);
-							  }
-
-							  /* check the type of the invocant */
-							  if (!TYPEINFO_IS_REFERENCE(invocant->typeinfo))
-								  TYPECHECK_VERIFYERROR("illegal instruction: PUTFIELD(CONST) on non-reference");
-							  if (TYPEINFO_IS_ARRAY(invocant->typeinfo))
-								  TYPECHECK_VERIFYERROR("illegal instruction: PUTFIELD(CONST) on array");
-
-							  /* check if the field is accessible */
-							  if (TYPEINFO_IS_NEWOBJECT(invocant->typeinfo)) {
-								  if (initmethod
-									  && !TYPEINFO_NEWOBJECT_INSTRUCTION(invocant->typeinfo))
-								  {
-									  /* uninitialized "this" instance */
-									  if (fi->class != m->class || (fi->flags & ACC_STATIC) != 0)
-										  TYPECHECK_VERIFYERROR("Setting unaccessible field in uninitialized object");
-								  }
-								  else {
-									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) on uninitialized object");
-								  }
-							  }
-							  else {
-								  if (!is_accessible(fi->flags,fi->class,fi->class, myclass,
-													 &(invocant->typeinfo)))
-									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST): field is not accessible");
-							  }
-
-							  /* check if the value is assignable to the field */
-							  if (type != fi->type)
-								  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) type mismatch");
-							  if (type == TYPE_ADR) {
-								  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&rinfo);
-								  if (!typeinfo_is_assignable(temptip,
-															  &rinfo))
-									  TYPECHECK_VERIFYERROR("PUTFIELD(CONST) reference type not assignable");
-							  }
-						  }
-                          maythrow = true;
-                          break;
-
-                      case ICMD_PUTSTATIC:
 					  case ICMD_PUTSTATICCONST:
 						  TYPECHECK_COUNT(stat_ins_field);
-						  {
-							  fieldinfo *fi;
-							  int type;
-							  typeinfo *temptip;
+						  
+						  uf = INSTRUCTION_PUTCONST_FIELDREF(iptr);
+						  fieldinfop = INSTRUCTION_PUTCONST_FIELDINFO_PTR(iptr);
+						  
+						  goto putfield_tail;
+						  
+                      case ICMD_PUTFIELD:
+                      case ICMD_PUTSTATIC:
+						  TYPECHECK_COUNT(stat_ins_field);
 
-							  /* determine type and typeinfo of the value to be set */
-							  if (opcode == ICMD_PUTSTATICCONST) {
-								  fi = INSTRUCTION_PUTCONST_FIELDINFO(iptr);
-								  type = INSTRUCTION_PUTCONST_TYPE(iptr);
-								  if (type == TYPE_ADR) {
-									  temptip = &tempti;
-									  if (!INSTRUCTION_PUTCONST_VALUE_ADR(iptr))
-										  TYPEINFO_INIT_NULLTYPE(tempti);
-									  else
-									      TYPEINFO_INIT_CLASSINFO(tempti,class_java_lang_String);
-								  }
-							  }
-							  else {
-								  /* ICMD_PUTSTATIC */
-								  fi = (fieldinfo*) iptr[0].val.a;
-								  type = curstack->type;
-								  if (type == TYPE_ADR)
-									  temptip = &(curstack->typeinfo);
-							  }
+						  uf = (unresolved_field *) iptr[0].target;
+						  fieldinfop = (fieldinfo **) &(iptr[0].val.a);
+putfield_tail:
+						  /* record the subtype constraints for this field access */
+						  if (!constrain_unresolved_field(uf,m->class,m,iptr,curstack))
+							  return NULL; /* XXX maybe wrap exception? */
 							  
-							  /* check if the field is accessible */
-							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL))
-								  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST): field is not accessible");
-
-							  /* check if the value is assignable to the field */
-							  if (type != fi->type)
-								  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST) type mismatch");
-							  if (type == TYPE_ADR) {
-								  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&rinfo);
-								  if (!typeinfo_is_assignable(temptip,
-															  &rinfo))
-									  TYPECHECK_VERIFYERROR("PUTSTATIC(CONST) reference type not assignable");
-							  }
-						  }
+						  /* try to resolve the field reference */
+						  if (!resolve_field(uf,resolveLazy,fieldinfop))
+							  return NULL;
                           maythrow = true;
                           break;
 
                       case ICMD_GETFIELD:
-						  TYPECHECK_COUNT(stat_ins_field);
-                          if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
-                              TYPECHECK_VERIFYERROR("illegal instruction: GETFIELD on non-reference");
-                          if (TYPEINFO_IS_ARRAY(curstack->typeinfo))
-                              TYPECHECK_VERIFYERROR("illegal instruction: GETFIELD on array");
-                          
-                          {
-                              fieldinfo *fi = (fieldinfo *)(iptr->val.a);
-							  
-							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,
-												 &(curstack->typeinfo)))
-								  TYPECHECK_VERIFYERROR("GETFIELD: field is not accessible");
-							  
-                              if (dst->type == TYPE_ADR) {
-                                  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&(dst->typeinfo));
-                              }
-                          }
-                          maythrow = true;
-                          break;
-
                       case ICMD_GETSTATIC:
 						  TYPECHECK_COUNT(stat_ins_field);
-                          {
-                              fieldinfo *fi = (fieldinfo *)(iptr->val.a);
-							  
-							  if (!is_accessible(fi->flags,fi->class,fi->class,myclass,NULL)) {
-								printf("---------\n");
-								  utf_display(fi->class->name);
-								printf("\n");
-								  utf_display(myclass->name);
-								printf("\n");
 
+						  uf = (unresolved_field *) iptr[0].target;
 
-								  TYPECHECK_VERIFYERROR("GETSTATIC: field is not accessible");
-							}
+						  /* record the subtype constraints for this field access */
+						  if (!constrain_unresolved_field(uf,m->class,m,iptr,curstack))
+							  return NULL; /* XXX maybe wrap exception? */
 
-                              if (dst->type == TYPE_ADR) {
-                                  typeinfo_init_from_typedesc(fi->parseddesc,NULL,&(dst->typeinfo));
-                              }
-                          }
+						  /* try to resolve the field reference */
+						  if (!resolve_field(uf,resolveLazy,(fieldinfo **) &(iptr[0].val.a)))
+							  return NULL;
+
+						  /* the result is pushed on the stack */
+						  if (dst->type == TYPE_ADR) {
+							  typeinfo_init_from_typedesc(uf->fieldref->parseddesc.fd,NULL,&(dst->typeinfo));
+						  }
                           maythrow = true;
                           break;
 
@@ -1583,7 +1505,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           if (iptr->val.a == NULL)
                               TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
                           else
-                              /* string constants (or constant for builtin function) */
+                              /* string constant (or constant for builtin function) */
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,class_java_lang_String);
                           break;
 
@@ -1596,7 +1518,11 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
                               TYPECHECK_VERIFYERROR("Illegal instruction: CHECKCAST on non-reference");
 
-                          TYPEINFO_INIT_CLASSINFO(dst->typeinfo,(classinfo *)iptr[0].val.a);
+						  cls = (classinfo *) iptr[0].val.a;
+						  if (cls)
+							  TYPEINFO_INIT_CLASSINFO(dst->typeinfo,cls);
+						  else
+                              TYPEINFO_INIT_CLASSREF(dst->typeinfo,iptr[0].target);
                           maythrow = true;
                           break;
 
@@ -1681,9 +1607,10 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           break;
 
                           /****************************************/
-                          /* RETURNS AND THROW                    */
+                          /* ADDRESS RETURNS AND THROW            */
 
                       case ICMD_ATHROW:
+						  /* XXX lazy loading */
                           if (!typeinfo_is_assignable_to_class(
                                    &curstack->typeinfo,CLASSREF_OR_CLASSINFO(class_java_lang_Throwable)))
                               TYPECHECK_VERIFYERROR("illegal instruction: ATHROW on non-Throwable");
@@ -1692,6 +1619,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           break;
 
                       case ICMD_ARETURN:
+						  /* XXX lazy loading */
                           if (!TYPEINFO_IS_REFERENCE(curstack->typeinfo))
                               TYPECHECK_VERIFYERROR("illegal instruction: ARETURN on non-reference");
 
@@ -1700,6 +1628,9 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                               TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
 						  
+                          /****************************************/
+                          /* PRIMITIVE RETURNS                    */
+
                       case ICMD_IRETURN:
                           if (returntype.type != TYPE_INT) TYPECHECK_VERIFYERROR("Return type mismatch");
 						  goto return_tail;
@@ -1765,22 +1696,35 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_INVOKESPECIAL:
                       case ICMD_INVOKESTATIC:
                       case ICMD_INVOKEINTERFACE:
+						  /* XXX lazy loading */
 						  TYPECHECK_COUNT(stat_ins_invoke);
                           {
-                              methodinfo *mi = (methodinfo*) iptr->val.a;
-							  bool specialmethod = (mi->name->text[0] == '<');
-                              bool callinginit = (opcode == ICMD_INVOKESPECIAL && mi->name == name_init);
+							  unresolved_method *um = (unresolved_method *) iptr[0].target;
+							  constant_FMIref *mref = um->methodref;
+							  methoddesc *md = mref->parseddesc.md;
+							  bool specialmethod = (mref->name->text[0] == '<');
+                              bool callinginit = (opcode == ICMD_INVOKESPECIAL && mref->name == name_init);
                               instruction *ins;
                               classref_or_classinfo initclass;
+							  typedesc *td;
 
 							  if (specialmethod && !callinginit)
 								  TYPECHECK_VERIFYERROR("Invalid invocation of special method");
+							  
+							  if (!constrain_unresolved_method(um,m->class,m,iptr,curstack))
+								  return NULL; /* XXX maybe wrap exception */
+
+							  if (!resolve_method(um,resolveLazy,(methodinfo **) &(iptr[0].val.a)))
+								  return NULL;
+
+#if 0
 
 							  if (opcode == ICMD_INVOKESPECIAL) {
 								  /* XXX for INVOKESPECIAL: check if the invokation is done at all */
 								  
 								  /* (If callinginit the class is checked later.) */
 								  if (!callinginit) { 
+									  /* XXX classrefs */
  									  if (!builtin_isanysubclass(myclass,mi->class)) 
  										  TYPECHECK_VERIFYERROR("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
  								  } 
@@ -1797,16 +1741,23 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                                             MAXPARAMS-i,false,
                                                             &rtype,&rinfo);
 
+#endif
+
+							  /* allocate parameters if necessary */
+							  if (!md->params)
+								  if (!descriptor_params_from_paramtypes(md,(opcode == ICMD_INVOKESTATIC) ? ACC_STATIC : ACC_NONE))
+									  return NULL;
+
                               /* check parameter types */
                               srcstack = curstack;
-                              i = mi->paramcount; /* number of parameters including 'this'*/
+                              i = md->paramcount; /* number of parameters including 'this'*/
                               while (--i >= 0) {
                                   LOG1("param %d",i);
-                                  if (srcstack->type != ptype[i])
+								  td = md->paramtypes + i;
+                                  if (srcstack->type != td->type)
                                       TYPECHECK_VERIFYERROR("Parameter type mismatch in method invocation");
                                   if (srcstack->type == TYPE_ADR) {
                                       LOGINFO(&(srcstack->typeinfo));
-                                      LOGINFO(pinfo + i);
                                       if (i==0 && callinginit)
                                       {
                                           /* first argument to <init> method */
@@ -1823,15 +1774,19 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                           LOGSTR("class: "); LOGNAME(initclass); LOGNL;
                                       }
                                       else {
+#if 0
                                           if (!typeinfo_is_assignable(&(srcstack->typeinfo),pinfo+i))
                                               TYPECHECK_VERIFYERROR("Parameter reference type mismatch in method invocation");
+#endif
                                       }
                                   }
                                   LOG("ok");
 
-                                  if (i) srcstack = srcstack->prev;
+                                  if (i)
+									  srcstack = srcstack->prev;
                               }
 
+#if 0
 							  /* XXX We should resolve the method and pass its
 							   * class as implementingclass to is_accessible. */
 							  /* JOWENN: FIXME (and on other invokation places of is_accessible too) */
@@ -1839,12 +1794,14 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 												 (opcode == ICMD_INVOKESTATIC) ? NULL
 												 : &(srcstack->typeinfo)))
 								  TYPECHECK_VERIFYERROR("Invoking unaccessible method");
+#endif
 
 							  LOG("checking return type");
+							  rtype = md->returntype.type;
                               if (rtype != TYPE_VOID) {
                                   if (rtype != dst->type)
                                       TYPECHECK_VERIFYERROR("Return type mismatch in method invocation");
-                                  TYPEINFO_COPY(rinfo,dst->typeinfo);
+								  typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo));
                               }
 
                               if (callinginit) {
@@ -1890,8 +1847,11 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                                   if (!ins) {
 									  TYPECHECK_ASSERT(initmethod);
 									  /* must be <init> of current class or direct superclass */
+									  /* XXX check with classrefs */
+#if 0
 									  if (mi->class != m->class && mi->class != m->class->super.cls)
 										  TYPECHECK_VERIFYERROR("<init> calling <init> of the wrong class");
+#endif
 									  
                                       /* set our marker variable to type int */
                                       LOG("setting <init> marker");
@@ -1900,8 +1860,11 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  else {
 									  /* initializing an instance created with NEW */
 									  /* XXX is this strictness ok? */
-									  if (mi->class != initclass.cls) /* XXX change to classref */
+									  /* XXX check with classrefs */
+#if 0
+									  if (mi->class != initclass.cls)
 										  TYPECHECK_VERIFYERROR("Calling <init> method of the wrong class");
+#endif
 								  }
                               }
                           }
@@ -1910,6 +1873,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           
                       case ICMD_MULTIANEWARRAY:
 						  {
+							  /* XXX lazy loading */
 							  vftbl_t *arrayvftbl;
 							  arraydescriptor *desc;
 							  
@@ -1940,34 +1904,75 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           maythrow = true;
                           break;
 
-#if 0
-                      case ICMD_BUILTIN3:
+					  case ICMD_BUILTIN:
 						  TYPECHECK_COUNT(stat_ins_builtin);
-                          if (ISBUILTIN(BUILTIN_aastore)) {
-							  TYPECHECK_ADR(curstack);
-							  TYPECHECK_INT(curstack->prev);
-							  TYPECHECK_ADR(curstack->prev->prev);
-                              if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
-                                  TYPECHECK_VERIFYERROR("illegal instruction: AASTORE to non-reference array");
+						  bte = (builtintable_entry *) iptr[0].val.a;
+                          if (ISBUILTIN(BUILTIN_new) || ISBUILTIN(PATCHER_builtin_new)) {
+							  
+                              if (iptr[-1].opc != ICMD_ACONST)
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_new without classinfo");
+							  cls = (classinfo *) iptr[-1].val.a;
+#ifdef XXX
+							  TYPECHECK_ASSERT(!cls || cls->linked);
+							  /* The following check also forbids array classes and interfaces: */
+							  if ((cls->flags & ACC_ABSTRACT) != 0)
+								  TYPECHECK_VERIFYERROR("Invalid instruction: NEW creating instance of abstract class");
+#endif
+                              TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
                           }
-						  else {
-							  /* XXX put these checks in a function */
-							  TYPECHECK_COUNT(stat_ins_builtin_gen);
-							  builtindesc = builtin_desc;
-							  while (builtindesc->opcode && builtindesc->builtin
-									 != iptr->val.fp) builtindesc++;
-							  if (!builtindesc->opcode) {
-								  dolog("Builtin not in table: %s",icmd_builtin_name(iptr->val.fp));
-								  TYPECHECK_ASSERT(false);
-							  }
-							  TYPECHECK_ARGS3(builtindesc->type_s3,builtindesc->type_s2,builtindesc->type_s1);
-						  }
-                          maythrow = true;
-                          break;
-                          
-                      case ICMD_BUILTIN2:
-						  TYPECHECK_COUNT(stat_ins_builtin);
-                          if (ISBUILTIN(BUILTIN_newarray))
+                          else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_char)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_CHAR);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_float)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_FLOAT);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_double)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_DOUBLE);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_byte)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BYTE);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_short)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_SHORT);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_int)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_INT);
+                          }
+                          else if (ISBUILTIN(BUILTIN_newarray_long)) {
+							  TYPECHECK_INT(curstack);
+                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
+                          }
+						  else if (ISBUILTIN(BUILTIN_newarray))
+                          {
+							  vftbl_t *vft;
+							  TYPECHECK_INT(curstack->prev);
+                              if (iptr[-1].opc != ICMD_ACONST)
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_newarray without classinfo");
+							  vft = (vftbl_t *)iptr[-1].val.a;
+							  if (!vft)
+								  TYPECHECK_VERIFYERROR("ANEWARRAY with unlinked class");
+							  if (!vft->arraydesc)
+								  TYPECHECK_VERIFYERROR("ANEWARRAY with non-array class");
+                              TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
+                          }
+						  else if (ISBUILTIN(PATCHER_builtin_newarray))
+                          {
+							  TYPECHECK_INT(curstack->prev);
+                              if (iptr[-1].opc != ICMD_ACONST)
+                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_newarray without classinfo");
+                              TYPEINFO_INIT_CLASSREF(dst->typeinfo,iptr[-1].val.a);
+                          }
+						  else if (ISBUILTIN(BUILTIN_newarray))
                           {
 							  vftbl_t *vft;
 							  TYPECHECK_INT(curstack->prev);
@@ -2004,6 +2009,39 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
 								  TYPECHECK_VERIFYERROR("internal error: builtin_arraycheckcast with non-array class");
                               TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
                           }
+                          else if (ISBUILTIN(PATCHER_builtin_arraycheckcast)) {
+							  TYPECHECK_ADR(curstack->prev);
+                              if (iptr[-1].opc != ICMD_ACONST)
+                                  TYPECHECK_VERIFYERROR("illegal instruction: BUILTIN_arraycheckcast without classinfo");
+                              TYPEINFO_INIT_CLASSREF(dst->typeinfo,iptr[-1].val.a);
+                          }
+						  else if (ISBUILTIN(BUILTIN_aastore)) {
+							  TYPECHECK_ADR(curstack);
+							  TYPECHECK_INT(curstack->prev);
+							  TYPECHECK_ADR(curstack->prev->prev);
+                              if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(curstack->prev->prev->typeinfo))
+                                  TYPECHECK_VERIFYERROR("illegal instruction: AASTORE to non-reference array");
+                          }
+						  else {
+#if 0
+							  /* XXX put these checks in a function */
+							  TYPECHECK_COUNT(stat_ins_builtin_gen);
+							  builtindesc = builtin_desc;
+							  while (builtindesc->opcode && builtindesc->builtin
+									 != iptr->val.fp) builtindesc++;
+							  if (!builtindesc->opcode) {
+								  dolog("Builtin not in table: %s",icmd_builtin_name(iptr->val.fp));
+								  TYPECHECK_ASSERT(false);
+							  }
+							  TYPECHECK_ARGS3(builtindesc->type_s3,builtindesc->type_s2,builtindesc->type_s1);
+#endif
+						  }
+                          maythrow = true;
+                          break;
+                          
+#if 0
+                      case ICMD_BUILTIN2:
+						  TYPECHECK_COUNT(stat_ins_builtin);
 						  else {
 							  TYPECHECK_COUNT(stat_ins_builtin_gen);
 							  builtindesc = builtin_desc;
@@ -2020,49 +2058,6 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                           
                       case ICMD_BUILTIN1:
 						  TYPECHECK_COUNT(stat_ins_builtin);
-                          if (ISBUILTIN(BUILTIN_new)) {
-							  
-                              if (iptr[-1].opc != ICMD_ACONST)
-                                  TYPECHECK_VERIFYERROR("illegal instruction: builtin_new without classinfo");
-							  cls = (classinfo *) iptr[-1].val.a;
-							  TYPECHECK_ASSERT(cls->linked);
-							  /* The following check also forbids array classes and interfaces: */
-							  if ((cls->flags & ACC_ABSTRACT) != 0)
-								  TYPECHECK_VERIFYERROR("Invalid instruction: NEW creating instance of abstract class");
-                              TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,iptr);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BOOLEAN);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_char)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_CHAR);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_float)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_FLOAT);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_double)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_DOUBLE);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_byte)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_BYTE);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_short)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_SHORT);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_int)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_INT);
-                          }
-                          else if (ISBUILTIN(BUILTIN_newarray_long)) {
-							  TYPECHECK_INT(curstack);
-                              TYPEINFO_INIT_PRIMITIVE_ARRAY(dst->typeinfo,ARRAYTYPE_LONG);
-                          }
 						  else {
 							  TYPECHECK_COUNT(stat_ins_builtin_gen);
 							  builtindesc = builtin_desc;
@@ -2243,7 +2238,7 @@ methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd)
                       case ICMD_DNEG:
                       
 
-                      /*What shall we do with the following ?*/
+                      /*XXX What shall we do with the following ?*/
                       case ICMD_CHECKEXCEPTION:
                       case ICMD_AASTORECONST:
 						  TYPECHECK_COUNT(stat_ins_unchecked);

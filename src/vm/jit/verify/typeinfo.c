@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2483 2005-05-20 11:19:41Z twisti $
+   $Id: typeinfo.c 2750 2005-06-20 15:11:47Z edwin $
 
 */
 
@@ -787,14 +787,14 @@ typedescriptor_init_from_typedesc(typedescriptor *td,
 int
 typedescriptors_init_from_methoddesc(typedescriptor *td,
 									 methoddesc *desc,
-									 int buflen,bool twoword,
+									 int buflen,bool twoword,int startindex,
 									 typedescriptor *returntype)
 {
 	int i;
     int args = 0;
 
     /* check arguments */
-    for (i=0; i<desc->paramcount; ++i) {
+    for (i=startindex; i<desc->paramcount; ++i) {
 		if (++args > buflen) {
 			log_text("Buffer too small for method arguments."); /* XXX */
 			assert(0);
@@ -1931,11 +1931,16 @@ typeinfo_print_stacktype(FILE *file,int type,typeinfo *info)
 	if (type == TYPE_ADDRESS && TYPEINFO_IS_PRIMITIVE(*info)) {	
 		typeinfo_retaddr_set *set = (typeinfo_retaddr_set*)
 			TYPEINFO_RETURNADDRESS(*info);
-		fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->debug_nr);
-		set = set->alt;
-		while (set) {
-			fprintf(file,"|L%03d",((basicblock*)(set->addr))->debug_nr);
+		if (set) {
+			fprintf(file,"ret(L%03d",((basicblock*)(set->addr))->debug_nr);
 			set = set->alt;
+			while (set) {
+				fprintf(file,"|L%03d",((basicblock*)(set->addr))->debug_nr);
+				set = set->alt;
+			}
+		}
+		else {
+			fprintf(file,"ret(<NULL>");
 		}
 		fprintf(file,")");
 	}
