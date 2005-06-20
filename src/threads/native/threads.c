@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2740 2005-06-20 09:56:49Z twisti $
+   $Id: threads.c 2759 2005-06-20 22:14:59Z stefan $
 
 */
 
@@ -616,6 +616,11 @@ static void *threadstartup(void *t)
 	threadobject *tnext;
 	methodinfo *method;
 
+	/* Seems like we've encountered a situation where info->tid was not set
+	   by pthread_create. We alleviate this problem by waiting for
+	   pthread_create to return. */
+	sem_wait(psem);
+
 	t = NULL;
 #if defined(__DARWIN__)
 	info->mach_thread = mach_thread_self();
@@ -635,7 +640,6 @@ static void *threadstartup(void *t)
 	sem_post(psem);
 
 	setPriority(info->tid, thread->o.thread->priority);
-	sched_yield();
 
 	/* Find the run()V method and call it */
 
@@ -682,6 +686,7 @@ void startThread(thread *t)
 		log_text("pthread_create failed");
 		assert(0);
 	}
+	sem_post(&sem);
 
 	/* Wait here until the thread has entered itself into the thread list */
 	sem_wait(&sem);
