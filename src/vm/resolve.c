@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2753 2005-06-20 15:19:46Z edwin $
+   $Id: resolve.c 2754 2005-06-20 15:23:48Z edwin $
 
 */
 
@@ -1088,7 +1088,6 @@ constrain_unresolved_field(unresolved_field *ref,
 			
 			classinfo *initclass;
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-			classinfo   *initclass;
 
 			if (ins != NULL) {
 				*exceptionptr = new_verifyerror(refmethod,"accessing field of uninitialized object");
