@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2660 2005-06-13 14:16:26Z twisti $
+   $Id: stacktrace.h 2768 2005-06-21 15:51:39Z twisti $
 
 */
 
@@ -42,21 +42,21 @@ typedef struct native_stackframeinfo native_stackframeinfo;
 typedef struct stackTraceBuffer stackTraceBuffer;
 typedef struct stacktraceelement stacktraceelement;
 
-
+#include "config.h"
 #include "types.h"
-#include "arch.h"
+
 #include "vm/method.h"
 
 
 struct native_stackframeinfo {
-	void *oldThreadspecificHeadValue;
-	void **addressOfThreadspecificHead;
-	methodinfo *method;
-#ifdef __ALPHA__
-	void *savedpv;
+	void        *oldThreadspecificHeadValue;
+	void       **addressOfThreadspecificHead;
+	methodinfo  *method;
+#if defined(__ALPHA__)
+	void        *savedpv;
 #endif
-	void *beginOfJavaStackframe; /*only used if != 0*/ /* on i386 and x86_64 this points to the return addres stored directly below the stackframe*/
-	functionptr returnToFromNative;
+	void        *beginOfJavaStackframe; /*only used if != 0*/ /* on i386 and x86_64 this points to the return addres stored directly below the stackframe*/
+	functionptr  returnToFromNative;
 
 #if 0
 	void *returnFromNative;
@@ -89,10 +89,11 @@ struct stackTraceBuffer {
 /* function prototypes ********************************************************/
 
 void cacao_stacktrace_NormalTrace(void **target);
-java_objectarray *cacao_createClassContextArray();
-java_objectheader *cacao_currentClassLoader();
-methodinfo* cacao_callingMethod();
-java_objectarray *cacao_getStackForVMAccessController();
+java_objectarray *cacao_createClassContextArray(void);
+java_objectheader *cacao_currentClassLoader(void);
+methodinfo* cacao_callingMethod(void);
+java_objectarray *cacao_getStackForVMAccessController(void);
+
 #endif /* _STACKTRACE_H */
 
 

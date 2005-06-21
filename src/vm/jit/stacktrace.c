@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2681 2005-06-14 17:14:44Z twisti $
+   $Id: stacktrace.c 2768 2005-06-21 15:51:39Z twisti $
 
 */
 
@@ -245,26 +245,34 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 	}
 #endif
 	{
-		struct native_stackframeinfo *info=(*(((void**)(builtin_asm_get_stackframeinfo()))));
+		native_stackframeinfo *info;
+
+		info = *((void **) (builtin_asm_get_stackframeinfo()));
+
 		if (!info) {
 			log_text("info ==0");
 			*target=0;
 			return;
+
 		} else {
 			u1 *tmp;
 			u1 *dataseg; /*make it byte addressable*/
-			methodinfo *currentMethod=0;
-			/*void*/ functionptr returnAdress;
+			methodinfo *currentMethod;
+			functionptr returnAdress;
 			u1* stackPtr;
 			u1ptr_functionptr_union u1f;
 
 /*			utf_display(info->method->class->name);
 			utf_display(info->method->name);*/
-			
-			while ((currentMethod!=0) ||  (info!=0)) {
-				if (currentMethod==0) { /*some builtin native */
-					currentMethod=info->method;
-					returnAdress=(functionptr)info->returnToFromNative;
+
+			currentMethod = NULL;
+
+			while (currentMethod || info) {
+				/* some builtin native */
+
+				if (currentMethod == NULL) {
+					currentMethod = info->method;
+					returnAdress = (functionptr) info->returnToFromNative;
 #ifdef JWDEBUG
 					log_text("native");
 					printf("return to %p\n",returnAdress);
@@ -278,7 +286,8 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 						utf_display(currentMethod->name);
 #endif
 #endif
-						addEntry(&buffer,currentMethod,0);
+
+						addEntry(&buffer, currentMethod, 0);
 					}
 #if defined(__ALPHA__)
 					if (info->savedpv!=0)
@@ -321,7 +330,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					/* cacao saves the return adress as the first element of the stack frame on alphas*/
 					cast_funcptr_u1ptr (dataseg,codegen_findmethod(*((void**)(stackPtr+frameSize-sizeof(void*)))));
 					returnAdress=(*((void**)(stackPtr+frameSize-sizeof(void*))));
-#elif defined(__I386__) || defined (__x86_64__)
+#elif defined(__I386__) || defined (__X86_64__)
 					/* on i386 the return adress is the first element before the stack frme*/
 					cast_u1ptr_funcptr(returnAdress,*((u1**)(stackPtr+frameSize)));
 					cast_funcptr_u1ptr(dataseg,codegen_findmethod(returnAdress));
@@ -331,7 +340,7 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 					currentMethod=(*((methodinfo**)(dataseg+MethodPointer)));
 #if defined(__ALPHA__)
 					stackPtr+=frameSize;
-#elif defined(__I386__) || defined (__x86_64__)
+#elif defined(__I386__) || defined (__X86_64__)
 					stackPtr+=frameSize+sizeof(void*);
 #endif
 				}
@@ -380,63 +389,49 @@ void  cacao_stacktrace_NormalTrace(void **target) {
 
 
 
-static
-void classContextCollector(void **target, stackTraceBuffer *buffer) {
-        java_objectarray *tmpArray;
-        int i;
-        stacktraceelement *current;
-        stacktraceelement *start;
-        size_t size;
+static void classContextCollector(void **target, stackTraceBuffer *buffer)
+{
+	java_objectarray  *tmpArray;
+	stacktraceelement *current;
+	stacktraceelement *start;
+	size_t size;
 	size_t targetSize;
+	s4 i;
 
-	size=buffer->full;
-	targetSize=0;
-	for (i=0;i<size;i++)
-		if (buffer->start[i].method!=0) targetSize++;
-	start=buffer->start;
+	size = buffer->full;
+	targetSize = 0;
+
+	for (i = 0; i < size; i++)
+		if (buffer->start[i].method != 0)
+			targetSize++;
+
+	start = buffer->start;
 	start++;
 	targetSize--;
-        if (targetSize > 0) {
-                if ((start->method) && (start->method->class== class_java_lang_SecurityManager)) {
-#if (defined(JWDEBUG) || defined(JWDEBUG3))
-			printf("removing one frame");
-#endif
-                        targetSize--;
-                        start++;
-                }
-        }
 
-        tmpArray = builtin_anewarray(targetSize, class_java_lang_Class);
+	if (targetSize > 0) {
+		if (start->method && (start->method->class == class_java_lang_SecurityManager)) {
+			targetSize--;
+			start++;
+		}
+	}
 
-#if (defined(JWDEBUG) || defined(JWDEBUG3))
-	printf("==========================================================================================================\n");
-#endif
-        for(i = 0, current = start; i < targetSize; i++, current++) {
-                if (current->method==0) { i--; /*printf("Skipping\n");*/ continue;}
-#if (defined(JWDEBUG) || defined(JWDEBUG3))
-		{
-			printf("after current->method check\n");
-			if (current->method->class==0) printf("Error method defining class i null\n");
-			else printf("method defining class is not null :)\n");
-			printf("adding item to class context array:%s\n",current->method->class->name->text);
-			printf("method for class: :%s\n",current->method->name->text);
+	tmpArray = builtin_anewarray(targetSize, class_java_lang_Class);
+
+	for(i = 0, current = start; i < targetSize; i++, current++) {
+		/* XXX TWISTI: should we use this skipping for native stubs? */
+
+		if (!current->method) {
+			i--;
+			continue;
 		}
-#endif
-                use_class_as_object(current->method->class);
-#ifdef JWDEBUG
-		{
-			printf("use_class_as_object_finished\n");
-		}
-#endif
-                tmpArray->data[i] = (java_objectheader *) current->method->class;
-#ifdef JWDEBUG
-		printf("array item has been set\n");
-#endif
-        }
-#if (defined(JWDEBUG) || defined(JWDEBUG3))
-	printf("leaving classContextCollector");
-#endif
-        *target=tmpArray;
+
+		use_class_as_object(current->method->class);
+
+		tmpArray->data[i] = (java_objectheader *) current->method->class;
+	}
+
+	*target = tmpArray;
 }
 
 
