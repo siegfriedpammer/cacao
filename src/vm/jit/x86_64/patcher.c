@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2651 2005-06-13 14:02:52Z twisti $
+   $Id: patcher.c 2765 2005-06-21 10:40:28Z twisti $
 
 */
 
@@ -165,6 +165,7 @@ bool patcher_get_putfield(u1 *sp)
 	u8                 mcode;
 	unresolved_field  *uf;
 	fieldinfo         *fi;
+	u1                 byte;
 
 	/* get stuff from the stack */
 
@@ -200,12 +201,7 @@ bool patcher_get_putfield(u1 *sp)
 	/* patch the field's offset: we check for the field type, because the     */
 	/* instructions have different lengths                                    */
 
-	if (IS_FLT_DBL_TYPE(fi->type)) {
-		*((u4 *) (ra + 5)) = (u4) (fi->offset);
-
-	} else {
-		u1 byte;
-
+	if (IS_INT_LNG_TYPE(fi->type)) {
 		/* check for special case: %rsp or %r12 as base register */
 
 		byte = *(ra + 3);
@@ -214,6 +210,16 @@ bool patcher_get_putfield(u1 *sp)
 			*((u4 *) (ra + 4)) = (u4) (fi->offset);
 		else
 			*((u4 *) (ra + 3)) = (u4) (fi->offset);
+
+	} else {
+		/* check for special case: %rsp or %r12 as base register */
+
+		byte = *(ra + 5);
+
+		if (byte == 0x24)
+			*((u4 *) (ra + 6)) = (u4) (fi->offset);
+		else
+			*((u4 *) (ra + 5)) = (u4) (fi->offset);
 	}
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
@@ -270,19 +276,27 @@ bool patcher_putfieldconst(u1 *sp)
 	if (showdisassemble)
 		ra = ra + 5;
 
-	/* handle special case when the base register is %r12 */
-
-	if (*(ra + 2) == 0x84)
-		ra = ra + 1;
-
 	/* patch the field's offset */
 
 	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
-		*((u4 *) (ra + 3)) = (u4) (fi->offset);
-		*((u4 *) (ra + 11 + 3)) = (u4) (fi->offset + 4);
+		/* handle special case when the base register is %r12 */
+
+		if (*(ra + 2) == 0x84) {
+			*((u4 *) (ra + 4)) = (u4) (fi->offset);
+			*((u4 *) (ra + 12 + 4)) = (u4) (fi->offset + 4);
+
+		} else {
+			*((u4 *) (ra + 3)) = (u4) (fi->offset);
+			*((u4 *) (ra + 11 + 3)) = (u4) (fi->offset + 4);
+		}
 
 	} else {
-		*((u4 *) (ra + 3)) = (u4) (fi->offset);
+		/* handle special case when the base register is %r12 */
+
+		if (*(ra + 2) == 0x84)
+			*((u4 *) (ra + 4)) = (u4) (fi->offset);
+		else
+			*((u4 *) (ra + 3)) = (u4) (fi->offset);
 	}
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
