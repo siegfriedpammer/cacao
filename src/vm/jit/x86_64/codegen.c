@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.c 2656 2005-06-13 14:14:24Z twisti $
+   $Id: codegen.c 2767 2005-06-21 11:47:05Z twisti $
 
 */
 
@@ -311,15 +311,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		if (runverbose) {
 			/* show integer hex code for float arguments */
 
-			for (p = 0, l = 0; p < m->paramcount && p < INT_ARG_CNT; p++) {
-				t = m->paramtypes[p];
-
-				/* if the paramtype is a float, we have to right shift all        */
-				/* following integer registers                                    */
+			for (p = 0, l = 0; p < md->paramcount && p < INT_ARG_CNT; p++) {
+				/* if the paramtype is a float, we have to right shift all    */
+				/* following integer registers                                */
 	
-				if (IS_FLT_DBL_TYPE(t)) {
+				if (IS_FLT_DBL_TYPE(md->paramtypes[p].type)) {
 					for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
-						x86_64_mov_reg_reg(cd, rd->argintregs[s1], rd->argintregs[s1 + 1]);
+						M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
 					}
 
 					x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
@@ -333,8 +331,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			x86_64_call_reg(cd, REG_ITMP1);
 		}
 		STATS({
-			x86_64_mov_imm_reg(cd,(u8)compiledinvokation,REG_ITMP1);
-			x86_64_call_reg(cd,REG_ITMP1);
+			x86_64_mov_imm_reg(cd, (ptrint) compiledinvokation, REG_ITMP1);
+			x86_64_call_reg(cd, REG_ITMP1);
 		})
 		
 		/* restore integer argument registers */
@@ -3080,7 +3078,7 @@ gen_method:
 						M_DST(d, REG_SP, md->params[s3].regoff * 8);
 					}
 				}
-			} /* end of for */
+			}
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
@@ -3732,7 +3730,7 @@ gen_method:
 
 	{
 
-	/* generate bound check stubs */
+	/* generate ArrayIndexOutOfBoundsException stubs */
 
 	u1 *xcodeptr = NULL;
 	branchref *bref;
@@ -3745,12 +3743,13 @@ gen_method:
 		MCODECHECK(100);
 
 		/* move index register into REG_ITMP1 */
-		x86_64_mov_reg_reg(cd, bref->reg, REG_ITMP1);             /* 3 bytes  */
+
+		M_MOV(bref->reg, REG_ITMP1);                             /* 3 bytes  */
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP3);   /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP3, REG_ITMP2_XPC); /* 3 bytes  */
+		M_AADD(REG_ITMP3, REG_ITMP2_XPC);                         /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -3785,7 +3784,7 @@ gen_method:
 		}
 	}
 
-	/* generate negative array size check stubs */
+	/* generate NegativeArraySizeException stubs */
 
 	xcodeptr = NULL;
 	
@@ -3978,8 +3977,6 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-
-
 			x86_64_alu_imm_reg(cd, X86_64_SUB, 4*8, REG_SP);
 			x86_64_mov_reg_membase(cd, REG_ITMP2_XPC, REG_SP, 3*8);
 			x86_64_mov_imm_membase(cd, 0, REG_SP, 2*8);
@@ -4018,7 +4015,7 @@ gen_method:
 		}
 	}
 
-	/* generate null pointer check stubs */
+	/* generate NullpointerException stubs */
 
 	xcodeptr = NULL;
 	
@@ -4039,7 +4036,7 @@ gen_method:
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		x86_64_mov_imm_reg(cd, bref->branchpos - 6, REG_ITMP1);   /* 10 bytes */
-		x86_64_alu_reg_reg(cd, X86_64_ADD, REG_ITMP1, REG_ITMP2_XPC); /* 3 bytes  */
+		M_AADD(REG_ITMP1, REG_ITMP2_XPC);                         /* 3 bytes  */
 
 		if (xcodeptr != NULL) {
 			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
@@ -4180,47 +4177,34 @@ functionptr createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, registerdata *rd)
+functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+							 registerdata *rd, methoddesc *nmd)
 {
-	methoddesc         *md;
-	methoddesc         *nmd;
-	s4                  stackframesize; /* size of stackframe if needed       */
-	s4                  nativeparams;
-	s4                  i, j;           /* count variables                    */
-	s4                  t;
-	s4                  s1, s2, off;
+	methoddesc *md;
+	s4          stackframesize;         /* size of stackframe if needed       */
+	s4          nativeparams;
+	s4          i, j;                   /* count variables                    */
+	s4          t;
+	s4          s1, s2, off;
 
 	/* initialize variables */
 
+	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
-	/* create new method descriptor with additional native parameters */
 
-	md = m->parseddesc;
-	
-	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
-							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
+	/* calculate stack frame size */
 
-	nmd->paramcount = md->paramcount + nativeparams;
+	stackframesize = 4 + INT_ARG_CNT + FLT_ARG_CNT + nmd->memuse;
 
-	nmd->params = DMNEW(paramdesc, nmd->paramcount);
-
-	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
-
-	if (m->flags & ACC_STATIC)
-		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
-
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
-		  md->paramcount);
-
-	md_param_alloc(nmd);
+	if (!(stackframesize & 0x1))                /* keep stack 16-byte aligned */
+		stackframesize++;
 
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, 0 * 8);                           /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
 	(void) dseg_adds4(cd, 0);                               /* IntSave        */
@@ -4235,6 +4219,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 
+	/* generate stub code */
+
+	M_ASUB_IMM(stackframesize * 8, REG_SP);
+
 	/* if function is static, check for initialized */
 
 	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
@@ -4246,21 +4234,19 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 	}
 
 	if (runverbose) {
-		s4 l, s1;
-
-		M_ASUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
-
 		/* save integer and float argument registers */
 
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-			M_LST(rd->argintregs[i], REG_SP, (1 + i) * 8);
+		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
+				M_LST(rd->argintregs[j++], REG_SP, (1 + i) * 8);
 
-		for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
-			M_DST(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
+		for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
+				M_DST(rd->argfltregs[j++], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 
 		/* show integer hex code for float arguments */
 
-		for (i = 0, l = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
 			/* if the paramtype is a float, we have to right shift all        */
 			/* following integer registers                                    */
 
@@ -4268,8 +4254,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 				for (s1 = INT_ARG_CNT - 2; s1 >= i; s1--)
 					M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
 
-				x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[i]);
-				l++;
+				x86_64_movd_freg_reg(cd, rd->argfltregs[j], rd->argintregs[i]);
+				j++;
 			}
 		}
 
@@ -4280,26 +4266,25 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 
 		/* restore integer and float argument registers */
 
-		for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-			M_LLD(rd->argintregs[i], REG_SP, (1 + i) * 8);
+		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
+				M_LLD(rd->argintregs[j++], REG_SP, (1 + i) * 8);
 
-		for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
-			M_DLD(rd->argfltregs[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-
-		M_AADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
+		for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
+				M_DLD(rd->argfltregs[j++], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 	}
 
-	/* 4 == additional size needed for native stack frame information*/
-
-	M_ASUB_IMM((4 + INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
 
 	/* save integer and float argument registers */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-		M_LST(rd->argintregs[i], REG_SP, i * 8);
+	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
+			M_LST(rd->argintregs[j++], REG_SP, i * 8);
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
-		M_DST(rd->argfltregs[i], REG_SP, (INT_ARG_CNT + i) * 8);
+	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
+			M_DST(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
 /*
 15+
@@ -4310,48 +4295,36 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 4*8        void *returnToFromNative;
 */
 
-	/* CREATE DYNAMIC STACK INFO -- BEGIN   offsets:15,16,17,18*/
+	/* create dynamic stack info */
 
-	x86_64_mov_imm_membase(cd, 0, REG_SP, 18 * 8);
-	x86_64_mov_imm_membase(cd, (ptrint) m, REG_SP, 17 * 8);
+	x86_64_mov_imm_membase(cd, 0, REG_SP, (stackframesize - 1) * 8);
+	x86_64_mov_imm_membase(cd, (ptrint) m, REG_SP, (stackframesize - 2) * 8);
 
 	x86_64_mov_imm_reg(cd, (ptrint) builtin_asm_get_stackframeinfo, REG_ITMP1);
 	x86_64_call_reg(cd, REG_ITMP1);
 
-	x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, 16 * 8);
-	x86_64_mov_membase_reg(cd, REG_RESULT, 0, REG_ITMP2);
-	x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 15 * 8);
-	x86_64_mov_reg_reg(cd, REG_SP, REG_ITMP2);
-	x86_64_alu_imm_reg(cd, X86_64_ADD, (1 + INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_ITMP2);
-	x86_64_mov_reg_membase(cd, REG_ITMP2, REG_RESULT, 0);
-
-	/* CREATE DYNAMIC STACK INFO -- END*/
+	M_LST(REG_RESULT, REG_SP, (stackframesize - 3) * 8);
+	M_LLD(REG_ITMP2, REG_RESULT, 0);
+	M_LST(REG_ITMP2, REG_SP, (stackframesize - 4) * 8);
+	M_MOV(REG_SP, REG_ITMP2);
+	M_LADD_IMM((stackframesize - 4) * 8, REG_ITMP2);
+	M_LST(REG_ITMP2, REG_RESULT, 0);
 
 	STATS({
-		x86_64_mov_imm_reg(cd,(u8)nativeinvokation,REG_ITMP1);
-		x86_64_call_reg(cd,REG_ITMP1);
+		x86_64_mov_imm_reg(cd, (ptrint) nativeinvokation, REG_ITMP1);
+		x86_64_call_reg(cd, REG_ITMP1);
 	})
 
 	/* restore integer and float argument registers */
 
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
-		M_LLD(rd->argintregs[i], REG_SP, i * 8);
+	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
+			M_LLD(rd->argintregs[j++], REG_SP, i * 8);
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
-		M_DLD(rd->argfltregs[i], REG_SP, (INT_ARG_CNT + i) * 8);
+	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
+			M_DLD(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
-	M_AADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + 1) * 8, REG_SP);
-
-
-	/* calculate stack frame size */
-
-	stackframesize = nmd->memuse;
-
-	/* keep stack 16-byte aligned */
-	if (!(stackframesize & 0x1))
-		stackframesize++;
-
-	M_ASUB_IMM(stackframesize * 8, REG_SP);
 
 	/* copy or spill arguments to new locations */
 
@@ -4372,7 +4345,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 				}
 
 			} else {
-				s1 = md->params[i].regoff + stackframesize;
+				s1 = md->params[i].regoff + stackframesize + 1;   /* + 1 (RA) */
 				s2 = nmd->params[j].regoff;
 				M_LLD(REG_ITMP1, REG_SP, s1 * 8);
 				M_LST(REG_ITMP1, REG_SP, s2 * 8);
@@ -4383,7 +4356,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 			/* registers keep unchanged.                                      */
 
 			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + stackframesize;
+				s1 = md->params[i].regoff + stackframesize + 1;   /* + 1 (RA) */
 				s2 = nmd->params[j].regoff;
 				M_DLD(REG_FTMP1, REG_SP, s1 * 8);
 				M_DST(REG_FTMP1, REG_SP, s2 * 8);
@@ -4416,31 +4389,21 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 	x86_64_call_reg(cd, REG_ITMP1);
 
 
-	/* remove stackframe if there is one */
-
-	if (stackframesize)
-		M_AADD_IMM(stackframesize * 8, REG_SP);
-
 	/* remove dynamic stack info */
 
-	x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, 2 * 8);
-	x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_ITMP2);
-	x86_64_mov_membase_reg(cd, REG_SP, 1 * 8, REG_RESULT);
-	x86_64_mov_reg_membase(cd, REG_ITMP2, REG_RESULT, 0);
-	x86_64_mov_membase_reg(cd, REG_SP, 2 * 8, REG_RESULT);
+	M_LLD(REG_ITMP2, REG_SP, (stackframesize - 4) * 8);
+	M_LLD(REG_ITMP3, REG_SP, (stackframesize - 3) * 8);
+	M_LST(REG_ITMP2, REG_ITMP3, 0);
 
-	M_AADD_IMM(4 * 8, REG_SP);
 
 	/* generate call trace */
 
 	if (runverbose) {
-		M_ASUB_IMM(3 * 8, REG_SP);              /* keep stack 16-byte aligned */
-
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		M_DST(REG_FRESULT, REG_SP, 1 * 8);
 
   		x86_64_mov_imm_reg(cd, (ptrint) m, rd->argintregs[0]);
-  		x86_64_mov_reg_reg(cd, REG_RESULT, rd->argintregs[1]);
+  		M_MOV(REG_RESULT, rd->argintregs[1]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
   		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
 
@@ -4449,35 +4412,38 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 
 		M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
-
-		M_AADD_IMM(3 * 8, REG_SP);
 	}
 
 	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	x86_64_push_reg(cd, REG_RESULT);
+	M_LST(REG_RESULT, REG_SP, 0 * 8);
 	x86_64_mov_imm_reg(cd, (ptrint) builtin_get_exceptionptrptr, REG_ITMP3);
 	x86_64_call_reg(cd, REG_ITMP3);
-	x86_64_mov_membase_reg(cd, REG_RESULT, 0, REG_ITMP3);
-	x86_64_pop_reg(cd, REG_RESULT);
+	M_LLD(REG_ITMP3, REG_RESULT, 0);
+	M_LLD(REG_RESULT, REG_SP, 0 * 8);
 #else
 	x86_64_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(cd, REG_ITMP3, 0, REG_ITMP3);
 #endif
 	x86_64_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
-	x86_64_jcc(cd, X86_64_CC_NE, 1);
+	x86_64_jcc(cd, X86_64_CC_NE, 7 + 1);
+
+	/* remove stackframe */
+
+	M_AADD_IMM(stackframesize * 8, REG_SP);
 
 	x86_64_ret(cd);
+
 
 	/* handle exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	x86_64_push_reg(cd, REG_ITMP3);
+	M_LST(REG_ITMP3, REG_SP, 0 * 8);
 	x86_64_mov_imm_reg(cd, (ptrint) builtin_get_exceptionptrptr, REG_ITMP3);
 	x86_64_call_reg(cd, REG_ITMP3);
 	x86_64_mov_imm_membase(cd, 0, REG_RESULT, 0);
-	x86_64_pop_reg(cd, REG_ITMP1_XPTR);
+	M_LLD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
 #else
 	x86_64_mov_reg_reg(cd, REG_ITMP3, REG_ITMP1_XPTR);
 	x86_64_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP3);
@@ -4485,8 +4451,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd, regi
 	x86_64_mov_reg_membase(cd, REG_ITMP2, REG_ITMP3, 0);    /* clear exception pointer */
 #endif
 
-	x86_64_mov_membase_reg(cd, REG_SP, 0, REG_ITMP2_XPC);    /* get return address from stack */
-	x86_64_alu_imm_reg(cd, X86_64_SUB, 3, REG_ITMP2_XPC);    /* callq */
+	/* remove stackframe */
+
+	M_AADD_IMM(stackframesize * 8, REG_SP);
+
+	M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);     /* get return address from stack */
+	M_ASUB_IMM(3, REG_ITMP2_XPC);                                    /* callq */
 
 	x86_64_mov_imm_reg(cd, (ptrint) asm_handle_nat_exception, REG_ITMP3);
 	x86_64_jmp_reg(cd, REG_ITMP3);
