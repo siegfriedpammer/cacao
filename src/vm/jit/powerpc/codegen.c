@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.c 2724 2005-06-16 11:57:46Z twisti $
+   $Id: codegen.c 2763 2005-06-21 09:19:14Z twisti $
 
 */
 
@@ -3609,13 +3609,12 @@ functionptr createcompilerstub(methodinfo *m)
 *******************************************************************************/
 
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd)
+							 registerdata *rd, methoddesc *nmd)
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
 	s4          disp;
 	methoddesc *md;
-	methoddesc *nmd;
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
@@ -3623,37 +3622,14 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* set some variables */
 
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
-
-	/* create new method descriptor with additional native parameters */
-
 	md = m->parseddesc;
-	
-	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
-							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
-
-	nmd->paramcount = md->paramcount + nativeparams;
-
-	nmd->params = DMNEW(paramdesc, nmd->paramcount);
-
-	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
-
-	if (m->flags & ACC_STATIC)
-		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
-
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
-		  md->paramcount);
-
-	md_param_alloc(nmd);
-
+	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 
 	/* calculate stackframe size */
 
 	stackframesize = nmd->memuse;
-
-	stackframesize = (stackframesize + 3) & ~3; /* Keep Stack 16 Byte aligned */
+	stackframesize = (stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
 
 
 	/* create method header */
@@ -3722,10 +3698,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 					}
 
 				} else {
-					/* we do not have a data segment here */
-					/* a = dseg_adds4(cd, 0xdeadbeef);
-					M_ILD(REG_ITMP1, REG_PV, a); */
-					M_LDA(REG_ITMP1, REG_ZERO, -1);
+					off = dseg_adds4(cd, 0xdeadbeef);
+					M_ILD(REG_ITMP1, REG_PV, off);
 					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
 					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8 + 4);
 				}
@@ -3965,20 +3939,22 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 #endif
 	}
 
+	/* check for exception */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	switch (md->returntype.type) {
 	case TYPE_LNG:
-		M_IST(REG_RESULT2, REG_SP, stackframesize * 4 - 4 /* 60*/);
+		M_IST(REG_RESULT2, REG_SP, (stackframesize - 1) * 4);
 		/* fall through */
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_IST(REG_RESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	case TYPE_FLT:
-		M_FST(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_FST(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_DST(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	}
 
@@ -3993,17 +3969,17 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	switch (md->returntype.type) {
 	case TYPE_LNG:
-		M_ILD(REG_RESULT2, REG_SP, stackframesize * 4 - 4 /*60*/);
+		M_ILD(REG_RESULT2, REG_SP, (stackframesize - 1) * 4);
 		/* fall through */
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_ILD(REG_RESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	case TYPE_FLT:
-		M_FLD(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_FLD(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, stackframesize * 4 - 8 /*56*/);
+		M_DLD(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
 		break;
 	}
 #else
@@ -4019,6 +3995,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
 
 	M_RET;
+
+	/* handle exception */
 
 	M_CLR(REG_ITMP3);
 	M_AST(REG_ITMP3, REG_ITMP2, 0);     /* store NULL into exceptionptr       */
