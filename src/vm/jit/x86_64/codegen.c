@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.c 2767 2005-06-21 11:47:05Z twisti $
+   $Id: codegen.c 2769 2005-06-21 15:52:44Z twisti $
 
 */
 
@@ -4286,29 +4286,20 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DST(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
-/*
-15+
-0*8        void *oldThreadspecificHeadValue;
-1*8        void **addressOfThreadspecificHead;
-2*8        methodinfo *method;
-3*8        void *beginOfJavaStackframe; only used if != 0
-4*8        void *returnToFromNative;
-*/
-
 	/* create dynamic stack info */
 
 	x86_64_mov_imm_membase(cd, 0, REG_SP, (stackframesize - 1) * 8);
-	x86_64_mov_imm_membase(cd, (ptrint) m, REG_SP, (stackframesize - 2) * 8);
-
+	x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP1);
+	M_AST(REG_ITMP1, REG_SP, (stackframesize - 2) * 8);
 	x86_64_mov_imm_reg(cd, (ptrint) builtin_asm_get_stackframeinfo, REG_ITMP1);
 	x86_64_call_reg(cd, REG_ITMP1);
 
-	M_LST(REG_RESULT, REG_SP, (stackframesize - 3) * 8);
-	M_LLD(REG_ITMP2, REG_RESULT, 0);
-	M_LST(REG_ITMP2, REG_SP, (stackframesize - 4) * 8);
+	M_AST(REG_RESULT, REG_SP, (stackframesize - 3) * 8);
+	M_ALD(REG_ITMP2, REG_RESULT, 0);
+	M_AST(REG_ITMP2, REG_SP, (stackframesize - 4) * 8);
 	M_MOV(REG_SP, REG_ITMP2);
-	M_LADD_IMM((stackframesize - 4) * 8, REG_ITMP2);
-	M_LST(REG_ITMP2, REG_RESULT, 0);
+	M_AADD_IMM((stackframesize - 4) * 8, REG_ITMP2);
+	M_AST(REG_ITMP2, REG_RESULT, 0);
 
 	STATS({
 		x86_64_mov_imm_reg(cd, (ptrint) nativeinvokation, REG_ITMP1);
