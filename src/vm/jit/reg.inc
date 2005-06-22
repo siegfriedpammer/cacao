@@ -30,7 +30,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: reg.inc 2774 2005-06-22 09:47:44Z christian $
+   $Id: reg.inc 2778 2005-06-22 10:02:54Z christian $
 
 */
 
@@ -545,8 +545,8 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (m->isleafmethod) {
 		methoddesc *md = m->parseddesc;
 
-		iargcnt = md->argintreguse;
-		fargcnt = md->argfltreguse;
+/* 		iargcnt = md->argintreguse; */
+/* 		fargcnt = md->argfltreguse; */
 #ifdef HAS_ADDRESS_REGISTER_FILE
 		aargcnt = md->argadrreguse;
 #endif
