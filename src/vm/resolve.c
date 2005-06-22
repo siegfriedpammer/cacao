@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2757 2005-06-20 21:14:33Z edwin $
+   $Id: resolve.c 2784 2005-06-22 12:09:11Z edwin $
 
 */
 
@@ -302,6 +302,8 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	classinfo *type;
 	typeinfo resultti;
 	typeinfo typeti;
+	char *message;
+	int msglen;
 
 	RESOLVE_ASSERT(referer);
 	RESOLVE_ASSERT(ref);
@@ -390,12 +392,20 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	return true;
 
 throw_error:
+	msglen = utf_strlen(result->name) + utf_strlen(type->name) + 200;
+	message = MNEW(char,msglen);
+	strcpy(message,(error == resolveIllegalAccessError) ?
+			"illegal access to protected member ("
+			: "subtype constraint violated (");
+	utf_sprint_classname(message+strlen(message),result->name);
+	strcat(message," is not a subclass of ");
+	utf_sprint_classname(message+strlen(message),type->name);
+	strcat(message,")");
 	if (error == resolveIllegalAccessError)
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
-				"illegal access to protected member XXX add message");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
 	else
-		*exceptionptr = new_exception_message(string_java_lang_LinkageError,
-				"subtype constraint violated XXX add message");
+		*exceptionptr = new_exception_message(string_java_lang_LinkageError,message);
+	MFREE(message,char,msglen);
 	return false; /* exception */
 }
 
@@ -547,10 +557,17 @@ resolve_field(unresolved_field *ref,
 			return true; /* be lazy */
 	}
 
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    checking instance types...done\n");
+#endif
+
 	fieldtyperef = ref->fieldref->parseddesc.fd->classref;
 
 	/* for PUT* instructions we have to check the constraints on the value type */
 	if (((ref->flags & RESOLVE_PUTFIELD) != 0) && fi->type == TYPE_ADR) {
+#ifdef RESOLVE_VERBOSE
+		fprintf(stderr,"    checking value constraints...\n");
+#endif
 		RESOLVE_ASSERT(fieldtyperef);
 		if (!SUBTYPESET_IS_EMPTY(ref->valueconstraints)) {
 			/* check subtype constraints */
@@ -569,14 +586,27 @@ resolve_field(unresolved_field *ref,
 	}
 									   
 	/* check access rights */
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    checking access rights...\n");
+#endif
 	if (!is_accessible_member(referer,declarer,fi->flags)) {
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
 				"field is not accessible XXX add message");
 		return false; /* exception */
 	}
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    checking access rights...done\n");
+	fprintf(stderr,"        declarer = ");
+	utf_fprint_classname(stderr,declarer->name); fputc('\n',stderr);
+	fprintf(stderr,"        referer = ");
+	utf_fprint_classname(stderr,referer->name); fputc('\n',stderr);
+#endif
 
 	/* check protected access */
 	if (((fi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
+#ifdef RESOLVE_VERBOSE
+		fprintf(stderr,"    checking protectec access...\n");
+#endif
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(referer),
@@ -592,6 +622,9 @@ resolve_field(unresolved_field *ref,
 
 	/* impose loading constraint on field type */
 	if (fi->type == TYPE_ADR) {
+#ifdef RESOLVE_VERBOSE
+		fprintf(stderr,"    adding constraint...\n");
+#endif
 		RESOLVE_ASSERT(fieldtyperef);
 		if (!classcache_add_constraint(declarer->classloader,referer->classloader,
 								  	   fieldtyperef->name))
@@ -599,6 +632,9 @@ resolve_field(unresolved_field *ref,
 	}
 
 	/* succeed */
+#ifdef RESOLVE_VERBOSE
+	fprintf(stderr,"    success.\n");
+#endif
 	*result = fi;
 	return true;
 }
@@ -809,6 +845,9 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
+#ifdef TYPEINFO_DEBUG
+	typeinfo_print(stderr,tinfo,4);
+#endif
 	fprintf(stderr,"    declared type:");utf_fprint(stderr,declaredtype->name);
 	fprintf(stderr,"\n");
 #endif
@@ -840,7 +879,19 @@ unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
 		count = tinfo->merged->count;
 		stset->subtyperefs = MNEW(classref_or_classinfo,count + 1);
 		for (i=0; i<count; ++i) {
-			stset->subtyperefs[i] = tinfo->merged->list[i];
+			classref_or_classinfo c = tinfo->merged->list[i];
+			if (tinfo->dimension > 0) {
+				/* a merge of array types */
+				/* the merged list contains the possible _element_ types, */
+				/* so we have to create array types with these elements.  */
+				if (IS_CLASSREF(c)) {
+					c.ref = class_get_classref_multiarray_of(tinfo->dimension,c.ref);
+				}
+				else {
+					c.cls = class_multiarray_of(tinfo->dimension,c.cls,false);
+				}
+			}
+			stset->subtyperefs[i] = c;
 		}
 		stset->subtyperefs[count].any = NULL; /* terminate */
 	}
