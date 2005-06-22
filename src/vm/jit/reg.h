@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: reg.h 2709 2005-06-15 13:57:07Z christian $
+   Changes: Christian Ullrich
+
+   $Id: reg.h 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -35,7 +37,6 @@
 #define _REG_H
 
 /* #define INVOKE_NEW_DEBUG */
-#define NEW_MEMORY
 
 
 /* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
@@ -70,15 +71,9 @@ struct registerdata {
 	varinfo5 *locals;
 	varinfo5 *interfaces;
 
-	int intregsnum;                 /* absolute number of integer registers   */
-	int fltregsnum;                 /* absolute number of float registers     */
 
 	int intreg_ret;                 /* register to return integer values      */
-	int intreg_argnum;              /* number of integer argument registers   */
-
 	int fltreg_ret;                 /* register for return float values       */
-	int fltreg_argnum;              /* number of float argument registers     */
-
 
 	int *argintregs;                /* argument integer registers             */
 	int *tmpintregs;                /* scratch integer registers              */
@@ -94,9 +89,8 @@ struct registerdata {
 	int *freesavfltregs;            /* free saved float registers             */
 
 #ifdef HAS_ADDRESS_REGISTER_FILE
-	int adrregsnum;                 /* absolute number of address registers   */
 	int adrreg_ret;                 /* register to return address values      */
-	int adrreg_argnum;              /* number of address argument registers   */
+
 	int *argadrregs;                /* argument address registers             */
 	int *tmpadrregs;                /* scratch address registers              */
 	int *savadrregs;               /* saved address registers                */
@@ -104,45 +98,23 @@ struct registerdata {
 	int *freetmpadrregs;            /* free scratch address registers         */
 	int *freesavadrregs;            /* free saved address registers           */
 
-	int tmpadrregcnt;               /* scratch address register count         */
-	int savadrregcnt;               /* saved address register count           */
-	int iftmpadrregcnt;             /* iface scratch address register count   */
-	int ifsavadrregcnt;             /* iface saved address register count     */
 	int argadrreguse;               /* used argument address register count   */
 	int tmpadrreguse;               /* used scratch address register count    */
 	int savadrreguse;               /* used saved address register count      */
-	int maxargadrreguse;            /* max used argument address register count */
-	int maxtmpadrreguse;            /* max used scratch address register count  */
-	int maxsavadrreguse;            /* max used saved address register count  */
+
 	int freetmpadrtop;              /* free scratch address register count    */
 	int freesavadrtop;              /* free saved address register count      */
-	int ifargadrregcnt;             /* iface argument address register count     */
 	int freeargadrtop;              /* free argument address register count      */
 #endif
 
-#if defined(NEW_MEMORY) && defined(HAS_4BYTE_STACKSLOT)
+#if defined(HAS_4BYTE_STACKSLOT)
 	int *freemem_2;
 	int freememtop_2;
 #endif
 	int *freemem;                   /* free scratch memory                    */
-	int memuse;                     /* used memory count                      */
-	int ifmemuse;                   /* interface used memory count            */
-	int maxmemuse;                  /* maximal used memory count (spills)     */
 	int freememtop;                 /* free memory count                      */
 
-	int tmpintregcnt;               /* scratch integer register count         */
-	int savintregcnt;               /* saved integer register count           */
-	int tmpfltregcnt;               /* scratch float register count           */
-	int savfltregcnt;               /* saved float register count             */
-
-	int iftmpintregcnt;             /* iface scratch integer register count   */
-	int ifsavintregcnt;             /* iface saved integer register count     */
-	int iftmpfltregcnt;             /* iface scratch float register count     */
-	int ifsavfltregcnt;             /* iface saved float register count       */
-	int ifargintregcnt;             /* iface argument float register count     */
-	int ifargfltregcnt;             /* iface argument float register count       */
-	int freearginttop;              /* free argument integer register count      */
-	int freeargflttop;              /* free argument float register count      */
+	int memuse;                     /* used memory count                      */
 
 	int argintreguse;               /* used argument integer register count   */
 	int tmpintreguse;               /* used scratch integer register count    */
@@ -151,19 +123,12 @@ struct registerdata {
 	int tmpfltreguse;               /* used scratch float register count      */
 	int savfltreguse;               /* used saved float register count        */
 
-	int maxargintreguse;            /* max used argument int register count   */
-	int maxtmpintreguse;            /* max used scratch int register count    */
-	int maxsavintreguse;            /* max used saved int register count      */
-	int maxargfltreguse;            /* max used argument float register count */
-	int maxtmpfltreguse;            /* max used scratch float register count  */
-	int maxsavfltreguse;            /* max used saved float register count    */
-
+	int freearginttop;              /* free argument integer register count      */
+	int freeargflttop;              /* free argument float register count      */
 	int freetmpinttop;              /* free scratch integer register count    */
 	int freesavinttop;              /* free saved integer register count      */
 	int freetmpflttop;              /* free scratch float register count      */
 	int freesavflttop;              /* free saved float register count        */
-
-	int arguments_num;              /* size of parameter field in the stackframe  */
 };
 
 

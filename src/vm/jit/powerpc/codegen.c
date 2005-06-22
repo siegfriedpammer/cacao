@@ -28,8 +28,9 @@
             Stefan Ring
 
    Changes: Christian Thalinger
+	    Christian Ullrich
 
-   $Id: codegen.c 2763 2005-06-21 09:19:14Z twisti $
+   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -111,10 +112,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* space to save used callee saved registers */
 
-	savedregs_num += (rd->savintregcnt - rd->maxsavintreguse);
-	savedregs_num += 2 * (rd->savfltregcnt - rd->maxsavfltreguse);
+	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
+	savedregs_num += 2 * (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->maxmemuse + savedregs_num;
+	parentargs_base = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)               /* space to save argument of monitor_enter   */
 	                               /* and Return Values to survive monitor_exit */
@@ -142,7 +143,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->maxmemuse + 1) * 4);     /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);     /* IsSync         */
 	else
 
 #endif
@@ -150,8 +151,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, rd->savintregcnt - rd->maxsavintreguse); /* IntSave */
-	(void) dseg_adds4(cd, rd->savfltregcnt - rd->maxsavfltreguse); /* FltSave */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
 
 	/* create exception table */
@@ -183,10 +184,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* save return address and used callee saved registers */
 
 	p = parentargs_base;
-	for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
 	}
-	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p -= 2; M_DST(rd->savfltregs[i], REG_SP, p * 4);
 	}
 
@@ -293,7 +294,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* stack offset for monitor argument */
 
-		s1 = rd->maxmemuse;
+		s1 = rd->memuse;
 
 #if 0
 		if (runverbose) {
@@ -1305,6 +1306,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			{
 				int tempreg = false;
+				int dreg;
+				s4  *br1;
 
 				if (src->prev->flags & INMEMORY) {
 					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
@@ -1319,8 +1322,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
                                  || (d == GET_LOW_REG(src->regoff));
 				}
 
-				int dreg = tempreg ? REG_ITMP1 : d;
-				s4 *br1;
+				dreg = tempreg ? REG_ITMP1 : d;
 				M_IADD_IMM(REG_ZERO, 1, dreg);
 				M_CMP(s1, s2);
 				M_BGT(0);
@@ -2407,37 +2409,37 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->maxmemuse * 4 + 4);
+					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
 				case ICMD_LRETURN:
-					M_IST(REG_RESULT2, REG_SP, rd->maxmemuse * 4 + 8);
+					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				}
 
 				a = dseg_addaddress(cd, BUILTIN_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_MTCTR(REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 4);
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 4);
 				M_JSR;
 
 				/* and now restore the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->maxmemuse * 4 + 4);
+					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
 				case ICMD_LRETURN:
-					M_ILD(REG_RESULT2, REG_SP, rd->maxmemuse * 4 + 8);
+					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->maxmemuse * 4 + 4);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
 					break;
 				}
 			}
@@ -2452,10 +2454,10 @@ nowperformreturn:
 
 			/* restore saved registers                                        */
 
-			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 				p--; M_ILD(rd->savintregs[i], REG_SP, p * 4);
 			}
-			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, p * 4);
 			}
 
@@ -3611,7 +3613,7 @@ functionptr createcompilerstub(methodinfo *m)
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 							 registerdata *rd, methoddesc *nmd)
 {
-	s4         *mcodeptr;               /* code generation pointer            */
+	s4	    *mcodeptr;              /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
 	s4          disp;
 	methoddesc *md;
@@ -3624,7 +3626,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
-
 
 	/* calculate stackframe size */
 

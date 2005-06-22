@@ -28,8 +28,9 @@
             Christian Thalinger
 
    Changes: Joseph Wenninger
+   	    Christian Ullrich
 
-   $Id: codegen.c 2756 2005-06-20 20:53:09Z twisti $
+   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -113,10 +114,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* space to save used callee saved registers */
 
-	savedregs_num += (rd->savintregcnt - rd->maxsavintreguse);
-	savedregs_num += 2 * (rd->savfltregcnt - rd->maxsavfltreguse); /* float register are saved on 2 4 Byte stackslots */
+	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
+	savedregs_num += 2 * (FLT_SAV_CNT - rd->savfltreguse); /* float register are saved on 2 4 Byte stackslots */
 
-	parentargs_base = rd->maxmemuse + savedregs_num;
+	parentargs_base = rd->memuse + savedregs_num;
 
 	   
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
@@ -144,7 +145,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->maxmemuse + 1) * 4);         /* IsSync     */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);         /* IsSync     */
 	else
 
 #endif
@@ -152,8 +153,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, 0);                                   /* IsSync     */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                     /* IsLeaf     */
-	(void) dseg_adds4(cd, rd->savintregcnt - rd->maxsavintreguse); /* IntSave */
-	(void) dseg_adds4(cd, rd->savfltregcnt - rd->maxsavfltreguse); /* FltSave */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
 	/* adds a reference for the length of the line number counter. We don't
 	   know the size yet, since we evaluate the information during code
@@ -189,10 +190,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* save return address and used callee saved registers */
 
   	p = parentargs_base;
-	for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; i386_mov_reg_membase(cd, rd->savintregs[i], REG_SP, p * 4);
 	}
-	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p-=2; i386_fld_reg(cd, rd->savfltregs[i]); i386_fstpl_membase(cd, REG_SP, p * 4);
 	}
 
@@ -312,7 +313,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		s1 = rd->maxmemuse;
+		s1 = rd->memuse;
 
 		if (m->flags & ACC_STATIC) {
 			i386_mov_imm_reg(cd, (ptrint) m->class, REG_ITMP1);
@@ -4049,26 +4050,26 @@ nowperformreturn:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 4, REG_ITMP2);
+				i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_ITMP2);
 
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->maxmemuse * 4);
+					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->maxmemuse * 4);
-					i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, rd->maxmemuse * 4 + 4);
+					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 4);
+					i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, rd->memuse * 4 + 4);
 					break;
 
 				case ICMD_FRETURN:
-					i386_fsts_membase(cd, REG_SP, rd->maxmemuse * 4);
+					i386_fsts_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_DRETURN:
-					i386_fstl_membase(cd, REG_SP, rd->maxmemuse * 4);
+					i386_fstl_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 				}
 
@@ -4080,31 +4081,31 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 4, REG_RESULT);
+					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_RESULT);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 4, REG_RESULT);
-					i386_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 4 + 4, REG_RESULT2);
+					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_RESULT);
+					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4 + 4, REG_RESULT2);
 					break;
 
 				case ICMD_FRETURN:
-					i386_flds_membase(cd, REG_SP, rd->maxmemuse * 4);
+					i386_flds_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_DRETURN:
-					i386_fldl_membase(cd, REG_SP, rd->maxmemuse * 4);
+					i386_fldl_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 				}
 			}
 #endif
 
 			/* restore saved registers */
-			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 				p--;
 				i386_mov_membase_reg(cd, REG_SP, p * 4, rd->savintregs[i]);
 			}
-			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
   				p--;
 				i386_fldl_membase(cd, REG_SP, p * 4);
 				fpu_st_offset++;

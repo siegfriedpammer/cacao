@@ -27,9 +27,9 @@
    Authors: Andreas Krall
             Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: codegen.c 2769 2005-06-21 15:52:44Z twisti $
+   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -100,10 +100,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* space to save used callee saved registers */
 
-	savedregs_num += (rd->savintregcnt - rd->maxsavintreguse);
-	savedregs_num += (rd->savfltregcnt - rd->maxsavfltreguse);
+	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->maxmemuse + savedregs_num;
+	parentargs_base = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
@@ -132,7 +132,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->maxmemuse + 1) * 8);     /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);     /* IsSync         */
 	else
 
 #endif
@@ -140,8 +140,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, rd->savintregcnt - rd->maxsavintreguse);/* IntSave  */
-	(void) dseg_adds4(cd, rd->savfltregcnt - rd->maxsavfltreguse);/* FltSave  */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);/* IntSave  */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);/* FltSave  */
 
 	(void) dseg_addlinenumbertablesize(cd);
 
@@ -171,10 +171,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* save used callee saved registers */
 
   	p = parentargs_base;
-	for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; x86_64_mov_reg_membase(cd, rd->savintregs[i], REG_SP, p * 8);
 	}
-	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p--; x86_64_movq_reg_membase(cd, rd->savfltregs[i], REG_SP, p * 8);
 	}
 
@@ -238,7 +238,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* stack offset for monitor argument */
 
-		s1 = rd->maxmemuse;
+		s1 = rd->memuse;
 
 		if (runverbose) {
 			M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
@@ -2895,18 +2895,18 @@ nowperformreturn:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 8, rd->argintregs[0]);
+				x86_64_mov_membase_reg(cd, REG_SP, rd->memuse * 8, rd->argintregs[0]);
 	
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 				case ICMD_LRETURN:
-					x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->maxmemuse * 8);
+					x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					x86_64_movq_reg_membase(cd, REG_FRESULT, REG_SP, rd->maxmemuse * 8);
+					x86_64_movq_reg_membase(cd, REG_FRESULT, REG_SP, rd->memuse * 8);
 					break;
 				}
 
@@ -2918,21 +2918,21 @@ nowperformreturn:
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 				case ICMD_LRETURN:
-					x86_64_mov_membase_reg(cd, REG_SP, rd->maxmemuse * 8, REG_RESULT);
+					x86_64_mov_membase_reg(cd, REG_SP, rd->memuse * 8, REG_RESULT);
 					break;
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					x86_64_movq_membase_reg(cd, REG_SP, rd->maxmemuse * 8, REG_FRESULT);
+					x86_64_movq_membase_reg(cd, REG_SP, rd->memuse * 8, REG_FRESULT);
 					break;
 				}
 			}
 #endif
 
 			/* restore saved registers                                        */
-			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 				p--; x86_64_mov_membase_reg(cd, REG_SP, p * 8, rd->savintregs[i]);
 			}
-			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
   				p--; x86_64_movq_membase_reg(cd, REG_SP, p * 8, rd->savfltregs[i]);
 			}
 

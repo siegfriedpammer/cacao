@@ -28,12 +28,13 @@
             Reinhard Grafl
 
    Changes: Christian Thalinger
+	    Christian Ullrich
 
    Contains the codegenerator for an MIPS (R4000 or higher) processor.
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 2764 2005-06-21 10:18:15Z twisti $
+   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -98,10 +99,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* space to save used callee saved registers */
 
-	savedregs_num += (rd->savintregcnt - rd->maxsavintreguse);
-	savedregs_num += (rd->savfltregcnt - rd->maxsavfltreguse);
+	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->maxmemuse + savedregs_num;
+	parentargs_base = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 
@@ -132,7 +133,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->maxmemuse + 1) * 8);     /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);     /* IsSync         */
 	else
 
 #endif
@@ -140,8 +141,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, rd->savintregcnt - rd->maxsavintreguse);/* IntSave  */
-	(void) dseg_adds4(cd, rd->savfltregcnt - rd->maxsavfltreguse);/* FltSave  */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);/* IntSave  */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);/* FltSave  */
 	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
 
 	/* create exception table */
@@ -170,10 +171,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (!m->isleafmethod) {
 		p--; M_AST(REG_RA, REG_SP, p * 8);
 	}
-	for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 		p--; M_AST(rd->savintregs[i], REG_SP, p * 8);
 	}
-	for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
@@ -232,7 +233,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* stack offset for monitor argument */
 
-		s1 = rd->maxmemuse;
+		s1 = rd->memuse;
 
 		if (runverbose) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
@@ -2739,13 +2740,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				s4 disp;
 				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8);
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_LST(REG_RESULT, REG_SP, rd->maxmemuse * 8);        /* delay slot */
+				M_LST(REG_RESULT, REG_SP, rd->memuse * 8);        /* delay slot */
 
 				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				M_LLD(REG_RESULT, REG_SP, rd->maxmemuse * 8);
+				M_LLD(REG_RESULT, REG_SP, rd->memuse * 8);
 			}
 #endif
 			goto nowperformreturn;
@@ -2763,13 +2764,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				s4 disp;
 				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8); 
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); 
 				M_JSR(REG_RA, REG_ITMP3);
-				M_DST(REG_FRESULT, REG_SP, rd->maxmemuse * 8);       /* delay slot */
+				M_DST(REG_FRESULT, REG_SP, rd->memuse * 8);       /* delay slot */
 
 				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
-				M_DLD(REG_FRESULT, REG_SP, rd->maxmemuse * 8);
+				M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
 			}
 #endif
 			goto nowperformreturn;
@@ -2782,7 +2783,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				a = dseg_addaddress(cd, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, a);
 				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->maxmemuse * 8); /* delay slot */
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); /* delay slot */
 				disp = -(s4) ((u1 *) mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 			}
@@ -2802,10 +2803,10 @@ nowperformreturn:
 
 			/* restore saved registers                                        */
 
-			for (i = rd->savintregcnt - 1; i >= rd->maxsavintreguse; i--) {
+			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 				p--; M_LLD(rd->savintregs[i], REG_SP, 8 * p);
 			}
-			for (i = rd->savfltregcnt - 1; i >= rd->maxsavfltreguse; i--) {
+			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 				p--; M_DLD(rd->savfltregs[i], REG_SP, 8 * p);
 			}
 

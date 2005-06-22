@@ -28,8 +28,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
+	    Christian Ullrich
 
-   $Id: stack.c 2709 2005-06-15 13:57:07Z christian $
+   $Id: stack.c 2774 2005-06-22 09:47:44Z christian $
 
 */
 
@@ -114,7 +115,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	for (i = 0; i < cd->maxlocals; i++)
 		argren[i] = i;
 	
-	rd->arguments_num = 0;
 	new = m->stack;
 	loops = 0;
 	m->basicblocks[0].flags = BBREACHED;
@@ -1862,15 +1862,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					_callhandling:
 						i = iptr->op1;
 
-						if (md->memuse > rd->ifmemuse)
-							rd->ifmemuse = md->memuse;
+						if (md->memuse > rd->memuse)
+							rd->memuse = md->memuse;
 						if (md->argintreguse > rd->argintreguse)
 							rd->argintreguse = md->argintreguse;
 						if (md->argfltreguse > rd->argintreguse)
 							rd->argfltreguse = md->argintreguse;
 
-						if (i > rd->arguments_num)
-							rd->arguments_num = i;
 						REQUIRE(i);
 
 						copy = curstack;
@@ -1925,23 +1923,21 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						REQUIRE(i);
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)
-						if (rd->ifmemuse < (i + INT_ARG_CNT + LA_WORD_SIZE))
-							rd->ifmemuse = i + LA_WORD_SIZE + INT_ARG_CNT;
+						if (rd->memuse < (i + INT_ARG_CNT + LA_WORD_SIZE))
+							rd->memuse = i + LA_WORD_SIZE + INT_ARG_CNT;
 # else
-						if (rd->ifmemuse < (i + LA_WORD_SIZE + 3))
-							rd->ifmemuse = i + LA_WORD_SIZE + 3;
+						if (rd->memuse < (i + LA_WORD_SIZE + 3))
+							rd->memuse = i + LA_WORD_SIZE + 3;
 # endif
 #else
 # if defined(__I386__)
-						if (rd->ifmemuse < i + 3)
-							rd->ifmemuse = i + 3; /* n integer args spilled on stack */
+						if (rd->memuse < i + 3)
+							rd->memuse = i + 3; /* n integer args spilled on stack */
 # else
-						if (rd->ifmemuse < i)
-							rd->ifmemuse = i; /* n integer args spilled on stack */
+						if (rd->memuse < i)
+							rd->memuse = i; /* n integer args spilled on stack */
 # endif /* defined(__I386__) */
 #endif
-						if ((i + INT_ARG_CNT) > rd->arguments_num)
-							rd->arguments_num = i + INT_ARG_CNT;
 						copy = curstack;
 						while (--i >= 0) {
 							/* check INT type here? Currently typecheck does this. */
@@ -2136,13 +2132,11 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(s->type))
-						printf(" %3s/%3s", regs[GET_FIRST_REG(s->regoff)],
-                            regs[GET_SECOND_REG(s->regoff)]);
+						printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
+                            regs[GET_HIGH_REG(s->regoff)]);
 					else
-						printf(" %3s", regs[GET_FIRST_REG(s->regoff)]);
-#else
-					printf(" %3s", regs[s->regoff]);
 #endif
+						printf(" %3s", regs[s->regoff]);
 				}
 				break;
 			case STACKVAR:
@@ -2177,13 +2171,11 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(s->type))
-						printf(" %3s/%3s", regs[GET_FIRST_REG(s->regoff)],
-                            regs[GET_SECOND_REG(s->regoff)]);
+						printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
+                            regs[GET_HIGH_REG(s->regoff)]);
 					else
-						printf(" %3s", regs[GET_FIRST_REG(s->regoff)]);
-#else
-					printf(" %3s", regs[s->regoff]);
 #endif
+						printf(" %3s", regs[s->regoff]);
 				}
 				break;
 			case STACKVAR:
@@ -2319,14 +2311,11 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(j))
 						printf(" %3s/%3s",
-						    regs[GET_FIRST_REG(rd->locals[i][j].regoff)],
-                            regs[GET_SECOND_REG(rd->locals[i][j].regoff)]);
+						    regs[GET_LOW_REG(rd->locals[i][j].regoff)],
+                            regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
 					else
-						printf("%3s",
-						    regs[GET_FIRST_REG(rd->locals[i][j].regoff)]);
-#else
-					printf("%3s", regs[rd->locals[i][j].regoff]);
 #endif
+						printf("%3s", regs[rd->locals[i][j].regoff]);
 				}
 			}
 		printf("\n");
@@ -2359,14 +2348,11 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (IS_2_WORD_TYPE(j))
 								printf(" %3s/%3s",
-                             regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)],
-                             regs[GET_SECOND_REG(rd->interfaces[i][j].regoff)]);
+                             regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+                             regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
 							else
-								printf("%3s",
-                              regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)]);
-#else
-					printf("%3s", regs[rd->interfaces[i][j].regoff]);
 #endif
+								printf("%3s",regs[rd->interfaces[i][j].regoff]);
 						}
 					}
 					else {
@@ -2382,14 +2368,11 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (IS_2_WORD_TYPE(j))
 								printf(" %3s/%3s",
-                             regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)],
-							 regs[GET_SECOND_REG(rd->interfaces[i][j].regoff)]);
+                             regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+							 regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
 							else
-								printf("%3s",
-                              regs[GET_FIRST_REG(rd->interfaces[i][j].regoff)]);
-#else
-								printf("%3s",regs[rd->interfaces[i][j].regoff]);
 #endif
+								printf("%3s",regs[rd->interfaces[i][j].regoff]);
 						}
 					}
 				}
