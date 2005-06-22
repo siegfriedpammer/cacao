@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2755 2005-06-20 18:26:03Z twisti $
+   $Id: codegen.inc 2781 2005-06-22 10:51:53Z twisti $
 
 */
 
@@ -671,6 +671,7 @@ functionptr codegen_findmethod(functionptr pc)
 				backtrace_symbols_fd(bt,5,2);
 			}
 #endif
+		printf("Cannot find Java function at %p\n", (void *) (ptrint) pc);
 		assert(0);
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Cannot find Java function at %p", pc);
@@ -931,21 +932,21 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 		count_nstub_len += m->mcodelength;
 #endif
 
-	/* release memory */
-
-	dump_release(dumpsize);
-
-
 	/* disassemble native stub */
 
-	if (showdisassemble)
+	if (opt_shownativestub) {
 		codegen_disassemble_nativestub(m, (s4 *) (ptrint) m->stubroutine,
 									   m->mcodelength - cd->dseglen);
 
-	/* show data segment */
+		/* show data segment */
 
-	if (showddatasegment)
-		dseg_display(m, cd);
+		if (showddatasegment)
+			dseg_display(m, cd);
+	}
+
+	/* release memory */
+
+	dump_release(dumpsize);
 
 	/* return stubroutine entry point */
 
