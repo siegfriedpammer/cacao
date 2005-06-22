@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: resolve.c 2790 2005-06-22 16:27:21Z edwin $
 
 */
 
@@ -610,7 +610,7 @@ resolve_field(unresolved_field *ref,
 		msglen = utf_strlen(declarer->name) + utf_strlen(fi->name) + utf_strlen(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"field is not accessible (");
-		utf_sprint_classname(message+strlen(message),declarer);
+		utf_sprint_classname(message+strlen(message),declarer->name);
 		strcat(message,".");
 		utf_sprint(message+strlen(message),fi->name);
 		strcat(message," from ");
@@ -806,7 +806,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 			utf_strlen(mi->descriptor) + utf_strlen(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"method is not accessible (");
-		utf_sprint_classname(message+strlen(message),declarer);
+		utf_sprint_classname(message+strlen(message),declarer->name);
 		strcat(message,".");
 		utf_sprint(message+strlen(message),mi->name);
 		utf_sprint(message+strlen(message),mi->descriptor);
