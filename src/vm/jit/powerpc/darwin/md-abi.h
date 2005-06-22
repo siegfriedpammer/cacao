@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: md-abi.h 2634 2005-06-10 18:42:34Z twisti $
+   $Id: md-abi.h 2777 2005-06-22 09:51:11Z christian $
 
 */
 
@@ -69,8 +69,8 @@
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     10   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
-#define INT_TMP_CNT      8   /* number of integer temporary registers         */
-#define INT_RES_CNT      3   /* number of integer reserved registers          */
+#define INT_TMP_CNT      9   /* number of integer temporary registers         */
+#define INT_RES_CNT      5   /* number of integer reserved registers          */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     10   /* number of float callee saved registers        */

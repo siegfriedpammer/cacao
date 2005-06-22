@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: md-abi.h 2615 2005-06-08 20:54:18Z twisti $
+   $Id: md-abi.h 2777 2005-06-22 09:51:11Z christian $
 
 */
 
@@ -67,11 +67,19 @@
 #define REG_IFTMP       28   /* temporary integer and floating point register */
 
 
+#define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT      7   /* number of int callee saved registers          */
 #define INT_ARG_CNT      6   /* number of int argument registers              */
+#define INT_TMP_CNT     11   /* number of int temp registers                  */
+#define INT_RES_CNT      7   /* number of reserved integer registers          */
+                             /* the one "missing" register is the return reg  */ 
 
+#define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT      8   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      6   /* number of flt argument registers              */
+#define FLT_TMP_CNT     13   /* number of flt temp registers                  */
+#define FLT_RES_CNT      4   /* number of reserved float registers            */
+                             /* the one "missing" register is the return reg  */ 
 
 #define TRACE_ARGS_NUM   6
 

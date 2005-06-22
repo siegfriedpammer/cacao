@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: md-abi.h 2713 2005-06-15 14:10:47Z twisti $
+   $Id: md-abi.h 2777 2005-06-22 09:51:11Z christian $
 
 */
 
@@ -81,13 +81,15 @@
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
 #define INT_ARG_CNT     8    /* number of int argument registers              */
 #define INT_TMP_CNT     5    /* number of integer temporary registers         */
-#define INT_RES_CNT     3    /* number of integer reserved registers          */
+#define INT_RES_CNT    10    /* number of integer reserved registers          */
+                             /* + 1 REG_RET totals to 32                      */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     8    /* number of flt argument registers              */
-#define FLT_TMP_CNT     15   /* number of float temporary registers           */
+#define FLT_TMP_CNT     16   /* number of float temporary registers           */
 #define FLT_RES_CNT     3    /* number of float reserved registers            */
+                             /* + 1 REG_RET totals to 32                      */
 
 #define TRACE_ARGS_NUM  8
 
@@ -99,15 +101,17 @@
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
 #define INT_ARG_CNT     4    /* number of int argument registers              */
 #define INT_TMP_CNT     9    /* number of integer temporary registers         */
-#define INT_RES_CNT     3    /* number of integer reserved registers          */
+#define INT_RES_CNT    10    /* number of integer reserved registers          */
+                             /* + 1 REG_RET totals to 32                      */
 
-#if 0
+#if 1
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
 #define FLT_ARG_CNT     8    /* number of flt argument registers              */
-#define FLT_TMP_CNT     15   /* number of float temporary registers           */
+#define FLT_TMP_CNT     16   /* number of float temporary registers           */
 #define FLT_RES_CNT     3    /* number of float reserved registers            */
+                             /* + 1 REG_RET totals to 32                      */
 
 #else
 
