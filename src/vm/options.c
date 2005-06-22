@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: options.c 2780 2005-06-22 10:51:03Z twisti $
 
 */
 
@@ -63,6 +63,7 @@ bool showstack = false;
 bool showdisassemble = false;  /* generate disassembler listing              */
 bool showddatasegment = false; /* generate data segment listing              */
 bool showintermediate = false; /* generate intermediate code listing         */
+bool opt_shownativestub = false;
 
 bool useinliningm = false;      /* use method inlining                        */
 bool useinlining = false;      /* use method inlining                        */

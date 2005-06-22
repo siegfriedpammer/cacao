@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 1752 2004-12-13 08:28:10Z twisti $
+   $Id: options.h 2780 2005-06-22 10:51:03Z twisti $
 
 */
 
@@ -81,6 +81,7 @@ extern bool showstack;
 extern bool showdisassemble;
 extern bool showddatasegment;
 extern bool showintermediate;
+extern bool opt_shownativestub;
 
 /*#undef INAFTERMAIN*/  /*use to inline system methods before main is called*/
 #define INAFTERMAIN T /*use to turn off inlining before main called */

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2680 2005-06-14 17:14:08Z twisti $
+   $Id: cacao.c 2780 2005-06-22 10:51:03Z twisti $
 
 */
 
@@ -260,6 +260,7 @@ static void usage()
 	printf("                 d(atasegment).. show data segment listing\n");
 	printf("                 i(ntermediate). show intermediate representation\n");
 	printf("                 m(ethods)...... show class fields and methods\n");
+	printf("                 n(ative)....... show disassembled native stubs\n");
 	printf("                 u(tf) ......... show the utf - hash\n");
 	printf("          -i     n ............. activate inlining\n");
 	printf("                 v ............. inline virtual methods\n");
@@ -718,6 +719,9 @@ int main(int argc, char **argv)
 					break;
 				case 'm':
 					showmethods = true;
+					break;
+				case 'n':
+					opt_shownativestub = true;
 					break;
 				case 'u':
 					showutf = true;
