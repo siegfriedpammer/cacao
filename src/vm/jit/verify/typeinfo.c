@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2791 2005-06-22 20:28:31Z edwin $
+   $Id: typeinfo.c 2792 2005-06-22 22:07:33Z edwin $
 
 */
 
@@ -183,7 +183,7 @@ typevectorset_checkretaddr(typevector *vec,int index)
 	   index............index of component to merge
 
    OUT:
-       dst..............destination typeinfo, receives the merge result
+       *dst.............destination typeinfo, receives the merge result
 
    RETURN VALUE:
        the TYPE_* constant of the resulting type
@@ -198,6 +198,7 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 	typedescriptor *td;
 
 	TYPEINFO_ASSERT(vec);
+	TYPEINFO_ASSERT(dst);
 
 	td = vec->td + index;
 	type = td->type;
@@ -291,9 +292,34 @@ typevectorset_mergedtypeinfo(typevector *vec,int index,typeinfo *temp)
 	return (type == TYPE_ADDRESS) ? result : NULL;
 }
 
+/* typevectorset_store *********************************************************
+ 
+   Store a type at a given index in the typevectors of a set.
+   This function stores the same type in all typevectors of the set.
+   DO NOT use it to store returnAddress types!
+   DO NOT use it to store two-word types!
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to set
+	   type.............TYPE_* constant of type to set
+	   info.............typeinfo of type to set, may be NULL, 
+	                    if TYPE != TYPE_ADR
+
+   NOTE:
+       If there is a two-word type stored at INDEX-1 in any typevector, it is
+	   changed to TYPE_VOID (because its upper half has become invalid).
+
+	   The components at INDEX+1 are _not_ touched, regardless of TYPE.
+
+*******************************************************************************/
+
 void
 typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
 {
+	TYPEINFO_ASSERT(vec);
+	TYPEINFO_ASSERT((info && !TYPEINFO_IS_PRIMITIVE(*info)) || type != TYPE_ADR);
+
 	do {
 		vec->td[index].type = type;
 		if (info)
@@ -303,13 +329,37 @@ typevectorset_store(typevector *vec,int index,int type,typeinfo *info)
 	} while ((vec = vec->alt) != NULL);
 }
 
+/* typevectorset_store_retaddr *************************************************
+ 
+   Store a returnAddress type at a given index in the typevectors of a set.
+   Each possible returnAddress of the type is stored in the corresponding
+   typevector of the set.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to set
+	   info.............typeinfo of the returnAddress. This typeinfo must
+	                    contain a return address set with at least as many
+						entries as there are typevectors in VEC.
+
+   NOTE:
+       If there is a two-word type stored at INDEX-1 in any typevector, it is
+	   changed to TYPE_VOID (because its upper half has become invalid).
+
+*******************************************************************************/
+
 void
 typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 {
 	typeinfo_retaddr_set *adr;
+
+	TYPEINFO_ASSERT(vec);
+	TYPEINFO_ASSERT(TYPEINFO_IS_PRIMITIVE(*info));
 	
 	adr = (typeinfo_retaddr_set*) TYPEINFO_RETURNADDRESS(*info);
 	do {
+		TYPEINFO_ASSERT(adr);
+
 		vec->td[index].type = TYPE_ADDRESS;
 		TYPEINFO_INIT_RETURNADDRESS(vec->td[index].info,adr->addr);
 		if (index > 0 && IS_2_WORD_TYPE(vec->td[index-1].type))
@@ -318,9 +368,30 @@ typevectorset_store_retaddr(typevector *vec,int index,typeinfo *info)
 	} while ((vec = vec->alt) != NULL);
 }
 
+/* typevectorset_store_twoword *************************************************
+ 
+   Store a two-word type at a given index in the typevectors of a set.
+   This function stores the same type in all typevectors of the set.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to set
+	   type.............TYPE_* constant of type to set (TYPE_LONG, TYPE_DOUBLE)
+
+   NOTE:
+       If there is a two-word type stored at INDEX-1 in any typevector, it is
+	   changed to TYPE_VOID (because its upper half has become invalid).
+
+	   The components at INDEX+1 are set to TYPE_VOID.
+
+*******************************************************************************/
+
 void
 typevectorset_store_twoword(typevector *vec,int index,int type)
 {
+	TYPEINFO_ASSERT(vec);
+	TYPEINFO_ASSERT(type == TYPE_LONG || type == TYPE_DOUBLE);
+
 	do {
 		vec->td[index].type = type;
 		vec->td[index+1].type = TYPE_VOID;
@@ -329,13 +400,32 @@ typevectorset_store_twoword(typevector *vec,int index,int type)
 	} while ((vec = vec->alt) != NULL);
 }
 
+/* typevectorset_init_object ***************************************************
+ 
+   Replace all uninitialized object types in the typevector set which were 
+   created by the given instruction by initialized object types.
+  
+   IN:
+	   set..............typevector set
+	   ins..............instruction which created the uninitialized object type
+	   initclass........class of the initialized object type to set
+	   size.............number of elements per typevector
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+   XXX maybe we should do the lazy resolving before calling this function
+
+*******************************************************************************/
+
 bool
 typevectorset_init_object(typevector *set,void *ins,
 						  classref_or_classinfo initclass,
 						  int size)
 {
 	int i;
-	
+
 	for (;set; set=set->alt) {
 		for (i=0; i<size; ++i) {
 			if (set->td[i].type == TYPE_ADR
@@ -349,6 +439,25 @@ typevectorset_init_object(typevector *set,void *ins,
 	}
 	return true;
 }
+
+/* typevector_merge ************************************************************
+ 
+   Merge a typevector with another one.
+   The given typevectors must have the same number of components.
+  
+   IN:
+	   dst..............the first typevector
+	   y................the second typevector
+	   size.............number of elements per typevector
+
+   OUT:
+       *dst.............the resulting typevector
+
+   RETURN VALUE:
+       true.............dst has been modified
+	   false............dst has not been modified
+
+*******************************************************************************/
 
 bool
 typevector_merge(typevector *dst,typevector *y,int size)
@@ -380,6 +489,8 @@ typevector_merge(typevector *dst,typevector *y,int size)
 					changed = true;
 				}
 				else {
+					/* two reference types are merged. There cannot be */
+					/* a merge error. In the worst case we get j.l.O.  */
 					changed |= typeinfo_merge(&(a->info),&(b->info));
 				}
 			}
@@ -389,6 +500,24 @@ typevector_merge(typevector *dst,typevector *y,int size)
 	}
 	return changed;
 }
+
+/* typevector_separable_from ***************************************************
+ 
+   Check if two typevectors are separable. Two typevectors are considered
+   separable if there is an index i for which both typevectors contain a
+   returnAddress type and the return addresses of the types are different.
+   The typevectors must have the same number of components.
+  
+   IN:
+	   a................the first typevector
+	   b................the second typevector
+	   size.............number of elements per typevector
+
+   RETURN VALUE:
+       true.............typevectors are separable
+	   false............typevectors are not separable
+
+*******************************************************************************/
 
 bool 
 typevector_separable_from(typevector *a,typevector *b,int size)
@@ -405,9 +534,24 @@ typevector_separable_from(typevector *a,typevector *b,int size)
 	return false;
 }
 
+/* typevectorset_add ***********************************************************
+ 
+   Add a typevector to a typevector set. The typevector is added at the end of
+   the set and the k-index of the typevector is set accordingly.
+  
+   IN:
+	   dst..............the typevector set to modify
+	   v................the typevector to add
+	   size.............number of elements per typevector
+
+*******************************************************************************/
+
 void
 typevectorset_add(typevector *dst,typevector *v,int size)
 {
+	TYPEINFO_ASSERT(dst);
+	TYPEINFO_ASSERT(v);
+
 	while (dst->alt)
 		dst = dst->alt;
 	dst->alt = DNEW_TYPEVECTOR(size);
@@ -416,23 +560,63 @@ typevectorset_add(typevector *dst,typevector *v,int size)
 	dst->alt->k = dst->k + 1;
 }
 
+/* typevectorset_select ********************************************************
+ 
+   Pick the typevectors from a set which contain a given return address.
+  
+   IN:
+	   set..............points to the location containing the typevector set.
+	                    *set may be NULL.
+	   index............index to check against the return address. All
+	                    typevectors must contain a returnAddress type at
+						this index.
+	   retaddr..........the return address to select
+
+   OUT:
+       *set.............receives the typevector set after removing the
+	                    selected typevectors.
+
+   RETURN VALUE:
+       a typevector set consisting of the selected typevectors.
+
+*******************************************************************************/
+
 typevector *
-typevectorset_select(typevector **set,int retindex,void *retaddr)
+typevectorset_select(typevector **set,int index,void *retaddr)
 {
 	typevector *selected;
 
 	if (!*set) return NULL;
 	
-	if (TYPEINFO_RETURNADDRESS((*set)->td[retindex].info) == retaddr) {
+	if (TYPEINFO_RETURNADDRESS((*set)->td[index].info) == retaddr) {
 		selected = *set;
 		*set = selected->alt;
-		selected->alt = typevectorset_select(set,retindex,retaddr);
+		selected->alt = typevectorset_select(set,index,retaddr);
 	}
 	else {
-		selected = typevectorset_select(&((*set)->alt),retindex,retaddr);
+		selected = typevectorset_select(&((*set)->alt),index,retaddr);
 	}
 	return selected;
 }
+
+/* typevector_separable_with ***************************************************
+ 
+   Check if a typevector set would be separable after adding a given
+   typevector. A typevector set is considered separable if there is an
+   index i for which all typevectors in the set contain a returnAddress type,
+   and at least two different return addresses occurr at index i.
+   The typevectors must have the same number of components.
+  
+   IN:
+	   set..............the typevector set
+	   add..............the typevector
+	   size.............number of elements per typevector
+
+   RETURN VALUE:
+       true.............result would be separable
+	   false............result would not be separable
+
+*******************************************************************************/
 
 bool
 typevectorset_separable_with(typevector *set,typevector *add,int size)
@@ -441,6 +625,9 @@ typevectorset_separable_with(typevector *set,typevector *add,int size)
 	typevector *v;
 	void *addr;
 	bool separable;
+
+	TYPEINFO_ASSERT(set);
+	TYPEINFO_ASSERT(add);
 
 	for (i=0; i<size; ++i) {
 		if (!TYPEDESC_IS_RETURNADDRESS(add->td[i]))
@@ -455,18 +642,38 @@ typevectorset_separable_with(typevector *set,typevector *add,int size)
 			if (TYPEINFO_RETURNADDRESS(v->td[i].info) != addr)
 				separable = true;
 			v = v->alt;
-			if (!v && separable) return true;
 		} while (v);
+		if (separable) return true;
 	next_index:
 		;
 	}
 	return false;
 }
 
+/* typevectorset_collapse ******************************************************
+ 
+   Collapse a typevector set into a single typevector by merging the
+   components of the typevectors at each index.
+   
+   IN:
+	   dst..............the type vector set
+	   size.............number of elements per typevector
+
+   OUT:
+       *dst.............the resulting typevector set (a single typevector)
+
+   RETURN VALUE:
+       true.............dst has been modified
+	   false............dst has not been modified
+
+*******************************************************************************/
+
 bool
 typevectorset_collapse(typevector *dst,int size)
 {
 	bool changed = false;
+
+	TYPEINFO_ASSERT(dst);
 	
 	while (dst->alt) {
 		typevector_merge(dst,dst->alt,size);
