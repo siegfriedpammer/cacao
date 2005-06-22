@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2785 2005-06-22 12:32:04Z edwin $
+   $Id: typecheck.c 2786 2005-06-22 12:38:20Z edwin $
 
 */
 
@@ -1009,7 +1009,7 @@ verify_invocation(verifier_state *state)
 
 *******************************************************************************/
 
-bool
+static bool
 verify_builtin(verifier_state *state)
 {
 	builtintable_entry *bte;
@@ -1163,7 +1163,7 @@ verify_builtin(verifier_state *state)
 
 *******************************************************************************/
 
-bool
+static bool
 verify_basic_block(verifier_state *state)
 {
     stackptr srcstack;         /* source stack for copying and merging */
@@ -2038,7 +2038,7 @@ return_tail:
 
 *******************************************************************************/
 
-bool
+static bool
 verify_init_locals(verifier_state *state)
 {
 	int i;
