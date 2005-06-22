@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 2619 2005-06-08 20:58:01Z twisti $
+   $Id: builtintable.inc 2772 2005-06-22 09:24:37Z twisti $
 
 */
 
@@ -575,6 +575,17 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL
 	},
 #endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
+
+
+	/* prevent a compiler warning if everything is supported (e.g. i386) */
+
+	{
+		255,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
 };
 
 
