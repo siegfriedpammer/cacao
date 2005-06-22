@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2765 2005-06-21 10:40:28Z twisti $
+   $Id: patcher.c 2779 2005-06-22 10:28:54Z twisti $
 
 */
 
@@ -81,6 +81,7 @@ bool helper_initialize_class(void* beginOfJavaStack,classinfo *c,u1 *ra)
 
    <patched call position>
    4d 8b 15 86 fe ff ff             mov    -378(%rip),%r10
+   49 8b 32                         mov    (%r10),%rsi
 
 *******************************************************************************/
 
@@ -189,9 +190,10 @@ bool patcher_get_putfield(u1 *sp)
 		return false;
 	}
 
-	/* patch back original code */
+	/* patch back original code (instruction code is smaller than 8 bytes) */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -233,7 +235,7 @@ bool patcher_get_putfield(u1 *sp)
    Machine code:
 
    <patched call position>
-   49 c7 87 10 00 00 00 00 00 00 00    movq   $0x0,0x10(%r15)
+   41 c7 85 00 00 00 00 7b 00 00 00    movl   $0x7b,0x0(%r13)
 
 *******************************************************************************/
 
@@ -636,7 +638,11 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 /* patcher_invokestatic_special ************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   49 ba 00 00 00 00 00 00 00 00    mov    $0x0,%r10
+   49 ff d2                         callq  *%r10
 
 *******************************************************************************/
 
@@ -690,7 +696,12 @@ bool patcher_invokestatic_special(u1 *sp)
 
 /* patcher_invokevirtual *******************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   4c 8b 17                         mov    (%rdi),%r10
+   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
@@ -746,7 +757,13 @@ bool patcher_invokevirtual(u1 *sp)
 
 /* patcher_invokeinterface *****************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   4c 8b 17                         mov    (%rdi),%r10
+   4d 8b 92 00 00 00 00             mov    0x0(%r10),%r10
+   49 8b 82 00 00 00 00             mov    0x0(%r10),%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
@@ -807,7 +824,12 @@ bool patcher_invokeinterface(u1 *sp)
 
 /* patcher_checkcast_instanceof_flags ******************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   41 ba 00 00 00 00                mov    $0x0,%r10d
+   41 81 e2 00 02 00 00             and    $0x200,%r10d
+   0f 84 35 00 00 00                je     0x00002aaaaab01479
 
 *******************************************************************************/
 
@@ -862,7 +884,14 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 /* patcher_checkcast_instanceof_interface **************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   45 8b 9a 1c 00 00 00             mov    0x1c(%r10),%r11d
+   49 81 eb 00 00 00 00             sub    $0x0,%r11
+   4d 85 db                         test   %r11,%r11
+   0f 8e 94 04 00 00                jle    0x00002aaaaab018f8
+   4d 8b 9a 00 00 00 00             mov    0x0(%r10),%r11
 
 *******************************************************************************/
 
@@ -921,7 +950,14 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 /* patcher_checkcast_class *****************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   49 bb 00 00 00 00 00 00 00 00    mov    $0x0,%r11
+   45 8b 92 20 00 00 00             mov    0x20(%r10),%r10d
+   45 8b 9b 20 00 00 00             mov    0x20(%r11),%r11d
+   4d 29 da                         sub    %r11,%r10
+   49 bb 00 00 00 00 00 00 00 00    mov    $0x0,%r11
 
 *******************************************************************************/
 
@@ -977,7 +1013,10 @@ bool patcher_checkcast_class(u1 *sp)
 
 /* patcher_instanceof_class ****************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   49 ba 00 00 00 00 00 00 00 00    mov    $0x0,%r10
 
 *******************************************************************************/
 
@@ -1032,7 +1071,13 @@ bool patcher_instanceof_class(u1 *sp)
 
 /* patcher_clinit **************************************************************
 
-   XXX
+   May be used for GET/PUTSTATIC and in native stub.
+
+   Machine code:
+
+   <patched call position>
+   4d 8b 15 92 ff ff ff             mov    -110(%rip),%r10
+   49 89 1a                         mov    %rbx,(%r10)
 
 *******************************************************************************/
 
@@ -1080,7 +1125,11 @@ bool patcher_clinit(u1 *sp)
 
 /* patcher_resolve_native ******************************************************
 
-   XXX
+   Machine code:
+
+   <patched call position>
+   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
+   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
