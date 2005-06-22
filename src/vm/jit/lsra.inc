@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2567 2005-06-06 15:26:26Z twisti $
+   $Id: lsra.inc 2776 2005-06-22 09:49:20Z christian $
 
 */
 #include <stdio.h>
@@ -92,7 +92,7 @@ bool lsra(methodinfo *m, codegendata *cd, registerdata *rd, t_inlining_globals *
 #ifdef LSRA_LEAF
 	if (m->isleafmethod)
 #endif
-		printf("LSRA Start for %s opt_from: %i opt_to: %i\n", name, opt_from, opt_to); 
+/* 		printf("LSRA Start for %s opt_from: %i opt_to: %i\n", name, opt_from, opt_to);  */
 #ifndef LSRA_LEAF
 	if (strcmp(name,"java/lang/ClassLoader.defaultGetSystemClassLoader()Ljava/lang/ClassLoader;")==0) {
 		printf("-------------------\n");
@@ -908,11 +908,11 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 	if (m->isleafmethod) { 
 /* Temp and Argumentregister can be used as "saved" registers                           */
 
-		int_reg->sav_top = rd->intreg_argnum + rd->tmpintregcnt + rd->savintregcnt;
+		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
 		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
 		int_reg->tmp_reg = NULL;
 		int_reg->tmp_top = -1;
-		flt_reg->sav_top = rd->fltreg_argnum + rd->tmpfltregcnt + rd->savfltregcnt;
+		flt_reg->sav_top = FLT_ARG_CNT + FLT_TMP_CNT + FLT_SAV_CNT;
 		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
 		flt_reg->tmp_reg = NULL;
 		flt_reg->tmp_top = -1;
@@ -920,15 +920,15 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 
 /* additionaly precolour registers for Local Variables acting as Parameters */
 
-		farg = rd->fltreg_argnum;
-		iarg = rd->intreg_argnum;
+		farg = FLT_ARG_CNT;
+		iarg = INT_ARG_CNT;
 
-		intarg_used = DMNEW(bool, rd->intreg_argnum);
-		for (i=0; i < rd->intreg_argnum; i++)
+		intarg_used = DMNEW(bool, INT_ARG_CNT);
+		for (i=0; i < INT_ARG_CNT; i++)
 			intarg_used[i]=false;
 
-		fltarg_used = DMNEW(bool, rd->fltreg_argnum);
-		for (i=0; i < rd->fltreg_argnum; i++)
+		fltarg_used = DMNEW(bool, FLT_ARG_CNT);
+		for (i=0; i < FLT_ARG_CNT; i++)
 			fltarg_used[i]=false;
 
 		int_sav_top=int_reg->sav_top;
@@ -940,7 +940,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 #ifdef LSRA_DEBUG
 		printf("Paramcount: %i ", m->paramcount);
 #endif
-		for (i=0; (i < m->paramcount) && ((farg < rd->fltreg_argnum) ||(iarg < rd->intreg_argnum) ); i++) {
+		for (i=0; (i < m->paramcount) && ((farg < FLT_ARG_CNT) ||(iarg < INT_ARG_CNT) ); i++) {
 #ifdef LSRA_DEBUG
 			printf("Type %3i %3i", i, m->paramtypes[i]);
 #endif
@@ -955,7 +955,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 				farg++;
 #endif
 				if (rd->locals[localindex][m->paramtypes[i]].type >= 0)	
-					if (iarg < rd->intreg_argnum) {
+					if (iarg < INT_ARG_CNT) {
 						int_reg->sav_reg[--int_sav_top]=rd->argintregs[iarg];
 						intarg_used[iarg]=true; /* used -> don't copy later on */
 					}
@@ -969,7 +969,7 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 				iarg++;
 #endif
 				if (rd->locals[localindex][m->paramtypes[i]].type >= 0)	
-					if (farg < rd->fltreg_argnum) {
+					if (farg < FLT_ARG_CNT) {
 						flt_reg->sav_reg[--flt_sav_top]=rd->argfltregs[farg];
 						fltarg_used[farg]=true; /* used -> don't copy later on */
 					}
@@ -984,47 +984,47 @@ void lsra_reg_setup(methodinfo *m ,registerdata *rd, struct lsra_register *int_r
 		printf("\n");
 #endif
 		/* copy rest of argument registers to flt_reg->sav_reg and int_reg->sav_reg; */
-		for (i=0; i < rd->intreg_argnum; i++)
+		for (i=0; i < INT_ARG_CNT; i++)
 			if (!intarg_used[i])
 				int_reg->sav_reg[--int_sav_top]=rd->argintregs[i];
-		for (i=0; i < rd->fltreg_argnum; i++)
+		for (i=0; i < FLT_ARG_CNT; i++)
 			if (!fltarg_used[i])
 				flt_reg->sav_reg[--flt_sav_top]=rd->argfltregs[i];
 
 		/* copy temp registers to flt_reg->sav_reg and int_reg->sav_reg */
-		for (i=0; i < rd->tmpintregcnt; i++)
+		for (i=0; i < INT_TMP_CNT; i++)
 			int_reg->sav_reg[--int_sav_top]=rd->tmpintregs[i];
-		for (i=0; i < rd->tmpfltregcnt; i++)
+		for (i=0; i < FLT_TMP_CNT; i++)
 			flt_reg->sav_reg[--flt_sav_top]=rd->tmpfltregs[i];
 
 	} else {
 		/* non leaf method -> use Argument Registers [arg[int|flt]reguse ... [int|flt]reg_argnum[ as temp reg */
 		/* divide temp and saved registers */
-		int_sav_top = int_reg->sav_top = rd->savintregcnt;
+		int_sav_top = int_reg->sav_top = INT_SAV_CNT;
 		int_reg->sav_reg = DMNEW(int, int_reg->sav_top);
-		int_reg->tmp_top = rd->tmpintregcnt + max(0, (rd->intreg_argnum - rd->argintreguse));
+		int_reg->tmp_top = INT_TMP_CNT + max(0, (INT_ARG_CNT - rd->argintreguse));
 		int_reg->tmp_reg = DMNEW(int, int_reg->tmp_top);
 
-		flt_sav_top =flt_reg->sav_top = rd->savfltregcnt;
+		flt_sav_top =flt_reg->sav_top = FLT_SAV_CNT;
 		flt_reg->sav_reg = DMNEW(int, flt_reg->sav_top);
-		flt_reg->tmp_top = rd->tmpfltregcnt + max(0 , (rd->fltreg_argnum - rd->argfltreguse));
+		flt_reg->tmp_top = FLT_TMP_CNT + max(0 , (FLT_ARG_CNT - rd->argfltreguse));
 		flt_reg->tmp_reg = DMNEW(int, flt_reg->tmp_top);
 
 		/* copy temp and unused argument registers to flt_reg->tmp_reg and int_reg->tmp_reg */
-		for (i=0; i < rd->tmpintregcnt; i++)
+		for (i=0; i < INT_TMP_CNT; i++)
 			int_reg->tmp_reg[i]=rd->tmpintregs[i];
-		for (j=rd->argintreguse; j < rd->intreg_argnum; j++, i++)
+		for (j=rd->argintreguse; j < INT_ARG_CNT; j++, i++)
 			int_reg->tmp_reg[i]=rd->argintregs[j];
-		for (i=0; i < rd->tmpfltregcnt; i++)
+		for (i=0; i < FLT_TMP_CNT; i++)
 			flt_reg->tmp_reg[i]=rd->tmpfltregs[i];
-		for (j=rd->argfltreguse; j < rd->fltreg_argnum; j++, i++)
+		for (j=rd->argfltreguse; j < FLT_ARG_CNT; j++, i++)
 			flt_reg->tmp_reg[i]=rd->argfltregs[j];
 	}
 
 	/* now copy saved registers to flt_reg->sav_reg and int_reg->sav_reg */
-	for (i = rd->savintregcnt-1; i >= 0; i--)
+	for (i = INT_SAV_CNT-1; i >= 0; i--)
 		int_reg->sav_reg[--int_sav_top]=rd->savintregs[i];
-	for (i = rd->savfltregcnt-1; i >= 0; i--)
+	for (i = FLT_SAV_CNT-1; i >= 0; i--)
 		flt_reg->sav_reg[--flt_sav_top]=rd->savfltregs[i];
 	/* done */
 }
@@ -1191,20 +1191,28 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 		printf("%2i ",flt_reg.tmp_reg[i]);
 	printf("\n");
 #endif
-	lsra_reg_use=rd->savintregcnt;
+	lsra_reg_use=INT_SAV_CNT;
 		_lsra_main(m, ls, ls->lt_int, ls->lt_int_count, &int_reg, &lsra_reg_use);
-		if (lsra_reg_use > rd->savintregcnt) lsra_reg_use=rd->savintregcnt;
-	rd->maxsavintreguse= lsra_reg_use;
-	lsra_reg_use=rd->savfltregcnt;
+		if (lsra_reg_use > INT_SAV_CNT) lsra_reg_use=INT_SAV_CNT;
+	rd->savintreguse= lsra_reg_use;
+
+	lsra_reg_use=FLT_SAV_CNT;
 
 		_lsra_main(m,ls, ls->lt_flt, ls->lt_flt_count, &flt_reg, &lsra_reg_use);
-		if (lsra_reg_use > rd->savfltregcnt) lsra_reg_use=rd->savfltregcnt;
+		if (lsra_reg_use > FLT_SAV_CNT) lsra_reg_use=FLT_SAV_CNT;
 
-	rd->maxsavfltreguse=lsra_reg_use;
+	rd->savfltreguse=lsra_reg_use;
 
-	/* allocate stack space for passing arguments to called methods */
+	/* rd->memuse was already set in stack.c to allocate stack space for passing arguments to called methods */
+#if defined(__I386__)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* reserve 0(%esp) for Monitorenter/exit Argument on i386 */
+		if (rd->memuse < 1)
+			rd->memuse = 1;
+	}
+#endif
 
-    lsra_mem_use = rd->ifmemuse; /* Init with if_memuse from stack.c */
+    lsra_mem_use = rd->memuse; /* Init with if_memuse from stack.c */
 
 #ifdef LSRA_DEBUG
 	printf("Alloc Rest\n");
@@ -1232,7 +1240,7 @@ void lsra_main(methodinfo *m, lsradata *ls, registerdata *rd, codegendata *cd)
 	printf("Lifetimes after leftt:\n");
 	print_lifetimes(rd, ls, ls->lt_rest, ls->lt_rest_count);
 #endif
-	rd->maxmemuse=lsra_mem_use;
+	rd->memuse=lsra_mem_use;
 #ifdef LSRA_TESTLT
 	test_lifetimes(m, ls, rd );
 #endif
@@ -1311,9 +1319,15 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 
 	/* noch kein Speicher vergeben, oder alle Enden später */
 	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) {
-		fm=lsra_getnewmem(mem_use);
 #ifdef HAS_4BYTE_STACKSLOT
-		if (IS_2_WORD_TYPE(lt->type)) (*mem_use)++;
+		if (IS_2_WORD_TYPE(lt->type))
+			if ( (*mem_use)&1 ) /* align memory location for 2 Word Types */
+				(*mem_use)++;
+		fm=lsra_getnewmem(mem_use);
+		if (IS_2_WORD_TYPE(lt->type)) /* allocate a second following Slot for 2 Word Types */
+			(*mem_use)++;
+#else
+		fm=lsra_getnewmem(mem_use);
 #endif
 	} else {
 		/* Speicherstelle frei */
@@ -1685,27 +1699,6 @@ struct lifetime *get_ss_lifetime(lsradata *ls, stackptr s) {
 	return n;
 }
 
-#define lsra_new_stack(ls, s, block, instr) if ((s)->varkind != ARGVAR) _lsra_new_stack(ls, s, block, instr, LSRA_STORE)
-void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
-{
-	struct lifetime *n;
-
-	if (s->varkind == LOCALVAR) {
-		lsra_usage_local(ls, s->varnum, s->type, block, instr, LSRA_STORE);
-	} else /* if (s->varkind != ARGVAR) */ {
-		
-		n=get_ss_lifetime( ls, s );
-
-		if (store == LSRA_BB_IN)
-			n->flags |= JOIN_BB;
-		/* remember first def -> overwrite everytime */
-		n->bb_first_def = ls->sorted_rev[block];
-		n->i_first_def = instr;
-
-		n->usagecount+=ls->nesting[ls->sorted_rev[block]];
-	}
-}
-
 #define IS_TEMP_VAR(s) ( ((s)->varkind != ARGVAR) && ((s)->varkind != LOCALVAR) )
 
 #define lsra_join_3_stack(ls, dst, src1, src2, join_type) \
@@ -1767,6 +1760,27 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 #endif
 #endif
 
+#define lsra_new_stack(ls, s, block, instr) if ((s)->varkind != ARGVAR) _lsra_new_stack(ls, s, block, instr, LSRA_STORE)
+void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
+{
+	struct lifetime *n;
+
+	if (s->varkind == LOCALVAR) {
+		lsra_usage_local(ls, s->varnum, s->type, block, instr, LSRA_STORE);
+	} else /* if (s->varkind != ARGVAR) */ {
+		
+		n=get_ss_lifetime( ls, s );
+
+		if (store == LSRA_BB_IN)
+			n->flags |= JOIN_BB;
+		/* remember first def -> overwrite everytime */
+		n->bb_first_def = ls->sorted_rev[block];
+		n->i_first_def = instr;
+
+		n->usagecount+=ls->nesting[ls->sorted_rev[block]];
+	}
+}
+
 #define lsra_from_stack(ls, s, block, instr) if ((s)->varkind != ARGVAR) _lsra_from_stack(ls, s, block, instr, LSRA_LOAD)
 #define lsra_pop_from_stack(ls, s, block, instr) if ((s)->varkind != ARGVAR) _lsra_from_stack(ls, s, block, instr, LSRA_POP)
 void _lsra_from_stack(lsradata *ls, stackptr s, int block, int instr, int store)
@@ -1815,13 +1829,15 @@ void lsra_usage_local(lsradata *ls, s4 v_index, int type, int block, int instr, 
 	}
 	n->usagecount+=ls->nesting[ls->sorted_rev[block]];
 	/* add access at (block, instr) to intruction list */
-	if (store == LSRA_LOAD) { 
-		/* remember last USE, so only write, if USE Field is undefined (==-1) */
-		if (n->bb_last_use == -1) {
-			n->bb_last_use = ls->sorted_rev[block];
-			n->i_last_use = instr;
-		}
-	} else {
+/* 	if (store == LSRA_LOAD) {  */
+	/* remember last USE, so only write, if USE Field is undefined (==-1) */
+	/* count store as use, too -> defined and not used vars would overwrite */
+	/* other vars */
+	if (n->bb_last_use == -1) {
+		n->bb_last_use = ls->sorted_rev[block];
+		n->i_last_use = instr;
+	}
+	if (store == LSRA_STORE) {
 		/* store == LSRA_STORE, remember first def -> overwrite everytime */
 		n->bb_first_def = ls->sorted_rev[block];
 		n->i_first_def = instr;
@@ -2264,9 +2280,9 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		case ICMD_DMUL:
 		case ICMD_DDIV:
 		case ICMD_DREM:
-			lsra_from_stack(ls, src,b_index,iindex);
-			lsra_from_stack(ls, src->prev,b_index,iindex);
-			lsra_new_stack(ls,dst,b_index,iindex);
+			lsra_from_stack(ls, src, b_index, iindex);
+			lsra_from_stack(ls, src->prev, b_index, iindex);
+			lsra_new_stack(ls, dst, b_index, iindex);
 #ifdef JOIN_DEST_STACK
 			lsra_join_3_stack(ls, dst, src->prev, src, JOIN_OP);
 #endif
@@ -2390,7 +2406,7 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 				lsra_from_stack(ls, src,b_index,iindex);
 				src = src->prev;
 			}
-#if defined(__X86_64__) || defined(__I386__)	 
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 			if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
 #else
 			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
@@ -2512,9 +2528,9 @@ int lsra_test_lt(registerdata *rd, struct lifetime *n, int store, int *values, b
 		value_index = n->reg;
 	} else {
 		if (IS_FLT_DBL_TYPE(n->type)) {
-			value_index = rd->maxmemuse + rd->intregsnum + n->reg;
+			value_index = rd->memuse + INT_REG_CNT + n->reg;
 		} else {
-			value_index = rd->maxmemuse + n->reg;
+			value_index = rd->memuse + n->reg;
 		}
 	}
 
@@ -2611,6 +2627,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 		case ICMD_GOTO:
 		case ICMD_NOP:
 		case ICMD_ELSE_ICONST:
+		case ICMD_CHECK_NULL:
 		case ICMD_CHECKEXCEPTION:
 		case ICMD_CHECKASIZE:
 		case ICMD_PUTSTATICCONST:
@@ -2723,7 +2740,6 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 		case ICMD_PUTSTATIC: /* stack(value) -> static_field */
 		case ICMD_PUTFIELDCONST:
 			/* pop 1 push 0 branch */
-		case ICMD_NULLCHECKPOP: /****** ????? -1 -> stack *********/
 		case ICMD_MONITORENTER:
 		case ICMD_MONITOREXIT:
 			ret = lsra_test_from_stack(ls, rd, src, values); /* stack -> value */
@@ -3011,7 +3027,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 				ret = lsra_test_from_stack(ls, rd, src, values);
 				src = src->prev;
 			}
-#if defined(__X86_64__) || defined(__I386__)	 
+#if defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)	 
 			if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
 #else
 			if (((methodinfo*)iptr->val.a)->returntype != TYPE_VOID)
@@ -3073,7 +3089,7 @@ void test_lifetimes( methodinfo *m, lsradata *ls, registerdata *rd)
 	int *values, i, j, p, t;
 	int v_max,ret;
 
-	v_max = rd->maxmemuse + rd->intregsnum + rd->fltregsnum;
+	v_max = rd->memuse + INT_REG_CNT + FLT_REG_CNT;
 
 	if ( (values = calloc( v_max, sizeof(int))) == NULL )
 		 { log_text("test_lifetimes: out of memory\n"); assert(0); }
