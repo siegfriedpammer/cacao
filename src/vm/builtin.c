@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2746 2005-06-20 13:06:15Z edwin $
+   $Id: builtin.c 2771 2005-06-22 09:23:53Z twisti $
 
 */
 
@@ -130,7 +130,8 @@ static bool builtintable_init(void)
 		sizeof(builtintable_internal) / sizeof(builtintable_entry);
 
 	entries_automatic =
-		sizeof(builtintable_automatic) / sizeof(builtintable_entry);
+		sizeof(builtintable_automatic) / sizeof(builtintable_entry)
+		- 1; /* last filler entry (comment see builtintable.inc) */
 
 	/* first add all descriptors to the pool */
 
@@ -222,27 +223,22 @@ static int builtintable_comparator(const void *a, const void *b)
 }
 
 
-static void builtintable_sort_internal(void)
-{
-	s4 entries;
+/* builtintable_sort_automatic *************************************************
 
-	/* calculate builtintable entries statically */
+   Sorts the automatic builtin table.
 
-	entries = sizeof(builtintable_internal) / sizeof(builtintable_entry);
-
-	qsort(builtintable_internal, entries, sizeof(builtintable_entry), builtintable_comparator);
-}
-
+*******************************************************************************/
 
 static void builtintable_sort_automatic(void)
 {
 	s4 entries;
 
-	/* calculate builtintable entries statically */
+	/* calculate table size statically (`- 1' comment see builtintable.inc) */
 
-	entries = sizeof(builtintable_automatic) / sizeof(builtintable_entry);
+	entries = sizeof(builtintable_automatic) / sizeof(builtintable_entry) - 1;
 
-	qsort(builtintable_automatic, entries, sizeof(builtintable_entry), builtintable_comparator);
+	qsort(builtintable_automatic, entries, sizeof(builtintable_entry),
+		  builtintable_comparator);
 }
 
 
@@ -261,7 +257,6 @@ bool builtin_init(void)
 
 	/* sort builtin tables */
 
-/*  	builtintable_sort_internal(); */
 	builtintable_sort_automatic();
 
 	return true;
@@ -274,7 +269,7 @@ bool builtin_init(void)
 
 *******************************************************************************/
 
-void builtintable_entry_debug_dump(FILE *file,builtintable_entry *bte)
+void builtintable_entry_debug_dump(FILE *file, builtintable_entry *bte)
 {
 	char *name;
 	char *desc;
@@ -295,6 +290,7 @@ void builtintable_entry_debug_dump(FILE *file,builtintable_entry *bte)
 	descriptor_debug_print_methoddesc(file,bte->md);
 	fputc(')',file);
 }
+
 
 /* builtintable_get_internal ***************************************************
 
@@ -331,9 +327,9 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 	s4                  half;
 	s4                  entries;
 
-	/* calculate table size statically */
+	/* calculate table size statically (`- 1' comment see builtintable.inc) */
 
-	entries = sizeof(builtintable_automatic) / sizeof(builtintable_entry);
+	entries = sizeof(builtintable_automatic) / sizeof(builtintable_entry) - 1;
 
 	first = builtintable_automatic;
 	last = builtintable_automatic + entries;
