@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2738 2005-06-18 16:37:34Z edwin $
+   $Id: parse.c 2783 2005-06-22 12:05:49Z edwin $
 
 */
 
@@ -1034,6 +1034,9 @@ SHOWOPCODE(DEBUG4)
 
 					iptr->val.a = fi;
 				}
+				else {
+					iptr->val.a = NULL;
+				}
 				PINC;
 #if defined(__MIPS__) || defined(__POWERPC__)
 				if (!fi || !fi->class->initialized)
@@ -1084,6 +1087,9 @@ SHOWOPCODE(DEBUG4)
 
 					iptr->val.a = mi;
 				}
+				else {
+					iptr->val.a = NULL;
+				}
 				PINC;
 			}
 			break;
@@ -1128,6 +1134,9 @@ SHOWOPCODE(DEBUG4)
 
 					iptr->val.a = mi;
 				}
+				else {
+					iptr->val.a = NULL;
+				}
 				PINC;
 			}
 			break;
@@ -1170,6 +1179,9 @@ SHOWOPCODE(DEBUG4)
 						return NULL;
 
 					iptr->val.a = mi;
+				}
+				else {
+					iptr->val.a = NULL;
 				}
 				PINC;
 			}
