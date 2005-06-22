@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: typeinfo.c 2791 2005-06-22 20:28:31Z edwin $
 
 */
 
@@ -65,9 +65,29 @@
 /* TYPEVECTOR FUNCTIONS                                               */
 /**********************************************************************/
 
+/* typevectorset_copy **********************************************************
+ 
+   Return a copy of the given typevector set.
+  
+   IN:
+	   src..............typevector set to copy, must be != NULL
+	   k................k-index to set in first typevector of resulting set
+	   size.............number of elements per typevector
+
+   RETURN VALUE:
+       a pointer to the new typevector set
+
+   NOTE:
+       This function recursively invokes itself with increasing k-index to
+	   copy the alternative typevectors in the given set.
+
+*******************************************************************************/
+
 typevector *
 typevectorset_copy(typevector *src,int k,int size)
 {
+	TYPEINFO_ASSERT(src);
+	
 	typevector *dst = DNEW_TYPEVECTOR(size);
 	
 	memcpy(dst,src,TYPEVECTOR_SIZE(size));
@@ -77,9 +97,25 @@ typevectorset_copy(typevector *src,int k,int size)
 	return dst;
 }
 
+/* typevectorset_checktype *****************************************************
+ 
+   Check if all typevectors contain a given type at a given index.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to check
+	   type.............TYPE_* constant to check against
+
+   RETURN VALUE:
+       true if all typevectors in the set contain TYPE at INDEX,
+	   false otherwise
+
+*******************************************************************************/
+
 bool
 typevectorset_checktype(typevector *vec,int index,int type)
 {
+	TYPEINFO_ASSERT(vec);
 	do {
 		if (vec->td[index].type != type)
 			return false;
@@ -87,9 +123,24 @@ typevectorset_checktype(typevector *vec,int index,int type)
 	return true;
 }
 
+/* typevectorset_checkreference ************************************************
+ 
+   Check if all typevectors contain a reference at a given index.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to check
+
+   RETURN VALUE:
+       true if all typevectors in the set contain a reference at INDEX,
+	   false otherwise
+
+*******************************************************************************/
+
 bool
 typevectorset_checkreference(typevector *vec,int index)
 {
+	TYPEINFO_ASSERT(vec);
 	do {
 		if (!TYPEDESC_IS_REFERENCE(vec->td[index]))
 			return false;
@@ -97,9 +148,24 @@ typevectorset_checkreference(typevector *vec,int index)
 	return true;
 }
 
+/* typevectorset_checkretaddr **************************************************
+ 
+   Check if all typevectors contain a returnAddress at a given index.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to check
+
+   RETURN VALUE:
+       true if all typevectors in the set contain a returnAddress at INDEX,
+	   false otherwise
+
+*******************************************************************************/
+
 bool
 typevectorset_checkretaddr(typevector *vec,int index)
 {
+	TYPEINFO_ASSERT(vec);
 	do {
 		if (!TYPEDESC_IS_RETURNADDRESS(vec->td[index]))
 			return false;
@@ -107,11 +173,31 @@ typevectorset_checkretaddr(typevector *vec,int index)
 	return true;
 }
 
+/* typevectorset_copymergedtype ************************************************
+ 
+   Merge the types at a given index in the typevectors of a set and
+   copy the result to a destination typeinfo.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to merge
+
+   OUT:
+       dst..............destination typeinfo, receives the merge result
+
+   RETURN VALUE:
+       the TYPE_* constant of the resulting type
+	   TYPE_VOID if incompatible types were contained at INDEX in VEC
+
+*******************************************************************************/
+
 int
 typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 {
 	int type;
 	typedescriptor *td;
+
+	TYPEINFO_ASSERT(vec);
 
 	td = vec->td + index;
 	type = td->type;
@@ -130,6 +216,8 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 			if (type == TYPE_ADDRESS) {
 				if ((TYPEINFO_IS_PRIMITIVE(td->info) ? 1 : 0) != primitive)
 					return TYPE_VOID;
+				/* there cannot be any merge errors now. In the worst case */
+				/* we either get a returnAddress type or a j.l.O reference */
 				typeinfo_merge(dst,&(td->info));
 			}
 		}
@@ -137,9 +225,38 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 	return type;
 }
 
+/* typevectorset_mergedtype ****************************************************
+ 
+   Return the merged type of the types at a given index in the typevectors 
+   of a set.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to merge
+	   temp.............pointer to a typeinfo that may be used to merge the
+	                    result if necessary
+
+   OUT:
+       *result..........set to the address of a typeinfo containing the
+	                    merged type.
+
+   RETURN VALUE:
+       the TYPE_* constant of the resulting type
+	   TYPE_VOID if incompatible types were contained at INDEX in VEC
+
+   NOTE:
+       This function should be more efficient than typevectorset_copymergedtype
+	   assuming that most typevector sets contain exactly one typevector.
+
+*******************************************************************************/
+
 int
 typevectorset_mergedtype(typevector *vec,int index,typeinfo *temp,typeinfo **result)
 {
+	TYPEINFO_ASSERT(vec);
+	TYPEINFO_ASSERT(temp);
+	TYPEINFO_ASSERT(result);
+	
 	if (vec->alt) {
 		*result = temp;
 		return typevectorset_copymergedtype(vec,index,temp);
@@ -148,6 +265,23 @@ typevectorset_mergedtype(typevector *vec,int index,typeinfo *temp,typeinfo **res
 	*result = &(vec->td[index].info);
 	return vec->td[index].type;
 }
+
+/* typevectorset_mergedtypeinfo ************************************************
+ 
+   This is a convenience wrapper around typevectorset_mergedtype. Use this if
+   you are only interested in TYPE_ADR results.
+  
+   IN:
+	   vec..............typevector set, must be != NULL
+	   index............index of component to merge
+	   temp.............pointer to a typeinfo that may be used to merge the
+	                    result if necessary
+
+   RETURN VALUE:
+       a pointer to the resulting typeinfo, or
+	   NULL if the result is not a TYPE_ADR type
+
+*******************************************************************************/
 
 typeinfo *
 typevectorset_mergedtypeinfo(typevector *vec,int index,typeinfo *temp)
