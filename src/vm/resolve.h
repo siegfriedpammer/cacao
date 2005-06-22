@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2738 2005-06-18 16:37:34Z edwin $
+   $Id: resolve.h 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -122,6 +122,7 @@ struct unresolved_method {
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
 	   link.............if true, guarantee that the returned class, if any,
 	                    has been linked
   
@@ -146,6 +147,7 @@ bool
 resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
 			  			utf *classname,
 			  			resolve_mode_t mode,
+						bool checkaccess,
 						bool link,
 			  			classinfo **result);
 
@@ -161,6 +163,7 @@ resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
 	   link.............if true, guarantee that the returned class, if any,
 	                    has been linked
   
@@ -181,6 +184,7 @@ bool
 resolve_classref(methodinfo *refmethod,
 				 constant_classref *ref,
 				 resolve_mode_t mode,
+				 bool checkaccess,
 			     bool link,
 				 classinfo **result);
 
@@ -196,6 +200,7 @@ resolve_classref(methodinfo *refmethod,
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
 	   link.............if true, guarantee that the returned class, if any,
 	                    has been linked
   
@@ -216,6 +221,7 @@ bool
 resolve_classref_or_classinfo(methodinfo *refmethod,
 							  classref_or_classinfo cls,
 							  resolve_mode_t mode,
+							  bool checkaccess,
 							  bool link,
 							  classinfo **result);
 
@@ -225,6 +231,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
   
    IN:
        d................type descriptor
+	   checkaccess......if true, access rights to the class are checked
 	   link.............if true, guarantee that the returned class, if any,
 	                    has been linked
    OUT:
@@ -242,11 +249,11 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
    
 *******************************************************************************/
 
-bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
+bool resolve_class_from_typedesc(typedesc *d,bool checkaccess,bool link,classinfo **result);
 
 /* resolve_class ***************************************************************
  
-   Resolve an unresolved class reference
+   Resolve an unresolved class reference. The class is also linked.
   
    IN:
        ref..............struct containing the reference
@@ -254,7 +261,8 @@ bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
                             resolveLazy...only resolve if it does not
                                           require loading classes
                             resolveEager..load classes if necessary
-  
+	   checkaccess......if true, access rights to the class are checked
+   
    OUT:
        *result..........set to the result of resolution, or to NULL if
                         the reference has not been resolved
@@ -271,6 +279,7 @@ bool resolve_class_from_typedesc(typedesc *d,bool link,classinfo **result);
 bool
 resolve_class(unresolved_class *ref,
 			  resolve_mode_t mode,
+			  bool checkaccess,
 			  classinfo **result);
 
 /* resolve_field ***************************************************************

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2728 2005-06-17 08:12:26Z twisti $
+   $Id: linker.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -444,7 +444,7 @@ static classinfo *link_class_intern(classinfo *c)
 		/* resolve this super interface */
 
 		if (!resolve_classref_or_classinfo(NULL, c->interfaces[i], resolveEager,
-										   false, &tc))
+										   true, false, &tc))
 			return NULL;
 
 		c->interfaces[i].cls = tc;
@@ -489,7 +489,7 @@ static classinfo *link_class_intern(classinfo *c)
 	} else {
 		/* resolve super class */
 
-		if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, false,
+		if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, true, false,
 										   &super))
 			return NULL;
 		c->super.cls = super;
@@ -794,14 +794,14 @@ static classinfo *link_class_intern(classinfo *c)
 				continue;
 			if (!resolve_classref_or_classinfo(NULL,
 											   m->exceptiontable[j].catchtype,
-											   resolveEager, false,
+											   resolveEager, true, false,
 											   &(m->exceptiontable[j].catchtype.cls)))
 				return NULL;
 		}
 
 		for (j = 0; j < m->thrownexceptionscount; j++)
 			if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[j],
-											   resolveEager, false,
+											   resolveEager, true, false,
 											   &(m->thrownexceptions[j].cls)))
 				return NULL;
 	}

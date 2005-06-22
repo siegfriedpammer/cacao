@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2750 2005-06-20 15:11:47Z edwin $
+   $Id: typeinfo.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -195,7 +195,7 @@ typevectorset_store_twoword(typevector *vec,int index,int type)
 	} while ((vec = vec->alt) != NULL);
 }
 
-void
+bool
 typevectorset_init_object(typevector *set,void *ins,
 						  classref_or_classinfo initclass,
 						  int size)
@@ -208,10 +208,12 @@ typevectorset_init_object(typevector *set,void *ins,
 				&& TYPEINFO_IS_NEWOBJECT(set->td[i].info)
 				&& TYPEINFO_NEWOBJECT_INSTRUCTION(set->td[i].info) == ins)
 			{
-				TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(set->td[i].info,initclass);
+				if (!typeinfo_init_class(&(set->td[i].info),initclass))
+					return false;
 			}
 		}
 	}
+	return true;
 }
 
 bool
@@ -657,10 +659,8 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 
 	/* if necessary, try to resolve lazily */
 	if (!resolve_classref_or_classinfo(NULL /* XXX should now method */,
-				c,resolveLazy,true,&cls))
+				c,resolveLazy,false,true,&cls))
 	{
-		log_text("XXX could not resolve class reference"); /* XXX */
-		assert(0);
 		return false;
 	}
 	
@@ -701,7 +701,7 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	return true;
 }
 
-void
+bool
 typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
 {
 	TYPEINFO_ASSERT(desc);
@@ -718,15 +718,17 @@ typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
 	if (info) {
 		if (desc->type == TYPE_ADR) {
 			TYPEINFO_ASSERT(desc->classref);
-			TYPEINFO_INIT_CLASSREF(*info,desc->classref);
+			if (!typeinfo_init_class(info,CLASSREF_OR_CLASSINFO(desc->classref)))
+				return false;
 		}
 		else {
 			TYPEINFO_INIT_PRIMITIVE(*info);
 		}
 	}
+	return true;
 }
 
-void
+bool
 typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
                               int buflen,bool twoword,
                               u1 *returntype,typeinfo *returntypeinfo)
@@ -751,7 +753,8 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 			assert(0);
 		}
 
-		typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++);
+		if (!typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++))
+			return false;
 		
 		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
 			if (++args > buflen) {
@@ -767,21 +770,26 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 
     /* check returntype */
     if (returntype) {
-		typeinfo_init_from_typedesc(&(desc->returntype),returntype,returntypeinfo);
+		if (!typeinfo_init_from_typedesc(&(desc->returntype),returntype,returntypeinfo))
+			return false;
 	}
+
+	return true;
 }
 
-void
+bool
 typedescriptor_init_from_typedesc(typedescriptor *td,
 								  typedesc *desc)
 {
 	td->type = desc->type;
 	if (td->type == TYPE_ADR) {
-		TYPEINFO_INIT_CLASSREF(td->info,desc->classref);
+		if (!typeinfo_init_class(&(td->info),CLASSREF_OR_CLASSINFO(desc->classref)))
+			return false;
 	}
 	else {
 		TYPEINFO_INIT_PRIMITIVE(td->info);
 	}
+	return true;
 }
 
 int
@@ -800,7 +808,8 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 			assert(0);
 		}
 
-		typedescriptor_init_from_typedesc(td,desc->paramtypes + i);
+		if (!typedescriptor_init_from_typedesc(td,desc->paramtypes + i))
+			return -1;
 		td++;
 
 		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
@@ -817,18 +826,19 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 
     /* check returntype */
     if (returntype) {
-		typedescriptor_init_from_typedesc(returntype,&(desc->returntype));
+		if (!typedescriptor_init_from_typedesc(returntype,&(desc->returntype)))
+			return -1;
 	}
 
 	return args;
 }
 
-void
+bool
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
     if (TYPEINFO_IS_NULLTYPE(*srcarray)) {
         TYPEINFO_INIT_NULLTYPE(*dst);
-        return;
+        return true;
     }
     
     if (!TYPEINFO_IS_ARRAY(*srcarray)) {
@@ -840,18 +850,20 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 		constant_classref *comp;
 		comp = class_get_classref_component_of(srcarray->typeclass.ref);
 
-		if (comp)
-			TYPEINFO_INIT_CLASSREF(*dst,comp);
-		else
+		if (comp) {
+			if (!typeinfo_init_class(dst,CLASSREF_OR_CLASSINFO(comp)))
+				return false;
+		}
+		else {
 			TYPEINFO_INIT_PRIMITIVE(*dst);
+		}
 	}
 	else {
 		vftbl_t *comp;
 		
 		if (!srcarray->typeclass.cls->linked) {
 			if (!link_class(srcarray->typeclass.cls)) {
-				log_text("XXX could not link class");
-				assert(0);
+				return false;
 			}
 		}
 
@@ -866,6 +878,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 	}
     
     dst->merged = srcarray->merged; /* XXX should we do a deep copy? */
+	return true;
 }
 
 void

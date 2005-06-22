@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2727 2005-06-17 08:11:34Z twisti $
+   $Id: native.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -1071,7 +1071,7 @@ java_objectarray *get_parametertypes(methodinfo *m)
     /* get classes */
 
 	for (i = 0; i < paramcount; i++) {
-		if (!resolve_class_from_typedesc(&paramtypes[i], false,
+		if (!resolve_class_from_typedesc(&paramtypes[i], true, false,
 										 (classinfo **) &result->data[i]))
 			return NULL;
 
@@ -1103,7 +1103,7 @@ java_objectarray* get_exceptiontypes(methodinfo *m)
     result = builtin_anewarray(excount, class_java_lang_Class);
 
     for (i = 0; i < excount; i++) {
-		if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[i],resolveEager,false,&cls))
+		if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[i],resolveEager,true,false,&cls))
 			return NULL; /* exception */
 		use_class_as_object(cls);
 		result->data[i] = (java_objectheader *)cls;
@@ -1123,7 +1123,7 @@ classinfo *get_returntype(methodinfo *m)
 {
 	classinfo *cls;
 
-	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype),false,&cls))
+	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype),true,false,&cls))
 		return NULL; /* exception */
 
 	use_class_as_object(cls);

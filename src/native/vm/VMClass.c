@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2687 2005-06-14 17:29:18Z twisti $
+   $Id: VMClass.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -284,9 +284,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 		classinfo *inner;
 		classinfo *outer;
 
-		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].inner_class,resolveEager,false,&inner))
+		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].inner_class,resolveEager,false,false,&inner))
 			return NULL;
-		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].outer_class,resolveEager,false,&inner))
+		if (!resolve_classref_or_classinfo(NULL,c->innerclass[i].outer_class,resolveEager,false,false,&inner))
 			return NULL;
 		
 		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {

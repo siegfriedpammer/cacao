@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2784 2005-06-22 12:09:11Z edwin $
+   $Id: resolve.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -73,6 +73,7 @@ bool
 resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 			  utf *classname,
 			  resolve_mode_t mode,
+			  bool checkaccess,
 			  bool link,
 			  classinfo **result)
 {
@@ -92,7 +93,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 	utf_fprint(stderr,referer->name);
 	fprintf(stderr,",");
 	utf_fprint(stderr,classname);
-	fprintf(stderr,")\n");
+	fprintf(stderr,",%d,%d)\n",(int)checkaccess,(int)link);
 #endif
 
 	/* lookup if this class has already been loaded */
@@ -118,7 +119,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 					/* resolve the component type */
 					if (!resolve_class_from_name(referer,refmethod,
 									   utf_new(utf_ptr,len),
-									   mode,link,&cls))
+									   mode,checkaccess,link,&cls))
 						return false; /* exception */
 					if (!cls) {
 						RESOLVE_ASSERT(mode == resolveLazy);
@@ -157,9 +158,19 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 #endif
 	
 	/* check access rights of referer to refered class */
-	if (!is_accessible_class(referer,cls)) {
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
-				"class is not accessible XXX add message");
+	if (checkaccess && !is_accessible_class(referer,cls)) {
+		int msglen;
+		char *message;
+
+		msglen = utf_strlen(cls->name) + utf_strlen(referer->name) + 100;
+		message = MNEW(char,msglen);
+		strcpy(message,"class is not accessible (");
+		utf_sprint_classname(message+strlen(message),cls->name);
+		strcat(message," from ");
+		utf_sprint_classname(message+strlen(message),referer->name);
+		strcat(message,")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+		MFREE(message,char,msglen);
 		return false; /* exception */
 	}
 
@@ -183,16 +194,18 @@ bool
 resolve_classref(methodinfo *refmethod,
 				 constant_classref *ref,
 				 resolve_mode_t mode,
+				 bool checkaccess,
 			     bool link,
 				 classinfo **result)
 {
-	return resolve_classref_or_classinfo(refmethod,CLASSREF_OR_CLASSINFO(ref),mode,link,result);
+	return resolve_classref_or_classinfo(refmethod,CLASSREF_OR_CLASSINFO(ref),mode,checkaccess,link,result);
 }
 
 bool
 resolve_classref_or_classinfo(methodinfo *refmethod,
 							  classref_or_classinfo cls,
 							  resolve_mode_t mode,
+							  bool checkaccess,
 							  bool link,
 							  classinfo **result)
 {
@@ -205,7 +218,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_classref_or_classinfo(");
 	utf_fprint(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
-	fprintf(stderr,",%i,%i)\n",mode,link);
+	fprintf(stderr,",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
 #endif
 
 	*result = NULL;
@@ -213,7 +226,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	if (IS_CLASSREF(cls)) {
 		/* we must resolve this reference */
 		if (!resolve_class_from_name(cls.ref->referer,refmethod,cls.ref->name,
-						   			mode,link,&c))
+						   			mode,checkaccess,link,&c))
 			return false; /* exception */
 	}
 	else {
@@ -242,7 +255,7 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 }
 
 bool 
-resolve_class_from_typedesc(typedesc *d, bool link, classinfo **result)
+resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
 {
 	classinfo *cls;
 	
@@ -254,13 +267,13 @@ resolve_class_from_typedesc(typedesc *d, bool link, classinfo **result)
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_class_from_typedesc(");
 	descriptor_debug_print_typedesc(stderr,d);
-	fprintf(stderr,",%i)\n",link);
+	fprintf(stderr,",%i,%i)\n",(int)checkaccess,(int)link);
 #endif
 
 	if (d->classref) {
 		/* a reference type */
 		if (!resolve_classref_or_classinfo(NULL,CLASSREF_OR_CLASSINFO(d->classref),
-										   resolveEager,link,&cls))
+										   resolveEager,checkaccess,link,&cls))
 			return false; /* exception */
 	}
 	else {
@@ -336,7 +349,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		*checked = false;
 
 	/* first resolve the type if necessary */
-	if (!resolve_classref_or_classinfo(refmethod,typeref,mode,true,&type))
+	if (!resolve_classref_or_classinfo(refmethod,typeref,mode,false,true,&type))
 		return false; /* exception */
 	if (!type)
 		return true; /* be lazy */
@@ -348,7 +361,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 
 	for (; setp->any; ++setp) {
 		/* first resolve the set member if necessary */
-		if (!resolve_classref_or_classinfo(refmethod,*setp,mode,true,&result))
+		if (!resolve_classref_or_classinfo(refmethod,*setp,mode,false,true,&result))
 			return false; /* exception */
 		if (!result)
 			return true; /* be lazy */
@@ -417,6 +430,7 @@ throw_error:
 bool
 resolve_class(unresolved_class *ref,
 			  resolve_mode_t mode,
+			  bool checkaccess,
 			  classinfo **result)
 {
 	classinfo *cls;
@@ -434,7 +448,7 @@ resolve_class(unresolved_class *ref,
 
 	/* first we must resolve the class */
 	if (!resolve_classref(ref->referermethod,
-					      ref->classref,mode,true,&cls))
+					      ref->classref,mode,checkaccess,true,&cls))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -496,7 +510,7 @@ resolve_field(unresolved_field *ref,
 
 	/* first we must resolve the class containg the field */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->fieldref->classref->name,mode,true,&container))
+					   ref->fieldref->classref->name,mode,true,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -590,8 +604,20 @@ resolve_field(unresolved_field *ref,
 	fprintf(stderr,"    checking access rights...\n");
 #endif
 	if (!is_accessible_member(referer,declarer,fi->flags)) {
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
-				"field is not accessible XXX add message");
+		int msglen;
+		char *message;
+
+		msglen = utf_strlen(declarer->name) + utf_strlen(fi->name) + utf_strlen(referer->name) + 100;
+		message = MNEW(char,msglen);
+		strcpy(message,"field is not accessible (");
+		utf_sprint_classname(message+strlen(message),declarer);
+		strcat(message,".");
+		utf_sprint(message+strlen(message),fi->name);
+		strcat(message," from ");
+		utf_sprint_classname(message+strlen(message),referer->name);
+		strcat(message,")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+		MFREE(message,char,msglen);
 		return false; /* exception */
 	}
 #ifdef RESOLVE_VERBOSE
@@ -672,7 +698,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* first we must resolve the class containg the method */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->methodref->classref->name,mode,true,&container))
+					   ref->methodref->classref->name,mode,true,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -773,8 +799,22 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	/* check access rights */
 
 	if (!is_accessible_member(referer,declarer,mi->flags)) {
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,
-				"method is not accessible XXX add message");
+		int msglen;
+		char *message;
+
+		msglen = utf_strlen(declarer->name) + utf_strlen(mi->name) + 
+			utf_strlen(mi->descriptor) + utf_strlen(referer->name) + 100;
+		message = MNEW(char,msglen);
+		strcpy(message,"method is not accessible (");
+		utf_sprint_classname(message+strlen(message),declarer);
+		strcat(message,".");
+		utf_sprint(message+strlen(message),mi->name);
+		utf_sprint(message+strlen(message),mi->descriptor);
+		strcat(message," from ");
+		utf_sprint_classname(message+strlen(message),referer->name);
+		strcat(message,")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+		MFREE(message,char,msglen);
 		return false; /* exception */
 	}
 
@@ -1322,8 +1362,9 @@ constrain_unresolved_method(unresolved_method *ref,
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
 			classref_or_classinfo initclass = (ins) ? CLASSREF_OR_CLASSINFO(ins[-1].val.a)
 										 : CLASSREF_OR_CLASSINFO(refmethod->class);
-			TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(tinfo,initclass);
 			tip = &tinfo;
+			if (!typeinfo_init_class(tip,initclass))
+				return false;
 		}
 		else {
 			tip = &(instanceslot->typeinfo);

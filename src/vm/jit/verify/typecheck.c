@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2787 2005-06-22 13:24:19Z edwin $
+   $Id: typecheck.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -927,7 +927,8 @@ verify_invocation(verifier_state *state)
 	if (rtype != TYPE_VOID) {
 		if (rtype != dst->type)
 			TYPECHECK_VERIFYERROR_bool("Return type mismatch in method invocation");
-		typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo));
+		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo)))
+			return false;
 	}
 
 	if (callinginit) {
@@ -962,12 +963,14 @@ verify_invocation(verifier_state *state)
 					TYPESTACK_COPY(sp,copy);
 				}
 
-				TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(stack->typeinfo,initclass);
+				if (!typeinfo_init_class(&(stack->typeinfo),initclass))
+					return false;
 			}
 			stack = stack->prev;
 		}
 		/* replace uninitialized object type in locals */
-		typevectorset_init_object(state->localset,ins,initclass,state->numlocals);
+		if (!typevectorset_init_object(state->localset,ins,initclass,state->numlocals))
+			return false;
 
 		/* initializing the 'this' reference? */
 		if (!ins) {
@@ -1081,7 +1084,8 @@ verify_builtin(verifier_state *state)
 		TYPECHECK_INT(state->curstack->prev);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without classinfo");
-		TYPEINFO_INIT_CLASSREF(dst->typeinfo,state->iptr[-1].val.a);
+		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
+			return false;
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
@@ -1124,7 +1128,8 @@ verify_builtin(verifier_state *state)
 		TYPECHECK_ADR(state->curstack->prev);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: BUILTIN_arraycheckcast without classinfo");
-		TYPEINFO_INIT_CLASSREF(dst->typeinfo,state->iptr[-1].val.a);
+		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
+			return false;
 	}
 	else if (ISBUILTIN(BUILTIN_aastore)) {
 		TYPECHECK_ADR(state->curstack);
@@ -1362,7 +1367,8 @@ verify_basic_block(verifier_state *state)
 				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->curstack->prev->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: AALOAD on non-reference array");
 
-				typeinfo_init_component(&state->curstack->prev->typeinfo,&dst->typeinfo);
+				if (!typeinfo_init_component(&state->curstack->prev->typeinfo,&dst->typeinfo))
+					return false;
 				maythrow = true;
 				break;
 
@@ -1411,7 +1417,8 @@ putfield_tail:
 
 				/* the result is pushed on the stack */
 				if (dst->type == TYPE_ADR) {
-					typeinfo_init_from_typedesc(uf->fieldref->parseddesc.fd,NULL,&(dst->typeinfo));
+					if (!typeinfo_init_from_typedesc(uf->fieldref->parseddesc.fd,NULL,&(dst->typeinfo)))
+						return false;
 				}
 				maythrow = true;
 				break;
@@ -1555,7 +1562,8 @@ putfield_tail:
 				if (cls)
 					TYPEINFO_INIT_CLASSINFO(dst->typeinfo,cls);
 				else
-					TYPEINFO_INIT_CLASSREF(dst->typeinfo,state->iptr[0].target);
+					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
+						return false;
 				maythrow = true;
 				break;
 
@@ -1770,7 +1778,8 @@ return_tail:
 					}
 					else {
 						/* XXX do checks in patcher */
-						TYPEINFO_INIT_CLASSREF(dst->typeinfo,state->iptr[0].val.a);
+						if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].val.a)))
+							return false;
 					}
 				}
 				maythrow = true;
@@ -2083,6 +2092,8 @@ verify_init_locals(verifier_state *state)
 											  true, /* two word types use two slots */
 											  (td - lset->td), /* skip 'this' pointer */
 											  &state->returntype);
+	if (i == -1)
+		return false;
 	td += i;
 
 	/* variables not used for arguments are initialized to TYPE_VOID */
@@ -2225,7 +2236,6 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
     LOG("Exception handler stacks set.\n");
 
     /* loop while there are still blocks to be checked */
-
     do {
 		TYPECHECK_COUNT(count_iterations);
 

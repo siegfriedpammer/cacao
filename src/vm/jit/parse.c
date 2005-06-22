@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2783 2005-06-22 12:05:49Z edwin $
+   $Id: parse.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -696,7 +696,7 @@ SHOWOPCODE(DEBUG4)
 			if (!(cr = class_get_classref_multiarray_of(1, compr)))
 				return NULL;
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 				return NULL;
 
 			if (c) {
@@ -723,7 +723,7 @@ SHOWOPCODE(DEBUG4)
 
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 					return NULL;
 
 				if (c) {
@@ -1193,7 +1193,7 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1, inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true,
 								  &c))
 				return NULL;
 
@@ -1216,7 +1216,7 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1, inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 				return NULL;
 
 			if (cr->name->text[0] == '[') {
@@ -1247,7 +1247,7 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1,inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, &c))
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 				return NULL;
 
 			if (cr->name->text[0] == '[') {

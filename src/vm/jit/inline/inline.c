@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 2487 2005-05-20 17:43:27Z twisti $
+   $Id: inline.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -732,7 +732,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					if (opcode ==JAVA_INVOKEINTERFACE) {
 					    imr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
-						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass)) {
+						if (!resolve_classref(m,imr->classref,resolveEager,true, true,&imrclass)) {
 							log_text("Could not resolve class reference");
 							assert(0);
 						}
@@ -750,7 +750,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					} else {
 						imr = class_getconstant(m->class, i, CONSTANT_Methodref);
-						if (!resolve_classref(m,imr->classref,resolveEager,true,&imrclass)) {
+						if (!resolve_classref(m,imr->classref,resolveEager,true, true,&imrclass)) {
 							log_text("Could not resolve class reference");
 							assert(0);
 						}

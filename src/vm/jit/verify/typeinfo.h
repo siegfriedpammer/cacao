@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2749 2005-06-20 15:04:31Z edwin $
+   $Id: typeinfo.h 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -456,12 +456,6 @@ struct typevector {
             }                                                           \
             (info).merged = NULL;} while(0)
 
-#define TYPEINFO_INIT_CLASSREF(info,c)    \
-            typeinfo_init_class(&(info),CLASSREF_OR_CLASSINFO(c))
-
-#define TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(info,c)    \
-            typeinfo_init_class(&(info),c)
-
 /* macros for copying types (destinition is not checked or freed) ***********/
 
 /* TYPEINFO_COPY makes a shallow copy, the merged pointer is simply copied. */
@@ -493,7 +487,7 @@ int typevectorset_mergedtype(typevector *set,int index,typeinfo *temp,typeinfo *
 void typevectorset_store(typevector *set,int index,int type,typeinfo *info);
 void typevectorset_store_retaddr(typevector *set,int index,typeinfo *info);
 void typevectorset_store_twoword(typevector *set,int index,int type);
-void typevectorset_init_object(typevector *set,void *ins,classref_or_classinfo initclass,int size);
+bool typevectorset_init_object(typevector *set,void *ins,classref_or_classinfo initclass,int size);
 
 /* vector functions */
 bool typevector_separable_from(typevector *a,typevector *b,int size);
@@ -518,15 +512,23 @@ tristate_t typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo
 
 /* initialization functions *************************************************/
 
+/* RETURN VALUE (bool):
+ *     true.............ok,
+ *     false............an exception has been thrown.
+ *
+ * RETURN VALUE (int):
+ *     >= 0.............ok,
+ *     -1...............an exception has been thrown.
+ */
 bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c);
-void typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
+bool typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
 
-void typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info);
-void typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
+bool typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info);
+bool typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
                                    typeinfo *infobuf,
                                    int buflen,bool twoword,
                                    u1 *returntype,typeinfo *returntypeinfo);
-void  typedescriptor_init_from_typedesc(typedescriptor *td,
+bool  typedescriptor_init_from_typedesc(typedescriptor *td,
 									    typedesc *desc);
 int  typedescriptors_init_from_methoddesc(typedescriptor *td,
 										  methoddesc *desc,

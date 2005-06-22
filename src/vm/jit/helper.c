@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2496 2005-05-23 08:06:06Z twisti $
+   $Id: helper.c 2788 2005-06-22 16:08:51Z edwin $
 
 */
 
@@ -61,7 +61,7 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, &c)) {
+	if (!resolve_classref(NULL, cr, resolveEager, true, true, &c)) {
 		java_objectheader *xptr;
 		java_objectheader *cause;
 
