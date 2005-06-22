@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2676 2005-06-13 16:20:32Z twisti $
+   $Id: patcher.c 2773 2005-06-22 09:26:04Z twisti $
 
 */
 
@@ -96,7 +96,8 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -154,7 +155,8 @@ bool patcher_getfield(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -217,7 +219,8 @@ bool patcher_putfield(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -289,7 +292,8 @@ bool patcher_putfieldconst(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -361,7 +365,8 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) (ra + 7)) = mcode;
+	*((u4 *) (ra + 7 + 0)) = (u4) mcode;
+	*((u1 *) (ra + 7 + 4)) = (u1) (mcode >> 32);
 
 	/* patch the classinfo pointer */
 
@@ -425,7 +430,8 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) (ra + 8)) = mcode;
+	*((u4 *) (ra + 8 + 0)) = (u4) mcode;
+	*((u1 *) (ra + 8 + 4)) = (u1) (mcode >> 32);
 
 	/* patch the class' vftbl pointer */
 
@@ -493,7 +499,8 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -557,7 +564,8 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) (ra + 8)) = mcode;
+	*((u4 *) (ra + 8 + 0)) = (u4) mcode;
+	*((u1 *) (ra + 8 + 4)) = (u1) (mcode >> 32);
 
 	/* patch the class' vftbl pointer */
 
@@ -621,7 +629,8 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) (ra + 8)) = mcode;
+	*((u4 *) (ra + 8 + 0)) = (u4) mcode;
+	*((u1 *) (ra + 8 + 4)) = (u1) (mcode >> 32);
 
 	/* patch the class' vftbl pointer */
 
@@ -684,7 +693,8 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -744,7 +754,8 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -806,7 +817,8 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -870,7 +882,8 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -932,7 +945,8 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -998,7 +1012,8 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -1019,6 +1034,12 @@ bool patcher_checkcast_class(u1 *sp)
 /* patcher_instanceof_class ****************************************************
 
    Machine code:
+
+   <patched call position>
+   b9 00 00 00 00             mov    $0x0,%ecx
+   8b 40 14                   mov    0x14(%eax),%eax
+   8b 51 18                   mov    0x18(%ecx),%edx
+   8b 49 14                   mov    0x14(%ecx),%ecx
 
 *******************************************************************************/
 
@@ -1054,7 +1075,8 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -1073,7 +1095,11 @@ bool patcher_instanceof_class(u1 *sp)
 
 /* patcher_clinit **************************************************************
 
-   XXX
+   Is used int PUT/GETSTATIC and native stub.
+
+   Machine code:
+
+   <patched call position>
 
 *******************************************************************************/
 
@@ -1110,7 +1136,8 @@ bool patcher_clinit(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1120,7 +1147,13 @@ bool patcher_clinit(u1 *sp)
 
 /* patcher_resolve_native ******************************************************
 
-   XXX
+   Is used in native stub.
+
+   Machine code:
+
+   <patched call position>
+   b8 00 00 00 00             mov    $0x0,%eax
+   ff d0                      call   *%eax
 
 *******************************************************************************/
 
@@ -1156,7 +1189,8 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) ra) = mcode;
+	*((u4 *) (ra + 0)) = (u4) mcode;
+	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
 
 	/* if we show disassembly, we have to skip the nop's */
 
