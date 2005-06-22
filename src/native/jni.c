@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2691 2005-06-14 18:09:42Z twisti $
+   $Id: jni.c 2789 2005-06-22 16:16:41Z edwin $
 
 */
 
@@ -315,7 +315,7 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 			break;
 		
 			case TYPE_ADDRESS:
-				if (!resolve_class_from_typedesc(paramtypes, true, &c))
+				if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
 					return false;
 
 				if (params->data[j] != 0) {
