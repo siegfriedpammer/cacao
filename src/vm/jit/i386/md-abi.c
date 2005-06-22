@@ -24,11 +24,11 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Christian Thalinger
+   Authors: Christian Ullrich
 
-   Changes:
+   Changes: Christian Thalinger
 
-   $Id: md-abi.c 2676 2005-06-13 16:20:32Z twisti $
+   $Id: md-abi.c 2775 2005-06-22 09:48:28Z christian $
 
 */
 
