@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2786 2005-06-22 12:38:20Z edwin $
+   $Id: typecheck.c 2787 2005-06-22 13:24:19Z edwin $
 
 */
 
@@ -2094,6 +2094,7 @@ verify_init_locals(verifier_state *state)
 	}
 
     LOG("Arguments set.\n");
+	return true;
 }
 
 /****************************************************************************/
