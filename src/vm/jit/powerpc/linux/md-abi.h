@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 2576 2005-06-06 21:21:19Z twisti $
+   $Id: md-abi.h 2812 2005-06-23 14:30:04Z christian $
 
 */
 
@@ -70,7 +70,7 @@
 #define INT_SAV_CNT     10   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
 #define INT_TMP_CNT      8   /* number of integer temporary registers         */
-#define INT_RES_CNT      3   /* number of integer reserved registers          */
+#define INT_RES_CNT      6   /* number of integer reserved registers          */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     10   /* number of float callee saved registers        */
@@ -90,6 +90,21 @@
 #define LA_LR_OFFSET     4   /* link register offset in linkage area          */
 
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
+
+/* Register Pack/Unpack Macros ************************************************/
+/* PowerPC is Big Endian -> High Reg == second reg */
+/*                          Low Reg == first ("normal") reg */
+
+#define GET_LOW_REG(a)  (((a) & 0xffff0000) >> 16)
+#define GET_HIGH_REG(a) ((a) &  0x0000ffff)
+
+#define PACK_REGS(low,high) \
+	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
+#define SET_HIGH_REG(regoff,b) \
+	do { (regoff) &= 0xffff0000; (regoff) |= (b) &  0x0000ffff; } while(0)
+#define SET_LOW_REG(regoff,b) \
+	do { (regoff) &= 0x0000ffff; (regoff) |= ((b) &  0x0000ffff) << 16; } \
+	while(0)
 
 #endif /* _MD_ABI_H */
 
