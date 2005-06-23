@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2780 2005-06-22 10:51:03Z twisti $
+   $Id: cacao.c 2798 2005-06-23 09:52:06Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 #include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
@@ -865,7 +866,7 @@ int main(int argc, char **argv)
 
 	/* install architecture dependent signal handler used for exceptions */
 
-	init_exceptions();
+	signal_init();
 
 	/* initialize the codegen sub systems */
 
