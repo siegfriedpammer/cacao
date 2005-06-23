@@ -29,8 +29,9 @@
             Stefan Ring
 
    Changes: Christian Thalinger
+            Christian Ullrich
 
-   $Id: codegen.h 2723 2005-06-16 11:56:01Z twisti $
+   $Id: codegen.h 2811 2005-06-23 14:19:18Z christian $
 
 */
 
@@ -46,25 +47,6 @@
 
 /* additional functions and macros to generate code ***************************/
 
-/* PowerPC is Big Endian -> High Reg == second reg */
-/*                          Low Reg == first ("normal") reg */
-#define GET_FIRST_REG(a)   ((a) &  0x0000ffff)
-#define GET_SECOND_REG(a)  (((a) & 0xffff0000) >> 16)
-
-#define SET_FIRST_REG(regoff,b) \
-	do { (regoff) &= 0xffff0000; (regoff) |= (b) &  0x0000ffff; } while(0)
-#define SET_SECOND_REG(regoff,b) \
-do { \
-    (regoff) &= 0x0000ffff; (regoff) |= ((b) &  0x0000ffff) << 16; \
-} while(0)
-
-#define GET_LOW_REG(a)  GET_SECOND_REG(a)
-#define GET_HIGH_REG(a) GET_FIRST_REG(a)
-
-#define PACK_REGS(low,high) \
-	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
-#define SET_HIGH_REG(regoff,b) SET_FIRST_REG(regoff, b)
-#define SET_LOW_REG(regoff,b) SET_SECOND_REG(regoff, b)
 
 #if defined(STATISTICS)
 #define COUNT_SPILLS count_spills++
@@ -139,25 +121,49 @@ do { \
             fetching (this wil be either tempregnum or the register
             number allready given to v)
 */
-#define var_to_reg_int0(regnr,v,tempnr,a,b) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-        if ((a)) M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
-		regnr = tempnr; \
-		if ((b) && IS_2_WORD_TYPE((v)->type)) \
-			M_ILD((a) ? GET_LOW_REG((tempnr)) : GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff + 4); \
-    } else { \
-		if ((a) && (b)) { \
-			regnr = (v)->regoff; \
-		} else { \
-			regnr = (b) ? GET_LOW_REG((v)->regoff) : GET_HIGH_REG((v)->regoff); \
-		} \
-	} \
-}
 
-#define var_to_reg_int(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,1)
-#define var_to_reg_int_low(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,0,1)
-#define var_to_reg_int_high(regnr,v,tempnr) var_to_reg_int0(regnr,v,tempnr,1,0)
+#define var_to_reg_int(regnr,v,tempnr) \
+	do { \						   \
+		if ((v)->flags & INMEMORY) { \
+			COUNT_SPILLS; \
+			M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
+			regnr = tempnr; \
+			if (IS_2_WORD_TYPE((v)->type)) {	\
+				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
+				M_ILD(GET_LOW_REG((tempnr)), REG_SP, 4 * (v)->regoff + 4); \
+			} else \
+				M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+		} else { \
+				regnr = (v)->regoff; \
+		} \
+	} while(0) \
+
+
+/* fetch only the low part of v, regnr hast to be a single register */
+#define var_to_reg_int_low(regnr,v,tempnr) \
+	do { \
+		if ((v)->flags & INMEMORY) { \
+			COUNT_SPILLS; \
+			regnr = tempnr; \
+			M_ILD((tempnr), REG_SP, 4 * (v)->regoff + 4); \
+		} else { \
+			regnr = GET_LOW_REG((v)->regoff); \
+		} \
+	} while(0) \
+
+
+/* fetch only the high part of v, regnr hast to be a single register */
+#define var_to_reg_int_high(regnr,v,tempnr) \
+	do { \
+		if ((v)->flags & INMEMORY) { \
+			COUNT_SPILLS; \
+			M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+			regnr = tempnr; \
+		} else { \
+			regnr = GET_HIGH_REG((v)->regoff); \
+		} \
+	} while(0) \
+
 
 
 #define var_to_reg_flt(regnr,v,tempnr) { \

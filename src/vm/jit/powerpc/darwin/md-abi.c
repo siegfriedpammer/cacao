@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: md-abi.c 2722 2005-06-16 11:55:22Z twisti $
+   $Id: md-abi.c 2811 2005-06-23 14:19:18Z christian $
 
 */
 
@@ -42,7 +42,18 @@
 
 /* md_param_alloc **************************************************************
 
-   XXX
+ Allocate Arguments to Stackslots according the Calling Conventions
+
+--- in
+md->paramcount:           Number of arguments for this method
+md->paramtypes[].type:    Argument types
+
+--- out
+md->params[].inmemory:    Argument spilled on stack
+md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
+md->memuse:               Stackslots needed for argument spilling
+md->argintreguse:         max number of integer arguments used
+md->argfltreguse:         max number of float arguments used
 
 *******************************************************************************/
 
@@ -70,7 +81,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_ADR:
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = iarg;
+				pd->regoff = iarg;           /* rd->arg[int|flt]regs index !! */
 				iarg++;
 			} else {
 				pd->inmemory = true;
@@ -81,7 +92,8 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT - 1) {
 				pd->inmemory = false;
-				pd->regoff = iarg;
+				                             /* rd->arg[int|flt]regs index !! */
+				pd->regoff = PACK_REGS(iarg + 1, iarg); 
 				iarg += 2;
 			} else {
 				pd->inmemory = true;
@@ -93,7 +105,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_FLT:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = farg;
+				pd->regoff = farg;           /* rd->arg[int|flt]regs index !! */
 				iarg++;     /* skip 1 integer argument register */
 				farg++;
 			} else {
@@ -105,7 +117,7 @@ void md_param_alloc(methoddesc *md)
 		case TYPE_DBL:
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = farg;
+				pd->regoff = farg;           /* rd->arg[int|flt]regs index !! */
 				iarg += 2;  /* skip 2 integer argument registers */
 				farg++;
 			} else {
@@ -117,12 +129,14 @@ void md_param_alloc(methoddesc *md)
 		}
 	}
 
-	/* fill register and stack usage */
 
+	/* Since R3/R4 (==A0/A1) are used for passing return values, this         */
+	/* argument register usage has to be regarded, too                        */
 	if (IS_INT_LNG_TYPE(md->returntype.type))
 		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
 			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
 
+	/* fill register and stack usage */
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse = stacksize;

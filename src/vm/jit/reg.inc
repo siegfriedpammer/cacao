@@ -28,9 +28,9 @@
 
    Changes: Stefan Ring
             Christian Thalinger
-	    Christian Ullrich
+			Christian Ullrich
 
-   $Id: reg.inc 2778 2005-06-22 10:02:54Z christian $
+   $Id: reg.inc 2811 2005-06-23 14:19:18Z christian $
 
 */
 
@@ -390,8 +390,9 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 										rd->interfaces[s][intalloc].flags 
 										& INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (!(v->flags & INMEMORY))
-										v->regoff = GET_FIRST_REG(
+									if (!(v->flags & INMEMORY) 
+										&& IS_2_WORD_TYPE(intalloc))
+										v->regoff = GET_LOW_REG(
 											rd->interfaces[s][intalloc].regoff);
 									else
 #endif
@@ -400,25 +401,30 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								} else 
 /* #endif *//* !defined(HAS_4BYTE_STACKSLOT) */
 									if (!m->isleafmethod && 
-			                 (rd->argintreguse + intregsneeded < INT_ARG_CNT)) {
-										v->regoff = 
-											rd->argintregs[rd->argintreguse];
+										(rd->argintreguse 
+										 + intregsneeded < INT_ARG_CNT)) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											SET_SECOND_REG( v->regoff, 
+											v->regoff=PACK_REGS( 
+										  rd->argintregs[rd->argintreguse],
 										  rd->argintregs[rd->argintreguse + 1]);
+										else
 #endif
+											v->regoff = 
+											   rd->argintregs[rd->argintreguse];
 										rd->argintreguse += intregsneeded + 1;
 									}
 									else if (rd->tmpintreguse > intregsneeded) {
 										rd->tmpintreguse -= intregsneeded + 1;
-										v->regoff = 
-											rd->tmpintregs[rd->tmpintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											SET_SECOND_REG( v->regoff, 
+											v->regoff=PACK_REGS( 
+										  rd->tmpintregs[rd->tmpintreguse],
 										  rd->tmpintregs[rd->tmpintreguse + 1]);
+										else
 #endif
+											v->regoff = 
+											   rd->tmpintregs[rd->tmpintreguse];
 									}
 									else if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
@@ -426,9 +432,13 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 											rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											SET_SECOND_REG( v->regoff, 
-									      rd->savintregs[rd->savintreguse + 1]);
+											v->regoff=PACK_REGS( 
+										  rd->savintregs[rd->savintreguse],
+										  rd->savintregs[rd->savintreguse + 1]);
+										else
 #endif
+											v->regoff = 
+											   rd->savintregs[rd->savintreguse];
 									}
 									else {
 										v->flags |= INMEMORY;
@@ -483,12 +493,14 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							{
 /* #if !defined(HAS_4BYTE_STACKSLOT) */
 								if (intalloc >= 0) {
-									v->flags |= rd->interfaces[s][intalloc].flags
-										& INMEMORY;
+									v->flags |= 
+								   rd->interfaces[s][intalloc].flags & INMEMORY;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-									if (!(v->flags & INMEMORY))
+									if (!(v->flags & INMEMORY)
+										&& IS_2_WORD_TYPE(intalloc))
 										v->regoff =
-									   GET_FIRST_REG(rd->interfaces[s][intalloc].regoff);
+											GET_LOW_REG(
+											rd->interfaces[s][intalloc].regoff);
 									else
 #endif
 										v->regoff =
@@ -498,13 +510,15 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								{
 									if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
-										v->regoff =
-											rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
-											SET_SECOND_REG( v->regoff, 
-											    rd->savintregs[rd->savintreguse + 1]);
+											v->regoff = PACK_REGS( 
+										  rd->savintregs[rd->savintreguse],
+										  rd->savintregs[rd->savintreguse + 1]);
+										else
 #endif
+											v->regoff =
+											   rd->savintregs[rd->savintreguse];
 									} else {
 										v->flags |= INMEMORY;
 										v->regoff = rd->memuse;
@@ -650,14 +664,15 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->flags = INMEMORY;
 							v->regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
-						} else {
+						} else 
 #endif
+						{
 							if (intalloc >= 0) {
 								v->flags = rd->locals[s][intalloc].flags;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-								if (!(v->flags & INMEMORY))
-									v->regoff =
-									    GET_FIRST_REG(
+								if (!(v->flags & INMEMORY)
+									&& IS_2_WORD_TYPE(intalloc))
+									v->regoff = GET_LOW_REG(
 										    rd->locals[s][intalloc].regoff);
 								else
 #endif
@@ -666,35 +681,42 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							else if ((p < md->paramcount) && 
 									 !md->params[p].inmemory) {
 								v->flags = 0;
-								v->regoff =
-									rd->argintregs[md->params[p].regoff];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (IS_2_WORD_TYPE(t))
-/* For ARM: - if md->params[p].regoff == R4, prevent here that SECOND_REG */
-/* tries to set R5                                                        */
-									SET_SECOND_REG( v->regoff, rd->argintregs[
-												   md->params[p].regoff + 1]);
+/* For ARM: - if GET_LOW_REG(md->params[p].regoff) == R4, prevent here that   */
+/* rd->argintregs[GET_HIGH_REG(md->...)) is used!                             */
+									v->regoff = PACK_REGS(
+							rd->argintregs[GET_LOW_REG(md->params[p].regoff)],
+							rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]);
+									else
 #endif
+										v->regoff =
+									       rd->argintregs[md->params[p].regoff];
 							}
 							else if (rd->tmpintreguse > intregsneeded) {
 								rd->tmpintreguse -= intregsneeded + 1;
 								v->flags = 0;
-								v->regoff = rd->tmpintregs[rd->tmpintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									SET_SECOND_REG( v->regoff, 
-									   rd->tmpintregs[rd->tmpintreguse + 1]);
+									v->regoff = PACK_REGS(
+									    rd->tmpintregs[rd->tmpintreguse],
+										rd->tmpintregs[rd->tmpintreguse + 1]);
+								else
 #endif
+									v->regoff = 
+										rd->tmpintregs[rd->tmpintreguse];
 							}
 							else if (rd->savintreguse > intregsneeded) {
 								rd->savintreguse -= intregsneeded + 1;
 								v->flags = 0;
-								v->regoff = rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									SET_SECOND_REG( v->regoff, 
-									   rd->savintregs[rd->savintreguse + 1]);
+									v->regoff = PACK_REGS(
+									    rd->savintregs[rd->savintreguse],
+										rd->savintregs[rd->savintreguse + 1]);
+								else
 #endif
+									v->regoff =rd->savintregs[rd->savintreguse];
 							}
 							/*
 							 * use unused argument registers as local registers
@@ -710,9 +732,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								v->regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
-#if defined(__I386__)
 						}
-#endif
 						intalloc = t;
 					}
 #ifdef HAS_ADDRESS_REGISTER_FILE
@@ -788,9 +808,9 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (intalloc >= 0) {
 							v->flags = rd->locals[s][intalloc].flags;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (!(v->flags & INMEMORY))
-								v->regoff =
-								    GET_FIRST_REG(
+							if (!(v->flags & INMEMORY)
+								&& IS_2_WORD_TYPE(intalloc))
+								v->regoff = GET_LOW_REG(
 									    rd->locals[s][intalloc].regoff);
 							else
 #endif
@@ -799,12 +819,14 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						else if (rd->savintreguse > intregsneeded) {
 							rd->savintreguse -= intregsneeded+1;
 							v->flags = 0;
-							v->regoff = rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (intregsneeded) 
-									SET_SECOND_REG( v->regoff, 
-									   rd->savintregs[rd->savintreguse + 1]);
+									v->regoff = PACK_REGS(
+										rd->savintregs[rd->savintreguse],
+									    rd->savintregs[rd->savintreguse + 1]);
+								else
 #endif
+									v->regoff =rd->savintregs[rd->savintreguse];
 						}
 						else {
 							v->flags = INMEMORY;
@@ -920,21 +942,26 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 					{
 						if (rd->freesavinttop > intregsneeded) {
 							rd->freesavinttop -= intregsneeded + 1;
-							s->regoff = rd->freesavintregs[rd->freesavinttop];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+							if (intregsneeded)
+								s->regoff = PACK_REGS(
+							        rd->freesavintregs[rd->freesavinttop],
 									rd->freesavintregs[rd->freesavinttop + 1]);
+						else
 #endif
+								s->regoff =
+									rd->freesavintregs[rd->freesavinttop];
 							return;
 						} else if (rd->savintreguse > intregsneeded) {
 							rd->savintreguse -= intregsneeded + 1;
-							s->regoff = rd->savintregs[rd->savintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+							if (intregsneeded)
+								s->regoff = PACK_REGS(
+									rd->savintregs[rd->savintreguse],
 							        rd->savintregs[rd->savintreguse + 1]);
+							else
 #endif
+								s->regoff = rd->savintregs[rd->savintreguse];
 							return;
 						}
 					}
@@ -980,42 +1007,51 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 					{
 						if (rd->freearginttop > intregsneeded) {
 							rd->freearginttop -= intregsneeded + 1;
-							s->regoff = rd->freeargintregs[rd->freearginttop];
 							s->flags |= TMPARG;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+								s->regoff = PACK_REGS(
+									rd->freeargintregs[rd->freearginttop],
 							        rd->freeargintregs[rd->freearginttop + 1]);
+							else
 #endif
+								s->regoff =
+									rd->freeargintregs[rd->freearginttop];
 							return;
 						} else if (rd->argintreguse 
 								   < INT_ARG_CNT - intregsneeded) {
-							s->regoff = rd->argintregs[rd->argintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+								s->regoff = PACK_REGS(
+									rd->argintregs[rd->argintreguse],
 								    rd->argintregs[rd->argintreguse + 1]);
+							else
 #endif
+								s->regoff = rd->argintregs[rd->argintreguse];
 							s->flags |= TMPARG;
 							rd->argintreguse += intregsneeded + 1;
 							return;
 						} else if (rd->freetmpinttop > intregsneeded) {
 							rd->freetmpinttop -= intregsneeded + 1;
-							s->regoff = rd->freetmpintregs[rd->freetmpinttop];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+								s->regoff = PACK_REGS(
+									rd->freetmpintregs[rd->freetmpinttop],
 								    rd->freetmpintregs[rd->freetmpinttop + 1]);
+							else
 #endif
+								s->regoff = rd->freetmpintregs[rd->freetmpinttop];
 							return;
 						} else if (rd->tmpintreguse > intregsneeded) {
 							rd->tmpintreguse -= intregsneeded + 1;
-							s->regoff = rd->tmpintregs[rd->tmpintreguse];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 							if (intregsneeded) 
-								SET_SECOND_REG( s->regoff, 
+								s->regoff = PACK_REGS(
+									rd->tmpintregs[rd->tmpintreguse],
 								    rd->tmpintregs[rd->tmpintreguse + 1]);
+							else
 #endif
+								s->regoff = rd->tmpintregs[rd->tmpintreguse];
 							return;
 						}
 					} /* if (!IS_2_WORD_TYPE(s->type)) */
@@ -1103,9 +1139,9 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freesavintregs[rd->freesavinttop] =
-					GET_FIRST_REG(s->regoff);
+					GET_LOW_REG(s->regoff);
 				rd->freesavintregs[rd->freesavinttop + 1] =
-					GET_SECOND_REG(s->regoff);
+					GET_HIGH_REG(s->regoff);
 			} else
 #endif
 				rd->freesavintregs[rd->freesavinttop] = s->regoff;
@@ -1116,9 +1152,9 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freeargintregs[rd->freearginttop] =
-					GET_FIRST_REG(s->regoff);
+					GET_LOW_REG(s->regoff);
 				rd->freeargintregs[rd->freearginttop + 1] =
-					GET_SECOND_REG(s->regoff);
+					GET_HIGH_REG(s->regoff);
 			} else 
 #endif
 				rd->freesavintregs[rd->freearginttop] = s->regoff;
@@ -1127,9 +1163,9 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freetmpintregs[rd->freetmpinttop] =
-					GET_FIRST_REG(s->regoff);
+					GET_LOW_REG(s->regoff);
 				rd->freetmpintregs[rd->freetmpinttop + 1] =
-					GET_SECOND_REG(s->regoff);
+					GET_HIGH_REG(s->regoff);
 			} else
 #endif
 				rd->freetmpintregs[rd->freetmpinttop] = s->regoff;

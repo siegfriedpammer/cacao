@@ -28,9 +28,9 @@
             Stefan Ring
 
    Changes: Christian Thalinger
-	    Christian Ullrich
+            Christian Ullrich
 
-   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
+   $Id: codegen.c 2811 2005-06-23 14:19:18Z christian $
 
 */
 
@@ -205,9 +205,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
  			continue;
 		s1 = md->params[p].regoff;
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
-			s2 = rd->argintregs[s1];
 			if (IS_2_WORD_TYPE(t))
-				SET_LOW_REG(s2, rd->argintregs[s1 + 1]);
+				s2 = PACK_REGS(rd->argintregs[GET_LOW_REG(s1)],
+							   rd->argintregs[GET_HIGH_REG(s1)]);
+			else
+				s2 = rd->argintregs[s1];
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
  					M_TINTMOVE(t, s2, var->regoff);
@@ -2602,15 +2604,18 @@ gen_method:
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
-						s1 = rd->argintregs[md->params[s3].regoff];
 						if (IS_2_WORD_TYPE(src->type))
-							SET_LOW_REG( s1,
-							    rd->argintregs[md->params[s3].regoff + 1]);
+							s1 = PACK_REGS(
+						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
+						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
+						else
+							s1 = rd->argintregs[md->params[s3].regoff];
 						var_to_reg_int(d, src, s1);
 						M_TINTMOVE(src->type, d, s1);
 					} else {
 						var_to_reg_int(d, src, PACK_REGS(REG_ITMP3, REG_ITMP1));
-						M_IST(GET_HIGH_REG(d), REG_SP, md->params[s3].regoff * 4);
+						M_IST(GET_HIGH_REG(d), REG_SP,
+							  md->params[s3].regoff * 4);
 						if (IS_2_WORD_TYPE(src->type))
 							M_IST(GET_LOW_REG(d), 
 								  REG_SP, md->params[s3].regoff * 4 + 4);
@@ -3684,7 +3689,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 			if (IS_INT_LNG_TYPE(t)) {
 				/* overlapping u8's are on the stack */
-				if ((i + longargs + dblargs) < (INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
+				if ((i + longargs + dblargs) < 
+					(INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
 					s1 = rd->argintregs[i + longargs + dblargs];
 
 					if (!IS_2_WORD_TYPE(t)) {
@@ -3794,15 +3800,19 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 		if (IS_INT_LNG_TYPE(t)) {
 			if (!md->params[i].inmemory) {
-				s1 = rd->argintregs[md->params[i].regoff];
 				if (IS_2_WORD_TYPE(t))
-					SET_LOW_REG(s1,
-					    rd->argintregs[md->params[i].regoff + 1]);
+					s1 = PACK_REGS(
+						rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+					    rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+				else
+					s1 = rd->argintregs[md->params[i].regoff];
 				if (!nmd->params[j].inmemory) {
-					s2 = rd->argintregs[nmd->params[j].regoff];
 					if (IS_2_WORD_TYPE(t))
-						SET_LOW_REG(s2,
-						    rd->argintregs[nmd->params[j].regoff + 1]);
+						s2 = PACK_REGS(
+						   rd->argintregs[GET_LOW_REG(nmd->params[j].regoff)],
+						   rd->argintregs[GET_HIGH_REG(nmd->params[j].regoff)]);
+					else
+						s2 = rd->argintregs[nmd->params[j].regoff];
 					M_TINTMOVE(t, s1, s2);
 
 				} else {

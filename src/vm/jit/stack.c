@@ -28,9 +28,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
-	    Christian Ullrich
+			Christian Ullrich
 
-   $Id: stack.c 2774 2005-06-22 09:47:44Z christian $
+   $Id: stack.c 2811 2005-06-23 14:19:18Z christian $
 
 */
 
@@ -1885,13 +1885,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										copy->regoff =
 										   rd->argfltregs[md->params[i].regoff];
 									else {
-										copy->regoff =
-									       rd->argintregs[md->params[i].regoff];
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (IS_2_WORD_TYPE(copy->type))
-											SET_SECOND_REG( copy->regoff,
-									  rd->argintregs[md->params[i].regoff + 1]);
+											copy->regoff = PACK_REGS(
+							rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+							rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+										else
 #endif
+											copy->regoff =
+									       rd->argintregs[md->params[i].regoff];
 									}
 								}
 							}
