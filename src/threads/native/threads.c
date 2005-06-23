@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2762 2005-06-20 23:09:59Z stefan $
+   $Id: threads.c 2800 2005-06-23 10:09:50Z twisti $
 
 */
 
@@ -1186,7 +1186,7 @@ void thread_dump(void)
 
 	tobj = mainthreadobj;
 
-	printf("Full thread dump CACAO "VERSION"\n");
+	printf("Full thread dump CACAO "VERSION":\n");
 
 	/* iterate over all started threads */
 
@@ -1209,7 +1209,13 @@ void thread_dump(void)
 		printf("\" prio=%d tid=0x%08lx\n", t->priority, nt->tid);
 #endif
 
-		/* TODO: print stacktrace */
+		/* send SIGUSR1 to thread to print stacktrace */
+
+		pthread_kill(nt->tid, SIGUSR1);
+
+		/* sleep this thread a bit, so the signal can reach the thread */
+
+		sleepThread(10, 0);
 
 		tobj = tobj->info.next;
 	} while (tobj != mainthreadobj);
