@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2539 2005-05-31 15:55:54Z twisti $
+   $Id: md-asm.h 2815 2005-06-23 15:20:39Z twisti $
 
 */
 
@@ -143,14 +143,14 @@
 	stw     a6,(6+(off))*4(sp); \
 	stw     a7,(7+(off))*4(sp); \
 	\
-	stfd    fa0,(8+(off))*4)(sp); \
-	stfd    fa1,(10+(off))*4)(sp); \
-	stfd    fa2,(12+(off))*4)(sp); \
-	stfd    fa3,(14+(off))*4)(sp); \
-	stfd    fa4,(16+(off))*4)(sp); \
-	stfd    fa5,(18+(off))*4)(sp); \
-	stfd    fa6,(20+(off))*4)(sp); \
-	stfd    fa7,(22+(off))*4)(sp);
+	stfd    fa0,(8+(off))*4(sp); \
+	stfd    fa1,(10+(off))*4(sp); \
+	stfd    fa2,(12+(off))*4(sp); \
+	stfd    fa3,(14+(off))*4(sp); \
+	stfd    fa4,(16+(off))*4(sp); \
+	stfd    fa5,(18+(off))*4(sp); \
+	stfd    fa6,(20+(off))*4(sp); \
+	stfd    fa7,(22+(off))*4(sp);
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	lwz     a0,(0+(off))*4(sp); \
@@ -162,14 +162,14 @@
 	lwz     a6,(6+(off))*4(sp); \
 	lwz     a7,(7+(off))*4(sp); \
 	\
-	lfd     fa0,(8+(off))*4)(sp); \
-	lfd     fa1,(10+(off))*4)(sp); \
-	lfd     fa2,(12+(off))*4)(sp); \
-	lfd     fa3,(14+(off))*4)(sp); \
-	lfd     fa4,(16+(off))*4)(sp); \
-	lfd     fa5,(18+(off))*4)(sp); \
-	lfd     fa6,(20+(off))*4)(sp); \
-	lfd     fa7,(22+(off))*4)(sp);
+	lfd     fa0,(8+(off))*4(sp); \
+	lfd     fa1,(10+(off))*4(sp); \
+	lfd     fa2,(12+(off))*4(sp); \
+	lfd     fa3,(14+(off))*4(sp); \
+	lfd     fa4,(16+(off))*4(sp); \
+	lfd     fa5,(18+(off))*4(sp); \
+	lfd     fa6,(20+(off))*4(sp); \
+	lfd     fa7,(22+(off))*4(sp);
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
@@ -182,12 +182,12 @@
 	stw     t6,(6+(off))*4(sp); \
 	stw     t7,(7+(off))*4(sp); \
 	\
-	stfd    ft0,(8+(off))*4)(sp); \
-	stfd    ft1,(10+(off))*4)(sp); \
-	stfd    ft2,(12+(off))*4)(sp); \
-	stfd    ft3,(14+(off))*4)(sp); \
-	stfd    ft4,(16+(off))*4)(sp); \
-	stfd    ft5,(18+(off))*4)(sp);
+	stfd    ft0,(8+(off))*4(sp); \
+	stfd    ft1,(10+(off))*4(sp); \
+	stfd    ft2,(12+(off))*4(sp); \
+	stfd    ft3,(14+(off))*4(sp); \
+	stfd    ft4,(16+(off))*4(sp); \
+	stfd    ft5,(18+(off))*4(sp);
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	lwz     t0,(0+(off))*4(sp); \
@@ -199,12 +199,12 @@
 	lwz     t6,(6+(off))*4(sp); \
 	lwz     t7,(7+(off))*4(sp); \
 	\
-	lfd     ft0,(8+(off))*4)(sp); \
-	lfd     ft1,(10+(off))*4)(sp); \
-	lfd     ft2,(12+(off))*4)(sp); \
-	lfd     ft3,(14+(off))*4)(sp); \
-	lfd     ft4,(16+(off))*4)(sp); \
-	lfd     ft5,(18+(off))*4)(sp);
+	lfd     ft0,(8+(off))*4(sp); \
+	lfd     ft1,(10+(off))*4(sp); \
+	lfd     ft2,(12+(off))*4(sp); \
+	lfd     ft3,(14+(off))*4(sp); \
+	lfd     ft4,(16+(off))*4(sp); \
+	lfd     ft5,(18+(off))*4(sp);
 
 #endif /* _MD_ASM_H */
 
