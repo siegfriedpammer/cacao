@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2810 2005-06-23 14:03:24Z edwin $
+   $Id: typeinfo.c 2818 2005-06-23 17:49:38Z edwin $
 
 */
 
@@ -64,7 +64,7 @@
 #endif
 
 /**********************************************************************/
-/* TYPEVECTOR FUNCTIONS                                               */
+/* TYPEVECTOR (SET) FUNCTIONS                                         */
 /**********************************************************************/
 
 /* typevectorset_copy **********************************************************
@@ -679,6 +679,18 @@ typevectorset_collapse(methodinfo *m,typevector *dst,int size)
 /* The following functions don't change typeinfo data.                */
 /**********************************************************************/
 
+/* typeinfo_is_array ***********************************************************
+ 
+   Check whether a typeinfo describes an array type.
+   
+   IN:
+	   info.............the typeinfo, must be != NULL
+
+   RETURN VALUE:
+       true if INFO describes an array type.
+
+*******************************************************************************/
+
 bool
 typeinfo_is_array(typeinfo *info)
 {
@@ -686,12 +698,36 @@ typeinfo_is_array(typeinfo *info)
     return TYPEINFO_IS_ARRAY(*info);
 }
 
+/* typeinfo_is_primitive_array *************************************************
+ 
+   Check whether a typeinfo describes a primitive array type.
+   
+   IN:
+	   info.............the typeinfo, must be != NULL
+
+   RETURN VALUE:
+       true if INFO describes an array of a primitive type.
+
+*******************************************************************************/
+
 bool
 typeinfo_is_primitive_array(typeinfo *info,int arraytype)
 {
 	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_PRIMITIVE_ARRAY(*info,arraytype);
 }
+
+/* typeinfo_is_array_of_refs ***************************************************
+ 
+   Check whether a typeinfo describes an array of references type.
+   
+   IN:
+	   info.............the typeinfo, must be != NULL
+
+   RETURN VALUE:
+       true if INFO describes an array of a refrence type.
+
+*******************************************************************************/
 
 bool
 typeinfo_is_array_of_refs(typeinfo *info)
@@ -1160,6 +1196,23 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	return true;
 }
 
+/* typeinfo_init_from_typedesc *************************************************
+ 
+   Initialize a typeinfo from a typedesc.
+   
+   IN:
+	   desc.............the typedesc
+
+   OUT:
+       *type............set to the TYPE_* constant of DESC (if type != NULL)
+       *info............receives the typeinfo (if info != NULL)
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
 bool
 typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
 {
@@ -1187,8 +1240,39 @@ typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
 	return true;
 }
 
+/* typeinfos_init_from_methoddesc **********************************************
+ 
+   Initialize an array of typeinfos and u1 TYPE_* values from a methoddesc.
+   
+   IN:
+       desc.............the methoddesc
+       buflen...........number of parameters the buffer can hold
+       twoword..........if true, use two parameter slots for two-word types
+
+   OUT:
+       *typebuf.........receives a TYPE_* constant for each parameter
+                        typebuf must be != NULL
+       *infobuf.........receives a typeinfo for each parameter
+                        infobuf must be != NULL
+       *returntype......receives a TYPE_* constant for the return type
+                        returntype may be NULL
+       *returntypeinfo..receives a typeinfo for the return type
+                        returntypeinfo may be NULL
+
+   RETURN VALUE:
+       true.............success
+       false............an exception has been thrown
+
+   NOTE:
+       If (according to BUFLEN) the buffers are to small to hold the
+	   parameter types, an internal error is thrown. This must be
+	   avoided by checking the number of parameters and allocating enough
+	   space before calling this function.
+
+*******************************************************************************/
+
 bool
-typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
+typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
                               int buflen,bool twoword,
                               u1 *returntype,typeinfo *returntypeinfo)
 {
@@ -1200,7 +1284,7 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 	TYPEINFO_ASSERT(infobuf);
 
 #ifdef TYPEINFO_VERBOSE
-	fprintf(stderr,"typeinfo_init_from_methoddesc(");
+	fprintf(stderr,"typeinfos_init_from_methoddesc(");
 	descriptor_debug_print_methoddesc(stderr,desc);
 	fprintf(stderr,")\n");
 #endif
@@ -1236,10 +1320,30 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 	return true;
 }
 
+/* typedescriptor_init_from_typedesc *******************************************
+ 
+   Initialize a typedescriptor from a typedesc.
+   
+   IN:
+	   desc.............the typedesc
+
+   OUT:
+       *td..............receives the typedescriptor
+	                    td must be != NULL
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
 bool
 typedescriptor_init_from_typedesc(typedescriptor *td,
 								  typedesc *desc)
 {
+	TYPEINFO_ASSERT(td);
+	TYPEINFO_ASSERT(desc);
+
 	td->type = desc->type;
 	if (td->type == TYPE_ADR) {
 		if (!typeinfo_init_class(&(td->info),CLASSREF_OR_CLASSINFO(desc->classref)))
@@ -1250,6 +1354,37 @@ typedescriptor_init_from_typedesc(typedescriptor *td,
 	}
 	return true;
 }
+
+/* typedescriptors_init_from_methoddesc ****************************************
+ 
+   Initialize an array of typedescriptors from a methoddesc.
+   
+   IN:
+       desc.............the methoddesc
+       buflen...........number of parameters the buffer can hold
+       twoword..........if true, use two parameter slots for two-word types
+	   startindex.......the zero-based index of the first parameter to
+	                    write to the array. In other words the number of
+						parameters to skip at the beginning of the methoddesc.
+
+   OUT:
+       *td..............array receiving the typedescriptors.
+	                    td[0] receives the typedescriptor of the
+						(startindex+1)th parameter of the method
+       *returntype......receives the typedescriptor of the return type.
+	                    returntype may be NULL
+
+   RETURN VALUE:
+       >= 0.............number of typedescriptors filled in TD
+	   -1...............an exception has been thrown
+
+   NOTE:
+       If (according to BUFLEN) the buffer is to small to hold the
+	   parameter types, an internal error is thrown. This must be
+	   avoided by checking the number of parameters and allocating enough
+	   space before calling this function.
+
+*******************************************************************************/
 
 int
 typedescriptors_init_from_methoddesc(typedescriptor *td,
@@ -1292,16 +1427,36 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 	return args;
 }
 
+/* typeinfo_init_component *****************************************************
+ 
+   Initialize a typeinfo with the component type of a given array type.
+   
+   IN:
+	   srcarray.........the typeinfo of the array type
+
+   OUT:
+       *dst.............receives the typeinfo of the component type
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
 bool
 typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 {
+	TYPEINFO_ASSERT(srcarray);
+	TYPEINFO_ASSERT(dst);
+
     if (TYPEINFO_IS_NULLTYPE(*srcarray)) {
         TYPEINFO_INIT_NULLTYPE(*dst);
         return true;
     }
     
     if (!TYPEINFO_IS_ARRAY(*srcarray)) {
-		*exceptionptr = new_internalerror("XXX Trying to access component of non-array");
+		/* XXX should we make that a verify error? */
+		*exceptionptr = new_internalerror("Trying to access component of non-array");
 		return false;
 	}
 
@@ -1855,25 +2010,22 @@ merge_with_simple_x:
    IN:
        m................method for exception messages
        dest.............the first type
-	   y................the second type
+       y................the second type
 
    OUT:
        *dest............receives the result of the merge
 
    RETURN VALUE:
        typecheck_TRUE...*dest has been modified
-	   typecheck_FALSE..*dest has not been modified
-	   typecheck_FAIL...an exception has been thrown
+       typecheck_FALSE..*dest has not been modified
+       typecheck_FAIL...an exception has been thrown
 
-   NOTE:
-       RESULT is an extra parameter so it can point to dest->typeclass or to
-	   dest->elementclass.
+   PRE-CONDITIONS:
+       1) *dest must be a valid initialized typeinfo
+       2) dest != y
 
 *******************************************************************************/
 
-/* Condition: *dest must be a valid initialized typeinfo. */
-/* Condition: dest != y. */
-/* Returns: true if dest was changed. */
 typecheck_result
 typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y)
 {

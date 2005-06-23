@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2810 2005-06-23 14:03:24Z edwin $
+   $Id: typeinfo.h 2818 2005-06-23 17:49:38Z edwin $
 
 */
 
@@ -535,7 +535,7 @@ bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c);
 bool typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
 
 bool typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info);
-bool typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
+bool typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
                                    typeinfo *infobuf,
                                    int buflen,bool twoword,
                                    u1 *returntype,typeinfo *returntypeinfo);
