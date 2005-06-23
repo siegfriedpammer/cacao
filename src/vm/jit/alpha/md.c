@@ -30,55 +30,42 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2735 2005-06-17 13:38:35Z twisti $
+   $Id: md.c 2804 2005-06-23 13:40:41Z twisti $
 
 */
 
 
-#include <assert.h>
-#include <signal.h>
 #include <ucontext.h>
 
 #include "config.h"
 #include "vm/jit/alpha/md-abi.h"
 #include "vm/jit/alpha/types.h"
 
-#include "vm/options.h"
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
-/* catch_NullPointerException **************************************************
+/* signal_handler_sigsegv ******************************************************
 
    NullPointerException signal handler for hardware null pointer check.
 
 *******************************************************************************/
 
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t       *_uc;
-	mcontext_t       *_mc;
-	struct sigaction act;
-	sigset_t         nsig;
-	int              instr;
-	long             faultaddr;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u4          instr;
+	ptrint      addr;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
 	instr = *((s4 *) (_mc->sc_pc));
-	faultaddr = _mc->sc_regs[(instr >> 16) & 0x1f];
+	addr = _mc->sc_regs[(instr >> 16) & 0x1f];
 
-	if (faultaddr == 0) {
-		/* Reset signal handler - necessary for SysV, does no harm for BSD */
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-		sigaction(sig, &act, NULL);
-
-		sigemptyset(&nsig);
-		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-
+	if (addr == 0) {
 		_mc->sc_regs[REG_ITMP1_XPTR] =
 			(ptrint) string_java_lang_NullPointerException;
 
@@ -86,16 +73,16 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 		_mc->sc_pc = (ptrint) asm_throw_and_handle_exception;
 
 	} else {
-		faultaddr += (long) ((instr << 16) >> 16);
+		addr += (long) ((instr << 16) >> 16);
 
-		printf("faulting address: 0x%016lx\n", faultaddr);
-		assert(0);
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "faulting address: 0x%016lx\n", addr);
 	}
 }
 
 
+#if 0
 #if defined(__OSF__)
-
 void init_exceptions(void)
 {
 
@@ -113,8 +100,6 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 void init_exceptions(void)
 {
-	struct sigaction act;
-
 	/* initialize floating point control */
 
 	ieee_set_fp_control(ieee_get_fp_control()
@@ -123,22 +108,8 @@ void init_exceptions(void)
 /*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
 						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
-
-	/* install signal handlers we need to convert to exceptions */
-
-	if (!checknull) {
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-
-#if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
 }
+#endif
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
