@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2792 2005-06-22 22:07:33Z edwin $
+   $Id: typeinfo.c 2803 2005-06-23 13:19:41Z twisti $
 
 */
 
@@ -86,9 +86,9 @@
 typevector *
 typevectorset_copy(typevector *src,int k,int size)
 {
-	TYPEINFO_ASSERT(src);
-	
 	typevector *dst = DNEW_TYPEVECTOR(size);
+	
+	TYPEINFO_ASSERT(src);
 	
 	memcpy(dst,src,TYPEVECTOR_SIZE(size));
 	dst->k = k;
