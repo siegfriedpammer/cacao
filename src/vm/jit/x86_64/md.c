@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2742 2005-06-20 09:58:48Z twisti $
+   $Id: md.c 2797 2005-06-23 09:51:32Z twisti $
 
 */
 
@@ -46,31 +46,19 @@
 #include "vm/jit/asmpart.h"
 
 
-/* catch_NullPointerException **************************************************
+/* signal_handler_sigsegv ******************************************************
 
    NullPointerException signal handler for hardware null pointer check.
 
 *******************************************************************************/
 
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t       *_uc;
-	mcontext_t       *_mc;
-	struct sigaction  act;
-	sigset_t          nsig;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
-
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
-	
-	act.sa_sigaction = catch_NullPointerException;       /* reinstall handler */
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);
-	
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
 
 	_mc->gregs[REG_RAX] = (ptrint) string_java_lang_NullPointerException;
 	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];           /* REG_ITMP2_XPC     */
@@ -78,100 +66,23 @@ void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-/* catch_ArithmeticException ***************************************************
+/* signal_handler_sigfpe *******************************************************
 
    ArithmeticException signal handler for hardware divide by zero check.
 
 *******************************************************************************/
 
-void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t       *_uc;
-	mcontext_t       *_mc;
-	struct sigaction  act;
-	sigset_t          nsig;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
-
-	act.sa_sigaction = catch_ArithmeticException;        /* reinstall handler */
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);
-
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
-
 	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];           /* REG_ITMP2_XPC     */
 	_mc->gregs[REG_RIP] =
 		(ptrint) asm_throw_and_handle_hardware_arithmetic_exception;
-}
-
-
-/* handler_signal_quit *********************************************************
-
-   XXX
-
-*******************************************************************************/
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void handler_signal_quit(int sig, siginfo_t *siginfo, void *_p)
-{
-	struct sigaction  act;
-	sigset_t          nsig;
-
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
-
-	act.sa_sigaction = handler_signal_quit;              /* reinstall handler */
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);
-
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
-
-	/* do thread dump */
-
-	thread_dump();
-}
-#endif
-
-
-void init_exceptions(void)
-{
-	struct sigaction act;
-
-	/* install signal handlers we need to convert to exceptions */
-
-	sigemptyset(&act.sa_mask);
-
-	if (!checknull) {
-#if defined(SIGSEGV)
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
-
-	act.sa_sigaction = catch_ArithmeticException;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(SIGFPE, &act, NULL);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	/* catch SIGQUIT for thread dump */
-
-	act.sa_sigaction = handler_signal_quit;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(SIGQUIT, &act, NULL);
-#endif
 }
 
 
