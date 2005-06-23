@@ -28,13 +28,13 @@
 
    Changes:
 
-   $Id: md.c 2684 2005-06-14 17:23:36Z twisti $
+   $Id: md.c 2808 2005-06-23 13:53:13Z twisti $
 
 */
 
 
-#include <assert.h>
-#include <mach/message.h>
+#include <signal.h>
+#include <ucontext.h>
 
 #include "config.h"
 
@@ -43,11 +43,11 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
+#if 0
 /* cacao_catch_Handler *********************************************************
 
    XXX
@@ -109,17 +109,42 @@ int cacao_catch_Handler(mach_port_t thread)
 
 	return 0;
 }
+#endif
 
 
-/* init_exceptions *************************************************************
-
-   Initialize signals for hardware exception checks.
-
-*******************************************************************************/
-
-void init_exceptions(void)
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	GC_dirty_init(1);
+	ucontext_t         *uc;
+	mcontext_t          mc;
+	ppc_thread_state_t *ss;
+	ptrint             *gregs;
+	u4                  instr;
+	s4                  reg;
+	ptrint              addr;
+
+	uc = (ucontext_t *) _p;
+	mc = uc->uc_mcontext;
+	ss = &mc->ss;
+
+	/* check for NullPointerException */
+
+	gregs = &ss->r0;
+
+	instr = *((u4 *) ss->srr0);
+	reg = (instr >> 16) & 31;
+	addr = gregs[reg];
+
+	if (addr == NULL) {
+		/* set the REG_ITMP1_XPTR, REG_ITMP2_XPC and new PC */
+
+		ss->r11 = (ptrint) new_nullpointerexception();
+		ss->r12 = ss->srr0;
+		ss->srr0 = (ptrint) asm_handle_exception;
+
+	} else {
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+					   "Segmentation fault at 0x%08lx", addr);
+	}
 }
 
 
