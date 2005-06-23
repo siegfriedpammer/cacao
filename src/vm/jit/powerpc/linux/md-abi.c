@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: md-abi.c 2554 2005-06-06 14:48:21Z twisti $
+   $Id: md-abi.c 2813 2005-06-23 14:30:44Z christian $
 
 */
 
@@ -45,7 +45,18 @@
 
 /* md_param_alloc **************************************************************
 
-   XXX
+ Allocate Arguments to Stackslots according the Calling Conventions
+
+--- in
+md->paramcount:           Number of arguments for this method
+md->paramtypes[].type:    Argument types
+
+--- out
+md->params[].inmemory:    Argument spilled on stack
+md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
+md->memuse:               Stackslots needed for argument spilling
+md->argintreguse:         max number of integer arguments used
+md->argfltreguse:         max number of float arguments used
 
 *******************************************************************************/
 
@@ -91,7 +102,8 @@ void md_param_alloc(methoddesc *md)
 				_ALIGN(stacksize);
 			if (iarg < INT_ARG_CNT - 1) {
 				pd->inmemory = false;
-				pd->regoff = iarg;
+				                             /* rd->arg[int|flt]regs index !! */
+				pd->regoff = PACK_REGS(iarg + 1, iarg); 
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
