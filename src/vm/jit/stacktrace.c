@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2768 2005-06-21 15:51:39Z twisti $
+   $Id: stacktrace.c 2799 2005-06-23 09:54:26Z twisti $
 
 */
 
@@ -555,6 +555,71 @@ java_objectarray *cacao_getStackForVMAccessController()
 	java_objectarray *result=0;
 	cacao_stacktrace_fillInStackTrace((void**)&result,&getStackCollector);
 	return result;
+}
+
+
+/* stacktrace_dump_trace *******************************************************
+
+   This method is call from signal_handler_sigusr1 to dump the
+   stacktrace of the current thread to stdout.
+
+*******************************************************************************/
+
+void stacktrace_dump_trace(void)
+{
+	stackTraceBuffer      *buffer;
+	stacktraceelement     *element;
+	methodinfo            *m;
+	s4                     i;
+
+#if 0
+	/* get thread stackframeinfo */
+
+	info = &THREADINFO->_stackframeinfo;
+
+	/* fill stackframeinfo structure */
+
+	tmp.oldThreadspecificHeadValue = *info;
+	tmp.addressOfThreadspecificHead = info;
+	tmp.method = NULL;
+	tmp.beginOfJavaStackframe = NULL;
+	tmp.returnToFromNative = _mc->gregs[REG_RIP];
+
+	*info = &tmp;
+#endif
+
+	/* generate stacktrace */
+
+	cacao_stacktrace_NormalTrace((void **) &buffer);
+
+	/* print stacktrace */
+
+	if (buffer) {
+		element = buffer->start;
+
+		for (i = 0; i < buffer->size; i++, element++) {
+			m = element->method;
+
+			printf("\tat ");
+			utf_display_classname(m->class->name);
+			printf(".");
+			utf_display(m->name);
+			utf_display(m->descriptor);
+
+			if (m->flags & ACC_NATIVE) {
+				printf("(Native Method)\n");
+
+			} else {
+				printf("(");
+				utf_display(m->class->sourcefile);
+				printf(":%d)\n", (u4) element->linenumber);
+			}
+		}
+	}
+
+	/* flush stdout */
+
+	fflush(stdout);
 }
 
 
