@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2564 2005-06-06 15:24:15Z twisti $
+   $Id: asmpart.S 2806 2005-06-23 13:51:06Z twisti $
 
 */
 
@@ -60,7 +60,6 @@
 
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
-	.globl asm_handle_nullptr_exception
 
 	.globl asm_wrapper_patcher
 
@@ -352,7 +351,7 @@ asm_call_jit_compiler:
 	stw     r31,-4(r1)
 	stw     r29,-12(r1)
 	stw     itmp1,LA_LR_OFFSET(r1)
-	stwu    r1,-176(r1)
+	stwu    r1,-(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)(r1)
 	mr      r31,pv
 
 	lwz     itmp3,-12(itmp1)
@@ -372,9 +371,10 @@ asm_call_jit_compiler:
 	add     mptr,mptr,itmp3
 		
 noregchange:
-	lwz     itmp1,168(r1)
+	lwz     itmp1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
 	mr      r29,mptr
 
+#if 1
 	stw     a0,28(r1)
 	stw     a1,32(r1)
 	stw     a2,36(r1)
@@ -398,6 +398,9 @@ noregchange:
 	stfd    fa12,152(r1)
 
 	stw     r10,160(r1)
+#else
+	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE + 1)
+#endif
 
 	lwz     r3,0(itmp1)
 	bl      jit_compile
@@ -405,6 +408,7 @@ noregchange:
 
 	mr      mptr,r29
 
+#if 1
 	lwz     a0,28(r1)
 	lwz     a1,32(r1)
 	lwz     a2,36(r1)
@@ -428,8 +432,11 @@ noregchange:
 	lfd     fa12,152(r1)
 
 	lwz     r10,160(r1)
+#else
+	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE + 1)
+#endif
 
-	lwz     itmp1,176+LA_LR_OFFSET(r1)
+	lwz     itmp1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+LA_LR_OFFSET(r1)
 	lwz     itmp3,-12(itmp1)
 	extsh   itmp3,itmp3
 	add     mptr,mptr,itmp3
@@ -437,30 +444,13 @@ noregchange:
 
 	mtctr   pv
 
-	lwz     r0,176+LA_LR_OFFSET(r1)
+	lwz     r0,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+LA_LR_OFFSET(r1)
 	mtlr    r0
-	addi    r1,r1,176
+	addi    r1,r1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
 	lwz     r29,-12(r1)
 /*	lwz     pv,-8(r1)*/
 	lwz     r31,-4(r1)
 	bctr
-
-
-/***************** function asm_handle_nullptr_exception ***********************
-*                                                                              *
-*   This behaves the same as asm_handle_exception but calls                    *
-*   new_nullpointerexception first                                             *
-*                                                                              *
-*******************************************************************************/
-		
-asm_handle_nullptr_exception:
-	stwu    r1,-(LA_SIZE+1*4)(r1)
-	stw     xpc,24(r1)
-	bl      new_nullpointerexception
-	lwz     xpc,24(r1)
-	addi    r1,r1,(LA_SIZE+1*4)
-	mr      xptr,r3
-	b		asm_handle_exception
 
 
 /********************* function asm_handle_exception ***************************
