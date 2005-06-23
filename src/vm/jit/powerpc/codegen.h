@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 2811 2005-06-23 14:19:18Z christian $
+   $Id: codegen.h 2814 2005-06-23 14:49:51Z christian $
 
 */
 
@@ -123,12 +123,12 @@
 */
 
 #define var_to_reg_int(regnr,v,tempnr) \
-	do { \						   \
+	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
 			M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
 			regnr = tempnr; \
-			if (IS_2_WORD_TYPE((v)->type)) {	\
+			if (IS_2_WORD_TYPE((v)->type)) { \
 				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
 				M_ILD(GET_LOW_REG((tempnr)), REG_SP, 4 * (v)->regoff + 4); \
 			} else \
@@ -136,7 +136,7 @@
 		} else { \
 				regnr = (v)->regoff; \
 		} \
-	} while(0) \
+	} while(0)
 
 
 /* fetch only the low part of v, regnr hast to be a single register */
@@ -149,7 +149,7 @@
 		} else { \
 			regnr = GET_LOW_REG((v)->regoff); \
 		} \
-	} while(0) \
+	} while(0)
 
 
 /* fetch only the high part of v, regnr hast to be a single register */
@@ -162,7 +162,7 @@
 		} else { \
 			regnr = GET_HIGH_REG((v)->regoff); \
 		} \
-	} while(0) \
+	} while(0)
 
 
 
