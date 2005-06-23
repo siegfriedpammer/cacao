@@ -28,86 +28,51 @@
 
    Changes:
 
-   $Id: md.c 2688 2005-06-14 17:39:59Z twisti $
+   $Id: md.c 2816 2005-06-23 15:21:02Z twisti $
 
 */
 
 
-#include <stdlib.h>
-#include <signal.h>
 #include <ucontext.h>
 
 #include "vm/jit/powerpc/types.h"
 #include "vm/jit/powerpc/linux/md-abi.h"
 
 #include "vm/exceptions.h"
-#include "vm/global.h"
-#include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
-/* catch_NullPointerException **************************************************
+/* signal_handle_sigsegv *******************************************************
 
    NullPointerException signal handler for hardware null pointer check.
 
 *******************************************************************************/
 
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t       *uc;
-	mcontext_t       *mc;
-	struct sigaction  act;
-	sigset_t          nsig;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u4          instr;
+	s4          reg;
+	ptrint      addr;
 
-	java_objectheader *xptr;
+ 	_uc = (ucontext_t *) _p;
+ 	_mc = _uc->uc_mcontext.uc_regs;
 
- 	uc = (ucontext_t *) _p;
- 	mc = uc->uc_mcontext.uc_regs;
+	instr = *((u4 *) _mc->gregs[PT_NIP]);
+	reg = (instr >> 16) & 0x1f;
+	addr = _mc->gregs[reg];
 
-	act.sa_sigaction = catch_NullPointerException;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);
+	if (addr == 0) {
+		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) new_nullpointerexception();
+		_mc->gregs[REG_ITMP2_XPC] = _mc->gregs[PT_NIP];
+		_mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
 
-	xptr = new_nullpointerexception();
-
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
-
-	mc->gregs[REG_ITMP1_XPTR] = (ptrint) xptr;
-	mc->gregs[REG_ITMP2_XPC] = mc->gregs[PT_NIP];
-	mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
-}
-
-
-/* init_exceptions *************************************************************
-
-   Installs the OS dependent signal handlers.
-
-*******************************************************************************/
-
-void init_exceptions(void)
-{
-	struct sigaction act;
-
-	GC_dirty_init(1);
-
-	/* install signal handlers we need to convert to exceptions */
-
-	sigemptyset(&act.sa_mask);
-
-	if (!checknull) {
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-
-#if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
+	} else {
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Segmentation fault at 0x%08lx", addr);
+	}		
 }
 
 
