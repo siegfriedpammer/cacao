@@ -32,14 +32,14 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 2495 2005-05-22 19:49:53Z twisti $
+   $Id: loop.c 2793 2005-06-23 09:30:04Z twisti $
 
 */
 
 
 #include <assert.h>
 /*  #include <stdio.h> */
-/*  #include <stdlib.h> */
+#include <stdlib.h>
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
