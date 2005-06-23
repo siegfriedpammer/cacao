@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 1976 2005-03-03 11:25:06Z twisti $
+   $Id: disass.c 2807 2005-06-23 13:51:33Z twisti $
 
 */
 
@@ -103,7 +103,7 @@ void perror_memory(int status, bfd_vma memaddr, struct disassemble_info *info)
 void generic_print_address(bfd_vma addr, struct disassemble_info *info)
 {
 /*  	myprintf(NULL, "0x%x", addr - (u4) info->application_data); */
-	myprintf(NULL, "0x08%x", addr);
+	myprintf(NULL, "0x%08x", addr);
 }
 
 
