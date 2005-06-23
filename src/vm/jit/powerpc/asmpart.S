@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2806 2005-06-23 13:51:06Z twisti $
+   $Id: asmpart.S 2817 2005-06-23 15:22:01Z twisti $
 
 */
 
@@ -374,7 +374,7 @@ noregchange:
 	lwz     itmp1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
 	mr      r29,mptr
 
-#if 1
+#if defined(__DARWIN__)
 	stw     a0,28(r1)
 	stw     a1,32(r1)
 	stw     a2,36(r1)
@@ -382,22 +382,21 @@ noregchange:
 	stw     a4,44(r1)
 	stw     a5,48(r1)
 	stw     a6,52(r1)
+	stw     a7,56(r1)
 
-	stfd    fa0,56(r1)
-	stfd    fa1,64(r1)
-	stfd    fa2,72(r1)
-	stfd    fa3,80(r1)
-	stfd    fa4,88(r1)
-	stfd    fa5,96(r1)
-	stfd    fa6,104(r1)
-	stfd    fa7,112(r1)
-	stfd    fa8,120(r1)
-	stfd    fa9,128(r1)
-	stfd    fa10,136(r1)
-	stfd    fa11,144(r1)
-	stfd    fa12,152(r1)
-
-	stw     r10,160(r1)
+	stfd    fa0,60(r1)
+	stfd    fa1,68(r1)
+	stfd    fa2,76(r1)
+	stfd    fa3,84(r1)
+	stfd    fa4,92(r1)
+	stfd    fa5,100(r1)
+	stfd    fa6,108(r1)
+	stfd    fa7,116(r1)
+	stfd    fa8,124(r1)
+	stfd    fa9,132(r1)
+	stfd    fa10,140(r1)
+	stfd    fa11,148(r1)
+	stfd    fa12,156(r1)
 #else
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE + 1)
 #endif
@@ -408,7 +407,7 @@ noregchange:
 
 	mr      mptr,r29
 
-#if 1
+#if defined(__DARWIN__)
 	lwz     a0,28(r1)
 	lwz     a1,32(r1)
 	lwz     a2,36(r1)
@@ -416,22 +415,21 @@ noregchange:
 	lwz     a4,44(r1)
 	lwz     a5,48(r1)
 	lwz     a6,52(r1)
+	lwz     a7,56(r1)
 
-	lfd     fa0,56(r1)
-	lfd     fa1,64(r1)
-	lfd     fa2,72(r1)
-	lfd     fa3,80(r1)
-	lfd     fa4,88(r1)
-	lfd     fa5,96(r1)
-	lfd     fa6,104(r1)
-	lfd     fa7,112(r1)
-	lfd     fa8,120(r1)
-	lfd     fa9,128(r1)
-	lfd     fa10,136(r1)
-	lfd     fa11,144(r1)
-	lfd     fa12,152(r1)
-
-	lwz     r10,160(r1)
+	lfd     fa0,60(r1)
+	lfd     fa1,68(r1)
+	lfd     fa2,76(r1)
+	lfd     fa3,84(r1)
+	lfd     fa4,92(r1)
+	lfd     fa5,100(r1)
+	lfd     fa6,108(r1)
+	lfd     fa7,116(r1)
+	lfd     fa8,124(r1)
+	lfd     fa9,132(r1)
+	lfd     fa10,140(r1)
+	lfd     fa11,148(r1)
+	lfd     fa12,156(r1)
 #else
 	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE + 1)
 #endif
