@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: parse.c 2805 2005-06-23 13:50:00Z twisti $
 
 */
 
@@ -1033,15 +1033,16 @@ SHOWOPCODE(DEBUG4)
 						return NULL;
 
 					iptr->val.a = fi;
+
+#if defined(__MIPS__) || defined(__POWERPC__)
+					if (!fi || !fi->class->initialized)
+						inline_env->method->isleafmethod = false;
+#endif
 				}
 				else {
 					iptr->val.a = NULL;
 				}
 				PINC;
-#if defined(__MIPS__) || defined(__POWERPC__)
-				if (!fi || !fi->class->initialized)
-					inline_env->method->isleafmethod = false;
-#endif
 			}
 			break;
 
