@@ -2084,7 +2084,7 @@ GC_bool GC_dirty_maintained = FALSE;
 /* written.								*/
 
 /* Initialize virtual dirty bit implementation.			*/
-void GC_dirty_init(int gc_external)
+void GC_dirty_init()
 {
 #   ifdef PRINTSTATS
       GC_printf0("Initializing DEFAULT_VDB...\n");
@@ -2668,7 +2668,7 @@ GC_bool is_ptrfree;
 }
 
 #if !defined(DARWIN)
-void GC_dirty_init(int gc_external)
+void GC_dirty_init()
 {
 #   if defined(SUNOS5SIGS) || defined(IRIX5) || defined(LINUX) || \
        defined(OSF1) || defined(HURD)
@@ -3086,7 +3086,7 @@ page_hash_table pht1, pht2;
 
 int GC_proc_fd;
 
-void GC_dirty_init(int gc_external)
+void GC_dirty_init()
 {
     int fd;
     char buf[30];
@@ -3294,7 +3294,7 @@ PCR_VD_DB  GC_grungy_bits[NPAGES];
 ptr_t GC_vd_base;	/* Address corresponding to GC_grungy_bits[0]	*/
 			/* HBLKSIZE aligned.				*/
 
-void GC_dirty_init(int gc_external)
+void GC_dirty_init()
 {
     GC_dirty_maintained = TRUE;
     /* For the time being, we assume the heap generally grows up */
@@ -3507,9 +3507,7 @@ static void *GC_mprotect_thread(void *arg) {
 
     mach_msg_id_t id;
 
-#if defined(GC_DARWIN_THREADS)
     GC_darwin_register_mach_handler_thread(mach_thread_self());
-#endif
     
     for(;;) {
         r = mach_msg(
@@ -3614,14 +3612,13 @@ static void GC_darwin_sigbus(int num,siginfo_t *sip,void *context) {
 }
 #endif /* BROKEN_EXCEPTION_HANDLING */
 
-void GC_dirty_init(int gc_external) {
+void GC_dirty_init() {
     kern_return_t r;
     mach_port_t me;
     pthread_t thread;
     pthread_attr_t attr;
     exception_mask_t mask;
     
-	if (!gc_external) {
 #   ifdef PRINTSTATS
         GC_printf0("Inititalizing mach/darwin mprotect virtual dirty bit "
             "implementation\n");
@@ -3635,8 +3632,6 @@ void GC_dirty_init(int gc_external) {
         GC_err_printf0("Page size not multiple of HBLKSIZE\n");
         ABORT("Page size not multiple of HBLKSIZE");
     }
-
-	} else {
     
     GC_task_self = me = mach_task_self();
     
@@ -3702,7 +3697,6 @@ void GC_dirty_init(int gc_external) {
         }
     }
     #endif /* BROKEN_EXCEPTION_HANDLING  */
-	}
 }
  
 /* The source code for Apple's GDB was used as a reference for the exception
@@ -3850,9 +3844,7 @@ catch_exception_raise(
         #else /* BROKEN_EXCEPTION_HANDLING */
             /* Pass it along to the next exception handler 
                (which should call SIGBUS/SIGSEGV) */
-			if (cacao_catch_Handler(thread))
-				return KERN_SUCCESS;
-			return FWD();
+            return FWD();
         #endif /* !BROKEN_EXCEPTION_HANDLING */
     }
 

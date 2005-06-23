@@ -669,7 +669,7 @@ void GC_init_inner()
 #   endif
 #   ifdef GC_SOLARIS_THREADS
 	/* We need dirty bits in order to find live stack sections.	*/
-        GC_dirty_init(0);
+        GC_dirty_init();
 #   endif
 #   if !defined(THREADS) || defined(GC_PTHREADS) || defined(GC_WIN32_THREADS) \
 	|| defined(GC_SOLARIS_THREADS)
@@ -772,7 +772,7 @@ void GC_init_inner()
 	GC_ASSERT(!GC_incremental);
         GC_setpagesize();
 #       ifndef GC_SOLARIS_THREADS
-          GC_dirty_init(0);
+          GC_dirty_init();
 #       endif
         GC_ASSERT(GC_words_allocd == 0)
     	GC_incremental = TRUE;
@@ -816,7 +816,7 @@ void GC_enable_incremental GC_PROTO(())
     if (GC_no_win32_dlls) goto out;
 #   ifndef GC_SOLARIS_THREADS 
       maybe_install_looping_handler();  /* Before write fault handler! */
-      GC_dirty_init(0);
+      GC_dirty_init();
 #   endif
     if (!GC_is_initialized) {
         GC_init_inner();
