@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2803 2005-06-23 13:19:41Z twisti $
+   $Id: typeinfo.c 2810 2005-06-23 14:03:24Z edwin $
 
 */
 
@@ -42,11 +42,13 @@
 #include "vm/jit/verify/typeinfo.h"
 #include "vm/descriptor.h"
 #include "vm/resolve.h"
+#include "vm/exceptions.h"
 
 
 /* check if a linked class is an array class. Only use for linked classes! */
 #define CLASSINFO_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
 
+/* check if a linked class implements the interface with the given index */
 #define CLASSINFO_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
       && (VFTBLINTERFACETABLE((cls)->vftbl,(index)) != NULL) )
@@ -86,10 +88,11 @@
 typevector *
 typevectorset_copy(typevector *src,int k,int size)
 {
-	typevector *dst = DNEW_TYPEVECTOR(size);
+	typevector *dst;
 	
 	TYPEINFO_ASSERT(src);
 	
+	dst = DNEW_TYPEVECTOR(size);
 	memcpy(dst,src,TYPEVECTOR_SIZE(size));
 	dst->k = k;
 	if (src->alt)
@@ -179,6 +182,7 @@ typevectorset_checkretaddr(typevector *vec,int index)
    copy the result to a destination typeinfo.
   
    IN:
+       m................method for exception messages
 	   vec..............typevector set, must be != NULL
 	   index............index of component to merge
 
@@ -187,12 +191,13 @@ typevectorset_checkretaddr(typevector *vec,int index)
 
    RETURN VALUE:
        the TYPE_* constant of the resulting type
-	   TYPE_VOID if incompatible types were contained at INDEX in VEC
+	   TYPE_VOID if incompatible types were contained at INDEX in VEC, or
+	   -1...............an exception has been thrown
 
 *******************************************************************************/
 
 int
-typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
+typevectorset_copymergedtype(methodinfo *m,typevector *vec,int index,typeinfo *dst)
 {
 	int type;
 	typedescriptor *td;
@@ -219,7 +224,8 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 					return TYPE_VOID;
 				/* there cannot be any merge errors now. In the worst case */
 				/* we either get a returnAddress type or a j.l.O reference */
-				typeinfo_merge(dst,&(td->info));
+				if (typeinfo_merge(m,dst,&(td->info)) == typecheck_FAIL)
+					return -1;
 			}
 		}
 	}
@@ -232,6 +238,7 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
    of a set.
   
    IN:
+   	   m................method for exception messages
 	   vec..............typevector set, must be != NULL
 	   index............index of component to merge
 	   temp.............pointer to a typeinfo that may be used to merge the
@@ -243,7 +250,8 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 
    RETURN VALUE:
        the TYPE_* constant of the resulting type
-	   TYPE_VOID if incompatible types were contained at INDEX in VEC
+	   TYPE_VOID if incompatible types were contained at INDEX in VEC, or
+	   -1...............an exception has been thrown
 
    NOTE:
        This function should be more efficient than typevectorset_copymergedtype
@@ -252,7 +260,7 @@ typevectorset_copymergedtype(typevector *vec,int index,typeinfo *dst)
 *******************************************************************************/
 
 int
-typevectorset_mergedtype(typevector *vec,int index,typeinfo *temp,typeinfo **result)
+typevectorset_mergedtype(methodinfo *m,typevector *vec,int index,typeinfo *temp,typeinfo **result)
 {
 	TYPEINFO_ASSERT(vec);
 	TYPEINFO_ASSERT(temp);
@@ -260,36 +268,11 @@ typevectorset_mergedtype(typevector *vec,int index,typeinfo *temp,typeinfo **res
 	
 	if (vec->alt) {
 		*result = temp;
-		return typevectorset_copymergedtype(vec,index,temp);
+		return typevectorset_copymergedtype(m,vec,index,temp);
 	}
 
 	*result = &(vec->td[index].info);
 	return vec->td[index].type;
-}
-
-/* typevectorset_mergedtypeinfo ************************************************
- 
-   This is a convenience wrapper around typevectorset_mergedtype. Use this if
-   you are only interested in TYPE_ADR results.
-  
-   IN:
-	   vec..............typevector set, must be != NULL
-	   index............index of component to merge
-	   temp.............pointer to a typeinfo that may be used to merge the
-	                    result if necessary
-
-   RETURN VALUE:
-       a pointer to the resulting typeinfo, or
-	   NULL if the result is not a TYPE_ADR type
-
-*******************************************************************************/
-
-typeinfo *
-typevectorset_mergedtypeinfo(typevector *vec,int index,typeinfo *temp)
-{
-	typeinfo *result;
-	int type = typevectorset_mergedtype(vec,index,temp,&result);
-	return (type == TYPE_ADDRESS) ? result : NULL;
 }
 
 /* typevectorset_store *********************************************************
@@ -446,6 +429,7 @@ typevectorset_init_object(typevector *set,void *ins,
    The given typevectors must have the same number of components.
   
    IN:
+       m................method for exception messages
 	   dst..............the first typevector
 	   y................the second typevector
 	   size.............number of elements per typevector
@@ -454,15 +438,17 @@ typevectorset_init_object(typevector *set,void *ins,
        *dst.............the resulting typevector
 
    RETURN VALUE:
-       true.............dst has been modified
-	   false............dst has not been modified
+       typecheck_TRUE...dst has been modified
+	   typecheck_FALSE..dst has not been modified
+	   typecheck_FAIL...an exception has been thrown
 
 *******************************************************************************/
 
-bool
-typevector_merge(typevector *dst,typevector *y,int size)
+typecheck_result
+typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size)
 {
 	bool changed = false;
+	typecheck_result r;
 	
 	typedescriptor *a = dst->td;
 	typedescriptor *b = y->td;
@@ -491,7 +477,10 @@ typevector_merge(typevector *dst,typevector *y,int size)
 				else {
 					/* two reference types are merged. There cannot be */
 					/* a merge error. In the worst case we get j.l.O.  */
-					changed |= typeinfo_merge(&(a->info),&(b->info));
+					r = typeinfo_merge(m,&(a->info),&(b->info));
+					if (r == typecheck_FAIL)
+						return r;
+					changed |= r;
 				}
 			}
 		}
@@ -663,20 +652,22 @@ typevectorset_separable_with(typevector *set,typevector *add,int size)
        *dst.............the resulting typevector set (a single typevector)
 
    RETURN VALUE:
-       true.............dst has been modified
-	   false............dst has not been modified
+       typecheck_TRUE...dst has been modified
+	   typecheck_FALSE..dst has not been modified
+	   typecheck_FAIL...an exception has been thrown
 
 *******************************************************************************/
 
-bool
-typevectorset_collapse(typevector *dst,int size)
+typecheck_result
+typevectorset_collapse(methodinfo *m,typevector *dst,int size)
 {
 	bool changed = false;
 
 	TYPEINFO_ASSERT(dst);
 	
 	while (dst->alt) {
-		typevector_merge(dst,dst->alt,size);
+		if (typevector_merge(m,dst,dst->alt,size) == typecheck_FAIL)
+			return typecheck_FAIL;
 		dst->alt = dst->alt->alt;
 		changed = true;
 	}
@@ -709,6 +700,20 @@ typeinfo_is_array_of_refs(typeinfo *info)
     return TYPEINFO_IS_ARRAY_OF_REFS(*info);
 }
 
+/* interface_extends_interface *************************************************
+ 
+   Check if a resolved interface extends a given resolved interface.
+   
+   IN:
+	   cls..............the interface, must be linked
+	   interf...........the interface to check against
+
+   RETURN VALUE:
+       true.............CLS extends INTERF
+	   false............CLS does not extend INTERF
+
+*******************************************************************************/
+
 static bool
 interface_extends_interface(classinfo *cls,classinfo *interf)
 {
@@ -735,7 +740,22 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
     return false;
 }
 
-static bool
+/* classinfo_implements_interface **********************************************
+ 
+   Check if a resolved class implements a given resolved interface.
+   
+   IN:
+	   cls..............the class
+	   interf...........the interface
+
+   RETURN VALUE:
+       typecheck_TRUE...CLS implements INTERF
+	   typecheck_FALSE..CLS does not implement INTERF
+	   typecheck_FAIL...an exception has been thrown
+
+*******************************************************************************/
+
+static typecheck_result
 classinfo_implements_interface(classinfo *cls,classinfo *interf)
 {
 	TYPEINFO_ASSERT(cls);
@@ -743,34 +763,55 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 
 	if (!cls->linked)
-		if (!link_class(cls)) /* XXX */
-			return false;
+		if (!link_class(cls))
+			return typecheck_FAIL;
 
     if (cls->flags & ACC_INTERFACE) {
         /* cls is an interface */
         if (cls == interf)
-            return true;
+            return typecheck_TRUE;
 
         /* check superinterfaces */
         return interface_extends_interface(cls,interf);
     }
 
+	TYPEINFO_ASSERT(cls->linked);
     return CLASSINFO_IMPLEMENTS_INTERFACE(cls,interf->index);
 }
 
-tristate_t 
+/* mergedlist_implements_interface *********************************************
+ 
+   Check if all the classes in a given merged list implement a given resolved
+   interface.
+   
+   IN:
+	   merged...........the list of merged class types
+	   interf...........the interface to check against
+
+   RETURN VALUE:
+       typecheck_TRUE...all classes implement INTERF
+	   typecheck_FALSE..there is at least one class that does not implement
+	                    INTERF
+	   typecheck_MAYBE..check cannot be performed now because of unresolved
+	                    classes
+	   typecheck_FAIL...an exception has been thrown
+
+*******************************************************************************/
+
+static typecheck_result
 mergedlist_implements_interface(typeinfo_mergedlist *merged,
                                 classinfo *interf)
 {
     int i;
     classref_or_classinfo *mlist;
+	typecheck_result r;
     
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 
     /* Check if there is an non-empty mergedlist. */
     if (!merged)
-        return false;
+        return typecheck_FALSE;
 
     /* If all classinfos in the (non-empty) merged array implement the
      * interface return true, otherwise false.
@@ -779,45 +820,77 @@ mergedlist_implements_interface(typeinfo_mergedlist *merged,
     i = merged->count;
     while (i--) {
 		if (IS_CLASSREF(*mlist)) {
-			return MAYBE;
+			return typecheck_MAYBE;
 		}
-        if (!classinfo_implements_interface((mlist++)->cls,interf))
-            return false;
+        r = classinfo_implements_interface((mlist++)->cls,interf);
+        if (r != typecheck_TRUE)
+			return r;
     }
-    return true;
+    return typecheck_TRUE;
 }
 
-tristate_t
+/* merged_implements_interface *************************************************
+ 
+   Check if a possible merged type implements a given resolved interface
+   interface.
+   
+   IN:
+       typeclass........(common) class of the (merged) type
+	   merged...........the list of merged class types
+	   interf...........the interface to check against
+
+   RETURN VALUE:
+       typecheck_TRUE...the type implement INTERF
+	   typecheck_FALSE..the type does not implement INTERF
+	   typecheck_MAYBE..check cannot be performed now because of unresolved
+	                    classes
+	   typecheck_FAIL...an exception has been thrown
+
+*******************************************************************************/
+
+static typecheck_result
 merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
                             classinfo *interf)
 {
+	typecheck_result r;
+	
     /* primitive types don't support interfaces. */
     if (!typeclass)
-        return false;
+        return typecheck_FALSE;
 
     /* the null type can be cast to any interface type. */
     if (typeclass == pseudo_class_Null)
-        return true;
+        return typecheck_TRUE;
 
     /* check if typeclass implements the interface. */
-    if (classinfo_implements_interface(typeclass,interf))
-        return true;
+    r = classinfo_implements_interface(typeclass,interf);
+	if (r != typecheck_FALSE)
+        return r;
 
     /* check the mergedlist */
-    return (merged && mergedlist_implements_interface(merged,interf));
+	if (!merged)
+		return typecheck_FALSE;
+    return mergedlist_implements_interface(merged,interf);
 }
 
-tristate_t
-typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
-{
-	TYPEINFO_ASSERT(value);
-	TYPEINFO_ASSERT(dest);
-	TYPEINFO_ASSERT(dest->merged == NULL);
+/* typeinfo_is_assignable_to_class *********************************************
+ 
+   Check if a type is assignable to a given class type.
+   
+   IN:
+       value............the type of the value
+	   dest.............the type of the destination
 
-	return typeinfo_is_assignable_to_class(value,dest->typeclass);
-}
+   RETURN VALUE:
+       typecheck_TRUE...the type is assignable
+	   typecheck_FALSE..the type is not assignable
+	   typecheck_MAYBE..check cannot be performed now because of unresolved
+	                    classes
+	   typecheck_FAIL...an exception has been thrown
 
-tristate_t
+*******************************************************************************/
+
+typecheck_result
 typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 {
 	classref_or_classinfo c;
@@ -830,19 +903,19 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
     /* assignments of primitive values are not checked here. */
     if (!c.any && !dest.any)
-        return true;
+        return typecheck_TRUE;
 
     /* primitive and reference types are not assignment compatible. */
     if (!c.any || !dest.any)
-        return false;
+        return typecheck_FALSE;
 
     /* the null type can be assigned to any type */
     if (TYPEINFO_IS_NULLTYPE(*value))
-        return true;
+        return typecheck_TRUE;
 
     /* uninitialized objects are not assignable */
     if (TYPEINFO_IS_NEWOBJECT(*value))
-        return false;
+        return typecheck_FALSE;
 
 	if (IS_CLASSREF(c)) {
 		/* The value type is an unresolved class reference. */
@@ -858,11 +931,11 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
 		/* the common case of value and dest type having the same classname */
 		if (dest.ref->name == classname && !value->merged)
-			return true;
+			return typecheck_TRUE;
 
 		/* we cannot tell if value is assignable to dest, so we */
 		/* leave it up to the resolving code to check this      */
-		return MAYBE;
+		return typecheck_MAYBE;
 	}
 
 	/* { we know that dest is a loaded class } */
@@ -872,11 +945,11 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 		
 		/* the common case of value and dest type having the same classname */
 		if (dest.cls->name == classname)
-			return true;
+			return typecheck_TRUE;
 
 		/* we cannot tell if value is assignable to dest, so we */
 		/* leave it up to the resolving code to check this      */
-		return MAYBE;
+		return typecheck_MAYBE;
 	}
 
 	/* { we know that both c and dest are loaded classes } */
@@ -891,9 +964,11 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
 	/* maybe we need to link the classes */
 	if (!cls->linked)
-		link_class(cls); /* XXX */
+		if (!link_class(cls))
+			return typecheck_FAIL;
 	if (!dest.cls->linked)
-		link_class(dest.cls); /* XXX */
+		if (!link_class(dest.cls))
+			return typecheck_FAIL;
 
 	/* { we know that both c and dest are linked classes } */
 	TYPEINFO_ASSERT(cls->linked);
@@ -912,20 +987,20 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 			
         /* We are assigning to an array type. */
         if (!TYPEINFO_IS_ARRAY(*value))
-            return false;
+            return typecheck_FALSE;
 
         /* {Both value and dest.cls are array types.} */
 
         /* value must have at least the dimension of dest.cls. */
         if (value->dimension < dimension)
-            return false;
+            return typecheck_FALSE;
 
         if (value->dimension > dimension) {
             /* value has higher dimension so we need to check
              * if its component array can be assigned to the
              * element type of dest.cls */
 
-			if (!elementclass) return false;
+			if (!elementclass) return typecheck_FALSE;
             
             if (elementclass->flags & ACC_INTERFACE) {
                 /* We are assigning to an interface type. */
@@ -940,7 +1015,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
         /* {value and dest.cls have the same dimension} */
 
         if (value->elementtype != arraydesc->elementtype)
-            return false;
+            return typecheck_FALSE;
 
         if (value->elementclass.any) {
             /* We are assigning an array of objects so we have to
@@ -959,7 +1034,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
             return class_issubclass(value->elementclass.cls,elementclass);
         }
 
-        return true;
+        return typecheck_TRUE;
     }
 
     /* {dest.cls is not an array} */
@@ -973,7 +1048,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 		int i = value->merged->count;
 		while (i--)
 			if (IS_CLASSREF(*mlist++))
-				return MAYBE;
+				return typecheck_MAYBE;
 	}
         
     /* We are assigning to a class type */
@@ -983,10 +1058,53 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
     return class_issubclass(cls,dest.cls);
 }
 
+/* typeinfo_is_assignable ******************************************************
+ 
+   Check if a type is assignable to a given type.
+   
+   IN:
+       value............the type of the value
+	   dest.............the type of the destination, must not be a merged type
+
+   RETURN VALUE:
+       typecheck_TRUE...the type is assignable
+	   typecheck_FALSE..the type is not assignable
+	   typecheck_MAYBE..check cannot be performed now because of unresolved
+	                    classes
+	   typecheck_FAIL...an exception has been thrown
+
+*******************************************************************************/
+
+typecheck_result
+typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
+{
+	TYPEINFO_ASSERT(value);
+	TYPEINFO_ASSERT(dest);
+	TYPEINFO_ASSERT(dest->merged == NULL);
+
+	return typeinfo_is_assignable_to_class(value,dest->typeclass);
+}
+
 /**********************************************************************/
 /* INITIALIZATION FUNCTIONS                                           */
 /* The following functions fill in uninitialized typeinfo structures. */
 /**********************************************************************/
+
+/* typeinfo_init_class *********************************************************
+ 
+   Initialize a typeinfo to a possibly unresolved class type.
+   
+   IN:
+	   c................the class type
+
+   OUT:
+       *info............is initialized
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
 
 bool
 typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
@@ -1090,8 +1208,8 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
     /* check arguments */
     for (i=0; i<desc->paramcount; ++i) {
 		if (++args > buflen) {
-			log_text("Buffer too small for method arguments."); /* XXX */
-			assert(0);
+			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			return false;
 		}
 
 		if (!typeinfo_init_from_typedesc(desc->paramtypes + i,typebuf++,infobuf++))
@@ -1099,8 +1217,8 @@ typeinfo_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 		
 		if (twoword && (typebuf[-1] == TYPE_LONG || typebuf[-1] == TYPE_DOUBLE)) {
 			if (++args > buflen) {
-				log_text("Buffer too small for method arguments."); /* XXX */
-				assert(0);
+				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+				return false;
 			}
 
 			*typebuf++ = TYPE_VOID;
@@ -1145,8 +1263,8 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
     /* check arguments */
     for (i=startindex; i<desc->paramcount; ++i) {
 		if (++args > buflen) {
-			log_text("Buffer too small for method arguments."); /* XXX */
-			assert(0);
+			*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+			return -1;
 		}
 
 		if (!typedescriptor_init_from_typedesc(td,desc->paramtypes + i))
@@ -1155,8 +1273,8 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 
 		if (twoword && (td[-1].type == TYPE_LONG || td[-1].type == TYPE_DOUBLE)) {
 			if (++args > buflen) {
-				log_text("Buffer too small for method arguments."); /* XXX */
-				assert(0);
+				*exceptionptr = new_internalerror("Buffer too small for method arguments.");
+				return -1;
 			}
 
 			td->type = TYPE_VOID;
@@ -1183,8 +1301,8 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
     }
     
     if (!TYPEINFO_IS_ARRAY(*srcarray)) {
-        log_text("Trying to access component of non-array"); /* XXX throw exception */
-		assert(0);
+		*exceptionptr = new_internalerror("XXX Trying to access component of non-array");
+		return false;
 	}
 
 	if (IS_CLASSREF(srcarray->typeclass)) {
@@ -1222,6 +1340,21 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 	return true;
 }
 
+/* typeinfo_clone **************************************************************
+ 
+   Create a deep copy of a typeinfo struct.
+   
+   IN:
+	   src..............the typeinfo to copy
+
+   OUT:
+       *dest............receives the copy
+
+   NOTE:
+       If src == dest this function is a nop.
+
+*******************************************************************************/
+
 void
 typeinfo_clone(typeinfo *src,typeinfo *dest)
 {
@@ -1249,6 +1382,16 @@ typeinfo_clone(typeinfo *src,typeinfo *dest)
 /* MISCELLANEOUS FUNCTIONS                                            */
 /**********************************************************************/
 
+/* typeinfo_free ***************************************************************
+ 
+   Free memory referenced by the given typeinfo. The typeinfo itself is not
+   freed.
+   
+   IN:
+       info.............the typeinfo
+
+*******************************************************************************/
+
 void
 typeinfo_free(typeinfo *info)
 {
@@ -1264,7 +1407,7 @@ typeinfo_free(typeinfo *info)
 
 static
 void
-typeinfo_merge_error(char *str,typeinfo *x,typeinfo *y) {
+typeinfo_merge_error(methodinfo *m,char *str,typeinfo *x,typeinfo *y) {
 #ifdef TYPEINFO_VERBOSE
     fprintf(stderr,"Error in typeinfo_merge: %s\n",str);
     fprintf(stderr,"Typeinfo x:\n");
@@ -1273,8 +1416,8 @@ typeinfo_merge_error(char *str,typeinfo *x,typeinfo *y) {
     typeinfo_print(stderr,y,1);
 #endif
 
-    log_text(str); /* XXX throw an exception */
-	assert(0);
+    log_text(str);
+	*exceptionptr = new_verifyerror(m,str);
 }
 
 /* Condition: clsx != clsy. */
@@ -1460,8 +1603,32 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
     return true;
 }
 
-static
-bool
+/* typeinfo_merge_nonarrays ****************************************************
+ 
+   Merge two non-array types.
+   
+   IN:
+       x................the first type
+	   y................the second type
+	   mergedx..........merged list of the first type, may be NULL
+	   mergedy..........merged list of the descond type, may be NULL
+
+   OUT:
+       *dest............receives the resulting merged list
+	   *result..........receives the resulting type
+
+   RETURN VALUE:
+       typecheck_TRUE...*dest has been modified
+	   typecheck_FALSE..*dest has not been modified
+	   typecheck_FAIL...an exception has been thrown
+
+   NOTE:
+       RESULT is an extra parameter so it can point to dest->typeclass or to
+	   dest->elementclass.
+
+*******************************************************************************/
+
+static typecheck_result
 typeinfo_merge_nonarrays(typeinfo *dest,
                          classref_or_classinfo *result,
                          classref_or_classinfo x,classref_or_classinfo y,
@@ -1472,6 +1639,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     classinfo *tcls,*common;
     typeinfo_mergedlist *tmerged;
     bool changed;
+	typecheck_result r;
 	utf *xname;
 	utf *yname;
 
@@ -1593,29 +1761,33 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
 		/* we may have to link the classes */
 		if (!x.cls->linked)
-			link_class(x.cls); /* XXX */
+			if (!link_class(x.cls))
+				return typecheck_FAIL;
 		if (!y.cls->linked)
-			link_class(y.cls); /* XXX */
+			if (!link_class(y.cls))
+				return typecheck_FAIL;
         
 		TYPEINFO_ASSERT(x.cls->linked);
 		TYPEINFO_ASSERT(y.cls->linked);
 
-        if (CLASSINFO_IMPLEMENTS_INTERFACE(y.cls,x.cls->index)
-            || mergedlist_implements_interface(mergedy,x.cls))
+        if (CLASSINFO_IMPLEMENTS_INTERFACE(y.cls,x.cls->index))
+		{
+            /* y implements x, so the result of the merge is x. */
+            goto return_simple_x;
+		}
+		
+        r = mergedlist_implements_interface(mergedy,x.cls);
+		if (r == typecheck_FAIL)
+			return r;
+		if (r == typecheck_TRUE)
         {
             /* y implements x, so the result of the merge is x. */
             goto return_simple_x;
         }
         
         /* {We know: x is an interface, the type y a class or a merge
-         * of subclasses and does not implement x.} */
+         * of subclasses and is not guaranteed to implement x.} */
 
-        /* There may still be superinterfaces of x which are implemented
-         * by y, too, so we have to add x.cls to the mergedlist.
-         */
-
-        /* if x has no superinterfaces we could return a simple java.lang.Object */
-        
         common = class_java_lang_Object;
         goto merge_with_simple_x;
     }
@@ -1624,9 +1796,11 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     
 	/* we may have to link the classes */
 	if (!x.cls->linked)
-		link_class(x.cls); /* XXX */
+		if (!link_class(x.cls))
+			return typecheck_FAIL;
 	if (!y.cls->linked)
-		link_class(y.cls); /* XXX */
+		if (!link_class(y.cls))
+			return typecheck_FAIL;
         
 	TYPEINFO_ASSERT(x.cls->linked);
 	TYPEINFO_ASSERT(y.cls->linked);
@@ -1674,11 +1848,34 @@ merge_with_simple_x:
         return typeinfo_merge_two(dest,x,y);
 }
 
+/* typeinfo_merge **************************************************************
+ 
+   Merge two types.
+   
+   IN:
+       m................method for exception messages
+       dest.............the first type
+	   y................the second type
+
+   OUT:
+       *dest............receives the result of the merge
+
+   RETURN VALUE:
+       typecheck_TRUE...*dest has been modified
+	   typecheck_FALSE..*dest has not been modified
+	   typecheck_FAIL...an exception has been thrown
+
+   NOTE:
+       RESULT is an extra parameter so it can point to dest->typeclass or to
+	   dest->elementclass.
+
+*******************************************************************************/
+
 /* Condition: *dest must be a valid initialized typeinfo. */
 /* Condition: dest != y. */
 /* Returns: true if dest was changed. */
-bool
-typeinfo_merge(typeinfo *dest,typeinfo* y)
+typecheck_result
+typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y)
 {
     typeinfo *x;
     typeinfo *tmp;
@@ -1687,6 +1884,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
     int dimension;
     int elementtype;
     bool changed;
+	typecheck_result r;
 
 	/*--------------------------------------------------*/
 	/* fast checks                                      */
@@ -1694,7 +1892,7 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 
     /* Merging something with itself is a nop */
     if (dest == y)
-        return false;
+        return typecheck_FALSE;
 
     /* Merging two returnAddress types is ok. */
 	/* Merging two different returnAddresses never happens, as the verifier */
@@ -1702,22 +1900,25 @@ typeinfo_merge(typeinfo *dest,typeinfo* y)
 	/* from JSR subroutines.                                                */
     if (!dest->typeclass.any && !y->typeclass.any) {
 		TYPEINFO_ASSERT(TYPEINFO_RETURNADDRESS(*dest) ==  TYPEINFO_RETURNADDRESS(*y));
-        return false;
+        return typecheck_FALSE;
 	}
     
     /* Primitive types cannot be merged with reference types */
-	/* XXX only check this in debug mode? */
-    if (!dest->typeclass.any || !y->typeclass.any)
-        typeinfo_merge_error("Trying to merge primitive types.",dest,y);
+	/* This must be checked before calls to typeinfo_merge.  */
+    TYPEINFO_ASSERT(dest->typeclass.any && y->typeclass.any);
 
     /* handle uninitialized object types */
     if (TYPEINFO_IS_NEWOBJECT(*dest) || TYPEINFO_IS_NEWOBJECT(*y)) {
-        if (!TYPEINFO_IS_NEWOBJECT(*dest) || !TYPEINFO_IS_NEWOBJECT(*y))
-            typeinfo_merge_error("Trying to merge uninitialized object type.",dest,y);
-        if (TYPEINFO_NEWOBJECT_INSTRUCTION(*dest)
-            != TYPEINFO_NEWOBJECT_INSTRUCTION(*y))
-            typeinfo_merge_error("Trying to merge different uninitialized objects.",dest,y);
-        return false;
+        if (!TYPEINFO_IS_NEWOBJECT(*dest) || !TYPEINFO_IS_NEWOBJECT(*y)) {
+            typeinfo_merge_error(m,"Trying to merge uninitialized object type.",dest,y);
+			return typecheck_FAIL;
+		}
+        if (TYPEINFO_NEWOBJECT_INSTRUCTION(*dest) != TYPEINFO_NEWOBJECT_INSTRUCTION(*y)) {
+            typeinfo_merge_error(m,"Trying to merge different uninitialized objects.",dest,y);
+			return typecheck_FAIL;
+		}
+		/* the same uninitialized object -- no change */
+		return typecheck_FALSE;
     }
     
 	/*--------------------------------------------------*/
@@ -1738,12 +1939,12 @@ return_simple:
     
     /* Handle null types: */
     if (TYPEINFO_IS_NULLTYPE(*y)) {
-        return false;
+        return typecheck_FALSE;
     }
     if (TYPEINFO_IS_NULLTYPE(*dest)) {
         TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
         TYPEINFO_CLONE(*y,*dest);
-        return true;
+        return typecheck_TRUE;
     }
 
 	/* Common case: two types with the same name, at least one unresolved */
@@ -1815,8 +2016,8 @@ return_simple:
             else {
                 common.cls = class_multiarray_of(dimension,pseudo_class_Arraystub,true);
 				if (!common.cls) {
-					log_text("XXX Coult not create array class");
-					assert(0);
+					*exceptionptr = new_internalerror("XXX Coult not create array class");
+					return typecheck_FAIL;
 				}
 
                 elementtype = ARRAYTYPE_OBJECT;
@@ -1830,11 +2031,15 @@ return_simple:
                 /* The elements are references, so their respective
                  * types must be merged.
                  */
-                changed |= typeinfo_merge_nonarrays(dest,
-                                                    &elementclass,
-                                                    x->elementclass,
-                                                    elementclass,
-                                                    x->merged,y->merged);
+				r = typeinfo_merge_nonarrays(dest,
+						&elementclass,
+						x->elementclass,
+						elementclass,
+						x->merged,y->merged);
+				TYPEINFO_ASSERT(r != typecheck_MAYBE);
+				if (r == typecheck_FAIL)
+					return r;
+				changed |= r;
 
                 /* DEBUG */ /* log_text("finding resulting array class: "); */
 				if (IS_CLASSREF(elementclass))
@@ -1842,8 +2047,8 @@ return_simple:
 				else {
 					common.cls = class_multiarray_of(dimension,elementclass.cls,true);
 					if (!common.cls) {
-						log_text("XXX Coult not create array class");
-						assert(0);
+						*exceptionptr = new_internalerror("XXX Coult not create array class");
+						return typecheck_FAIL;
 					}
 				}
                 /* DEBUG */ /* utf_display(common->name); printf("\n"); */
@@ -1857,10 +2062,14 @@ return_simple:
         /* {We know that at least one of x or y is no array, so the
          *  result cannot be an array.} */
         
-        changed |= typeinfo_merge_nonarrays(dest,
-                                            &common,
-                                            x->typeclass,y->typeclass,
-                                            x->merged,y->merged);
+		r = typeinfo_merge_nonarrays(dest,
+				&common,
+				x->typeclass,y->typeclass,
+				x->merged,y->merged);
+		TYPEINFO_ASSERT(r != typecheck_MAYBE);
+		if (r == typecheck_FAIL)
+			return r;
+		changed |= r;
 
         dimension = 0;
         elementtype = 0;
@@ -1978,6 +2187,7 @@ typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
 {
     typeinfo dest;
     bool changed,changed_should_be;
+	typecheck_result r;
 
     TYPEINFO_CLONE(*a,dest);
     
@@ -1987,7 +2197,12 @@ typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
     typeinfo_print_short(stdout,b);
     printf("\n");
 
-    changed = (typeinfo_merge(&dest,b)) ? 1 : 0;
+	r = typeinfo_merge(NULL,&dest,b);
+	if (r == typecheck_FAIL) {
+		printf("EXCEPTION\n");
+		return;
+	}
+    changed = (r) ? 1 : 0;
     changed_should_be = (!typeinfo_equal(&dest,a)) ? 1 : 0;
 
     printf("          %s\n",(changed) ? "changed" : "=");
@@ -2360,4 +2575,5 @@ typevectorset_print(FILE *file,typevector *set,int size)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

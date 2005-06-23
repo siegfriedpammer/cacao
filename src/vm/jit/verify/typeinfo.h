@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 2788 2005-06-22 16:08:51Z edwin $
+   $Id: typeinfo.h 2810 2005-06-23 14:03:24Z edwin $
 
 */
 
@@ -72,21 +72,34 @@ typedef struct typedescriptor typedescriptor;
 typedef struct typevector typevector;
 typedef struct typeinfo_retaddr_set typeinfo_retaddr_set;
 
-/* constants ******************************************************************/
-
-#define MAYBE  2
-
-#if MAYBE == true
-#error "`MAYBE` must not be the same as `true`"
-#endif
-#if MAYBE == false
-#error "`MAYBE` must not be the same as `false`"
-#endif
-
 /* types **********************************************************************/
 
-/* a tristate_t is one of {true,false,MAYBE} */
-typedef int tristate_t;
+/* typecheck_result - return type for boolean and tristate  functions     */
+/*                    which may also throw exceptions (typecheck_FAIL).   */
+
+/* NOTE: Use the enum values, not the uppercase #define macros!          */
+#define TYPECHECK_MAYBE  0x02
+#define TYPECHECK_FAIL   0x04
+
+typedef enum {
+	typecheck_FALSE = false,
+	typecheck_TRUE  = true,
+	typecheck_MAYBE = TYPECHECK_MAYBE,
+	typecheck_FAIL  = TYPECHECK_FAIL
+} typecheck_result;
+
+/* check that typecheck_MAYBE is not ambiguous */
+#if TYPECHECK_MAYBE == true
+#error "`typecheck_MAYBE` must not be the same as `true`"
+#endif
+#if TYPECHECK_MAYBE == false
+#error "`typecheck_MAYBE` must not be the same as `false`"
+#endif
+
+/* check that typecheck_FAIL is not ambiguous */
+#if (true & TYPECHECK_FAIL) != 0
+#error "`true` must not have bit 0x02 set (conflicts with typecheck_FAIL)"
+#endif
 
 /* data structures for the type system ****************************************/
 
@@ -479,9 +492,8 @@ struct typevector {
 bool typevectorset_checktype(typevector *set,int index,int type);
 bool typevectorset_checkreference(typevector *set,int index);
 bool typevectorset_checkretaddr(typevector *set,int index);
-int typevectorset_copymergedtype(typevector *set,int index,typeinfo *dst);
-typeinfo *typevectorset_mergedtypeinfo(typevector *set,int index,typeinfo *temp);
-int typevectorset_mergedtype(typevector *set,int index,typeinfo *temp,typeinfo **result);
+int typevectorset_copymergedtype(methodinfo *m,typevector *set,int index,typeinfo *dst);
+int typevectorset_mergedtype(methodinfo *m,typevector *set,int index,typeinfo *temp,typeinfo **result);
 
 /* element write access */
 void typevectorset_store(typevector *set,int index,int type,typeinfo *info);
@@ -491,12 +503,12 @@ bool typevectorset_init_object(typevector *set,void *ins,classref_or_classinfo i
 
 /* vector functions */
 bool typevector_separable_from(typevector *a,typevector *b,int size);
-bool typevector_merge(typevector *dst,typevector *y,int size);
+typecheck_result typevector_merge(methodinfo *m,typevector *dst,typevector *y,int size);
 
 /* vector set functions */
 typevector *typevectorset_copy(typevector *src,int k,int size);
 bool typevectorset_separable_with(typevector *set,typevector *add,int size);
-bool typevectorset_collapse(typevector *dst,int size);
+typecheck_result typevectorset_collapse(methodinfo *m,typevector *dst,int size);
 void typevectorset_add(typevector *dst,typevector *v,int size);
 typevector *typevectorset_select(typevector **set,int retindex,void *retaddr);
 
@@ -506,9 +518,8 @@ bool typeinfo_is_array(typeinfo *info);
 bool typeinfo_is_primitive_array(typeinfo *info,int arraytype);
 bool typeinfo_is_array_of_refs(typeinfo *info);
 
-tristate_t typeinfo_implements_interface(typeinfo *info,classinfo *interf);
-tristate_t typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
-tristate_t typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest);
+typecheck_result typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
+typecheck_result typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest);
 
 /* initialization functions *************************************************/
 
@@ -543,7 +554,7 @@ void typeinfo_free(typeinfo *info);
 
 /* functions for merging types **********************************************/
 
-bool typeinfo_merge(typeinfo *dest,typeinfo* y);
+typecheck_result typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y);
 
 /* debugging helpers ********************************************************/
 

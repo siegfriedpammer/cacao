@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2790 2005-06-22 16:27:21Z edwin $
+   $Id: resolve.c 2810 2005-06-23 14:03:24Z edwin $
 
 */
 
@@ -317,6 +317,7 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	typeinfo typeti;
 	char *message;
 	int msglen;
+	typecheck_result r;
 
 	RESOLVE_ASSERT(referer);
 	RESOLVE_ASSERT(ref);
@@ -381,7 +382,10 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		TYPEINFO_INIT_CLASSINFO(resultti,result);
 		if (reversed) {
 			/* we must test against `true` because `MAYBE` is also != 0 */
-			if (true != typeinfo_is_assignable_to_class(&typeti,CLASSREF_OR_CLASSINFO(result))) {
+			r = typeinfo_is_assignable_to_class(&typeti,CLASSREF_OR_CLASSINFO(result));
+			if (r == typecheck_FAIL)
+				return false;
+			if (r != typecheck_TRUE) {
 #ifdef RESOLVE_VERBOSE
 				fprintf(stderr,"reversed subclass test failed\n");
 #endif
@@ -390,7 +394,10 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		}
 		else {
 			/* we must test against `true` because `MAYBE` is also != 0 */
-			if (true != typeinfo_is_assignable_to_class(&resultti,CLASSREF_OR_CLASSINFO(type))) {
+			r = typeinfo_is_assignable_to_class(&resultti,CLASSREF_OR_CLASSINFO(type));
+			if (r == typecheck_FAIL)
+				return false;
+			if (r != typecheck_TRUE) {
 #ifdef RESOLVE_VERBOSE
 				fprintf(stderr,"subclass test failed\n");
 #endif
