@@ -28,15 +28,13 @@
 
    Changes:
 
-   $Id: md-abi.h 2605 2005-06-08 14:41:35Z christian $
+   $Id: md-abi.h 2796 2005-06-23 09:42:34Z twisti $
 
 */
 
 
 #ifndef _MD_ABI_H
 #define _MD_ABI_H
-
-#include "vm/descriptor.h"
 
 /* preallocated registers *****************************************************/
 
@@ -79,10 +77,6 @@
 #define TRACE_ARGS_NUM  8
 
 #define REG_RES_CNT     3    /* number of reserved registers                  */
-
-/* function prototypes ********************************************************/
-
-void md_param_alloc(methoddesc *md);
 
 #endif /* _MD_ABI_H */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2744 2005-06-20 11:59:14Z edwin $
+   $Id: descriptor.h 2796 2005-06-23 09:42:34Z twisti $
 
 */
 
@@ -439,6 +439,10 @@ void descriptor_debug_print_methoddesc(FILE *file, methoddesc *d);
 *******************************************************************************/
 
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
+
+
+/* machine dependent descriptor function */
+void md_param_alloc(methoddesc *md);
 
 #endif /* _DESCRIPTOR_H */
 

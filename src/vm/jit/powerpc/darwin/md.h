@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.h 2636 2005-06-10 18:43:20Z twisti $
+   $Id: md.h 2796 2005-06-23 09:42:34Z twisti $
 
 */
 
@@ -37,13 +37,10 @@
 
 #include <mach/message.h>
 
-#include "vm/descriptor.h"
-
 
 /* function prototypes ********************************************************/
 
 int cacao_catch_Handler(mach_port_t thread);
-void md_param_alloc(methoddesc *md);
 
 #endif /* _MD_H_ */
 
