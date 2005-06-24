@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: reg.inc 2820 2005-06-24 15:11:59Z christian $
+   $Id: reg.inc 2821 2005-06-24 19:46:23Z christian $
 
 */
 
@@ -551,7 +551,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	int     intregsneeded = 0;
 	int     memneeded = 0;
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
-/* 	int     fargcnt, iargcnt; */
+	int     fargcnt, iargcnt;
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	int     aargcnt;
 #endif
@@ -559,8 +559,8 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (m->isleafmethod) {
 		methoddesc *md = m->parseddesc;
 
-/* 		iargcnt = md->argintreguse; */
-/* 		fargcnt = md->argfltreguse; */
+		iargcnt = md->argintreguse;
+		fargcnt = md->argfltreguse;
 #ifdef HAS_ADDRESS_REGISTER_FILE
 		aargcnt = md->argadrreguse;
 #endif
@@ -612,11 +612,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						v->regoff = rd->savadrregs[--rd->savadrreguse];
 					}
 					/* use unused argument registers as local registers */
-/* 					else if ((p >= md->paramcount) && */
-/* 							 (aargcnt < ADR_ARG_CNT)) { */
-/* 						v->flags = 0; */
-/* 						v->regoff = rd->argadrregs[aargcnt++]; */
-/* 					} */
+					else if ((p >= md->paramcount) &&
+							 (aargcnt < ADR_ARG_CNT)) {
+						v->flags = 0;
+						v->regoff = rd->argadrregs[aargcnt++];
+					}
 					else {
 						v->flags |= INMEMORY;
 						v->regoff = rd->memuse++;
@@ -642,12 +642,12 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->regoff = rd->savfltregs[--rd->savfltreguse];
 						}
 						/* use unused argument registers as local registers */
-/* 						else if ((p >= m->paramcount) && */
-/* 								 (fargcnt < rd->fltreg_argnum)) { */
-/* 							v->flags = 0; */
-/* 							v->regoff = rd->argfltregs[fargcnt]; */
-/* 							fargcnt++; */
-/* 						} */
+						else if ((p >= m->paramcount) &&
+								 (fargcnt < FLT_ARG_CNT)) {
+							v->flags = 0;
+							v->regoff = rd->argfltregs[fargcnt];
+							fargcnt++;
+						}
 						else {
 							v->flags = INMEMORY;
 							v->regoff = rd->memuse;
@@ -721,12 +721,12 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							/*
 							 * use unused argument registers as local registers
 							 */
-/* 							else if ((p >= m->paramcount) && */
-/* 									 (iargcnt < rd->intreg_argnum)) { */
-/* 								v->flags = 0; */
-/* 								v->regoff = rd->argintregs[iargcnt]; */
-/*   								iargcnt++; */
-/* 							} */
+							else if ((p >= m->paramcount) &&
+									 (iargcnt < INT_ARG_CNT)) {
+								v->flags = 0;
+								v->regoff = rd->argintregs[iargcnt];
+  								iargcnt++;
+							}
 							else {
 								v->flags = INMEMORY;
 								v->regoff = rd->memuse;
