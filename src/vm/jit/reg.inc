@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: reg.inc 2811 2005-06-23 14:19:18Z christian $
+   $Id: reg.inc 2820 2005-06-24 15:11:59Z christian $
 
 */
 
@@ -869,19 +869,15 @@ static void reg_init_temp(methodinfo *m, registerdata *rd)
 	rd->freeargadrtop = 0;
 #endif
 
-#if 0
  	if (m->isleafmethod) {
 		/* Don't use not used Argument Registers in Leafmethods -> they could */
 		/* already be in use for Locals passed as parameter to this Method    */
-#endif
 		rd->argintreguse = INT_ARG_CNT;
 		rd->argfltreguse = FLT_ARG_CNT;
 #ifdef HAS_ADDRESS_REGISTER_FILE
 		rd->argadrreguse = ADR_ARG_CNT;
 #endif
-#if 0
  	}
-#endif
 }
 
 
@@ -1157,7 +1153,7 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 					GET_HIGH_REG(s->regoff);
 			} else 
 #endif
-				rd->freesavintregs[rd->freearginttop] = s->regoff;
+				rd->freeargintregs[rd->freearginttop] = s->regoff;
 			rd->freearginttop += intregsneeded + 1;
 		} else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
