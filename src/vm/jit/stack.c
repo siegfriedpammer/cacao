@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2811 2005-06-23 14:19:18Z christian $
+   $Id: stack.c 2819 2005-06-24 15:11:25Z christian $
 
 */
 
@@ -1866,8 +1866,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							rd->memuse = md->memuse;
 						if (md->argintreguse > rd->argintreguse)
 							rd->argintreguse = md->argintreguse;
-						if (md->argfltreguse > rd->argintreguse)
-							rd->argfltreguse = md->argintreguse;
+						if (md->argfltreguse > rd->argfltreguse)
+							rd->argfltreguse = md->argfltreguse;
 
 						REQUIRE(i);
 
