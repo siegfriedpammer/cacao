@@ -28,107 +28,68 @@
 
    Changes:
 
-   $Id: md.c 2729 2005-06-17 08:12:53Z twisti $
+   $Id: md.c 2829 2005-06-25 15:29:50Z twisti $
 
 */
 
 
-#include <signal.h>
-#include <stdlib.h>
 #include <ucontext.h>
 
 #include "config.h"
-#include "vm/jit/x86_64/md-abi.h"
+#include "vm/jit/i386/md-abi.h"
 
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
-/* catch_NullPointerException **************************************************
+/* md_init *********************************************************************
+
+   Do some machine dependent initialization.
+
+*******************************************************************************/
+
+void md_init(void)
+{
+	/* nothing to do */
+}
+
+
+/* signal_handler_sigsegv ******************************************************
 
    NullPointerException signal handler for hardware null pointer check.
 
 *******************************************************************************/
 
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	sigset_t nsig;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
 
-	ucontext_t *_uc = (ucontext_t *) _p;
-	mcontext_t *sigctx = (mcontext_t *) &_uc->uc_mcontext;
-	struct sigaction act;
-
-	/* Reset signal handler - necessary for SysV, does no harm for BSD */
-
-	act.sa_sigaction = catch_NullPointerException;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);                          /* reinstall handler */
-
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-
-	sigctx->mc_ecx = sigctx->mc_eip;     /* REG_ITMP2_XPC*/
-	sigctx->mc_eax = (u4) string_java_lang_NullPointerException;
-	sigctx->mc_eip = (u4) asm_throw_and_handle_exception;
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+	
+	_mc->mc_eax = (ptrint) string_java_lang_NullPointerException;
+	_mc->mc_ecx = _mc->mc_eip;                               /* REG_ITMP2_XPC */
+	_mc->mc_eip = (ptrint) asm_throw_and_handle_exception;
 }
 
 
-/* catch_ArithmeticException ***************************************************
+/* signal_handler_sigfpe *******************************************************
 
    ArithmeticException signal handler for hardware divide by zero check.
 
 *******************************************************************************/
 
-void catch_ArithmeticException(int sig, siginfo_t *siginfo, void *_p)
+void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	sigset_t nsig;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
 
-	ucontext_t *_uc = (ucontext_t *) _p;
-	mcontext_t *sigctx = (mcontext_t *) &_uc->uc_mcontext;
-	struct sigaction act;
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
 
-	/* Reset signal handler - necessary for SysV, does no harm for BSD        */
-
-	act.sa_sigaction = catch_ArithmeticException;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, NULL);                          /* reinstall handler */
-
-	sigemptyset(&nsig);
-	sigaddset(&nsig, sig);
-	sigprocmask(SIG_UNBLOCK, &nsig, NULL);               /* unblock signal    */
-
-	sigctx->mc_ecx = sigctx->mc_eip;                 /* REG_ITMP2_XPC     */
-	sigctx->mc_eip = (u4) asm_throw_and_handle_hardware_arithmetic_exception;
-}
-
-
-void init_exceptions(void)
-{
-	struct sigaction act;
-
-	/* install signal handlers we need to convert to exceptions */
-	sigemptyset(&act.sa_mask);
-
-	if (!checknull) {
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-
-#if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
-
-#if defined(SIGFPE)
-	act.sa_sigaction = catch_ArithmeticException;
-	act.sa_flags = SA_SIGINFO;
-	sigaction(SIGFPE, &act, NULL);
-#endif
+	_mc->mc_ecx = _mc->mc_eip;                               /* REG_ITMP2_XPC */
+	_mc->mc_eip = (ptrint) asm_throw_and_handle_hardware_arithmetic_exception;
 }
 
 
