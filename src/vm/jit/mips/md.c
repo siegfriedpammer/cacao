@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md.c 2711 2005-06-15 14:09:39Z twisti $
+   $Id: md.c 2827 2005-06-25 13:43:51Z twisti $
 
 */
 
@@ -44,92 +44,65 @@
 #include "vm/jit/mips/types.h"
 
 #include "vm/exceptions.h"
-#include "vm/global.h"
-#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
-/* catch_NullPointerException **************************************************
+/* md_init *********************************************************************
 
-   NullPointerException signal handler for hardware null pointer check.
+   Do some machine dependent initialization.
 
 *******************************************************************************/
 
-void catch_NullPointerException(int sig, siginfo_t *siginfo, void *_p)
+void md_init(void)
 {
-	sigset_t nsig;
-	int      instr;
-	long     faultaddr;
-	java_objectheader *xptr;
+	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a      */
+	/* dummy allocation here to ensure that the GC is initialized.            */
 
-	struct ucontext *_uc = (struct ucontext *) _p;
-	mcontext_t *sigctx = &_uc->uc_mcontext;
-	struct sigaction act;
-
-	instr = *((s4 *) (sigctx->gregs[CTX_EPC]));
-	faultaddr = sigctx->gregs[(instr >> 21) & 0x1f];
-
-	if (faultaddr == 0) {
-		/* Reset signal handler - necessary for SysV, does no harm for BSD */
-
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-		sigaction(sig, &act, NULL);
-
-		sigemptyset(&nsig);
-		sigaddset(&nsig, sig);
-		sigprocmask(SIG_UNBLOCK, &nsig, NULL);           /* unblock signal    */
-		
-		xptr = new_nullpointerexception();
-
-		sigctx->gregs[REG_ITMP1_XPTR] = (ptrint) xptr;
-		sigctx->gregs[REG_ITMP2_XPC] = sigctx->gregs[CTX_EPC];
-		sigctx->gregs[CTX_EPC] = (ptrint) asm_handle_exception;
-
-	} else {
-        faultaddr += (long) ((instr << 16) >> 16);
-
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "faulting address: 0x%lx at 0x%lx\n",
-								   (long) faultaddr,
-								   (long) sigctx->gregs[CTX_EPC]);
-	}
-}
-
-
-void init_exceptions(void)
-{
-	struct sigaction act;
-
-	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a
-	   dummy allocation here to ensure that the GC is initialized.
-	*/
 	heap_allocate(1, 0, NULL);
 
-	/* install signal handlers we need to convert to exceptions */
-
-	sigemptyset(&act.sa_mask);
-
-	if (!checknull) {
-		act.sa_sigaction = catch_NullPointerException;
-		act.sa_flags = SA_SIGINFO;
-
-#if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#endif
-
-#if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
-#endif
-	}
 
 	/* Turn off flush-to-zero */
+
 	{
 		union fpc_csr n;
 		n.fc_word = get_fpc_csr();
 		n.fc_struct.flush = 0;
 		set_fpc_csr(n.fc_word);
+	}
+}
+
+
+/* signal_handler_sigsegv ******************************************************
+
+   NullPointerException signal handler for hardware null pointer check.
+
+*******************************************************************************/
+
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u4          instr;
+	ptrint      addr;
+
+	_uc = (struct ucontext *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	instr = *((u4 *) (_mc->gregs[CTX_EPC]));
+	addr = _mc->gregs[(instr >> 21) & 0x1f];
+
+	if (addr == 0) {
+		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) new_nullpointerexception();
+		_mc->gregs[REG_ITMP2_XPC] = _mc->gregs[CTX_EPC];
+		_mc->gregs[CTX_EPC] = (ptrint) asm_handle_exception;
+
+	} else {
+        addr += (long) ((instr << 16) >> 16);
+
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "faulting address: 0x%lx at 0x%lx\n",
+								   addr, _mc->gregs[CTX_EPC]);
 	}
 }
 
