@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2746 2005-06-20 13:06:15Z edwin $
+   $Id: builtin.h 2822 2005-06-25 13:25:21Z twisti $
 
 */
 
@@ -372,7 +372,10 @@ points here---->| previous element in list        		|
 		------------------------------------------------
 */
 void *builtin_asm_get_stackframeinfo(void);
-stacktraceelement *builtin_stacktrace_copy(stacktraceelement **,stacktraceelement *begin, stacktraceelement *end);
+stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,
+										   stacktraceelement *begin,
+										   stacktraceelement *end);
+
 #endif /* _BUILTIN_H */
 
 

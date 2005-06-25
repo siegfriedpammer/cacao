@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2771 2005-06-22 09:23:53Z twisti $
+   $Id: builtin.c 2822 2005-06-25 13:25:21Z twisti $
 
 */
 
@@ -598,25 +598,26 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 
 
-/******************* function: builtin_canstore *******************************
+/* builtin_canstore ************************************************************
 
-	Checks, if an object can be stored in an array.
-	Return value:  1 ... possible
-				   0 ... otherwise
+   Checks, if an object can be stored in an array.
 
-******************************************************************************/
+   Return value: 1 ... possible
+                 0 ... otherwise
 
-s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
+*******************************************************************************/
+
+s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
 	vftbl_t *componentvftbl;
 	vftbl_t *valuevftbl;
-    int dim_m1;
 	int base;
 	castinfo classvalues;
 	
-	if (!o) return 1;
+	if (!o)
+		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
@@ -626,10 +627,10 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 	 */
 	
 	desc = a->header.objheader.vftbl->arraydesc;
-    componentvftbl = desc->componentvftbl;
+	componentvftbl = desc->componentvftbl;
 	valuevftbl = o->vftbl;
 
-    if ((dim_m1 = desc->dimension - 1) == 0) {
+	if ((desc->dimension - 1) == 0) {
 		s4 res;
 
 		/* {a is a one-dimensional array} */
@@ -649,8 +650,9 @@ s4 builtin_canstore (java_objectarray *a, java_objectheader *o)
 			<= (unsigned) classvalues.super_diffval;
 
 		return res;
-    }
-    /* {a has dimension > 1} */
+	}
+
+	/* {a has dimension > 1} */
 	/* {componentvftbl->arraydesc != NULL} */
 
 	/* check if o is an array */
@@ -2282,24 +2284,22 @@ s4 builtin_dummy(void)
 *******************************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-java_objectheader **builtin_asm_get_exceptionptrptr()
+java_objectheader **builtin_asm_get_exceptionptrptr(void)
 {
 	return builtin_get_exceptionptrptr();
 }
 #endif
 
 
-methodinfo *builtin_asm_get_threadrootmethod()
+methodinfo *builtin_asm_get_threadrootmethod(void)
 {
 	return *threadrootmethod;
 }
 
 
-inline void* builtin_asm_get_stackframeinfo()
+void *builtin_asm_get_stackframeinfo(void)
 {
-/*log_text("builtin_asm_get_stackframeinfo()");*/
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	/*printf("stackframeinfo: %p,%p\n",&THREADINFO->_stackframeinfo,*(&THREADINFO->_stackframeinfo));*/
 	return &THREADINFO->_stackframeinfo;
 #else
 	/* XXX FIXME FOR OLD THREAD IMPL (jowenn) */
@@ -2308,7 +2308,11 @@ inline void* builtin_asm_get_stackframeinfo()
 #endif
 }
 
-stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,stacktraceelement *begin, stacktraceelement *end) {
+
+stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,
+										   stacktraceelement *begin,
+										   stacktraceelement *end)
+{
 /*	stacktraceelement *el;*/
 	size_t s;
 	s=(end-begin);
