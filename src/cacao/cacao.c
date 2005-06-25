@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2798 2005-06-23 09:52:06Z twisti $
+   $Id: cacao.c 2828 2005-06-25 14:47:16Z twisti $
 
 */
 
@@ -461,21 +461,25 @@ int main(int argc, char **argv)
 
 	cp = getenv("BOOTCLASSPATH");
 	if (cp) {
-		bootclasspath = MNEW(char, strlen(cp) + 1);
+		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
 		strcpy(bootclasspath, cp);
 
 	} else {
 #if !defined(WITH_EXTERNAL_CLASSPATH)
-		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
+		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH) +
+			strlen("0");
 
-		bootclasspath = MNEW(char, cplen + 1);
+		bootclasspath = MNEW(char, cplen);
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_RT_JAR_PATH);
 #else
 		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_VM_ZIP_PATH) +
-			strlen(EXTERNAL_CLASSPATH_PREFIX) + strlen(CLASSPATH_GLIBJ_ZIP_PATH);
+			strlen(":") +
+			strlen(EXTERNAL_CLASSPATH_PREFIX) +
+			strlen(CLASSPATH_GLIBJ_ZIP_PATH) +
+			strlen("0");
 
-		bootclasspath = MNEW(char, cplen + 1 + 1);
+		bootclasspath = MNEW(char, cplen);
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
 		strcat(bootclasspath, ":");
@@ -489,11 +493,11 @@ int main(int argc, char **argv)
 
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		classpath = MNEW(char, strlen(cp) + 1);
+		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
 
 	} else {
-		classpath = MNEW(char, 2);
+		classpath = MNEW(char, strlen(".") + strlen("0"));
 		strcpy(classpath, ".");
 	}
 
@@ -517,7 +521,7 @@ int main(int argc, char **argv)
 			/* classpath.                                                     */
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
-			bootclasspath = MNEW(char, strlen(opt_arg) + 1);
+			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(bootclasspath, opt_arg);
 			break;
 
@@ -528,7 +532,8 @@ int main(int argc, char **argv)
 			bootclasspath = MREALLOC(bootclasspath,
 									 char,
 									 cplen,
-									 cplen + 1 + strlen(opt_arg) + 1);
+									 cplen + strlen(":") +
+									 strlen(opt_arg) + strlen("0"));
 
 			strcat(bootclasspath, ":");
 			strcat(bootclasspath, opt_arg);
@@ -539,7 +544,8 @@ int main(int argc, char **argv)
 			cp = bootclasspath;
 			cplen = strlen(cp);
 
-			bootclasspath = MNEW(char, strlen(opt_arg) + 1 + cplen + 1);
+			bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
+								 cplen + strlen("0"));
 
 			strcpy(bootclasspath, opt_arg);
 			strcat(bootclasspath, ":");
@@ -552,7 +558,7 @@ int main(int argc, char **argv)
 			/* forget old classpath and set the argument as new classpath */
 			MFREE(classpath, char, strlen(classpath));
 
-			classpath = MNEW(char, strlen(opt_arg) + 1);
+			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(classpath, opt_arg);
 			break;
 
@@ -803,16 +809,22 @@ int main(int argc, char **argv)
 	/* transform dots into slashes in the class name */
 
    	mainstring = argv[opt_ind++];
+
 	if (!jar) { 
         /* do not mangle jar filename */
+
 		for (i = strlen(mainstring) - 1; i >= 0; i--) {
 			if (mainstring[i] == '.') mainstring[i] = '/';
 		}
 
 	} else {
 		/* put jarfile in classpath */
+
 		cp = classpath;
-		classpath = MNEW(char, strlen(mainstring) + 1 + strlen(classpath) + 1);
+
+		classpath = MNEW(char, strlen(mainstring) + strlen(":") +
+						 strlen(classpath) + strlen("0"));
+
 		strcpy(classpath, mainstring);
 		strcat(classpath, ":");
 		strcat(classpath, cp);
@@ -875,7 +887,11 @@ int main(int argc, char **argv)
 	/* initializes jit compiler */
 
 	jit_init();
-	
+
+	/* machine dependent initialization */
+
+	md_init();
+
 	/* initialize some cacao subsystems */
 
 	utf8_init();
