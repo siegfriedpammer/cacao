@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2808 2005-06-23 13:53:13Z twisti $
+   $Id: md.c 2830 2005-06-25 15:32:34Z twisti $
 
 */
 
@@ -112,6 +112,24 @@ int cacao_catch_Handler(mach_port_t thread)
 #endif
 
 
+/* md_init *********************************************************************
+
+   Do some machine dependent initialization.
+
+*******************************************************************************/
+
+void md_init(void)
+{
+	/* nothing to do */
+}
+
+
+/* signal_handler_sigsegv ******************************************************
+
+   NullPointerException signal handler for hardware null pointer check.
+
+*******************************************************************************/
+
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t         *uc;
@@ -134,7 +152,7 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	reg = (instr >> 16) & 31;
 	addr = gregs[reg];
 
-	if (addr == NULL) {
+	if (addr == 0) {
 		/* set the REG_ITMP1_XPTR, REG_ITMP2_XPC and new PC */
 
 		ss->r11 = (ptrint) new_nullpointerexception();
