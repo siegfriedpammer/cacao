@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2819 2005-06-24 15:11:25Z christian $
+   $Id: stack.c 2823 2005-06-25 13:29:42Z twisti $
 
 */
 
@@ -2606,11 +2606,15 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_FCONST:
-		printf(" %f", iptr->val.f);
+		printf(" %f (0x%08x)", iptr->val.f, iptr->val.i);
 		break;
 
 	case ICMD_DCONST:
-		printf(" %f", iptr->val.d);
+#if SIZEOF_VOID_P == 4
+		printf(" %g (0x%016llx)", iptr->val.d, iptr->val.l);
+#else
+		printf(" %g (0x%016lx)", iptr->val.d, iptr->val.l);
+#endif
 		break;
 
 	case ICMD_ACONST:
