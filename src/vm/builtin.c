@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2822 2005-06-25 13:25:21Z twisti $
+   $Id: builtin.c 2825 2005-06-25 13:37:35Z twisti $
 
 */
 
@@ -1442,6 +1442,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	s4          logtextlen;
 	s4          dumpsize;
 	s4          i;
+	imm_union   imu;
 
 	md = m->parseddesc;
 
@@ -1457,7 +1458,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* add maximal argument length */
 
-	logtextlen += strlen("->0x123456789abcdef0");
+	logtextlen += strlen("->0.4872328470301428 (0x0123456789abcdef)");
 
 	/* allocate memory */
 
@@ -1483,14 +1484,14 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
-		sprintf(logtext + strlen(logtext), "->%d", (s4) l);
+		sprintf(logtext + strlen(logtext), "->%d (0x%08x)", (s4) l, (s4) l);
 		break;
 
 	case TYPE_LNG:
 #if SIZEOF_VOID_P == 4
-		sprintf(logtext + strlen(logtext), "->%lld", (s8) l);
+		sprintf(logtext + strlen(logtext), "->%lld (0x%016llx)", (s8) l, l);
 #else
-		sprintf(logtext + strlen(logtext), "->%ld", (s8) l);
+		sprintf(logtext + strlen(logtext), "->%ld (0x%016lx)", (s8) l, l);
 #endif
 		break;
 
@@ -1499,11 +1500,17 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		break;
 
 	case TYPE_FLT:
-		sprintf(logtext + strlen(logtext), "->%g", f);
+		imu.f = f;
+		sprintf(logtext + strlen(logtext), "->%.8f (0x%08x)", f, imu.i);
 		break;
 
 	case TYPE_DBL:
-		sprintf(logtext + strlen(logtext), "->%g", d);
+		imu.d = d;
+#if SIZEOF_VOID_P == 4
+		sprintf(logtext + strlen(logtext), "->%.16g (0x%016llx)", d, imu.l);
+#else
+		sprintf(logtext + strlen(logtext), "->%.16g (0x%016lx)", d, imu.l);
+#endif
 		break;
 	}
 
