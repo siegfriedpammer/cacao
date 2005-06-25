@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2823 2005-06-25 13:29:42Z twisti $
+   $Id: stack.c 2824 2005-06-25 13:31:16Z twisti $
 
 */
 
@@ -2638,9 +2638,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-		if (iptr->val.a)
-			printf(" ");
-		else
+		if (iptr->val.a) {
+			if (!((fieldinfo *) iptr->val.a)->class->initialized)
+				printf(" (NOT INITIALIZED) ");
+			else
+				printf(" ");
+		} else
 			printf(" (NOT RESOLVED) ");
 		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
 		printf(".");
