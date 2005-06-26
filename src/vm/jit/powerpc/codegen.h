@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 2814 2005-06-23 14:49:51Z christian $
+   $Id: codegen.h 2834 2005-06-26 21:48:11Z christian $
 
 */
 
@@ -126,7 +126,6 @@
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
-			M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
 			regnr = tempnr; \
 			if (IS_2_WORD_TYPE((v)->type)) { \
 				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
