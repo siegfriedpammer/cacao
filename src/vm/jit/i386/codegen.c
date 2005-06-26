@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
    	    Christian Ullrich
 
-   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
+   $Id: codegen.c 2837 2005-06-26 23:53:54Z twisti $
 
 */
 
@@ -115,21 +115,25 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += 2 * (FLT_SAV_CNT - rd->savfltreguse); /* float register are saved on 2 4 Byte stackslots */
+
+	/* float register are saved on 2 4-byte stackslots */
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
 	parentargs_base = rd->memuse + savedregs_num;
 
 	   
-#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)
+	/* space to save argument of monitor_enter */
 
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		parentargs_base++;
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* reserve 2 slots for long/double return values for monitorexit */
 
+		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
+			parentargs_base += 2;
+		else
+			parentargs_base++;
+	}
 #endif
-
-/* align Stackframe to 8 Byte */
-/* 	if ((parentargs_base+1) & 1) */
-/* 		parentargs_base++;   */       
 
 /* create method header */
 
@@ -183,15 +187,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base) {
-		i386_alu_imm_reg(cd, ALU_SUB, parentargs_base * 4, REG_SP);
-	}
+	if (parentargs_base)
+		M_ASUB_IMM(parentargs_base * 4, REG_SP);
 
 	/* save return address and used callee saved registers */
 
   	p = parentargs_base;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
- 		p--; i386_mov_reg_membase(cd, rd->savintregs[i], REG_SP, p * 4);
+ 		p--; M_AST(rd->savintregs[i], REG_SP, p * 4);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 		p-=2; i386_fld_reg(cd, rd->savfltregs[i]); i386_fstpl_membase(cd, REG_SP, p * 4);
@@ -4050,18 +4053,18 @@ nowperformreturn:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_ITMP2);
+				M_ALD(REG_ITMP2, REG_SP, rd->memuse * 4);
 
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 4);
+					M_IST(REG_RESULT, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 4);
-					i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, rd->memuse * 4 + 4);
+					M_IST(REG_RESULT, REG_SP, rd->memuse * 4);
+					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 4);
 					break;
 
 				case ICMD_FRETURN:
@@ -4073,7 +4076,7 @@ nowperformreturn:
 					break;
 				}
 
-				i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0);
+				M_AST(REG_ITMP2, REG_SP, 0);
 				i386_mov_imm_reg(cd, (ptrint) BUILTIN_monitorexit, REG_ITMP1);
 				i386_call_reg(cd, REG_ITMP1);
 
@@ -4081,12 +4084,12 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_RESULT);
+					M_ILD(REG_RESULT, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_LRETURN:
-					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4, REG_RESULT);
-					i386_mov_membase_reg(cd, REG_SP, rd->memuse * 4 + 4, REG_RESULT2);
+					M_ILD(REG_RESULT, REG_SP, rd->memuse * 4);
+					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 4);
 					break;
 
 				case ICMD_FRETURN:
@@ -4101,10 +4104,11 @@ nowperformreturn:
 #endif
 
 			/* restore saved registers */
+
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--;
-				i386_mov_membase_reg(cd, REG_SP, p * 4, rd->savintregs[i]);
+				p--; M_ALD(rd->savintregs[i], REG_SP, p * 4);
 			}
+
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
   				p--;
 				i386_fldl_membase(cd, REG_SP, p * 4);
@@ -4117,10 +4121,10 @@ nowperformreturn:
 				fpu_st_offset--;
 			}
 
-			/* deallocate stack                                               */
-			if (parentargs_base) {
-				i386_alu_imm_reg(cd, ALU_ADD, parentargs_base * 4, REG_SP);
-			}
+			/* deallocate stack */
+
+			if (parentargs_base)
+				M_AADD_IMM(parentargs_base * 4, REG_SP);
 
 			i386_ret(cd);
 			}
