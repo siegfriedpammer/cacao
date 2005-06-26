@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2813 2005-06-23 14:30:44Z christian $
+   $Id: md-abi.c 2835 2005-06-26 21:48:50Z christian $
 
 */
 
@@ -135,6 +135,17 @@ void md_param_alloc(methoddesc *md)
 					stacksize++;
 			break;
 		}
+	}
+
+	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return values, this */
+	/* argument register usage has to be regarded, too                        */
+	if (IS_INT_LNG_TYPE(md->returntype.type)) {
+		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
+			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
+	} else {
+		if (IS_FLT_DBL_TYPE(md->returntype.type))
+			if (farg < 1)
+				farg = 1;
 	}
 
 	/* fill register and stack usage */
