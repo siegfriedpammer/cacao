@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2804 2005-06-23 13:40:41Z twisti $
+   $Id: md.c 2831 2005-06-26 11:39:18Z twisti $
 
 */
 
@@ -44,6 +44,42 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+
+/* md_init *********************************************************************
+
+   Do some machine dependent initialization.
+
+*******************************************************************************/
+
+void md_init(void)
+{
+#if 0
+	/* XXX TWISTI: do we really need this? fptest's seem to work fine */
+
+#if defined(__LINUX__)
+/* Linux on Digital Alpha needs an initialisation of the ieee floating point
+	control for IEEE compliant arithmetic (option -mieee of GCC). Under
+	Digital Unix this is done automatically.
+*/
+
+#include <asm/fpu.h>
+
+extern unsigned long ieee_get_fp_control();
+extern void ieee_set_fp_control(unsigned long fp_control);
+
+	/* initialize floating point control */
+
+	ieee_set_fp_control(ieee_get_fp_control()
+						& ~IEEE_TRAP_ENABLE_INV
+						& ~IEEE_TRAP_ENABLE_DZE
+/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
+						& ~IEEE_TRAP_ENABLE_OVF);
+#endif
+#endif
+
+	/* nothing to do */
+}
 
 
 /* signal_handler_sigsegv ******************************************************
@@ -79,37 +115,6 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 								   "faulting address: 0x%016lx\n", addr);
 	}
 }
-
-
-#if 0
-#if defined(__OSF__)
-void init_exceptions(void)
-{
-
-#else /* Linux */
-
-/* Linux on Digital Alpha needs an initialisation of the ieee floating point
-	control for IEEE compliant arithmetic (option -mieee of GCC). Under
-	Digital Unix this is done automatically.
-*/
-
-#include <asm/fpu.h>
-
-extern unsigned long ieee_get_fp_control();
-extern void ieee_set_fp_control(unsigned long fp_control);
-
-void init_exceptions(void)
-{
-	/* initialize floating point control */
-
-	ieee_set_fp_control(ieee_get_fp_control()
-						& ~IEEE_TRAP_ENABLE_INV
-						& ~IEEE_TRAP_ENABLE_DZE
-/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-						& ~IEEE_TRAP_ENABLE_OVF);
-#endif
-}
-#endif
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
