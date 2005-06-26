@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2676 2005-06-13 16:20:32Z twisti $
+   $Id: codegen.h 2836 2005-06-26 23:51:36Z twisti $
 
 */
 
@@ -458,8 +458,10 @@ typedef enum {
 /* macros to create code ******************************************************/
 
 #define M_ILD(a,b,disp)         i386_mov_membase_reg(cd, (b), (disp), (a))
+#define M_ALD(a,b,disp)         M_ILD(a,b,disp)
 
 #define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
+#define M_AST(a,b,disp)         M_IST(a,b,disp)
 
 #define M_IADD_IMM(a,b)         i386_alu_imm_reg(cd, ALU_ADD, (a), (b))
 #define M_ISUB_IMM(a,b)         i386_alu_imm_reg(cd, ALU_SUB, (a), (b))
