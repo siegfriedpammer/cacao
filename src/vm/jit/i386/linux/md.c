@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2801 2005-06-23 10:14:39Z twisti $
+   $Id: md.c 2832 2005-06-26 13:06:51Z twisti $
 
 */
 
@@ -40,6 +40,18 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+
+/* md_init *********************************************************************
+
+   Do some machine dependent initialization.
+
+*******************************************************************************/
+
+void md_init(void)
+{
+	/* nothing to do */
+}
 
 
 /* signal_handler_sigsegv ******************************************************
