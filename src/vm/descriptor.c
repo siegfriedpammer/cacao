@@ -27,8 +27,9 @@
    Authors: Edwin Steiner
 
    Changes: Christian Thalinger
+            Christian Ullrich
 
-   $Id: descriptor.c 2747 2005-06-20 15:00:55Z edwin $
+   $Id: descriptor.c 2833 2005-06-26 21:47:29Z christian $
 
 */
 
@@ -879,14 +880,15 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 			/* allocate memory for params */
 
 			md->params = MNEW(paramdesc, md->paramcount);
-
-			/* fill the paramdesc */
-
-			md_param_alloc(md);
 		}
 		else {
 			md->params = METHODDESC_NOPARAMS;
 		}
+
+		/* fill the paramdesc */
+		/* md_param_alloc has to be called if md->paramcount == 0, too, so it */
+		/* can make the reservation for the Linkage Area, Return Register...  */
+		md_param_alloc(md);
 	}
 	else {
 		/* params will be allocated later by descriptor_params_from_paramtypes */
@@ -964,14 +966,16 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		/* allocate memory for params */
 
 		md->params = MNEW(paramdesc, md->paramcount);
-
-		/* fill the paramdesc */
-
-		md_param_alloc(md);
 	}
 	else {
 		md->params = METHODDESC_NOPARAMS;
 	}
+
+	/* fill the paramdesc */
+	/* md_param_alloc has to be called if md->paramcount == 0, too, so     */
+	/* it can make the reservation for the Linkage Area, Return Register.. */
+
+	md_param_alloc(md);
 
 	return true;
 }
