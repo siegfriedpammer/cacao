@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: native.c 2843 2005-06-27 15:03:01Z twisti $
 
 */
 
@@ -493,7 +493,7 @@ static char *native_make_overloaded_function(char *name, utf *desc)
 	s4    i;
 
 	utf_ptr = desc->text;
-	namelen = strlen("__");
+	namelen = strlen(name) + strlen("__") + strlen("0");
 
 	/* calculate additional length */
 
