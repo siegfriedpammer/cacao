@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2839 2005-06-27 10:55:38Z christian $
+   $Id: codegen.c 2841 2005-06-27 14:19:36Z christian $
 
 */
 
@@ -117,10 +117,19 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	parentargs_base = rd->memuse + savedregs_num;
 
-#if defined(USE_THREADS)               /* space to save argument of monitor_enter   */
-	                               /* and Return Values to survive monitor_exit */
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		parentargs_base += 3;
+#if defined(USE_THREADS)
+	/* space to save argument of monitor_enter and Return Values to survive */
+    /* monitor_exit. The stack position for the argument can not be shared  */
+	/* with place to save the return register on PPC, since both values     */
+	/* reside in R3 */
+	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+		/* reserve 2 slots for long/double return values for monitorexit */
+
+		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
+			parentargs_base += 3;
+		else
+			parentargs_nase += 2;
+	}
 
 #endif
 
