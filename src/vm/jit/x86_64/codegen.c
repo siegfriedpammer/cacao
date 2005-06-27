@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
+   $Id: codegen.c 2848 2005-06-27 20:59:28Z twisti $
 
 */
 
@@ -160,7 +160,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
-	MCODECHECK(128 + m->paramcount);
+	MCODECHECK(512);
 
 	/* create stack frame (if necessary) */
 
@@ -382,7 +382,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		src = bptr->instack;
 		len = bptr->indepth;
-		MCODECHECK(64 + len);
+		MCODECHECK(512);
 
 #ifdef LSRA
 		if (opt_lsra) {
@@ -471,7 +471,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				currentline = iptr->line;
 			}
 
-			MCODECHECK(128);    /* XXX are 128 bytes enough? */
+			MCODECHECK(1024);                         /* 1KB should be enough */
 
 			switch (iptr->opc) {
 			case ICMD_INLINE_START: /* internal ICMDs                         */
@@ -3003,7 +3003,7 @@ nowperformreturn:
 				l = s4ptr[0];                          /* default  */
 				i = s4ptr[1];                          /* count    */
 			
-				MCODECHECK((i<<2)+8);
+				MCODECHECK(8 + ((7 + 6) * i) + 5);
 				var_to_reg_int(s1, src, REG_ITMP1);    /* reg compare should always be faster */
 				while (--i >= 0) {
 					s4ptr += 2;
@@ -3012,12 +3012,10 @@ nowperformreturn:
 					val = s4ptr[0];
 					x86_64_alul_imm_reg(cd, X86_64_CMP, val, s1);
 					x86_64_jcc(cd, X86_64_CC_E, 0);
-					/* codegen_addreference(cd, BlockPtrOfPC(s4ptr[1]), cd->mcodeptr); */
 					codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr); 
 				}
 
 				x86_64_jmp_imm(cd, 0);
-				/* codegen_addreference(cd, BlockPtrOfPC(l), cd->mcodeptr); */
 			
 				tptr = (void **) iptr->target;
 				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
@@ -3051,7 +3049,7 @@ nowperformreturn:
 gen_method:
 			s3 = iptr->op1;
 
-			MCODECHECK((s3 << 1) + 64);
+			MCODECHECK((20 * s3) + 128);
 
 			/* copy arguments to registers or stack location */
 
@@ -3631,7 +3629,7 @@ gen_method:
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
-  			MCODECHECK((iptr->op1 << 1) + 64);
+  			MCODECHECK((10 * 4 * iptr->op1) + 5 + 10 * 8);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
 				var_to_reg_int(s2, src, REG_ITMP1);
@@ -3687,14 +3685,14 @@ gen_method:
 			throw_cacao_exception_exit(string_java_lang_InternalError,
 									   "Unknown ICMD %d", iptr->opc);
 	} /* switch */
-		
+
 	} /* for instruction */
 		
 	/* copy values to interface registers */
 
 	src = bptr->outstack;
 	len = bptr->outdepth;
-	MCODECHECK(64 + len);
+	MCODECHECK(512);
 #ifdef LSRA
 	if (!opt_lsra)
 #endif
@@ -3740,7 +3738,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		/* move index register into REG_ITMP1 */
 
@@ -3800,7 +3798,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
@@ -3855,7 +3853,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
@@ -3910,7 +3908,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
@@ -3964,7 +3962,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
@@ -4031,7 +4029,7 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
@@ -4082,7 +4080,7 @@ gen_method:
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check size of code segment */
 
-			MCODECHECK(128);
+			MCODECHECK(512);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
