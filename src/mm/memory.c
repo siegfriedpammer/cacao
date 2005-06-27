@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 2494 2005-05-21 15:07:00Z twisti $
+   $Id: memory.c 2845 2005-06-27 15:51:12Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include <unistd.h>
 
 #include "config.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 
@@ -201,13 +202,25 @@ void mem_free(void *m, s4 size)
 }
 
 
+/* dump_alloc ******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void *dump_alloc(s4 size)
 {
-	void *m;
+#if defined(DISABLE_DUMP)
+	/* use malloc memory for dump memory (for debugging only!) */
+
+	return mem_alloc(size);
+#else
+	void     *m;
 	dumpinfo *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
@@ -221,13 +234,15 @@ void *dump_alloc(s4 size)
 
 	if (di->useddumpsize + size > di->allocateddumpsize) {
 		dumpblock *newdumpblock;
-		s4 newdumpblocksize;
+		s4         newdumpblocksize;
 
 		/* allocate a new dumplist structure */
+
 		newdumpblock = checked_alloc(sizeof(dumpblock));
 
 		/* If requested size is greater than the default, make the new dump   */
 		/* block as big as the size requested. Else use the default size.     */
+
 		if (size > DUMPBLOCKSIZE) {
 			newdumpblocksize = size;
 
@@ -236,7 +251,7 @@ void *dump_alloc(s4 size)
 		}
 
 		/* allocate dumpblock memory */
-		/*printf("new dumpblock: %d\n", newdumpblocksize);*/
+
 		newdumpblock->dumpmem = checked_alloc(newdumpblocksize);
 
 		newdumpblock->prev = di->currentdumpblock;
@@ -245,14 +260,16 @@ void *dump_alloc(s4 size)
 
 		/* Used dump size is previously allocated dump size, because the      */
 		/* remaining free memory of the previous dump block cannot be used.   */
-		/*printf("unused memory: %d\n", allocateddumpsize - useddumpsize);*/
+
 		di->useddumpsize = di->allocateddumpsize;
 
 		/* increase the allocated dump size by the size of the new dump block */
+
 		di->allocateddumpsize += newdumpblocksize;
 
 #if defined(STATISTICS)
-		/* the amount of globally allocated dump memory (thread save)         */
+		/* the amount of globally allocated dump memory (thread save) */
+
 		if (opt_stat)
 			globalallocateddumpsize += newdumpblocksize;
 #endif
@@ -260,40 +277,65 @@ void *dump_alloc(s4 size)
 
 	/* current dump block base address + the size of the current dump block - */
 	/* the size of the unused memory = new start address                      */
+
 	m = di->currentdumpblock->dumpmem + di->currentdumpblock->size -
 		(di->allocateddumpsize - di->useddumpsize);
 
-	/* increase used dump size by the allocated memory size                   */
+	/* increase used dump size by the allocated memory size */
+
 	di->useddumpsize += size;
 
 #if defined(STATISTICS)
-	if (opt_stat) {
-		if (di->useddumpsize > maxdumpsize) {
+	if (opt_stat)
+		if (di->useddumpsize > maxdumpsize)
 			maxdumpsize = di->useddumpsize;
-		}
-	}
 #endif
 		
 	return m;
-}   
+#endif /* defined(DISABLE_DUMP) */
+}
 
+
+/* dump_realloc ****************************************************************
+
+   XXX
+
+*******************************************************************************/
 
 void *dump_realloc(void *src, s4 len1, s4 len2)
 {
+#if defined(DISABLE_DUMP)
+	/* use malloc memory for dump memory (for debugging only!) */
+
+	return mem_realloc(src, len1, len2);
+#else
 	void *dst = dump_alloc(len2);
 
 	memcpy(dst, src, len1);
 
 	return dst;
+#endif
 }
 
 
+/* dump_release ****************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void dump_release(s4 size)
 {
+#if defined(DISABLE_DUMP)
+	/* use malloc memory for dump memory (for debugging only!) */
+
+	/* do nothing */
+#else
 	dumpinfo *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
@@ -304,7 +346,8 @@ void dump_release(s4 size)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Illegal dump release size %d", size);
 
-	/* reset the used dump size to the size specified                         */
+	/* reset the used dump size to the size specified */
+
 	di->useddumpsize = size;
 
 	while (di->currentdumpblock && di->allocateddumpsize - di->currentdumpblock->size >= di->useddumpsize) {
@@ -325,24 +368,39 @@ void dump_release(s4 size)
 		di->currentdumpblock = tmp->prev;
 
 #if defined(STATISTICS)
-		/* the amount of globally allocated dump memory (thread save)         */
+		/* the amount of globally allocated dump memory (thread save) */
+
 		if (opt_stat)
 			globalallocateddumpsize -= tmp->size;
 #endif
 
-		/* release the dump memory and the dumpinfo structure                 */
+		/* release the dump memory and the dumpinfo structure */
+
 		free(tmp->dumpmem);
 		free(tmp);
 	}
+#endif /* defined(DISABLE_DUMP) */
 }
 
 
-s4 dump_size()
+/* dump_size *******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+s4 dump_size(void)
 {
+#if defined(DISABLE_DUMP)
+	/* use malloc memory for dump memory (for debugging only!) */
+
+	return 0;
+#else
 	dumpinfo *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	di = &((threadobject *) THREADOBJECT)->dumpinfo;
 #else
@@ -353,6 +411,7 @@ s4 dump_size()
 		return 0;
 
 	return di->useddumpsize;
+#endif /* defined(DISABLE_DUMP) */
 }
 
 
