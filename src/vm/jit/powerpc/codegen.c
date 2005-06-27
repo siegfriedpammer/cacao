@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2811 2005-06-23 14:19:18Z christian $
+   $Id: codegen.c 2839 2005-06-27 10:55:38Z christian $
 
 */
 
@@ -2409,11 +2409,12 @@ nowperformreturn:
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
+				case ICMD_LRETURN:
+					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
+					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
-				case ICMD_LRETURN:
-					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
 					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
@@ -2431,11 +2432,12 @@ nowperformreturn:
 
 				/* and now restore the proper return value */
 				switch (iptr->opc) {
+				case ICMD_LRETURN:
+					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
+					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
-				case ICMD_LRETURN:
-					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
 					break;
 				case ICMD_FRETURN:
 					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
