@@ -18,9 +18,8 @@
 
 #include "config.h"
 
-# if defined(GC_SOLARIS_PTHREADS) || defined(GC_THREADS)
 # include "private/gc_priv.h"
-# endif
+
 # if defined(GC_SOLARIS_PTHREADS)
 # include <pthread.h>
 # include <thread.h>

@@ -1,8 +1,8 @@
 #include "config.h"
+#include "private/gc_priv.h"
 
 #if defined(GC_WIN32_THREADS) 
 
-#include "private/gc_priv.h"
 #include <windows.h>
 
 #ifdef CYGWIN32
@@ -12,6 +12,7 @@
 # undef pthread_create 
 # undef pthread_sigmask 
 # undef pthread_join 
+# undef pthread_detach
 # undef dlopen 
 
 # define DEBUG_CYGWIN_THREADS 0
@@ -186,7 +187,7 @@ static void GC_delete_thread(DWORD thread_id) {
        /* Must still be in_use, since nobody else can store our thread_id. */
        i++) {}
   if (i > my_max) {
-    WARN("Removing nonexisiting thread %ld\n", (GC_word)thread_id);
+    WARN("Removing nonexistent thread %ld\n", (GC_word)thread_id);
   } else {
     GC_delete_gc_thread(thread_table+i);
   }
