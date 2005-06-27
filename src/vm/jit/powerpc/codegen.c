@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2841 2005-06-27 14:19:36Z christian $
+   $Id: codegen.c 2842 2005-06-27 14:21:44Z christian $
 
 */
 
@@ -128,7 +128,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
 			parentargs_base += 3;
 		else
-			parentargs_nase += 2;
+			parentargs_base += 2;
 	}
 
 #endif
