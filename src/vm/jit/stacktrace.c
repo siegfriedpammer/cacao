@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2799 2005-06-23 09:54:26Z twisti $
+   $Id: stacktrace.c 2867 2005-06-28 18:52:05Z twisti $
 
 */
 
@@ -250,7 +250,9 @@ void  cacao_stacktrace_fillInStackTrace(void **target,CacaoStackTraceCollector c
 		info = *((void **) (builtin_asm_get_stackframeinfo()));
 
 		if (!info) {
+#ifdef JWDEBUG
 			log_text("info ==0");
+#endif
 			*target=0;
 			return;
 
