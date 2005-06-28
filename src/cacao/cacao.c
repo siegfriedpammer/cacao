@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2850 2005-06-28 15:41:30Z twisti $
+   $Id: cacao.c 2852 2005-06-28 16:05:50Z twisti $
 
 */
 
@@ -347,12 +347,12 @@ void typecheck_print_statistics(FILE *file);
 
 *******************************************************************************/
 
-char *getmainclassnamefromjar(JNIEnv *env, char *mainstring)
+static char *getmainclassnamefromjar(char *mainstring)
 {
 	classinfo         *c;
 	java_objectheader *o;
 	methodinfo        *m;
-	utf               *u;
+	java_lang_String  *s;
 
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
 
@@ -376,9 +376,9 @@ char *getmainclassnamefromjar(JNIEnv *env, char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	u = utf_new_char(mainstring);
+	s = javastring_new_char(mainstring);
 
-	asm_calljavafunction(m, o, u, NULL, NULL);
+	asm_calljavafunction(m, o, s, NULL, NULL);
 
 
 	/* get manifest object */
@@ -430,9 +430,9 @@ char *getmainclassnamefromjar(JNIEnv *env, char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	u = utf_new_char("Main-Class");
+	s = javastring_new_char("Main-Class");
 
-	o = asm_calljavafunction(m, o, u, NULL, NULL);
+	o = asm_calljavafunction(m, o, s, NULL, NULL);
 
 	if (!o)
 		throw_main_exception_exit();
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv)
 
 		if (jar) {
 			/* open jar file with java.util.jar.JarFile */
-			mainstring = getmainclassnamefromjar((JNIEnv *) &env, mainstring);
+			mainstring = getmainclassnamefromjar(mainstring);
 		}
 
 		/* load the main class */
