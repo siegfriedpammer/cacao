@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2789 2005-06-22 16:16:41Z edwin $
+   $Id: jni.c 2849 2005-06-28 12:46:42Z twisti $
 
 */
 
@@ -3611,6 +3611,20 @@ jint DestroyJavaVM(JavaVM *vm)
 }
 
 
+/* AttachCurrentThread *********************************************************
+
+   Attaches the current thread to a Java VM. Returns a JNI interface
+   pointer in the JNIEnv argument.
+
+   Trying to attach a thread that is already attached is a no-op.
+
+   A native thread cannot be attached simultaneously to two Java VMs.
+
+   When a thread is attached to the VM, the context class loader is
+   the bootstrap loader.
+
+*******************************************************************************/
+
 jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 {
 	STATS(jniinvokation();)
@@ -3623,6 +3637,7 @@ jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 #endif
 
 	*env = &ptr_env;
+
 	return 0;
 }
 
