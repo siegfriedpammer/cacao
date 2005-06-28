@@ -1,4 +1,4 @@
-/* vm/jit/x86_64/disass.c - wrapper functions for GNU binutils disassembler
+/* src/vm/jit/x86_64/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 1955 2005-02-17 19:50:24Z twisti $
+   $Id: disass.c 2855 2005-06-28 18:32:46Z twisti $
 
 */
 
@@ -41,11 +41,14 @@
 #include "vm/jit/x86_64/types.h"
 
 
+/* global variables ***********************************************************/
+
 char mylinebuf[512];
 int mylen;
 
 
 /* name table for 16 integer registers */
+
 char *regs[] = {
 	"rax",
 	"rcx",
@@ -88,11 +91,12 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 }
 
 
-/* function disassinstr ********************************************************
+/* disassinstr *****************************************************************
 
-	outputs a disassembler listing of one machine code instruction on 'stdout'
-	c:   instructions machine code
-	pos: instructions address relative to method start
+   Outputs a disassembler listing of one machine code instruction on
+   `stdout'.
+
+   code: pointer to machine code
 
 *******************************************************************************/
 
@@ -127,11 +131,12 @@ int disassinstr(u1 *code)
 }
 
 
-/* function disassemble ********************************************************
+/* disassemble *****************************************************************
 
-	outputs a disassembler listing of some machine code on 'stdout'
-	code: pointer to first instruction
-	len:  code size (number of instructions * 4)
+   Outputs a disassembler listing of some machine code on `stdout'.
+
+   code: pointer to first instruction
+   len:  code size
 
 *******************************************************************************/
 
