@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 2548 2005-06-06 14:42:29Z twisti $
+   $Id: VMObject.c 2854 2005-06-28 18:24:47Z twisti $
 
 */
 
@@ -170,15 +170,15 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 /*
  * Class:     java/lang/VMObject
  * Method:    wait
- * Signature: (J)V
+ * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *this, s8 time, s4 par3)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
 {
 	if (runverbose)
 		log_text("java_lang_VMObject_wait called");
 
 #if defined(USE_THREADS)
-	wait_cond_for_object(&this->header, time, par3);
+	wait_cond_for_object(&o->header, ms, ns);
 #endif
 }
 
