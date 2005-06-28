@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2828 2005-06-25 14:47:16Z twisti $
+   $Id: cacao.c 2850 2005-06-28 15:41:30Z twisti $
 
 */
 
@@ -148,6 +148,10 @@ void **stackbottom = 0;
 #define OPT_BOOTCLASSPATH_A  37
 #define OPT_BOOTCLASSPATH_P  38
 #define OPT_VERSION          39
+#define OPT_SHOWVERSION      40
+
+#define OPT_HELP             100
+#define OPT_X                101
 
 
 opt_struct opts[] = {
@@ -202,81 +206,101 @@ opt_struct opts[] = {
 	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
 	{ "version",           false, OPT_VERSION },
+	{ "showversion",       false, OPT_SHOWVERSION },
+	{ "help",              false, OPT_HELP },
+	{ "?",                 false, OPT_HELP },
+	{ "X",                 false, OPT_X },
 	{ NULL,                false, 0 }
 };
 
 
-/******************** interne Function: print_usage ************************
+/* usage ***********************************************************************
 
-Prints the correct usage syntax to stdout.
+   Prints the correct usage syntax to stdout.
 
-***************************************************************************/
+*******************************************************************************/
 
-static void usage()
+static void usage(void)
 {
-	printf("Usage: cacao [options] classname [program arguments]\n\n");
+	printf("Usage: cacao [-options] classname [arguments]\n");
+	printf("               (to run a class file)\n");
+	printf("       cacao [-options] -jar jarfile [arguments]\n");
+	printf("               (to run a standalone jar file)\n\n");
 
-	printf("Options:\n");
+	printf("Java options:\n");
 	printf("    -cp <path>               specify a path to look for classes\n");
 	printf("    -classpath <path>        specify a path to look for classes\n");
-	printf("    -jar jarfile             execute a jar file\n");
 	printf("    -D<name>=<value>         add an entry to the property list\n");
-	printf("    -Xmx<size>[kK|mM]        specify the size for the heap\n");
-	printf("    -Xms<size>[kK|mM]        specify the initial size for the heap\n");
-	printf("    -mx<size>[kK|mM]         specify the size for the heap\n");
-	printf("    -ms<size>[kK|mM]         specify the initial size for the heap\n");
-	printf("    -Xbootclasspath:<path>   set search path for bootstrap classes and resources\n");
-	printf("    -Xbootclasspath/a:<path> append to end of bootstrap class path\n");
-	printf("    -Xbootclasspath/p:<path> prepend in front of bootstrap class path\n");
-	printf("          -v ................... write state-information\n");
-	printf("          -verbose ............. write more information\n");
-	printf("          -verbosegc ........... write message for each GC\n");
-	printf("          -verbosecall ......... write message for each call\n");
-	printf("          -verboseexception .... write message for each step of stack unwinding\n");
-#ifdef TYPECHECK_VERBOSE
-	printf("          -verbosetc ........... write debug messages while typechecking\n");
-#endif
 	printf("    -version                 print product version and exit\n");
+	printf("    -showversion             print product version and continue\n");
+	printf("    -help, -?                print this help message\n");
+	printf("    -X                       print help on non-standard Java options\n\n");
+
+	printf("CACAO options:\n");
+	printf("    -v                       write state-information\n");
+	printf("    -verbose                 write more information\n");
+	printf("    -verbosegc               write message for each GC\n");
+	printf("    -verbosecall             write message for each call\n");
+	printf("    -verboseexception        write message for each step of stack unwinding\n");
+#ifdef TYPECHECK_VERBOSE
+	printf("    -verbosetc               write debug messages while typechecking\n");
+#endif
 #if defined(__ALPHA__)
-	printf("          -noieee .............. don't use ieee compliant arithmetic\n");
+	printf("    -noieee                  don't use ieee compliant arithmetic\n");
 #endif
-	printf("          -noverify ............ don't verify classfiles\n");
-	printf("          -liberalutf........... don't warn about overlong UTF-8 sequences\n");
-	printf("          -softnull ............ use software nullpointer check\n");
-	printf("          -time ................ measure the runtime\n");
+	printf("    -noverify                don't verify classfiles\n");
+	printf("    -liberalutf              don't warn about overlong UTF-8 sequences\n");
+	printf("    -softnull                use software nullpointer check\n");
+	printf("    -time                    measure the runtime\n");
 #if defined(STATISTICS)
-	printf("          -stat ................ detailed compiler statistics\n");
+	printf("    -stat                    detailed compiler statistics\n");
 #endif
-	printf("          -log logfile ......... specify a name for the logfile\n");
-	printf("          -c(heck)b(ounds) ..... don't check array bounds\n");
-	printf("                  s(ync) ....... don't check for synchronization\n");
-	printf("          -oloop ............... optimize array accesses in loops\n"); 
-	printf("          -l ................... don't start the class after loading\n");
-	printf("          -eager ............... perform eager class loading and linking\n");
-	printf("          -all ................. compile all methods, no execution\n");
-	printf("          -m ................... compile only a specific method\n");
-	printf("          -sig ................. specify signature for a specific method\n");
-	printf("          -s(how)a(ssembler) ... show disassembled listing\n");
-	printf("                 c(onstants) ... show the constant pool\n");
-	printf("                 d(atasegment).. show data segment listing\n");
-	printf("                 i(ntermediate). show intermediate representation\n");
-	printf("                 m(ethods)...... show class fields and methods\n");
-	printf("                 n(ative)....... show disassembled native stubs\n");
-	printf("                 u(tf) ......... show the utf - hash\n");
-	printf("          -i     n ............. activate inlining\n");
-	printf("                 v ............. inline virtual methods\n");
-	printf("                                 uses/turns rt option on\n");
-	printf("                 e ............. inline methods with exceptions\n");
-	printf("                 p ............. optimize argument renaming\n");
-	printf("                 o ............. inline methods of foreign classes\n");
+	printf("    -log logfile             specify a name for the logfile\n");
+	printf("    -c(heck)b(ounds)         don't check array bounds\n");
+	printf("            s(ync)           don't check for synchronization\n");
+	printf("    -oloop                   optimize array accesses in loops\n"); 
+	printf("    -l                       don't start the class after loading\n");
+	printf("    -eager                   perform eager class loading and linking\n");
+	printf("    -all                     compile all methods, no execution\n");
+	printf("    -m                       compile only a specific method\n");
+	printf("    -sig                     specify signature for a specific method\n");
+	printf("    -s(how)a(ssembler)       show disassembled listing\n");
+	printf("           c(onstants)       show the constant pool\n");
+	printf("           d(atasegment)     show data segment listing\n");
+	printf("           i(ntermediate)    show intermediate representation\n");
+	printf("           m(ethods)         show class fields and methods\n");
+	printf("           n(ative)          show disassembled native stubs\n");
+	printf("           u(tf)             show the utf - hash\n");
+	printf("    -i     n(line)           activate inlining\n");
+	printf("           v(irtual)         inline virtual methods (uses/turns rt option on)\n");
+	printf("           e(exception)      inline methods with exceptions\n");
+	printf("           p(aramopt)        optimize argument renaming\n");
+	printf("           o(utsiders)       inline methods of foreign classes\n");
 #ifdef STATIC_ANALYSIS
-	printf("          -rt .................. use rapid type analysis\n");
-	printf("          -xta ................. use x type analysis\n");
-	printf("          -vta ................. use variable type analysis\n");
+	printf("    -rt                      use rapid type analysis\n");
+	printf("    -xta                     use x type analysis\n");
+	printf("    -vta                     use variable type analysis\n");
 #endif
 #ifdef LSRA
-	printf("          -lsra ................ use linear scan register allocation\n");
+	printf("    -lsra                    use linear scan register allocation\n");
 #endif
+
+	/* exit with error code */
+
+	exit(1);
+}   
+
+
+static void Xusage(void)
+{
+	printf("    -Xbootclasspath:<zip/jar files and directories separated by :>\n");
+    printf("                      value is set as bootstrap class path\n");
+	printf("    -Xbootclasspath/a:<zip/jar files and directories separated by :>\n");
+	printf("                      value is appended to the bootstrap class path\n");
+	printf("    -Xbootclasspath/p:<zip/jar files and directories separated by :>\n");
+	printf("                      value is prepended to the bootstrap class path\n");
+	printf("    -Xms<size>        set the initial size of the heap (default: 2M)\n");
+	printf("    -Xmx<size>        set the maximum size of the heap (default: 64M)\n");
 
 	/* exit with error code */
 
@@ -286,14 +310,28 @@ static void usage()
 
 /* version *********************************************************************
 
-   Only prints cacao version information and exits.
+   Only prints cacao version information.
 
 *******************************************************************************/
 
-static void version()
+static void version(void)
 {
-	printf("cacao "VERSION"\n");
-	exit(0);
+	printf("CACAO version "VERSION"\n");
+
+	printf("Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,\n");
+	printf("R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,\n");
+	printf("C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,\n");
+	printf("Institut f. Computersprachen - TU Wien\n\n");
+
+	printf("This program is free software; you can redistribute it and/or\n");
+	printf("modify it under the terms of the GNU General Public License as\n");
+	printf("published by the Free Software Foundation; either version 2, or (at\n");
+	printf("your option) any later version.\n\n");
+
+	printf("This program is distributed in the hope that it will be useful, but\n");
+	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
+	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
+	printf("General Public License for more details.\n");
 }
 
 
@@ -303,78 +341,103 @@ void typecheck_print_statistics(FILE *file);
 
 
 
-/* getmainclassfromjar ************************************************************
+/* getmainclassfromjar *********************************************************
 
-   gets the name of the main class form a jar's manifest file
+   Gets the name of the main class form a JAR's manifest file.
 
-**********************************************************************************/
+*******************************************************************************/
 
 char *getmainclassnamefromjar(JNIEnv *env, char *mainstring)
 {
-	jclass class;
-	jmethodID mid;
-	jobject obj;
-		
-	class = (*env)->FindClass(env, "java/util/jar/JarFile");
-	if (class == NULL) {
-		log_text("unable to find java.util.jar.JarFile");
-		throw_main_exception_exit();
-	}
-	
-	mid = (*env)->GetMethodID(NULL, class, "<init>","(Ljava/lang/String;)V");
-	if (mid == NULL) {
-		log_text("unable to find constructor in java.util.jar.JarFile");
-		cacao_exit(1);
-	}
+	classinfo         *c;
+	java_objectheader *o;
+	methodinfo        *m;
+	utf               *u;
 
-	/* open jarfile */
-	obj = (*env)->NewObject(NULL,class,mid,((*env)->NewStringUTF(NULL,(char*)mainstring)));
-	if ((*env)->ExceptionOccurred(NULL) != NULL) {
-		(*env)->ExceptionDescribe(NULL);
-		cacao_exit(1);
-	}
+	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
+
+	if (!c)
+		throw_main_exception_exit();
 	
-	mid = (*env)->GetMethodID(NULL, class, "getManifest","()Ljava/util/jar/Manifest;");
-	if (mid == NULL) {
-		log_text("unable to find getMainfest method");
-		cacao_exit(1);
-	}
+	/* create JarFile object */
+
+	o = builtin_new(c);
+
+	if (!o)
+		throw_main_exception_exit();
+
+
+	m = class_resolveclassmethod(c,
+								 utf_init, 
+								 utf_java_lang_String__void,
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		throw_main_exception_exit();
+
+	u = utf_new_char(mainstring);
+
+	asm_calljavafunction(m, o, u, NULL, NULL);
+
 
 	/* get manifest object */
-	obj = (*env)->CallObjectMethod(NULL,obj,mid);
-	if ((*env)->ExceptionOccurred(NULL) != NULL) {
-		(*env)->ExceptionDescribe(NULL);
+
+	m = class_resolveclassmethod(c,
+								 utf_new_char("getManifest"), 
+								 utf_new_char("()Ljava/util/jar/Manifest;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		throw_main_exception_exit();
+
+	o = asm_calljavafunction(m, o, NULL, NULL, NULL);
+
+	if (!o) {
+		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
 		cacao_exit(1);
 	}
 
-	mid = (*env)->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getMainAttributes","()Ljava/util/jar/Attributes;");
-	if (mid == NULL) {
-		log_text("unable to find getMainAttributes method");
-		cacao_exit(1);
-	}
 
 	/* get Main Attributes */
-	obj = (*env)->CallObjectMethod(NULL,obj,mid);
-	if ((*env)->ExceptionOccurred(NULL) != NULL) {
-		(*env)->ExceptionDescribe(NULL);
+
+	m = class_resolveclassmethod(o->vftbl->class,
+								 utf_new_char("getMainAttributes"), 
+								 utf_new_char("()Ljava/util/jar/Attributes;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		throw_main_exception_exit();
+
+	o = asm_calljavafunction(m, o, NULL, NULL, NULL);
+
+	if (!o) {
+		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
 		cacao_exit(1);
 	}
 
-
-	mid = (*env)->GetMethodID(NULL, (jclass)((java_objectheader*) obj)->vftbl->class, "getValue","(Ljava/lang/String;)Ljava/lang/String;");
-	if (mid == NULL) {
-		log_text("unable to find getValue method");
-		cacao_exit(1);
-	}
 
 	/* get property Main-Class */
-	obj = (*env)->CallObjectMethod(NULL,obj,mid,(*env)->NewStringUTF(NULL,"Main-Class"));
-	if ((*env)->ExceptionOccurred(NULL) != NULL) {
-		(*env)->ExceptionDescribe(NULL);
-		cacao_exit(1);
-	}
-	
-	return javastring_tochar((java_objectheader *) obj);
+
+	m = class_resolveclassmethod(o->vftbl->class,
+								 utf_new_char("getValue"), 
+								 utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"),
+								 class_java_lang_Object,
+								 true);
+
+	if (!m)
+		throw_main_exception_exit();
+
+	u = utf_new_char("Main-Class");
+
+	o = asm_calljavafunction(m, o, u, NULL, NULL);
+
+	if (!o)
+		throw_main_exception_exit();
+
+	return javastring_tochar(o);
 }
 
 
@@ -423,18 +486,18 @@ void exit_handler(void)
 }
 
 
-/************************** Function: main *******************************
+/* main ************************************************************************
 
    The main program.
    
-**************************************************************************/
+*******************************************************************************/
 
 int main(int argc, char **argv)
 {
 	s4 i, j;
 	void *dummy;
 	
-	/********** interne (nur fuer main relevante Optionen) **************/
+	/* local variables ********************************************************/
    
 	char logfilename[200] = "";
 	u4 heapmaxsize;
@@ -634,6 +697,11 @@ int main(int argc, char **argv)
 
 		case OPT_VERSION:
 			version();
+			exit(0);
+			break;
+
+		case OPT_SHOWVERSION:
+			version();
 			break;
 
 		case OPT_NOIEEE:
@@ -795,6 +863,14 @@ int main(int argc, char **argv)
 			opt_lsra = true;
 			break;
 #endif
+
+		case OPT_HELP:
+			usage();
+			break;
+
+		case OPT_X:
+			Xusage();
+			break;
 
 		default:
 			printf("Unknown option: %s\n", argv[opt_ind]);
