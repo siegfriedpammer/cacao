@@ -16,13 +16,12 @@ dnl system type
 case "$host_cpu" in
 alpha | alphaev56 )
 	ARCH_DIR="alpha"
-        STATIC_CLASSPATH="0"
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
 
 arm )
 	ARCH_DIR="arm"
-	STATIC_CLASSPATH="1"
+	ENABLE_STATICVM="1"
 	CFLAGS="-D__ARM__"
 	;;
 
@@ -56,7 +55,7 @@ x86_64 )
 
 xdspcore )
 	ARCH_DIR="xdspcore"
-	STATIC_CLASSPATH="1"
+	ENABLE_STATICVM="1"
 	CFLAGS="-D__XDSPCORE__"
 	USE_SCHEDULER="1"
 	;;
@@ -139,7 +138,6 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
 
 dnl Checks for libraries.
-AC_CHECK_LIB(m, fmod)
 
 dnl Checking sizeof void *
 AC_COMPILE_CHECK_SIZEOF(void *)
@@ -382,46 +380,46 @@ else
 fi
 
 
-dnl check if classpath should be linked statically with CACAO
-AC_ARG_ENABLE([dynamicclasspath], [AS_HELP_STRING(--disable-dynamicclasspath, link classpath native code static even on platforms supporting dynamic loading)], [use_dynamicclasspath=$enableval], [use_dynamicclasspath=yes])
+dnl check if CACAO should be linked statically
+AC_ARG_ENABLE([staticvm], [AS_HELP_STRING(--enable-staticvm, link GNU classpath's native libraries statically into CACAO [[default=no]])])
 
-AC_MSG_CHECKING(whether to link GNU classpath statically)
-if test x"$use_dynamicclasspath" = "xno"; then
-	STATIC_CLASSPATH="1"
+AC_MSG_CHECKING(whether to link GNU classpath statically into CACAO)
+if test x"$enable_staticvm" = "xyes"; then
+	ENABLE_STATICVM="1"
 fi
 
-if test x"${STATIC_CLASSPATH}" = "x1"; then
+if test x"${ENABLE_STATICVM}" = "x1"; then
 	AC_MSG_RESULT(yes)
-	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
+	AM_CONDITIONAL([ENABLE_STATICVM], [true])
 else
 	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
+	AM_CONDITIONAL([ENABLE_STATICVM], [false])
 fi
-AC_SUBST(STATIC_CLASSPATH)
+AC_SUBST(ENABLE_STATICVM)
 
 
-dnl enable gtk peer
-AC_ARG_ENABLE([gtk-peer], [AS_HELP_STRING(--enable-gtk-peer,compile GTK native peers [[default=no]])])
+dnl check if we build gtk peers
+AC_ARG_ENABLE([gtk-peer], [AS_HELP_STRING(--disable-gtk-peer,compile GTK native peers [[default=yes]])])
 
-AC_MSG_CHECKING(whether to use GTK awt peers)
-if test x"$enable_gtk_peer" = "xyes"; then
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([USE_GTK], 1, [use gtk])
-	AM_CONDITIONAL([USE_GTK_PEER], [true])
-	USE_GTK_PEER=yes
-else
+AC_MSG_CHECKING(whether to compile GTK awt peers)
+if test x"$enable_gtk_peer" = "xno"; then
 	AC_MSG_RESULT(no)
 	AM_CONDITIONAL([USE_GTK_PEER], [false])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-gtk-peer"
 	USE_GTK_PEER=no
+else
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([USE_GTK], 1, [use gtk])
+	AM_CONDITIONAL([USE_GTK_PEER], [true])
+	USE_GTK_PEER=yes
 fi
 AC_SUBST(USE_GTK_PEER)
 
 
 dnl pass configure options to classpath
-if test x"${STATIC_CLASSPATH}" = "x1"; then
-        AC_DEFINE([STATIC_CLASSPATH], 1, [use classpath statically linked])
-	AM_CONDITIONAL([STATIC_CLASSPATH], [true])
+if test x"${ENABLE_STATICVM}" = "x1"; then
+        AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
+	AM_CONDITIONAL([ENABLE_STATICVM], [true])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
 
 	dnl check for some classpath related stuff when we link statically
@@ -449,7 +447,7 @@ if test x"${STATIC_CLASSPATH}" = "x1"; then
 		AC_SUBST(PANGOFT2_CFLAGS)
 	fi
 else
-	AM_CONDITIONAL([STATIC_CLASSPATH], [false])
+	AM_CONDITIONAL([ENABLE_STATICVM], [false])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
 fi
 
