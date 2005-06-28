@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2707 2005-06-15 13:40:36Z twisti $
+   $Id: native.h 2861 2005-06-28 18:38:16Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _NATIVE_H
 #define _NATIVE_H
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 # include "libltdl/ltdl.h"
 #endif
 
@@ -56,7 +56,7 @@ typedef struct nativeref nativeref;
 typedef struct nativecompref nativecompref;
 
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 typedef struct library_hash_loader_entry library_hash_loader_entry;
 typedef struct library_hash_name_entry library_hash_name_entry;
 
@@ -98,7 +98,7 @@ struct nativecompref {
 };
 
 
-void use_class_as_object(classinfo *c);
+bool use_class_as_object(classinfo *c);
 
 /* initialize native subsystem */
 bool native_init(void);
@@ -107,7 +107,7 @@ bool native_init(void);
 functionptr native_findfunction(utf *cname, utf *mname, 
 								utf *desc, bool isstatic);
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 /* add a library to the library hash */
 void native_library_hash_add(utf *filename, java_objectheader *loader,
 							 lt_dlhandle handle);
