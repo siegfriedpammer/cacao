@@ -28,9 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2453 2005-05-11 15:37:35Z twisti $
+## $Id: Makefile.am 2856 2005-06-28 18:34:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+SUBDIRS = ../classpath/native/fdlibm
 
 CLEANFILES = vm.zip
 
