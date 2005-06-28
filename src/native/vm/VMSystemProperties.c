@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2758 2005-06-20 21:56:37Z twisti $
+   $Id: VMSystemProperties.c 2864 2005-06-28 18:45:22Z twisti $
 
 */
 
@@ -129,7 +129,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		u1 c[4];
 	} u;
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	char *ld_library_path;
 	char *libpath;
 	s4    libpathlen;
@@ -159,7 +159,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	if (!m)
 		return;
 
-	insert_property(m, p, "java.version", "1.4.1");
+	insert_property(m, p, "java.version", "1.4.2");
 	insert_property(m, p, "java.vendor", "CACAO Team");
 	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
 	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX""CACAO_JRE_DIR);
@@ -183,17 +183,18 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "java.boot.class.path", bootclasspath);
 	insert_property(m, p, "sun.boot.class.path", bootclasspath);
 
-#if defined(STATIC_CLASSPATH)
+#if defined(ENABLE_STATICVM)
 	insert_property(m, p, "gnu.classpath.boot.library.path", ".");
 	insert_property(m, p, "java.library.path" , ".");
 #else
 	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
 
 #if !defined(WITH_EXTERNAL_CLASSPATH)
-	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) + 1;
+	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) +
+		strlen("0");
 #else
 	libpathlen = strlen(EXTERNAL_CLASSPATH_PREFIX) +
-		strlen(CLASSPATH_LIBRARY_PATH) + 1;
+		strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
 #endif
 
 	libpath = MNEW(char, libpathlen);
