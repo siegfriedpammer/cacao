@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2810 2005-06-23 14:03:24Z edwin $
+   $Id: headers.c 2858 2005-06-28 18:36:08Z twisti $
 
 */
 
@@ -230,6 +230,21 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
 	fprintf(stderr, "%s: ", classname);
 	utf_display(message);
+	fputc('\n', stderr);
+
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
+java_objectheader *new_exception_javastring(const char *classname,
+											java_lang_String *message)
+{
+	fprintf(stderr, "%s: ", classname);
+	/* TODO print message */
 	fputc('\n', stderr);
 
 	exit(1);
