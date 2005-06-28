@@ -30,14 +30,14 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2843 2005-06-27 15:03:01Z twisti $
+   $Id: native.c 2862 2005-06-28 18:39:35Z twisti $
 
 */
 
 
 #include <assert.h>
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 # include "libltdl/ltdl.h"
 #endif
 
@@ -86,7 +86,7 @@
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_security_VMAccessController.h"
 
-#if defined(STATIC_CLASSPATH)
+#if defined(ENABLE_STATICVM)
 
 /* these are required to prevent compiler warnings */
 
@@ -108,7 +108,7 @@
 
 #include "native/nativetable.inc"
 
-#else /* defined(STATIC_CLASSPATH) */
+#else /* defined(ENABLE_STATICVM) */
 
 /* Ensure that symbols for functions implemented within CACAO are used and    */
 /* exported to dlopen.                                                        */
@@ -222,12 +222,12 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_security_VMAccessController_getStack,
 };
 
-#endif /* defined(STATIC_CLASSPATH) */
+#endif /* defined(ENABLE_STATICVM) */
 
 
 /************* use classinfo structure as java.lang.Class object **************/
 
-void use_class_as_object(classinfo *c) 
+bool use_class_as_object(classinfo *c)
 {
 	if (!c->classvftbl) {
 		/* is the class loaded */
@@ -241,13 +241,15 @@ void use_class_as_object(classinfo *c)
 		/* is the class linked */
 		if (!c->linked)
 			if (!link_class(c))
-				throw_exception_exit();
+				return false;
 
 		assert(class_java_lang_Class);
 
 		c->header.vftbl = class_java_lang_Class->vftbl;
 		c->classvftbl = true;
   	}
+
+	return true;
 }
 
 
@@ -256,7 +258,7 @@ void use_class_as_object(classinfo *c)
 #undef JOWENN_DEBUG
 #undef JOWENN_DEBUG1
 
-#ifdef STATIC_CLASSPATH
+#ifdef ENABLE_STATICVM
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
 
 /* table for fast string comparison */
@@ -281,8 +283,10 @@ struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
 /* global variables ***********************************************************/
 
+#if !defined(ENABLE_STATICVM)
 static hashtable library_hash;
 static lt_dlhandle mainhandle;
+#endif
 
 
 /* native_loadclasses **********************************************************
@@ -293,7 +297,7 @@ static lt_dlhandle mainhandle;
 
 bool native_init(void)
 {
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	void *p;
 
 	/* We need to access the dummy native table, not only to remove a warning */
@@ -334,7 +338,7 @@ bool native_init(void)
 
 *******************************************************************************/
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 void native_library_hash_add(utf *filename, java_objectheader *loader,
 							 lt_dlhandle handle)
 {
@@ -400,7 +404,7 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 }
-#endif /* !defined(STATIC_CLASSPATH) */
+#endif /* !defined(ENABLE_STATICVM) */
 
 
 /* native_findfunction *********************************************************
@@ -414,16 +418,13 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 
 *******************************************************************************/
 
-#if defined(STATIC_CLASSPATH)
+#if defined(ENABLE_STATICVM)
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 								bool isstatic)
 {
-	int i;
 	/* entry of table for fast string comparison */
 	struct nativecompref *n;
-	/* for warning message if no function is found */
-	char *buffer;	         	
-	int buffer_len;
+	s4 i;
 
 	isstatic = isstatic ? true : false;
 	
@@ -431,15 +432,17 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 		for (i = 0; i < NATIVETABLESIZE; i++) {
 			nativecomptable[i].classname  = 
 				utf_new_char(nativetable[i].classname);
+
 			nativecomptable[i].methodname = 
 				utf_new_char(nativetable[i].methodname);
-			nativecomptable[i].descriptor = 
+
+			nativecomptable[i].descriptor =
 				utf_new_char(nativetable[i].descriptor);
-			nativecomptable[i].isstatic   = 
-				nativetable[i].isstatic;
-			nativecomptable[i].func       = 
-				nativetable[i].func;
+
+			nativecomptable[i].isstatic   = nativetable[i].isstatic;
+			nativecomptable[i].func       = nativetable[i].func;
 		}
+
 		nativecompdone = true;
 	}
 
@@ -452,29 +455,15 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 	}
 
 		
-	/* no function was found, display warning */
+	/* no function was found, throw exception */
 
-	buffer_len = 
-		utf_strlen(cname) + utf_strlen(mname) + utf_strlen(desc) + 64;
-
-	buffer = MNEW(char, buffer_len);
-
-	strcpy(buffer, "warning: native function ");
-	utf_sprint(buffer + strlen(buffer), mname);
-	strcpy(buffer + strlen(buffer), ": ");
-	utf_sprint(buffer + strlen(buffer), desc);
-	strcpy(buffer + strlen(buffer), " not found in class ");
-	utf_sprint(buffer + strlen(buffer), cname);
-
-	log_text(buffer);	
-
-	MFREE(buffer, char, buffer_len);
-
-	/* keep compiler happy */
+	*exceptionptr =
+			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
+									 mname);
 
 	return NULL;
 }
-#endif /* defined(STATIC_CLASSPATH) */
+#endif /* defined(ENABLE_STATICVM) */
 
 
 /* native_make_overloaded_function *********************************************
@@ -483,7 +472,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 *******************************************************************************/
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 static char *native_make_overloaded_function(char *name, utf *desc)
 {
 	char *newname;
@@ -734,7 +723,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	return (functionptr) (ptrint) sym;
 }
-#endif /* !defined(STATIC_CLASSPATH) */
+#endif /* !defined(ENABLE_STATICVM) */
 
 
 /****************** function class_findfield_approx ****************************
