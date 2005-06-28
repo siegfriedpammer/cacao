@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2695 2005-06-14 20:12:49Z twisti $
+## $Id: Makefile.am 2857 2005-06-28 18:35:37Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,7 @@ else
 THREAD_LIB =
 endif
 
-if STATIC_CLASSPATH
+if ENABLE_STATICVM
 cacao_LDFLAGS = \
 	$(LTLIBICONV)
 
@@ -106,6 +106,7 @@ cacao_SOURCES = \
 
 cacao_LDADD = \
 	libcacao.la \
+	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
 	$(GC_LIB) \
 	$(CLASSPATH_LIBS)
 
