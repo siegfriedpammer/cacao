@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 2706 2005-06-15 13:38:58Z twisti $
+   $Id: VMRuntime.c 2863 2005-06-28 18:44:10Z twisti $
 
 */
 
@@ -45,7 +45,7 @@
 # include <mach/mach.h>
 #endif
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 # include "libltdl/ltdl.h"
 #endif
 
@@ -256,7 +256,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
 	utf         *name;
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	lt_dlhandle  handle;
 #endif
 
@@ -265,7 +265,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 		return 0;
 	}
 
-#if defined(STATIC_CLASSPATH)
+#if defined(ENABLE_STATICVM)
 	return 1;
 #else
 	name = javastring_toutf(filename, 0);
