@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2678 2005-06-14 16:08:58Z twisti $
+## $Id: Makefile.am 2859 2005-06-28 18:36:27Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -75,6 +75,7 @@ cacaoh_SOURCES = \
 
 cacaoh_LDADD = \
 	libcacaoh.la \
+	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
 	$(GC_LIB)
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
