@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: linker.c 2868 2005-06-28 18:53:28Z twisti $
 
 */
 
@@ -725,12 +725,14 @@ static classinfo *link_class_intern(classinfo *c)
 			} else {
 				functionptr f = NULL;
 
-#if defined(STATIC_CLASSPATH)
+#if defined(ENABLE_STATICVM)
 				f = native_findfunction(c->name, m->name, m->descriptor,
 										(m->flags & ACC_STATIC));
-				if (f)
+				if (!f)
+					return NULL;
 #endif
-					m->stubroutine = codegen_createnativestub(f, m);
+
+				m->stubroutine = codegen_createnativestub(f, m);
 			}
 		}
 
