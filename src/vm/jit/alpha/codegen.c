@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: codegen.c 2774 2005-06-22 09:47:44Z christian $
+   $Id: codegen.c 2860 2005-06-28 18:37:28Z twisti $
 
 */
 
@@ -4305,7 +4305,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* do the native function call */
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	if (f == NULL) {
 		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m);
 

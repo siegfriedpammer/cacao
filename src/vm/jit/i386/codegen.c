@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
    	    Christian Ullrich
 
-   $Id: codegen.c 2837 2005-06-26 23:53:54Z twisti $
+   $Id: codegen.c 2860 2005-06-28 18:37:28Z twisti $
 
 */
 
@@ -5700,7 +5700,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* call the native function */
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	if (f == NULL)
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2486 2005-05-20 15:28:43Z twisti $
+## $Id: Makefile.am 2860 2005-06-28 18:37:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -107,7 +107,7 @@ DO_HEADER_FILES = \
 	$(GEN_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
 
-if STATIC_CLASSPATH
+if ENABLE_STATICVM
 noinst_HEADERS += \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 

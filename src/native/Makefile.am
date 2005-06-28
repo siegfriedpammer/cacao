@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2461 2005-05-12 23:44:01Z twisti $
+## $Id: Makefile.am 2860 2005-06-28 18:37:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,7 @@ SUBDIRS = include vm
 
 CLEANFILES =
 
-if STATIC_CLASSPATH
+if ENABLE_STATICVM
 SUBDIRS += tools
 CLEANFILES += nativetable.inc
 
