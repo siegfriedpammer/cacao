@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 2678 2005-06-14 16:08:58Z twisti $
+   $Id: nogc.c 2869 2005-06-28 19:01:39Z twisti $
 
 */
 
@@ -87,11 +87,6 @@ void *heap_reallocate(void *p, u4 size)
 								   "Out of memory");
 	
 	return m;
-}
-
-
-static void gc_ignore_warnings(char *msg, GC_word arg)
-{
 }
 
 
