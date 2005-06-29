@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2835 2005-06-26 21:48:50Z christian $
+   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
 
 */
 
@@ -155,6 +155,54 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+/* md_return_alloc *************************************************************
+
+ Precolor the Java Stackelement containing the Return Value, if possible.
+ (R3==a00 for int/adr, R4/R3 == a01/a00 for long, F1==a00 for float/double)
+
+--- in
+m:                       Methodinfo of current method
+return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
+                         TYPE_VOID is not allowed!
+stackslot:               Java Stackslot to contain the Return Value
+
+--- out
+if precoloring was possible:
+stackslot->varkind       =ARGVAR
+         ->varnum        =-1
+		 ->flags         =0
+		 ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+rd->arg[flt|int]reguse   set to a value according the register usage
+		                 
+
+*******************************************************************************/
+void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
+					 stackptr stackslot) {
+	/* In Leafmethods Local Vars holding parameters are precolored to their   */
+	/* argument register -> so leafmethods with paramcount > 0 could already  */
+	/* use  R3 == a00! */
+	if (!m->isleafmethod || (m->paramcount == 0)) {
+		/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has not   */
+		/* to survive method invokations */
+		if (!(stackslot->flags & SAVEDVAR)) {
+			stackslot->varkind = ARGVAR;
+			stackslot->varnum = -1;
+			stackslot->flags = 0;
+			if ( IS_INT_LNG_TYPE(return_type) ) {
+				if (IS_2_WORD_TYPE(return_type)) {
+					if (rd->argintreguse < 1) rd->argintreguse = 1;
+					stackslot->regoff = REG_RESULT;
+				} else {
+					if (rd->argintreguse < 2) rd->argintreguse = 2;
+					stackslot->regoff = PACK_REGS(REG_RESULT2, REG_RESULT);
+				}
+			} else { /* float/double */
+				if (rd->argfltreguse < 1) rd->argfltreguse = 1;
+				stackslot->regoff = REG_FRESULT;
+			}
+		}
+	}
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

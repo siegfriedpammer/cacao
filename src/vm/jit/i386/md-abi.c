@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-abi.c 2775 2005-06-22 09:48:28Z christian $
+   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
 
 */
 
@@ -77,6 +77,15 @@ void md_param_alloc(methoddesc *md)
 	md->argfltreguse = 0;
 }
 
+/* md_return_alloc *************************************************************
+
+ No straight forward precoloring of the Java Stackelement containing the return
+ value possible for i386, since it uses "reserved" registers for return values
+
+*******************************************************************************/
+void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
+					 stackptr stackslot) {
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

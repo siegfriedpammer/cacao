@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 2588 2005-06-08 10:58:04Z twisti $
+   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
 
 */
 
@@ -106,6 +106,50 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+/* md_return_alloc *************************************************************
+
+ Precolor the Java Stackelement containing the Return Value. Only for float/
+ double types straight forward possible, since INT_LNG types use "reserved"
+ registers
+ Float/Double values use a00 as return register.
+
+--- in
+m:                       Methodinfo of current method
+return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
+                         TYPE_VOID is not allowed!
+stackslot:               Java Stackslot to contain the Return Value
+
+--- out
+if precoloring was possible:
+stackslot->varkind       =ARGVAR
+         ->varnum        =-1
+		 ->flags         =0
+		 ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+rd->arg[flt|int]reguse   set to a value according the register usage
+		                 
+
+*******************************************************************************/
+void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
+					 stackptr stackslot) {
+	/* precoloring only straightforward possible with flt/dbl types */
+	if (IS_FLT_DBL_TYPE(return_type)) {
+		/* In Leafmethods Local Vars holding parameters are precolored to     */
+		/* their argument register -> so leafmethods with paramcount > 0 could*/
+		/* already use a00! */
+		if (!m->isleafmethod || (m->paramcount == 0)) {
+			/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has   */
+			/* not to survive method invokations */
+			if (!(stackslot->flags & SAVEDVAR)) {
+				stackslot->varkind = ARGVAR;
+				stackslot->varnum = -1;
+				stackslot->flags = 0;
+			    /* float/double */
+				if (rd->argfltreguse < 1) rd->argfltreguse = 1;
+				stackslot->regoff = REG_FRESULT;
+			}
+		}
+	}
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
