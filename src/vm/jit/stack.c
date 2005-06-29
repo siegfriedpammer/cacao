@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2824 2005-06-25 13:31:16Z twisti $
+   $Id: stack.c 2870 2005-06-29 12:39:31Z christian $
 
 */
 
@@ -1125,8 +1125,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
+						md_return_alloc(m, rd, opcode - ICMD_IRETURN, curstack);
 						COUNT(count_pcmd_return);
-						OP1_0(opcode-ICMD_IRETURN);
+						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
 						break;
 

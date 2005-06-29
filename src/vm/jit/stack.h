@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2568 2005-06-06 15:28:11Z twisti $
+   $Id: stack.h 2870 2005-06-29 12:39:31Z christian $
 
 */
 
@@ -384,6 +384,10 @@ void icmd_print_stack(codegendata *cd, stackptr s);
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
 void show_icmd(instruction *iptr, bool deadcode);
+
+/* machine dependent return value handling function */
+void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
+					 stackptr stackslot);
 
 #endif /* _STACK_H */
 
