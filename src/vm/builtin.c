@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2825 2005-06-25 13:37:35Z twisti $
+   $Id: builtin.c 2874 2005-06-29 14:57:36Z twisti $
 
 */
 
@@ -1878,19 +1878,64 @@ float builtin_fmul(float a, float b)
 }
 
 
+/* builtin_ddiv ****************************************************************
+
+   Implementation as described in VM Spec.
+
+*******************************************************************************/
+
 float builtin_fdiv(float a, float b)
 {
-	if (finitef(a) && finitef(b)) {
-		if (b != 0)
+	if (finitef(a)) {
+		if (finitef(b)) {
+			/* If neither value1' nor value2' is NaN, the sign of the result */
+			/* is positive if both values have the same sign, negative if the */
+			/* values have different signs. */
+
 			return a / b;
-		else {
-			if (a > 0)
+
+		} else {
+			if (isnanf(b)) {
+				/* If either value1' or value2' is NaN, the result is NaN. */
+
+				return intBitsToFloat(FLT_NAN);
+
+			} else {
+				/* Division of a finite value by an infinity results in a */
+				/* signed zero, with the sign-producing rule just given. */
+
+				/* is sign equal? */
+
+				if (copysignf(1.0, a) == copysignf(1.0, b))
+					return 0.0;
+				else
+					return -0.0;
+			}
+		}
+
+	} else {
+		if (isnanf(a)) {
+			/* If either value1' or value2' is NaN, the result is NaN. */
+
+			return intBitsToFloat(FLT_NAN);
+
+		} else if (finitef(b)) {
+			/* Division of an infinity by a finite value results in a signed */
+			/* infinity, with the sign-producing rule just given. */
+
+			/* is sign equal? */
+
+			if (copysignf(1.0, a) == copysignf(1.0, b))
 				return intBitsToFloat(FLT_POSINF);
-			else if (a < 0)
+			else
 				return intBitsToFloat(FLT_NEGINF);
+
+		} else {
+			/* Division of an infinity by an infinity results in NaN. */
+
+			return intBitsToFloat(FLT_NAN);
 		}
 	}
-	return intBitsToFloat(FLT_NAN);
 }
 
 
@@ -1988,43 +2033,64 @@ double builtin_dmul(double a, double b)
 }
 
 
+/* builtin_ddiv ****************************************************************
+
+   Implementation as described in VM Spec.
+
+*******************************************************************************/
+
 double builtin_ddiv(double a, double b)
 {
 	if (finite(a)) {
 		if (finite(b)) {
+			/* If neither value1' nor value2' is NaN, the sign of the result */
+			/* is positive if both values have the same sign, negative if the */
+			/* values have different signs. */
+
 			return a / b;
 
 		} else {
-			if (isnan(b))
+			if (isnan(b)) {
+				/* If either value1' or value2' is NaN, the result is NaN. */
+
 				return longBitsToDouble(DBL_NAN);
-			else
-				return copysign(0.0, b);
+
+			} else {
+				/* Division of a finite value by an infinity results in a */
+				/* signed zero, with the sign-producing rule just given. */
+
+				/* is sign equal? */
+
+				if (copysign(1.0, a) == copysign(1.0, b))
+					return 0.0;
+				else
+					return -0.0;
+			}
 		}
 
 	} else {
-		if (finite(b)) {
-			if (a > 0)
+		if (isnan(a)) {
+			/* If either value1' or value2' is NaN, the result is NaN. */
+
+			return longBitsToDouble(DBL_NAN);
+
+		} else if (finite(b)) {
+			/* Division of an infinity by a finite value results in a signed */
+			/* infinity, with the sign-producing rule just given. */
+
+			/* is sign equal? */
+
+			if (copysign(1.0, a) == copysign(1.0, b))
 				return longBitsToDouble(DBL_POSINF);
-			else if (a < 0)
+			else
 				return longBitsToDouble(DBL_NEGINF);
 
-		} else
+		} else {
+			/* Division of an infinity by an infinity results in NaN. */
+
 			return longBitsToDouble(DBL_NAN);
+		}
 	}
-
-/*  	if (finite(a) && finite(b)) { */
-/*  		if (b != 0) */
-/*  			return a / b; */
-/*  		else { */
-/*  			if (a > 0) */
-/*  				return longBitsToDouble(DBL_POSINF); */
-/*  			else if (a < 0) */
-/*  				return longBitsToDouble(DBL_NEGINF); */
-/*  		} */
-/*  	} */
-
-	/* keep compiler happy */
-	return 0;
 }
 
 
@@ -2033,13 +2099,33 @@ double builtin_drem(double a, double b)
 	return fmod(a, b);
 }
 
+/* builtin_dneg ****************************************************************
+
+   Implemented as described in VM Spec.
+
+*******************************************************************************/
 
 double builtin_dneg(double a)
 {
-	if (isnan(a)) return a;
-	else {
-		if (finite(a)) return -a;
-		else return copysign(a, -copysign(1.0, a));
+	if (isnan(a)) {
+		/* If the operand is NaN, the result is NaN (recall that NaN has no */
+		/* sign). */
+
+		return a;
+
+	} else {
+		if (finite(a)) {
+			/* If the operand is a zero, the result is the zero of opposite */
+			/* sign. */
+
+			return -a;
+
+		} else {
+			/* If the operand is an infinity, the result is the infinity of */
+			/* opposite sign. */
+
+			return copysign(a, -copysign(1.0, a));
+		}
 	}
 }
 
