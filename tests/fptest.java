@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: fptest.java 1660 2004-12-03 15:44:38Z twisti $
+   $Id: fptest.java 2873 2005-06-29 14:55:33Z twisti $
 
 */
 
@@ -91,26 +91,62 @@ public class fptest {
         testfcvt("-MAXLNG-1",  -9223372036854775809.0F, -9223372036854775809.0D);
 
         p("------------------- test NaNQ op value");
+        testfops("NaNQ", "-5.0", fnan, -5F, dnan, -5D);
+        testfcmp("NaNQ", "-5.0", fnan, -5F, dnan, -5D);
+        testfops("NaNQ", "-0.0", fnan, -0F, dnan, -0D);
+        testfcmp("NaNQ", "-0.0", fnan, -0F, dnan, -0D);
+        testfops("NaNQ", "0.0", fnan, 0F, dnan, 0D);
+        testfcmp("NaNQ", "0.0", fnan, 0F, dnan, 0D);
         testfops("NaNQ", "5.0", fnan, 5F, dnan, 5D);
         testfcmp("NaNQ", "5.0", fnan, 5F, dnan, 5D);
 
         p("------------------- test value op NaNQ");
+        testfops("-5.0", "NaNQ", -5F, fnan, -5D, dnan);
+        testfcmp("-5.0", "NaNQ", -5F, fnan, -5D, dnan);
+        testfops("-0.0", "NaNQ", -0F, fnan, -0D, dnan);
+        testfcmp("-0.0", "NaNQ", -0F, fnan, -0D, dnan);
+        testfops("0.0", "NaNQ", 0F, fnan, 0D, dnan);
+        testfcmp("0.0", "NaNQ", 0F, fnan, 0D, dnan);
         testfops("5.0", "NaNQ", 5F, fnan, 5D, dnan);
         testfcmp("5.0", "NaNQ", 5F, fnan, 5D, dnan);
 
         p("------------------- test +INF op value");
+        testfops("+INF", "-5.0", fpinf, -5F, dpinf, -5D);
+        testfcmp("+INF", "-5.0", fpinf, -5F, dpinf, -5D);
+        testfops("+INF", "-0.0", fpinf, -0F, dpinf, -0D);
+        testfcmp("+INF", "-0.0", fpinf, -0F, dpinf, -0D);
+        testfops("+INF", "0.0", fpinf, 0F, dpinf, 0D);
+        testfcmp("+INF", "0.0", fpinf, 0F, dpinf, 0D);
         testfops("+INF", "5.0", fpinf, 5F, dpinf, 5D);
         testfcmp("+INF", "5.0", fpinf, 5F, dpinf, 5D);
 
         p("------------------- test +INF op value");
+        testfops("-5.0", "+INF", -5F, fpinf, -5D, dpinf);
+        testfcmp("-5.0", "+INF", -5F, fpinf, -5D, dpinf);
+        testfops("-0.0", "+INF", -0F, fpinf, -0D, dpinf);
+        testfcmp("-0.0", "+INF", -0F, fpinf, -0D, dpinf);
+        testfops("0.0", "+INF", 0F, fpinf, 0D, dpinf);
+        testfcmp("0.0", "+INF", 0F, fpinf, 0D, dpinf);
         testfops("5.0", "+INF", 5F, fpinf, 5D, dpinf);
         testfcmp("5.0", "+INF", 5F, fpinf, 5D, dpinf);
 
         p("------------------- test -INF op value");
+        testfops("-INF", "-5.0", fninf, -5F, dninf, -5D);
+        testfcmp("-INF", "-5.0", fninf, -5F, dninf, -5D);
+        testfops("-INF", "-0.0", fninf, -0F, dninf, -0D);
+        testfcmp("-INF", "-0.0", fninf, -0F, dninf, -0D);
+        testfops("-INF", "0.0", fninf, 0F, dninf, 0D);
+        testfcmp("-INF", "0.0", fninf, 0F, dninf, 0D);
         testfops("-INF", "5.0", fninf, 5F, dninf, 5D);
         testfcmp("-INF", "5.0", fninf, 5F, dninf, 5D);
 
         p("------------------- test -INF op value");
+        testfops("-5.0", "-INF", -5F, fninf, -5D, dninf);
+        testfcmp("-5.0", "-INF", -5F, fninf, -5D, dninf);
+        testfops("-0.0", "-INF", -0F, fninf, -0D, dninf);
+        testfcmp("-0.0", "-INF", -0F, fninf, -0D, dninf);
+        testfops("0.0", "-INF", 0F, fninf, 0D, dninf);
+        testfcmp("0.0", "-INF", 0F, fninf, 0D, dninf);
         testfops("5.0", "-INF", 5F, fninf, 5D, dninf);
         testfcmp("5.0", "-INF", 5F, fninf, 5D, dninf);
 
@@ -159,57 +195,57 @@ public class fptest {
 
     public static void testfcmp(String s1, String s2, float f1, float f2,
                                 double d1, double d2) {
-        if ( (f1 == f2)) p(" (" + s1 + " == " + s2 + ") = true");
-        else             p(" (" + s1 + " == " + s2 + ") = false");
-        if ( (f1 != f2)) p(" (" + s1 + " != " + s2 + ") = true");
-        else             p(" (" + s1 + " != " + s2 + ") = false");
-        if ( (f1 <  f2)) p(" (" + s1 + " <  " + s2 + ") = true");
-        else             p(" (" + s1 + " <  " + s2 + ") = false");
-        if ( (f1 <= f2)) p(" (" + s1 + " <= " + s2 + ") = true");
-        else             p(" (" + s1 + " <= " + s2 + ") = false");
-        if ( (f1 >  f2)) p(" (" + s1 + " >  " + s2 + ") = true");
-        else             p(" (" + s1 + " >  " + s2 + ") = false");
-        if ( (f1 >= f2)) p(" (" + s1 + " >= " + s2 + ") = true");
-        else             p(" (" + s1 + " >= " + s2 + ") = false");
+        if ( (f1 == f2)) p(" (" + s1 + " == " + s2 + ") = float: true");
+        else             p(" (" + s1 + " == " + s2 + ") = float: false");
+        if ( (f1 != f2)) p(" (" + s1 + " != " + s2 + ") = float: true");
+        else             p(" (" + s1 + " != " + s2 + ") = float: false");
+        if ( (f1 <  f2)) p(" (" + s1 + " <  " + s2 + ") = float: true");
+        else             p(" (" + s1 + " <  " + s2 + ") = float: false");
+        if ( (f1 <= f2)) p(" (" + s1 + " <= " + s2 + ") = float: true");
+        else             p(" (" + s1 + " <= " + s2 + ") = float: false");
+        if ( (f1 >  f2)) p(" (" + s1 + " >  " + s2 + ") = float: true");
+        else             p(" (" + s1 + " >  " + s2 + ") = float: false");
+        if ( (f1 >= f2)) p(" (" + s1 + " >= " + s2 + ") = float: true");
+        else             p(" (" + s1 + " >= " + s2 + ") = float: false");
 
-        if (!(f1 == f2)) p("!(" + s1 + " == " + s2 + ") = true");
-        else             p("!(" + s1 + " == " + s2 + ") = false");
-        if (!(f1 != f2)) p("!(" + s1 + " != " + s2 + ") = true");
-        else             p("!(" + s1 + " != " + s2 + ") = false");
-        if (!(f1 <  f2)) p("!(" + s1 + " <  " + s2 + ") = true");
-        else             p("!(" + s1 + " <  " + s2 + ") = false");
-        if (!(f1 <= f2)) p("!(" + s1 + " <= " + s2 + ") = true");
-        else             p("!(" + s1 + " <= " + s2 + ") = false");
-        if (!(f1 >  f2)) p("!(" + s1 + " >  " + s2 + ") = true");
-        else             p("!(" + s1 + " >  " + s2 + ") = false");
-        if (!(f1 >= f2)) p("!(" + s1 + " >= " + s2 + ") = true");
-        else             p("!(" + s1 + " >= " + s2 + ") = false");
+        if (!(f1 == f2)) p("!(" + s1 + " == " + s2 + ") = float: true");
+        else             p("!(" + s1 + " == " + s2 + ") = float: false");
+        if (!(f1 != f2)) p("!(" + s1 + " != " + s2 + ") = float: true");
+        else             p("!(" + s1 + " != " + s2 + ") = float: false");
+        if (!(f1 <  f2)) p("!(" + s1 + " <  " + s2 + ") = float: true");
+        else             p("!(" + s1 + " <  " + s2 + ") = float: false");
+        if (!(f1 <= f2)) p("!(" + s1 + " <= " + s2 + ") = float: true");
+        else             p("!(" + s1 + " <= " + s2 + ") = float: false");
+        if (!(f1 >  f2)) p("!(" + s1 + " >  " + s2 + ") = float: true");
+        else             p("!(" + s1 + " >  " + s2 + ") = float: false");
+        if (!(f1 >= f2)) p("!(" + s1 + " >= " + s2 + ") = float: true");
+        else             p("!(" + s1 + " >= " + s2 + ") = float: false");
 
-        if ( (d1 == d2)) p(" (" + s1 + " == " + s2 + ") = true");
-        else             p(" (" + s1 + " == " + s2 + ") = false");
-        if ( (d1 != d2)) p(" (" + s1 + " != " + s2 + ") = true");
-        else             p(" (" + s1 + " != " + s2 + ") = false");
-        if ( (d1 <  d2)) p(" (" + s1 + " <  " + s2 + ") = true");
-        else             p(" (" + s1 + " <  " + s2 + ") = false");
-        if ( (d1 <= d2)) p(" (" + s1 + " <= " + s2 + ") = true");
-        else             p(" (" + s1 + " <= " + s2 + ") = false");
-        if ( (d1 >  d2)) p(" (" + s1 + " >  " + s2 + ") = true");
-        else             p(" (" + s1 + " >  " + s2 + ") = false");
-        if ( (d1 >= d2)) p(" (" + s1 + " >= " + s2 + ") = true");
-        else             p(" (" + s1 + " >= " + s2 + ") = false");
+        if ( (d1 == d2)) p(" (" + s1 + " == " + s2 + ") = double: true");
+        else             p(" (" + s1 + " == " + s2 + ") = double: false");
+        if ( (d1 != d2)) p(" (" + s1 + " != " + s2 + ") = double: true");
+        else             p(" (" + s1 + " != " + s2 + ") = double: false");
+        if ( (d1 <  d2)) p(" (" + s1 + " <  " + s2 + ") = double: true");
+        else             p(" (" + s1 + " <  " + s2 + ") = double: false");
+        if ( (d1 <= d2)) p(" (" + s1 + " <= " + s2 + ") = double: true");
+        else             p(" (" + s1 + " <= " + s2 + ") = double: false");
+        if ( (d1 >  d2)) p(" (" + s1 + " >  " + s2 + ") = double: true");
+        else             p(" (" + s1 + " >  " + s2 + ") = double: false");
+        if ( (d1 >= d2)) p(" (" + s1 + " >= " + s2 + ") = double: true");
+        else             p(" (" + s1 + " >= " + s2 + ") = double: false");
 
-        if (!(d1 == d2)) p("!(" + s1 + " == " + s2 + ") = true");
-        else             p("!(" + s1 + " == " + s2 + ") = false");
-        if (!(d1 != d2)) p("!(" + s1 + " != " + s2 + ") = true");
-        else             p("!(" + s1 + " != " + s2 + ") = false");
-        if (!(d1 <  d2)) p("!(" + s1 + " <  " + s2 + ") = true");
-        else             p("!(" + s1 + " <  " + s2 + ") = false");
-        if (!(d1 <= d2)) p("!(" + s1 + " <= " + s2 + ") = true");
-        else             p("!(" + s1 + " <= " + s2 + ") = false");
-        if (!(d1 >  d2)) p("!(" + s1 + " >  " + s2 + ") = true");
-        else             p("!(" + s1 + " >  " + s2 + ") = false");
-        if (!(d1 >= d2)) p("!(" + s1 + " >= " + s2 + ") = true");
-        else             p("!(" + s1 + " >= " + s2 + ") = false");
+        if (!(d1 == d2)) p("!(" + s1 + " == " + s2 + ") = double: true");
+        else             p("!(" + s1 + " == " + s2 + ") = double: false");
+        if (!(d1 != d2)) p("!(" + s1 + " != " + s2 + ") = double: true");
+        else             p("!(" + s1 + " != " + s2 + ") = double: false");
+        if (!(d1 <  d2)) p("!(" + s1 + " <  " + s2 + ") = double: true");
+        else             p("!(" + s1 + " <  " + s2 + ") = double: false");
+        if (!(d1 <= d2)) p("!(" + s1 + " <= " + s2 + ") = double: true");
+        else             p("!(" + s1 + " <= " + s2 + ") = double: false");
+        if (!(d1 >  d2)) p("!(" + s1 + " >  " + s2 + ") = double: true");
+        else             p("!(" + s1 + " >  " + s2 + ") = double: false");
+        if (!(d1 >= d2)) p("!(" + s1 + " >= " + s2 + ") = double: true");
+        else             p("!(" + s1 + " >= " + s2 + ") = double: false");
     }
 
     // ********************* output methods ****************************
