@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2678 2005-06-14 16:08:58Z twisti $
+## $Id: Makefile.am 2877 2005-06-30 09:54:19Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -51,6 +51,7 @@ gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
 	$(top_builddir)/src/cacaoh/libcacaoh.la \
+	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
 	$(GC_LIB)
 
 gennativetable_DEPENDENCIES = $(gennativetable_LDADD)
