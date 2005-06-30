@@ -1,11 +1,11 @@
 public class extest {
-
-    public static boolean printStackTrace;
+    static boolean printStackTrace;
 
     public static void main(String[] argv) {
-	printStackTrace=false;
-	if (argv.length>0) 
-		if (argv[0].equals("stacktrace")) printStackTrace=true;
+	printStackTrace = false;
+	if (argv.length > 0) 
+            if (argv[0].equals("stacktrace"))
+                printStackTrace = true;
 
         boolean catched = false;
 
@@ -19,11 +19,11 @@ public class extest {
       	    pln("OK");
 	    pstacktrace(e);
 
-    	}
-
-        /* check if catch block was executed */
-        if (!catched) {
-            pln("FAILED");
+    	} finally {
+            /* check if catch block was executed */
+            if (!catched) {
+                pln("FAILED");
+            }
         }
 
    	try {
@@ -343,16 +343,21 @@ public class extest {
             pln("FAILED");
     	} catch (Exception e) {
   	    pln("OK");
+            pstacktrace(e);
   	}
 
-//          try {
-//              p("NullPointerException in <clinit>:");
-//              extest_clinit_3.sub();
-//              pln("FAILED");
-//          } catch (ExceptionInInitializerError e) {
-//              pln("OK");
-//              pstacktrace(e);
-//          }
+        try {
+            p("NullPointerException in <clinit>:");
+            extest_clinit_3.sub();
+            pln("FAILED");
+        } catch (ExceptionInInitializerError e) {
+            pln("OK");
+            pstacktrace(e);
+        } catch (UnsatisfiedLinkError e) {
+            /* catch this one for staticvm and say it's ok */
+            pln("OK");
+            pstacktrace(e);
+        }
 
         pln();
 
@@ -397,12 +402,11 @@ public class extest {
     }
 
     public static void pstacktrace(Throwable e) {
-	if (!printStackTrace) return;
-	System.out.println("================== Stacktrace");
+	if (!printStackTrace)
+            return;
 	e.printStackTrace();
-	System.out.println("Stacktrace ==================");
+	System.out.println();
     }
-
 }
 
 public class extest_clinit_1 {
