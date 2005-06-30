@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2881 2005-06-30 14:42:01Z twisti $
+   $Id: jni.c 2883 2005-06-30 21:45:21Z twisti $
 
 */
 
@@ -150,22 +150,28 @@ static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
 		case PRIMITIVETYPE_SHORT: 
 		case PRIMITIVETYPE_BOOLEAN: 
 			blk[i].itemtype = TYPE_INT;
-			blk[i].item = (s8) va_arg(data, int);
+			blk[i].item = (s8) va_arg(data, s4);
 			break;
 
 		case PRIMITIVETYPE_INT:
 			blk[i].itemtype = TYPE_INT;
-			blk[i].item = (s8) va_arg(data, jint);
+			blk[i].item = (s8) va_arg(data, s4);
 			break;
 
 		case PRIMITIVETYPE_LONG:
 			blk[i].itemtype = TYPE_LNG;
-			blk[i].item = (s8) va_arg(data, jlong);
+			blk[i].item = (s8) va_arg(data, s8);
 			break;
 
 		case PRIMITIVETYPE_FLOAT:
 			blk[i].itemtype = TYPE_FLT;
+#if defined(__ALPHA__)
+			/* this keeps the assembler function much simpler */
+
+			*((jdouble *) (&blk[i].item)) = (jdouble) va_arg(data, jdouble);
+#else
 			*((jfloat *) (&blk[i].item)) = (jfloat) va_arg(data, jdouble);
+#endif
 			break;
 
 		case PRIMITIVETYPE_DOUBLE:
