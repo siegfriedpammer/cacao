@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 2848 2005-06-27 20:59:28Z twisti $
+   $Id: codegen.c 2875 2005-06-30 09:16:21Z twisti $
 
 */
 
@@ -105,11 +105,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	parentargs_base = rd->memuse + savedregs_num;
 
-#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
+#if defined(USE_THREADS)
+	/* space to save argument of monitor_enter */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
-
 #endif
 
     /* Keep stack of non-leaf functions 16-byte aligned for calls into native */
@@ -124,7 +124,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, parentargs_base * 8);             /* FrameSize      */
 
 #if defined(USE_THREADS)
-
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
@@ -132,16 +131,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);     /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);        /* IsSync         */
 	else
-
 #endif
-
 		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);/* IntSave  */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);/* FltSave  */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
 
 	(void) dseg_addlinenumbertablesize(cd);
 
@@ -164,18 +161,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base) {
-		x86_64_alu_imm_reg(cd, X86_64_SUB, parentargs_base * 8, REG_SP);
-	}
+	if (parentargs_base)
+		M_ASUB_IMM(parentargs_base * 8, REG_SP);
 
 	/* save used callee saved registers */
 
   	p = parentargs_base;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
- 		p--; x86_64_mov_reg_membase(cd, rd->savintregs[i], REG_SP, p * 8);
+ 		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p--; x86_64_movq_reg_membase(cd, rd->savfltregs[i], REG_SP, p * 8);
+		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -2895,18 +2891,18 @@ nowperformreturn:
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				x86_64_mov_membase_reg(cd, REG_SP, rd->memuse * 8, rd->argintregs[0]);
+				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
 	
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 				case ICMD_LRETURN:
-					x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, rd->memuse * 8);
+					M_LST(REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					x86_64_movq_reg_membase(cd, REG_FRESULT, REG_SP, rd->memuse * 8);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8);
 					break;
 				}
 
@@ -2918,30 +2914,31 @@ nowperformreturn:
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
 				case ICMD_LRETURN:
-					x86_64_mov_membase_reg(cd, REG_SP, rd->memuse * 8, REG_RESULT);
+					M_LLD(REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
 				case ICMD_FRETURN:
 				case ICMD_DRETURN:
-					x86_64_movq_membase_reg(cd, REG_SP, rd->memuse * 8, REG_FRESULT);
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
 					break;
 				}
 			}
 #endif
 
-			/* restore saved registers                                        */
+			/* restore saved registers */
+
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; x86_64_mov_membase_reg(cd, REG_SP, p * 8, rd->savintregs[i]);
+				p--; M_LLD(rd->savintregs[i], REG_SP, p * 8);
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-  				p--; x86_64_movq_membase_reg(cd, REG_SP, p * 8, rd->savfltregs[i]);
+  				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
 			}
 
-			/* deallocate stack                                               */
-			if (parentargs_base) {
-				x86_64_alu_imm_reg(cd, X86_64_ADD, parentargs_base * 8, REG_SP);
-			}
+			/* deallocate stack */
 
-			x86_64_ret(cd);
+			if (parentargs_base)
+				M_AADD_IMM(parentargs_base * 8, REG_SP);
+
+			M_RET;
 			}
 			break;
 
@@ -4364,7 +4361,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* do the native function call */
 
-#if !defined(STATIC_CLASSPATH)
+#if !defined(ENABLE_STATICVM)
 	if (f == NULL) {
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
 
