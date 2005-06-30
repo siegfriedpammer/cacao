@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2770 2005-06-21 15:53:07Z twisti $
+   $Id: codegen.h 2876 2005-06-30 09:18:02Z twisti $
 
 */
 
@@ -436,6 +436,8 @@ typedef enum {
 #define M_AADD(a,b)             M_LADD(a,b)
 #define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
 #define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
+
+#define M_RET                   x86_64_ret(cd)
 
 #define M_NOP                   x86_64_nop(cd)
 
