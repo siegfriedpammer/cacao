@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
+   $Id: md-abi.c 2884 2005-06-30 22:36:45Z twisti $
 
 */
 
@@ -85,54 +85,50 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = iarg;
-
+				iarg++;
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
-			}
-			if (iarg < INT_ARG_CNT)
-				iarg++;
-			else
 				stacksize++;
+			}
 			break;
 		case TYPE_LNG:
-			if (iarg < INT_ARG_CNT - 1)
-				_ALIGN(iarg);
-			else
-				_ALIGN(stacksize);
 			if (iarg < INT_ARG_CNT - 1) {
+				_ALIGN(iarg);
 				pd->inmemory = false;
 				                             /* rd->arg[int|flt]regs index !! */
 				pd->regoff = PACK_REGS(iarg + 1, iarg); 
+				iarg += 2;
 			} else {
+				_ALIGN(stacksize);
 				pd->inmemory = true;
 				pd->regoff = stacksize;
-			}
-			if (iarg < INT_ARG_CNT - 1)
-				iarg += 2;
-			else {
 				iarg = INT_ARG_CNT;
 				stacksize += 2;
 			}
 			break;
 		case TYPE_FLT:
-		case TYPE_DBL:
-			if ((farg >= FLT_ARG_CNT) && IS_2_WORD_TYPE(md->paramtypes[i].type))
-				_ALIGN(stacksize);
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = farg;
+				farg++;
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
+				stacksize++;
 			}
-			if (farg < FLT_ARG_CNT)
+			break;
+		case TYPE_DBL:
+			if (farg < FLT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->regoff = farg;
 				farg++;
-			else
-				if (IS_2_WORD_TYPE(md->paramtypes[i].type))
-					stacksize += 2;
-				else
-					stacksize++;
+			} else {
+				_ALIGN(stacksize);
+				pd->inmemory = true;
+				pd->regoff = stacksize;
+				stacksize += 2;
+			}
 			break;
 		}
 	}
