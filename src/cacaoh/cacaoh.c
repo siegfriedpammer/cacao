@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 2671 2005-06-13 14:29:42Z twisti $
+   $Id: cacaoh.c 2879 2005-06-30 09:58:38Z twisti $
 
 */
 
@@ -96,7 +96,7 @@ opt_struct opts[] = {
 
 *******************************************************************************/
 
-static void usage()
+static void usage(void)
 {
 	printf("Usage: cacaoh [options] <classes>\n"
 		   "\n"
@@ -114,9 +114,30 @@ static void usage()
 }
 
 
-static void version()
+/* version *********************************************************************
+
+   Prints cacaoh version information.
+
+*******************************************************************************/
+
+static void version(void)
 {
-	printf("cacaoh "VERSION"\n");
+	printf("cacaoh version "VERSION"\n");
+	printf("Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,\n");
+	printf("R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,\n");
+	printf("C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,\n");
+	printf("Institut f. Computersprachen - TU Wien\n\n");
+
+	printf("This program is free software; you can redistribute it and/or\n");
+	printf("modify it under the terms of the GNU General Public License as\n");
+	printf("published by the Free Software Foundation; either version 2, or (at\n");
+	printf("your option) any later version.\n\n");
+
+	printf("This program is distributed in the hope that it will be useful, but\n");
+	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
+	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
+	printf("General Public License for more details.\n");
+
 	exit(0);
 }
 
@@ -151,13 +172,14 @@ int main(int argc, char **argv)
 
 	cp = getenv("BOOTCLASSPATH");
 	if (cp) {
-		bootclasspath = MNEW(char, strlen(cp) + 1);
+		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
 		strcpy(bootclasspath, cp);
 
 	} else {
-		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH);
+		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH) +
+			strlen("0");
 
-		bootclasspath = MNEW(char, cplen + 1);
+		bootclasspath = MNEW(char, cplen);
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_RT_JAR_PATH);
 	}
@@ -167,11 +189,11 @@ int main(int argc, char **argv)
 
 	cp = getenv("CLASSPATH");
 	if (cp) {
-		classpath = MNEW(char, strlen(cp) + 1);
+		classpath = MNEW(char, strlen(cp) + strlen("0"));
 		strcat(classpath, cp);
 
 	} else {
-		classpath = MNEW(char, 2);
+		classpath = MNEW(char, strlen(".") + strlen("0"));
 		strcpy(classpath, ".");
 	}
 
@@ -197,7 +219,7 @@ int main(int argc, char **argv)
 			/* forget old classpath and set the argument as new classpath */
 			MFREE(classpath, char, strlen(classpath));
 
-			classpath = MNEW(char, strlen(opt_arg) + 1);
+			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(classpath, opt_arg);
 			break;
 
@@ -206,12 +228,12 @@ int main(int argc, char **argv)
 			/* classpath.                                                     */
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
-			bootclasspath = MNEW(char, strlen(opt_arg) + 1);
+			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(bootclasspath, opt_arg);
 			break;
 
 		case OPT_DIRECTORY:
-			opt_directory = MNEW(char, strlen(opt_arg) + 1);
+			opt_directory = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(opt_directory, opt_arg);
 			break;
 
@@ -221,6 +243,8 @@ int main(int argc, char **argv)
 
 		case OPT_VERBOSE:
 			opt_verbose = true;
+			loadverbose = true;
+			linkverbose = true;
 			break;
 
 		default:
