@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.java 2721 2005-06-16 11:49:27Z twisti $
+   $Id: testarguments.java 2882 2005-06-30 20:54:41Z twisti $
 
 */
 
@@ -57,6 +57,13 @@ public class testarguments {
 
         System.loadLibrary("testarguments");
 
+        itest();
+        ltest();
+        ftest();
+        dtest();
+    }
+
+    static void itest() {
         pln("testing int --------------------------------------------------");
 
         isub(i(), i(), i(), i(), i(),
@@ -64,7 +71,9 @@ public class testarguments {
              i(), i(), i(), i(), i());
 
         pln();
+    }
 
+    static void ltest() {
         pln("testing long -------------------------------------------------");
 
         lsub(l(), l(), l(), l(), l(),
@@ -72,7 +81,9 @@ public class testarguments {
              l(), l(), l(), l(), l());
 
         pln();
+    }
 
+    static void ftest() {
         pln("testing float ------------------------------------------------");
 
         fsub(f(), f(), f(), f(), f(),
@@ -80,18 +91,14 @@ public class testarguments {
              f(), f(), f(), f(), f());
 
         pln();
+    }
 
+    static void dtest() {
         pln("testing double -----------------------------------------------");
 
         dsub(d(), d(), d(), d(), d(),
              d(), d(), d(), d(), d(),
              d(), d(), d(), d(), d());
-
-//          try {
-//              ndsub(d(), d(), d(), d(), d(), d(), d(), d(), d(), d());
-//          } catch (LinkageError e) {
-//              System.out.println("catched");
-//          }
     }
 
 
