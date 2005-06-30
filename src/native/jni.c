@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2849 2005-06-28 12:46:42Z twisti $
+   $Id: jni.c 2881 2005-06-30 14:42:01Z twisti $
 
 */
 
@@ -125,7 +125,6 @@ static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
 									  s4 rettype)
 {
 	typedesc *paramtypes;
-    u4        dummy;
 	s4        i;
 
 	paramtypes = descr->paramtypes;
@@ -151,18 +150,17 @@ static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
 		case PRIMITIVETYPE_SHORT: 
 		case PRIMITIVETYPE_BOOLEAN: 
 			blk[i].itemtype = TYPE_INT;
-			blk[i].item = (u8) va_arg(data, int);
+			blk[i].item = (s8) va_arg(data, int);
 			break;
 
 		case PRIMITIVETYPE_INT:
 			blk[i].itemtype = TYPE_INT;
-			dummy = va_arg(data, u4);
-			blk[i].item = (u8) dummy;
+			blk[i].item = (s8) va_arg(data, jint);
 			break;
 
 		case PRIMITIVETYPE_LONG:
 			blk[i].itemtype = TYPE_LNG;
-			blk[i].item = (u8) va_arg(data, jlong);
+			blk[i].item = (s8) va_arg(data, jlong);
 			break;
 
 		case PRIMITIVETYPE_FLOAT:
@@ -241,54 +239,54 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 			switch (paramtypes->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Boolean *) param)->value;
+					blk[i].item = (s8) ((java_lang_Boolean *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_BYTE:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+					blk[i].item = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_CHAR:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Character *) param)->value;
+					blk[i].item = (s8) ((java_lang_Character *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_SHORT:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+					blk[i].item = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+					blk[i].item = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_INT:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Integer *) param)->value;
+					blk[i].item = (s8) ((java_lang_Integer *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+					blk[i].item = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+					blk[i].item = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_LONG:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					blk[i].item = (u8) ((java_lang_Long *) param)->value;
+					blk[i].item = (s8) ((java_lang_Long *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
-					blk[i].item = (u8) ((java_lang_Integer *) param)->value;
+					blk[i].item = (s8) ((java_lang_Integer *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					blk[i].item = (u8) ((java_lang_Short *) param)->value;
+					blk[i].item = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					blk[i].item = (u8) ((java_lang_Byte *) param)->value;
+					blk[i].item = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
 				break;
