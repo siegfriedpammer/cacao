@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2858 2005-06-28 18:36:08Z twisti $
+   $Id: headers.c 2878 2005-06-30 09:55:49Z twisti $
 
 */
 
@@ -74,10 +74,15 @@ java_objectheader *_exceptionptr = NULL;
 #endif
 
 
-/******* replace some external functions  *********/
- 
-functionptr native_findfunction(utf *cname, utf *mname, utf *desc, bool isstatic)
-{ return NULL; }
+/* replace some non-vmcore functions ******************************************/
+
+functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
+								bool isstatic)
+{
+	/* return something different than NULL, otherwise we get an exception */
+
+	return (functionptr) 1;
+}
 
 java_objectheader *native_new_and_init(classinfo *c) { return NULL; }
 java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s) { return NULL; }
@@ -199,6 +204,8 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 	va_start(ap, message);
 	vfprintf(stderr, message, ap);
 	va_end(ap);
+
+	fputc('\n', stderr);
 
 	exit(1);
 }
