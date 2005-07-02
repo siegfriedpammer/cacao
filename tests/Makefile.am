@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2602 2005-06-08 12:51:03Z twisti $
+## $Id: Makefile.am 2885 2005-07-02 13:59:19Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -45,7 +45,7 @@ EXTRA_DIST = \
 	GCBench.java \
 	JavaPerformance.java
 
-JAVA = $(top_srcdir)/src/cacao/cacao -noverify
+JAVA = $(top_srcdir)/src/cacao/cacao
 JAVAC = jikes -nowarn
 
 checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst
