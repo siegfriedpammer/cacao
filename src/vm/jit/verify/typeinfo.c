@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2818 2005-06-23 17:49:38Z edwin $
+   $Id: typeinfo.c 2886 2005-07-02 14:05:47Z edwin $
 
 */
 
@@ -909,6 +909,76 @@ merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
     return mergedlist_implements_interface(merged,interf);
 }
 
+/* merged_is_subclass **********************************************************
+ 
+   Check if a possible merged type is a subclass of a given class.
+   A merged type is a subclass of a class C if all types in the merged list
+   are subclasses of C. A sufficient condition for this is that the
+   common type of the merged type is a subclass of C.
+
+   IN:
+       typeclass........(common) class of the (merged) type
+	                    MUST be a loaded and linked class
+	   merged...........the list of merged class types
+	   cls..............the class to theck against
+
+   RETURN VALUE:
+       typecheck_TRUE...the type is a subclass of CLS
+	   typecheck_FALSE..the type is not a subclass of CLS
+	   typecheck_MAYBE..check cannot be performed now because of unresolved
+	                    classes
+	   typecheck_FAIL...an exception has been thrown
+
+*******************************************************************************/
+
+static typecheck_result
+merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist *merged,
+		classinfo *cls)
+{
+    int i;
+    classref_or_classinfo *mlist;
+
+	TYPEINFO_ASSERT(cls);
+	
+    /* primitive types aren't subclasses of anything. */
+    if (!typeclass)
+        return typecheck_FALSE;
+
+    /* the null type can be cast to any reference type. */
+    if (typeclass == pseudo_class_Null)
+        return typecheck_TRUE;
+
+	TYPEINFO_ASSERT(typeclass->loaded);
+	TYPEINFO_ASSERT(typeclass->linked);
+
+    /* check if the common typeclass is a subclass of CLS. */
+	if (class_issubclass(typeclass,cls))
+		return typecheck_TRUE;
+	
+    /* check the mergedlist */
+	if (!merged)
+		return typecheck_FALSE;
+    /* If all classinfos in the (non-empty) merged list are subclasses
+	 * of CLS, return true, otherwise false.
+	 * If there is at least one unresolved type in the list,
+	 * return typecheck_MAYBE.
+     */
+    mlist = merged->list;
+    i = merged->count;
+    while (i--) {
+		if (IS_CLASSREF(*mlist)) {
+			return typecheck_MAYBE;
+		}
+		if (!mlist->cls->linked)
+			if (!link_class(mlist->cls))
+				return typecheck_FAIL;
+		if (!class_issubclass(mlist->cls,cls))
+			return typecheck_FALSE;
+		mlist++;
+    }
+    return typecheck_TRUE;
+}
+
 /* typeinfo_is_assignable_to_class *********************************************
  
    Check if a type is assignable to a given class type.
@@ -989,6 +1059,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 	}
 
 	/* { we know that both c and dest are loaded classes } */
+	/* (c may still have a merged list containing unresolved classrefs!) */
 
 	TYPEINFO_ASSERT(!IS_CLASSREF(c));
 	TYPEINFO_ASSERT(!IS_CLASSREF(dest));
@@ -1067,7 +1138,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
             }
             
             /* We are assigning to a class type. */
-            return class_issubclass(value->elementclass.cls,elementclass);
+            return merged_is_subclass(value->elementclass.cls,value->merged,elementclass);
         }
 
         return typecheck_TRUE;
@@ -1091,7 +1162,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
     if (cls->flags & ACC_INTERFACE)
         cls = class_java_lang_Object;
     
-    return class_issubclass(cls,dest.cls);
+    return merged_is_subclass(cls,value->merged,dest.cls);
 }
 
 /* typeinfo_is_assignable ******************************************************
