@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 2812 2005-06-23 14:30:04Z christian $
+   $Id: md-abi.h 2890 2005-07-03 16:41:57Z christian $
 
 */
 
@@ -90,21 +90,6 @@
 #define LA_LR_OFFSET     4   /* link register offset in linkage area          */
 
 /* #define ALIGN_FRAME_SIZE(sp)       (sp) */
-
-/* Register Pack/Unpack Macros ************************************************/
-/* PowerPC is Big Endian -> High Reg == second reg */
-/*                          Low Reg == first ("normal") reg */
-
-#define GET_LOW_REG(a)  (((a) & 0xffff0000) >> 16)
-#define GET_HIGH_REG(a) ((a) &  0x0000ffff)
-
-#define PACK_REGS(low,high) \
-	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
-#define SET_HIGH_REG(regoff,b) \
-	do { (regoff) &= 0xffff0000; (regoff) |= (b) &  0x0000ffff; } while(0)
-#define SET_LOW_REG(regoff,b) \
-	do { (regoff) &= 0x0000ffff; (regoff) |= ((b) &  0x0000ffff) << 16; } \
-	while(0)
 
 #endif /* _MD_ABI_H */
 
