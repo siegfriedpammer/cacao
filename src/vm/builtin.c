@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2874 2005-06-29 14:57:36Z twisti $
+   $Id: builtin.c 2888 2005-07-03 16:38:33Z christian $
 
 */
 
@@ -1224,6 +1224,8 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	md = m->parseddesc;
 
+	if ( strcmp(m->name->text, "arraycopy")==0 )
+		printf("-----------\n");
 	/* calculate message length */
 
 	logtextlen =
@@ -1268,6 +1270,11 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	strcat(logtext, "(");
 
+	/* xxxprintf ?Bug? an PowerPc Linux (rlwinm.inso)                */
+	/* Only Arguments in integer Registers are passed correctly here */
+	/* long longs spilled on Stack have an wrong offset of +4        */
+	/* So preliminary Bugfix: Only pass 3 params at once to sprintf  */
+	/* for SIZEOG_VOID_P == 4 && TRACE_ARGS_NUM == 8                 */
 	switch (md->paramcount) {
 	case 0:
 		break;
@@ -1292,36 +1299,43 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 		break;
 
 	case 4:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2, a3);
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext), ", 0x%llx", a3);
+
 		break;
 
 #if TRACE_ARGS_NUM >= 6
 	case 5:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2, a3, a4);
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx", a3, a4);
 		break;
 
+
 	case 6:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2, a3, a4, a5);
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
+				, a3, a4, a5);
 		break;
 #endif /* TRACE_ARGS_NUM >= 6 */
 
 #if TRACE_ARGS_NUM == 8
 	case 7:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2, a3, a4, a5, a6);
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
+				, a3, a4, a5);
+		sprintf(logtext + strlen(logtext), ", 0x%llx", a6);
 		break;
 
 	case 8:
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx",
-				a0, a1, a2, a3, a4, a5, a6, a7);
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, 0x%llx"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx, 0x%llx"
+				, a3, a4, a5);
+		sprintf(logtext + strlen(logtext), ", 0x%llx, 0x%llx", a6, a7);
 		break;
 #endif /* TRACE_ARGS_NUM == 8 */
 
@@ -1337,9 +1351,12 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 				a0, a1, a2, a3, a4, a5, m->paramcount - 6);
 
 #elif TRACE_ARGS_NUM == 8
-		sprintf(logtext + strlen(logtext),
-				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, a6, a7, m->paramcount - 8);
+		sprintf(logtext + strlen(logtext),"0x%llx, 0x%llx, 0x%llx,"
+				, a0, a1, a2);
+		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, 0x%llx,"
+				, a3, a4, a5);
+		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, ...(%d)"
+				, a6, a7, m->paramcount - 8);
 #endif
 		break;
 
