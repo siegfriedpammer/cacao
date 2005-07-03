@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2755 2005-06-20 18:26:03Z twisti $
+   $Id: codegen.inc.h 2887 2005-07-03 16:37:30Z christian $
 
 */
 
@@ -59,6 +59,15 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
+
+/* Register Pack/Unpack Macros ************************************************/
+
+#define GET_LOW_REG(a)  (((a) & 0xffff0000) >> 16)
+#define GET_HIGH_REG(a) ((a) &  0x0000ffff)
+
+#define PACK_REGS(low,high) \
+	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
+
 
 #if SIZEOF_VOID_P == 8
 #define dseg_addaddress(cd,value)    dseg_adds8((cd), (s8) (value))
