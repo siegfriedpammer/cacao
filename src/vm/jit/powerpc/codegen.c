@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2860 2005-06-28 18:37:28Z twisti $
+   $Id: codegen.c 2889 2005-07-03 16:40:49Z christian $
 
 */
 
@@ -82,6 +82,8 @@ void thread_restartcriticalsection(void *u)
 }
 #endif
 
+s4 *codegen_trace_args( methodinfo *m, codegendata *cd, registerdata *rd,
+						s4 *mcodeptr, s4 parentargs_base, bool nativestub);
 
 /* codegen *********************************************************************
 
@@ -362,133 +364,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* call trace function */
 
 	if (runverbose) {
-		s4 longargs = 0;
-		s4 fltargs = 0;
-		s4 dblargs = 0;
+		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, parentargs_base, false);
 
-		M_MFLR(REG_ITMP3);
-		/* XXX must be a multiple of 16 */
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
-
-		M_IST(REG_ITMP3, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
-
-		M_CLR(REG_ITMP1);    /* clear help register */
-
-		/* save all arguments into the reserved stack space */
-
-		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = md->paramtypes[p].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				/* overlapping u8's are on the stack */
-				if ((p + longargs + dblargs) <
-					(INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
-					s1 = rd->argintregs[p + longargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
-						M_IST(s1, REG_SP, LA_SIZE + p * 8 + 4);
-
-					} else {
-						SET_LOW_REG(s1,
-					        rd->argintregs[p + longargs + dblargs + 1]);
-						M_IST(GET_HIGH_REG(s1), REG_SP, LA_SIZE + p  * 8);
-						M_IST(GET_LOW_REG(s1), REG_SP, LA_SIZE + p * 8 + 4);
-						longargs++;
-					}
-
-				} else {
-					a = dseg_adds4(cd, 0xdeadbeef);
-					M_ILD(REG_ITMP1, REG_PV, a);
-					M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
-					M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8 + 4);
-				}
-
-			} else {
-				if ((fltargs + dblargs) < FLT_ARG_CNT) {
-					s1 = rd->argfltregs[fltargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, LA_SIZE + p * 8);
-						M_FST(s1, REG_SP, LA_SIZE + p * 8 + 4);
-						fltargs++;
-						
-					} else {
-						M_DST(s1, REG_SP, LA_SIZE + p * 8);
-						dblargs++;
-					}
-
-				} else {
-					/* this should not happen */
-				}
-			}
-		}
-
-		/* load first 4 arguments into integer argument registers */
-
-		for (p = 0; p < 8; p++) {
-			d = rd->argintregs[p];
-			M_ILD(d, REG_SP, LA_SIZE + p * 4);
-		}
-
-		p = dseg_addaddress(cd, m);
-		M_ALD(REG_ITMP1, REG_PV, p);
-#if defined(__DARWIN__)
-		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8); /* 24 (linkage area) +  */
-/* 32 (4 * s8 parameter area regs) + 32 (4 * s8 parameter area stack) = 88 */
-#else
-		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
-#endif
-		p = dseg_addaddress(cd, (void *) builtin_trace_args);
-		M_ALD(REG_ITMP2, REG_PV, p);
-		M_MTCTR(REG_ITMP2);
-		M_JSR;
-
-		longargs = 0;
-		fltargs = 0;
-		dblargs = 0;
-
-		/* restore arguments from the reserved stack space */
-
-		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
-			t = md->paramtypes[p].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				if ((p + longargs + dblargs) < INT_ARG_CNT) {
-					s1 = rd->argintregs[p + longargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_ILD(s1, REG_SP, LA_SIZE + p * 8 + 4);
-
-					} else {
-						SET_LOW_REG(s1,
-					        rd->argintregs[p + longargs + dblargs + 1]);
-						M_ILD(GET_HIGH_REG(s1), REG_SP, LA_SIZE + p * 8);
-						M_ILD(GET_LOW_REG(s1), REG_SP, LA_SIZE + p * 8 + 4);
-						longargs++;
-					}
-				}
-
-			} else {
-				if ((fltargs + dblargs) < FLT_ARG_CNT) {
-					s1 = rd->argfltregs[fltargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_FLD(s1, REG_SP, LA_SIZE + p * 8 + 4);
-						fltargs++;
-
-					} else {
-						M_DLD(s1, REG_SP, LA_SIZE + p * 8);
-						dblargs++;
-					}
-				}
-			}
-		}
-
-		M_ILD(REG_ITMP3, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT) * 8);
-
-		M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
-		M_MTLR(REG_ITMP3);
 	} /* if (runverbose) */
 	}
 
@@ -3684,124 +3561,9 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 
 	if (runverbose) {
-		s4 longargs = 0;
-		s4 fltargs = 0;
-		s4 dblargs = 0;
-
-		/* XXX must be a multiple of 16 */
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8));
-
-		M_CLR(REG_ITMP1);
-
-		/* save all arguments into the reserved stack space */
-
-		for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
-			t = md->paramtypes[i].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				/* overlapping u8's are on the stack */
-				if ((i + longargs + dblargs) < 
-					(INT_ARG_CNT - IS_2_WORD_TYPE(t))) {
-					s1 = rd->argintregs[i + longargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
-						M_IST(s1, REG_SP, LA_SIZE + i * 8 + 4);
-					} else {
-						SET_LOW_REG(s1,
-					        rd->argintregs[i + longargs + dblargs + 1]);
-						M_IST(GET_HIGH_REG(s1), REG_SP, LA_SIZE + i * 8);
-						M_IST(GET_LOW_REG(s1), REG_SP, LA_SIZE + i * 8 + 4);
-						longargs++;
-					}
-
-				} else {
-					off = dseg_adds4(cd, 0xdeadbeef);
-					M_ILD(REG_ITMP1, REG_PV, off);
-					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
-					M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8 + 4);
-				}
-
-			} else {
-				if ((fltargs + dblargs) < FLT_ARG_CNT) {
-					s1 = rd->argfltregs[fltargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_IST(REG_ITMP1, REG_SP, LA_SIZE + i * 8);
-						M_FST(s1, REG_SP, LA_SIZE + i * 8 + 4);
-						fltargs++;
-					} else {
-						M_DST(s1, REG_SP, LA_SIZE + i * 8);
-						dblargs++;
-					}
-
-				} else {
-					/* this should not happen */
-				}
-			}
-		}
-
-		/* TODO: save remaining integer and float argument registers */
-
-		/* load first 4 arguments into integer argument registers */
-
-		for (i = 0; i < INT_ARG_CNT; i++)
-			M_ILD(rd->argintregs[i], REG_SP, LA_SIZE + i * 4);
-
-		off = dseg_addaddress(cd, m);
-		M_ALD(REG_ITMP1, REG_PV, off);
-#if defined(__DARWIN__)
-		/* 24 (linkage area) + 32 (4 * s8 parameter area regs) +              */
-		/* 32 (4 * s8 parameter area stack) = 88                              */
-		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 8 * 8);
-#else
-		M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
-#endif
-		off = dseg_addaddress(cd, builtin_trace_args);
-		M_ALD(REG_ITMP2, REG_PV, off);
-		M_MTCTR(REG_ITMP2);
-		M_JSR;
-
-		longargs = 0;
-		fltargs = 0;
-		dblargs = 0;
-
-		/* restore arguments into the reserved stack space */
-
-		for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
-			t = md->paramtypes[i].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				if ((i + longargs + dblargs) < INT_ARG_CNT) {
-					s1 = rd->argintregs[i + longargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_ILD(s1, REG_SP, LA_SIZE + i * 8 + 4);
-					} else {
-						SET_LOW_REG(s1,
-					        rd->argintregs[i + longargs + dblargs + 1]);
-						M_ILD(GET_HIGH_REG(s1), REG_SP, LA_SIZE + i * 8);
-						M_ILD(GET_LOW_REG(s1), REG_SP, LA_SIZE + i * 8 + 4);
-						longargs++;
-					}
-				}
-
-			} else {
-				if ((fltargs + dblargs) < FLT_ARG_CNT) {
-					s1 = rd->argfltregs[fltargs + dblargs];
-
-					if (!IS_2_WORD_TYPE(t)) {
-						M_FLD(s1, REG_SP, LA_SIZE + i * 8 + 4);
-						fltargs++;
-					} else {
-						M_DLD(s1, REG_SP, LA_SIZE + i * 8);
-						dblargs++;
-					}
-				}
-			}
-		}
-
-		M_LDA(REG_SP, REG_SP, LA_SIZE + (INT_ARG_CNT + FLT_ARG_CNT + 1) * 8);
+		/* parent_argbase == stackframesize * 4 */
+		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, stackframesize * 4 , 
+									  true);
 	}
 
 	/* copy or spill arguments to new locations */
@@ -4116,6 +3878,202 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	return m->entrypoint;
 }
 
+s4 *codegen_trace_args( methodinfo *m, codegendata *cd, registerdata *rd,
+						s4 *mcodeptr, s4 parentargs_base, bool nativestub)
+{
+	s4 s1, p, t, d;
+	int stack_off;
+	int stack_size;
+	methoddesc *md;
+
+	md = m->parseddesc;
+	
+	if (!nativestub)
+		M_MFLR(REG_ITMP3);
+	/* Build up Stackframe for builtin_trace_args call (a multiple of 16) */
+	/* For Darwin:                                                        */
+	/* LA + TRACE_ARGS_NUM u8 args + methodinfo + LR                      */
+	/* LA_SIZE(=6*4) + 8*8         + 4          + 4  + 0(Padding)         */
+	/* 6 * 4 + 8 * 8 + 2 * 4 = 12 * 8 = 6 * 16                            */
+	/* For Linux:                                                         */
+	/* LA + (TRACE_ARGS_NUM - INT_ARG_CNT/2) u8 args + methodinfo         */
+	/* + INT_ARG_CNT * 4 ( save integer registers) + LR + 8 + 8 (Padding) */
+	/* LA_SIZE(=2*4) + 4 * 8 + 4 + 8 * 4 + 4 + 8                          */
+	/* 2 * 4 + 4 * 8 + 10 * 4 + 1 * 8 + 8= 12 * 8 = 6 * 16                */
+	
+	/* in nativestubs no Place to save the LR (Link Register) would be needed */
+	/* but since the stack frame has to be aligned the 4 Bytes would have to  */
+	/* be padded again */
+
+#if defined(__DARWIN__)
+	stack_size = LA_SIZE + (TRACE_ARGS_NUM + 1) * 8;
+#else
+	stack_size = 6 * 16;
+#endif
+	M_LDA(REG_SP, REG_SP, -stack_size);
+
+	/* Save LR */
+	if (!nativestub)
+		M_IST(REG_ITMP3, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8 + 1 * 4);
+
+	M_CLR(REG_ITMP1);    /* clear help register */
+
+	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
+#if defined(__DARWIN__)
+	/* Copy Params starting from first to Stack                          */
+	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
+	/* are saved                                                         */
+	p = 0;
+#else
+	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
+	/* integer argument regs                                             */
+	/* all integer argument registers have to be saved                   */
+	for (p = 0; p < 8; p++) {
+		d = rd->argintregs[p];
+		/* save integer argument registers */
+		M_IST(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
+	}
+	p = 4;
+#endif
+	stack_off = LA_SIZE;
+	for (; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				if (IS_2_WORD_TYPE(t)) {
+					M_IST(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
+						  , REG_SP, stack_off);
+					M_IST(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
+						  , REG_SP, stack_off + 4);
+				} else {
+					M_IST(REG_ITMP1, REG_SP, stack_off);
+					M_IST(rd->argintregs[md->params[p].regoff]
+						  , REG_SP, stack_off + 4);
+				}
+			} else { /* Param on Stack */
+				s1 = (md->params[p].regoff + parentargs_base) * 4 
+					+ stack_size;
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(REG_ITMP2, REG_SP, s1);
+					M_IST(REG_ITMP2, REG_SP, stack_off);
+					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
+					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
+				} else {
+					M_IST(REG_ITMP1, REG_SP, stack_off);
+					M_ILD(REG_ITMP2, REG_SP, s1);
+					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
+				}
+			}
+		} else { /* IS_FLT_DBL_TYPE(t) */
+			if (!md->params[p].inmemory) { /* in Arg Reg */
+				s1 = rd->argfltregs[md->params[p].regoff];
+				if (!IS_2_WORD_TYPE(t)) {
+					M_IST(REG_ITMP1, REG_SP, stack_off);
+					M_FST(s1, REG_SP, stack_off + 4);
+				} else {
+					M_DST(s1, REG_SP, stack_off);
+				}
+			} else { /* on Stack */
+				/* this should not happen */
+			}
+		}
+	}
+
+	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
+#if defined(__DARWIN__)
+	for (p = 0; p < 8; p++) {
+		d = rd->argintregs[p];
+		M_ILD(d, REG_SP, LA_SIZE + p * 4);
+	}
+#else
+	/* LINUX */
+	/* Set integer and float argument registers vor trace_args call */
+	/* offset to saved integer argument registers                   */
+	stack_off = LA_SIZE + 4 * 8 + 4;
+	for (p = 0; (p < 4) && (p < md->paramcount); p++) {
+		t = md->paramtypes[p].type;
+		if (IS_INT_LNG_TYPE(t)) {
+			/* "stretch" int types */
+			if (!IS_2_WORD_TYPE(t)) {
+				M_CLR(rd->argintregs[2 * p]);
+				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off);
+				stack_off += 4;
+			} else {
+				M_ILD(rd->argintregs[2 * p + 1], REG_SP,stack_off + 4);
+				M_ILD(rd->argintregs[2 * p], REG_SP,stack_off);
+				stack_off += 8;
+			}
+		} else { /* Float/Dbl */
+			if (!md->params[p].inmemory) { /* Param in Arg Reg */
+				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
+				/* float/double arg reg to int reg                    */
+				s1 = rd->argfltregs[md->params[p].regoff];
+				if (!IS_2_WORD_TYPE(t)) {
+					M_FST(s1, REG_SP, 5 * 16);
+					M_ILD(rd->argintregs[2 * p + 1], REG_SP, 5 * 16);
+					M_CLR(rd->argintregs[2 * p]);
+				} else {
+					M_DST(s1, REG_SP, 5 * 16);
+					M_ILD(rd->argintregs[2 * p + 1], REG_SP,  5 * 16 + 4);
+					M_ILD(rd->argintregs[2 * p], REG_SP, 5 * 16);
+				}
+			}
+		}
+	}
+#endif
+
+	/* put methodinfo pointer on Stackframe */
+	p = dseg_addaddress(cd, m);
+	M_ALD(REG_ITMP1, REG_PV, p);
+#if defined(__DARWIN__)
+	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
+#else
+	M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
+#endif
+	p = dseg_addaddress(cd, (void *) builtin_trace_args);
+	M_ALD(REG_ITMP2, REG_PV, p);
+	M_MTCTR(REG_ITMP2);
+	M_JSR;
+
+#if defined(__DARWIN__)
+	/* restore integer argument registers from the reserved stack space */
+
+	stack_off = LA_SIZE;
+	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; 
+		 p++, stack_off += 8) {
+		t = md->paramtypes[p].type;
+
+		if (IS_INT_LNG_TYPE(t)) {
+			if (!md->params[p].inmemory) {
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]
+						  , REG_SP, stack_off);
+					M_ILD(rd->argintregs[GET_LOW_REG(md->params[p].regoff)]
+						  , REG_SP, stack_off + 4);
+				} else {
+					M_ILD(rd->argintregs[md->params[p].regoff]
+						  , REG_SP, stack_off + 4);
+				}
+			}
+		}
+	}
+#else
+	/* LINUX */
+	for (p = 0; p < 8; p++) {
+		d = rd->argintregs[p];
+		/* save integer argument registers */
+		M_ILD(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
+	}
+#endif
+
+	if (!nativestub)
+		M_ILD(REG_ITMP3, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8 + 1 * 4);
+
+	M_LDA(REG_SP, REG_SP, stack_size);
+	if (!nativestub)
+		M_MTLR(REG_ITMP3);
+	return mcodeptr;
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
