@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2862 2005-06-28 18:39:35Z twisti $
+   $Id: native.c 2891 2005-07-04 20:31:45Z twisti $
 
 */
 
@@ -592,6 +592,16 @@ functionptr native_resolve_function(methodinfo *m)
 	u4                         i;
 
 
+	/* verbose output */
+
+	if (opt_verbosejni) {
+		printf("[Dynamic-linking native method ");
+		utf_display_classname(m->class->name);
+		printf(".");
+		utf_display(m->name);
+		printf(" ... ");
+	}
+		
 	/* calculate length of native function name */
 
 	namelen = strlen("Java_") + utf_strlen(m->class->name) + strlen("_") +
@@ -665,57 +675,70 @@ functionptr native_resolve_function(methodinfo *m)
 	name[i] = '\0';
 
 
-	/* try to find the native function symbol in the main program */
+	/* check the library hash entries of the classloader of the methods's     */
+	/* class                                                                  */
 
-	if (!(sym = lt_dlsym(mainhandle, name))) {
-		/* we didn't find the symbol yet, try to resolve an overloaded        */
-		/* function (having the types in it's name)                           */
+	sym = NULL;
 
-		newname = native_make_overloaded_function(name, m->descriptor);
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-		/* try to find the overloaded symbol */
+	key = ((u4) (ptrint) m->class->classloader) >> 4; /* align to 16-byte */
+	slot = key & (library_hash.size - 1);
+	le = library_hash.ptr[slot];
 
-		sym = lt_dlsym(mainhandle, newname);
+	/* iterate through loaders in this hash slot */
+
+	while (le && !sym) {
+		/* iterate through names in this loader */
+
+		ne = le->namelink;
+			
+		while (ne && !sym) {
+			sym = lt_dlsym(ne->handle, name);
+
+			if (!sym)
+				sym = lt_dlsym(ne->handle, newname);
+
+			ne = ne->hashlink;
+		}
+
+		le = le->hashlink;
 	}
 
-	/* if symbol not found, check the library hash entries of the classloader */
-	/* of the methods's class                                                 */
+	if (sym)
+		if (opt_verbosejni)
+			printf("JNI ]\n");
+
+
+	/* if not found, try to find the native function symbol in the main       */
+	/* program                                                                */
 
 	if (!sym) {
-		/* normally addresses are aligned to 4, 8 or 16 bytes */
+		sym = lt_dlsym(mainhandle, name);
 
-		key = ((u4) (ptrint) m->class->classloader) >> 4; /* align to 16-byte */
-		slot = key & (library_hash.size - 1);
-		le = library_hash.ptr[slot];
+		if (!sym) {
+			/* we didn't find the symbol yet, try to resolve an overloaded    */
+			/* function (having the types in it's name)                       */
 
-		/* iterate through loaders in this hash slot */
+			newname = native_make_overloaded_function(name, m->descriptor);
 
-		while (le && !sym) {
-			/* iterate through names in this loader */
+			/* try to find the overloaded symbol */
 
-			ne = le->namelink;
-			
-			while (ne && !sym) {
-				sym = lt_dlsym(ne->handle, name);
-
-				if (!sym)
-					sym = lt_dlsym(ne->handle, newname);
-
-				ne = ne->hashlink;
-			}
-
-			le = le->hashlink;
+			sym = lt_dlsym(mainhandle, newname);
 		}
+
+		if (sym)
+			if (opt_verbosejni)
+				printf("internal ]\n");
 	}
+
 
 	/* no symbol found? throw exception */
 
-	if (!sym) {
+	if (!sym)
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
 									 m->name);
-		log_text(lt_dlerror());
-	}
 
 	/* release memory */
 
@@ -1020,19 +1043,19 @@ utf *create_methodsig(java_objectarray* types, char *retType)
 }
 
 
-/* get_parametertypes **********************************************************
+/* native_get_parametertypes ***************************************************
 
    Use the descriptor of a method to generate a java/lang/Class array
    which contains the classes of the parametertypes of the method.
 
 *******************************************************************************/
 
-java_objectarray *get_parametertypes(methodinfo *m) 
+java_objectarray *native_get_parametertypes(methodinfo *m)
 {
 	methoddesc       *md;
 	typedesc         *paramtypes;
 	s4                paramcount;
-    java_objectarray *result;
+    java_objectarray *oa;
 	s4                i;
 
 	md = m->parseddesc;
@@ -1055,68 +1078,80 @@ java_objectarray *get_parametertypes(methodinfo *m)
 
 	/* create class-array */
 
-	result = builtin_anewarray(paramcount, class_java_lang_Class);
+	oa = builtin_anewarray(paramcount, class_java_lang_Class);
+
+	if (!oa)
+		return NULL;
 
     /* get classes */
 
 	for (i = 0; i < paramcount; i++) {
 		if (!resolve_class_from_typedesc(&paramtypes[i], true, false,
-										 (classinfo **) &result->data[i]))
+										 (classinfo **) &oa->data[i]))
 			return NULL;
 
-		use_class_as_object((classinfo *) result->data[i]);
+		use_class_as_object((classinfo *) oa->data[i]);
 	}
 
-	return result;
+	return oa;
 }
 
 
-/* get_exceptiontypes **********************************************************
+/* native_get_exceptiontypes ***************************************************
 
-   get the exceptions which can be thrown by a method
+   Get the exceptions which can be thrown by a method.
 
 *******************************************************************************/
 
-java_objectarray* get_exceptiontypes(methodinfo *m)
+java_objectarray *native_get_exceptiontypes(methodinfo *m)
 {
-    u2 excount;
-    u2 i;
-    java_objectarray *result;
-	classinfo *cls;
+    u2                excount;
+    java_objectarray *oa;
+	classinfo        *c;
+    u2                i;
+
+	/* create class-array */
+
+    oa = builtin_anewarray(excount, class_java_lang_Class);
+
+	if (!oa)
+		return NULL;
+
+	/* get exceptions */
 
 	excount = m->thrownexceptionscount;
 
-    /* create class-array */
-	assert(class_java_lang_Class);
-
-    result = builtin_anewarray(excount, class_java_lang_Class);
-
     for (i = 0; i < excount; i++) {
-		if (!resolve_classref_or_classinfo(NULL,m->thrownexceptions[i],resolveEager,true,false,&cls))
-			return NULL; /* exception */
-		use_class_as_object(cls);
-		result->data[i] = (java_objectheader *)cls;
+		if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[i],
+										   resolveEager, true, false, &c))
+			return NULL;
+
+		use_class_as_object(c);
+
+		oa->data[i] = (java_objectheader *) c;
     }
 
-    return result;
+    return oa;
 }
 
 
-/******************************************************************************************
+/* native_get_returntype *******************************************************
 
-	get the returntype class of a method
+   Get the returntype class of a method.
 
-*******************************************************************************************/
+*******************************************************************************/
 
-classinfo *get_returntype(methodinfo *m) 
+classinfo *native_get_returntype(methodinfo *m)
 {
-	classinfo *cls;
+	classinfo *c;
 
-	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype),true,false,&cls))
-		return NULL; /* exception */
+	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype), true, false,
+									 &c))
+		return NULL;
 
-	use_class_as_object(cls);
-	return cls;
+	use_class_as_object(c);
+
+	return c;
 }
 
 
