@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2885 2005-07-02 13:59:19Z edwin $
+## $Id: Makefile.am 2895 2005-07-04 20:38:29Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,24 +39,31 @@ EXTRA_DIST = \
 	jctest.java jctest.output \
 	fptest.java fptest.output \
 	fp.java fp.output \
-	extest.java extest.output \
+	extest.java extest.output extest.2output\
 	TestBase.java TestArrayClasses.java TestArrayClasses.output \
 	BasicToStrings.java BasicToStrings.output \
 	GCBench.java \
-	JavaPerformance.java
+	JavaPerformance.java \
+	param_test.java \
+	perform_tst.sh
 
 JAVA = $(top_srcdir)/src/cacao/cacao
-JAVAC = jikes -nowarn
+JAVAC = jikes -nowarn 
 
-checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst
+checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
+	echo "Testing in native/"
+	make -C native checkall
 
 checkrun: GCBench.tstrun JavaPerformance.tstrun
 
 %.tst:
 	$(JAVAC) $*.java
-	$(JAVA) $* > $*.thisoutput
-	diff --brief $*.output $*.thisoutput
+	sh Test.sh $(JAVA) $*
+#	$(JAVA) $* > $*.thisoutput
+#	diff --brief $*.output $*.thisoutput
 	rm -f $*.thisoutput
+	rm -f $*.this2output
+	 
 
 %.tstrun:
 	$(JAVAC) $*.java

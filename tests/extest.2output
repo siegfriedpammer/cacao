@@ -1,0 +1,2 @@
+Exception in thread "main" java.lang.NullPointerException
+	at extest.main(extest.java:369)

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2170 2005-03-31 19:18:38Z twisti $
+## $Id: Makefile.am 2895 2005-07-04 20:38:29Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,9 +44,10 @@ CLEANFILES = \
 	testarguments.h
 
 CACAO = $(top_srcdir)/src/cacao/cacao
-CACAOC = jikes
+CACAOC = jikes -nowarn 
 CACAOH = $(top_srcdir)/src/cacaoh/cacaoh
 
+checkall: test.tst checkjni.tst testarguments.tst
 test:
 	$(CACAOC) test.java
 	$(CACAOH) test
@@ -57,7 +58,8 @@ checkjni:
 	$(CACAOH) checkjni
 	$(CC) -shared $(INCLUDES) $(CFLAGS) checkjni.c -o libcheckjni.so -fPIC
 
-check:
+check: testarguments
+testarguments:
 	$(CACAOC) testarguments.java
 	$(CACAOH) testarguments
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
@@ -65,6 +67,10 @@ check:
 	$(CACAOH) testgetobjectclass0
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testgetobjectclass0.c -o libtestgetobjectclass0.so -fPIC
 
+%.tst: %
+	sh ../Test.sh $(CACAO) $*
+	rm -f $*.thisoutput
+	rm -f $*.this2output
 
 ## Local variables:
 ## mode: Makefile
