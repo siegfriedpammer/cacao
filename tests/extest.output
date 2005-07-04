@@ -35,8 +35,7 @@ load/link an exception class in asmpart:      OK
 
 ---------- native stub exceptions ---------------
 NullPointerException (native):                OK
+NullPointerException in <clinit>:             OK
 
 ---------- no OK beyond this point --------------
 NullPointerException (without catch):
-Exception in thread "main" java.lang.NullPointerException
-	at extest.main(extest.java:364)
