@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2888 2005-07-03 16:38:33Z christian $
+   $Id: builtin.c 2901 2005-07-04 21:02:17Z christian $
 
 */
 
@@ -1224,8 +1224,6 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 
 	md = m->parseddesc;
 
-	if ( strcmp(m->name->text, "arraycopy")==0 )
-		printf("-----------\n");
 	/* calculate message length */
 
 	logtextlen =
