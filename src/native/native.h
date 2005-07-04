@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 2861 2005-06-28 18:38:16Z twisti $
+   $Id: native.h 2892 2005-07-04 20:33:12Z twisti $
 
 */
 
@@ -134,10 +134,6 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 /* add property to temporary property list -- located in nat/VMRuntime.c */
 void create_property(char *key, char *value);
 
-/* correct vftbl-entries of javastring-hash */
-void stringtable_update();
-
-
 /* search 'classinfo'-structure for a field with the specified name */
 fieldinfo *class_findfield_approx(classinfo *c, utf *name);
 s4 class_findfield_index_approx(classinfo *c, utf *name);
@@ -145,10 +141,10 @@ s4 class_findfield_index_approx(classinfo *c, utf *name);
 void copy_vftbl(vftbl_t **dest, vftbl_t *src);
 
 utf *create_methodsig(java_objectarray* types, char *retType);
-classinfo *get_type(char **utf_ptr,char *desc_end, bool skip);
-java_objectarray* get_parametertypes(methodinfo *m);
-java_objectarray* get_exceptiontypes(methodinfo *m);
-classinfo *get_returntype(methodinfo *m);
+
+java_objectarray *native_get_parametertypes(methodinfo *m);
+java_objectarray *native_get_exceptiontypes(methodinfo *m);
+classinfo *native_get_returntype(methodinfo *m);
 
 
 /*----- For Static Analysis of Natives by parseRT -----*/
