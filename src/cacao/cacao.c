@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2852 2005-06-28 16:05:50Z twisti $
+   $Id: cacao.c 2897 2005-07-04 20:39:26Z twisti $
 
 */
 
@@ -106,7 +106,7 @@ void **stackbottom = 0;
 #define OPT_MX               5
 #define OPT_VERBOSE1         6
 #define OPT_VERBOSE          7
-#define OPT_VERBOSEGC        8
+#define OPT_VERBOSESPECIFIC  8
 #define OPT_VERBOSECALL      9
 #define OPT_NOIEEE           10
 #define OPT_SOFTNULL         11
@@ -169,7 +169,7 @@ opt_struct opts[] = {
 	{ "ss",                true,  OPT_IGNORE },
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose",           false, OPT_VERBOSE },
-	{ "verbosegc",         false, OPT_VERBOSEGC },
+	{ "verbose:",          true,  OPT_VERBOSESPECIFIC },
 	{ "verbosecall",       false, OPT_VERBOSECALL },
 	{ "verboseexception",  false, OPT_VERBOSEEXCEPTION },
 #ifdef TYPECHECK_VERBOSE
@@ -231,6 +231,7 @@ static void usage(void)
 	printf("    -cp <path>               specify a path to look for classes\n");
 	printf("    -classpath <path>        specify a path to look for classes\n");
 	printf("    -D<name>=<value>         add an entry to the property list\n");
+	printf("    -verbose[:class|gc|jni]  enable specific verbose output\n");
 	printf("    -version                 print product version and exit\n");
 	printf("    -showversion             print product version and continue\n");
 	printf("    -help, -?                print this help message\n");
@@ -380,6 +381,8 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	asm_calljavafunction(m, o, s, NULL, NULL);
 
+	if (*exceptionptr)
+		throw_main_exception_exit();
 
 	/* get manifest object */
 
@@ -677,12 +680,21 @@ int main(int argc, char **argv)
 			compileverbose = true;
 			break;
 
-		case OPT_VERBOSEEXCEPTION:
-			verboseexception = true;
+		case OPT_VERBOSESPECIFIC:
+			if (strcmp("class", opt_arg) == 0) {
+				loadverbose = true;
+				linkverbose = true;
+
+			} else if (strcmp("gc", opt_arg) == 0) {
+				opt_verbosegc = true;
+
+			} else if (strcmp("jni", opt_arg) == 0) {
+				opt_verbosejni = true;
+			}
 			break;
 
-		case OPT_VERBOSEGC:
-			collectverbose = true;
+		case OPT_VERBOSEEXCEPTION:
+			verboseexception = true;
 			break;
 
 #ifdef TYPECHECK_VERBOSE
