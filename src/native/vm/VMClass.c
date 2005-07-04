@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: VMClass.c 2893 2005-07-04 20:35:24Z twisti $
 
 */
 
@@ -57,10 +57,6 @@
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/resolve.h"
-
-
-/* for selecting public members */
-#define MEMBER_PUBLIC  0
 
 
 /*
@@ -203,12 +199,14 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 			o = native_new_and_init(class_java_lang_reflect_Constructor);
 			array_constructor->data[pos++] = o;
 
+#if 0
 			/* array of exceptions declared to be thrown, information not available !! */
 			exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
 
 			/*	    class_showconstantpool(class_constructor);*/
 			/* initialize instance fields */
 			/*	    ((java_lang_reflect_Constructor*)o)->flag=(m->flags & (ACC_PRIVATE | ACC_PUBLIC | ACC_PROTECTED));*/
+#endif
 
 			setfield_critical(class_java_lang_reflect_Constructor,
 							  o,
@@ -224,6 +222,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 							  jint,
 							  i);
 
+#if 0
 			/*	    setfield_critical(class_constructor,o,"flag",           "I",		     jint,    (m->flags & (ACC_PRIVATE | 
 					ACC_PUBLIC | ACC_PROTECTED))); */
 
@@ -239,7 +238,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
 							  "parameterTypes",
 							  "[Ljava/lang/Class;",
 							  jobject,
-							  (jobject) get_parametertypes(m));
+							  (jobject) native_get_parametertypes(m));
+#endif
         }
 	}
 
@@ -305,31 +305,37 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
  * Method:    getDeclaringClass
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, struct java_lang_Class *that)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
 	/* XXX fixme */
 
-	classinfo *c = (classinfo *) that;
+	classinfo *c;
+	s4         i;
 
-	if (that && !Java_java_lang_VMClass_isPrimitive(env, clazz,that) && (c->name->text[0] != '[')) {
-		int i;
+	c = (classinfo *) klass;
+
+	if (klass && !Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
+		(c->name->text[0] != '[')) {
 
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
 		for (i = 0; i < c->innerclasscount; i++) {
-			classinfo *inner =  c->innerclass[i].inner_class.cls;
-			classinfo *outer =  c->innerclass[i].outer_class.cls;
+			classinfo *inner = c->innerclass[i].inner_class.cls;
+			classinfo *outer = c->innerclass[i].outer_class.cls;
       
 			if (inner == c) {
 				/* innerclass is this class */
+
 				use_class_as_object(outer);
+
 				return (java_lang_Class *) outer;
 			}
 		}
 	}
 
 	/* return NULL for arrayclasses and primitive classes */
+
 	return NULL;
 }
 
@@ -477,89 +483,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 }
 
 
-java_lang_reflect_Method* cacao_getMethod0(JNIEnv *env, java_lang_Class *that, java_lang_String *name, java_objectarray *types, s4 which)
-{
-    classinfo *clazz;
-    java_lang_reflect_Method* o;                     /* result: Method-object */
-    java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
-    methodinfo *m;                            /* the method to be represented */
-
-    clazz = (classinfo *) that;
-
-    o = (java_lang_reflect_Method *)
-		native_new_and_init(class_java_lang_reflect_Method);
-
-    /* find the method */
-
-    m = class_resolvemethod_approx(clazz, 
-								   javastring_toutf(name, false),
-								   create_methodsig(types, 0));
-
-    if (!m || (which == MEMBER_PUBLIC && !(m->flags & ACC_PUBLIC))) {
-		/* no apropriate method was found */
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodException);
-		return NULL;
-	}
-   
-    /* array of exceptions declared to be thrown, information not available! */
-
-    exceptiontypes = builtin_anewarray(0, class_java_lang_Class);
-
-    /* initialize instance fields */
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "clazz",
-					  "Ljava/lang/Class;",
-					  jobject,
-					  (jobject) clazz /*this*/);
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "parameterTypes",
-					  "[Ljava/lang/Class;",
-					  jobject,
-					  (jobject) types);
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "exceptionTypes",
-					  "[Ljava/lang/Class;",
-					  jobject,
-					  (jobject) exceptiontypes);
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "name",
-					  "Ljava/lang/String;",
-					  jstring,
-					  (jobject) javastring_new(m->name));
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "modifiers",
-					  "I",
-					  jint,
-					  m->flags);
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "slot",
-					  "I",
-					  jint,
-					  0); 
-
-    setfield_critical(class_java_lang_reflect_Method,
-					  o,
-					  "returnType",
-					  "Ljava/lang/Class;",
-					  jclass,
-					  get_returntype(m));
-
-    return o;
-}
-
-
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredMethods
@@ -666,11 +589,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 /*
  * Class:     java/lang/VMClass
  * Method:    getModifiers
- * Signature: ()I
+ * Signature: (Z)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *that)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
 {
-	classinfo *c = (classinfo *) that;
+	classinfo *c;
+
+	c = (classinfo *) klass;
 
 	return c->flags;
 }
@@ -848,7 +773,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Object *obj)
 {
-	return builtin_instanceof((java_objectheader*)obj, (classinfo*)that);
+	return builtin_instanceof((java_objectheader *) obj, (classinfo *) that);
 }
 
 
@@ -859,7 +784,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {
-	classinfo *c = (classinfo *) that;
+	classinfo *c;
+
+	c = (classinfo *) that;
 
 	if (c->flags & ACC_INTERFACE)
 		return true;
@@ -873,12 +800,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass claz
  * Method:    isPrimitive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *that)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	int i;
-	classinfo *c = (classinfo *) that;
+	classinfo *c;
+	s4         i;
+
+	c = (classinfo *) klass;
 
 	/* search table of primitive classes */
+
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
 		if (primitivetype_table[i].class_primitive == c)
 			return true;
@@ -892,18 +822,19 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
  * Method:    initialize
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, java_lang_Class *c)
+JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	classinfo *ci;
+	classinfo *c;
 
-	ci = (classinfo *) c;
+	c = (classinfo *) klass;
 
 	/* initialize class */
 
-	if (!ci->initialized) {
+	if (!c->initialized) {
 		/* No need to check return value, because initialize_class already */
 		/* sets the exception pointer. */
-		(void) initialize_class(ci);
+
+		(void) initialize_class(c);
 	}
 }
 

@@ -29,13 +29,13 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 2547 2005-06-06 14:41:42Z twisti $
+   $Id: Constructor.c 2893 2005-07-04 20:35:24Z twisti $
 
 */
 
 
 #include <assert.h>
-#include <string.h>
+#include <stdlib.h>
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -61,9 +61,13 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 {
 	/* XXX fix me for parameters float/double and long long  parameters */
 
+	classinfo         *c;
 	methodinfo        *m;
 	java_objectheader *o;
 
+	c = (classinfo *) declaringClass;
+
+#if 0
 	/* find initializer */
 
 	if (!args) {
@@ -71,7 +75,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 			*exceptionptr =
 				new_exception_message(string_java_lang_IllegalArgumentException,
 									  "wrong number of arguments");
-			return 0;
+			return NULL;
 		}
 
 	} else {
@@ -79,60 +83,32 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 			*exceptionptr =
 				new_exception_message(string_java_lang_IllegalArgumentException,
 									  "wrong number of arguments");
-			return 0;
+			return NULL;
 		}
-	}
-
-	if (this->slot >= ((classinfo *) declaringClass)->methodscount) {
-		log_text("illegal index in methods table");
-		return 0;
-	}
-
-	o = builtin_new((classinfo *) declaringClass);           /* create object */
-
-	if (!o) {
-		log_text("Objet instance could not be created");
-		return NULL;
-	}
-        
-	m = &((classinfo *) declaringClass)->methods[this->slot];
-
-	if (!(m->name == utf_init))
-		/* && 
-		   (m->descriptor == create_methodsig(this->parameterTypes,"V"))))*/
-		{
-			if (opt_verbose) {
-				char logtext[MAXLOGTEXT];
-				sprintf(logtext, "Warning: class has no instance-initializer of specified type: ");
-				utf_sprint(logtext + strlen(logtext), ((classinfo *) declaringClass)->name);
-				log_text(logtext);
-				log_plain_utf( create_methodsig(this->parameterTypes,"V"));
-				log_plain("\n");
-				class_showconstantpool((classinfo *) declaringClass);
-			}
-
-			/* XXX throw an exception here, although this should never happen */
-
-			return (java_lang_Object *) o;
-		}
-
-	/*	log_text("calling initializer");*/
-	/* call initializer */
-#if 0
-	switch (this->parameterTypes->header.size) {
-	case 0: exceptionptr=asm_calljavamethod (m, o, NULL, NULL, NULL);
-		break;
-	case 1: exceptionptr=asm_calljavamethod (m, o, args->data[0], NULL, NULL);
-		break;
-	case 2: exceptionptr=asm_calljavamethod (m, o, args->data[0], args->data[1], NULL);
-		break;
-	case 3: exceptionptr=asm_calljavamethod (m, o, args->data[0], args->data[1], 
-											 args->data[2]);
-	break;
-	default:
-		log_text("Not supported number of arguments in Java_java_lang_reflect_Constructor");
 	}
 #endif
+
+	if (this->slot >= c->methodscount) {
+		log_text("illegal index in methods table");
+		return NULL;
+	}
+
+	/* create object */
+
+	o = builtin_new(c);
+
+	if (!o)
+		return NULL;
+        
+	m = &(c->methods[this->slot]);
+
+	if (m->name != utf_init) {
+		/* XXX throw an exception here, although this should never happen */
+
+		assert(0);
+	}
+
+	/* call initializer */
 
 	(void) jni_method_invokeNativeHelper(env, m, o, args); 
 
@@ -147,14 +123,65 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	classinfo *c = (classinfo *) (this->clazz);
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) (this->clazz);
 
 	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for constructor in class (getModifiers)");
+		log_text("error illegal slot for constructor in class");
 		assert(0);
 	}
 
-	return (c->methods[this->slot]).flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED);
+	m = &(c->methods[this->slot]);
+
+	return (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getParameterTypes
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) this->clazz;
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for constructor in class");
+		assert(0);
+	}
+
+	m = &(c->methods[this->slot]);
+
+	return native_get_parametertypes(m);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getExceptionTypes
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) this->clazz;
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for constructor in class");
+		assert(0);
+	}
+
+	m = &(c->methods[this->slot]);
+
+	return native_get_exceptiontypes(m);
 }
 
 

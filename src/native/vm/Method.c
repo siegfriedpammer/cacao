@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 2606 2005-06-08 18:21:28Z twisti $
+   $Id: Method.c 2893 2005-07-04 20:35:24Z twisti $
 
 */
 
@@ -50,7 +50,6 @@
 #include "vm/stringlocal.h"
 
 
-
 /*
  * Class:     java/lang/reflect/Method
  * Method:    getModifiers
@@ -58,71 +57,91 @@
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo  *c;
+	methodinfo *m;
+
+	c = (classinfo *) this->declaringClass;
 
 	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class (getReturnType)");
+		log_text("error illegal slot for method in class");
 		assert(0);
 	}
 
-	return (c->methods[this->slot]).flags &
-		(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
-		 ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT);
+	m = &(c->methods[this->slot]);
+
+	return (m->flags &
+			(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT |
+			 ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_NATIVE |
+			 ACC_STRICT));
 }
 
 
 /*
- * Class:     java_lang_reflect_Method
+ * Class:     java/lang/reflect/Method
  * Method:    getReturnType
  * Signature: ()Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo  *c;
+	methodinfo *m;
 
-	if (this->slot < 0 || this->slot >= c->methodscount) {
-		log_text("error illegal slot for method in class (getReturnType)");
+	c = (classinfo *) this->declaringClass;
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for method in class");
 		assert(0);
 	}
 
-	return (java_lang_Class *) get_returntype(&(c->methods[this->slot]));
+	m = &(c->methods[this->slot]);
+
+	return (java_lang_Class *) native_get_returntype(m);
 }
 
 
 /*
- * Class:     java_lang_reflect_Method
+ * Class:     java/lang/reflect/Method
  * Method:    getParameterTypes
  * Signature: ()[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTypes(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo  *c;
+	methodinfo *m;
 
-	if (this->slot < 0 || this->slot >= c->methodscount) {
-		log_text("error illegal slot for method in class(getParameterTypes)");
+	c = (classinfo *) this->declaringClass;
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for method in class");
 		assert(0);
 	}
 
-	return get_parametertypes(&(c->methods[this->slot]));
+	m = &(c->methods[this->slot]);
+
+	return native_get_parametertypes(m);
 }
 
 
 /*
- * Class:     java_lang_reflect_Method
+ * Class:     java/lang/reflect/Method
  * Method:    getExceptionTypes
  * Signature: ()[Ljava/lang/Class;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTypes(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo  *c;
+	methodinfo *m;
 
-	if (this->slot < 0 || this->slot >= c->methodscount) {
-		log_text("error illegal slot for method in class(getExceptionTypes)");
+	c = (classinfo *) this->declaringClass;
+
+	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
+		log_text("error illegal slot for method in class");
 		assert(0);
 	}
 
-	return get_exceptiontypes(&(c->methods[this->slot]));
+	m = &(c->methods[this->slot]);
 
+	return native_get_exceptiontypes(m);
 }
 
 

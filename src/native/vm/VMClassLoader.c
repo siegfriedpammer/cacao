@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 2725 2005-06-16 19:10:35Z edwin $
+   $Id: VMClassLoader.c 2893 2005-07-04 20:35:24Z twisti $
 
 */
 
@@ -93,19 +93,22 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	if (name) {
 		/* convert '.' to '/' in java string */
+
 		utfname = javastring_toutf(name, true);
 		
 		/* check if this class has already been defined */
+
 		c = classcache_lookup_defined((java_objectheader *) this, utfname);
 		if (c) {
 			return (java_lang_Class *) c;
 		}
-	}
-	else {
+
+	} else {
 		utfname = NULL;
 	}
 
 	/* create a new classinfo struct */
+
 	c = class_create_classinfo(utfname);
 
 #if defined(STATISTICS)
@@ -156,16 +159,17 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	c->pd = pd;
 
-	use_class_as_object(c);
+	if (!use_class_as_object(c))
+		return NULL;
 
-	/* store the newly defined class in the class cache. This call also checks */
-	/* whether a class of the same name has already been defined by the same   */
-	/* defining loader, and if so, replaces the newly created class by the one */
-	/* defined earlier.                                                        */
-	/* Important: The classinfo given to classcache_store_defined must be fully*/
-	/*            prepared because another thread may return this pointer after*/
-	/*            the lookup at to top of this function directly after the     */
-	/*            class cache lock has been released.                          */
+	/* Store the newly defined class in the class cache. This call also       */
+	/* checks whether a class of the same name has already been defined by    */
+	/* the same defining loader, and if so, replaces the newly created class  */
+	/* by the one defined earlier.                                            */
+	/* Important: The classinfo given to classcache_store_defined must be     */
+	/*            fully prepared because another thread may return this       */
+	/*            pointer after the lookup at to top of this function         */
+	/*            directly after the class cache lock has been released.      */
 
 	c = classcache_store_defined(c);
 
@@ -176,26 +180,52 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 /*
  * Class:     java/lang/VMClassLoader
  * Method:    getPrimitiveClass
- * Signature: (Ljava/lang/String;)Ljava/lang/Class;
+ * Signature: (C)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, java_lang_String *type)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, s4 type)
 {
 	classinfo *c;
-	utf       *u;
-
-	u = javastring_toutf(type, false);
-
-	/* illegal primitive classname specified */
-
-	if (!u) {
-		*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
-		return NULL;
-	}
 
 	/* get primitive class */
 
-	if (!(c = load_class_bootstrap(u)) || !initialize_class(c))
+	switch (type) {
+	case 'I':
+		c = primitivetype_table[PRIMITIVETYPE_INT].class_primitive;
+		break;
+	case 'J':
+		c = primitivetype_table[PRIMITIVETYPE_LONG].class_primitive;
+		break;
+	case 'F':
+		c = primitivetype_table[PRIMITIVETYPE_FLOAT].class_primitive;
+		break;
+	case 'D':
+		c = primitivetype_table[PRIMITIVETYPE_DOUBLE].class_primitive;
+		break;
+	case 'B':
+		c = primitivetype_table[PRIMITIVETYPE_BYTE].class_primitive;
+		break;
+	case 'C':
+		c = primitivetype_table[PRIMITIVETYPE_CHAR].class_primitive;
+		break;
+	case 'S':
+		c = primitivetype_table[PRIMITIVETYPE_SHORT].class_primitive;
+		break;
+	case 'Z':
+		c = primitivetype_table[PRIMITIVETYPE_BOOLEAN].class_primitive;
+		break;
+	case 'V':
+		c = primitivetype_table[PRIMITIVETYPE_VOID].class_primitive;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_ClassNotFoundException);
+		c = NULL;
+	}
+
+#if 0
+	/* XXX TWISTI is this neccessary? */
+	if (!initialize_class(c))
 		return NULL;
+#endif
 
 	use_class_as_object(c);
 
