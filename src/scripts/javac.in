@@ -1,6 +1,6 @@
 #!/bin/sh
 
-## src/scripts/kjc.in
+## src/scripts/javac.in
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -30,7 +30,7 @@
 ##
 ## Changes:
 ##
-## $Id: kjc.in 2903 2005-07-04 21:20:52Z twisti $
+## $Id: javac.in 2903 2005-07-04 21:20:52Z twisti $
 
 prefix="@prefix@"
 
