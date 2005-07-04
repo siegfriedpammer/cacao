@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 2463 2005-05-12 23:54:07Z twisti $
+   $Id: boehm.c 2896 2005-07-04 20:38:33Z twisti $
 
 */
 
@@ -209,7 +209,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 void gc_call(void)
 {
-  	if (collectverbose)
+  	if (opt_verbosegc)
 		dolog("Garbage Collection:  previous/now = %d / %d ",
 			  0, 0);
 
