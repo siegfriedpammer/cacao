@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2883 2005-06-30 21:45:21Z twisti $
+   $Id: jni.c 2898 2005-07-04 20:40:55Z twisti $
 
 */
 
@@ -117,7 +117,8 @@ static jmethodID removemid = NULL;
 
 #define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;  
 #define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
-#define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val); 
+#define setfield_critical(clazz,obj,name,sig,jdatatype,val) \
+    setField(obj, jdatatype, getFieldID_critical(env,clazz,name,sig), val);
 
 
 static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
@@ -631,9 +632,11 @@ static fieldinfo *jclass_findfield (classinfo *c, utf *name, utf *desc)
 
 jint GetVersion(JNIEnv *env)
 {
-	/* GNU classpath currently supports JNI 1.2 */
 	STATS(jniinvokation();)
-	return JNI_VERSION_1_2;
+
+	/* just say we support JNI 1.4 */
+
+	return JNI_VERSION_1_4;
 }
 
 
@@ -1867,6 +1870,7 @@ void CallNonvirtualVoidMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 jfieldID GetFieldID (JNIEnv *env, jclass clazz, const char *name, const char *sig) 
 {
 	jfieldID f;
+
 	STATS(jniinvokation();)
 
 /*	log_text("========================= searching for:");
@@ -2799,27 +2803,37 @@ const char *GetStringUTFChars(JNIEnv *env, jstring string, jboolean *isCopy)
 }
 
 
-/***************** native code no longer needs access to utf ***********************/
+/* ReleaseStringUTFChars *******************************************************
 
-void ReleaseStringUTFChars (JNIEnv *env, jstring str, const char* chars)
+   Informs the VM that the native code no longer needs access to
+   utf. The utf argument is a pointer derived from string using
+   GetStringUTFChars().
+
+*******************************************************************************/
+
+void ReleaseStringUTFChars(JNIEnv *env, jstring string, const char *utf)
 {
 	STATS(jniinvokation();)
 
-    /*we don't release utf chars right now, perhaps that should be done later. Since there is always one reference
-	the garbage collector will never get them*/
-	/*
-    log_text("JNI-Call: ReleaseStringUTFChars");
-    utf_display(utf_new_char(chars));
-	*/
+    /* XXX we don't release utf chars right now, perhaps that should be done 
+	   later. Since there is always one reference the garbage collector will
+	   never get them */
 }
 
-/************************** array operations ***************************************/
+
+/* Array Operations ***********************************************************/
+
+/* GetArrayLength **************************************************************
+
+   Returns the number of elements in the array.
+
+*******************************************************************************/
 
 jsize GetArrayLength(JNIEnv *env, jarray array)
 {
 	STATS(jniinvokation();)
 
-    return array->size;
+	return array->size;
 }
 
 
@@ -3655,22 +3669,29 @@ jint DetachCurrentThread(JavaVM *vm)
 }
 
 
+/* GetEnv **********************************************************************
+
+   If the current thread is not attached to the VM, sets *env to NULL,
+   and returns JNI_EDETACHED. If the specified version is not
+   supported, sets *env to NULL, and returns JNI_EVERSION. Otherwise,
+   sets *env to the appropriate interface, and returns JNI_OK.
+
+*******************************************************************************/
+
 jint GetEnv(JavaVM *vm, void **env, jint version)
 {
 	STATS(jniinvokation();)
+
+	if (thread_getself() == NULL) {
+		*env = NULL;
+		return JNI_EDETACHED;
+	}
+
 	if ((version != JNI_VERSION_1_1) && (version != JNI_VERSION_1_2) &&
 		(version != JNI_VERSION_1_4)) {
 		*env = NULL;
 		return JNI_EVERSION;
 	}
-
-	/*
-	  TODO: If the current thread is not attached to the VM...
-	if (0) {
-		*env = NULL;
-		return JNI_EDETACHED;
-	}
-	*/
 
 	*env = &ptr_env;
 
