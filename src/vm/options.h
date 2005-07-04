@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 2780 2005-06-22 10:51:03Z twisti $
+   $Id: options.h 2894 2005-07-04 20:38:07Z twisti $
 
 */
 
@@ -60,11 +60,12 @@ extern bool opt_verbose;
 extern bool compileall;
 extern bool runverbose;
 extern bool verboseexception;
-extern bool collectverbose;
 
 extern bool loadverbose;         /* Print debug messages during loading */
 extern bool linkverbose;
 extern bool initverbose;         /* Log class initialization */ 
+extern bool opt_verbosegc;
+extern bool opt_verbosejni;
 
 extern bool opt_rt;
 extern bool opt_xta;

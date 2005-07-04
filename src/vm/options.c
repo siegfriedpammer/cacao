@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 2780 2005-06-22 10:51:03Z twisti $
+   $Id: options.c 2894 2005-07-04 20:38:07Z twisti $
 
 */
 
@@ -42,11 +42,12 @@ bool opt_verbose = false;
 bool compileall = false;
 bool runverbose = false;       /* trace all method invocation                */
 bool verboseexception = false;
-bool collectverbose = false;
 
 bool loadverbose = false;
 bool linkverbose = false;
 bool initverbose = false;
+bool opt_verbosegc = false;
+bool opt_verbosejni = false;
 
 bool opt_rt = false;           /* true if RTA parse should be used     RT-CO */
 bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO */
@@ -104,33 +105,44 @@ char *opt_arg;                 /* this one exports the option argument       */
 int get_opt(int argc, char **argv, opt_struct *opts)
 {
 	char *a;
-	int i;
+	s4    i;
 	
 	if (opt_ind >= argc)
 		return OPT_DONE;
 	
 	a = argv[opt_ind];
+
 	if (a[0] != '-')
 		return OPT_DONE;
 
 	for (i = 0; opts[i].name; i++) {
 		if (!opts[i].arg) {
-			if (strcmp(a + 1, opts[i].name) == 0) { /* boolean option found */
+			/* boolean option found */
+
+			if (strcmp(a + 1, opts[i].name) == 0) {
 				opt_ind++;
 				return opts[i].value;
 			}
 
 		} else {
-			if (strcmp(a + 1, opts[i].name) == 0) { /* parameter option found */
+			/* parameter option found */
+
+			/* with a space between */
+
+			if (strcmp(a + 1, opts[i].name) == 0) {
 				opt_ind++;
+
 				if (opt_ind < argc) {
 					opt_arg = argv[opt_ind];
 					opt_ind++;
 					return opts[i].value;
 				}
+
 				return OPT_ERROR;
 
 			} else {
+				/* parameter and option have no space between */
+
 				size_t l = strlen(opts[i].name);
 				if (strlen(a + 1) > l) {
 					if (memcmp(a + 1, opts[i].name, l) == 0) {
