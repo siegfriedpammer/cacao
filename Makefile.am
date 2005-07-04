@@ -28,13 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 1735 2004-12-07 14:33:27Z twisti $
+## $Id: Makefile.am 2904 2005-07-04 21:21:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 MAINTAINERCLEANFILES = Makefile.in configure
 
-SUBDIRS = doc man src tests
+SUBDIRS = contrib doc man src tests
 
 
 ## Local variables:
