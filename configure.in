@@ -484,6 +484,7 @@ AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath src/libltdl)
 
 
 AC_CONFIG_FILES([Makefile]
+		[contrib/Makefile]
 		[doc/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]
@@ -499,8 +500,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/scripts/Makefile]
 		[src/scripts/cacao]
 		[src/scripts/java]
+		[src/scripts/javac]
 		[src/scripts/kjc]
-		[src/scripts/rmic]
 		[src/scripts/rmiregistry]
 		[src/threads/Makefile]
 		[src/threads/green/Makefile]
