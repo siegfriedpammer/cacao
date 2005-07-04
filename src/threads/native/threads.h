@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 2761 2005-06-20 22:46:55Z stefan $
+   $Id: threads.h 2899 2005-07-04 20:41:28Z twisti $
 
 */
 
@@ -173,6 +173,8 @@ bool threadHoldsLock(threadobject *t, java_objectheader *o);
 void signal_cond_for_object (java_objectheader *obj);
 void broadcast_cond_for_object (java_objectheader *obj);
 void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);
+
+void *thread_getself(void);
 
 void initThreadsEarly();
 void initThreads(u1 *stackbottom);

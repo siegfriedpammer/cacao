@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2800 2005-06-23 10:09:50Z twisti $
+   $Id: threads.c 2899 2005-07-04 20:41:28Z twisti $
 
 */
 
@@ -431,6 +431,19 @@ static void setthreadobject(threadobject *thread)
 	threadobj = thread;
 #endif
 }
+
+
+/* thread_setself **************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void *thread_getself(void)
+{
+	return pthread_getspecific(tkey_threadinfo);
+}
+
 
 static monitorLockRecord *dummyLR;
 
