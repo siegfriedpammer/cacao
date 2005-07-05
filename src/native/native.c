@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2912 2005-07-05 10:04:12Z twisti $
+   $Id: native.c 2913 2005-07-05 11:18:20Z twisti $
 
 */
 
@@ -675,6 +675,10 @@ functionptr native_resolve_function(methodinfo *m)
 	name[i] = '\0';
 
 
+	/* generate overloaded function (having the types in it's name)           */
+
+	newname = native_make_overloaded_function(name, m->descriptor);
+
 	/* check the library hash entries of the classloader of the methods's     */
 	/* class                                                                  */
 
@@ -682,7 +686,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key = ((u4) (ptrint) m->class->classloader) >> 4; /* align to 16-byte */
+	key = ((u4) (ptrint) m->class->classloader) >> 4;     /* align to 16-byte */
 	slot = key & (library_hash.size - 1);
 	le = library_hash.ptr[slot];
 
@@ -716,16 +720,8 @@ functionptr native_resolve_function(methodinfo *m)
 	if (!sym) {
 		sym = lt_dlsym(mainhandle, name);
 
-		if (!sym) {
-			/* we didn't find the symbol yet, try to resolve an overloaded    */
-			/* function (having the types in it's name)                       */
-
-			newname = native_make_overloaded_function(name, m->descriptor);
-
-			/* try to find the overloaded symbol */
-
+		if (!sym)
 			sym = lt_dlsym(mainhandle, newname);
-		}
 
 		if (sym)
 			if (opt_verbosejni)
