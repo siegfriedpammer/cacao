@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: codegen.c 2860 2005-06-28 18:37:28Z twisti $
+   $Id: codegen.c 2910 2005-07-05 08:48:07Z twisti $
 
 */
 
@@ -3166,8 +3166,8 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				gen_nullptr_check(rd->argintregs[0]);
-				M_ILD(REG_ITMP1, rd->argintregs[0], 0); /* hardware nullptr   */
+				M_BEQZ(rd->argintregs[0], 0);
+				codegen_addxnullrefs(cd, mcodeptr);
 				/* fall through */
 
 			case ICMD_INVOKESTATIC:
@@ -4279,14 +4279,20 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 				} else {
 					s2 = nmd->params[j].regoff;
-					M_DST(s1, REG_SP, s2 * 8);
+					if (IS_2_WORD_TYPE(t))
+						M_DST(s1, REG_SP, s2 * 8);
+					else
+						M_FST(s1, REG_SP, s2 * 8);
 				}
 
 			} else {
 				s1 = md->params[i].regoff + stackframesize;
 				s2 = nmd->params[j].regoff;
 				M_DLD(REG_FTMP1, REG_SP, s1 * 8);
-				M_DST(REG_FTMP1, REG_SP, s2 * 8);
+				if (IS_2_WORD_TYPE(t))
+					M_DST(REG_FTMP1, REG_SP, s2 * 8);
+				else
+					M_FST(REG_FTMP1, REG_SP, s2 * 8);
 			}
 		}
 	}
