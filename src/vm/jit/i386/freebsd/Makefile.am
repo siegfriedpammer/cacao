@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2675 2005-06-13 16:20:03Z twisti $
+## $Id: Makefile.am 2916 2005-07-05 13:59:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,7 +39,7 @@ noinst_HEADERS =
 noinst_LTLIBRARIES = libmd.la
 
 libmd_la_SOURCES = \
-	md.c
+	md-os.c
 
 
 ## Local variables:

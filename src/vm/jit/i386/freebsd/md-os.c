@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/freebsd/md.c - machine dependent i386 FreeBSD functions
+/* src/vm/jit/i386/freebsd/md-os.c - machine dependent i386 FreeBSD functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2829 2005-06-25 15:29:50Z twisti $
+   $Id: md-os.c 2916 2005-07-05 13:59:43Z twisti $
 
 */
 
@@ -40,18 +40,6 @@
 
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-
-
-/* md_init *********************************************************************
-
-   Do some machine dependent initialization.
-
-*******************************************************************************/
-
-void md_init(void)
-{
-	/* nothing to do */
-}
 
 
 /* signal_handler_sigsegv ******************************************************
