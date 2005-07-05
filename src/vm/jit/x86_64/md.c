@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2840 2005-06-27 12:07:54Z twisti $
+   $Id: md.c 2914 2005-07-05 13:39:44Z twisti $
 
 */
 
@@ -109,6 +109,25 @@ void thread_restartcriticalsection(ucontext_t *uc)
 		uc->uc_mcontext.gregs[REG_RIP] = (ptrint) critical;
 }
 #endif
+
+
+/* md_stacktrace_get_returnaddress *********************************************
+
+   Returns the return address of the current stackframe, specified by
+   the passed stack pointer and the stack frame size.
+
+*******************************************************************************/
+
+functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+{
+	functionptr ra;
+
+	/* on x86_64 the return address is above the current stack frame */
+
+	ra = (functionptr) *((u1 **) (sp + framesize));
+
+	return ra;
+}
 
 
 /*
