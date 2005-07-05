@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2915 2005-07-05 13:40:14Z twisti $
+   $Id: stacktrace.c 2919 2005-07-05 14:00:37Z twisti $
 
 */
 
@@ -146,7 +146,7 @@ static int stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
 					ilStart=(lineNumberTableEntryInlineBegin*)(++ent);
 					ent ++;
 					ahead--; ahead--;
-					if (fillInStackTrace_methodRecursive(buffer,ilStart->method,ent,&ent,&ahead,adress)) {
+					if (stacktrace_fillInStackTrace_methodRecursive(buffer,ilStart->method,ent,&ent,&ahead,adress)) {
 						addEntry(buffer,method,ilStart->lineNrOuter);
 						return 1;
 					}
@@ -213,8 +213,10 @@ static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
 		ent -= (lineNumberTableSize - 1);
 		startEntry = ent;
 
-		if (!fillInStackTrace_methodRecursive(buffer, method, startEntry, &ent,
-											  &lineNumberTableSize, address)) {
+		if (!stacktrace_fillInStackTrace_methodRecursive(buffer, method,
+														 startEntry, &ent,
+														 &lineNumberTableSize,
+														 address)) {
 			log_text("Trace point not found in suspected method");
 			assert(0);
 		}
@@ -426,7 +428,14 @@ java_objectarray *cacao_createClassContextArray() {
 }
 
 
-static void classLoaderCollector(void **target, stackTraceBuffer *buffer)
+/* stacktrace_classLoaderCollector *********************************************
+
+   XXX
+
+*******************************************************************************/
+
+static void stacktrace_classLoaderCollector(void **target,
+											stackTraceBuffer *buffer)
 {
 	stacktraceelement *current;
 	stacktraceelement *start;
@@ -458,9 +467,19 @@ static void classLoaderCollector(void **target, stackTraceBuffer *buffer)
 }
 
 
-java_objectheader *cacao_currentClassLoader() {
+/* cacao_currentClassLoader ****************************************************
+
+   XXX
+
+*******************************************************************************/
+
+java_objectheader *cacao_currentClassLoader(void)
+{
 	java_objectheader *header=0;
-	cacao_stacktrace_fillInStackTrace((void**)&header,&classLoaderCollector);
+
+	cacao_stacktrace_fillInStackTrace((void**)&header,
+									  &stacktrace_classLoaderCollector);
+
 	return header;
 }
 
