@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2703 2005-06-14 23:52:18Z twisti $
+## $Id: Makefile.am 2917 2005-07-05 14:00:02Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -66,6 +66,7 @@ libarch_la_SOURCES = \
 	emitfuncs.c \
 	emitfuncs.h \
 	i386-dis.c \
+	md.c \
 	patcher.c \
 	symcat.h \
 	\
