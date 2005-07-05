@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2891 2005-07-04 20:31:45Z twisti $
+   $Id: native.c 2912 2005-07-05 10:04:12Z twisti $
 
 */
 
@@ -1105,23 +1105,18 @@ java_objectarray *native_get_parametertypes(methodinfo *m)
 
 java_objectarray *native_get_exceptiontypes(methodinfo *m)
 {
-    u2                excount;
-    java_objectarray *oa;
+	java_objectarray *oa;
 	classinfo        *c;
-    u2                i;
+	u2                i;
 
 	/* create class-array */
 
-    oa = builtin_anewarray(excount, class_java_lang_Class);
+	oa = builtin_anewarray(m->thrownexceptionscount, class_java_lang_Class);
 
 	if (!oa)
 		return NULL;
 
-	/* get exceptions */
-
-	excount = m->thrownexceptionscount;
-
-    for (i = 0; i < excount; i++) {
+	for (i = 0; i < m->thrownexceptionscount; i++) {
 		if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[i],
 										   resolveEager, true, false, &c))
 			return NULL;
@@ -1129,9 +1124,9 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 		use_class_as_object(c);
 
 		oa->data[i] = (java_objectheader *) c;
-    }
+	}
 
-    return oa;
+	return oa;
 }
 
 
