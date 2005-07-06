@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 2834 2005-06-26 21:48:11Z christian $
+   $Id: codegen.h 2920 2005-07-06 21:23:33Z twisti $
 
 */
 
@@ -88,14 +88,14 @@
 #define M_INTMOVE(a,b) if ((a) != (b)) { M_MOV(a, b); }
 
 #define M_TINTMOVE(t,a,b) \
-	if ((t) == TYPE_LNG) { \
-		if ((a) <= (b)) \
+    if ((t) == TYPE_LNG) { \
+        if ((a) <= (b)) \
             M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
-		M_INTMOVE( GET_HIGH_REG((a)),  GET_HIGH_REG((b))); \
+        M_INTMOVE(GET_HIGH_REG((a)), GET_HIGH_REG((b))); \
         if ((a) > (b)) \
-			M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
-	} else { \
-		M_INTMOVE((a), (b)); \
+            M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
+    } else { \
+        M_INTMOVE((a), (b)); \
     }
 
 
@@ -126,25 +126,26 @@
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
-			regnr = tempnr; \
 			if (IS_2_WORD_TYPE((v)->type)) { \
-				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, 4 * (v)->regoff); \
-				M_ILD(GET_LOW_REG((tempnr)), REG_SP, 4 * (v)->regoff + 4); \
+				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, (v)->regoff * 4); \
+				M_ILD(GET_LOW_REG((tempnr)), REG_SP, (v)->regoff * 4 + 4); \
 			} else \
-				M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+				M_ILD((tempnr), REG_SP, (v)->regoff * 4); \
+			regnr = tempnr; \
 		} else { \
-				regnr = (v)->regoff; \
+			regnr = (v)->regoff; \
 		} \
 	} while(0)
 
 
 /* fetch only the low part of v, regnr hast to be a single register */
+
 #define var_to_reg_int_low(regnr,v,tempnr) \
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
+			M_ILD((tempnr), REG_SP, (v)->regoff * 4 + 4); \
 			regnr = tempnr; \
-			M_ILD((tempnr), REG_SP, 4 * (v)->regoff + 4); \
 		} else { \
 			regnr = GET_LOW_REG((v)->regoff); \
 		} \
@@ -152,11 +153,12 @@
 
 
 /* fetch only the high part of v, regnr hast to be a single register */
+
 #define var_to_reg_int_high(regnr,v,tempnr) \
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
-			M_ILD((tempnr), REG_SP, 4 * (v)->regoff); \
+			M_ILD((tempnr), REG_SP, (v)->regoff * 4); \
 			regnr = tempnr; \
 		} else { \
 			regnr = GET_HIGH_REG((v)->regoff); \
@@ -165,16 +167,19 @@
 
 
 
-#define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-		if ((v)->type==TYPE_DBL) \
-			M_DLD(tempnr,REG_SP,4*(v)->regoff); \
-		else \
-			M_FLD(tempnr,REG_SP,4*(v)->regoff); \
-		regnr=tempnr; \
-	} else regnr=(v)->regoff; \
-}
+#define var_to_reg_flt(regnr,v,tempnr) \
+	do { \
+		if ((v)->flags & INMEMORY) { \
+			COUNT_SPILLS; \
+			if ((v)->type == TYPE_DBL) \
+				M_DLD(tempnr, REG_SP, (v)->regoff * 4); \
+			else \
+				M_FLD(tempnr, REG_SP, (v)->regoff * 4); \
+			regnr = tempnr; \
+		} else { \
+			regnr = (v)->regoff; \
+		} \
+	} while (0)
 
 
 /* store_reg_to_var_xxx:
