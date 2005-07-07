@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2870 2005-06-29 12:39:31Z christian $
+   $Id: stack.c 2926 2005-07-07 14:33:27Z christian $
 
 */
 
@@ -2149,7 +2149,12 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				printf(" L%02d", s->varnum);
 				break;
 			case ARGVAR:
-				printf(" A%02d", s->varnum);
+				if (s->varnum == -1) {
+					/* Return Value                                  */
+					/* varkind ARGVAR "misused for this special case */
+					printf(" RA ");
+				} else /* "normal" Argvar */
+					printf(" A%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
 				if (s->flags & INMEMORY)
 					printf("(M%i)", s->regoff);
@@ -2188,6 +2193,11 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				printf(" l%02d", s->varnum);
 				break;
 			case ARGVAR:
+				if (s->varnum == -1) {
+					/* Return Value                                  */
+					/* varkind ARGVAR "misused for this special case */
+					printf(" ra ");
+				} else /* "normal" Argvar */
 				printf(" a%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
 				if (s->flags & INMEMORY)
