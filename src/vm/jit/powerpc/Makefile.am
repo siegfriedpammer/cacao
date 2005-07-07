@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2702 2005-06-14 23:39:42Z twisti $
+## $Id: Makefile.am 2924 2005-07-07 09:37:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -57,6 +57,7 @@ libarch_la_SOURCES = \
 	dis-asm.h \
 	disass.c \
 	disass.h \
+	md.c \
 	patcher.c \
 	ppc-dis.c \
 	ppc-opc.c \
@@ -64,15 +65,6 @@ libarch_la_SOURCES = \
 
 libarch_la_LIBADD = \
 	@OS_DIR@/libmd.la
-
-EXTRA_DIST = \
-	darwin/md-abi.h \
-	darwin/md-abi.inc \
-	darwin/md-asm.h \
-	\
-	linux/md-abi.h \
-	linux/md-abi.inc \
-	linux/md-asm.h
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 
