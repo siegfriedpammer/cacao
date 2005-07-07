@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/linux/md.c - machine dependent PowerPC Linux functions
+/* src/vm/jit/powerpc/linux/md-os.c - machine dependent PowerPC Linux functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2830 2005-06-25 15:32:34Z twisti $
+   $Id: md-os.c 2921 2005-07-07 09:26:30Z twisti $
 
 */
 
@@ -41,18 +41,6 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-
-
-/* md_init *********************************************************************
-
-   Do some machine dependent initialization.
-
-*******************************************************************************/
-
-void md_init(void)
-{
-	/* nothing to do */
-}
 
 
 /* signal_handle_sigsegv *******************************************************
