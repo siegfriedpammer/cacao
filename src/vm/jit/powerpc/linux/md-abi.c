@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2884 2005-06-30 22:36:45Z twisti $
+   $Id: md-abi.c 2928 2005-07-07 16:35:34Z christian $
 
 */
 
@@ -185,7 +185,7 @@ void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
 			stackslot->varnum = -1;
 			stackslot->flags = 0;
 			if ( IS_INT_LNG_TYPE(return_type) ) {
-				if (IS_2_WORD_TYPE(return_type)) {
+				if (!IS_2_WORD_TYPE(return_type)) {
 					if (rd->argintreguse < 1) rd->argintreguse = 1;
 					stackslot->regoff = REG_RESULT;
 				} else {
