@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2889 2005-07-03 16:40:49Z christian $
+   $Id: codegen.c 2925 2005-07-07 09:41:59Z twisti $
 
 */
 
@@ -41,7 +41,6 @@
 
 #include "config.h"
 
-#include "md.h"
 #include "md-abi.h"
 #include "md-abi.inc"
 
