@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2565 2005-06-06 15:25:39Z twisti $
+   $Id: jit.c 2932 2005-07-08 11:57:08Z twisti $
 
 */
 
@@ -936,8 +936,9 @@ char *icmd_names[256] = {
 	"PUTFIELDCONST  ", /*             213 */
 	"IMULPOW2       ", /*             214 */
 	"LMULPOW2       ", /*             215 */
+	"ARRAYCHECKCAST ", /*             216 */
 
-	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
+	            "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
 	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
 	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
 	"UNDEF231", "UNDEF232", "UNDEF233", "UNDEF234", "UNDEF235",
@@ -1497,10 +1498,8 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	if (showddatasegment)
 		dseg_display(m, cd);
 
-	if (compileverbose) {
+	if (compileverbose)
 		log_message_method("Compiling done: ", m);
-		printf("method dataseg:%p, range:%p %p\n", (void *) (ptrint) m->mcode,(void *) ((long) m->mcode + cd->dseglen),(void *) ((long) m->mcode + m->mcodelength));
-	}
 
 #ifdef LSRA
 	opt_lsra=old_opt_lsra;
