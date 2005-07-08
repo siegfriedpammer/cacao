@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2926 2005-07-07 14:33:27Z christian $
+   $Id: stack.c 2936 2005-07-08 15:08:04Z twisti $
 
 */
 
@@ -1085,15 +1085,41 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					/* pop 3 push 0 */
 
-					case ICMD_IASTORE:
 					case ICMD_AASTORE:
+#if defined(__POWERPC__)
+						COUNT(count_check_null);
+						COUNT(count_check_bound);
+						COUNT(count_pcmd_mem);
+
+						bte = (builtintable_entry *) iptr->val.a;
+						md = bte->md;
+						i = iptr->op1;
+
+						if (md->memuse > rd->memuse)
+							rd->memuse = md->memuse;
+						if (md->argintreguse > rd->argintreguse)
+							rd->argintreguse = md->argintreguse;
+
+						/* make all stack variables saved */
+
+						copy = curstack;
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+
+						OP3TIA_0(TYPE_ADR);
+						break;
+#endif
+
+					case ICMD_IASTORE:
 					case ICMD_LASTORE:
 					case ICMD_FASTORE:
 					case ICMD_DASTORE:
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						OP3TIA_0(opcode-ICMD_IASTORE);
+						OP3TIA_0(opcode - ICMD_IASTORE);
 						break;
 
 					case ICMD_BASTORE:
@@ -1575,7 +1601,29 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 						/* pop 2 push 1 */
-						
+
+#if defined(__POWERPC__)						
+					case ICMD_IDIV:
+					case ICMD_IREM:
+#if !SUPPORT_DIVISION
+						bte = (builtintable_entry *) iptr->val.a;
+						md = bte->md;
+						i = iptr->op1;
+
+						if (md->memuse > rd->memuse)
+							rd->memuse = md->memuse;
+						if (md->argintreguse > rd->argintreguse)
+							rd->argintreguse = md->argintreguse;
+
+						/* make all stack variables saved */
+
+						copy = curstack;
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+#endif
+#else
 					case ICMD_IDIV:
 #if !SUPPORT_DIVISION
 						bte = builtintable_get_internal(BUILTIN_idiv);
@@ -1595,6 +1643,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						m->isleafmethod = false;
 						goto builtin;
 #endif
+#endif
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
@@ -1609,6 +1658,28 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						OP2_1(TYPE_INT);
 						break;
 
+#if defined(__POWERPC__)
+					case ICMD_LDIV:
+					case ICMD_LREM:
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+						bte = (builtintable_entry *) iptr->val.a;
+						md = bte->md;
+						i = iptr->op1;
+
+						if (md->memuse > rd->memuse)
+							rd->memuse = md->memuse;
+						if (md->argintreguse > rd->argintreguse)
+							rd->argintreguse = md->argintreguse;
+
+						/* make all stack variables saved */
+
+						copy = curstack;
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+#endif
+#else
 					case ICMD_LDIV:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 						bte = builtintable_get_internal(BUILTIN_ldiv);
@@ -1627,6 +1698,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						iptr->val.a = bte;
 						m->isleafmethod = false;
 						goto builtin;
+#endif
 #endif
 
 					case ICMD_LMUL:
@@ -1792,6 +1864,26 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					case ICMD_CHECKCAST:
+						OP1_1(TYPE_ADR, TYPE_ADR);
+						break;
+
+					case ICMD_ARRAYCHECKCAST:
+						bte = (builtintable_entry *) iptr->val.a;
+						md = bte->md;
+
+						if (md->memuse > rd->memuse)
+							rd->memuse = md->memuse;
+						if (md->argintreguse > rd->argintreguse)
+							rd->argintreguse = md->argintreguse;
+
+						/* make all stack variables saved */
+
+						copy = curstack;
+						while (copy) {
+							copy->flags |= SAVEDVAR;
+							copy = copy->prev;
+						}
+
 						OP1_1(TYPE_ADR, TYPE_ADR);
 						break;
 
@@ -2790,7 +2882,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-		if (iptr->op1) {
+		{
 			classinfo *c = iptr->val.a;
 			if (c) {
 				if (c->flags & ACC_INTERFACE)
@@ -2800,6 +2892,20 @@ void show_icmd(instruction *iptr, bool deadcode)
 			} else {
 				printf(" (NOT RESOLVED) ");
 			}
+			utf_display_classname(((constant_classref *) iptr->target)->name);
+		}
+		break;
+
+	case ICMD_ARRAYCHECKCAST:
+		if (iptr->op1) {
+			classinfo *c = ((vftbl_t *) iptr->target)->class;
+			if (c->flags & ACC_INTERFACE)
+				printf(" (INTERFACE) ");
+			else
+				printf(" (CLASS,%3d) ", c->vftbl->diffval);
+			utf_display_classname(c->name);
+		} else {
+			printf(" (NOT RESOLVED) ");
 			utf_display_classname(((constant_classref *) iptr->target)->name);
 		}
 		break;
