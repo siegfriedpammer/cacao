@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2927 2005-07-07 15:45:30Z twisti $
+   $Id: loader.c 2940 2005-07-08 15:40:11Z twisti $
 
 */
 
@@ -545,7 +545,7 @@ void loader_load_all_classes(void)
 			while (ce) {
 				/* skip all entries in META-INF and .properties files */
 
-				if (!strcmp(ce->name->text, "META-INF") &&
+				if (strncmp(ce->name->text, "META-INF", strlen("META-INF")) &&
 					!strstr(ce->name->text, ".properties"))
 					c = load_class_bootstrap(ce->name);
 
