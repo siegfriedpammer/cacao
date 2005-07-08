@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 2772 2005-06-22 09:24:37Z twisti $
+   $Id: builtintable.inc 2941 2005-07-08 15:42:35Z twisti $
 
 */
 
@@ -73,7 +73,6 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 #endif
-
 
 #if !SUPPORT_DIVISION
 	{
@@ -211,11 +210,20 @@ static builtintable_entry builtintable_internal[] = {
 		"arrayinstanceof",
 		NULL
 	},
+#if !defined(__POWERPC__)
 	{
 		ICMD_AASTORE,
 		BUILTIN_aastore,
 		"([Ljava/lang/Object;ILjava/lang/Object;)V",
 		"aastore",
+		NULL
+	},
+#endif
+	{
+		ICMD_AASTORE,
+		BUILTIN_canstore,
+		"([Ljava/lang/Object;Ljava/lang/Object;)I",
+		"canstore",
 		NULL
 	},
 
