@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2914 2005-07-05 13:39:44Z twisti $
+   $Id: stacktrace.h 2933 2005-07-08 11:59:57Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct native_stackframeinfo native_stackframeinfo;
+typedef struct stackframeinfo stackframeinfo;
 typedef struct stackTraceBuffer stackTraceBuffer;
 typedef struct stacktraceelement stacktraceelement;
 
@@ -48,23 +48,15 @@ typedef struct stacktraceelement stacktraceelement;
 #include "vm/method.h"
 
 
-struct native_stackframeinfo {
+/* stackframeinfo *************************************************************/
+
+struct stackframeinfo {
 	void        *oldThreadspecificHeadValue;
 	void       **addressOfThreadspecificHead;
 	methodinfo  *method;
-#if defined(__ALPHA__)
-	void        *savedpv;
-#endif
+	void        *pv;
 	void        *beginOfJavaStackframe; /*only used if != 0*/ /* on i386 and x86_64 this points to the return addres stored directly below the stackframe*/
 	functionptr  returnToFromNative;
-
-#if 0
-	void *returnFromNative;
-	void *addrReturnFromNative;
-	methodinfo *method;
-	native_stackframeinfo *next;
-	native_stackframeinfo *prev;
-#endif
 };
 
 
@@ -87,6 +79,16 @@ struct stackTraceBuffer {
 
 
 /* function prototypes ********************************************************/
+
+void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra);
+
+void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra);
+
+void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
+
+void stacktrace_call_fillInStackTrace(java_objectheader *o);
 
 void cacao_stacktrace_NormalTrace(void **target);
 java_objectarray *cacao_createClassContextArray(void);

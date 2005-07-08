@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2919 2005-07-05 14:00:37Z twisti $
+   $Id: stacktrace.c 2933 2005-07-08 11:59:57Z twisti $
 
 */
 
@@ -37,19 +37,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "asmoffsets.h"
+
 #include "mm/boehm.h"
 #include "native/native.h"
+
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/include/java_lang_ClassLoader.h"
+
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
-#include "vm/tables.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/exceptions.h"
+#include "vm/tables.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/codegen.inc.h"
+
 
 #undef JWDEBUG
 #undef JWDEBUG2
@@ -85,6 +91,114 @@ typedef void(*CacaoStackTraceCollector)(void **,stackTraceBuffer*);
 
 #define BLOCK_INITIALSIZE 40
 #define BLOCK_SIZEINCREMENT 40
+
+
+/* stacktrace_create_inline_stackframeinfo *************************************
+
+   Creates an stackframe info structure for an inline exception.
+
+*******************************************************************************/
+
+void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra)
+{
+	void **osfi;
+
+	/* get current stackframe info pointer */
+
+	osfi = builtin_asm_get_stackframeinfo();
+
+	/* fill new stackframe info structure */
+
+	sfi->oldThreadspecificHeadValue = *osfi;
+	sfi->addressOfThreadspecificHead = osfi;
+	sfi->method = NULL;
+	sfi->pv = pv;
+	sfi->beginOfJavaStackframe = sp;
+	sfi->returnToFromNative = ra;
+
+	/* store new stackframe info pointer */
+
+	*osfi = sfi;
+}
+
+
+/* stacktrace_create_native_stackframeinfo *************************************
+
+   Creates a stackframe info structure for a native stub.
+
+*******************************************************************************/
+
+void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra)
+{
+	void       **osfi;
+	methodinfo  *m;
+
+	/* get methodinfo pointer from data segment */
+
+	m = *((methodinfo **) (pv + MethodPointer));
+
+	/* get current stackframe info pointer */
+
+	osfi = builtin_asm_get_stackframeinfo();
+
+	/* fill new stackframe info structure */
+
+	sfi->oldThreadspecificHeadValue = *osfi;
+	sfi->addressOfThreadspecificHead = osfi;
+	sfi->method = m;
+	sfi->pv = NULL;
+	sfi->beginOfJavaStackframe = sp;
+	sfi->returnToFromNative = ra;
+
+	/* store new stackframe info pointer */
+
+	*osfi = sfi;
+}
+
+
+/* stacktrace_remove_stackframeinfo ********************************************
+
+   XXX
+
+*******************************************************************************/
+
+void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
+{
+	void **osfi;
+
+	/* get address of pointer */
+
+	osfi = sfi->addressOfThreadspecificHead;
+
+	/* restore the old pointer */
+
+	*osfi = sfi->oldThreadspecificHeadValue;
+}
+
+
+/* stacktrace_call_fillInStackTrace ********************************************
+
+   XXX
+
+*******************************************************************************/
+
+void stacktrace_call_fillInStackTrace(java_objectheader *o)
+{
+	methodinfo *m;
+
+	/* resolve methodinfo pointer from exception object */
+
+	m = class_resolvemethod(o->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__java_lang_Throwable);
+
+	/* call function */
+
+	asm_calljavafunction(m, o, NULL, NULL, NULL);
+}
+
 
 static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line) {
 	if (buffer->size>buffer->full) {
@@ -132,55 +246,60 @@ static void addEntry(stackTraceBuffer* buffer,methodinfo*method ,LineNumber line
 
 *******************************************************************************/
 
-static int stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,methodinfo 
-		*method,lineNumberTableEntry *startEntry, lineNumberTableEntry **entry, size_t *entriesAhead,u1 *adress) {
+static int stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
+													   methodinfo *method,
+													   lineNumberTableEntry *startEntry,
+													   lineNumberTableEntry **entry,
+													   size_t *entriesAhead,
+													   u1 *address)
+{
 
 	size_t ahead=*entriesAhead;
 	lineNumberTableEntry *ent=*entry;
 	lineNumberTableEntryInlineBegin *ilStart;
 
-	for (;ahead>0;ahead--,ent++) {
-		if (adress>=ent->pc) {
+	for (; ahead > 0; ahead--, ent++) {
+		if (address >= ent->pc) {
 			switch (ent->lineNr) {
-				case -1: /*begin of inlined method */
-					ilStart=(lineNumberTableEntryInlineBegin*)(++ent);
-					ent ++;
-					ahead--; ahead--;
-					if (stacktrace_fillInStackTrace_methodRecursive(buffer,ilStart->method,ent,&ent,&ahead,adress)) {
-						addEntry(buffer,method,ilStart->lineNrOuter);
-						return 1;
-					}
-					break;
-				case -2: /*end of inlined method*/
-					*entry=ent;
-					*entriesAhead=ahead;
-					return 0;
-					break;
-				default:
-					if (adress==ent->pc) {
-						addEntry(buffer,method,ent->lineNr);
-						return 1;
-					}
-					break;
+			case -1: /* begin of inlined method */
+				ilStart=(lineNumberTableEntryInlineBegin*)(++ent);
+				ent ++;
+				ahead--; ahead--;
+				if (stacktrace_fillInStackTrace_methodRecursive(buffer,ilStart->method,ent,&ent,&ahead,address)) {
+					addEntry(buffer,method,ilStart->lineNrOuter);
+					return 1;
+				}
+				break;
+			case -2: /* end of inlined method */
+				*entry=ent;
+				*entriesAhead=ahead;
+				return 0;
+				break;
+			default:
+				if (address == ent->pc) {
+					addEntry(buffer, method, ent->lineNr);
+					return 1;
+				}
+				break;
 			}
+
 		} else {
-			if (adress>startEntry->pc) {
+			if (address > startEntry->pc) {
 				ent--;
-				addEntry(buffer,method,ent->lineNr);
-				return 1;	
+				addEntry(buffer, method, ent->lineNr);
+				return 1;
+
 			} else {
-#ifdef JWDEBUG
-				printf("trace point: %p\n",adress);
-#endif
+				printf("trace point: %p\n", address);
 				log_text("trace point before method");
 				assert(0);
 			}
 		}
 	}
+
 	ent--;
-	addEntry(buffer,method,ent->lineNr);
+	addEntry(buffer, method, ent->lineNr);
 	return 1;
-	
 }
 
 
@@ -234,13 +353,13 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 									   CacaoStackTraceCollector coll)
 {
 	stacktraceelement      primaryBlock[BLOCK_INITIALSIZE*sizeof(stacktraceelement)];
-	stackTraceBuffer       buffer;
-	native_stackframeinfo *info;
-	methodinfo            *m;
-	u1                    *ds;
-	u1                    *sp;
-	u4                     framesize;
-	functionptr            ra;
+	stackTraceBuffer  buffer;
+	stackframeinfo   *info;
+	methodinfo       *m;
+	u1               *pv;
+	u1               *sp;
+	u4                framesize;
+	functionptr       ra;
 
 
 	/* In most cases this should be enough -> one malloc less. I don't think  */
@@ -267,27 +386,43 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 				m = info->method;
 				ra = (functionptr) info->returnToFromNative;
 
+#if 0
+				if (m) {
+					utf_display_classname(m->class->name);
+					printf(".");
+					utf_display(m->name);
+					utf_display(m->descriptor);
+					printf(": native\n");
+
+					addEntry(&buffer, m, 0);
+				} else {
+					printf("NULL: native\n");
+				}
+#else
 				if (m) {
 					addEntry(&buffer, m, 0);
 				}
+#endif
 
 				/* get data segment address */
 
-#if defined(__ALPHA__)
-				if (info->savedpv != 0)
-					ds = info->savedpv;
-				else
-					ds = codegen_findmethod(ra);
-#elif defined(__I386__) || defined (__X86_64__)
-				ds = (u1 *) codegen_findmethod(ra);
-#endif
+				if (info->pv) {
+					/* this is an inline info */
+
+					pv = info->pv;
+
+				} else {
+					/* this is an native stub info */
+
+					pv = (u1 *) codegen_findmethod(ra);
+				}
 
 				/* get methodinfo pointer from data segment */
 
-				m = *((methodinfo **) (ds + MethodPointer));
+				m = *((methodinfo **) (pv + MethodPointer));
 
 				if (info->beginOfJavaStackframe == 0) {
-					sp = ((u1 *) info) + sizeof(native_stackframeinfo);
+					sp = ((u1 *) info) + sizeof(stackframeinfo);
 
 				} else {
 #if defined(__I386__) || defined (__X86_64__)
@@ -302,19 +437,22 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 			} else {
 				/* JIT method */
 
-				if (m->isleafmethod) {
-					log_text("How could that happen ??? A leaf method in the middle of a stacktrace ??");
-					assert(0);
-				}
+#if 0
+				utf_display_classname(m->class->name);
+				printf(".");
+				utf_display(m->name);
+				utf_display(m->descriptor);
+				printf(": JIT\n");
+#endif
 
 				/* add the current method to the stacktrace */
 
-				stacktrace_fillInStackTrace_method(&buffer, m, ds,
+				stacktrace_fillInStackTrace_method(&buffer, m, pv,
 												   ((u1 *) ra) - 1);
 
 				/* get the current stack frame size */
 
-				framesize = *((u4 *) (ds + FrameSize));
+				framesize = *((u4 *) (pv + FrameSize));
 
 				/* get return address of current stack frame */
 
@@ -322,8 +460,8 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 				/* get data segment and methodinfo pointer from parent method */
 
-				ds = (u1 *) codegen_findmethod(ra);
-				m = *((methodinfo **) (ds + MethodPointer));
+				pv = (u1 *) codegen_findmethod(ra);
+				m = *((methodinfo **) (pv + MethodPointer));
 
 				/* walk the stack */
 
