@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2831 2005-06-26 11:39:18Z twisti $
+   $Id: md.c 2930 2005-07-08 11:45:43Z twisti $
 
 */
 
@@ -128,6 +128,25 @@ void thread_restartcriticalsection(ucontext_t *uc)
 		uc->uc_mcontext.sc_pc = (ptrint) critical;
 }
 #endif
+
+
+/* md_stacktrace_get_returnaddress *********************************************
+
+   Returns the return address of the current stackframe, specified by
+   the passed stack pointer and the stack frame size.
+
+*******************************************************************************/
+
+functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+{
+	functionptr ra;
+
+	/* on Alpha the return address is located on the top of the stackframe */
+
+	ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+
+	return ra;
+}
 
 
 /*
