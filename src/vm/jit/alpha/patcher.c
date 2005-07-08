@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2719 2005-06-15 15:59:49Z twisti $
+   $Id: patcher.c 2931 2005-07-08 11:49:50Z twisti $
 
 */
 
@@ -69,16 +69,16 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -145,16 +145,16 @@ bool patcher_get_putfield(u1 *sp)
 	u1                *pv;
 	fieldinfo         *fi;
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -212,16 +212,16 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (4 + 4);
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -291,16 +291,16 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (4 + 4);
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -372,16 +372,16 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -443,16 +443,16 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (2 * 4);
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -522,16 +522,16 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (4 + 4);
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -600,16 +600,16 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -669,15 +669,15 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -735,15 +735,15 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -804,16 +804,16 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -875,15 +875,15 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -943,16 +943,16 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1006,15 +1006,15 @@ bool patcher_clinit(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	c     = (classinfo *)         *((ptrint *) (sp + 0 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	c     = (classinfo *)         *((ptrint *) (sp + 1 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1048,6 +1048,7 @@ bool patcher_clinit(u1 *sp)
 
 *******************************************************************************/
 
+#if !defined(ENABLE_STATICVM)
 bool patcher_resolve_native(u1 *sp)
 {
 	u1                *ra;
@@ -1060,16 +1061,16 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
-	mcode =                       *((u4 *)     (sp + 1 * 8));
-	m     = (methodinfo *)        *((ptrint *) (sp + 0 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp - 2 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
+	mcode =                       *((u4 *)     (sp + 2 * 8));
+	m     = (methodinfo *)        *((ptrint *) (sp + 1 * 8));
+	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - 4;
-	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
+	ra = ra - 1 * 4;
+	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1106,6 +1107,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	return true;
 }
+#endif /* !defined(ENABLE_STATICVM) */
 
 
 /*

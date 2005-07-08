@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2911 2005-07-05 08:49:55Z twisti $
+   $Id: asmpart.S 2931 2005-07-08 11:49:50Z twisti $
 
 */
 
@@ -949,7 +949,7 @@ ex_flt2:
      24   pointer to virtual java_objectheader
      16   machine code (which is patched back later)
       8   unresolved class/method/field reference
-      0   patcher function pointer to call
+      0   patcher function pointer to call (pv afterwards)
 
    ATTENTION: itmp3 == gp! But we don't need gp do call the patcher function.
 
@@ -968,8 +968,10 @@ asm_wrapper_patcher:
 	stq     ra,(12+27+2)*8(sp)    /* save method return address (for leafs)   */
 	stq     pv,(12+27+3)*8(sp)    /* save pv of calling java function         */
 
-	lda     a0,(1+12+27+4)*8(sp)  /* pass sp, skip patcher function pointer   */
+	lda     a0,(0+12+27+4)*8(sp)  /* pass sp                                  */
 	ldq     pv,(0+12+27+4)*8(sp)  /* get function pointer                     */
+	ldq     itmp1,(12+27+3)*8(sp) /* save pv to the position of fp            */
+	stq     itmp1,(0+12+27+4)*8(sp)
 	jmp     ra,(pv)               /* call the patcher function                */
 	ldgp    gp,0(ra)
 		
