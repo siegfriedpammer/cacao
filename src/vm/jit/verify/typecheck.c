@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2810 2005-06-23 14:03:24Z edwin $
+   $Id: typecheck.c 2943 2005-07-08 15:46:50Z twisti $
 
 */
 
@@ -1242,6 +1242,7 @@ verify_builtin(verifier_state *state)
 		if (!vft->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
+#if !defined(__POWERPC__)
 	else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
 		vftbl_t *vft;
 		TYPECHECK_ADR(state->curstack->prev);
@@ -1261,6 +1262,8 @@ verify_builtin(verifier_state *state)
 		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
 			return false;
 	}
+#endif
+#if !defined(__POWERPC__)
 	else if (ISBUILTIN(BUILTIN_aastore)) {
 		TYPECHECK_ADR(state->curstack);
 		TYPECHECK_INT(state->curstack->prev);
@@ -1268,6 +1271,7 @@ verify_builtin(verifier_state *state)
 		if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->curstack->prev->prev->typeinfo))
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
 	}
+#endif
 	else {
 #if 0
 		/* XXX put these checks in a function */
@@ -1640,6 +1644,13 @@ fieldaccess_tail:
 				maythrow = true;
 				break;
 
+#if defined(__POWERPC__)
+			case ICMD_AASTORE:
+				/* XXX TWISTI implement me! */
+				maythrow = true;
+				break;
+#endif
+
 			case ICMD_IASTORECONST:
 				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->curstack->prev->typeinfo, ARRAYTYPE_INT))
 					TYPECHECK_VERIFYERROR_bool("Array type mismatch");
@@ -1697,6 +1708,15 @@ fieldaccess_tail:
 				else
 					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
 						return false;
+				maythrow = true;
+				break;
+
+			case ICMD_ARRAYCHECKCAST:
+				/* XXX TWISTI implement me! */
+				TYPECHECK_ADR(state->curstack);
+				/* returnAddress is not allowed */
+				if (!TYPEINFO_IS_REFERENCE(state->curstack->typeinfo))
+					TYPECHECK_VERIFYERROR_bool("Illegal instruction: ARRAYCHECKCAST on non-reference");
 				maythrow = true;
 				break;
 
@@ -1960,7 +1980,9 @@ return_tail:
 			case ICMD_ANEWARRAY:
 			case ICMD_MONITORENTER:
 			case ICMD_MONITOREXIT:
+#if !defined(__POWERPC__)
 			case ICMD_AASTORE:
+#endif
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
 				LOG("Should have been converted to builtin function call.");
 				TYPECHECK_ASSERT(false);
