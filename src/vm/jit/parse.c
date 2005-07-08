@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2805 2005-06-23 13:50:00Z twisti $
+   $Id: parse.c 2937 2005-07-08 15:08:54Z twisti $
 
 */
 
@@ -998,8 +998,14 @@ SHOWOPCODE(DEBUG4)
 		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
+#if defined(__POWERPC__)
+			bte = builtintable_get_internal(BUILTIN_canstore);
+			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			inline_env->method->isleafmethod = false;
+#else
 			bte = builtintable_get_internal(BUILTIN_aastore);
 			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+#endif
 			break;
 
 		case JAVA_GETSTATIC:
@@ -1217,11 +1223,23 @@ SHOWOPCODE(DEBUG4)
 			i = code_get_u2(p + 1, inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
+			if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+								  true, &c))
 				return NULL;
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
+#if defined(__POWERPC__)
+				if (c) {
+					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
+					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c->vftbl, currentline);
+
+				} else {
+					bte = builtintable_get_internal(PATCHER_builtin_arraycheckcast);
+					OP2AT(ICMD_ARRAYCHECKCAST, 0, bte, cr, currentline);
+				}
+				inline_env->method->isleafmethod = false;
+#else
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
 					LOADCONST_A_BUILTIN(c->vftbl);
@@ -1233,15 +1251,18 @@ SHOWOPCODE(DEBUG4)
 					BUILTIN(bte, bte->md->paramcount, cr, currentline);
 				}
 				s_count++;
+				inline_env->method->isleafmethod = false;
+#endif
 
 			} else {
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
-			}
+
 #if defined(__MIPS__) || defined(__POWERPC__)
-			if (!c)
-				inline_env->method->isleafmethod = false;
+				if (!c)
+					inline_env->method->isleafmethod = false;
 #endif
+			}
 			break;
 
 		case JAVA_INSTANCEOF:
@@ -1304,19 +1325,43 @@ SHOWOPCODE(DEBUG4)
 		/* any other basic operation ******************************************/
 
 		case JAVA_IDIV:
+#if !SUPPORT_DIVISION
+			bte = builtintable_get_internal(BUILTIN_idiv);
+			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			inline_env->method->isleafmethod = false;
+#else
 			OP(opcode);
+#endif
 			break;
 
 		case JAVA_IREM:
+#if !SUPPORT_DIVISION
+			bte = builtintable_get_internal(BUILTIN_irem);
+			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			inline_env->method->isleafmethod = false;
+#else
 			OP(opcode);
+#endif
 			break;
 
 		case JAVA_LDIV:
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+			bte = builtintable_get_internal(BUILTIN_ldiv);
+			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			inline_env->method->isleafmethod = false;
+#else
 			OP(opcode);
+#endif
 			break;
 
 		case JAVA_LREM:
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+			bte = builtintable_get_internal(BUILTIN_lrem);
+			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			inline_env->method->isleafmethod = false;
+#else
 			OP(opcode);
+#endif
 			break;
 
 		case JAVA_FREM:
