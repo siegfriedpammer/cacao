@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2822 2005-06-25 13:25:21Z twisti $
+   $Id: builtin.h 2942 2005-07-08 15:43:02Z twisti $
 
 */
 
@@ -133,9 +133,12 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
 
 s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
-/* NOT AN OP */
+#if defined(__POWERPC__)
+#define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
+#else
 s4 asm_builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
 #define BUILTIN_arraycheckcast (functionptr) asm_builtin_arraycheckcast
+#endif
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */
@@ -180,9 +183,12 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
 s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
-/* NOT AN OP */
+#define BUILTIN_canstore (functionptr) builtin_canstore
+
+#if !defined(__POWERPC__)
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o);
 #define BUILTIN_aastore (functionptr) asm_builtin_aastore
+#endif
 
 #if defined(TRACE_ARGS_NUM)
 void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
@@ -209,13 +215,20 @@ void builtin_monitorexit(java_objectheader *o);
 #endif
 
 s4 builtin_idiv(s4 a, s4 b);
-/* NOT AN OP */
+#if defined(__POWERPC__)
+#define BUILTIN_idiv (functionptr) builtin_idiv
+#else
 s4 asm_builtin_idiv(s4 a, s4 b);
 #define BUILTIN_idiv (functionptr) asm_builtin_idiv
+#endif
+
 s4 builtin_irem(s4 a, s4 b);
-/* NOT AN OP */
+#if defined(__POWERPC__)
+#define BUILTIN_irem (functionptr) builtin_irem
+#else
 s4 asm_builtin_irem(s4 a, s4 b);
 #define BUILTIN_irem (functionptr) asm_builtin_irem
+#endif
 
 s8 builtin_ladd(s8 a, s8 b);
 #define BUILTIN_ladd (functionptr) builtin_ladd
@@ -223,14 +236,23 @@ s8 builtin_lsub(s8 a, s8 b);
 #define BUILTIN_lsub (functionptr) builtin_lsub
 s8 builtin_lmul(s8 a, s8 b);
 #define BUILTIN_lmul (functionptr) builtin_lmul
+
 s8 builtin_ldiv(s8 a, s8 b);
-/* NOT AN OP */
+#if defined(__POWERPC__)
+#define BUILTIN_ldiv (functionptr) builtin_ldiv
+#else
 s8 asm_builtin_ldiv(s8 a, s8 b);
 #define BUILTIN_ldiv (functionptr) asm_builtin_ldiv
+#endif
+
 s8 builtin_lrem(s8 a, s8 b);
-/* NOT AN OP */
+#if defined(__POWERPC__)
+#define BUILTIN_lrem (functionptr) builtin_lrem
+#else
 s8 asm_builtin_lrem(s8 a, s8 b);
 #define BUILTIN_lrem (functionptr) asm_builtin_lrem
+#endif
+
 s8 builtin_lshl(s8 a, s4 b);
 #define BUILTIN_lshl (functionptr) builtin_lshl
 s8 builtin_lshr(s8 a, s4 b);
