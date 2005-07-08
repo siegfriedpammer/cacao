@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 2264 2005-04-11 09:57:22Z twisti $
+   $Id: genoffsets.c 2934 2005-07-08 12:00:39Z twisti $
 
 */
 
@@ -54,6 +54,7 @@ int main(int argc, char **argv)
 	printf("#define sizemethodinfo             %3d\n", (s4) sizeof(methodinfo));
 
 	printf("#define sizejniblock               %3d\n", (s4) sizeof(jni_callblock));
+	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
 
     printf("\n\n/* define some offsets */\n\n");
 
@@ -87,7 +88,7 @@ int main(int argc, char **argv)
 	printf("#define offmethodclass             %3d\n", (s4) OFFSET(methodinfo, class));
 	printf("\n\n");
 
-	printf("#define offmethodnative            %3d\n", (s4) OFFSET(native_stackframeinfo,method));
+	printf("#define offmethodnative            %3d\n", (s4) OFFSET(stackframeinfo, method));
 	/*	printf("#define offreturnfromnative %3d\n", (s4) OFFSET(native_stackframeinfo,returnFromNative));
 		printf("#define offaddrreturnfromnative %3d\n", (s4) OFFSET(native_stackframeinfo,addrReturnFromNative));
 		printf("#define offprevnative %3d\n", (s4) OFFSET(native_stackframeinfo,prev));
