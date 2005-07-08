@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2870 2005-06-29 12:39:31Z christian $
+   $Id: stack.h 2935 2005-07-08 15:06:55Z twisti $
 
 */
 
@@ -126,15 +126,26 @@
 /* ALLOCATING STACK SLOTS                           */
 /*--------------------------------------------------*/
 
-#define NEWSTACK_(s,v,n) {new->prev=curstack;new->type=s;new->flags=0;	\
-		                  new->varkind=v;new->varnum=n;curstack=new;new++;}
-						/* Initialize regoff, so -sia can show regnames even before reg.inc */ 
-                        /* regs[rd->intregargnum has to be set for this */ 
-						/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
+#define NEWSTACK_(s,v,n) \
+    do { \
+        new->prev = curstack; \
+        new->type = (s); \
+        new->flags = 0; \
+        new->varkind = (v); \
+        new->varnum = (n); \
+        curstack = new; \
+        new++; \
+    } while (0)
+
+
+/* Initialize regoff, so -sia can show regnames even before reg.inc */ 
+/* regs[rd->intregargnum has to be set for this */ 
+/* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
+
 #ifdef LSRA
-    #define NEWSTACK(s,v,n) {NEWSTACK_(s,v,n); m->maxlifetimes++;}
+# define NEWSTACK(s,v,n) {NEWSTACK_(s,v,n); m->maxlifetimes++;}
 #else
-    #define NEWSTACK(s,v,n) NEWSTACK_(s,v,n)
+# define NEWSTACK(s,v,n) NEWSTACK_(s,v,n)
 #endif
 
 #define NEWSTACKn(s,n)  NEWSTACK(s,UNDEFVAR,n)
