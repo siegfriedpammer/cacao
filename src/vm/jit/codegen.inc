@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2781 2005-06-22 10:51:53Z twisti $
+   $Id: codegen.inc 2939 2005-07-08 15:21:16Z twisti $
 
 */
 
@@ -154,6 +154,7 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->xcheckarefs = NULL;
 	cd->xnullrefs = NULL;
 	cd->xcastrefs = NULL;
+	cd->xstorerefs = NULL;
 	cd->xdivrefs = NULL;
 	cd->xexceptionrefs = NULL;
 	cd->patchrefs = NULL;
@@ -513,21 +514,32 @@ static void codegen_addxcastrefs(codegendata *cd, void *branchptr)
 }
 
 
-static void codegen_addxexceptionrefs(codegendata *cd, void *branchptr)
+/* codegen_addxstorerefs *******************************************************
+
+   Adds an ArrayStoreException branch to the list.
+
+*******************************************************************************/
+
+static void codegen_addxstorerefs(codegendata *cd, void *branchptr)
 {
-	s4 branchpos;
+	s4         branchpos;
 	branchref *br;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
 	br = DNEW(branchref);
 	br->branchpos = branchpos;
-	br->next = cd->xexceptionrefs;
-	cd->xexceptionrefs = br;
+	br->next = cd->xstorerefs;
+	cd->xstorerefs = br;
 }
 
 
-#if defined(__I386__) || defined(__X86_64__)
+/* codegen_addxdivrefs *********************************************************
+
+   Adds an ArithmeticException branch to the list.
+
+*******************************************************************************/
+
 static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 {
 	s4 branchpos;
@@ -540,7 +552,20 @@ static void codegen_addxdivrefs(codegendata *cd, void *branchptr)
 	br->next = cd->xdivrefs;
 	cd->xdivrefs = br;
 }
-#endif
+
+
+static void codegen_addxexceptionrefs(codegendata *cd, void *branchptr)
+{
+	s4 branchpos;
+	branchref *br;
+
+	branchpos = (u1 *) branchptr - cd->mcodebase;
+
+	br = DNEW(branchref);
+	br->branchpos = branchpos;
+	br->next = cd->xexceptionrefs;
+	cd->xexceptionrefs = br;
+}
 
 
 static void codegen_addpatchref(codegendata *cd,
@@ -564,7 +589,7 @@ static void codegen_addpatchref(codegendata *cd,
 
 static void codegen_createlinenumbertable(codegendata *cd)
 {
-#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
 	linenumberref *lr;
 
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
@@ -782,7 +807,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		jr = jr->next;
 	}
 
-#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
 	/* line number table resolving */
 	{
 		linenumberref *lr;

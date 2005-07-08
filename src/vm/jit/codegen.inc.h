@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2887 2005-07-03 16:37:30Z christian $
+   $Id: codegen.inc.h 2939 2005-07-08 15:21:16Z twisti $
 
 */
 
@@ -106,6 +106,7 @@ struct codegendata {
 	branchref      *xcheckarefs;    /* list of array size check branches      */
 	branchref      *xnullrefs;      /* list of null check branches            */
 	branchref      *xcastrefs;      /* list of cast check branches            */
+	branchref      *xstorerefs;     /* list of array store check branches     */
 	branchref      *xdivrefs;       /* list of divide by zero branches        */
 	branchref      *xexceptionrefs; /* list of exception branches             */
 	patchref       *patchrefs;
