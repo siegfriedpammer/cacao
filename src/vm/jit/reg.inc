@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: reg.inc 2821 2005-06-24 19:46:23Z christian $
+   $Id: reg.inc 2938 2005-07-08 15:09:14Z twisti $
 
 */
 
@@ -1536,6 +1536,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_D2F:
 
 				case ICMD_CHECKCAST:
+				case ICMD_ARRAYCHECKCAST:
 
 				case ICMD_ARRAYLENGTH:
 				case ICMD_INSTANCEOF:
