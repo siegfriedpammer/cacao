@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2539 2005-05-31 15:55:54Z twisti $
+   $Id: md-asm.h 2963 2005-07-09 18:08:52Z twisti $
 
 */
 
@@ -239,14 +239,6 @@
 
 #define asm_wrapper_patcher                   _asm_wrapper_patcher
 
-#define asm_builtin_arraycheckcast            _asm_builtin_arraycheckcast
-#define asm_builtin_aastore                   _asm_builtin_aastore
-
-#define asm_builtin_idiv                      _asm_builtin_idiv
-#define asm_builtin_irem                      _asm_builtin_irem
-#define asm_builtin_ldiv                      _asm_builtin_ldiv
-#define asm_builtin_lrem                      _asm_builtin_lrem
-
 #define asm_cacheflush                        _asm_cacheflush
 #define asm_initialize_thread_stack           _asm_initialize_thread_stack
 #define asm_perform_threadswitch              _asm_perform_threadswitch
@@ -273,11 +265,11 @@
 #define link_class                            _link_class
 #define load_class_bootstrap                  _load_class_bootstrap
 #define jit_compile                           _jit_compile
-#define new_arithmeticexception               _new_arithmeticexception
-#define new_arrayindexoutofboundsexception    _new_arrayindexoutofboundsexception
-#define new_arraystoreexception               _new_arraystoreexception
-#define new_classcastexception                _new_classcastexception
-#define new_nullpointerexception              _new_nullpointerexception
+
+#define stacktrace_create_inline_stackframeinfo \
+	_stacktrace_create_inline_stackframeinfo
+
+#define stacktrace_remove_stackframeinfo      _stacktrace_remove_stackframeinfo
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 #if 0
