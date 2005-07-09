@@ -26,14 +26,17 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 2950 2005-07-09 13:37:29Z twisti $
+   $Id: options.c 2959 2005-07-09 17:30:32Z twisti $
 
 */
 
 
 #include <string.h>
-#include "options.h"
+
+#include "config.h"
 #include "types.h"
+
+#include "vm/options.h"
 
 
 /* command line option */
