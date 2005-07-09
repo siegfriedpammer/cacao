@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2932 2005-07-08 11:57:08Z twisti $
+   $Id: jit.c 2953 2005-07-09 13:38:42Z twisti $
 
 */
 
@@ -1487,15 +1487,15 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	/* intermediate and assembly code listings */
 		
-	if (showintermediate) {
+	if (opt_showintermediate) {
 		show_icmd_method(m, cd, rd);
 
-	} else if (showdisassemble) {
+	} else if (opt_showdisassemble) {
 		disassemble((void *) ((long) m->mcode + cd->dseglen), 
 					m->mcodelength - cd->dseglen);
 	}
 
-	if (showddatasegment)
+	if (opt_showddatasegment)
 		dseg_display(m, cd);
 
 	if (compileverbose)
