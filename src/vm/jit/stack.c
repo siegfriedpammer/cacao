@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2949 2005-07-09 12:20:02Z twisti $
+   $Id: stack.c 2952 2005-07-09 13:38:21Z twisti $
 
 */
 
@@ -2246,7 +2246,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				if (s->varnum == -1) {
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
-					printf(" RA ");
+					printf("  RA");
 				} else /* "normal" Argvar */
 					printf(" A%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
@@ -2290,7 +2290,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				if (s->varnum == -1) {
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
-					printf(" ra ");
+					printf("  ra");
 				} else /* "normal" Argvar */
 				printf(" a%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
@@ -2490,7 +2490,10 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #ifdef LSRA
   	}
 #endif
-	if (showdisassemble) {
+
+	/* show code before first basic block */
+
+	if (opt_showdisassemble) {
 #if defined(__I386__) || defined(__X86_64__)
 		u1 *u1ptr;
 		s4 a;
@@ -2524,9 +2527,63 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		printf("\n");
 #endif
 	}
-	
+
+	/* show code off all basic blocks */
+
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 		show_icmd_block(m, cd, bptr);
+	}
+
+	/* show stubs code */
+
+	if (opt_showdisassemble && opt_showexceptionstubs) {
+		printf("\nException stubs code:\n");
+		printf("Length: %d\n\n", (s4) (m->mcodelength -
+									   ((ptrint) cd->dseglen +
+										m->basicblocks[m->basicblockcount].mpc)));
+
+#if defined(__I386__) || defined(__X86_64__)
+		{
+			u1 *u1ptr;
+			s4  a;
+
+			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen +
+							m->basicblocks[m->basicblockcount].mpc);
+
+			for (; (ptrint) u1ptr < ((ptrint) m->mcode + m->mcodelength);) {
+				a = disassinstr(u1ptr);
+				i += a;
+				u1ptr += a;
+			}
+		}
+#elif defined(__XDSPCORE__)
+		{
+			s4 *s4ptr;
+			s4 a;
+
+			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen +
+							m->basicblocks[m->basicblockcount].mpc);
+
+			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength);) {
+				a = disassinstr(stdout, s4ptr);
+				printf("\n");
+				i += a * 4;
+				s4ptr += a;
+			}
+		}
+#else
+		{
+			s4 *s4ptr;
+
+			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen +
+							m->basicblocks[m->basicblockcount].mpc);
+
+			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength);)
+				disassinstr(s4ptr);
+		}
+#endif
+
+		printf("\n");
 	}
 }
 
@@ -2577,7 +2634,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			printf("\n");
 		}
 
-		if (showdisassemble && (!deadcode)) {
+		if (opt_showdisassemble && (!deadcode)) {
 #if defined(__I386__) || defined(__X86_64__)
 			u1 *u1ptr;
 			s4 a;
