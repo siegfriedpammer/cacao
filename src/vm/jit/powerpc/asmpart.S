@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2957 2005-07-09 15:48:43Z twisti $
+   $Id: asmpart.S 2961 2005-07-09 18:07:33Z twisti $
 
 */
 
@@ -774,33 +774,33 @@ asm_wrapper_patcher:
 	mflr	r0
 	stw     r0,8*4+LA_LR_OFFSET(r1) /* skip stack frame of patcher stub       */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    r1,-((6+1+38)*4+sizestackframeinfo)(r1)
+	stwu    r1,-(LA_SIZE+(4+38)*4+sizestackframeinfo)(r1)
 
 #if 1
-	stw     a0,(6+1+0)*4(r1)      /* save argument registers                  */
-	stw     a1,(6+1+1)*4(r1)      /* preserve linkage area (24 bytes)         */
-	stw     a2,(6+1+2)*4(r1)      /* and 4 bytes for 1 argument               */
-	stw     a3,(6+1+3)*4(r1)
-	stw     a4,(6+1+4)*4(r1)
-	stw     a5,(6+1+5)*4(r1)
-	stw     a6,(6+1+6)*4(r1)
-	stw     a7,(6+1+7)*4(r1)
+	stw     a0,LA_SIZE+(4+0)*4(r1)  /* save argument registers                */
+	stw     a1,LA_SIZE+(4+1)*4(r1)        /* preserve linkage area (24 bytes)       */
+	stw     a2,LA_SIZE+(4+2)*4(r1)        /* and 4 bytes for 4 argument             */
+	stw     a3,LA_SIZE+(4+3)*4(r1)
+	stw     a4,LA_SIZE+(4+4)*4(r1)
+	stw     a5,LA_SIZE+(4+5)*4(r1)
+	stw     a6,LA_SIZE+(4+6)*4(r1)
+	stw     a7,LA_SIZE+(4+7)*4(r1)
 
-	stfd    fa0,(6+1+8)*4(sp)
-	stfd    fa1,(6+1+10)*4(sp)
-	stfd    fa2,(6+1+12)*4(sp)
-	stfd    fa3,(6+1+14)*4(sp)
-	stfd    fa4,(6+1+16)*4(sp)
-	stfd    fa5,(6+1+18)*4(sp)
-	stfd    fa6,(6+1+20)*4(sp)
-	stfd    fa7,(6+1+22)*4(sp)
-	stfd    fa8,(6+1+24)*4(sp)
-	stfd    fa9,(6+1+26)*4(sp)
-	stfd    fa10,(6+1+28)*4(sp)
-	stfd    fa11,(6+1+30)*4(sp)
-	stfd    fa12,(6+1+32)*4(sp)
+	stfd    fa0,LA_SIZE+(4+8)*4(sp)
+	stfd    fa1,LA_SIZE+(4+10)*4(sp)
+	stfd    fa2,LA_SIZE+(4+12)*4(sp)
+	stfd    fa3,LA_SIZE+(4+14)*4(sp)
+	stfd    fa4,LA_SIZE+(4+16)*4(sp)
+	stfd    fa5,LA_SIZE+(4+18)*4(sp)
+	stfd    fa6,LA_SIZE+(4+20)*4(sp)
+	stfd    fa7,LA_SIZE+(4+22)*4(sp)
+	stfd    fa8,LA_SIZE+(4+24)*4(sp)
+	stfd    fa9,LA_SIZE+(4+26)*4(sp)
+	stfd    fa10,LA_SIZE+(4+28)*4(sp)
+	stfd    fa11,LA_SIZE+(4+30)*4(sp)
+	stfd    fa12,LA_SIZE+(4+32)*4(sp)
 #else
-	SAVE_ARGUMENT_REGISTERS(6+1)  /* save 8 int/13 float argument registers   */
+	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* save 8 int/13 float arguments  */
 #endif
 
 #if 0
@@ -815,55 +815,55 @@ asm_wrapper_patcher:
 	stw     r23,33*8(r1)
 #endif
 
-	stw     itmp1,(6+1+34)*4(sp)
-	stw     itmp2,(6+1+35)*4(sp)
-	stw     pv,(6+1+36)*4(sp)
+	stw     itmp1,LA_SIZE+(4+34)*4(sp)
+	stw     itmp2,LA_SIZE+(4+35)*4(sp)
+	stw     pv,LA_SIZE+(4+36)*4(sp)
 
-	addi    a0,sp,(6+1+38)*4      /* create stackframe info                   */
+	addi    a0,sp,LA_SIZE+(4+38)*4  /* create stackframe info                 */
 	mr      a1,pv
-	                              /* add stack frame + patcher stub stack     */
-	addi    a2,sp,(8+6+1+38)*4+sizestackframeinfo
+	                                /* add stack frame + patcher stub stack   */
+	addi    a2,sp,(8+LA_WORD_SIZE+4+38)*4+sizestackframeinfo
 	mr      a3,r0
 	bl      stacktrace_create_inline_stackframeinfo
 
-	addi    a0,sp,(0+6+1+38)*4+sizestackframeinfo  /* pass sp                 */
-	lwz     pv,(0+6+1+38)*4+sizestackframeinfo(sp) /* get function pointer    */
-	lwz     itmp1,(6+1+36)*4(sp)  /* move pv to position of fp                */
-	stw     itmp1,(0+6+1+38)*4+sizestackframeinfo(sp)
-	mtctr   pv                    /* call the patcher function                */
+	addi    a0,sp,(0+LA_WORD_SIZE+4+38)*4+sizestackframeinfo  /* pass sp      */
+	lwz     pv,(0+LA_WORD_SIZE+4+38)*4+sizestackframeinfo(sp) /* get function */
+	lwz     itmp1,LA_SIZE+(4+36)*4(sp) /* move pv to position of fp           */
+	stw     itmp1,(0+LA_WORD_SIZE+4+38)*4+sizestackframeinfo(sp)
+	mtctr   pv                      /* call the patcher function              */
 	bctrl
-	stw     r3,(6+1+37)*4(sp)     /* save return value                        */
+	stw     r3,LA_SIZE+(4+37)*4(sp) /* save return value                      */
 
-	addi    a0,sp,(6+1+38)*4
+	addi    a0,sp,LA_SIZE+(4+38)*4
 	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
 
-	lwz     itmp3,(6+1+37)*4(sp)  /* restore return value into temp register  */
+	lwz     itmp3,LA_SIZE+(4+37)*4(sp) /* restore return value into temp reg. */
 
 #if 1
-	lwz     a0,(6+1+0)*4(r1)
-	lwz     a1,(6+1+1)*4(r1)
-	lwz     a2,(6+1+2)*4(r1)
-	lwz     a3,(6+1+3)*4(r1)
-	lwz     a4,(6+1+4)*4(r1)
-	lwz     a5,(6+1+5)*4(r1)
-	lwz     a6,(6+1+6)*4(r1)
-	lwz     a7,(6+1+7)*4(r1)
+	lwz     a0,LA_SIZE+(4+0)*4(r1)
+	lwz     a1,LA_SIZE+(4+1)*4(r1)
+	lwz     a2,LA_SIZE+(4+2)*4(r1)
+	lwz     a3,LA_SIZE+(4+3)*4(r1)
+	lwz     a4,LA_SIZE+(4+4)*4(r1)
+	lwz     a5,LA_SIZE+(4+5)*4(r1)
+	lwz     a6,LA_SIZE+(4+6)*4(r1)
+	lwz     a7,LA_SIZE+(4+7)*4(r1)
 
-	lfd     fa0,(6+1+8)*4(sp)
-	lfd     fa1,(6+1+10)*4(sp)
-	lfd     fa2,(6+1+12)*4(sp)
-	lfd     fa3,(6+1+14)*4(sp)
-	lfd     fa4,(6+1+16)*4(sp)
-	lfd     fa5,(6+1+18)*4(sp)
-	lfd     fa6,(6+1+20)*4(sp)
-	lfd     fa7,(6+1+22)*4(sp)
-	lfd     fa8,(6+1+24)*4(sp)
-	lfd     fa9,(6+1+26)*4(sp)
-	lfd     fa10,(6+1+28)*4(sp)
-	lfd     fa11,(6+1+30)*4(sp)
-	lfd     fa12,(6+1+32)*4(sp)
+	lfd     fa0,LA_SIZE+(4+8)*4(sp)
+	lfd     fa1,LA_SIZE+(4+10)*4(sp)
+	lfd     fa2,LA_SIZE+(4+12)*4(sp)
+	lfd     fa3,LA_SIZE+(4+14)*4(sp)
+	lfd     fa4,LA_SIZE+(4+16)*4(sp)
+	lfd     fa5,LA_SIZE+(4+18)*4(sp)
+	lfd     fa6,LA_SIZE+(4+20)*4(sp)
+	lfd     fa7,LA_SIZE+(4+22)*4(sp)
+	lfd     fa8,LA_SIZE+(4+24)*4(sp)
+	lfd     fa9,LA_SIZE+(4+26)*4(sp)
+	lfd     fa10,LA_SIZE+(4+28)*4(sp)
+	lfd     fa11,LA_SIZE+(4+30)*4(sp)
+	lfd     fa12,LA_SIZE+(4+32)*4(sp)
 #else
-	RESTORE_ARGUMENT_REGISTERS(6+1)/* restore 8 int/13 float argument reg.    */
+	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+4)/* restore 8 int/13 float args  */
 #endif
 
 #if 0
@@ -879,15 +879,15 @@ asm_wrapper_patcher:
 #endif
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp1,(4+6+1+38)*4+sizestackframeinfo(sp)
+	lwz     itmp1,(4+LA_WORD_SIZE+4+38)*4+sizestackframeinfo(sp)
 	mtlr    itmp1
 
-	lwz     itmp1,(6+1+34)*4(sp)
-	lwz     itmp2,(6+1+35)*4(sp)
-	lwz     pv,(6+1+36)*4(sp)
+	lwz     itmp1,LA_SIZE+(4+34)*4(sp)
+	lwz     itmp2,LA_SIZE+(4+35)*4(sp)
+	lwz     pv,LA_SIZE+(4+36)*4(sp)
 
 	                              /* remove stack frame + patcher stub stack  */
-	addi    r1,r1,(8+6+1+38)*4+sizestackframeinfo
+	addi    r1,r1,(8+LA_WORD_SIZE+4+38)*4+sizestackframeinfo
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	beq     L_asm_wrapper_patcher_exception
