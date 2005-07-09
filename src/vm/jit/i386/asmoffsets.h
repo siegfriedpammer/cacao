@@ -1,4 +1,4 @@
-/* vm/jit/x86_64/asmoffsets.h - data segment offsets for x86_64
+/* src/vm/jit/i386/asmoffsets.h - data segment offsets for i386
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmoffsets.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmoffsets.h 2946 2005-07-09 12:17:00Z twisti $
 
 */
 
