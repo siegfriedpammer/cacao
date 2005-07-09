@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2933 2005-07-08 11:59:57Z twisti $
+   $Id: stacktrace.c 2954 2005-07-09 13:49:50Z twisti $
 
 */
 
@@ -107,6 +107,13 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* get current stackframe info pointer */
 
 	osfi = builtin_asm_get_stackframeinfo();
+
+#if defined(__I386__) || defined(__X86_64__)
+	/* we don't have pv in asm_wrapper_patcher handy */
+
+	if (pv == NULL)
+		pv = (u1 *) codegen_findmethod(ra);
+#endif
 
 	/* fill new stackframe info structure */
 
@@ -421,16 +428,9 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 				m = *((methodinfo **) (pv + MethodPointer));
 
-				if (info->beginOfJavaStackframe == 0) {
-					sp = ((u1 *) info) + sizeof(stackframeinfo);
+				/* get stackpointer from stackframeinfo structure */
 
-				} else {
-#if defined(__I386__) || defined (__X86_64__)
-					sp = (u1 *) info->beginOfJavaStackframe + SIZEOF_VOID_P;
-#else
-					sp = (u1 *) info->beginOfJavaStackframe;
-#endif
-				}
+				sp = (u1 *) info->beginOfJavaStackframe;
 
 				info = info->oldThreadspecificHeadValue;
 
@@ -474,7 +474,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 		}
 			
 		if (coll)
-			coll(target,&buffer);
+			coll(target, &buffer);
 
 		if (buffer.needsFree)
 			free(buffer.start);
@@ -505,8 +505,9 @@ void stackTraceCollector(void **target, stackTraceBuffer *buffer) {
 }
 
 
-void  cacao_stacktrace_NormalTrace(void **target) {
-	cacao_stacktrace_fillInStackTrace(target,&stackTraceCollector);
+void cacao_stacktrace_NormalTrace(void **target)
+{
+	cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector);
 }
 
 
@@ -558,11 +559,13 @@ static void classContextCollector(void **target, stackTraceBuffer *buffer)
 
 
 
-java_objectarray *cacao_createClassContextArray() {
+java_objectarray *cacao_createClassContextArray(void)
+{
 	java_objectarray *array=0;
-	cacao_stacktrace_fillInStackTrace((void**)&array,&classContextCollector);
+
+	cacao_stacktrace_fillInStackTrace((void **) &array, &classContextCollector);
+
 	return array;
-	
 }
 
 
@@ -689,10 +692,12 @@ void getStackCollector(void **target, stackTraceBuffer *buffer)
 }
 
 
-java_objectarray *cacao_getStackForVMAccessController()
+java_objectarray *cacao_getStackForVMAccessController(void)
 {
-	java_objectarray *result=0;
-	cacao_stacktrace_fillInStackTrace((void**)&result,&getStackCollector);
+	java_objectarray *result = NULL;
+
+	cacao_stacktrace_fillInStackTrace((void **) &result, &getStackCollector);
+
 	return result;
 }
 
