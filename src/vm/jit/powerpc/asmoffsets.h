@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: asmoffsets.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: asmoffsets.h 2957 2005-07-09 15:48:43Z twisti $
 
 */
 
@@ -38,22 +38,26 @@
 
 /* data segment offsets *******************************************************/
 
-#define MethodPointer           -8
-#define FrameSize               -12
-#define IsSync                  -16
-#define IsLeaf                  -20
-#define IntSave                 -24
-#define FltSave                 -28
-#define LineNumberTableSize     0    /* XXX dummy entries */
-#define LineNumberTableStart    0    /* XXX dummy entries */
-#define ExTableSize             -32
-#define ExTableStart            -32
+#define MethodPointer           -4
+#define FrameSize               -8
+#define IsSync                  -12
+#define IsLeaf                  -16
+#define IntSave                 -20
+#define FltSave                 -24
+#define LineNumberTableSize     -28
+#define LineNumberTableStart    -32
+#define ExTableSize             -36
+#define ExTableStart            -36
 
 #define ExEntrySize             -16
 #define ExStartPC               -4
 #define ExEndPC                 -8
 #define ExHandlerPC             -12
 #define ExCatchType             -16
+
+#define LineEntrySize           -8
+#define LinePC                   0
+#define LineLine                -4
 
 #endif /* _ASMOFFSETS_H */
 

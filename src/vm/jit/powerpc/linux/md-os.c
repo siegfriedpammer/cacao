@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2921 2005-07-07 09:26:30Z twisti $
+   $Id: md-os.c 2957 2005-07-09 15:48:43Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* signal_handle_sigsegv *******************************************************
@@ -51,11 +52,15 @@
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u4          instr;
-	s4          reg;
-	ptrint      addr;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u4              instr;
+	s4              reg;
+	ptrint          addr;
+	stackframeinfo *sfi;
+	u1             *pv;
+	u1             *sp;
+	functionptr     ra;
 
  	_uc = (ucontext_t *) _p;
  	_mc = _uc->uc_mcontext.uc_regs;
@@ -65,13 +70,31 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	addr = _mc->gregs[reg];
 
 	if (addr == 0) {
+		/* allocate stackframeinfo on heap */
+
+		sfi = NEW(stackframeinfo);
+
+		/* create exception */
+
+		pv = (u1 *) _mc->gregs[REG_PV];
+		sp = (u1 *) _mc->gregs[REG_SP];
+		ra = (functionptr) _mc->gregs[PT_NIP];
+
+		stacktrace_create_inline_stackframeinfo(sfi, pv, sp, ra);
+
 		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) new_nullpointerexception();
+
+		stacktrace_remove_stackframeinfo(sfi);
+
+		FREE(sfi, stackframeinfo);
+
 		_mc->gregs[REG_ITMP2_XPC] = _mc->gregs[PT_NIP];
 		_mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
 
 	} else {
 		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault at 0x%08lx", addr);
+								   "Segmentation fault: 0x%08lx at 0x%08lx",
+								   addr, _mc->gregs[PT_NIP]);
 	}		
 }
 

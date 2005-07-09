@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 2920 2005-07-06 21:23:33Z twisti $
+   $Id: codegen.h 2957 2005-07-09 15:48:43Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include "md-abi.h"
 
 #include "vm/global.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 
 
@@ -294,6 +295,7 @@
 #define M_AND_IMM(a,b,c)                M_OP2_IMM(28, a, c, b)
 #define M_ANDIS(a,b,c)                  M_OP2_IMM(29, a, c, b)
 #define M_OR(a,b,c)                     M_OP3(31, 444, 0, 0, a, c, b)
+#define M_OR_TST(a,b,c)                 M_OP3(31, 444, 0, 1, a, c, b)
 #define M_OR_IMM(a,b,c)                 M_OP2_IMM(24, a, c, b)
 #define M_ORIS(a,b,c)                   M_OP2_IMM(25, a, c, b)
 #define M_XOR(a,b,c)                    M_OP3(31, 316, 0, 0, a, c, b)

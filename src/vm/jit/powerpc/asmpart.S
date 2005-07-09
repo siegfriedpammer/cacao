@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2817 2005-06-23 15:22:01Z twisti $
+   $Id: asmpart.S 2957 2005-07-09 15:48:43Z twisti $
 
 */
 
@@ -63,14 +63,6 @@
 
 	.globl asm_wrapper_patcher
 
-	.globl asm_builtin_arraycheckcast
-	.globl asm_builtin_aastore
-
-	.globl asm_builtin_idiv
-	.globl asm_builtin_irem
-	.globl asm_builtin_ldiv
-	.globl asm_builtin_lrem
-
 	.globl asm_cacheflush
 	.globl asm_initialize_thread_stack
 	.globl asm_perform_threadswitch
@@ -87,9 +79,9 @@
 *   This functions calls the JIT-compiler which eventually translates the      *
 *   method into machine code.                                                  *
 *                                                                              *
-*   C-prototype:		                                                               *
+*   C-prototype:                                                               *
 *    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                      *
+*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
 		
@@ -100,13 +92,14 @@
 	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0                         /* line number table start              */
+	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
 	.long   24                        /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
-	.long   0                         /* padding                              */
 
 asm_calljavafunction:
 asm_calljavafunction_int:
@@ -214,13 +207,14 @@ calljava_xhandler:
 	.long   calljava_xhandler2        /* end pc                               */
 	.long   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
+	.long   0                         /* line number table start              */
+	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
 	.long   24                        /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
-	.long   0                         /* padding                              */
 
 asm_calljavafunction2:
 asm_calljavafunction2int:
@@ -772,14 +766,15 @@ ex_flt2:
      12   pointer to virtual java_objectheader
       8   machine code (which is patched back later)
       4   unresolved class/method/field reference
-      0   patcher function pointer to call
+      0   patcher function pointer to call (pv is saved here afterwards)
 
 *******************************************************************************/
 
 asm_wrapper_patcher:
 	mflr	r0
 	stw     r0,8*4+LA_LR_OFFSET(r1) /* skip stack frame of patcher stub       */
-	stwu    r1,-((6+1+37)*4)(r1)  /* keep stack 16-bytes aligned: 6+1+37 = 44 */
+	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
+	stwu    r1,-((6+1+38)*4+sizestackframeinfo)(r1)
 
 #if 1
 	stw     a0,(6+1+0)*4(r1)      /* save argument registers                  */
@@ -824,11 +819,25 @@ asm_wrapper_patcher:
 	stw     itmp2,(6+1+35)*4(sp)
 	stw     pv,(6+1+36)*4(sp)
 
-	addi    a0,sp,(1+6+1+37)*4    /* pass sp, skip patcher function pointer   */
-	lwz     pv,(0+6+1+37)*4(sp)   /* get function pointer                     */
+	addi    a0,sp,(6+1+38)*4      /* create stackframe info                   */
+	mr      a1,pv
+	                              /* add stack frame + patcher stub stack     */
+	addi    a2,sp,(8+6+1+38)*4+sizestackframeinfo
+	mr      a3,r0
+	bl      stacktrace_create_inline_stackframeinfo
+
+	addi    a0,sp,(0+6+1+38)*4+sizestackframeinfo  /* pass sp                 */
+	lwz     pv,(0+6+1+38)*4+sizestackframeinfo(sp) /* get function pointer    */
+	lwz     itmp1,(6+1+36)*4(sp)  /* move pv to position of fp                */
+	stw     itmp1,(0+6+1+38)*4+sizestackframeinfo(sp)
 	mtctr   pv                    /* call the patcher function                */
 	bctrl
-	mr      itmp3,r3              /* save return value in temp register       */
+	stw     r3,(6+1+37)*4(sp)     /* save return value                        */
+
+	addi    a0,sp,(6+1+38)*4
+	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
+
+	lwz     itmp3,(6+1+37)*4(sp)  /* restore return value into temp register  */
 
 #if 1
 	lwz     a0,(6+1+0)*4(r1)
@@ -869,14 +878,16 @@ asm_wrapper_patcher:
 	lwz     r23,33*8(r1)		
 #endif
 
-	lwz     itmp1,(4+6+1+37)*4(sp)/* get return address (into JIT code)       */
+	                              /* get return address (into JIT code)       */
+	lwz     itmp1,(4+6+1+38)*4+sizestackframeinfo(sp)
 	mtlr    itmp1
 
 	lwz     itmp1,(6+1+34)*4(sp)
 	lwz     itmp2,(6+1+35)*4(sp)
 	lwz     pv,(6+1+36)*4(sp)
 
-	addi    r1,r1,(8+6+1+37)*4    /* remove stack frame + patcher stub stack  */
+	                              /* remove stack frame + patcher stub stack  */
+	addi    r1,r1,(8+6+1+38)*4+sizestackframeinfo
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	beq     L_asm_wrapper_patcher_exception
@@ -907,208 +918,6 @@ L_asm_wrapper_patcher_exception:
 
 	mflr    xpc
 	b       asm_handle_exception
-
-
-/* asm_builtin_arraycheckcast **************************************************
-
-   Does the cast check and eventually throws an exception.
-
-*******************************************************************************/
-		
-asm_builtin_arraycheckcast:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-48(r1)
-
-	stw     r3,32(r1)
-	bl      builtin_arraycheckcast
-
-	lwz     r0,48+LA_LR_OFFSET(r1)
-	mtlr    r0
-	mr.     r3,r3
-	beq     nb_carray_throw
-	lwz     r3,32(r1)
-	addi    r1,r1,48
-	blr
-
-nb_carray_throw:
-	addi    r1,r1,48
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_classcastexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-/******************* function asm_builtin_aastore ******************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-	
-asm_builtin_aastore:
-	mr.     r3,r3
-	beq     nb_aastore_null
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-48(r1)
-
-	lwz     itmp1,offarraysize(r3)
-	slwi    itmp3,r4,2
-	add     itmp2,r3,itmp3
-	cmplw   r4,itmp1
-	bge     nb_aastore_bound
-	mr      r4,r5
-	stw     itmp2,32(r1)
-	stw     r4,36(r1)
-	bl      builtin_canstore
-
-	lwz     r0,48+LA_LR_OFFSET(r1)
-	mtlr    r0
-	lwz     itmp1,32(r1)
-	lwz     itmp2,36(r1)
-	addi    r1,r1,48
-	mr.     r3,r3
-	beq     nb_aastore_store
-	stw     itmp2,offobjarrdata(itmp1)
-	blr
-
-nb_aastore_null:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_nullpointerexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-nb_aastore_bound:
-	addi    r1,r1,48
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-(24+1*4)(r1)
-	mr      r3,r4                 /* move index into a0                       */
-	bl      new_arrayindexoutofboundsexception
-	mr      xptr,r3
-	addi    r1,r1,(24+1*4)
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-nb_aastore_store:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_arraystoreexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-asm_builtin_idiv:
-	mr.     r4,r4
-	beq     nb_idiv
-	lis     itmp3,0x8000
-	cmpw    r3,itmp3
-	bne     normal_idiv
-	cmpwi   r4,-1
-	bne     normal_idiv
-	blr
-
-normal_idiv:
-	divw    r3,r3,r4
-	blr
-
-nb_idiv:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_arithmeticexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-asm_builtin_irem:
-	mr      itmp2,r3
-	mr.     r4,r4
-	beq     nb_irem
-	lis     itmp3,0x8000
-	cmpw    itmp2,itmp3
-	bne     normal_irem
-	cmpwi   r4,-1
-	bne     normal_irem
-	li      r3,0
-	beqlr
-
-normal_irem:
-	divw    itmp3,itmp2,r4
-	mullw   itmp3,itmp3,r4
-	subf    r3,itmp3,itmp2
-	blr
-
-nb_irem:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_arithmeticexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-asm_builtin_ldiv:
-	or.     r0,r5,r6
-	beq     nb_ldiv
-	b       builtin_ldiv
-
-nb_ldiv:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_arithmeticexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
-
-
-asm_builtin_lrem:
-	or.     r0,r5,r6
-	beq     nb_lrem
-	b       builtin_lrem
-
-nb_lrem:
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-24(r1)
-	bl      new_arithmeticexception
-	mr      xptr,r3
-	addi    r1,r1,24
-	lwz     r0,LA_LR_OFFSET(r1)
-	mr      xpc,r0
-	mtlr    r0
-	b       asm_handle_nat_exception
 
 
 asm_cacheflush:
