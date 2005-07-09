@@ -28,13 +28,14 @@
 
    Changes:
 
-   $Id: md.c 2922 2005-07-07 09:27:20Z twisti $
+   $Id: md.c 2960 2005-07-09 18:06:49Z twisti $
 
 */
 
 
+#include "md-abi.h"
+
 #include "vm/jit/powerpc/types.h"
-#include "vm/jit/powerpc/linux/md-abi.h"
 
 #include "vm/global.h"
 
