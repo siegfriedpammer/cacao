@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2878 2005-06-30 09:55:49Z twisti $
+   $Id: headers.c 2965 2005-07-09 18:21:01Z twisti $
 
 */
 
@@ -345,10 +345,6 @@ java_objectheader *new_nullpointerexception(void)
 
 
 /* machine dependent stuff ****************************************************/
-
-#if defined(__DARWIN__)
-int cacao_catch_Handler(void) {}
-#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 threadcritnode asm_criticalsections;

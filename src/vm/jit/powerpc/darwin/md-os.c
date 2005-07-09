@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2962 2005-07-09 18:08:06Z twisti $
+   $Id: md-os.c 2965 2005-07-09 18:21:01Z twisti $
 
 */
 
@@ -45,71 +45,7 @@
 #include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-
-
-#if 0
-/* cacao_catch_Handler *********************************************************
-
-   XXX
-
-*******************************************************************************/
-
-int cacao_catch_Handler(mach_port_t thread)
-{
-#if defined(USE_THREADS)
-	unsigned int *regs;
-	unsigned int crashpc;
-	s4 instr, reg;
-/*	java_objectheader *xptr; */
-
-	/* Mach stuff */
-	thread_state_flavor_t flavor = PPC_THREAD_STATE;
-	mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
-	ppc_thread_state_t thread_state;
-	kern_return_t r;
-	
-	if (checknull)
-		return 0;
-
-	r = thread_get_state(thread, flavor,
-		(natural_t*)&thread_state, &thread_state_count);
-	if (r != KERN_SUCCESS) {
-		log_text("thread_get_state failed");
-		assert(0);
-	}
-
-	regs = &thread_state.r0;
-	crashpc = thread_state.srr0;
-
-	instr = *(s4*) crashpc;
-	reg = (instr >> 16) & 31;
-
-	if (!regs[reg]) {
-/*      This is now handled in asmpart because it needs to run in the throwing
- *      thread */
-/*		xptr = new_nullpointerexception(); */
-
-		regs[REG_ITMP2_XPC] = crashpc;
-/*		regs[REG_ITMP1_XPTR] = (u4) xptr; */
-		thread_state.srr0 = (u4) asm_handle_nullptr_exception;
-
-		r = thread_set_state(thread, flavor,
-			(natural_t*)&thread_state, thread_state_count);
-		if (r != KERN_SUCCESS) {
-			log_text("thread_set_state failed");
-			assert(0);
-		}
-
-		return 1;
-	}
-
-	throw_cacao_exception_exit(string_java_lang_InternalError,
-				   "Segmentation fault at %p", regs[reg]);
-#endif
-
-	return 0;
-}
-#endif
+#include "vm/jit/stacktrace.h"
 
 
 /* signal_handler_sigsegv ******************************************************
