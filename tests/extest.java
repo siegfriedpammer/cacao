@@ -113,6 +113,7 @@ public class extest {
             pln("FAILED");
         } catch (ClassCastException e) {
   	    pln("OK");
+	    pstacktrace(e);
   	}
 
         try {
