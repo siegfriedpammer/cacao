@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: helper.c 2955 2005-07-09 13:55:06Z twisti $
 
 */
 
@@ -203,68 +203,6 @@ void *helper_resolve_fieldinfo(unresolved_field *uf)
 	/* return the fieldinfo pointer */
 
 	return fi;
-}
-
-
-/* helper_fillin_stacktrace ****************************************************
-
-   This function returns the exception given as parameter with a
-   filled in stacktrace.
-
-*******************************************************************************/
-
-java_objectheader *helper_fillin_stacktrace(java_objectheader* exc)
-{
-	classinfo *c;
-	methodinfo *m;
-        /*log_text("helper_fillin_stacktrace has beenentered");*/
-	/* these are asserts, since this are sever problems, which must never happen*/
-	if (exc == 0) {
-		log_text("Exception must not be null in helper_fillin_stacktrace");
-		assert(0);
-	}
-
-	if ( ((java_lang_Throwable *) exc)->vmState!=0) return exc;
-
-	if (exc->vftbl == 0) {
-		log_text("Exception vftbl must not be null in helper_fillin_stacktrace");
-		assert(0);
-	}
-
-	/*get classinfo from object instance*/
-	c = exc->vftbl->class;
-
-	if (c == 0) {
-		log_text("Exception class must not be null in helper_fillin_stacktrace");
-		assert(0);
-	}
-
-	/*find the fillInStackTrace method*/
-	m=class_resolvemethod(c,utf_fillInStackTrace,utf_void__java_lang_Throwable);
-
-	if (m == 0) {
-		log_text("Exception does not have a fillInStackTrace method");
-		assert(0);
-	}
-
-	/*log_text("helper_fillin_stacktrace doing it's work now");*/
-	asm_calljavafunction(m,exc,0,0,0);
-
-	/*return exception back to asmpart*/
-	return exc;
-}
-
-
-java_objectheader *helper_fillin_stacktrace_always(java_objectheader* exc)
-{
-	if (exc == 0) {
-		log_text("Exception must not be null in helper_fillin_stacktrace");
-		assert(0);
-	}
-
-	((java_lang_Throwable *) exc)->vmState = 0;
-
-	return helper_fillin_stacktrace(exc);
 }
 
 
