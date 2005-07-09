@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 2894 2005-07-04 20:38:07Z twisti $
+   $Id: options.h 2950 2005-07-09 13:37:29Z twisti $
 
 */
 
@@ -79,9 +79,10 @@ extern bool showutf;
 
 extern bool compileverbose;
 extern bool showstack;
-extern bool showdisassemble;
-extern bool showddatasegment;
-extern bool showintermediate;
+extern bool opt_showdisassemble;
+extern bool opt_showddatasegment;
+extern bool opt_showintermediate;
+extern bool opt_showexceptionstubs;
 extern bool opt_shownativestub;
 
 /*#undef INAFTERMAIN*/  /*use to inline system methods before main is called*/

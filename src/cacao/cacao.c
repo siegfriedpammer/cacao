@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 2897 2005-07-04 20:39:26Z twisti $
+   $Id: cacao.c 2950 2005-07-09 13:37:29Z twisti $
 
 */
 
@@ -165,7 +165,6 @@ opt_struct opts[] = {
 	{ "noasyncgc",         false, OPT_IGNORE },
 	{ "noverify",          false, OPT_NOVERIFY },
 	{ "liberalutf",        false, OPT_LIBERALUTF },
-	{ "oss",               true,  OPT_IGNORE },
 	{ "ss",                true,  OPT_IGNORE },
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose",           false, OPT_VERBOSE },
@@ -268,6 +267,7 @@ static void usage(void)
 	printf("    -s(how)a(ssembler)       show disassembled listing\n");
 	printf("           c(onstants)       show the constant pool\n");
 	printf("           d(atasegment)     show data segment listing\n");
+	printf("           e(xceptionstubs)  show disassembled exception stubs (only with -sa)\n");
 	printf("           i(ntermediate)    show intermediate representation\n");
 	printf("           m(ethods)         show class fields and methods\n");
 	printf("           n(ative)          show disassembled native stubs\n");
@@ -791,17 +791,20 @@ int main(int argc, char **argv)
 			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
 				case 'a':
-					showdisassemble = true;
+					opt_showdisassemble = true;
 					compileverbose = true;
 					break;
 				case 'c':
 					showconstantpool = true;
 					break;
 				case 'd':
-					showddatasegment = true;
+					opt_showddatasegment = true;
+					break;
+				case 'e':
+					opt_showexceptionstubs = true;
 					break;
 				case 'i':
-					showintermediate = true;
+					opt_showintermediate = true;
 					compileverbose = true;
 					break;
 				case 'm':

@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 2894 2005-07-04 20:38:07Z twisti $
+   $Id: options.c 2950 2005-07-09 13:37:29Z twisti $
 
 */
 
@@ -49,21 +49,22 @@ bool initverbose = false;
 bool opt_verbosegc = false;
 bool opt_verbosejni = false;
 
-bool opt_rt = false;           /* true if RTA parse should be used     RT-CO */
-bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO */
-bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO */
+bool opt_rt = false;           /* true if RTA parse should be used     RT-CO  */
+bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO  */
+bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO  */
 
-bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences       */
+bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences        */
 
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
 
-bool compileverbose =  false;  /* trace compiler actions                     */
+bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
-bool showdisassemble = false;  /* generate disassembler listing              */
-bool showddatasegment = false; /* generate data segment listing              */
-bool showintermediate = false; /* generate intermediate code listing         */
+bool opt_showdisassemble = false;       /* generate disassembler listing      */
+bool opt_showddatasegment = false;      /* generate data segment listing      */
+bool opt_showintermediate = false;      /* generate intermediate code listing */
+bool opt_showexceptionstubs = false;
 bool opt_shownativestub = false;
 
 bool useinliningm = false;      /* use method inlining                        */
