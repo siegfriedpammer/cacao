@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2957 2005-07-09 15:48:43Z twisti $
+   $Id: codegen.c 2964 2005-07-09 18:10:24Z twisti $
 
 */
 
@@ -225,7 +225,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				} else {                             /* reg arg -> spilled    */
 					if (IS_2_WORD_TYPE(t)) {
 						M_IST(GET_HIGH_REG(s2), REG_SP, var->regoff * 4);
-						M_IST(GET_LOW_REG(s2), REG_SP, 4 * var->regoff + 4);
+						M_IST(GET_LOW_REG(s2), REG_SP, var->regoff * 4 + 4);
 					} else {
 						M_IST(s2, REG_SP, var->regoff * 4);
 					}
@@ -550,10 +550,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (var->flags & INMEMORY) {
 				if (IS_2_WORD_TYPE(var->type)) {
-					M_ILD(GET_HIGH_REG(d), REG_SP, 4 * var->regoff);
-					M_ILD(GET_LOW_REG(d), REG_SP, 4 * var->regoff + 4);
+					M_ILD(GET_HIGH_REG(d), REG_SP, var->regoff * 4);
+					M_ILD(GET_LOW_REG(d), REG_SP, var->regoff * 4 + 4);
 				} else {
-					M_ILD(d, REG_SP, 4 * var->regoff);
+					M_ILD(d, REG_SP, var->regoff * 4);
 				}
 			} else {
 				M_TINTMOVE(var->type, var->regoff, d);
@@ -592,11 +592,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (var->flags & INMEMORY) {
 				if (IS_2_WORD_TYPE(var->type)) {
 					var_to_reg_int(s1, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-					M_IST(GET_HIGH_REG(s1), REG_SP, 4 * var->regoff);
-					M_IST(GET_LOW_REG(s1), REG_SP, 4 * var->regoff + 4);
+					M_IST(GET_HIGH_REG(s1), REG_SP, var->regoff * 4);
+					M_IST(GET_LOW_REG(s1), REG_SP, var->regoff * 4 + 4);
 				} else {
 					var_to_reg_int(s1, src, REG_ITMP1);
-					M_IST(s1, REG_SP, 4 * var->regoff);
+					M_IST(s1, REG_SP, var->regoff * 4);
 				}
 
 			} else {
@@ -1898,7 +1898,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (!IS_FLT_DBL_TYPE(iptr->op1)) {
 				if (IS_2_WORD_TYPE(iptr->op1)) {
-					var_to_reg_int(s2, src, PACK_REGS(REG_ITMP3, REG_ITMP2));
+					var_to_reg_int(s2, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
 				} else {
 					var_to_reg_int(s2, src, REG_ITMP2);
 				}
@@ -2720,7 +2720,8 @@ gen_method:
 
 			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 			M_MFLR(REG_ITMP1);
-			if (s1 <= 32768) M_LDA(REG_PV, REG_ITMP1, -s1);
+			if (s1 <= 32768)
+				 M_LDA(REG_PV, REG_ITMP1, -s1);
 			else {
 				s4 ml = -s1, mh = 0;
 				while (ml < -32768) { ml += 65536; mh--; }
@@ -2730,6 +2731,7 @@ gen_method:
 
 			/* d contains return type */
 
+M_NOP;
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
@@ -2749,6 +2751,7 @@ gen_method:
 					store_reg_to_var_flt(iptr->dst, s1);
 				}
 			}
+M_NOP;
 			break;
 
 
@@ -3763,17 +3766,17 @@ gen_method:
 			M_JSR;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-            off = dseg_addaddress(cd, builtin_get_exceptionptrptr);
-            M_ALD(REG_ITMP2, REG_PV, off);
-            M_MTCTR(REG_ITMP2);
-            M_JSR;
+			off = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+			M_ALD(REG_ITMP2, REG_PV, off);
+			M_MTCTR(REG_ITMP2);
+			M_JSR;
 #else
 			off = dseg_addaddress(cd, &_exceptionptr);
 			M_ALD(REG_RESULT, REG_PV, off);
 #endif
 			/* get the exceptionptr from the ptrprt and clear it */
 
-            M_ALD(REG_ITMP1_XPTR, REG_RESULT, 0);
+			M_ALD(REG_ITMP1_XPTR, REG_RESULT, 0);
 			M_CLR(REG_ITMP3);
 			M_AST(REG_ITMP3, REG_RESULT, 0);
 
@@ -3783,9 +3786,9 @@ gen_method:
 
 			M_MOV(REG_ITMP1_XPTR, rd->argintregs[0]);
 			off = dseg_addaddress(cd, stacktrace_call_fillInStackTrace);
-            M_ALD(REG_ITMP2, REG_PV, off);
-            M_MTCTR(REG_ITMP2);
-            M_JSR;
+			M_ALD(REG_ITMP2, REG_PV, off);
+			M_MTCTR(REG_ITMP2);
+			M_JSR;
 			
 			/* remove stackframe info */
 
@@ -3797,8 +3800,8 @@ gen_method:
 
 			M_ALD(REG_ITMP1_XPTR, REG_SP, LA_SIZE + 1 * 4);
 
-            M_ILD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-            M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4 + sizeof(stackframeinfo),
+			M_ILD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4 + sizeof(stackframeinfo),
 					   REG_SP);
 
 			if (m->isleafmethod) {
@@ -4038,19 +4041,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		if (IS_INT_LNG_TYPE(t)) {
 			s1 = md->params[i].regoff;
 			if (IS_2_WORD_TYPE(t)) {
-#if defined(__DARWIN__)
 				M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
 				M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-#else
-				M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + j++ * 4);
-				M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + j++ * 4);
-#endif
 			} else {
-#if defined(__DARWIN__)
 				M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-#else
-				M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + j++ * 4);
-#endif
 			}
 		}
 	}
@@ -4058,11 +4052,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
-#if defined(__DARWIN__)
 			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 8);
-#else
-			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + j++ * 8);
-#endif
 		}
 	}
 
@@ -4087,19 +4077,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			s1 = md->params[i].regoff;
 
 			if (IS_2_WORD_TYPE(t)) {
-#if defined(__DARWIN__)
 				M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
 				M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-#else
-				M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + j++ * 4);
-				M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + j++ * 4);
-#endif
 			} else {
-#if defined(__DARWIN__)
 				M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-#else
-				M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + j++ * 4);
-#endif
 			}
 		}
 	}
@@ -4107,11 +4088,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
-#if defined(__DARWIN__)
 			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + 4 * 4 + j++ * 8);
-#else
-			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + j++ * 8);
-#endif
 		}
 	}
 
@@ -4258,17 +4235,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* print call trace */
 
 	if (runverbose) {
-#if defined(__DARWIN__)
 		M_LDA(REG_SP, REG_SP, -(LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4));
 		M_IST(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
 		M_IST(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
 		M_DST(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
-#else
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (2 + 2) * 4));
-		M_IST(REG_RESULT, REG_SP, LA_SIZE + 0 * 4);
-		M_IST(REG_RESULT2, REG_SP, LA_SIZE + 1 * 4);
-		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
-#endif
 
 		/* keep this order */
 		switch (m->returntype) {
@@ -4304,17 +4274,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
-#if defined(__DARWIN__)
 		M_ILD(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
 		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
 		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
 		M_LDA(REG_SP, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4);
-#else
-		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 0 * 4);
-		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 1 * 4);
-		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
-		M_LDA(REG_SP, REG_SP, LA_SIZE + (2 + 2) * 4);
-#endif
 	}
 
 	/* check for exception */
