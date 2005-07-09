@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2779 2005-06-22 10:28:54Z twisti $
+   $Id: patcher.c 2956 2005-07-09 14:04:34Z twisti $
 
 */
 
@@ -45,34 +45,6 @@
 #include "vm/references.h"
 #include "vm/jit/helper.h"
 #include "vm/jit/patcher.h"
-
-
-bool helper_initialize_class(void* beginOfJavaStack,classinfo *c,u1 *ra)
-{
-	if (!c->initialized) {
-		native_stackframeinfo sfi;
-		bool init;
-
-		/* more or less the same as the above sfi setup is done in the assembler code by the prepare/remove functions*/
-		sfi.returnToFromNative = (functionptr) (ptrint) ra;
-		sfi.beginOfJavaStackframe = beginOfJavaStack;
-		sfi.method = NULL; /*internal*/
-		sfi.addressOfThreadspecificHead = builtin_asm_get_stackframeinfo();
-		sfi.oldThreadspecificHeadValue = *(sfi.addressOfThreadspecificHead);
-		*(sfi.addressOfThreadspecificHead) = &sfi;
-
-		/*printf("calling static initializer (helper_initialize_class), returnaddress=%p for class %s\n",ra,c->name->text);*/
-
-		init=initialize_class(c);
-
-		*(sfi.addressOfThreadspecificHead) = sfi.oldThreadspecificHeadValue;
-
-		return init;
-	}
-
-	return true;
-}
-
 
 
 /* patcher_get_putstatic *******************************************************
@@ -93,7 +65,6 @@ bool patcher_get_putstatic(u1 *sp)
 	unresolved_field  *uf;
 	fieldinfo         *fi;
 	s4                 offset;
-	void              *beginJavaStack;
 
 	/* get stuff from the stack */
 
@@ -101,8 +72,6 @@ bool patcher_get_putstatic(u1 *sp)
 	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	uf    = (unresolved_field *)  *((ptrint *) (sp + 0 * 8));
-
-	beginJavaStack=              (void*)(sp + 3 * 8);
 
 	/* calculate and set the new return address */
 
@@ -121,7 +90,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!helper_initialize_class(beginJavaStack, fi->class, ra + 5)) {
+	if (!initialize_class(fi->class)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -133,7 +102,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* get RIP offset from machine instruction */
@@ -197,7 +166,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch the field's offset: we check for the field type, because the     */
@@ -275,7 +244,7 @@ bool patcher_putfieldconst(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch the field's offset */
@@ -325,14 +294,13 @@ bool patcher_builtin_new(u1 *sp)
 	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
-	void              *beginJavaStack;
+
 	/* get stuff from the stack */
 
 	ra    = (u1 *)                *((ptrint *) (sp + 3 * 8));
 	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	cr    = (constant_classref *) *((ptrint *) (sp + 0 * 8));
-	beginJavaStack =              (void*) (sp+3*8);
 
 	/* calculate and set the new return address */
 
@@ -349,7 +317,7 @@ bool patcher_builtin_new(u1 *sp)
 		return false;
 	}
 
-	if (!helper_initialize_class(beginJavaStack, c, ra + 5)) {
+	if (!initialize_class(c)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -365,7 +333,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch new function address */
@@ -429,7 +397,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch new function address */
@@ -491,7 +459,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch the class' vftbl pointer */
@@ -512,8 +480,8 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
    Machine code:
 
-   48 be b8 3f b2 00 00 00 00 00    mov    $0xb23fb8,%rsi
    <patched call position>
+   48 be b8 3f b2 00 00 00 00 00    mov    $0xb23fb8,%rsi
    48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
    48 ff d0                         callq  *%rax
 
@@ -536,7 +504,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 5);
+	ra = ra - 5;
 	*((ptrint *) (sp + 3 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -551,16 +519,16 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* patch back original code */
 
-	*((u8 *) (ra + 10)) = mcode;
+	*((u8 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop's */
+
+	if (opt_showdisassemble)
+		ra = ra + 5;
 
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (showdisassemble)
-		ra = ra + 5;
 
 	/* patch new function address */
 
@@ -623,7 +591,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch new function address */
@@ -681,7 +649,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch stubroutine */
@@ -741,7 +709,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch vftbl index */
@@ -803,7 +771,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch interfacetable index */
@@ -869,7 +837,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch class flags */
@@ -931,7 +899,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch super class index */
@@ -997,7 +965,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch super class' vftbl */
@@ -1056,7 +1024,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch super class' vftbl */
@@ -1087,7 +1055,6 @@ bool patcher_clinit(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	classinfo         *c;
-	void              *beginJavaStack;
 
 	/* get stuff from the stack */
 
@@ -1095,8 +1062,6 @@ bool patcher_clinit(u1 *sp)
 	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	c     = (classinfo *)         *((ptrint *) (sp + 0 * 8));
-
-	beginJavaStack =      (void*) (sp + 3 * 8);
 
 	/* calculate and set the new return address */
 
@@ -1107,7 +1072,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* check if the class is initialized */
 
-	if (!helper_initialize_class(beginJavaStack, c, ra + 5)) {
+	if (!initialize_class(c)) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -1133,6 +1098,7 @@ bool patcher_clinit(u1 *sp)
 
 *******************************************************************************/
 
+#if !defined(ENABLE_STATICVM)
 bool patcher_resolve_native(u1 *sp)
 {
 	u1                *ra;
@@ -1140,7 +1106,6 @@ bool patcher_resolve_native(u1 *sp)
 	u8                 mcode;
 	methodinfo        *m;
 	functionptr        f;
-	void              *beginJavaStack;
 
 	/* get stuff from the stack */
 
@@ -1148,8 +1113,6 @@ bool patcher_resolve_native(u1 *sp)
 	o     = (java_objectheader *) *((ptrint *) (sp + 2 * 8));
 	mcode =                       *((u8 *)     (sp + 1 * 8));
 	m     = (methodinfo *)        *((ptrint *) (sp + 0 * 8));
-
-	beginJavaStack =      (void*) (sp + 3 * 8);
 
 	/* calculate and set the new return address */
 
@@ -1172,7 +1135,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop's */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 5;
 
 	/* patch native function pointer */
@@ -1183,6 +1146,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	return true;
 }
+#endif /* !defined(ENABLE_STATICVM) */
 
 
 /*

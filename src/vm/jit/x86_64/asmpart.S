@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2733 2005-06-17 12:18:29Z twisti $
+   $Id: asmpart.S 2956 2005-07-09 14:04:34Z twisti $
 
 */
 
@@ -64,7 +64,6 @@
 	.globl asm_wrapper_patcher
 
 	.globl asm_builtin_arraycheckcast
-	.globl asm_builtin_aastore
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -76,11 +75,6 @@
 	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
-
-	.globl asm_prepare_native_stackinfo
-	.globl asm_remove_native_stackinfo
-	.globl asm_throw_and_handle_exception
-	.globl asm_throw_and_handle_hardware_arithmetic_exception		
 
 
 /********************* function asm_calljavafunction ***************************
@@ -735,53 +729,54 @@ noflt:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-	sub     $(17*8),%rsp                /* stack frame (16-byte aligned)      */
+	sub     $(19*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
 
 	SAVE_ARGUMENT_REGISTERS(0)
 	SAVE_TEMPORARY_REGISTERS(14)
 
-	mov     itmp1,15*8(%rsp)            /* save itmp1 and itmp2               */
-	mov     itmp2,16*8(%rsp)            /* can be used by some instructions   */
+	mov     itmp1,15*8(sp)              /* save itmp1 and itmp2               */
+	mov     itmp2,16*8(sp)              /* can be used by some instructions   */
 
-	mov     %rsp,a0                     /* pass stack pointer                 */
-	add     $(18*8),a0                  /* skip patcher function pointer      */
-	mov     17*8(%rsp),itmp3            /* get function pointer               */
+	mov     sp,a0                       /* create stackframe info             */
+	add     $(19*8),a0
+	xor     a1,a1                       /* if pv is NULL, use findmethod      */
+	mov     sp,a2
+	add     $((5+19)*8+sizestackframeinfo),a2
+	mov     ((4+19)*8+sizestackframeinfo)(sp),a3
+	call    stacktrace_create_inline_stackframeinfo
+
+	mov     sp,a0                       /* pass stack pointer                 */
+	add     $((1+19)*8+sizestackframeinfo),a0   /* skip function pointer      */
+	mov     (19*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
 	call    *itmp3                      /* call the patcher function          */
-	mov     v0,itmp3                    /* save return value                  */
+	mov     v0,17*8(sp)                 /* save return value                  */
+
+	mov     sp,a0                       /* remove stackframe info             */
+	add     $(19*8),a0
+	call    stacktrace_remove_stackframeinfo
 
 	RESTORE_ARGUMENT_REGISTERS(0)
 	RESTORE_TEMPORARY_REGISTERS(14)
 
-	mov     15*8(%rsp),itmp1            /* restore itmp1 and itmp2            */
-	mov     16*8(%rsp),itmp2            /* can be used by some instructions   */
+	mov     15*8(sp),itmp1              /* restore itmp1 and itmp2            */
+	mov     16*8(sp),itmp2              /* can be used by some instructions   */
+	mov     17*8(sp),itmp3              /* restore return value               */
 
-	add     $((4+17)*8),%rsp            /* remove stack frame, keep ra        */
+	add     $((4+19)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
 	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
-	/*stack bottom is xpc and it is directly below the last java stackframe*/
-	push $0
-	push $0
-	push $0 /*padding*/
-	call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
-	mov     v0,itmp2
+	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
 	lea     _exceptionptr,itmp2
 #endif
-	mov     (itmp2),a0                  /* get the exception pointer          */
+	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear exception pointer            */
-	call    helper_fillin_stacktrace
-
-	mov     v0,xptr
-
-	call    asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-	add     $8,%rsp
 
 	pop     xpc                         /* get and remove return address      */
 	jmp     asm_handle_exception
@@ -849,100 +844,6 @@ asm_builtin_d2l:
 	ret
 
 
-/* asm_builtin_arraycheckcast **************************************************
-
-   Does the cast check and eventually throws an exception.
-
-*******************************************************************************/
-
-asm_builtin_arraycheckcast:
-	sub     $24,%rsp                    /* keep stack 16-byte aligned         */
-	mov     %rdi,(%rsp)                 /* save object pointer                */
-	call    builtin_arraycheckcast
-	test    %rax,%rax                   /* if (false) throw exception         */
-	je      nb_carray_throw
-	mov     (%rsp),%rax                 /* return object pointer              */
-	add     $24,%rsp                    /* free stack space                   */
-	ret
-
-nb_carray_throw:
-	/*call    new_classcastexception*/
-	add     $24,%rsp
-	pop     xpc                        /* delete return address              */
-	sub     $3,xpc                     /* faulting address is ra - 3         */
-        mov     string_java_lang_ClassCastException,xptr
-	jmp     asm_throw_and_handle_exception
-
-		
-/* asm_builtin_aastore *********************************************************
-
-   Checks if the object can be stored in the given array and stores the
-   address if it's possible. This function can also throw some exceptions.
-
-*******************************************************************************/
-
-asm_builtin_aastore:
-	sub     $(3*8),%rsp             /* allocate stack space                   */
-	test    %rdi,%rdi               /* if null pointer throw exception        */
-	je      nb_aastore_null
-
-	movl    offarraysize(%rdi),%eax /* load size                              */
-	cmpl    %eax,%esi               /* do bound check                         */
-	jae     nb_aastore_bound        /* if out of bounds throw exception       */
-
-	shl     $3,%rsi                 /* index * 8                              */
-	mov     %rdi,%r10
-	add     %rsi,%r10               /* add index * 8 to arrayref              */
-
-	mov     %r10,(%rsp)             /* save store position                    */
-	mov     %rdx,8(%rsp)            /* save object                            */
-
-	mov     %rdx,%rsi               /* object is second argument              */
-	call    builtin_canstore        /* builtin_canstore(arrayref,object)      */
-	test    %rax,%rax               /* if (false) throw exception             */
-	je      nb_aastore_throw
-
-	mov     (%rsp),%r10             /* restore store position                 */
-	mov     8(%rsp),%rdx            /* restore object                         */
-	mov     %rdx,offobjarrdata(%r10)/* store objectptr in array               */
-	add     $(3*8),%rsp             /* free stack space                       */
-	ret
-
-nb_aastore_null:
-	add     $24,%rsp
-	pop     xpc                    /* delete return address from stack       */
-	sub     $3,xpc                 /* faulting address is return adress - 3  */
-        mov     string_java_lang_NullPointerException,xptr
-	jmp    asm_throw_and_handle_exception
-
-nb_aastore_bound:
-	add	$24,%rsp
-	push	$0 /*directly below return address*/
-	push	$0 /*internal*/
-	push	$0 /*padding*/
-	mov	%rsi,itmp1
-	
-	call    asm_prepare_native_stackinfo
-
-	mov     itmp1,%rdi               /* move index into a0                     */
-	call    new_arrayindexoutofboundsexception
-
-	call	asm_remove_native_stackinfo
-
-	pop     xpc                    /* just remove one quadword                  */
-	pop     xpc                    /* delete return address                  */
-	sub     $3,xpc                 /* faulting address is return adress - 3  */
-	jmp     asm_handle_exception
-		
-nb_aastore_throw:
-	/*call    new_arraystoreexception*/
-	add     $24,%rsp
-	pop     xpc                    /* delete return address                  */
-	sub     $3,xpc                 /* faulting address is return adress - 3  */
-        mov     string_java_lang_ArrayStoreException,xptr
-	jmp     asm_throw_and_handle_exception
-
-		
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 * initialized a thread stack                                                   *
@@ -1037,127 +938,6 @@ asm_switchstackandcall:
         add     $(1*8),%rsp             /* free stack space                   */
         mov     %r10,(%rsp)             /* write return adress                */
         ret
-
-
-
-
-/************************ function asm_prepare_native_stackinfo ****************************
-*                                                                                          *
-*    creates a stackfame for the begin of a native function (either builtin or not )       *
-*    expected stack at begin of function                                                   *
-*                                        ....                                              *
-*                   address of the jit call which invokes the native                       *
-*                   begin address of stack frame of the java method                        *
-*                   method pointer or 0 (for built ins)                                    *
-*                   padding for stackframesize 16*n+8                                      *
-*                   return address                                                         *
-*                                                                                          *
-*    at end of function:                                                                   *
-*                                          ...                                             *
-*                   address of the jit call which invokes the native                       *
-*                   begin address of stack frame of the java method                        *
-*                   method pointer or 0 (for built ins)                                    *
-*                   address of thread specific top of native list                          *
-*                   old value of thread specific head                                      *
-*                   padding for stackframesize 16*n+8)                                     *
-*                   return address                                                         *
-*                                                                                          *
-*                                        ....                                              *
-* This thing is less efficient than the original #define (callerside)                      *
-* destroyes REG_ITMP2, keeps REG_ITMP1                                                     *
-********************************************************************************************/
-
-
-asm_prepare_native_stackinfo:
-        sub $16,%rsp  /*space for the 2 new pointers*/
-        mov 16(%rsp),itmp2
-        mov itmp2,(%rsp)
-        push itmp1
-        call builtin_asm_get_stackframeinfo
-
-        mov itmp1, 32(%rsp)
-        mov (itmp1),itmp2
-        mov itmp2,24(%rsp)
-        mov %rsp,itmp2
-        add $24,itmp2
-        mov itmp2,(itmp1)
-        pop itmp1
-        ret
-
-		
-
-/************************ function asm_remove _native_stackinfo *******************************************
-*                                                                                                         *
-*    removes a stackfame for the begin of a native function (either builtin or not)                       *
-*    expected stack at begin of function                                                                  *
-*                   address of the jit call which invokes the native                                      *
-*                   begin address of stack frame of the java method                                       *
-*                   method pointer or 0 (for built ins)                                                   *
-*                   address thread specific top of native list                                            *
-*                   old value of thread specific head                                                     *
-*                   padding                                                                               *
-*                   return address                                                                        *
-*                                                                                                         *
-*    at end of function:                                                                                  *
-*                             ....                                                                        *
-*                   return adresss of the jit call which invokes the native                               *
-*                   padding                                                                               *
-*                   return address                                                                        *
-*                                                                                                         *
-*                                                                                                         *
-*                                                                                                         *
-* This thing is less efficient than the original #define (callerside), uses ITMP2,uses ITMP3,keeps ITMP1  *
-***********************************************************************************************************/
-
-asm_remove_native_stackinfo:
-        mov 16(%rsp),itmp2
-        mov 24(%rsp),itmp3
-        mov itmp2,(itmp3)
-        pop itmp3
-        add $32,%rsp
-        push itmp3
-        ret
-
-
-
-asm_throw_and_handle_exception:
-        push xpc /* the pushed XPC is directly below the java frame*/
-        push $0 
-        push $0
-        push $0 /*padding*/
-        call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-        mov itmp1,%rdi
-
-        call new_exception
-
-        call asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-
-        pop xpc
-	pop xpc
-
-        jmp asm_handle_exception
-        ret /*should never be reached */
-
-
-asm_throw_and_handle_hardware_arithmetic_exception:
-
-        push xpc
-        push $0 /* the pushed XPC is directly below the java frame*/
-        push $0
-	push $0 /*padding*/
-        call asm_prepare_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-
-        mov string_java_lang_ArithmeticException_message,%rsi
-        mov string_java_lang_ArithmeticException,%rdi
-
-        call new_exception_message
-
-        call asm_remove_native_stackinfo /* be aware of the stack effect and calling convention explained above*/
-	pop xpc
-        pop xpc
-
-        jmp asm_handle_exception
-        ret /*should never be reached */
 
 
 asm_getclassvalues_atomic:

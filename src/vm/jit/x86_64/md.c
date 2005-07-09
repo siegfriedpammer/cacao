@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2914 2005-07-05 13:39:44Z twisti $
+   $Id: md.c 2956 2005-07-09 14:04:34Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "config.h"
 #include "vm/jit/x86_64/md-abi.h"
 
+#include "vm/exceptions.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
@@ -66,15 +67,40 @@ void md_init(void)
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *pv;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	_mc->gregs[REG_RAX] = (ptrint) string_java_lang_NullPointerException;
-	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];           /* REG_ITMP2_XPC     */
-	_mc->gregs[REG_RIP] = (ptrint) asm_throw_and_handle_exception;
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
+	/* different to the ones in <ucontext.h>                                  */
+
+	sp = (u1 *) _mc->gregs[REG_RSP];
+	ra = (functionptr) _mc->gregs[REG_RIP];
+
+	pv = (u1 *) codegen_findmethod(ra);
+
+	stacktrace_create_inline_stackframeinfo(sfi, pv, sp, ra);
+
+	_mc->gregs[REG_RAX] = (ptrint) new_nullpointerexception();
+
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
+	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }
 
 
@@ -86,15 +112,40 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *pv;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];           /* REG_ITMP2_XPC     */
-	_mc->gregs[REG_RIP] =
-		(ptrint) asm_throw_and_handle_hardware_arithmetic_exception;
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
+	/* different to the ones in <ucontext.h>                                  */
+
+	sp = (u1 *) _mc->gregs[REG_RSP];
+	ra = (functionptr) _mc->gregs[REG_RIP];
+
+	pv = (u1 *) codegen_findmethod(ra);
+
+	stacktrace_create_inline_stackframeinfo(sfi, pv, sp, ra);
+
+	_mc->gregs[REG_RAX] = (ptrint) new_arithmeticexception();
+
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
+	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }
 
 
