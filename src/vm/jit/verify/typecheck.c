@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2943 2005-07-08 15:46:50Z twisti $
+   $Id: typecheck.c 2949 2005-07-09 12:20:02Z twisti $
 
 */
 
@@ -1242,7 +1242,7 @@ verify_builtin(verifier_state *state)
 		if (!vft->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
-#if !defined(__POWERPC__)
+#if !defined(__POWERPC__) && !defined(__X86_64__)
 	else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
 		vftbl_t *vft;
 		TYPECHECK_ADR(state->curstack->prev);
@@ -1263,7 +1263,7 @@ verify_builtin(verifier_state *state)
 			return false;
 	}
 #endif
-#if !defined(__POWERPC__)
+#if !defined(__POWERPC__) && !defined(__X86_64__)
 	else if (ISBUILTIN(BUILTIN_aastore)) {
 		TYPECHECK_ADR(state->curstack);
 		TYPECHECK_INT(state->curstack->prev);
@@ -1644,7 +1644,7 @@ fieldaccess_tail:
 				maythrow = true;
 				break;
 
-#if defined(__POWERPC__)
+#if defined(__POWERPC__) || defined(__X86_64__)
 			case ICMD_AASTORE:
 				/* XXX TWISTI implement me! */
 				maythrow = true;
@@ -1980,7 +1980,7 @@ return_tail:
 			case ICMD_ANEWARRAY:
 			case ICMD_MONITORENTER:
 			case ICMD_MONITOREXIT:
-#if !defined(__POWERPC__)
+#if !defined(__POWERPC__) && !defined(__X86_64__)
 			case ICMD_AASTORE:
 #endif
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));

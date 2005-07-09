@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2936 2005-07-08 15:08:04Z twisti $
+   $Id: stack.c 2949 2005-07-09 12:20:02Z twisti $
 
 */
 
@@ -939,12 +939,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_CONST_STORE
 						if (len > 0 && iptr->val.a == 0) {
 							switch (iptr[1].opc) {
+#if !defined(__POWERPC__) && !defined(__X86_64__)
 							case ICMD_BUILTIN:
 								if (iptr[1].val.fp != BUILTIN_aastore) {
 									PUSHCONST(TYPE_ADR);
 									break;
 								}
 								/* fall through */
+#endif
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
 								switch (iptr[1].opc) {
@@ -1086,7 +1088,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-#if defined(__POWERPC__)
+#if defined(__POWERPC__) || defined(__X86_64__)
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);

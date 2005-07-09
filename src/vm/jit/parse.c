@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2937 2005-07-08 15:08:54Z twisti $
+   $Id: parse.c 2949 2005-07-09 12:20:02Z twisti $
 
 */
 
@@ -998,7 +998,7 @@ SHOWOPCODE(DEBUG4)
 		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
-#if defined(__POWERPC__)
+#if defined(__POWERPC__) || defined(__X86_64__)
 			bte = builtintable_get_internal(BUILTIN_canstore);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
 			inline_env->method->isleafmethod = false;
@@ -1229,7 +1229,7 @@ SHOWOPCODE(DEBUG4)
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-#if defined(__POWERPC__)
+#if defined(__POWERPC__) || defined(__X86_64__)
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
 					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c->vftbl, currentline);
