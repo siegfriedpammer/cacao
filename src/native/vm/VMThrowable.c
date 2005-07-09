@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 2648 2005-06-13 14:00:04Z twisti $
+   $Id: VMThrowable.c 2945 2005-07-09 12:16:18Z twisti $
 
 */
 
@@ -65,22 +65,22 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 		return 0;
 	}
 
-	vmthrow = (java_lang_VMThrowable *) native_new_and_init(class_java_lang_VMThrowable);
+	vmthrow = (java_lang_VMThrowable *)
+		native_new_and_init(class_java_lang_VMThrowable);
 
 	if (!vmthrow) {
 		log_text("Needed instance of class  java.lang.VMThrowable could not be created");
 		assert(0);
 	}
 
-#if defined(__I386__) || defined(__ALPHA__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
 	cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData));
 #endif
 	return vmthrow;
 }
 
 
-static
-java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long size)
+static java_objectarray *generateStackTraceArray(JNIEnv *env,stacktraceelement *el, s4 size)
 {
 	long resultPos;
 	methodinfo *m;
@@ -179,15 +179,20 @@ java_objectarray* generateStackTraceArray(JNIEnv *env,stacktraceelement *el,long
  * Method:    getStackTrace
  * Signature: (Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *par1)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
-#if defined(__I386__) || defined(__ALPHA__) || defined (__x86_64__)
-	stackTraceBuffer *buf=(stackTraceBuffer*)this->vmData;
-	u8 size;
-	stacktraceelement *el;
-	classinfo  *excClass=par1->header.vftbl->class;
-	long destElementCount;
-	stacktraceelement *tmpEl;
+#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
+	stackTraceBuffer  *buf;
+	stacktraceelement *elem;
+	stacktraceelement *tmpelem;
+	u8                 size;
+	s4                 elemcount;
+	classinfo         *c;
+	bool               inexceptionclass;
+	bool               leftexceptionclass;
+
+	buf = (stackTraceBuffer *) this->vmData;
+	c = t->header.vftbl->class;
 
 	if (!buf) {
 		log_text("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
@@ -201,30 +206,55 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 		assert(0);
 	}
 
-	size -=2;
-	el=&(buf->start[2]); /* element 0==VMThrowable.fillInStackTrace native call, 1==Throwable.fillInStackTrace*/
-	if (size && el->method!=0) { /* => not a builtin native wrapper*/
-		if ((el->method->class->name == utf_java_lang_Throwable) &&
-			(el->method->name == utf_init)) {
-			/* We assume that we are within the initializer of the exception object, the exception object itself should not appear
-				in the stack trace, so we skip till we reach the first function, which is not an init function or till we reach the exception object class*/
-			for (; (size>0) && (el->method->name == utf_init) && (el->method->class!=excClass); el++, size--) {
-				/* just loop*/
+	/* skip first 2 elements in stacktrace buffer:                            */
+	/*   0: VMThrowable.fillInStackTrace                                      */
+	/*   1: Throwable.fillInStackTrace                                        */
+
+	elem = &(buf->start[2]);
+	size -= 2;
+
+	if (size && elem->method != 0) {
+		/* not a builtin native wrapper*/
+
+		if ((elem->method->class->name == utf_java_lang_Throwable) &&
+			(elem->method->name == utf_init)) {
+			/* We assume that we are within the initializer of the exception  */
+			/* object, the exception object itself should not appear in the   */
+			/* stack trace, so we skip till we reach the first function,      */
+			/* which is not an init function.                                 */
+
+			inexceptionclass = false;
+			leftexceptionclass = false;
+
+			while (size > 0) {
+				/* check if we are in the exception class */
+
+				if (elem->method->class == c)
+					inexceptionclass = true;
+
+				/* check if we left the exception class */
+
+				if (inexceptionclass && (elem->method->class != c))
+					leftexceptionclass = true;
+
+				/* found exception start point if we left the initalizers or  */
+				/* we left the exception class                                */
+
+				if ((elem->method->name != utf_init) || leftexceptionclass)
+					break;
+
+				elem++;
+				size--;
 			}
-			size --;
-			el++;
-			/*if (size<1) {
-				log_text("Invalid stacktrace for VMThrowable.getStackTrace()");
-			}*/
 		}
 	}
-
 	
-	for (destElementCount = 0, tmpEl=el; size>0; size--,tmpEl++) {
-		if (tmpEl->method!=0) destElementCount++;
+	for (elemcount = 0, tmpelem = elem; size > 0; size--, tmpelem++) {
+		if (tmpelem->method)
+			elemcount++;
 	}
 
-	return generateStackTraceArray(env,el,destElementCount);
+	return generateStackTraceArray(env, elem, elemcount);
 #else
 	return 0;
 #endif
