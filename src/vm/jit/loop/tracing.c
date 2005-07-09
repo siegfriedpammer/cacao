@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 2563 2005-06-06 15:22:56Z twisti $
+   $Id: tracing.c 2948 2005-07-09 12:17:35Z twisti $
 
 */
 
@@ -609,6 +609,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 
 		case ICMD_INSTANCEOF:       /* ..., objectref ==> ..., intresult      */
 		case ICMD_CHECKCAST:        /* ..., objectref ==> ..., objectref      */
+		case ICMD_ARRAYCHECKCAST:   /* ..., objectref ==> ..., objectref      */
 			if (temp > 0)
 				return tracing(block, index-1, temp);
 			else
