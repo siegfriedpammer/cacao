@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2921 2005-07-07 09:26:30Z twisti $
+   $Id: md-os.c 2962 2005-07-09 18:08:06Z twisti $
 
 */
 
@@ -120,36 +120,58 @@ int cacao_catch_Handler(mach_port_t thread)
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t         *uc;
-	mcontext_t          mc;
-	ppc_thread_state_t *ss;
+	ucontext_t         *_uc;
+	mcontext_t          _mc;
+	ppc_thread_state_t *_ss;
 	ptrint             *gregs;
 	u4                  instr;
 	s4                  reg;
 	ptrint              addr;
+	stackframeinfo     *sfi;
+	u1                 *pv;
+	u1                 *sp;
+	functionptr         ra;
 
-	uc = (ucontext_t *) _p;
-	mc = uc->uc_mcontext;
-	ss = &mc->ss;
+	_uc = (ucontext_t *) _p;
+	_mc = _uc->uc_mcontext;
+	_ss = &_mc->ss;
 
 	/* check for NullPointerException */
 
-	gregs = &ss->r0;
+	gregs = &_ss->r0;
 
-	instr = *((u4 *) ss->srr0);
+	instr = *((u4 *) _ss->srr0);
 	reg = (instr >> 16) & 31;
 	addr = gregs[reg];
 
 	if (addr == 0) {
+		/* allocate stackframeinfo on heap */
+
+		sfi = NEW(stackframeinfo);
+
+		/* create exception */
+
+		pv = (u1 *) _ss->r13;
+		sp = (u1 *) _ss->r1;
+		ra = (functionptr) _ss->srr0;
+
+		stacktrace_create_inline_stackframeinfo(sfi, pv, sp, ra);
+
+		_ss->r11 = (ptrint) new_nullpointerexception();
+
+		stacktrace_remove_stackframeinfo(sfi);
+
+		FREE(sfi, stackframeinfo);
+
 		/* set the REG_ITMP1_XPTR, REG_ITMP2_XPC and new PC */
 
-		ss->r11 = (ptrint) new_nullpointerexception();
-		ss->r12 = ss->srr0;
-		ss->srr0 = (ptrint) asm_handle_exception;
+		_ss->r12 = _ss->srr0;
+		_ss->srr0 = (ptrint) asm_handle_exception;
 
 	} else {
 		throw_cacao_exception_exit(string_java_lang_InternalError,
-					   "Segmentation fault at 0x%08lx", addr);
+					   "Segmentation fault: 0x%08lx at 0x%08lx",
+					   addr, _ss->srr0);
 	}
 }
 
