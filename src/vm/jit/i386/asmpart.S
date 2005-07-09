@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2469 2005-05-13 09:06:36Z twisti $
+   $Id: asmpart.S 2947 2005-07-09 12:17:14Z twisti $
 
 */
 
@@ -124,8 +124,8 @@ call_name:
 	.long   calljava_xhandler         /* end pc                               */
 	.long   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
-	.long   0			  /* line number table	start		  */
-	.long   0			  /* line number table	size		  */
+	.long   0                         /* line number table start              */
+	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
