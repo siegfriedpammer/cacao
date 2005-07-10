@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2933 2005-07-08 11:59:57Z twisti $
+   $Id: stacktrace.h 2974 2005-07-10 21:46:48Z twisti $
 
 */
 
@@ -88,7 +88,28 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
-void stacktrace_call_fillInStackTrace(java_objectheader *o);
+/* exception creating functions */
+java_objectheader *stacktrace_new_arithmeticexception(u1 *pv, u1 *sp,
+													  functionptr ra);
+
+java_objectheader *stacktrace_new_arrayindexoutofboundsexception(u1 *pv,
+																 u1 *sp,
+																 functionptr ra,
+																 s4 index);
+
+java_objectheader *stacktrace_new_arraystoreexception(u1 *pv, u1 *sp,
+													  functionptr ra);
+
+java_objectheader *stacktrace_new_classcastexception(u1 *pv, u1 *sp,
+													 functionptr ra);
+
+java_objectheader *stacktrace_new_negativearraysizeexception(u1 *pv, u1 *sp,
+															 functionptr ra);
+
+java_objectheader *stacktrace_new_nullpointerexception(u1 *pv, u1 *sp,
+													   functionptr ra);
+
+java_objectheader *stacktrace_fillInStackTrace(u1 *pv, u1 *sp, functionptr ra);
 
 void cacao_stacktrace_NormalTrace(void **target);
 java_objectarray *cacao_createClassContextArray(void);

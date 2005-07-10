@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2954 2005-07-09 13:49:50Z twisti $
+   $Id: stacktrace.c 2974 2005-07-10 21:46:48Z twisti $
 
 */
 
@@ -108,12 +108,10 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	osfi = builtin_asm_get_stackframeinfo();
 
-#if defined(__I386__) || defined(__X86_64__)
-	/* we don't have pv in asm_wrapper_patcher handy */
+	/* sometimes we don't have pv in asmpart.S handy */
 
 	if (pv == NULL)
 		pv = (u1 *) codegen_findmethod(ra);
-#endif
 
 	/* fill new stackframe info structure */
 
@@ -185,15 +183,199 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 }
 
 
-/* stacktrace_call_fillInStackTrace ********************************************
+/* stacktrace_new_arithmeticexception ******************************************
 
-   XXX
+   Creates an ArithemticException for inline stub.
 
 *******************************************************************************/
 
-void stacktrace_call_fillInStackTrace(java_objectheader *o)
+java_objectheader *stacktrace_new_arithmeticexception(u1 *pv, u1 *sp,
+													  functionptr ra)
 {
-	methodinfo *m;
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_arithmeticexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_new_arrayindexoutofboundsexception *******************************
+
+   Creates an ArrayIndexOutOfBoundsException for inline stub.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_new_arrayindexoutofboundsexception(u1 *pv,
+																 u1 *sp,
+																 functionptr ra,
+																 s4 index)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_arrayindexoutofboundsexception(index);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_new_arraystoreexception ******************************************
+
+   Creates an ArrayStoreException for inline stub.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_new_arraystoreexception(u1 *pv, u1 *sp,
+													  functionptr ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_arraystoreexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_new_classcastexception *******************************************
+
+   Creates an ClassCastException for inline stub.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_new_classcastexception(u1 *pv, u1 *sp,
+													 functionptr ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_classcastexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_new_negativearraysizeexception ***********************************
+
+   Creates an NegativeArraySizeException for inline stub.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_new_negativearraysizeexception(u1 *pv, u1 *sp,
+															 functionptr ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_negativearraysizeexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_new_nullpointerexception *****************************************
+
+   Creates an NullPointerException for inline stub.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_new_nullpointerexception(u1 *pv, u1 *sp,
+													   functionptr ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* create exception */
+
+	o = new_nullpointerexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_fillInStackTrace *************************************************
+
+   Fills in the correct stacktrace into an existing exception object.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_fillInStackTrace(u1 *pv, u1 *sp, functionptr ra)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+	methodinfo        *m;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra);
+
+	/* get exception */
+
+	o = *exceptionptr;
+
+	/* clear exception */
+
+	*exceptionptr = NULL;
 
 	/* resolve methodinfo pointer from exception object */
 
@@ -204,6 +386,12 @@ void stacktrace_call_fillInStackTrace(java_objectheader *o)
 	/* call function */
 
 	asm_calljavafunction(m, o, NULL, NULL, NULL);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
 }
 
 
