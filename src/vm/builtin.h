@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 2949 2005-07-09 12:20:02Z twisti $
+   $Id: builtin.h 2969 2005-07-10 15:24:35Z twisti $
 
 */
 
@@ -133,7 +133,7 @@ s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
 
 s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
-#if defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__)
 #define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
 #else
 s4 asm_builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
@@ -185,7 +185,7 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
-#if !defined(__POWERPC__) && !defined(__X86_64__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
 void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o);
 #define BUILTIN_aastore (functionptr) asm_builtin_aastore
 #endif
@@ -238,7 +238,7 @@ s8 builtin_lmul(s8 a, s8 b);
 #define BUILTIN_lmul (functionptr) builtin_lmul
 
 s8 builtin_ldiv(s8 a, s8 b);
-#if defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__)
 #define BUILTIN_ldiv (functionptr) builtin_ldiv
 #else
 s8 asm_builtin_ldiv(s8 a, s8 b);
@@ -246,7 +246,7 @@ s8 asm_builtin_ldiv(s8 a, s8 b);
 #endif
 
 s8 builtin_lrem(s8 a, s8 b);
-#if defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__)
 #define BUILTIN_lrem (functionptr) builtin_lrem
 #else
 s8 asm_builtin_lrem(s8 a, s8 b);
