@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2918 2005-07-05 14:00:17Z twisti $
+   $Id: md.c 2970 2005-07-10 15:29:32Z twisti $
 
 */
 
@@ -60,7 +60,7 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
 	functionptr ra;
 
-	/* on x86_64 the return address is above the current stack frame */
+	/* on i386 the return address is above the current stack frame */
 
 	ra = (functionptr) *((u1 **) (sp + framesize));
 
