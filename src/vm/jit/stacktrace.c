@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2974 2005-07-10 21:46:48Z twisti $
+   $Id: stacktrace.c 2975 2005-07-10 22:20:21Z twisti $
 
 */
 
@@ -111,7 +111,7 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* sometimes we don't have pv in asmpart.S handy */
 
 	if (pv == NULL)
-		pv = (u1 *) codegen_findmethod(ra);
+		pv = (u1 *) (ptrint) codegen_findmethod(ra);
 
 	/* fill new stackframe info structure */
 
@@ -609,7 +609,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 				} else {
 					/* this is an native stub info */
 
-					pv = (u1 *) codegen_findmethod(ra);
+					pv = (u1 *) (ptrint) codegen_findmethod(ra);
 				}
 
 				/* get methodinfo pointer from data segment */
@@ -636,7 +636,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 				/* add the current method to the stacktrace */
 
 				stacktrace_fillInStackTrace_method(&buffer, m, pv,
-												   ((u1 *) ra) - 1);
+												   (u1 *) ((ptrint) ra) - 1);
 
 				/* get the current stack frame size */
 
@@ -648,7 +648,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 				/* get data segment and methodinfo pointer from parent method */
 
-				pv = (u1 *) codegen_findmethod(ra);
+				pv = (u1 *) (ptrint) codegen_findmethod(ra);
 				m = *((methodinfo **) (pv + MethodPointer));
 
 				/* walk the stack */
