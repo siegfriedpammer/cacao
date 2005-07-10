@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2916 2005-07-05 13:59:43Z twisti $
+   $Id: md-os.c 2972 2005-07-10 15:52:16Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "config.h"
 #include "vm/jit/i386/md-abi.h"
 
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
@@ -50,15 +51,34 @@
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 	
-	_mc->mc_eax = (ptrint) string_java_lang_NullPointerException;
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	sp = (u1 *) _mc->mc_esp;
+	ra = (functionptr) _mc->mc_eip;
+
+	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+
+	_mc->mc_eax = (ptrint) new_nullpointerexception();
+	
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
 	_mc->mc_ecx = _mc->mc_eip;                               /* REG_ITMP2_XPC */
-	_mc->mc_eip = (ptrint) asm_throw_and_handle_exception;
+	_mc->mc_eip = (ptrint) asm_handle_exception;
 }
 
 
@@ -70,14 +90,34 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	sp = (u1 *) _mc->mc_esp;
+	ra = (functionptr) _mc->mc_eip;
+
+	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+
+	_mc->mc_eax = (ptrint) new_arithmeticexception();
+	
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
 	_mc->mc_ecx = _mc->mc_eip;                               /* REG_ITMP2_XPC */
-	_mc->mc_eip = (ptrint) asm_throw_and_handle_hardware_arithmetic_exception;
+	_mc->mc_eip = (ptrint) asm_handle_exception;
 }
 
 
