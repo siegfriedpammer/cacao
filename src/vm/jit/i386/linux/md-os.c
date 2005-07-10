@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2916 2005-07-05 13:59:43Z twisti $
+   $Id: md-os.c 2971 2005-07-10 15:33:54Z twisti $
 
 */
 
@@ -37,9 +37,11 @@
 
 #include <ucontext.h>
 
+#include "vm/exceptions.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* signal_handler_sigsegv ******************************************************
@@ -50,15 +52,34 @@
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];           /* REG_ITMP2_XPC     */
-	_mc->gregs[REG_EAX] = (ptrint) string_java_lang_NullPointerException;
-	_mc->gregs[REG_EIP] = (ptrint) asm_throw_and_handle_exception;
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	sp = (u1 *) _mc->gregs[REG_ESP];
+	ra = (functionptr) _mc->gregs[REG_EIP];
+
+	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+
+	_mc->gregs[REG_EAX] = (ptrint) new_nullpointerexception();
+
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
+	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
 
 
@@ -70,15 +91,34 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	stackframeinfo *sfi;
+	u1             *sp;
+	functionptr     ra;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];           /* REG_ITMP2_XPC     */
-	_mc->gregs[REG_EIP] =
-		(ptrint) asm_throw_and_handle_hardware_arithmetic_exception;
+	/* allocate stackframeinfo on heap */
+
+	sfi = NEW(stackframeinfo);
+
+	/* create exception */
+
+	sp = (u1 *) _mc->gregs[REG_ESP];
+	ra = (functionptr) _mc->gregs[REG_EIP];
+
+	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+
+	_mc->gregs[REG_EAX] = (ptrint) new_arithmeticexception();
+
+	stacktrace_remove_stackframeinfo(sfi);
+
+	FREE(sfi, stackframeinfo);
+
+	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
 
 

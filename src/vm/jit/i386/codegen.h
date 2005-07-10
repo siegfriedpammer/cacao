@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 2836 2005-06-26 23:51:36Z twisti $
+   $Id: codegen.h 2971 2005-07-10 15:33:54Z twisti $
 
 */
 
@@ -461,16 +461,36 @@ typedef enum {
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
 
 #define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
+#define M_IST_IMM(a,b,disp)     i386_mov_imm_membase(cd, (a), (b), (disp))
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
+#define M_AST_IMM(a,b,disp)     M_IST_IMM(a,b,disp)
 
 #define M_IADD_IMM(a,b)         i386_alu_imm_reg(cd, ALU_ADD, (a), (b))
+#define M_IADD_IMM32(a,b)       i386_alu_imm32_reg(cd, ALU_ADD, (a), (b))
 #define M_ISUB_IMM(a,b)         i386_alu_imm_reg(cd, ALU_SUB, (a), (b))
 
 #define M_AADD_IMM(a,b)         M_IADD_IMM(a,b)
+#define M_AADD_IMM32(a,b)       M_IADD_IMM32(a,b)
 #define M_ASUB_IMM(a,b)         M_ISUB_IMM(a,b)
 
-#define M_PUSH(a)               i386_push_reg(cd, a)
-#define M_PUSH_IMM(a)           i386_push_imm(cd, a)
+#define M_OR_MEMBASE(a,b,c)     i386_alu_membase_reg(cd, ALU_OR, (a), (b), (c))
+
+#define M_PUSH(a)               i386_push_reg(cd, (a))
+#define M_PUSH_IMM(a)           i386_push_imm(cd, (a))
+#define M_POP(a)                i386_pop_reg(cd, (a))
+
+#define M_MOV(a,b)              i386_mov_reg_reg(cd, (a), (b))
+#define M_MOV_IMM(a,b)          i386_mov_imm_reg(cd, (a), (b))
+
+#define M_TEST(a)               i386_test_reg_reg(cd, (a), (a))
+
+#define M_CALL(a)               i386_call_reg(cd, (a))
+#define M_RET                   i386_ret(cd)
+
+#define M_BEQ(a)                i386_jcc(cd, I386_CC_E, (a))
+
+#define M_JMP(a)                i386_jmp_reg(cd, (a))
+#define M_JMP_IMM(a)            i386_jmp_imm(cd, (a))
 
 #define M_NOP                   i386_nop(cd)
 
