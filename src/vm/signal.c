@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 2794 2005-06-23 09:34:21Z twisti $
+   $Id: signal.c 2968 2005-07-10 15:18:21Z twisti $
 
 */
 
@@ -72,7 +72,7 @@ void signal_init(void)
 
 	if (!checknull) {
 		act.sa_sigaction = signal_handler_sigsegv;
-		act.sa_flags = SA_SIGINFO;
+		act.sa_flags = SA_NODEFER | SA_SIGINFO;
 
 #if defined(SIGSEGV)
 		sigaction(SIGSEGV, &act, NULL);
@@ -88,7 +88,7 @@ void signal_init(void)
 
 #if defined(__I386__) || defined(__X86_64__)
 	act.sa_sigaction = signal_handler_sigfpe;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags = SA_NODEFER | SA_SIGINFO;
 	sigaction(SIGFPE, &act, NULL);
 #endif
 
