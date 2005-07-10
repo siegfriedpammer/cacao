@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2949 2005-07-09 12:20:02Z twisti $
+   $Id: typecheck.c 2966 2005-07-10 11:02:31Z edwin $
 
 */
 
@@ -199,7 +199,7 @@ static void print_freq(FILE *file,int *array,int limit)
 	int i;
 	for (i=0; i<limit; ++i)
 		fprintf(file,"      %3d: %8d\n",i,array[i]);
-	fprintf(file,"    =>%3d: %8d\n",limit,array[limit]);
+	fprintf(file,"    >=%3d: %8d\n",limit,array[limit]);
 }
 
 void typecheck_print_statistics(FILE *file) {
@@ -1646,7 +1646,15 @@ fieldaccess_tail:
 
 #if defined(__POWERPC__) || defined(__X86_64__)
 			case ICMD_AASTORE:
-				/* XXX TWISTI implement me! */
+				/* we just check the basic input types and that the destination */
+				/* is an array of references. Assignability to the actual array */
+				/* must be checked at runtime, each time the instruction is     */
+				/* performed. (See builtin_canstore.)                           */
+				TYPECHECK_ADR(state->curstack);
+				TYPECHECK_INT(state->curstack->prev);
+				TYPECHECK_ADR(state->curstack->prev->prev);
+				if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->curstack->prev->prev->typeinfo))
+					TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
 				maythrow = true;
 				break;
 #endif
@@ -1712,11 +1720,21 @@ fieldaccess_tail:
 				break;
 
 			case ICMD_ARRAYCHECKCAST:
-				/* XXX TWISTI implement me! */
 				TYPECHECK_ADR(state->curstack);
 				/* returnAddress is not allowed */
 				if (!TYPEINFO_IS_REFERENCE(state->curstack->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("Illegal instruction: ARRAYCHECKCAST on non-reference");
+
+				if (state->iptr[0].op1) {
+					/* a resolved array class */
+					cls = ((vftbl_t *)state->iptr[0].target)->class;
+					TYPEINFO_INIT_CLASSINFO(dst->typeinfo,cls);
+				}
+				else {
+					/* an unresolved array class reference */
+					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
+						return false;
+				}
 				maythrow = true;
 				break;
 
@@ -1908,6 +1926,7 @@ return_tail:
 				/* MULTIANEWARRAY                       */
 
 			case ICMD_MULTIANEWARRAY:
+				/* XXX make this a separate function */
 				{
 					vftbl_t *arrayvftbl;
 					arraydescriptor *desc;
@@ -2173,6 +2192,7 @@ return_tail:
 		while (tbptr->flags == BBDELETED) {
 			tbptr++;
 #ifdef TYPECHECK_DEBUG
+			/* this must be checked in parse.c */
 			if ((tbptr->debug_nr) >= state->m->basicblockcount)
 				TYPECHECK_VERIFYERROR_bool("Control flow falls off the last block");
 #endif
@@ -2420,7 +2440,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
             state.bptr++;
         } /* while blocks */
 
-        LOGIF(state.repeat,"state.repeat=true");
+        LOGIF(state.repeat,"state.repeat == true");
     } while (state.repeat);
 
 	/* statistics */
@@ -2432,6 +2452,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 #endif
 
 	/* check for invalid flags at exit */
+	/* XXX make this a separate function */
 	
 #ifdef TYPECHECK_DEBUG
 	for (i=0; i<state.m->basicblockcount; ++i) {
