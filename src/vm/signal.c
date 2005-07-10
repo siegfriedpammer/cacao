@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 2968 2005-07-10 15:18:21Z twisti $
+   $Id: signal.c 2973 2005-07-10 15:54:50Z twisti $
 
 */
 
@@ -96,13 +96,17 @@ void signal_init(void)
 	/* catch SIGQUIT for thread dump */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if !defined(__FREEBSD__)
 	act.sa_sigaction = signal_handler_sigquit;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGQUIT, &act, NULL);
 
+	/* XXX boehm uses SIGUSR1 for suspend on freebsd */
+
 	act.sa_sigaction = signal_handler_sigusr1;
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGUSR1, &act, NULL);
+#endif
 #endif
 }
 
