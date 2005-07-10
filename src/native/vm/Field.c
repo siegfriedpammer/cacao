@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: Field.c 2967 2005-07-10 15:17:06Z twisti $
 
 */
 
@@ -299,7 +299,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	if (fid->flags & ACC_STATIC) {
 		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
 		initialize_class((classinfo *) this->declaringClass);
 		if (*exceptionptr) return 0;
 		/*return value*/
