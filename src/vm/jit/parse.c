@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2982 2005-07-11 11:14:17Z twisti $
+   $Id: parse.c 2984 2005-07-11 17:06:24Z michi $
 
 */
 
@@ -1365,7 +1365,7 @@ SHOWOPCODE(DEBUG4)
 			break;
 
 		case JAVA_FREM:
-#if defined(__I386__)
+#if defined(__I386__) || defined(__ARM__)
 			OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_frem);
@@ -1374,7 +1374,7 @@ SHOWOPCODE(DEBUG4)
 			break;
 
 		case JAVA_DREM:
-#if defined(__I386__)
+#if defined(__I386__) || defined(__ARM__)
 			OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_drem);
