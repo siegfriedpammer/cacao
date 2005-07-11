@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2969 2005-07-10 15:24:35Z twisti $
+   $Id: typecheck.c 2982 2005-07-11 11:14:17Z twisti $
 
 */
 
@@ -1242,7 +1242,7 @@ verify_builtin(verifier_state *state)
 		if (!vft->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 	else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
 		vftbl_t *vft;
 		TYPECHECK_ADR(state->curstack->prev);
@@ -1263,7 +1263,7 @@ verify_builtin(verifier_state *state)
 			return false;
 	}
 #endif
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 	else if (ISBUILTIN(BUILTIN_aastore)) {
 		TYPECHECK_ADR(state->curstack);
 		TYPECHECK_INT(state->curstack->prev);
@@ -1644,12 +1644,12 @@ fieldaccess_tail:
 				maythrow = true;
 				break;
 
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__)
+#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 			case ICMD_AASTORE:
-				/* we just check the basic input types and that the destination */
-				/* is an array of references. Assignability to the actual array */
-				/* must be checked at runtime, each time the instruction is     */
-				/* performed. (See builtin_canstore.)                           */
+				/* we just check the basic input types and that the           */
+				/* destination is an array of references. Assignability to    */
+				/* the actual array must be checked at runtime, each time the */
+				/* instruction is performed. (See builtin_canstore.)          */
 				TYPECHECK_ADR(state->curstack);
 				TYPECHECK_INT(state->curstack->prev);
 				TYPECHECK_ADR(state->curstack->prev->prev);
@@ -1999,7 +1999,7 @@ return_tail:
 			case ICMD_ANEWARRAY:
 			case ICMD_MONITORENTER:
 			case ICMD_MONITOREXIT:
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 			case ICMD_AASTORE:
 #endif
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));

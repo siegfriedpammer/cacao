@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 2969 2005-07-10 15:24:35Z twisti $
+   $Id: builtintable.inc 2982 2005-07-11 11:14:17Z twisti $
 
 */
 
@@ -210,7 +210,7 @@ static builtintable_entry builtintable_internal[] = {
 		"arrayinstanceof",
 		NULL
 	},
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 	{
 		ICMD_AASTORE,
 		BUILTIN_aastore,
