@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2985 2005-07-11 18:55:35Z twisti $
+   $Id: stacktrace.h 2990 2005-07-11 21:24:35Z twisti $
 
 */
 
@@ -86,40 +86,60 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra,
 											 functionptr xpc);
 
+void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra,
+											 functionptr xpc);
+
 void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra);
 
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
-/* exception creating functions */
-java_objectheader *stacktrace_new_arithmeticexception(u1 *pv, u1 *sp,
+/* inline exception creating functions */
+java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
+														 functionptr ra,
+														 functionptr xpc);
+
+java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
+																	u1 *sp,
+																	functionptr ra,
+																	functionptr xpc,
+																	s4 index);
+
+java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
+														 functionptr ra,
+														 functionptr xpc);
+
+java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
+														functionptr ra,
+														functionptr xpc);
+
+java_objectheader *stacktrace_inline_negativearraysizeexception(u1 *pv, u1 *sp,
+																functionptr ra,
+																functionptr xpc);
+
+java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
+														  functionptr ra,
+														  functionptr xpc);
+
+
+/* hardware exception creating functions */
+java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
+														   functionptr ra,
+														   functionptr xpc);
+
+java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
+															functionptr ra,
+															functionptr xpc);
+
+/* refill the stacktrace of an existing exception */
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
 													  functionptr ra,
 													  functionptr xpc);
 
-java_objectheader *stacktrace_new_arrayindexoutofboundsexception(u1 *pv,
-																 u1 *sp,
-																 functionptr ra,
-																 functionptr xpc,
-																 s4 index);
-
-java_objectheader *stacktrace_new_arraystoreexception(u1 *pv, u1 *sp,
+java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp, 
 													  functionptr ra,
 													  functionptr xpc);
-
-java_objectheader *stacktrace_new_classcastexception(u1 *pv, u1 *sp,
-													 functionptr ra,
-													 functionptr xpc);
-
-java_objectheader *stacktrace_new_negativearraysizeexception(u1 *pv, u1 *sp,
-															 functionptr ra,
-															 functionptr xpc);
-
-java_objectheader *stacktrace_new_nullpointerexception(u1 *pv, u1 *sp,
-													   functionptr ra,
-													   functionptr xpc);
-
-java_objectheader *stacktrace_fillInStackTrace(u1 *pv, u1 *sp, functionptr ra,
-											   functionptr xpc);
 
 void cacao_stacktrace_NormalTrace(void **target);
 java_objectarray *cacao_createClassContextArray(void);

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2985 2005-07-11 18:55:35Z twisti $
+   $Id: stacktrace.c 2990 2005-07-11 21:24:35Z twisti $
 
 */
 
@@ -95,7 +95,7 @@ typedef void(*CacaoStackTraceCollector)(void **,stackTraceBuffer*);
 
 /* stacktrace_create_inline_stackframeinfo *************************************
 
-   Creates an stackframe info structure for an inline exception.
+   Creates an stackframe info structure for an inline exception stub.
 
 *******************************************************************************/
 
@@ -104,7 +104,42 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 functionptr xpc)
 {
 	void **osfi;
+
+	/* get current stackframe info pointer */
+
+	osfi = builtin_asm_get_stackframeinfo();
+
+	/* fill new stackframe info structure */
+
+	sfi->oldThreadspecificHeadValue = *osfi;
+	sfi->addressOfThreadspecificHead = osfi;
+	sfi->method = NULL;
+	sfi->pv = pv;
+	sfi->sp = sp;
+	sfi->ra = ra;
+	sfi->xpc = xpc;
+
+	/* store new stackframe info pointer */
+
+	*osfi = sfi;
+}
+
+
+/* stacktrace_create_extern_stackframeinfo *************************************
+
+   Creates an stackframe info structure for an extern exception
+   (hardware or assembler).
+
+*******************************************************************************/
+
+void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+											 u1 *sp, functionptr ra,
+											 functionptr xpc)
+{
+	void **osfi;
+#if !defined(__I386__) && !defined(__X86_64__)
 	bool   isleafmethod;
+#endif
 	s4     framesize;
 
 	/* get current stackframe info pointer */
@@ -118,7 +153,12 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 		pv = (u1 *) (ptrint) codegen_findmethod(ra);
 
 #if defined(__I386__) || defined(__X86_64__)
-#error RA problems in asm_wrapper_patcher
+	/* On i386 and x86_64 we always have to get the return address from the */
+	/* stack. */
+
+	framesize = *((u4 *) (pv + FrameSize));
+
+	ra = md_stacktrace_get_returnaddress(sp, framesize);
 #else
 	/* If the method is a non-leaf function, we need to get the return        */
 	/* address from the stack. For leaf functions the return address is set   */
@@ -206,15 +246,15 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 }
 
 
-/* stacktrace_new_arithmeticexception ******************************************
+/* stacktrace_inline_arithmeticexception ***************************************
 
    Creates an ArithemticException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_arithmeticexception(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc)
+java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
+														 functionptr ra,
+														 functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -235,17 +275,17 @@ java_objectheader *stacktrace_new_arithmeticexception(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_new_arrayindexoutofboundsexception *******************************
+/* stacktrace_inline_arrayindexoutofboundsexception ****************************
 
    Creates an ArrayIndexOutOfBoundsException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_arrayindexoutofboundsexception(u1 *pv,
-																 u1 *sp,
-																 functionptr ra,
-																 functionptr xpc,
-																 s4 index)
+java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
+																	u1 *sp,
+																	functionptr ra,
+																	functionptr xpc,
+																	s4 index)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -266,15 +306,15 @@ java_objectheader *stacktrace_new_arrayindexoutofboundsexception(u1 *pv,
 }
 
 
-/* stacktrace_new_arraystoreexception ******************************************
+/* stacktrace_inline_arraystoreexception ***************************************
 
    Creates an ArrayStoreException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_arraystoreexception(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc)
+java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
+														 functionptr ra,
+														 functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -295,15 +335,15 @@ java_objectheader *stacktrace_new_arraystoreexception(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_new_classcastexception *******************************************
+/* stacktrace_inline_classcastexception ****************************************
 
    Creates an ClassCastException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_classcastexception(u1 *pv, u1 *sp,
-													 functionptr ra,
-													 functionptr xpc)
+java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
+														functionptr ra,
+														functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -324,15 +364,15 @@ java_objectheader *stacktrace_new_classcastexception(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_new_negativearraysizeexception ***********************************
+/* stacktrace_inline_negativearraysizeexception ********************************
 
    Creates an NegativeArraySizeException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_negativearraysizeexception(u1 *pv, u1 *sp,
-															 functionptr ra,
-															 functionptr xpc)
+java_objectheader *stacktrace_inline_negativearraysizeexception(u1 *pv, u1 *sp,
+																functionptr ra,
+																functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -353,15 +393,15 @@ java_objectheader *stacktrace_new_negativearraysizeexception(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_new_nullpointerexception *****************************************
+/* stacktrace_inline_nullpointerexception **************************************
 
    Creates an NullPointerException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_new_nullpointerexception(u1 *pv, u1 *sp,
-													   functionptr ra,
-													   functionptr xpc)
+java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
+														  functionptr ra,
+														  functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -382,14 +422,74 @@ java_objectheader *stacktrace_new_nullpointerexception(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_fillInStackTrace *************************************************
+/* stacktrace_hardware_arithmeticexception *************************************
 
-   Fills in the correct stacktrace into an existing exception object.
+   Creates an ArithemticException for inline stub.
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_fillInStackTrace(u1 *pv, u1 *sp, functionptr ra,
-											   functionptr xpc)
+java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
+														   functionptr ra,
+														   functionptr xpc)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* create exception */
+
+	o = new_arithmeticexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_hardware_nullpointerexception ************************************
+
+   Creates an NullPointerException for the SIGSEGV signal handler.
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
+															functionptr ra,
+															functionptr xpc)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* create exception */
+
+	o = new_nullpointerexception();
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_inline_fillInStackTrace ******************************************
+
+   Fills in the correct stacktrace into an existing exception object
+   (this one is for inline exception stubs).
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
+													  functionptr ra,
+													  functionptr xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -398,6 +498,51 @@ java_objectheader *stacktrace_fillInStackTrace(u1 *pv, u1 *sp, functionptr ra,
 	/* create stackframeinfo */
 
 	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* get exception */
+
+	o = *exceptionptr;
+
+	/* clear exception */
+
+	*exceptionptr = NULL;
+
+	/* resolve methodinfo pointer from exception object */
+
+	m = class_resolvemethod(o->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__java_lang_Throwable);
+
+	/* call function */
+
+	asm_calljavafunction(m, o, NULL, NULL, NULL);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
+/* stacktrace_extern_fillInStackTrace ******************************************
+
+   Fills in the correct stacktrace into an existing exception object
+   (this one is for calling from assembler code).
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp,
+													  functionptr ra,
+													  functionptr xpc)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+	methodinfo        *m;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
 	/* get exception */
 
@@ -587,7 +732,6 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 	u4                framesize;
 	functionptr       ra;
 	functionptr       xpc;
-	bool              isleafmethod;
 
 	/* In most cases this should be enough -> one malloc less. I don't think  */
 	/* temporary data should be allocated with the GC, only the result.       */
@@ -680,7 +824,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 				stacktrace_fillInStackTrace_method(&buffer, m, pv,
 												   (u1 *) ((ptrint) xpc));
 
-				/* get the current stack frame size and isleafmethod */
+				/* get the current stack frame size */
 
 				framesize = *((u4 *) (pv + FrameSize));
 
