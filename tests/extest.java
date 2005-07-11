@@ -1,6 +1,10 @@
 public class extest {
-    static boolean printStackTrace;
+    final static int INDEX1 = 0xcafebabe;
+    final static int INDEX2 = 0xbabecafe;
+    final static int INDEX3 = 0xdeadbeef;
 
+    static boolean printStackTrace;
+    
     public static void main(String[] argv) {
 	printStackTrace = false;
 	if (argv.length > 0) 
@@ -16,22 +20,22 @@ public class extest {
     	    throw new Exception();
     	} catch (Exception e) {
             catched = true;
-      	    pln("OK");
+      	    ok();
 	    pstacktrace(e);
 
     	} finally {
             /* check if catch block was executed */
             if (!catched) {
-                pln("FAILED");
+                failed();
             }
         }
 
    	try {
             p("throw new Exception() (from subroutines):");
     	    sub();
-            pln("FAILED");
+            failed();
     	} catch (Exception e) {
-      	    pln("OK");
+      	    ok();
 	    pstacktrace(e);
     	}
 
@@ -39,9 +43,9 @@ public class extest {
             p("NullPointerException:");
             int[] ia = null;
             int i = ia.length;
-            pln("FAILED");
+            failed();
         } catch (NullPointerException e) {
-  	    pln("OK");
+  	    ok();
 	    pstacktrace(e);
   	}
 
@@ -52,18 +56,51 @@ public class extest {
 	pln("/* thrown twice to check the inline jump code */");
 
         try {
+            p("ArithmeticException (only w/ -softnull):");
+            int i = 1, j = 0, k = i / j;
+            failed();
+        } catch (ArithmeticException e) {
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals("/ by zero")) {
+		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
+		pstacktrace(e);
+	    } else {
+                ok();
+                pstacktrace(e);
+            }
+  	}
+
+        try {
+            p("ArithmeticException (only w/ -softnull):");
+            long i = 1, j = 0, k = i / j;
+            failed();
+        } catch (ArithmeticException e) {
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals("/ by zero")) {
+		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
+
+	    } else {
+                ok();
+                pstacktrace(e);
+            }
+  	}
+
+
+        try {
             p("ArrayIndexOutOfBoundsException:");
             int[] ia = new int[1];
-            ia[0xcafebabe] = 1;
-            pln("FAILED");
+            ia[INDEX1] = 1;
+            failed();
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
-	    if (msg == null || !msg.equals(String.valueOf(0xcafebabe))) {
-		pln("FAILED: wrong index: " + msg + ", should be: " + 0xcafebabe);
+	    if (msg == null || !msg.equals(String.valueOf(INDEX1))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + INDEX1);
 		pstacktrace(e);
 	    } else {
-		pln("OK");
+		ok();
 	        pstacktrace(e);
 	    }
   	}
@@ -71,16 +108,16 @@ public class extest {
         try {
             p("ArrayIndexOutOfBoundsException:");
             int[] ia = new int[1];
-            ia[0xbabecafe] = 1;
-            pln("FAILED");
+            ia[INDEX2] = 1;
+            failed();
         } catch (ArrayIndexOutOfBoundsException e) {
 	    String msg = e.getMessage();
 
-	    if (msg == null || !msg.equals(String.valueOf(0xbabecafe))) {
-		pln("FAILED: wrong index: " + msg + ", should be: " + 0xbabecafe);
+	    if (msg == null || !msg.equals(String.valueOf(INDEX2))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + INDEX2);
 		pstacktrace(e);
 	    } else {
-		pln("OK");
+		ok();
 	        pstacktrace(e);
 
 	    }
@@ -88,31 +125,35 @@ public class extest {
 
 
         try {
-            p("NegativeArraySizeException:");
-            int[] ia = new int[-1];
-            pln("FAILED");
-        } catch (NegativeArraySizeException e) {
-  	    pln("OK");
+            p("ArrayStoreException:");
+	    Integer[] ia = new Integer[1];
+            Object[] oa = (Object[]) ia;
+	    oa[0] = new Object();
+            failed();
+        } catch (ArrayStoreException e) {
+  	    ok();
 	    pstacktrace(e);
   	}
 
         try {
-            p("NegativeArraySizeException:");
-            int[] ia = new int[-1];
-            pln("FAILED");
-        } catch (NegativeArraySizeException e) {
-  	    pln("OK");
+            p("ArrayStoreException:");
+	    Integer[] ia = new Integer[1];
+            Object[] oa = (Object[]) ia;
+	    oa[0] = new Object();
+            failed();
+        } catch (ArrayStoreException e) {
+  	    ok();
 	    pstacktrace(e);
   	}
 
-        
+
         try {
             p("ClassCastException:");
             Object o = new Object();
             Integer i = (Integer) o;
-            pln("FAILED");
+            failed();
         } catch (ClassCastException e) {
-  	    pln("OK");
+  	    ok();
 	    pstacktrace(e);
   	}
 
@@ -121,53 +162,49 @@ public class extest {
             Object o = new Object();
             Integer i = null;
             i = (Integer) o;
-            pln("FAILED");
+            failed();
         } catch (ClassCastException e) {
-  	    pln("OK");
+  	    ok();
 	    pstacktrace(e);
   	}
 
 
         try {
-            p("ArithmeticException (only w/ -softnull):");
-            int i = 1, j = 0, k = i / j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-	    String msg = e.getMessage();
-
-	    if (msg == null || !msg.equals("/ by zero")) {
-		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
-		pstacktrace(e);
-	    } else {
-                pln("OK");
-                pstacktrace(e);
-            }
+            p("NegativeArraySizeException:");
+            int[] ia = new int[-1];
+            failed();
+        } catch (NegativeArraySizeException e) {
+  	    ok();
+	    pstacktrace(e);
   	}
 
         try {
-            p("ArithmeticException (only w/ -softnull):");
-            long i = 1, j = 0, k = i / j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-	    String msg = e.getMessage();
-
-	    if (msg == null || !msg.equals("/ by zero")) {
-		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
-
-	    } else {
-                pln("OK");
-                pstacktrace(e);
-            }
+            p("NegativeArraySizeException:");
+            int[] ia = new int[-1];
+            failed();
+        } catch (NegativeArraySizeException e) {
+  	    ok();
+	    pstacktrace(e);
   	}
 
+        
+        try {
+            p("NullPointerException (only w/ -softnull):");
+            int[] ia = null;
+            int i = ia.length;
+            failed();
+        } catch (NullPointerException e) {
+  	    ok();
+	    pstacktrace(e);
+  	}
 
         try {
-            p("OutOfMemoryError:");
-	    /* 100 MB should be enough */
-	    byte[] ba = new byte[100 * 1024 * 1024];
-            pln("FAILED");
-        } catch (OutOfMemoryError e) {
-  	    pln("OK");
+            p("NullPointerException (only w/ -softnull):");
+            int[] ia = null;
+            int i = ia.length;
+            failed();
+        } catch (NullPointerException e) {
+  	    ok();
 	    pstacktrace(e);
   	}
 
@@ -175,32 +212,70 @@ public class extest {
             p("OutOfMemoryError:");
 	    /* 100 MB should be enough */
 	    byte[] ba = new byte[100 * 1024 * 1024];
-            pln("FAILED");
+            failed();
         } catch (OutOfMemoryError e) {
-  	    pln("OK");
+  	    ok();
+	    pstacktrace(e);
+  	}
+
+        try {
+            p("OutOfMemoryError:");
+	    /* 100 MB should be enough */
+	    byte[] ba = new byte[100 * 1024 * 1024];
+            failed();
+        } catch (OutOfMemoryError e) {
+  	    ok();
 	    pstacktrace(e);
   	}
         
+	pln();
+
+
+	pln("---------- exceptions in leaf functions ---------");
 
         try {
-            p("NullPointerException (only w/ -softnull):");
-            int[] ia = null;
-            int i = ia.length;
-            pln("FAILED");
-        } catch (NullPointerException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
+            p("ArithmeticException:");
+            aesub(1, 0);
+            failed();
+        } catch (ArithmeticException e) {
+            ok();
+            pstacktrace(e);
+        }
 
         try {
-            p("NullPointerException (only w/ -softnull):");
-            int[] ia = null;
-            int i = ia.length;
-            pln("FAILED");
+            p("ArrayIndexOutOfBoundsException:");
+            aioobesub(new int[1]);
+            failed();
+        } catch (ArrayIndexOutOfBoundsException e) {
+	    String msg = e.getMessage();
+
+	    if (msg == null || !msg.equals(String.valueOf(INDEX3))) {
+		pln("FAILED: wrong index: " + msg + ", should be: " + INDEX3);
+		pstacktrace(e);
+	    } else {
+		ok();
+	        pstacktrace(e);
+
+	    }
+        }
+
+        try {
+            p("ClassCastException:");
+            ccesub(new Object(), new Integer(0));
+            failed();
+        } catch (ClassCastException e) {
+            ok();
+            pstacktrace(e);
+        }
+
+        try {
+            p("NullPointerException:");
+            npesub(null);
+            failed();
         } catch (NullPointerException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
+            ok();
+            pstacktrace(e);
+        }
 
 	pln();
 
@@ -210,12 +285,12 @@ public class extest {
         try {
             p("NullPointerException in <clinit> (PUTSTATIC):");
             extest_clinit_1.i = 1;
-            pln("FAILED");
+            failed();
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
-                pln("FAILED");
+                failed();
             } else {
-                pln("OK");
+                ok();
   	        pstacktrace(e);
             }
         }
@@ -223,99 +298,15 @@ public class extest {
         try {
             p("NullPointerException in <clinit> (GETSTATIC):");
             int i = extest_clinit_2.i;
-            pln("FAILED");
+            failed();
         } catch (ExceptionInInitializerError e) {
             if (e.getCause().getClass() != NullPointerException.class) {
-                pln("FAILED");
+                failed();
             } else {
-                pln("OK");
+                ok();
   	        pstacktrace(e);
             }
         }
-
-        try {
-            p("ArithmeticException (idiv):");
-            int i = 1, j = 0, k = i / j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ArithmeticException (ldiv):");
-            long i = 1, j = 0, k = i / j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ArithmeticException (irem):");
-            int i = 1, j = 0, k = i % j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ArithmeticException (lrem):");
-            long i = 1, j = 0, k = i % j;
-            pln("FAILED");
-        } catch (ArithmeticException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("NullPointerException (aastore):");
-	    Object[] oa = null;
-	    oa[0] = new Object();
-            pln("FAILED");
-        } catch (NullPointerException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ArrayIndexOutOfBoundsException (aastore):");
-	    Object[] oa = new Object[1];
-	    oa[0xaa] = new Object();
-            pln("FAILED");
-        } catch (ArrayIndexOutOfBoundsException e) {
-	    String msg = e.getMessage();
-
-	    if (msg == null || !msg.equals(String.valueOf(0xaa))) {
-		pln("FAILED: wrong index: " + msg + ", should be: " + 0xaa);
-
-	    } else {
-                pln("OK");
-                pstacktrace(e);
-            }
-  	}
-
-        try {
-            p("ArrayStoreException (aastore):");
-	    Integer[] ia = new Integer[1];
-            Object[] oa = (Object[]) ia;
-	    oa[0] = new Object();
-            pln("FAILED");
-        } catch (ArrayStoreException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ClassCastException (checkarraycast):");
-            Object[] oa = new Object[1];
-	    Integer[] ia = (Integer[]) oa;
-            pln("FAILED");
-        } catch (ClassCastException e) {
-  	    pln("OK");
-	    pstacktrace(e);
-  	}
 
 	pln();
 
@@ -329,7 +320,7 @@ public class extest {
             /* this exception class MUST NOT be loaded before!!!
                otherwise this test in useless */
         } catch (Exception e) {
-  	    pln("OK");
+  	    ok();
 	    pstacktrace(e);
   	}
 
@@ -341,24 +332,35 @@ public class extest {
   	try {
             p("NullPointerException (native):");
             System.arraycopy(null, 1, null, 1, 1);
-            pln("FAILED");
+            failed();
     	} catch (Exception e) {
-  	    pln("OK");
+  	    ok();
             pstacktrace(e);
   	}
 
         try {
             p("NullPointerException in <clinit>:");
             extest_clinit_3.sub();
-            pln("FAILED");
+            failed();
         } catch (ExceptionInInitializerError e) {
-            pln("OK");
+            ok();
             pstacktrace(e);
         } catch (UnsatisfiedLinkError e) {
             /* catch this one for staticvm and say it's ok */
-            pln("OK");
+            ok();
             pstacktrace(e);
         }
+
+        /*
+        try {
+            p("UnsatisfiedLinkError:");
+            nsub();
+            failed();
+        } catch (UnsatisfiedLinkError e) {
+            ok();
+            pstacktrace(e);
+        }
+        */
 
         pln();
 
@@ -368,41 +370,67 @@ public class extest {
         pln("NullPointerException (without catch):");
         String s = null;
         int i = s.length();
-        pln("FAILED");
+        failed();
     }
 
-    public synchronized static void sub() throws Exception {
+    synchronized static void sub() throws Exception {
 	sub2();
     }
 
-    public static void sub2() throws Exception {
+    static void sub2() throws Exception {
 	sub3();
     }
 
-    public synchronized static void sub3() throws Exception {
+    synchronized static void sub3() throws Exception {
 	sub4();
     }
 
-    public static void sub4() throws Exception {
+    static void sub4() throws Exception {
 	throw new Exception();
     }
 
-    public static void p(String s) {
+    static void aesub(int a, int b) {
+        int c = a / b;
+    }
+
+    static void aioobesub(int[] ia) {
+        ia[INDEX3] = 0;
+    }
+
+    static void ccesub(Object o, Integer i) {
+        i = (Integer) o;
+    }
+
+    static void npesub(int[] ia) {
+        int a = ia.length;
+    }
+
+    static native void nsub();
+
+    static void p(String s) {
 	System.out.print(s);
         for (int i = s.length(); i < 46; i++) {
             System.out.print(" ");
         }
     }
 
-    public static void pln() {
+    static void pln() {
 	System.out.println();
     }
 
-    public static void pln(String s) {
+    static void pln(String s) {
 	System.out.println(s);
     }
 
-    public static void pstacktrace(Throwable e) {
+    static void ok() {
+        pln("OK");
+    }
+
+    static void failed() {
+        pln("FAILED");
+    }
+
+    static void pstacktrace(Throwable e) {
 	if (!printStackTrace)
             return;
 	e.printStackTrace();

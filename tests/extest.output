@@ -5,30 +5,30 @@ NullPointerException:                         OK
 
 ---------- test soft inline exceptions ----------
 /* thrown twice to check the inline jump code */
-ArrayIndexOutOfBoundsException:               OK
-ArrayIndexOutOfBoundsException:               OK
-NegativeArraySizeException:                   OK
-NegativeArraySizeException:                   OK
-ClassCastException:                           OK
-ClassCastException:                           OK
 ArithmeticException (only w/ -softnull):      OK
 ArithmeticException (only w/ -softnull):      OK
-OutOfMemoryError:                             OK
-OutOfMemoryError:                             OK
+ArrayIndexOutOfBoundsException:               OK
+ArrayIndexOutOfBoundsException:               OK
+ArrayStoreException:                          OK
+ArrayStoreException:                          OK
+ClassCastException:                           OK
+ClassCastException:                           OK
+NegativeArraySizeException:                   OK
+NegativeArraySizeException:                   OK
 NullPointerException (only w/ -softnull):     OK
 NullPointerException (only w/ -softnull):     OK
+OutOfMemoryError:                             OK
+OutOfMemoryError:                             OK
+
+---------- exceptions in leaf functions ---------
+ArithmeticException:                          OK
+ArrayIndexOutOfBoundsException:               OK
+ClassCastException:                           OK
+NullPointerException:                         OK
 
 ---------- some asmpart exceptions --------------
 NullPointerException in <clinit> (PUTSTATIC): OK
 NullPointerException in <clinit> (GETSTATIC): OK
-ArithmeticException (idiv):                   OK
-ArithmeticException (ldiv):                   OK
-ArithmeticException (irem):                   OK
-ArithmeticException (lrem):                   OK
-NullPointerException (aastore):               OK
-ArrayIndexOutOfBoundsException (aastore):     OK
-ArrayStoreException (aastore):                OK
-ClassCastException (checkarraycast):          OK
 
 ---------- exception related things -------------
 load/link an exception class in asmpart:      OK
