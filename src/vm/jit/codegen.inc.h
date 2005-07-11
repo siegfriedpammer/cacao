@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2939 2005-07-08 15:21:16Z twisti $
+   $Id: codegen.inc.h 2983 2005-07-11 11:56:49Z twisti $
 
 */
 
@@ -185,18 +185,14 @@ struct _methodtree_element {
 
 /* function prototypes ********************************************************/
 
-void codegen_init();
+void codegen_init(void);
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close();
 void codegen_insertmethod(functionptr startpc, functionptr endpc);
 
-#if defined(__I386__) || defined(__X86_64__)
 functionptr codegen_findmethod(functionptr pc);
-#elif defined(__ALPHA__)
-void *codegen_findmethod(void *returnAdress);
-#endif
 
 #if defined(__I386__) || defined(__X86_64__)
 void codegen_addreference(codegendata *cd, struct basicblock *target, void *branchptr);

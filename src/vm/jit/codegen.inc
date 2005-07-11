@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2951 2005-07-09 13:38:04Z twisti $
+   $Id: codegen.inc 2983 2005-07-11 11:56:49Z twisti $
 
 */
 
@@ -605,6 +605,12 @@ static void codegen_createlinenumbertable(codegendata *cd)
 
 
 #if defined(__I386__) || defined(__X86_64__)
+/* methodtree_comparator *******************************************************
+
+   XXX
+
+*******************************************************************************/
+
 static int methodtree_comparator(const void *pc, const void *element, void *param)
 {
 	methodtree_element *mte;
@@ -616,6 +622,7 @@ static int methodtree_comparator(const void *pc, const void *element, void *para
 	/* compare both startpc and endpc of pc, even if they have the same value,
 	   otherwise the avl_probe sometimes thinks the element is already in the
 	   tree */
+
 	if ((long) mte->startpc <= (long) mtepc->startpc &&
 		(long) mtepc->startpc <= (long) mte->endpc &&
 		(long) mte->startpc <= (long) mtepc->endpc &&
@@ -630,6 +637,12 @@ static int methodtree_comparator(const void *pc, const void *element, void *para
 	}
 }
 
+
+/* codegen_insertmethod ********************************************************
+
+   XXX
+
+*******************************************************************************/
 
 void codegen_insertmethod(functionptr startpc, functionptr endpc)
 {
@@ -664,6 +677,12 @@ void codegen_insertmethod(functionptr startpc, functionptr endpc)
 }
 
 
+/* codegen_findmethod **********************************************************
+
+   XXX
+
+*******************************************************************************/
+
 functionptr codegen_findmethod(functionptr pc)
 {
 	methodtree_element *mtepc;
@@ -689,13 +708,6 @@ functionptr codegen_findmethod(functionptr pc)
 		tables_unlock();
 #endif
 #endif
-#ifdef JWDEBUG_X86
-			{
-				void *bt[5];
-				fprintf(stderr,"backtrace:");
-				backtrace_symbols_fd(bt,5,2);
-			}
-#endif
 		printf("Cannot find Java function at %p\n", (void *) (ptrint) pc);
 		assert(0);
 		throw_cacao_exception_exit(string_java_lang_InternalError,
@@ -710,47 +722,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	return mte->startpc;
 }
-#endif
-
-#if defined(__ALPHA__)
-/*perhaps in the end I'll have to go for the tree version on alpha too, since this is insecure for eg segfault signals in native code,
-since it will still return an adress of a datasegment, but which will not be a valid one of a java method. This version is faster though (jowenn)*/
-void *codegen_findmethod(void *returnAdress)
- {
-        void *result;
-        s8 d;
-        void *dataseg;
-        d=*((s4*)returnAdress);
-        d=d<<48;
-        d=d>>48;
-        dataseg=returnAdress+d;
-        d=*(((s4*)returnAdress)+1);
-        d=d>>16;
-        d=d-0x177b;
-        if (d==0) {
-                d=*(((s4*)returnAdress)+1);
-                d=d<<16;
-                dataseg=dataseg+d;
-        }
-        return dataseg;
-#if 0
-        ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-        sll     t0,48,t0
-        sra     t0,48,t0              /* isolate offset                           */
-        addq    t0,ra,pv              /* compute update address                   */
-        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-        srl     t0,16,t0              /* isolate instruction code                 */
-        lda     t0,-0x177b(t0)        /* test for LDAH                            */
-        bne     t0,ex_stack_loop
-        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(RA)         */
-        sll     t0,16,t0              /* compute high offset                      */
-        addl    t0,0,t0               /* sign extend high offset                  */
-        addq    t0,pv,pv              /* compute update address                   */
-        br      ex_stack_loop
-#endif
-}
-
-#endif
+#endif /* defined(__I386__) || defined(__X86_64__) */
 
 
 /* codegen_finish **************************************************************
