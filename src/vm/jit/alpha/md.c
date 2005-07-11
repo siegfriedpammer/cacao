@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2986 2005-07-11 18:56:09Z twisti $
+   $Id: md.c 2987 2005-07-11 19:01:39Z twisti $
 
 */
 
@@ -101,7 +101,6 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1          *sp;
 	functionptr  ra;
 	functionptr  xpc;
-	bool         isleafmethod;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
