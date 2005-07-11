@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2940 2005-07-08 15:40:11Z twisti $
+   $Id: loader.c 2978 2005-07-11 08:26:41Z twisti $
 
 */
 
@@ -2011,7 +2011,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		if (r) {
 			/* store this class in the loaded class cache */
-			/* If another class with the same (initloader,name) pair has been */ 
+			/* If another class with the same (initloader,name) pair has been */
 			/* stored earlier it will be returned by classcache_store         */
 			/* In this case classcache_store may not free the class because it*/
 			/* has already been exposed to Java code which may have kept      */

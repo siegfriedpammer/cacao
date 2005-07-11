@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 2868 2005-06-28 18:53:28Z twisti $
+   $Id: linker.c 2978 2005-07-11 08:26:41Z twisti $
 
 */
 
@@ -67,7 +67,7 @@ static s4 classvalue;
    primitive class.
  
    CAUTION: Don't change the order of the types. This table is indexed
-   by the ARRAYTYPE_ constants (expcept ARRAYTYPE_OBJECT).
+   by the ARRAYTYPE_ constants (except ARRAYTYPE_OBJECT).
 
 *******************************************************************************/
 
