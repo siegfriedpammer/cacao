@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 2463 2005-05-12 23:54:07Z twisti $
+   $Id: util.c 2979 2005-07-11 09:59:37Z twisti $
 
 */
 
@@ -88,14 +88,11 @@ char *_Jv_getcwd(void)
 
 *******************************************************************************/
 
-int get_variable_message_length(const char *fmt, ...)
+int get_variable_message_length(const char *fmt, va_list ap)
 {
-	va_list ap;
-	int     len;
+	int len;
 
-	va_start(ap, fmt);
 	len = vsnprintf(NULL, 0, fmt, ap);
-	va_end(ap);
 
 	return len;
 }
