@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2977 2005-07-10 22:21:36Z twisti $
+   $Id: md.c 2991 2005-07-11 21:25:31Z twisti $
 
 */
 
@@ -71,6 +71,7 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	mcontext_t  *_mc;
 	u1          *sp;
 	functionptr  ra;
+	functionptr  xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -79,12 +80,13 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	/* different to the ones in <ucontext.h>                                  */
 
 	sp = (u1 *) _mc->gregs[REG_RSP];
-	ra = (functionptr) _mc->gregs[REG_RIP];
+	xpc = (functionptr) _mc->gregs[REG_RIP];
+	ra = xpc;                           /* return address is equal to xpc     */
 
 	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_new_nullpointerexception(NULL, sp, ra);
+		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
 
-	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }
 
@@ -101,6 +103,7 @@ void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	mcontext_t  *_mc;
 	u1          *sp;
 	functionptr  ra;
+	functionptr  xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -109,12 +112,13 @@ void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	/* different to the ones in <ucontext.h>                                  */
 
 	sp = (u1 *) _mc->gregs[REG_RSP];
-	ra = (functionptr) _mc->gregs[REG_RIP];
+	xpc = (functionptr) _mc->gregs[REG_RIP];
+	ra = xpc;                           /* return address is equal to xpc     */
 
 	_mc->gregs[REG_RAX] =
-		(ptrint) stacktrace_new_arithmeticexception(NULL, sp, ra);
+		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
 
-	_mc->gregs[REG_R10] = _mc->gregs[REG_RIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }
 

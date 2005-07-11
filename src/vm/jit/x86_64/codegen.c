@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 2956 2005-07-09 14:04:34Z twisti $
+   $Id: codegen.c 2991 2005-07-11 21:25:31Z twisti $
 
 */
 
@@ -3768,10 +3768,60 @@ gen_method:
 
 	{
 
+	u1        *xcodeptr;
+	branchref *bref;
+
+	/* generate ArithmeticException stubs */
+
+	xcodeptr = NULL;
+	
+	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  xcodeptr - cd->mcodebase - (10 + 7));
+			continue;
+		}
+
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  cd->mcodeptr - cd->mcodebase);
+
+		MCODECHECK(512);
+
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
+		dseg_adddata(cd, cd->mcodeptr);
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
+
+		if (xcodeptr != NULL) {
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
+		
+		} else {
+			xcodeptr = cd->mcodeptr;
+
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_arithmeticexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
+
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+		}
+	}
+
 	/* generate ArrayIndexOutOfBoundsException stubs */
 
-	u1 *xcodeptr = NULL;
-	branchref *bref;
+	xcodeptr = NULL;
 
 	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
@@ -3784,56 +3834,34 @@ gen_method:
 
 		M_MOV(bref->reg, REG_ITMP1);                              /* 3 bytes  */
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
 
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_IST(REG_ITMP1, REG_SP, 0 * 8);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
+			M_MOV(REG_ITMP1, rd->argintregs[4]);
 
-			/* create exception */
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			M_ILD(rd->argintregs[0], REG_SP, 0 * 8);
-			x86_64_mov_imm_reg(cd, (ptrint) new_arrayindexoutofboundsexception,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
+			M_MOV_IMM((ptrint) stacktrace_inline_arrayindexoutofboundsexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			/* removed stackframe info */
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
@@ -3855,123 +3883,33 @@ gen_method:
 
 		MCODECHECK(512);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
 
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
 
-			/* create exception */
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (ptrint) new_arraystoreexception,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
+			M_MOV_IMM((ptrint) stacktrace_inline_arraystoreexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			/* removed stackframe info */
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
-		}
-	}
-
-	/* generate NegativeArraySizeException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (10 + 7));
-			continue;
-		}
-
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
-
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			/* create exception */
-
-			x86_64_mov_imm_reg(cd, (ptrint) new_negativearraysizeexception,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
-
-			/* removed stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
@@ -3993,61 +3931,40 @@ gen_method:
 
 		MCODECHECK(512);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
 		
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
 
-			/* create exception */
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (ptrint) new_classcastexception, REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
+			M_MOV_IMM((ptrint) stacktrace_inline_classcastexception, REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			/* removed stackframe info */
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
-	/* generate ArithmeticException stubs */
+	/* generate NegativeArraySizeException stubs */
 
 	xcodeptr = NULL;
 	
-	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
+	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
 		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
 			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 							  bref->branchpos,
@@ -4061,53 +3978,33 @@ gen_method:
 
 		MCODECHECK(512);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
-		
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
+
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
 
-			/* create exception */
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (ptrint) new_arithmeticexception, REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
+			M_MOV_IMM((ptrint) stacktrace_inline_negativearraysizeexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			/* removed stackframe info */
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
@@ -4129,54 +4026,33 @@ gen_method:
 
 		MCODECHECK(512);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
 		
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
 
-			/* create exception */
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			x86_64_mov_imm_reg(cd, (ptrint) new_nullpointerexception,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 0 * 8);
+			M_MOV_IMM((ptrint) stacktrace_inline_nullpointerexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			/* removed stackframe info */
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
@@ -4198,70 +4074,32 @@ gen_method:
 
 		MCODECHECK(512);
 
-		x86_64_mov_imm_reg(cd, 0, REG_ITMP2_XPC);                 /* 10 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
 
 		if (xcodeptr != NULL) {
-			x86_64_jmp_imm(cd, xcodeptr - cd->mcodeptr - 5);
+			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
 		
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 1 * 8);
-
-			/* create stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-
-			M_MOV(REG_SP, rd->argintregs[2]);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), rd->argintregs[2]);
+			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+			M_MOV(REG_SP, rd->argintregs[1]);
+			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_inline_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			x86_64_mov_imm_reg(cd, (ptrint) &builtin_get_exceptionptrptr,
-							   REG_ITMP1);
-			x86_64_call_reg(cd, REG_ITMP1);
+			M_ASUB_IMM(2 * 8, REG_SP);
+			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			M_ALD(REG_ITMP3, REG_RESULT, 0);
-			x86_64_mov_imm_membase(cd, 0, REG_RESULT, 0);
-			M_MOV(REG_ITMP3, REG_ITMP1_XPTR);
-#else
-			x86_64_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP3);
-			M_ALD(REG_ITMP1_XPTR, REG_ITMP3, 0);
-			x86_64_mov_imm_membase(cd, 0, REG_ITMP3, 0);
-#endif
+			M_MOV_IMM((ptrint) stacktrace_inline_fillInStackTrace, REG_ITMP3);
+			M_CALL(REG_ITMP3);
 
-			M_AST(REG_ITMP1_XPTR, REG_SP, 0 * 8);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+			M_AADD_IMM(2 * 8, REG_SP);
 
-			/* call fillInStackTrace */
-
-			M_MOV(REG_ITMP1_XPTR, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_call_fillInStackTrace,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			/* removed stackframe info */
-
-			M_MOV(REG_SP, rd->argintregs[0]);
-			M_AADD_IMM(2 * 8, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
-							   REG_ITMP3);
-			x86_64_call_reg(cd, REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 1 * 8);
-			M_AADD_IMM(2 * 8 + sizeof(stackframeinfo), REG_SP);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
@@ -4299,23 +4137,22 @@ gen_method:
 			a = dseg_addaddress(cd, NULL);                      /* vftbl      */
 
   			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
 #else
-			x86_64_push_imm(cd, 0);
+			M_PUSH_IMM(0);
 #endif
 
 			/* move machine code bytes and classinfo pointer into registers */
 
-			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
-			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) mcode, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->ref, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->patcher, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
 
-			x86_64_mov_imm_reg(cd, (ptrint) pref->patcher, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
-
-			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_wrapper_patcher, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 	}

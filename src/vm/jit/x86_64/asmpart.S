@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2956 2005-07-09 14:04:34Z twisti $
+   $Id: asmpart.S 2991 2005-07-11 21:25:31Z twisti $
 
 */
 
@@ -440,18 +440,15 @@ L_call_method:
 	jmp     *%rax                   /* ...and now call the new method         */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	call    builtin_asm_get_exceptionptrptr
-	mov     %rax,itmp2
-#else
-	lea     _exceptionptr,itmp2
-#endif
-	mov     (itmp2),xptr                /* get the exception pointer          */
-	movl    $0,(itmp2)                  /* clear the exception pointer        */
+	xor     a0,a0                       /* we don't have pv handy             */
+	mov     sp,a1                       /* pass java sp                       */
+	add     $8,a1
+	mov     0*8(sp),a2                  /* pass ra to parent Java function    */
+	mov     a2,a3                       /* xpc is the same as ra              */
+	call    stacktrace_extern_fillInStackTrace
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
-
 	jmp     asm_handle_exception
 
 
@@ -740,10 +737,11 @@ asm_wrapper_patcher:
 	mov     sp,a0                       /* create stackframe info             */
 	add     $(19*8),a0
 	xor     a1,a1                       /* if pv is NULL, use findmethod      */
-	mov     sp,a2
+	mov     sp,a2                       /* pass java sp                       */
 	add     $((5+19)*8+sizestackframeinfo),a2
-	mov     ((4+19)*8+sizestackframeinfo)(sp),a3
-	call    stacktrace_create_inline_stackframeinfo
+	mov     ((4+19)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
+	mov     a3,a4                       /* xpc is equal to ra                 */
+	call    stacktrace_create_extern_stackframeinfo
 
 	mov     sp,a0                       /* pass stack pointer                 */
 	add     $((1+19)*8+sizestackframeinfo),a0   /* skip function pointer      */
@@ -965,7 +963,7 @@ asm_criticalsections:
 #endif
 	.quad 0
 
-		
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
