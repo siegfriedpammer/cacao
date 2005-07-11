@@ -14,7 +14,7 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl system type
 case "$host_cpu" in
-alpha | alphaev56 )
+alpha | alphaev56 | alphapca56 )
 	ARCH_DIR="alpha"
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
