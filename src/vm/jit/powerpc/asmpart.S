@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2961 2005-07-09 18:07:33Z twisti $
+   $Id: asmpart.S 2980 2005-07-11 10:13:08Z twisti $
 
 */
 
@@ -366,7 +366,7 @@ asm_call_jit_compiler:
 		
 noregchange:
 	lwz     itmp1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-	mr      r29,mptr
+	mr      r29,mptr                    /* save method pointer                */
 
 #if defined(__DARWIN__)
 	stw     a0,28(r1)
@@ -399,7 +399,7 @@ noregchange:
 	bl      jit_compile
 	mr      pv,r3
 
-	mr      mptr,r29
+	mr      mptr,r29                    /* restore method pointer             */
 
 #if defined(__DARWIN__)
 	lwz     a0,28(r1)
@@ -429,6 +429,13 @@ noregchange:
 #endif
 
 	lwz     itmp1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+LA_LR_OFFSET(r1)
+	lwz     r0,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+LA_LR_OFFSET(r1)
+	mtlr    r0
+	addi    r1,r1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
+
+	mr.     pv,pv                       /* test for exception                 */
+	beq     L_asm_call_jit_compiler_exception
+
 	lwz     itmp3,-12(itmp1)
 	extsh   itmp3,itmp3
 	add     mptr,mptr,itmp3
@@ -436,13 +443,28 @@ noregchange:
 
 	mtctr   pv
 
-	lwz     r0,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+LA_LR_OFFSET(r1)
-	mtlr    r0
-	addi    r1,r1,(LA_SIZE + 1*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
 	lwz     r29,-12(r1)
 /*	lwz     pv,-8(r1)*/
 	lwz     r31,-4(r1)
 	bctr
+
+L_asm_call_jit_compiler_exception:
+	mflr    r0
+	stw     r0,LA_LR_OFFSET(r1)
+	stwu    r1,-(LA_SIZE+3*4)(r1)
+
+	li      a0,0                        /* fill in correct stacktrace         */
+	addi    a1,r1,LA_SIZE+3*4
+	mr      a2,r0
+	bl      stacktrace_fillInStackTrace
+	mr      xptr,v0
+
+	lwz     r0,LA_SIZE+3*4+LA_LR_OFFSET(r1)
+	mtlr    r0
+	addi    r1,r1,LA_SIZE+3*4
+
+	addi    xpc,r0,-4
+	b       asm_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************
