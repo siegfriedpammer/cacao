@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2986 2005-07-11 18:56:09Z twisti $
+   $Id: asmpart.S 2992 2005-07-11 21:52:07Z twisti $
 
 */
 
@@ -382,7 +382,7 @@ L_asm_call_jit_compiler_exception:
 	lda     a1,1*8(sp)            /* pass sp of parent Java function          */
 	mov     ra,a2                 /* pass ra to parent Java function          */
 	mov     ra,a3                 /* xpc is the same as ra                    */
-	jsr     ra,stacktrace_fillInStackTrace
+	jsr     ra,stacktrace_extern_fillInStackTrace
 	mov     v0,xptr
 
 	ldq     ra,0*8(sp)
@@ -727,7 +727,7 @@ L_asm_wrapper_patcher_load_gp:
 	lda     a2,((5+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp         */
 	ldq     a3,(12+27+2)*8(sp)    /* this is correct for leafs                */
 	ldq     a4,((4+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
-	jsr     ra,stacktrace_create_inline_stackframeinfo
+	jsr     ra,stacktrace_create_extern_stackframeinfo
 	ldgp    gp,0(ra)
 
 	lda     a0,((0+12+27+4)*8+sizestackframeinfo)(sp) /* pass sp              */

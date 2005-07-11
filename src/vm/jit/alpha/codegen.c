@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: codegen.c 2986 2005-07-11 18:56:09Z twisti $
+   $Id: codegen.c 2992 2005-07-11 21:52:07Z twisti $
 
 */
 
@@ -3826,13 +3826,14 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -1 * 8);
 			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arithmeticexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_arithmeticexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -3881,7 +3882,13 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+
+			if (m->isleafmethod)
+				M_MOV(REG_RA, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
+
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 			M_MOV(REG_ITMP1, rd->argintregs[4]);
 
@@ -3891,7 +3898,7 @@ gen_method:
 			if (m->isleafmethod)
 				M_AST(REG_RA, REG_SP, 1 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arrayindexoutofboundsexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_arrayindexoutofboundsexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -3947,13 +3954,14 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -1 * 8);
 			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arraystoreexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_arraystoreexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -4006,7 +4014,13 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+
+			if (m->isleafmethod)
+				M_MOV(REG_RA, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
+
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -2 * 8);
@@ -4015,7 +4029,7 @@ gen_method:
 			if (m->isleafmethod)
 				M_AST(REG_RA, REG_SP, 1 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_classcastexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_classcastexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -4071,13 +4085,14 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -2 * 8);
 			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_negativearraysizeexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_negativearraysizeexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -4130,7 +4145,13 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);
+
+			if (m->isleafmethod)
+				M_MOV(REG_RA, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
+
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -2 * 8);
@@ -4139,7 +4160,7 @@ gen_method:
 			if (m->isleafmethod)
 				M_AST(REG_RA, REG_SP, 1 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_new_nullpointerexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_nullpointerexception);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 
@@ -4195,13 +4216,14 @@ gen_method:
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_RA, rd->argintregs[2]);   /* this is correct for leafs  */
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
 			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
 			M_LDA(REG_SP, REG_SP, -1 * 8);
 			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
 
-			disp = dseg_addaddress(cd, stacktrace_fillInStackTrace);
+			disp = dseg_addaddress(cd, stacktrace_inline_fillInStackTrace);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 

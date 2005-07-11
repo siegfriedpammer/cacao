@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2987 2005-07-11 19:01:39Z twisti $
+   $Id: md.c 2992 2005-07-11 21:52:07Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* md_init *********************************************************************
@@ -111,11 +112,11 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr == 0) {
 		pv  = (u1 *) _mc->sc_regs[REG_PV];
 		sp  = (u1 *) _mc->sc_regs[REG_SP];
-		ra  = (u1 *) _mc->sc_regs[REG_RA];  /* this is correct for leafs      */
+		ra  = (functionptr) _mc->sc_regs[REG_RA]; /* this is correct for leafs*/
 		xpc = (functionptr) _mc->sc_pc;
 
 		_mc->sc_regs[REG_ITMP1_XPTR] =
-			(ptrint) stacktrace_new_nullpointerexception(pv, sp, ra, xpc);
+			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_mc->sc_regs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->sc_pc = (ptrint) asm_handle_exception;
