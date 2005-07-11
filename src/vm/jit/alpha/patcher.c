@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 2931 2005-07-08 11:49:50Z twisti $
+   $Id: patcher.c 2986 2005-07-11 18:56:09Z twisti $
 
 */
 
@@ -106,7 +106,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -172,7 +172,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* patch the field's offset */
@@ -247,7 +247,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -326,7 +326,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -399,7 +399,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -424,8 +424,8 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
    Machine code:
 
-   a63bfe60    ldq     a1,-416(pv)
    <patched call position>
+   a63bfe60    ldq     a1,-416(pv)
    a77bfe58    ldq     pv,-424(pv)
    6b5b4000    jsr     (pv)
 
@@ -451,7 +451,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - 2 * 4;
+	ra = ra - 1 * 4;
 	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -466,7 +466,12 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* patch back original code */
 
-	*((u4 *) (ra + 4)) = mcode;
+	*((u4 *) ra) = mcode;
+
+	/* if we show disassembly, we have to skip the nop */
+
+	if (opt_showdisassemble)
+		ra = ra + 4;
 
 	/* get the offset from machine instruction */
 
@@ -475,11 +480,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (showdisassemble)
-		ra = ra + 4;
 
 	/* get the offset from machine instruction */
 
@@ -557,7 +557,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -627,7 +627,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -695,7 +695,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* patch vftbl index */
@@ -761,7 +761,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* patch interfacetable index */
@@ -831,7 +831,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -901,7 +901,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* patch super class index */
@@ -970,7 +970,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */
@@ -1088,7 +1088,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (showdisassemble)
+	if (opt_showdisassemble)
 		ra = ra + 4;
 
 	/* get the offset from machine instruction */

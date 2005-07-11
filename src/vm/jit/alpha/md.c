@@ -30,14 +30,17 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2930 2005-07-08 11:45:43Z twisti $
+   $Id: md.c 2986 2005-07-11 18:56:09Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <ucontext.h>
 
 #include "config.h"
+
+#include "vm/jit/alpha/asmoffsets.h"
 #include "vm/jit/alpha/md-abi.h"
 #include "vm/jit/alpha/types.h"
 
@@ -90,10 +93,15 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u4          instr;
-	ptrint      addr;
+	ucontext_t  *_uc;
+	mcontext_t  *_mc;
+	u4           instr;
+	ptrint       addr;
+	u1          *pv;
+	u1          *sp;
+	functionptr  ra;
+	functionptr  xpc;
+	bool         isleafmethod;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -102,17 +110,23 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	addr = _mc->sc_regs[(instr >> 16) & 0x1f];
 
 	if (addr == 0) {
-		_mc->sc_regs[REG_ITMP1_XPTR] =
-			(ptrint) string_java_lang_NullPointerException;
+		pv  = (u1 *) _mc->sc_regs[REG_PV];
+		sp  = (u1 *) _mc->sc_regs[REG_SP];
+		ra  = (u1 *) _mc->sc_regs[REG_RA];  /* this is correct for leafs      */
+		xpc = (functionptr) _mc->sc_pc;
 
-		_mc->sc_regs[REG_ITMP2_XPC] = _mc->sc_pc;
-		_mc->sc_pc = (ptrint) asm_throw_and_handle_exception;
+		_mc->sc_regs[REG_ITMP1_XPTR] =
+			(ptrint) stacktrace_new_nullpointerexception(pv, sp, ra, xpc);
+
+		_mc->sc_regs[REG_ITMP2_XPC] = (ptrint) xpc;
+		_mc->sc_pc = (ptrint) asm_handle_exception;
 
 	} else {
 		addr += (long) ((instr << 16) >> 16);
 
 		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "faulting address: 0x%016lx\n", addr);
+								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
+								   addr, _mc->sc_pc);
 	}
 }
 
@@ -146,6 +160,50 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P));
 
 	return ra;
+}
+
+
+/* codegen_findmethod **********************************************************
+
+   Machine code:
+
+   6b5b4000    jsr     (pv)
+   237affe8    lda     pv,-24(ra)
+
+*******************************************************************************/
+
+functionptr codegen_findmethod(functionptr pc)
+{
+	u1 *ra;
+	u1 *pv;
+	u4  mcode;
+	s2  offset;
+
+	ra = (u1 *) pc;
+	pv = ra;
+
+	/* get offset of first instruction (lda) */
+
+	mcode = *((u4 *) ra);
+
+	if ((mcode >> 16) != 0x237a) {
+		log_text("No `lda pv,x(ra)' instruction found on return address!");
+		assert(0);
+	}
+
+	offset = (s2) (mcode & 0x0000ffff);
+	pv += offset;
+
+	/* check for second instruction (ldah) */
+
+	mcode = *((u4 *) (ra + 1 * 4));
+
+	if ((mcode >> 16) == 0x177b) {
+		offset = (s2) (mcode << 16);
+		pv += offset;
+	}
+
+	return (functionptr) pv;
 }
 
 

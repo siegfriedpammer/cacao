@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2931 2005-07-08 11:49:50Z twisti $
+   $Id: asmpart.S 2986 2005-07-11 18:56:09Z twisti $
 
 */
 
@@ -61,31 +61,16 @@
 	.globl asm_calljavafunction2double
 
 	.globl asm_call_jit_compiler
-	.globl asm_throw_and_handle_exception
-	.globl asm_throw_and_handle_nat_exception
-	.globl asm_throw_and_handle_arithmetic_exception
-	.globl asm_throw_and_handle_arrayindexoutofbounds_exception
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
-
-	.globl asm_builtin_arraycheckcast
-	.globl asm_builtin_aastore
-
-	.globl asm_builtin_idiv
-	.globl asm_builtin_irem
-	.globl asm_builtin_ldiv
-	.globl asm_builtin_lrem
 
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
 	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
-	.globl asm_prepare_native_stackinfo
-	.globl asm_remove_native_stackinfo
-	.globl asm_refillin_and_handle_exception
 
 
 /* asm_sync_instruction_cache **************************************************
@@ -374,7 +359,7 @@ noregchange:
 	ldq     ra,13*8(sp)           /* load return address                      */
 	lda     sp,14*8(sp)           /* deallocate stack area                    */
 
-	beq     v0,asm_call_jit_compiler_exception
+	beq     v0,L_asm_call_jit_compiler_exception
 
 	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
 	sll     t8,48,t8
@@ -389,259 +374,24 @@ noregchange:
 	jmp     zero,(pv)             /* and call method. The method returns      */
 	                              /* directly to the caller (ra).             */
 
-asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+L_asm_call_jit_compiler_exception:
 	subq    sp,1*8,sp
 	stq     ra,0*8(sp)
-	jsr     ra,builtin_asm_get_exceptionptrptr
+
+	mov     zero,a0               /* fill in the correct stacktrace           */
+	lda     a1,1*8(sp)            /* pass sp of parent Java function          */
+	mov     ra,a2                 /* pass ra to parent Java function          */
+	mov     ra,a3                 /* xpc is the same as ra                    */
+	jsr     ra,stacktrace_fillInStackTrace
+	mov     v0,xptr
+
 	ldq     ra,0*8(sp)
 	addq    sp,1*8,sp
-#else
-	lda     v0,_exceptionptr
-#endif
-	ldq     xptr,0(v0)            /* get the exception pointer                */
-	stq     zero,0(v0)            /* clear the exception pointer              */
 
 	subq    ra,4,xpc
 	br      asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
-
-
-/**************** function asm_refillin_and_handle_exception *******************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception is passed in REG_ITMP1 and the                  *
-*   pc from the exception raising position is passed in REG_ITMP2.             *
-*   a0 contains the PV of the function causing the problem                     *
-*                                                                              *
-*   void asm_handle_arithmetic_exception (exceptionclass, exceptionpc);        *
-*                                                                              *
-*******************************************************************************/
-	.ent asm_refillin_and_handle_exception
-asm_refillin_and_handle_exception:
-	ldgp	gp,0(pv)
-        ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-        sll     t0,48,t0
-        sra     t0,48,t0              /* isolate offset                           */
-        addq    t0,ra,pv              /* compute update address                   */
-        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-        srl     t0,16,t0              /* isolate instruction code                 */
-        lda     t0,-0x177b(t0)        /* test for LDAH                            */
-        bne     t0, asm_refillin_and_handle_exception_cont
-        ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-        sll     t0,16,t0              /* compute high offset                      */
-        addl    t0,0,t0               /* sign extend high offset                  */
-        addq    t0,pv,pv              /* compute update address                   */
-
-asm_refillin_and_handle_exception_cont:
-
-	mov	sp,t0
-	lda	sp,-6*8(sp) /* prepare stackframe*/
-	stq	pv,5*8(sp) /* store pv of caller */
-	stq	xptr,4*8(sp) /*exception ptr*/
-	stq	xpc,3*8(sp) /*address of failure*/
-	stq	t0,2*8(sp) /*begin of java stack frame*/
-	stq	pv,1*8(sp) /* store pv of caller */
-	stq	zero,0*8(sp)	/*builtin (invisible) function */
-	jsr     ra,asm_prepare_native_stackinfo /* puts 2 additional quadwords on stack */
-	ldgp	gp,0(ra)
-
-	ldq	a2,utf_void__java_lang_Throwable
-	ldq	a1,utf_fillInStackTrace
-	ldq	t0,6*8(sp)
-	ldq	t1,offobjvftbl(t0)	
-	ldq	a0,offclass(t1)
-	jsr	ra,class_resolvemethod
-	ldgp	gp,0(ra)
-	/* now we have the method */
-
-	/*refillin */
-	mov	v0,a0
-	ldq	a1,6*8(sp)
-	jsr	ra,asm_calljavafunction
-	ldgp	gp,0(ra)
-
-	/*remove frame*/
-	jsr ra,asm_remove_native_stackinfo
-	ldgp	gp,0(ra)
-
-
-	/*finish*/
-	ldq	xpc,0(sp)	
-	ldq	xptr,1*8(sp)
-        ldq	pv,2*8(sp)
-	lda sp,3*8(sp)
-	br asm_handle_exception
-
-	.end asm_refillin_and_handle_exception
-
-/****** function asm_throw_and_handle_arrayindexoutofbounds_exception **********
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The integer parameter is passed in REG_ITMP1 and the          *
-*   pc from the exception raising position is passed in REG_ITMP2.             *
-*                                                                              *
-*   void asm_handle_arithmetic_exception (exceptionclass, exceptionpc);        *
-*                                                                              *
-*******************************************************************************/
-
-	.ent asm_throw_and_handle_arrayindexoutofbounds_exception
-
-asm_throw_and_handle_arrayindexoutofbounds_exception:
-	ldgp	gp,0(pv)
-
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,ra,pv              /* compute update address                   */
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,asm_throw_and_handle_arrayindexoutofbounds_exception_cont
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,pv,pv              /* compute update address                   */
-
-asm_throw_and_handle_arrayindexoutofbounds_exception_cont:
-	mov     sp,t0
-	lda     sp,-6*8(sp) /*prepare stackframe*/
-	stq     pv,5*8(sp)  /*pv of failure*/
-	stq     itmp1,4*8(sp) /*int parameter  of the exception*/
-	stq     xpc,3*8(sp) /*address of failure */
-	stq     t0,2*8(sp) /*store begin of java stack frame*/
-	stq     pv,1*8(sp) /*store pv of caller in structure*/
-	stq     zero,0*8(sp) /*builtin (invisible function)*/
-
-	jsr     ra,asm_prepare_native_stackinfo /* puts 2 additional quadwords on stack */
-	ldgp    gp,0(ra)
-
-	ldq     a0,6*8(sp)  /*int  of exception*/
-	jsr     ra,new_arrayindexoutofboundsexception
-	ldgp	gp,0(ra)
-
-	mov     v0,itmp1 /*itmp1 is not touched in asm_remove_native_stackinfo*/
-
-	jsr     ra,asm_remove_native_stackinfo
-	ldgp    gp,0(ra)
-
-	ldq     itmp2,0(sp)	
-	ldq     pv,2*8(sp)
-	lda     sp,3*8(sp)
-	br      asm_handle_exception
-
-	.end asm_throw_and_handle_arrayindexoutofbounds_exception
-
-
-/* asm_throw_and_handle_arithmetic_exception ***********************************
-
-   DOCUMENT ME!
-
-*******************************************************************************/
-
-	.ent asm_throw_and_handle_arithmetic_exception
-
-asm_throw_and_handle_arithmetic_exception:
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,ra,pv              /* compute update address                   */
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,asm_throw_and_handle_arithmetic_exception_cont
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,pv,pv              /* compute update address                   */
-
-asm_throw_and_handle_arithmetic_exception_cont:
-	mov	sp,t0
-	lda	sp,-6*8(sp) /*prepare stackframe*/
-        stq     pv,5*8(sp)  /*pv of failure*/
-	stq 	itmp1,4*8(sp) /*exception string of the exception*/
-	stq 	xpc,3*8(sp) /*address of failure */
-	stq	t0,2*8(sp) /*store begin of java stack frame*/
-	stq	pv,1*8(sp) /*store pv of caller in structure*/
-	stq	zero,0*8(sp) /*builtin (invisible function)*/
-	jsr	ra,asm_prepare_native_stackinfo /* puts 2 additional quadwords on stack */
-	ldgp	gp,0(ra)
-
-	jsr     ra,new_arithmeticexception
-	ldgp	gp,0(ra)
-	mov     v0,itmp1 /*itmp1 is not touched in asm_remove_native_stackinfo*/
-
-	jsr ra,asm_remove_native_stackinfo
-	ldgp	gp,0(ra)
-
-	ldq itmp2,0(sp)	
-        ldq    pv,2*8(sp)
-	lda sp,3*8(sp)
-	br asm_handle_exception
-
-	.end asm_throw_and_handle_arithmetic_exception
-
-
-/* asm_throw_and_handle_exception **********************************************
-
-   DOCUMENT ME!!!
-
-*******************************************************************************/
-
-	.ent asm_throw_and_handle_nat_exception
-
-asm_throw_and_handle_nat_exception:
-	ldgp	gp,0(pv)
-	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,48,t0
-	sra     t0,48,t0              /* isolate offset                           */
-	addq    t0,ra,pv              /* compute update address                   */
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t0,16,t0              /* isolate instruction code                 */
-	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,asm_throw_and_handle_exception
-	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	sll     t0,16,t0              /* compute high offset                      */
-	addl    t0,0,t0               /* sign extend high offset                  */
-	addq    t0,pv,pv              /* compute update address                   */
-
-	.aent asm_throw_and_handle_exception
-
-asm_throw_and_handle_exception:
-	mov     sp,t0
-	lda     sp,-6*8(sp)           /* prepare stackframe                       */
-	stq     pv,5*8(sp)            /* pv of failure                            */
-	stq     xptr,4*8(sp)          /* classname of the exception               */
-	stq     xpc,3*8(sp)           /* address of failure                       */
-	stq     t0,2*8(sp)            /* store begin of java stack frame          */
-	stq     pv,1*8(sp)            /* store pv of caller in structure          */
-	stq     zero,0*8(sp)          /* builtin (invisible function)             */
-	                              /* puts 2 additional quadwords on stack     */
-
-	br      ra,L_asm_throw_and_handle_exception_load_gp
-L_asm_throw_and_handle_exception_load_gp:
-	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
-
-	jsr     ra,asm_prepare_native_stackinfo
-	ldgp	gp,0(ra)
-
-	ldq     a0,6*8(sp)            /* classname of exception                   */
-	jsr     ra,new_exception
-	ldgp    gp,0(ra)
-
-	mov     v0,xptr               /* xptr (itmp1) is not touched in           */
-	                              /* asm_remove_native_stackinfo              */
-
-	jsr     ra,asm_remove_native_stackinfo
-	ldgp	gp,0(ra)
-
-	ldq     itmp2,0(sp)
-	ldq     pv,2*8(sp)
-	lda     sp,3*8(sp)
-	br      asm_handle_exception
-
-	.end asm_throw_and_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************
@@ -958,7 +708,7 @@ ex_flt2:
 	.ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	lda     sp,-(12+27+4)*8(sp)   /* create stack frame                       */
+	lda     sp,-((12+27+4)*8+sizestackframeinfo)(sp) /* create stack frame    */
 
 	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
 	SAVE_TEMPORARY_REGISTERS(12)  /* save 11 int/16 float temporary registers */
@@ -968,13 +718,29 @@ asm_wrapper_patcher:
 	stq     ra,(12+27+2)*8(sp)    /* save method return address (for leafs)   */
 	stq     pv,(12+27+3)*8(sp)    /* save pv of calling java function         */
 
-	lda     a0,(0+12+27+4)*8(sp)  /* pass sp                                  */
-	ldq     pv,(0+12+27+4)*8(sp)  /* get function pointer                     */
+	br      ra,L_asm_wrapper_patcher_load_gp
+L_asm_wrapper_patcher_load_gp:
+	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
+
+	lda     a0,(12+27+4)*8(sp)    /* create stackframe info                   */
+	mov     pv,a1                 /* pass java pv                             */
+	lda     a2,((5+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp         */
+	ldq     a3,(12+27+2)*8(sp)    /* this is correct for leafs                */
+	ldq     a4,((4+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
+	jsr     ra,stacktrace_create_inline_stackframeinfo
+	ldgp    gp,0(ra)
+
+	lda     a0,((0+12+27+4)*8+sizestackframeinfo)(sp) /* pass sp              */
+	ldq     pv,((0+12+27+4)*8+sizestackframeinfo)(sp) /* get function pointer */
 	ldq     itmp1,(12+27+3)*8(sp) /* save pv to the position of fp            */
-	stq     itmp1,(0+12+27+4)*8(sp)
+	stq     itmp1,((0+12+27+4)*8+sizestackframeinfo)(sp)
 	jmp     ra,(pv)               /* call the patcher function                */
 	ldgp    gp,0(ra)
-		
+
+	lda     a0,(12+27+4)*8(sp)    /* remove stackframe info                   */
+	jsr     ra,stacktrace_remove_stackframeinfo
+	ldgp    gp,0(ra)
+
 	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
 	RESTORE_TEMPORARY_REGISTERS(12)/* restore 11 integer temporary registers  */
 
@@ -983,8 +749,8 @@ asm_wrapper_patcher:
 	ldq     ra,(12+27+2)*8(sp)    /* restore method return address (for leafs)*/
 	ldq     pv,(12+27+3)*8(sp)    /* restore pv of calling java function      */
 
-	ldq     itmp3,(4+12+27+4)*8(sp)/* get return address (into JIT code)      */
-	lda     sp,(5+12+27+4)*8(sp)  /* remove stack frame                       */
+	ldq     itmp3,((4+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to jit code */
+	lda     sp,((5+12+27+4)*8+sizestackframeinfo)(sp)  /* remove stack frame  */
 
 	beq     v0,L_asm_wrapper_patcher_exception
 
@@ -1017,218 +783,6 @@ L_asm_wrapper_patcher_exception_load_gp:
 	.end	asm_wrapper_patcher
 
 		
-/************************ function asm_builtin_idiv ****************************
-*                                                                              *
-*   Does null check and calls idiv or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_idiv
-
-asm_builtin_idiv:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_idiv
-	beq     a1,nb_idiv                /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_idiv               */
-
-nb_idiv:
-	ldq	xptr,string_java_lang_ArithmeticException_message
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br	asm_throw_and_handle_arithmetic_exception
-
-	.end    asm_builtin_idiv
-
-
-/************************ function asm_builtin_ldiv ****************************
-*                                                                              *
-*   Does null check and calls ldiv or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_ldiv
-
-asm_builtin_ldiv:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_ldiv
-	beq     a1,nb_ldiv                /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_ldiv               */
-
-nb_ldiv:
-	ldq	xptr,string_java_lang_ArithmeticException_message
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br	asm_throw_and_handle_arithmetic_exception
-
-	.end    asm_builtin_ldiv
-
-
-/************************ function asm_builtin_irem ****************************
-*                                                                              *
-*   Does null check and calls irem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_irem
-
-asm_builtin_irem:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_irem
-	beq     a1,nb_irem                /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_irem               */
-
-nb_irem:
-	ldq	xptr,string_java_lang_ArithmeticException_message
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br	asm_throw_and_handle_arithmetic_exception
-
-	.end    asm_builtin_irem
-
-
-/************************ function asm_builtin_lrem ****************************
-*                                                                              *
-*   Does null check and calls lrem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_lrem
-
-asm_builtin_lrem:
-	ldgp    gp,0(pv)
-	lda     pv,builtin_lrem
-	beq     a1,nb_lrem                /* if (null) throw exception            */
-	jmp     zero,(pv)                 /* else call builtin_lrem               */
-
-nb_lrem:
-	ldq	xptr,string_java_lang_ArithmeticException_message
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br	asm_throw_and_handle_arithmetic_exception
-
-	.end    asm_builtin_lrem
-
-
-/* asm_builtin_arraycheckcast **************************************************
-
-   Does the cast check and eventually throws an exception.
-
-*******************************************************************************/
-
-	.ent    asm_builtin_arraycheckcast
-
-asm_builtin_arraycheckcast:
-	ldgp    gp,0(pv)
-	lda     sp,-16(sp)                /* allocate stack space                 */
-	stq     ra,0(sp)                  /* save return address                  */
-	stq     a0,8(sp)                  /* save object pointer                  */
-	jsr     ra,builtin_arraycheckcast
-	ldgp    gp,0(ra)
-	beq     v0,nb_carray_throw        /* if (false) throw exception           */
-	ldq     ra,0(sp)                  /* restore return address               */
-	ldq     v0,8(sp)                  /* return object pointer                */
-	lda     sp,16(sp)                 /* free stack space                     */
-	jmp     zero,(ra)
-
-nb_carray_throw:
-	ldq	ra,0(sp)
-	lda	sp,16(sp)
-	lda	xpc,-4(ra)
-	ldq	xptr,string_java_lang_ClassCastException
-	jmp	zero,asm_throw_and_handle_nat_exception
-#if 0
-	ldq     a0,string_java_lang_ClassCastException
-    jsr     ra,new_exception
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-
-	ldq     ra,0(sp)                  /* restore return address               */
-	lda     sp,16(sp)                 /* free stack space                     */
-	lda     xpc,-4(ra)                /* faulting address is return adress - 4*/
-	br      asm_handle_nat_exception
-#endif
-
-	.end    asm_builtin_arraycheckcast
-
-
-/******************* function asm_builtin_aastore ******************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_aastore
-
-asm_builtin_aastore:
-	ldgp    gp,0(pv)
-	beq     a0,nb_aastore_null        /* if null pointer throw exception      */
-	ldl     t0,offarraysize(a0)       /* load size                            */
-	lda     sp,-24(sp)                /* allocate stack space                 */
-	stq     ra,0(sp)                  /* save return address                  */
-	s8addq  a1,a0,t1                  /* add index*8 to arrayref              */
-	cmpult  a1,t0,t0                  /* do bound check                       */
-	beq     t0,nb_aastore_bound       /* if out of bounds throw exception     */
-	mov     a2,a1                     /* object is second argument            */
-	stq     t1,8(sp)                  /* save store position                  */
-	stq     a1,16(sp)                 /* save object                          */
-	jsr     ra,builtin_canstore       /* builtin_canstore(arrayref,object)    */
-	ldgp    gp,0(ra)
-	ldq     ra,0(sp)                  /* restore return address               */
-	ldq     a0,8(sp)                  /* restore store position               */
-	ldq     a1,16(sp)                 /* restore object                       */
-	lda     sp,24(sp)                 /* free stack space                     */
-	beq     v0,nb_aastore_throw       /* if (false) throw exception           */
-	stq     a1,offobjarrdata(a0)      /* store objectptr in array             */
-	jmp     zero,(ra)
-
-nb_aastore_null:
-	ldq	xptr,string_java_lang_NullPointerException
-	mov	ra,xpc
-	jmp	zero,asm_throw_and_handle_nat_exception
-#if 0	
-	subq    sp,8,sp                   /* allocate stack space                 */
-	stq     ra,0(sp)                  /* save return address                  */
-    jsr     ra,new_nullpointerexception
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-	ldq     ra,0(sp)
-	addq    sp,8,sp
-
-	mov     ra,xpc                    /* faulting address is return adress    */
-	br      asm_handle_nat_exception
-#endif
-nb_aastore_bound:
-	ldq	ra,0(sp)
-	lda	sp,24(sp)
-	mov	ra,xpc
-	mov	a1,xptr
-	jmp	zero,asm_throw_and_handle_arrayindexoutofbounds_exception
-#if 0
-	ldq     a0,string_java_lang_ArrayIndexOutOfBoundsException
-    jsr     ra,new_exception_int      /* a1 already contains the index        */
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-
-	ldq     ra,0(sp)                  /* restore return address               */
-	lda     sp,24(sp)                 /* free stack space                     */
-	mov     ra,xpc                    /* faulting address is return adress    */
-	br      asm_handle_nat_exception
-#endif
-nb_aastore_throw:
-	mov	ra,xpc
-	ldq	xptr,string_java_lang_ArrayStoreException
-	jmp	zero,asm_throw_and_handle_nat_exception
-#if 0
-	subq    sp,8,sp                   /* allocate stack space                 */
-	stq     ra,0(sp)                  /* save return address                  */
-    jsr     ra,new_arraystoreexception
-    ldgp    gp,0(ra)
-	mov     v0,xptr
-	ldq     ra,0(sp)
-	addq    sp,8,sp
-
-	mov     ra,xpc                    /* faulting address is return adress    */
-	br      asm_handle_nat_exception
-#endif
-	.end    asm_builtin_aastore
-
-
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 *   initialized a thread stack                                                 *
@@ -1378,29 +932,6 @@ asm_criticalsections:
 #endif
     .quad   0
 
-
-	.ent asm_prepare_native_stackinfo
-asm_prepare_native_stackinfo:
-	lda sp,-24(sp)
-	stq ra,0(sp)
-	jsr ra,builtin_asm_get_stackframeinfo
-	stq v0,16(sp)
-	ldq t0,0(v0)
-	stq t0,8(sp)
-	ldq ra,0(sp)
-	lda sp,8(sp)
-	stq sp,0(v0)
-	ret
-	.end asm_prepare_native_stackinfo
-
-	.ent asm_remove_native_stackinfo
-asm_remove_native_stackinfo:
-	ldq t0,0(sp)
-	ldq t1,8(sp)
-	stq t0,0(t1)
-	lda sp,40(sp)
-	ret
-	.end asm_remove_native_stackinfo
 
 /*
  * These are local overrides for various environment variables in Emacs.
