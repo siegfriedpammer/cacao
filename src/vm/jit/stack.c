@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2969 2005-07-10 15:24:35Z twisti $
+   $Id: stack.c 2981 2005-07-11 10:35:33Z twisti $
 
 */
 
@@ -939,7 +939,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_CONST_STORE
 						if (len > 0 && iptr->val.a == 0) {
 							switch (iptr[1].opc) {
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
 							case ICMD_BUILTIN:
 								if (iptr[1].val.fp != BUILTIN_aastore) {
 									PUSHCONST(TYPE_ADR);
@@ -1088,7 +1088,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__)
+#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1604,7 +1604,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						/* pop 2 push 1 */
 
-#if defined(__POWERPC__) || defined(__I386__)
+#if defined(__POWERPC__) || defined(__I386__) || defined(__ALPHA__)
 					case ICMD_IDIV:
 					case ICMD_IREM:
 #if !SUPPORT_DIVISION
@@ -1660,7 +1660,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						OP2_1(TYPE_INT);
 						break;
 
-#if defined(__POWERPC__) || defined(__I386__)
+#if defined(__POWERPC__) || defined(__I386__) || defined(__ALPHA__)
 					case ICMD_LDIV:
 					case ICMD_LREM:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
@@ -2578,7 +2578,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen +
 							m->basicblocks[m->basicblockcount].mpc);
 
-			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength);)
+			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength); s4ptr++)
 				disassinstr(s4ptr);
 		}
 #endif
