@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2983 2005-07-11 11:56:49Z twisti $
+   $Id: codegen.inc.h 2989 2005-07-11 21:23:53Z twisti $
 
 */
 
@@ -189,7 +189,7 @@ void codegen_init(void);
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
-void codegen_close();
+void codegen_close(void);
 void codegen_insertmethod(functionptr startpc, functionptr endpc);
 
 functionptr codegen_findmethod(functionptr pc);
@@ -202,8 +202,6 @@ void dseg_display(methodinfo *m, codegendata *cd);
 
 functionptr codegen_createnativestub(functionptr f, methodinfo *m);
 void codegen_disassemble_nativestub(methodinfo *m, s4 *code, s4 len);
-
-void init_exceptions();
 
 functionptr createcompilerstub(methodinfo *m);
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
