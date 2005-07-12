@@ -28,16 +28,18 @@
 
    Changes:
 
-   $Id: util.c 2979 2005-07-11 09:59:37Z twisti $
+   $Id: util.c 3019 2005-07-12 23:44:19Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
 
 #include "types.h"
+
 #include "mm/memory.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -90,11 +92,43 @@ char *_Jv_getcwd(void)
 
 int get_variable_message_length(const char *fmt, va_list ap)
 {
-	int len;
+	int n;
 
-	len = vsnprintf(NULL, 0, fmt, ap);
+	n = vsnprintf(NULL, 0, fmt, ap);
 
-	return len;
+#if defined(__IRIX__)
+	/* We know that IRIX returns -1 if the buffer is NULL */
+
+	if (n == -1) {
+		char *p, *np;
+		s4    size;
+
+		size = 100;                     /* start with 100-bytes               */
+
+		p = MNEW(char, size);
+
+		while (1) {
+			/* Try to print in the allocated space. */
+
+			n = vsnprintf(p, size, fmt, ap);
+
+			/* If that worked, return the length. */
+			if (n > -1 && n < size)
+				return n;
+
+			/* Else try again with more space. */
+			size *= 2;  /* twice the old size */
+
+			if ((np = MREALLOC(p, char, size, size)) == NULL) {
+				assert(0);
+			} else {
+				p = np;
+			}
+		}
+	}
+#endif
+
+	return n;
 }
 
 
