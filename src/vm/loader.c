@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2978 2005-07-11 08:26:41Z twisti $
+   $Id: loader.c 2996 2005-07-12 01:42:38Z michi $
 
 */
 
@@ -1942,8 +1942,8 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 	r = classcache_lookup(cl, name);
 
 #ifdef LOADER_VERBOSE
-	if (*result)
-		dolog("        cached -> %p",(void*)(*result));
+	if (r)
+		dolog("        cached -> %p",(void*)r);
 #endif
 
 	if (r)
