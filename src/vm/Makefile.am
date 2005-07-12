@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2795 2005-06-23 09:34:51Z twisti $
+## $Id: Makefile.am 3006 2005-07-12 19:50:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -83,7 +83,7 @@ libvmcore_la_SOURCES = \
 	signal.c \
 	signallocal.h \
 	string.c \
-	string.h \
+	stringlocal.h \
 	tables.c \
 	tables.h \
 	utf8.c \
