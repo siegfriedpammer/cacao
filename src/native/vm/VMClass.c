@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 2893 2005-07-04 20:35:24Z twisti $
+   $Id: VMClass.c 3012 2005-07-12 21:03:33Z twisti $
 
 */
 
@@ -169,7 +169,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
     classinfo         *c;
     java_objectheader *o;
     java_objectarray  *array_constructor;  /* result: array of Method-objects */
+#if 0
     java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
+#endif
     methodinfo *m;			/* the current method to be represented */    
     int public_methods = 0;		/* number of public methods of the class */
     int pos = 0;
