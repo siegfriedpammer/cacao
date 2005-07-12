@@ -28,9 +28,9 @@
             Christian Thalinger
 
    Changes: Joseph Wenninger
-   	    Christian Ullrich
+            Christian Ullrich
 
-   $Id: codegen.c 2971 2005-07-10 15:33:54Z twisti $
+   $Id: codegen.c 2999 2005-07-12 11:20:34Z twisti $
 
 */
 
@@ -141,7 +141,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, parentargs_base * 4);             /* FrameSize      */
 
 #if defined(USE_THREADS)
-
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
@@ -149,16 +148,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);         /* IsSync     */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 4);        /* IsSync         */
 	else
-
 #endif
-
-	(void) dseg_adds4(cd, 0);                                   /* IsSync     */
+		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
-	(void) dseg_adds4(cd, m->isleafmethod);                     /* IsLeaf     */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
+	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
 
 	/* adds a reference for the length of the line number counter. We don't
 	   know the size yet, since we evaluate the information during code
@@ -5092,10 +5089,63 @@ gen_method:
 
 	{
 
+	u1        *xcodeptr;
+	branchref *bref;
+
+	/* generate ArithmeticException stubs */
+
+	xcodeptr = NULL;
+	
+	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
+		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
+			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+							  bref->branchpos,
+							  xcodeptr - cd->mcodebase - (5 + 6));
+			continue;
+		}
+
+		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
+		                  bref->branchpos,
+						  cd->mcodeptr - cd->mcodebase);
+
+		MCODECHECK(100);
+
+		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		dseg_adddata(cd, cd->mcodeptr);
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+
+		if (xcodeptr != NULL) {
+			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
+		
+		} else {
+			xcodeptr = cd->mcodeptr;
+
+			M_ASUB_IMM(4 * 4, REG_SP);
+
+			M_AST_IMM(0, REG_SP, 0 * 4);
+			dseg_adddata(cd, cd->mcodeptr);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_arithmeticexception,
+					  REG_ITMP3);
+			M_CALL(REG_ITMP3);
+
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
+
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+		}
+	}
+
 	/* generate ArrayIndexOutOfBoundsException stubs */
 
-	u1 *xcodeptr = NULL;
-	branchref *bref;
+	xcodeptr = NULL;
 
 	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
 		gen_resolvebranch(cd->mcodebase + bref->branchpos,
@@ -5118,43 +5168,24 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(6 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_IST(REG_ITMP1, REG_SP, 4 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 5 * 4);
+			M_ASUB_IMM(5 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(6 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(6 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(5 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (5 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AST(REG_ITMP1, REG_SP, 4 * 4); /* don't use REG_ITMP1 till here */
+
+			M_MOV_IMM((ptrint) stacktrace_inline_arrayindexoutofboundsexception,
+					  REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-			/* create exception */
-
-			M_ALD(REG_ITMP1, REG_SP, 4 * 4);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) new_arrayindexoutofboundsexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove native stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(6 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 5 * 4);
-			M_AADD_IMM(6 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(5 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
@@ -5189,40 +5220,23 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
+			M_ASUB_IMM(4 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_arraystoreexception,
+					  REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-			/* create exception */
-
-			M_MOV_IMM((ptrint) new_arraystoreexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove native stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
@@ -5257,40 +5271,23 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
+			M_ASUB_IMM(4 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_negativearraysizeexception,
+					  REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-			/* create exception */
-
-			M_MOV_IMM((ptrint) new_negativearraysizeexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove native stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
@@ -5325,108 +5322,22 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
+			M_ASUB_IMM(4 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_classcastexception, REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-			/* create exception */
-
-			M_MOV_IMM((ptrint) new_classcastexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove native stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate ArithmeticException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
-		
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
-
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
-			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			/* create exception */
-
-			M_MOV_IMM((ptrint) new_arithmeticexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove native stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
@@ -5461,47 +5372,30 @@ gen_method:
 		} else {
 			xcodeptr = cd->mcodeptr;
 			
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
+			M_ASUB_IMM(4 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_nullpointerexception,
+					  REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-			/* create exception */
-
-			M_MOV_IMM((ptrint) new_nullpointerexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_AST(REG_RESULT, REG_SP, 1 * 4);
-
-			/* remove stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
 	}
 
-	/* generate exception check stubs */
+	/* generate ICMD_CHECKEXCEPTION stubs */
 
 	xcodeptr = NULL;
 	
@@ -5517,73 +5411,41 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(200);
+		MCODECHECK(100);
 
 		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
 		dseg_adddata(cd, cd->mcodeptr);
 		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
 
 		if (xcodeptr != NULL) {
-			i386_jmp_imm(cd, (xcodeptr - cd->mcodeptr) - 5);
+			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
 		
 		} else {
 			xcodeptr = cd->mcodeptr;
 
-			M_ASUB_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 4 * 4);
+			M_ASUB_IMM(4 * 4, REG_SP);
 
-			/* create dynamic stack info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_IST_IMM(0, REG_SP, 1 * 4);
+			M_AST_IMM(0, REG_SP, 0 * 4);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4); /* don't use ITMP2 till here */
-			M_MOV_IMM((ptrint) stacktrace_create_inline_stackframeinfo, REG_ITMP3);
+			M_MOV(REG_SP, REG_ITMP3);
+			M_AADD_IMM(4 * 4, REG_ITMP3);
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
+
+			M_MOV_IMM((ptrint) stacktrace_inline_fillInStackTrace, REG_ITMP3);
 			M_CALL(REG_ITMP3);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			M_MOV_IMM((ptrint) &builtin_get_exceptionptrptr, REG_ITMP1);
-			M_CALL(REG_ITMP1);
-			M_ALD(REG_ITMP3, REG_RESULT, 0);
-			M_AST_IMM(0, REG_RESULT, 0);
-			M_MOV(REG_ITMP3, REG_ITMP1_XPTR);
-#else
-			M_MOV_IMM((ptrint) &_exceptionptr, REG_ITMP3);
-			M_ALD(REG_ITMP1_XPTR, REG_ITMP3, 0);
-			M_AST_IMM(0, REG_ITMP3, 0);
-#endif
-
-			M_AST(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-
-			/* call fillInStackTrace */
-
-			M_AST(REG_ITMP1_XPTR, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_call_fillInStackTrace, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			/* remove stackframe info */
-
-			M_MOV(REG_SP, REG_ITMP1);
-			M_AADD_IMM(5 * 4, REG_ITMP1);
-			M_AST(REG_ITMP1, REG_SP, 0 * 4);
-			M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP1_XPTR, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP2_XPC, REG_SP, 4 * 4);
-			M_AADD_IMM(5 * 4 + sizeof(stackframeinfo), REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
+			M_AADD_IMM(4 * 4, REG_SP);
 
 			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
 	}
 
-	/* generate put/getstatic stub call code */
+	/* generate code patching stub call code */
 
 	{
 		patchref    *pref;
@@ -5595,7 +5457,7 @@ gen_method:
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
-			MCODECHECK(64);
+			MCODECHECK(100);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */

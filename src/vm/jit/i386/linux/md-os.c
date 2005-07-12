@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2971 2005-07-10 15:33:54Z twisti $
+   $Id: md-os.c 2999 2005-07-12 11:20:34Z twisti $
 
 */
 
@@ -36,6 +36,10 @@
 #define _GNU_SOURCE                   /* include REG_ defines from ucontext.h */
 
 #include <ucontext.h>
+
+#include "config.h"
+
+#include "vm/jit/i386/types.h"
 
 #include "vm/exceptions.h"
 #include "vm/options.h"
@@ -54,31 +58,21 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
-	stackframeinfo *sfi;
 	u1             *sp;
 	functionptr     ra;
+	functionptr     xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* allocate stackframeinfo on heap */
-
-	sfi = NEW(stackframeinfo);
-
-	/* create exception */
-
 	sp = (u1 *) _mc->gregs[REG_ESP];
-	ra = (functionptr) _mc->gregs[REG_EIP];
+	xpc = (functionptr) _mc->gregs[REG_EIP];
+	ra = xpc;                           /* return address is equal to xpc     */
 
-	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+	_mc->gregs[REG_EAX] =
+		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
 
-	_mc->gregs[REG_EAX] = (ptrint) new_nullpointerexception();
-
-	stacktrace_remove_stackframeinfo(sfi);
-
-	FREE(sfi, stackframeinfo);
-
-	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
 
@@ -93,31 +87,21 @@ void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
-	stackframeinfo *sfi;
 	u1             *sp;
 	functionptr     ra;
+	functionptr     xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* allocate stackframeinfo on heap */
-
-	sfi = NEW(stackframeinfo);
-
-	/* create exception */
-
 	sp = (u1 *) _mc->gregs[REG_ESP];
-	ra = (functionptr) _mc->gregs[REG_EIP];
+	xpc = (functionptr) _mc->gregs[REG_EIP];
+	ra = xpc;                           /* return address is equal to xpc     */
 
-	stacktrace_create_inline_stackframeinfo(sfi, NULL, sp, ra);
+	_mc->gregs[REG_EAX] =
+		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
 
-	_mc->gregs[REG_EAX] = (ptrint) new_arithmeticexception();
-
-	stacktrace_remove_stackframeinfo(sfi);
-
-	FREE(sfi, stackframeinfo);
-
-	_mc->gregs[REG_ECX] = _mc->gregs[REG_EIP];               /* REG_ITMP2_XPC */
+	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
 

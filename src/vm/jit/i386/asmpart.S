@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2971 2005-07-10 15:33:54Z twisti $
+   $Id: asmpart.S 2999 2005-07-12 11:20:34Z twisti $
 
 */
 
@@ -363,6 +363,7 @@ L_asm_call_jit_compiler_exception:
 	pop     %ebp                /* restore registers                          */
 	pop     %ebx
 
+#if 0
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2
@@ -397,9 +398,22 @@ L_asm_call_jit_compiler_exception:
 
 	mov     4*4(sp),xptr                /* restore exception pointer          */
 	add     $(5*4+sizestackframeinfo),sp
+#endif
+	sub     $(4*4),sp
 
-	pop     xpc                 /* delete return address                      */
-	sub     $2,xpc              /* faulting address is return adress - 2      */
+	movl    $0,0*4(sp)                  /* we don't have pv handy             */
+	mov     sp,itmp1                    /* pass java sp                       */
+	add     $((1+5)*4),itmp1            /* also skip ra                       */
+	mov     itmp1,1*4(sp)
+	mov     5*4(sp),itmp2               /* pass java ra                       */
+	mov     itmp2,2*4(sp)
+	mov     itmp2,3*4(sp)               /* xpc is equal to ra                 */
+	call    stacktrace_extern_fillInStackTrace
+
+	add     $(4*4),sp
+
+	pop     xpc                         /* get return address                 */
+	sub     $2,xpc                      /* faulting address is ra - 2         */
 	jmp     asm_handle_exception
 
 
@@ -416,7 +430,7 @@ L_asm_call_jit_compiler_exception:
 *******************************************************************************/
 
 asm_handle_nat_exception:
-		add     $4,%esp						/* clear return address of native stub */
+	add     $4,%esp                    /* clear return address of native stub */
 		
 asm_handle_exception:
 asm_handle_exception_loop:
