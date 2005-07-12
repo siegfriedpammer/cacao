@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2895 2005-07-04 20:38:29Z christian $
+## $Id: Makefile.am 3004 2005-07-12 19:36:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 CLEANFILES = \
 	libcheckjni.so \
@@ -43,32 +43,32 @@ CLEANFILES = \
 	testarguments.class \
 	testarguments.h
 
-CACAO = $(top_srcdir)/src/cacao/cacao
-CACAOC = jikes -nowarn 
-CACAOH = $(top_srcdir)/src/cacaoh/cacaoh
+JAVA = $(top_builddir)/src/cacao/cacao
+JAVAC = jikes -nowarn
+JAVAH = $(top_builddir)/src/cacaoh/cacaoh
 
 checkall: test.tst checkjni.tst testarguments.tst
+
 test:
-	$(CACAOC) test.java
-	$(CACAOH) test
+	$(JAVAC) test.java
+	$(JAVAH) test
 	$(CC) -shared $(INCLUDES) $(CFLAGS) test.c -o libtest.so -fPIC
 
 checkjni:
-	$(CACAOC) checkjni.java
-	$(CACAOH) checkjni
+	$(JAVAC) checkjni.java
+	$(JAVAH) checkjni
 	$(CC) -shared $(INCLUDES) $(CFLAGS) checkjni.c -o libcheckjni.so -fPIC
 
-check: testarguments
 testarguments:
-	$(CACAOC) testarguments.java
-	$(CACAOH) testarguments
+	$(JAVAC) testarguments.java
+	$(JAVAH) testarguments
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
-	$(CACAOC) testgetobjectclass0.java
-	$(CACAOH) testgetobjectclass0
+	$(JAVAC) testgetobjectclass0.java
+	$(JAVAH) testgetobjectclass0
 	$(CC) -shared $(INCLUDES) $(CFLAGS) testgetobjectclass0.c -o libtestgetobjectclass0.so -fPIC
 
 %.tst: %
-	sh ../Test.sh $(CACAO) $*
+	sh ../Test.sh $(JAVA) $*
 	rm -f $*.thisoutput
 	rm -f $*.this2output
 

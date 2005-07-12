@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2929 2005-07-08 09:40:41Z twisti $
+## $Id: Makefile.am 3004 2005-07-12 19:36:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -65,13 +65,13 @@ EXTRA_DIST = \
 	putstaticL.java \
 	test.java
 
-JAVA = $(top_srcdir)/src/cacao/cacao
+JAVA = $(top_builddir)/src/cacao/cacao
 JAVAC = jikes -nowarn
 
 build:
 	$(JAVAC) test.java
 
-check:
+checkall: build
 	$(JAVA) test
 
 clean:

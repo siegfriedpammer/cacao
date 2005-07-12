@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2895 2005-07-04 20:38:29Z christian $
+## $Id: Makefile.am 3004 2005-07-12 19:36:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = codepatching kaffe native
+SUBDIRS = codepatching native
 
 EXTRA_DIST = \
 	x.java x.output \
@@ -44,26 +44,20 @@ EXTRA_DIST = \
 	BasicToStrings.java BasicToStrings.output \
 	GCBench.java \
 	JavaPerformance.java \
-	param_test.java \
-	perform_tst.sh
+	param_test.java
 
-JAVA = $(top_srcdir)/src/cacao/cacao
-JAVAC = jikes -nowarn 
+JAVA = $(top_builddir)/src/cacao/cacao
+JAVAC = jikes -nowarn
 
 checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
-	echo "Testing in native/"
-	make -C native checkall
-
-checkrun: GCBench.tstrun JavaPerformance.tstrun
 
 %.tst:
 	$(JAVAC) $*.java
 	sh Test.sh $(JAVA) $*
 #	$(JAVA) $* > $*.thisoutput
 #	diff --brief $*.output $*.thisoutput
-	rm -f $*.thisoutput
-	rm -f $*.this2output
-	 
+	$(RM) $*.thisoutput
+	$(RM) $*.this2output
 
 %.tstrun:
 	$(JAVAC) $*.java
