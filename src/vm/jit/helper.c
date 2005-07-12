@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 2955 2005-07-09 13:55:06Z twisti $
+   $Id: helper.c 3007 2005-07-12 20:58:01Z twisti $
 
 */
 
@@ -61,39 +61,8 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 
 	/* resolve and load the class */
 
-	if (!resolve_classref(NULL, cr, resolveEager, true, true, &c)) {
-		java_objectheader *xptr;
-		java_objectheader *cause;
-
-		/* get the cause */
-
-		cause = *exceptionptr;
-
-		/* convert ClassNotFoundException's to NoClassDefFoundError's */
-
-		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
-			/* clear exception, because we are calling jit code again */
-
-			*exceptionptr = NULL;
-
-			/* create new error */
-
-			xptr =
-				new_exception_javastring(string_java_lang_NoClassDefFoundError,
-										 ((java_lang_Throwable *) cause)->detailMessage);
-
-			/* we had an exception while creating the error */
-
-			if (*exceptionptr)
-				return NULL;
-
-			/* set new exception */
-
-			*exceptionptr = xptr;
-		}
-
+	if (!resolve_classref(NULL, cr, resolveEager, true, true, &c))
 		return NULL;
-	}
 
 	/* return the classinfo pointer */
 

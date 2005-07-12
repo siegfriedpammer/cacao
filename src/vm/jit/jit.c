@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 2953 2005-07-09 13:38:42Z twisti $
+   $Id: jit.c 3007 2005-07-12 20:58:01Z twisti $
 
 */
 
@@ -1174,7 +1174,122 @@ char *opcode_names[256] = {
 };
 
 
-/* include compiler subsystems ************************************************/
+/* jit_init ********************************************************************
+
+   Initializes the JIT subsystem.
+
+*******************************************************************************/
+
+void jit_init(void)
+{
+	s4 i;
+
+#if defined(__ALPHA__)
+	has_ext_instr_set = ! has_no_x_instr_set();
+#endif
+
+	for (i = 0; i < 256; i++)
+		stackreq[i] = 1;
+
+	stackreq[JAVA_NOP]          = 0;
+	stackreq[JAVA_ISTORE]       = 0;
+	stackreq[JAVA_LSTORE]       = 0;
+	stackreq[JAVA_FSTORE]       = 0;
+	stackreq[JAVA_DSTORE]       = 0;
+	stackreq[JAVA_ASTORE]       = 0;
+	stackreq[JAVA_ISTORE_0]     = 0;
+	stackreq[JAVA_ISTORE_1]     = 0;
+	stackreq[JAVA_ISTORE_2]     = 0;
+	stackreq[JAVA_ISTORE_3]     = 0;
+	stackreq[JAVA_LSTORE_0]     = 0;
+	stackreq[JAVA_LSTORE_1]     = 0;
+	stackreq[JAVA_LSTORE_2]     = 0;
+	stackreq[JAVA_LSTORE_3]     = 0;
+	stackreq[JAVA_FSTORE_0]     = 0;
+	stackreq[JAVA_FSTORE_1]     = 0;
+	stackreq[JAVA_FSTORE_2]     = 0;
+	stackreq[JAVA_FSTORE_3]     = 0;
+	stackreq[JAVA_DSTORE_0]     = 0;
+	stackreq[JAVA_DSTORE_1]     = 0;
+	stackreq[JAVA_DSTORE_2]     = 0;
+	stackreq[JAVA_DSTORE_3]     = 0;
+	stackreq[JAVA_ASTORE_0]     = 0;
+	stackreq[JAVA_ASTORE_1]     = 0;
+	stackreq[JAVA_ASTORE_2]     = 0;
+	stackreq[JAVA_ASTORE_3]     = 0;
+	stackreq[JAVA_IASTORE]      = 0;
+	stackreq[JAVA_LASTORE]      = 0;
+	stackreq[JAVA_FASTORE]      = 0;
+	stackreq[JAVA_DASTORE]      = 0;
+	stackreq[JAVA_AASTORE]      = 0;
+	stackreq[JAVA_BASTORE]      = 0;
+	stackreq[JAVA_CASTORE]      = 0;
+	stackreq[JAVA_SASTORE]      = 0;
+	stackreq[JAVA_POP]          = 0;
+	stackreq[JAVA_POP2]         = 0;
+	stackreq[JAVA_IINC]         = 0;
+	stackreq[JAVA_IFEQ]         = 0;
+	stackreq[JAVA_IFNE]         = 0;
+	stackreq[JAVA_IFLT]         = 0;
+	stackreq[JAVA_IFGE]         = 0;
+	stackreq[JAVA_IFGT]         = 0;
+	stackreq[JAVA_IFLE]         = 0;
+	stackreq[JAVA_IF_ICMPEQ]    = 0;
+	stackreq[JAVA_IF_ICMPNE]    = 0;
+	stackreq[JAVA_IF_ICMPLT]    = 0;
+	stackreq[JAVA_IF_ICMPGE]    = 0;
+	stackreq[JAVA_IF_ICMPGT]    = 0;
+	stackreq[JAVA_IF_ICMPLE]    = 0;
+	stackreq[JAVA_IF_ACMPEQ]    = 0;
+	stackreq[JAVA_IF_ACMPNE]    = 0;
+	stackreq[JAVA_GOTO]         = 0;
+	stackreq[JAVA_RET]          = 0;
+	stackreq[JAVA_TABLESWITCH]  = 0;
+	stackreq[JAVA_LOOKUPSWITCH] = 0;
+	stackreq[JAVA_IRETURN]      = 0;
+	stackreq[JAVA_LRETURN]      = 0;
+	stackreq[JAVA_FRETURN]      = 0;
+	stackreq[JAVA_DRETURN]      = 0;
+	stackreq[JAVA_ARETURN]      = 0;
+	stackreq[JAVA_RETURN]       = 0;
+	stackreq[JAVA_PUTSTATIC]    = 0;
+	stackreq[JAVA_PUTFIELD]     = 0;
+	stackreq[JAVA_MONITORENTER] = 0;
+	stackreq[JAVA_MONITOREXIT]  = 0;
+	stackreq[JAVA_WIDE]         = 0;
+	stackreq[JAVA_IFNULL]       = 0;
+	stackreq[JAVA_IFNONNULL]    = 0;
+	stackreq[JAVA_GOTO_W]       = 0;
+	stackreq[JAVA_BREAKPOINT]   = 0;
+
+	stackreq[JAVA_SWAP] = 2;
+	stackreq[JAVA_DUP2] = 2;
+	stackreq[JAVA_DUP_X1] = 3;
+	stackreq[JAVA_DUP_X2] = 4;
+	stackreq[JAVA_DUP2_X1] = 3;
+	stackreq[JAVA_DUP2_X2] = 4;
+
+	/* initialize stack analysis subsystem */
+
+	(void) stack_init();
+
+	/* initialize codegen subsystem */
+
+	codegen_init();
+}
+
+
+/* jit_close *******************************************************************
+
+   Close the JIT subsystem.
+
+*******************************************************************************/
+
+void jit_close(void)
+{
+	/* do nothing */
+}
+
 
 /* dummy function, used when there is no JavaVM code available                */
 
@@ -1517,111 +1632,6 @@ void compile_all_class_methods(classinfo *c)
 	for (i = 0; i < c->methodscount; i++) {
 		(void) jit_compile(&(c->methods[i]));
 	}
-}
-
-
-/* jit_init ********************************************************************
-
-   XXX
-
-*******************************************************************************/
-
-void jit_init(void)
-{
-	s4 i;
-
-#if defined(__ALPHA__)
-	has_ext_instr_set = ! has_no_x_instr_set();
-#endif
-
-	for (i = 0; i < 256; i++)
-		stackreq[i] = 1;
-
-	stackreq[JAVA_NOP]          = 0;
-	stackreq[JAVA_ISTORE]       = 0;
-	stackreq[JAVA_LSTORE]       = 0;
-	stackreq[JAVA_FSTORE]       = 0;
-	stackreq[JAVA_DSTORE]       = 0;
-	stackreq[JAVA_ASTORE]       = 0;
-	stackreq[JAVA_ISTORE_0]     = 0;
-	stackreq[JAVA_ISTORE_1]     = 0;
-	stackreq[JAVA_ISTORE_2]     = 0;
-	stackreq[JAVA_ISTORE_3]     = 0;
-	stackreq[JAVA_LSTORE_0]     = 0;
-	stackreq[JAVA_LSTORE_1]     = 0;
-	stackreq[JAVA_LSTORE_2]     = 0;
-	stackreq[JAVA_LSTORE_3]     = 0;
-	stackreq[JAVA_FSTORE_0]     = 0;
-	stackreq[JAVA_FSTORE_1]     = 0;
-	stackreq[JAVA_FSTORE_2]     = 0;
-	stackreq[JAVA_FSTORE_3]     = 0;
-	stackreq[JAVA_DSTORE_0]     = 0;
-	stackreq[JAVA_DSTORE_1]     = 0;
-	stackreq[JAVA_DSTORE_2]     = 0;
-	stackreq[JAVA_DSTORE_3]     = 0;
-	stackreq[JAVA_ASTORE_0]     = 0;
-	stackreq[JAVA_ASTORE_1]     = 0;
-	stackreq[JAVA_ASTORE_2]     = 0;
-	stackreq[JAVA_ASTORE_3]     = 0;
-	stackreq[JAVA_IASTORE]      = 0;
-	stackreq[JAVA_LASTORE]      = 0;
-	stackreq[JAVA_FASTORE]      = 0;
-	stackreq[JAVA_DASTORE]      = 0;
-	stackreq[JAVA_AASTORE]      = 0;
-	stackreq[JAVA_BASTORE]      = 0;
-	stackreq[JAVA_CASTORE]      = 0;
-	stackreq[JAVA_SASTORE]      = 0;
-	stackreq[JAVA_POP]          = 0;
-	stackreq[JAVA_POP2]         = 0;
-	stackreq[JAVA_IINC]         = 0;
-	stackreq[JAVA_IFEQ]         = 0;
-	stackreq[JAVA_IFNE]         = 0;
-	stackreq[JAVA_IFLT]         = 0;
-	stackreq[JAVA_IFGE]         = 0;
-	stackreq[JAVA_IFGT]         = 0;
-	stackreq[JAVA_IFLE]         = 0;
-	stackreq[JAVA_IF_ICMPEQ]    = 0;
-	stackreq[JAVA_IF_ICMPNE]    = 0;
-	stackreq[JAVA_IF_ICMPLT]    = 0;
-	stackreq[JAVA_IF_ICMPGE]    = 0;
-	stackreq[JAVA_IF_ICMPGT]    = 0;
-	stackreq[JAVA_IF_ICMPLE]    = 0;
-	stackreq[JAVA_IF_ACMPEQ]    = 0;
-	stackreq[JAVA_IF_ACMPNE]    = 0;
-	stackreq[JAVA_GOTO]         = 0;
-	stackreq[JAVA_RET]          = 0;
-	stackreq[JAVA_TABLESWITCH]  = 0;
-	stackreq[JAVA_LOOKUPSWITCH] = 0;
-	stackreq[JAVA_IRETURN]      = 0;
-	stackreq[JAVA_LRETURN]      = 0;
-	stackreq[JAVA_FRETURN]      = 0;
-	stackreq[JAVA_DRETURN]      = 0;
-	stackreq[JAVA_ARETURN]      = 0;
-	stackreq[JAVA_RETURN]       = 0;
-	stackreq[JAVA_PUTSTATIC]    = 0;
-	stackreq[JAVA_PUTFIELD]     = 0;
-	stackreq[JAVA_MONITORENTER] = 0;
-	stackreq[JAVA_MONITOREXIT]  = 0;
-	stackreq[JAVA_WIDE]         = 0;
-	stackreq[JAVA_IFNULL]       = 0;
-	stackreq[JAVA_IFNONNULL]    = 0;
-	stackreq[JAVA_GOTO_W]       = 0;
-	stackreq[JAVA_BREAKPOINT]   = 0;
-
-	stackreq[JAVA_SWAP] = 2;
-	stackreq[JAVA_DUP2] = 2;
-	stackreq[JAVA_DUP_X1] = 3;
-	stackreq[JAVA_DUP_X2] = 4;
-	stackreq[JAVA_DUP2_X1] = 3;
-	stackreq[JAVA_DUP2_X2] = 4;
-
-	/* initialize the codegen stuff */
-	codegen_init();
-}
-
-
-void jit_close()
-{
 }
 
 

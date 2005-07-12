@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3001 2005-07-12 16:01:56Z twisti $
+   $Id: stack.c 3007 2005-07-12 20:58:01Z twisti $
 
 */
 
@@ -59,6 +59,29 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/lsra.h"
+
+
+/* global variables ***********************************************************/
+
+static java_objectheader show_icmd_lock;
+
+
+/* stack_init ******************************************************************
+
+   Initialized the stack analysis subsystem (called by jit_init).
+
+*******************************************************************************/
+
+bool stack_init(void)
+{
+	/* initialize the show lock */
+
+	show_icmd_lock.monitorPtr = get_dummyLR();
+
+	/* everything's ok */
+
+	return true;
+}
 
 
 /**********************************************************************/
@@ -2322,11 +2345,25 @@ static char *jit_type[] = {
 };
 
 
+/* show_icmd_method ************************************************************
+
+   XXX
+
+*******************************************************************************/
+
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	int i, j;
-	basicblock *bptr;
+	basicblock     *bptr;
 	exceptiontable *ex;
+	s4              i, j;
+
+#if defined(USE_THREADS)
+	/* We need to enter a lock here, since the binutils disassembler is not   */
+	/* reentrant-able and we could not read functions printed at the same     */
+	/* time.                                                                  */
+
+	builtin_monitorenter(&show_icmd_lock);
+#endif
 
 	printf("\n");
 	utf_fprint_classname(stdout, m->class->name);
@@ -2382,6 +2419,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		printf("\n");
 	}
 	printf("\n");
+
 #ifdef LSRA
 	if (!opt_lsra) {
 #endif
@@ -2441,6 +2479,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 	}
 	printf("\n");
+
 #ifdef LSRA
   	}
 #endif
@@ -2539,6 +2578,10 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		printf("\n");
 	}
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(&show_icmd_lock);
+#endif
 }
 
 

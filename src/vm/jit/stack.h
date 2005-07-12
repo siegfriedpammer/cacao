@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 2935 2005-07-08 15:06:55Z twisti $
+   $Id: stack.h 3007 2005-07-12 20:58:01Z twisti $
 
 */
 
@@ -388,6 +388,8 @@
 
 
 /* function prototypes ********************************************************/
+
+bool stack_init(void);
 
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
