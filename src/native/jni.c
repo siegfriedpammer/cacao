@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2898 2005-07-04 20:40:55Z twisti $
+   $Id: jni.c 2995 2005-07-12 01:37:15Z michi $
 
 */
 
@@ -3682,10 +3682,12 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 {
 	STATS(jniinvokation();)
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	if (thread_getself() == NULL) {
 		*env = NULL;
 		return JNI_EDETACHED;
 	}
+#endif
 
 	if ((version != JNI_VERSION_1_1) && (version != JNI_VERSION_1_2) &&
 		(version != JNI_VERSION_1_4)) {
