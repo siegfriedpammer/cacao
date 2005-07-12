@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 2592 2005-06-08 11:03:52Z twisti $
+   $Id: initialize.c 3009 2005-07-12 21:01:36Z twisti $
 
 */
 
@@ -48,7 +48,6 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
-#undef JWDEBUG
 
 /* private functions **********************************************************/
 
@@ -92,25 +91,22 @@ bool initialize_class(classinfo *c)
 		return true;
 	}
 
-#ifdef JWDEBUG
-	printf("preparing to call initialize_class_intern for %s\n",c->name->text);
-#endif
 	/* this initalizing run begins NOW */
+
 	c->initializing = true;
 
 	/* call the internal function */
+
 	r = initialize_class_intern(c);
 
-	/* if return value is not NULL everything was ok and the class is
-	   initialized */
+	/* if return value is not NULL everything was ok and the class is */
+	/* initialized */
+
 	if (r)
 		c->initialized = true;
 
-#ifdef JWDEBUG
-	printf("finished to call initialize_class_intern for %s\n",c->name->text);
-#endif
-
 	/* this initalizing run is done */
+
 	c->initializing = false;
 
 #if defined(USE_THREADS)
@@ -160,9 +156,6 @@ static bool initialize_class_intern(classinfo *c)
 												" from ",
 												c);
 
-#ifdef JWDEBUG
-			printf("preparing to call initialize_class for super  %s\n",c->super.cls->name->text);
-#endif
 			if (!initialize_class(c->super.cls))
 				return false;
 		}
@@ -172,9 +165,6 @@ static bool initialize_class_intern(classinfo *c)
 
 	for (i = 0; i < c->interfacescount; i++) {
 		if (!c->interfaces[i].cls->initialized) {
-#ifdef JWDEBUG
-			printf("preparing to call initialize_class for interface  %s\n",c->interfaces[i].cls->name->text);
-#endif
 			if (initverbose)
 				log_message_class_message_class("Initialize interface class ",
 												c->interfaces[i].cls,
