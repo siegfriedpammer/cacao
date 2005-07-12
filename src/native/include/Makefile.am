@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2860 2005-06-28 18:37:28Z twisti $
+## $Id: Makefile.am 3011 2005-07-12 21:02:41Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -99,23 +99,16 @@ CLEANFILES = \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 
 noinst_HEADERS = \
-	$(NO_GEN_HEADER_FILES) \
-	$(GEN_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+	$(NO_GEN_HEADER_FILES)
 
 DO_HEADER_FILES = \
 	$(GEN_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
 
 if ENABLE_STATICVM
-noinst_HEADERS += \
-	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
-
 DO_HEADER_FILES += \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 endif
-
-noinst_DATA =
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
@@ -124,6 +117,8 @@ CLASSPATH = $(top_builddir)/src/lib/vm.zip:$(EXTERNAL_CLASSPATH_PREFIX)/share/cl
 else
 CLASSPATH = $(top_builddir)/src/classpath/lib/
 endif
+
+all: $(DO_HEADER_FILES)
 
 $(NO_GEN_HEADER_FILES):
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
