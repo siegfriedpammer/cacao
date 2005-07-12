@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3001 2005-07-12 16:01:56Z twisti $
+   $Id: builtin.h 3008 2005-07-12 21:01:18Z twisti $
 
 */
 
@@ -65,7 +65,7 @@
 #define DBL_NEGINF  0xfff0000000000000LL
 
 
-/* float versions are not defined in gnu classpath's fdlibm */
+/* float versions are not defined in GNU classpath's fdlibm */
 
 #define copysignf    copysign
 #define finitef      finite
