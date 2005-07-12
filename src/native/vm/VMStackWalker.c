@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 2944 2005-07-09 12:15:07Z twisti $
+   $Id: VMStackWalker.c 3022 2005-07-12 23:48:34Z twisti $
 
 */
 
@@ -52,7 +52,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 /*  	if (cacao_initializing) */
 /*  		return NULL; */
 
-#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	return cacao_createClassContextArray();
 #else
 	return builtin_anewarray(0, class_java_lang_Class);
@@ -67,7 +67,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
  */
 JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
-#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	java_objectarray *oa;
 
 	oa = cacao_createClassContextArray();
@@ -89,7 +89,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	java_objectarray *oa;
 	classinfo        *c;
 
