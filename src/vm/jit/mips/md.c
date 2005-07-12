@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md.c 3002 2005-07-12 16:02:45Z twisti $
+   $Id: md.c 3023 2005-07-12 23:49:49Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* md_init *********************************************************************
@@ -83,10 +84,14 @@ void md_init(void)
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u4          instr;
-	ptrint      addr;
+	ucontext_t  *_uc;
+	mcontext_t  *_mc;
+	u4           instr;
+	ptrint       addr;
+	u1          *pv;
+	u1          *sp;
+	functionptr  ra;
+	functionptr  xpc;
 
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -95,8 +100,15 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	addr = _mc->gregs[(instr >> 21) & 0x1f];
 
 	if (addr == 0) {
-		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) new_nullpointerexception();
-		_mc->gregs[REG_ITMP2_XPC] = _mc->gregs[CTX_EPC];
+		pv  = (u1 *) _mc->gregs[REG_PV];
+		sp  = (u1 *) _mc->gregs[REG_SP];
+		ra  = (functionptr) _mc->gregs[REG_RA]; /* this is correct for leafs*/
+		xpc = (functionptr) _mc->gregs[CTX_EPC];
+
+		_mc->gregs[REG_ITMP1_XPTR] =
+			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+
+		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->gregs[CTX_EPC] = (ptrint) asm_handle_exception;
 
 	} else {
@@ -175,13 +187,16 @@ functionptr codegen_findmethod(functionptr pc)
 
 	mcode = *((u4 *) ra);
 
-	if ((mcode >> 16) != 0x237a) {
-		log_text("No `lda pv,x(ra)' instruction found on return address!");
+	if ((mcode >> 16) != 0x67fe) {
+		log_text("No `daddiu s8,ra,x' instruction found on return address!");
 		assert(0);
 	}
 
 	offset = (s2) (mcode & 0x0000ffff);
 	pv += offset;
+
+#if 0
+	/* XXX TWISTI: implement this! */
 
 	/* check for second instruction (ldah) */
 
@@ -191,6 +206,7 @@ functionptr codegen_findmethod(functionptr pc)
 		offset = (s2) (mcode << 16);
 		pv += offset;
 	}
+#endif
 
 	return (functionptr) pv;
 }
