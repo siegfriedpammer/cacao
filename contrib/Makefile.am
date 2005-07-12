@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2907 2005-07-04 21:28:14Z twisti $
+## $Id: Makefile.am 3015 2005-07-12 21:46:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,6 +38,7 @@ libs_DATA = \
 	java-getopt-1.0.11.jar \
 	kjc-2.2C-bin.jar
 
+EXTRA_DIST = $(libs_DATA)
 
 ## Local variables:
 ## mode: Makefile
