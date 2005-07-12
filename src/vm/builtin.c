@@ -36,13 +36,12 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 2909 2005-07-05 08:46:37Z twisti $
+   $Id: builtin.c 3010 2005-07-12 21:01:59Z twisti $
 
 */
 
 
 #include <assert.h>
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,6 +49,8 @@
 #include "arch.h"
 #include "md-abi.h"
 #include "types.h"
+
+#include "classpath/native/fdlibm/fdlibm.h"
 
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -1341,12 +1342,12 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 #if TRACE_ARGS_NUM == 4
 		sprintf(logtext + strlen(logtext),
 				"0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-				a0, a1, a2, a3, m->paramcount - 4);
+				a0, a1, a2, a3, md->paramcount - 4);
 
 #elif TRACE_ARGS_NUM == 6
 		sprintf(logtext + strlen(logtext),
 				"0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, m->paramcount - 6);
+				a0, a1, a2, a3, a4, a5, md->paramcount - 6);
 
 #elif TRACE_ARGS_NUM == 8
 		sprintf(logtext + strlen(logtext),"0x%llx, 0x%llx, 0x%llx,"
@@ -1354,7 +1355,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, 0x%llx,"
 				, a3, a4, a5);
 		sprintf(logtext + strlen(logtext)," 0x%llx, 0x%llx, ...(%d)"
-				, a6, a7, m->paramcount - 8);
+				, a6, a7, md->paramcount - 8);
 #endif
 		break;
 
@@ -1415,17 +1416,17 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 #if TRACE_ARGS_NUM == 4
 		sprintf(logtext + strlen(logtext),
 				"0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, m->paramcount - 4);
+				a0, a1, a2, a3, md->paramcount - 4);
 
 #elif TRACE_ARGS_NUM == 6
 		sprintf(logtext + strlen(logtext),
 				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, m->paramcount - 6);
+				a0, a1, a2, a3, a4, a5, md->paramcount - 6);
 
 #elif TRACE_ARGS_NUM == 8
 		sprintf(logtext + strlen(logtext),
 				"0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, ...(%d)",
-				a0, a1, a2, a3, a4, a5, a6, a7, m->paramcount - 8);
+				a0, a1, a2, a3, a4, a5, a6, a7, md->paramcount - 8);
 #endif
 		break;
 #endif /* SIZEOF_VOID_P == 4 */
