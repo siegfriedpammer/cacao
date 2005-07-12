@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 2990 2005-07-11 21:24:35Z twisti $
+   $Id: stacktrace.c 3020 2005-07-12 23:46:50Z twisti $
 
 */
 
@@ -68,7 +68,7 @@
 	if java bytecode is ever extended to support more than 65535 lines/file, this could will have to
 	be changed.*/
 
-#if defined(_ALPHA_) || defined(__X86_64__)
+#if defined(_ALPHA_) || defined(__MIPS__) || defined(__X86_64__)
 	#define LineNumber u8
 #else
 	#define LineNumber u4
