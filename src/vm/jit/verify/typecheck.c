@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 2982 2005-07-11 11:14:17Z twisti $
+   $Id: typecheck.c 3001 2005-07-12 16:01:56Z twisti $
 
 */
 
@@ -1242,36 +1242,6 @@ verify_builtin(verifier_state *state)
 		if (!vft->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
-	else if (ISBUILTIN(BUILTIN_arraycheckcast)) {
-		vftbl_t *vft;
-		TYPECHECK_ADR(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: BUILTIN_arraycheckcast without classinfo");
-		vft = (vftbl_t *)state->iptr[-1].val.a;
-		if (!vft)
-			TYPECHECK_VERIFYERROR_bool("CHECKCAST with unlinked class");
-		if (!vft->arraydesc)
-			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arraycheckcast with non-array class");
-		TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
-	}
-	else if (ISBUILTIN(PATCHER_builtin_arraycheckcast)) {
-		TYPECHECK_ADR(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: BUILTIN_arraycheckcast without classinfo");
-		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
-			return false;
-	}
-#endif
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
-	else if (ISBUILTIN(BUILTIN_aastore)) {
-		TYPECHECK_ADR(state->curstack);
-		TYPECHECK_INT(state->curstack->prev);
-		TYPECHECK_ADR(state->curstack->prev->prev);
-		if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(state->curstack->prev->prev->typeinfo))
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
-	}
-#endif
 	else {
 #if 0
 		/* XXX put these checks in a function */
@@ -1644,7 +1614,6 @@ fieldaccess_tail:
 				maythrow = true;
 				break;
 
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 			case ICMD_AASTORE:
 				/* we just check the basic input types and that the           */
 				/* destination is an array of references. Assignability to    */
@@ -1657,7 +1626,6 @@ fieldaccess_tail:
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: AASTORE to non-reference array");
 				maythrow = true;
 				break;
-#endif
 
 			case ICMD_IASTORECONST:
 				if (!TYPEINFO_MAYBE_PRIMITIVE_ARRAY(state->curstack->prev->typeinfo, ARRAYTYPE_INT))
@@ -1999,9 +1967,6 @@ return_tail:
 			case ICMD_ANEWARRAY:
 			case ICMD_MONITORENTER:
 			case ICMD_MONITOREXIT:
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
-			case ICMD_AASTORE:
-#endif
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
 				LOG("Should have been converted to builtin function call.");
 				TYPECHECK_ASSERT(false);

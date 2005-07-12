@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 2981 2005-07-11 10:35:33Z twisti $
+   $Id: stack.c 3001 2005-07-12 16:01:56Z twisti $
 
 */
 
@@ -939,7 +939,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if SUPPORT_CONST_STORE
 						if (len > 0 && iptr->val.a == 0) {
 							switch (iptr[1].opc) {
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
+#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__) && !defined(__MIPS__)
 							case ICMD_BUILTIN:
 								if (iptr[1].val.fp != BUILTIN_aastore) {
 									PUSHCONST(TYPE_ADR);
@@ -1088,7 +1088,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* pop 3 push 0 */
 
 					case ICMD_AASTORE:
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
@@ -1112,7 +1111,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						OP3TIA_0(TYPE_ADR);
 						break;
-#endif
 
 					case ICMD_IASTORE:
 					case ICMD_LASTORE:
@@ -1604,7 +1602,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						/* pop 2 push 1 */
 
-#if defined(__POWERPC__) || defined(__I386__) || defined(__ALPHA__)
 					case ICMD_IDIV:
 					case ICMD_IREM:
 #if !SUPPORT_DIVISION
@@ -1624,28 +1621,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
-#endif
-#else
-					case ICMD_IDIV:
-#if !SUPPORT_DIVISION
-						bte = builtintable_get_internal(BUILTIN_idiv);
-						iptr->opc = ICMD_BUILTIN;
-						iptr->op1 = bte->md->paramcount;
-						iptr->val.a = bte;
-						m->isleafmethod = false;
-						goto builtin;
-#endif
-
-					case ICMD_IREM:
-#if !SUPPORT_DIVISION
-						bte = builtintable_get_internal(BUILTIN_irem);
-						iptr->opc = ICMD_BUILTIN;
-						iptr->op1 = bte->md->paramcount;
-						iptr->val.a = bte;
-						m->isleafmethod = false;
-						goto builtin;
-#endif
-#endif
+#endif /* !SUPPORT_DIVISION */
 
 					case ICMD_ISHL:
 					case ICMD_ISHR:
@@ -1660,7 +1636,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						OP2_1(TYPE_INT);
 						break;
 
-#if defined(__POWERPC__) || defined(__I386__) || defined(__ALPHA__)
 					case ICMD_LDIV:
 					case ICMD_LREM:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
@@ -1680,28 +1655,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
-#endif
-#else
-					case ICMD_LDIV:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-						bte = builtintable_get_internal(BUILTIN_ldiv);
-						iptr->opc = ICMD_BUILTIN;
-						iptr->op1 = bte->md->paramcount;
-						iptr->val.a = bte;
-						m->isleafmethod = false;
-						goto builtin;
-#endif
-
-					case ICMD_LREM:
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-						bte = builtintable_get_internal(BUILTIN_lrem);
-						iptr->opc = ICMD_BUILTIN;
-						iptr->op1 = bte->md->paramcount;
-						iptr->val.a = bte;
-						m->isleafmethod = false;
-						goto builtin;
-#endif
-#endif
+#endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
 
 					case ICMD_LMUL:
 					case ICMD_LADD:

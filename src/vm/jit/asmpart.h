@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 2384 2005-04-26 16:12:27Z twisti $
+   $Id: asmpart.h 3001 2005-07-12 16:01:56Z twisti $
 
 */
 
@@ -103,27 +103,16 @@ double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callb
 /* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
    into the methodtable */
 #if defined(__I386__) || defined(__X86_64__)
-void calljava_xhandler();
-void calljava_xhandler2();
+void calljava_xhandler(void);
+void calljava_xhandler2(void);
 #endif
 
-void asm_handle_exception();
-void asm_handle_nat_exception();
-void asm_handle_nullptr_exception();
-
-void asm_handle_builtin_exception(classinfo *);
-void asm_throw_and_handle_exception();
-#ifdef __ALPHA__
-void asm_throw_and_handle_nat_exception();
-void asm_refillin_and_handle_exception();
-void asm_throw_and_handle_arrayindexoutofbounds_exception();
-#endif
-void asm_throw_and_handle_hardware_arithmetic_exception();
+/* exception handling functions */
+void asm_handle_exception(void);
+void asm_handle_nat_exception(void);
 
 /* wrapper for code patching functions */
 void asm_wrapper_patcher(void);
-
-stacktraceelement *asm_get_stackTrace();
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
@@ -132,9 +121,6 @@ extern threadcritnode asm_criticalsections;
 #endif
 
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-
-void asm_prepare_native_stackinfo(void*ret,void*stackbegin);
-void asm_remove_native_stackinfo();
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);

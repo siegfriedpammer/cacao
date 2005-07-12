@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 2984 2005-07-11 17:06:24Z michi $
+   $Id: parse.c 3001 2005-07-12 16:01:56Z twisti $
 
 */
 
@@ -998,14 +998,9 @@ SHOWOPCODE(DEBUG4)
 		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 			bte = builtintable_get_internal(BUILTIN_canstore);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
 			inline_env->method->isleafmethod = false;
-#else
-			bte = builtintable_get_internal(BUILTIN_aastore);
-			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
-#endif
 			break;
 
 		case JAVA_GETSTATIC:
@@ -1229,7 +1224,6 @@ SHOWOPCODE(DEBUG4)
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-#if defined(__POWERPC__) || defined(__X86_64__) || defined(__I386__) || defined(__ALPHA__)
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
 					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c->vftbl, currentline);
@@ -1239,20 +1233,6 @@ SHOWOPCODE(DEBUG4)
 					OP2AT(ICMD_ARRAYCHECKCAST, 0, bte, cr, currentline);
 				}
 				inline_env->method->isleafmethod = false;
-#else
-				if (c) {
-					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
-					LOADCONST_A_BUILTIN(c->vftbl);
-					BUILTIN(bte, bte->md->paramcount, NULL, currentline);
-
-				} else {
-					bte = builtintable_get_internal(PATCHER_builtin_arraycheckcast);
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN(bte, bte->md->paramcount, cr, currentline);
-				}
-				s_count++;
-				inline_env->method->isleafmethod = false;
-#endif
 
 			} else {
 				/* object type cast-check */

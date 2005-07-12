@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 2982 2005-07-11 11:14:17Z twisti $
+   $Id: builtintable.inc 3001 2005-07-12 16:01:56Z twisti $
 
 */
 
@@ -210,15 +210,6 @@ static builtintable_entry builtintable_internal[] = {
 		"arrayinstanceof",
 		NULL
 	},
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__)
-	{
-		ICMD_AASTORE,
-		BUILTIN_aastore,
-		"([Ljava/lang/Object;ILjava/lang/Object;)V",
-		"aastore",
-		NULL
-	},
-#endif
 	{
 		ICMD_AASTORE,
 		BUILTIN_canstore,
