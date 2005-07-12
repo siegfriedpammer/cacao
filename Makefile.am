@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2904 2005-07-04 21:21:10Z twisti $
+## $Id: Makefile.am 3014 2005-07-12 21:46:25Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,6 +36,14 @@ MAINTAINERCLEANFILES = Makefile.in configure
 
 SUBDIRS = contrib doc man src tests
 
+EXTRA_DIST = \
+	ChangeLog-1998 \
+	ChangeLog-1999 \
+	ChangeLog-2000 \
+	ChangeLog-2001 \
+	ChangeLog-2002 \
+	ChangeLog-2003 \
+	ChangeLog-2004
 
 ## Local variables:
 ## mode: Makefile
