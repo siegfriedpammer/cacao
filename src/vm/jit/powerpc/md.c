@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2960 2005-07-09 18:06:49Z twisti $
+   $Id: md.c 2998 2005-07-12 09:16:53Z twisti $
 
 */
 
@@ -80,12 +80,14 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *codegen_findmethod(u1 *ra)
+functionptr codegen_findmethod(functionptr pc)
 {
+	u1 *ra;
 	u1 *pv;
 	u4  mcode;
 	s2  offset;
 
+	ra = (u1 *) pc;
 	pv = ra;
 
 	/* get offset of first instruction (addi) */
@@ -103,7 +105,7 @@ u1 *codegen_findmethod(u1 *ra)
 		pv += offset;
 	}
 
-	return pv;
+	return (functionptr) pv;
 }
 
 

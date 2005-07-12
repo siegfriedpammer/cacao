@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2963 2005-07-09 18:08:52Z twisti $
+   $Id: md-asm.h 2998 2005-07-12 09:16:53Z twisti $
 
 */
 
@@ -236,7 +236,6 @@
 #define asm_handle_nat_exception              _asm_handle_nat_exception
 #define asm_handle_exception                  _asm_handle_exception
 #define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
-
 #define asm_wrapper_patcher                   _asm_wrapper_patcher
 
 #define asm_cacheflush                        _asm_cacheflush
@@ -250,10 +249,6 @@
 /* external defines ***********************************************************/
 
 #define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
-#define builtin_canstore                      _builtin_canstore
-#define builtin_arraycheckcast                _builtin_arraycheckcast
-#define builtin_ldiv                          _builtin_ldiv
-#define builtin_lrem                          _builtin_lrem
 
 #if defined(USE_THREADS)
 #define builtin_monitorexit                   _builtin_monitorexit
@@ -266,10 +261,12 @@
 #define load_class_bootstrap                  _load_class_bootstrap
 #define jit_compile                           _jit_compile
 
-#define stacktrace_create_inline_stackframeinfo \
-	_stacktrace_create_inline_stackframeinfo
+#define stacktrace_create_extern_stackframeinfo \
+	_stacktrace_create_extern_stackframeinfo
 
 #define stacktrace_remove_stackframeinfo      _stacktrace_remove_stackframeinfo
+#define stacktrace_extern_fillInStackTrace \
+	_stacktrace_extern_fillInStackTrace
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 #if 0

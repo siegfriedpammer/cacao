@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2965 2005-07-09 18:21:01Z twisti $
+   $Id: md-os.c 2998 2005-07-12 09:16:53Z twisti $
 
 */
 
@@ -63,10 +63,10 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u4                  instr;
 	s4                  reg;
 	ptrint              addr;
-	stackframeinfo     *sfi;
 	u1                 *pv;
 	u1                 *sp;
 	functionptr         ra;
+	functionptr         xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
@@ -81,27 +81,14 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	addr = gregs[reg];
 
 	if (addr == 0) {
-		/* allocate stackframeinfo on heap */
-
-		sfi = NEW(stackframeinfo);
-
-		/* create exception */
-
 		pv = (u1 *) _ss->r13;
 		sp = (u1 *) _ss->r1;
-		ra = (functionptr) _ss->srr0;
+		ra = (functionptr) _ss->lr;              /* this is correct for leafs */
+		xpc = (functionptr) _ss->srr0;
 
-		stacktrace_create_inline_stackframeinfo(sfi, pv, sp, ra);
+		_ss->r11 = (ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
-		_ss->r11 = (ptrint) new_nullpointerexception();
-
-		stacktrace_remove_stackframeinfo(sfi);
-
-		FREE(sfi, stackframeinfo);
-
-		/* set the REG_ITMP1_XPTR, REG_ITMP2_XPC and new PC */
-
-		_ss->r12 = _ss->srr0;
+		_ss->r12 = (ptrint) xpc;
 		_ss->srr0 = (ptrint) asm_handle_exception;
 
 	} else {

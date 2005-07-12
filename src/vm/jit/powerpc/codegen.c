@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2997 2005-07-12 08:39:17Z twisti $
+   $Id: codegen.c 2998 2005-07-12 09:16:53Z twisti $
 
 */
 
@@ -1695,7 +1695,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			M_NOP;
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
 /* 			if (iptr->op1 == 0) { */
@@ -1721,7 +1720,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_SLL_IMM(s2, 2, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
 			M_STWX(s3, s1, REG_ITMP2);
-			M_NOP;
 			break;
 
 
@@ -1945,8 +1943,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			a = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, a);
+			disp = dseg_addaddress(cd, asm_handle_exception);
+			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_MTCTR(REG_ITMP2);
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
@@ -3232,7 +3230,6 @@ gen_method:
 
 	s4        *xcodeptr;
 	branchref *bref;
-	s4 off;
 
 	/* generate ArithemticException check stubs */
 
@@ -3387,8 +3384,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			off = xcodeptr - mcodeptr - 1;
-			M_BR(off);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3439,8 +3436,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			off = xcodeptr - mcodeptr - 1;
-			M_BR(off);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3506,8 +3503,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			off = xcodeptr - mcodeptr - 1;
-			M_BR(off);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3558,8 +3555,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			off = xcodeptr - mcodeptr - 1;
-			M_BR(off);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3625,8 +3622,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			off = xcodeptr - mcodeptr - 1;
-			M_BR(off);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3699,13 +3696,13 @@ gen_method:
 			/* order reversed because of data segment layout */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
-			if (off >= -32768) {
-				M_LDA(REG_ITMP3, REG_PV, off);
+			if (disp >= -32768) {
+				M_LDA(REG_ITMP3, REG_PV, disp);
 			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
-				M_LDA(REG_ITMP3, REG_ITMP3, off);
+				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
+				M_LDA(REG_ITMP3, REG_ITMP3, disp);
 			}
 			M_AST(REG_ITMP3, REG_SP, 3 * 4);
 #else
@@ -3715,43 +3712,43 @@ gen_method:
 
 			/* move machine code onto stack */
 
-			off = dseg_adds4(cd, mcode);
-			if (off >= -32768) {
-				M_ILD(REG_ITMP3, REG_PV, off);
+			disp = dseg_adds4(cd, mcode);
+			if (disp >= -32768) {
+				M_ILD(REG_ITMP3, REG_PV, disp);
 			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
-				M_ILD(REG_ITMP3, REG_ITMP3, off);
+				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
+				M_ILD(REG_ITMP3, REG_ITMP3, disp);
 			}
 			M_IST(REG_ITMP3, REG_SP, 2 * 4);
 
 			/* move class/method/field reference onto stack */
 
-			off = dseg_addaddress(cd, pref->ref);
-			if (off >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, off);
+			disp = dseg_addaddress(cd, pref->ref);
+			if (disp >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, disp);
 			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, off);
+				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, disp);
 			}
 			M_AST(REG_ITMP3, REG_SP, 1 * 4);
 
 			/* move patcher function pointer onto stack */
 
-			off = dseg_addaddress(cd, pref->patcher);
-			if (off >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, off);
+			disp = dseg_addaddress(cd, pref->patcher);
+			if (disp >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, disp);
 			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, off);
+				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, disp);
 			}
 			M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
-			off = dseg_addaddress(cd, asm_wrapper_patcher);
-			if (off >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, off);
+			disp = dseg_addaddress(cd, asm_wrapper_patcher);
+			if (disp >= -32768) {
+				M_ALD(REG_ITMP3, REG_PV, disp);
 			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (off >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, off);
+				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
+				M_ALD(REG_ITMP3, REG_ITMP3, disp);
 			}
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
