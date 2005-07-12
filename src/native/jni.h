@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 2129 2005-03-29 22:27:08Z twisti $
+   $Id: jni.h 3016 2005-07-12 21:47:29Z twisti $
 
 */
 
@@ -68,6 +68,12 @@
 #define JNI_ERR          (-1)
 #define JNI_EDETACHED    (-2)              /* thread detached from the VM */
 #define JNI_EVERSION     (-3)              /* JNI version error */
+
+
+/* Release<PrimitiveType>ArrayElements modes */
+
+#define JNI_COMMIT       1
+#define JNI_ABORT        2
 
 
 /* JNI datatypes */
