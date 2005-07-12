@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 2715 2005-06-15 14:13:23Z twisti $
+   $Id: codegen.h 3002 2005-07-12 16:02:45Z twisti $
 
 */
 
@@ -65,6 +65,11 @@
         codegen_addxboundrefs(cd, mcodeptr, s2); \
         M_NOP; \
     }
+
+#define gen_div_check(r) \
+    M_BEQZ((r), 0); \
+    codegen_addxdivrefs(cd, mcodeptr); \
+    M_NOP;
 
 
 /* MCODECHECK(icnt) */

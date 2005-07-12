@@ -29,17 +29,19 @@
 
    Changes: Christian Thalinger
 
-   $Id: md.c 2827 2005-06-25 13:43:51Z twisti $
+   $Id: md.c 3002 2005-07-12 16:02:45Z twisti $
 
 */
 
 
+#include <assert.h>
 #include <signal.h>
 #include <sys/fpu.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 #include "config.h"
+
 #include "vm/jit/mips/md-abi.h"
 #include "vm/jit/mips/types.h"
 
@@ -128,6 +130,69 @@ void docacheflush(u1 *p, long bytelen)
 	e += psize - ((((long) e - 1) & (psize - 1)) + 1);
 	bytelen = e-p;
 	mprotect(p, bytelen, PROT_READ | PROT_WRITE | PROT_EXEC);
+}
+
+
+/* md_stacktrace_get_returnaddress *********************************************
+
+   Returns the return address of the current stackframe, specified by
+   the passed stack pointer and the stack frame size.
+
+*******************************************************************************/
+
+functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+{
+	functionptr ra;
+
+	/* on MIPS the return address is located on the top of the stackframe */
+
+	ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+
+	return ra;
+}
+
+
+/* codegen_findmethod **********************************************************
+
+   Machine code:
+
+   6b5b4000    jsr     (pv)
+   237affe8    lda     pv,-24(ra)
+
+*******************************************************************************/
+
+functionptr codegen_findmethod(functionptr pc)
+{
+	u1 *ra;
+	u1 *pv;
+	u4  mcode;
+	s2  offset;
+
+	ra = (u1 *) pc;
+	pv = ra;
+
+	/* get offset of first instruction (lda) */
+
+	mcode = *((u4 *) ra);
+
+	if ((mcode >> 16) != 0x237a) {
+		log_text("No `lda pv,x(ra)' instruction found on return address!");
+		assert(0);
+	}
+
+	offset = (s2) (mcode & 0x0000ffff);
+	pv += offset;
+
+	/* check for second instruction (ldah) */
+
+	mcode = *((u4 *) (ra + 1 * 4));
+
+	if ((mcode >> 16) == 0x177b) {
+		offset = (s2) (mcode << 16);
+		pv += offset;
+	}
+
+	return (functionptr) pv;
 }
 
 

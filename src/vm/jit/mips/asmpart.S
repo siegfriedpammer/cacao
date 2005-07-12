@@ -28,12 +28,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 2714 2005-06-15 14:12:59Z twisti $
+   $Id: asmpart.S 3002 2005-07-12 16:02:45Z twisti $
 
 */
 
 
 #include "config.h"
+
 #include "vm/jit/mips/offsets.h"
 #include "vm/jit/mips/asmoffsets.h"
 #include "vm/jit/mips/md-asm.h"
@@ -55,19 +56,10 @@
 	.globl asm_calljavafunction2double
 
 	.globl asm_call_jit_compiler
-	.globl asm_dumpregistersandcall
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
-
-	.globl asm_builtin_arraycheckcast
-	.globl asm_builtin_aastore
-
-	.globl asm_builtin_idiv
-	.globl asm_builtin_irem
-	.globl asm_builtin_ldiv
-	.globl asm_builtin_lrem
 
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -221,8 +213,8 @@ call_java_pc2:
 
 	move    t0,a3
 	move    s7,a1
-
 	blez    s7,calljava_argsloaded
+
 	ald     a0,offjniitem(t0)
 	ldc1    fa0,offjniitem(t0)
 	daddi   s7,s7,-1
@@ -282,12 +274,12 @@ calljava_nocopy:
 	ald     itmp1,4*8(t8)             /* pass method pointer via itmp1        */
 
 	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	ast     mptr,16(sp)               /* store function address               */
-	ala     mptr,8(t8)                /* set method pointer                   */
+	ast     mptr,2*8(sp)              /* store function address               */
+	ala     mptr,1*8(sp)              /* set method pointer                   */
 
 	.set    noreorder
 
-	ald     pv,8(mptr)                /* method call as in Java               */
+	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
@@ -676,30 +668,32 @@ ex_flt2:
     .ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	daddiu  sp,sp,-(16+21+4+1)*8  /* create stack frame                       */
+	aaddiu  sp,sp,-(16+21+4+1)*8  /* create stack frame                       */
 
 	SAVE_ARGUMENT_REGISTERS(0)    /* save 8 int/8 float argument registers    */
 	SAVE_TEMPORARY_REGISTERS(16)  /* save 5 int/16 float temporary registers  */
 
-	sd      itmp1,(16+21+0)*8(sp) /* save itmp1                               */
-	sd      itmp2,(16+21+1)*8(sp) /* save itmp2                               */
-	sd      ra,(16+21+2+1)*8(sp)  /* save method return address (for leafs)   */
-	sd      pv,(16+21+3+1)*8(sp)  /* save pv of calling java function         */
+	ast     itmp1,(16+21+0)*8(sp) /* save itmp1                               */
+	ast     itmp2,(16+21+1)*8(sp) /* save itmp2                               */
+	ast     ra,(16+21+2+1)*8(sp)  /* save method return address (for leafs)   */
+	ast     pv,(16+21+3+1)*8(sp)  /* save pv of calling java function         */
 
-	daddiu  a0,sp,(1+16+21+4+1)*8 /* pass sp, skip patcher function pointer   */
-	ld      itmp3,(0+16+21+4+1)*8(sp) /* get function pointer                 */
+	aaddiu  a0,sp,(0+16+21+4+1)*8 /* pass sp                                  */
+	ald     itmp3,(0+16+21+4+1)*8(sp) /* get function pointer                 */
+	ald     itmp1,(16+21+3+1)*8(sp) /* save pv to the position of fp          */
+	ast     itmp1,(0+16+21+4+1)*8(sp)
 	jalr    itmp3
 
 	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
 	RESTORE_TEMPORARY_REGISTERS(16) /* restore 5 int/16 float temporary reg.  */
 
-	ld      itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
-	ld      itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
-	ld      ra,(16+21+2+1)*8(sp)  /* restore method return address (for leafs)*/
-	ld      pv,(16+21+3+1)*8(sp)  /* restore pv of calling java function      */
+	ald     itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
+	ald     itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
+	ald     ra,(16+21+2+1)*8(sp)  /* restore method return address (for leafs)*/
+	ald     pv,(16+21+3+1)*8(sp)  /* restore pv of calling java function      */
 
-	ld      itmp3,(4+16+21+4+1)*8(sp) /* get return address (into JIT code)   */
-	daddiu  sp,sp,(5+16+21+4+1)*8 /* remove stack frame                       */
+	ald     itmp3,(4+16+21+4+1)*8(sp) /* get return address (into JIT code)   */
+	aaddiu  sp,sp,(5+16+21+4+1)*8 /* remove stack frame                       */
 
 	beqz    v0,L_asm_wrapper_patcher_exception
 
@@ -728,213 +722,6 @@ L_asm_wrapper_patcher_exception:
 	.end	asm_wrapper_patcher
 
 		
-/************************ function asm_builtin_idiv ****************************
-*                                                                              *
-*   Does null check and calls idiv or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_idiv
-
-asm_builtin_idiv:
-	beqz    a1,nb_idiv                /* if (null) throw exception            */
-	ala     itmp3,builtin_idiv        /* else call builtin_idiv               */
-	j       itmp3
-
-nb_idiv:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_arithmeticexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_idiv
-
-
-/************************ function asm_builtin_ldiv ****************************
-*                                                                              *
-*   Does null check and calls ldiv or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_ldiv
-
-asm_builtin_ldiv:
-	beqz    a1,nb_ldiv                /* if (null) throw exception            */
-	ala     itmp3,builtin_ldiv        /* else call builtin_ldiv               */
-	j       itmp3
-
-nb_ldiv:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_arithmeticexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_ldiv
-
-
-/************************ function asm_builtin_irem ****************************
-*                                                                              *
-*   Does null check and calls irem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_irem
-
-asm_builtin_irem:
-	beqz    a1,nb_irem                /* if (null) throw exception            */
-	ala     t9,builtin_irem           /* else call builtin_irem               */
-	j       t9
-
-nb_irem:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_arithmeticexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_irem
-
-
-/************************ function asm_builtin_lrem ****************************
-*                                                                              *
-*   Does null check and calls lrem or throws an exception                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_lrem
-
-asm_builtin_lrem:
-	beqz    a1,nb_lrem                /* if (null) throw exception            */
-	ala     t9,builtin_lrem           /* else call builtin_lrem               */
-	j       t9
-
-nb_lrem:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_arithmeticexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_lrem
-
-
-/* asm_builtin_arraycheckcast **************************************************
-
-   Does the cast check and eventually throws an exception.
-
-*******************************************************************************/
-
-	.ent    asm_builtin_arraycheckcast
-
-asm_builtin_arraycheckcast:
-	aaddiu  sp,sp,-16                 /* allocate stack space                 */
-	sd      ra,0(sp)                  /* save return address                  */
-	sd      a0,8(sp)                  /* save object pointer                  */
-	jal     builtin_arraycheckcast    /* builtin_arraycheckcast               */
-	beqz    v0,nb_carray_throw        /* if (false) throw exception           */
-	ld      ra,0(sp)                  /* restore return address               */
-	ld      v0,8(sp)                  /* return object pointer                */
-	aaddiu  sp,sp,16                  /* deallocate stack                     */
-	j       ra                        /* return                               */
-
-nb_carray_throw:
-	jal     new_classcastexception
-	move    xptr,v0
-
-	ld      ra,0(sp)                  /* restore return address               */
-	aaddiu  sp,sp,16                  /* free stack space                     */
-	aaddiu  xpc,ra,-4                 /* faulting address is return adress - 4*/
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_arraycheckcast
-
-
-/******************* function asm_builtin_aastore ******************************
-*                                                                              *
-*   Does the cast check and eventually throws an exception                     *
-*   a0 = arrayref, a1 = index, a2 = value                                      *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_builtin_aastore
-
-asm_builtin_aastore:
-	beqz    a0,nb_aastore_null        /* if null pointer throw exception      */
-	lw      t0,offarraysize(a0)       /* load size                            */
-	aaddiu  sp,sp,-32                 /* allocate stack space                 */
-	sd      ra,0(sp)                  /* save return address                  */
-	asll    t1,a1,ashift              /* add index*8 to arrayref              */
-	aaddu   t1,a0,t1                  /* add index * ashift to arrayref       */
-	sltu    t0,a1,t0                  /* do bound check                       */
-	beqz    t0,nb_aastore_bound       /* if out of bounds throw exception     */
-	move    a1,a2                     /* object is second argument            */
-	sd      t1,8(sp)                  /* save store position                  */
-	sd      a1,16(sp)                 /* save object                          */
-	jal     builtin_canstore          /* builtin_canstore(arrayref,object)    */
-	ld      ra,0(sp)                  /* restore return address               */
-	ld      a0,8(sp)                  /* restore store position               */
-	ld      a1,16(sp)                 /* restore object                       */
-	aaddiu  sp,sp,32                  /* free stack space                     */
-	beqz    v0,nb_aastore_store       /* if (false) throw exception           */
-	ast     a1,offobjarrdata(a0)      /* store objectptr in array             */
-	j       ra                        /* return                               */
-
-nb_aastore_null:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_nullpointerexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-	
-	move    xpc,ra                    /* faulting address is return adress    */
-	b       asm_handle_nat_exception
-
-nb_aastore_bound:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	move    a0,a1                     /* move index into a0                   */
-	jal     new_arrayindexoutofboundsexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	aaddiu  sp,sp,32                  /* free stack space                     */
-	move    xpc,ra                    /* faulting address is return adress    */
-	b       asm_handle_nat_exception
-
-nb_aastore_store:
-	daddiu  sp,sp,-2*8
-	sd      ra,0*8(sp)
-	jal     new_arraystoreexception
-	move    xptr,v0
-	ld      ra,0*8(sp)
-	daddiu  sp,sp,2*8
-
-	move    xpc,ra                    /* faulting address is return adress    */
-	b       asm_handle_nat_exception
-
-	.end    asm_builtin_aastore
-
-
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 *   u1* asm_initialize_thread_stack (void *func, u1 *stack);                   *

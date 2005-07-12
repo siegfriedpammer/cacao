@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 2626 2005-06-09 20:36:48Z twisti $
+   $Id: arch.h 3002 2005-07-12 16:02:45Z twisti $
 
 */
 
@@ -44,7 +44,7 @@
 
 #define USEBUILTINTABLE
 
-#define SUPPORT_DIVISION                 0
+#define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1
 #define SUPPORT_FLOAT                    1
 #define SUPPORT_DOUBLE                   1
@@ -58,7 +58,7 @@
 #define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               1
 #define SUPPORT_LONG_MUL                 1
-#define SUPPORT_LONG_DIV                 0
+#define SUPPORT_LONG_DIV                 1
 #define SUPPORT_LONG_ICVT                0
 #define SUPPORT_LONG_FCVT                1
 
