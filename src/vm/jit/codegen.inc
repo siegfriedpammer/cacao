@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 2983 2005-07-11 11:56:49Z twisti $
+   $Id: codegen.inc 3021 2005-07-12 23:47:22Z twisti $
 
 */
 
@@ -401,14 +401,18 @@ static void dseg_adddata(codegendata *cd, u1 *ptr)
 
 static void dseg_addlinenumbertablesize(codegendata *cd)
 {
-#if defined (__ALPHA__) || defined (__X86_64__)
-	dseg_adds4(cd, 0); /*PADDING*/
+#if defined (__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
+	dseg_adds4(cd, 0); /* ALIGNMENT PADDING */
 #endif
-	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL); /*it could be considered to use adds4 here, to avoid 1 double word padding on ALPHA */
 
+	/* it could be considered to use adds4 here, to avoid 1 double word */
+	/* padding on ALPHA */
+
+	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL);
 	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
-#if defined(__ALPHA__) || defined (__X86_64__)
-	dseg_adds4(cd, 0); /*PADDING*/
+
+#if defined(__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
+	dseg_adds4(cd, 0); /* ALIGNMENT PADDING */
 #endif
 }
 
@@ -589,7 +593,6 @@ static void codegen_addpatchref(codegendata *cd,
 
 static void codegen_createlinenumbertable(codegendata *cd)
 {
-#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
 	linenumberref *lr;
 
 	for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
@@ -600,7 +603,6 @@ static void codegen_createlinenumbertable(codegendata *cd)
 
 		dseg_addaddress(cd, lr->linenumber);
 	}
-#endif
 }
 
 
@@ -779,7 +781,6 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		jr = jr->next;
 	}
 
-#if defined(__ALPHA__) || defined(__I386__) || defined(__POWERPC__) || defined(__X86_64__)
 	/* line number table resolving */
 	{
 		linenumberref *lr;
@@ -796,7 +797,6 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
-#endif
 
 #if defined(__I386__) || defined(__X86_64__)
 	/* add method into methodtree to find the entrypoint */
