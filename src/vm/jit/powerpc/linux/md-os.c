@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2980 2005-07-11 10:13:08Z twisti $
+   $Id: md-os.c 2997 2005-07-12 08:39:17Z twisti $
 
 */
 
@@ -60,6 +60,7 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1          *pv;
 	u1          *sp;
 	functionptr  ra;
+	functionptr  xpc;
 
  	_uc = (ucontext_t *) _p;
  	_mc = _uc->uc_mcontext.uc_regs;
@@ -71,12 +72,13 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr == 0) {
 		pv = (u1 *) _mc->gregs[REG_PV];
 		sp = (u1 *) _mc->gregs[REG_SP];
-		ra = (functionptr) _mc->gregs[PT_NIP];
+		ra = (functionptr) _mc->gregs[PT_LNK];   /* this is correct for leafs */
+		xpc = (functionptr) _mc->gregs[PT_NIP];
 
 		_mc->gregs[REG_ITMP1_XPTR] =
-			(ptrint) stacktrace_new_nullpointerexception(pv, sp, ra);
+			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint) ra;
+		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 		_mc->gregs[PT_NIP] = (ptrint) asm_handle_exception;
 
 	} else {

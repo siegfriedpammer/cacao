@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2980 2005-07-11 10:13:08Z twisti $
+   $Id: codegen.c 2997 2005-07-12 08:39:17Z twisti $
 
 */
 
@@ -2731,7 +2731,6 @@ gen_method:
 
 			/* d contains return type */
 
-M_NOP;
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
@@ -2751,7 +2750,6 @@ M_NOP;
 					store_reg_to_var_flt(iptr->dst, s1);
 				}
 			}
-M_NOP;
 			break;
 
 
@@ -3252,7 +3250,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(20);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3270,19 +3268,26 @@ M_NOP;
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			if (m->isleafmethod)
+				M_MOV(REG_ITMP3, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arithmeticexception);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+
+			disp = dseg_addaddress(cd, stacktrace_inline_arithmeticexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
 				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3305,7 +3310,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(20);
+		MCODECHECK(21);
 
 		/* move index register into REG_ITMP1 */
 
@@ -3327,20 +3332,27 @@ M_NOP;
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
-			M_MOV(REG_ITMP1, rd->argintregs[3]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			if (m->isleafmethod)
+				M_MOV(REG_ITMP3, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arrayindexoutofboundsexception);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+			M_MOV(REG_ITMP1, rd->argintregs[4]);
+
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
+
+			disp = dseg_addaddress(cd, stacktrace_inline_arrayindexoutofboundsexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
 			if (m->isleafmethod) {
 				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3370,7 +3382,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(15);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3381,31 +3393,23 @@ M_NOP;
 		} else {
 			xcodeptr = mcodeptr;
 
-			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
 
-			disp = dseg_addaddress(cd, stacktrace_new_arraystoreexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_arraystoreexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
-			}
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3430,7 +3434,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(20);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3448,19 +3452,26 @@ M_NOP;
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			if (m->isleafmethod)
+				M_MOV(REG_ITMP3, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 
-			disp = dseg_addaddress(cd, stacktrace_new_classcastexception);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+
+			disp = dseg_addaddress(cd, stacktrace_inline_classcastexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
 				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3490,7 +3501,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(16);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3501,31 +3512,23 @@ M_NOP;
 		} else {
 			xcodeptr = mcodeptr;
 
-			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
 
-			disp = dseg_addaddress(cd, stacktrace_new_negativearraysizeexception);
+			disp = dseg_addaddress(cd, stacktrace_inline_negativearraysizeexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
-			}
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3550,7 +3553,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(20);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3568,19 +3571,26 @@ M_NOP;
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			if (m->isleafmethod)
+				M_MOV(REG_ITMP3, rd->argintregs[2]);
+			else
+				M_ALD(rd->argintregs[2],
+					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 
-			disp = dseg_addaddress(cd, stacktrace_new_nullpointerexception);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+
+			disp = dseg_addaddress(cd, stacktrace_inline_nullpointerexception);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
 				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3610,7 +3620,7 @@ M_NOP;
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(19);
+		MCODECHECK(16);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3621,31 +3631,23 @@ M_NOP;
 		} else {
 			xcodeptr = mcodeptr;
 
-			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[2]);
+			M_ALD(rd->argintregs[2],
+				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 4 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
+			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
+			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
 
-			disp = dseg_addaddress(cd, stacktrace_fillInStackTrace);
+			disp = dseg_addaddress(cd, stacktrace_inline_fillInStackTrace);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			M_MTCTR(REG_ITMP1);
 			M_JSR;
 			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 3 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 4 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
-			}
+			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
+			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP3, REG_PV, disp);
