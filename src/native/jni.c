@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 2995 2005-07-12 01:37:15Z michi $
+   $Id: jni.c 3017 2005-07-12 21:50:06Z twisti $
 
 */
 
@@ -87,10 +87,12 @@
 
 
 /* XXX TWISTI hack: define it extern so they can be found in this file */
+
 extern const struct JNIInvokeInterface JNI_JavaVMTable;
 extern struct JNINativeInterface JNI_JNIEnvTable;
 
 /* pointers to VM and the environment needed by GetJavaVM and GetEnv */
+
 static JavaVM ptr_jvm = (JavaVM) &JNI_JavaVMTable;
 static void* ptr_env = (void*) &JNI_JNIEnvTable;
 
@@ -965,9 +967,9 @@ jobject PopLocalFrame(JNIEnv* env, jobject result)
 
 void DeleteLocalRef(JNIEnv *env, jobject localRef)
 {
-	log_text("JNI-Call: DeleteLocalRef: IMPLEMENT ME!");
 	STATS(jniinvokation();)
 
+	log_text("JNI-Call: DeleteLocalRef: IMPLEMENT ME!");
 }
 
 
@@ -2656,6 +2658,8 @@ void SetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID, jdouble v
 }
 
 
+/* String Operations **********************************************************/
+
 /* NewString *******************************************************************
 
    Create new java.lang.String object from an array of Unicode
@@ -2668,6 +2672,7 @@ jstring NewString(JNIEnv *env, const jchar *buf, jsize len)
 	java_lang_String *s;
 	java_chararray   *a;
 	u4                i;
+
 	STATS(jniinvokation();)
 	
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
@@ -2691,63 +2696,102 @@ jstring NewString(JNIEnv *env, const jchar *buf, jsize len)
 
 static jchar emptyStringJ[]={0,0};
 
-/******************* returns the length of a Java string ***************************/
+/* GetStringLength *************************************************************
 
-jsize GetStringLength (JNIEnv *env, jstring str)
+   Returns the length (the count of Unicode characters) of a Java
+   string.
+
+*******************************************************************************/
+
+jsize GetStringLength(JNIEnv *env, jstring str)
 {
-	return ((java_lang_String*) str)->count;
+	return ((java_lang_String *) str)->count;
 }
 
 
 /********************  convertes javastring to u2-array ****************************/
 	
-u2 *javastring_tou2 (jstring so) 
+u2 *javastring_tou2(jstring so) 
 {
-	java_lang_String *s = (java_lang_String*) so;
-	java_chararray *a;
-	u4 i;
-	u2 *stringbuffer;
+	java_lang_String *s;
+	java_chararray   *a;
+	u2               *stringbuffer;
+	u4                i;
+
 	STATS(jniinvokation();)
 	
-	if (!s) return NULL;
+	s = (java_lang_String *) so;
+
+	if (!s)
+		return NULL;
 
 	a = s->value;
-	if (!a) return NULL;
+
+	if (!a)
+		return NULL;
 
 	/* allocate memory */
-	stringbuffer = MNEW( u2 , s->count + 1 );
+
+	stringbuffer = MNEW(u2, s->count + 1);
 
 	/* copy text */
-	for (i=0; i<s->count; i++) stringbuffer[i] = a->data[s->offset+i];
+
+	for (i = 0; i < s->count; i++)
+		stringbuffer[i] = a->data[s->offset + i];
 	
 	/* terminate string */
+
 	stringbuffer[i] = '\0';
 
 	return stringbuffer;
 }
 
-/********* returns a pointer to an array of Unicode characters of the string *******/
 
-const jchar *GetStringChars (JNIEnv *env, jstring str, jboolean *isCopy)
+/* GetStringChars **************************************************************
+
+   Returns a pointer to the array of Unicode characters of the
+   string. This pointer is valid until ReleaseStringchars() is called.
+
+*******************************************************************************/
+
+const jchar *GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 {	
-	jchar *jc=javastring_tou2(str);
+	jchar *jc;
+
 	STATS(jniinvokation();)
 
+	jc = javastring_tou2(str);
+
 	if (jc)	{
-		if (isCopy) *isCopy=JNI_TRUE;
+		if (isCopy)
+			*isCopy = JNI_TRUE;
+
 		return jc;
 	}
-	if (isCopy) *isCopy=JNI_TRUE;
+
+	if (isCopy)
+		*isCopy = JNI_TRUE;
+
 	return emptyStringJ;
 }
 
-/**************** native code no longer needs access to chars **********************/
 
-void ReleaseStringChars (JNIEnv *env, jstring str, const jchar *chars)
+/* ReleaseStringChars **********************************************************
+
+   Informs the VM that the native code no longer needs access to
+   chars. The chars argument is a pointer obtained from string using
+   GetStringChars().
+
+*******************************************************************************/
+
+void ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 {
 	STATS(jniinvokation();)
-	if (chars==emptyStringJ) return;
-	MFREE(((jchar*) chars),jchar,((java_lang_String*) str)->count+1);
+
+	if (chars == emptyStringJ)
+		return;
+
+	MFREE(((jchar *) chars), jchar, ((java_lang_String *) str)->count + 1);
 }
 
 
@@ -3029,318 +3073,574 @@ jdoubleArray NewDoubleArray(JNIEnv *env, jsize len)
 }
 
 
-jboolean * GetBooleanArrayElements (JNIEnv *env, jbooleanArray array, jboolean *isCopy)
+/* Get<PrimitiveType>ArrayElements *********************************************
+
+   A family of functions that returns the body of the primitive array.
+
+*******************************************************************************/
+
+jboolean *GetBooleanArrayElements(JNIEnv *env, jbooleanArray array,
+								  jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jbyte * GetByteArrayElements (JNIEnv *env, jbyteArray array, jboolean *isCopy)
+jbyte *GetByteArrayElements(JNIEnv *env, jbyteArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jchar * GetCharArrayElements (JNIEnv *env, jcharArray array, jboolean *isCopy)
+jchar *GetCharArrayElements(JNIEnv *env, jcharArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jshort * GetShortArrayElements (JNIEnv *env, jshortArray array, jboolean *isCopy)
+jshort *GetShortArrayElements(JNIEnv *env, jshortArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jint * GetIntArrayElements (JNIEnv *env, jintArray array, jboolean *isCopy)
+jint *GetIntArrayElements(JNIEnv *env, jintArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jlong * GetLongArrayElements (JNIEnv *env, jlongArray array, jboolean *isCopy)
+jlong *GetLongArrayElements(JNIEnv *env, jlongArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jfloat * GetFloatArrayElements (JNIEnv *env, jfloatArray array, jboolean *isCopy)
+jfloat *GetFloatArrayElements(JNIEnv *env, jfloatArray array, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
-jdouble * GetDoubleArrayElements (JNIEnv *env, jdoubleArray array, jboolean *isCopy)
+jdouble *GetDoubleArrayElements(JNIEnv *env, jdoubleArray array,
+								jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-    if (isCopy) *isCopy = JNI_FALSE;
+
+    if (isCopy)
+		*isCopy = JNI_FALSE;
+
     return array->data;
 }
 
 
+/* Release<PrimitiveType>ArrayElements *****************************************
 
-void ReleaseBooleanArrayElements (JNIEnv *env, jbooleanArray array, jboolean *elems, jint mode)
+   A family of functions that informs the VM that the native code no
+   longer needs access to elems. The elems argument is a pointer
+   derived from array using the corresponding
+   Get<PrimitiveType>ArrayElements() function. If necessary, this
+   function copies back all changes made to elems to the original
+   array.
+
+*******************************************************************************/
+
+void ReleaseBooleanArrayElements(JNIEnv *env, jbooleanArray array,
+								 jboolean *elems, jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseByteArrayElements (JNIEnv *env, jbyteArray array, jbyte *elems, jint mode)
+void ReleaseByteArrayElements(JNIEnv *env, jbyteArray array, jbyte *elems,
+							  jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseCharArrayElements (JNIEnv *env, jcharArray array, jchar *elems, jint mode)
+void ReleaseCharArrayElements(JNIEnv *env, jcharArray array, jchar *elems,
+							  jint mode)
 {
-    /* empty */
+	STATS(jniinvokation();)
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseShortArrayElements (JNIEnv *env, jshortArray array, jshort *elems, jint mode)
+void ReleaseShortArrayElements(JNIEnv *env, jshortArray array, jshort *elems,
+							   jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseIntArrayElements (JNIEnv *env, jintArray array, jint *elems, jint mode)
+void ReleaseIntArrayElements(JNIEnv *env, jintArray array, jint *elems,
+							 jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseLongArrayElements (JNIEnv *env, jlongArray array, jlong *elems, jint mode)
+void ReleaseLongArrayElements(JNIEnv *env, jlongArray array, jlong *elems,
+							  jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseFloatArrayElements (JNIEnv *env, jfloatArray array, jfloat *elems, jint mode)
+void ReleaseFloatArrayElements(JNIEnv *env, jfloatArray array, jfloat *elems,
+							   jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void ReleaseDoubleArrayElements (JNIEnv *env, jdoubleArray array, jdouble *elems, jint mode)
+void ReleaseDoubleArrayElements(JNIEnv *env, jdoubleArray array,
+								jdouble *elems, jint mode)
 {
 	STATS(jniinvokation();)
-    /* empty */
+
+	if (elems != array->data) {
+		switch (mode) {
+		case JNI_COMMIT:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			break;
+		case 0:
+			MCOPY(array->data, elems, jboolean, array->header.size);
+			/* XXX TWISTI how should it be freed? */
+			break;
+		case JNI_ABORT:
+			/* XXX TWISTI how should it be freed? */
+			break;
+		}
+	}
 }
 
 
-void GetBooleanArrayRegion(JNIEnv* env, jbooleanArray array, jsize start, jsize len, jboolean *buf)
+/*  Get<PrimitiveType>ArrayRegion **********************************************
+
+	A family of functions that copies a region of a primitive array
+	into a buffer.
+
+*******************************************************************************/
+
+void GetBooleanArrayRegion(JNIEnv *env, jbooleanArray array, jsize start,
+						   jsize len, jboolean *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jboolean, len);
 }
 
 
-void GetByteArrayRegion(JNIEnv* env, jbyteArray array, jsize start, jsize len, jbyte *buf)
+void GetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start, jsize len,
+						jbyte *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size) 
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jbyte, len);
 }
 
 
-void GetCharArrayRegion(JNIEnv* env, jcharArray array, jsize start, jsize len, jchar *buf)
+void GetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start, jsize len,
+						jchar *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jchar, len);
 }
 
 
-void GetShortArrayRegion(JNIEnv* env, jshortArray array, jsize start, jsize len, jshort *buf)
+void GetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
+						 jsize len, jshort *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else	
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jshort, len);
 }
 
 
-void GetIntArrayRegion(JNIEnv* env, jintArray array, jsize start, jsize len, jint *buf)
+void GetIntArrayRegion(JNIEnv *env, jintArray array, jsize start, jsize len,
+					   jint *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jint, len);
 }
 
 
-void GetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start, jsize len, jlong *buf)
+void GetLongArrayRegion(JNIEnv *env, jlongArray array, jsize start, jsize len,
+						jlong *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jlong, len);
 }
 
 
-void GetFloatArrayRegion(JNIEnv* env, jfloatArray array, jsize start, jsize len, jfloat *buf)
+void GetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
+						 jsize len, jfloat *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jfloat, len);
 }
 
 
-void GetDoubleArrayRegion(JNIEnv* env, jdoubleArray array, jsize start, jsize len, jdouble *buf)
+void GetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
+						  jsize len, jdouble *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start+len>array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(buf, &array->data[start], len * sizeof(array->data[0]));
+		MCOPY(buf, &array->data[start], jdouble, len);
 }
 
 
-void SetBooleanArrayRegion(JNIEnv* env, jbooleanArray array, jsize start, jsize len, jboolean *buf)
+/*  Set<PrimitiveType>ArrayRegion **********************************************
+
+	A family of functions that copies back a region of a primitive
+	array from a buffer.
+
+*******************************************************************************/
+
+void SetBooleanArrayRegion(JNIEnv *env, jbooleanArray array, jsize start,
+						   jsize len, jboolean *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jboolean, len);
 }
 
 
-void SetByteArrayRegion(JNIEnv* env, jbyteArray array, jsize start, jsize len, jbyte *buf)
+void SetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start, jsize len,
+						jbyte *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jbyte, len);
 }
 
 
-void SetCharArrayRegion(JNIEnv* env, jcharArray array, jsize start, jsize len, jchar *buf)
+void SetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start, jsize len,
+						jchar *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jchar, len);
 
 }
 
 
-void SetShortArrayRegion(JNIEnv* env, jshortArray array, jsize start, jsize len, jshort *buf)
+void SetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
+						 jsize len, jshort *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jshort, len);
 }
 
 
-void SetIntArrayRegion(JNIEnv* env, jintArray array, jsize start, jsize len, jint *buf)
+void SetIntArrayRegion(JNIEnv *env, jintArray array, jsize start, jsize len,
+					   jint *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jint, len);
 
 }
 
 
-void SetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start, jsize len, jlong *buf)
+void SetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start, jsize len,
+						jlong *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jlong, len);
 
 }
 
 
-void SetFloatArrayRegion(JNIEnv* env, jfloatArray array, jsize start, jsize len, jfloat *buf)
+void SetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
+						 jsize len, jfloat *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jfloat, len);
 
 }
 
 
-void SetDoubleArrayRegion(JNIEnv* env, jdoubleArray array, jsize start, jsize len, jdouble *buf)
+void SetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
+						  jsize len, jdouble *buf)
 {
 	STATS(jniinvokation();)
+
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 
     else
-		memcpy(&array->data[start], buf, len * sizeof(array->data[0]));
+		MCOPY(&array->data[start], buf, jdouble, len);
 }
 
 
-jint RegisterNatives (JNIEnv* env, jclass clazz, const JNINativeMethod *methods, jint nMethods)
+/* Registering Native Methods *************************************************/
+
+/* RegisterNatives *************************************************************
+
+   Registers native methods with the class specified by the clazz
+   argument. The methods parameter specifies an array of
+   JNINativeMethod structures that contain the names, signatures, and
+   function pointers of the native methods. The nMethods parameter
+   specifies the number of native methods in the array.
+
+*******************************************************************************/
+
+jint RegisterNatives(JNIEnv *env, jclass clazz, const JNINativeMethod *methods,
+					 jint nMethods)
 {
 	STATS(jniinvokation();)
-    log_text("JNI-Call: RegisterNatives");
+
+    log_text("JNI-Call: RegisterNatives: IMPLEMENT ME!!!");
+
     return 0;
 }
 
 
-jint UnregisterNatives (JNIEnv* env, jclass clazz)
+/* UnregisterNatives ***********************************************************
+
+   Unregisters native methods of a class. The class goes back to the
+   state before it was linked or registered with its native method
+   functions.
+
+   This function should not be used in normal native code. Instead, it
+   provides special programs a way to reload and relink native
+   libraries.
+
+*******************************************************************************/
+
+jint UnregisterNatives(JNIEnv *env, jclass clazz)
 {
 	STATS(jniinvokation();)
-    log_text("JNI-Call: UnregisterNatives");
+
+	/* XXX TWISTI hmm, maybe we should not support that (like kaffe) */
+
+    log_text("JNI-Call: UnregisterNatives: IMPLEMENT ME!!!");
+
     return 0;
 }
 
@@ -3429,47 +3729,71 @@ void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char 
 }
 
 
-/************** obtain direct pointer to array elements ***********************/
+/* GetPrimitiveArrayCritical ***************************************************
 
-void * GetPrimitiveArrayCritical (JNIEnv* env, jarray array, jboolean *isCopy)
+   Obtain a direct pointer to array elements.
+
+*******************************************************************************/
+
+void *GetPrimitiveArrayCritical(JNIEnv *env, jarray array, jboolean *isCopy)
 {
-	java_objectheader *s = (java_objectheader*) array;
-	arraydescriptor *desc = s->vftbl->arraydesc;
+	java_objectheader *s;
+	arraydescriptor   *desc;
 
 	STATS(jniinvokation();)
 
-	if (!desc) return NULL;
+	s = (java_objectheader *) array;
+	desc = s->vftbl->arraydesc;
 
-	return ((u1*)s) + desc->dataoffset;
+	if (!desc)
+		return NULL;
+
+	if (isCopy)
+		*isCopy = JNI_FALSE;
+
+	/* TODO add to global refs */
+
+	return ((u1 *) s) + desc->dataoffset;
 }
 
 
-void ReleasePrimitiveArrayCritical (JNIEnv* env, jarray array, void *carray, jint mode)
+/* ReleasePrimitiveArrayCritical ***********************************************
+
+   No specific documentation.
+
+*******************************************************************************/
+
+void ReleasePrimitiveArrayCritical(JNIEnv *env, jarray array, void *carray,
+								   jint mode)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: ReleasePrimitiveArrayCritical");
 
-	/* empty */
+	log_text("JNI-Call: ReleasePrimitiveArrayCritical: IMPLEMENT ME!!!");
+
+	/* TODO remove from global refs */
 }
 
-/**** returns a pointer to an array of Unicode characters of the string *******/
 
-const jchar * GetStringCritical (JNIEnv* env, jstring string, jboolean *isCopy)
+/* GetStringCritical ***********************************************************
+
+   The semantics of these two functions are similar to the existing
+   Get/ReleaseStringChars functions.
+
+*******************************************************************************/
+
+const jchar *GetStringCritical(JNIEnv *env, jstring string, jboolean *isCopy)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: GetStringCritical");
 
-	return GetStringChars(env,string,isCopy);
+	return GetStringChars(env, string, isCopy);
 }
 
-/*********** native code no longer needs access to chars **********************/
 
-void ReleaseStringCritical (JNIEnv* env, jstring string, const jchar *cstring)
+void ReleaseStringCritical(JNIEnv *env, jstring string, const jchar *cstring)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: ReleaseStringCritical");
 
-	ReleaseStringChars(env,string,cstring);
+	ReleaseStringChars(env, string, cstring);
 }
 
 
@@ -3646,6 +3970,7 @@ jint DestroyJavaVM(JavaVM *vm)
 jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 {
 	STATS(jniinvokation();)
+
 	log_text("AttachCurrentThread called");
 
 #if !defined(HAVE___THREAD)
@@ -3745,11 +4070,13 @@ void jni_init2(JNIEnv* env, jobject gref) {
 	DeleteGlobalRef(env, gref); 
 }
 
-void jni_init(){
+
+void jni_init(void)
+{
 	jmethodID mid;
 
 	initrunning = true;
-	log_text("JNI-Init: initialize global_ref_table");
+
 	/* initalize global reference table */
 	ihmclass = FindClass(NULL, "java/util/IdentityHashMap");
 	
