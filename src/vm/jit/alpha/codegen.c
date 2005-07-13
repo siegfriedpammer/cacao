@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: codegen.c 2992 2005-07-11 21:52:07Z twisti $
+   $Id: codegen.c 3040 2005-07-13 21:07:02Z twisti $
 
 */
 
@@ -92,6 +92,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+
+	/* prevent compiler warnings */
+
+	d = 0;
+	currentline = 0;
+	lm = NULL;
+	bte = NULL;
 
 	{
 	s4 i, p, t, l;
@@ -672,7 +679,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			M_IADD(s1, REG_ZERO, d );
+			M_IADD(s1, REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -682,11 +689,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_BSEXT(s1, d);
-				}
-			else {
+			} else {
 				M_SLL_IMM(s1, 56, d);
 				M_SRA_IMM( d, 56, d);
-				}
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -704,11 +710,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_SSEXT(s1, d);
-				}
-			else {
+			} else {
 				M_SLL_IMM(s1, 48, d);
 				M_SRA_IMM( d, 48, d);
-				}
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -859,6 +864,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_RESULT);
+			M_BEQZ(s2, 0);
+			codegen_addxdivrefs(cd, mcodeptr);
+
+			M_MOV(s1, rd->argintregs[0]);
+			M_MOV(s2, rd->argintregs[1]);
+			bte = iptr->val.a;
+			disp = dseg_addaddress(cd, bte->fp);
+			M_ALD(REG_PV, REG_PV, disp);
+			M_JSR(REG_RA, REG_PV);
+
+			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+			if (disp <= 32768)
+				M_LDA(REG_PV, REG_RA, -disp);
+			else {
+				s4 ml = -disp, mh = 0;
+				while (ml < -32768) { ml += 65536; mh--; }
+				M_LDA(REG_PV, REG_RA, ml);
+				M_LDAH(REG_PV, REG_PV, mh);
+			}
+
+			M_IADD(REG_RESULT, REG_ZERO, d); /* sign extend (bugfix for gcc -O2) */
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
