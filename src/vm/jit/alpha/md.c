@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 2992 2005-07-11 21:52:07Z twisti $
+   $Id: md.c 3039 2005-07-13 19:04:25Z twisti $
 
 */
 
@@ -40,7 +40,6 @@
 
 #include "config.h"
 
-#include "vm/jit/alpha/asmoffsets.h"
 #include "vm/jit/alpha/md-abi.h"
 #include "vm/jit/alpha/types.h"
 
