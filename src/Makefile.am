@@ -28,9 +28,23 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2638 2005-06-12 23:21:54Z twisti $
+## $Id: Makefile.am 3032 2005-07-13 11:54:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+DIST_SUBDIRS = \
+	boehm-gc \
+	classpath \
+	lib \
+	libltdl \
+	mm \
+	toolbox \
+	vm \
+	threads \
+	cacaoh \
+	native \
+	cacao \
+	scripts
 
 if DISABLE_GC
 BOEHM =
@@ -39,7 +53,9 @@ BOEHM = boehm-gc
 endif
 
 if WITH_EXTERNAL_CLASSPATH
-CLASSPATH = lib
+CLASSPATH = \
+	lib \
+	classpath/native/fdlibm
 else
 CLASSPATH = classpath
 endif
