@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 2976 2005-07-10 22:21:02Z twisti $
+   $Id: codegen.h 3036 2005-07-13 12:23:30Z twisti $
 
 */
 
@@ -446,6 +446,7 @@ typedef enum {
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
 
 #define M_PUSH(a)               x86_64_push_reg(cd, (a))
+#define M_PUSH_IMM(a)           x86_64_push_imm(cd, (a))
 
 #define M_JMP(a)                x86_64_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            x86_64_jmp_imm(cd, (a))
