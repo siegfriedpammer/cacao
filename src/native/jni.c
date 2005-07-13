@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3017 2005-07-12 21:50:06Z twisti $
+   $Id: jni.c 3034 2005-07-13 12:10:14Z twisti $
 
 */
 
@@ -4475,8 +4475,14 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
 {
-	*p_vm = (JavaVM *) &JNI_JavaVMTable;
-	*p_env = (JNIEnv *) &JNI_JNIEnvTable;
+	const struct JNIInvokeInterface *vm;
+	struct JNINativeInterface *env;
+
+	vm = &JNI_JavaVMTable;
+	env = &JNI_JNIEnvTable;
+
+	*p_vm = (JavaVM *) vm;
+	*p_env = (JNIEnv *) env;
 
 	return 0;
 }
