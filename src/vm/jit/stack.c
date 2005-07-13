@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: stack.c 3035 2005-07-13 12:23:13Z twisti $
 
 */
 
@@ -63,7 +63,9 @@
 
 /* global variables ***********************************************************/
 
+#if defined(USE_THREADS)
 static java_objectheader show_icmd_lock;
+#endif
 
 
 /* stack_init ******************************************************************
@@ -74,9 +76,11 @@ static java_objectheader show_icmd_lock;
 
 bool stack_init(void)
 {
+#if defined(USE_THREADS)
 	/* initialize the show lock */
 
 	show_icmd_lock.monitorPtr = get_dummyLR();
+#endif
 
 	/* everything's ok */
 
