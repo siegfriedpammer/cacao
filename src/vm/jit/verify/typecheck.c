@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3001 2005-07-12 16:01:56Z twisti $
+   $Id: typecheck.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -971,7 +971,6 @@ verify_invocation(verifier_state *state)
 	stackelement *dst;               /* result stack of the invocation */
 	int i;                                                  /* counter */
     u1 rtype;                          /* return type of called method */
-	static utf *name_init = NULL;     /* cache for "<init>" utf string */
 
 	um = (unresolved_method *) state->iptr[0].target;
 	mref = um->methodref;
@@ -980,12 +979,13 @@ verify_invocation(verifier_state *state)
 	opcode = state->iptr[0].opc;
 	dst = state->iptr->dst;
 
-	if (!name_init)
-		name_init = utf_new_char("<init>");
-	
+	/* prevent compiler warnings */
+
+	ins = NULL;
+
 	/* check whether we are calling <init> */
 	
-	callinginit = (opcode == ICMD_INVOKESPECIAL && mref->name == name_init);
+	callinginit = (opcode == ICMD_INVOKESPECIAL && mref->name == utf_init);
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 
@@ -1300,6 +1300,10 @@ verify_basic_block(verifier_state *state)
 
 	/* init stack at the start of this block */
 	state->curstack = state->bptr->instack;
+
+	/* prevent compiler warnings */
+
+	dst = NULL;
 
 	/* determine the active exception handlers for this block */
 	/* XXX could use a faster algorithm with sorted lists or  */
@@ -2281,7 +2285,6 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 {
 	verifier_state state;             /* current state of the verifier */
     int i;                                        /* temporary counter */
-    static utf *name_init;            /* cache for utf string "<init>" */
 
 	/* collect statistics */
 
@@ -2317,9 +2320,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 
 	/* check if this method is an instance initializer method */
 
-	if (!name_init)
-		name_init = utf_new_char("<init>");
-    state.initmethod = (state.m->name == name_init);
+    state.initmethod = (state.m->name == utf_init);
 
     /* reset all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
 	

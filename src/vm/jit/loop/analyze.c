@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 2495 2005-05-22 19:49:53Z twisti $
+   $Id: analyze.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -929,6 +929,12 @@ void init_constraints(methodinfo *m, loopdata *ld, int head)
 	int ic, l_mod, r_mod, changed, operand;
 	struct Trace *left, *right, *th;
 	struct LoopVar *lv_left, *lv_right, *lh;
+
+	/* prevent some compiler warnings */
+
+	operand = 0;
+	lv_left = NULL;
+	lv_right = NULL;
 
 	bp = m->basicblocks[head];
 	ic = bp.icount;
@@ -2583,6 +2589,10 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	stackptr newstack, tos;
 	exceptiontable *ex;
 
+	/* prevent some compiler warnings */
+
+	bptr = NULL;
+
 #ifdef STATISTICS
 	/* show_loop_statistics(l); */ 
 #endif
@@ -3079,6 +3089,11 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 	struct depthElement *d;
 	struct Changes **t1, **tmp, *t;
 	struct Trace *t_array, *t_index;
+
+	/* prevent some compiler warnings */
+
+	t_array = NULL;
+	t_index = NULL;
 
 	/* printf("remove_bc called: %d - %d - %d\n", node, from, special);			*/
 	   

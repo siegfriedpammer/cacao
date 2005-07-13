@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3020 2005-07-12 23:46:50Z twisti $
+   $Id: stacktrace.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -732,6 +732,12 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 	u4                framesize;
 	functionptr       ra;
 	functionptr       xpc;
+
+	/* prevent compiler warnings */
+
+	pv = NULL;
+	sp = NULL;
+	ra = NULL;
 
 	/* In most cases this should be enough -> one malloc less. I don't think  */
 	/* temporary data should be allocated with the GC, only the result.       */

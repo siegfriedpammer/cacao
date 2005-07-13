@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 2991 2005-07-11 21:25:31Z twisti $
+   $Id: codegen.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -91,6 +91,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+
+	/* prevent compiler warnings */
+
+	d = 0;
+	lm = NULL;
+	bte = NULL;
 
 	{
 	s4 i, p, t, l;

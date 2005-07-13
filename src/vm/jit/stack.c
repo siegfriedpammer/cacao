@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3007 2005-07-12 20:58:01Z twisti $
+   $Id: stack.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -1917,7 +1917,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					/* pop many push any */
 
 					case ICMD_BUILTIN:
+#if defined(USEBUILTINTABLE)
 					builtin:
+#endif
 						bte = (builtintable_entry *) iptr->val.a;
 						md = bte->md;
 						goto _callhandling;

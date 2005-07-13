@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 2776 2005-06-22 09:49:20Z christian $
+   $Id: lsra.inc 3028 2005-07-13 11:41:53Z twisti $
 
 */
 #include <stdio.h>
@@ -1874,6 +1874,10 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		v_index_min[i] = ls->v_index;
 	}
 #endif
+
+	/* prevent compiler warnings */
+
+	iindex = 0;
 
 	src = m->basicblocks[b_index].instack;
 	if (m->basicblocks[b_index].type != BBTYPE_STD) {

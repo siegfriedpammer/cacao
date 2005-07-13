@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3007 2005-07-12 20:58:01Z twisti $
+   $Id: stack.h 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -59,7 +59,7 @@
 
 #define TYPE_VERIFYERROR(t) \
     do { \
-        char *type; \
+        char *type = NULL; \
         switch ((t)) { \
         case TYPE_INT: \
 			type = "integer"; \

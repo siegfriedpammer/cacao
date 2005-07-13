@@ -42,7 +42,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Changes: Christian Thalinger
 
-   $Id: parseXTA.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: parseXTA.c 3028 2005-07-13 11:41:53Z twisti $
 
 */
 
@@ -473,6 +473,10 @@ bool xtaPassParams (methodinfo *Called, methodinfo *Calls, methSetNode *lastptrI
         classSetNode *c1;
         classSetNode *cprev;
         bool          chgd = false;
+
+		/* prevent compiler warnings */
+
+		c1 = NULL;
 
         if (lastptrInto->lastptrIntoClassSet2 == NULL) {
                 if (Calls->xta->XTAclassSet != NULL)
