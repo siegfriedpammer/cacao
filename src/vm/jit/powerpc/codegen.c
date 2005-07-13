@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3037 2005-07-13 16:12:20Z twisti $
+   $Id: codegen.c 3041 2005-07-13 21:13:36Z twisti $
 
 */
 
@@ -67,7 +67,6 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/reg.inc"
-#include "disass.h"
 
 
 void asm_cacheflush(void *, long);
