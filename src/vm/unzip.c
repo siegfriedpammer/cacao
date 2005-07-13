@@ -711,6 +711,7 @@ void cacao_create_directoryList(unzFile file)
   unz_file_info tmp;
   char filename[200];
 
+  ent = NULL;
   s->cacao_dir_list = NULL;
 
   if (unzGoToFirstFile(file) != UNZ_OK)
