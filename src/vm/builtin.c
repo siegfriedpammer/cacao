@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3010 2005-07-12 21:01:59Z twisti $
+   $Id: builtin.c 3029 2005-07-13 11:45:07Z twisti $
 
 */
 
@@ -261,35 +261,6 @@ bool builtin_init(void)
 	builtintable_sort_automatic();
 
 	return true;
-}
-
-
-/* builtintable_entry_debug_dump ***********************************************
-
-   Prints a builtintable_entry in human-readable form.
-
-*******************************************************************************/
-
-void builtintable_entry_debug_dump(FILE *file, builtintable_entry *bte)
-{
-	char *name;
-	char *desc;
-	
-	if (!bte) {
-		fprintf(file,"(builtintable_entry *)NULL");
-		return;
-	}
-
-	name = bte->name;
-	if (!name)
-		name = "<name=NULL>";
-	desc = (bte->md) ? "parsed " : bte->descriptor;
-	if (!desc)
-		desc = "<desc=NULL>";
-	fprintf(file,"BUILTIN(%d,%p,%s %s",
-			bte->opcode,(void*)bte->fp,name,desc);
-	descriptor_debug_print_methoddesc(file,bte->md);
-	fputc(')',file);
 }
 
 

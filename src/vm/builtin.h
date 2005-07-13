@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3008 2005-07-12 21:01:18Z twisti $
+   $Id: builtin.h 3029 2005-07-13 11:45:07Z twisti $
 
 */
 
@@ -84,8 +84,6 @@ struct builtintable_entry {
 	char        *name;
 	methoddesc  *md;
 };
-
-void builtintable_entry_debug_dump(FILE *file,builtintable_entry *bte);
 
 
 /* function prototypes ********************************************************/
