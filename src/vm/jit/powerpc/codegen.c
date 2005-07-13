@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 2998 2005-07-12 09:16:53Z twisti $
+   $Id: codegen.c 3037 2005-07-13 16:12:20Z twisti $
 
 */
 
@@ -105,6 +105,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+
+	/* prevent compiler warnings */
+
+	d = 0;
+	currentline = 0;
+	lm = NULL;
+	bte = NULL;
 
 	{
 	s4 i, p, t, l;
@@ -3823,7 +3830,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P + /* native stackinfo          */
 		4 +                             /* 4 stackframeinfo arguments (darwin)*/
-		nmd->paramcount * 2 +           /* assume all are doubles             */
+		nmd->paramcount * 2 +           /* assume all arguments are doubles   */
 		nmd->memuse;
 
 	stackframesize = (stackframesize + 3) & ~3; /* keep stack 16-byte aligned */
@@ -4078,9 +4085,9 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_DST(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
 
 		/* keep this order */
-		switch (m->returntype) {
+		switch (md->returntype.type) {
 		case TYPE_INT:
-		case TYPE_ADDRESS:
+		case TYPE_ADR:
 #if defined(__DARWIN__)
 			M_MOV(REG_RESULT, rd->argintregs[2]);
 			M_CLR(rd->argintregs[1]);
@@ -4090,7 +4097,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 #endif
 			break;
 
-		case TYPE_LONG:
+		case TYPE_LNG:
 #if defined(__DARWIN__)
 			M_MOV(REG_RESULT2, rd->argintregs[2]);
 			M_MOV(REG_RESULT, rd->argintregs[1]);
