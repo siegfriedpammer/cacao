@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 2967 2005-07-10 15:17:06Z twisti $
+   $Id: Field.c 3026 2005-07-13 11:37:18Z twisti $
 
 */
 
@@ -1192,22 +1192,28 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 
 
 /*
- * Class:     java_lang_reflect_Field
+ * Class:     java/lang/reflect/Field
  * Method:    getType
  * Signature: ()Ljava/lang/Class;
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	typedesc *desc = (((classinfo *) this->declaringClass)->fields[this->slot]).parseddesc;
-	java_lang_Class *ret;
+	classinfo *c;
+	typedesc  *desc;
+	classinfo *ret;
+
+	c = (classinfo *) this->declaringClass;
+	desc = c->fields[this->slot].parseddesc;
+
 	if (!desc)
 		return NULL;
 
-	if (!resolve_class_from_typedesc(desc,true,false,(classinfo **)&ret))
-		return NULL; /* exception */
+	if (!resolve_class_from_typedesc(desc, true, false, &ret))
+		return NULL;
 	
-	use_class_as_object((classinfo*)ret);
-	return ret;
+	use_class_as_object(ret);
+
+	return (java_lang_Class *) ret;
 }
 
 
