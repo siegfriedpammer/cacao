@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 2810 2005-06-23 14:03:24Z edwin $
+   $Id: resolve.c 3031 2005-07-13 11:52:50Z twisti $
 
 */
 
@@ -97,7 +97,8 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 #endif
 
 	/* lookup if this class has already been loaded */
-	cls = classcache_lookup(referer->classloader,classname);
+
+	cls = classcache_lookup(referer->classloader, classname);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    lookup result: %p\n",(void*)cls);
@@ -105,10 +106,13 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 	
 	if (!cls) {
 		/* resolve array types */
+
 		if (classname->text[0] == '[') {
 			utf_ptr = classname->text + 1;
 			len = classname->blength - 1;
+
 			/* classname is an array type name */
+
 			switch (*utf_ptr) {
 				case 'L':
 					utf_ptr++;
@@ -209,7 +213,9 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 							  bool link,
 							  classinfo **result)
 {
-	classinfo *c;
+	classinfo         *c;
+	java_objectheader *e;
+	java_objectheader *cause;
 	
 	RESOLVE_ASSERT(cls.any);
 	RESOLVE_ASSERT(mode == resolveEager || mode == resolveLazy);
@@ -225,11 +231,12 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 
 	if (IS_CLASSREF(cls)) {
 		/* we must resolve this reference */
-		if (!resolve_class_from_name(cls.ref->referer,refmethod,cls.ref->name,
-						   			mode,checkaccess,link,&c))
-			return false; /* exception */
-	}
-	else {
+
+		if (!resolve_class_from_name(cls.ref->referer, refmethod, cls.ref->name,
+									 mode, checkaccess, link, &c))
+			goto return_exception;
+
+	} else {
 		/* cls has already been resolved */
 		c = cls.cls;
 		RESOLVE_ASSERT(c->loaded);
@@ -245,14 +252,46 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	if (link) {
 		if (!c->linked)
 			if (!link_class(c))
-				return false; /* exception */
+				goto return_exception;
+
 		RESOLVE_ASSERT(c->linked);
 	}
 
 	/* succeeded */
 	*result = c;
 	return true;
+
+ return_exception:
+	/* get the cause */
+
+	cause = *exceptionptr;
+
+	/* convert ClassNotFoundException's to NoClassDefFoundError's */
+
+	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+		/* clear exception, because we are calling jit code again */
+
+		*exceptionptr = NULL;
+
+		/* create new error */
+
+		e = new_exception_javastring(string_java_lang_NoClassDefFoundError,
+									 ((java_lang_Throwable *) cause)->detailMessage);
+
+		/* we had an exception while creating the error */
+
+		if (*exceptionptr)
+			return false;
+
+		/* set new exception */
+
+		*exceptionptr = e;
+	}
+
+	*result = NULL;
+	return false;
 }
+
 
 bool 
 resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
@@ -512,6 +551,7 @@ resolve_field(unresolved_field *ref,
 #endif
 
 	/* the class containing the reference */
+
 	referer = ref->fieldref->classref->referer;
 	RESOLVE_ASSERT(referer);
 
@@ -551,6 +591,7 @@ resolve_field(unresolved_field *ref,
 #endif
 
 	/* check static */
+
 	if (((fi->flags & ACC_STATIC) != 0) != ((ref->flags & RESOLVE_STATIC) != 0)) {
 		/* a static field is accessed via an instance, or vice versa */
 		*exceptionptr = new_exception_message(string_java_lang_IncompatibleClassChangeError,
@@ -559,8 +600,10 @@ resolve_field(unresolved_field *ref,
 		return false; /* exception */
 	}
 
-	/* for non-static accesses we have to check the constraints on the instance type */
-	if ((ref->flags & RESOLVE_STATIC) == 0) {
+	/* for non-static accesses we have to check the constraints on the */
+	/* instance type */
+
+	if (!(ref->flags & RESOLVE_STATIC)) {
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking instance types...\n");
 #endif
@@ -568,12 +611,12 @@ resolve_field(unresolved_field *ref,
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(container),
-										   false,
-										   mode,
-										   resolveLinkageError,&checked))
+										   false, mode, resolveLinkageError,
+										   &checked))
 		{
 			return false; /* exception */
 		}
+
 		if (!checked)
 			return true; /* be lazy */
 	}
@@ -592,12 +635,11 @@ resolve_field(unresolved_field *ref,
 		RESOLVE_ASSERT(fieldtyperef);
 		if (!SUBTYPESET_IS_EMPTY(ref->valueconstraints)) {
 			/* check subtype constraints */
-			if (!resolve_and_check_subtype_set(referer,ref->referermethod,
+			if (!resolve_and_check_subtype_set(referer, ref->referermethod,
 											   &(ref->valueconstraints),
 											   CLASSREF_OR_CLASSINFO(fieldtyperef),
-											   false,
-											   mode,
-											   resolveLinkageError,&checked))
+											   false, mode, resolveLinkageError,
+											   &checked))
 			{
 				return false; /* exception */
 			}
@@ -643,25 +685,27 @@ resolve_field(unresolved_field *ref,
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
 										   CLASSREF_OR_CLASSINFO(referer),
-										   false,
-										   mode,
-										   resolveIllegalAccessError,&checked))
+										   false, mode,
+										   resolveIllegalAccessError, &checked))
 		{
 			return false; /* exception */
 		}
+
 		if (!checked)
 			return true; /* be lazy */
 	}
 
 	/* impose loading constraint on field type */
+
 	if (fi->type == TYPE_ADR) {
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    adding constraint...\n");
 #endif
 		RESOLVE_ASSERT(fieldtyperef);
-		if (!classcache_add_constraint(declarer->classloader,referer->classloader,
-								  	   fieldtyperef->name))
-			return false; /* exception */
+		if (!classcache_add_constraint(declarer->classloader,
+									   referer->classloader,
+									   fieldtyperef->name))
+			return false;
 	}
 
 	/* succeed */
@@ -669,6 +713,7 @@ resolve_field(unresolved_field *ref,
 	fprintf(stderr,"    success.\n");
 #endif
 	*result = fi;
+
 	return true;
 }
 
@@ -987,8 +1032,6 @@ create_unresolved_class(methodinfo *refmethod,
 						typeinfo *valuetype)
 {
 	unresolved_class *ref;
-	
-	RESOLVE_ASSERT(ref);
 	
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_class\n");
