@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3023 2005-07-12 23:49:49Z twisti $
+   $Id: codegen.c 3054 2005-07-18 21:57:01Z twisti $
 
 */
 
@@ -139,9 +139,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
 	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
 	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
-
 	dseg_addlinenumbertablesize(cd);
-
 	(void) dseg_adds4(cd, cd->exceptiontablelength);        /* ExTableSize    */
 
 	/* create exception table */
@@ -456,6 +454,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		
 		src = bptr->instack;
 		len = bptr->icount;
+		currentline = 0;
 
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
@@ -4265,7 +4264,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 
 
-#if 1
 	/* save integer and float argument registers */
 
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
@@ -4298,7 +4296,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DLD(rd->argfltregs[i], REG_SP, j++ * 8);
-#endif
 
 
 	/* copy or spill arguments to new locations */
@@ -4382,7 +4379,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_NOP;                              /* delay slot                         */
 
 
-#if 1
 	/* remove native stackframe info */
 
 	if (IS_INT_LNG_TYPE(md->returntype.type))
@@ -4402,7 +4398,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_LLD(REG_RESULT, REG_SP, 0 * 8);
 	else
 		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-#endif
 
 
 	/* call finished trace function */
