@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: stacktrace.c 3044 2005-07-18 11:34:24Z twisti $
 
 */
 
@@ -536,17 +536,17 @@ java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp,
 													  functionptr ra,
 													  functionptr xpc)
 {
-	stackframeinfo     sfi;
 	java_objectheader *o;
+	stackframeinfo     sfi;
 	methodinfo        *m;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
 	/* get exception */
 
 	o = *exceptionptr;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
 	/* clear exception */
 
@@ -825,28 +825,34 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 				m = *((methodinfo **) (pv + MethodPointer));
 
-				/* add it to the stacktrace */
+				/* if m == NULL, this is a asm_calljavafunction call */
 
-				stacktrace_fillInStackTrace_method(&buffer, m, pv,
-												   (u1 *) ((ptrint) xpc));
+				if (m != NULL) {
 
-				/* get the current stack frame size */
+					/* add it to the stacktrace */
 
-				framesize = *((u4 *) (pv + FrameSize));
+					stacktrace_fillInStackTrace_method(&buffer, m, pv,
+													   (u1 *) ((ptrint) xpc));
 
-				/* set stack pointer to stackframe of parent Java function of */
-				/* the current Java function */
+					/* get the current stack frame size */
+
+					framesize = *((u4 *) (pv + FrameSize));
+
+					/* set stack pointer to stackframe of parent Java */
+					/* function of the current Java function */
 
 #if defined(__I386__) || defined (__X86_64__)
-				sp += framesize + SIZEOF_VOID_P;
+					sp += framesize + SIZEOF_VOID_P;
 #else
-				sp += framesize;
+					sp += framesize;
 #endif
 
-				/* get data segment and methodinfo pointer from parent method */
+					/* get data segment and methodinfo pointer from parent */
+					/* method */
 
-				pv = (u1 *) (ptrint) codegen_findmethod(ra);
-				m = *((methodinfo **) (pv + MethodPointer));
+					pv = (u1 *) (ptrint) codegen_findmethod(ra);
+					m = *((methodinfo **) (pv + MethodPointer));
+				}
 			}
 
 			/* get next stackframeinfo in the chain */
