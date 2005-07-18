@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3048 2005-07-18 15:07:19Z twisti $
+   $Id: stacktrace.c 3053 2005-07-18 21:55:31Z twisti $
 
 */
 
@@ -64,11 +64,11 @@
 
 /* lineNumberTableEntry *******************************************************/
 
-/* The special value of -1 means that a inlined function starts, a value of */
-/* -2 means that an inlined function ends */
+/* Keep the type of line the same as the pointer type, otherwise we run into  */
+/* alignment troubles (like on MIPS64).                                       */
 
 typedef struct lineNumberTableEntry {
-	ptrint  line; /* XXX change me to u2 */
+	ptrint  line;
 	u1     *pc;
 } lineNumberTableEntry;
 
@@ -679,19 +679,17 @@ static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
 											   methodinfo *method, u1 *pv,
 											   u1 *pc)
 {
-	s4                    lntsize;      /* size of line number table          */
+	ptrint                lntsize;      /* size of line number table          */
 	u1                   *lntstart;     /* start of line number table         */
 	lineNumberTableEntry *lntentry;     /* points to last entry in the table  */
 
 	/* get size of line number table */
 
-	lntsize  = *((s4 *)  (pv + LineNumberTableSize));
-	lntstart = *((u1 **) (pv + LineNumberTableStart));
+	lntsize  = *((ptrint *) (pv + LineNumberTableSize));
+	lntstart = *((u1 **)    (pv + LineNumberTableStart));
 
 	/* subtract the size of the line number entry of the structure, since the */
 	/* line number table start points to the pc */
-
-	/* XXX change me to u2 (or s4) */
 
 	lntentry = (lineNumberTableEntry *) (lntstart - SIZEOF_VOID_P);
 
