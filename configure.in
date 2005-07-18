@@ -527,7 +527,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/Makefile]
 		[tests/Makefile]
 		[tests/codepatching/Makefile]
-		[tests/native/Makefile])
+		[tests/native/Makefile]
+		[tests/regression/Makefile])
 
 AC_OUTPUT
 
