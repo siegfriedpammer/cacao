@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3023 2005-07-12 23:49:49Z twisti $
+   $Id: asmpart.S 3055 2005-07-18 21:58:32Z twisti $
 
 */
 
@@ -98,10 +98,10 @@
 	.dword  calljava_xhandler         /* end pc                               */
 	.dword  asm_calljavafunction      /* start pc                             */
 	.word   1                         /* extable size                         */
-	.word   0                         /* ALIGNMENT PADDING                    */
+	.word   0                         /* 4-byte ALIGNMENT PADDING             */
 	.dword  0                         /* line number table start              */
 	.dword  0                         /* line number table size               */
-	.word   0                         /* ALIGNMENT PADDING                    */
+	.word   0                         /* 4-byte ALIGNMENT PADDING             */
 	.word   0                         /* fltsave                              */
 	.word   0                         /* intsave                              */
 	.word   0                         /* isleaf                               */
@@ -182,10 +182,10 @@ calljava_xhandler:
 	.dword  calljava_xhandler2        /* end pc                               */
 	.dword  asm_calljavafunction2     /* start pc                             */
 	.word   1                         /* extable size                         */
-	.word   0                         /* ALIGNMENT PADDING                    */
+	.word   0                         /* 4-byte ALIGNMENT PADDING             */
 	.dword  0                         /* line number table start              */
 	.dword  0                         /* line number table size               */
-	.word   0                         /* ALIGNMENT PADDING                    */
+	.word   0                         /* 4-byte ALIGNMENT PADDING             */
 	.word   0                         /* fltsave                              */
 	.word   1                         /* intsave                              */
 	.word   0                         /* isleaf                               */
@@ -358,21 +358,34 @@ asm_call_jit_compiler:
 	aaddu   mptr,t0,ra            /* compute update address                   */
 
 noregchange:
-	aaddiu  sp,sp,-18*8           /* allocate stack space                     */
+	aaddiu  sp,sp,-(20*8+sizestackframeinfo) /* allocate stack space          */
 
 	SAVE_ARGUMENT_REGISTERS(0)
 
-	sd      mptr,16*8(sp)         /* save method pointer                      */
-	sd      ra,17*8(sp)           /* save return address                      */
+	ast     mptr,16*8(sp)         /* save method pointer                      */
+	ast     ra,17*8(sp)           /* save return address                      */
+	ast     itmp1,18*8(sp)        /* save methodinfo pointer                  */
 
-	move    a0,itmp1              /* pass 'methodinfo' pointer to             */
+	aaddiu  a0,sp,20*8            /* create stackframe info                   */
+	move    a1,zero               /* we don't have pv handy                   */
+	aaddiu  a2,sp,(20*8+sizestackframeinfo) /* pass java sp                   */
+	move    a3,ra                 /* pass java ra                             */
+	move    a4,a3                 /* xpc is equal to ra                       */
+	jal     stacktrace_create_extern_stackframeinfo
+
+	ald     a0,18*8(sp)           /* pass methodinfo pointer                  */
 	jal     jit_compile           /* jit compiler                             */
+	ast     v0,18*8(sp)           /* save return value                        */
+
+	aaddiu  a0,sp,20*8            /* remove stackframe info                   */
+	jal     stacktrace_remove_stackframeinfo
 
 	RESTORE_ARGUMENT_REGISTERS(0)
 
-	ld      mptr,16*8(sp)         /* restore method pointer                   */
-	ld      ra,17*8(sp)           /* restore return address                   */
-	aaddiu  sp,sp,18*8            /* deallocate stack area                    */
+	ald     mptr,16*8(sp)         /* restore method pointer                   */
+	ald     ra,17*8(sp)           /* restore return address                   */
+	ald     v0,18*8(sp)           /* restore return value                     */
+	aaddiu  sp,sp,20*8+sizestackframeinfo /* deallocate stack area            */
 
 	beqz    v0,L_asm_call_jit_compiler_exception
 
@@ -389,7 +402,6 @@ noregchange:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
-#if 0
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	aaddiu  sp,sp,-2*8
 	ast     ra,0*8(sp)
@@ -401,20 +413,6 @@ L_asm_call_jit_compiler_exception:
 #endif
 	ald     xptr,0(v0)            /* get the exception pointer                */
 	ast     zero,0(v0)            /* clear the exception pointer              */
-#endif
-
-	aaddiu  sp,sp,-2*8
-	ast     ra,0*8(sp)
-
-	move    a0,zero               /* fill in the correct stacktrace           */
-	aaddiu  a1,sp,2*8             /* pass sp of parent Java function          */
-	move    a2,ra                 /* pass ra to parent Java function          */
-	move    a3,a2                 /* xpc is the same as ra                    */
-	jal     stacktrace_extern_fillInStackTrace
-	move    xptr,v0
-
-	ald     ra,0*8(sp)
-	aaddiu  sp,sp,2*8
 
 	aaddiu  xpc,ra,-4             /* faulting address is return adress - 4    */
 	b       asm_handle_nat_exception
@@ -701,26 +699,22 @@ asm_wrapper_patcher:
 	ast     ra,(16+21+2)*8(sp)    /* save method return address (for leafs)   */
 	ast     pv,(16+21+3)*8(sp)    /* save pv of calling java function         */
 
-#if 1
 	aaddiu  a0,sp,(16+21+4)*8     /* create stackframe info                   */
 	move    a1,pv                 /* pass java pv                             */
 	aaddiu  a2,sp,((5+16+21+4)*8+sizestackframeinfo) /* pass java sp          */
 	move    a3,ra                 /* this is correct for leafs                */
 	ald     a4,((4+16+21+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
 	jal     stacktrace_create_extern_stackframeinfo
-#endif
 
 	aaddiu  a0,sp,((0+16+21+4)*8+sizestackframeinfo) /* pass sp               */
-	ald     itmp3,((0+16+21+4)*8+sizestackframeinfo)(sp) /* get function pointer  */
+	ald     itmp3,((0+16+21+4)*8+sizestackframeinfo)(sp) /* get function      */
 	ald     itmp1,(16+21+3)*8(sp) /* save pv to the position of fp            */
 	ast     itmp1,((0+16+21+4)*8+sizestackframeinfo)(sp)
 	jalr    itmp3
 	ast     v0,((0+16+21+4)*8+sizestackframeinfo)(sp) /* save return value    */
 
-#if 1
 	aaddiu  a0,sp,(16+21+4)*8     /* remove stackframe info                   */
 	jal     stacktrace_remove_stackframeinfo
-#endif
 
 	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
 	RESTORE_TEMPORARY_REGISTERS(16) /* restore 5 int/16 float temporary reg.  */
