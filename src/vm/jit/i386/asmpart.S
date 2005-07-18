@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 2999 2005-07-12 11:20:34Z twisti $
+   $Id: asmpart.S 3046 2005-07-18 14:46:41Z twisti $
 
 */
 
@@ -313,104 +313,78 @@ calljava_xhandler2:
 *******************************************************************************/
 
 asm_call_jit_compiler:
-	push	%ebx                /* save register                              */
-    push    %ebp
+	sub     $((4+2)*4+sizestackframeinfo),sp /* create stack frame            */
+	mov     itmp1,(4+0)*4(sp)           /* save method pointer                */
 			
-	mov     2*4(%esp),%ebp      /* get return address (2 push)                */
-	mov     -1(%ebp),%bl        /* get function code                          */
-	cmp     $0xd1,%bl           /* called with `call *REG_ITMP2' (%ecx)?      */
+	mov     (4+2)*4+sizestackframeinfo(sp),itmp3 /* get return address        */
+	mov     -1(itmp3),itmp1b            /* get function code                  */
+	cmp     $0xd1,itmp1b                /* called with `call *REG_ITMP2'?     */
 	jne		L_not_static_special
 
-	sub     $6,%ebp             /* calculate address of immediate             */
+	sub     $6,itmp3                    /* calculate address of immediate     */
 	jmp		L_call_jit_compile
 		
 L_not_static_special:
-	cmp     $0xd0,%bl           /* called with `call *REG_ITMP1' (%eax)       */
+	cmp     $0xd0,itmp1b                /* called with `call *REG_ITMP1'      */
 	jne		L_not_virtual_interface
 	
-	sub     $6,%ebp             /* calculate address of offset                */
-	mov     (%ebp),%ebp         /* get offset                                 */
-	add     itmp2,%ebp          /* add base address to get method address     */
+	sub     $6,itmp3                    /* calculate address of offset        */
+	mov     (itmp3),itmp3               /* get offset                         */
+	add     itmp2,itmp3                 /* add base address to get method adr */
 	jmp		L_call_jit_compile
 
-L_not_virtual_interface:        /* a call from asm_calljavafunction           */
-	xor     %ebp,%ebp
+L_not_virtual_interface:
+	xor     itmp3,itmp3                 /* a call from asm_calljavafunction   */
 		
 L_call_jit_compile:
-	push    %ebp                /* save address for method pointer            */
-
-	push    %eax                /* push methodpointer on stack                */
-	call    jit_compile
-	add     $4,%esp
-
-	pop     %ebp                /* restore address for method pointer         */
-
-	test    %eax,%eax           /* check for exception                        */
-	je      L_asm_call_jit_compiler_exception
-
-	test	%ebp,%ebp           /* is address == 0 (asm_calljavafunction)     */
-	je		L_call_method
-	
-	mov     %eax,(%ebp)         /* and now save the new pointer               */
-
-L_call_method:
-	pop     %ebp                /* restore registers                          */
-	pop     %ebx
-		
-	jmp		*%eax               /* ...and now call the new method             */
-
-L_asm_call_jit_compiler_exception:
-	pop     %ebp                /* restore registers                          */
-	pop     %ebx
-
-#if 0
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	call    builtin_asm_get_exceptionptrptr
-	mov     v0,itmp2
-#else
-	lea     _exceptionptr,itmp2
-#endif
-	mov     (itmp2),xptr        /* get the exception pointer                  */
-	movl    $0,(itmp2)          /* clear the exception pointer                */
-
-	sub     $(5*4+sizestackframeinfo),sp
-	mov     xptr,4*4(sp)                /* save exception pointer             */
+	mov     itmp3,(4+1)*4(sp)           /* save address for method pointer    */
 
 	mov     sp,itmp1                    /* create stackframe info             */
-	add     $(5*4),itmp1
+	add     $((4+2)*4),itmp1
 	mov     itmp1,0*4(sp)               /* stackframeinfo pointer             */
 	movl    $0,1*4(sp)                  /* if pv is NULL, use findmethod      */
 	mov     sp,itmp2
-	add     $(6*4+sizestackframeinfo),itmp2
+	add     $((1+4+2)*4+sizestackframeinfo),itmp2 /* pass java sp             */
 	mov     itmp2,2*4(sp)
-	mov     (5*4+sizestackframeinfo)(sp),itmp3
+	mov     ((0+4+2)*4+sizestackframeinfo)(sp),itmp3 /* pass java ra          */
 	mov     itmp3,3*4(sp)
 	call    stacktrace_create_inline_stackframeinfo
 
-	mov     4*4(sp),itmp1               /* fill in stacktrace                 */
+	mov     (4+0)*4(sp),itmp1           /* pass method pointer                */
 	mov     itmp1,0*4(sp)
-	call    stacktrace_call_fillInStackTrace
-	
+	call    jit_compile
+	mov     v0,(4+0)*4(sp)              /* save return value                  */
+
 	mov     sp,itmp1                    /* remove stackframe info             */
-	add     $(5*4),itmp1
+	add     $((4+2)*4),itmp1
 	mov     itmp1,0*4(sp)               /* stackframeinfo pointer             */
 	call    stacktrace_remove_stackframeinfo
 
-	mov     4*4(sp),xptr                /* restore exception pointer          */
-	add     $(5*4+sizestackframeinfo),sp
+	mov     (4+0)*4(sp),v0              /* restore return value               */
+	mov     (4+1)*4(sp),itmp3           /* restore address for method pointer */
+
+	add     $((4+2)*4+sizestackframeinfo),sp /* remove stack frame            */
+
+	test    v0,v0                       /* check for exception                */
+	je      L_asm_call_jit_compiler_exception
+
+	test	itmp3,itmp3                 /* was this a JIT call?               */
+	je		L_call_method
+	
+	mov     v0,(itmp3)                  /* save the new method pointer        */
+
+L_call_method:
+	jmp		*v0                         /* ...and now call the new method     */
+
+L_asm_call_jit_compiler_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     v0,itmp2                    /* v0 == itmp1                        */
+#else
+	lea     _exceptionptr,itmp2
 #endif
-	sub     $(4*4),sp
-
-	movl    $0,0*4(sp)                  /* we don't have pv handy             */
-	mov     sp,itmp1                    /* pass java sp                       */
-	add     $((1+5)*4),itmp1            /* also skip ra                       */
-	mov     itmp1,1*4(sp)
-	mov     5*4(sp),itmp2               /* pass java ra                       */
-	mov     itmp2,2*4(sp)
-	mov     itmp2,3*4(sp)               /* xpc is equal to ra                 */
-	call    stacktrace_extern_fillInStackTrace
-
-	add     $(4*4),sp
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
 	pop     xpc                         /* get return address                 */
 	sub     $2,xpc                      /* faulting address is ra - 2         */
