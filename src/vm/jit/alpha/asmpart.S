@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 2992 2005-07-11 21:52:07Z twisti $
+   $Id: asmpart.S 3050 2005-07-18 20:07:52Z twisti $
 
 */
 
@@ -128,11 +128,11 @@ call_name:
 	.quad   calljava_xhandler         /* end pc                               */
 	.quad   asm_calljavafunction      /* start pc                             */
 	.long   1                         /* extable size                         */
-	.long	0			  /* PADDING */
-	.quad	0 			  /* line number table start		 */
-	.quad	0 			  /* line number table size		*/
-	.long	0			  /* PADDING */
-	.long	0 			  /* fltsave */
+	.long   0                         /* ALIGNMENT PADDING                    */
+	.quad   0                         /* line number table start              */
+	.quad   0                         /* line number table size               */
+	.long   0                         /* ALIGNMENT PADDING                    */
+	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
@@ -194,10 +194,10 @@ call_name2:
 	.quad   calljava_xhandler2        /* end pc                               */
 	.quad   asm_calljavafunction2     /* start pc                             */
 	.long   1                         /* extable size                         */
-	.long   0                         /* PADDING                              */
+	.long   0                         /* ALIGNMENT PADDING                    */
 	.quad   0                         /* line number table start              */
 	.quad   0                         /* line number table size               */
-	.long   0                         /* PADDING                              */
+	.long   0                         /* ALIGNMENT PADDING                    */
 	.long   0                         /* fltsave                              */
 	.long   1                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -342,22 +342,38 @@ asm_call_jit_compiler:
 	addl    t8,0,t8               /* sign extend high offset                  */
 	addq    t8,$28,$28            /* compute update address                   */
 noregchange:
-	lda     sp,-14*8(sp)          /* reserve stack space                      */
+	lda     sp,-(15*8+sizestackframeinfo)(sp) /* reserve stack space          */
 
 	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
 
 	stq     $28,12*8(sp)          /* save method pointer                      */
 	stq     ra,13*8(sp)           /* save return address                      */
+	stq     v0,14*8(sp)           /* save methodinfo pointer                  */
 
-	ldq     a0,0(v0)              /* pass 'methodinfo' pointer to             */
-	jsr     ra,jit_compile        /* jit compiler                             */
+	lda     a0,15*8(sp)           /* create stackframe info                   */
+	mov     zero,a1               /* we don't have pv handy                   */
+	lda     a2,15*8+sizestackframeinfo(sp) /* pass java sp                    */
+	mov     ra,a3                 /* pass Java ra                             */
+	mov     a3,a4                 /* xpc is equal to ra                       */
+	jsr     ra,stacktrace_create_extern_stackframeinfo
+	ldgp    gp,0(ra)
+
+	ldq     v0,14*8(sp)           /* restore methodinfo pointer               */
+	ldq     a0,0(v0)              /* pass methodinfo pointer                  */
+	jsr     ra,jit_compile        /* call jit compiler                        */
+	ldgp    gp,0(ra)
+	stq     v0,14*8(sp)           /* save return value                        */
+
+	lda     a0,15*8(sp)           /* remove stackframe info                   */
+	jsr     ra,stacktrace_remove_stackframeinfo
 	ldgp    gp,0(ra)
 
 	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
 
 	ldq     $28,12*8(sp)          /* load method pointer                      */
 	ldq     ra,13*8(sp)           /* load return address                      */
-	lda     sp,14*8(sp)           /* deallocate stack area                    */
+	ldq     v0,14*8(sp)           /* restore return value                     */
+	lda     sp,15*8+sizestackframeinfo(sp) /* deallocate stack area           */
 
 	beq     v0,L_asm_call_jit_compiler_exception
 
@@ -375,18 +391,17 @@ noregchange:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	subq    sp,1*8,sp
-	stq     ra,0*8(sp)
-
-	mov     zero,a0               /* fill in the correct stacktrace           */
-	lda     a1,1*8(sp)            /* pass sp of parent Java function          */
-	mov     ra,a2                 /* pass ra to parent Java function          */
-	mov     ra,a3                 /* xpc is the same as ra                    */
-	jsr     ra,stacktrace_extern_fillInStackTrace
-	mov     v0,xptr
-
-	ldq     ra,0*8(sp)
+	stq     ra,0*8(sp)            /* save return address (xpc)                */
+	jsr     ra,builtin_asm_get_exceptionptrptr
+	ldq     ra,0*8(sp)           /* restore return address (xpc)             */
 	addq    sp,1*8,sp
+#else
+	lda     v0,_exceptionptr
+#endif
+	ldq     xptr,0(v0)            /* get the exception pointer                */
+	stq     zero,0(v0)            /* clear the exception pointer              */
 
 	subq    ra,4,xpc
 	br      asm_handle_nat_exception
