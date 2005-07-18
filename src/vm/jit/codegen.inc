@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3051 2005-07-18 21:42:17Z michi $
+   $Id: codegen.inc 3052 2005-07-18 21:54:27Z twisti $
 
 */
 
@@ -399,20 +399,27 @@ static void dseg_adddata(codegendata *cd, u1 *ptr)
 #endif
 
 
+/* dseg_addlinenumbertablesize *************************************************
+
+   XXX
+
+*******************************************************************************/
+
 static void dseg_addlinenumbertablesize(codegendata *cd)
 {
 #if defined (__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
-	dseg_adds4(cd, 0); /* ALIGNMENT PADDING */
-#endif
+	/* 4-byte ALIGNMENT PADDING */
 
-	/* it could be considered to use adds4 here, to avoid 1 double word */
-	/* padding on ALPHA */
+	dseg_adds4(cd, 0);
+#endif
 
 	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL);
 	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
 
 #if defined(__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
-	dseg_adds4(cd, 0); /* ALIGNMENT PADDING */
+	/* 4-byte ALIGNMENT PADDING */
+
+	dseg_adds4(cd, 0);
 #endif
 }
 
@@ -590,6 +597,13 @@ static void codegen_addpatchref(codegendata *cd,
 	cd->patchrefs = pr;
 }
 
+
+/* codegen_createlinenumbertable ***********************************************
+
+   Creates a line number table in the data segment from the created
+   entries in linenumberreferences.
+
+*******************************************************************************/
 
 static void codegen_createlinenumbertable(codegendata *cd)
 {
