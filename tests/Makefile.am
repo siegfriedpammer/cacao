@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3004 2005-07-12 19:36:10Z twisti $
+## $Id: Makefile.am 3057 2005-07-18 22:34:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = codepatching native
+SUBDIRS = codepatching native regression
 
 EXTRA_DIST = \
 	x.java x.output \
