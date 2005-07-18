@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3044 2005-07-18 11:34:24Z twisti $
+   $Id: stacktrace.c 3048 2005-07-18 15:07:19Z twisti $
 
 */
 
@@ -61,28 +61,21 @@
 #undef JWDEBUG2
 #undef JWDEBUG3
 
-/*JoWenn: simplify collectors (trace doesn't contain internal methods)*/
 
-/* the line number is only u2, but to avoid alignment problems it is made the same size as a native
-	pointer. In the structures where this is used, values of -1 or -2 have a special meainging, so
-	if java bytecode is ever extended to support more than 65535 lines/file, this could will have to
-	be changed.*/
+/* lineNumberTableEntry *******************************************************/
 
-#if defined(_ALPHA_) || defined(__MIPS__) || defined(__X86_64__)
-	#define LineNumber u8
-#else
-	#define LineNumber u4
-#endif
+/* The special value of -1 means that a inlined function starts, a value of */
+/* -2 means that an inlined function ends */
 
 typedef struct lineNumberTableEntry {
-/* The special value of -1 means that a inlined function starts, a value of -2 means that an inlined function ends*/
-	LineNumber lineNr;
-	u1 *pc;
+	ptrint  line; /* XXX change me to u2 */
+	u1     *pc;
 } lineNumberTableEntry;
 
+
 typedef struct lineNumberTableEntryInlineBegin {
-/*this should have the same layout and size as the lineNumberTableEntry*/
-	LineNumber lineNrOuter;
+	/* this should have the same layout and size as the lineNumberTableEntry */
+	ptrint      lineNrOuter;
 	methodinfo *method;
 } lineNumberTableEntryInlineBegin;
 
@@ -576,8 +569,7 @@ java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp,
 
 *******************************************************************************/
 
-static void addEntry(stackTraceBuffer* buffer, methodinfo *method,
-					 LineNumber line)
+static void addEntry(stackTraceBuffer *buffer, methodinfo *method, u2 line)
 {
 	if (buffer->size > buffer->full) {
 		stacktraceelement *tmp = &(buffer->start[buffer->full]);
@@ -617,60 +609,63 @@ static void addEntry(stackTraceBuffer* buffer, methodinfo *method,
 
 *******************************************************************************/
 
-static int stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
-													   methodinfo *method,
-													   lineNumberTableEntry *startEntry,
-													   lineNumberTableEntry **entry,
-													   size_t *entriesAhead,
-													   u1 *address)
+static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
+														methodinfo *method,
+														lineNumberTableEntry *lntentry,
+														s4 lntsize,
+														u1 *pc)
 {
+#if 0
+	lineNumberTableEntryInlineBegin *lntinline;
+#endif
 
-	size_t ahead=*entriesAhead;
-	lineNumberTableEntry *ent=*entry;
-	lineNumberTableEntryInlineBegin *ilStart;
+	/* find the line number for the specified pc (going backwards) */
 
-	for (; ahead > 0; ahead--, ent++) {
-		if (address >= ent->pc) {
-			switch (ent->lineNr) {
+	for (; lntsize > 0; lntsize--, lntentry--) {
+		/* did we reach the current line? */
+
+		if (pc >= lntentry->pc) {
+			/* check for special inline entries */
+
+			switch (lntentry->line) {
+#if 0
+			/* XXX TWISTI we have to think about this inline stuff again */
+
 			case -1: /* begin of inlined method */
-				ilStart=(lineNumberTableEntryInlineBegin*)(++ent);
-				ent++;
-				ahead--; ahead--;
-				if (stacktrace_fillInStackTrace_methodRecursive(buffer,ilStart->method,ent,&ent,&ahead,address)) {
-					addEntry(buffer,method,ilStart->lineNrOuter);
-					return 1;
+				lntinline = (lineNumberTableEntryInlineBegin *) (--lntentry);
+				lntentry++;
+				lntsize--; lntsize--;
+				if (stacktrace_fillInStackTrace_methodRecursive(buffer,
+																ilStart->method,
+																ent,
+																&ent,
+																&ahead,
+																pc)) {
+					addEntry(buffer, method, ilStart->lineNrOuter);
+
+					return true;
 				}
 				break;
+
 			case -2: /* end of inlined method */
-				*entry=ent;
-				*entriesAhead=ahead;
-				return 0;
+				*entry = ent;
+				*entriesAhead = ahead;
+				return false;
 				break;
+#endif
+
 			default:
-				if (address == ent->pc) {
-					addEntry(buffer, method, ent->lineNr);
-					return 1;
-				}
-				break;
-			}
-
-		} else {
-			if (address > startEntry->pc) {
-				ent--;
-				addEntry(buffer, method, ent->lineNr);
-				return 1;
-
-			} else {
-				printf("trace point: %p\n", address);
-				log_text("trace point before method");
-				assert(0);
+				addEntry(buffer, method, lntentry->line);
+				return true;
 			}
 		}
 	}
 
-	ent--;
-	addEntry(buffer, method, ent->lineNr);
-	return 1;
+	/* this should not happen */
+
+	assert(0);
+
+	return false;
 }
 
 
@@ -681,32 +676,36 @@ static int stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
 *******************************************************************************/
 
 static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
-											   methodinfo *method, u1 *dataSeg,
-											   u1 *address)
+											   methodinfo *method, u1 *pv,
+											   u1 *pc)
 {
-	size_t lineNumberTableSize = *((size_t *) (dataSeg + LineNumberTableSize));
-	lineNumberTableEntry *ent;
-	void **calc;
-	lineNumberTableEntry *startEntry;
+	s4                    lntsize;      /* size of line number table          */
+	u1                   *lntstart;     /* start of line number table         */
+	lineNumberTableEntry *lntentry;     /* points to last entry in the table  */
 
-	if (lineNumberTableSize == 0) {
-		/* right now this happens only on i386,if the native stub causes an */
-		/* exception in a <clinit> invocation (jowenn) */
+	/* get size of line number table */
+
+	lntsize  = *((s4 *)  (pv + LineNumberTableSize));
+	lntstart = *((u1 **) (pv + LineNumberTableStart));
+
+	/* subtract the size of the line number entry of the structure, since the */
+	/* line number table start points to the pc */
+
+	/* XXX change me to u2 (or s4) */
+
+	lntentry = (lineNumberTableEntry *) (lntstart - SIZEOF_VOID_P);
+
+	if (lntsize == 0) {
+		/* this happens when an exception is thrown in the native stub */
 
 		addEntry(buffer, method, 0);
-		return;
 
 	} else {
-		calc = (void **) (dataSeg + LineNumberTableStart);
-		ent = (lineNumberTableEntry *) (((char *) (*calc) - (sizeof(lineNumberTableEntry) - SIZEOF_VOID_P)));
-
-		ent -= (lineNumberTableSize - 1);
-		startEntry = ent;
-
-		if (!stacktrace_fillInStackTrace_methodRecursive(buffer, method,
-														 startEntry, &ent,
-														 &lineNumberTableSize,
-														 address)) {
+		if (!stacktrace_fillInStackTrace_methodRecursive(buffer,
+														 method,
+														 lntentry,
+														 lntsize,
+														 pc)) {
 			log_text("Trace point not found in suspected method");
 			assert(0);
 		}
@@ -868,10 +867,12 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 			printf(": JIT\n");
 #endif
 
-			/* JIT method found, add it to the stacktrace */
+			/* JIT method found, add it to the stacktrace (we subtract 1 from */
+			/* the return address since it points the the instruction after */
+			/* call) */
 
 			stacktrace_fillInStackTrace_method(&buffer, m, pv,
-											   (u1 *) ((ptrint) ra));
+											   (u1 *) ((ptrint) ra) - 1);
 
 			/* get the current stack frame size */
 
@@ -901,8 +902,6 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 	if (buffer.needsFree)
 		free(buffer.start);
-
-	return;
 }
 
 
