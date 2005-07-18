@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3035 2005-07-13 12:23:13Z twisti $
+   $Id: stack.c 3045 2005-07-18 14:35:32Z twisti $
 
 */
 
@@ -2616,7 +2616,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			}
 			else
 				icmd_print_stack(cd, iptr->dst);
-			printf("]     %4d  ", i);
+			printf("] %5d (line: %5d)  ", i, iptr->line);
 
 #ifdef LSRA_EDX
 			if (icmd_uses_tmp[iptr->opc][0])
@@ -2973,7 +2973,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_INLINE_START:
-		printf("\t\t\t%s.%s%s depth=%i",iptr->method->class->name->text,iptr->method->name->text,iptr->method->descriptor->text, iptr->op1);
+		printf(" ");
+		utf_display_classname(iptr->method->class->name);
+		printf(".");
+		utf_display_classname(iptr->method->name);
+		utf_display_classname(iptr->method->descriptor);
+		printf(", depth=%i", iptr->op1);
 		break;
 	case ICMD_INLINE_END:
 		break;
@@ -3104,11 +3109,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 	}
-  	printf(" Line number: %d, method:",iptr->line);
-/*        printf("\t\t");
-  	utf_display(iptr->method->class->name); 
-  	printf("."); 
-  	utf_display(iptr->method->name); */
 }
 
 
