@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3065 2005-07-19 11:52:21Z twisti $
+   $Id: jni.c 3066 2005-07-19 12:35:37Z twisti $
 
 */
 
@@ -61,7 +61,10 @@
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
-#include "native/jvmti/jvmti.h"
+
+#if defined(ENABLE_JVMTI)
+# include "native/jvmti/jvmti.h"
+#endif
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -4011,6 +4014,7 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	if (thread_getself() == NULL) {
 		*env = NULL;
+
 		return JNI_EDETACHED;
 	}
 #endif
@@ -4018,15 +4022,21 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	if ((version == JNI_VERSION_1_1) || (version == JNI_VERSION_1_2) ||
 		(version == JNI_VERSION_1_4)) {
 		*env = &ptr_env;
+
 		return JNI_OK;
 	}
 
+#if defined(ENABLE_JVMTI)
 	if (version == JVMTI_VERSION_1_0) {
-		*env = (void*)new_jvmtienv();
-		if (env != NULL) return JNI_OK;
+		*env = (void *) new_jvmtienv();
+
+		if (env != NULL)
+			return JNI_OK;
 	}
+#endif
 	
 	*env = NULL;
+
 	return JNI_EVERSION;
 }
 

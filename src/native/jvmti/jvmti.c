@@ -30,13 +30,13 @@
    Changes:             
 
    
-   $Id: jvmti.c 3063 2005-07-19 10:20:57Z motse $
+   $Id: jvmti.c 3066 2005-07-19 12:35:37Z twisti $
 
 */
 
 
 #include "native/jni.h"
-#include "native/jvmti.h"
+#include "native/jvmti/jvmti.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/builtin.h"

@@ -249,6 +249,19 @@ else
 	AM_CONDITIONAL([STATISTICS], [true])
 fi
 
+dnl check for JVMTI
+AC_ARG_ENABLE([jvmti], [AS_HELP_STRING(--enable-jvmti,enable JVMTI [[default=no]])])
+
+AC_MSG_CHECKING(whether to compile JVMTI support)
+if test x"$enable_jvmti" = "xyes"; then
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([ENABLE_JVMTI], 1, [use JVMTI])
+	AM_CONDITIONAL([ENABLE_JVMTI], [true])
+else
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([ENABLE_JVMTI], [false])
+fi
+
 
 dnl threads
 AC_ARG_ENABLE([threads], [AS_HELP_STRING(--enable-threads,enable threads support (none,green,native) [[default=native]])])
@@ -496,6 +509,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/mm/Makefile]
 		[src/native/Makefile]
 		[src/native/include/Makefile]
+		[src/native/jvmti/Makefile]
 		[src/native/tools/Makefile]
 		[src/native/vm/Makefile]
 		[src/scripts/Makefile]

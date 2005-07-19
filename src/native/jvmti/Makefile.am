@@ -1,4 +1,4 @@
-## src/native/Makefile.am
+## src/native/jvmti/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -34,37 +34,12 @@
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
 
-SUBDIRS = include vm
+noinst_LTLIBRARIES = libjvmti.la
 
-CLEANFILES =
+libjvmti_la_SOURCES = \
+	jvmti.c \
+	jvmti.h
 
-if ENABLE_JVMTI
-SUBDIRS += jvmti
-JVMTI_LIB = jvmti/libjvmti.la
-endif
-
-if ENABLE_STATICVM
-SUBDIRS += tools
-CLEANFILES += nativetable.inc
-
-$(srcdir)/native.c: nativetable.inc
-
-nativetable.inc: $(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable
-	BOOTCLASSPATH=$(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable > $(top_builddir)/src/native/nativetable.inc
-endif
-
-noinst_LTLIBRARIES = libnative.la
-
-libnative_la_SOURCES = \
-	jni.c \
-	jni.h \
-	native.c \
-	native.h \
-	nativecalls.inc
-
-libnative_la_LIBADD = \
-	vm/libnativevm.la \
-	$(JVMTI_LIB)
 
 ## Local variables:
 ## mode: Makefile

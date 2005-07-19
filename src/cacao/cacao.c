@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3062 2005-07-19 10:03:00Z motse $
+   $Id: cacao.c 3066 2005-07-19 12:35:37Z twisti $
 
 */
 
@@ -52,6 +52,11 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+
+#if defined(ENABLE_JVMTI)
+# include "native/jvmti/jvmti.h"
+#endif
+
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -65,7 +70,6 @@
 #include "vm/classcache.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "native/jvmti.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
 #include "vm/jit/verify/typeinfo.h"
@@ -948,7 +952,9 @@ int main(int argc, char **argv)
 
 	JNI_CreateJavaVM(&jvm, &env, &vm_args);
 
+#if defined(ENABLE_JVMTI)
 	set_jvmti_phase(JVMTI_PHASE_START);
+#endif
 
 	/* initialize the garbage collector */
 
