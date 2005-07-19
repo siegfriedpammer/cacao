@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: typecheck.c 3059 2005-07-19 04:04:17Z michi $
 
 */
 
@@ -2050,6 +2050,8 @@ return_tail:
 			case ICMD_IREM0X10001:
 			case ICMD_LREM0X10001:
 #endif
+			case ICMD_IMULPOW2:
+			case ICMD_LMULPOW2:
 			case ICMD_IDIVPOW2:
 			case ICMD_LDIVPOW2:
 			case ICMD_IADDCONST:
