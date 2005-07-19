@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3034 2005-07-13 12:10:14Z twisti $
+   $Id: jni.c 3062 2005-07-19 10:03:00Z motse $
 
 */
 
@@ -43,6 +43,7 @@
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
+#include "native/jvmti.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Byte.h"
@@ -94,7 +95,7 @@ extern struct JNINativeInterface JNI_JNIEnvTable;
 /* pointers to VM and the environment needed by GetJavaVM and GetEnv */
 
 static JavaVM ptr_jvm = (JavaVM) &JNI_JavaVMTable;
-static void* ptr_env = (void*) &JNI_JNIEnvTable;
+void* ptr_env = (void*) &JNI_JNIEnvTable;
 
 
 #define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
@@ -4014,16 +4015,21 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	}
 #endif
 
-	if ((version != JNI_VERSION_1_1) && (version != JNI_VERSION_1_2) &&
-		(version != JNI_VERSION_1_4)) {
-		*env = NULL;
-		return JNI_EVERSION;
+	if ((version == JNI_VERSION_1_1) || (version == JNI_VERSION_1_2) ||
+		(version == JNI_VERSION_1_4)) {
+		*env = &ptr_env;
+		return JNI_OK;
 	}
 
-	*env = &ptr_env;
-
-	return JNI_OK;
+	if (version == JVMTI_VERSION_1_0) {
+		*env = (void*)new_jvmtienv();
+		if (env != NULL) return JNI_OK;
+	}
+	
+	*env = NULL;
+	return JNI_EVERSION;
 }
+
 
 
 jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)

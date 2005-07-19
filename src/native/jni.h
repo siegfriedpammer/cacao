@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 3016 2005-07-12 21:47:29Z twisti $
+   $Id: jni.h 3062 2005-07-19 10:03:00Z motse $
 
 */
 
@@ -610,6 +610,9 @@ void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val);
 jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
 
 void jni_init ();
+
+extern void* ptr_env;
+extern struct JNINativeInterface JNI_JNIEnvTable;
 
 #endif /* _JNI_H */
 

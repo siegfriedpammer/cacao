@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 2899 2005-07-04 20:41:28Z twisti $
+   $Id: threads.h 3062 2005-07-19 10:03:00Z motse $
 
 */
 
@@ -205,6 +205,8 @@ void thread_registercritical(threadcritnode *);
 u1 *thread_checkcritical(u1*);
 
 extern volatile int stopworldwhere;
+extern threadobject *mainthreadobj;
+
 
 void cast_stopworld();
 void cast_startworld();
