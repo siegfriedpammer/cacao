@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3062 2005-07-19 10:03:00Z motse $
+## $Id: Makefile.am 3064 2005-07-19 11:52:08Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,8 +53,6 @@ noinst_LTLIBRARIES = libnative.la
 libnative_la_SOURCES = \
 	jni.c \
 	jni.h \
-	jvmti.c\
-	jvmti.h \
 	native.c \
 	native.h \
 	nativecalls.inc
