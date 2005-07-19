@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 2863 2005-06-28 18:44:10Z twisti $
+   $Id: VMRuntime.c 3068 2005-07-19 15:36:08Z twisti $
 
 */
 
@@ -38,7 +38,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/utsname.h>
 
 #if defined(__DARWIN__)
