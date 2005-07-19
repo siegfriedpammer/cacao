@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 2864 2005-06-28 18:45:22Z twisti $
+   $Id: VMSystemProperties.c 3069 2005-07-19 15:40:57Z twisti $
 
 */
 
@@ -37,7 +37,6 @@
 #include <string.h>
 #include <sys/utsname.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "config.h"
 #include "cacao/cacao.h"
