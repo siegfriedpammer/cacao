@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 2845 2005-06-27 15:51:12Z twisti $
+   $Id: memory.c 3067 2005-07-19 14:11:42Z twisti $
 
 */
 
@@ -44,10 +44,13 @@
 # include <sys/types.h>
 #endif
 
-#include <sys/mman.h>
-#include <unistd.h>
-
 #include "config.h"
+#include "arch.h"
+
+#if USE_CODEMMAP
+# include <sys/mman.h>
+# include <unistd.h>
+#endif
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -70,8 +73,10 @@
 
 /********* general types, variables and auxiliary functions *********/
 
+#if USE_CODEMMAP
 static int mmapcodesize = 0;
 static void *mmapcodeptr = NULL;
+#endif
 
 
 /*******************************************************************************
@@ -86,6 +91,7 @@ static dumpinfo nothreads_dumpinfo;
 #endif
 
 
+#if USE_CODEMMAP
 void *mem_mmap(s4 size)
 {
 	void *m;
@@ -124,6 +130,7 @@ void *mem_mmap(s4 size)
 
 	return m;
 }
+#endif
 
 
 static void *checked_alloc(s4 size)
