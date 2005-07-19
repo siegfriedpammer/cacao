@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3062 2005-07-19 10:03:00Z motse $
+   $Id: jni.c 3065 2005-07-19 11:52:21Z twisti $
 
 */
 
@@ -43,7 +43,6 @@
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
-#include "native/jvmti.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Byte.h"
@@ -62,6 +61,7 @@
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
+#include "native/jvmti/jvmti.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
