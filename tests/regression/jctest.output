@@ -1,0 +1,4573 @@
+<clinit> called
+0.    =================== JavaVM - Tester ========================
+0.    ------------------- test arguments
+1.    ------------------- test int-PUSH-STORE-LOAD
+2.    int: -1
+3.    int: 0
+4.    int: 2
+5.    int: 17
+6.    int: -100
+7.    int: 500
+8.    int: -32768
+9.    int: -32769
+10.    int: 32767
+11.    int: 32768
+12.    int: 90000
+13.    int: -1000000000
+14.    ------------------- test long-PUSH-STORE-LOAD
+15.    long: 3
+16.    long: 0
+17.    long: 99
+18.    long: 500
+19.    long: -32768
+20.    long: -32769
+21.    long: 32767
+22.    long: 32768
+23.    long: 6900000000000
+24.    long: 349827389478173274
+25.    ------------------- test float-PUSH-STORE-LOAD
+26.    float: 1120330580
+27.    float: 0
+28.    float: 1065353216
+29.    float: 1386178594
+30.    ------------------- test double-PUSH-STORE-LOAD
+31.    double: 4681555750627175301
+32.    double: 0
+33.    double: 4607182418800017408
+34.    double: 4779424231982992955
+35.    ------------------- test static variables
+36.    int: -23
+37.    int: 0
+38.    int: -100
+39.    long: 123456789
+40.    long: -99998888888889
+41.    long: -99999999999999
+42.    float: 1017370379
+43.    float: 1045220557
+44.    float: 1050253722
+45.    double: 4562254508917369340
+46.    double: 4566758108544739836
+47.    double: 4569063951553953530
+48.    ------------------- test arithmetic
+49.    int: 2147483647
+50.    int: -2147483648
+51.    int: -2147483630
+52.    long: 9223372036854775807
+53.    long: -9223372036854775808
+54.    long: -2
+55.    statische methode
+56.    interface method
+57.    int: 19
+58.    int: 18
+59.    int: 17
+60.    int: 16
+61.    long: 88
+62.    long: 77
+63.    long: 66
+64.    long: 55
+65.    float: 1036831949
+66.    float: 1045220557
+67.    float: 1050253722
+68.    float: 1053609165
+69.    double: -4611686018427387904
+70.    double: -4609434218613702656
+71.    double: -4607182418800017408
+72.    double: -4606056518893174784
+73.    ------------------- test tableswitch
+74.    default
+75.    default
+76.    default
+77.    default
+78.    default
+79.    default
+80.    default
+81.    ->  2
+82.    ->  3
+83.    default
+84.    ->  5
+85.    ->  6
+86.    ->  7
+87.    ->  8
+88.    default
+89.    -> 10
+90.    default
+91.    default
+92.    default
+93.    default
+94.    ------------------- test lookupswitch
+95.    default
+96.    -> -4
+97.    default
+98.    default
+99.    default
+100.    default
+101.    default
+102.    ->  2
+103.    default
+104.    default
+105.    default
+106.    default
+107.    default
+108.    ->  8
+109.    default
+110.    default
+111.    default
+112.    default
+113.    default
+114.    -> 14
+115.    ------------------- test casts
+116.    Integer is instanceof Object:  true
+117.    Integer is instanceof Integer: true
+118.    Object is instanceof Integer:  false
+119.    type cast check: Integer = Object(Integer)
+120.    type cast check: Integer = Object
+121.    exception: class cast
+122.    DataOutputStream is instanceof DataOutput: true
+123.    Object is instanceof DataOutput: false
+124.    type cast check: DataOutput = Object(DataOutputStream)
+125.    type cast check: DataOutput = Object
+126.    exception: class cast
+127.    type cast check: Integer[] = Object(Integer)[]
+128.    type cast check: Integer[] = Object[]
+129.    exception: class cast
+130.    array store check: Object(Integer)[0] = Integer
+131.    array store check: Object(Integer)[0] = Object
+132.    exception: array store
+133.    ------------------- test special null pointers
+134.    null pointer check: put field
+135.    exception: null pointer
+136.    null pointer check: get field
+137.    exception: null pointer
+138.    null pointer check: invokevirtual
+139.    exception: null pointer
+140.    null pointer check: invokeinterface
+141.    exception: null pointer
+142.    null pointer check: monitorenter
+143.    exception: null pointer
+144.    ------------------- test byte arrays
+145.    null pointer check: byte array store
+146.    exception: null pointer
+147.    null pointer check: byte array load
+148.    exception: null pointer
+149.    negative array size check: byte array
+150.    exception: negative array size
+151.    array bound check: byte array store
+152.    exception_1: out of bounds: -1
+153.    array bound check: byte array load
+154.    exception_2: out of bounds: -1
+155.    testarraybounds: -5
+156.    exception_3: out of bounds: 5
+157.    testarraybounds: 40
+158.    testarraybounds: 45
+159.    testarraybounds: 50
+160.    testarraybounds: 55
+161.    testarraybounds: 60
+162.    testarraybounds: 90
+163.    testarraybounds: 95
+164.    testarraybounds: 100
+165.    exception_5: out of bounds: 100
+166.    exception_6: out of bounds: -4
+167.    exception_7: out of bounds: -3
+168.    exception_8: out of bounds: -2
+169.    exception_8: out of bounds: -1
+170.    exception_8: out of bounds: 100
+171.    exception_8: out of bounds: 101
+172.    exception_9: out of bounds: 102
+173.    exception_10: out of bounds: 103
+174.    byte: -50
+175.    byte: -49
+176.    byte: -48
+177.    byte: -47
+178.    byte: -46
+179.    byte: -45
+180.    byte: -44
+181.    byte: -43
+182.    byte: -42
+183.    byte: -41
+184.    byte: -40
+185.    byte: -39
+186.    byte: -38
+187.    byte: -37
+188.    byte: -36
+189.    byte: -35
+190.    byte: -34
+191.    byte: -33
+192.    byte: -32
+193.    byte: -31
+194.    byte: -30
+195.    byte: -29
+196.    byte: -28
+197.    byte: -27
+198.    byte: -26
+199.    byte: -25
+200.    byte: -24
+201.    byte: -23
+202.    byte: -22
+203.    byte: -21
+204.    byte: -20
+205.    byte: -19
+206.    byte: -18
+207.    byte: -17
+208.    byte: -16
+209.    byte: -15
+210.    byte: -14
+211.    byte: -13
+212.    byte: -12
+213.    byte: -11
+214.    byte: -10
+215.    byte: -9
+216.    byte: -8
+217.    byte: -7
+218.    byte: -6
+219.    byte: -5
+220.    byte: -4
+221.    byte: -3
+222.    byte: -2
+223.    byte: -1
+224.    byte: 0
+225.    byte: 1
+226.    byte: 2
+227.    byte: 3
+228.    byte: 4
+229.    byte: 5
+230.    byte: 6
+231.    byte: 7
+232.    byte: 8
+233.    byte: 9
+234.    byte: 10
+235.    byte: 11
+236.    byte: 12
+237.    byte: 13
+238.    byte: 14
+239.    byte: 15
+240.    byte: 16
+241.    byte: 17
+242.    byte: 18
+243.    byte: 19
+244.    byte: 20
+245.    byte: 21
+246.    byte: 22
+247.    byte: 23
+248.    byte: 24
+249.    byte: 25
+250.    byte: 26
+251.    byte: 27
+252.    byte: 28
+253.    byte: 29
+254.    byte: 30
+255.    byte: 31
+256.    byte: 32
+257.    byte: 33
+258.    byte: 34
+259.    byte: 35
+260.    byte: 36
+261.    byte: 37
+262.    byte: 38
+263.    byte: 39
+264.    byte: 40
+265.    byte: 41
+266.    byte: 42
+267.    byte: 43
+268.    byte: 44
+269.    byte: 45
+270.    byte: 46
+271.    byte: 47
+272.    byte: 48
+273.    byte: 49
+274.    -------- test short arrays
+275.    null pointer check: short array store
+276.    exception: null pointer
+277.    null pointer check: short array load
+278.    exception: null pointer
+279.    array bound check: short array store
+280.    exception_11: out of bounds: -1
+281.    array bound check: short array load
+282.    exception_12: out of bounds: -1
+283.    short: -50
+284.    short: -49
+285.    short: -48
+286.    short: -47
+287.    short: -46
+288.    short: -45
+289.    short: -44
+290.    short: -43
+291.    short: -42
+292.    short: -41
+293.    short: -40
+294.    short: -39
+295.    short: -38
+296.    short: -37
+297.    short: -36
+298.    short: -35
+299.    short: -34
+300.    short: -33
+301.    short: -32
+302.    short: -31
+303.    short: -30
+304.    short: -29
+305.    short: -28
+306.    short: -27
+307.    short: -26
+308.    short: -25
+309.    short: -24
+310.    short: -23
+311.    short: -22
+312.    short: -21
+313.    short: -20
+314.    short: -19
+315.    short: -18
+316.    short: -17
+317.    short: -16
+318.    short: -15
+319.    short: -14
+320.    short: -13
+321.    short: -12
+322.    short: -11
+323.    short: -10
+324.    short: -9
+325.    short: -8
+326.    short: -7
+327.    short: -6
+328.    short: -5
+329.    short: -4
+330.    short: -3
+331.    short: -2
+332.    short: -1
+333.    short: 0
+334.    short: 1
+335.    short: 2
+336.    short: 3
+337.    short: 4
+338.    short: 5
+339.    short: 6
+340.    short: 7
+341.    short: 8
+342.    short: 9
+343.    short: 10
+344.    short: 11
+345.    short: 12
+346.    short: 13
+347.    short: 14
+348.    short: 15
+349.    short: 16
+350.    short: 17
+351.    short: 18
+352.    short: 19
+353.    short: 20
+354.    short: 21
+355.    short: 22
+356.    short: 23
+357.    short: 24
+358.    short: 25
+359.    short: 26
+360.    short: 27
+361.    short: 28
+362.    short: 29
+363.    short: 30
+364.    short: 31
+365.    short: 32
+366.    short: 33
+367.    short: 34
+368.    short: 35
+369.    short: 36
+370.    short: 37
+371.    short: 38
+372.    short: 39
+373.    short: 40
+374.    short: 41
+375.    short: 42
+376.    short: 43
+377.    short: 44
+378.    short: 45
+379.    short: 46
+380.    short: 47
+381.    short: 48
+382.    short: 49
+383.    -------- test int arrays
+384.    null pointer check: int array store
+385.    exception: null pointer
+386.    null pointer check: int array load
+387.    exception: null pointer
+388.    array bound check: int array store
+389.    exception: out of bounds: -1
+390.    array bound check: int array load
+391.    exception: out of bounds: -1
+392.    int: 123456
+393.    int: 123457
+394.    int: 123458
+395.    int: 123459
+396.    int: 123460
+397.    int: 123461
+398.    int: 123462
+399.    int: 123463
+400.    int: 123464
+401.    int: 123465
+402.    -------- test long arrays
+403.    null pointer check: long array store
+404.    exception: null pointer
+405.    null pointer check: long array load
+406.    exception: null pointer
+407.    array bound check: long array store
+408.    exception: out of bounds: -1
+409.    array bound check: long array load
+410.    exception: out of bounds: -1
+411.    long: 1234567890123
+412.    long: 1234567890124
+413.    long: 1234567890125
+414.    long: 1234567890126
+415.    long: 1234567890127
+416.    long: 1234567890128
+417.    long: 1234567890129
+418.    long: 1234567890130
+419.    long: 1234567890131
+420.    long: 1234567890132
+421.    -------- test char arrays
+422.    null pointer check: char array store
+423.    exception: null pointer
+424.    null pointer check: char array load
+425.    exception: null pointer
+426.    array bound check: char array store
+427.    exception: out of bounds: -1
+428.    array bound check: char array load
+429.    exception: out of bounds: -1
+430.    char: 65
+431.    char: 66
+432.    char: 67
+433.    char: 68
+434.    char: 69
+435.    char: 70
+436.    char: 71
+437.    char: 72
+438.    char: 73
+439.    char: 74
+440.    char: 75
+441.    char: 76
+442.    char: 77
+443.    char: 78
+444.    char: 79
+445.    char: 80
+446.    char: 81
+447.    char: 82
+448.    char: 83
+449.    char: 84
+450.    char: 85
+451.    char: 86
+452.    char: 87
+453.    char: 88
+454.    char: 89
+455.    char: 90
+456.    char: 91
+457.    char: 92
+458.    char: 93
+459.    char: 94
+460.    char: 95
+461.    char: 96
+462.    char: 97
+463.    char: 98
+464.    char: 99
+465.    char: 100
+466.    char: 101
+467.    char: 102
+468.    char: 103
+469.    char: 104
+470.    char: 105
+471.    char: 106
+472.    char: 107
+473.    char: 108
+474.    char: 109
+475.    char: 110
+476.    char: 111
+477.    char: 112
+478.    char: 113
+479.    char: 114
+480.    -------- test address arrays
+481.    null pointer check: address array store
+482.    exception: null pointer
+483.    null pointer check: address array load
+484.    exception: null pointer
+485.    negative array size check: address array
+486.    exception: negative array size
+487.    array bound check: address array store
+488.    exception: out of bounds: -1
+489.    array bound check: address array load
+490.    exception: out of bounds: -1
+491.    0. Zeile
+492.    1. Zeile
+493.    2. Zeile
+494.    3. Zeile
+495.    4. Zeile
+496.    -------- test multi dimensional arrays
+497.    negative array size check: multi dimensional array
+498.    exception: negative array size
+499.    savedvar size copy check: multi dimensional array
+500.    successfully created
+501.    int: 0
+502.    long: 7
+503.    float: 1053609165
+504.    double: -4591560543518827164
+505.    int: 1
+506.    long: 8
+507.    float: 1068708659
+508.    double: -4591701281007182492
+509.    int: 2
+510.    long: 9
+511.    float: 1075419546
+512.    double: -4591842018495537820
+513.    int: 3
+514.    long: 10
+515.    float: 1079613850
+516.    double: -4591982755983893148
+517.    int: 1
+518.    long: 8
+519.    float: 1068708659
+520.    double: -4591701281007182492
+521.    int: 2
+522.    long: 9
+523.    float: 1075419546
+524.    double: -4591842018495537820
+525.    int: 3
+526.    long: 10
+527.    float: 1079613850
+528.    double: -4591982755983893148
+529.    int: 4
+530.    long: 11
+531.    float: 1082969293
+532.    double: -4592123493472248476
+533.    int: 4
+534.    long: 11
+535.    float: 1082969293
+536.    double: -4592123493472248476
+537.    int: 5
+538.    long: 12
+539.    float: 1085066445
+540.    double: -4592264230960603804
+541.    int: 6
+542.    long: 13
+543.    float: 1087163597
+544.    double: -4592404968448959132
+545.    int: 7
+546.    long: 14
+547.    float: 1089260749
+548.    double: -4592545705937314460
+549.    int: 1
+550.    long: 8
+551.    float: 1068708659
+552.    double: -4591701281007182492
+553.    int: 2
+554.    long: 9
+555.    float: 1075419546
+556.    double: -4591842018495537820
+557.    int: 3
+558.    long: 10
+559.    float: 1079613850
+560.    double: -4591982755983893148
+561.    int: 4
+562.    long: 11
+563.    float: 1082969293
+564.    double: -4592123493472248476
+565.    int: 2
+566.    long: 9
+567.    float: 1075419546
+568.    double: -4591842018495537820
+569.    int: 3
+570.    long: 10
+571.    float: 1079613850
+572.    double: -4591982755983893148
+573.    int: 4
+574.    long: 11
+575.    float: 1082969293
+576.    double: -4592123493472248476
+577.    int: 5
+578.    long: 12
+579.    float: 1085066445
+580.    double: -4592264230960603804
+581.    int: 5
+582.    long: 12
+583.    float: 1085066445
+584.    double: -4592264230960603804
+585.    int: 6
+586.    long: 13
+587.    float: 1087163597
+588.    double: -4592404968448959132
+589.    int: 7
+590.    long: 14
+591.    float: 1089260749
+592.    double: -4592545705937314460
+593.    int: 8
+594.    long: 15
+595.    float: 1090938470
+596.    double: -4592686443425669788
+597.    ------------------- test consts
+598.    TESTCONST CALLED WITH int: 1
+599.                      AND long: 1
+600.    not IFEQ:   int: 0
+601.    not IFLT:   int: 0
+602.    not IFLE:   int: 0
+603.    not IF_LEQ: int: 0
+604.    not IF_LLT: int: 0
+605.    not IF_LLE: int: 0
+606.    IADDCONST:  int: 0
+607.    ISUBCONST:  int: 2
+608.    IMULCONST:  int: -1
+609.    ISHLCONST:  int: -2147483648
+610.    ISHRCONST:  int: 0
+611.    IUSHRCONST: int: 0
+612.    IANDCONST:  int: 1
+613.    IORCONST:   int: -1
+614.    IXORCONST:  int: -2
+615.    not IFEQ:   int: -1
+616.    not IFLT:   int: -1
+617.    not IFLE:   int: -1
+618.    LADDCONST:  long: 0
+619.    LSUBCONST:  long: 2
+620.    LMULCONST:  long: -1
+621.    LSHLCONST:  long: -9223372036854775808
+622.    LSHRCONST:  long: 0
+623.    LUSHRCONST: long: 0
+624.    LANDCONST:  long: 1
+625.    LORCONST:   long: -1
+626.    LXORCONST:  long: -2
+627.    not IF_LEQ: int: -1
+628.    not IF_LLT: int: -1
+629.    not IF_LLE: int: -1
+630.    IADDCONST:  int: 2
+631.    ISUBCONST:  int: 0
+632.    IMULCONST:  int: 1
+633.    ISHLCONST:  int: 2
+634.    ISHRCONST:  int: 0
+635.    IUSHRCONST: int: 0
+636.    IANDCONST:  int: 1
+637.    IORCONST:   int: 1
+638.    IXORCONST:  int: 0
+639.    not IFNE:   int: 1
+640.    not IFLT:   int: 1
+641.    not IFGT:   int: 1
+642.    LADDCONST:  long: 2
+643.    LSUBCONST:  long: 0
+644.    LMULCONST:  long: 1
+645.    LSHLCONST:  long: 2
+646.    LSHRCONST:  long: 0
+647.    LUSHRCONST: long: 0
+648.    LANDCONST:  long: 1
+649.    LORCONST:   long: 1
+650.    LXORCONST:  long: 0
+651.    not IF_LNE: int: 1
+652.    not IF_LLT: int: 1
+653.    not IF_LGT: int: 1
+654.    IADDCONST:  int: 256
+655.    ISUBCONST:  int: -254
+656.    IMULCONST:  int: 255
+657.    ISHLCONST:  int: -2147483648
+658.    ISHRCONST:  int: 0
+659.    IUSHRCONST: int: 0
+660.    IANDCONST:  int: 1
+661.    IORCONST:   int: 255
+662.    IXORCONST:  int: 254
+663.    not IFEQ:   int: 255
+664.    not IFGT:   int: 255
+665.    not IFGE:   int: 255
+666.    LADDCONST:  long: 256
+667.    LSUBCONST:  long: -254
+668.    LMULCONST:  long: 255
+669.    LSHLCONST:  long: -9223372036854775808
+670.    LSHRCONST:  long: 0
+671.    LUSHRCONST: long: 0
+672.    LANDCONST:  long: 1
+673.    LORCONST:   long: 255
+674.    LXORCONST:  long: 254
+675.    not IF_LEQ: int: 255
+676.    not IF_LGT: int: 255
+677.    not IF_LGE: int: 255
+678.    IADDCONST:  int: 257
+679.    ISUBCONST:  int: -255
+680.    IMULCONST:  int: 256
+681.    ISHLCONST:  int: 1
+682.    ISHRCONST:  int: 1
+683.    IUSHRCONST: int: 1
+684.    IANDCONST:  int: 0
+685.    IORCONST:   int: 257
+686.    IXORCONST:  int: 257
+687.    not IFEQ:   int: 256
+688.    not IFGT:   int: 256
+689.    not IFGE:   int: 256
+690.    LADDCONST:  long: 257
+691.    LSUBCONST:  long: -255
+692.    LMULCONST:  long: 256
+693.    LSHLCONST:  long: 1
+694.    LSHRCONST:  long: 1
+695.    LUSHRCONST: long: 1
+696.    LANDCONST:  long: 0
+697.    LORCONST:   long: 257
+698.    LXORCONST:  long: 257
+699.    not IF_LEQ: int: 256
+700.    not IF_LGT: int: 256
+701.    not IF_LGE: int: 256
+702.    IADDCONST:  int: 32768
+703.    ISUBCONST:  int: -32766
+704.    IMULCONST:  int: 32767
+705.    ISHLCONST:  int: -2147483648
+706.    ISHRCONST:  int: 0
+707.    IUSHRCONST: int: 0
+708.    IANDCONST:  int: 1
+709.    IORCONST:   int: 32767
+710.    IXORCONST:  int: 32766
+711.    not IFEQ:   int: 32767
+712.    not IFGT:   int: 32767
+713.    not IFGE:   int: 32767
+714.    LADDCONST:  long: 32768
+715.    LSUBCONST:  long: -32766
+716.    LMULCONST:  long: 32767
+717.    LSHLCONST:  long: -9223372036854775808
+718.    LSHRCONST:  long: 0
+719.    LUSHRCONST: long: 0
+720.    LANDCONST:  long: 1
+721.    LORCONST:   long: 32767
+722.    LXORCONST:  long: 32766
+723.    not IF_LEQ: int: 32767
+724.    not IF_LGT: int: 32767
+725.    not IF_LGE: int: 32767
+726.    IADDCONST:  int: 32769
+727.    ISUBCONST:  int: -32767
+728.    IMULCONST:  int: 32768
+729.    ISHLCONST:  int: 1
+730.    ISHRCONST:  int: 1
+731.    IUSHRCONST: int: 1
+732.    IANDCONST:  int: 0
+733.    IORCONST:   int: 32769
+734.    IXORCONST:  int: 32769
+735.    not IFEQ:   int: 32768
+736.    not IFGT:   int: 32768
+737.    not IFGE:   int: 32768
+738.    LADDCONST:  long: 32769
+739.    LSUBCONST:  long: -32767
+740.    LMULCONST:  long: 32768
+741.    LSHLCONST:  long: 1
+742.    LSHRCONST:  long: 1
+743.    LUSHRCONST: long: 1
+744.    LANDCONST:  long: 0
+745.    LORCONST:   long: 32769
+746.    LXORCONST:  long: 32769
+747.    not IF_LEQ: int: 32768
+748.    not IF_LGT: int: 32768
+749.    not IF_LGE: int: 32768
+750.    IADDCONST:  int: -32767
+751.    ISUBCONST:  int: 32769
+752.    IMULCONST:  int: -32768
+753.    ISHLCONST:  int: 1
+754.    ISHRCONST:  int: 1
+755.    IUSHRCONST: int: 1
+756.    IANDCONST:  int: 0
+757.    IORCONST:   int: -32767
+758.    IXORCONST:  int: -32767
+759.    not IFEQ:   int: -32768
+760.    not IFLT:   int: -32768
+761.    not IFLE:   int: -32768
+762.    LADDCONST:  long: -32767
+763.    LSUBCONST:  long: 32769
+764.    LMULCONST:  long: -32768
+765.    LSHLCONST:  long: 1
+766.    LSHRCONST:  long: 1
+767.    LUSHRCONST: long: 1
+768.    LANDCONST:  long: 0
+769.    LORCONST:   long: -32767
+770.    LXORCONST:  long: -32767
+771.    not IF_LEQ: int: -32768
+772.    not IF_LLT: int: -32768
+773.    not IF_LLE: int: -32768
+774.    IADDCONST:  int: -32768
+775.    ISUBCONST:  int: 32770
+776.    IMULCONST:  int: -32769
+777.    ISHLCONST:  int: -2147483648
+778.    ISHRCONST:  int: 0
+779.    IUSHRCONST: int: 0
+780.    IANDCONST:  int: 1
+781.    IORCONST:   int: -32769
+782.    IXORCONST:  int: -32770
+783.    not IFEQ:   int: -32769
+784.    not IFLT:   int: -32769
+785.    not IFLE:   int: -32769
+786.    LADDCONST:  long: -32768
+787.    LSUBCONST:  long: 32770
+788.    LMULCONST:  long: -32769
+789.    LSHLCONST:  long: -9223372036854775808
+790.    LSHRCONST:  long: 0
+791.    LUSHRCONST: long: 0
+792.    LANDCONST:  long: 1
+793.    LORCONST:   long: -32769
+794.    LXORCONST:  long: -32770
+795.    not IF_LEQ: int: -32769
+796.    not IF_LLT: int: -32769
+797.    not IF_LLE: int: -32769
+798.    IADDCONST:  int: -2147483648
+799.    ISUBCONST:  int: -2147483646
+800.    IMULCONST:  int: 2147483647
+801.    ISHLCONST:  int: -2147483648
+802.    ISHRCONST:  int: 0
+803.    IUSHRCONST: int: 0
+804.    IANDCONST:  int: 1
+805.    IORCONST:   int: 2147483647
+806.    IXORCONST:  int: 2147483646
+807.    not IFEQ:   int: 2147483647
+808.    not IFGT:   int: 2147483647
+809.    not IFGE:   int: 2147483647
+810.    LADDCONST:  long: 2147483648
+811.    LSUBCONST:  long: -2147483646
+812.    LMULCONST:  long: 2147483647
+813.    LSHLCONST:  long: -9223372036854775808
+814.    LSHRCONST:  long: 0
+815.    LUSHRCONST: long: 0
+816.    LANDCONST:  long: 1
+817.    LORCONST:   long: 2147483647
+818.    LXORCONST:  long: 2147483646
+819.    not IF_LEQ: int: 2147483647
+820.    not IF_LGT: int: 2147483647
+821.    not IF_LGE: int: 2147483647
+822.    LADDCONST:  long: 2147483649
+823.    LSUBCONST:  long: -2147483647
+824.    LMULCONST:  long: 2147483648
+825.    LSHLCONST:  long: 1
+826.    LSHRCONST:  long: 1
+827.    LUSHRCONST: long: 1
+828.    LANDCONST:  long: 0
+829.    LORCONST:   long: 2147483649
+830.    LXORCONST:  long: 2147483649
+831.    not IF_LEQ: long: 2147483648
+832.    not IF_LGT: long: 2147483648
+833.    not IF_LGE: long: 2147483648
+834.    IADDCONST:  int: -2147483647
+835.    ISUBCONST:  int: -2147483647
+836.    IMULCONST:  int: -2147483648
+837.    ISHLCONST:  int: 1
+838.    ISHRCONST:  int: 1
+839.    IUSHRCONST: int: 1
+840.    IANDCONST:  int: 0
+841.    IORCONST:   int: -2147483647
+842.    IXORCONST:  int: -2147483647
+843.    not IFEQ:   int: -2147483648
+844.    not IFLT:   int: -2147483648
+845.    not IFLE:   int: -2147483648
+846.    LADDCONST:  long: -2147483647
+847.    LSUBCONST:  long: 2147483649
+848.    LMULCONST:  long: -2147483648
+849.    LSHLCONST:  long: 1
+850.    LSHRCONST:  long: 1
+851.    LUSHRCONST: long: 1
+852.    LANDCONST:  long: 0
+853.    LORCONST:   long: -2147483647
+854.    LXORCONST:  long: -2147483647
+855.    not IF_LEQ: int: -2147483648
+856.    not IF_LLT: int: -2147483648
+857.    not IF_LLE: int: -2147483648
+858.    LADDCONST:  long: -2147483648
+859.    LSUBCONST:  long: 2147483650
+860.    LMULCONST:  long: -2147483649
+861.    LSHLCONST:  long: -9223372036854775808
+862.    LSHRCONST:  long: 0
+863.    LUSHRCONST: long: 0
+864.    LANDCONST:  long: 1
+865.    LORCONST:   long: -2147483649
+866.    LXORCONST:  long: -2147483650
+867.    not IF_LEQ: long: -2147483649
+868.    not IF_LLT: long: -2147483649
+869.    not IF_LLE: long: -2147483649
+870.    TESTCONST CALLED WITH int: -1
+871.                      AND long: -1
+872.    not IFEQ:   int: 0
+873.    not IFGT:   int: 0
+874.    not IFGE:   int: 0
+875.    not IF_LEQ: int: 0
+876.    not IF_LGT: int: 0
+877.    not IF_LGE: int: 0
+878.    IADDCONST:  int: -2
+879.    ISUBCONST:  int: 0
+880.    IMULCONST:  int: 1
+881.    ISHLCONST:  int: -2147483648
+882.    ISHRCONST:  int: -1
+883.    IUSHRCONST: int: 1
+884.    IANDCONST:  int: -1
+885.    IORCONST:   int: -1
+886.    IXORCONST:  int: 0
+887.    not IFNE:   int: -1
+888.    not IFLT:   int: -1
+889.    not IFGT:   int: -1
+890.    LADDCONST:  long: -2
+891.    LSUBCONST:  long: 0
+892.    LMULCONST:  long: 1
+893.    LSHLCONST:  long: -9223372036854775808
+894.    LSHRCONST:  long: -1
+895.    LUSHRCONST: long: 1
+896.    LANDCONST:  long: -1
+897.    LORCONST:   long: -1
+898.    LXORCONST:  long: 0
+899.    not IF_LNE: int: -1
+900.    not IF_LLT: int: -1
+901.    not IF_LGT: int: -1
+902.    IADDCONST:  int: 0
+903.    ISUBCONST:  int: -2
+904.    IMULCONST:  int: -1
+905.    ISHLCONST:  int: -2
+906.    ISHRCONST:  int: -1
+907.    IUSHRCONST: int: 2147483647
+908.    IANDCONST:  int: 1
+909.    IORCONST:   int: -1
+910.    IXORCONST:  int: -2
+911.    not IFEQ:   int: 1
+912.    not IFGT:   int: 1
+913.    not IFGE:   int: 1
+914.    LADDCONST:  long: 0
+915.    LSUBCONST:  long: -2
+916.    LMULCONST:  long: -1
+917.    LSHLCONST:  long: -2
+918.    LSHRCONST:  long: -1
+919.    LUSHRCONST: long: 9223372036854775807
+920.    LANDCONST:  long: 1
+921.    LORCONST:   long: -1
+922.    LXORCONST:  long: -2
+923.    not IF_LEQ: int: 1
+924.    not IF_LGT: int: 1
+925.    not IF_LGE: int: 1
+926.    IADDCONST:  int: 254
+927.    ISUBCONST:  int: -256
+928.    IMULCONST:  int: -255
+929.    ISHLCONST:  int: -2147483648
+930.    ISHRCONST:  int: -1
+931.    IUSHRCONST: int: 1
+932.    IANDCONST:  int: 255
+933.    IORCONST:   int: -1
+934.    IXORCONST:  int: -256
+935.    not IFEQ:   int: 255
+936.    not IFGT:   int: 255
+937.    not IFGE:   int: 255
+938.    LADDCONST:  long: 254
+939.    LSUBCONST:  long: -256
+940.    LMULCONST:  long: -255
+941.    LSHLCONST:  long: -9223372036854775808
+942.    LSHRCONST:  long: -1
+943.    LUSHRCONST: long: 1
+944.    LANDCONST:  long: 255
+945.    LORCONST:   long: -1
+946.    LXORCONST:  long: -256
+947.    not IF_LEQ: int: 255
+948.    not IF_LGT: int: 255
+949.    not IF_LGE: int: 255
+950.    IADDCONST:  int: 255
+951.    ISUBCONST:  int: -257
+952.    IMULCONST:  int: -256
+953.    ISHLCONST:  int: -1
+954.    ISHRCONST:  int: -1
+955.    IUSHRCONST: int: -1
+956.    IANDCONST:  int: 256
+957.    IORCONST:   int: -1
+958.    IXORCONST:  int: -257
+959.    not IFEQ:   int: 256
+960.    not IFGT:   int: 256
+961.    not IFGE:   int: 256
+962.    LADDCONST:  long: 255
+963.    LSUBCONST:  long: -257
+964.    LMULCONST:  long: -256
+965.    LSHLCONST:  long: -1
+966.    LSHRCONST:  long: -1
+967.    LUSHRCONST: long: -1
+968.    LANDCONST:  long: 256
+969.    LORCONST:   long: -1
+970.    LXORCONST:  long: -257
+971.    not IF_LEQ: int: 256
+972.    not IF_LGT: int: 256
+973.    not IF_LGE: int: 256
+974.    IADDCONST:  int: 32766
+975.    ISUBCONST:  int: -32768
+976.    IMULCONST:  int: -32767
+977.    ISHLCONST:  int: -2147483648
+978.    ISHRCONST:  int: -1
+979.    IUSHRCONST: int: 1
+980.    IANDCONST:  int: 32767
+981.    IORCONST:   int: -1
+982.    IXORCONST:  int: -32768
+983.    not IFEQ:   int: 32767
+984.    not IFGT:   int: 32767
+985.    not IFGE:   int: 32767
+986.    LADDCONST:  long: 32766
+987.    LSUBCONST:  long: -32768
+988.    LMULCONST:  long: -32767
+989.    LSHLCONST:  long: -9223372036854775808
+990.    LSHRCONST:  long: -1
+991.    LUSHRCONST: long: 1
+992.    LANDCONST:  long: 32767
+993.    LORCONST:   long: -1
+994.    LXORCONST:  long: -32768
+995.    not IF_LEQ: int: 32767
+996.    not IF_LGT: int: 32767
+997.    not IF_LGE: int: 32767
+998.    IADDCONST:  int: 32767
+999.    ISUBCONST:  int: -32769
+1000.    IMULCONST:  int: -32768
+1001.    ISHLCONST:  int: -1
+1002.    ISHRCONST:  int: -1
+1003.    IUSHRCONST: int: -1
+1004.    IANDCONST:  int: 32768
+1005.    IORCONST:   int: -1
+1006.    IXORCONST:  int: -32769
+1007.    not IFEQ:   int: 32768
+1008.    not IFGT:   int: 32768
+1009.    not IFGE:   int: 32768
+1010.    LADDCONST:  long: 32767
+1011.    LSUBCONST:  long: -32769
+1012.    LMULCONST:  long: -32768
+1013.    LSHLCONST:  long: -1
+1014.    LSHRCONST:  long: -1
+1015.    LUSHRCONST: long: -1
+1016.    LANDCONST:  long: 32768
+1017.    LORCONST:   long: -1
+1018.    LXORCONST:  long: -32769
+1019.    not IF_LEQ: int: 32768
+1020.    not IF_LGT: int: 32768
+1021.    not IF_LGE: int: 32768
+1022.    IADDCONST:  int: -32769
+1023.    ISUBCONST:  int: 32767
+1024.    IMULCONST:  int: 32768
+1025.    ISHLCONST:  int: -1
+1026.    ISHRCONST:  int: -1
+1027.    IUSHRCONST: int: -1
+1028.    IANDCONST:  int: -32768
+1029.    IORCONST:   int: -1
+1030.    IXORCONST:  int: 32767
+1031.    not IFEQ:   int: -32768
+1032.    not IFLT:   int: -32768
+1033.    not IFLE:   int: -32768
+1034.    LADDCONST:  long: -32769
+1035.    LSUBCONST:  long: 32767
+1036.    LMULCONST:  long: 32768
+1037.    LSHLCONST:  long: -1
+1038.    LSHRCONST:  long: -1
+1039.    LUSHRCONST: long: -1
+1040.    LANDCONST:  long: -32768
+1041.    LORCONST:   long: -1
+1042.    LXORCONST:  long: 32767
+1043.    not IF_LEQ: int: -32768
+1044.    not IF_LLT: int: -32768
+1045.    not IF_LLE: int: -32768
+1046.    IADDCONST:  int: -32770
+1047.    ISUBCONST:  int: 32768
+1048.    IMULCONST:  int: 32769
+1049.    ISHLCONST:  int: -2147483648
+1050.    ISHRCONST:  int: -1
+1051.    IUSHRCONST: int: 1
+1052.    IANDCONST:  int: -32769
+1053.    IORCONST:   int: -1
+1054.    IXORCONST:  int: 32768
+1055.    not IFEQ:   int: -32769
+1056.    not IFLT:   int: -32769
+1057.    not IFLE:   int: -32769
+1058.    LADDCONST:  long: -32770
+1059.    LSUBCONST:  long: 32768
+1060.    LMULCONST:  long: 32769
+1061.    LSHLCONST:  long: -9223372036854775808
+1062.    LSHRCONST:  long: -1
+1063.    LUSHRCONST: long: 1
+1064.    LANDCONST:  long: -32769
+1065.    LORCONST:   long: -1
+1066.    LXORCONST:  long: 32768
+1067.    not IF_LEQ: int: -32769
+1068.    not IF_LLT: int: -32769
+1069.    not IF_LLE: int: -32769
+1070.    IADDCONST:  int: 2147483646
+1071.    ISUBCONST:  int: -2147483648
+1072.    IMULCONST:  int: -2147483647
+1073.    ISHLCONST:  int: -2147483648
+1074.    ISHRCONST:  int: -1
+1075.    IUSHRCONST: int: 1
+1076.    IANDCONST:  int: 2147483647
+1077.    IORCONST:   int: -1
+1078.    IXORCONST:  int: -2147483648
+1079.    not IFEQ:   int: 2147483647
+1080.    not IFGT:   int: 2147483647
+1081.    not IFGE:   int: 2147483647
+1082.    LADDCONST:  long: 2147483646
+1083.    LSUBCONST:  long: -2147483648
+1084.    LMULCONST:  long: -2147483647
+1085.    LSHLCONST:  long: -9223372036854775808
+1086.    LSHRCONST:  long: -1
+1087.    LUSHRCONST: long: 1
+1088.    LANDCONST:  long: 2147483647
+1089.    LORCONST:   long: -1
+1090.    LXORCONST:  long: -2147483648
+1091.    not IF_LEQ: int: 2147483647
+1092.    not IF_LGT: int: 2147483647
+1093.    not IF_LGE: int: 2147483647
+1094.    LADDCONST:  long: 2147483647
+1095.    LSUBCONST:  long: -2147483649
+1096.    LMULCONST:  long: -2147483648
+1097.    LSHLCONST:  long: -1
+1098.    LSHRCONST:  long: -1
+1099.    LUSHRCONST: long: -1
+1100.    LANDCONST:  long: 2147483648
+1101.    LORCONST:   long: -1
+1102.    LXORCONST:  long: -2147483649
+1103.    not IF_LEQ: long: 2147483648
+1104.    not IF_LGT: long: 2147483648
+1105.    not IF_LGE: long: 2147483648
+1106.    IADDCONST:  int: 2147483647
+1107.    ISUBCONST:  int: 2147483647
+1108.    IMULCONST:  int: -2147483648
+1109.    ISHLCONST:  int: -1
+1110.    ISHRCONST:  int: -1
+1111.    IUSHRCONST: int: -1
+1112.    IANDCONST:  int: -2147483648
+1113.    IORCONST:   int: -1
+1114.    IXORCONST:  int: 2147483647
+1115.    not IFEQ:   int: -2147483648
+1116.    not IFLT:   int: -2147483648
+1117.    not IFLE:   int: -2147483648
+1118.    LADDCONST:  long: -2147483649
+1119.    LSUBCONST:  long: 2147483647
+1120.    LMULCONST:  long: 2147483648
+1121.    LSHLCONST:  long: -1
+1122.    LSHRCONST:  long: -1
+1123.    LUSHRCONST: long: -1
+1124.    LANDCONST:  long: -2147483648
+1125.    LORCONST:   long: -1
+1126.    LXORCONST:  long: 2147483647
+1127.    not IF_LEQ: int: -2147483648
+1128.    not IF_LLT: int: -2147483648
+1129.    not IF_LLE: int: -2147483648
+1130.    LADDCONST:  long: -2147483650
+1131.    LSUBCONST:  long: 2147483648
+1132.    LMULCONST:  long: 2147483649
+1133.    LSHLCONST:  long: -9223372036854775808
+1134.    LSHRCONST:  long: -1
+1135.    LUSHRCONST: long: 1
+1136.    LANDCONST:  long: -2147483649
+1137.    LORCONST:   long: -1
+1138.    LXORCONST:  long: 2147483648
+1139.    not IF_LEQ: long: -2147483649
+1140.    not IF_LLT: long: -2147483649
+1141.    not IF_LLE: long: -2147483649
+1142.    TESTCONST CALLED WITH int: -24123
+1143.                      AND long: -4918923241323
+1144.    not IFEQ:   int: 0
+1145.    not IFGT:   int: 0
+1146.    not IFGE:   int: 0
+1147.    not IF_LEQ: int: 0
+1148.    not IF_LGT: int: 0
+1149.    not IF_LGE: int: 0
+1150.    IADDCONST:  int: -24124
+1151.    ISUBCONST:  int: -24122
+1152.    IMULCONST:  int: 24123
+1153.    ISHLCONST:  int: -2147483648
+1154.    ISHRCONST:  int: -1
+1155.    IUSHRCONST: int: 1
+1156.    IANDCONST:  int: -24123
+1157.    IORCONST:   int: -1
+1158.    IXORCONST:  int: 24122
+1159.    not IFEQ:   int: -1
+1160.    not IFGT:   int: -1
+1161.    not IFGE:   int: -1
+1162.    LADDCONST:  long: -4918923241324
+1163.    LSUBCONST:  long: -4918923241322
+1164.    LMULCONST:  long: 4918923241323
+1165.    LSHLCONST:  long: -9223372036854775808
+1166.    LSHRCONST:  long: -1
+1167.    LUSHRCONST: long: 1
+1168.    LANDCONST:  long: -4918923241323
+1169.    LORCONST:   long: -1
+1170.    LXORCONST:  long: 4918923241322
+1171.    not IF_LEQ: int: -1
+1172.    not IF_LGT: int: -1
+1173.    not IF_LGE: int: -1
+1174.    IADDCONST:  int: -24122
+1175.    ISUBCONST:  int: -24124
+1176.    IMULCONST:  int: -24123
+1177.    ISHLCONST:  int: -48246
+1178.    ISHRCONST:  int: -12062
+1179.    IUSHRCONST: int: 2147471586
+1180.    IANDCONST:  int: 1
+1181.    IORCONST:   int: -24123
+1182.    IXORCONST:  int: -24124
+1183.    not IFEQ:   int: 1
+1184.    not IFGT:   int: 1
+1185.    not IFGE:   int: 1
+1186.    LADDCONST:  long: -4918923241322
+1187.    LSUBCONST:  long: -4918923241324
+1188.    LMULCONST:  long: -4918923241323
+1189.    LSHLCONST:  long: -9837846482646
+1190.    LSHRCONST:  long: -2459461620662
+1191.    LUSHRCONST: long: 9223369577393155146
+1192.    LANDCONST:  long: 1
+1193.    LORCONST:   long: -4918923241323
+1194.    LXORCONST:  long: -4918923241324
+1195.    not IF_LEQ: int: 1
+1196.    not IF_LGT: int: 1
+1197.    not IF_LGE: int: 1
+1198.    IADDCONST:  int: -23868
+1199.    ISUBCONST:  int: -24378
+1200.    IMULCONST:  int: -6151365
+1201.    ISHLCONST:  int: -2147483648
+1202.    ISHRCONST:  int: -1
+1203.    IUSHRCONST: int: 1
+1204.    IANDCONST:  int: 197
+1205.    IORCONST:   int: -24065
+1206.    IXORCONST:  int: -24262
+1207.    not IFEQ:   int: 255
+1208.    not IFGT:   int: 255
+1209.    not IFGE:   int: 255
+1210.    LADDCONST:  long: -4918923241068
+1211.    LSUBCONST:  long: -4918923241578
+1212.    LMULCONST:  long: -1254325426537365
+1213.    LSHLCONST:  long: -9223372036854775808
+1214.    LSHRCONST:  long: -1
+1215.    LUSHRCONST: long: 1
+1216.    LANDCONST:  long: 149
+1217.    LORCONST:   long: -4918923241217
+1218.    LXORCONST:  long: -4918923241366
+1219.    not IF_LEQ: int: 255
+1220.    not IF_LGT: int: 255
+1221.    not IF_LGE: int: 255
+1222.    IADDCONST:  int: -23867
+1223.    ISUBCONST:  int: -24379
+1224.    IMULCONST:  int: -6175488
+1225.    ISHLCONST:  int: -24123
+1226.    ISHRCONST:  int: -24123
+1227.    IUSHRCONST: int: -24123
+1228.    IANDCONST:  int: 256
+1229.    IORCONST:   int: -24123
+1230.    IXORCONST:  int: -24379
+1231.    not IFEQ:   int: 256
+1232.    not IFGT:   int: 256
+1233.    not IFGE:   int: 256
+1234.    LADDCONST:  long: -4918923241067
+1235.    LSUBCONST:  long: -4918923241579
+1236.    LMULCONST:  long: -1259244349778688
+1237.    LSHLCONST:  long: -4918923241323
+1238.    LSHRCONST:  long: -4918923241323
+1239.    LUSHRCONST: long: -4918923241323
+1240.    LANDCONST:  long: 0
+1241.    LORCONST:   long: -4918923241067
+1242.    LXORCONST:  long: -4918923241067
+1243.    not IF_LEQ: int: 256
+1244.    not IF_LGT: int: 256
+1245.    not IF_LGE: int: 256
+1246.    IADDCONST:  int: 8644
+1247.    ISUBCONST:  int: -56890
+1248.    IMULCONST:  int: -790438341
+1249.    ISHLCONST:  int: -2147483648
+1250.    ISHRCONST:  int: -1
+1251.    IUSHRCONST: int: 1
+1252.    IANDCONST:  int: 8645
+1253.    IORCONST:   int: -1
+1254.    IXORCONST:  int: -8646
+1255.    not IFEQ:   int: 32767
+1256.    not IFGT:   int: 32767
+1257.    not IFGE:   int: 32767
+1258.    LADDCONST:  long: -4918923208556
+1259.    LSUBCONST:  long: -4918923274090
+1260.    LMULCONST:  long: -161178357848430741
+1261.    LSHLCONST:  long: -9223372036854775808
+1262.    LSHRCONST:  long: -1
+1263.    LUSHRCONST: long: 1
+1264.    LANDCONST:  long: 22677
+1265.    LORCONST:   long: -4918923231233
+1266.    LXORCONST:  long: -4918923253910
+1267.    not IF_LEQ: int: 32767
+1268.    not IF_LGT: int: 32767
+1269.    not IF_LGE: int: 32767
+1270.    IADDCONST:  int: 8645
+1271.    ISUBCONST:  int: -56891
+1272.    IMULCONST:  int: -790462464
+1273.    ISHLCONST:  int: -24123
+1274.    ISHRCONST:  int: -24123
+1275.    IUSHRCONST: int: -24123
+1276.    IANDCONST:  int: 32768
+1277.    IORCONST:   int: -24123
+1278.    IXORCONST:  int: -56891
+1279.    not IFEQ:   int: 32768
+1280.    not IFGT:   int: 32768
+1281.    not IFGE:   int: 32768
+1282.    LADDCONST:  long: -4918923208555
+1283.    LSUBCONST:  long: -4918923274091
+1284.    LMULCONST:  long: -161183276771672064
+1285.    LSHLCONST:  long: -4918923241323
+1286.    LSHRCONST:  long: -4918923241323
+1287.    LUSHRCONST: long: -4918923241323
+1288.    LANDCONST:  long: 32768
+1289.    LORCONST:   long: -4918923241323
+1290.    LXORCONST:  long: -4918923274091
+1291.    not IF_LEQ: int: 32768
+1292.    not IF_LGT: int: 32768
+1293.    not IF_LGE: int: 32768
+1294.    IADDCONST:  int: -56891
+1295.    ISUBCONST:  int: 8645
+1296.    IMULCONST:  int: 790462464
+1297.    ISHLCONST:  int: -24123
+1298.    ISHRCONST:  int: -24123
+1299.    IUSHRCONST: int: -24123
+1300.    IANDCONST:  int: -32768
+1301.    IORCONST:   int: -24123
+1302.    IXORCONST:  int: 8645
+1303.    not IFEQ:   int: -32768
+1304.    not IFLT:   int: -32768
+1305.    not IFLE:   int: -32768
+1306.    LADDCONST:  long: -4918923274091
+1307.    LSUBCONST:  long: -4918923208555
+1308.    LMULCONST:  long: 161183276771672064
+1309.    LSHLCONST:  long: -4918923241323
+1310.    LSHRCONST:  long: -4918923241323
+1311.    LUSHRCONST: long: -4918923241323
+1312.    LANDCONST:  long: -4918923264000
+1313.    LORCONST:   long: -10091
+1314.    LXORCONST:  long: 4918923253909
+1315.    not IF_LEQ: int: -32768
+1316.    not IF_LGT: int: -32768
+1317.    not IF_LGE: int: -32768
+1318.    IADDCONST:  int: -56892
+1319.    ISUBCONST:  int: 8646
+1320.    IMULCONST:  int: 790486587
+1321.    ISHLCONST:  int: -2147483648
+1322.    ISHRCONST:  int: -1
+1323.    IUSHRCONST: int: 1
+1324.    IANDCONST:  int: -56891
+1325.    IORCONST:   int: -1
+1326.    IXORCONST:  int: 56890
+1327.    not IFEQ:   int: -32769
+1328.    not IFLT:   int: -32769
+1329.    not IFLE:   int: -32769
+1330.    LADDCONST:  long: -4918923274092
+1331.    LSUBCONST:  long: -4918923208554
+1332.    LMULCONST:  long: 161188195694913387
+1333.    LSHLCONST:  long: -9223372036854775808
+1334.    LSHRCONST:  long: -1
+1335.    LUSHRCONST: long: 1
+1336.    LANDCONST:  long: -4918923274091
+1337.    LORCONST:   long: -1
+1338.    LXORCONST:  long: 4918923274090
+1339.    not IF_LEQ: int: -32769
+1340.    not IF_LGT: int: -32769
+1341.    not IF_LGE: int: -32769
+1342.    IADDCONST:  int: 2147459524
+1343.    ISUBCONST:  int: 2147459526
+1344.    IMULCONST:  int: -2147459525
+1345.    ISHLCONST:  int: -2147483648
+1346.    ISHRCONST:  int: -1
+1347.    IUSHRCONST: int: 1
+1348.    IANDCONST:  int: 2147459525
+1349.    IORCONST:   int: -1
+1350.    IXORCONST:  int: -2147459526
+1351.    not IFEQ:   int: 2147483647
+1352.    not IFGT:   int: 2147483647
+1353.    not IFGE:   int: 2147483647
+1354.    LADDCONST:  long: -4916775757676
+1355.    LSUBCONST:  long: -4921070724970
+1356.    LMULCONST:  long: 6677132646195930987
+1357.    LSHLCONST:  long: -9223372036854775808
+1358.    LSHRCONST:  long: -1
+1359.    LUSHRCONST: long: 1
+1360.    LANDCONST:  long: 961796245
+1361.    LORCONST:   long: -4917737553921
+1362.    LXORCONST:  long: -4918699350166
+1363.    not IF_LEQ: int: 2147483647
+1364.    not IF_LGT: int: 2147483647
+1365.    not IF_LGE: int: 2147483647
+1366.    LADDCONST:  long: -4916775757675
+1367.    LSUBCONST:  long: -4921070724971
+1368.    LMULCONST:  long: 6677127727272689664
+1369.    LSHLCONST:  long: -4918923241323
+1370.    LSHRCONST:  long: -4918923241323
+1371.    LUSHRCONST: long: -4918923241323
+1372.    LANDCONST:  long: 2147483648
+1373.    LORCONST:   long: -4918923241323
+1374.    LXORCONST:  long: -4921070724971
+1375.    not IF_LEQ: long: 2147483648
+1376.    not IF_LGT: long: 2147483648
+1377.    not IF_LGE: long: 2147483648
+1378.    IADDCONST:  int: 2147459525
+1379.    ISUBCONST:  int: 2147459525
+1380.    IMULCONST:  int: -2147483648
+1381.    ISHLCONST:  int: -24123
+1382.    ISHRCONST:  int: -24123
+1383.    IUSHRCONST: int: -24123
+1384.    IANDCONST:  int: -2147483648
+1385.    IORCONST:   int: -24123
+1386.    IXORCONST:  int: 2147459525
+1387.    not IFEQ:   int: -2147483648
+1388.    not IFLT:   int: -2147483648
+1389.    not IFLE:   int: -2147483648
+1390.    LADDCONST:  long: -4921070724971
+1391.    LSUBCONST:  long: -4916775757675
+1392.    LMULCONST:  long: -6677127727272689664
+1393.    LSHLCONST:  long: -4918923241323
+1394.    LSHRCONST:  long: -4918923241323
+1395.    LUSHRCONST: long: -4918923241323
+1396.    LANDCONST:  long: -4919885037568
+1397.    LORCONST:   long: -1185687403
+1398.    LXORCONST:  long: 4918699350165
+1399.    not IF_LEQ: int: -2147483648
+1400.    not IF_LGT: int: -2147483648
+1401.    not IF_LGE: int: -2147483648
+1402.    LADDCONST:  long: -4921070724972
+1403.    LSUBCONST:  long: -4916775757674
+1404.    LMULCONST:  long: -6677122808349448341
+1405.    LSHLCONST:  long: -9223372036854775808
+1406.    LSHRCONST:  long: -1
+1407.    LUSHRCONST: long: 1
+1408.    LANDCONST:  long: -4921070724971
+1409.    LORCONST:   long: -1
+1410.    LXORCONST:  long: 4921070724970
+1411.    not IF_LEQ: long: -2147483649
+1412.    not IF_LGT: long: -2147483649
+1413.    not IF_LGE: long: -2147483649
+1414.    TESTCONST CALLED WITH int: -243511
+1415.                      AND long: -4423423234231423
+1416.    not IFEQ:   int: 0
+1417.    not IFGT:   int: 0
+1418.    not IFGE:   int: 0
+1419.    not IF_LEQ: int: 0
+1420.    not IF_LGT: int: 0
+1421.    not IF_LGE: int: 0
+1422.    IADDCONST:  int: -243512
+1423.    ISUBCONST:  int: -243510
+1424.    IMULCONST:  int: 243511
+1425.    ISHLCONST:  int: -2147483648
+1426.    ISHRCONST:  int: -1
+1427.    IUSHRCONST: int: 1
+1428.    IANDCONST:  int: -243511
+1429.    IORCONST:   int: -1
+1430.    IXORCONST:  int: 243510
+1431.    not IFEQ:   int: -1
+1432.    not IFGT:   int: -1
+1433.    not IFGE:   int: -1
+1434.    LADDCONST:  long: -4423423234231424
+1435.    LSUBCONST:  long: -4423423234231422
+1436.    LMULCONST:  long: 4423423234231423
+1437.    LSHLCONST:  long: -9223372036854775808
+1438.    LSHRCONST:  long: -1
+1439.    LUSHRCONST: long: 1
+1440.    LANDCONST:  long: -4423423234231423
+1441.    LORCONST:   long: -1
+1442.    LXORCONST:  long: 4423423234231422
+1443.    not IF_LEQ: int: -1
+1444.    not IF_LGT: int: -1
+1445.    not IF_LGE: int: -1
+1446.    IADDCONST:  int: -243510
+1447.    ISUBCONST:  int: -243512
+1448.    IMULCONST:  int: -243511
+1449.    ISHLCONST:  int: -487022
+1450.    ISHRCONST:  int: -121756
+1451.    IUSHRCONST: int: 2147361892
+1452.    IANDCONST:  int: 1
+1453.    IORCONST:   int: -243511
+1454.    IXORCONST:  int: -243512
+1455.    not IFEQ:   int: 1
+1456.    not IFGT:   int: 1
+1457.    not IFGE:   int: 1
+1458.    LADDCONST:  long: -4423423234231422
+1459.    LSUBCONST:  long: -4423423234231424
+1460.    LMULCONST:  long: -4423423234231423
+1461.    LSHLCONST:  long: -8846846468462846
+1462.    LSHRCONST:  long: -2211711617115712
+1463.    LUSHRCONST: long: 9221160325237660096
+1464.    LANDCONST:  long: 1
+1465.    LORCONST:   long: -4423423234231423
+1466.    LXORCONST:  long: -4423423234231424
+1467.    not IF_LEQ: int: 1
+1468.    not IF_LGT: int: 1
+1469.    not IF_LGE: int: 1
+1470.    IADDCONST:  int: -243256
+1471.    ISUBCONST:  int: -243766
+1472.    IMULCONST:  int: -62095305
+1473.    ISHLCONST:  int: -2147483648
+1474.    ISHRCONST:  int: -1
+1475.    IUSHRCONST: int: 1
+1476.    IANDCONST:  int: 201
+1477.    IORCONST:   int: -243457
+1478.    IXORCONST:  int: -243658
+1479.    not IFEQ:   int: 255
+1480.    not IFGT:   int: 255
+1481.    not IFGE:   int: 255
+1482.    LADDCONST:  long: -4423423234231168
+1483.    LSUBCONST:  long: -4423423234231678
+1484.    LMULCONST:  long: -1127972924729012865
+1485.    LSHLCONST:  long: -9223372036854775808
+1486.    LSHRCONST:  long: -1
+1487.    LUSHRCONST: long: 1
+1488.    LANDCONST:  long: 129
+1489.    LORCONST:   long: -4423423234231297
+1490.    LXORCONST:  long: -4423423234231426
+1491.    not IF_LEQ: int: 255
+1492.    not IF_LGT: int: 255
+1493.    not IF_LGE: int: 255
+1494.    IADDCONST:  int: -243255
+1495.    ISUBCONST:  int: -243767
+1496.    IMULCONST:  int: -62338816
+1497.    ISHLCONST:  int: -243511
+1498.    ISHRCONST:  int: -243511
+1499.    IUSHRCONST: int: -243511
+1500.    IANDCONST:  int: 0
+1501.    IORCONST:   int: -243255
+1502.    IXORCONST:  int: -243255
+1503.    not IFEQ:   int: 256
+1504.    not IFGT:   int: 256
+1505.    not IFGE:   int: 256
+1506.    LADDCONST:  long: -4423423234231167
+1507.    LSUBCONST:  long: -4423423234231679
+1508.    LMULCONST:  long: -1132396347963244288
+1509.    LSHLCONST:  long: -4423423234231423
+1510.    LSHRCONST:  long: -4423423234231423
+1511.    LUSHRCONST: long: -4423423234231423
+1512.    LANDCONST:  long: 256
+1513.    LORCONST:   long: -4423423234231423
+1514.    LXORCONST:  long: -4423423234231679
+1515.    not IF_LEQ: int: 256
+1516.    not IF_LGT: int: 256
+1517.    not IF_LGE: int: 256
+1518.    IADDCONST:  int: -210744
+1519.    ISUBCONST:  int: -276278
+1520.    IMULCONST:  int: 610809655
+1521.    ISHLCONST:  int: -2147483648
+1522.    ISHRCONST:  int: -1
+1523.    IUSHRCONST: int: 1
+1524.    IANDCONST:  int: 18633
+1525.    IORCONST:   int: -229377
+1526.    IXORCONST:  int: -248010
+1527.    not IFEQ:   int: 32767
+1528.    not IFGT:   int: 32767
+1529.    not IFGE:   int: 32767
+1530.    LADDCONST:  long: -4423423234198656
+1531.    LSUBCONST:  long: -4423423234264190
+1532.    LMULCONST:  long: 2631643473615375487
+1533.    LSHLCONST:  long: -9223372036854775808
+1534.    LSHRCONST:  long: -1
+1535.    LUSHRCONST: long: 1
+1536.    LANDCONST:  long: 13185
+1537.    LORCONST:   long: -4423423234211841
+1538.    LXORCONST:  long: -4423423234225026
+1539.    not IF_LEQ: int: 32767
+1540.    not IF_LGT: int: 32767
+1541.    not IF_LGE: int: 32767
+1542.    IADDCONST:  int: -210743
+1543.    ISUBCONST:  int: -276279
+1544.    IMULCONST:  int: 610566144
+1545.    ISHLCONST:  int: -243511
+1546.    ISHRCONST:  int: -243511
+1547.    IUSHRCONST: int: -243511
+1548.    IANDCONST:  int: 0
+1549.    IORCONST:   int: -210743
+1550.    IXORCONST:  int: -210743
+1551.    not IFEQ:   int: 32768
+1552.    not IFGT:   int: 32768
+1553.    not IFGE:   int: 32768
+1554.    LADDCONST:  long: -4423423234198655
+1555.    LSUBCONST:  long: -4423423234264191
+1556.    LMULCONST:  long: 2627220050381144064
+1557.    LSHLCONST:  long: -4423423234231423
+1558.    LSHRCONST:  long: -4423423234231423
+1559.    LUSHRCONST: long: -4423423234231423
+1560.    LANDCONST:  long: 32768
+1561.    LORCONST:   long: -4423423234231423
+1562.    LXORCONST:  long: -4423423234264191
+1563.    not IF_LEQ: int: 32768
+1564.    not IF_LGT: int: 32768
+1565.    not IF_LGE: int: 32768
+1566.    IADDCONST:  int: -276279
+1567.    ISUBCONST:  int: -210743
+1568.    IMULCONST:  int: -610566144
+1569.    ISHLCONST:  int: -243511
+1570.    ISHRCONST:  int: -243511
+1571.    IUSHRCONST: int: -243511
+1572.    IANDCONST:  int: -262144
+1573.    IORCONST:   int: -14135
+1574.    IXORCONST:  int: 248009
+1575.    not IFEQ:   int: -32768
+1576.    not IFGT:   int: -32768
+1577.    not IFGE:   int: -32768
+1578.    LADDCONST:  long: -4423423234264191
+1579.    LSUBCONST:  long: -4423423234198655
+1580.    LMULCONST:  long: -2627220050381144064
+1581.    LSHLCONST:  long: -4423423234231423
+1582.    LSHRCONST:  long: -4423423234231423
+1583.    LUSHRCONST: long: -4423423234231423
+1584.    LANDCONST:  long: -4423423234244608
+1585.    LORCONST:   long: -19583
+1586.    LXORCONST:  long: 4423423234225025
+1587.    not IF_LEQ: int: -32768
+1588.    not IF_LGT: int: -32768
+1589.    not IF_LGE: int: -32768
+1590.    IADDCONST:  int: -276280
+1591.    ISUBCONST:  int: -210742
+1592.    IMULCONST:  int: -610322633
+1593.    ISHLCONST:  int: -2147483648
+1594.    ISHRCONST:  int: -1
+1595.    IUSHRCONST: int: 1
+1596.    IANDCONST:  int: -243511
+1597.    IORCONST:   int: -32769
+1598.    IXORCONST:  int: 210742
+1599.    not IFEQ:   int: -32769
+1600.    not IFGT:   int: -32769
+1601.    not IFGE:   int: -32769
+1602.    LADDCONST:  long: -4423423234264192
+1603.    LSUBCONST:  long: -4423423234198654
+1604.    LMULCONST:  long: -2622796627146912641
+1605.    LSHLCONST:  long: -9223372036854775808
+1606.    LSHRCONST:  long: -1
+1607.    LUSHRCONST: long: 1
+1608.    LANDCONST:  long: -4423423234264191
+1609.    LORCONST:   long: -1
+1610.    LXORCONST:  long: 4423423234264190
+1611.    not IF_LEQ: int: -32769
+1612.    not IF_LGT: int: -32769
+1613.    not IF_LGE: int: -32769
+1614.    IADDCONST:  int: 2147240136
+1615.    ISUBCONST:  int: 2147240138
+1616.    IMULCONST:  int: -2147240137
+1617.    ISHLCONST:  int: -2147483648
+1618.    ISHRCONST:  int: -1
+1619.    IUSHRCONST: int: 1
+1620.    IANDCONST:  int: 2147240137
+1621.    IORCONST:   int: -1
+1622.    IXORCONST:  int: -2147240138
+1623.    not IFEQ:   int: 2147483647
+1624.    not IFGT:   int: 2147483647
+1625.    not IFGE:   int: 2147483647
+1626.    LADDCONST:  long: -4423421086747776
+1627.    LSUBCONST:  long: -4423425381715070
+1628.    LMULCONST:  long: -4411538803063174017
+1629.    LSHLCONST:  long: -9223372036854775808
+1630.    LSHRCONST:  long: -1
+1631.    LUSHRCONST: long: 1
+1632.    LANDCONST:  long: 91140993
+1633.    LORCONST:   long: -4423421177888769
+1634.    LXORCONST:  long: -4423421269029762
+1635.    not IF_LEQ: int: 2147483647
+1636.    not IF_LGT: int: 2147483647
+1637.    not IF_LGE: int: 2147483647
+1638.    LADDCONST:  long: -4423421086747775
+1639.    LSUBCONST:  long: -4423425381715071
+1640.    LMULCONST:  long: -4415962226297405440
+1641.    LSHLCONST:  long: -4423423234231423
+1642.    LSHRCONST:  long: -4423423234231423
+1643.    LUSHRCONST: long: -4423423234231423
+1644.    LANDCONST:  long: 2147483648
+1645.    LORCONST:   long: -4423423234231423
+1646.    LXORCONST:  long: -4423425381715071
+1647.    not IF_LEQ: long: 2147483648
+1648.    not IF_LGT: long: 2147483648
+1649.    not IF_LGE: long: 2147483648
+1650.    IADDCONST:  int: 2147240137
+1651.    ISUBCONST:  int: 2147240137
+1652.    IMULCONST:  int: -2147483648
+1653.    ISHLCONST:  int: -243511
+1654.    ISHRCONST:  int: -243511
+1655.    IUSHRCONST: int: -243511
+1656.    IANDCONST:  int: -2147483648
+1657.    IORCONST:   int: -243511
+1658.    IXORCONST:  int: 2147240137
+1659.    not IFEQ:   int: -2147483648
+1660.    not IFLT:   int: -2147483648
+1661.    not IFLE:   int: -2147483648
+1662.    LADDCONST:  long: -4423425381715071
+1663.    LSUBCONST:  long: -4423421086747775
+1664.    LMULCONST:  long: 4415962226297405440
+1665.    LSHLCONST:  long: -4423423234231423
+1666.    LSHRCONST:  long: -4423423234231423
+1667.    LUSHRCONST: long: -4423423234231423
+1668.    LANDCONST:  long: -4423423325372416
+1669.    LORCONST:   long: -2056342655
+1670.    LXORCONST:  long: 4423421269029761
+1671.    not IF_LEQ: int: -2147483648
+1672.    not IF_LGT: int: -2147483648
+1673.    not IF_LGE: int: -2147483648
+1674.    LADDCONST:  long: -4423425381715072
+1675.    LSUBCONST:  long: -4423421086747774
+1676.    LMULCONST:  long: 4420385649531636863
+1677.    LSHLCONST:  long: -9223372036854775808
+1678.    LSHRCONST:  long: -1
+1679.    LUSHRCONST: long: 1
+1680.    LANDCONST:  long: -4423425381715071
+1681.    LORCONST:   long: -1
+1682.    LXORCONST:  long: 4423425381715070
+1683.    not IF_LEQ: long: -2147483649
+1684.    not IF_LGT: long: -2147483649
+1685.    not IF_LGE: long: -2147483649
+1686.    TESTCONST CALLED WITH int: 2147483647
+1687.                      AND long: 9223372036854775807
+1688.    not IFEQ:   int: 0
+1689.    not IFLT:   int: 0
+1690.    not IFLE:   int: 0
+1691.    not IF_LEQ: int: 0
+1692.    not IF_LLT: int: 0
+1693.    not IF_LLE: int: 0
+1694.    IADDCONST:  int: 2147483646
+1695.    ISUBCONST:  int: -2147483648
+1696.    IMULCONST:  int: -2147483647
+1697.    ISHLCONST:  int: -2147483648
+1698.    ISHRCONST:  int: 0
+1699.    IUSHRCONST: int: 0
+1700.    IANDCONST:  int: 2147483647
+1701.    IORCONST:   int: -1
+1702.    IXORCONST:  int: -2147483648
+1703.    not IFEQ:   int: -1
+1704.    not IFLT:   int: -1
+1705.    not IFLE:   int: -1
+1706.    LADDCONST:  long: 9223372036854775806
+1707.    LSUBCONST:  long: -9223372036854775808
+1708.    LMULCONST:  long: -9223372036854775807
+1709.    LSHLCONST:  long: -9223372036854775808
+1710.    LSHRCONST:  long: 0
+1711.    LUSHRCONST: long: 0
+1712.    LANDCONST:  long: 9223372036854775807
+1713.    LORCONST:   long: -1
+1714.    LXORCONST:  long: -9223372036854775808
+1715.    not IF_LEQ: int: -1
+1716.    not IF_LLT: int: -1
+1717.    not IF_LLE: int: -1
+1718.    IADDCONST:  int: -2147483648
+1719.    ISUBCONST:  int: 2147483646
+1720.    IMULCONST:  int: 2147483647
+1721.    ISHLCONST:  int: -2
+1722.    ISHRCONST:  int: 1073741823
+1723.    IUSHRCONST: int: 1073741823
+1724.    IANDCONST:  int: 1
+1725.    IORCONST:   int: 2147483647
+1726.    IXORCONST:  int: 2147483646
+1727.    not IFEQ:   int: 1
+1728.    not IFLT:   int: 1
+1729.    not IFLE:   int: 1
+1730.    LADDCONST:  long: -9223372036854775808
+1731.    LSUBCONST:  long: 9223372036854775806
+1732.    LMULCONST:  long: 9223372036854775807
+1733.    LSHLCONST:  long: -2
+1734.    LSHRCONST:  long: 4611686018427387903
+1735.    LUSHRCONST: long: 4611686018427387903
+1736.    LANDCONST:  long: 1
+1737.    LORCONST:   long: 9223372036854775807
+1738.    LXORCONST:  long: 9223372036854775806
+1739.    not IF_LEQ: int: 1
+1740.    not IF_LLT: int: 1
+1741.    not IF_LLE: int: 1
+1742.    IADDCONST:  int: -2147483394
+1743.    ISUBCONST:  int: 2147483392
+1744.    IMULCONST:  int: 2147483393
+1745.    ISHLCONST:  int: -2147483648
+1746.    ISHRCONST:  int: 0
+1747.    IUSHRCONST: int: 0
+1748.    IANDCONST:  int: 255
+1749.    IORCONST:   int: 2147483647
+1750.    IXORCONST:  int: 2147483392
+1751.    not IFEQ:   int: 255
+1752.    not IFLT:   int: 255
+1753.    not IFLE:   int: 255
+1754.    LADDCONST:  long: -9223372036854775554
+1755.    LSUBCONST:  long: 9223372036854775552
+1756.    LMULCONST:  long: 9223372036854775553
+1757.    LSHLCONST:  long: -9223372036854775808
+1758.    LSHRCONST:  long: 0
+1759.    LUSHRCONST: long: 0
+1760.    LANDCONST:  long: 255
+1761.    LORCONST:   long: 9223372036854775807
+1762.    LXORCONST:  long: 9223372036854775552
+1763.    not IF_LEQ: int: 255
+1764.    not IF_LLT: int: 255
+1765.    not IF_LLE: int: 255
+1766.    IADDCONST:  int: -2147483393
+1767.    ISUBCONST:  int: 2147483391
+1768.    IMULCONST:  int: -256
+1769.    ISHLCONST:  int: 2147483647
+1770.    ISHRCONST:  int: 2147483647
+1771.    IUSHRCONST: int: 2147483647
+1772.    IANDCONST:  int: 256
+1773.    IORCONST:   int: 2147483647
+1774.    IXORCONST:  int: 2147483391
+1775.    not IFEQ:   int: 256
+1776.    not IFLT:   int: 256
+1777.    not IFLE:   int: 256
+1778.    LADDCONST:  long: -9223372036854775553
+1779.    LSUBCONST:  long: 9223372036854775551
+1780.    LMULCONST:  long: -256
+1781.    LSHLCONST:  long: 9223372036854775807
+1782.    LSHRCONST:  long: 9223372036854775807
+1783.    LUSHRCONST: long: 9223372036854775807
+1784.    LANDCONST:  long: 256
+1785.    LORCONST:   long: 9223372036854775807
+1786.    LXORCONST:  long: 9223372036854775551
+1787.    not IF_LEQ: int: 256
+1788.    not IF_LLT: int: 256
+1789.    not IF_LLE: int: 256
+1790.    IADDCONST:  int: -2147450882
+1791.    ISUBCONST:  int: 2147450880
+1792.    IMULCONST:  int: 2147450881
+1793.    ISHLCONST:  int: -2147483648
+1794.    ISHRCONST:  int: 0
+1795.    IUSHRCONST: int: 0
+1796.    IANDCONST:  int: 32767
+1797.    IORCONST:   int: 2147483647
+1798.    IXORCONST:  int: 2147450880
+1799.    not IFEQ:   int: 32767
+1800.    not IFLT:   int: 32767
+1801.    not IFLE:   int: 32767
+1802.    LADDCONST:  long: -9223372036854743042
+1803.    LSUBCONST:  long: 9223372036854743040
+1804.    LMULCONST:  long: 9223372036854743041
+1805.    LSHLCONST:  long: -9223372036854775808
+1806.    LSHRCONST:  long: 0
+1807.    LUSHRCONST: long: 0
+1808.    LANDCONST:  long: 32767
+1809.    LORCONST:   long: 9223372036854775807
+1810.    LXORCONST:  long: 9223372036854743040
+1811.    not IF_LEQ: int: 32767
+1812.    not IF_LLT: int: 32767
+1813.    not IF_LLE: int: 32767
+1814.    IADDCONST:  int: -2147450881
+1815.    ISUBCONST:  int: 2147450879
+1816.    IMULCONST:  int: -32768
+1817.    ISHLCONST:  int: 2147483647
+1818.    ISHRCONST:  int: 2147483647
+1819.    IUSHRCONST: int: 2147483647
+1820.    IANDCONST:  int: 32768
+1821.    IORCONST:   int: 2147483647
+1822.    IXORCONST:  int: 2147450879
+1823.    not IFEQ:   int: 32768
+1824.    not IFLT:   int: 32768
+1825.    not IFLE:   int: 32768
+1826.    LADDCONST:  long: -9223372036854743041
+1827.    LSUBCONST:  long: 9223372036854743039
+1828.    LMULCONST:  long: -32768
+1829.    LSHLCONST:  long: 9223372036854775807
+1830.    LSHRCONST:  long: 9223372036854775807
+1831.    LUSHRCONST: long: 9223372036854775807
+1832.    LANDCONST:  long: 32768
+1833.    LORCONST:   long: 9223372036854775807
+1834.    LXORCONST:  long: 9223372036854743039
+1835.    not IF_LEQ: int: 32768
+1836.    not IF_LLT: int: 32768
+1837.    not IF_LLE: int: 32768
+1838.    IADDCONST:  int: 2147450879
+1839.    ISUBCONST:  int: -2147450881
+1840.    IMULCONST:  int: 32768
+1841.    ISHLCONST:  int: 2147483647
+1842.    ISHRCONST:  int: 2147483647
+1843.    IUSHRCONST: int: 2147483647
+1844.    IANDCONST:  int: 2147450880
+1845.    IORCONST:   int: -1
+1846.    IXORCONST:  int: -2147450881
+1847.    not IFEQ:   int: -32768
+1848.    not IFLT:   int: -32768
+1849.    not IFLE:   int: -32768
+1850.    LADDCONST:  long: 9223372036854743039
+1851.    LSUBCONST:  long: -9223372036854743041
+1852.    LMULCONST:  long: 32768
+1853.    LSHLCONST:  long: 9223372036854775807
+1854.    LSHRCONST:  long: 9223372036854775807
+1855.    LUSHRCONST: long: 9223372036854775807
+1856.    LANDCONST:  long: 9223372036854743040
+1857.    LORCONST:   long: -1
+1858.    LXORCONST:  long: -9223372036854743041
+1859.    not IF_LEQ: int: -32768
+1860.    not IF_LLT: int: -32768
+1861.    not IF_LLE: int: -32768
+1862.    IADDCONST:  int: 2147450878
+1863.    ISUBCONST:  int: -2147450880
+1864.    IMULCONST:  int: -2147450879
+1865.    ISHLCONST:  int: -2147483648
+1866.    ISHRCONST:  int: 0
+1867.    IUSHRCONST: int: 0
+1868.    IANDCONST:  int: 2147450879
+1869.    IORCONST:   int: -1
+1870.    IXORCONST:  int: -2147450880
+1871.    not IFEQ:   int: -32769
+1872.    not IFLT:   int: -32769
+1873.    not IFLE:   int: -32769
+1874.    LADDCONST:  long: 9223372036854743038
+1875.    LSUBCONST:  long: -9223372036854743040
+1876.    LMULCONST:  long: -9223372036854743039
+1877.    LSHLCONST:  long: -9223372036854775808
+1878.    LSHRCONST:  long: 0
+1879.    LUSHRCONST: long: 0
+1880.    LANDCONST:  long: 9223372036854743039
+1881.    LORCONST:   long: -1
+1882.    LXORCONST:  long: -9223372036854743040
+1883.    not IF_LEQ: int: -32769
+1884.    not IF_LLT: int: -32769
+1885.    not IF_LLE: int: -32769
+1886.    IADDCONST:  int: -2
+1887.    ISUBCONST:  int: 0
+1888.    IMULCONST:  int: 1
+1889.    ISHLCONST:  int: -2147483648
+1890.    ISHRCONST:  int: 0
+1891.    IUSHRCONST: int: 0
+1892.    IANDCONST:  int: 2147483647
+1893.    IORCONST:   int: 2147483647
+1894.    IXORCONST:  int: 0
+1895.    not IFNE:   int: 2147483647
+1896.    not IFLT:   int: 2147483647
+1897.    not IFGT:   int: 2147483647
+1898.    LADDCONST:  long: -9223372034707292162
+1899.    LSUBCONST:  long: 9223372034707292160
+1900.    LMULCONST:  long: 9223372034707292161
+1901.    LSHLCONST:  long: -9223372036854775808
+1902.    LSHRCONST:  long: 0
+1903.    LUSHRCONST: long: 0
+1904.    LANDCONST:  long: 2147483647
+1905.    LORCONST:   long: 9223372036854775807
+1906.    LXORCONST:  long: 9223372034707292160
+1907.    not IF_LEQ: int: 2147483647
+1908.    not IF_LLT: int: 2147483647
+1909.    not IF_LLE: int: 2147483647
+1910.    LADDCONST:  long: -9223372034707292161
+1911.    LSUBCONST:  long: 9223372034707292159
+1912.    LMULCONST:  long: -2147483648
+1913.    LSHLCONST:  long: 9223372036854775807
+1914.    LSHRCONST:  long: 9223372036854775807
+1915.    LUSHRCONST: long: 9223372036854775807
+1916.    LANDCONST:  long: 2147483648
+1917.    LORCONST:   long: 9223372036854775807
+1918.    LXORCONST:  long: 9223372034707292159
+1919.    not IF_LEQ: long: 2147483648
+1920.    not IF_LLT: long: 2147483648
+1921.    not IF_LLE: long: 2147483648
+1922.    IADDCONST:  int: -1
+1923.    ISUBCONST:  int: -1
+1924.    IMULCONST:  int: -2147483648
+1925.    ISHLCONST:  int: 2147483647
+1926.    ISHRCONST:  int: 2147483647
+1927.    IUSHRCONST: int: 2147483647
+1928.    IANDCONST:  int: 0
+1929.    IORCONST:   int: -1
+1930.    IXORCONST:  int: -1
+1931.    not IFEQ:   int: -2147483648
+1932.    not IFLT:   int: -2147483648
+1933.    not IFLE:   int: -2147483648
+1934.    LADDCONST:  long: 9223372034707292159
+1935.    LSUBCONST:  long: -9223372034707292161
+1936.    LMULCONST:  long: 2147483648
+1937.    LSHLCONST:  long: 9223372036854775807
+1938.    LSHRCONST:  long: 9223372036854775807
+1939.    LUSHRCONST: long: 9223372036854775807
+1940.    LANDCONST:  long: 9223372034707292160
+1941.    LORCONST:   long: -1
+1942.    LXORCONST:  long: -9223372034707292161
+1943.    not IF_LEQ: int: -2147483648
+1944.    not IF_LLT: int: -2147483648
+1945.    not IF_LLE: int: -2147483648
+1946.    LADDCONST:  long: 9223372034707292158
+1947.    LSUBCONST:  long: -9223372034707292160
+1948.    LMULCONST:  long: -9223372034707292159
+1949.    LSHLCONST:  long: -9223372036854775808
+1950.    LSHRCONST:  long: 0
+1951.    LUSHRCONST: long: 0
+1952.    LANDCONST:  long: 9223372034707292159
+1953.    LORCONST:   long: -1
+1954.    LXORCONST:  long: -9223372034707292160
+1955.    not IF_LEQ: long: -2147483649
+1956.    not IF_LLT: long: -2147483649
+1957.    not IF_LLE: long: -2147483649
+1958.    TESTCONST CALLED WITH int: -2147483648
+1959.                      AND long: -9223372036854775808
+1960.    not IFEQ:   int: 0
+1961.    not IFGT:   int: 0
+1962.    not IFGE:   int: 0
+1963.    not IF_LEQ: int: 0
+1964.    not IF_LGT: int: 0
+1965.    not IF_LGE: int: 0
+1966.    IADDCONST:  int: 2147483647
+1967.    ISUBCONST:  int: -2147483647
+1968.    IMULCONST:  int: -2147483648
+1969.    ISHLCONST:  int: 0
+1970.    ISHRCONST:  int: -1
+1971.    IUSHRCONST: int: 1
+1972.    IANDCONST:  int: -2147483648
+1973.    IORCONST:   int: -1
+1974.    IXORCONST:  int: 2147483647
+1975.    not IFEQ:   int: -1
+1976.    not IFGT:   int: -1
+1977.    not IFGE:   int: -1
+1978.    LADDCONST:  long: 9223372036854775807
+1979.    LSUBCONST:  long: -9223372036854775807
+1980.    LMULCONST:  long: -9223372036854775808
+1981.    LSHLCONST:  long: 0
+1982.    LSHRCONST:  long: -1
+1983.    LUSHRCONST: long: 1
+1984.    LANDCONST:  long: -9223372036854775808
+1985.    LORCONST:   long: -1
+1986.    LXORCONST:  long: 9223372036854775807
+1987.    not IF_LEQ: int: -1
+1988.    not IF_LGT: int: -1
+1989.    not IF_LGE: int: -1
+1990.    IADDCONST:  int: -2147483647
+1991.    ISUBCONST:  int: 2147483647
+1992.    IMULCONST:  int: -2147483648
+1993.    ISHLCONST:  int: 0
+1994.    ISHRCONST:  int: -1073741824
+1995.    IUSHRCONST: int: 1073741824
+1996.    IANDCONST:  int: 0
+1997.    IORCONST:   int: -2147483647
+1998.    IXORCONST:  int: -2147483647
+1999.    not IFEQ:   int: 1
+2000.    not IFGT:   int: 1
+2001.    not IFGE:   int: 1
+2002.    LADDCONST:  long: -9223372036854775807
+2003.    LSUBCONST:  long: 9223372036854775807
+2004.    LMULCONST:  long: -9223372036854775808
+2005.    LSHLCONST:  long: 0
+2006.    LSHRCONST:  long: -4611686018427387904
+2007.    LUSHRCONST: long: 4611686018427387904
+2008.    LANDCONST:  long: 0
+2009.    LORCONST:   long: -9223372036854775807
+2010.    LXORCONST:  long: -9223372036854775807
+2011.    not IF_LEQ: int: 1
+2012.    not IF_LGT: int: 1
+2013.    not IF_LGE: int: 1
+2014.    IADDCONST:  int: -2147483393
+2015.    ISUBCONST:  int: 2147483393
+2016.    IMULCONST:  int: -2147483648
+2017.    ISHLCONST:  int: 0
+2018.    ISHRCONST:  int: -1
+2019.    IUSHRCONST: int: 1
+2020.    IANDCONST:  int: 0
+2021.    IORCONST:   int: -2147483393
+2022.    IXORCONST:  int: -2147483393
+2023.    not IFEQ:   int: 255
+2024.    not IFGT:   int: 255
+2025.    not IFGE:   int: 255
+2026.    LADDCONST:  long: -9223372036854775553
+2027.    LSUBCONST:  long: 9223372036854775553
+2028.    LMULCONST:  long: -9223372036854775808
+2029.    LSHLCONST:  long: 0
+2030.    LSHRCONST:  long: -1
+2031.    LUSHRCONST: long: 1
+2032.    LANDCONST:  long: 0
+2033.    LORCONST:   long: -9223372036854775553
+2034.    LXORCONST:  long: -9223372036854775553
+2035.    not IF_LEQ: int: 255
+2036.    not IF_LGT: int: 255
+2037.    not IF_LGE: int: 255
+2038.    IADDCONST:  int: -2147483392
+2039.    ISUBCONST:  int: 2147483392
+2040.    IMULCONST:  int: 0
+2041.    ISHLCONST:  int: -2147483648
+2042.    ISHRCONST:  int: -2147483648
+2043.    IUSHRCONST: int: -2147483648
+2044.    IANDCONST:  int: 0
+2045.    IORCONST:   int: -2147483392
+2046.    IXORCONST:  int: -2147483392
+2047.    not IFEQ:   int: 256
+2048.    not IFGT:   int: 256
+2049.    not IFGE:   int: 256
+2050.    LADDCONST:  long: -9223372036854775552
+2051.    LSUBCONST:  long: 9223372036854775552
+2052.    LMULCONST:  long: 0
+2053.    LSHLCONST:  long: -9223372036854775808
+2054.    LSHRCONST:  long: -9223372036854775808
+2055.    LUSHRCONST: long: -9223372036854775808
+2056.    LANDCONST:  long: 0
+2057.    LORCONST:   long: -9223372036854775552
+2058.    LXORCONST:  long: -9223372036854775552
+2059.    not IF_LEQ: int: 256
+2060.    not IF_LGT: int: 256
+2061.    not IF_LGE: int: 256
+2062.    IADDCONST:  int: -2147450881
+2063.    ISUBCONST:  int: 2147450881
+2064.    IMULCONST:  int: -2147483648
+2065.    ISHLCONST:  int: 0
+2066.    ISHRCONST:  int: -1
+2067.    IUSHRCONST: int: 1
+2068.    IANDCONST:  int: 0
+2069.    IORCONST:   int: -2147450881
+2070.    IXORCONST:  int: -2147450881
+2071.    not IFEQ:   int: 32767
+2072.    not IFGT:   int: 32767
+2073.    not IFGE:   int: 32767
+2074.    LADDCONST:  long: -9223372036854743041
+2075.    LSUBCONST:  long: 9223372036854743041
+2076.    LMULCONST:  long: -9223372036854775808
+2077.    LSHLCONST:  long: 0
+2078.    LSHRCONST:  long: -1
+2079.    LUSHRCONST: long: 1
+2080.    LANDCONST:  long: 0
+2081.    LORCONST:   long: -9223372036854743041
+2082.    LXORCONST:  long: -9223372036854743041
+2083.    not IF_LEQ: int: 32767
+2084.    not IF_LGT: int: 32767
+2085.    not IF_LGE: int: 32767
+2086.    IADDCONST:  int: -2147450880
+2087.    ISUBCONST:  int: 2147450880
+2088.    IMULCONST:  int: 0
+2089.    ISHLCONST:  int: -2147483648
+2090.    ISHRCONST:  int: -2147483648
+2091.    IUSHRCONST: int: -2147483648
+2092.    IANDCONST:  int: 0
+2093.    IORCONST:   int: -2147450880
+2094.    IXORCONST:  int: -2147450880
+2095.    not IFEQ:   int: 32768
+2096.    not IFGT:   int: 32768
+2097.    not IFGE:   int: 32768
+2098.    LADDCONST:  long: -9223372036854743040
+2099.    LSUBCONST:  long: 9223372036854743040
+2100.    LMULCONST:  long: 0
+2101.    LSHLCONST:  long: -9223372036854775808
+2102.    LSHRCONST:  long: -9223372036854775808
+2103.    LUSHRCONST: long: -9223372036854775808
+2104.    LANDCONST:  long: 0
+2105.    LORCONST:   long: -9223372036854743040
+2106.    LXORCONST:  long: -9223372036854743040
+2107.    not IF_LEQ: int: 32768
+2108.    not IF_LGT: int: 32768
+2109.    not IF_LGE: int: 32768
+2110.    IADDCONST:  int: 2147450880
+2111.    ISUBCONST:  int: -2147450880
+2112.    IMULCONST:  int: 0
+2113.    ISHLCONST:  int: -2147483648
+2114.    ISHRCONST:  int: -2147483648
+2115.    IUSHRCONST: int: -2147483648
+2116.    IANDCONST:  int: -2147483648
+2117.    IORCONST:   int: -32768
+2118.    IXORCONST:  int: 2147450880
+2119.    not IFEQ:   int: -32768
+2120.    not IFGT:   int: -32768
+2121.    not IFGE:   int: -32768
+2122.    LADDCONST:  long: 9223372036854743040
+2123.    LSUBCONST:  long: -9223372036854743040
+2124.    LMULCONST:  long: 0
+2125.    LSHLCONST:  long: -9223372036854775808
+2126.    LSHRCONST:  long: -9223372036854775808
+2127.    LUSHRCONST: long: -9223372036854775808
+2128.    LANDCONST:  long: -9223372036854775808
+2129.    LORCONST:   long: -32768
+2130.    LXORCONST:  long: 9223372036854743040
+2131.    not IF_LEQ: int: -32768
+2132.    not IF_LGT: int: -32768
+2133.    not IF_LGE: int: -32768
+2134.    IADDCONST:  int: 2147450879
+2135.    ISUBCONST:  int: -2147450879
+2136.    IMULCONST:  int: -2147483648
+2137.    ISHLCONST:  int: 0
+2138.    ISHRCONST:  int: -1
+2139.    IUSHRCONST: int: 1
+2140.    IANDCONST:  int: -2147483648
+2141.    IORCONST:   int: -32769
+2142.    IXORCONST:  int: 2147450879
+2143.    not IFEQ:   int: -32769
+2144.    not IFGT:   int: -32769
+2145.    not IFGE:   int: -32769
+2146.    LADDCONST:  long: 9223372036854743039
+2147.    LSUBCONST:  long: -9223372036854743039
+2148.    LMULCONST:  long: -9223372036854775808
+2149.    LSHLCONST:  long: 0
+2150.    LSHRCONST:  long: -1
+2151.    LUSHRCONST: long: 1
+2152.    LANDCONST:  long: -9223372036854775808
+2153.    LORCONST:   long: -32769
+2154.    LXORCONST:  long: 9223372036854743039
+2155.    not IF_LEQ: int: -32769
+2156.    not IF_LGT: int: -32769
+2157.    not IF_LGE: int: -32769
+2158.    IADDCONST:  int: -1
+2159.    ISUBCONST:  int: 1
+2160.    IMULCONST:  int: -2147483648
+2161.    ISHLCONST:  int: 0
+2162.    ISHRCONST:  int: -1
+2163.    IUSHRCONST: int: 1
+2164.    IANDCONST:  int: 0
+2165.    IORCONST:   int: -1
+2166.    IXORCONST:  int: -1
+2167.    not IFEQ:   int: 2147483647
+2168.    not IFGT:   int: 2147483647
+2169.    not IFGE:   int: 2147483647
+2170.    LADDCONST:  long: -9223372034707292161
+2171.    LSUBCONST:  long: 9223372034707292161
+2172.    LMULCONST:  long: -9223372036854775808
+2173.    LSHLCONST:  long: 0
+2174.    LSHRCONST:  long: -1
+2175.    LUSHRCONST: long: 1
+2176.    LANDCONST:  long: 0
+2177.    LORCONST:   long: -9223372034707292161
+2178.    LXORCONST:  long: -9223372034707292161
+2179.    not IF_LEQ: int: 2147483647
+2180.    not IF_LGT: int: 2147483647
+2181.    not IF_LGE: int: 2147483647
+2182.    LADDCONST:  long: -9223372034707292160
+2183.    LSUBCONST:  long: 9223372034707292160
+2184.    LMULCONST:  long: 0
+2185.    LSHLCONST:  long: -9223372036854775808
+2186.    LSHRCONST:  long: -9223372036854775808
+2187.    LUSHRCONST: long: -9223372036854775808
+2188.    LANDCONST:  long: 0
+2189.    LORCONST:   long: -9223372034707292160
+2190.    LXORCONST:  long: -9223372034707292160
+2191.    not IF_LEQ: long: 2147483648
+2192.    not IF_LGT: long: 2147483648
+2193.    not IF_LGE: long: 2147483648
+2194.    IADDCONST:  int: 0
+2195.    ISUBCONST:  int: 0
+2196.    IMULCONST:  int: 0
+2197.    ISHLCONST:  int: -2147483648
+2198.    ISHRCONST:  int: -2147483648
+2199.    IUSHRCONST: int: -2147483648
+2200.    IANDCONST:  int: -2147483648
+2201.    IORCONST:   int: -2147483648
+2202.    IXORCONST:  int: 0
+2203.    not IFNE:   int: -2147483648
+2204.    not IFLT:   int: -2147483648
+2205.    not IFGT:   int: -2147483648
+2206.    LADDCONST:  long: 9223372034707292160
+2207.    LSUBCONST:  long: -9223372034707292160
+2208.    LMULCONST:  long: 0
+2209.    LSHLCONST:  long: -9223372036854775808
+2210.    LSHRCONST:  long: -9223372036854775808
+2211.    LUSHRCONST: long: -9223372036854775808
+2212.    LANDCONST:  long: -9223372036854775808
+2213.    LORCONST:   long: -2147483648
+2214.    LXORCONST:  long: 9223372034707292160
+2215.    not IF_LEQ: int: -2147483648
+2216.    not IF_LGT: int: -2147483648
+2217.    not IF_LGE: int: -2147483648
+2218.    LADDCONST:  long: 9223372034707292159
+2219.    LSUBCONST:  long: -9223372034707292159
+2220.    LMULCONST:  long: -9223372036854775808
+2221.    LSHLCONST:  long: 0
+2222.    LSHRCONST:  long: -1
+2223.    LUSHRCONST: long: 1
+2224.    LANDCONST:  long: -9223372036854775808
+2225.    LORCONST:   long: -2147483649
+2226.    LXORCONST:  long: 9223372034707292159
+2227.    not IF_LEQ: long: -2147483649
+2228.    not IF_LGT: long: -2147483649
+2229.    not IF_LGE: long: -2147483649
+2230.    ------------------- test div and rem consts
+2231.    IDIVPOW2 (17 / 0x00000002):  int: 8
+2232.    IDIVPOW2 (17 / 0x00000004):  int: 4
+2233.    IDIVPOW2 (17 / 0x00000008):  int: 2
+2234.    IDIVPOW2 (17 / 0x00000010):  int: 1
+2235.    IDIVPOW2 (17 / 0x00000020):  int: 0
+2236.    IDIVPOW2 (17 / 0x00000040):  int: 0
+2237.    IDIVPOW2 (17 / 0x00000080):  int: 0
+2238.    IDIVPOW2 (17 / 0x00000100):  int: 0
+2239.    IDIVPOW2 (17 / 0x00000200):  int: 0
+2240.    IDIVPOW2 (17 / 0x00000400):  int: 0
+2241.    IDIVPOW2 (17 / 0x00000800):  int: 0
+2242.    IDIVPOW2 (17 / 0x00001000):  int: 0
+2243.    IDIVPOW2 (17 / 0x00002000):  int: 0
+2244.    IDIVPOW2 (17 / 0x00004000):  int: 0
+2245.    IDIVPOW2 (17 / 0x00008000):  int: 0
+2246.    IDIVPOW2 (17 / 0x00010000):  int: 0
+2247.    IDIVPOW2 (17 / 0x00020000):  int: 0
+2248.    IDIVPOW2 (17 / 0x00040000):  int: 0
+2249.    IDIVPOW2 (17 / 0x00080000):  int: 0
+2250.    IDIVPOW2 (17 / 0x00100000):  int: 0
+2251.    IDIVPOW2 (17 / 0x00200000):  int: 0
+2252.    IDIVPOW2 (17 / 0x00400000):  int: 0
+2253.    IDIVPOW2 (17 / 0x00800000):  int: 0
+2254.    IDIVPOW2 (17 / 0x01000000):  int: 0
+2255.    IDIVPOW2 (17 / 0x02000000):  int: 0
+2256.    IDIVPOW2 (17 / 0x04000000):  int: 0
+2257.    IDIVPOW2 (17 / 0x08000000):  int: 0
+2258.    IDIVPOW2 (17 / 0x10000000):  int: 0
+2259.    IDIVPOW2 (17 / 0x20000000):  int: 0
+2260.    IDIVPOW2 (17 / 0x40000000):  int: 0
+2261.    IDIVPOW2 (17 / 0x80000000):  int: 0
+2262.    IREMPOW2 (17 % 0x00000002):  int: 1
+2263.    IREMPOW2 (17 % 0x00000004):  int: 1
+2264.    IREMPOW2 (17 % 0x00000008):  int: 1
+2265.    IREMPOW2 (17 % 0x00000010):  int: 1
+2266.    IREMPOW2 (17 % 0x00000020):  int: 17
+2267.    IREMPOW2 (17 % 0x00000040):  int: 17
+2268.    IREMPOW2 (17 % 0x00000080):  int: 17
+2269.    IREMPOW2 (17 % 0x00000100):  int: 17
+2270.    IREMPOW2 (17 % 0x00000200):  int: 17
+2271.    IREMPOW2 (17 % 0x00000400):  int: 17
+2272.    IREMPOW2 (17 % 0x00000800):  int: 17
+2273.    IREMPOW2 (17 % 0x00001000):  int: 17
+2274.    IREMPOW2 (17 % 0x00002000):  int: 17
+2275.    IREMPOW2 (17 % 0x00004000):  int: 17
+2276.    IREMPOW2 (17 % 0x00008000):  int: 17
+2277.    IREMPOW2 (17 % 0x00010000):  int: 17
+2278.    IREMPOW2 (17 % 0x00020000):  int: 17
+2279.    IREMPOW2 (17 % 0x00040000):  int: 17
+2280.    IREMPOW2 (17 % 0x00080000):  int: 17
+2281.    IREMPOW2 (17 % 0x00100000):  int: 17
+2282.    IREMPOW2 (17 % 0x00200000):  int: 17
+2283.    IREMPOW2 (17 % 0x00400000):  int: 17
+2284.    IREMPOW2 (17 % 0x00800000):  int: 17
+2285.    IREMPOW2 (17 % 0x01000000):  int: 17
+2286.    IREMPOW2 (17 % 0x02000000):  int: 17
+2287.    IREMPOW2 (17 % 0x04000000):  int: 17
+2288.    IREMPOW2 (17 % 0x08000000):  int: 17
+2289.    IREMPOW2 (17 % 0x10000000):  int: 17
+2290.    IREMPOW2 (17 % 0x20000000):  int: 17
+2291.    IREMPOW2 (17 % 0x40000000):  int: 17
+2292.    IREMPOW2 (17 % 0x80000000):  int: 17
+2293.    IDIVPOW2 (12347 / 0x00000002):  int: 6173
+2294.    IDIVPOW2 (12347 / 0x00000004):  int: 3086
+2295.    IDIVPOW2 (12347 / 0x00000008):  int: 1543
+2296.    IDIVPOW2 (12347 / 0x00000010):  int: 771
+2297.    IDIVPOW2 (12347 / 0x00000020):  int: 385
+2298.    IDIVPOW2 (12347 / 0x00000040):  int: 192
+2299.    IDIVPOW2 (12347 / 0x00000080):  int: 96
+2300.    IDIVPOW2 (12347 / 0x00000100):  int: 48
+2301.    IDIVPOW2 (12347 / 0x00000200):  int: 24
+2302.    IDIVPOW2 (12347 / 0x00000400):  int: 12
+2303.    IDIVPOW2 (12347 / 0x00000800):  int: 6
+2304.    IDIVPOW2 (12347 / 0x00001000):  int: 3
+2305.    IDIVPOW2 (12347 / 0x00002000):  int: 1
+2306.    IDIVPOW2 (12347 / 0x00004000):  int: 0
+2307.    IDIVPOW2 (12347 / 0x00008000):  int: 0
+2308.    IDIVPOW2 (12347 / 0x00010000):  int: 0
+2309.    IDIVPOW2 (12347 / 0x00020000):  int: 0
+2310.    IDIVPOW2 (12347 / 0x00040000):  int: 0
+2311.    IDIVPOW2 (12347 / 0x00080000):  int: 0
+2312.    IDIVPOW2 (12347 / 0x00100000):  int: 0
+2313.    IDIVPOW2 (12347 / 0x00200000):  int: 0
+2314.    IDIVPOW2 (12347 / 0x00400000):  int: 0
+2315.    IDIVPOW2 (12347 / 0x00800000):  int: 0
+2316.    IDIVPOW2 (12347 / 0x01000000):  int: 0
+2317.    IDIVPOW2 (12347 / 0x02000000):  int: 0
+2318.    IDIVPOW2 (12347 / 0x04000000):  int: 0
+2319.    IDIVPOW2 (12347 / 0x08000000):  int: 0
+2320.    IDIVPOW2 (12347 / 0x10000000):  int: 0
+2321.    IDIVPOW2 (12347 / 0x20000000):  int: 0
+2322.    IDIVPOW2 (12347 / 0x40000000):  int: 0
+2323.    IDIVPOW2 (12347 / 0x80000000):  int: 0
+2324.    IREMPOW2 (12347 % 0x00000002):  int: 1
+2325.    IREMPOW2 (12347 % 0x00000004):  int: 3
+2326.    IREMPOW2 (12347 % 0x00000008):  int: 3
+2327.    IREMPOW2 (12347 % 0x00000010):  int: 11
+2328.    IREMPOW2 (12347 % 0x00000020):  int: 27
+2329.    IREMPOW2 (12347 % 0x00000040):  int: 59
+2330.    IREMPOW2 (12347 % 0x00000080):  int: 59
+2331.    IREMPOW2 (12347 % 0x00000100):  int: 59
+2332.    IREMPOW2 (12347 % 0x00000200):  int: 59
+2333.    IREMPOW2 (12347 % 0x00000400):  int: 59
+2334.    IREMPOW2 (12347 % 0x00000800):  int: 59
+2335.    IREMPOW2 (12347 % 0x00001000):  int: 59
+2336.    IREMPOW2 (12347 % 0x00002000):  int: 4155
+2337.    IREMPOW2 (12347 % 0x00004000):  int: 12347
+2338.    IREMPOW2 (12347 % 0x00008000):  int: 12347
+2339.    IREMPOW2 (12347 % 0x00010000):  int: 12347
+2340.    IREMPOW2 (12347 % 0x00020000):  int: 12347
+2341.    IREMPOW2 (12347 % 0x00040000):  int: 12347
+2342.    IREMPOW2 (12347 % 0x00080000):  int: 12347
+2343.    IREMPOW2 (12347 % 0x00100000):  int: 12347
+2344.    IREMPOW2 (12347 % 0x00200000):  int: 12347
+2345.    IREMPOW2 (12347 % 0x00400000):  int: 12347
+2346.    IREMPOW2 (12347 % 0x00800000):  int: 12347
+2347.    IREMPOW2 (12347 % 0x01000000):  int: 12347
+2348.    IREMPOW2 (12347 % 0x02000000):  int: 12347
+2349.    IREMPOW2 (12347 % 0x04000000):  int: 12347
+2350.    IREMPOW2 (12347 % 0x08000000):  int: 12347
+2351.    IREMPOW2 (12347 % 0x10000000):  int: 12347
+2352.    IREMPOW2 (12347 % 0x20000000):  int: 12347
+2353.    IREMPOW2 (12347 % 0x40000000):  int: 12347
+2354.    IREMPOW2 (12347 % 0x80000000):  int: 12347
+2355.    IDIVPOW2 (8893427 / 0x00000002):  int: 4446713
+2356.    IDIVPOW2 (8893427 / 0x00000004):  int: 2223356
+2357.    IDIVPOW2 (8893427 / 0x00000008):  int: 1111678
+2358.    IDIVPOW2 (8893427 / 0x00000010):  int: 555839
+2359.    IDIVPOW2 (8893427 / 0x00000020):  int: 277919
+2360.    IDIVPOW2 (8893427 / 0x00000040):  int: 138959
+2361.    IDIVPOW2 (8893427 / 0x00000080):  int: 69479
+2362.    IDIVPOW2 (8893427 / 0x00000100):  int: 34739
+2363.    IDIVPOW2 (8893427 / 0x00000200):  int: 17369
+2364.    IDIVPOW2 (8893427 / 0x00000400):  int: 8684
+2365.    IDIVPOW2 (8893427 / 0x00000800):  int: 4342
+2366.    IDIVPOW2 (8893427 / 0x00001000):  int: 2171
+2367.    IDIVPOW2 (8893427 / 0x00002000):  int: 1085
+2368.    IDIVPOW2 (8893427 / 0x00004000):  int: 542
+2369.    IDIVPOW2 (8893427 / 0x00008000):  int: 271
+2370.    IDIVPOW2 (8893427 / 0x00010000):  int: 135
+2371.    IDIVPOW2 (8893427 / 0x00020000):  int: 67
+2372.    IDIVPOW2 (8893427 / 0x00040000):  int: 33
+2373.    IDIVPOW2 (8893427 / 0x00080000):  int: 16
+2374.    IDIVPOW2 (8893427 / 0x00100000):  int: 8
+2375.    IDIVPOW2 (8893427 / 0x00200000):  int: 4
+2376.    IDIVPOW2 (8893427 / 0x00400000):  int: 2
+2377.    IDIVPOW2 (8893427 / 0x00800000):  int: 1
+2378.    IDIVPOW2 (8893427 / 0x01000000):  int: 0
+2379.    IDIVPOW2 (8893427 / 0x02000000):  int: 0
+2380.    IDIVPOW2 (8893427 / 0x04000000):  int: 0
+2381.    IDIVPOW2 (8893427 / 0x08000000):  int: 0
+2382.    IDIVPOW2 (8893427 / 0x10000000):  int: 0
+2383.    IDIVPOW2 (8893427 / 0x20000000):  int: 0
+2384.    IDIVPOW2 (8893427 / 0x40000000):  int: 0
+2385.    IDIVPOW2 (8893427 / 0x80000000):  int: 0
+2386.    IREMPOW2 (8893427 % 0x00000002):  int: 1
+2387.    IREMPOW2 (8893427 % 0x00000004):  int: 3
+2388.    IREMPOW2 (8893427 % 0x00000008):  int: 3
+2389.    IREMPOW2 (8893427 % 0x00000010):  int: 3
+2390.    IREMPOW2 (8893427 % 0x00000020):  int: 19
+2391.    IREMPOW2 (8893427 % 0x00000040):  int: 51
+2392.    IREMPOW2 (8893427 % 0x00000080):  int: 115
+2393.    IREMPOW2 (8893427 % 0x00000100):  int: 243
+2394.    IREMPOW2 (8893427 % 0x00000200):  int: 499
+2395.    IREMPOW2 (8893427 % 0x00000400):  int: 1011
+2396.    IREMPOW2 (8893427 % 0x00000800):  int: 1011
+2397.    IREMPOW2 (8893427 % 0x00001000):  int: 1011
+2398.    IREMPOW2 (8893427 % 0x00002000):  int: 5107
+2399.    IREMPOW2 (8893427 % 0x00004000):  int: 13299
+2400.    IREMPOW2 (8893427 % 0x00008000):  int: 13299
+2401.    IREMPOW2 (8893427 % 0x00010000):  int: 46067
+2402.    IREMPOW2 (8893427 % 0x00020000):  int: 111603
+2403.    IREMPOW2 (8893427 % 0x00040000):  int: 242675
+2404.    IREMPOW2 (8893427 % 0x00080000):  int: 504819
+2405.    IREMPOW2 (8893427 % 0x00100000):  int: 504819
+2406.    IREMPOW2 (8893427 % 0x00200000):  int: 504819
+2407.    IREMPOW2 (8893427 % 0x00400000):  int: 504819
+2408.    IREMPOW2 (8893427 % 0x00800000):  int: 504819
+2409.    IREMPOW2 (8893427 % 0x01000000):  int: 8893427
+2410.    IREMPOW2 (8893427 % 0x02000000):  int: 8893427
+2411.    IREMPOW2 (8893427 % 0x04000000):  int: 8893427
+2412.    IREMPOW2 (8893427 % 0x08000000):  int: 8893427
+2413.    IREMPOW2 (8893427 % 0x10000000):  int: 8893427
+2414.    IREMPOW2 (8893427 % 0x20000000):  int: 8893427
+2415.    IREMPOW2 (8893427 % 0x40000000):  int: 8893427
+2416.    IREMPOW2 (8893427 % 0x80000000):  int: 8893427
+2417.    IDIVPOW2 (1005234562 / 0x00000002):  int: 502617281
+2418.    IDIVPOW2 (1005234562 / 0x00000004):  int: 251308640
+2419.    IDIVPOW2 (1005234562 / 0x00000008):  int: 125654320
+2420.    IDIVPOW2 (1005234562 / 0x00000010):  int: 62827160
+2421.    IDIVPOW2 (1005234562 / 0x00000020):  int: 31413580
+2422.    IDIVPOW2 (1005234562 / 0x00000040):  int: 15706790
+2423.    IDIVPOW2 (1005234562 / 0x00000080):  int: 7853395
+2424.    IDIVPOW2 (1005234562 / 0x00000100):  int: 3926697
+2425.    IDIVPOW2 (1005234562 / 0x00000200):  int: 1963348
+2426.    IDIVPOW2 (1005234562 / 0x00000400):  int: 981674
+2427.    IDIVPOW2 (1005234562 / 0x00000800):  int: 490837
+2428.    IDIVPOW2 (1005234562 / 0x00001000):  int: 245418
+2429.    IDIVPOW2 (1005234562 / 0x00002000):  int: 122709
+2430.    IDIVPOW2 (1005234562 / 0x00004000):  int: 61354
+2431.    IDIVPOW2 (1005234562 / 0x00008000):  int: 30677
+2432.    IDIVPOW2 (1005234562 / 0x00010000):  int: 15338
+2433.    IDIVPOW2 (1005234562 / 0x00020000):  int: 7669
+2434.    IDIVPOW2 (1005234562 / 0x00040000):  int: 3834
+2435.    IDIVPOW2 (1005234562 / 0x00080000):  int: 1917
+2436.    IDIVPOW2 (1005234562 / 0x00100000):  int: 958
+2437.    IDIVPOW2 (1005234562 / 0x00200000):  int: 479
+2438.    IDIVPOW2 (1005234562 / 0x00400000):  int: 239
+2439.    IDIVPOW2 (1005234562 / 0x00800000):  int: 119
+2440.    IDIVPOW2 (1005234562 / 0x01000000):  int: 59
+2441.    IDIVPOW2 (1005234562 / 0x02000000):  int: 29
+2442.    IDIVPOW2 (1005234562 / 0x04000000):  int: 14
+2443.    IDIVPOW2 (1005234562 / 0x08000000):  int: 7
+2444.    IDIVPOW2 (1005234562 / 0x10000000):  int: 3
+2445.    IDIVPOW2 (1005234562 / 0x20000000):  int: 1
+2446.    IDIVPOW2 (1005234562 / 0x40000000):  int: 0
+2447.    IDIVPOW2 (1005234562 / 0x80000000):  int: 0
+2448.    IREMPOW2 (1005234562 % 0x00000002):  int: 0
+2449.    IREMPOW2 (1005234562 % 0x00000004):  int: 2
+2450.    IREMPOW2 (1005234562 % 0x00000008):  int: 2
+2451.    IREMPOW2 (1005234562 % 0x00000010):  int: 2
+2452.    IREMPOW2 (1005234562 % 0x00000020):  int: 2
+2453.    IREMPOW2 (1005234562 % 0x00000040):  int: 2
+2454.    IREMPOW2 (1005234562 % 0x00000080):  int: 2
+2455.    IREMPOW2 (1005234562 % 0x00000100):  int: 130
+2456.    IREMPOW2 (1005234562 % 0x00000200):  int: 386
+2457.    IREMPOW2 (1005234562 % 0x00000400):  int: 386
+2458.    IREMPOW2 (1005234562 % 0x00000800):  int: 386
+2459.    IREMPOW2 (1005234562 % 0x00001000):  int: 2434
+2460.    IREMPOW2 (1005234562 % 0x00002000):  int: 2434
+2461.    IREMPOW2 (1005234562 % 0x00004000):  int: 10626
+2462.    IREMPOW2 (1005234562 % 0x00008000):  int: 10626
+2463.    IREMPOW2 (1005234562 % 0x00010000):  int: 43394
+2464.    IREMPOW2 (1005234562 % 0x00020000):  int: 43394
+2465.    IREMPOW2 (1005234562 % 0x00040000):  int: 174466
+2466.    IREMPOW2 (1005234562 % 0x00080000):  int: 174466
+2467.    IREMPOW2 (1005234562 % 0x00100000):  int: 698754
+2468.    IREMPOW2 (1005234562 % 0x00200000):  int: 698754
+2469.    IREMPOW2 (1005234562 % 0x00400000):  int: 2795906
+2470.    IREMPOW2 (1005234562 % 0x00800000):  int: 6990210
+2471.    IREMPOW2 (1005234562 % 0x01000000):  int: 15378818
+2472.    IREMPOW2 (1005234562 % 0x02000000):  int: 32156034
+2473.    IREMPOW2 (1005234562 % 0x04000000):  int: 65710466
+2474.    IREMPOW2 (1005234562 % 0x08000000):  int: 65710466
+2475.    IREMPOW2 (1005234562 % 0x10000000):  int: 199928194
+2476.    IREMPOW2 (1005234562 % 0x20000000):  int: 468363650
+2477.    IREMPOW2 (1005234562 % 0x40000000):  int: 1005234562
+2478.    IREMPOW2 (1005234562 % 0x80000000):  int: 1005234562
+2479.    IDIVPOW2 (-17 / 0x00000002):  int: -8
+2480.    IDIVPOW2 (-17 / 0x00000004):  int: -4
+2481.    IDIVPOW2 (-17 / 0x00000008):  int: -2
+2482.    IDIVPOW2 (-17 / 0x00000010):  int: -1
+2483.    IDIVPOW2 (-17 / 0x00000020):  int: 0
+2484.    IDIVPOW2 (-17 / 0x00000040):  int: 0
+2485.    IDIVPOW2 (-17 / 0x00000080):  int: 0
+2486.    IDIVPOW2 (-17 / 0x00000100):  int: 0
+2487.    IDIVPOW2 (-17 / 0x00000200):  int: 0
+2488.    IDIVPOW2 (-17 / 0x00000400):  int: 0
+2489.    IDIVPOW2 (-17 / 0x00000800):  int: 0
+2490.    IDIVPOW2 (-17 / 0x00001000):  int: 0
+2491.    IDIVPOW2 (-17 / 0x00002000):  int: 0
+2492.    IDIVPOW2 (-17 / 0x00004000):  int: 0
+2493.    IDIVPOW2 (-17 / 0x00008000):  int: 0
+2494.    IDIVPOW2 (-17 / 0x00010000):  int: 0
+2495.    IDIVPOW2 (-17 / 0x00020000):  int: 0
+2496.    IDIVPOW2 (-17 / 0x00040000):  int: 0
+2497.    IDIVPOW2 (-17 / 0x00080000):  int: 0
+2498.    IDIVPOW2 (-17 / 0x00100000):  int: 0
+2499.    IDIVPOW2 (-17 / 0x00200000):  int: 0
+2500.    IDIVPOW2 (-17 / 0x00400000):  int: 0
+2501.    IDIVPOW2 (-17 / 0x00800000):  int: 0
+2502.    IDIVPOW2 (-17 / 0x01000000):  int: 0
+2503.    IDIVPOW2 (-17 / 0x02000000):  int: 0
+2504.    IDIVPOW2 (-17 / 0x04000000):  int: 0
+2505.    IDIVPOW2 (-17 / 0x08000000):  int: 0
+2506.    IDIVPOW2 (-17 / 0x10000000):  int: 0
+2507.    IDIVPOW2 (-17 / 0x20000000):  int: 0
+2508.    IDIVPOW2 (-17 / 0x40000000):  int: 0
+2509.    IDIVPOW2 (-17 / 0x80000000):  int: 0
+2510.    IREMPOW2 (-17 % 0x00000002):  int: -1
+2511.    IREMPOW2 (-17 % 0x00000004):  int: -1
+2512.    IREMPOW2 (-17 % 0x00000008):  int: -1
+2513.    IREMPOW2 (-17 % 0x00000010):  int: -1
+2514.    IREMPOW2 (-17 % 0x00000020):  int: -17
+2515.    IREMPOW2 (-17 % 0x00000040):  int: -17
+2516.    IREMPOW2 (-17 % 0x00000080):  int: -17
+2517.    IREMPOW2 (-17 % 0x00000100):  int: -17
+2518.    IREMPOW2 (-17 % 0x00000200):  int: -17
+2519.    IREMPOW2 (-17 % 0x00000400):  int: -17
+2520.    IREMPOW2 (-17 % 0x00000800):  int: -17
+2521.    IREMPOW2 (-17 % 0x00001000):  int: -17
+2522.    IREMPOW2 (-17 % 0x00002000):  int: -17
+2523.    IREMPOW2 (-17 % 0x00004000):  int: -17
+2524.    IREMPOW2 (-17 % 0x00008000):  int: -17
+2525.    IREMPOW2 (-17 % 0x00010000):  int: -17
+2526.    IREMPOW2 (-17 % 0x00020000):  int: -17
+2527.    IREMPOW2 (-17 % 0x00040000):  int: -17
+2528.    IREMPOW2 (-17 % 0x00080000):  int: -17
+2529.    IREMPOW2 (-17 % 0x00100000):  int: -17
+2530.    IREMPOW2 (-17 % 0x00200000):  int: -17
+2531.    IREMPOW2 (-17 % 0x00400000):  int: -17
+2532.    IREMPOW2 (-17 % 0x00800000):  int: -17
+2533.    IREMPOW2 (-17 % 0x01000000):  int: -17
+2534.    IREMPOW2 (-17 % 0x02000000):  int: -17
+2535.    IREMPOW2 (-17 % 0x04000000):  int: -17
+2536.    IREMPOW2 (-17 % 0x08000000):  int: -17
+2537.    IREMPOW2 (-17 % 0x10000000):  int: -17
+2538.    IREMPOW2 (-17 % 0x20000000):  int: -17
+2539.    IREMPOW2 (-17 % 0x40000000):  int: -17
+2540.    IREMPOW2 (-17 % 0x80000000):  int: -17
+2541.    IDIVPOW2 (-12347 / 0x00000002):  int: -6173
+2542.    IDIVPOW2 (-12347 / 0x00000004):  int: -3086
+2543.    IDIVPOW2 (-12347 / 0x00000008):  int: -1543
+2544.    IDIVPOW2 (-12347 / 0x00000010):  int: -771
+2545.    IDIVPOW2 (-12347 / 0x00000020):  int: -385
+2546.    IDIVPOW2 (-12347 / 0x00000040):  int: -192
+2547.    IDIVPOW2 (-12347 / 0x00000080):  int: -96
+2548.    IDIVPOW2 (-12347 / 0x00000100):  int: -48
+2549.    IDIVPOW2 (-12347 / 0x00000200):  int: -24
+2550.    IDIVPOW2 (-12347 / 0x00000400):  int: -12
+2551.    IDIVPOW2 (-12347 / 0x00000800):  int: -6
+2552.    IDIVPOW2 (-12347 / 0x00001000):  int: -3
+2553.    IDIVPOW2 (-12347 / 0x00002000):  int: -1
+2554.    IDIVPOW2 (-12347 / 0x00004000):  int: 0
+2555.    IDIVPOW2 (-12347 / 0x00008000):  int: 0
+2556.    IDIVPOW2 (-12347 / 0x00010000):  int: 0
+2557.    IDIVPOW2 (-12347 / 0x00020000):  int: 0
+2558.    IDIVPOW2 (-12347 / 0x00040000):  int: 0
+2559.    IDIVPOW2 (-12347 / 0x00080000):  int: 0
+2560.    IDIVPOW2 (-12347 / 0x00100000):  int: 0
+2561.    IDIVPOW2 (-12347 / 0x00200000):  int: 0
+2562.    IDIVPOW2 (-12347 / 0x00400000):  int: 0
+2563.    IDIVPOW2 (-12347 / 0x00800000):  int: 0
+2564.    IDIVPOW2 (-12347 / 0x01000000):  int: 0
+2565.    IDIVPOW2 (-12347 / 0x02000000):  int: 0
+2566.    IDIVPOW2 (-12347 / 0x04000000):  int: 0
+2567.    IDIVPOW2 (-12347 / 0x08000000):  int: 0
+2568.    IDIVPOW2 (-12347 / 0x10000000):  int: 0
+2569.    IDIVPOW2 (-12347 / 0x20000000):  int: 0
+2570.    IDIVPOW2 (-12347 / 0x40000000):  int: 0
+2571.    IDIVPOW2 (-12347 / 0x80000000):  int: 0
+2572.    IREMPOW2 (-12347 % 0x00000002):  int: -1
+2573.    IREMPOW2 (-12347 % 0x00000004):  int: -3
+2574.    IREMPOW2 (-12347 % 0x00000008):  int: -3
+2575.    IREMPOW2 (-12347 % 0x00000010):  int: -11
+2576.    IREMPOW2 (-12347 % 0x00000020):  int: -27
+2577.    IREMPOW2 (-12347 % 0x00000040):  int: -59
+2578.    IREMPOW2 (-12347 % 0x00000080):  int: -59
+2579.    IREMPOW2 (-12347 % 0x00000100):  int: -59
+2580.    IREMPOW2 (-12347 % 0x00000200):  int: -59
+2581.    IREMPOW2 (-12347 % 0x00000400):  int: -59
+2582.    IREMPOW2 (-12347 % 0x00000800):  int: -59
+2583.    IREMPOW2 (-12347 % 0x00001000):  int: -59
+2584.    IREMPOW2 (-12347 % 0x00002000):  int: -4155
+2585.    IREMPOW2 (-12347 % 0x00004000):  int: -12347
+2586.    IREMPOW2 (-12347 % 0x00008000):  int: -12347
+2587.    IREMPOW2 (-12347 % 0x00010000):  int: -12347
+2588.    IREMPOW2 (-12347 % 0x00020000):  int: -12347
+2589.    IREMPOW2 (-12347 % 0x00040000):  int: -12347
+2590.    IREMPOW2 (-12347 % 0x00080000):  int: -12347
+2591.    IREMPOW2 (-12347 % 0x00100000):  int: -12347
+2592.    IREMPOW2 (-12347 % 0x00200000):  int: -12347
+2593.    IREMPOW2 (-12347 % 0x00400000):  int: -12347
+2594.    IREMPOW2 (-12347 % 0x00800000):  int: -12347
+2595.    IREMPOW2 (-12347 % 0x01000000):  int: -12347
+2596.    IREMPOW2 (-12347 % 0x02000000):  int: -12347
+2597.    IREMPOW2 (-12347 % 0x04000000):  int: -12347
+2598.    IREMPOW2 (-12347 % 0x08000000):  int: -12347
+2599.    IREMPOW2 (-12347 % 0x10000000):  int: -12347
+2600.    IREMPOW2 (-12347 % 0x20000000):  int: -12347
+2601.    IREMPOW2 (-12347 % 0x40000000):  int: -12347
+2602.    IREMPOW2 (-12347 % 0x80000000):  int: -12347
+2603.    IDIVPOW2 (-8893427 / 0x00000002):  int: -4446713
+2604.    IDIVPOW2 (-8893427 / 0x00000004):  int: -2223356
+2605.    IDIVPOW2 (-8893427 / 0x00000008):  int: -1111678
+2606.    IDIVPOW2 (-8893427 / 0x00000010):  int: -555839
+2607.    IDIVPOW2 (-8893427 / 0x00000020):  int: -277919
+2608.    IDIVPOW2 (-8893427 / 0x00000040):  int: -138959
+2609.    IDIVPOW2 (-8893427 / 0x00000080):  int: -69479
+2610.    IDIVPOW2 (-8893427 / 0x00000100):  int: -34739
+2611.    IDIVPOW2 (-8893427 / 0x00000200):  int: -17369
+2612.    IDIVPOW2 (-8893427 / 0x00000400):  int: -8684
+2613.    IDIVPOW2 (-8893427 / 0x00000800):  int: -4342
+2614.    IDIVPOW2 (-8893427 / 0x00001000):  int: -2171
+2615.    IDIVPOW2 (-8893427 / 0x00002000):  int: -1085
+2616.    IDIVPOW2 (-8893427 / 0x00004000):  int: -542
+2617.    IDIVPOW2 (-8893427 / 0x00008000):  int: -271
+2618.    IDIVPOW2 (-8893427 / 0x00010000):  int: -135
+2619.    IDIVPOW2 (-8893427 / 0x00020000):  int: -67
+2620.    IDIVPOW2 (-8893427 / 0x00040000):  int: -33
+2621.    IDIVPOW2 (-8893427 / 0x00080000):  int: -16
+2622.    IDIVPOW2 (-8893427 / 0x00100000):  int: -8
+2623.    IDIVPOW2 (-8893427 / 0x00200000):  int: -4
+2624.    IDIVPOW2 (-8893427 / 0x00400000):  int: -2
+2625.    IDIVPOW2 (-8893427 / 0x00800000):  int: -1
+2626.    IDIVPOW2 (-8893427 / 0x01000000):  int: 0
+2627.    IDIVPOW2 (-8893427 / 0x02000000):  int: 0
+2628.    IDIVPOW2 (-8893427 / 0x04000000):  int: 0
+2629.    IDIVPOW2 (-8893427 / 0x08000000):  int: 0
+2630.    IDIVPOW2 (-8893427 / 0x10000000):  int: 0
+2631.    IDIVPOW2 (-8893427 / 0x20000000):  int: 0
+2632.    IDIVPOW2 (-8893427 / 0x40000000):  int: 0
+2633.    IDIVPOW2 (-8893427 / 0x80000000):  int: 0
+2634.    IREMPOW2 (-8893427 % 0x00000002):  int: -1
+2635.    IREMPOW2 (-8893427 % 0x00000004):  int: -3
+2636.    IREMPOW2 (-8893427 % 0x00000008):  int: -3
+2637.    IREMPOW2 (-8893427 % 0x00000010):  int: -3
+2638.    IREMPOW2 (-8893427 % 0x00000020):  int: -19
+2639.    IREMPOW2 (-8893427 % 0x00000040):  int: -51
+2640.    IREMPOW2 (-8893427 % 0x00000080):  int: -115
+2641.    IREMPOW2 (-8893427 % 0x00000100):  int: -243
+2642.    IREMPOW2 (-8893427 % 0x00000200):  int: -499
+2643.    IREMPOW2 (-8893427 % 0x00000400):  int: -1011
+2644.    IREMPOW2 (-8893427 % 0x00000800):  int: -1011
+2645.    IREMPOW2 (-8893427 % 0x00001000):  int: -1011
+2646.    IREMPOW2 (-8893427 % 0x00002000):  int: -5107
+2647.    IREMPOW2 (-8893427 % 0x00004000):  int: -13299
+2648.    IREMPOW2 (-8893427 % 0x00008000):  int: -13299
+2649.    IREMPOW2 (-8893427 % 0x00010000):  int: -46067
+2650.    IREMPOW2 (-8893427 % 0x00020000):  int: -111603
+2651.    IREMPOW2 (-8893427 % 0x00040000):  int: -242675
+2652.    IREMPOW2 (-8893427 % 0x00080000):  int: -504819
+2653.    IREMPOW2 (-8893427 % 0x00100000):  int: -504819
+2654.    IREMPOW2 (-8893427 % 0x00200000):  int: -504819
+2655.    IREMPOW2 (-8893427 % 0x00400000):  int: -504819
+2656.    IREMPOW2 (-8893427 % 0x00800000):  int: -504819
+2657.    IREMPOW2 (-8893427 % 0x01000000):  int: -8893427
+2658.    IREMPOW2 (-8893427 % 0x02000000):  int: -8893427
+2659.    IREMPOW2 (-8893427 % 0x04000000):  int: -8893427
+2660.    IREMPOW2 (-8893427 % 0x08000000):  int: -8893427
+2661.    IREMPOW2 (-8893427 % 0x10000000):  int: -8893427
+2662.    IREMPOW2 (-8893427 % 0x20000000):  int: -8893427
+2663.    IREMPOW2 (-8893427 % 0x40000000):  int: -8893427
+2664.    IREMPOW2 (-8893427 % 0x80000000):  int: -8893427
+2665.    IDIVPOW2 (-1005234562 / 0x00000002):  int: -502617281
+2666.    IDIVPOW2 (-1005234562 / 0x00000004):  int: -251308640
+2667.    IDIVPOW2 (-1005234562 / 0x00000008):  int: -125654320
+2668.    IDIVPOW2 (-1005234562 / 0x00000010):  int: -62827160
+2669.    IDIVPOW2 (-1005234562 / 0x00000020):  int: -31413580
+2670.    IDIVPOW2 (-1005234562 / 0x00000040):  int: -15706790
+2671.    IDIVPOW2 (-1005234562 / 0x00000080):  int: -7853395
+2672.    IDIVPOW2 (-1005234562 / 0x00000100):  int: -3926697
+2673.    IDIVPOW2 (-1005234562 / 0x00000200):  int: -1963348
+2674.    IDIVPOW2 (-1005234562 / 0x00000400):  int: -981674
+2675.    IDIVPOW2 (-1005234562 / 0x00000800):  int: -490837
+2676.    IDIVPOW2 (-1005234562 / 0x00001000):  int: -245418
+2677.    IDIVPOW2 (-1005234562 / 0x00002000):  int: -122709
+2678.    IDIVPOW2 (-1005234562 / 0x00004000):  int: -61354
+2679.    IDIVPOW2 (-1005234562 / 0x00008000):  int: -30677
+2680.    IDIVPOW2 (-1005234562 / 0x00010000):  int: -15338
+2681.    IDIVPOW2 (-1005234562 / 0x00020000):  int: -7669
+2682.    IDIVPOW2 (-1005234562 / 0x00040000):  int: -3834
+2683.    IDIVPOW2 (-1005234562 / 0x00080000):  int: -1917
+2684.    IDIVPOW2 (-1005234562 / 0x00100000):  int: -958
+2685.    IDIVPOW2 (-1005234562 / 0x00200000):  int: -479
+2686.    IDIVPOW2 (-1005234562 / 0x00400000):  int: -239
+2687.    IDIVPOW2 (-1005234562 / 0x00800000):  int: -119
+2688.    IDIVPOW2 (-1005234562 / 0x01000000):  int: -59
+2689.    IDIVPOW2 (-1005234562 / 0x02000000):  int: -29
+2690.    IDIVPOW2 (-1005234562 / 0x04000000):  int: -14
+2691.    IDIVPOW2 (-1005234562 / 0x08000000):  int: -7
+2692.    IDIVPOW2 (-1005234562 / 0x10000000):  int: -3
+2693.    IDIVPOW2 (-1005234562 / 0x20000000):  int: -1
+2694.    IDIVPOW2 (-1005234562 / 0x40000000):  int: 0
+2695.    IDIVPOW2 (-1005234562 / 0x80000000):  int: 0
+2696.    IREMPOW2 (-1005234562 % 0x00000002):  int: 0
+2697.    IREMPOW2 (-1005234562 % 0x00000004):  int: -2
+2698.    IREMPOW2 (-1005234562 % 0x00000008):  int: -2
+2699.    IREMPOW2 (-1005234562 % 0x00000010):  int: -2
+2700.    IREMPOW2 (-1005234562 % 0x00000020):  int: -2
+2701.    IREMPOW2 (-1005234562 % 0x00000040):  int: -2
+2702.    IREMPOW2 (-1005234562 % 0x00000080):  int: -2
+2703.    IREMPOW2 (-1005234562 % 0x00000100):  int: -130
+2704.    IREMPOW2 (-1005234562 % 0x00000200):  int: -386
+2705.    IREMPOW2 (-1005234562 % 0x00000400):  int: -386
+2706.    IREMPOW2 (-1005234562 % 0x00000800):  int: -386
+2707.    IREMPOW2 (-1005234562 % 0x00001000):  int: -2434
+2708.    IREMPOW2 (-1005234562 % 0x00002000):  int: -2434
+2709.    IREMPOW2 (-1005234562 % 0x00004000):  int: -10626
+2710.    IREMPOW2 (-1005234562 % 0x00008000):  int: -10626
+2711.    IREMPOW2 (-1005234562 % 0x00010000):  int: -43394
+2712.    IREMPOW2 (-1005234562 % 0x00020000):  int: -43394
+2713.    IREMPOW2 (-1005234562 % 0x00040000):  int: -174466
+2714.    IREMPOW2 (-1005234562 % 0x00080000):  int: -174466
+2715.    IREMPOW2 (-1005234562 % 0x00100000):  int: -698754
+2716.    IREMPOW2 (-1005234562 % 0x00200000):  int: -698754
+2717.    IREMPOW2 (-1005234562 % 0x00400000):  int: -2795906
+2718.    IREMPOW2 (-1005234562 % 0x00800000):  int: -6990210
+2719.    IREMPOW2 (-1005234562 % 0x01000000):  int: -15378818
+2720.    IREMPOW2 (-1005234562 % 0x02000000):  int: -32156034
+2721.    IREMPOW2 (-1005234562 % 0x04000000):  int: -65710466
+2722.    IREMPOW2 (-1005234562 % 0x08000000):  int: -65710466
+2723.    IREMPOW2 (-1005234562 % 0x10000000):  int: -199928194
+2724.    IREMPOW2 (-1005234562 % 0x20000000):  int: -468363650
+2725.    IREMPOW2 (-1005234562 % 0x40000000):  int: -1005234562
+2726.    IREMPOW2 (-1005234562 % 0x80000000):  int: -1005234562
+2727.    LDIVPOW2 (17 / 0x00000002):  long: 8
+2728.    LDIVPOW2 (17 / 0x00000004):  long: 4
+2729.    LDIVPOW2 (17 / 0x00000008):  long: 2
+2730.    LDIVPOW2 (17 / 0x00000010):  long: 1
+2731.    LDIVPOW2 (17 / 0x00000020):  long: 0
+2732.    LDIVPOW2 (17 / 0x00000040):  long: 0
+2733.    LDIVPOW2 (17 / 0x00000080):  long: 0
+2734.    LDIVPOW2 (17 / 0x00000100):  long: 0
+2735.    LDIVPOW2 (17 / 0x00000200):  long: 0
+2736.    LDIVPOW2 (17 / 0x00000400):  long: 0
+2737.    LDIVPOW2 (17 / 0x00000800):  long: 0
+2738.    LDIVPOW2 (17 / 0x00001000):  long: 0
+2739.    LDIVPOW2 (17 / 0x00002000):  long: 0
+2740.    LDIVPOW2 (17 / 0x00004000):  long: 0
+2741.    LDIVPOW2 (17 / 0x00008000):  long: 0
+2742.    LDIVPOW2 (17 / 0x00010000):  long: 0
+2743.    LDIVPOW2 (17 / 0x00020000):  long: 0
+2744.    LDIVPOW2 (17 / 0x00040000):  long: 0
+2745.    LDIVPOW2 (17 / 0x00080000):  long: 0
+2746.    LDIVPOW2 (17 / 0x00100000):  long: 0
+2747.    LDIVPOW2 (17 / 0x00200000):  long: 0
+2748.    LDIVPOW2 (17 / 0x00400000):  long: 0
+2749.    LDIVPOW2 (17 / 0x00800000):  long: 0
+2750.    LDIVPOW2 (17 / 0x01000000):  long: 0
+2751.    LDIVPOW2 (17 / 0x02000000):  long: 0
+2752.    LDIVPOW2 (17 / 0x04000000):  long: 0
+2753.    LDIVPOW2 (17 / 0x08000000):  long: 0
+2754.    LDIVPOW2 (17 / 0x10000000):  long: 0
+2755.    LDIVPOW2 (17 / 0x20000000):  long: 0
+2756.    LDIVPOW2 (17 / 0x40000000):  long: 0
+2757.    LDIVPOW2 (17 / 0x80000000):  long: 0
+2758.    LREMPOW2 (17 % 0x00000002):  long: 1
+2759.    LREMPOW2 (17 % 0x00000004):  long: 1
+2760.    LREMPOW2 (17 % 0x00000008):  long: 1
+2761.    LREMPOW2 (17 % 0x00000010):  long: 1
+2762.    LREMPOW2 (17 % 0x00000020):  long: 17
+2763.    LREMPOW2 (17 % 0x00000040):  long: 17
+2764.    LREMPOW2 (17 % 0x00000080):  long: 17
+2765.    LREMPOW2 (17 % 0x00000100):  long: 17
+2766.    LREMPOW2 (17 % 0x00000200):  long: 17
+2767.    LREMPOW2 (17 % 0x00000400):  long: 17
+2768.    LREMPOW2 (17 % 0x00000800):  long: 17
+2769.    LREMPOW2 (17 % 0x00001000):  long: 17
+2770.    LREMPOW2 (17 % 0x00002000):  long: 17
+2771.    LREMPOW2 (17 % 0x00004000):  long: 17
+2772.    LREMPOW2 (17 % 0x00008000):  long: 17
+2773.    LREMPOW2 (17 % 0x00010000):  long: 17
+2774.    LREMPOW2 (17 % 0x00020000):  long: 17
+2775.    LREMPOW2 (17 % 0x00040000):  long: 17
+2776.    LREMPOW2 (17 % 0x00080000):  long: 17
+2777.    LREMPOW2 (17 % 0x00100000):  long: 17
+2778.    LREMPOW2 (17 % 0x00200000):  long: 17
+2779.    LREMPOW2 (17 % 0x00400000):  long: 17
+2780.    LREMPOW2 (17 % 0x00800000):  long: 17
+2781.    LREMPOW2 (17 % 0x01000000):  long: 17
+2782.    LREMPOW2 (17 % 0x02000000):  long: 17
+2783.    LREMPOW2 (17 % 0x04000000):  long: 17
+2784.    LREMPOW2 (17 % 0x08000000):  long: 17
+2785.    LREMPOW2 (17 % 0x10000000):  long: 17
+2786.    LREMPOW2 (17 % 0x20000000):  long: 17
+2787.    LREMPOW2 (17 % 0x40000000):  long: 17
+2788.    LREMPOW2 (17 % 0x80000000):  long: 17
+2789.    LDIVPOW2 (12347 / 0x00000002):  long: 6173
+2790.    LDIVPOW2 (12347 / 0x00000004):  long: 3086
+2791.    LDIVPOW2 (12347 / 0x00000008):  long: 1543
+2792.    LDIVPOW2 (12347 / 0x00000010):  long: 771
+2793.    LDIVPOW2 (12347 / 0x00000020):  long: 385
+2794.    LDIVPOW2 (12347 / 0x00000040):  long: 192
+2795.    LDIVPOW2 (12347 / 0x00000080):  long: 96
+2796.    LDIVPOW2 (12347 / 0x00000100):  long: 48
+2797.    LDIVPOW2 (12347 / 0x00000200):  long: 24
+2798.    LDIVPOW2 (12347 / 0x00000400):  long: 12
+2799.    LDIVPOW2 (12347 / 0x00000800):  long: 6
+2800.    LDIVPOW2 (12347 / 0x00001000):  long: 3
+2801.    LDIVPOW2 (12347 / 0x00002000):  long: 1
+2802.    LDIVPOW2 (12347 / 0x00004000):  long: 0
+2803.    LDIVPOW2 (12347 / 0x00008000):  long: 0
+2804.    LDIVPOW2 (12347 / 0x00010000):  long: 0
+2805.    LDIVPOW2 (12347 / 0x00020000):  long: 0
+2806.    LDIVPOW2 (12347 / 0x00040000):  long: 0
+2807.    LDIVPOW2 (12347 / 0x00080000):  long: 0
+2808.    LDIVPOW2 (12347 / 0x00100000):  long: 0
+2809.    LDIVPOW2 (12347 / 0x00200000):  long: 0
+2810.    LDIVPOW2 (12347 / 0x00400000):  long: 0
+2811.    LDIVPOW2 (12347 / 0x00800000):  long: 0
+2812.    LDIVPOW2 (12347 / 0x01000000):  long: 0
+2813.    LDIVPOW2 (12347 / 0x02000000):  long: 0
+2814.    LDIVPOW2 (12347 / 0x04000000):  long: 0
+2815.    LDIVPOW2 (12347 / 0x08000000):  long: 0
+2816.    LDIVPOW2 (12347 / 0x10000000):  long: 0
+2817.    LDIVPOW2 (12347 / 0x20000000):  long: 0
+2818.    LDIVPOW2 (12347 / 0x40000000):  long: 0
+2819.    LDIVPOW2 (12347 / 0x80000000):  long: 0
+2820.    LREMPOW2 (12347 % 0x00000002):  long: 1
+2821.    LREMPOW2 (12347 % 0x00000004):  long: 3
+2822.    LREMPOW2 (12347 % 0x00000008):  long: 3
+2823.    LREMPOW2 (12347 % 0x00000010):  long: 11
+2824.    LREMPOW2 (12347 % 0x00000020):  long: 27
+2825.    LREMPOW2 (12347 % 0x00000040):  long: 59
+2826.    LREMPOW2 (12347 % 0x00000080):  long: 59
+2827.    LREMPOW2 (12347 % 0x00000100):  long: 59
+2828.    LREMPOW2 (12347 % 0x00000200):  long: 59
+2829.    LREMPOW2 (12347 % 0x00000400):  long: 59
+2830.    LREMPOW2 (12347 % 0x00000800):  long: 59
+2831.    LREMPOW2 (12347 % 0x00001000):  long: 59
+2832.    LREMPOW2 (12347 % 0x00002000):  long: 4155
+2833.    LREMPOW2 (12347 % 0x00004000):  long: 12347
+2834.    LREMPOW2 (12347 % 0x00008000):  long: 12347
+2835.    LREMPOW2 (12347 % 0x00010000):  long: 12347
+2836.    LREMPOW2 (12347 % 0x00020000):  long: 12347
+2837.    LREMPOW2 (12347 % 0x00040000):  long: 12347
+2838.    LREMPOW2 (12347 % 0x00080000):  long: 12347
+2839.    LREMPOW2 (12347 % 0x00100000):  long: 12347
+2840.    LREMPOW2 (12347 % 0x00200000):  long: 12347
+2841.    LREMPOW2 (12347 % 0x00400000):  long: 12347
+2842.    LREMPOW2 (12347 % 0x00800000):  long: 12347
+2843.    LREMPOW2 (12347 % 0x01000000):  long: 12347
+2844.    LREMPOW2 (12347 % 0x02000000):  long: 12347
+2845.    LREMPOW2 (12347 % 0x04000000):  long: 12347
+2846.    LREMPOW2 (12347 % 0x08000000):  long: 12347
+2847.    LREMPOW2 (12347 % 0x10000000):  long: 12347
+2848.    LREMPOW2 (12347 % 0x20000000):  long: 12347
+2849.    LREMPOW2 (12347 % 0x40000000):  long: 12347
+2850.    LREMPOW2 (12347 % 0x80000000):  long: 12347
+2851.    LDIVPOW2 (8893427 / 0x00000002):  long: 4446713
+2852.    LDIVPOW2 (8893427 / 0x00000004):  long: 2223356
+2853.    LDIVPOW2 (8893427 / 0x00000008):  long: 1111678
+2854.    LDIVPOW2 (8893427 / 0x00000010):  long: 555839
+2855.    LDIVPOW2 (8893427 / 0x00000020):  long: 277919
+2856.    LDIVPOW2 (8893427 / 0x00000040):  long: 138959
+2857.    LDIVPOW2 (8893427 / 0x00000080):  long: 69479
+2858.    LDIVPOW2 (8893427 / 0x00000100):  long: 34739
+2859.    LDIVPOW2 (8893427 / 0x00000200):  long: 17369
+2860.    LDIVPOW2 (8893427 / 0x00000400):  long: 8684
+2861.    LDIVPOW2 (8893427 / 0x00000800):  long: 4342
+2862.    LDIVPOW2 (8893427 / 0x00001000):  long: 2171
+2863.    LDIVPOW2 (8893427 / 0x00002000):  long: 1085
+2864.    LDIVPOW2 (8893427 / 0x00004000):  long: 542
+2865.    LDIVPOW2 (8893427 / 0x00008000):  long: 271
+2866.    LDIVPOW2 (8893427 / 0x00010000):  long: 135
+2867.    LDIVPOW2 (8893427 / 0x00020000):  long: 67
+2868.    LDIVPOW2 (8893427 / 0x00040000):  long: 33
+2869.    LDIVPOW2 (8893427 / 0x00080000):  long: 16
+2870.    LDIVPOW2 (8893427 / 0x00100000):  long: 8
+2871.    LDIVPOW2 (8893427 / 0x00200000):  long: 4
+2872.    LDIVPOW2 (8893427 / 0x00400000):  long: 2
+2873.    LDIVPOW2 (8893427 / 0x00800000):  long: 1
+2874.    LDIVPOW2 (8893427 / 0x01000000):  long: 0
+2875.    LDIVPOW2 (8893427 / 0x02000000):  long: 0
+2876.    LDIVPOW2 (8893427 / 0x04000000):  long: 0
+2877.    LDIVPOW2 (8893427 / 0x08000000):  long: 0
+2878.    LDIVPOW2 (8893427 / 0x10000000):  long: 0
+2879.    LDIVPOW2 (8893427 / 0x20000000):  long: 0
+2880.    LDIVPOW2 (8893427 / 0x40000000):  long: 0
+2881.    LDIVPOW2 (8893427 / 0x80000000):  long: 0
+2882.    LREMPOW2 (8893427 % 0x00000002):  long: 1
+2883.    LREMPOW2 (8893427 % 0x00000004):  long: 3
+2884.    LREMPOW2 (8893427 % 0x00000008):  long: 3
+2885.    LREMPOW2 (8893427 % 0x00000010):  long: 3
+2886.    LREMPOW2 (8893427 % 0x00000020):  long: 19
+2887.    LREMPOW2 (8893427 % 0x00000040):  long: 51
+2888.    LREMPOW2 (8893427 % 0x00000080):  long: 115
+2889.    LREMPOW2 (8893427 % 0x00000100):  long: 243
+2890.    LREMPOW2 (8893427 % 0x00000200):  long: 499
+2891.    LREMPOW2 (8893427 % 0x00000400):  long: 1011
+2892.    LREMPOW2 (8893427 % 0x00000800):  long: 1011
+2893.    LREMPOW2 (8893427 % 0x00001000):  long: 1011
+2894.    LREMPOW2 (8893427 % 0x00002000):  long: 5107
+2895.    LREMPOW2 (8893427 % 0x00004000):  long: 13299
+2896.    LREMPOW2 (8893427 % 0x00008000):  long: 13299
+2897.    LREMPOW2 (8893427 % 0x00010000):  long: 46067
+2898.    LREMPOW2 (8893427 % 0x00020000):  long: 111603
+2899.    LREMPOW2 (8893427 % 0x00040000):  long: 242675
+2900.    LREMPOW2 (8893427 % 0x00080000):  long: 504819
+2901.    LREMPOW2 (8893427 % 0x00100000):  long: 504819
+2902.    LREMPOW2 (8893427 % 0x00200000):  long: 504819
+2903.    LREMPOW2 (8893427 % 0x00400000):  long: 504819
+2904.    LREMPOW2 (8893427 % 0x00800000):  long: 504819
+2905.    LREMPOW2 (8893427 % 0x01000000):  long: 8893427
+2906.    LREMPOW2 (8893427 % 0x02000000):  long: 8893427
+2907.    LREMPOW2 (8893427 % 0x04000000):  long: 8893427
+2908.    LREMPOW2 (8893427 % 0x08000000):  long: 8893427
+2909.    LREMPOW2 (8893427 % 0x10000000):  long: 8893427
+2910.    LREMPOW2 (8893427 % 0x20000000):  long: 8893427
+2911.    LREMPOW2 (8893427 % 0x40000000):  long: 8893427
+2912.    LREMPOW2 (8893427 % 0x80000000):  long: 8893427
+2913.    LDIVPOW2 (1005234562 / 0x00000002):  long: 502617281
+2914.    LDIVPOW2 (1005234562 / 0x00000004):  long: 251308640
+2915.    LDIVPOW2 (1005234562 / 0x00000008):  long: 125654320
+2916.    LDIVPOW2 (1005234562 / 0x00000010):  long: 62827160
+2917.    LDIVPOW2 (1005234562 / 0x00000020):  long: 31413580
+2918.    LDIVPOW2 (1005234562 / 0x00000040):  long: 15706790
+2919.    LDIVPOW2 (1005234562 / 0x00000080):  long: 7853395
+2920.    LDIVPOW2 (1005234562 / 0x00000100):  long: 3926697
+2921.    LDIVPOW2 (1005234562 / 0x00000200):  long: 1963348
+2922.    LDIVPOW2 (1005234562 / 0x00000400):  long: 981674
+2923.    LDIVPOW2 (1005234562 / 0x00000800):  long: 490837
+2924.    LDIVPOW2 (1005234562 / 0x00001000):  long: 245418
+2925.    LDIVPOW2 (1005234562 / 0x00002000):  long: 122709
+2926.    LDIVPOW2 (1005234562 / 0x00004000):  long: 61354
+2927.    LDIVPOW2 (1005234562 / 0x00008000):  long: 30677
+2928.    LDIVPOW2 (1005234562 / 0x00010000):  long: 15338
+2929.    LDIVPOW2 (1005234562 / 0x00020000):  long: 7669
+2930.    LDIVPOW2 (1005234562 / 0x00040000):  long: 3834
+2931.    LDIVPOW2 (1005234562 / 0x00080000):  long: 1917
+2932.    LDIVPOW2 (1005234562 / 0x00100000):  long: 958
+2933.    LDIVPOW2 (1005234562 / 0x00200000):  long: 479
+2934.    LDIVPOW2 (1005234562 / 0x00400000):  long: 239
+2935.    LDIVPOW2 (1005234562 / 0x00800000):  long: 119
+2936.    LDIVPOW2 (1005234562 / 0x01000000):  long: 59
+2937.    LDIVPOW2 (1005234562 / 0x02000000):  long: 29
+2938.    LDIVPOW2 (1005234562 / 0x04000000):  long: 14
+2939.    LDIVPOW2 (1005234562 / 0x08000000):  long: 7
+2940.    LDIVPOW2 (1005234562 / 0x10000000):  long: 3
+2941.    LDIVPOW2 (1005234562 / 0x20000000):  long: 1
+2942.    LDIVPOW2 (1005234562 / 0x40000000):  long: 0
+2943.    LDIVPOW2 (1005234562 / 0x80000000):  long: 0
+2944.    LREMPOW2 (1005234562 % 0x00000002):  long: 0
+2945.    LREMPOW2 (1005234562 % 0x00000004):  long: 2
+2946.    LREMPOW2 (1005234562 % 0x00000008):  long: 2
+2947.    LREMPOW2 (1005234562 % 0x00000010):  long: 2
+2948.    LREMPOW2 (1005234562 % 0x00000020):  long: 2
+2949.    LREMPOW2 (1005234562 % 0x00000040):  long: 2
+2950.    LREMPOW2 (1005234562 % 0x00000080):  long: 2
+2951.    LREMPOW2 (1005234562 % 0x00000100):  long: 130
+2952.    LREMPOW2 (1005234562 % 0x00000200):  long: 386
+2953.    LREMPOW2 (1005234562 % 0x00000400):  long: 386
+2954.    LREMPOW2 (1005234562 % 0x00000800):  long: 386
+2955.    LREMPOW2 (1005234562 % 0x00001000):  long: 2434
+2956.    LREMPOW2 (1005234562 % 0x00002000):  long: 2434
+2957.    LREMPOW2 (1005234562 % 0x00004000):  long: 10626
+2958.    LREMPOW2 (1005234562 % 0x00008000):  long: 10626
+2959.    LREMPOW2 (1005234562 % 0x00010000):  long: 43394
+2960.    LREMPOW2 (1005234562 % 0x00020000):  long: 43394
+2961.    LREMPOW2 (1005234562 % 0x00040000):  long: 174466
+2962.    LREMPOW2 (1005234562 % 0x00080000):  long: 174466
+2963.    LREMPOW2 (1005234562 % 0x00100000):  long: 698754
+2964.    LREMPOW2 (1005234562 % 0x00200000):  long: 698754
+2965.    LREMPOW2 (1005234562 % 0x00400000):  long: 2795906
+2966.    LREMPOW2 (1005234562 % 0x00800000):  long: 6990210
+2967.    LREMPOW2 (1005234562 % 0x01000000):  long: 15378818
+2968.    LREMPOW2 (1005234562 % 0x02000000):  long: 32156034
+2969.    LREMPOW2 (1005234562 % 0x04000000):  long: 65710466
+2970.    LREMPOW2 (1005234562 % 0x08000000):  long: 65710466
+2971.    LREMPOW2 (1005234562 % 0x10000000):  long: 199928194
+2972.    LREMPOW2 (1005234562 % 0x20000000):  long: 468363650
+2973.    LREMPOW2 (1005234562 % 0x40000000):  long: 1005234562
+2974.    LREMPOW2 (1005234562 % 0x80000000):  long: 1005234562
+2975.    LDIVPOW2 (12135005234562 / 0x00000002):  long: 6067502617281
+2976.    LDIVPOW2 (12135005234562 / 0x00000004):  long: 3033751308640
+2977.    LDIVPOW2 (12135005234562 / 0x00000008):  long: 1516875654320
+2978.    LDIVPOW2 (12135005234562 / 0x00000010):  long: 758437827160
+2979.    LDIVPOW2 (12135005234562 / 0x00000020):  long: 379218913580
+2980.    LDIVPOW2 (12135005234562 / 0x00000040):  long: 189609456790
+2981.    LDIVPOW2 (12135005234562 / 0x00000080):  long: 94804728395
+2982.    LDIVPOW2 (12135005234562 / 0x00000100):  long: 47402364197
+2983.    LDIVPOW2 (12135005234562 / 0x00000200):  long: 23701182098
+2984.    LDIVPOW2 (12135005234562 / 0x00000400):  long: 11850591049
+2985.    LDIVPOW2 (12135005234562 / 0x00000800):  long: 5925295524
+2986.    LDIVPOW2 (12135005234562 / 0x00001000):  long: 2962647762
+2987.    LDIVPOW2 (12135005234562 / 0x00002000):  long: 1481323881
+2988.    LDIVPOW2 (12135005234562 / 0x00004000):  long: 740661940
+2989.    LDIVPOW2 (12135005234562 / 0x00008000):  long: 370330970
+2990.    LDIVPOW2 (12135005234562 / 0x00010000):  long: 185165485
+2991.    LDIVPOW2 (12135005234562 / 0x00020000):  long: 92582742
+2992.    LDIVPOW2 (12135005234562 / 0x00040000):  long: 46291371
+2993.    LDIVPOW2 (12135005234562 / 0x00080000):  long: 23145685
+2994.    LDIVPOW2 (12135005234562 / 0x00100000):  long: 11572842
+2995.    LDIVPOW2 (12135005234562 / 0x00200000):  long: 5786421
+2996.    LDIVPOW2 (12135005234562 / 0x00400000):  long: 2893210
+2997.    LDIVPOW2 (12135005234562 / 0x00800000):  long: 1446605
+2998.    LDIVPOW2 (12135005234562 / 0x01000000):  long: 723302
+2999.    LDIVPOW2 (12135005234562 / 0x02000000):  long: 361651
+3000.    LDIVPOW2 (12135005234562 / 0x04000000):  long: 180825
+3001.    LDIVPOW2 (12135005234562 / 0x08000000):  long: 90412
+3002.    LDIVPOW2 (12135005234562 / 0x10000000):  long: 45206
+3003.    LDIVPOW2 (12135005234562 / 0x20000000):  long: 22603
+3004.    LDIVPOW2 (12135005234562 / 0x40000000):  long: 11301
+3005.    LDIVPOW2 (12135005234562 / 0x80000000):  long: -5650
+3006.    LREMPOW2 (12135005234562 % 0x00000002):  long: 0
+3007.    LREMPOW2 (12135005234562 % 0x00000004):  long: 2
+3008.    LREMPOW2 (12135005234562 % 0x00000008):  long: 2
+3009.    LREMPOW2 (12135005234562 % 0x00000010):  long: 2
+3010.    LREMPOW2 (12135005234562 % 0x00000020):  long: 2
+3011.    LREMPOW2 (12135005234562 % 0x00000040):  long: 2
+3012.    LREMPOW2 (12135005234562 % 0x00000080):  long: 2
+3013.    LREMPOW2 (12135005234562 % 0x00000100):  long: 130
+3014.    LREMPOW2 (12135005234562 % 0x00000200):  long: 386
+3015.    LREMPOW2 (12135005234562 % 0x00000400):  long: 386
+3016.    LREMPOW2 (12135005234562 % 0x00000800):  long: 1410
+3017.    LREMPOW2 (12135005234562 % 0x00001000):  long: 1410
+3018.    LREMPOW2 (12135005234562 % 0x00002000):  long: 1410
+3019.    LREMPOW2 (12135005234562 % 0x00004000):  long: 9602
+3020.    LREMPOW2 (12135005234562 % 0x00008000):  long: 9602
+3021.    LREMPOW2 (12135005234562 % 0x00010000):  long: 9602
+3022.    LREMPOW2 (12135005234562 % 0x00020000):  long: 75138
+3023.    LREMPOW2 (12135005234562 % 0x00040000):  long: 75138
+3024.    LREMPOW2 (12135005234562 % 0x00080000):  long: 337282
+3025.    LREMPOW2 (12135005234562 % 0x00100000):  long: 861570
+3026.    LREMPOW2 (12135005234562 % 0x00200000):  long: 861570
+3027.    LREMPOW2 (12135005234562 % 0x00400000):  long: 2958722
+3028.    LREMPOW2 (12135005234562 % 0x00800000):  long: 2958722
+3029.    LREMPOW2 (12135005234562 % 0x01000000):  long: 11347330
+3030.    LREMPOW2 (12135005234562 % 0x02000000):  long: 11347330
+3031.    LREMPOW2 (12135005234562 % 0x04000000):  long: 44901762
+3032.    LREMPOW2 (12135005234562 % 0x08000000):  long: 112010626
+3033.    LREMPOW2 (12135005234562 % 0x10000000):  long: 112010626
+3034.    LREMPOW2 (12135005234562 % 0x20000000):  long: 112010626
+3035.    LREMPOW2 (12135005234562 % 0x40000000):  long: 648881538
+3036.    LREMPOW2 (12135005234562 % 0x80000000):  long: 1722623362
+3037.    LDIVPOW2 (2343552355623464626 / 0x00000002):  long: 1171776177811732313
+3038.    LDIVPOW2 (2343552355623464626 / 0x00000004):  long: 585888088905866156
+3039.    LDIVPOW2 (2343552355623464626 / 0x00000008):  long: 292944044452933078
+3040.    LDIVPOW2 (2343552355623464626 / 0x00000010):  long: 146472022226466539
+3041.    LDIVPOW2 (2343552355623464626 / 0x00000020):  long: 73236011113233269
+3042.    LDIVPOW2 (2343552355623464626 / 0x00000040):  long: 36618005556616634
+3043.    LDIVPOW2 (2343552355623464626 / 0x00000080):  long: 18309002778308317
+3044.    LDIVPOW2 (2343552355623464626 / 0x00000100):  long: 9154501389154158
+3045.    LDIVPOW2 (2343552355623464626 / 0x00000200):  long: 4577250694577079
+3046.    LDIVPOW2 (2343552355623464626 / 0x00000400):  long: 2288625347288539
+3047.    LDIVPOW2 (2343552355623464626 / 0x00000800):  long: 1144312673644269
+3048.    LDIVPOW2 (2343552355623464626 / 0x00001000):  long: 572156336822134
+3049.    LDIVPOW2 (2343552355623464626 / 0x00002000):  long: 286078168411067
+3050.    LDIVPOW2 (2343552355623464626 / 0x00004000):  long: 143039084205533
+3051.    LDIVPOW2 (2343552355623464626 / 0x00008000):  long: 71519542102766
+3052.    LDIVPOW2 (2343552355623464626 / 0x00010000):  long: 35759771051383
+3053.    LDIVPOW2 (2343552355623464626 / 0x00020000):  long: 17879885525691
+3054.    LDIVPOW2 (2343552355623464626 / 0x00040000):  long: 8939942762845
+3055.    LDIVPOW2 (2343552355623464626 / 0x00080000):  long: 4469971381422
+3056.    LDIVPOW2 (2343552355623464626 / 0x00100000):  long: 2234985690711
+3057.    LDIVPOW2 (2343552355623464626 / 0x00200000):  long: 1117492845355
+3058.    LDIVPOW2 (2343552355623464626 / 0x00400000):  long: 558746422677
+3059.    LDIVPOW2 (2343552355623464626 / 0x00800000):  long: 279373211338
+3060.    LDIVPOW2 (2343552355623464626 / 0x01000000):  long: 139686605669
+3061.    LDIVPOW2 (2343552355623464626 / 0x02000000):  long: 69843302834
+3062.    LDIVPOW2 (2343552355623464626 / 0x04000000):  long: 34921651417
+3063.    LDIVPOW2 (2343552355623464626 / 0x08000000):  long: 17460825708
+3064.    LDIVPOW2 (2343552355623464626 / 0x10000000):  long: 8730412854
+3065.    LDIVPOW2 (2343552355623464626 / 0x20000000):  long: 4365206427
+3066.    LDIVPOW2 (2343552355623464626 / 0x40000000):  long: 2182603213
+3067.    LDIVPOW2 (2343552355623464626 / 0x80000000):  long: -1091301606
+3068.    LREMPOW2 (2343552355623464626 % 0x00000002):  long: 0
+3069.    LREMPOW2 (2343552355623464626 % 0x00000004):  long: 2
+3070.    LREMPOW2 (2343552355623464626 % 0x00000008):  long: 2
+3071.    LREMPOW2 (2343552355623464626 % 0x00000010):  long: 2
+3072.    LREMPOW2 (2343552355623464626 % 0x00000020):  long: 18
+3073.    LREMPOW2 (2343552355623464626 % 0x00000040):  long: 50
+3074.    LREMPOW2 (2343552355623464626 % 0x00000080):  long: 50
+3075.    LREMPOW2 (2343552355623464626 % 0x00000100):  long: 178
+3076.    LREMPOW2 (2343552355623464626 % 0x00000200):  long: 178
+3077.    LREMPOW2 (2343552355623464626 % 0x00000400):  long: 690
+3078.    LREMPOW2 (2343552355623464626 % 0x00000800):  long: 1714
+3079.    LREMPOW2 (2343552355623464626 % 0x00001000):  long: 3762
+3080.    LREMPOW2 (2343552355623464626 % 0x00002000):  long: 3762
+3081.    LREMPOW2 (2343552355623464626 % 0x00004000):  long: 11954
+3082.    LREMPOW2 (2343552355623464626 % 0x00008000):  long: 28338
+3083.    LREMPOW2 (2343552355623464626 % 0x00010000):  long: 28338
+3084.    LREMPOW2 (2343552355623464626 % 0x00020000):  long: 93874
+3085.    LREMPOW2 (2343552355623464626 % 0x00040000):  long: 224946
+3086.    LREMPOW2 (2343552355623464626 % 0x00080000):  long: 487090
+3087.    LREMPOW2 (2343552355623464626 % 0x00100000):  long: 487090
+3088.    LREMPOW2 (2343552355623464626 % 0x00200000):  long: 1535666
+3089.    LREMPOW2 (2343552355623464626 % 0x00400000):  long: 3632818
+3090.    LREMPOW2 (2343552355623464626 % 0x00800000):  long: 7827122
+3091.    LREMPOW2 (2343552355623464626 % 0x01000000):  long: 7827122
+3092.    LREMPOW2 (2343552355623464626 % 0x02000000):  long: 24604338
+3093.    LREMPOW2 (2343552355623464626 % 0x04000000):  long: 24604338
+3094.    LREMPOW2 (2343552355623464626 % 0x08000000):  long: 91713202
+3095.    LREMPOW2 (2343552355623464626 % 0x10000000):  long: 91713202
+3096.    LREMPOW2 (2343552355623464626 % 0x20000000):  long: 91713202
+3097.    LREMPOW2 (2343552355623464626 % 0x40000000):  long: 628584114
+3098.    LREMPOW2 (2343552355623464626 % 0x80000000):  long: 1702325938
+3099.    LDIVPOW2 (-17 / 0x00000002):  long: -8
+3100.    LDIVPOW2 (-17 / 0x00000004):  long: -4
+3101.    LDIVPOW2 (-17 / 0x00000008):  long: -2
+3102.    LDIVPOW2 (-17 / 0x00000010):  long: -1
+3103.    LDIVPOW2 (-17 / 0x00000020):  long: 0
+3104.    LDIVPOW2 (-17 / 0x00000040):  long: 0
+3105.    LDIVPOW2 (-17 / 0x00000080):  long: 0
+3106.    LDIVPOW2 (-17 / 0x00000100):  long: 0
+3107.    LDIVPOW2 (-17 / 0x00000200):  long: 0
+3108.    LDIVPOW2 (-17 / 0x00000400):  long: 0
+3109.    LDIVPOW2 (-17 / 0x00000800):  long: 0
+3110.    LDIVPOW2 (-17 / 0x00001000):  long: 0
+3111.    LDIVPOW2 (-17 / 0x00002000):  long: 0
+3112.    LDIVPOW2 (-17 / 0x00004000):  long: 0
+3113.    LDIVPOW2 (-17 / 0x00008000):  long: 0
+3114.    LDIVPOW2 (-17 / 0x00010000):  long: 0
+3115.    LDIVPOW2 (-17 / 0x00020000):  long: 0
+3116.    LDIVPOW2 (-17 / 0x00040000):  long: 0
+3117.    LDIVPOW2 (-17 / 0x00080000):  long: 0
+3118.    LDIVPOW2 (-17 / 0x00100000):  long: 0
+3119.    LDIVPOW2 (-17 / 0x00200000):  long: 0
+3120.    LDIVPOW2 (-17 / 0x00400000):  long: 0
+3121.    LDIVPOW2 (-17 / 0x00800000):  long: 0
+3122.    LDIVPOW2 (-17 / 0x01000000):  long: 0
+3123.    LDIVPOW2 (-17 / 0x02000000):  long: 0
+3124.    LDIVPOW2 (-17 / 0x04000000):  long: 0
+3125.    LDIVPOW2 (-17 / 0x08000000):  long: 0
+3126.    LDIVPOW2 (-17 / 0x10000000):  long: 0
+3127.    LDIVPOW2 (-17 / 0x20000000):  long: 0
+3128.    LDIVPOW2 (-17 / 0x40000000):  long: 0
+3129.    LDIVPOW2 (-17 / 0x80000000):  long: 0
+3130.    LREMPOW2 (-17 % 0x00000002):  long: -1
+3131.    LREMPOW2 (-17 % 0x00000004):  long: -1
+3132.    LREMPOW2 (-17 % 0x00000008):  long: -1
+3133.    LREMPOW2 (-17 % 0x00000010):  long: -1
+3134.    LREMPOW2 (-17 % 0x00000020):  long: -17
+3135.    LREMPOW2 (-17 % 0x00000040):  long: -17
+3136.    LREMPOW2 (-17 % 0x00000080):  long: -17
+3137.    LREMPOW2 (-17 % 0x00000100):  long: -17
+3138.    LREMPOW2 (-17 % 0x00000200):  long: -17
+3139.    LREMPOW2 (-17 % 0x00000400):  long: -17
+3140.    LREMPOW2 (-17 % 0x00000800):  long: -17
+3141.    LREMPOW2 (-17 % 0x00001000):  long: -17
+3142.    LREMPOW2 (-17 % 0x00002000):  long: -17
+3143.    LREMPOW2 (-17 % 0x00004000):  long: -17
+3144.    LREMPOW2 (-17 % 0x00008000):  long: -17
+3145.    LREMPOW2 (-17 % 0x00010000):  long: -17
+3146.    LREMPOW2 (-17 % 0x00020000):  long: -17
+3147.    LREMPOW2 (-17 % 0x00040000):  long: -17
+3148.    LREMPOW2 (-17 % 0x00080000):  long: -17
+3149.    LREMPOW2 (-17 % 0x00100000):  long: -17
+3150.    LREMPOW2 (-17 % 0x00200000):  long: -17
+3151.    LREMPOW2 (-17 % 0x00400000):  long: -17
+3152.    LREMPOW2 (-17 % 0x00800000):  long: -17
+3153.    LREMPOW2 (-17 % 0x01000000):  long: -17
+3154.    LREMPOW2 (-17 % 0x02000000):  long: -17
+3155.    LREMPOW2 (-17 % 0x04000000):  long: -17
+3156.    LREMPOW2 (-17 % 0x08000000):  long: -17
+3157.    LREMPOW2 (-17 % 0x10000000):  long: -17
+3158.    LREMPOW2 (-17 % 0x20000000):  long: -17
+3159.    LREMPOW2 (-17 % 0x40000000):  long: -17
+3160.    LREMPOW2 (-17 % 0x80000000):  long: -17
+3161.    LDIVPOW2 (-12347 / 0x00000002):  long: -6173
+3162.    LDIVPOW2 (-12347 / 0x00000004):  long: -3086
+3163.    LDIVPOW2 (-12347 / 0x00000008):  long: -1543
+3164.    LDIVPOW2 (-12347 / 0x00000010):  long: -771
+3165.    LDIVPOW2 (-12347 / 0x00000020):  long: -385
+3166.    LDIVPOW2 (-12347 / 0x00000040):  long: -192
+3167.    LDIVPOW2 (-12347 / 0x00000080):  long: -96
+3168.    LDIVPOW2 (-12347 / 0x00000100):  long: -48
+3169.    LDIVPOW2 (-12347 / 0x00000200):  long: -24
+3170.    LDIVPOW2 (-12347 / 0x00000400):  long: -12
+3171.    LDIVPOW2 (-12347 / 0x00000800):  long: -6
+3172.    LDIVPOW2 (-12347 / 0x00001000):  long: -3
+3173.    LDIVPOW2 (-12347 / 0x00002000):  long: -1
+3174.    LDIVPOW2 (-12347 / 0x00004000):  long: 0
+3175.    LDIVPOW2 (-12347 / 0x00008000):  long: 0
+3176.    LDIVPOW2 (-12347 / 0x00010000):  long: 0
+3177.    LDIVPOW2 (-12347 / 0x00020000):  long: 0
+3178.    LDIVPOW2 (-12347 / 0x00040000):  long: 0
+3179.    LDIVPOW2 (-12347 / 0x00080000):  long: 0
+3180.    LDIVPOW2 (-12347 / 0x00100000):  long: 0
+3181.    LDIVPOW2 (-12347 / 0x00200000):  long: 0
+3182.    LDIVPOW2 (-12347 / 0x00400000):  long: 0
+3183.    LDIVPOW2 (-12347 / 0x00800000):  long: 0
+3184.    LDIVPOW2 (-12347 / 0x01000000):  long: 0
+3185.    LDIVPOW2 (-12347 / 0x02000000):  long: 0
+3186.    LDIVPOW2 (-12347 / 0x04000000):  long: 0
+3187.    LDIVPOW2 (-12347 / 0x08000000):  long: 0
+3188.    LDIVPOW2 (-12347 / 0x10000000):  long: 0
+3189.    LDIVPOW2 (-12347 / 0x20000000):  long: 0
+3190.    LDIVPOW2 (-12347 / 0x40000000):  long: 0
+3191.    LDIVPOW2 (-12347 / 0x80000000):  long: 0
+3192.    LREMPOW2 (-12347 % 0x00000002):  long: -1
+3193.    LREMPOW2 (-12347 % 0x00000004):  long: -3
+3194.    LREMPOW2 (-12347 % 0x00000008):  long: -3
+3195.    LREMPOW2 (-12347 % 0x00000010):  long: -11
+3196.    LREMPOW2 (-12347 % 0x00000020):  long: -27
+3197.    LREMPOW2 (-12347 % 0x00000040):  long: -59
+3198.    LREMPOW2 (-12347 % 0x00000080):  long: -59
+3199.    LREMPOW2 (-12347 % 0x00000100):  long: -59
+3200.    LREMPOW2 (-12347 % 0x00000200):  long: -59
+3201.    LREMPOW2 (-12347 % 0x00000400):  long: -59
+3202.    LREMPOW2 (-12347 % 0x00000800):  long: -59
+3203.    LREMPOW2 (-12347 % 0x00001000):  long: -59
+3204.    LREMPOW2 (-12347 % 0x00002000):  long: -4155
+3205.    LREMPOW2 (-12347 % 0x00004000):  long: -12347
+3206.    LREMPOW2 (-12347 % 0x00008000):  long: -12347
+3207.    LREMPOW2 (-12347 % 0x00010000):  long: -12347
+3208.    LREMPOW2 (-12347 % 0x00020000):  long: -12347
+3209.    LREMPOW2 (-12347 % 0x00040000):  long: -12347
+3210.    LREMPOW2 (-12347 % 0x00080000):  long: -12347
+3211.    LREMPOW2 (-12347 % 0x00100000):  long: -12347
+3212.    LREMPOW2 (-12347 % 0x00200000):  long: -12347
+3213.    LREMPOW2 (-12347 % 0x00400000):  long: -12347
+3214.    LREMPOW2 (-12347 % 0x00800000):  long: -12347
+3215.    LREMPOW2 (-12347 % 0x01000000):  long: -12347
+3216.    LREMPOW2 (-12347 % 0x02000000):  long: -12347
+3217.    LREMPOW2 (-12347 % 0x04000000):  long: -12347
+3218.    LREMPOW2 (-12347 % 0x08000000):  long: -12347
+3219.    LREMPOW2 (-12347 % 0x10000000):  long: -12347
+3220.    LREMPOW2 (-12347 % 0x20000000):  long: -12347
+3221.    LREMPOW2 (-12347 % 0x40000000):  long: -12347
+3222.    LREMPOW2 (-12347 % 0x80000000):  long: -12347
+3223.    LDIVPOW2 (-8893427 / 0x00000002):  long: -4446713
+3224.    LDIVPOW2 (-8893427 / 0x00000004):  long: -2223356
+3225.    LDIVPOW2 (-8893427 / 0x00000008):  long: -1111678
+3226.    LDIVPOW2 (-8893427 / 0x00000010):  long: -555839
+3227.    LDIVPOW2 (-8893427 / 0x00000020):  long: -277919
+3228.    LDIVPOW2 (-8893427 / 0x00000040):  long: -138959
+3229.    LDIVPOW2 (-8893427 / 0x00000080):  long: -69479
+3230.    LDIVPOW2 (-8893427 / 0x00000100):  long: -34739
+3231.    LDIVPOW2 (-8893427 / 0x00000200):  long: -17369
+3232.    LDIVPOW2 (-8893427 / 0x00000400):  long: -8684
+3233.    LDIVPOW2 (-8893427 / 0x00000800):  long: -4342
+3234.    LDIVPOW2 (-8893427 / 0x00001000):  long: -2171
+3235.    LDIVPOW2 (-8893427 / 0x00002000):  long: -1085
+3236.    LDIVPOW2 (-8893427 / 0x00004000):  long: -542
+3237.    LDIVPOW2 (-8893427 / 0x00008000):  long: -271
+3238.    LDIVPOW2 (-8893427 / 0x00010000):  long: -135
+3239.    LDIVPOW2 (-8893427 / 0x00020000):  long: -67
+3240.    LDIVPOW2 (-8893427 / 0x00040000):  long: -33
+3241.    LDIVPOW2 (-8893427 / 0x00080000):  long: -16
+3242.    LDIVPOW2 (-8893427 / 0x00100000):  long: -8
+3243.    LDIVPOW2 (-8893427 / 0x00200000):  long: -4
+3244.    LDIVPOW2 (-8893427 / 0x00400000):  long: -2
+3245.    LDIVPOW2 (-8893427 / 0x00800000):  long: -1
+3246.    LDIVPOW2 (-8893427 / 0x01000000):  long: 0
+3247.    LDIVPOW2 (-8893427 / 0x02000000):  long: 0
+3248.    LDIVPOW2 (-8893427 / 0x04000000):  long: 0
+3249.    LDIVPOW2 (-8893427 / 0x08000000):  long: 0
+3250.    LDIVPOW2 (-8893427 / 0x10000000):  long: 0
+3251.    LDIVPOW2 (-8893427 / 0x20000000):  long: 0
+3252.    LDIVPOW2 (-8893427 / 0x40000000):  long: 0
+3253.    LDIVPOW2 (-8893427 / 0x80000000):  long: 0
+3254.    LREMPOW2 (-8893427 % 0x00000002):  long: -1
+3255.    LREMPOW2 (-8893427 % 0x00000004):  long: -3
+3256.    LREMPOW2 (-8893427 % 0x00000008):  long: -3
+3257.    LREMPOW2 (-8893427 % 0x00000010):  long: -3
+3258.    LREMPOW2 (-8893427 % 0x00000020):  long: -19
+3259.    LREMPOW2 (-8893427 % 0x00000040):  long: -51
+3260.    LREMPOW2 (-8893427 % 0x00000080):  long: -115
+3261.    LREMPOW2 (-8893427 % 0x00000100):  long: -243
+3262.    LREMPOW2 (-8893427 % 0x00000200):  long: -499
+3263.    LREMPOW2 (-8893427 % 0x00000400):  long: -1011
+3264.    LREMPOW2 (-8893427 % 0x00000800):  long: -1011
+3265.    LREMPOW2 (-8893427 % 0x00001000):  long: -1011
+3266.    LREMPOW2 (-8893427 % 0x00002000):  long: -5107
+3267.    LREMPOW2 (-8893427 % 0x00004000):  long: -13299
+3268.    LREMPOW2 (-8893427 % 0x00008000):  long: -13299
+3269.    LREMPOW2 (-8893427 % 0x00010000):  long: -46067
+3270.    LREMPOW2 (-8893427 % 0x00020000):  long: -111603
+3271.    LREMPOW2 (-8893427 % 0x00040000):  long: -242675
+3272.    LREMPOW2 (-8893427 % 0x00080000):  long: -504819
+3273.    LREMPOW2 (-8893427 % 0x00100000):  long: -504819
+3274.    LREMPOW2 (-8893427 % 0x00200000):  long: -504819
+3275.    LREMPOW2 (-8893427 % 0x00400000):  long: -504819
+3276.    LREMPOW2 (-8893427 % 0x00800000):  long: -504819
+3277.    LREMPOW2 (-8893427 % 0x01000000):  long: -8893427
+3278.    LREMPOW2 (-8893427 % 0x02000000):  long: -8893427
+3279.    LREMPOW2 (-8893427 % 0x04000000):  long: -8893427
+3280.    LREMPOW2 (-8893427 % 0x08000000):  long: -8893427
+3281.    LREMPOW2 (-8893427 % 0x10000000):  long: -8893427
+3282.    LREMPOW2 (-8893427 % 0x20000000):  long: -8893427
+3283.    LREMPOW2 (-8893427 % 0x40000000):  long: -8893427
+3284.    LREMPOW2 (-8893427 % 0x80000000):  long: -8893427
+3285.    LDIVPOW2 (-1005234562 / 0x00000002):  long: -502617281
+3286.    LDIVPOW2 (-1005234562 / 0x00000004):  long: -251308640
+3287.    LDIVPOW2 (-1005234562 / 0x00000008):  long: -125654320
+3288.    LDIVPOW2 (-1005234562 / 0x00000010):  long: -62827160
+3289.    LDIVPOW2 (-1005234562 / 0x00000020):  long: -31413580
+3290.    LDIVPOW2 (-1005234562 / 0x00000040):  long: -15706790
+3291.    LDIVPOW2 (-1005234562 / 0x00000080):  long: -7853395
+3292.    LDIVPOW2 (-1005234562 / 0x00000100):  long: -3926697
+3293.    LDIVPOW2 (-1005234562 / 0x00000200):  long: -1963348
+3294.    LDIVPOW2 (-1005234562 / 0x00000400):  long: -981674
+3295.    LDIVPOW2 (-1005234562 / 0x00000800):  long: -490837
+3296.    LDIVPOW2 (-1005234562 / 0x00001000):  long: -245418
+3297.    LDIVPOW2 (-1005234562 / 0x00002000):  long: -122709
+3298.    LDIVPOW2 (-1005234562 / 0x00004000):  long: -61354
+3299.    LDIVPOW2 (-1005234562 / 0x00008000):  long: -30677
+3300.    LDIVPOW2 (-1005234562 / 0x00010000):  long: -15338
+3301.    LDIVPOW2 (-1005234562 / 0x00020000):  long: -7669
+3302.    LDIVPOW2 (-1005234562 / 0x00040000):  long: -3834
+3303.    LDIVPOW2 (-1005234562 / 0x00080000):  long: -1917
+3304.    LDIVPOW2 (-1005234562 / 0x00100000):  long: -958
+3305.    LDIVPOW2 (-1005234562 / 0x00200000):  long: -479
+3306.    LDIVPOW2 (-1005234562 / 0x00400000):  long: -239
+3307.    LDIVPOW2 (-1005234562 / 0x00800000):  long: -119
+3308.    LDIVPOW2 (-1005234562 / 0x01000000):  long: -59
+3309.    LDIVPOW2 (-1005234562 / 0x02000000):  long: -29
+3310.    LDIVPOW2 (-1005234562 / 0x04000000):  long: -14
+3311.    LDIVPOW2 (-1005234562 / 0x08000000):  long: -7
+3312.    LDIVPOW2 (-1005234562 / 0x10000000):  long: -3
+3313.    LDIVPOW2 (-1005234562 / 0x20000000):  long: -1
+3314.    LDIVPOW2 (-1005234562 / 0x40000000):  long: 0
+3315.    LDIVPOW2 (-1005234562 / 0x80000000):  long: 0
+3316.    LREMPOW2 (-1005234562 % 0x00000002):  long: 0
+3317.    LREMPOW2 (-1005234562 % 0x00000004):  long: -2
+3318.    LREMPOW2 (-1005234562 % 0x00000008):  long: -2
+3319.    LREMPOW2 (-1005234562 % 0x00000010):  long: -2
+3320.    LREMPOW2 (-1005234562 % 0x00000020):  long: -2
+3321.    LREMPOW2 (-1005234562 % 0x00000040):  long: -2
+3322.    LREMPOW2 (-1005234562 % 0x00000080):  long: -2
+3323.    LREMPOW2 (-1005234562 % 0x00000100):  long: -130
+3324.    LREMPOW2 (-1005234562 % 0x00000200):  long: -386
+3325.    LREMPOW2 (-1005234562 % 0x00000400):  long: -386
+3326.    LREMPOW2 (-1005234562 % 0x00000800):  long: -386
+3327.    LREMPOW2 (-1005234562 % 0x00001000):  long: -2434
+3328.    LREMPOW2 (-1005234562 % 0x00002000):  long: -2434
+3329.    LREMPOW2 (-1005234562 % 0x00004000):  long: -10626
+3330.    LREMPOW2 (-1005234562 % 0x00008000):  long: -10626
+3331.    LREMPOW2 (-1005234562 % 0x00010000):  long: -43394
+3332.    LREMPOW2 (-1005234562 % 0x00020000):  long: -43394
+3333.    LREMPOW2 (-1005234562 % 0x00040000):  long: -174466
+3334.    LREMPOW2 (-1005234562 % 0x00080000):  long: -174466
+3335.    LREMPOW2 (-1005234562 % 0x00100000):  long: -698754
+3336.    LREMPOW2 (-1005234562 % 0x00200000):  long: -698754
+3337.    LREMPOW2 (-1005234562 % 0x00400000):  long: -2795906
+3338.    LREMPOW2 (-1005234562 % 0x00800000):  long: -6990210
+3339.    LREMPOW2 (-1005234562 % 0x01000000):  long: -15378818
+3340.    LREMPOW2 (-1005234562 % 0x02000000):  long: -32156034
+3341.    LREMPOW2 (-1005234562 % 0x04000000):  long: -65710466
+3342.    LREMPOW2 (-1005234562 % 0x08000000):  long: -65710466
+3343.    LREMPOW2 (-1005234562 % 0x10000000):  long: -199928194
+3344.    LREMPOW2 (-1005234562 % 0x20000000):  long: -468363650
+3345.    LREMPOW2 (-1005234562 % 0x40000000):  long: -1005234562
+3346.    LREMPOW2 (-1005234562 % 0x80000000):  long: -1005234562
+3347.    LDIVPOW2 (-12135005234562 / 0x00000002):  long: -6067502617281
+3348.    LDIVPOW2 (-12135005234562 / 0x00000004):  long: -3033751308640
+3349.    LDIVPOW2 (-12135005234562 / 0x00000008):  long: -1516875654320
+3350.    LDIVPOW2 (-12135005234562 / 0x00000010):  long: -758437827160
+3351.    LDIVPOW2 (-12135005234562 / 0x00000020):  long: -379218913580
+3352.    LDIVPOW2 (-12135005234562 / 0x00000040):  long: -189609456790
+3353.    LDIVPOW2 (-12135005234562 / 0x00000080):  long: -94804728395
+3354.    LDIVPOW2 (-12135005234562 / 0x00000100):  long: -47402364197
+3355.    LDIVPOW2 (-12135005234562 / 0x00000200):  long: -23701182098
+3356.    LDIVPOW2 (-12135005234562 / 0x00000400):  long: -11850591049
+3357.    LDIVPOW2 (-12135005234562 / 0x00000800):  long: -5925295524
+3358.    LDIVPOW2 (-12135005234562 / 0x00001000):  long: -2962647762
+3359.    LDIVPOW2 (-12135005234562 / 0x00002000):  long: -1481323881
+3360.    LDIVPOW2 (-12135005234562 / 0x00004000):  long: -740661940
+3361.    LDIVPOW2 (-12135005234562 / 0x00008000):  long: -370330970
+3362.    LDIVPOW2 (-12135005234562 / 0x00010000):  long: -185165485
+3363.    LDIVPOW2 (-12135005234562 / 0x00020000):  long: -92582742
+3364.    LDIVPOW2 (-12135005234562 / 0x00040000):  long: -46291371
+3365.    LDIVPOW2 (-12135005234562 / 0x00080000):  long: -23145685
+3366.    LDIVPOW2 (-12135005234562 / 0x00100000):  long: -11572842
+3367.    LDIVPOW2 (-12135005234562 / 0x00200000):  long: -5786421
+3368.    LDIVPOW2 (-12135005234562 / 0x00400000):  long: -2893210
+3369.    LDIVPOW2 (-12135005234562 / 0x00800000):  long: -1446605
+3370.    LDIVPOW2 (-12135005234562 / 0x01000000):  long: -723302
+3371.    LDIVPOW2 (-12135005234562 / 0x02000000):  long: -361651
+3372.    LDIVPOW2 (-12135005234562 / 0x04000000):  long: -180825
+3373.    LDIVPOW2 (-12135005234562 / 0x08000000):  long: -90412
+3374.    LDIVPOW2 (-12135005234562 / 0x10000000):  long: -45206
+3375.    LDIVPOW2 (-12135005234562 / 0x20000000):  long: -22603
+3376.    LDIVPOW2 (-12135005234562 / 0x40000000):  long: -11301
+3377.    LDIVPOW2 (-12135005234562 / 0x80000000):  long: 5650
+3378.    LREMPOW2 (-12135005234562 % 0x00000002):  long: 0
+3379.    LREMPOW2 (-12135005234562 % 0x00000004):  long: -2
+3380.    LREMPOW2 (-12135005234562 % 0x00000008):  long: -2
+3381.    LREMPOW2 (-12135005234562 % 0x00000010):  long: -2
+3382.    LREMPOW2 (-12135005234562 % 0x00000020):  long: -2
+3383.    LREMPOW2 (-12135005234562 % 0x00000040):  long: -2
+3384.    LREMPOW2 (-12135005234562 % 0x00000080):  long: -2
+3385.    LREMPOW2 (-12135005234562 % 0x00000100):  long: -130
+3386.    LREMPOW2 (-12135005234562 % 0x00000200):  long: -386
+3387.    LREMPOW2 (-12135005234562 % 0x00000400):  long: -386
+3388.    LREMPOW2 (-12135005234562 % 0x00000800):  long: -1410
+3389.    LREMPOW2 (-12135005234562 % 0x00001000):  long: -1410
+3390.    LREMPOW2 (-12135005234562 % 0x00002000):  long: -1410
+3391.    LREMPOW2 (-12135005234562 % 0x00004000):  long: -9602
+3392.    LREMPOW2 (-12135005234562 % 0x00008000):  long: -9602
+3393.    LREMPOW2 (-12135005234562 % 0x00010000):  long: -9602
+3394.    LREMPOW2 (-12135005234562 % 0x00020000):  long: -75138
+3395.    LREMPOW2 (-12135005234562 % 0x00040000):  long: -75138
+3396.    LREMPOW2 (-12135005234562 % 0x00080000):  long: -337282
+3397.    LREMPOW2 (-12135005234562 % 0x00100000):  long: -861570
+3398.    LREMPOW2 (-12135005234562 % 0x00200000):  long: -861570
+3399.    LREMPOW2 (-12135005234562 % 0x00400000):  long: -2958722
+3400.    LREMPOW2 (-12135005234562 % 0x00800000):  long: -2958722
+3401.    LREMPOW2 (-12135005234562 % 0x01000000):  long: -11347330
+3402.    LREMPOW2 (-12135005234562 % 0x02000000):  long: -11347330
+3403.    LREMPOW2 (-12135005234562 % 0x04000000):  long: -44901762
+3404.    LREMPOW2 (-12135005234562 % 0x08000000):  long: -112010626
+3405.    LREMPOW2 (-12135005234562 % 0x10000000):  long: -112010626
+3406.    LREMPOW2 (-12135005234562 % 0x20000000):  long: -112010626
+3407.    LREMPOW2 (-12135005234562 % 0x40000000):  long: -648881538
+3408.    LREMPOW2 (-12135005234562 % 0x80000000):  long: -1722623362
+3409.    LDIVPOW2 (-2343552355623464626 / 0x00000002):  long: -1171776177811732313
+3410.    LDIVPOW2 (-2343552355623464626 / 0x00000004):  long: -585888088905866156
+3411.    LDIVPOW2 (-2343552355623464626 / 0x00000008):  long: -292944044452933078
+3412.    LDIVPOW2 (-2343552355623464626 / 0x00000010):  long: -146472022226466539
+3413.    LDIVPOW2 (-2343552355623464626 / 0x00000020):  long: -73236011113233269
+3414.    LDIVPOW2 (-2343552355623464626 / 0x00000040):  long: -36618005556616634
+3415.    LDIVPOW2 (-2343552355623464626 / 0x00000080):  long: -18309002778308317
+3416.    LDIVPOW2 (-2343552355623464626 / 0x00000100):  long: -9154501389154158
+3417.    LDIVPOW2 (-2343552355623464626 / 0x00000200):  long: -4577250694577079
+3418.    LDIVPOW2 (-2343552355623464626 / 0x00000400):  long: -2288625347288539
+3419.    LDIVPOW2 (-2343552355623464626 / 0x00000800):  long: -1144312673644269
+3420.    LDIVPOW2 (-2343552355623464626 / 0x00001000):  long: -572156336822134
+3421.    LDIVPOW2 (-2343552355623464626 / 0x00002000):  long: -286078168411067
+3422.    LDIVPOW2 (-2343552355623464626 / 0x00004000):  long: -143039084205533
+3423.    LDIVPOW2 (-2343552355623464626 / 0x00008000):  long: -71519542102766
+3424.    LDIVPOW2 (-2343552355623464626 / 0x00010000):  long: -35759771051383
+3425.    LDIVPOW2 (-2343552355623464626 / 0x00020000):  long: -17879885525691
+3426.    LDIVPOW2 (-2343552355623464626 / 0x00040000):  long: -8939942762845
+3427.    LDIVPOW2 (-2343552355623464626 / 0x00080000):  long: -4469971381422
+3428.    LDIVPOW2 (-2343552355623464626 / 0x00100000):  long: -2234985690711
+3429.    LDIVPOW2 (-2343552355623464626 / 0x00200000):  long: -1117492845355
+3430.    LDIVPOW2 (-2343552355623464626 / 0x00400000):  long: -558746422677
+3431.    LDIVPOW2 (-2343552355623464626 / 0x00800000):  long: -279373211338
+3432.    LDIVPOW2 (-2343552355623464626 / 0x01000000):  long: -139686605669
+3433.    LDIVPOW2 (-2343552355623464626 / 0x02000000):  long: -69843302834
+3434.    LDIVPOW2 (-2343552355623464626 / 0x04000000):  long: -34921651417
+3435.    LDIVPOW2 (-2343552355623464626 / 0x08000000):  long: -17460825708
+3436.    LDIVPOW2 (-2343552355623464626 / 0x10000000):  long: -8730412854
+3437.    LDIVPOW2 (-2343552355623464626 / 0x20000000):  long: -4365206427
+3438.    LDIVPOW2 (-2343552355623464626 / 0x40000000):  long: -2182603213
+3439.    LDIVPOW2 (-2343552355623464626 / 0x80000000):  long: 1091301606
+3440.    LREMPOW2 (-2343552355623464626 % 0x00000002):  long: 0
+3441.    LREMPOW2 (-2343552355623464626 % 0x00000004):  long: -2
+3442.    LREMPOW2 (-2343552355623464626 % 0x00000008):  long: -2
+3443.    LREMPOW2 (-2343552355623464626 % 0x00000010):  long: -2
+3444.    LREMPOW2 (-2343552355623464626 % 0x00000020):  long: -18
+3445.    LREMPOW2 (-2343552355623464626 % 0x00000040):  long: -50
+3446.    LREMPOW2 (-2343552355623464626 % 0x00000080):  long: -50
+3447.    LREMPOW2 (-2343552355623464626 % 0x00000100):  long: -178
+3448.    LREMPOW2 (-2343552355623464626 % 0x00000200):  long: -178
+3449.    LREMPOW2 (-2343552355623464626 % 0x00000400):  long: -690
+3450.    LREMPOW2 (-2343552355623464626 % 0x00000800):  long: -1714
+3451.    LREMPOW2 (-2343552355623464626 % 0x00001000):  long: -3762
+3452.    LREMPOW2 (-2343552355623464626 % 0x00002000):  long: -3762
+3453.    LREMPOW2 (-2343552355623464626 % 0x00004000):  long: -11954
+3454.    LREMPOW2 (-2343552355623464626 % 0x00008000):  long: -28338
+3455.    LREMPOW2 (-2343552355623464626 % 0x00010000):  long: -28338
+3456.    LREMPOW2 (-2343552355623464626 % 0x00020000):  long: -93874
+3457.    LREMPOW2 (-2343552355623464626 % 0x00040000):  long: -224946
+3458.    LREMPOW2 (-2343552355623464626 % 0x00080000):  long: -487090
+3459.    LREMPOW2 (-2343552355623464626 % 0x00100000):  long: -487090
+3460.    LREMPOW2 (-2343552355623464626 % 0x00200000):  long: -1535666
+3461.    LREMPOW2 (-2343552355623464626 % 0x00400000):  long: -3632818
+3462.    LREMPOW2 (-2343552355623464626 % 0x00800000):  long: -7827122
+3463.    LREMPOW2 (-2343552355623464626 % 0x01000000):  long: -7827122
+3464.    LREMPOW2 (-2343552355623464626 % 0x02000000):  long: -24604338
+3465.    LREMPOW2 (-2343552355623464626 % 0x04000000):  long: -24604338
+3466.    LREMPOW2 (-2343552355623464626 % 0x08000000):  long: -91713202
+3467.    LREMPOW2 (-2343552355623464626 % 0x10000000):  long: -91713202
+3468.    LREMPOW2 (-2343552355623464626 % 0x20000000):  long: -91713202
+3469.    LREMPOW2 (-2343552355623464626 % 0x40000000):  long: -628584114
+3470.    LREMPOW2 (-2343552355623464626 % 0x80000000):  long: -1702325938
+3471.    ------------------- test ints
+3472.    TESTINT CALLED WITH int: 1
+3473.                    AND int: 2
+3474.    IADD:  int: 3
+3475.    ISUB:  int: -1
+3476.    IMUL:  int: 2
+3477.    IDIV:  int: 0
+3478.    IREM:  int: 1
+3479.    INEG:  int: -1
+3480.    ISHL:  int: 4
+3481.    ISHR:  int: 0
+3482.    IUSHR: int: 0
+3483.    IAND:  int: 0
+3484.    IOR:   int: 3
+3485.    IXOR:  int: 3
+3486.    I2L:   long: 1
+3487.    I2F:   float: 1065353216
+3488.    I2D:   double: 4607182418800017408
+3489.    INT2BYTE: byte: 1
+3490.    INT2CHAR: char: 1
+3491.    INT2SHORT: short: 1
+3492.    not IFEQ
+3493.    not IFLT
+3494.    not IFLE
+3495.    not IF_ICMPEQ
+3496.    not IF_ICMPGT
+3497.    not IF_ICMPGE
+3498.    COND_ICMPEQ 1 == 0: 1
+3499.    COND_ICMPNE 1 != 0: 0
+3500.    COND_ICMPLT 1 <  0: 1
+3501.    COND_ICMPLE 1 <= 0: 1
+3502.    COND_ICMPGT 1 >  0: 0
+3503.    COND_ICMPGE 1 >= 0: 0
+3504.    COND_ICMPEQ 1 == 0: 0
+3505.    COND_ICMPNE 1 != 0: 1
+3506.    COND_ICMPLT 1 <  0: 0
+3507.    COND_ICMPLE 1 <= 0: 0
+3508.    COND_ICMPGT 1 >  0: 1
+3509.    COND_ICMPGE 1 >= 0: 1
+3510.    COND_ICMPEQ 1 == 0: 3
+3511.    COND_ICMPNE 1 != 0: 2
+3512.    COND_ICMPLT 1 <  0: 3
+3513.    COND_ICMPLE 1 <= 0: 3
+3514.    COND_ICMPGT 1 >  0: 2
+3515.    COND_ICMPGE 1 >= 0: 2
+3516.    COND_ICMPEQ 1 == 2: false
+3517.    COND_ICMPNE 1 != 2: true
+3518.    COND_ICMPLT 1 <  2: true
+3519.    COND_ICMPLE 1 <= 2: true
+3520.    COND_ICMPGT 1 >  2: false
+3521.    COND_ICMPGE 1 >= 2: false
+3522.    TESTINT CALLED WITH int: -1
+3523.                    AND int: 17
+3524.    IADD:  int: 16
+3525.    ISUB:  int: -18
+3526.    IMUL:  int: -17
+3527.    IDIV:  int: 0
+3528.    IREM:  int: -1
+3529.    INEG:  int: 1
+3530.    ISHL:  int: -131072
+3531.    ISHR:  int: -1
+3532.    IUSHR: int: 32767
+3533.    IAND:  int: 17
+3534.    IOR:   int: -1
+3535.    IXOR:  int: -18
+3536.    I2L:   long: -1
+3537.    I2F:   float: -1082130432
+3538.    I2D:   double: -4616189618054758400
+3539.    INT2BYTE: byte: -1
+3540.    INT2CHAR: char: 65535
+3541.    INT2SHORT: short: -1
+3542.    not IFEQ
+3543.    not IFGT
+3544.    not IFGE
+3545.    not IF_ICMPEQ
+3546.    not IF_ICMPGT
+3547.    not IF_ICMPGE
+3548.    COND_ICMPEQ -1 == 0: 1
+3549.    COND_ICMPNE -1 != 0: 0
+3550.    COND_ICMPLT -1 <  0: 0
+3551.    COND_ICMPLE -1 <= 0: 0
+3552.    COND_ICMPGT -1 >  0: 1
+3553.    COND_ICMPGE -1 >= 0: 1
+3554.    COND_ICMPEQ -1 == 0: 0
+3555.    COND_ICMPNE -1 != 0: 1
+3556.    COND_ICMPLT -1 <  0: 1
+3557.    COND_ICMPLE -1 <= 0: 1
+3558.    COND_ICMPGT -1 >  0: 0
+3559.    COND_ICMPGE -1 >= 0: 0
+3560.    COND_ICMPEQ -1 == 0: 3
+3561.    COND_ICMPNE -1 != 0: 2
+3562.    COND_ICMPLT -1 <  0: 2
+3563.    COND_ICMPLE -1 <= 0: 2
+3564.    COND_ICMPGT -1 >  0: 3
+3565.    COND_ICMPGE -1 >= 0: 3
+3566.    COND_ICMPEQ -1 == 17: false
+3567.    COND_ICMPNE -1 != 17: true
+3568.    COND_ICMPLT -1 <  17: true
+3569.    COND_ICMPLE -1 <= 17: true
+3570.    COND_ICMPGT -1 >  17: false
+3571.    COND_ICMPGE -1 >= 17: false
+3572.    TESTINT CALLED WITH int: -24351
+3573.                    AND int: 24123
+3574.    IADD:  int: -228
+3575.    ISUB:  int: -48474
+3576.    IMUL:  int: -587419173
+3577.    IDIV:  int: -1
+3578.    IREM:  int: -228
+3579.    INEG:  int: 24351
+3580.    ISHL:  int: 134217728
+3581.    ISHR:  int: -1
+3582.    IUSHR: int: 31
+3583.    IAND:  int: 33
+3584.    IOR:   int: -261
+3585.    IXOR:  int: -294
+3586.    I2L:   long: -24351
+3587.    I2F:   float: -960610816
+3588.    I2D:   double: -4550949270986948608
+3589.    INT2BYTE: byte: -31
+3590.    INT2CHAR: char: 41185
+3591.    INT2SHORT: short: -24351
+3592.    not IFEQ
+3593.    not IFGT
+3594.    not IFGE
+3595.    not IF_ICMPEQ
+3596.    not IF_ICMPGT
+3597.    not IF_ICMPGE
+3598.    COND_ICMPEQ -24351 == 0: 1
+3599.    COND_ICMPNE -24351 != 0: 0
+3600.    COND_ICMPLT -24351 <  0: 0
+3601.    COND_ICMPLE -24351 <= 0: 0
+3602.    COND_ICMPGT -24351 >  0: 1
+3603.    COND_ICMPGE -24351 >= 0: 1
+3604.    COND_ICMPEQ -24351 == 0: 0
+3605.    COND_ICMPNE -24351 != 0: 1
+3606.    COND_ICMPLT -24351 <  0: 1
+3607.    COND_ICMPLE -24351 <= 0: 1
+3608.    COND_ICMPGT -24351 >  0: 0
+3609.    COND_ICMPGE -24351 >= 0: 0
+3610.    COND_ICMPEQ -24351 == 0: 3
+3611.    COND_ICMPNE -24351 != 0: 2
+3612.    COND_ICMPLT -24351 <  0: 2
+3613.    COND_ICMPLE -24351 <= 0: 2
+3614.    COND_ICMPGT -24351 >  0: 3
+3615.    COND_ICMPGE -24351 >= 0: 3
+3616.    COND_ICMPEQ -24351 == 24123: false
+3617.    COND_ICMPNE -24351 != 24123: true
+3618.    COND_ICMPLT -24351 <  24123: true
+3619.    COND_ICMPLE -24351 <= 24123: true
+3620.    COND_ICMPGT -24351 >  24123: false
+3621.    COND_ICMPGE -24351 >= 24123: false
+3622.    TESTINT CALLED WITH int: 4918923
+3623.                    AND int: -441423
+3624.    IADD:  int: 4477500
+3625.    ISUB:  int: 5360346
+3626.    IMUL:  int: 1927704347
+3627.    IDIV:  int: -11
+3628.    IREM:  int: 63270
+3629.    INEG:  int: -4918923
+3630.    ISHL:  int: 487981056
+3631.    ISHR:  int: 37
+3632.    IUSHR: int: 37
+3633.    IAND:  int: 4784769
+3634.    IOR:   int: -307269
+3635.    IXOR:  int: -5092038
+3636.    I2L:   long: 4918923
+3637.    I2F:   float: 1251351830
+3638.    I2D:   double: 4707039664328933376
+3639.    INT2BYTE: byte: -117
+3640.    INT2CHAR: char: 3723
+3641.    INT2SHORT: short: 3723
+3642.    not IFEQ
+3643.    not IFLT
+3644.    not IFLE
+3645.    not IF_ICMPEQ
+3646.    not IF_ICMPLT
+3647.    not IF_ICMPLE
+3648.    COND_ICMPEQ 4918923 == 0: 1
+3649.    COND_ICMPNE 4918923 != 0: 0
+3650.    COND_ICMPLT 4918923 <  0: 1
+3651.    COND_ICMPLE 4918923 <= 0: 1
+3652.    COND_ICMPGT 4918923 >  0: 0
+3653.    COND_ICMPGE 4918923 >= 0: 0
+3654.    COND_ICMPEQ 4918923 == 0: 0
+3655.    COND_ICMPNE 4918923 != 0: 1
+3656.    COND_ICMPLT 4918923 <  0: 0
+3657.    COND_ICMPLE 4918923 <= 0: 0
+3658.    COND_ICMPGT 4918923 >  0: 1
+3659.    COND_ICMPGE 4918923 >= 0: 1
+3660.    COND_ICMPEQ 4918923 == 0: 3
+3661.    COND_ICMPNE 4918923 != 0: 2
+3662.    COND_ICMPLT 4918923 <  0: 3
+3663.    COND_ICMPLE 4918923 <= 0: 3
+3664.    COND_ICMPGT 4918923 >  0: 2
+3665.    COND_ICMPGE 4918923 >= 0: 2
+3666.    COND_ICMPEQ 4918923 == -441423: false
+3667.    COND_ICMPNE 4918923 != -441423: true
+3668.    COND_ICMPLT 4918923 <  -441423: false
+3669.    COND_ICMPLE 4918923 <= -441423: false
+3670.    COND_ICMPGT 4918923 >  -441423: true
+3671.    COND_ICMPGE 4918923 >= -441423: true
+3672.    TESTINT CALLED WITH int: 0
+3673.                    AND int: 0
+3674.    IADD:  int: 0
+3675.    ISUB:  int: 0
+3676.    IMUL:  int: 0
+3677.    divison by zero
+3678.    divison by zero
+3679.    INEG:  int: 0
+3680.    ISHL:  int: 0
+3681.    ISHR:  int: 0
+3682.    IUSHR: int: 0
+3683.    IAND:  int: 0
+3684.    IOR:   int: 0
+3685.    IXOR:  int: 0
+3686.    I2L:   long: 0
+3687.    I2F:   float: 0
+3688.    I2D:   double: 0
+3689.    INT2BYTE: byte: 0
+3690.    INT2CHAR: char: 0
+3691.    INT2SHORT: short: 0
+3692.    not IFNE
+3693.    not IFLT
+3694.    not IFGT
+3695.    not IF_ICMPNE
+3696.    not IF_ICMPLT
+3697.    not IF_ICMPGT
+3698.    COND_ICMPEQ 0 == 0: 0
+3699.    COND_ICMPNE 0 != 0: 1
+3700.    COND_ICMPLT 0 <  0: 1
+3701.    COND_ICMPLE 0 <= 0: 0
+3702.    COND_ICMPGT 0 >  0: 1
+3703.    COND_ICMPGE 0 >= 0: 0
+3704.    COND_ICMPEQ 0 == 0: 1
+3705.    COND_ICMPNE 0 != 0: 0
+3706.    COND_ICMPLT 0 <  0: 0
+3707.    COND_ICMPLE 0 <= 0: 1
+3708.    COND_ICMPGT 0 >  0: 0
+3709.    COND_ICMPGE 0 >= 0: 1
+3710.    COND_ICMPEQ 0 == 0: 2
+3711.    COND_ICMPNE 0 != 0: 3
+3712.    COND_ICMPLT 0 <  0: 3
+3713.    COND_ICMPLE 0 <= 0: 2
+3714.    COND_ICMPGT 0 >  0: 3
+3715.    COND_ICMPGE 0 >= 0: 2
+3716.    COND_ICMPEQ 0 == 0: true
+3717.    COND_ICMPNE 0 != 0: false
+3718.    COND_ICMPLT 0 <  0: false
+3719.    COND_ICMPLE 0 <= 0: true
+3720.    COND_ICMPGT 0 >  0: false
+3721.    COND_ICMPGE 0 >= 0: true
+3722.    TESTINT CALLED WITH int: -1
+3723.                    AND int: -1
+3724.    IADD:  int: -2
+3725.    ISUB:  int: 0
+3726.    IMUL:  int: 1
+3727.    IDIV:  int: 1
+3728.    IREM:  int: 0
+3729.    INEG:  int: 1
+3730.    ISHL:  int: -2147483648
+3731.    ISHR:  int: -1
+3732.    IUSHR: int: 1
+3733.    IAND:  int: -1
+3734.    IOR:   int: -1
+3735.    IXOR:  int: 0
+3736.    I2L:   long: -1
+3737.    I2F:   float: -1082130432
+3738.    I2D:   double: -4616189618054758400
+3739.    INT2BYTE: byte: -1
+3740.    INT2CHAR: char: 65535
+3741.    INT2SHORT: short: -1
+3742.    not IFEQ
+3743.    not IFGT
+3744.    not IFGE
+3745.    not IF_ICMPNE
+3746.    not IF_ICMPLT
+3747.    not IF_ICMPGT
+3748.    COND_ICMPEQ -1 == 0: 1
+3749.    COND_ICMPNE -1 != 0: 0
+3750.    COND_ICMPLT -1 <  0: 0
+3751.    COND_ICMPLE -1 <= 0: 0
+3752.    COND_ICMPGT -1 >  0: 1
+3753.    COND_ICMPGE -1 >= 0: 1
+3754.    COND_ICMPEQ -1 == 0: 0
+3755.    COND_ICMPNE -1 != 0: 1
+3756.    COND_ICMPLT -1 <  0: 1
+3757.    COND_ICMPLE -1 <= 0: 1
+3758.    COND_ICMPGT -1 >  0: 0
+3759.    COND_ICMPGE -1 >= 0: 0
+3760.    COND_ICMPEQ -1 == 0: 3
+3761.    COND_ICMPNE -1 != 0: 2
+3762.    COND_ICMPLT -1 <  0: 2
+3763.    COND_ICMPLE -1 <= 0: 2
+3764.    COND_ICMPGT -1 >  0: 3
+3765.    COND_ICMPGE -1 >= 0: 3
+3766.    COND_ICMPEQ -1 == -1: true
+3767.    COND_ICMPNE -1 != -1: false
+3768.    COND_ICMPLT -1 <  -1: false
+3769.    COND_ICMPLE -1 <= -1: true
+3770.    COND_ICMPGT -1 >  -1: false
+3771.    COND_ICMPGE -1 >= -1: true
+3772.    TESTINT CALLED WITH int: 1423487
+3773.                    AND int: 123444444
+3774.    IADD:  int: 124867931
+3775.    ISUB:  int: -122020957
+3776.    IMUL:  int: 1564274980
+3777.    IDIV:  int: 0
+3778.    IREM:  int: 1423487
+3779.    INEG:  int: -1423487
+3780.    ISHL:  int: -268435456
+3781.    ISHR:  int: 0
+3782.    IUSHR: int: 0
+3783.    IAND:  int: 1153116
+3784.    IOR:   int: 123714815
+3785.    IXOR:  int: 122561699
+3786.    I2L:   long: 1423487
+3787.    I2F:   float: 1236124664
+3788.    I2D:   double: 4698864641831337984
+3789.    INT2BYTE: byte: 127
+3790.    INT2CHAR: char: 47231
+3791.    INT2SHORT: short: -18305
+3792.    not IFEQ
+3793.    not IFLT
+3794.    not IFLE
+3795.    not IF_ICMPEQ
+3796.    not IF_ICMPGT
+3797.    not IF_ICMPGE
+3798.    COND_ICMPEQ 1423487 == 0: 1
+3799.    COND_ICMPNE 1423487 != 0: 0
+3800.    COND_ICMPLT 1423487 <  0: 1
+3801.    COND_ICMPLE 1423487 <= 0: 1
+3802.    COND_ICMPGT 1423487 >  0: 0
+3803.    COND_ICMPGE 1423487 >= 0: 0
+3804.    COND_ICMPEQ 1423487 == 0: 0
+3805.    COND_ICMPNE 1423487 != 0: 1
+3806.    COND_ICMPLT 1423487 <  0: 0
+3807.    COND_ICMPLE 1423487 <= 0: 0
+3808.    COND_ICMPGT 1423487 >  0: 1
+3809.    COND_ICMPGE 1423487 >= 0: 1
+3810.    COND_ICMPEQ 1423487 == 0: 3
+3811.    COND_ICMPNE 1423487 != 0: 2
+3812.    COND_ICMPLT 1423487 <  0: 3
+3813.    COND_ICMPLE 1423487 <= 0: 3
+3814.    COND_ICMPGT 1423487 >  0: 2
+3815.    COND_ICMPGE 1423487 >= 0: 2
+3816.    COND_ICMPEQ 1423487 == 123444444: false
+3817.    COND_ICMPNE 1423487 != 123444444: true
+3818.    COND_ICMPLT 1423487 <  123444444: true
+3819.    COND_ICMPLE 1423487 <= 123444444: true
+3820.    COND_ICMPGT 1423487 >  123444444: false
+3821.    COND_ICMPGE 1423487 >= 123444444: false
+3822.    TESTINT CALLED WITH int: 2147483647
+3823.                    AND int: 1
+3824.    IADD:  int: -2147483648
+3825.    ISUB:  int: 2147483646
+3826.    IMUL:  int: 2147483647
+3827.    IDIV:  int: 2147483647
+3828.    IREM:  int: 0
+3829.    INEG:  int: -2147483647
+3830.    ISHL:  int: -2
+3831.    ISHR:  int: 1073741823
+3832.    IUSHR: int: 1073741823
+3833.    IAND:  int: 1
+3834.    IOR:   int: 2147483647
+3835.    IXOR:  int: 2147483646
+3836.    I2L:   long: 2147483647
+3837.    I2F:   float: 1325400064
+3838.    I2D:   double: 4746794007244308480
+3839.    INT2BYTE: byte: -1
+3840.    INT2CHAR: char: 65535
+3841.    INT2SHORT: short: -1
+3842.    not IFEQ
+3843.    not IFLT
+3844.    not IFLE
+3845.    not IF_ICMPEQ
+3846.    not IF_ICMPLT
+3847.    not IF_ICMPLE
+3848.    COND_ICMPEQ 2147483647 == 0: 1
+3849.    COND_ICMPNE 2147483647 != 0: 0
+3850.    COND_ICMPLT 2147483647 <  0: 1
+3851.    COND_ICMPLE 2147483647 <= 0: 1
+3852.    COND_ICMPGT 2147483647 >  0: 0
+3853.    COND_ICMPGE 2147483647 >= 0: 0
+3854.    COND_ICMPEQ 2147483647 == 0: 0
+3855.    COND_ICMPNE 2147483647 != 0: 1
+3856.    COND_ICMPLT 2147483647 <  0: 0
+3857.    COND_ICMPLE 2147483647 <= 0: 0
+3858.    COND_ICMPGT 2147483647 >  0: 1
+3859.    COND_ICMPGE 2147483647 >= 0: 1
+3860.    COND_ICMPEQ 2147483647 == 0: 3
+3861.    COND_ICMPNE 2147483647 != 0: 2
+3862.    COND_ICMPLT 2147483647 <  0: 3
+3863.    COND_ICMPLE 2147483647 <= 0: 3
+3864.    COND_ICMPGT 2147483647 >  0: 2
+3865.    COND_ICMPGE 2147483647 >= 0: 2
+3866.    COND_ICMPEQ 2147483647 == 1: false
+3867.    COND_ICMPNE 2147483647 != 1: true
+3868.    COND_ICMPLT 2147483647 <  1: false
+3869.    COND_ICMPLE 2147483647 <= 1: false
+3870.    COND_ICMPGT 2147483647 >  1: true
+3871.    COND_ICMPGE 2147483647 >= 1: true
+3872.    TESTINT CALLED WITH int: 0
+3873.                    AND int: 2147483647
+3874.    IADD:  int: 2147483647
+3875.    ISUB:  int: -2147483647
+3876.    IMUL:  int: 0
+3877.    IDIV:  int: 0
+3878.    IREM:  int: 0
+3879.    INEG:  int: 0
+3880.    ISHL:  int: 0
+3881.    ISHR:  int: 0
+3882.    IUSHR: int: 0
+3883.    IAND:  int: 0
+3884.    IOR:   int: 2147483647
+3885.    IXOR:  int: 2147483647
+3886.    I2L:   long: 0
+3887.    I2F:   float: 0
+3888.    I2D:   double: 0
+3889.    INT2BYTE: byte: 0
+3890.    INT2CHAR: char: 0
+3891.    INT2SHORT: short: 0
+3892.    not IFNE
+3893.    not IFLT
+3894.    not IFGT
+3895.    not IF_ICMPEQ
+3896.    not IF_ICMPGT
+3897.    not IF_ICMPGE
+3898.    COND_ICMPEQ 0 == 0: 0
+3899.    COND_ICMPNE 0 != 0: 1
+3900.    COND_ICMPLT 0 <  0: 1
+3901.    COND_ICMPLE 0 <= 0: 0
+3902.    COND_ICMPGT 0 >  0: 1
+3903.    COND_ICMPGE 0 >= 0: 0
+3904.    COND_ICMPEQ 0 == 0: 1
+3905.    COND_ICMPNE 0 != 0: 0
+3906.    COND_ICMPLT 0 <  0: 0
+3907.    COND_ICMPLE 0 <= 0: 1
+3908.    COND_ICMPGT 0 >  0: 0
+3909.    COND_ICMPGE 0 >= 0: 1
+3910.    COND_ICMPEQ 0 == 0: 2
+3911.    COND_ICMPNE 0 != 0: 3
+3912.    COND_ICMPLT 0 <  0: 3
+3913.    COND_ICMPLE 0 <= 0: 2
+3914.    COND_ICMPGT 0 >  0: 3
+3915.    COND_ICMPGE 0 >= 0: 2
+3916.    COND_ICMPEQ 0 == 2147483647: false
+3917.    COND_ICMPNE 0 != 2147483647: true
+3918.    COND_ICMPLT 0 <  2147483647: true
+3919.    COND_ICMPLE 0 <= 2147483647: true
+3920.    COND_ICMPGT 0 >  2147483647: false
+3921.    COND_ICMPGE 0 >= 2147483647: false
+3922.    TESTINT CALLED WITH int: 13107
+3923.                    AND int: 143444
+3924.    IADD:  int: 156551
+3925.    ISUB:  int: -130337
+3926.    IMUL:  int: 1880120508
+3927.    IDIV:  int: 0
+3928.    IREM:  int: 13107
+3929.    INEG:  int: -13107
+3930.    ISHL:  int: 858783744
+3931.    ISHR:  int: 0
+3932.    IUSHR: int: 0
+3933.    IAND:  int: 12304
+3934.    IOR:   int: 144247
+3935.    IXOR:  int: 131943
+3936.    I2L:   long: 13107
+3937.    I2F:   float: 1179438080
+3938.    I2D:   double: 4668431263781093376
+3939.    INT2BYTE: byte: 51
+3940.    INT2CHAR: char: 13107
+3941.    INT2SHORT: short: 13107
+3942.    not IFEQ
+3943.    not IFLT
+3944.    not IFLE
+3945.    not IF_ICMPEQ
+3946.    not IF_ICMPGT
+3947.    not IF_ICMPGE
+3948.    COND_ICMPEQ 13107 == 0: 1
+3949.    COND_ICMPNE 13107 != 0: 0
+3950.    COND_ICMPLT 13107 <  0: 1
+3951.    COND_ICMPLE 13107 <= 0: 1
+3952.    COND_ICMPGT 13107 >  0: 0
+3953.    COND_ICMPGE 13107 >= 0: 0
+3954.    COND_ICMPEQ 13107 == 0: 0
+3955.    COND_ICMPNE 13107 != 0: 1
+3956.    COND_ICMPLT 13107 <  0: 0
+3957.    COND_ICMPLE 13107 <= 0: 0
+3958.    COND_ICMPGT 13107 >  0: 1
+3959.    COND_ICMPGE 13107 >= 0: 1
+3960.    COND_ICMPEQ 13107 == 0: 3
+3961.    COND_ICMPNE 13107 != 0: 2
+3962.    COND_ICMPLT 13107 <  0: 3
+3963.    COND_ICMPLE 13107 <= 0: 3
+3964.    COND_ICMPGT 13107 >  0: 2
+3965.    COND_ICMPGE 13107 >= 0: 2
+3966.    COND_ICMPEQ 13107 == 143444: false
+3967.    COND_ICMPNE 13107 != 143444: true
+3968.    COND_ICMPLT 13107 <  143444: true
+3969.    COND_ICMPLE 13107 <= 143444: true
+3970.    COND_ICMPGT 13107 >  143444: false
+3971.    COND_ICMPGE 13107 >= 143444: false
+3972.    TESTINT CALLED WITH int: 4444441
+3973.                    AND int: 12342
+3974.    IADD:  int: 4456783
+3975.    ISUB:  int: 4432099
+3976.    IMUL:  int: -981284026
+3977.    IDIV:  int: 360
+3978.    IREM:  int: 1321
+3979.    INEG:  int: -4444441
+3980.    ISHL:  int: 1178599424
+3981.    ISHR:  int: 1
+3982.    IUSHR: int: 1
+3983.    IAND:  int: 4112
+3984.    IOR:   int: 4452671
+3985.    IXOR:  int: 4448559
+3986.    I2L:   long: 4444441
+3987.    I2F:   float: 1250402866
+3988.    I2D:   double: 4706530193160798208
+3989.    INT2BYTE: byte: 25
+3990.    INT2CHAR: char: 53529
+3991.    INT2SHORT: short: -12007
+3992.    not IFEQ
+3993.    not IFLT
+3994.    not IFLE
+3995.    not IF_ICMPEQ
+3996.    not IF_ICMPLT
+3997.    not IF_ICMPLE
+3998.    COND_ICMPEQ 4444441 == 0: 1
+3999.    COND_ICMPNE 4444441 != 0: 0
+4000.    COND_ICMPLT 4444441 <  0: 1
+4001.    COND_ICMPLE 4444441 <= 0: 1
+4002.    COND_ICMPGT 4444441 >  0: 0
+4003.    COND_ICMPGE 4444441 >= 0: 0
+4004.    COND_ICMPEQ 4444441 == 0: 0
+4005.    COND_ICMPNE 4444441 != 0: 1
+4006.    COND_ICMPLT 4444441 <  0: 0
+4007.    COND_ICMPLE 4444441 <= 0: 0
+4008.    COND_ICMPGT 4444441 >  0: 1
+4009.    COND_ICMPGE 4444441 >= 0: 1
+4010.    COND_ICMPEQ 4444441 == 0: 3
+4011.    COND_ICMPNE 4444441 != 0: 2
+4012.    COND_ICMPLT 4444441 <  0: 3
+4013.    COND_ICMPLE 4444441 <= 0: 3
+4014.    COND_ICMPGT 4444441 >  0: 2
+4015.    COND_ICMPGE 4444441 >= 0: 2
+4016.    COND_ICMPEQ 4444441 == 12342: false
+4017.    COND_ICMPNE 4444441 != 12342: true
+4018.    COND_ICMPLT 4444441 <  12342: false
+4019.    COND_ICMPLE 4444441 <= 12342: false
+4020.    COND_ICMPGT 4444441 >  12342: true
+4021.    COND_ICMPGE 4444441 >= 12342: true
+4022.    TESTINT CALLED WITH int: -2147483648
+4023.                    AND int: -1
+4024.    IADD:  int: 2147483647
+4025.    ISUB:  int: -2147483647
+4026.    IMUL:  int: -2147483648
+4027.    IDIV:  int: -2147483648
+4028.    IREM:  int: 0
+4029.    INEG:  int: -2147483648
+4030.    ISHL:  int: 0
+4031.    ISHR:  int: -1
+4032.    IUSHR: int: 1
+4033.    IAND:  int: -2147483648
+4034.    IOR:   int: -1
+4035.    IXOR:  int: 2147483647
+4036.    I2L:   long: -2147483648
+4037.    I2F:   float: -822083584
+4038.    I2D:   double: -4476578029606273024
+4039.    INT2BYTE: byte: 0
+4040.    INT2CHAR: char: 0
+4041.    INT2SHORT: short: 0
+4042.    not IFEQ
+4043.    not IFGT
+4044.    not IFGE
+4045.    not IF_ICMPEQ
+4046.    not IF_ICMPGT
+4047.    not IF_ICMPGE
+4048.    COND_ICMPEQ -2147483648 == 0: 1
+4049.    COND_ICMPNE -2147483648 != 0: 0
+4050.    COND_ICMPLT -2147483648 <  0: 0
+4051.    COND_ICMPLE -2147483648 <= 0: 0
+4052.    COND_ICMPGT -2147483648 >  0: 1
+4053.    COND_ICMPGE -2147483648 >= 0: 1
+4054.    COND_ICMPEQ -2147483648 == 0: 0
+4055.    COND_ICMPNE -2147483648 != 0: 1
+4056.    COND_ICMPLT -2147483648 <  0: 1
+4057.    COND_ICMPLE -2147483648 <= 0: 1
+4058.    COND_ICMPGT -2147483648 >  0: 0
+4059.    COND_ICMPGE -2147483648 >= 0: 0
+4060.    COND_ICMPEQ -2147483648 == 0: 3
+4061.    COND_ICMPNE -2147483648 != 0: 2
+4062.    COND_ICMPLT -2147483648 <  0: 2
+4063.    COND_ICMPLE -2147483648 <= 0: 2
+4064.    COND_ICMPGT -2147483648 >  0: 3
+4065.    COND_ICMPGE -2147483648 >= 0: 3
+4066.    COND_ICMPEQ -2147483648 == -1: false
+4067.    COND_ICMPNE -2147483648 != -1: true
+4068.    COND_ICMPLT -2147483648 <  -1: true
+4069.    COND_ICMPLE -2147483648 <= -1: true
+4070.    COND_ICMPGT -2147483648 >  -1: false
+4071.    COND_ICMPGE -2147483648 >= -1: false
+4072.    ------------------- test longs
+4073.    TESTLONG called with long: 1
+4074.                     AND long: 2
+4075.    LADD:  long: 3
+4076.    LSUB:  long: -1
+4077.    LMUL:  long: 2
+4078.    LDIV:  long: 0
+4079.    LREM:  long: 1
+4080.    LNEG:  long: -1
+4081.    LSHL:  long: 4
+4082.    LSHR:  long: 0
+4083.    LUSHR: long: 0
+4084.    LAND:  long: 0
+4085.    LOR:   long: 3
+4086.    LXOR:  long: 3
+4087.    L2I:   int: 1
+4088.    L2F:   float: 1065353216
+4089.    L2D:   double: 4607182418800017408
+4090.    LCMP a == b : false
+4091.    LCMP a != b : true
+4092.    LCMP a <  b : true
+4093.    LCMP a <= b : true
+4094.    LCMP a >  b : false
+4095.    LCMP a >= b : false
+4096.    not IF_LCMPNE
+4097.    not IF_LCMPLT
+4098.    not IF_LCMPLE
+4099.    TESTLONG called with long: -1
+4100.                     AND long: 17
+4101.    LADD:  long: 16
+4102.    LSUB:  long: -18
+4103.    LMUL:  long: -17
+4104.    LDIV:  long: 0
+4105.    LREM:  long: -1
+4106.    LNEG:  long: 1
+4107.    LSHL:  long: -131072
+4108.    LSHR:  long: -1
+4109.    LUSHR: long: 140737488355327
+4110.    LAND:  long: 17
+4111.    LOR:   long: -1
+4112.    LXOR:  long: -18
+4113.    L2I:   int: -1
+4114.    L2F:   float: -1082130432
+4115.    L2D:   double: -4616189618054758400
+4116.    LCMP a == b : false
+4117.    LCMP a != b : true
+4118.    LCMP a <  b : true
+4119.    LCMP a <= b : true
+4120.    LCMP a >  b : false
+4121.    LCMP a >= b : false
+4122.    not IF_LCMPNE
+4123.    not IF_LCMPLT
+4124.    not IF_LCMPLE
+4125.    TESTLONG called with long: -24351
+4126.                     AND long: 24123
+4127.    LADD:  long: -228
+4128.    LSUB:  long: -48474
+4129.    LMUL:  long: -587419173
+4130.    LDIV:  long: -1
+4131.    LREM:  long: -228
+4132.    LNEG:  long: 24351
+4133.    LSHL:  long: 576460752303423488
+4134.    LSHR:  long: -1
+4135.    LUSHR: long: 31
+4136.    LAND:  long: 33
+4137.    LOR:   long: -261
+4138.    LXOR:  long: -294
+4139.    L2I:   int: -24351
+4140.    L2F:   float: -960610816
+4141.    L2D:   double: -4550949270986948608
+4142.    LCMP a == b : false
+4143.    LCMP a != b : true
+4144.    LCMP a <  b : true
+4145.    LCMP a <= b : true
+4146.    LCMP a >  b : false
+4147.    LCMP a >= b : false
+4148.    not IF_LCMPNE
+4149.    not IF_LCMPLT
+4150.    not IF_LCMPLE
+4151.    TESTLONG called with long: 4918923241323
+4152.                     AND long: -4423423234231423
+4153.    LADD:  long: -4418504310990100
+4154.    LSUB:  long: 4428342157472746
+4155.    LMUL:  long: -4222930371437023765
+4156.    LDIV:  long: 0
+4157.    LREM:  long: 4918923241323
+4158.    LNEG:  long: -4918923241323
+4159.    LSHL:  long: 9837846482646
+4160.    LSHR:  long: 2459461620661
+4161.    LUSHR: long: 2459461620661
+4162.    LAND:  long: 451041567489
+4163.    LOR:   long: -4418955352557589
+4164.    LXOR:  long: -4419406394125078
+4165.    L2I:   int: 1185687403
+4166.    L2F:   float: 1418668246
+4167.    L2D:   double: 4796866980921322496
+4168.    LCMP a == b : false
+4169.    LCMP a != b : true
+4170.    LCMP a <  b : false
+4171.    LCMP a <= b : false
+4172.    LCMP a >  b : true
+4173.    LCMP a >= b : true
+4174.    not IF_LCMPNE
+4175.    not IF_LCMPGT
+4176.    not IF_LCMPGE
+4177.    TESTLONG called with long: 0
+4178.                     AND long: 0
+4179.    LADD:  long: 0
+4180.    LSUB:  long: 0
+4181.    LMUL:  long: 0
+4182.    divison by zero
+4183.    divison by zero
+4184.    LNEG:  long: 0
+4185.    LSHL:  long: 0
+4186.    LSHR:  long: 0
+4187.    LUSHR: long: 0
+4188.    LAND:  long: 0
+4189.    LOR:   long: 0
+4190.    LXOR:  long: 0
+4191.    L2I:   int: 0
+4192.    L2F:   float: 0
+4193.    L2D:   double: 0
+4194.    LCMP a == b : true
+4195.    LCMP a != b : false
+4196.    LCMP a <  b : false
+4197.    LCMP a <= b : true
+4198.    LCMP a >  b : false
+4199.    LCMP a >= b : true
+4200.    not IF_LCMPEQ
+4201.    not IF_LCMPLE
+4202.    not IF_LCMPGE
+4203.    TESTLONG called with long: -1
+4204.                     AND long: -1
+4205.    LADD:  long: -2
+4206.    LSUB:  long: 0
+4207.    LMUL:  long: 1
+4208.    LDIV:  long: 1
+4209.    LREM:  long: 0
+4210.    LNEG:  long: 1
+4211.    LSHL:  long: -9223372036854775808
+4212.    LSHR:  long: -1
+4213.    LUSHR: long: 1
+4214.    LAND:  long: -1
+4215.    LOR:   long: -1
+4216.    LXOR:  long: 0
+4217.    L2I:   int: -1
+4218.    L2F:   float: -1082130432
+4219.    L2D:   double: -4616189618054758400
+4220.    LCMP a == b : true
+4221.    LCMP a != b : false
+4222.    LCMP a <  b : false
+4223.    LCMP a <= b : true
+4224.    LCMP a >  b : false
+4225.    LCMP a >= b : true
+4226.    not IF_LCMPEQ
+4227.    not IF_LCMPLE
+4228.    not IF_LCMPGE
+4229.    TESTLONG called with long: 1423487
+4230.                     AND long: 123444442344
+4231.    LADD:  long: 123445865831
+4232.    LSUB:  long: -123443018857
+4233.    LMUL:  long: 175721558898933528
+4234.    LDIV:  long: 0
+4235.    LREM:  long: 1423487
+4236.    LNEG:  long: -1423487
+4237.    LSHL:  long: 1565140508487974912
+4238.    LSHR:  long: 0
+4239.    LUSHR: long: 0
+4240.    LAND:  long: 1355880
+4241.    LOR:   long: 123444509951
+4242.    LXOR:  long: 123443154071
+4243.    L2I:   int: 1423487
+4244.    L2F:   float: 1236124664
+4245.    L2D:   double: 4698864641831337984
+4246.    LCMP a == b : false
+4247.    LCMP a != b : true
+4248.    LCMP a <  b : true
+4249.    LCMP a <= b : true
+4250.    LCMP a >  b : false
+4251.    LCMP a >= b : false
+4252.    not IF_LCMPNE
+4253.    not IF_LCMPLT
+4254.    not IF_LCMPLE
+4255.    TESTLONG called with long: 9223372036854775807
+4256.                     AND long: 1
+4257.    LADD:  long: -9223372036854775808
+4258.    LSUB:  long: 9223372036854775806
+4259.    LMUL:  long: 9223372036854775807
+4260.    LDIV:  long: 9223372036854775807
+4261.    LREM:  long: 0
+4262.    LNEG:  long: -9223372036854775807
+4263.    LSHL:  long: -2
+4264.    LSHR:  long: 4611686018427387903
+4265.    LUSHR: long: 4611686018427387903
+4266.    LAND:  long: 1
+4267.    LOR:   long: 9223372036854775807
+4268.    LXOR:  long: 9223372036854775806
+4269.    L2I:   int: -1
+4270.    L2F:   float: 1593835520
+4271.    L2D:   double: 4890909195324358656
+4272.    LCMP a == b : false
+4273.    LCMP a != b : true
+4274.    LCMP a <  b : false
+4275.    LCMP a <= b : false
+4276.    LCMP a >  b : true
+4277.    LCMP a >= b : true
+4278.    not IF_LCMPNE
+4279.    not IF_LCMPGT
+4280.    not IF_LCMPGE
+4281.    TESTLONG called with long: 0
+4282.                     AND long: 9223372036854775807
+4283.    LADD:  long: 9223372036854775807
+4284.    LSUB:  long: -9223372036854775807
+4285.    LMUL:  long: 0
+4286.    LDIV:  long: 0
+4287.    LREM:  long: 0
+4288.    LNEG:  long: 0
+4289.    LSHL:  long: 0
+4290.    LSHR:  long: 0
+4291.    LUSHR: long: 0
+4292.    LAND:  long: 0
+4293.    LOR:   long: 9223372036854775807
+4294.    LXOR:  long: 9223372036854775807
+4295.    L2I:   int: 0
+4296.    L2F:   float: 0
+4297.    L2D:   double: 0
+4298.    LCMP a == b : false
+4299.    LCMP a != b : true
+4300.    LCMP a <  b : true
+4301.    LCMP a <= b : true
+4302.    LCMP a >  b : false
+4303.    LCMP a >= b : false
+4304.    not IF_LCMPNE
+4305.    not IF_LCMPLT
+4306.    not IF_LCMPLE
+4307.    TESTLONG called with long: 13107
+4308.                     AND long: 143444
+4309.    LADD:  long: 156551
+4310.    LSUB:  long: -130337
+4311.    LMUL:  long: 1880120508
+4312.    LDIV:  long: 0
+4313.    LREM:  long: 13107
+4314.    LNEG:  long: -13107
+4315.    LSHL:  long: 13743685632
+4316.    LSHR:  long: 0
+4317.    LUSHR: long: 0
+4318.    LAND:  long: 12304
+4319.    LOR:   long: 144247
+4320.    LXOR:  long: 131943
+4321.    L2I:   int: 13107
+4322.    L2F:   float: 1179438080
+4323.    L2D:   double: 4668431263781093376
+4324.    LCMP a == b : false
+4325.    LCMP a != b : true
+4326.    LCMP a <  b : true
+4327.    LCMP a <= b : true
+4328.    LCMP a >  b : false
+4329.    LCMP a >= b : false
+4330.    not IF_LCMPNE
+4331.    not IF_LCMPLT
+4332.    not IF_LCMPLE
+4333.    TESTLONG called with long: 4444441
+4334.                     AND long: 12342
+4335.    LADD:  long: 4456783
+4336.    LSUB:  long: 4432099
+4337.    LMUL:  long: 54853290822
+4338.    LDIV:  long: 360
+4339.    LREM:  long: 1321
+4340.    LNEG:  long: -4444441
+4341.    LSHL:  long: 5062045981164437504
+4342.    LSHR:  long: 0
+4343.    LUSHR: long: 0
+4344.    LAND:  long: 4112
+4345.    LOR:   long: 4452671
+4346.    LXOR:  long: 4448559
+4347.    L2I:   int: 4444441
+4348.    L2F:   float: 1250402866
+4349.    L2D:   double: 4706530193160798208
+4350.    LCMP a == b : false
+4351.    LCMP a != b : true
+4352.    LCMP a <  b : false
+4353.    LCMP a <= b : false
+4354.    LCMP a >  b : true
+4355.    LCMP a >= b : true
+4356.    not IF_LCMPNE
+4357.    not IF_LCMPGT
+4358.    not IF_LCMPGE
+4359.    TESTLONG called with long: -9223372036854775808
+4360.                     AND long: -1
+4361.    LADD:  long: 9223372036854775807
+4362.    LSUB:  long: -9223372036854775807
+4363.    LMUL:  long: -9223372036854775808
+4364.    LDIV:  long: -9223372036854775808
+4365.    LREM:  long: 0
+4366.    LNEG:  long: -9223372036854775808
+4367.    LSHL:  long: 0
+4368.    LSHR:  long: -1
+4369.    LUSHR: long: 1
+4370.    LAND:  long: -9223372036854775808
+4371.    LOR:   long: -1
+4372.    LXOR:  long: 9223372036854775807
+4373.    L2I:   int: 0
+4374.    L2F:   float: -553648128
+4375.    L2D:   double: -4332462841530417152
+4376.    LCMP a == b : false
+4377.    LCMP a != b : true
+4378.    LCMP a <  b : true
+4379.    LCMP a <= b : true
+4380.    LCMP a >  b : false
+4381.    LCMP a >= b : false
+4382.    not IF_LCMPNE
+4383.    not IF_LCMPLT
+4384.    not IF_LCMPLE
+4385.    ------------------- test floats
+4386.    TESTFLOAT called with float: 1065353216
+4387.                      AND float: 1073917985
+4388.    FADD:  float: 1078112289
+4389.    FSUB:  float: -1081778110
+4390.    FMUL:  float: 1073917985
+4391.    FDIV:  float: 1056619533
+4392.    FREM:  float: 1065353216
+4393.    F2I:   int: 1
+4394.    F2L:   long: 1
+4395.    F2D:   double: 4607182418800017408
+4396.    FCMP a!=b
+4397.    FCMP a<b
+4398.    FCMP a<=b
+4399.    TESTFLOAT called with float: -1080167498
+4400.                      AND float: 1099662623
+4401.    FADD:  float: 1099015652
+4402.    FSUB:  float: -1047174054
+4403.    FMUL:  float: -1045681427
+4404.    FDIV:  float: -1114576645
+4405.    FREM:  float: -1080167498
+4406.    F2I:   int: -1
+4407.    F2L:   long: -1
+4408.    F2D:   double: -4615135775887982592
+4409.    FCMP a!=b
+4410.    FCMP a<b
+4411.    FCMP a<=b
+4412.    TESTFLOAT called with float: -960610816
+4413.                      AND float: 1186756096
+4414.    FADD:  float: -1016856576
+4415.    FSUB:  float: -952280576
+4416.    FMUL:  float: -838070983
+4417.    FDIV:  float: -1082051147
+4418.    FREM:  float: -1016856576
+4419.    F2I:   int: -24351
+4420.    F2L:   long: -24351
+4421.    F2D:   double: -4550949270986948608
+4422.    FCMP a!=b
+4423.    FCMP a<b
+4424.    FCMP a<=b
+4425.    TESTFLOAT called with float: 1036831949
+4426.                      AND float: 1151033344
+4427.    FADD:  float: 1151034163
+4428.    FSUB:  float: -996451123
+4429.    FMUL:  float: 1123588506
+4430.    FDIV:  float: 950581132
+4431.    FREM:  float: 1036831949
+4432.    F2I:   int: 0
+4433.    F2L:   long: 0
+4434.    F2D:   double: 4591870180174331904
+4435.    FCMP a!=b
+4436.    FCMP a<b
+4437.    FCMP a<=b
+4438.    TESTFLOAT called with float: 0
+4439.                      AND float: -1005921678
+4440.    FADD:  float: -1005921678
+4441.    FSUB:  float: 1141561970
+4442.    FMUL:  float: -2147483648
+4443.    FDIV:  float: -2147483648
+4444.    FREM:  float: 0
+4445.    F2I:   int: 0
+4446.    F2L:   long: 0
+4447.    F2D:   double: 0
+4448.    FCMP a!=b
+4449.    FCMP a>b
+4450.    FCMP a>=b
+4451.    TESTFLOAT called with float: 1117388800
+4452.                      AND float: -1005928448
+4453.    FADD:  float: -1007747072
+4454.    FSUB:  float: 1142816768
+4455.    FMUL:  float: -953749760
+4456.    FDIV:  float: -1106374265
+4457.    FREM:  float: 1117388800
+4458.    F2I:   int: 77
+4459.    F2L:   long: 77
+4460.    F2D:   double: 4635118810238550016
+4461.    FCMP a!=b
+4462.    FCMP a>b
+4463.    FCMP a>=b
+4464.    TESTFLOAT called with float: 1325400059
+4465.                      AND float: -922251744
+4466.    FADD:  float: 1325395721
+4467.    FSUB:  float: 1325402230
+4468.    FMUL:  float: -662204899
+4469.    FDIV:  float: -982402220
+4470.    FREM:  float: 1220539712
+4471.    F2I:   int: 2147483008
+4472.    F2L:   long: 2147483008
+4473.    F2D:   double: 4746794004564148224
+4474.    FCMP a!=b
+4475.    FCMP a>b
+4476.    FCMP a>=b
+4477.    ------------------- test doubles
+4478.    TESTDOUBLE called with double: 4607182418800017408
+4479.                       AND double: 4611780594019562684
+4480.    DADD:  double: 4614032393833247932
+4481.    DSUB:  double: -4616000466870408840
+4482.    DMUL:  double: 4611780594019562684
+4483.    DDIV:  double: 4602493558463195825
+4484.    DREM:  double: 4607182418800017408
+4485.    D2I:   int: 1
+4486.    D2L:   long: 1
+4487.    D2F:   float: 1065353216
+4488.    DCMP a!=b
+4489.    DCMP a<b
+4490.    DCMP a<=b
+4491.    TESTDOUBLE called with double: -4615135775741953704
+4492.                       AND double: 4625602141275962737
+4493.    DADD:  double: 4625254801154701788
+4494.    DSUB:  double: -4597422555457552122
+4495.    DMUL:  double: -4596621207457855952
+4496.    DDIV:  double: -4633609045604294190
+4497.    DREM:  double: -4615135775741953704
+4498.    D2I:   int: -1
+4499.    D2L:   long: -1
+4500.    D2F:   float: -1080167498
+4501.    DCMP a!=b
+4502.    DCMP a<b
+4503.    DCMP a<=b
+4504.    TESTDOUBLE called with double: -4550949270986948608
+4505.                       AND double: 4672360093705043968
+4506.    DADD:  double: -4581145983454281728
+4507.    DSUB:  double: -4546477007440969728
+4508.    DMUL:  double: -4485161199314403328
+4509.    DDIV:  double: -4616147052009281450
+4510.    DREM:  double: -4581145983454281728
+4511.    D2I:   int: -24351
+4512.    D2L:   long: -24351
+4513.    D2F:   float: -960610816
+4514.    DCMP a!=b
+4515.    DCMP a<b
+4516.    DCMP a<=b
+4517.    TESTDOUBLE called with double: 4591870180066957722
+4518.                       AND double: 4653181587259654144
+4519.    DADD:  double: 4653182027064305254
+4520.    DSUB:  double: -4570190889399772774
+4521.    DMUL:  double: 4638447251838153524
+4522.    DDIV:  double: 4545564625217685086
+4523.    DREM:  double: 4591870180066957722
+4524.    D2I:   int: 0
+4525.    D2L:   long: 0
+4526.    D2F:   float: 1036831949
+4527.    DCMP a!=b
+4528.    DCMP a<b
+4529.    DCMP a<=b
+4530.    TESTDOUBLE called with double: 0
+4531.                       AND double: -4575275354862832216
+4532.    DADD:  double: -4575275354862832216
+4533.    DSUB:  double: 4648096681991943592
+4534.    DMUL:  double: -9223372036854775808
+4535.    DDIV:  double: -9223372036854775808
+4536.    DREM:  double: 0
+4537.    D2I:   int: 0
+4538.    D2L:   long: 0
+4539.    D2F:   float: 0
+4540.    DCMP a!=b
+4541.    DCMP a>b
+4542.    DCMP a>=b
+4543.    TESTDOUBLE called with double: 4635118810238550016
+4544.                       AND double: -4575278989408468992
+4545.    DADD:  double: -4576255355733934080
+4546.    DSUB:  double: 4648770346609016832
+4547.    DMUL:  double: -4547265769594945536
+4548.    DDIV:  double: -4629205426707555293
+4549.    DREM:  double: 4635118810238550016
+4550.    D2I:   int: 77
+4551.    D2L:   long: 77
+4552.    D2F:   float: 1117388800
+4553.    DCMP a!=b
+4554.    DCMP a>b
+4555.    DCMP a>=b
+4556.    TESTDOUBLE called with double: 4746794004530593792
+4557.                       AND double: -4530355401018834944
+4558.    DADD:  double: 4746791675710406656
+4559.    DSUB:  double: 4746795170299641856
+4560.    DMUL:  double: -4390743814009516096
+4561.    DDIV:  double: -4562648441878701322
+4562.    DREM:  double: 4690497396998668288
+4563.    D2I:   int: 2147483000
+4564.    D2L:   long: 2147483000
+4565.    D2F:   float: 1325400059
+4566.    DCMP a!=b
+4567.    DCMP a>b
+4568.    DCMP a>=b
+4569.    =================== end of test =========================
+4570.    

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3056 2005-07-18 22:34:23Z twisti $
+## $Id: Makefile.am 3061 2005-07-19 08:52:11Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,17 +36,31 @@ JAVA = $(top_builddir)/src/cacao/cacao
 JAVAC = jikes -nowarn
 
 CLEANFILES = \
-	*.class
+	*.class \
+	*.thisoutput
 
 SIMPLE_JAVA_TESTS = \
+	HelloWorld
+
+OUTPUT_JAVA_TESTS = \
+	jctest \
+	fptest \
+	fp \
+	extest \
+	\
 	clinitexception
 
-checkall: $(SIMPLE_JAVA_TESTS)
+checkall: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
 $(SIMPLE_JAVA_TESTS):
 	@$(JAVAC) $@.java
 	@echo -n "$@: "
 	@$(JAVA) $@
+
+
+$(OUTPUT_JAVA_TESTS):
+	@$(JAVAC) $@.java
+	@$(SHELL) Test.sh $(JAVA) $@
 
 
 ## Local variables:
