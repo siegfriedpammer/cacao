@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 2854 2005-06-28 18:24:47Z twisti $
+   $Id: VMObject.c 3079 2005-07-20 15:23:18Z twisti $
 
 */
 
@@ -85,7 +85,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
 /*
  * Class:     java/lang/VMObject
  * Method:    clone
- * Signature: ()Ljava/lang/Object;
+ * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
@@ -99,7 +99,11 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
         
 		u4 size = desc->dataoffset + desc->componentsize * ((java_arrayheader *) this)->size;
         
-		new = (java_lang_Object *) heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+		new = (java_lang_Object *)
+			heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+
+		if (!new)
+			return NULL;
 
 		MCOPY(new, this, u1, size);
 
