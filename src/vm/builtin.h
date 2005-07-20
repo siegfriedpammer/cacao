@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3029 2005-07-13 11:45:07Z twisti $
+   $Id: builtin.h 3080 2005-07-20 15:25:06Z twisti $
 
 */
 
@@ -307,10 +307,6 @@ float    builtin_d2f(double a);
 #define BUILTIN_d2f (functionptr) builtin_d2f
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
-/* NOT AN OP */
-
-/* builtin_dummy just exits if it is executed. */
-s4 builtin_dummy(void);
 /* NOT AN OP */
 
 /* conversion helper functions */

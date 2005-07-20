@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3029 2005-07-13 11:45:07Z twisti $
+   $Id: builtin.c 3080 2005-07-20 15:25:06Z twisti $
 
 */
 
@@ -2339,21 +2339,22 @@ inline float longBitsToDouble(s8 l)
 }
 
 
+/* builtin_clone_array *********************************************************
+
+   Wrapper function for cloning arrays.
+
+*******************************************************************************/
+
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 {
-	return (java_arrayheader *)
-		Java_java_lang_VMObject_clone(0, 0, (java_lang_Cloneable *) o);
-}
+	java_arrayheader    *ah;
+	java_lang_Cloneable *c;
 
+	c = (java_lang_Object *) o;
 
-s4 builtin_dummy(void)
-{
-	log_text("Internal error: builtin_dummy called (native function is missing)");
-	assert(0);
+	ah = (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, c);
 
-	/* keep the compiler happy */
-
-	return 0;
+	return ah;
 }
 
 
