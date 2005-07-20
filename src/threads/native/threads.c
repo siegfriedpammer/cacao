@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 2899 2005-07-04 20:41:28Z twisti $
+   $Id: threads.c 3087 2005-07-20 19:16:17Z motse $
 
 */
 
@@ -144,7 +144,6 @@ static void setPriority(pthread_t tid, int priority)
 #include "machine-instr.h"
 
 static struct avl_table *criticaltree;
-static threadobject *mainthreadobj;
 
 #ifndef HAVE___THREAD
 pthread_key_t tkey_threadinfo;
