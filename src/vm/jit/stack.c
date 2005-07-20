@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3045 2005-07-18 14:35:32Z twisti $
+   $Id: stack.c 3071 2005-07-20 03:09:11Z michi $
 
 */
 
@@ -1951,7 +1951,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						copy = curstack;
 						for (i-- ; i >= 0; i--) {
+#if defined(SUPPORT_NO_FLOAT_ARGUMENT_REGISTERS)
+							if (!(copy->flags & SAVEDVAR) &&
+							   (!IS_FLT_DBL_TYPE(copy->type) || md->params[i].inmemory)) {
+#else
 							if (!(copy->flags & SAVEDVAR)) {
+#endif
 								copy->varkind = ARGVAR;
 								copy->varnum = i;
 								if (md->params[i].inmemory) {
@@ -1960,8 +1965,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								} else {
 									copy->flags = 0;
 									if (IS_FLT_DBL_TYPE(copy->type))
+#if defined(SUPPORT_NO_FLOAT_ARGUMENT_REGISTERS)
+										assert(0);
+#else
 										copy->regoff =
 										   rd->argfltregs[md->params[i].regoff];
+#endif
 									else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (IS_2_WORD_TYPE(copy->type))
