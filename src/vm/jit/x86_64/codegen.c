@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3076 2005-07-20 13:38:44Z twisti $
+   $Id: codegen.c 3085 2005-07-20 15:35:35Z twisti $
 
 */
 
@@ -4263,16 +4263,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* generate stub code */
 
 	M_ASUB_IMM(stackframesize * 8, REG_SP);
-
-	/* if function is static, check for initialized */
-
-	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_clinit, m->class);
-
-		if (opt_showdisassemble) {
-			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-		}
-	}
 
 	if (runverbose) {
 		/* save integer and float argument registers */
