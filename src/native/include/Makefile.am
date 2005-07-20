@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3011 2005-07-12 21:02:41Z twisti $
+## $Id: Makefile.am 3078 2005-07-20 15:17:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -60,6 +60,7 @@ GEN_HEADER_FILES = \
 	java_lang_Long.h \
 	java_lang_Process.h \
 	java_lang_Short.h \
+	java_lang_StackTraceElement.h \
 	java_lang_VMThrowable.h \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \

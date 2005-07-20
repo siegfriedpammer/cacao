@@ -22,6 +22,7 @@ java_lang_Math.h
 java_lang_Process.h
 java_lang_SecurityManager.h
 java_lang_Short.h
+java_lang_StackTraceElement.h
 java_lang_VMClass.h
 java_lang_VMClassLoader.h
 java_lang_VMDouble.h
