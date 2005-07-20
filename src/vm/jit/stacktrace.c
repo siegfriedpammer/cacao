@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3053 2005-07-18 21:55:31Z twisti $
+   $Id: stacktrace.c 3073 2005-07-20 10:40:41Z twisti $
 
 */
 
@@ -518,51 +518,6 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
 }
 
 
-/* stacktrace_extern_fillInStackTrace ******************************************
-
-   Fills in the correct stacktrace into an existing exception object
-   (this one is for calling from assembler code).
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc)
-{
-	java_objectheader *o;
-	stackframeinfo     sfi;
-	methodinfo        *m;
-
-	/* get exception */
-
-	o = *exceptionptr;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* clear exception */
-
-	*exceptionptr = NULL;
-
-	/* resolve methodinfo pointer from exception object */
-
-	m = class_resolvemethod(o->vftbl->class,
-							utf_fillInStackTrace,
-							utf_void__java_lang_Throwable);
-
-	/* call function */
-
-	asm_calljavafunction(m, o, NULL, NULL, NULL);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
 /* addEntry ********************************************************************
 
    XXX
@@ -825,6 +780,13 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 				/* if m == NULL, this is a asm_calljavafunction call */
 
 				if (m != NULL) {
+#if PRINTMETHODS
+					utf_display_classname(m->class->name);
+					printf(".");
+					utf_display(m->name);
+					utf_display(m->descriptor);
+					printf(": inline stub parent\n");
+#endif
 
 					/* add it to the stacktrace */
 

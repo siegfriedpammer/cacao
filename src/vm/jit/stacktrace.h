@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 2990 2005-07-11 21:24:35Z twisti $
+   $Id: stacktrace.h 3073 2005-07-20 10:40:41Z twisti $
 
 */
 
@@ -134,10 +134,6 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 
 /* refill the stacktrace of an existing exception */
 java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc);
-
-java_objectheader *stacktrace_extern_fillInStackTrace(u1 *pv, u1 *sp, 
 													  functionptr ra,
 													  functionptr xpc);
 
