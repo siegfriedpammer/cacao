@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 3022 2005-07-12 23:48:34Z twisti $
+   $Id: VMThrowable.c 3070 2005-07-20 00:33:27Z michi $
 
 */
 
@@ -73,7 +73,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 		assert(0);
 	}
 
-#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData));
 #endif
 	return vmthrow;
@@ -181,7 +181,7 @@ static java_objectarray *generateStackTraceArray(JNIEnv *env,stacktraceelement *
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
-#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	stackTraceBuffer  *buf;
 	stacktraceelement *elem;
 	stacktraceelement *tmpelem;
