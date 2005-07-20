@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3052 2005-07-18 21:54:27Z twisti $
+   $Id: codegen.inc 3083 2005-07-20 15:30:04Z twisti $
 
 */
 
@@ -932,11 +932,7 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 
 	/* generate the code */
 
-	m->stubroutine = createnativestub(f, m, cd, rd, nmd);
-
-	/* entrypoint was set in codegen_finish, clear it */
-
-	m->entrypoint = NULL;
+	m->entrypoint = createnativestub(f, m, cd, rd, nmd);
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -946,7 +942,7 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 	/* disassemble native stub */
 
 	if (opt_shownativestub) {
-		codegen_disassemble_nativestub(m, (s4 *) (ptrint) m->stubroutine,
+		codegen_disassemble_nativestub(m, (s4 *) (ptrint) m->entrypoint,
 									   m->mcodelength - cd->dseglen);
 
 		/* show data segment */
@@ -959,9 +955,9 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 
 	dump_release(dumpsize);
 
-	/* return stubroutine entry point */
+	/* return native stub entry point */
 
-	return m->stubroutine;
+	return m->entrypoint;
 }
 
 
