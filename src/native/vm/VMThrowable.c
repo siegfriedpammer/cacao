@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 3070 2005-07-20 00:33:27Z michi $
+   $Id: VMThrowable.c 3077 2005-07-20 15:16:58Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMThrowable.h"
@@ -76,101 +77,8 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData));
 #endif
+
 	return vmthrow;
-}
-
-
-static java_objectarray *generateStackTraceArray(JNIEnv *env,stacktraceelement *el, s4 size)
-{
-	long resultPos;
-	methodinfo *m;
-	java_objectarray *oa;
-
-	m = class_findmethod(class_java_lang_StackTraceElement,
-						 utf_init,
-						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
-
-	if (!m) {
-		log_text("java.lang.StackTraceElement misses needed constructor");	
-		assert(0);
-	}
-
-	oa = builtin_anewarray(size, class_java_lang_StackTraceElement);
-
-	if (!oa)
-		return 0;
-
-/*	printf("Should return an array with %ld element(s)\n",size);*/
-	/*pos--;*/
-	
-	for(resultPos = 0; size > 0; size--, el++, resultPos++) {
-		java_objectheader *element;
-
-		if (el->method == NULL) {
-			resultPos--;
-			continue;
-		}
-
-		element = builtin_new(class_java_lang_StackTraceElement);
-		if (!element) {
-			log_text("Memory for stack trace element could not be allocated");
-			assert(0);
-		}
-
-		/* XXX call constructor once jni is fixed to allow more than three parameters */
-
-#if 0
-		(*env)->CallVoidMethod(env,element,m,
-			javastring_new(el->method->class->sourcefile),
-			source[size].linenumber,
-			javastring_new(el->method->class->name),
-			javastring_new(el->method->name),
-			el->method->flags & ACC_NATIVE);
-#else
-		if (!(el->method->flags & ACC_NATIVE))
-			setfield_critical(class_java_lang_StackTraceElement,
-							  element,
-							  "fileName",
-							  "Ljava/lang/String;",
-							  jobject,
-							  (jobject) javastring_new(el->method->class->sourcefile));
-
-/*  		setfield_critical(c,element,"className",          "Ljava/lang/String;",  jobject,  */
-/*  		(jobject) javastring_new(el->method->class->name)); */
-
-		setfield_critical(class_java_lang_StackTraceElement,
-						  element,
-						  "declaringClass",
-						  "Ljava/lang/String;",
-						  jobject, 
-						  (jobject) Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) el->method->class));
-
-		setfield_critical(class_java_lang_StackTraceElement,
-						  element,
-						  "methodName",
-						  "Ljava/lang/String;",
-						  jobject,
-						  (jobject) javastring_new(el->method->name));
-
-		setfield_critical(class_java_lang_StackTraceElement,
-						  element,
-						  "lineNumber",
-						  "I",
-						  jint, 
-						  (jint) ((el->method->flags & ACC_NATIVE) ? -1 : (el->linenumber)));
-
-		setfield_critical(class_java_lang_StackTraceElement,
-						  element,
-						  "isNative",
-						  "Z",
-						  jboolean, 
-						  (jboolean) ((el->method->flags & ACC_NATIVE) ? 1 : 0));
-#endif			
-
-		oa->data[resultPos] = element;
-	}
-
-	return oa;
 }
 
 
@@ -182,14 +90,22 @@ static java_objectarray *generateStackTraceArray(JNIEnv *env,stacktraceelement *
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	stackTraceBuffer  *buf;
-	stacktraceelement *elem;
-	stacktraceelement *tmpelem;
-	u8                 size;
-	s4                 elemcount;
-	classinfo         *c;
-	bool               inexceptionclass;
-	bool               leftexceptionclass;
+	stackTraceBuffer            *buf;
+	stacktraceelement           *elem;
+	stacktraceelement           *tmpelem;
+	s4                           size;
+	s4                           i;
+	classinfo                   *c;
+	bool                         inexceptionclass;
+	bool                         leftexceptionclass;
+
+	methodinfo                  *m;
+	java_objectarray            *oa;
+	s4                           oalength;
+	java_lang_StackTraceElement *ste;
+	java_lang_String            *filename;
+	s4                           linenumber;
+	java_lang_String            *declaringclass;
 
 	buf = (stackTraceBuffer *) this->vmData;
 	c = t->header.vftbl->class;
@@ -248,15 +164,82 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 			}
 		}
 	}
-	
-	for (elemcount = 0, tmpelem = elem; size > 0; size--, tmpelem++) {
+
+
+	/* now fill the stacktrace into java objects */
+
+	m = class_findmethod(class_java_lang_StackTraceElement,
+						 utf_init,
+						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
+
+	if (!m)
+		return NULL;
+
+	/* count entries with a method name */
+
+	for (oalength = 0, i = size, tmpelem = elem; i > 0; i--, tmpelem++)
 		if (tmpelem->method)
-			elemcount++;
+			oalength++;
+
+	/* create the stacktrace element array */
+
+	oa = builtin_anewarray(oalength, class_java_lang_StackTraceElement);
+
+	if (!oa)
+		return NULL;
+
+	for (i = 0; size > 0; size--, elem++, i++) {
+		if (elem->method == NULL) {
+			i--;
+			continue;
+		}
+
+		/* allocate a new stacktrace element */
+
+		ste = (java_lang_StackTraceElement *)
+			builtin_new(class_java_lang_StackTraceElement);
+
+		if (!ste)
+			return NULL;
+
+		/* get filename */
+
+		if (!(elem->method->flags & ACC_NATIVE)) {
+			if (elem->method->class->sourcefile)
+				filename = javastring_new(elem->method->class->sourcefile);
+			else
+				filename = NULL;
+
+		} else {
+			filename = NULL;
+		}
+
+		/* get line number */
+
+		if (elem->method->flags & ACC_NATIVE)
+			linenumber = -1;
+		else
+			linenumber = (elem->linenumber == 0) ? -1 : elem->linenumber;
+
+		/* get declaring class name */
+
+		declaringclass = Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) elem->method->class);
+
+
+		/* fill the stacktrace element */
+
+		ste->fileName       = filename;
+		ste->lineNumber     = linenumber;
+		ste->declaringClass = declaringclass;
+		ste->methodName     = javastring_new(elem->method->name);
+		ste->isNative       = (elem->method->flags & ACC_NATIVE) ? 1 : 0;
+
+		oa->data[i] = (java_objectheader *) ste;
 	}
 
-	return generateStackTraceArray(env, elem, elemcount);
+	return oa;
 #else
-	return 0;
+	return NULL;
 #endif
 }
 
