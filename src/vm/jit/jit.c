@@ -30,15 +30,18 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3007 2005-07-12 20:58:01Z twisti $
+   $Id: jit.c 3084 2005-07-20 15:34:23Z twisti $
 
 */
 
 
 #include "config.h"
+
 #include "disass.h"
 #include "types.h"
+
 #include "mm/memory.h"
+#include "native/native.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
@@ -1293,7 +1296,7 @@ void jit_close(void)
 
 /* dummy function, used when there is no JavaVM code available                */
 
-static functionptr do_nothing_function()
+static functionptr do_nothing_function(void)
 {
 	return NULL;
 }
@@ -1323,11 +1326,6 @@ functionptr jit_compile(methodinfo *m)
 		count_jit_calls++;
 #endif
 
-	/* this is the case if a native function is called by jni */
-
-	if (m->flags & ACC_NATIVE)
-		return (functionptr) (ptrint) m->stubroutine;
-
 #if defined(USE_THREADS)
 	/* enter a monitor on the method */
 
@@ -1348,17 +1346,6 @@ functionptr jit_compile(methodinfo *m)
 	if (opt_stat)
 		count_methods++;
 #endif
-
-	/* if there is no javacode, print error message and return empty method   */
-
-	if (!m->jcode) {
-		if (compileverbose)
-			log_message_method("No code given for: ", m);
-
-		m->entrypoint = (functionptr) do_nothing_function;
-
-		return m->entrypoint;    /* return empty method     */
-	}
 
 #if defined(STATISTICS)
 	/* measure time */
@@ -1472,12 +1459,43 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	/* initialize the static function's class */
 
-  	if (m->flags & ACC_STATIC && !m->class->initialized) {
+  	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
 		if (initverbose)
 			log_message_class("Initialize class ", m->class);
 
 		if (!initialize_class(m->class))
 			return NULL;
+	}
+
+	/* handle native methods and create a native stub */
+
+	if (m->flags & ACC_NATIVE) {
+		functionptr f;
+
+#if defined(ENABLE_STATICVM)
+		f = native_findfunction(m->class->name,	m->name, m->descriptor,
+								(m->flags & ACC_STATIC));
+		if (!f)
+			return NULL;
+#else
+
+		f = NULL;
+#endif
+
+		m->entrypoint = codegen_createnativestub(f, m);
+
+		return m->entrypoint;
+	}
+
+	/* if there is no javacode, print error message and return empty method   */
+
+	if (!m->jcode) {
+		if (compileverbose)
+			log_message_method("No code given for: ", m);
+
+		m->entrypoint = (functionptr) do_nothing_function;
+
+		return m->entrypoint;           /* return empty method                */
 	}
 
 	/* initialisation of variables and subsystems */
