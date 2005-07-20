@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: codegen.c 3076 2005-07-20 13:38:44Z twisti $
 
 */
 
@@ -4235,7 +4235,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
-		INT_ARG_CNT + FLT_ARG_CNT +
+		INT_ARG_CNT + FLT_ARG_CNT + 1 +         /* + 1 for function address   */
 		nmd->memuse;
 
 	if (!(stackframesize & 0x1))                /* keep stack 16-byte aligned */
@@ -4317,6 +4317,21 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 
 
+	/* get function address (this must happen before the stackframeinfo) */
+
+#if !defined(ENABLE_STATICVM)
+	if (f == NULL) {
+		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
+
+		if (opt_showdisassemble) {
+			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+		}
+	}
+#endif
+
+	M_MOV_IMM((ptrint) f, REG_ITMP3);
+
+
 	/* save integer and float argument registers */
 
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
@@ -4327,13 +4342,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DST(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
+	M_AST(REG_ITMP3, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+
 	/* create dynamic stack info */
 
-	M_MOV(REG_SP, rd->argintregs[0]);
-	M_AADD_IMM(stackframesize * 8 - sizeof(stackframeinfo), rd->argintregs[0]);
+	M_ALEA(REG_SP, stackframesize * 8 - sizeof(stackframeinfo), rd->argintregs[0]);
 	x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
-	M_MOV(REG_SP, rd->argintregs[2]);
-	M_AADD_IMM(stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
+	M_ALEA(REG_SP, stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
 	x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_native_stackframeinfo,
 					   REG_ITMP1);
@@ -4353,6 +4368,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DLD(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
+
+	M_ALD(REG_ITMP3, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 
 	/* copy or spill arguments to new locations */
@@ -4396,26 +4413,15 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC)
-		x86_64_mov_imm_reg(cd, (ptrint) m->class, rd->argintregs[1]);
+		M_MOV_IMM((ptrint) m->class, rd->argintregs[1]);
 
 	/* put env into first argument register */
 
-	x86_64_mov_imm_reg(cd, (ptrint) &env, rd->argintregs[0]);
+	M_MOV_IMM((ptrint) &env, rd->argintregs[0]);
 
 	/* do the native function call */
 
-#if !defined(ENABLE_STATICVM)
-	if (f == NULL) {
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
-
-		if (opt_showdisassemble) {
-			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-		}
-	}
-#endif
-
-	x86_64_mov_imm_reg(cd, (ptrint) f, REG_ITMP1);
-	x86_64_call_reg(cd, REG_ITMP1);
+	M_CALL(REG_ITMP3);
 
 
 	/* remove native stackframe info */
@@ -4425,8 +4431,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	else
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 
-	M_MOV(REG_SP, rd->argintregs[0]);
-	M_AADD_IMM(stackframesize * 8 - sizeof(stackframeinfo), rd->argintregs[0]);
+	M_ALEA(REG_SP, stackframesize * 8 - sizeof(stackframeinfo), rd->argintregs[0]);
 	x86_64_mov_imm_reg(cd, (ptrint) stacktrace_remove_stackframeinfo,
 					   REG_ITMP1);
 	x86_64_call_reg(cd, REG_ITMP1);
