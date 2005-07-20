@@ -330,15 +330,6 @@ public class extest {
 
 	pln("---------- native stub exceptions ---------------");
 
-  	try {
-            p("NullPointerException (native):");
-            System.arraycopy(null, 1, null, 1, 1);
-            failed();
-    	} catch (Exception e) {
-  	    ok();
-            pstacktrace(e);
-  	}
-
         try {
             p("NullPointerException in <clinit>:");
             extest_clinit_3.sub();
@@ -352,7 +343,6 @@ public class extest {
             pstacktrace(e);
         }
 
-        /*
         try {
             p("UnsatisfiedLinkError:");
             nsub();
@@ -361,7 +351,30 @@ public class extest {
             ok();
             pstacktrace(e);
         }
-        */
+
+  	try {
+            p("NullPointerException (native):");
+            System.arraycopy(null, 1, null, 1, 1);
+            failed();
+    	} catch (NullPointerException e) {
+  	    ok();
+            pstacktrace(e);
+  	}
+
+        pln();
+
+
+	pln("---------- special exceptions -------------------");
+
+  	try {
+            p("OutOfMemoryError (array clone):");
+            byte[] ba1 = new byte[40 * 1024 * 1024];
+            byte[] ba2 = (byte[]) ba1.clone();
+            failed();
+    	} catch (OutOfMemoryError e) {
+  	    ok();
+            pstacktrace(e);
+  	}
 
         pln();
 
