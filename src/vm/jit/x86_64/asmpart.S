@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 2991 2005-07-11 21:25:31Z twisti $
+   $Id: asmpart.S 3074 2005-07-20 11:01:30Z twisti $
 
 */
 
@@ -166,7 +166,7 @@ call_name2:
 	.long   0
 	.quad   0                         /* line number table  start             */
 	.quad   0                         /* line number table  size              */
-        .long   0
+	.long   0
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
@@ -385,67 +385,81 @@ handle_fa7:
 *******************************************************************************/
 
 asm_call_jit_compiler:
-	sub     $8,%rsp                 /* keep stack 16-byte aligned             */
+	sub     $((3+24)*8+sizestackframeinfo),sp /* keep stack 16-byte aligned   */
 
-	mov     %rbx,(%rsp)             /* save register                          */
-        
-	mov     8(%rsp),%r11        /* get return address                         */
-	mov     -1(%r11),%bl        /* get function code                          */
-	cmp     $0xd2,%bl           /* called with `call *REG_ITMP2' (%r10)?      */
+	mov     %rbx,0*8(%rsp)              /* save register                      */
+
+	mov     (3+24)*8+sizestackframeinfo(%rsp),itmp3 /* get return address     */
+	mov     -1(itmp3),%bl               /* get function code                  */
+	cmp     $0xd2,%bl                   /* called with `call *REG_ITMP2'?     */
 	jne     L_not_static_special
 
-	sub     $11,%r11            /* calculate address of immediate             */
+	sub     $11,itmp3                   /* calculate address of immediate     */
 	jmp     L_call_jit_compile
 		
 L_not_static_special:
 	cmp     $0xd0,%bl           /* called with `call *REG_ITMP1' (%rax)       */
 	jne     L_not_virtual_interface
 		
-	sub     $7,%r11             /* calculate address of offset                */
-	mov     (%r11),%r11d        /* get offset (32-bit)                        */
-	add     %r10,%r11           /* add base address to get method address     */
+	sub     $7,itmp3            /* calculate address of offset                */
+	mov     (itmp3),itmp3l      /* get offset (32-bit)                        */
+	add     itmp2,itmp3         /* add base address to get method address     */
 	jmp     L_call_jit_compile
 
 L_not_virtual_interface:        /* a call from asm_calljavamethod             */
-	xor     %r11,%r11
+	xor     itmp3,itmp3
 		
 L_call_jit_compile:
-	mov     (%rsp),%rbx         /* restore register                           */
-        
-	sub     $(24*8),%rsp        /* 8 + 6*8 + 8*8 + 8*8                        */
-        
-	mov     %r11,0*8(%rsp)      /* save address for method pointer            */
+	mov     0*8(sp),%rbx                /* restore register                   */
+	mov     itmp3,0*8(sp)               /* save address for method pointer    */
+	mov     itmp1,1*8(sp)               /* save method pointer                */
 
-	SAVE_ARGUMENT_REGISTERS(1)
+	SAVE_ARGUMENT_REGISTERS(2)
 
-	mov     %rax,%rdi           /* pass method pointer                        */
+	mov     sp,a0                       /* create stackframe info             */
+	add     $((3+24)*8),a0              /* pass sfi                           */
+	xor     a1,a1                       /* if pv is NULL, use findmethod      */
+	mov     sp,a2                       /* pass java sp                       */
+	add     $((1+3+24)*8+sizestackframeinfo),a2
+	mov     ((3+24)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
+	mov     a3,a4                       /* xpc is equal to ra                 */
+	call    stacktrace_create_extern_stackframeinfo
+
+	mov     1*8(sp),a0                  /* pass method pointer                */
 	call	jit_compile
+	mov     v0,1*8(sp)                  /* save return value                  */
 
-	mov     0*8(%rsp),%r11      /* restore address for method pointer         */
+	mov     sp,a0                       /* remove stackframe info             */
+	add     $((3+24)*8),a0              /* pass sfi                           */
+	call    stacktrace_remove_stackframeinfo
 
-	RESTORE_ARGUMENT_REGISTERS(1)
+	mov     0*8(sp),itmp3               /* restore address for method pointer */
+	mov     1*8(sp),v0                  /* restore return value               */
 
-	add     $(24*8),%rsp
-	add     $8,%rsp                 /* keep stack 16-byte aligned             */
+	RESTORE_ARGUMENT_REGISTERS(2)
 
-	test    %rax,%rax               /* check for exception                    */
+	add     $((3+24)*8+sizestackframeinfo),sp /* remove stack frame           */
+
+	test    v0,v0                       /* check for exception                */
 	je      L_asm_call_jit_compiler_exception
 
-	test    %r11,%r11               /* is address == 0 (asm_calljavamethod)   */
+	test    %r11,%r11                   /* is address == 0 (asm_calljavamethod*/
 	je      L_call_method
 
-	mov     %rax,(%r11)             /* and now save the new pointer           */
+	mov     %rax,(%r11)                 /* and now save the new pointer       */
 
 L_call_method:
-	jmp     *%rax                   /* ...and now call the new method         */
+	jmp     *%rax                       /* ...and now call the new method     */
 
 L_asm_call_jit_compiler_exception:
-	xor     a0,a0                       /* we don't have pv handy             */
-	mov     sp,a1                       /* pass java sp                       */
-	add     $8,a1
-	mov     0*8(sp),a2                  /* pass ra to parent Java function    */
-	mov     a2,a3                       /* xpc is the same as ra              */
-	call    stacktrace_extern_fillInStackTrace
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	call    builtin_asm_get_exceptionptrptr
+	mov     v0,itmp2                    /* v0 == xptr                         */
+#else
+	lea     _exceptionptr,itmp2
+#endif
+	mov     (itmp2),xptr                /* get the exception pointer          */
+	movl    $0,(itmp2)                  /* clear exception pointer            */
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
