@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 2996 2005-07-12 01:42:38Z michi $
+   $Id: loader.c 3082 2005-07-20 15:28:51Z twisti $
 
 */
 
@@ -2725,7 +2725,7 @@ return_exception:
 
 *******************************************************************************/
 
-classinfo * load_newly_created_array(classinfo *c,java_objectheader *loader)
+classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;
@@ -2848,21 +2848,28 @@ classinfo * load_newly_created_array(classinfo *c,java_objectheader *loader)
 
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	initObjectLock(&clone->header);
+#endif
+
 	clone->flags = ACC_PUBLIC;
 	clone->name = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
 	clone->class = c;
-	clone->stubroutine =
-		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
 	clone->monoPoly = MONO;
+
+	clone->entrypoint =
+		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
+
 
 	/* XXX: field: length? */
 
 	/* array classes are not loaded from class files */
 
 	c->loaded = true;
-	c->parseddescs = (u1*) clonedesc;
+	c->parseddescs = (u1 *) clonedesc;
 	c->parseddescsize = sizeof(methodinfo);
 	c->classrefs = classrefs;
 	c->classrefcount = 1;
@@ -2870,6 +2877,7 @@ classinfo * load_newly_created_array(classinfo *c,java_objectheader *loader)
 
 	/* insert class into the loaded class cache */
 	/* XXX free classinfo if NULL returned? */
+
 	return classcache_store(loader,c,true);
 }
 
