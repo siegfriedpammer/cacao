@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3066 2005-07-19 12:35:37Z twisti $
+   $Id: cacao.c 3089 2005-07-21 11:00:15Z twisti $
 
 */
 
@@ -154,6 +154,7 @@ void **stackbottom = 0;
 #define OPT_BOOTCLASSPATH_P  38
 #define OPT_VERSION          39
 #define OPT_SHOWVERSION      40
+#define OPT_FULLVERSION      41
 
 #define OPT_HELP             100
 #define OPT_X                101
@@ -211,6 +212,7 @@ opt_struct opts[] = {
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
 	{ "version",           false, OPT_VERSION },
 	{ "showversion",       false, OPT_SHOWVERSION },
+	{ "fullversion",       false, OPT_FULLVERSION },
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
@@ -237,6 +239,7 @@ static void usage(void)
 	printf("    -D<name>=<value>         add an entry to the property list\n");
 	printf("    -verbose[:class|gc|jni]  enable specific verbose output\n");
 	printf("    -version                 print product version and exit\n");
+	printf("    -fullversion             print jpackage-compatible product version and exit\n");
 	printf("    -showversion             print product version and continue\n");
 	printf("    -help, -?                print this help message\n");
 	printf("    -X                       print help on non-standard Java options\n\n");
@@ -338,6 +341,23 @@ static void version(void)
 	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
 	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
 	printf("General Public License for more details.\n");
+}
+
+
+/* fullversion *****************************************************************
+
+   Prints a Sun compatible version information (required e.g. by
+   jpackage, www.jpackage.org).
+
+*******************************************************************************/
+
+static void fullversion(void)
+{
+	printf("java full version \"cacao-1.4.2\"\n");
+
+	/* exit normally */
+
+	exit(0);
 }
 
 
@@ -715,6 +735,10 @@ int main(int argc, char **argv)
 		case OPT_VERSION:
 			version();
 			exit(0);
+			break;
+
+		case OPT_FULLVERSION:
+			fullversion();
 			break;
 
 		case OPT_SHOWVERSION:
