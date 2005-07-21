@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3090 2005-07-21 11:29:43Z twisti $
+   $Id: cacao.c 3092 2005-07-21 13:06:50Z twisti $
 
 */
 
@@ -470,12 +470,16 @@ static char *getmainclassnamefromjar(char *mainstring)
 }
 
 
-/*
- * void exit_handler(void)
- * -----------------------
- * The exit_handler function is called upon program termination to shutdown
- * the various subsystems and release the resources allocated to the VM.
- */
+/* exit_handler ****************************************************************
+
+   The exit_handler function is called upon program termination.
+
+   ATTENTION: Don't free system resources here! Some threads may still
+   be running as this is called from VMRuntime.exit(). The OS does the
+   cleanup for us.
+
+*******************************************************************************/
+
 void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
@@ -488,13 +492,6 @@ void exit_handler(void)
 	clear_thread_flags();		/* restores standard file descriptor
 	                               flags */
 #endif
-
-	/************************ Free all resources *******************/
-
-	loader_close();
-	tables_close();
-
-	MFREE(classpath, u1, strlen(classpath));
 
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
