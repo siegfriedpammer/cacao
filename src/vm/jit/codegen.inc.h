@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 2989 2005-07-11 21:23:53Z twisti $
+   $Id: codegen.inc.h 3094 2005-07-21 13:16:43Z twisti $
 
 */
 
@@ -160,6 +160,7 @@ struct patchref {
 	functionptr  patcher;
 	voidptr      ref;
 	patchref    *next;
+	s4           disp;
 };
 
 
