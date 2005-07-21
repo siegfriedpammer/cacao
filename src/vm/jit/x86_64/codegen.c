@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3085 2005-07-20 15:35:35Z twisti $
+   $Id: codegen.c 3096 2005-07-21 14:01:02Z twisti $
 
 */
 
@@ -79,7 +79,7 @@
 
 void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
-	s4                  len, s1, s2, s3, d;
+	s4                  len, s1, s2, s3, d, disp;
 	u2                  currentline;
 	ptrint              a;
 	s4                  parentargs_base;
@@ -466,10 +466,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->icount;
 		currentline=0;
+
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
 				dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
-				/*printf("%s : %d\n",m->name->text,iptr->line);*/
 				currentline = iptr->line;
 			}
 
@@ -536,8 +536,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = 0, val.f = constant                    */
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-			a = dseg_addfloat(cd, iptr->val.f);
-			x86_64_movdl_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + ((d > 7) ? 9 : 8)) - (s8) cd->mcodebase) + a, d);
+			disp = dseg_addfloat(cd, iptr->val.f);
+			x86_64_movdl_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + ((d > 7) ? 9 : 8)) - (s8) cd->mcodebase) + disp, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 		
@@ -545,8 +545,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = 0, val.d = constant                    */
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-			a = dseg_adddouble(cd, iptr->val.d);
-			x86_64_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + a, d);
+			disp = dseg_adddouble(cd, iptr->val.d);
+			x86_64_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1632,9 +1632,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
-			a = dseg_adds4(cd, 0x80000000);
+			disp = dseg_adds4(cd, 0x80000000);
 			M_FLTMOVE(s1, d);
-			x86_64_movss_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + a, REG_FTMP2);
+			x86_64_movss_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, REG_FTMP2);
 			x86_64_xorps_reg_reg(cd, REG_FTMP2, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1643,9 +1643,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
 			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
-			a = dseg_adds8(cd, 0x8000000000000000);
+			disp = dseg_adds8(cd, 0x8000000000000000);
 			M_FLTMOVE(s1, d);
-			x86_64_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + a, REG_FTMP2);
+			x86_64_movd_membase_reg(cd, RIP, -(((s8) cd->mcodeptr + 9) - (s8) cd->mcodebase) + disp, REG_FTMP2);
 			x86_64_xorpd_reg_reg(cd, REG_FTMP2, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2249,35 +2249,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
+				disp = dseg_addaddress(cd, NULL);
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
-
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
+				disp = dseg_addaddress(cd, &(fi->value));
+
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
 				}
-
-				a = (ptrint) &(fi->value);
   			}
 
 			/* This approach is much faster than moving the field address     */
 			/* inline into a register. */
-			a = dseg_addaddress(cd, a);
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP2);
+  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
@@ -2307,35 +2306,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
+				disp = dseg_addaddress(cd, NULL);
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
-
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
+				disp = dseg_addaddress(cd, &(fi->value));
+
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
 				}
-
-				a = (ptrint) &(fi->value);
   			}
 
 			/* This approach is much faster than moving the field address     */
 			/* inline into a register. */
-			a = dseg_addaddress(cd, a);
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP2);
+  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				var_to_reg_int(s2, src, REG_ITMP1);
@@ -2363,35 +2361,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* following NOP)                           */
 
 			if (!iptr[1].val.a) {
+				disp = dseg_addaddress(cd, NULL);
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr[1].target);
+									(unresolved_field *) iptr[1].target, disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
-
 			} else {
 				fieldinfo *fi = iptr[1].val.a;
 
+				disp = dseg_addaddress(cd, &(fi->value));
+
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
 				}
-
-				a = (ptrint) &(fi->value);
   			}
 
 			/* This approach is much faster than moving the field address     */
 			/* inline into a register. */
-			a = dseg_addaddress(cd, a);
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP1);
+  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP1);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
@@ -2419,7 +2416,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -2470,7 +2467,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -2510,7 +2507,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr[1].val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfieldconst,
-									(unresolved_field *) iptr[1].target);
+									(unresolved_field *) iptr[1].target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -2994,7 +2991,6 @@ nowperformreturn:
 				tptr += i;
 
 				while (--i >= 0) {
-					/* dseg_addtarget(cd, BlockPtrOfPC(*--s4ptr)); */
 					dseg_addtarget(cd, (basicblock *) tptr[0]); 
 					--tptr;
 				}
@@ -3099,7 +3095,7 @@ gen_method:
 			case ICMD_BUILTIN:
 				if (iptr->target) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										bte->fp, iptr->target);
+										bte->fp, iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3135,7 +3131,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokestatic_special, um);
+										PATCHER_invokestatic_special, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3160,7 +3156,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokevirtual, um);
+										PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3189,7 +3185,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokeinterface, um);
+										PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3319,13 +3315,13 @@ gen_method:
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				x86_64_movl_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
+				x86_64_movl_imm_reg(cd, 0, REG_ITMP2);        /* super->flags */
 				x86_64_alul_imm_reg(cd, X86_64_AND, ACC_INTERFACE, REG_ITMP2);
 				x86_64_jcc(cd, X86_64_CC_Z, s2 + 5);
 			}
@@ -3345,7 +3341,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3386,7 +3382,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3444,7 +3440,7 @@ gen_method:
 			bte = iptr->val.a;
 
 			if (!iptr->op1) {
-				codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target);
+				codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3552,7 +3548,7 @@ gen_method:
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3577,7 +3573,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3619,7 +3615,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_instanceof_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3695,7 +3691,7 @@ gen_method:
 			if (iptr->target) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									(functionptr) (ptrint) iptr->target,
-									iptr->val.a);
+									iptr->val.a, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4154,6 +4150,9 @@ gen_method:
 			M_PUSH(REG_ITMP3);
 			M_MOV_IMM((ptrint) pref->ref, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->disp, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+
 			M_MOV_IMM((ptrint) pref->patcher, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 
@@ -4223,7 +4222,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
-	s4          s1, s2, off;
+	s4          s1, s2, disp;
 
 	/* initialize variables */
 
@@ -4311,7 +4310,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 #if !defined(ENABLE_STATICVM)
 	if (f == NULL) {
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
+		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m, 0);
 
 		if (opt_showdisassemble) {
 			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4526,26 +4525,28 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			/* create a virtual java_objectheader */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
-  			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + off, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
+  			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
 #else
-			x86_64_push_imm(cd, 0);
+			M_PUSH_IMM(0);
 #endif
 
 			/* move machine code bytes and classinfo pointer into registers */
 
-			x86_64_mov_imm_reg(cd, (ptrint) mcode, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
-			x86_64_mov_imm_reg(cd, (ptrint) pref->ref, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) mcode, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->ref, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->disp, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
 
-			x86_64_mov_imm_reg(cd, (ptrint) pref->patcher, REG_ITMP3);
-			x86_64_push_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) pref->patcher, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
 
-			x86_64_mov_imm_reg(cd, (ptrint) asm_wrapper_patcher, REG_ITMP3);
-			x86_64_jmp_reg(cd, REG_ITMP3);
+			M_MOV_IMM((ptrint) asm_wrapper_patcher, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 		}
 	}
 
