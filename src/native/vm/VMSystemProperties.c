@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3069 2005-07-19 15:40:57Z twisti $
+   $Id: VMSystemProperties.c 3090 2005-07-21 11:29:43Z twisti $
 
 */
 
@@ -158,7 +158,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	if (!m)
 		return;
 
-	insert_property(m, p, "java.version", "1.4.2");
+	insert_property(m, p, "java.version", JAVA_VERSION);
 	insert_property(m, p, "java.vendor", "CACAO Team");
 	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
 	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX""CACAO_JRE_DIR);

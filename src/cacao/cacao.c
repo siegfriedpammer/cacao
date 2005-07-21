@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3089 2005-07-21 11:00:15Z twisti $
+   $Id: cacao.c 3090 2005-07-21 11:29:43Z twisti $
 
 */
 
@@ -325,6 +325,7 @@ static void Xusage(void)
 
 static void version(void)
 {
+	printf("java version \""JAVA_VERSION"\"\n");
 	printf("CACAO version "VERSION"\n");
 
 	printf("Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,\n");
@@ -353,7 +354,7 @@ static void version(void)
 
 static void fullversion(void)
 {
-	printf("java full version \"cacao-1.4.2\"\n");
+	printf("java full version \"cacao-"JAVA_VERSION"\"\n");
 
 	/* exit normally */
 
