@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3083 2005-07-20 15:30:04Z twisti $
+   $Id: codegen.inc 3093 2005-07-21 13:16:18Z twisti $
 
 */
 
@@ -579,10 +579,14 @@ static void codegen_addxexceptionrefs(codegendata *cd, void *branchptr)
 }
 
 
-static void codegen_addpatchref(codegendata *cd,
-								voidptr branchptr,
-								functionptr patcher,
-								voidptr ref)
+/* codegen_addpatchref *********************************************************
+
+   Adds a new patcher reference to the list of patching positions.
+
+*******************************************************************************/
+
+static void codegen_addpatchref(codegendata *cd, voidptr branchptr,
+								functionptr patcher, voidptr ref, s4 disp)
 {
 	patchref *pr;
 	s4        branchpos;
@@ -590,10 +594,13 @@ static void codegen_addpatchref(codegendata *cd,
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
 	pr = DNEW(patchref);
+
 	pr->branchpos = branchpos;
-	pr->patcher = patcher;
-	pr->ref = ref;
-	pr->next = cd->patchrefs;
+	pr->patcher   = patcher;
+	pr->ref       = ref;
+	pr->disp      = disp;
+
+	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 }
 
