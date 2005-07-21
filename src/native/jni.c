@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3066 2005-07-19 12:35:37Z twisti $
+   $Id: jni.c 3095 2005-07-21 13:51:36Z motse $
 
 */
 
@@ -3872,7 +3872,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject gref)
 		jobject newval = NewObject(env, intclass, newint, val);
 
 		if (newval != NULL) {
-			CallObjectMethod(env,*global_ref_table, putmid,newval);
+			CallObjectMethod(env,*global_ref_table, putmid, gref, newval);
 
 		} else {
 			log_text("JNI-DeleteGlobalRef: unable to create new java.lang.Integer");
