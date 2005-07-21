@@ -21,7 +21,6 @@ alpha | alphaev56 | alphapca56 )
 
 arm )
 	ARCH_DIR="arm"
-	ENABLE_STATICVM="1"
 	CFLAGS="-D__ARM__"
 	;;
 
