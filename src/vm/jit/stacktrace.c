@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3073 2005-07-20 10:40:41Z twisti $
+   $Id: stacktrace.c 3091 2005-07-21 12:25:05Z twisti $
 
 */
 
@@ -565,7 +565,7 @@ static void addEntry(stackTraceBuffer *buffer, methodinfo *method, u2 line)
 *******************************************************************************/
 
 static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
-														methodinfo *method,
+														methodinfo *m,
 														lineNumberTableEntry *lntentry,
 														s4 lntsize,
 														u1 *pc)
@@ -596,7 +596,7 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 																&ent,
 																&ahead,
 																pc)) {
-					addEntry(buffer, method, ilStart->lineNrOuter);
+					addEntry(buffer, m, ilStart->lineNrOuter);
 
 					return true;
 				}
@@ -610,17 +610,24 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 #endif
 
 			default:
-				addEntry(buffer, method, lntentry->line);
+				addEntry(buffer, m, lntentry->line);
 				return true;
 			}
 		}
 	}
 
-	/* this should not happen */
+	/* check if we are before the actual JIT code */
 
-	assert(0);
+	if (pc < m->entrypoint) {
+		dolog("Current pc before start of code: %p < %p", pc, m->entrypoint);
+		assert(0);
+	}
 
-	return false;
+	/* otherwise just add line 0 */
+
+	addEntry(buffer, m, 0);
+
+	return true;
 }
 
 
