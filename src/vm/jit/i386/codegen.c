@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 2999 2005-07-12 11:20:34Z twisti $
+   $Id: codegen.c 3100 2005-07-22 15:22:53Z twisti $
 
 */
 
@@ -3085,7 +3085,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3098,7 +3098,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3153,7 +3153,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3166,7 +3166,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3221,7 +3221,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr[1].val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr[1].target);
+									(unresolved_field *) iptr[1].target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3234,7 +3234,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3270,7 +3270,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_getfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3327,7 +3327,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3379,7 +3379,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr[1].val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfieldconst,
-									(unresolved_field *) iptr[1].target);
+									(unresolved_field *) iptr[1].target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4346,7 +4346,8 @@ gen_method:
 				d = md->returntype.type;
 
 				if (iptr->target) {
-					codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target);
+					codegen_addpatchref(cd, cd->mcodeptr, bte->fp,
+										iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4376,7 +4377,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokestatic_special, um);
+										PATCHER_invokestatic_special, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4402,7 +4403,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokevirtual, um);
+										PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4432,7 +4433,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokeinterface, um);
+										PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4587,7 +4588,7 @@ gen_method:
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4613,7 +4614,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4654,7 +4655,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4710,7 +4711,7 @@ gen_method:
 			bte = iptr->val.a;
 
 			if (!iptr->op1) {
-				codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target);
+				codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4823,7 +4824,7 @@ gen_method:
 
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4849,7 +4850,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4895,7 +4896,7 @@ gen_method:
 				if (!super) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_instanceof_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4995,7 +4996,7 @@ gen_method:
 			if (iptr->target) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									(functionptr) (ptrint) iptr->target,
-									iptr->val.a);
+									iptr->val.a, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -5560,10 +5561,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 {
 	methoddesc *md;
 	s4          nativeparams;
+	s4          stackframesize;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
-	s4          s1, s2, off;
-	s4          stackframesize;
+	s4          s1, s2, disp;
 
 	/* set some variables */
 
@@ -5576,6 +5577,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		1 +                             /* function pointer                   */
 		4 * 4 +                         /* 4 arguments (create stackframe)    */
 		nmd->memuse;
 
@@ -5602,16 +5604,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_ASUB_IMM(stackframesize * 4, REG_SP);
 
-
-	/* if function is static, check for initialized */
-
-	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_clinit, m->class);
-
-		if (opt_showdisassemble) {
-			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-		}
-	}
 
 	if (runverbose) {
 		s4 p, t;
@@ -5676,6 +5668,22 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		i386_alu_imm_reg(cd, ALU_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
+
+	/* get function address (this must happen before the stackframeinfo) */
+
+#if !defined(ENABLE_STATICVM)
+	if (f == NULL) {
+		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m, 0);
+
+		if (opt_showdisassemble) {
+			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+		}
+	}
+#endif
+
+	M_AST_IMM((ptrint) f, REG_SP, 4 * 4);
+
+
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
 	/* register count == 0).                                                  */
 
@@ -5704,6 +5712,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MOV_IMM((ptrint) stacktrace_create_native_stackframeinfo, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+	M_ALD(REG_ITMP3, REG_SP, 4 * 4);
+
 
 	/* copy arguments into new stackframe */
 
@@ -5728,25 +5738,15 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* if function is static, put class into second argument */
 
 	if (m->flags & ACC_STATIC)
-		i386_mov_imm_membase(cd, (ptrint) m->class, REG_SP, 1 * 4);
+		M_AST_IMM((ptrint) m->class, REG_SP, 1 * 4);
 
 	/* put env into first argument */
 
-	i386_mov_imm_membase(cd, (ptrint) &env, REG_SP, 0 * 4);
+	M_AST_IMM((ptrint) &env, REG_SP, 0 * 4);
 
 	/* call the native function */
 
-#if !defined(ENABLE_STATICVM)
-	if (f == NULL)
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m);
-
-		if (opt_showdisassemble) {
-			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-		}
-#endif
-
-	i386_mov_imm_reg(cd, (ptrint) f, REG_ITMP1);
-	i386_call_reg(cd, REG_ITMP1);
+	M_CALL(REG_ITMP3);
 
 
 	/* remove native stackframe info */
@@ -5757,7 +5757,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_IST(REG_RESULT, REG_SP, 1 * 4);
 	
 	} else {
-		/* XXX save float? */
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			i386_fstl_membase(cd, REG_SP, 1 * 4);
+		else
+			i386_fsts_membase(cd, REG_SP, 1 * 4);
 	}
 
 	M_MOV(REG_SP, REG_ITMP1);
@@ -5772,7 +5775,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_ILD(REG_RESULT, REG_SP, 1 * 4);
 	
 	} else {
-		/* XXX save float? */
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			i386_fldl_membase(cd, REG_SP, 1 * 4);
+		else
+			i386_flds_membase(cd, REG_SP, 1 * 4);
 	}
 
 
@@ -5871,11 +5877,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			/* create a virtual java_objectheader */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_AADD_IMM(off, REG_ITMP3);
+			M_AADD_IMM(disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 #else
 			M_PUSH_IMM(0);
