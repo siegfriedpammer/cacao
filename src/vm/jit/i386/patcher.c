@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3038 2005-07-13 18:50:17Z twisti $
+   $Id: patcher.c 3099 2005-07-22 15:21:40Z twisti $
 
 */
 
@@ -1153,8 +1153,7 @@ bool patcher_clinit(u1 *sp)
    Machine code:
 
    <patched call position>
-   b8 00 00 00 00             mov    $0x0,%eax
-   ff d0                      call   *%eax
+   c7 44 24 04 28 90 01 40    movl   $0x40019028,0x4(%esp)
 
 *******************************************************************************/
 
@@ -1201,7 +1200,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* patch native function pointer */
 
-	*((ptrint *) (ra + 1)) = (ptrint) f;
+	*((ptrint *) (ra + 4)) = (ptrint) f;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
