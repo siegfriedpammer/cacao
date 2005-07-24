@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3061 2005-07-19 08:52:11Z twisti $
+## $Id: Makefile.am 3104 2005-07-24 22:29:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,7 +48,8 @@ OUTPUT_JAVA_TESTS = \
 	fp \
 	extest \
 	\
-	clinitexception
+	clinitexception \
+	StackDisplacementOverflow
 
 checkall: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
