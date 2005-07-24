@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 2986 2005-07-11 18:56:09Z twisti $
+   $Id: codegen.h 3106 2005-07-24 23:01:45Z twisti $
 
 */
 
@@ -95,63 +95,74 @@
 #define M_FLTMOVE(a,b) if (a != b) { M_FMOV(a, b); }
 
 
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
+/* var_to_reg_xxx **************************************************************
+
+   This function generates code to fetch data from a pseudo-register
+   into a real register. If the pseudo-register has actually been
+   assigned to a real register, no code will be emitted, since
+   following operations can use this register directly.
     
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
+   v: pseudoregister to be fetched from
+   tempregnum: temporary register to be used if v is actually spilled to ram
 
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
+   return: the register number, where the operand can be found after 
+           fetching (this wil be either tempregnum or the register
+           number allready given to v)
 
-#define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-        M_LLD(tempnr, REG_SP, 8 * (v)->regoff); \
-        regnr = tempnr; \
-    } else regnr = (v)->regoff; \
-}
+*******************************************************************************/
 
-
-#define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-        M_DLD(tempnr, REG_SP, 8 * (v)->regoff); \
-        regnr = tempnr; \
-    } else regnr = (v)->regoff; \
-}
+#define var_to_reg_int(regnr,v,tempnr) \
+    do { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_LLD(tempnr, REG_SP, (v)->regoff * 8); \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } while (0)
 
 
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
+#define var_to_reg_flt(regnr,v,tempnr) \
+    do { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_DLD(tempnr, REG_SP, (v)->regoff * 8); \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } while (0)
+
+
+/* store_reg_to_var_xxx ********************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable. If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
     
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
+   v ............ Pseudovariable
+   tempregnum ... Number of the temporary registers as returned by
+                  reg_of_var.
 
-#define store_reg_to_var_int(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_LST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
+*******************************************************************************/
 
-#define store_reg_to_var_flt(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
+#define store_reg_to_var_int(sptr, tempregnum) \
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_LST(tempregnum, REG_SP, (sptr)->regoff * 8); \
+        } \
+    } while (0)
+
+#define store_reg_to_var_flt(sptr, tempregnum) \
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_DST(tempregnum, REG_SP, (sptr)->regoff * 8); \
+        } \
+    } while (0)
 
 
 #define M_COPY(from,to) \
@@ -162,29 +173,27 @@
 			var_to_reg_flt(s1, from, d); \
 			M_FLTMOVE(s1,d); \
 			store_reg_to_var_flt(to, d); \
-			}\
-		else { \
+		} else { \
 			var_to_reg_int(s1, from, d); \
 			M_INTMOVE(s1,d); \
 			store_reg_to_var_int(to, d); \
-			}\
-		}
-
+		} \
+	}
 
 #define ICONST(r,c) \
     if ((c) >= -32768 && (c) <= 32767) { \
-        M_LDA((r), REG_ZERO, c); \
+        M_LDA_INTERN((r), REG_ZERO, c); \
     } else { \
-        a = dseg_adds4(cd, (c)); \
-        M_ILD((r), REG_PV, a); \
+        disp = dseg_adds4(cd, (c)); \
+        M_ILD((r), REG_PV, disp); \
     }
 
 #define LCONST(r,c) \
     if ((c) >= -32768 && (c) <= 32767) { \
-        M_LDA((r), REG_ZERO, (c)); \
+        M_LDA_INTERN((r), REG_ZERO, (c)); \
     } else { \
-        a = dseg_adds8(cd, (c)); \
-        M_LLD((r), REG_PV, a); \
+        disp = dseg_adds8(cd, (c)); \
+        M_LLD((r), REG_PV, disp); \
     }
 
 
@@ -242,18 +251,89 @@
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
 
-#define M_LDA(a,b,disp)         M_MEM (0x08,a,b,disp)           /* low const  */
+#define M_LDA_INTERN(a,b,disp)  M_MEM(0x08,a,b,disp)            /* low const  */
+
+#define M_LDA(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_LDA_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(a,b,hi); \
+            M_LDA_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
 #define M_LDAH(a,b,disp)        M_MEM (0x09,a,b,disp)           /* high const */
+
 #define M_BLDU(a,b,disp)        M_MEM (0x0a,a,b,disp)           /*  8 load    */
 #define M_SLDU(a,b,disp)        M_MEM (0x0c,a,b,disp)           /* 16 load    */
-#define M_ILD(a,b,disp)         M_MEM (0x28,a,b,disp)           /* 32 load    */
-#define M_LLD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* 64 load    */
-#define M_ALD(a,b,disp)         M_MEM (0x29,a,b,disp)           /* addr load  */
-#define M_BST(a,b,disp)         M_MEM (0x0e,a,b,disp)           /*  8 store   */
-#define M_SST(a,b,disp)         M_MEM (0x0d,a,b,disp)           /* 16 store   */
-#define M_IST(a,b,disp)         M_MEM (0x2c,a,b,disp)           /* 32 store   */
-#define M_LST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* 64 store   */
-#define M_AST(a,b,disp)         M_MEM (0x2d,a,b,disp)           /* addr store */
+
+#define M_ILD_INTERN(a,b,disp)  M_MEM(0x28,a,b,disp)            /* 32 load    */
+#define M_LLD_INTERN(a,b,disp)  M_MEM(0x29,a,b,disp)            /* 64 load    */
+
+#define M_ILD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_ILD_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(a,b,hi); \
+            M_ILD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_LLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_LLD_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(a,b,hi); \
+            M_LLD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_ALD(a,b,disp)         M_LLD(a,b,disp)                 /* addr load  */
+
+#define M_BST(a,b,disp)         M_MEM(0x0e,a,b,disp)            /*  8 store   */
+#define M_SST(a,b,disp)         M_MEM(0x0d,a,b,disp)            /* 16 store   */
+
+#define M_IST_INTERN(a,b,disp)  M_MEM(0x2c,a,b,disp)            /* 32 store   */
+#define M_LST_INTERN(a,b,disp)  M_MEM(0x2d,a,b,disp)            /* 64 store   */
+
+/* Stores with displacement overflow should only happen with PUTFIELD or on   */
+/* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
+/* reg_of_var call should not use REG_ITMP3!!!                                */
+
+#define M_IST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_IST_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_IST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_LST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_LST_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_LST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_AST(a,b,disp)         M_LST(a,b,disp)                 /* addr store */
 
 #define M_BSEXT(b,c)            M_OP3 (0x1c,0x0,REG_ZERO,b,c,0) /*  8 signext */
 #define M_SSEXT(b,c)            M_OP3 (0x1c,0x1,REG_ZERO,b,c,0) /* 16 signext */
@@ -321,10 +401,64 @@
 #define M_SRA_IMM(a,b,c)        M_OP3 (0x12,0x3c, a,b,c,1)      /* c = a >> b */
 #define M_SRL_IMM(a,b,c)        M_OP3 (0x12,0x34, a,b,c,1)      /* c = a >>>b */
 
-#define M_FLD(a,b,disp)         M_MEM (0x22,a,b,disp)           /* load flt   */
-#define M_DLD(a,b,disp)         M_MEM (0x23,a,b,disp)           /* load dbl   */
-#define M_FST(a,b,disp)         M_MEM (0x26,a,b,disp)           /* store flt  */
-#define M_DST(a,b,disp)         M_MEM (0x27,a,b,disp)           /* store dbl  */
+#define M_FLD_INTERN(a,b,disp)  M_MEM(0x22,a,b,disp)            /* load flt   */
+#define M_DLD_INTERN(a,b,disp)  M_MEM(0x23,a,b,disp)            /* load dbl   */
+
+#define M_FLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_FLD_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(a,b,hi); \
+            M_FLD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_DLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_DLD_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(a,b,hi); \
+            M_DLD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_FST_INTERN(a,b,disp)  M_MEM(0x26,a,b,disp)            /* store flt  */
+#define M_DST_INTERN(a,b,disp)  M_MEM(0x27,a,b,disp)            /* store dbl  */
+
+/* Stores with displacement overflow should only happen with PUTFIELD or on   */
+/* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
+/* reg_of_var call should not use REG_ITMP3!!!                                */
+
+#define M_FST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_FST_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_FST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_DST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (!hi) { \
+            M_DST_INTERN(a,b,lo); \
+        } else { \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_DST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
 
 #define M_FADD(a,b,c)           M_FOP3 (0x16, 0x080, a,b,c)     /* flt add    */
 #define M_DADD(a,b,c)           M_FOP3 (0x16, 0x0a0, a,b,c)     /* dbl add    */
