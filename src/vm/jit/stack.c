@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3071 2005-07-20 03:09:11Z michi $
+   $Id: stack.c 3102 2005-07-24 21:04:05Z michi $
 
 */
 
@@ -1951,7 +1951,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						copy = curstack;
 						for (i-- ; i >= 0; i--) {
-#if defined(SUPPORT_NO_FLOAT_ARGUMENT_REGISTERS)
+#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+						/* If we pass float arguments in integer argument registers, we
+						 * are not allowed to precolor them here. Floats have to be moved
+						 * to this regs explicitly in codegen().
+						 * Only arguments that are passed by stack anyway can be precolored
+						 * (michi 2005/07/24) */
 							if (!(copy->flags & SAVEDVAR) &&
 							   (!IS_FLT_DBL_TYPE(copy->type) || md->params[i].inmemory)) {
 #else
@@ -1965,7 +1970,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								} else {
 									copy->flags = 0;
 									if (IS_FLT_DBL_TYPE(copy->type))
-#if defined(SUPPORT_NO_FLOAT_ARGUMENT_REGISTERS)
+#if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 										assert(0);
 #else
 										copy->regoff =
