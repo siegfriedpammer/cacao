@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3093 2005-07-21 13:16:18Z twisti $
+   $Id: codegen.inc 3105 2005-07-24 22:32:34Z michi $
 
 */
 
@@ -1023,6 +1023,11 @@ void removenativestub(functionptr stub)
     Otherwise (when v is spilled) this function returns tempregnum.
     If not already done, regoff and flags are set in the stack location.
 */        
+/*  On ARM we have to check if a long/double variable is splitted
+    across reg/stack (HIGH_REG == REG_SPLIT). We return the actual register
+    of v for LOW_REG and the tempregnum for HIGH_REG in such cases.
+    (michi 2005/07/24)
+*/
 
 static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 {
@@ -1044,13 +1049,23 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 	case LOCALVAR:
 		var = &(rd->locals[v->varnum][v->type]);
 		v->regoff = var->regoff;
-		if (!(var->flags & INMEMORY))
+		if (!(var->flags & INMEMORY)) {
+#if defined(__ARM__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(var->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(var->regoff), GET_HIGH_REG(tempregnum)));
+#endif
 			return(var->regoff);
+		}
 		break;
 
 	case ARGVAR:
-		if (!(v->flags & INMEMORY))
+		if (!(v->flags & INMEMORY)) {
+#if defined(__ARM__)
+			if (IS_2_WORD_TYPE(v->type) && (GET_HIGH_REG(v->regoff) == REG_SPLIT))
+				return(PACK_REGS(GET_LOW_REG(v->regoff), GET_HIGH_REG(tempregnum)));
+#endif
 			return(v->regoff);
+		}
 		break;
 	}
 #ifdef STATISTICS
