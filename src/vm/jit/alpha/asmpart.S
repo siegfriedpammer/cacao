@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 3050 2005-07-18 20:07:52Z twisti $
+   $Id: asmpart.S 3108 2005-07-24 23:04:48Z twisti $
 
 */
 
@@ -710,10 +710,11 @@ ex_flt2:
    XXX
 
    Stack layout:
-	 32   return address into JIT code (patch position)
-     24   pointer to virtual java_objectheader
-     16   machine code (which is patched back later)
-      8   unresolved class/method/field reference
+     40   return address into JIT code (patch position)
+     32   pointer to virtual java_objectheader
+     24   machine code (which is patched back later)
+     16   unresolved class/method/field reference
+      8   data segment displacement from load instructions
       0   patcher function pointer to call (pv afterwards)
 
    ATTENTION: itmp3 == gp! But we don't need gp do call the patcher function.
@@ -739,9 +740,9 @@ L_asm_wrapper_patcher_load_gp:
 
 	lda     a0,(12+27+4)*8(sp)    /* create stackframe info                   */
 	mov     pv,a1                 /* pass java pv                             */
-	lda     a2,((5+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp         */
+	lda     a2,((6+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp         */
 	ldq     a3,(12+27+2)*8(sp)    /* this is correct for leafs                */
-	ldq     a4,((4+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
+	ldq     a4,((5+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
 	jsr     ra,stacktrace_create_extern_stackframeinfo
 	ldgp    gp,0(ra)
 
@@ -764,8 +765,8 @@ L_asm_wrapper_patcher_load_gp:
 	ldq     ra,(12+27+2)*8(sp)    /* restore method return address (for leafs)*/
 	ldq     pv,(12+27+3)*8(sp)    /* restore pv of calling java function      */
 
-	ldq     itmp3,((4+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to jit code */
-	lda     sp,((5+12+27+4)*8+sizestackframeinfo)(sp)  /* remove stack frame  */
+	ldq     itmp3,((5+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to jit code */
+	lda     sp,((6+12+27+4)*8+sizestackframeinfo)(sp)  /* remove stack frame  */
 
 	beq     v0,L_asm_wrapper_patcher_exception
 
