@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3082 2005-07-20 15:28:51Z twisti $
+   $Id: loader.c 3101 2005-07-24 20:18:34Z michi $
 
 */
 
@@ -374,8 +374,21 @@ static double suck_double(classbuffer *cb)
 	u1 buffer[8];
 	u2 i;	
 
+#if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
+	/*
+	 * On little endian ARM processors when using FPA, word order
+	 * of doubles is still big endian. So take that into account
+	 * here. When using VFP, word order of doubles follows byte
+	 * order. (michi 2005/07/24)
+	 */
+	for (i = 0; i < 4; i++)
+		buffer[3 - i] = suck_u1(cb);
+	for (i = 0; i < 4; i++)
+		buffer[7 - i] = suck_u1(cb);
+#else
 	for (i = 0; i < 8; i++)
 		buffer[7 - i] = suck_u1(cb);
+#endif /* defined(__ARM__) && ... */
 
 	memcpy((u1*) (&d), buffer, 8);
 #else 
