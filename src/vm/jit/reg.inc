@@ -29,8 +29,9 @@
    Changes: Stefan Ring
             Christian Thalinger
 			Christian Ullrich
+            Michael Starzinger
 
-   $Id: reg.inc 2938 2005-07-08 15:09:14Z twisti $
+   $Id: reg.inc 3103 2005-07-24 22:03:13Z michi $
 
 */
 
@@ -74,7 +75,15 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	
 	/* setup the integer register table */
 
+#if defined(__ARM__)
+	/* On ARM longs can be split across argument regs and stack. This is
+	 * signed by setting the HIGH_REG to INT_ARG_CNT+1 in md_param_alloc().
+	 * Here we make sure it resolves to a special dummy reg (REG_SPLIT). */
+	rd->argintregs = DMNEW(s4, INT_ARG_CNT + 1);
+	rd->argintregs[INT_ARG_CNT + 1] = REG_SPLIT;
+#else
 	rd->argintregs = DMNEW(s4, INT_ARG_CNT);
+#endif
 	rd->tmpintregs = DMNEW(s4, INT_TMP_CNT);
 	rd->savintregs = DMNEW(s4, INT_SAV_CNT);
 	rd->freeargintregs = DMNEW(s4, INT_ARG_CNT);
@@ -628,11 +637,15 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->flags = rd->locals[s][fltalloc].flags;
 							v->regoff = rd->locals[s][fltalloc].regoff;
 						}
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+						/* We can only use float arguments as local variables,
+						 * if we do not pass them in integer registers. */
   						else if ((p < md->paramcount) &&
 								 !md->params[p].inmemory) {
 							v->flags = 0;
 							v->regoff = rd->argfltregs[md->params[p].regoff];
 						}
+#endif
 						else if (rd->tmpfltreguse > 0) {
 							v->flags = 0;
 							v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
