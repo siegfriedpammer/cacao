@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3039 2005-07-13 19:04:25Z twisti $
+   $Id: md.c 3107 2005-07-24 23:02:28Z twisti $
 
 */
 
@@ -167,7 +167,8 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
    Machine code:
 
    6b5b4000    jsr     (pv)
-   237affe8    lda     pv,-24(ra)
+   277afffe    ldah    pv,-2(ra)
+   237ba61c    lda     pv,-23012(pv)
 
 *******************************************************************************/
 
@@ -176,29 +177,44 @@ functionptr codegen_findmethod(functionptr pc)
 	u1 *ra;
 	u1 *pv;
 	u4  mcode;
-	s2  offset;
+	s4  offset;
 
 	ra = (u1 *) pc;
 	pv = ra;
 
-	/* get offset of first instruction (lda) */
+	/* get first instruction word after jump */
 
 	mcode = *((u4 *) ra);
 
-	if ((mcode >> 16) != 0x237a) {
-		log_text("No `lda pv,x(ra)' instruction found on return address!");
-		assert(0);
-	}
+	/* check if we have 2 instructions (ldah, lda) */
 
-	offset = (s2) (mcode & 0x0000ffff);
-	pv += offset;
+	if ((mcode >> 16) == 0x277a) {
+		/* get displacement of first instruction (ldah) */
 
-	/* check for second instruction (ldah) */
+		offset = (s4) (mcode << 16);
+		pv += offset;
 
-	mcode = *((u4 *) (ra + 1 * 4));
+		/* get displacement of second instruction (lda) */
 
-	if ((mcode >> 16) == 0x177b) {
-		offset = (s2) (mcode << 16);
+		mcode = *((u4 *) (ra + 1 * 4));
+
+		if ((mcode >> 16) != 0x237b) {
+			log_text("No `lda pv,x(pv)' instruction found on return address!");
+			assert(0);
+		}
+
+		offset = (s2) (mcode & 0x0000ffff);
+		pv += offset;
+
+	} else {
+		/* get displacement of first instruction (lda) */
+
+		if ((mcode >> 16) != 0x237a) {
+			log_text("No `lda pv,x(ra)' instruction found on return address!");
+			assert(0);
+		}
+
+		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
 	}
 
