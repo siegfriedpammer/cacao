@@ -29,13 +29,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 3106 2005-07-24 23:01:45Z twisti $
+   $Id: codegen.h 3120 2005-07-27 22:20:13Z twisti $
 
 */
 
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
+
+#include "config.h"
 
 #include <ucontext.h>
 
@@ -257,7 +259,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_LDA_INTERN(a,b,lo); \
         } else { \
             M_LDAH(a,b,hi); \
@@ -277,7 +279,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_ILD_INTERN(a,b,lo); \
         } else { \
             M_LDAH(a,b,hi); \
@@ -289,7 +291,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_LLD_INTERN(a,b,lo); \
         } else { \
             M_LDAH(a,b,hi); \
@@ -313,7 +315,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_IST_INTERN(a,b,lo); \
         } else { \
             M_LDAH(REG_ITMP3,b,hi); \
@@ -325,7 +327,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_LST_INTERN(a,b,lo); \
         } else { \
             M_LDAH(REG_ITMP3,b,hi); \
@@ -408,11 +410,11 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_FLD_INTERN(a,b,lo); \
         } else { \
-            M_LDAH(a,b,hi); \
-            M_FLD_INTERN(a,a,lo); \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_FLD_INTERN(a,REG_ITMP3,lo); \
         } \
     } while (0)
 
@@ -420,11 +422,11 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_DLD_INTERN(a,b,lo); \
         } else { \
-            M_LDAH(a,b,hi); \
-            M_DLD_INTERN(a,a,lo); \
+            M_LDAH(REG_ITMP3,b,hi); \
+            M_DLD_INTERN(a,REG_ITMP3,lo); \
         } \
     } while (0)
 
@@ -439,7 +441,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_FST_INTERN(a,b,lo); \
         } else { \
             M_LDAH(REG_ITMP3,b,hi); \
@@ -451,7 +453,7 @@
     do { \
         s4 lo = (short) (disp); \
         s4 hi = (short) (((disp) - lo) >> 16); \
-        if (!hi) { \
+        if (hi == 0) { \
             M_DST_INTERN(a,b,lo); \
         } else { \
             M_LDAH(REG_ITMP3,b,hi); \
