@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3002 2005-07-12 16:02:45Z twisti $
+   $Id: patcher.c 3113 2005-07-27 10:36:38Z twisti $
 
 */
 
@@ -64,22 +64,23 @@ bool patcher_get_putstatic(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	unresolved_field  *uf;
+	s4                 disp;
 	u1                *pv;
 	fieldinfo         *fi;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -102,22 +103,13 @@ bool patcher_get_putstatic(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch the field value's address */
-
-	*((ptrint *) (pv + offset)) = (ptrint) &(fi->value);
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch the field value's address */
+
+	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -142,15 +134,15 @@ bool patcher_get_putfield(u1 *sp)
 	unresolved_field  *uf;
 	fieldinfo         *fi;
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -196,6 +188,10 @@ bool patcher_get_putfield(u1 *sp)
    0320f809    jalr     t9
    00000000    nop
 
+   NOTICE: Only the displacement for the function address is passed,
+   but the address of the classinfo pointer is one below (above, in
+   addresses speaking). This is for sure.
+
 *******************************************************************************/
 
 bool patcher_builtin_new(u1 *sp)
@@ -204,22 +200,23 @@ bool patcher_builtin_new(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (4 + 2 * 4);
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	ra = ra - (3 * 4);
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -236,30 +233,17 @@ bool patcher_builtin_new(u1 *sp)
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
 
-	/* get the offset from machine instruction */
+	/* synchronize instruction cache */
 
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
+	docacheflush(ra + 1 * 4, 2 * 4);
 
 	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + offset)) = (ptrint) c;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 4)) & 0x0000ffff);
+	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
 
 	/* patch new function address */
 
-	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_new;
-
-	/* synchronize instruction cache */
-
-	docacheflush(ra + 4, 2 * 4);
+	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_new;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -277,6 +261,10 @@ bool patcher_builtin_new(u1 *sp)
    0320f809    jalr     t9
    00000000    nop
 
+   NOTICE: Only the displacement for the function address is passed,
+   but the address of the classinfo pointer is one below (above, in
+   addresses speaking). This is for sure.
+
 *******************************************************************************/
 
 bool patcher_builtin_newarray(u1 *sp)
@@ -285,22 +273,23 @@ bool patcher_builtin_newarray(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
-	ra = ra - (4 + 2 * 4);
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	ra = ra - (3 * 4);
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -317,30 +306,17 @@ bool patcher_builtin_newarray(u1 *sp)
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
 
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch the class' vftbl pointer */
-
-	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 4)) & 0x0000ffff);
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_newarray;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra + 4, 2 * 4);
+
+	/* patch the class' vftbl pointer */
+
+	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
+
+	/* patch new function address */
+
+	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_newarray;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -353,7 +329,6 @@ bool patcher_builtin_newarray(u1 *sp)
    Machine code:
 
    <patched call position>
-   24040002    addiu    a0,zero,2
    dfc5ff90    ld       a1,-112(s8)
    03a03025    move     a2,sp
    dfd9ff88    ld       t9,-120(s8)
@@ -368,22 +343,23 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -400,22 +376,13 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 4)) & 0x0000ffff);
-
-	/* patch the class' vftbl pointer */
-
-	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch the class' vftbl pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -433,6 +400,10 @@ bool patcher_builtin_multianewarray(u1 *sp)
    0320f809    jalr     t9
    00000000    nop
 
+   NOTICE: Only the displacement of the vftbl pointer address is
+   passed, but the address of the function pointer is one above
+   (below, in addresses speaking). This is for sure.
+
 *******************************************************************************/
 
 bool patcher_builtin_arraycheckcast(u1 *sp)
@@ -441,22 +412,23 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -473,30 +445,18 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch the class' vftbl pointer */
-
-	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 1 * 4)) & 0x0000ffff);
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_arraycheckcast;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch the class' vftbl pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* patch new function address */
+
+	*((ptrint *) (pv + (disp - SIZEOF_VOID_P))) =
+		(ptrint) BUILTIN_arraycheckcast;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -514,6 +474,10 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
    0320f809    jalr     t9
    00000000    nop
 
+   NOTICE: Only the displacement for the function address is passed,
+   but the address of the vftbl pointer is one below (above, in
+   addresses speaking). This is for sure.
+
 *******************************************************************************/
 
 bool patcher_builtin_arrayinstanceof(u1 *sp)
@@ -522,22 +486,23 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s4                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 3 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -554,30 +519,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
 
-	/* get the offset from machine instruction */
+	/* synchronize instruction cache */
 
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
+	docacheflush(ra + 1 * 4, 2 * 4);
 
 	/* patch the class' vftbl pointer */
 	
-	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 1 * 4)) & 0x0000ffff);
+	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
 
 	/* patch new function address */
 
-	*((ptrint *) (pv + offset)) = (ptrint) BUILTIN_arrayinstanceof;
-
-	/* synchronize instruction cache */
-
-	docacheflush(ra + 4, 2 * 4);
+	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_arrayinstanceof;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -602,22 +554,23 @@ bool patcher_invokestatic_special(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	unresolved_method *um;
+	s4                 disp;
 	u1                *pv;
 	methodinfo        *m;
-	s4                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -634,22 +587,13 @@ bool patcher_invokestatic_special(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch stubroutine */
-
-	*((ptrint *) (pv + offset)) = (ptrint) m->stubroutine;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch stubroutine */
+
+	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -679,15 +623,15 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -747,15 +691,15 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -815,22 +759,23 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -847,22 +792,13 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch class flags */
-
-	*((s4 *) (pv + offset)) = (s4) c->flags;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch class flags */
+
+	*((s4 *) (pv + disp)) = (s4) c->flags;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -894,15 +830,15 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -957,22 +893,23 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	constant_classref *cr;
+	s4                 disp;
 	u1                *pv;
 	classinfo         *c;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -989,22 +926,13 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) (ra + 1 * 4)) & 0x0000ffff);
-
-	/* patch super class' vftbl */
-
-	*((ptrint *) (pv + offset)) = (ptrint) c->vftbl;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch super class' vftbl */
+
+	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1027,15 +955,15 @@ bool patcher_clinit(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	c     = (classinfo *)         *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	c     = (classinfo *)         *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1077,22 +1005,23 @@ bool patcher_resolve_native(u1 *sp)
 	java_objectheader *o;
 	u8                 mcode;
 	methodinfo        *m;
+	s4                 disp;
 	u1                *pv;
 	functionptr        f;
-	s2                 offset;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	m     = (methodinfo *)        *((ptrint *) (sp + 1 * 8));
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	mcode =                       *((u8 *)     (sp + 3 * 8));
+	m     = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
+	disp  =                       *((s4 *)     (sp + 1 * 8));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
 	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1109,22 +1038,13 @@ bool patcher_resolve_native(u1 *sp)
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 2 * 4;
-
-	/* get the offset from machine instruction */
-
-	offset = (s2) (*((u4 *) ra) & 0x0000ffff);
-
-	/* patch native function pointer */
-
-	*((ptrint *) (pv + offset)) = (ptrint) f;
-
 	/* synchronize instruction cache */
 
 	docacheflush(ra, 2 * 4);
+
+	/* patch native function pointer */
+
+	*((ptrint *) (pv + disp)) = (ptrint) f;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 

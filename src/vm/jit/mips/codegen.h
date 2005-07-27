@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 3002 2005-07-12 16:02:45Z twisti $
+   $Id: codegen.h 3113 2005-07-27 10:36:38Z twisti $
 
 */
 
@@ -37,9 +37,6 @@
 #include "vm/jit/mips/types.h"
 
 /* additional functions and macros to generate code ***************************/
-
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
 
 #ifdef STATISTICS
 #define COUNT_SPILLS count_spills++
@@ -236,8 +233,8 @@
     } else if ((c) >= 0 && (c) <= 0xffff) { \
         M_OR_IMM(REG_ZERO, (c), (r)); \
     } else { \
-        a = dseg_adds4(cd, (c)); \
-        M_ILD((r), REG_PV, a); \
+        disp = dseg_adds4(cd, (c)); \
+        M_ILD((r), REG_PV, disp); \
     }
 
 #define LCONST(r,c) \
@@ -246,8 +243,8 @@
     } else if ((c) >= 0 && (c) <= 0xffff) { \
         M_OR_IMM(REG_ZERO, (c), (r)); \
     } else { \
-        a = dseg_adds8(cd, (c)); \
-        M_LLD((r), REG_PV, a); \
+        disp = dseg_adds8(cd, (c)); \
+        M_LLD((r), REG_PV, disp); \
     }
 
 
@@ -286,21 +283,142 @@
 
 /* load/store macros use the form OPERATION(source/dest, base, offset)        */
 
+#define M_LDA(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_AADD_IMM(b,lo,a); \
+        } else { \
+            M_LUI(REG_ITMP3,hi); \
+            M_AADD_IMM(REG_ITMP3,lo,REG_ITMP3); \
+            M_AADD(REG_ITMP3,b,a); \
+        } \
+    } while (0)
+
 #define M_BLDS(a,b,disp)        M_ITYPE(0x20,b,a,disp)          /*  8 load    */
 #define M_BLDU(a,b,disp)        M_ITYPE(0x24,b,a,disp)          /*  8 load    */
 #define M_SLDS(a,b,disp)        M_ITYPE(0x21,b,a,disp)          /* 16 load    */
 #define M_SLDU(a,b,disp)        M_ITYPE(0x25,b,a,disp)          /* 16 load    */
-#define M_ILD(a,b,disp)         M_ITYPE(0x23,b,a,disp)          /* 32 load    */
-#define M_LLD(a,b,disp)         M_ITYPE(0x37,b,a,disp)          /* 64 load    */
+
+#define M_ILD_INTERN(a,b,disp)  M_ITYPE(0x23,b,a,disp)          /* 32 load    */
+#define M_LLD_INTERN(a,b,disp)  M_ITYPE(0x37,b,a,disp)          /* 64 load    */
+
+#define M_ILD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_ILD_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(a,hi); \
+            M_AADD(b,a,a); \
+            M_ILD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_LLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_LLD_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(a,hi); \
+            M_AADD(b,a,a); \
+            M_LLD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
 #define M_BST(a,b,disp)         M_ITYPE(0x28,b,a,disp)          /*  8 store   */
 #define M_SST(a,b,disp)         M_ITYPE(0x29,b,a,disp)          /* 16 store   */
-#define M_IST(a,b,disp)         M_ITYPE(0x2b,b,a,disp)          /* 32 store   */
-#define M_LST(a,b,disp)         M_ITYPE(0x3f,b,a,disp)          /* 64 store   */
 
-#define M_FLD(a,b,disp)         M_ITYPE(0x31,b,a,disp)          /* load flt   */
-#define M_DLD(a,b,disp)         M_ITYPE(0x35,b,a,disp)          /* load dbl   */
-#define M_FST(a,b,disp)         M_ITYPE(0x39,b,a,disp)          /* store flt  */
-#define M_DST(a,b,disp)         M_ITYPE(0x3d,b,a,disp)          /* store dbl  */
+#define M_IST_INTERN(a,b,disp)  M_ITYPE(0x2b,b,a,disp)          /* 32 store   */
+#define M_LST_INTERN(a,b,disp)  M_ITYPE(0x3f,b,a,disp)          /* 64 store   */
+
+#define M_IST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_IST_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3, hi); \
+            M_AADD(b, REG_ITMP3, REG_ITMP3); \
+            M_IST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_LST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_LST_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3, hi); \
+            M_AADD(b, REG_ITMP3, REG_ITMP3); \
+            M_LST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_FLD_INTERN(a,b,disp)  M_ITYPE(0x31,b,a,disp)          /* load flt   */
+#define M_DLD_INTERN(a,b,disp)  M_ITYPE(0x35,b,a,disp)          /* load dbl   */
+
+#define M_FLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_FLD_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3,hi); \
+            M_AADD(b,REG_ITMP3,REG_ITMP3); \
+            M_FLD_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_DLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_DLD_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3,hi); \
+            M_AADD(b,REG_ITMP3,REG_ITMP3); \
+            M_DLD_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_FST_INTERN(a,b,disp)  M_ITYPE(0x39,b,a,disp)          /* store flt  */
+#define M_DST_INTERN(a,b,disp)  M_ITYPE(0x3d,b,a,disp)          /* store dbl  */
+
+#define M_FST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_FST_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3, hi); \
+            M_AADD(b, REG_ITMP3, REG_ITMP3); \
+            M_FST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_DST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_DST_INTERN(a,b,lo); \
+        } else { \
+            M_LUI(REG_ITMP3, hi); \
+            M_AADD(b, REG_ITMP3, REG_ITMP3); \
+            M_DST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
 
 #define M_BEQ(a,b,disp)         M_ITYPE(0x04,a,b,disp)          /* br a == b  */
 #define M_BNE(a,b,disp)         M_ITYPE(0x05,a,b,disp)          /* br a != b  */
@@ -500,19 +618,22 @@
 
 #define POINTERSHIFT 3
 
+#define M_ALD_INTERN(a,b,disp)  M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)
+#define M_AST_INTERN(a,b,disp)  M_LST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)         M_LST(a,b,disp)
 #define M_AADD(a,b,c)           M_LADD(a,b,c)
 #define M_AADD_IMM(a,b,c)       M_LADD_IMM(a,b,c)
 #define M_ASUB_IMM(a,b,c)       M_LSUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_LSLL_IMM(a,b,c)
-#define M_LDA(a,b,disp)         M_LADD_IMM(b,disp,a)            /* a = b+disp */
 
-#else
+#else /* SIZEOF_VOID_P == 8 */
 
 #define POINTERSHIFT 2
 
+#define M_ALD_INTERN(a,b,disp)  M_ILD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
+#define M_AST_INTERN(a,b,disp)  M_IST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AADD(a,b,c)           M_IADD(a,b,c)
 #define M_AADD_IMM(a,b,c)       M_IADD_IMM(a,b,c)
@@ -520,7 +641,7 @@
 #define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
 #define M_LDA(a,b,disp)         M_IADD_IMM(b,disp,a)            /* a = b+disp */
 
-#endif
+#endif /* SIZEOF_VOID_P == 8 */
 
 
 /* function gen_resolvebranch **************************************************

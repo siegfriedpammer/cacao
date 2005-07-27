@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3055 2005-07-18 21:58:32Z twisti $
+   $Id: asmpart.S 3113 2005-07-27 10:36:38Z twisti $
 
 */
 
@@ -678,10 +678,11 @@ ex_flt2:
    XXX
 
    Stack layout:
-	 32   return address into JIT code (patch position)
-     24   pointer to virtual java_objectheader
-     16   machine code (which is patched back later)
-      8   unresolved class/method/field reference
+     40   return address into JIT code (patch position)
+     32   pointer to virtual java_objectheader
+     24   machine code (which is patched back later)
+     16   unresolved class/method/field reference
+      8   data segment displacement from load instructions
       0   patcher function pointer to call
 
 *******************************************************************************/
@@ -701,9 +702,9 @@ asm_wrapper_patcher:
 
 	aaddiu  a0,sp,(16+21+4)*8     /* create stackframe info                   */
 	move    a1,pv                 /* pass java pv                             */
-	aaddiu  a2,sp,((5+16+21+4)*8+sizestackframeinfo) /* pass java sp          */
+	aaddiu  a2,sp,((6+16+21+4)*8+sizestackframeinfo) /* pass java sp          */
 	move    a3,ra                 /* this is correct for leafs                */
-	ald     a4,((4+16+21+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
+	ald     a4,((5+16+21+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
 	jal     stacktrace_create_extern_stackframeinfo
 
 	aaddiu  a0,sp,((0+16+21+4)*8+sizestackframeinfo) /* pass sp               */
@@ -726,8 +727,8 @@ asm_wrapper_patcher:
 
 	ald     v0,((0+16+21+4)*8+sizestackframeinfo)(sp) /* restore return value */
 
-	ald     itmp3,((4+16+21+4)*8+sizestackframeinfo)(sp) /* get ra to jit code*/
-	aaddiu  sp,sp,((5+16+21+4)*8+sizestackframeinfo) /* remove stack frame    */
+	ald     itmp3,((5+16+21+4)*8+sizestackframeinfo)(sp) /* get ra to jit code*/
+	aaddiu  sp,sp,((6+16+21+4)*8+sizestackframeinfo) /* remove stack frame    */
 
 	beqz    v0,L_asm_wrapper_patcher_exception
 
