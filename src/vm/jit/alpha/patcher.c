@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3108 2005-07-24 23:04:48Z twisti $
+   $Id: patcher.c 3119 2005-07-27 22:19:05Z twisti $
 
 */
 
@@ -105,18 +105,13 @@ bool patcher_get_putstatic(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch the field value's address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -237,22 +232,17 @@ bool patcher_builtin_new(u1 *sp)
 
 	*((u4 *) (ra + 4)) = mcode;
 
+	/* synchronize instruction cache */
+
+	asm_sync_instruction_cache();
+
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_showdisassemble)
-		ra = ra + 4;
-
 	/* patch new function address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_new;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -313,22 +303,17 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	*((u4 *) (ra + 4)) = mcode;
 
+	/* synchronize instruction cache */
+
+	asm_sync_instruction_cache();
+
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_showdisassemble)
-		ra = ra + 4;
-
 	/* patch new function address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_newarray;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -386,18 +371,13 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -458,10 +438,9 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch the class' vftbl pointer */
 
@@ -471,10 +450,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	*((ptrint *) (pv + (disp - SIZEOF_VOID_P))) =
 		(ptrint) BUILTIN_arraycheckcast;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -535,22 +510,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	*((u4 *) (ra + 4)) = mcode;
 
+	/* synchronize instruction cache */
+
+	asm_sync_instruction_cache();
+
 	/* patch the class' vftbl pointer */
 	
 	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_showdisassemble)
-		ra = ra + 4;
-
 	/* patch new function address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_arrayinstanceof;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -606,18 +576,13 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch stubroutine */
 
 	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -807,18 +772,13 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch class flags */
 
 	*((s4 *) (pv + disp)) = (s4) c->flags;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -943,18 +903,13 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch super class' vftbl */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1058,18 +1013,13 @@ bool patcher_resolve_native(u1 *sp)
 
 	*((u4 *) ra) = mcode;
 
-	/* if we show disassembly, we have to skip the nop */
+	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		ra = ra + 4;
+	asm_sync_instruction_cache();
 
 	/* patch native function pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) f;
-
-	/* synchronize instruction cache */
-
-	asm_sync_instruction_cache();
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
