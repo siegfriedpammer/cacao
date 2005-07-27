@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md.c 3023 2005-07-12 23:49:49Z twisti $
+   $Id: md.c 3112 2005-07-27 10:35:06Z twisti $
 
 */
 
@@ -178,35 +178,48 @@ functionptr codegen_findmethod(functionptr pc)
 	u1 *ra;
 	u1 *pv;
 	u4  mcode;
-	s2  offset;
+	s4  offset;
 
 	ra = (u1 *) pc;
 	pv = ra;
 
-	/* get offset of first instruction (lda) */
+	/* get first instruction word after jump */
 
 	mcode = *((u4 *) ra);
 
-	if ((mcode >> 16) != 0x67fe) {
-		log_text("No `daddiu s8,ra,x' instruction found on return address!");
-		assert(0);
-	}
+	/* check if we have 2 instructions (ldah, lda) */
 
-	offset = (s2) (mcode & 0x0000ffff);
-	pv += offset;
+	if ((mcode >> 16) == 0x3c19) {
+		/* get displacement of first instruction (lui) */
 
-#if 0
-	/* XXX TWISTI: implement this! */
+		offset = (s4) (mcode << 16);
+		pv += offset;
 
-	/* check for second instruction (ldah) */
+		/* get displacement of second instruction (daddiu) */
 
-	mcode = *((u4 *) (ra + 1 * 4));
+		mcode = *((u4 *) (ra + 1 * 4));
 
-	if ((mcode >> 16) == 0x177b) {
-		offset = (s2) (mcode << 16);
+		if ((mcode >> 16) != 0x6739) {
+			log_text("No `daddiu' instruction found on return address!");
+			assert(0);
+		}
+
+		offset = (s2) (mcode & 0x0000ffff);
+		pv += offset;
+
+	} else {
+		/* get offset of first instruction (daddiu) */
+
+		mcode = *((u4 *) ra);
+
+		if ((mcode >> 16) != 0x67fe) {
+			log_text("No `daddiu s8,ra,x' instruction found on return address!");
+			assert(0);
+		}
+
+		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
 	}
-#endif
 
 	return (functionptr) pv;
 }
