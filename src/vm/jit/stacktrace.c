@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3091 2005-07-21 12:25:05Z twisti $
+   $Id: stacktrace.c 3111 2005-07-27 10:33:58Z twisti $
 
 */
 
@@ -618,7 +618,7 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 
 	/* check if we are before the actual JIT code */
 
-	if (pc < m->entrypoint) {
+	if ((ptrint) pc < (ptrint) m->entrypoint) {
 		dolog("Current pc before start of code: %p < %p", pc, m->entrypoint);
 		assert(0);
 	}
