@@ -1,4 +1,4 @@
-## src/vm/jit/mips/Makefile.am
+## src/vm/jit/mips/irix/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -32,43 +32,14 @@
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = irix
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+noinst_HEADERS =
 
-AM_CCASFLAGS = $(INCLUDES)
+noinst_LTLIBRARIES = libmd.la
 
-noinst_HEADERS = \
-	arch.h \
-	asmoffsets.h \
-	machine-instr.h \
-	types.h \
-	\
-	md-abi.inc \
-	md-asm.h
-
-noinst_LTLIBRARIES = libarch.la
-
-libarch_la_SOURCES = \
-	asmpart.S \
-	codegen.c \
-	codegen.h \
-	disass.c \
-	disass.h \
-	patcher.c \
-	\
-	md-abi.c \
-	md-abi.h \
-	md.c \
-	md.h
-
-libarch_la_LIBADD = \
-	$(OS_DIR)/libmd.la
-
-$(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
-
-offsets.h: $(top_builddir)/src/vm/jit/tools/genoffsets $(top_builddir)/config.h
-	$(top_builddir)/src/vm/jit/tools/genoffsets > offsets.h
+libmd_la_SOURCES = \
+	md-os.c
 
 
 ## Local variables:
