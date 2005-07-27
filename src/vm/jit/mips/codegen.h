@@ -26,13 +26,15 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 3113 2005-07-27 10:36:38Z twisti $
+   $Id: codegen.h 3115 2005-07-27 12:13:40Z twisti $
 
 */
 
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
+
+#include "config.h"
 
 #include "vm/jit/mips/types.h"
 
@@ -639,7 +641,6 @@
 #define M_AADD_IMM(a,b,c)       M_IADD_IMM(a,b,c)
 #define M_ASUB_IMM(a,b,c)       M_ISUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_ISLL_IMM(a,b,c)
-#define M_LDA(a,b,disp)         M_IADD_IMM(b,disp,a)            /* a = b+disp */
 
 #endif /* SIZEOF_VOID_P == 8 */
 
