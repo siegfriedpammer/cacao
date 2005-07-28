@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3098 2005-07-22 10:54:35Z motse $
+   $Id: threads.c 3122 2005-07-28 19:34:06Z twisti $
 
 */
 
@@ -1192,8 +1192,9 @@ void broadcast_cond_for_object(java_objectheader *o)
 void thread_dump(void)
 {
 	threadobject       *tobj;
-	nativethread       *nt;
 	java_lang_VMThread *vmt;
+	nativethread       *nt;
+	ExecEnvironment    *ee;
 	java_lang_Thread   *t;
 	utf                *name;
 
@@ -1206,29 +1207,34 @@ void thread_dump(void)
 	do {
 		/* get thread objects */
 
-		nt  = &tobj->info;
 		vmt = &tobj->o;
+		nt  = &tobj->info;
+		ee  = &tobj->ee;
 		t   = vmt->thread;
 
-		/* get thread name */
+		/* the thread may be currently in initalization, don't print it */
 
-		name = javastring_toutf(t->name, false);
+		if (t) {
+			/* get thread name */
 
-		printf("\n\"");
-		utf_display(name);
+			name = javastring_toutf(t->name, false);
+
+			printf("\n\"");
+			utf_display(name);
 #if SIZEOF_VOID_P == 8
-		printf("\" prio=%d tid=0x%016lx\n", t->priority, nt->tid);
+			printf("\" prio=%d tid=0x%016lx\n", t->priority, nt->tid);
 #else
-		printf("\" prio=%d tid=0x%08lx\n", t->priority, nt->tid);
+			printf("\" prio=%d tid=0x%08lx\n", t->priority, nt->tid);
 #endif
 
-		/* send SIGUSR1 to thread to print stacktrace */
+			/* send SIGUSR1 to thread to print stacktrace */
 
-		pthread_kill(nt->tid, SIGUSR1);
+			pthread_kill(nt->tid, SIGUSR1);
 
-		/* sleep this thread a bit, so the signal can reach the thread */
+			/* sleep this thread a bit, so the signal can reach the thread */
 
-		sleepThread(10, 0);
+			sleepThread(10, 0);
+		}
 
 		tobj = tobj->info.next;
 	} while (tobj != mainthreadobj);
