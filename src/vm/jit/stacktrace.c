@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3111 2005-07-27 10:33:58Z twisti $
+   $Id: stacktrace.c 3124 2005-07-28 19:56:34Z twisti $
 
 */
 
@@ -80,7 +80,7 @@ typedef struct lineNumberTableEntryInlineBegin {
 } lineNumberTableEntryInlineBegin;
 
 
-typedef void(*CacaoStackTraceCollector)(void **,stackTraceBuffer*);
+typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
 
 #define BLOCK_INITIALSIZE 40
 #define BLOCK_SIZEINCREMENT 40
@@ -679,8 +679,8 @@ static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
 
 *******************************************************************************/
 
-void cacao_stacktrace_fillInStackTrace(void **target,
-									   CacaoStackTraceCollector coll)
+static bool cacao_stacktrace_fillInStackTrace(void **target,
+											  CacaoStackTraceCollector coll)
 {
 	stacktraceelement primaryBlock[BLOCK_INITIALSIZE*sizeof(stacktraceelement)];
 	stackTraceBuffer  buffer;
@@ -691,6 +691,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 	u4                framesize;
 	functionptr       ra;
 	functionptr       xpc;
+	bool              result;
 
 	/* prevent compiler warnings */
 
@@ -713,7 +714,7 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 
 	if (!info) {
 		*target = NULL;
-		return;
+		return true;
 	}
 
 #define PRINTMETHODS 0
@@ -865,42 +866,51 @@ void cacao_stacktrace_fillInStackTrace(void **target,
 	}
 			
 	if (coll)
-		coll(target, &buffer);
+		result = coll(target, &buffer);
 
 	if (buffer.needsFree)
 		free(buffer.start);
+
+	return result;
 }
 
 
-static
-void stackTraceCollector(void **target, stackTraceBuffer *buffer) {
-	stackTraceBuffer *dest=*target=heap_allocate(sizeof(stackTraceBuffer)+buffer->full*sizeof(stacktraceelement),true,0);
-	memcpy(*target,buffer,sizeof(stackTraceBuffer));
-	memcpy(dest+1,buffer->start,buffer->full*sizeof(stacktraceelement));
+/* stackTraceCollector *********************************************************
 
-	dest->needsFree=0;
-	dest->size=dest->full;
-	dest->start=(stacktraceelement*)(dest+1);
+   XXX
 
-	/*
-	if (buffer->full>0) {
-		printf("SOURCE BUFFER:%s\n",buffer->start[0].method->name->text);
-		printf("DEST BUFFER:%s\n",dest->start[0].method->name->text);
-	} else printf("Buffer is empty\n");
-	*/
-}
+*******************************************************************************/
 
-
-void cacao_stacktrace_NormalTrace(void **target)
+static bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
 {
-	cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector);
+	stackTraceBuffer *dest;
+
+	dest = *target = heap_allocate(sizeof(stackTraceBuffer) + buffer->full * sizeof(stacktraceelement), true, 0);
+
+	if (!dest)
+		return false;
+
+	memcpy(*target, buffer, sizeof(stackTraceBuffer));
+	memcpy(dest + 1, buffer->start, buffer->full * sizeof(stacktraceelement));
+
+	dest->needsFree = 0;
+	dest->size = dest->full;
+	dest->start = (stacktraceelement *) (dest + 1);
+
+	return true;
+}
+
+
+bool cacao_stacktrace_NormalTrace(void **target)
+{
+	return cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector);
 }
 
 
 
-static void classContextCollector(void **target, stackTraceBuffer *buffer)
+static bool classContextCollector(void **target, stackTraceBuffer *buffer)
 {
-	java_objectarray  *tmpArray;
+	java_objectarray  *oa;
 	stacktraceelement *current;
 	stacktraceelement *start;
 	size_t size;
@@ -919,17 +929,19 @@ static void classContextCollector(void **target, stackTraceBuffer *buffer)
 	targetSize--;
 
 	if (targetSize > 0) {
-		if (start->method && (start->method->class == class_java_lang_SecurityManager)) {
+		if (start->method &&
+			(start->method->class == class_java_lang_SecurityManager)) {
 			targetSize--;
 			start++;
 		}
 	}
 
-	tmpArray = builtin_anewarray(targetSize, class_java_lang_Class);
+	oa = builtin_anewarray(targetSize, class_java_lang_Class);
+
+	if (!oa)
+		return false;
 
 	for(i = 0, current = start; i < targetSize; i++, current++) {
-		/* XXX TWISTI: should we use this skipping for native stubs? */
-
 		if (!current->method) {
 			i--;
 			continue;
@@ -937,19 +949,23 @@ static void classContextCollector(void **target, stackTraceBuffer *buffer)
 
 		use_class_as_object(current->method->class);
 
-		tmpArray->data[i] = (java_objectheader *) current->method->class;
+		oa->data[i] = (java_objectheader *) current->method->class;
 	}
 
-	*target = tmpArray;
+	*target = oa;
+
+	return true;
 }
 
 
 
 java_objectarray *cacao_createClassContextArray(void)
 {
-	java_objectarray *array=0;
+	java_objectarray *array = NULL;
 
-	cacao_stacktrace_fillInStackTrace((void **) &array, &classContextCollector);
+	if (!cacao_stacktrace_fillInStackTrace((void **) &array,
+										   &classContextCollector))
+		return NULL;
 
 	return array;
 }
@@ -961,7 +977,7 @@ java_objectarray *cacao_createClassContextArray(void)
 
 *******************************************************************************/
 
-static void stacktrace_classLoaderCollector(void **target,
+static bool stacktrace_classLoaderCollector(void **target,
 											stackTraceBuffer *buffer)
 {
 	stacktraceelement *current;
@@ -981,16 +997,18 @@ static void stacktrace_classLoaderCollector(void **target,
 
 		if (m->class == class_java_security_PrivilegedAction) {
 			*target = NULL;
-			return;
+			return true;
 		}
 
 		if (m->class->classloader) {
 			*target = (java_lang_ClassLoader *) m->class->classloader;
-			return;
+			return true;
 		}
 	}
 
 	*target = NULL;
+
+	return true;
 }
 
 
@@ -1002,79 +1020,88 @@ static void stacktrace_classLoaderCollector(void **target,
 
 java_objectheader *cacao_currentClassLoader(void)
 {
-	java_objectheader *header=0;
+	java_objectheader *header = NULL;
 
-	cacao_stacktrace_fillInStackTrace((void**)&header,
-									  &stacktrace_classLoaderCollector);
+	if (!cacao_stacktrace_fillInStackTrace((void**)&header,
+										   &stacktrace_classLoaderCollector))
+		return NULL;
 
 	return header;
 }
 
 
-static
-void callingMethodCollector(void **target, stackTraceBuffer *buffer) {	
-        if (buffer->full >2) (*target)=buffer->start[2].method;
-	else (*target=0);
+static bool callingMethodCollector(void **target, stackTraceBuffer *buffer)
+{
+	if (buffer->full > 2)
+		*target = buffer->start[2].method;
+	else
+		*target = NULL;
+
+	return true;
 }
 
-methodinfo *cacao_callingMethod() {
+
+methodinfo *cacao_callingMethod(void)
+{
 	methodinfo *method;
-	cacao_stacktrace_fillInStackTrace((void**)&method,&callingMethodCollector);
+
+	if (!cacao_stacktrace_fillInStackTrace((void **) &method,
+										   &callingMethodCollector))
+		return NULL;
+
 	return method;
 }
 
 
-static
-void getStackCollector(void **target, stackTraceBuffer *buffer)
+static bool getStackCollector(void **target, stackTraceBuffer *buffer)
 {
-	java_objectarray *classes;
-	java_objectarray *methodnames;
-	java_objectarray **result=(java_objectarray**)target;
-	java_lang_String *str;
-	classinfo *c;
+	java_objectarray  *oa;
+	java_objectarray  *classes;
+	java_objectarray  *methodnames;
+	java_lang_String  *str;
+	classinfo         *c;
 	stacktraceelement *current;
-	int i,size;
+	s4                 i, size;
 
-	/*log_text("getStackCollector");*/
+/*  	*result = (java_objectarray **) target; */
 
 	size = buffer->full;
 
-	*result = builtin_anewarray(2, arrayclass_java_lang_Object);
+	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
 
-	if (!(*result))
-		return;
+	if (!oa)
+		return false;
 
 	classes = builtin_anewarray(size, class_java_lang_Class);
 
 	if (!classes)
-		return;
+		return false;
 
 	methodnames = builtin_anewarray(size, class_java_lang_String);
 
 	if (!methodnames)
-		return;
+		return false;
 
-	(*result)->data[0] = (java_objectheader *) classes;
-	(*result)->data[1] = (java_objectheader *) methodnames;
+	oa->data[0] = (java_objectheader *) classes;
+	oa->data[1] = (java_objectheader *) methodnames;
 
-	/*log_text("Before for loop");*/
 	for (i = 0, current = &(buffer->start[0]); i < size; i++, current++) {
-		/*log_text("In loop");*/
 		c = current->method->class;
+
 		use_class_as_object(c);
+
 		classes->data[i] = (java_objectheader *) c;
 		str = javastring_new(current->method->name);
+
 		if (!str)
-			return;
+			return false;
+
 		methodnames->data[i] = (java_objectheader *) str;
-		/*printf("getStackCollector: %s.%s\n",c->name->text,current->method->name->text);*/
 	}
 
-	/*if (*exceptionptr) panic("Exception in getStackCollector");*/
+	*target = oa;
 
-	/*log_text("loop left");*/
-        return;
-
+	return true;
 }
 
 
@@ -1082,7 +1109,9 @@ java_objectarray *cacao_getStackForVMAccessController(void)
 {
 	java_objectarray *result = NULL;
 
-	cacao_stacktrace_fillInStackTrace((void **) &result, &getStackCollector);
+	if (!cacao_stacktrace_fillInStackTrace((void **) &result,
+										   &getStackCollector))
+		return NULL;
 
 	return result;
 }
