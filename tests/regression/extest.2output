@@ -5,10 +5,10 @@ java.lang.Exception
 
 throw new Exception() (from subroutines):     OK
 java.lang.Exception
-	at extest.sub4(extest.java:388)
-	at extest.sub3(extest.java:384)
-	at extest.sub2(extest.java:380)
-	at extest.sub(extest.java:376)
+	at extest.sub4(extest.java:403)
+	at extest.sub3(extest.java:399)
+	at extest.sub2(extest.java:395)
+	at extest.sub(extest.java:391)
 	at extest.main(extest.java:36)
 
 NullPointerException:                         OK
@@ -78,22 +78,22 @@ java.lang.OutOfMemoryError
 ---------- exceptions in leaf functions ---------
 ArithmeticException:                          OK
 java.lang.ArithmeticException: / by zero
-	at extest.aesub(extest.java:392)
+	at extest.aesub(extest.java:407)
 	at extest.main(extest.java:239)
 
 ArrayIndexOutOfBoundsException:               OK
 java.lang.ArrayIndexOutOfBoundsException: -559038737
-	at extest.aioobesub(extest.java:396)
+	at extest.aioobesub(extest.java:411)
 	at extest.main(extest.java:248)
 
 ClassCastException:                           OK
 java.lang.ClassCastException
-	at extest.ccesub(extest.java:400)
+	at extest.ccesub(extest.java:415)
 	at extest.main(extest.java:265)
 
 NullPointerException:                         OK
 java.lang.NullPointerException
-	at extest.npesub(extest.java:404)
+	at extest.npesub(extest.java:419)
 	at extest.main(extest.java:274)
 
 
@@ -102,14 +102,14 @@ NullPointerException in <clinit> (PUTSTATIC): OK
 java.lang.ExceptionInInitializerError
 	at extest.main(extest.java:288)
 Caused by: java.lang.NullPointerException
-	at extest_clinit_1.<clinit>(extest.java:443)
+	at extest_clinit_1.<clinit>(extest.java:458)
 	at extest.main(extest.java:288)
 
 NullPointerException in <clinit> (GETSTATIC): OK
 java.lang.ExceptionInInitializerError
 	at extest.main(extest.java:301)
 Caused by: java.lang.NullPointerException
-	at extest_clinit_2.<clinit>(extest.java:452)
+	at extest_clinit_2.<clinit>(extest.java:467)
 	at extest.main(extest.java:301)
 
 
@@ -120,26 +120,33 @@ java.lang.Exception
 
 
 ---------- native stub exceptions ---------------
-NullPointerException (native):                OK
-java.lang.NullPointerException
-	at java.lang.VMSystem.arraycopy(Native Method)
-	at java.lang.System.arraycopy(System.java:234)
-	at extest.main(extest.java:335)
-
 NullPointerException in <clinit>:             OK
 java.lang.ExceptionInInitializerError
-	at extest.main(extest.java:345)
+	at extest.main(extest.java:335)
 Caused by: java.lang.NullPointerException
-	at extest_clinit_3.<clinit>(extest.java:461)
-	at extest.main(extest.java:345)
+	at extest_clinit_3.<clinit>(extest.java:476)
+	at extest.main(extest.java:335)
 
 UnsatisfiedLinkError:                         OK
 java.lang.UnsatisfiedLinkError: nsub
 	at extest.nsub(Native Method)
+	at extest.main(extest.java:348)
+
+NullPointerException (native):                OK
+java.lang.NullPointerException
+	at java.lang.VMSystem.arraycopy(Native Method)
+	at java.lang.System.arraycopy(System.java:234)
 	at extest.main(extest.java:357)
+
+
+---------- special exceptions -------------------
+OutOfMemoryError (array clone):               OK
+java.lang.OutOfMemoryError
+	at [B.clone(Unknown Source)
+	at extest.main(extest.java:372)
 
 
 ---------- no OK beyond this point --------------
 NullPointerException (without catch):
 Exception in thread "main" java.lang.NullPointerException
-	at extest.main(extest.java:371)
+	at extest.main(extest.java:386)
