@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3122 2005-07-28 19:34:06Z twisti $
+   $Id: threads.c 3123 2005-07-28 19:47:49Z twisti $
 
 */
 
@@ -1237,7 +1237,7 @@ void thread_dump(void)
 		}
 
 		tobj = tobj->info.next;
-	} while (tobj != mainthreadobj);
+	} while (tobj && (tobj != mainthreadobj));
 }
 
 
