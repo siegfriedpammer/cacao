@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3113 2005-07-27 10:36:38Z twisti $
+   $Id: codegen.c 3125 2005-07-30 12:57:56Z twisti $
 
 */
 
@@ -3986,7 +3986,15 @@ afteractualcall:
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
 			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
 
-			M_BRS(tmpmcodeptr - (xcodeptr + 1));
+			disp = (s4) (tmpmcodeptr - (xcodeptr + 1));
+
+			if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+				throw_cacao_exception_exit(string_java_lang_InternalError, \
+										   "Jump offset is out of range: %d > +/-%d",
+										   disp, 0x00007fff);
+			}
+
+			M_BRS(disp);
 			M_MOV(REG_RA, REG_ITMP3);       /* branch delay slot              */
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
