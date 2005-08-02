@@ -28,10 +28,12 @@
 
    Changes:
 
-   $Id: patcher.c 3113 2005-07-27 10:36:38Z twisti $
+   $Id: patcher.c 3126 2005-08-02 21:44:03Z cacao $
 
 */
 
+
+#include <sys/cachectl.h>
 
 #include "config.h"
 #include "vm/jit/mips/types.h"
@@ -62,7 +64,11 @@ bool patcher_get_putstatic(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	unresolved_field  *uf;
 	s4                 disp;
 	u1                *pv;
@@ -70,12 +76,17 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -94,22 +105,35 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!fi->class->initialized)
-		if (!initialize_class(fi->class))
+	if (!fi->class->initialized) {
+		if (!initialize_class(fi->class)) {
+			PATCHER_MONITOREXIT;
+
 			return false;
+		}
+	}
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch the field value's address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -130,14 +154,23 @@ bool patcher_get_putfield(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	unresolved_field  *uf;
 	fieldinfo         *fi;
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	uf    = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
@@ -156,8 +189,13 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -170,7 +208,10 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	if (opt_showdisassemble)
+		cacheflush(ra - 2 * 4, 3 * 4, ICACHE);
+	else
+		cacheflush(ra, 2 * 4, ICACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -198,7 +239,11 @@ bool patcher_builtin_new(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -206,12 +251,17 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -230,12 +280,17 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 1 * 4)) = mcode[0];
+	*((u4 *) (ra + 2 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra + 1 * 4, 2 * 4);
+	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
 
 	/* patch the classinfo pointer */
 
@@ -271,7 +326,11 @@ bool patcher_builtin_newarray(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -279,12 +338,17 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -303,12 +367,17 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 1 * 4)) = mcode[0];
+	*((u4 *) (ra + 2 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra + 4, 2 * 4);
+	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
 
 	/* patch the class' vftbl pointer */
 
@@ -341,7 +410,11 @@ bool patcher_builtin_multianewarray(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else	
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -349,12 +422,17 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -373,12 +451,17 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch the class' vftbl pointer */
 
@@ -410,7 +493,11 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -418,12 +505,17 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -442,12 +534,17 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch the class' vftbl pointer */
 
@@ -484,7 +581,11 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -492,12 +593,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -516,12 +622,17 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 1 * 4)) = mcode;
 	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 1 * 4)) = mcode[0];
+	*((u4 *) (ra + 2 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra + 1 * 4, 2 * 4);
+	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
 
 	/* patch the class' vftbl pointer */
 	
@@ -552,7 +663,11 @@ bool patcher_invokestatic_special(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	unresolved_method *um;
 	s4                 disp;
 	u1                *pv;
@@ -560,12 +675,17 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -584,12 +704,17 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch stubroutine */
 
@@ -617,16 +742,25 @@ bool patcher_invokevirtual(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
@@ -645,8 +779,13 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -660,7 +799,10 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	if (opt_showdisassemble)
+		cacheflush(ra - 2 * 4, 4 * 4, ICACHE);
+	else
+		cacheflush(ra, 2 * 4, ICACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -685,16 +827,25 @@ bool patcher_invokeinterface(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
@@ -713,8 +864,13 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -733,7 +889,10 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	if (opt_showdisassemble)
+		cacheflush(ra - 2 * 4, 5 * 4, ICACHE);
+	else
+		cacheflush(ra, 3 * 4, ICACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -757,7 +916,11 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -765,12 +928,17 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -789,12 +957,17 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch class flags */
 
@@ -824,16 +997,25 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
@@ -852,8 +1034,13 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -869,7 +1056,10 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 6 * 4);
+	if (opt_showdisassemble)
+		cacheflush(ra - 2 * 4, 8 * 4, ICACHE);
+	else
+		cacheflush(ra, 6 * 4, ICACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -891,7 +1081,11 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	constant_classref *cr;
 	s4                 disp;
 	u1                *pv;
@@ -899,12 +1093,17 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -923,12 +1122,17 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch super class' vftbl */
 
@@ -942,7 +1146,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 /* patcher_clinit **************************************************************
 
-   XXX
+   No special machine code.
 
 *******************************************************************************/
 
@@ -950,15 +1154,24 @@ bool patcher_clinit(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	c     = (classinfo *)         *((ptrint *) (sp + 2 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	c        = (classinfo *)         *((ptrint *) (sp + 2 * 8));
 
 	/* calculate and set the new return address */
 
@@ -979,12 +1192,17 @@ bool patcher_clinit(u1 *sp)
 
 	/* patch back original code */
 
-	*((u4 *) (ra + 0)) = mcode;
-	*((u4 *) (ra + 4)) = mcode >> 32;
+#if SIZEOF_VOID_P == 8
+	*((u4 *) (ra + 0 * 4)) = mcode;
+	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1003,7 +1221,11 @@ bool patcher_resolve_native(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
 	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
 	methodinfo        *m;
 	s4                 disp;
 	u1                *pv;
@@ -1011,12 +1233,17 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-	mcode =                       *((u8 *)     (sp + 3 * 8));
-	m     = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
-	disp  =                       *((s4 *)     (sp + 1 * 8));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 8));
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	m        = (methodinfo *)        *((ptrint *) (sp + 2 * 8));
+	disp     =                       *((s4 *)     (sp + 1 * 8));
+	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
@@ -1035,12 +1262,17 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* patch back original code */
 
+#if SIZEOF_VOID_P == 8
 	*((u4 *) (ra + 0 * 4)) = mcode;
 	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
 
 	/* synchronize instruction cache */
 
-	docacheflush(ra, 2 * 4);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch native function pointer */
 
