@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 3103 2005-07-24 22:03:13Z michi $
+   $Id: reg.inc 3127 2005-08-05 09:41:04Z michi $
 
 */
 
@@ -77,10 +77,10 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 
 #if defined(__ARM__)
 	/* On ARM longs can be split across argument regs and stack. This is
-	 * signed by setting the HIGH_REG to INT_ARG_CNT+1 in md_param_alloc().
+	 * signed by setting the HIGH_REG to INT_ARG_CNT in md_param_alloc().
 	 * Here we make sure it resolves to a special dummy reg (REG_SPLIT). */
 	rd->argintregs = DMNEW(s4, INT_ARG_CNT + 1);
-	rd->argintregs[INT_ARG_CNT + 1] = REG_SPLIT;
+	rd->argintregs[INT_ARG_CNT] = REG_SPLIT;
 #else
 	rd->argintregs = DMNEW(s4, INT_ARG_CNT);
 #endif
