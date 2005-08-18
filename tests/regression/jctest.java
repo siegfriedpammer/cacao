@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 3061 2005-07-19 08:52:11Z twisti $
+   $Id: jctest.java 3131 2005-08-18 07:44:12Z twisti $
 
 */
 
@@ -1307,8 +1307,8 @@ public class jctest implements jcinterface {
 
 
     static public void testint(int a, int b) {
-        p ("TESTINT CALLED WITH ", a);
-        p ("                AND ", b);
+        p("TESTINT called with ", a);
+        p("                AND ", b);
 		
         p("IADD:  ", a+b);
         p("ISUB:  ", a-b);
@@ -1332,19 +1332,19 @@ public class jctest implements jcinterface {
         p("INT2CHAR: ", (char) a);	
         p("INT2SHORT: ", (short) a);	
 
-        if (!(a==0)) p("not IFEQ");
-        if (!(a!=0)) p("not IFNE");
-        if (!(a<0))  p("not IFLT");
-        if (!(a<=0)) p("not IFLE");
-        if (!(a>0))  p("not IFGT");
-        if (!(a>=0)) p("not IFGE");
+        if (!(a == 0)) p("not IFEQ");
+        if (!(a != 0)) p("not IFNE");
+        if (!(a < 0))  p("not IFLT");
+        if (!(a <= 0)) p("not IFLE");
+        if (!(a > 0))  p("not IFGT");
+        if (!(a >= 0)) p("not IFGE");
 
-        if (!(a==b)) p("not IF_ICMPEQ");
-        if (!(a!=b)) p("not IF_ICMPNE");
-        if (!(a<b))  p("not IF_ICMPLT");
-        if (!(a<=b)) p("not IF_ICMPLE");
-        if (!(a>b))  p("not IF_ICMPGT");
-        if (!(a>=b)) p("not IF_ICMPGE");
+        if (!(a == b)) p("not IF_ICMPEQ");
+        if (!(a != b)) p("not IF_ICMPNE");
+        if (!(a < b))  p("not IF_ICMPLT");
+        if (!(a <= b)) p("not IF_ICMPLE");
+        if (!(a > b))  p("not IF_ICMPGT");
+        if (!(a >= b)) p("not IF_ICMPGE");
 		
         p("COND_ICMPEQ " + a + " == 0: " + ((a == 0) ? 0 : 1));
         p("COND_ICMPNE " + a + " != 0: " + ((a != 0) ? 0 : 1));
@@ -1377,8 +1377,8 @@ public class jctest implements jcinterface {
     }
 
     static public void testlong(long a, long b) {
-        p ("TESTLONG called with ", a);
-        p ("                 AND ", b);
+        p("TESTLONG called with ", a);
+        p("                 AND ", b);
 		
         p("LADD:  ", a + b);
         p("LSUB:  ", a - b);
@@ -1406,56 +1406,63 @@ public class jctest implements jcinterface {
         p("LCMP a >  b : ", a >  b);
         p("LCMP a >= b : ", a >= b);
 
-        if ((a==b)) p("not IF_LCMPEQ");
-        if ((a!=b)) p("not IF_LCMPNE");
-        if ((a<b))  p("not IF_LCMPLT");
-        if ((a<=b)) p("not IF_LCMPLE");
-        if ((a>b))  p("not IF_LCMPGT");
-        if ((a>=b)) p("not IF_LCMPGE");
+        if (!(a == 0)) p("not IF_LEQ");
+        if (!(a != 0)) p("not IF_LNE");
+        if (!(a < 0))  p("not IF_LLT");
+        if (!(a <= 0)) p("not IF_LLE");
+        if (!(a > 0))  p("not IF_LGT");
+        if (!(a >= 0)) p("not IF_LGE");
+
+        if (!(a == b)) p("not IF_LCMPEQ");
+        if (!(a != b)) p("not IF_LCMPNE");
+        if (!(a < b))  p("not IF_LCMPLT");
+        if (!(a <= b)) p("not IF_LCMPLE");
+        if (!(a > b))  p("not IF_LCMPGT");
+        if (!(a >= b)) p("not IF_LCMPGE");
     }
 
     static public void testfloat(float a, float b) {
-        p ("TESTFLOAT called with ", a);
-        p ("                  AND ", b);
+        p("TESTFLOAT called with ", a);
+        p("                  AND ", b);
 		
-        p("FADD:  ", a+b);
-        p("FSUB:  ", a-b);
-        p("FMUL:  ", a*b);
-        p("FDIV:  ", a/b); 
-        p("FREM:  ", a%b);
+        p("FADD:  ", a + b);
+        p("FSUB:  ", a - b);
+        p("FMUL:  ", a * b);
+        p("FDIV:  ", a / b); 
+        p("FREM:  ", a % b);
 		
         p("F2I:   ", (int) a);
         p("F2L:   ", (long) a);
         p("F2D:   ", (double) a);
 
-        if ((a==b)) p("FCMP a=b");
-        if ((a!=b)) p("FCMP a!=b");
-        if ((a<b))  p("FCMP a<b");
-        if ((a<=b)) p("FCMP a<=b");
-        if ((a>b))  p("FCMP a>b");
-        if ((a>=b)) p("FCMP a>=b");
+        if ((a == b)) p("FCMP a == b");
+        if ((a != b)) p("FCMP a != b");
+        if ((a < b))  p("FCMP a < b");
+        if ((a <= b)) p("FCMP a <= b");
+        if ((a > b))  p("FCMP a > b");
+        if ((a >= b)) p("FCMP a >= b");
     }
 
     static public void testdouble(double a, double b) {
-        p ("TESTDOUBLE called with ", a);
-        p ("                   AND ", b);
+        p("TESTDOUBLE called with ", a);
+        p("                   AND ", b);
 		
-        p("DADD:  ", a+b);
-        p("DSUB:  ", a-b);
-        p("DMUL:  ", a*b);
-        p("DDIV:  ", a/b); 
-        p("DREM:  ", a%b);
+        p("DADD:  ", a + b);
+        p("DSUB:  ", a - b);
+        p("DMUL:  ", a * b);
+        p("DDIV:  ", a / b); 
+        p("DREM:  ", a % b);
 		
         p("D2I:   ", (int) a);
         p("D2L:   ", (long) a);
         p("D2F:   ", (float) a);
 
-        if ((a==b)) p("DCMP a=b");
-        if ((a!=b)) p("DCMP a!=b");
-        if ((a<b))  p("DCMP a<b");
-        if ((a<=b)) p("DCMP a<=b");
-        if ((a>b))  p("DCMP a>b");
-        if ((a>=b)) p("DCMP a>=b");
+        if ((a == b)) p("DCMP a == b");
+        if ((a != b)) p("DCMP a != b");
+        if ((a < b))  p("DCMP a < b");
+        if ((a <= b)) p("DCMP a <= b");
+        if ((a > b))  p("DCMP a > b");
+        if ((a >= b)) p("DCMP a >= b");
     }
 
 

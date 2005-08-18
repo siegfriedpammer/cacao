@@ -3472,7 +3472,7 @@
 3469.    LREMPOW2 (-2343552355623464626 % 0x40000000):  long: -628584114
 3470.    LREMPOW2 (-2343552355623464626 % 0x80000000):  long: -1702325938
 3471.    ------------------- test ints
-3472.    TESTINT CALLED WITH int: 1
+3472.    TESTINT called with int: 1
 3473.                    AND int: 2
 3474.    IADD:  int: 3
 3475.    ISUB:  int: -1
@@ -3522,7 +3522,7 @@
 3519.    COND_ICMPLE 1 <= 2: true
 3520.    COND_ICMPGT 1 >  2: false
 3521.    COND_ICMPGE 1 >= 2: false
-3522.    TESTINT CALLED WITH int: -1
+3522.    TESTINT called with int: -1
 3523.                    AND int: 17
 3524.    IADD:  int: 16
 3525.    ISUB:  int: -18
@@ -3572,7 +3572,7 @@
 3569.    COND_ICMPLE -1 <= 17: true
 3570.    COND_ICMPGT -1 >  17: false
 3571.    COND_ICMPGE -1 >= 17: false
-3572.    TESTINT CALLED WITH int: -24351
+3572.    TESTINT called with int: -24351
 3573.                    AND int: 24123
 3574.    IADD:  int: -228
 3575.    ISUB:  int: -48474
@@ -3622,7 +3622,7 @@
 3619.    COND_ICMPLE -24351 <= 24123: true
 3620.    COND_ICMPGT -24351 >  24123: false
 3621.    COND_ICMPGE -24351 >= 24123: false
-3622.    TESTINT CALLED WITH int: 4918923
+3622.    TESTINT called with int: 4918923
 3623.                    AND int: -441423
 3624.    IADD:  int: 4477500
 3625.    ISUB:  int: 5360346
@@ -3672,7 +3672,7 @@
 3669.    COND_ICMPLE 4918923 <= -441423: false
 3670.    COND_ICMPGT 4918923 >  -441423: true
 3671.    COND_ICMPGE 4918923 >= -441423: true
-3672.    TESTINT CALLED WITH int: 0
+3672.    TESTINT called with int: 0
 3673.                    AND int: 0
 3674.    IADD:  int: 0
 3675.    ISUB:  int: 0
@@ -3722,7 +3722,7 @@
 3719.    COND_ICMPLE 0 <= 0: true
 3720.    COND_ICMPGT 0 >  0: false
 3721.    COND_ICMPGE 0 >= 0: true
-3722.    TESTINT CALLED WITH int: -1
+3722.    TESTINT called with int: -1
 3723.                    AND int: -1
 3724.    IADD:  int: -2
 3725.    ISUB:  int: 0
@@ -3772,7 +3772,7 @@
 3769.    COND_ICMPLE -1 <= -1: true
 3770.    COND_ICMPGT -1 >  -1: false
 3771.    COND_ICMPGE -1 >= -1: true
-3772.    TESTINT CALLED WITH int: 1423487
+3772.    TESTINT called with int: 1423487
 3773.                    AND int: 123444444
 3774.    IADD:  int: 124867931
 3775.    ISUB:  int: -122020957
@@ -3822,7 +3822,7 @@
 3819.    COND_ICMPLE 1423487 <= 123444444: true
 3820.    COND_ICMPGT 1423487 >  123444444: false
 3821.    COND_ICMPGE 1423487 >= 123444444: false
-3822.    TESTINT CALLED WITH int: 2147483647
+3822.    TESTINT called with int: 2147483647
 3823.                    AND int: 1
 3824.    IADD:  int: -2147483648
 3825.    ISUB:  int: 2147483646
@@ -3872,7 +3872,7 @@
 3869.    COND_ICMPLE 2147483647 <= 1: false
 3870.    COND_ICMPGT 2147483647 >  1: true
 3871.    COND_ICMPGE 2147483647 >= 1: true
-3872.    TESTINT CALLED WITH int: 0
+3872.    TESTINT called with int: 0
 3873.                    AND int: 2147483647
 3874.    IADD:  int: 2147483647
 3875.    ISUB:  int: -2147483647
@@ -3922,7 +3922,7 @@
 3919.    COND_ICMPLE 0 <= 2147483647: true
 3920.    COND_ICMPGT 0 >  2147483647: false
 3921.    COND_ICMPGE 0 >= 2147483647: false
-3922.    TESTINT CALLED WITH int: 13107
+3922.    TESTINT called with int: 13107
 3923.                    AND int: 143444
 3924.    IADD:  int: 156551
 3925.    ISUB:  int: -130337
@@ -3972,7 +3972,7 @@
 3969.    COND_ICMPLE 13107 <= 143444: true
 3970.    COND_ICMPGT 13107 >  143444: false
 3971.    COND_ICMPGE 13107 >= 143444: false
-3972.    TESTINT CALLED WITH int: 4444441
+3972.    TESTINT called with int: 4444441
 3973.                    AND int: 12342
 3974.    IADD:  int: 4456783
 3975.    ISUB:  int: 4432099
@@ -4022,7 +4022,7 @@
 4019.    COND_ICMPLE 4444441 <= 12342: false
 4020.    COND_ICMPGT 4444441 >  12342: true
 4021.    COND_ICMPGE 4444441 >= 12342: true
-4022.    TESTINT CALLED WITH int: -2147483648
+4022.    TESTINT called with int: -2147483648
 4023.                    AND int: -1
 4024.    IADD:  int: 2147483647
 4025.    ISUB:  int: -2147483647
@@ -4096,478 +4096,514 @@
 4093.    LCMP a <= b : true
 4094.    LCMP a >  b : false
 4095.    LCMP a >= b : false
-4096.    not IF_LCMPNE
-4097.    not IF_LCMPLT
-4098.    not IF_LCMPLE
-4099.    TESTLONG called with long: -1
-4100.                     AND long: 17
-4101.    LADD:  long: 16
-4102.    LSUB:  long: -18
-4103.    LMUL:  long: -17
-4104.    LDIV:  long: 0
-4105.    LREM:  long: -1
-4106.    LNEG:  long: 1
-4107.    LSHL:  long: -131072
-4108.    LSHR:  long: -1
-4109.    LUSHR: long: 140737488355327
-4110.    LAND:  long: 17
-4111.    LOR:   long: -1
-4112.    LXOR:  long: -18
-4113.    L2I:   int: -1
-4114.    L2F:   float: -1082130432
-4115.    L2D:   double: -4616189618054758400
-4116.    LCMP a == b : false
-4117.    LCMP a != b : true
-4118.    LCMP a <  b : true
-4119.    LCMP a <= b : true
-4120.    LCMP a >  b : false
-4121.    LCMP a >= b : false
-4122.    not IF_LCMPNE
-4123.    not IF_LCMPLT
-4124.    not IF_LCMPLE
-4125.    TESTLONG called with long: -24351
-4126.                     AND long: 24123
-4127.    LADD:  long: -228
-4128.    LSUB:  long: -48474
-4129.    LMUL:  long: -587419173
-4130.    LDIV:  long: -1
-4131.    LREM:  long: -228
-4132.    LNEG:  long: 24351
-4133.    LSHL:  long: 576460752303423488
-4134.    LSHR:  long: -1
-4135.    LUSHR: long: 31
-4136.    LAND:  long: 33
-4137.    LOR:   long: -261
-4138.    LXOR:  long: -294
-4139.    L2I:   int: -24351
-4140.    L2F:   float: -960610816
-4141.    L2D:   double: -4550949270986948608
-4142.    LCMP a == b : false
-4143.    LCMP a != b : true
-4144.    LCMP a <  b : true
-4145.    LCMP a <= b : true
-4146.    LCMP a >  b : false
-4147.    LCMP a >= b : false
-4148.    not IF_LCMPNE
-4149.    not IF_LCMPLT
-4150.    not IF_LCMPLE
-4151.    TESTLONG called with long: 4918923241323
-4152.                     AND long: -4423423234231423
-4153.    LADD:  long: -4418504310990100
-4154.    LSUB:  long: 4428342157472746
-4155.    LMUL:  long: -4222930371437023765
-4156.    LDIV:  long: 0
-4157.    LREM:  long: 4918923241323
-4158.    LNEG:  long: -4918923241323
-4159.    LSHL:  long: 9837846482646
-4160.    LSHR:  long: 2459461620661
-4161.    LUSHR: long: 2459461620661
-4162.    LAND:  long: 451041567489
-4163.    LOR:   long: -4418955352557589
-4164.    LXOR:  long: -4419406394125078
-4165.    L2I:   int: 1185687403
-4166.    L2F:   float: 1418668246
-4167.    L2D:   double: 4796866980921322496
-4168.    LCMP a == b : false
-4169.    LCMP a != b : true
-4170.    LCMP a <  b : false
-4171.    LCMP a <= b : false
-4172.    LCMP a >  b : true
-4173.    LCMP a >= b : true
-4174.    not IF_LCMPNE
-4175.    not IF_LCMPGT
-4176.    not IF_LCMPGE
-4177.    TESTLONG called with long: 0
-4178.                     AND long: 0
-4179.    LADD:  long: 0
-4180.    LSUB:  long: 0
-4181.    LMUL:  long: 0
-4182.    divison by zero
-4183.    divison by zero
-4184.    LNEG:  long: 0
-4185.    LSHL:  long: 0
-4186.    LSHR:  long: 0
-4187.    LUSHR: long: 0
-4188.    LAND:  long: 0
-4189.    LOR:   long: 0
-4190.    LXOR:  long: 0
-4191.    L2I:   int: 0
-4192.    L2F:   float: 0
-4193.    L2D:   double: 0
-4194.    LCMP a == b : true
-4195.    LCMP a != b : false
-4196.    LCMP a <  b : false
-4197.    LCMP a <= b : true
-4198.    LCMP a >  b : false
-4199.    LCMP a >= b : true
-4200.    not IF_LCMPEQ
-4201.    not IF_LCMPLE
-4202.    not IF_LCMPGE
-4203.    TESTLONG called with long: -1
-4204.                     AND long: -1
-4205.    LADD:  long: -2
-4206.    LSUB:  long: 0
-4207.    LMUL:  long: 1
-4208.    LDIV:  long: 1
-4209.    LREM:  long: 0
-4210.    LNEG:  long: 1
-4211.    LSHL:  long: -9223372036854775808
-4212.    LSHR:  long: -1
-4213.    LUSHR: long: 1
-4214.    LAND:  long: -1
-4215.    LOR:   long: -1
-4216.    LXOR:  long: 0
-4217.    L2I:   int: -1
-4218.    L2F:   float: -1082130432
-4219.    L2D:   double: -4616189618054758400
-4220.    LCMP a == b : true
-4221.    LCMP a != b : false
-4222.    LCMP a <  b : false
-4223.    LCMP a <= b : true
-4224.    LCMP a >  b : false
-4225.    LCMP a >= b : true
-4226.    not IF_LCMPEQ
-4227.    not IF_LCMPLE
-4228.    not IF_LCMPGE
-4229.    TESTLONG called with long: 1423487
-4230.                     AND long: 123444442344
-4231.    LADD:  long: 123445865831
-4232.    LSUB:  long: -123443018857
-4233.    LMUL:  long: 175721558898933528
-4234.    LDIV:  long: 0
-4235.    LREM:  long: 1423487
-4236.    LNEG:  long: -1423487
-4237.    LSHL:  long: 1565140508487974912
-4238.    LSHR:  long: 0
-4239.    LUSHR: long: 0
-4240.    LAND:  long: 1355880
-4241.    LOR:   long: 123444509951
-4242.    LXOR:  long: 123443154071
-4243.    L2I:   int: 1423487
-4244.    L2F:   float: 1236124664
-4245.    L2D:   double: 4698864641831337984
-4246.    LCMP a == b : false
-4247.    LCMP a != b : true
-4248.    LCMP a <  b : true
-4249.    LCMP a <= b : true
-4250.    LCMP a >  b : false
-4251.    LCMP a >= b : false
-4252.    not IF_LCMPNE
-4253.    not IF_LCMPLT
-4254.    not IF_LCMPLE
-4255.    TESTLONG called with long: 9223372036854775807
-4256.                     AND long: 1
-4257.    LADD:  long: -9223372036854775808
-4258.    LSUB:  long: 9223372036854775806
-4259.    LMUL:  long: 9223372036854775807
-4260.    LDIV:  long: 9223372036854775807
-4261.    LREM:  long: 0
-4262.    LNEG:  long: -9223372036854775807
-4263.    LSHL:  long: -2
-4264.    LSHR:  long: 4611686018427387903
-4265.    LUSHR: long: 4611686018427387903
-4266.    LAND:  long: 1
-4267.    LOR:   long: 9223372036854775807
-4268.    LXOR:  long: 9223372036854775806
-4269.    L2I:   int: -1
-4270.    L2F:   float: 1593835520
-4271.    L2D:   double: 4890909195324358656
-4272.    LCMP a == b : false
-4273.    LCMP a != b : true
-4274.    LCMP a <  b : false
-4275.    LCMP a <= b : false
-4276.    LCMP a >  b : true
-4277.    LCMP a >= b : true
-4278.    not IF_LCMPNE
-4279.    not IF_LCMPGT
-4280.    not IF_LCMPGE
-4281.    TESTLONG called with long: 0
-4282.                     AND long: 9223372036854775807
-4283.    LADD:  long: 9223372036854775807
-4284.    LSUB:  long: -9223372036854775807
-4285.    LMUL:  long: 0
-4286.    LDIV:  long: 0
-4287.    LREM:  long: 0
-4288.    LNEG:  long: 0
-4289.    LSHL:  long: 0
-4290.    LSHR:  long: 0
-4291.    LUSHR: long: 0
-4292.    LAND:  long: 0
-4293.    LOR:   long: 9223372036854775807
-4294.    LXOR:  long: 9223372036854775807
-4295.    L2I:   int: 0
-4296.    L2F:   float: 0
-4297.    L2D:   double: 0
-4298.    LCMP a == b : false
-4299.    LCMP a != b : true
-4300.    LCMP a <  b : true
-4301.    LCMP a <= b : true
-4302.    LCMP a >  b : false
-4303.    LCMP a >= b : false
-4304.    not IF_LCMPNE
-4305.    not IF_LCMPLT
-4306.    not IF_LCMPLE
-4307.    TESTLONG called with long: 13107
-4308.                     AND long: 143444
-4309.    LADD:  long: 156551
-4310.    LSUB:  long: -130337
-4311.    LMUL:  long: 1880120508
-4312.    LDIV:  long: 0
-4313.    LREM:  long: 13107
-4314.    LNEG:  long: -13107
-4315.    LSHL:  long: 13743685632
-4316.    LSHR:  long: 0
-4317.    LUSHR: long: 0
-4318.    LAND:  long: 12304
-4319.    LOR:   long: 144247
-4320.    LXOR:  long: 131943
-4321.    L2I:   int: 13107
-4322.    L2F:   float: 1179438080
-4323.    L2D:   double: 4668431263781093376
-4324.    LCMP a == b : false
-4325.    LCMP a != b : true
-4326.    LCMP a <  b : true
-4327.    LCMP a <= b : true
-4328.    LCMP a >  b : false
-4329.    LCMP a >= b : false
-4330.    not IF_LCMPNE
-4331.    not IF_LCMPLT
-4332.    not IF_LCMPLE
-4333.    TESTLONG called with long: 4444441
-4334.                     AND long: 12342
-4335.    LADD:  long: 4456783
-4336.    LSUB:  long: 4432099
-4337.    LMUL:  long: 54853290822
-4338.    LDIV:  long: 360
-4339.    LREM:  long: 1321
-4340.    LNEG:  long: -4444441
-4341.    LSHL:  long: 5062045981164437504
-4342.    LSHR:  long: 0
-4343.    LUSHR: long: 0
-4344.    LAND:  long: 4112
-4345.    LOR:   long: 4452671
-4346.    LXOR:  long: 4448559
-4347.    L2I:   int: 4444441
-4348.    L2F:   float: 1250402866
-4349.    L2D:   double: 4706530193160798208
-4350.    LCMP a == b : false
-4351.    LCMP a != b : true
-4352.    LCMP a <  b : false
-4353.    LCMP a <= b : false
-4354.    LCMP a >  b : true
-4355.    LCMP a >= b : true
-4356.    not IF_LCMPNE
-4357.    not IF_LCMPGT
-4358.    not IF_LCMPGE
-4359.    TESTLONG called with long: -9223372036854775808
-4360.                     AND long: -1
-4361.    LADD:  long: 9223372036854775807
-4362.    LSUB:  long: -9223372036854775807
-4363.    LMUL:  long: -9223372036854775808
-4364.    LDIV:  long: -9223372036854775808
-4365.    LREM:  long: 0
-4366.    LNEG:  long: -9223372036854775808
-4367.    LSHL:  long: 0
-4368.    LSHR:  long: -1
-4369.    LUSHR: long: 1
-4370.    LAND:  long: -9223372036854775808
-4371.    LOR:   long: -1
-4372.    LXOR:  long: 9223372036854775807
-4373.    L2I:   int: 0
-4374.    L2F:   float: -553648128
-4375.    L2D:   double: -4332462841530417152
-4376.    LCMP a == b : false
-4377.    LCMP a != b : true
-4378.    LCMP a <  b : true
-4379.    LCMP a <= b : true
-4380.    LCMP a >  b : false
-4381.    LCMP a >= b : false
-4382.    not IF_LCMPNE
-4383.    not IF_LCMPLT
-4384.    not IF_LCMPLE
-4385.    ------------------- test floats
-4386.    TESTFLOAT called with float: 1065353216
-4387.                      AND float: 1073917985
-4388.    FADD:  float: 1078112289
-4389.    FSUB:  float: -1081778110
-4390.    FMUL:  float: 1073917985
-4391.    FDIV:  float: 1056619533
-4392.    FREM:  float: 1065353216
-4393.    F2I:   int: 1
-4394.    F2L:   long: 1
-4395.    F2D:   double: 4607182418800017408
-4396.    FCMP a!=b
-4397.    FCMP a<b
-4398.    FCMP a<=b
-4399.    TESTFLOAT called with float: -1080167498
-4400.                      AND float: 1099662623
-4401.    FADD:  float: 1099015652
-4402.    FSUB:  float: -1047174054
-4403.    FMUL:  float: -1045681427
-4404.    FDIV:  float: -1114576645
-4405.    FREM:  float: -1080167498
-4406.    F2I:   int: -1
-4407.    F2L:   long: -1
-4408.    F2D:   double: -4615135775887982592
-4409.    FCMP a!=b
-4410.    FCMP a<b
-4411.    FCMP a<=b
-4412.    TESTFLOAT called with float: -960610816
-4413.                      AND float: 1186756096
-4414.    FADD:  float: -1016856576
-4415.    FSUB:  float: -952280576
-4416.    FMUL:  float: -838070983
-4417.    FDIV:  float: -1082051147
-4418.    FREM:  float: -1016856576
-4419.    F2I:   int: -24351
-4420.    F2L:   long: -24351
-4421.    F2D:   double: -4550949270986948608
-4422.    FCMP a!=b
-4423.    FCMP a<b
-4424.    FCMP a<=b
-4425.    TESTFLOAT called with float: 1036831949
-4426.                      AND float: 1151033344
-4427.    FADD:  float: 1151034163
-4428.    FSUB:  float: -996451123
-4429.    FMUL:  float: 1123588506
-4430.    FDIV:  float: 950581132
-4431.    FREM:  float: 1036831949
-4432.    F2I:   int: 0
-4433.    F2L:   long: 0
-4434.    F2D:   double: 4591870180174331904
-4435.    FCMP a!=b
-4436.    FCMP a<b
-4437.    FCMP a<=b
-4438.    TESTFLOAT called with float: 0
-4439.                      AND float: -1005921678
-4440.    FADD:  float: -1005921678
-4441.    FSUB:  float: 1141561970
-4442.    FMUL:  float: -2147483648
-4443.    FDIV:  float: -2147483648
-4444.    FREM:  float: 0
-4445.    F2I:   int: 0
-4446.    F2L:   long: 0
-4447.    F2D:   double: 0
-4448.    FCMP a!=b
-4449.    FCMP a>b
-4450.    FCMP a>=b
-4451.    TESTFLOAT called with float: 1117388800
-4452.                      AND float: -1005928448
-4453.    FADD:  float: -1007747072
-4454.    FSUB:  float: 1142816768
-4455.    FMUL:  float: -953749760
-4456.    FDIV:  float: -1106374265
-4457.    FREM:  float: 1117388800
-4458.    F2I:   int: 77
-4459.    F2L:   long: 77
-4460.    F2D:   double: 4635118810238550016
-4461.    FCMP a!=b
-4462.    FCMP a>b
-4463.    FCMP a>=b
-4464.    TESTFLOAT called with float: 1325400059
-4465.                      AND float: -922251744
-4466.    FADD:  float: 1325395721
-4467.    FSUB:  float: 1325402230
-4468.    FMUL:  float: -662204899
-4469.    FDIV:  float: -982402220
-4470.    FREM:  float: 1220539712
-4471.    F2I:   int: 2147483008
-4472.    F2L:   long: 2147483008
-4473.    F2D:   double: 4746794004564148224
-4474.    FCMP a!=b
-4475.    FCMP a>b
-4476.    FCMP a>=b
-4477.    ------------------- test doubles
-4478.    TESTDOUBLE called with double: 4607182418800017408
-4479.                       AND double: 4611780594019562684
-4480.    DADD:  double: 4614032393833247932
-4481.    DSUB:  double: -4616000466870408840
-4482.    DMUL:  double: 4611780594019562684
-4483.    DDIV:  double: 4602493558463195825
-4484.    DREM:  double: 4607182418800017408
-4485.    D2I:   int: 1
-4486.    D2L:   long: 1
-4487.    D2F:   float: 1065353216
-4488.    DCMP a!=b
-4489.    DCMP a<b
-4490.    DCMP a<=b
-4491.    TESTDOUBLE called with double: -4615135775741953704
-4492.                       AND double: 4625602141275962737
-4493.    DADD:  double: 4625254801154701788
-4494.    DSUB:  double: -4597422555457552122
-4495.    DMUL:  double: -4596621207457855952
-4496.    DDIV:  double: -4633609045604294190
-4497.    DREM:  double: -4615135775741953704
-4498.    D2I:   int: -1
-4499.    D2L:   long: -1
-4500.    D2F:   float: -1080167498
-4501.    DCMP a!=b
-4502.    DCMP a<b
-4503.    DCMP a<=b
-4504.    TESTDOUBLE called with double: -4550949270986948608
-4505.                       AND double: 4672360093705043968
-4506.    DADD:  double: -4581145983454281728
-4507.    DSUB:  double: -4546477007440969728
-4508.    DMUL:  double: -4485161199314403328
-4509.    DDIV:  double: -4616147052009281450
-4510.    DREM:  double: -4581145983454281728
-4511.    D2I:   int: -24351
-4512.    D2L:   long: -24351
-4513.    D2F:   float: -960610816
-4514.    DCMP a!=b
-4515.    DCMP a<b
-4516.    DCMP a<=b
-4517.    TESTDOUBLE called with double: 4591870180066957722
-4518.                       AND double: 4653181587259654144
-4519.    DADD:  double: 4653182027064305254
-4520.    DSUB:  double: -4570190889399772774
-4521.    DMUL:  double: 4638447251838153524
-4522.    DDIV:  double: 4545564625217685086
-4523.    DREM:  double: 4591870180066957722
-4524.    D2I:   int: 0
-4525.    D2L:   long: 0
-4526.    D2F:   float: 1036831949
-4527.    DCMP a!=b
-4528.    DCMP a<b
-4529.    DCMP a<=b
-4530.    TESTDOUBLE called with double: 0
-4531.                       AND double: -4575275354862832216
-4532.    DADD:  double: -4575275354862832216
-4533.    DSUB:  double: 4648096681991943592
-4534.    DMUL:  double: -9223372036854775808
-4535.    DDIV:  double: -9223372036854775808
-4536.    DREM:  double: 0
-4537.    D2I:   int: 0
-4538.    D2L:   long: 0
-4539.    D2F:   float: 0
-4540.    DCMP a!=b
-4541.    DCMP a>b
-4542.    DCMP a>=b
-4543.    TESTDOUBLE called with double: 4635118810238550016
-4544.                       AND double: -4575278989408468992
-4545.    DADD:  double: -4576255355733934080
-4546.    DSUB:  double: 4648770346609016832
-4547.    DMUL:  double: -4547265769594945536
-4548.    DDIV:  double: -4629205426707555293
-4549.    DREM:  double: 4635118810238550016
-4550.    D2I:   int: 77
-4551.    D2L:   long: 77
-4552.    D2F:   float: 1117388800
-4553.    DCMP a!=b
-4554.    DCMP a>b
-4555.    DCMP a>=b
-4556.    TESTDOUBLE called with double: 4746794004530593792
-4557.                       AND double: -4530355401018834944
-4558.    DADD:  double: 4746791675710406656
-4559.    DSUB:  double: 4746795170299641856
-4560.    DMUL:  double: -4390743814009516096
-4561.    DDIV:  double: -4562648441878701322
-4562.    DREM:  double: 4690497396998668288
-4563.    D2I:   int: 2147483000
-4564.    D2L:   long: 2147483000
-4565.    D2F:   float: 1325400059
-4566.    DCMP a!=b
-4567.    DCMP a>b
-4568.    DCMP a>=b
-4569.    =================== end of test =========================
-4570.    
+4096.    not IF_LEQ
+4097.    not IF_LLT
+4098.    not IF_LLE
+4099.    not IF_LCMPEQ
+4100.    not IF_LCMPGT
+4101.    not IF_LCMPGE
+4102.    TESTLONG called with long: -1
+4103.                     AND long: 17
+4104.    LADD:  long: 16
+4105.    LSUB:  long: -18
+4106.    LMUL:  long: -17
+4107.    LDIV:  long: 0
+4108.    LREM:  long: -1
+4109.    LNEG:  long: 1
+4110.    LSHL:  long: -131072
+4111.    LSHR:  long: -1
+4112.    LUSHR: long: 140737488355327
+4113.    LAND:  long: 17
+4114.    LOR:   long: -1
+4115.    LXOR:  long: -18
+4116.    L2I:   int: -1
+4117.    L2F:   float: -1082130432
+4118.    L2D:   double: -4616189618054758400
+4119.    LCMP a == b : false
+4120.    LCMP a != b : true
+4121.    LCMP a <  b : true
+4122.    LCMP a <= b : true
+4123.    LCMP a >  b : false
+4124.    LCMP a >= b : false
+4125.    not IF_LEQ
+4126.    not IF_LGT
+4127.    not IF_LGE
+4128.    not IF_LCMPEQ
+4129.    not IF_LCMPGT
+4130.    not IF_LCMPGE
+4131.    TESTLONG called with long: -24351
+4132.                     AND long: 24123
+4133.    LADD:  long: -228
+4134.    LSUB:  long: -48474
+4135.    LMUL:  long: -587419173
+4136.    LDIV:  long: -1
+4137.    LREM:  long: -228
+4138.    LNEG:  long: 24351
+4139.    LSHL:  long: 576460752303423488
+4140.    LSHR:  long: -1
+4141.    LUSHR: long: 31
+4142.    LAND:  long: 33
+4143.    LOR:   long: -261
+4144.    LXOR:  long: -294
+4145.    L2I:   int: -24351
+4146.    L2F:   float: -960610816
+4147.    L2D:   double: -4550949270986948608
+4148.    LCMP a == b : false
+4149.    LCMP a != b : true
+4150.    LCMP a <  b : true
+4151.    LCMP a <= b : true
+4152.    LCMP a >  b : false
+4153.    LCMP a >= b : false
+4154.    not IF_LEQ
+4155.    not IF_LGT
+4156.    not IF_LGE
+4157.    not IF_LCMPEQ
+4158.    not IF_LCMPGT
+4159.    not IF_LCMPGE
+4160.    TESTLONG called with long: 4918923241323
+4161.                     AND long: -4423423234231423
+4162.    LADD:  long: -4418504310990100
+4163.    LSUB:  long: 4428342157472746
+4164.    LMUL:  long: -4222930371437023765
+4165.    LDIV:  long: 0
+4166.    LREM:  long: 4918923241323
+4167.    LNEG:  long: -4918923241323
+4168.    LSHL:  long: 9837846482646
+4169.    LSHR:  long: 2459461620661
+4170.    LUSHR: long: 2459461620661
+4171.    LAND:  long: 451041567489
+4172.    LOR:   long: -4418955352557589
+4173.    LXOR:  long: -4419406394125078
+4174.    L2I:   int: 1185687403
+4175.    L2F:   float: 1418668246
+4176.    L2D:   double: 4796866980921322496
+4177.    LCMP a == b : false
+4178.    LCMP a != b : true
+4179.    LCMP a <  b : false
+4180.    LCMP a <= b : false
+4181.    LCMP a >  b : true
+4182.    LCMP a >= b : true
+4183.    not IF_LEQ
+4184.    not IF_LLT
+4185.    not IF_LLE
+4186.    not IF_LCMPEQ
+4187.    not IF_LCMPLT
+4188.    not IF_LCMPLE
+4189.    TESTLONG called with long: 0
+4190.                     AND long: 0
+4191.    LADD:  long: 0
+4192.    LSUB:  long: 0
+4193.    LMUL:  long: 0
+4194.    divison by zero
+4195.    divison by zero
+4196.    LNEG:  long: 0
+4197.    LSHL:  long: 0
+4198.    LSHR:  long: 0
+4199.    LUSHR: long: 0
+4200.    LAND:  long: 0
+4201.    LOR:   long: 0
+4202.    LXOR:  long: 0
+4203.    L2I:   int: 0
+4204.    L2F:   float: 0
+4205.    L2D:   double: 0
+4206.    LCMP a == b : true
+4207.    LCMP a != b : false
+4208.    LCMP a <  b : false
+4209.    LCMP a <= b : true
+4210.    LCMP a >  b : false
+4211.    LCMP a >= b : true
+4212.    not IF_LNE
+4213.    not IF_LLT
+4214.    not IF_LGT
+4215.    not IF_LCMPNE
+4216.    not IF_LCMPLT
+4217.    not IF_LCMPGT
+4218.    TESTLONG called with long: -1
+4219.                     AND long: -1
+4220.    LADD:  long: -2
+4221.    LSUB:  long: 0
+4222.    LMUL:  long: 1
+4223.    LDIV:  long: 1
+4224.    LREM:  long: 0
+4225.    LNEG:  long: 1
+4226.    LSHL:  long: -9223372036854775808
+4227.    LSHR:  long: -1
+4228.    LUSHR: long: 1
+4229.    LAND:  long: -1
+4230.    LOR:   long: -1
+4231.    LXOR:  long: 0
+4232.    L2I:   int: -1
+4233.    L2F:   float: -1082130432
+4234.    L2D:   double: -4616189618054758400
+4235.    LCMP a == b : true
+4236.    LCMP a != b : false
+4237.    LCMP a <  b : false
+4238.    LCMP a <= b : true
+4239.    LCMP a >  b : false
+4240.    LCMP a >= b : true
+4241.    not IF_LEQ
+4242.    not IF_LGT
+4243.    not IF_LGE
+4244.    not IF_LCMPNE
+4245.    not IF_LCMPLT
+4246.    not IF_LCMPGT
+4247.    TESTLONG called with long: 1423487
+4248.                     AND long: 123444442344
+4249.    LADD:  long: 123445865831
+4250.    LSUB:  long: -123443018857
+4251.    LMUL:  long: 175721558898933528
+4252.    LDIV:  long: 0
+4253.    LREM:  long: 1423487
+4254.    LNEG:  long: -1423487
+4255.    LSHL:  long: 1565140508487974912
+4256.    LSHR:  long: 0
+4257.    LUSHR: long: 0
+4258.    LAND:  long: 1355880
+4259.    LOR:   long: 123444509951
+4260.    LXOR:  long: 123443154071
+4261.    L2I:   int: 1423487
+4262.    L2F:   float: 1236124664
+4263.    L2D:   double: 4698864641831337984
+4264.    LCMP a == b : false
+4265.    LCMP a != b : true
+4266.    LCMP a <  b : true
+4267.    LCMP a <= b : true
+4268.    LCMP a >  b : false
+4269.    LCMP a >= b : false
+4270.    not IF_LEQ
+4271.    not IF_LLT
+4272.    not IF_LLE
+4273.    not IF_LCMPEQ
+4274.    not IF_LCMPGT
+4275.    not IF_LCMPGE
+4276.    TESTLONG called with long: 9223372036854775807
+4277.                     AND long: 1
+4278.    LADD:  long: -9223372036854775808
+4279.    LSUB:  long: 9223372036854775806
+4280.    LMUL:  long: 9223372036854775807
+4281.    LDIV:  long: 9223372036854775807
+4282.    LREM:  long: 0
+4283.    LNEG:  long: -9223372036854775807
+4284.    LSHL:  long: -2
+4285.    LSHR:  long: 4611686018427387903
+4286.    LUSHR: long: 4611686018427387903
+4287.    LAND:  long: 1
+4288.    LOR:   long: 9223372036854775807
+4289.    LXOR:  long: 9223372036854775806
+4290.    L2I:   int: -1
+4291.    L2F:   float: 1593835520
+4292.    L2D:   double: 4890909195324358656
+4293.    LCMP a == b : false
+4294.    LCMP a != b : true
+4295.    LCMP a <  b : false
+4296.    LCMP a <= b : false
+4297.    LCMP a >  b : true
+4298.    LCMP a >= b : true
+4299.    not IF_LEQ
+4300.    not IF_LLT
+4301.    not IF_LLE
+4302.    not IF_LCMPEQ
+4303.    not IF_LCMPLT
+4304.    not IF_LCMPLE
+4305.    TESTLONG called with long: 0
+4306.                     AND long: 9223372036854775807
+4307.    LADD:  long: 9223372036854775807
+4308.    LSUB:  long: -9223372036854775807
+4309.    LMUL:  long: 0
+4310.    LDIV:  long: 0
+4311.    LREM:  long: 0
+4312.    LNEG:  long: 0
+4313.    LSHL:  long: 0
+4314.    LSHR:  long: 0
+4315.    LUSHR: long: 0
+4316.    LAND:  long: 0
+4317.    LOR:   long: 9223372036854775807
+4318.    LXOR:  long: 9223372036854775807
+4319.    L2I:   int: 0
+4320.    L2F:   float: 0
+4321.    L2D:   double: 0
+4322.    LCMP a == b : false
+4323.    LCMP a != b : true
+4324.    LCMP a <  b : true
+4325.    LCMP a <= b : true
+4326.    LCMP a >  b : false
+4327.    LCMP a >= b : false
+4328.    not IF_LNE
+4329.    not IF_LLT
+4330.    not IF_LGT
+4331.    not IF_LCMPEQ
+4332.    not IF_LCMPGT
+4333.    not IF_LCMPGE
+4334.    TESTLONG called with long: 13107
+4335.                     AND long: 143444
+4336.    LADD:  long: 156551
+4337.    LSUB:  long: -130337
+4338.    LMUL:  long: 1880120508
+4339.    LDIV:  long: 0
+4340.    LREM:  long: 13107
+4341.    LNEG:  long: -13107
+4342.    LSHL:  long: 13743685632
+4343.    LSHR:  long: 0
+4344.    LUSHR: long: 0
+4345.    LAND:  long: 12304
+4346.    LOR:   long: 144247
+4347.    LXOR:  long: 131943
+4348.    L2I:   int: 13107
+4349.    L2F:   float: 1179438080
+4350.    L2D:   double: 4668431263781093376
+4351.    LCMP a == b : false
+4352.    LCMP a != b : true
+4353.    LCMP a <  b : true
+4354.    LCMP a <= b : true
+4355.    LCMP a >  b : false
+4356.    LCMP a >= b : false
+4357.    not IF_LEQ
+4358.    not IF_LLT
+4359.    not IF_LLE
+4360.    not IF_LCMPEQ
+4361.    not IF_LCMPGT
+4362.    not IF_LCMPGE
+4363.    TESTLONG called with long: 4444441
+4364.                     AND long: 12342
+4365.    LADD:  long: 4456783
+4366.    LSUB:  long: 4432099
+4367.    LMUL:  long: 54853290822
+4368.    LDIV:  long: 360
+4369.    LREM:  long: 1321
+4370.    LNEG:  long: -4444441
+4371.    LSHL:  long: 5062045981164437504
+4372.    LSHR:  long: 0
+4373.    LUSHR: long: 0
+4374.    LAND:  long: 4112
+4375.    LOR:   long: 4452671
+4376.    LXOR:  long: 4448559
+4377.    L2I:   int: 4444441
+4378.    L2F:   float: 1250402866
+4379.    L2D:   double: 4706530193160798208
+4380.    LCMP a == b : false
+4381.    LCMP a != b : true
+4382.    LCMP a <  b : false
+4383.    LCMP a <= b : false
+4384.    LCMP a >  b : true
+4385.    LCMP a >= b : true
+4386.    not IF_LEQ
+4387.    not IF_LLT
+4388.    not IF_LLE
+4389.    not IF_LCMPEQ
+4390.    not IF_LCMPLT
+4391.    not IF_LCMPLE
+4392.    TESTLONG called with long: -9223372036854775808
+4393.                     AND long: -1
+4394.    LADD:  long: 9223372036854775807
+4395.    LSUB:  long: -9223372036854775807
+4396.    LMUL:  long: -9223372036854775808
+4397.    LDIV:  long: -9223372036854775808
+4398.    LREM:  long: 0
+4399.    LNEG:  long: -9223372036854775808
+4400.    LSHL:  long: 0
+4401.    LSHR:  long: -1
+4402.    LUSHR: long: 1
+4403.    LAND:  long: -9223372036854775808
+4404.    LOR:   long: -1
+4405.    LXOR:  long: 9223372036854775807
+4406.    L2I:   int: 0
+4407.    L2F:   float: -553648128
+4408.    L2D:   double: -4332462841530417152
+4409.    LCMP a == b : false
+4410.    LCMP a != b : true
+4411.    LCMP a <  b : true
+4412.    LCMP a <= b : true
+4413.    LCMP a >  b : false
+4414.    LCMP a >= b : false
+4415.    not IF_LEQ
+4416.    not IF_LGT
+4417.    not IF_LGE
+4418.    not IF_LCMPEQ
+4419.    not IF_LCMPGT
+4420.    not IF_LCMPGE
+4421.    ------------------- test floats
+4422.    TESTFLOAT called with float: 1065353216
+4423.                      AND float: 1073917985
+4424.    FADD:  float: 1078112289
+4425.    FSUB:  float: -1081778110
+4426.    FMUL:  float: 1073917985
+4427.    FDIV:  float: 1056619533
+4428.    FREM:  float: 1065353216
+4429.    F2I:   int: 1
+4430.    F2L:   long: 1
+4431.    F2D:   double: 4607182418800017408
+4432.    FCMP a != b
+4433.    FCMP a < b
+4434.    FCMP a <= b
+4435.    TESTFLOAT called with float: -1080167498
+4436.                      AND float: 1099662623
+4437.    FADD:  float: 1099015652
+4438.    FSUB:  float: -1047174054
+4439.    FMUL:  float: -1045681427
+4440.    FDIV:  float: -1114576645
+4441.    FREM:  float: -1080167498
+4442.    F2I:   int: -1
+4443.    F2L:   long: -1
+4444.    F2D:   double: -4615135775887982592
+4445.    FCMP a != b
+4446.    FCMP a < b
+4447.    FCMP a <= b
+4448.    TESTFLOAT called with float: -960610816
+4449.                      AND float: 1186756096
+4450.    FADD:  float: -1016856576
+4451.    FSUB:  float: -952280576
+4452.    FMUL:  float: -838070983
+4453.    FDIV:  float: -1082051147
+4454.    FREM:  float: -1016856576
+4455.    F2I:   int: -24351
+4456.    F2L:   long: -24351
+4457.    F2D:   double: -4550949270986948608
+4458.    FCMP a != b
+4459.    FCMP a < b
+4460.    FCMP a <= b
+4461.    TESTFLOAT called with float: 1036831949
+4462.                      AND float: 1151033344
+4463.    FADD:  float: 1151034163
+4464.    FSUB:  float: -996451123
+4465.    FMUL:  float: 1123588506
+4466.    FDIV:  float: 950581132
+4467.    FREM:  float: 1036831949
+4468.    F2I:   int: 0
+4469.    F2L:   long: 0
+4470.    F2D:   double: 4591870180174331904
+4471.    FCMP a != b
+4472.    FCMP a < b
+4473.    FCMP a <= b
+4474.    TESTFLOAT called with float: 0
+4475.                      AND float: -1005921678
+4476.    FADD:  float: -1005921678
+4477.    FSUB:  float: 1141561970
+4478.    FMUL:  float: -2147483648
+4479.    FDIV:  float: -2147483648
+4480.    FREM:  float: 0
+4481.    F2I:   int: 0
+4482.    F2L:   long: 0
+4483.    F2D:   double: 0
+4484.    FCMP a != b
+4485.    FCMP a > b
+4486.    FCMP a >= b
+4487.    TESTFLOAT called with float: 1117388800
+4488.                      AND float: -1005928448
+4489.    FADD:  float: -1007747072
+4490.    FSUB:  float: 1142816768
+4491.    FMUL:  float: -953749760
+4492.    FDIV:  float: -1106374265
+4493.    FREM:  float: 1117388800
+4494.    F2I:   int: 77
+4495.    F2L:   long: 77
+4496.    F2D:   double: 4635118810238550016
+4497.    FCMP a != b
+4498.    FCMP a > b
+4499.    FCMP a >= b
+4500.    TESTFLOAT called with float: 1325400059
+4501.                      AND float: -922251744
+4502.    FADD:  float: 1325395721
+4503.    FSUB:  float: 1325402230
+4504.    FMUL:  float: -662204899
+4505.    FDIV:  float: -982402220
+4506.    FREM:  float: 1220539712
+4507.    F2I:   int: 2147483008
+4508.    F2L:   long: 2147483008
+4509.    F2D:   double: 4746794004564148224
+4510.    FCMP a != b
+4511.    FCMP a > b
+4512.    FCMP a >= b
+4513.    ------------------- test doubles
+4514.    TESTDOUBLE called with double: 4607182418800017408
+4515.                       AND double: 4611780594019562684
+4516.    DADD:  double: 4614032393833247932
+4517.    DSUB:  double: -4616000466870408840
+4518.    DMUL:  double: 4611780594019562684
+4519.    DDIV:  double: 4602493558463195825
+4520.    DREM:  double: 4607182418800017408
+4521.    D2I:   int: 1
+4522.    D2L:   long: 1
+4523.    D2F:   float: 1065353216
+4524.    DCMP a != b
+4525.    DCMP a < b
+4526.    DCMP a <= b
+4527.    TESTDOUBLE called with double: -4615135775741953704
+4528.                       AND double: 4625602141275962737
+4529.    DADD:  double: 4625254801154701788
+4530.    DSUB:  double: -4597422555457552122
+4531.    DMUL:  double: -4596621207457855952
+4532.    DDIV:  double: -4633609045604294190
+4533.    DREM:  double: -4615135775741953704
+4534.    D2I:   int: -1
+4535.    D2L:   long: -1
+4536.    D2F:   float: -1080167498
+4537.    DCMP a != b
+4538.    DCMP a < b
+4539.    DCMP a <= b
+4540.    TESTDOUBLE called with double: -4550949270986948608
+4541.                       AND double: 4672360093705043968
+4542.    DADD:  double: -4581145983454281728
+4543.    DSUB:  double: -4546477007440969728
+4544.    DMUL:  double: -4485161199314403328
+4545.    DDIV:  double: -4616147052009281450
+4546.    DREM:  double: -4581145983454281728
+4547.    D2I:   int: -24351
+4548.    D2L:   long: -24351
+4549.    D2F:   float: -960610816
+4550.    DCMP a != b
+4551.    DCMP a < b
+4552.    DCMP a <= b
+4553.    TESTDOUBLE called with double: 4591870180066957722
+4554.                       AND double: 4653181587259654144
+4555.    DADD:  double: 4653182027064305254
+4556.    DSUB:  double: -4570190889399772774
+4557.    DMUL:  double: 4638447251838153524
+4558.    DDIV:  double: 4545564625217685086
+4559.    DREM:  double: 4591870180066957722
+4560.    D2I:   int: 0
+4561.    D2L:   long: 0
+4562.    D2F:   float: 1036831949
+4563.    DCMP a != b
+4564.    DCMP a < b
+4565.    DCMP a <= b
+4566.    TESTDOUBLE called with double: 0
+4567.                       AND double: -4575275354862832216
+4568.    DADD:  double: -4575275354862832216
+4569.    DSUB:  double: 4648096681991943592
+4570.    DMUL:  double: -9223372036854775808
+4571.    DDIV:  double: -9223372036854775808
+4572.    DREM:  double: 0
+4573.    D2I:   int: 0
+4574.    D2L:   long: 0
+4575.    D2F:   float: 0
+4576.    DCMP a != b
+4577.    DCMP a > b
+4578.    DCMP a >= b
+4579.    TESTDOUBLE called with double: 4635118810238550016
+4580.                       AND double: -4575278989408468992
+4581.    DADD:  double: -4576255355733934080
+4582.    DSUB:  double: 4648770346609016832
+4583.    DMUL:  double: -4547265769594945536
+4584.    DDIV:  double: -4629205426707555293
+4585.    DREM:  double: 4635118810238550016
+4586.    D2I:   int: 77
+4587.    D2L:   long: 77
+4588.    D2F:   float: 1117388800
+4589.    DCMP a != b
+4590.    DCMP a > b
+4591.    DCMP a >= b
+4592.    TESTDOUBLE called with double: 4746794004530593792
+4593.                       AND double: -4530355401018834944
+4594.    DADD:  double: 4746791675710406656
+4595.    DSUB:  double: 4746795170299641856
+4596.    DMUL:  double: -4390743814009516096
+4597.    DDIV:  double: -4562648441878701322
+4598.    DREM:  double: 4690497396998668288
+4599.    D2I:   int: 2147483000
+4600.    D2L:   long: 2147483000
+4601.    D2F:   float: 1325400059
+4602.    DCMP a != b
+4603.    DCMP a > b
+4604.    DCMP a >= b
+4605.    =================== end of test =========================
+4606.    
