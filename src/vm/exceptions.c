@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 2671 2005-06-13 14:29:42Z twisti $
+   $Id: exceptions.c 3132 2005-08-22 22:41:37Z twisti $
 
 */
 
@@ -159,8 +159,21 @@ static void throw_exception_exit_intern(bool doexit)
 			/* exception, so print it.                                        */
 
 			if (*exceptionptr) {
+				java_lang_Throwable *t;
+
+				t = (java_lang_Throwable *) *exceptionptr;
+
 				fprintf(stderr, "Exception while printStackTrace(): ");
-				utf_fprint_classname(stderr, c->name);
+				utf_fprint_classname(stderr, t->header.vftbl->class->name);
+
+				if (t->detailMessage) {
+					char *buf;
+
+					buf = javastring_tochar((java_objectheader *) t->detailMessage);
+					fprintf(stderr, ": %s", buf);
+					MFREE(buf, char, strlen(buf));
+				}
+					
 				fprintf(stderr, "\n");
 			}
 
