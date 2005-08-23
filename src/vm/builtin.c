@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3080 2005-07-20 15:25:06Z twisti $
+   $Id: builtin.c 3134 2005-08-23 14:45:29Z cacao $
 
 */
 
@@ -1021,8 +1021,14 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 	/* create the component arrays */
 
 	for (i = 0; i < size; i++) {
-		java_arrayheader *ea = 
+		java_arrayheader *ea =
+#if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
+			/* we save an s4 to a s8 slot, 8-byte aligned */
+
+			builtin_multianewarray(n, componentvftbl, dims + 2);
+#else
 			builtin_multianewarray(n, componentvftbl, dims + 1);
+#endif
 
 		if (!ea)
 			return NULL;
@@ -1054,13 +1060,6 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	s4    logtextlen;
 	s4    dumpsize;
 
-	if (!noindent) {
-		if (methodindent)
-			methodindent--;
-		else
-			log_text("WARNING: unmatched methodindent--");
-	}
-
 	if (opt_verbose || runverbose || verboseexception) {
 		/* calculate message length */
 
@@ -1079,6 +1078,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 				utf_strlen(m->class->name) +
 				strlen(".") +
 				utf_strlen(m->name) +
+				utf_strlen(m->descriptor) +
 				strlen("(NOSYNC,NATIVE");
 
 #if SIZEOF_VOID_P == 8
@@ -1120,6 +1120,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			utf_strcat_classname(logtext, m->class->name);
 			strcat(logtext, ".");
 			utf_strcat(logtext, m->name);
+			utf_strcat(logtext, m->descriptor);
 
 			if (m->flags & ACC_SYNCHRONIZED)
 				strcat(logtext, "(SYNC");
@@ -1179,13 +1180,16 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 *******************************************************************************/
 
 #ifdef TRACE_ARGS_NUM
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
+void builtin_trace_args(s8 a0, s8 a1,
+#if TRACE_ARGS_NUM >= 4
+						s8 a2, s8 a3,
+#endif /* TRACE_ARGS_NUM >= 4 */
 #if TRACE_ARGS_NUM >= 6
 						s8 a4, s8 a5,
-#endif
+#endif /* TRACE_ARGS_NUM >= 6 */
 #if TRACE_ARGS_NUM == 8
 						s8 a6, s8 a7,
-#endif
+#endif /* TRACE_ARGS_NUM == 8 */
 						methodinfo *m)
 {
 	methoddesc *md;
@@ -1262,6 +1266,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 				a0, a1);
 		break;
 
+#if TRACE_ARGS_NUM >= 4
 	case 3:
 		sprintf(logtext + strlen(logtext),
 				"0x%llx, 0x%llx, 0x%llx",
@@ -1274,6 +1279,7 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 		sprintf(logtext + strlen(logtext), ", 0x%llx", a3);
 
 		break;
+#endif /* TRACE_ARGS_NUM >= 4 */
 
 #if TRACE_ARGS_NUM >= 6
 	case 5:
@@ -1310,7 +1316,10 @@ void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
 #endif /* TRACE_ARGS_NUM == 8 */
 
 	default:
-#if TRACE_ARGS_NUM == 4
+#if TRACE_ARGS_NUM == 2
+		sprintf(logtext + strlen(logtext), "0x%llx, 0x%llx, ...(%d)", a0, a1, md->paramcount - 2);
+
+#elif TRACE_ARGS_NUM == 4
 		sprintf(logtext + strlen(logtext),
 				"0x%llx, 0x%llx, 0x%llx, 0x%llx, ...(%d)",
 				a0, a1, a2, a3, md->paramcount - 4);
@@ -1687,113 +1696,160 @@ s4 builtin_irem(s4 a, s4 b) { return a % b; }
 
 ******************************************************************************/
 
-
 s8 builtin_ladd(s8 a, s8 b)
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a + b; 
+	c = a + b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lsub(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a - b; 
+	c = a - b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lmul(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a * b; 
+	c = a * b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_ldiv(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a / b; 
+	c = a / b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lrem(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a % b; 
+	c = a % b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lshl(s8 a, s4 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a << (b & 63);
+	c = a << (b & 63);
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lshr(s8 a, s4 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a >> (b & 63);
+	c = a >> (b & 63);
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lushr(s8 a, s4 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return ((u8) a) >> (b & 63);
+	c = ((u8) a) >> (b & 63);
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_land(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a & b; 
+	c = a & b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lor(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a | b; 
+	c = a | b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lxor(s8 a, s8 b) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return a ^ b; 
+	c = a ^ b; 
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s8 builtin_lneg(s8 a) 
-{ 
+{
+	s8 c;
+
 #if U8_AVAILABLE
-	return -a;
+	c = -a;
 #else
-	return builtin_i2l(0);
+	c = builtin_i2l(0);
 #endif
+
+	return c;
 }
 
 s4 builtin_lcmp(s8 a, s8 b) 
@@ -2208,8 +2264,11 @@ double builtin_l2d(s8 a)
 
 s4 builtin_f2i(float a) 
 {
+	s4 i;
 
-	return builtin_d2i((double) a);
+	i = builtin_d2i((double) a);
+
+	return i;
 
 	/*	float f;
 	
@@ -2231,8 +2290,11 @@ s4 builtin_f2i(float a)
 
 s8 builtin_f2l(float a)
 {
+	s8 l;
 
-	return builtin_d2l((double) a);
+	l = builtin_d2l((double) a);
+
+	return l;
 
 	/*	float f;
 	
