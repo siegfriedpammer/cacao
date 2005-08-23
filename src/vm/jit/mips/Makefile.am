@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3116 2005-07-27 12:14:03Z twisti $
+## $Id: Makefile.am 3136 2005-08-23 14:54:10Z cacao $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = irix
+SUBDIRS = $(OS_DIR)
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
 
