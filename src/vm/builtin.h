@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3080 2005-07-20 15:25:06Z twisti $
+   $Id: builtin.h 3133 2005-08-23 14:34:49Z cacao $
 
 */
 
@@ -142,12 +142,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 /* NOT AN OP */
 
 java_objectheader *builtin_new(classinfo *c);
-/*  #if defined(__I386__) */
-/*  java_objectheader *asm_builtin_new(classinfo *c); */
-/*  #define BUILTIN_new (functionptr) asm_builtin_new */
-/*  #else */
 #define BUILTIN_new (functionptr) builtin_new
-/*  #endif */
 
 java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl);
 #define BUILTIN_newarray (functionptr) builtin_newarray
@@ -171,6 +166,7 @@ java_intarray *builtin_newarray_int(s4 size);
 #define BUILTIN_newarray_int (functionptr) builtin_newarray_int
 java_longarray *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
+
 java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
@@ -178,7 +174,10 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
 #if defined(TRACE_ARGS_NUM)
-void builtin_trace_args(s8 a0, s8 a1, s8 a2, s8 a3,
+void builtin_trace_args(s8 a0, s8 a1,
+#if TRACE_ARGS_NUM >= 4
+						s8 a2, s8 a3,
+#endif /* TRACE_ARGS_NUM >= 4 */
 #if TRACE_ARGS_NUM >= 6
 						s8 a4, s8 a5,
 #endif /* TRACE_ARGS_NUM >= 6 */
