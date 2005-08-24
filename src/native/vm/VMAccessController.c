@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 2530 2005-05-29 21:39:20Z twisti $
+   $Id: VMAccessController.c 3137 2005-08-24 00:11:23Z michi $
 
 */
 
@@ -45,7 +45,7 @@
  * Signature: ()[[Ljava/lang/Object;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz) {
-#if defined(__I386__) || defined(__ALPHA__) || defined (__x86_64__)
+#if defined(__I386__) || defined(__ALPHA__) || defined(__ARM__) || defined (__x86_64__)
 	return cacao_getStackForVMAccessController();
 #else
 	java_objectarray *result;
