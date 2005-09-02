@@ -30,13 +30,13 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: types.h 1735 2004-12-07 14:33:27Z twisti $
+   $Id: types.h 3141 2005-09-02 15:18:12Z twisti $
 
 */
 
 
-#ifndef _TYPES_H
-#define _TYPES_H
+#ifndef _CACAO_TYPES_H
+#define _CACAO_TYPES_H
 
 #include "vm/jit/powerpc/arch.h"
 
@@ -65,7 +65,7 @@ typedef struct {u4 low, high;}  u8;
 
 typedef u4                      ptrint;
 
-#endif /* _TYPES_H */
+#endif /* _CACAO_TYPES_H */
 
 
 /*

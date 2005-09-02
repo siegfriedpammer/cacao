@@ -29,13 +29,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: types.h 2731 2005-06-17 12:14:45Z twisti $
+   $Id: types.h 3141 2005-09-02 15:18:12Z twisti $
 
 */
 
 
-#ifndef _TYPES_H
-#define _TYPES_H
+#ifndef _CACAO_TYPES_H
+#define _CACAO_TYPES_H
 
 /* Define the sizes of the integer types used internally by cacao. */
 
@@ -56,7 +56,7 @@ typedef unsigned long int       u8;
 
 typedef u8                      ptrint;
 
-#endif /* _TYPES_H */
+#endif /* _CACAO_TYPES_H */
 
 
 /*
