@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3102 2005-07-24 21:04:05Z michi $
+   $Id: stack.c 3155 2005-09-05 21:48:07Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "arch.h"
 #include "disass.h"
 #include "types.h"
 #include "md-abi.h"
@@ -307,7 +308,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					case ICMD_RET:
-						rd->locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
+#if defined(ENABLE_INTRP)
+						if (!opt_intrp)
+#endif
+							rd->locals[iptr->op1][TYPE_ADR].type = TYPE_ADR;
 					case ICMD_RETURN:
 						COUNT(count_pcmd_return);
 						SETDST;
@@ -548,10 +552,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_IFEQ;
 							icmd_if_icmp_tail:
 								iptr[0].op1 = iptr[1].op1;
+								/* IF_ICMPxx is the last instruction in the   */
+								/* basic block, just remove it                */
+								/* iptr[1].opc = ICMD_NOP; */
 								bptr->icount--;
 								len--;
-#if 1
-								/* iptr[1].opc = ICMD_NOP; */
+
 								OP1_0(TYPE_INT);
 								tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
 
@@ -559,9 +565,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 								MARKREACHED(tbptr, copy);
 								COUNT(count_pcmd_bra);
-#else
-								goto icmd_if;
-#endif
 								break;
 							case ICMD_IF_ICMPLT:
 								iptr[0].opc = ICMD_IFLT;
@@ -584,31 +587,38 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_BASTORE:
 							case ICMD_CASTORE:
 							case ICMD_SASTORE:
+#if defined(ENABLE_INTRP)
+								if (!opt_intrp) {
+#endif
 #if SUPPORT_CONST_STORE_ZERO_ONLY
-								if (iptr[0].val.i == 0) {
+									if (iptr[0].val.i == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-									switch (iptr[1].opc) {
-									case ICMD_IASTORE:
-										iptr[0].opc = ICMD_IASTORECONST;
-										break;
-									case ICMD_BASTORE:
-										iptr[0].opc = ICMD_BASTORECONST;
-										break;
-									case ICMD_CASTORE:
-										iptr[0].opc = ICMD_CASTORECONST;
-										break;
-									case ICMD_SASTORE:
-										iptr[0].opc = ICMD_SASTORECONST;
-										break;
-									}
+										switch (iptr[1].opc) {
+										case ICMD_IASTORE:
+											iptr[0].opc = ICMD_IASTORECONST;
+											break;
+										case ICMD_BASTORE:
+											iptr[0].opc = ICMD_BASTORECONST;
+											break;
+										case ICMD_CASTORE:
+											iptr[0].opc = ICMD_CASTORECONST;
+											break;
+										case ICMD_SASTORE:
+											iptr[0].opc = ICMD_SASTORECONST;
+											break;
+										}
 
-									iptr[1].opc = ICMD_NOP;
-									OPTT2_0(TYPE_INT, TYPE_ADR);
-									COUNT(count_pcmd_op);
+										iptr[1].opc = ICMD_NOP;
+										OPTT2_0(TYPE_INT, TYPE_ADR);
+										COUNT(count_pcmd_op);
 #if SUPPORT_CONST_STORE_ZERO_ONLY
+									} else
+										PUSHCONST(TYPE_INT);
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+#if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_INT);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+#endif
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -905,17 +915,24 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
+#if defined(ENABLE_INTRP)
+								if (!opt_intrp) {
+#endif
 #if SUPPORT_CONST_STORE_ZERO_ONLY
-								if (iptr[0].val.l == 0) {
+									if (iptr[0].val.l == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-									iptr[0].opc = ICMD_LASTORECONST;
-									iptr[1].opc = ICMD_NOP;
-									OPTT2_0(TYPE_INT, TYPE_ADR);
-									COUNT(count_pcmd_op);
+										iptr[0].opc = ICMD_LASTORECONST;
+										iptr[1].opc = ICMD_NOP;
+										OPTT2_0(TYPE_INT, TYPE_ADR);
+										COUNT(count_pcmd_op);
 #if SUPPORT_CONST_STORE_ZERO_ONLY
+									} else
+										PUSHCONST(TYPE_LNG);
+#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+#if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_LNG);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+#endif
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -1013,9 +1030,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_DLOAD:
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
-						i = opcode-ICMD_ILOAD;
+						i = opcode - ICMD_ILOAD;
 						iptr->op1 = argren[iptr->op1];
-						rd->locals[iptr->op1][i].type = i;
+#if defined(ENABLE_INTRP)
+						if (!opt_intrp)
+#endif
+							rd->locals[iptr->op1][i].type = i;
 						LOAD(i, LOCALVAR, iptr->op1);
 						break;
 
@@ -1029,7 +1049,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_null);
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
-						OP2IAT_1(opcode-ICMD_IALOAD);
+						OP2IAT_1(opcode - ICMD_IALOAD);
 						break;
 
 					case ICMD_BALOAD:
@@ -1078,7 +1098,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						REQUIRE_1;
 
 					i = opcode - ICMD_ISTORE;
-					rd->locals[iptr->op1][i].type = i;
+#if defined(ENABLE_INTRP)
+						if (!opt_intrp)
+#endif
+							rd->locals[iptr->op1][i].type = i;
 #if defined(STATISTICS)
 					if (opt_stat) {
 						count_pcmd_store++;
@@ -1109,7 +1132,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						curstack->varkind = LOCALVAR;
 						curstack->varnum = iptr->op1;
 					};
-					STORE(opcode-ICMD_ISTORE);
+					STORE(opcode - ICMD_ISTORE);
 					break;
 
 					/* pop 3 push 0 */
@@ -1216,9 +1239,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_IFGE:
 					case ICMD_IFGT:
 					case ICMD_IFLE:
-#if 0
-					icmd_if:
-#endif
 						COUNT(count_pcmd_bra);
 #if CONDITIONAL_LOADCONST
 						tbptr = m->basicblocks + b_index;
@@ -1290,6 +1310,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif /* CONDITIONAL_LOADCONST */
 
 						OP1_0(TYPE_INT);
+						iptr->val.i = 0;
 						tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
 
 						iptr[0].target = (void *) tbptr;
@@ -1964,28 +1985,31 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 								copy->varkind = ARGVAR;
 								copy->varnum = i;
-								if (md->params[i].inmemory) {
-									copy->flags = INMEMORY;
-									copy->regoff = md->params[i].regoff;
-								} else {
-									copy->flags = 0;
-									if (IS_FLT_DBL_TYPE(copy->type))
+
+								if (!opt_intrp) {
+									if (md->params[i].inmemory) {
+										copy->flags = INMEMORY;
+										copy->regoff = md->params[i].regoff;
+									} else {
+										copy->flags = 0;
+										if (IS_FLT_DBL_TYPE(copy->type))
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-										assert(0);
+											assert(0);
 #else
 										copy->regoff =
-										   rd->argfltregs[md->params[i].regoff];
+											rd->argfltregs[md->params[i].regoff];
 #endif
-									else {
+										else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-										if (IS_2_WORD_TYPE(copy->type))
-											copy->regoff = PACK_REGS(
-							rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
-							rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
-										else
+											if (IS_2_WORD_TYPE(copy->type))
+												copy->regoff = PACK_REGS(
+																		 rd->argintregs[GET_LOW_REG(md->params[i].regoff)],
+																		 rd->argintregs[GET_HIGH_REG(md->params[i].regoff)]);
+											else
 #endif
-											copy->regoff =
-									       rd->argintregs[md->params[i].regoff];
+												copy->regoff =
+													rd->argintregs[md->params[i].regoff];
+										}
 									}
 								}
 							}
@@ -2209,9 +2233,9 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 	j = cd->maxstack - i;
 	while (--i >= 0)
 		printf("    ");
+
 	while (s) {
 		j--;
-		/* DEBUG */ /*printf("(%d,%d,%d,%d)",s->varkind,s->flags,s->regoff,s->varnum); fflush(stdout);*/
 		if (s->flags & SAVEDVAR)
 			switch (s->varkind) {
 			case TEMPVAR:
@@ -2230,7 +2254,11 @@ void icmd_print_stack(codegendata *cd, stackptr s)
                             regs[GET_HIGH_REG(s->regoff)]);
 					else
 #endif
+#if defined(ENABLE_INTRP)
+						printf(" %3d", s->regoff);
+#else
 						printf(" %3s", regs[s->regoff]);
+#endif
 				}
 				break;
 			case STACKVAR:
@@ -2274,7 +2302,11 @@ void icmd_print_stack(codegendata *cd, stackptr s)
                             regs[GET_HIGH_REG(s->regoff)]);
 					else
 #endif
+#if defined(ENABLE_INTRP)
+						printf(" %3d", s->regoff);
+#else
 						printf(" %3s", regs[s->regoff]);
+#endif
 				}
 				break;
 			case STACKVAR:
@@ -2414,34 +2446,44 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	printf("Local Table:\n");
 	for (i = 0; i < cd->maxlocals; i++) {
 		printf("   %3d: ", i);
-		for (j = TYPE_INT; j <= TYPE_ADR; j++)
-			if (rd->locals[i][j].type >= 0) {
-				printf("   (%s) ", jit_type[j]);
-				if (rd->locals[i][j].flags & INMEMORY)
-					printf("m%2d", rd->locals[i][j].regoff);
+		for (j = TYPE_INT; j <= TYPE_ADR; j++) {
+#if defined(ENABLE_INTRP)
+			if (!opt_intrp) {
+#endif
+				if (rd->locals[i][j].type >= 0) {
+					printf("   (%s) ", jit_type[j]);
+					if (rd->locals[i][j].flags & INMEMORY)
+						printf("m%2d", rd->locals[i][j].regoff);
 #ifdef HAS_ADDRESS_REGISTER_FILE
-				else if (j == TYPE_ADR)
-					printf("r%02d", rd->locals[i][j].regoff);
+					else if (j == TYPE_ADR)
+						printf("r%02d", rd->locals[i][j].regoff);
 #endif
-				else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-					printf("f%02d", rd->locals[i][j].regoff);
-				else {
+					else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+						printf("f%02d", rd->locals[i][j].regoff);
+					else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					if (IS_2_WORD_TYPE(j))
-						printf(" %3s/%3s",
-						    regs[GET_LOW_REG(rd->locals[i][j].regoff)],
-                            regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
-					else
+						if (IS_2_WORD_TYPE(j))
+							printf(" %3s/%3s",
+								   regs[GET_LOW_REG(rd->locals[i][j].regoff)],
+								   regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
+						else
 #endif
-						printf("%3s", regs[rd->locals[i][j].regoff]);
+							printf("%3s", regs[rd->locals[i][j].regoff]);
+					}
 				}
+#if defined(ENABLE_INTRP)
 			}
+#endif
+		}
 		printf("\n");
 	}
 	printf("\n");
 
 #ifdef LSRA
 	if (!opt_lsra) {
+#endif
+#if defined(ENABLE_INTRP)
+		if (!opt_intrp) {
 #endif
 	printf("Interface Table:\n");
 	for (i = 0; i < cd->maxstack; i++) {
@@ -2500,6 +2542,9 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 	printf("\n");
 
+#if defined(ENABLE_INTRP)
+		}
+#endif
 #ifdef LSRA
   	}
 #endif

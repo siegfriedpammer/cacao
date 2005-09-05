@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3028 2005-07-13 11:41:53Z twisti $
+   $Id: stack.h 3155 2005-09-05 21:48:07Z twisti $
 
 */
 
@@ -326,6 +326,13 @@
  * instruction of the block has been processed).
  */
 
+
+#if defined(ENABLE_INTRP)
+#define IF_NO_INTRP(x) if (!opt_intrp) { x }
+#else
+#define IF_NO_INTRP(x) { x }
+#endif
+
 #define BBEND(s,i) { \
 	(i) = stackdepth - 1; \
 	copy = (s); \
@@ -336,18 +343,20 @@
 			copy->varkind = STACKVAR; \
 			copy->varnum = (i);\
 		} \
-		rd->interfaces[(i)][copy->type].type = copy->type; \
-		rd->interfaces[(i)][copy->type].flags |= copy->flags; \
+        IF_NO_INTRP(rd->interfaces[(i)][copy->type].type = copy->type; \
+                    rd->interfaces[(i)][copy->type].flags |= copy->flags;) \
 		(i)--; copy = copy->prev; \
 	} \
 	(i) = bptr->indepth - 1; \
 	copy = bptr->instack; \
 	while (copy) { \
-		rd->interfaces[(i)][copy->type].type = copy->type; \
-		if (copy->varkind == STACKVAR) { \
-			if (copy->flags & SAVEDVAR) \
-				rd->interfaces[(i)][copy->type].flags |= SAVEDVAR; \
-		} \
+        IF_NO_INTRP( \
+            rd->interfaces[(i)][copy->type].type = copy->type; \
+            if (copy->varkind == STACKVAR) { \
+                if (copy->flags & SAVEDVAR) \
+                    rd->interfaces[(i)][copy->type].flags |= SAVEDVAR; \
+            } \
+        ) \
 		(i)--; copy = copy->prev; \
 	} \
 }
