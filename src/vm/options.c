@@ -1,4 +1,4 @@
-/* options.c - contains global options
+/* src/vm/options.c - contains global options
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.c 2959 2005-07-09 17:30:32Z twisti $
+   Changes:
+
+   $Id: options.c 3152 2005-09-05 21:39:50Z twisti $
 
 */
 
@@ -41,9 +43,19 @@
 
 /* command line option */
 
+bool vm_debug = false;
+
+#if defined(ENABLE_JIT)
+bool opt_jit = true;            /* JIT mode execution (default)               */
+bool opt_intrp = false;         /* interpreter mode execution                 */
+#else
+bool opt_jit = false;           /* JIT mode execution                         */
+bool opt_intrp = true;          /* interpreter mode execution (default)       */
+#endif
+
 bool opt_verbose = false;
 bool compileall = false;
-bool runverbose = false;       /* trace all method invocation                */
+bool runverbose = false;        /* trace all method invocation                */
 bool verboseexception = false;
 
 bool loadverbose = false;

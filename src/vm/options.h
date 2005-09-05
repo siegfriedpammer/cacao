@@ -1,4 +1,4 @@
-/* vm/options.h - define global options extern
+/* src/vm/options.h - define global options extern
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: options.h 2950 2005-07-09 13:37:29Z twisti $
+   Changes:
+
+   $Id: options.h 3152 2005-09-05 21:39:50Z twisti $
 
 */
 
@@ -55,6 +57,11 @@ struct opt_struct {
 
 
 /* global variables ***********************************************************/
+
+extern bool vm_debug;
+
+extern bool opt_jit;
+extern bool opt_intrp;
 
 extern bool opt_verbose;
 extern bool compileall;
