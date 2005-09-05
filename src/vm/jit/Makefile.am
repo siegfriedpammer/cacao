@@ -28,24 +28,44 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2658 2005-06-13 14:14:47Z michi $
+## $Id: Makefile.am 3143 2005-09-05 15:14:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-SUBDIRS = loop tools verify @ARCH_DIR@
+SUBDIRS = loop tools verify
 
-DIST_SUBDIRS = inline loop schedule tools verify alpha arm i386 mips powerpc x86_64
+DIST_SUBDIRS = \
+	inline \
+	loop \
+	schedule \
+	tools \
+	verify \
+	intrp \
+	alpha \
+	arm \
+	i386 \
+	mips \
+	powerpc \
+	x86_64
+
+if ENABLE_INTRP
+SUBDIRS += intrp
+INTRP_LIB = intrp/libintrp.la
+else
+SUBDIRS += $(ARCH_DIR)
+ARCH_LIB = $(ARCH_DIR)/libarch.la
+endif
 
 if USE_INLINING
-INLINE_LIB = inline/libinline.la
 SUBDIRS += inline
+INLINE_LIB = inline/libinline.la
 endif
 
 if USE_SCHEDULER
-SCHEDULE_LIB = schedule/libschedule.la
 SUBDIRS += schedule
+SCHEDULE_LIB = schedule/libschedule.la
 endif
 
 noinst_HEADERS = \
@@ -77,7 +97,8 @@ libjit_la_LIBADD = \
 	loop/libloop.la \
 	$(SCHEDULE_LIB) \
 	verify/libverify.la \
-	@ARCH_DIR@/libarch.la
+	$(INTRP_LIB) \
+	$(ARCH_LIB)
 
 
 ## Local variables:
