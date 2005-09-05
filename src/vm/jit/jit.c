@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3084 2005-07-20 15:34:23Z twisti $
+   $Id: jit.c 3153 2005-09-05 21:42:34Z twisti $
 
 */
 
@@ -1380,8 +1380,13 @@ functionptr jit_compile(methodinfo *m)
 	inlining_setup(m, id);
 #endif
 
-	/* initialize the register allocator */
-	reg_setup(m, rd, id);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		/* initialize the register allocator */
+		reg_setup(m, rd, id);
+#endif
 
 	/* setup the codegendata memory */
 	codegen_setup(m, cd, id);
@@ -1392,8 +1397,12 @@ functionptr jit_compile(methodinfo *m)
 
 	/* free some memory */
 
-	reg_free(m, rd);
-	codegen_free(m, cd);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		codegen_free(m, cd);
+#endif
 
 	/* clear pointers to dump memory area */
 
@@ -1520,6 +1529,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		log_message_method("Parsing: ", m);
 
 	/* call parse pass */
+
 	if (!parse(m, cd, id)) {
 		if (compileverbose)
 			log_message_method("Exception while parsing: ", m);
@@ -1533,6 +1543,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	}
 
 	/* call stack analysis pass */
+
 	if (!analyse_stack(m, cd, rd)) {
 		if (compileverbose)
 			log_message_method("Exception while analysing: ", m);
@@ -1566,53 +1577,59 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		analyseGraph(m, ld);
 		optimize_loops(m, cd, ld);
 	}
-   
-#ifdef SPECIALMEMUSE
-/* 	preregpass(m, rd); */
-#endif
 
-	if (compileverbose)
-		log_message_method("Allocating registers: ", m);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp) {
+# endif
+		if (compileverbose)
+			log_message_method("Allocating registers: ", m);
 
-	/* allocate registers */
+		/* allocate registers */
 #ifdef LSRA
-	old_opt_lsra=opt_lsra;
- 	if (opt_lsra) {
- 		if (!lsra(m, cd, rd, id)) {
-			opt_lsra = false;
-/* 			log_message_method("Regalloc Fallback: ", m); */
-			regalloc( m, cd, rd );
-		} else {
+		old_opt_lsra=opt_lsra;
+		if (opt_lsra) {
+			if (!lsra(m, cd, rd, id)) {
+				opt_lsra = false;
+				/* 			log_message_method("Regalloc Fallback: ", m); */
+				regalloc( m, cd, rd );
+			} else {
 #ifdef STATISTICS
-			if (opt_stat) count_methods_allocated_by_lsra++;
+				if (opt_stat) count_methods_allocated_by_lsra++;
 #endif
-/* 			log_message_method("Regalloc LSRA: ", m); */
+				/* 			log_message_method("Regalloc LSRA: ", m); */
+			}
 		}
-	}
- 	else
+		else
 #endif /* LSRA */
-	{
+			{
+#ifdef STATISTICS
+				if (opt_stat)
+#ifdef LSRA
+					if (!opt_lsra)
+#endif		
+						count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
+#endif		
+				regalloc(m, cd, rd);
+			}
+
 #ifdef STATISTICS
 		if (opt_stat)
-#ifdef LSRA
-			if (!opt_lsra)
-#endif		
-				count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
-#endif		
-		regalloc(m, cd, rd);
-	}
-
-#ifdef STATISTICS
-	if (opt_stat)
-		reg_make_statistics(m, cd, rd);
+			reg_make_statistics(m, cd, rd);
 #endif
 
-	if (compileverbose) {
-		log_message_method("Allocating registers done: ", m);
-		log_message_method("Generating code: ", m);
+		if (compileverbose)
+			log_message_method("Allocating registers done: ", m);
+# if defined(ENABLE_INTRP)
 	}
+# endif
+#endif /* defined(ENABLE_JIT) */
+
+	if (compileverbose)
+		log_message_method("Generating code: ", m);
 
 	/* now generate the machine code */
+
 	codegen(m, cd, rd);
 
 	if (compileverbose)
