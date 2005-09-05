@@ -54,7 +54,7 @@ x86_64 )
 
 xdspcore )
 	ARCH_DIR="xdspcore"
-	ENABLE_STATICVM="1"
+	ENABLE_STATICVM="yes"
 	CFLAGS="-D__XDSPCORE__"
 	USE_SCHEDULER="1"
 	;;
@@ -212,6 +212,34 @@ dnl Features
 
 dnl check arguments
 
+dnl check for JIT compiler
+AC_ARG_ENABLE([jit], [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=yes]])])
+
+AC_MSG_CHECKING(whether JIT compiled should be compiled)
+if test x"$enable_jit" = "xno"; then
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([ENABLE_JIT], [false])
+else
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
+	AM_CONDITIONAL([ENABLE_JIT], [true])
+fi
+
+dnl check for interpreter
+AC_ARG_ENABLE([intrp], [AS_HELP_STRING(--enable-intrp,enable interpreter [[default=no]])])
+
+AC_MSG_CHECKING(whether interpreter should be compiled)
+if test x"$enable_intrp" = "xyes"; then
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([ENABLE_INTRP], 1, [enable interpreter])
+	AM_CONDITIONAL([ENABLE_INTRP], [true])
+	ENABLE_INTRP="yes"
+else
+	AC_MSG_RESULT(no)
+	AM_CONDITIONAL([ENABLE_INTRP], [false])
+	ENABLE_INTRP="no"
+fi
+
 dnl check for garbage collector usage
 AC_ARG_ENABLE([gc], [AS_HELP_STRING(--disable-gc,disable garbage collector (for debugging only!) [[default=yes]])])
 
@@ -219,9 +247,11 @@ AC_MSG_CHECKING(whether GC should be used)
 if test x"$enable_gc" = "xno"; then
 	AC_MSG_RESULT(no)
 	AM_CONDITIONAL([DISABLE_GC], [true])
+	DISABLE_GC="yes"
 else
 	AC_MSG_RESULT(yes)
 	AM_CONDITIONAL([DISABLE_GC], [false])
+	DISABLE_GC="no"
 fi
 
 dnl check for dump memory usage
@@ -398,10 +428,12 @@ AC_ARG_ENABLE([staticvm], [AS_HELP_STRING(--enable-staticvm, link GNU classpath'
 
 AC_MSG_CHECKING(whether to link GNU classpath statically into CACAO)
 if test x"$enable_staticvm" = "xyes"; then
-	ENABLE_STATICVM="1"
+	ENABLE_STATICVM="yes"
+else
+	ENABLE_STATICVM="no"
 fi
 
-if test x"${ENABLE_STATICVM}" = "x1"; then
+if test x"${ENABLE_STATICVM}" = "xyes"; then
 	AC_MSG_RESULT(yes)
 	AM_CONDITIONAL([ENABLE_STATICVM], [true])
 else
@@ -430,7 +462,7 @@ AC_SUBST(USE_GTK_PEER)
 
 
 dnl pass configure options to classpath
-if test x"${ENABLE_STATICVM}" = "x1"; then
+if test x"${ENABLE_STATICVM}" = "xyes"; then
         AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
 	AM_CONDITIONAL([ENABLE_STATICVM], [true])
 	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
@@ -490,10 +522,21 @@ dnl suitable for us
 ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers ${CONFIGURE_ARGS}"
 
 
-dnl now configure boehm gc and gnu classpath
+dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc src/classpath src/libltdl)
+if test x"${DISABLE_GC}" = "xno"; then
+	AC_CONFIG_SUBDIRS(src/boehm-gc)
+fi
+
+AC_CONFIG_SUBDIRS(src/classpath)
+
+if test x"${ENABLE_STATICVM}" = "xno"; then
+	AC_CONFIG_SUBDIRS(src/libltdl)
+fi
+if test x"${ENABLE_INTRP}" = "xyes"; then
+	AC_CONFIG_SUBDIRS(src/ffcall)
+fi
 
 
 AC_CONFIG_FILES([Makefile]
@@ -528,6 +571,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/i386/Makefile]
 		[src/vm/jit/i386/linux/Makefile]
 		[src/vm/jit/i386/freebsd/Makefile]
+		[src/vm/jit/intrp/Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/loop/Makefile]
 		[src/vm/jit/mips/Makefile]
