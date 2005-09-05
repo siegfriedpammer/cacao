@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3094 2005-07-21 13:16:43Z twisti $
+   $Id: codegen.inc.h 3154 2005-09-05 21:44:57Z twisti $
 
 */
 
@@ -174,7 +174,7 @@ struct linenumberref {
 };
 
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 typedef struct _methodtree_element methodtree_element;
 
 struct _methodtree_element {

@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3130 2005-08-17 23:47:56Z michi $
+   $Id: codegen.inc 3154 2005-09-05 21:44:57Z twisti $
 
 */
 
@@ -88,7 +88,7 @@
 
 /* in this tree we store all method addresses *********************************/
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 static struct avl_table *methodtree = NULL;
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param);
@@ -103,13 +103,17 @@ static int methodtree_comparator(const void *pc, const void *element,
 
 void codegen_init(void)
 {
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 	/* this tree is global, not method specific */
+
 	if (!methodtree) {
+#if !defined(__INTRP__)
 		methodtree_element *mte;
+#endif
 
 		methodtree = avl_create(methodtree_comparator, NULL, NULL);
 
+#if !defined(__INTRP__)
 		/* insert asm_calljavafunction */
 
 		mte = NEW(methodtree_element);
@@ -127,6 +131,7 @@ void codegen_init(void)
 		mte->endpc = (functionptr) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
+#endif /* !defined(__INTRP__) */
 	}
 #endif
 }
@@ -450,6 +455,10 @@ static void codegen_addreference(codegendata *cd, basicblock *target, void *bran
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
+#if !defined(__INTRP__)
+	/* The interpreter uses absolute branches, so we do branch resolving */
+	/* after the code and data segment move. */
+
 	/* Check if the target basicblock has already a start pc, so the jump is  */
 	/* backward and we can resolve it immediately.                            */
 
@@ -458,7 +467,9 @@ static void codegen_addreference(codegendata *cd, basicblock *target, void *bran
 						  branchpos,
 						  target->mpc);
 
-	} else {
+	} else
+#endif
+	{
 		branchref *br = DNEW(branchref);
 
 		br->branchpos = branchpos;
@@ -627,7 +638,7 @@ static void codegen_createlinenumbertable(codegendata *cd)
 }
 
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 /* methodtree_comparator *******************************************************
 
    XXX
@@ -745,7 +756,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	return mte->startpc;
 }
-#endif /* defined(__I386__) || defined(__X86_64__) */
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(__INTRP__) */
 
 
 /* codegen_finish **************************************************************
@@ -819,7 +830,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 	/* add method into methodtree to find the entrypoint */
 
 	codegen_insertmethod(m->entrypoint,
@@ -911,7 +922,9 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 	/* setup code generation stuff */
 
 	inlining_setup(m, id);
+#if !defined(__INTRP__)
 	reg_setup(m, rd, id);
+#endif
 	codegen_setup(m, cd, id);
 						
 	/* create new method descriptor with additional native parameters */
