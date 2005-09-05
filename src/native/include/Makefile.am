@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3078 2005-07-20 15:17:14Z twisti $
+## $Id: Makefile.am 3149 2005-09-05 20:13:25Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -116,7 +116,7 @@ CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 if WITH_EXTERNAL_CLASSPATH
 CLASSPATH = $(top_builddir)/src/lib/vm.zip:$(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
 else
-CLASSPATH = $(top_builddir)/src/classpath/lib/
+CLASSPATH = $(top_builddir)/src/classpath/lib/rt.jar
 endif
 
 all: $(DO_HEADER_FILES)
