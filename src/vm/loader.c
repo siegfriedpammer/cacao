@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3101 2005-07-24 20:18:34Z michi $
+   $Id: loader.c 3156 2005-09-05 21:58:53Z twisti $
 
 */
 
@@ -2876,6 +2876,15 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	clone->entrypoint =
 		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
 
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		void **stub = MNEW(void *, 2);
+		stub[0] = (void *) clone->entrypoint;
+		stub[1] = (void *) 1; /* XXX set 1 paramslot */
+		clone->entrypoint = (functionptr) stub;
+		clone->stubroutine = (functionptr) stub;
+	}
+#endif
 
 	/* XXX: field: length? */
 
