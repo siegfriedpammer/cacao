@@ -28,13 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3032 2005-07-13 11:54:47Z twisti $
+## $Id: Makefile.am 3146 2005-09-05 20:00:15Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	boehm-gc \
 	classpath \
+	ffcall \
 	lib \
 	libltdl \
 	mm \
@@ -45,6 +46,10 @@ DIST_SUBDIRS = \
 	native \
 	cacao \
 	scripts
+
+if ENABLE_INTRP
+FFCALL = ffcall
+endif
 
 if DISABLE_GC
 BOEHM =
@@ -65,6 +70,7 @@ endif
 SUBDIRS = \
 	$(BOEHM) \
 	$(CLASSPATH) \
+	$(FFCALL) \
 	libltdl \
 	mm \
 	toolbox \
