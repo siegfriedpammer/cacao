@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3140 2005-09-02 15:17:20Z twisti $
+   $Id: codegen.c 3142 2005-09-05 15:12:36Z twisti $
 
 */
 
@@ -441,9 +441,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		/* attention: double and longs are only one entry in CACAO ICMDs      */
 
+		/* stack.c changes stack manipulation operations to treat
+		   longs/doubles as occupying a single slot.  Here we are
+		   undoing that (and only those things that stack.c did). */
+
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 
-			gen_POP(&mcodeptr);
+			if (IS_2_WORD_TYPE(src->type))
+				gen_POP2(&mcodeptr);
+			else
+				gen_POP(&mcodeptr);
 			break;
 
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
@@ -453,17 +460,35 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 
-			gen_DUP(&mcodeptr);
+			if (IS_2_WORD_TYPE(src->type))
+				gen_DUP2(&mcodeptr);
+			else
+				gen_DUP(&mcodeptr);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
-			gen_DUP_X1(&mcodeptr);
+			if (IS_2_WORD_TYPE(src->type)) {
+				if (IS_2_WORD_TYPE(src->prev->type)) {
+					gen_DUP2_X2(&mcodeptr);
+				} else {
+					gen_DUP2_X1(&mcodeptr);
+				}
+			} else {
+				if (IS_2_WORD_TYPE(src->prev->type)) {
+					gen_DUP_X2(&mcodeptr);
+				} else {
+					gen_DUP_X1(&mcodeptr);
+				}
+			}
 			break;
 
 		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
 
-			gen_DUP_X1(&mcodeptr);
+			if (IS_2_WORD_TYPE(src->type)) {
+				gen_DUP2_X2(&mcodeptr);
+			} else
+				gen_DUP_X2(&mcodeptr);
 			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
@@ -473,7 +498,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
-			gen_DUP2_X1(&mcodeptr);
+			if (IS_2_WORD_TYPE(src->prev->prev->type))
+				gen_DUP2_X2(&mcodeptr);
+			else
+				gen_DUP2_X1(&mcodeptr);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
