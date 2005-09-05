@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 2659 2005-06-13 14:15:32Z twisti $
+   $Id: patcher.h 3151 2005-09-05 20:20:06Z twisti $
 
 */
 
@@ -129,6 +129,12 @@ bool patcher_invokevirtual(u1 *sp);
 
 bool patcher_invokeinterface(u1 *sp);
 #define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
+
+
+/* only for interpreter */
+bool patcher_checkcast_instanceof(u1 *sp);
+#define PATCHER_checkcast_instanceof (functionptr) patcher_checkcast_instanceof
+
 
 bool patcher_checkcast_instanceof_flags(u1 *sp);
 #define PATCHER_checkcast_instanceof_flags (functionptr) patcher_checkcast_instanceof_flags
