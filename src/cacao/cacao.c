@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3092 2005-07-21 13:06:50Z twisti $
+   $Id: cacao.c 3148 2005-09-05 20:12:24Z twisti $
 
 */
 
@@ -159,6 +159,10 @@ void **stackbottom = 0;
 #define OPT_HELP             100
 #define OPT_X                101
 
+#define OPT_JIT              102
+#define OPT_INTRP            103
+
+#define OPT_TRACE            104
 
 opt_struct opts[] = {
 	{ "classpath",         true,  OPT_CLASSPATH },
@@ -216,6 +220,9 @@ opt_struct opts[] = {
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
+	{ "Xjit",              false, OPT_JIT },
+	{ "Xint",              false, OPT_INTRP },
+	{ "t",                 false, OPT_TRACE },
 	{ NULL,                false, 0 }
 };
 
@@ -302,6 +309,12 @@ static void usage(void)
 
 static void Xusage(void)
 {
+#if defined(ENABLE_JIT)
+	printf("    -Xjit             JIT mode execution (default)\n");
+#endif
+#if defined(ENABLE_INTRP)
+	printf("    -Xint             interpreter mode execution\n");
+#endif
 	printf("    -Xbootclasspath:<zip/jar files and directories separated by :>\n");
     printf("                      value is set as bootstrap class path\n");
 	printf("    -Xbootclasspath/a:<zip/jar files and directories separated by :>\n");
@@ -912,6 +925,28 @@ int main(int argc, char **argv)
 
 		case OPT_X:
 			Xusage();
+			break;
+
+		case OPT_JIT:
+#if defined(ENABLE_JIT)
+			opt_jit = true;
+#else
+			printf("-Xjit option not enabled.\n");
+			exit(1);
+#endif
+			break;
+
+		case OPT_INTRP:
+#if defined(ENABLE_INTRP)
+			opt_intrp = true;
+#else
+			printf("-Xint option not enabled.\n");
+			exit(1);
+#endif
+			break;
+
+		case OPT_TRACE:
+			vm_debug = true;
 			break;
 
 		default:
