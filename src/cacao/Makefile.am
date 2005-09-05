@@ -28,11 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2857 2005-06-28 18:35:37Z twisti $
+## $Id: Makefile.am 3147 2005-09-05 20:11:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+
+if ENABLE_INTRP
+FFCALL_LIB = $(top_builddir)/src/ffcall/avcall/libavcall.la
+endif
 
 if DISABLE_GC
 if NATIVE_THREADS
@@ -108,7 +112,8 @@ cacao_LDADD = \
 	libcacao.la \
 	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
 	$(GC_LIB) \
-	$(CLASSPATH_LIBS)
+	$(CLASSPATH_LIBS) \
+	$(FFCALL_LIB)
 
 cacao_DEPENDENCIES = $(cacao_LDADD)
 
