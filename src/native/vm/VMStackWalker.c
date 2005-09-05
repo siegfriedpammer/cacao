@@ -28,10 +28,12 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 3070 2005-07-20 00:33:27Z michi $
+   $Id: VMStackWalker.c 3150 2005-09-05 20:19:33Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -52,7 +54,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 /*  	if (cacao_initializing) */
 /*  		return NULL; */
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
 	return cacao_createClassContextArray();
 #else
 	return builtin_anewarray(0, class_java_lang_Class);
@@ -67,7 +69,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
  */
 JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
 	java_objectarray *oa;
 
 	oa = cacao_createClassContextArray();
@@ -89,7 +91,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+#if 0
+/* #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__) */
 	java_objectarray *oa;
 	classinfo        *c;
 
