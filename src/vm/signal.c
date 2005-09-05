@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 2973 2005-07-10 15:54:50Z twisti $
+   $Id: signal.c 3144 2005-09-05 17:41:54Z twisti $
 
 */
 
@@ -68,29 +68,37 @@ void signal_init(void)
 	sigemptyset(&act.sa_mask);
 
 
-	/* catch NullPointerException/StackOverFlowException */
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp) {
+# endif
+		/* catch NullPointerException/StackOverFlowException */
 
-	if (!checknull) {
-		act.sa_sigaction = signal_handler_sigsegv;
-		act.sa_flags = SA_NODEFER | SA_SIGINFO;
+		if (!checknull) {
+			act.sa_sigaction = signal_handler_sigsegv;
+			act.sa_flags = SA_NODEFER | SA_SIGINFO;
 
 #if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
+			sigaction(SIGSEGV, &act, NULL);
 #endif
 
 #if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
+			sigaction(SIGBUS, &act, NULL);
 #endif
-	}
+		}
 
 
-	/* catch ArithmeticException */
+		/* catch ArithmeticException */
 
 #if defined(__I386__) || defined(__X86_64__)
-	act.sa_sigaction = signal_handler_sigfpe;
-	act.sa_flags = SA_NODEFER | SA_SIGINFO;
-	sigaction(SIGFPE, &act, NULL);
+		act.sa_sigaction = signal_handler_sigfpe;
+		act.sa_flags = SA_NODEFER | SA_SIGINFO;
+		sigaction(SIGFPE, &act, NULL);
 #endif
+# if defined(ENABLE_INTRP)
+	}
+# endif
+#endif /* !defined(__INTRP__) */
 
 
 	/* catch SIGQUIT for thread dump */
