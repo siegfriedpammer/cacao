@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 3068 2005-07-19 15:36:08Z twisti $
+   $Id: VMRuntime.c 3171 2005-09-10 22:14:29Z twisti $
 
 */
 
@@ -306,7 +306,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	/* calculate length of library name */
 
-	buffer_len = strlen("lib") + utf_strlen(u) + strlen(".so") + strlen("0");
+	buffer_len = strlen("lib") + utf_strlen(u) + strlen("0");
 
 	dumpsize = dump_size();
 	buffer = DMNEW(char, buffer_len);
@@ -316,7 +316,6 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	strcpy(buffer, "lib");
 	utf_strcat(buffer, u);
-	strcat(buffer, ".so");
 
 	s = javastring_new_char(buffer);
 
