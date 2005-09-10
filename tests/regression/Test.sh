@@ -22,7 +22,7 @@ if [ $? -eq "0" ]; then
         echo "OK"
     else
         echo "FAILED"
-        diff $TEST.output $TEST.thisoutput | head
+        diff -u $TEST.output $TEST.thisoutput
     fi
 
 else
@@ -40,7 +40,7 @@ else
         echo "OK"
     else
         echo "FAILED"
-        diff $TEST.2output $TEST.thisoutput | head
+        diff -u $TEST.2output $TEST.thisoutput
     fi
 fi		
 
