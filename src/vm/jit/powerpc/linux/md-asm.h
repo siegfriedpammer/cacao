@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2815 2005-06-23 15:20:39Z twisti $
+   $Id: md-asm.h 3167 2005-09-10 20:30:43Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 
 /* register defines ***********************************************************/
 
+#define zero  r0
 #define sp    r1
 
 #define a0    r3
@@ -52,19 +53,21 @@
 #define a6    r9
 #define a7    r10
 
+#define itmp1 r11
+#define itmp2 r12
 #define pv    r13
 
 #define s0    r14
 #define s1    r15
 
-#define t0    r16
-#define t1    r17
-#define t2    r18
-#define t3    r19
-#define t4    r20
-#define t5    r21
-#define t6    r22
-#define t7    r23
+#define itmp3 r16
+#define t0    r17
+#define t1    r18
+#define t2    r19
+#define t3    r20
+#define t4    r21
+#define t5    r22
+#define t6    r23
 
 #define s2    r24
 #define s3    r25
@@ -77,10 +80,6 @@
 
 #define v0    a0
 #define v1    a1
-
-#define itmp1 r11
-#define itmp2 r12
-#define itmp3 r0
 
 #define xptr  itmp1
 #define xpc   itmp2

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.inc 2685 2005-06-14 17:25:01Z twisti $
+   $Id: md-abi.inc 3167 2005-09-10 20:30:43Z twisti $
 
 */
 
@@ -42,20 +42,35 @@
 /* register descripton array **************************************************/
 
 static int nregdescint[] = {
-/*  	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, */
+	/* zero,      sp, NO(sys),   a0/v0,   a0/v1,      a2,      a3,      a4,   */
 	REG_RES, REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*   a5,      a6,      a7,   itmp1,   itmp2,      pv,      s0,      s1,   */
 	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV,
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*itmp3,      t0,      t1,      t2,      t3,      t4,      t5,      t6,   */
+	REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*   s2,      s3,      s4,      s5,      s6,      s7,      s8,      s9,   */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+
 	REG_END
 };
 
 
 static int nregdescfloat[] = {
+	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*  fa7,     ft0,     ft1,     ft2,     ft3,     ft4,     fs0,     fs1,   */
 	REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_SAV, REG_SAV,
+
+	/*ftmp1,   ftmp2,     ft5,     ft6,     ft7,     ft8,     ft9,    ft10,   */
 	REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*  fs2,     fs3,     fs4,     fs5,     fs6,     fs7,     fs8,     fs9    */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+
 	REG_END
 };
 
