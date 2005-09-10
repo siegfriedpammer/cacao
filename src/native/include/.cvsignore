@@ -1,7 +1,7 @@
 Makefile
 Makefile.in
 
-gnu_classpath_RawData.h
+gnu_classpath_Pointer.h
 gnu_classpath_VMStackWalker.h
 gnu_classpath_VMSystemProperties.h
 java_io_File.h

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3149 2005-09-05 20:13:25Z twisti $
+## $Id: Makefile.am 3159 2005-09-10 14:07:49Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,7 +48,7 @@ GEN_HEADER_FILES = \
 	java_io_InputStream.h \
 	java_io_PrintStream.h \
 	\
-	gnu_classpath_RawData.h \
+	gnu_classpath_Pointer.h \
 	java_io_File.h \
 	java_lang_Boolean.h \
 	java_lang_Byte.h \
