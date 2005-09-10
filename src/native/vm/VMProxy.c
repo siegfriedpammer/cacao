@@ -1,4 +1,4 @@
-/* native/vm/Proxy.c - java/lang/reflect/Proxy
+/* src/native/vm/VMProxy.c - java/lang/reflect/VMProxy
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,11 +27,14 @@
    Authors: Roman Obermaiser
 
    Changes: Joseph Wenninger
+            Christian Thalinger
 
-   $Id: Proxy.c 1735 2004-12-07 14:33:27Z twisti $
+   $Id: VMProxy.c 3161 2005-09-10 14:31:12Z twisti $
 
 */
 
+
+#include <stdlib.h>
 
 #include "native/jni.h"
 #include "native/include/java_lang_Class.h"
@@ -40,41 +43,41 @@
 
 
 /*
- * Class:     java_lang_reflect_Proxy
- * Method:    getProxyClass0
+ * Class:     java/lang/reflect/VMProxy
+ * Method:    getProxyClass
  * Signature: (Ljava/lang/ClassLoader;[Ljava/lang/Class;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Proxy_getProxyClass0(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_getProxyClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_getProxyClass0");
+	log_text("Java_java_lang_reflect_Proxy_getProxyClass: IMPLEMENT ME!");
 
-	return 0;
+	return NULL;
 }
 
 
 /*
- * Class:     java_lang_reflect_Proxy
- * Method:    getProxyData0
+ * Class:     java/lang/reflect/VMProxy
+ * Method:    getProxyData
  * Signature: (Ljava/lang/ClassLoader;[Ljava/lang/Class;)Ljava/lang/reflect/Proxy$ProxyData;
  */
-JNIEXPORT struct java_lang_reflect_Proxy_ProxyData* JNICALL Java_java_lang_reflect_Proxy_getProxyData0(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
+JNIEXPORT struct java_lang_reflect_Proxy_ProxyData* JNICALL Java_java_lang_reflect_VMProxy_getProxyData(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, java_objectarray *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_getProxyData0");
+	log_text("Java_java_lang_reflect_Proxy_getProxyData: IMPLEMENT ME!");
 
-	return 0;
+	return NULL;
 }
 
 
 /*
- * Class:     java_lang_reflect_Proxy
- * Method:    generateProxyClass0
+ * Class:     java/lang/reflect/VMProxy
+ * Method:    generateProxyClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/reflect/Proxy$ProxyData;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Proxy_generateProxyClass0(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, struct java_lang_reflect_Proxy_ProxyData *par2)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMProxy_generateProxyClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *par1, struct java_lang_reflect_Proxy_ProxyData *par2)
 {
-	log_text("Java_java_lang_reflect_Proxy_generateProxyClass0");
+	log_text("Java_java_lang_reflect_Proxy_generateProxyClass: IMPLEMENT ME!");
 
-	return 0;
+	return NULL;
 }
 
 

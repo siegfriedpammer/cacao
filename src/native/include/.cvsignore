@@ -35,7 +35,7 @@ java_lang_reflect_Array.h
 java_lang_reflect_Constructor.h
 java_lang_reflect_Field.h
 java_lang_reflect_Method.h
-java_lang_reflect_Proxy.h
+java_lang_reflect_VMProxy.h
 java_net_NetworkInterface.h
 java_nio_DirectByteBufferImpl.h
 java_security_ProtectionDomain.h

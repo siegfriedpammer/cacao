@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2482 2005-05-19 08:48:55Z jowenn $
+## $Id: Makefile.am 3161 2005-09-10 14:31:12Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 noinst_LTLIBRARIES = libnativevm.la
 
@@ -40,10 +40,10 @@ libnativevm_la_SOURCES = \
 	Constructor.c \
 	Field.c \
 	Method.c \
-	Proxy.c \
 	VMClass.c \
 	VMClassLoader.c \
 	VMObject.c \
+	VMProxy.c \
 	VMRuntime.c \
 	VMStackWalker.c \
 	VMString.c \
