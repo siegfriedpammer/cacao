@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 3150 2005-09-05 20:19:33Z twisti $
+   $Id: VMStackWalker.c 3163 2005-09-10 15:09:44Z twisti $
 
 */
 
@@ -91,8 +91,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-#if 0
-/* #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__) */
+#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
 	java_objectarray *oa;
 	classinfo        *c;
 
