@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 2913 2005-07-05 11:18:20Z twisti $
+   $Id: native.c 3160 2005-09-10 14:29:52Z twisti $
 
 */
 
@@ -82,8 +82,8 @@
 #include "native/include/java_lang_VMThrowable.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_reflect_Proxy.h"
 #include "native/include/java_lang_reflect_Method.h"
+#include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
 
 #if defined(ENABLE_STATICVM)
@@ -135,8 +135,6 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMClass_getClassLoader,
 	(functionptr) Java_java_lang_VMClass_forName,
 	(functionptr) Java_java_lang_VMClass_isArray,
-	(functionptr) Java_java_lang_VMClass_initialize,
-	(functionptr) Java_java_lang_VMClass_loadArrayClass,
 	(functionptr) Java_java_lang_VMClass_throwException,
 
 	(functionptr) Java_java_lang_VMClassLoader_defineClass,
@@ -144,6 +142,7 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMClassLoader_loadClass,
 	(functionptr) Java_java_lang_VMClassLoader_getPrimitiveClass,
 	(functionptr) Java_java_lang_VMClassLoader_nativeGetResources,
+	(functionptr) Java_java_lang_VMClassLoader_findLoadedClass,
 
 	(functionptr) Java_java_lang_VMObject_getClass,
 	(functionptr) Java_java_lang_VMObject_clone,
@@ -209,15 +208,15 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_Field_setFloat,
 	(functionptr) Java_java_lang_reflect_Field_setDouble,
 
-	(functionptr) Java_java_lang_reflect_Proxy_getProxyClass0,
-	(functionptr) Java_java_lang_reflect_Proxy_getProxyData0,
-	(functionptr) Java_java_lang_reflect_Proxy_generateProxyClass0,
-
 	(functionptr) Java_java_lang_reflect_Method_getModifiers,
 	(functionptr) Java_java_lang_reflect_Method_getReturnType,
 	(functionptr) Java_java_lang_reflect_Method_getParameterTypes,
 	(functionptr) Java_java_lang_reflect_Method_getExceptionTypes,
 	(functionptr) Java_java_lang_reflect_Method_invokeNative,
+
+	(functionptr) Java_java_lang_reflect_VMProxy_getProxyClass,
+	(functionptr) Java_java_lang_reflect_VMProxy_getProxyData,
+	(functionptr) Java_java_lang_reflect_VMProxy_generateProxyClass,
 
 	(functionptr) Java_java_security_VMAccessController_getStack,
 };
@@ -403,6 +402,59 @@ void native_library_hash_add(utf *filename, java_objectheader *loader,
 
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
+}
+#endif /* !defined(ENABLE_STATICVM) */
+
+
+/* native_library_hash_find ****************************************************
+
+   Find an entry in the native library hashtable.
+
+*******************************************************************************/
+
+#if !defined(ENABLE_STATICVM)
+library_hash_name_entry *native_library_hash_find(utf *filename,
+												  java_objectheader *loader)
+{
+	library_hash_loader_entry *le;
+	library_hash_name_entry   *ne;      /* library name                       */
+	u4   key;                           /* hashkey                            */
+	u4   slot;                          /* slot in hashtable                  */
+
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
+
+	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
+	slot = key & (library_hash.size - 1);
+	le   = library_hash.ptr[slot];
+
+	/* search external hash chain for the entry */
+
+	while (le) {
+		if (le->loader == loader)
+			break;
+
+		le = le->hashlink;                  /* next element in external chain */
+	}
+
+	/* no loader found? return NULL */
+
+	if (!le)
+		return NULL;
+
+	/* search for library name */
+
+	ne = le->namelink;
+
+	while (ne) {
+		if (ne->name == filename)
+			return ne;
+
+		ne = ne->hashlink;                  /* next element in external chain */
+	}
+
+	/* return entry, if no entry was found, ne is NULL */
+
+	return ne;
 }
 #endif /* !defined(ENABLE_STATICVM) */
 
