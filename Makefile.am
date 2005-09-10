@@ -28,9 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3014 2005-07-12 21:46:25Z twisti $
+## $Id: Makefile.am 3164 2005-09-10 15:55:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+ACLOCAL_AMFLAGS = -I m4 -I src/classpath/m4
 
 MAINTAINERCLEANFILES = Makefile.in configure
 
