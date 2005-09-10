@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3027 2005-07-13 11:38:16Z twisti $
+   $Id: VMClass.c 3157 2005-09-10 13:21:36Z twisti $
 
 */
 
@@ -62,30 +62,31 @@
 /*
  * Class:     java/lang/VMClass
  * Method:    forName
- * Signature: (Ljava/lang/String;)Ljava/lang/Class;
+ * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *s)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
 {
-	return NULL;
-
+#if 0
 	/* XXX TWISTI: we currently use the classpath default implementation, maybe 
 	   we change this someday to a faster native version */
-#if 0
+
+	return NULL;
+#else
 	classinfo *c;
 	utf       *u;
 
 	/* illegal argument */
 
-	if (!s)
+	if (!name)
 		return NULL;
 	
 	/* create utf string in which '.' is replaced by '/' */
 
-	u = javastring_toutf(s, true);
+	u = javastring_toutf(name, true);
 
 	/* try to load, ... */
 
-	if (!(c = load_class_bootstrap(u))) {
+	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
 		classinfo *xclass;
 
 		xclass = (*exceptionptr)->vftbl->class;
@@ -99,7 +100,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 			*exceptionptr = NULL;
 
 			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, s);
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
 		}
 
 	    return NULL;
@@ -110,10 +111,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 	if (!link_class(c))
 		return NULL;
 	
-	/* ...and initialize it */
+	/* ...and initialize it, if required */
 
-	if (!class_init(c))
-		return NULL;
+	if (initialize)
+		if (!initialize_class(c))
+			return NULL;
 
 	use_class_as_object(c);
 
@@ -820,53 +822,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass claz
 			return true;
 
 	return false;
-}
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    initialize
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_VMClass_initialize(JNIEnv *env, jclass clazz, java_lang_Class *klass)
-{
-	classinfo *c;
-
-	c = (classinfo *) klass;
-
-	/* initialize class */
-
-	if (!c->initialized) {
-		/* No need to check return value, because initialize_class already */
-		/* sets the exception pointer. */
-
-		(void) initialize_class(c);
-	}
-}
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    loadArrayClass
- * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;
- */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_loadArrayClass(JNIEnv *env, jclass clazz, java_lang_String *name, java_lang_ClassLoader *classloader)
-{
-	classinfo *c;
-	utf       *u;
-
-	/* create utf string with `.' replaced by `/' */
-
-	u = javastring_toutf(name, true);
-
-	/* load the array class */
-
-	if (!(c = load_class_from_classloader(u, (java_objectheader *)classloader)))
-		return NULL;
-
-	use_class_as_object(c);
-
-	return (java_lang_Class *) c;
 }
 
 
