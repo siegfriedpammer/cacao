@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 3077 2005-07-20 15:16:58Z twisti $
+   $Id: VMThrowable.c 3158 2005-09-10 13:28:19Z twisti $
 
 */
 
@@ -61,11 +61,6 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 {
 	java_lang_VMThrowable *vmthrow;
 
-	if ((*dontfillinexceptionstacktrace) == true) {
-		/*log_text("dontfillinexceptionstacktrace");*/
-		return 0;
-	}
-
 	vmthrow = (java_lang_VMThrowable *)
 		native_new_and_init(class_java_lang_VMThrowable);
 
@@ -75,7 +70,8 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	}
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData));
+	if (!cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData)))
+		return NULL;
 #endif
 
 	return vmthrow;
