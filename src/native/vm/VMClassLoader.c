@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 2893 2005-07-04 20:35:24Z twisti $
+   $Id: VMClassLoader.c 3162 2005-09-10 14:33:58Z twisti $
 
 */
 
@@ -416,6 +416,24 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	}
 
 	return (java_util_Vector *) o;
+}
+
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    findLoadedClass
+ * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name)
+{
+	classinfo *c;
+	utf       *u;
+
+	u = javastring_toutf(name, false);
+
+	c = classcache_lookup((classloader *) cl, u);
+
+	return (java_lang_Class *) c;
 }
 
 
