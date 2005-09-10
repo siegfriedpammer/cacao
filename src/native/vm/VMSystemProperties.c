@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3090 2005-07-21 11:29:43Z twisti $
+   $Id: VMSystemProperties.c 3165 2005-09-10 16:28:21Z twisti $
 
 */
 
@@ -233,8 +233,18 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	insert_property(m, p, "java.io.tmpdir", "/tmp");
 
-	/* XXX We don't support java.lang.Compiler */
-/*  	insert_property(m, p, "java.compiler", "cacao.jit"); */
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		/* XXX We don't support java.lang.Compiler */
+/*  		insert_property(m, p, "java.compiler", "cacao.intrp"); */
+		insert_property(m, p, "java.vm.info", "interpreted mode");
+	} else
+#endif
+	{
+		/* XXX We don't support java.lang.Compiler */
+/*  		insert_property(m, p, "java.compiler", "cacao.jit"); */
+		insert_property(m, p, "java.vm.info", "JIT mode");
+	}
 
 	insert_property(m, p, "java.ext.dirs", CACAO_INSTALL_PREFIX""CACAO_EXT_DIR);
  	insert_property(m, p, "os.name", utsnamebuf.sysname);
