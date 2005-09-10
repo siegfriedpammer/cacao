@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3041 2005-07-13 21:13:36Z twisti $
+   $Id: codegen.c 3169 2005-09-10 20:32:22Z twisti $
 
 */
 
@@ -108,7 +108,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* prevent compiler warnings */
 
 	d = 0;
-	currentline = 0;
 	lm = NULL;
 	bte = NULL;
 
@@ -187,8 +186,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* create stack frame (if necessary) */
 
 	if (!m->isleafmethod) {
-		M_MFLR(REG_ITMP3);
-		M_AST(REG_ITMP3, REG_SP, LA_LR_OFFSET);
+		M_MFLR(REG_ZERO);
+		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
 
 	if (parentargs_base) {
@@ -471,6 +470,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		
 		src = bptr->instack;
 		len = bptr->icount;
+		currentline = 0;
 
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
@@ -542,25 +542,32 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* load/store operations **********************************************/
 
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_LLOAD:      /* op1 = local variable                         */
-		case ICMD_ALOAD:
+		case ICMD_ALOAD:      /* op1 = local variable                         */
 
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (IS_2_WORD_TYPE(var->type)) /* TYPE_LNG */
-				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			else
-				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1))
 				break;
-
 			if (var->flags & INMEMORY) {
-				if (IS_2_WORD_TYPE(var->type)) {
-					M_ILD(GET_HIGH_REG(d), REG_SP, var->regoff * 4);
-					M_ILD(GET_LOW_REG(d), REG_SP, var->regoff * 4 + 4);
-				} else {
-					M_ILD(d, REG_SP, var->regoff * 4);
-				}
+				M_ILD(d, REG_SP, var->regoff * 4);
+			} else {
+				M_TINTMOVE(var->type, var->regoff, d);
+			}
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
+		                      /* op1 = local variable                         */
+
+			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			if ((iptr->dst->varkind == LOCALVAR) &&
+				(iptr->dst->varnum == iptr->op1))
+				break;
+			if (var->flags & INMEMORY) {
+				M_ILD(GET_HIGH_REG(d), REG_SP, var->regoff * 4);
+				M_ILD(GET_LOW_REG(d), REG_SP, var->regoff * 4 + 4);
 			} else {
 				M_TINTMOVE(var->type, var->regoff, d);
 			}
@@ -572,14 +579,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
-			    (iptr->dst->varnum == iptr->op1))
+				(iptr->dst->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
 			if (var->flags & INMEMORY)
 				if (IS_2_WORD_TYPE(var->type))
-					M_DLD(d, REG_SP, 4 * var->regoff);
+					M_DLD(d, REG_SP, var->regoff * 4);
 				else
-					M_FLD(d, REG_SP, 4 * var->regoff);
+					M_FLD(d, REG_SP, var->regoff * 4);
 			else {
 				M_FLTMOVE(var->regoff, d);
 			}
@@ -588,23 +595,30 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_LSTORE:     /* op1 = local variable                         */
-		case ICMD_ASTORE:
+		case ICMD_ASTORE:     /* op1 = local variable                         */
 
-			if ((src->varkind == LOCALVAR) &&
-			    (src->varnum == iptr->op1))
+			if ((src->varkind == LOCALVAR) && (src->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
-				if (IS_2_WORD_TYPE(var->type)) {
-					var_to_reg_int(s1, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-					M_IST(GET_HIGH_REG(s1), REG_SP, var->regoff * 4);
-					M_IST(GET_LOW_REG(s1), REG_SP, var->regoff * 4 + 4);
-				} else {
-					var_to_reg_int(s1, src, REG_ITMP1);
-					M_IST(s1, REG_SP, var->regoff * 4);
-				}
+				var_to_reg_int(s1, src, REG_ITMP1);
+				M_IST(s1, REG_SP, var->regoff * 4);
+			} else {
+				var_to_reg_int(s1, src, var->regoff);
+				M_TINTMOVE(var->type, s1, var->regoff);
+			}
+			break;
 
+		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
+		                      /* op1 = local variable                         */
+
+			if ((src->varkind == LOCALVAR) && (src->varnum == iptr->op1))
+				break;
+			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			if (var->flags & INMEMORY) {
+				var_to_reg_int(s1, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
+				M_IST(GET_HIGH_REG(s1), REG_SP, var->regoff * 4);
+				M_IST(GET_LOW_REG(s1), REG_SP, var->regoff * 4 + 4);
 			} else {
 				var_to_reg_int(s1, src, var->regoff);
 				M_TINTMOVE(var->type, s1, var->regoff);
@@ -614,16 +628,15 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		case ICMD_DSTORE:     /* op1 = local variable                         */
 
-			if ((src->varkind == LOCALVAR) &&
-			    (src->varnum == iptr->op1))
+			if ((src->varkind == LOCALVAR) && (src->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				var_to_reg_flt(s1, src, REG_FTMP1);
 				if (var->type == TYPE_DBL)
-					M_DST(s1, REG_SP, 4 * var->regoff);
+					M_DST(s1, REG_SP, var->regoff * 4);
 				else
-					M_FST(s1, REG_SP, 4 * var->regoff);
+					M_FST(s1, REG_SP, var->regoff * 4);
 			} else {
 				var_to_reg_flt(s1, src, var->regoff);
 				M_FLTMOVE(s1, var->regoff);
@@ -695,7 +708,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_int(s1, src, REG_ITMP1); 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_NEG(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -703,7 +716,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_int(s1, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_SUBFIC(GET_LOW_REG(s1), 0, GET_LOW_REG(d));
 			M_SUBFZE(GET_HIGH_REG(s1), GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
@@ -712,7 +725,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_INTMOVE(s1, GET_LOW_REG(d));
 			M_SRA_IMM(GET_LOW_REG(d), 31, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
@@ -722,14 +735,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
-			M_INTMOVE(s1, d );
+			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_BSEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -737,7 +750,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_CZEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -745,7 +758,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_SSEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -755,7 +768,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_IADD(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -764,7 +777,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_IADD_IMM(s1, iptr->val.i, d);
 			} else {
@@ -778,10 +791,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
 			var_to_reg_int_low(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_ADDC(s1, s2, GET_LOW_REG(d));
 			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);
+			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_ADDE(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -791,23 +804,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			s3 = iptr->val.l & 0xffffffff;
 			var_to_reg_int_low(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= -32768) && (s3 <= 32767)) {
 				M_ADDIC(s1, s3, GET_LOW_REG(d));
-
 			} else {
 				ICONST(REG_ITMP2, s3);
 				M_ADDC(s1, REG_ITMP2, GET_LOW_REG(d));
-
 			}
 			var_to_reg_int_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
-			if (s3 == -1)
+			if (s3 == -1) {
 				M_ADDME(s1, GET_HIGH_REG(d));
-			else if (s3 == 0)
+			} else if (s3 == 0) {
 				M_ADDZE(s1, GET_HIGH_REG(d));
-			else {
-				ICONST(REG_ITMP3, s3);
+			} else {
+				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
 				M_ADDE(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			store_reg_to_var_int(iptr->dst, d);
@@ -817,7 +828,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_ISUB(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -826,7 +837,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= -32767) && (iptr->val.i <= 32768)) {
 				M_IADD_IMM(s1, -iptr->val.i, d);
 			} else {
@@ -840,10 +851,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
 			var_to_reg_int_low(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_SUBC(s1, s2, GET_LOW_REG(d));
 			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);
+			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_SUBE(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -853,7 +864,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			s3 = (-iptr->val.l) & 0xffffffff;
 			var_to_reg_int_low(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= -32768) && (s3 <= 32767)) {
 				M_ADDIC(s1, s3, GET_LOW_REG(d));
 			} else {
@@ -867,7 +878,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			else if (s3 == 0)
 				M_ADDZE(s1, GET_HIGH_REG(d));
 			else {
-				ICONST(REG_ITMP3, s3);
+				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
 				M_ADDE(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			store_reg_to_var_int(iptr->dst, d);
@@ -877,12 +888,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			M_TST(s2);
 			M_BEQ(0);
 			codegen_addxdivrefs(cd, mcodeptr);
 			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
 			M_CMP(REG_ITMP3, s1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3); /* does not change flags*/
 			M_BNE(3 + (s1 != d));
 			M_CMPI(s2, -1);
 			M_BNE(1 + (s1 != d));
@@ -896,12 +907,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_TST(s2);
 			M_BEQ(0);
 			codegen_addxdivrefs(cd, mcodeptr);
 			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
 			M_CMP(REG_ITMP3, s1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3); /* does not change flags*/
 			M_BNE(4);
 			M_CMPI(s2, -1);
 			M_BNE(2);
@@ -919,7 +930,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			bte = iptr->val.a;
 			md = bte->md;
 
-			var_to_reg_int(s2, src, PACK_REGS(REG_ITMP1, REG_ITMP2));
+			var_to_reg_int(s2, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_OR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
 			M_BEQ(0);
 			codegen_addxdivrefs(cd, mcodeptr);
@@ -928,7 +939,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
 			M_TINTMOVE(TYPE_LNG, s2, s3);
 
-			var_to_reg_int(s1, src->prev, PACK_REGS(REG_ITMP1, REG_ITMP2));
+			var_to_reg_int(s1, src->prev, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
 			M_TINTMOVE(TYPE_LNG, s1, s3);
@@ -947,7 +958,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_IMUL(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -956,14 +967,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_IMUL_IMM(s1, iptr->val.i, d);
-				}
-			else {
-				ICONST(REG_ITMP2, iptr->val.i);
-				M_IMUL(s1, REG_ITMP2, d);
-				}
+			} else {
+				ICONST(REG_ITMP3, iptr->val.i);
+				M_IMUL(s1, REG_ITMP3, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -980,7 +990,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SLL(s1, REG_ITMP3, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -990,7 +1000,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_SLL_IMM(s1, iptr->val.i & 0x1f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -999,7 +1009,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SRA(s1, REG_ITMP3, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -1009,7 +1019,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_SRA_IMM(s1, iptr->val.i & 0x1f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1018,7 +1028,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP2);
 			M_SRL(s1, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -1028,11 +1038,12 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr->val.i & 0x1f)
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			if (iptr->val.i & 0x1f) {
 				M_SRL_IMM(s1, iptr->val.i & 0x1f, d);
-			else
+			} else {
 				M_INTMOVE(s1, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1040,7 +1051,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_AND(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1049,7 +1060,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 65535)) {
 				M_AND_IMM(s1, iptr->val.i, d);
 				}
@@ -1059,9 +1070,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 			*/
 			else {
-				ICONST(REG_ITMP2, iptr->val.i);
-				M_AND(s1, REG_ITMP2, d);
-				}
+				ICONST(REG_ITMP3, iptr->val.i);
+				M_AND(s1, REG_ITMP3, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1069,10 +1080,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
 			var_to_reg_int_low(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_AND(s1, s2, GET_LOW_REG(d));
 			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);
+			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_AND(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1082,20 +1093,19 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			s3 = iptr->val.l & 0xffffffff;
 			var_to_reg_int_low(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_AND_IMM(s1, s3, GET_LOW_REG(d));
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_AND(s1, REG_ITMP2, GET_LOW_REG(d));
+				ICONST(REG_ITMP3, s3);
+				M_AND(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
 			var_to_reg_int_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_AND_IMM(s1, s3, GET_HIGH_REG(d));
-
 			} else {
-				ICONST(REG_ITMP3, s3);
+				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
 				M_AND(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			store_reg_to_var_int(iptr->dst, d);
@@ -1105,16 +1115,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_MOV(s1, REG_ITMP2);
 			M_CMPI(s1, 0);
 			M_BGE(1 + 2*(iptr->val.i >= 32768));
 			if (iptr->val.i >= 32768) {
-				M_ADDIS(REG_ZERO, iptr->val.i>>16, REG_ITMP2);
+				M_ADDIS(REG_ZERO, iptr->val.i >> 16, REG_ITMP2);
 				M_OR_IMM(REG_ITMP2, iptr->val.i, REG_ITMP2);
 				M_IADD(s1, REG_ITMP2, REG_ITMP2);
-			} else
+			} else {
 				M_IADD_IMM(s1, iptr->val.i, REG_ITMP2);
+			}
 			{
 				int b=0, m = iptr->val.i;
 				while (m >>= 1)
@@ -1129,7 +1140,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_OR(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1138,14 +1149,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 65535)) {
 				M_OR_IMM(s1, iptr->val.i, d);
-				}
-			else {
-				ICONST(REG_ITMP2, iptr->val.i);
-				M_OR(s1, REG_ITMP2, d);
-				}
+			} else {
+				ICONST(REG_ITMP3, iptr->val.i);
+				M_OR(s1, REG_ITMP3, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1153,10 +1163,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
 			var_to_reg_int_low(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_OR(s1, s2, GET_LOW_REG(d));
 			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);
+			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_OR(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1166,19 +1176,19 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			s3 = iptr->val.l & 0xffffffff;
 			var_to_reg_int_low(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_OR_IMM(s1, s3, GET_LOW_REG(d));
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_OR(s1, REG_ITMP2, GET_LOW_REG(d));
+				ICONST(REG_ITMP3, s3);
+				M_OR(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
 			var_to_reg_int_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_OR_IMM(s1, s3, GET_HIGH_REG(d));
 			} else {
-				ICONST(REG_ITMP3, s3);
+				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
 				M_OR(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			store_reg_to_var_int(iptr->dst, d);
@@ -1188,7 +1198,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_XOR(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1197,14 +1207,13 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 65535)) {
 				M_XOR_IMM(s1, iptr->val.i, d);
-				}
-			else {
-				ICONST(REG_ITMP2, iptr->val.i);
-				M_XOR(s1, REG_ITMP2, d);
-				}
+			} else {
+				ICONST(REG_ITMP3, iptr->val.i);
+				M_XOR(s1, REG_ITMP3, d);
+			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1212,10 +1221,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
 			var_to_reg_int_low(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_XOR(s1, s2, GET_LOW_REG(d));
 			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);
+			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_XOR(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1225,19 +1234,19 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			s3 = iptr->val.l & 0xffffffff;
 			var_to_reg_int_low(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_XOR_IMM(s1, s3, GET_LOW_REG(d));
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_XOR(s1, REG_ITMP2, GET_LOW_REG(d));
+				ICONST(REG_ITMP3, s3);
+				M_XOR(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
 			var_to_reg_int_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_XOR_IMM(s1, s3, GET_HIGH_REG(d));
 			} else {
-				ICONST(REG_ITMP3, s3);
+				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
 				M_XOR(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			store_reg_to_var_int(iptr->dst, d);
@@ -1295,19 +1304,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (var->flags & INMEMORY) {
 				s1 = REG_ITMP1;
 				M_ILD(s1, REG_SP, var->regoff * 4);
-			} else
+			} else {
 				s1 = var->regoff;
+			}
 			{
 				u4 m = iptr->val.i;
-				if (m&0x8000)
+				if (m & 0x8000)
 					m += 65536;
-				if (m&0xffff0000)
-					M_ADDIS(s1, m>>16, s1);
-				if (m&0xffff)
-					M_IADD_IMM(s1, m&0xffff, s1);
+				if (m & 0xffff0000)
+					M_ADDIS(s1, m >> 16, s1);
+				if (m & 0xffff)
+					M_IADD_IMM(s1, m & 0xffff, s1);
 			}
-			if (var->flags & INMEMORY)
+			if (var->flags & INMEMORY) {
 				M_IST(s1, REG_SP, var->regoff * 4);
+			}
 			break;
 
 
@@ -1404,17 +1415,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 		case ICMD_D2I:
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_CLR(d);
-			a = dseg_addfloat(cd, 0.0);
-			M_FLD(REG_FTMP2, REG_PV, a);
+			disp = dseg_addfloat(cd, 0.0);
+			M_FLD(REG_FTMP2, REG_PV, disp);
 			M_FCMPU(s1, REG_FTMP2);
 			M_BNAN(4);
-			a = dseg_adds4(cd, 0);
+			disp = dseg_adds4(cd, 0);
 			M_CVTDL_C(s1, REG_FTMP1);
-			M_LDA (REG_ITMP1, REG_PV, a);
+			M_LDA(REG_ITMP1, REG_PV, disp);
 			M_STFIWX(REG_FTMP1, 0, REG_ITMP1);
-			M_ILD (d, REG_PV, a);
+			M_ILD(d, REG_PV, disp);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 		
@@ -1438,14 +1449,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DCMPL:
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			M_FCMPU(s2, s1);
-			M_IADD_IMM(0, -1, d);
+			M_IADD_IMM(REG_ZERO, -1, d);
 			M_BNAN(4);
 			M_BGT(3);
-			M_IADD_IMM(0, 0, d);
+			M_IADD_IMM(REG_ZERO, 0, d);
 			M_BGE(1);
-			M_IADD_IMM(0, 1, d);
+			M_IADD_IMM(REG_ZERO, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1453,14 +1464,14 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DCMPG:
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			M_FCMPU(s1, s2);
-			M_IADD_IMM(0, 1, d);
+			M_IADD_IMM(REG_ZERO, 1, d);
 			M_BNAN(4);
 			M_BGT(3);
-			M_IADD_IMM(0, 0, d);
+			M_IADD_IMM(REG_ZERO, 0, d);
 			M_BGE(1);
-			M_IADD_IMM(0, -1, d);
+			M_IADD_IMM(REG_ZERO, -1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 			
@@ -1470,41 +1481,54 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			gen_nullptr_check(s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_SLL_IMM(s2, 2, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
-			M_LWZX(d, s1, REG_ITMP2);
+			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_LBZX(d, s1, REG_ITMP2);
+			M_BSEXT(d, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;			
+
+		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_LHZX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_SLL_IMM(s2, 3, REG_ITMP2);
-			M_IADD(s1, REG_ITMP2, REG_ITMP2);
-			M_ILD(GET_HIGH_REG(d), REG_ITMP2, OFFSET(java_longarray, data[0]));
-			M_ILD(GET_LOW_REG(d), REG_ITMP2, OFFSET(java_longarray,
-			    data[0]) + 4);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_LHAX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1512,7 +1536,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1523,11 +1547,28 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
+		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_SLL_IMM(s2, 3, REG_ITMP2);
+			M_IADD(s1, REG_ITMP2, REG_ITMP2);
+			M_ILD(GET_HIGH_REG(d), REG_ITMP2, OFFSET(java_longarray, data[0]));
+			M_ILD(GET_LOW_REG(d), REG_ITMP2, OFFSET(java_longarray,
+													data[0]) + 4);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1542,7 +1583,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1553,49 +1594,75 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
-		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_IADD_IMM(s2, OFFSET(java_chararray, data[0]), REG_ITMP2);
-			M_LBZX(d, s1, REG_ITMP2);
-			M_BSEXT(d, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;			
-
-		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			M_SLL_IMM(s2, 1, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
-			M_LHAX(d, s1, REG_ITMP2);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_objectarray, data[0]), REG_ITMP2);
+			M_LWZX(d, s1, REG_ITMP2);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
+			var_to_reg_int(s3, src, REG_ITMP3);
+			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
+			M_STBX(s3, s1, REG_ITMP2);
+			break;
+
+		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SLL_IMM(s2, 1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
-			M_LHZX(d, s1, REG_ITMP2);
-			store_reg_to_var_int(iptr->dst, d);
+			M_STHX(s3, s1, REG_ITMP2);
+			break;
+
+		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_int(s3, src, REG_ITMP3);
+			M_SLL_IMM(s2, 1, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_STHX(s3, s1, REG_ITMP2);
+			break;
+
+		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_int(s3, src, REG_ITMP3);
+			M_SLL_IMM(s2, 2, REG_ITMP2);
+			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1612,20 +1679,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_STWX(s3, s1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
 			var_to_reg_int_low(s3, src, REG_ITMP3);
-			M_STWX(s3, s1, REG_ITMP2);
-			break;
-
-		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 2, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_intarray, data[0]), REG_ITMP2);
 			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
@@ -1657,60 +1710,18 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_STFDX(s3, s1, REG_ITMP2);
 			break;
 
-		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_IADD_IMM(s2, OFFSET(java_bytearray, data[0]), REG_ITMP2);
-			M_STBX(s3, s1, REG_ITMP2);
-			break;
-
-		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 1, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_shortarray, data[0]), REG_ITMP2);
-			M_STHX(s3, s1, REG_ITMP2);
-			break;
-
-		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			M_SLL_IMM(s2, 1, REG_ITMP2);
-			M_IADD_IMM(REG_ITMP2, OFFSET(java_chararray, data[0]), REG_ITMP2);
-			M_STHX(s3, s1, REG_ITMP2);
-			break;
-
-
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s1, src->prev->prev, rd->argintregs[0]);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
 /* 			if (iptr->op1 == 0) { */
 				gen_nullptr_check(s1);
 				gen_bound_check;
 /* 			} */
-			var_to_reg_int(s3, src, REG_ITMP3);
+			var_to_reg_int(s3, src, rd->argintregs[1]);
 
-			M_MOV(s1, rd->argintregs[0]);
-			M_MOV(s3, rd->argintregs[1]);
+			M_INTMOVE(s1, rd->argintregs[0]);
+			M_INTMOVE(s3, rd->argintregs[1]);
 			bte = iptr->val.a;
 			disp = dseg_addaddress(cd, bte->fp);
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1733,56 +1744,55 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = type, val.a = field address            */
 
 			if (!iptr->val.a) {
+				disp = dseg_addaddress(cd, NULL);
+
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = 0;
-
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
+				disp = dseg_addaddress(cd, &(fi->value));
+
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				a = (ptrint) &(fi->value);
   			}
 
-			a = dseg_addaddress(cd, a);
-			M_ALD(REG_ITMP1, REG_PV, a);
+			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ILD(d, REG_ITMP1, 0);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				M_ILD_INTERN(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
-				M_ILD(GET_HIGH_REG(d), REG_ITMP1, 0);
-				M_ILD(GET_LOW_REG(d), REG_ITMP1, 4);
+				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+				M_ILD_INTERN(GET_LOW_REG(d), REG_ITMP1, 4);/* keep this order */
+				M_ILD_INTERN(GET_HIGH_REG(d), REG_ITMP1, 0);/*keep this order */
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ALD(d, REG_ITMP1, 0);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				M_ALD_INTERN(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_FLD(d, REG_ITMP1, 0);
+				M_FLD_INTERN(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_DLD(d, REG_ITMP1, 0);
+				M_DLD_INTERN(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			}
@@ -1793,52 +1803,51 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 
 			if (!iptr->val.a) {
+				disp = dseg_addaddress(cd, NULL);
+
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = 0;
-
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
+				disp = dseg_addaddress(cd, &(fi->value));
+
 				if (!fi->class->initialized) {
 					codegen_addpatchref(cd, mcodeptr,
-										PATCHER_clinit, fi->class);
+										PATCHER_clinit, fi->class, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				a = (ptrint) &(fi->value);
   			}
 
-			disp = dseg_addaddress(cd, a);
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				var_to_reg_int(s2, src, REG_ITMP2);
-				M_IST(s2, REG_ITMP1, 0);
+				M_IST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
 				var_to_reg_int(s2, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
-				M_IST(GET_HIGH_REG(s2), REG_ITMP1, 0);
-				M_IST(GET_LOW_REG(s2), REG_ITMP1, 4);
+				M_IST_INTERN(GET_HIGH_REG(s2), REG_ITMP1, 0);
+				M_IST_INTERN(GET_LOW_REG(s2), REG_ITMP1, 4);
 				break;
 			case TYPE_ADR:
 				var_to_reg_int(s2, src, REG_ITMP2);
-				M_AST(s2, REG_ITMP1, 0);
+				M_AST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_FLT:
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				M_FST(s2, REG_ITMP1, 0);
+				M_FST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_DBL:
 				var_to_reg_flt(s2, src, REG_FTMP2);
-				M_DST(s2, REG_ITMP1, 0);
+				M_DST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			}
 			break;
@@ -1853,42 +1862,42 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = 0;
+				disp = 0;
 
 			} else {
-				a = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = ((fieldinfo *) (iptr->val.a))->offset;
 			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ILD(d, s1, a);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				M_ILD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-   				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
-				M_ILD(GET_HIGH_REG(d), s1, a);
-				M_ILD(GET_LOW_REG(d), s1, a + 4);
+   				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
+				M_ILD(GET_LOW_REG(d), s1, disp + 4);       /* keep this order */
+				M_ILD(GET_HIGH_REG(d), s1, disp);          /* keep this order */
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-				M_ALD(d, s1, a);
+				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				M_ALD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_FLD(d, s1, a);
+				M_FLD(d, s1, disp);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				M_DLD(d, s1, a);
+				M_DLD(d, s1, disp);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			}
@@ -1913,33 +1922,33 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (!iptr->val.a) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putfield,
-									(unresolved_field *) iptr->target);
+									(unresolved_field *) iptr->target, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = 0;
+				disp = 0;
 
 			} else {
-				a = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = ((fieldinfo *) (iptr->val.a))->offset;
 			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				M_IST(s2, s1, a);
+				M_IST(s2, s1, disp);
 				break;
 			case TYPE_LNG:
-				M_IST(GET_HIGH_REG(s2), s1, a);
-				M_IST(GET_LOW_REG(s2), s1, a + 4);
+				M_IST(GET_LOW_REG(s2), s1, disp + 4);      /* keep this order */
+				M_IST(GET_HIGH_REG(s2), s1, disp);         /* keep this order */
 				break;
 			case TYPE_ADR:
-				M_AST(s2, s1, a);
+				M_AST(s2, s1, disp);
 				break;
 			case TYPE_FLT:
-				M_FST(s2, s1, a);
+				M_FST(s2, s1, disp);
 				break;
 			case TYPE_DBL:
-				M_DST(s2, s1, a);
+				M_DST(s2, s1, disp);
 				break;
 			}
 			break;
@@ -1955,11 +1964,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
-			if (m->isleafmethod) M_MFLR(REG_ITMP3);  /* save LR */
-			M_BL(0);            /* get current PC */
+			if (m->isleafmethod) M_MFLR(REG_ITMP3);         /* save LR        */
+			M_BL(0);                                        /* get current PC */
 			M_MFLR(REG_ITMP2_XPC);
-			if (m->isleafmethod) M_MTLR(REG_ITMP3);  /* restore LR */
-			M_RTS;              /* jump to CTR */
+			if (m->isleafmethod) M_MTLR(REG_ITMP3);         /* restore LR     */
+			M_RTS;                                          /* jump to CTR    */
 
 			ALIGNCODENOP;
 			break;
@@ -1988,10 +1997,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var = &(rd->locals[iptr->op1][TYPE_ADR]);
 			if (var->flags & INMEMORY) {
-				M_ALD(REG_ITMP1, REG_SP, 4 * var->regoff);
+				M_ALD(REG_ITMP1, REG_SP, var->regoff * 4);
 				M_MTCTR(REG_ITMP1);
-			} else
+			} else {
 				M_MTCTR(var->regoff);
+			}
 			M_RTS;
 			ALIGNCODENOP;
 			break;
@@ -2025,32 +2035,30 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			if ((iptr->val.i >= -32768) && (iptr->val.i <= 32767)) {
 				M_CMPI(s1, iptr->val.i);
-				}
-			else {
+			} else {
 				ICONST(REG_ITMP2, iptr->val.i);
 				M_CMP(s1, REG_ITMP2);
-				}
-			switch (iptr->opc)
-			{
-				case ICMD_IFLT:
-					M_BLT(0);
-					break;
-				case ICMD_IFLE:
-					M_BLE(0);
-					break;
-				case ICMD_IFNE:
-					M_BNE(0);
-					break;
-				case ICMD_IFGT:
-					M_BGT(0);
-					break;
-				case ICMD_IFGE:
-					M_BGE(0);
-					break;
-				case ICMD_IFEQ:
-					M_BEQ(0);
-					break;
-				}
+			}
+			switch (iptr->opc) {
+			case ICMD_IFLT:
+				M_BLT(0);
+				break;
+			case ICMD_IFLE:
+				M_BLE(0);
+				break;
+			case ICMD_IFNE:
+				M_BNE(0);
+				break;
+			case ICMD_IFGT:
+				M_BGT(0);
+				break;
+			case ICMD_IFGE:
+				M_BGE(0);
+				break;
+			case ICMD_IFEQ:
+				M_BEQ(0);
+				break;
+			}
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
@@ -2063,12 +2071,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
 				M_CMPI(REG_ITMP3, 0);
-
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BNE(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2095,7 +2101,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2125,7 +2130,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2147,12 +2151,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.l == 0) {
 				M_OR(s1, s2, REG_ITMP3);
 				M_CMPI(REG_ITMP3, 0);
-
   			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
   				M_CMPI(s2, (u4) (iptr->val.l >> 32));
 				M_BEQ(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2180,7 +2182,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2209,7 +2210,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
   				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
-
   			} else {
   				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
   				M_CMP(s2, REG_ITMP3);
@@ -2309,6 +2309,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_TINTMOVE(src->type, s1, REG_RESULT);
 			goto nowperformreturn;
+
 		case ICMD_LRETURN:
 			var_to_reg_int(s1, src, PACK_REGS(REG_RESULT2, REG_RESULT));
 			M_TINTMOVE(src->type, s1, PACK_REGS(REG_RESULT2, REG_RESULT));
@@ -2331,11 +2332,11 @@ nowperformreturn:
 			/* call trace function */
 
 			if (runverbose) {
-				M_MFLR(REG_ITMP3);
+				M_MFLR(REG_ZERO);
 				M_LDA(REG_SP, REG_SP, -10 * 8);
 				M_DST(REG_FRESULT, REG_SP, 48+0);
 				M_IST(REG_RESULT, REG_SP, 48+8);
-				M_AST(REG_ITMP3, REG_SP, 48+12);
+				M_AST(REG_ZERO, REG_SP, 48+12);
 				M_IST(REG_RESULT2, REG_SP, 48+16);
 
 				/* keep this order */
@@ -2362,21 +2363,22 @@ nowperformreturn:
 					break;
 				}
 
-				a = dseg_addaddress(cd, m);
-				M_ALD(rd->argintregs[0], REG_PV, a);
+				disp = dseg_addaddress(cd, m);
+				M_ALD(rd->argintregs[0], REG_PV, disp);
 
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-				a = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
-				M_ALD(REG_ITMP2, REG_PV, a);
+				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
+				M_ALD(REG_ITMP2, REG_PV, disp);
 				M_MTCTR(REG_ITMP2);
 				M_JSR;
+
 				M_DLD(REG_FRESULT, REG_SP, 48+0);
 				M_ILD(REG_RESULT, REG_SP, 48+8);
-				M_ALD(REG_ITMP3, REG_SP, 48+12);
+				M_ALD(REG_ZERO, REG_SP, 48+12);
 				M_ILD(REG_RESULT2, REG_SP, 48+16);
 				M_LDA(REG_SP, REG_SP, 10 * 8);
-				M_MTLR(REG_ITMP3);
+				M_MTLR(REG_ZERO);
 			}
 			
 #if defined(USE_THREADS)
@@ -2398,8 +2400,8 @@ nowperformreturn:
 					break;
 				}
 
-				a = dseg_addaddress(cd, BUILTIN_monitorexit);
-				M_ALD(REG_ITMP3, REG_PV, a);
+				disp = dseg_addaddress(cd, BUILTIN_monitorexit);
+				M_ALD(REG_ITMP3, REG_PV, disp);
 				M_MTCTR(REG_ITMP3);
 				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 4);
 				M_JSR;
@@ -2426,8 +2428,8 @@ nowperformreturn:
 			/* restore return address                                         */
 
 			if (!m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, p * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
+				M_ALD(REG_ZERO, REG_SP, p * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ZERO);
 			}
 
 			/* restore saved registers                                        */
@@ -2476,8 +2478,6 @@ nowperformreturn:
 
 			M_CMPUI(REG_ITMP1, i - 1);
 			M_BGT(0);
-
-			/* codegen_addreference(cd, BlockPtrOfPC(s4ptr[0]), mcodeptr); */
 			codegen_addreference(cd, (basicblock *) tptr[0], mcodeptr);
 
 			/* build jump table top down and use address of lowest entry */
@@ -2486,10 +2486,9 @@ nowperformreturn:
 			tptr += i;
 
 			while (--i >= 0) {
-				/* dseg_addtarget(cd, BlockPtrOfPC(*--s4ptr)); */
 				dseg_addtarget(cd, (basicblock *) tptr[0]); 
 				--tptr;
-				}
+			}
 			}
 
 			/* length of dataseg after last dseg_addtarget is used by load */
@@ -2523,20 +2522,16 @@ nowperformreturn:
 				val = s4ptr[0];
 				if ((val >= -32768) && (val <= 32767)) {
 					M_CMPI(s1, val);
-					} 
-				else {
+				} else {
 					a = dseg_adds4(cd, val);
 					M_ILD(REG_ITMP2, REG_PV, a);
 					M_CMP(s1, REG_ITMP2);
-					}
-				M_BEQ(0);
-				/* codegen_addreference(cd, BlockPtrOfPC(s4ptr[1]), mcodeptr); */
-				codegen_addreference(cd, (basicblock *) tptr[0], mcodeptr); 
 				}
+				M_BEQ(0);
+				codegen_addreference(cd, (basicblock *) tptr[0], mcodeptr); 
+			}
 
 			M_BR(0);
-			/* codegen_addreference(cd, BlockPtrOfPC(l), mcodeptr); */
-			
 			tptr = (void **) iptr->target;
 			codegen_addreference(cd, (basicblock *) tptr[0], mcodeptr);
 
@@ -2580,21 +2575,23 @@ gen_method:
 					continue;
 				if (IS_INT_LNG_TYPE(src->type)) {
 					if (!md->params[s3].inmemory) {
-						if (IS_2_WORD_TYPE(src->type))
+						if (IS_2_WORD_TYPE(src->type)) {
 							s1 = PACK_REGS(
 						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
-						else
+						} else {
 							s1 = rd->argintregs[md->params[s3].regoff];
+						}
 						var_to_reg_int(d, src, s1);
 						M_TINTMOVE(src->type, d, s1);
 					} else {
-						var_to_reg_int(d, src, PACK_REGS(REG_ITMP3, REG_ITMP1));
+						var_to_reg_int(d, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
 						M_IST(GET_HIGH_REG(d), REG_SP,
 							  md->params[s3].regoff * 4);
-						if (IS_2_WORD_TYPE(src->type))
+						if (IS_2_WORD_TYPE(src->type)) {
 							M_IST(GET_LOW_REG(d), 
 								  REG_SP, md->params[s3].regoff * 4 + 4);
+						}
 					}
 						
 				} else {
@@ -2604,10 +2601,11 @@ gen_method:
 						M_FLTMOVE(d, s1);
 					} else {
 						var_to_reg_flt(d, src, REG_FTMP1);
-						if (IS_2_WORD_TYPE(src->type))
+						if (IS_2_WORD_TYPE(src->type)) {
 							M_DST(d, REG_SP, md->params[s3].regoff * 4);
-						else
+						} else {
 							M_FST(d, REG_SP, md->params[s3].regoff * 4);
+						}
 					}
 				}
 			} /* end of for */
@@ -2615,21 +2613,21 @@ gen_method:
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				if (iptr->target) {
-					codegen_addpatchref(cd, mcodeptr, bte->fp, iptr->target);
+					disp = dseg_addaddress(cd, NULL);
+
+					codegen_addpatchref(cd, mcodeptr, bte->fp, iptr->target,
+										disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
 
-					a = 0;
-
 				} else {
-					a = (ptrint) bte->fp;
+					disp = dseg_addaddress(cd, bte->fp);
 				}
 
-				a = dseg_addaddress(cd, a);
 				d = md->returntype.type;
 
-				M_ALD(REG_PV, REG_PV, a); /* Pointer to built-in-function */
+				M_ALD(REG_PV, REG_PV, disp);  /* pointer to built-in-function */
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2641,22 +2639,22 @@ gen_method:
 				if (!lm) {
 					unresolved_method *um = iptr->target;
 
+					disp = dseg_addaddress(cd, NULL);
+
 					codegen_addpatchref(cd, mcodeptr,
-										PATCHER_invokestatic_special, um);
+										PATCHER_invokestatic_special, um, disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
 
-					a = 0;
 					d = md->returntype.type;
 
 				} else {
-					a = (ptrint) lm->stubroutine;
+					disp = dseg_addaddress(cd, lm->stubroutine);
 					d = md->returntype.type;
 				}
 
-				a = dseg_addaddress(cd, a);
-				M_ALD(REG_PV, REG_PV, a);       /* method pointer in r27 */
+				M_ALD(REG_PV, REG_PV, disp);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2666,7 +2664,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, mcodeptr,
-										PATCHER_invokevirtual, um);
+										PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2692,7 +2690,7 @@ gen_method:
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, mcodeptr,
-										PATCHER_invokeinterface, um);
+										PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2722,16 +2720,9 @@ gen_method:
 
 			/* recompute pv */
 
-			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 			M_MFLR(REG_ITMP1);
-			if (s1 <= 32768)
-				 M_LDA(REG_PV, REG_ITMP1, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) { ml += 65536; mh--; }
-				M_LDA(REG_PV, REG_ITMP1, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-			}
+			M_LDA(REG_PV, REG_ITMP1, -disp);
 
 			/* d contains return type */
 
@@ -2812,15 +2803,16 @@ gen_method:
 				M_TST(s1);
 				M_BEQ(3 + (opt_showdisassemble ? 1 : 0) + s2 + 1 + s3);
 
+				disp = dseg_adds4(cd, 0);                     /* super->flags */
+
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = dseg_adds4(cd, 0); /* super->flags */
-				M_ILD(REG_ITMP2, REG_PV, a);
+				M_ILD(REG_ITMP2, REG_PV, disp);
 				M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
 				M_BEQ(s2 + 1);
 			}
@@ -2835,7 +2827,7 @@ gen_method:
 				} else {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2847,8 +2839,8 @@ gen_method:
 				M_BLE(0);
 				codegen_addxcastrefs(cd, mcodeptr);
 				M_ALD(REG_ITMP3, REG_ITMP2,
-					OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*));
+					  OFFSET(vftbl_t, interfacetable[0]) -
+					  superindex * sizeof(methodptr*));
 				M_TST(REG_ITMP3);
 				M_BEQ(0);
 				codegen_addxcastrefs(cd, mcodeptr);
@@ -2860,6 +2852,8 @@ gen_method:
 			/* class checkcast code */
 
 			if (!super || !(super->flags & ACC_INTERFACE)) {
+				disp = dseg_addaddress(cd, supervftbl);
+
 				if (super) {
 					M_TST(s1);
 					M_BEQ(s3);
@@ -2867,7 +2861,8 @@ gen_method:
 				} else {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_checkcast_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target,
+										disp);
 
 					if (opt_showdisassemble)
 						M_NOP;
@@ -2878,8 +2873,7 @@ gen_method:
 				codegen_threadcritstart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-				a = dseg_addaddress(cd, supervftbl);
-				M_ALD(REG_ITMP2, REG_PV, a);
+				M_ALD(REG_ITMP2, REG_PV, disp);
 				if (s1 != REG_ITMP1) {
 					M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
@@ -2890,7 +2884,7 @@ gen_method:
 				} else {
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
-					M_ALD(REG_ITMP2, REG_PV, a);
+					M_ALD(REG_ITMP2, REG_PV, disp);
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstop(cd, (u1 *) mcodeptr - cd->mcodebase);
@@ -2900,7 +2894,7 @@ gen_method:
 				M_BGT(0);
 				codegen_addxcastrefs(cd, mcodeptr);
 			}
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, s1);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			}
@@ -2909,13 +2903,15 @@ gen_method:
 		case ICMD_ARRAYCHECKCAST: /* ..., objectref ==> ..., objectref        */
 		                          /* op1: 1... resolved, 0... not resolved    */
 
-			var_to_reg_int(s1, src, REG_ITMP1);
+			var_to_reg_int(s1, src, rd->argintregs[0]);
 			M_INTMOVE(s1, rd->argintregs[0]);
 
 			bte = iptr->val.a;
 
+			disp = dseg_addaddress(cd, iptr->target);
+
 			if (!iptr->op1) {
-				codegen_addpatchref(cd, mcodeptr, bte->fp, iptr->target);
+				codegen_addpatchref(cd, mcodeptr, bte->fp, iptr->target, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -2926,7 +2922,6 @@ gen_method:
 				a = (ptrint) bte->fp;
 			}
 
-			disp = dseg_addaddress(cd, iptr->target);
 			M_ALD(rd->argintregs[1], REG_PV, disp);
 			disp = dseg_addaddress(cd, a);
 			M_ALD(REG_ITMP2, REG_PV, disp);
@@ -2937,7 +2932,7 @@ gen_method:
 			codegen_addxcastrefs(cd, mcodeptr);
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = reg_of_var(rd, iptr->dst, s1);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2979,7 +2974,7 @@ gen_method:
             codegen_threadcritrestart(cd, (u1*) mcodeptr - cd->mcodebase);
 #endif
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -2987,7 +2982,7 @@ gen_method:
 
 			/* calculate interface instanceof code size */
 
-			s2 = 9;
+			s2 = 8;
 			if (!super)
 				s2 += (opt_showdisassemble ? 1 : 0);
 
@@ -3005,16 +3000,17 @@ gen_method:
 				M_TST(s1);
 				M_BEQ(3 + (opt_showdisassemble ? 1 : 0) + s2 + 1 + s3);
 
+				disp = dseg_adds4(cd, 0);                     /* super->flags */
+
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target);
+									(constant_classref *) iptr->target, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
 
-				a = dseg_adds4(cd, 0); /* super->flags */
-				M_ILD(REG_ITMP2, REG_PV, a);
-				M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
+				M_ILD(REG_ITMP3, REG_PV, disp);
+				M_AND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
 				M_BEQ(s2 + 1);
 			}
 
@@ -3023,26 +3019,25 @@ gen_method:
 			if (!super || (super->flags & ACC_INTERFACE)) {
 				if (super) {
 					M_TST(s1);
-					M_BEQ(9);
+					M_BEQ(s2);
 
 				} else {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble)
 						M_NOP;
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-				M_ILD(REG_ITMP2, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
-				M_LDATST(REG_ITMP2, REG_ITMP2, -superindex);
-				M_BLE(5);
+				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
+				M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
+				M_BLE(4);
 				M_ALD(REG_ITMP1, REG_ITMP1,
-					OFFSET(vftbl_t, interfacetable[0]) -
-					superindex * sizeof(methodptr*));
+					  OFFSET(vftbl_t, interfacetable[0]) -
+					  superindex * sizeof(methodptr*));
 				M_TST(REG_ITMP1);
-				M_CLR(d);
 				M_BEQ(1);
 				M_IADD_IMM(REG_ZERO, 1, d);
 
@@ -3053,6 +3048,8 @@ gen_method:
 			/* class instanceof code */
 
 			if (!super || !(super->flags & ACC_INTERFACE)) {
+				disp = dseg_addaddress(cd, supervftbl);
+
 				if (super) {
 					M_TST(s1);
 					M_BEQ(s3);
@@ -3060,7 +3057,8 @@ gen_method:
 				} else {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_instanceof_class,
-										(constant_classref *) iptr->target);
+										(constant_classref *) iptr->target,
+										disp);
 
 					if (opt_showdisassemble) {
 						M_NOP;
@@ -3068,8 +3066,7 @@ gen_method:
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
-				a = dseg_addaddress(cd, supervftbl);
-				M_ALD(REG_ITMP2, REG_PV, a);
+				M_ALD(REG_ITMP2, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 				codegen_threadcritstart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
@@ -3127,29 +3124,29 @@ gen_method:
 #endif
 			}
 
-			/* is patcher function set? */
-
-			if (iptr->target) {
-				codegen_addpatchref(cd, mcodeptr,
-									(functionptr) iptr->target, iptr->val.a);
-
-				if (opt_showdisassemble)
-					M_NOP;
-
-				a = 0;
-
-			} else {
-				a = (ptrint) iptr->val.a;
-			}
-
 			/* a0 = dimension count */
 
 			ICONST(rd->argintregs[0], iptr->op1);
 
+			/* is patcher function set? */
+
+			if (iptr->target) {
+				disp = dseg_addaddress(cd, NULL);
+
+				codegen_addpatchref(cd, mcodeptr,
+									(functionptr) iptr->target, iptr->val.a,
+									disp);
+
+				if (opt_showdisassemble)
+					M_NOP;
+
+			} else {
+				disp = dseg_addaddress(cd, iptr->val.a);
+			}
+
 			/* a1 = arraydescriptor */
 
-			a = dseg_addaddress(cd, iptr->val.a);
-			M_ALD(rd->argintregs[1], REG_PV, a);
+			M_ALD(rd->argintregs[1], REG_PV, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
@@ -3159,23 +3156,14 @@ gen_method:
 			M_LDA(rd->argintregs[2], REG_SP, LA_SIZE + 3 * 4);
 #endif
 
-			a = dseg_addaddress(cd, BUILTIN_multianewarray);
-			M_ALD(REG_PV, REG_PV, a);
-			M_MTCTR(REG_PV);
+			disp = dseg_addaddress(cd, BUILTIN_multianewarray);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_MTCTR(REG_ITMP3);
 			M_JSR;
-			s1 = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			M_MFLR(REG_ITMP1);
-			if (s1 <= 32768)
-				M_LDA (REG_PV, REG_ITMP1, -s1);
-			else {
-				s4 ml = -s1, mh = 0;
-				while (ml < -32768) {ml += 65536; mh--;}
-				M_LDA(REG_PV, REG_ITMP1, ml);
-				M_LDAH(REG_PV, REG_PV, mh);
-		    }
-			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
-			M_INTMOVE(REG_RESULT, s1);
-			store_reg_to_var_int(iptr->dst, s1);
+
+			d = reg_of_var(rd, iptr->dst, REG_RESULT);
+			M_INTMOVE(REG_RESULT, d);
+			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 
@@ -3215,9 +3203,9 @@ gen_method:
 				} else {
 					if (IS_2_WORD_TYPE(s2)) {
 						M_IST(GET_HIGH_REG(s1),
-                            REG_SP, rd->interfaces[len][s2].regoff * 4);
+							  REG_SP, rd->interfaces[len][s2].regoff * 4);
 						M_IST(GET_LOW_REG(s1), REG_SP,
-						    rd->interfaces[len][s2].regoff * 4 + 4);
+							  rd->interfaces[len][s2].regoff * 4 + 4);
 					} else {
 						M_IST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
 					}
@@ -3265,15 +3253,15 @@ gen_method:
 			xcodeptr = mcodeptr;
 
 			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MFLR(REG_ZERO);
+				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 			}
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
 
 			if (m->isleafmethod)
-				M_MOV(REG_ITMP3, rd->argintregs[2]);
+				M_MOV(REG_ZERO, rd->argintregs[2]);
 			else
 				M_ALD(rd->argintregs[2],
 					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3293,8 +3281,8 @@ gen_method:
 			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
+				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ZERO);
 			}
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
@@ -3329,15 +3317,15 @@ gen_method:
 			xcodeptr = mcodeptr;
 
 			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MFLR(REG_ZERO);
+				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 			}
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
 
 			if (m->isleafmethod)
-				M_MOV(REG_ITMP3, rd->argintregs[2]);
+				M_MOV(REG_ZERO, rd->argintregs[2]);
 			else
 				M_ALD(rd->argintregs[2],
 					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3358,8 +3346,8 @@ gen_method:
 			M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
 			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
+				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ZERO);
 			}
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
@@ -3449,15 +3437,15 @@ gen_method:
 			xcodeptr = mcodeptr;
 
 			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MFLR(REG_ZERO);
+				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 			}
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
 
 			if (m->isleafmethod)
-				M_MOV(REG_ITMP3, rd->argintregs[2]);
+				M_MOV(REG_ZERO, rd->argintregs[2]);
 			else
 				M_ALD(rd->argintregs[2],
 					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3477,8 +3465,8 @@ gen_method:
 			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
+				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ZERO);
 			}
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
@@ -3568,15 +3556,15 @@ gen_method:
 			xcodeptr = mcodeptr;
 
 			if (m->isleafmethod) {
-				M_MFLR(REG_ITMP3);
-				M_AST(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MFLR(REG_ZERO);
+				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
 			}
 
 			M_MOV(REG_PV, rd->argintregs[0]);
 			M_MOV(REG_SP, rd->argintregs[1]);
 
 			if (m->isleafmethod)
-				M_MOV(REG_ITMP3, rd->argintregs[2]);
+				M_MOV(REG_ZERO, rd->argintregs[2]);
 			else
 				M_ALD(rd->argintregs[2],
 					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
@@ -3596,8 +3584,8 @@ gen_method:
 			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
 
 			if (m->isleafmethod) {
-				M_ALD(REG_ITMP3, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP3);
+				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ZERO);
 			}
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
@@ -3693,8 +3681,8 @@ gen_method:
 
 			/* move return address onto stack */
 
-			M_MFLR(REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 4 * 4);
+			M_MFLR(REG_ZERO);
+			M_AST_INTERN(REG_ZERO, REG_SP, 5 * 4);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -3704,58 +3692,39 @@ gen_method:
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
-			if (disp >= -32768) {
-				M_LDA(REG_ITMP3, REG_PV, disp);
-			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
-				M_LDA(REG_ITMP3, REG_ITMP3, disp);
-			}
-			M_AST(REG_ITMP3, REG_SP, 3 * 4);
+			M_LDA(REG_ITMP3, REG_PV, disp);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
 #else
 			M_CLR(REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 3 * 4);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
 #endif
 
 			/* move machine code onto stack */
 
 			disp = dseg_adds4(cd, mcode);
-			if (disp >= -32768) {
-				M_ILD(REG_ITMP3, REG_PV, disp);
-			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
-				M_ILD(REG_ITMP3, REG_ITMP3, disp);
-			}
-			M_IST(REG_ITMP3, REG_SP, 2 * 4);
+			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_IST_INTERN(REG_ITMP3, REG_SP, 3 * 4);
 
 			/* move class/method/field reference onto stack */
 
 			disp = dseg_addaddress(cd, pref->ref);
-			if (disp >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, disp);
-			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, disp);
-			}
-			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 2 * 4);
+
+			/* move data segment displacement onto stack */
+
+			disp = dseg_addaddress(cd, pref->disp);
+			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 4);
 
 			/* move patcher function pointer onto stack */
 
 			disp = dseg_addaddress(cd, pref->patcher);
-			if (disp >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, disp);
-			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, disp);
-			}
-			M_AST(REG_ITMP3, REG_SP, 0 * 4);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 4);
 
 			disp = dseg_addaddress(cd, asm_wrapper_patcher);
-			if (disp >= -32768) {
-				M_ALD(REG_ITMP3, REG_PV, disp);
-			} else {
-				M_LDAH(REG_ITMP3, REG_PV, (disp >> 16));
-				M_ALD(REG_ITMP3, REG_ITMP3, disp);
-			}
+			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
 		}
@@ -3782,8 +3751,8 @@ functionptr createcompilerstub(methodinfo *m)
 	s4 *s = CNEW(s4, COMPSTUBSIZE);     /* memory to hold the stub            */
 	s4 *mcodeptr = s;                   /* code generation pointer            */
 
-	M_LDA(REG_ITMP1, REG_PV, 4*4);
-	M_ALD(REG_PV, REG_PV, 5*4);
+	M_LDA(REG_ITMP1, REG_PV, 4 * 4);
+	M_ALD_INTERN(REG_PV, REG_PV, 5 * 4);
 	M_MTCTR(REG_PV);
 	M_RTS;
 
@@ -3812,12 +3781,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
-	s4          disp;
 	methoddesc *md;
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
-	s4          s1, s2, off;
+	s4          s1, s2, disp;
+	s4          funcdisp;
 
 	/* set some variables */
 
@@ -3855,19 +3824,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* generate code */
 
-	M_MFLR(REG_ITMP1);
-	M_AST(REG_ITMP1, REG_SP, LA_LR_OFFSET);
+	M_MFLR(REG_ZERO);
+	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STWU(REG_SP, REG_SP, -(stackframesize * 4));
 
-
-	/* if function is static, check for initialized */
-
-	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
-		codegen_addpatchref(cd, mcodeptr, PATCHER_clinit, m->class);
-
-		if (opt_showdisassemble)
-			M_NOP;
-	}
 
 	if (runverbose) {
 		/* parent_argbase == stackframesize * 4 */
@@ -3875,6 +3835,19 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 									  true);
 	}
 
+
+	/* get function address (this must happen before the stackframeinfo) */
+
+	funcdisp = dseg_addaddress(cd, f);
+
+#if !defined(ENABLE_STATICVM)
+	if (f == NULL) {
+		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m, funcdisp);
+
+		if (opt_showdisassemble)
+			M_NOP;
+	}
+#endif
 
 	/* save integer and float argument registers */
 
@@ -3884,10 +3857,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		if (IS_INT_LNG_TYPE(t)) {
 			s1 = md->params[i].regoff;
 			if (IS_2_WORD_TYPE(t)) {
-				M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-				M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
+				M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
+				M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
 			} else {
-				M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
+				M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
 			}
 		}
 	}
@@ -3895,7 +3871,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
-			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 8);
+			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+			j++;
 		}
 	}
 
@@ -3906,8 +3883,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MOV(REG_PV, rd->argintregs[1]);
 	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 4 + LA_LR_OFFSET);
-	off = dseg_addaddress(cd, stacktrace_create_native_stackframeinfo);
-	M_ALD(REG_ITMP1, REG_PV, off);
+	disp = dseg_addaddress(cd, stacktrace_create_native_stackframeinfo);
+	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 
@@ -3920,10 +3897,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			s1 = md->params[i].regoff;
 
 			if (IS_2_WORD_TYPE(t)) {
-				M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
-				M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
+				M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
+				M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
 			} else {
-				M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j++ * 4);
+				M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				j++;
 			}
 		}
 	}
@@ -3931,7 +3911,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
-			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + 4 * 4 + j++ * 8);
+			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+			j++;
 		}
 	}
 
@@ -4004,33 +3985,20 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC) {
-		off = dseg_addaddress(cd, m->class);
-		M_ALD(rd->argintregs[1], REG_PV, off);
+		disp = dseg_addaddress(cd, m->class);
+		M_ALD(rd->argintregs[1], REG_PV, disp);
 	}
 
 	/* put env into first argument register */
 
-	off = dseg_addaddress(cd, &env);
-	M_ALD(rd->argintregs[0], REG_PV, off);
+	disp = dseg_addaddress(cd, &env);
+	M_ALD(rd->argintregs[0], REG_PV, disp);
 
 	/* generate the actual native call */
 
-#if !defined(ENABLE_STATICVM)
-	if (f == NULL) {
-		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m);
-
-		if (opt_showdisassemble)
-			M_NOP;
-	}
-#endif
-
-	off = dseg_addaddress(cd, f);
-	M_ALD(REG_PV, REG_PV, off);
-	M_MTCTR(REG_PV);
+	M_ALD(REG_ITMP3, REG_PV, funcdisp);
+	M_MTCTR(REG_ITMP3);
 	M_JSR;
-	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-	M_MFLR(REG_ITMP1);
-	M_LDA(REG_PV, REG_ITMP1, -disp);                  /* recompute pv from ra */
 
 
 	/* remove native stackframe info */
@@ -4053,8 +4021,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_AADD_IMM(REG_SP, stackframesize * 4 - sizeof(stackframeinfo),
 			   rd->argintregs[0]);
-	off = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
-	M_ALD(REG_ITMP1, REG_PV, off);
+	disp = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
+	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 
@@ -4109,11 +4077,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-		off = dseg_addaddress(cd, m);
-		M_ALD(rd->argintregs[0], REG_PV, off);
+		disp = dseg_addaddress(cd, m);
+		M_ALD(rd->argintregs[0], REG_PV, disp);
 
-		off = dseg_addaddress(cd, builtin_displaymethodstop);
-		M_ALD(REG_ITMP2, REG_PV, off);
+		disp = dseg_addaddress(cd, builtin_displaymethodstop);
+		M_ALD(REG_ITMP2, REG_PV, disp);
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
@@ -4142,8 +4110,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		break;
 	}
 
-	off = dseg_addaddress(cd, builtin_get_exceptionptrptr);
-	M_ALD(REG_ITMP1, REG_PV, off);
+	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
+	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 	M_MOV(REG_RESULT, REG_ITMP2);
@@ -4164,15 +4132,15 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		break;
 	}
 #else
-	off = dseg_addaddress(cd, &_exceptionptr)
-	M_ALD(REG_ITMP2, REG_PV, off);
+	disp = dseg_addaddress(cd, &_exceptionptr)
+	M_ALD(REG_ITMP2, REG_PV, disp);
 #endif
 	M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);/* load exception into reg. itmp1     */
 	M_TST(REG_ITMP1_XPTR);
 	M_BNE(4);                           /* if no exception then return        */
 
-	M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
-	M_MTLR(REG_ITMP1);
+	M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
+	M_MTLR(REG_ZERO);
 	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
 
 	M_RET;
@@ -4187,10 +4155,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
 
-	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC); /* fault address                */
+	M_IADD_IMM(REG_ITMP2, -4, REG_ITMP2_XPC);  /* fault address               */
 
-	off = dseg_addaddress(cd, asm_handle_nat_exception);
-	M_ALD(REG_ITMP3, REG_PV, off);
+	disp = dseg_addaddress(cd, asm_handle_nat_exception);
+	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_MTCTR(REG_ITMP3);
 	M_RTS;
 
@@ -4225,8 +4193,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 			/* move return address onto stack */
 
-			M_MFLR(REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 4 * 4);
+			M_MFLR(REG_ZERO);
+			M_AST(REG_ZERO, REG_SP, 5 * 4);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -4234,35 +4202,41 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			/* order reversed because of data segment layout */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
-			M_LDA(REG_ITMP3, REG_PV, off);
-			M_AST(REG_ITMP3, REG_SP, 3 * 4);
+			M_LDA(REG_ITMP3, REG_PV, disp);
+			M_AST(REG_ITMP3, REG_SP, 4 * 4);
 #else
 			M_CLR(REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 3 * 4);
+			M_AST(REG_ITMP3, REG_SP, 4 * 4);
 #endif
 
 			/* move machine code onto stack */
 
-			off = dseg_adds4(cd, mcode);
-			M_ILD(REG_ITMP3, REG_PV, off);
-			M_IST(REG_ITMP3, REG_SP, 2 * 4);
+			disp = dseg_adds4(cd, mcode);
+			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_IST(REG_ITMP3, REG_SP, 3 * 4);
 
 			/* move class/method/field reference onto stack */
 
-			off = dseg_addaddress(cd, pref->ref);
-			M_ALD(REG_ITMP3, REG_PV, off);
-			M_AST(REG_ITMP3, REG_SP, 1 * 4);
+			disp = dseg_addaddress(cd, pref->ref);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_AST(REG_ITMP3, REG_SP, 2 * 4);
+
+			/* move data segment displacement onto stack */
+
+			disp = dseg_addaddress(cd, pref->disp);
+			M_ILD(REG_ITMP3, REG_PV, disp);
+			M_IST(REG_ITMP3, REG_SP, 1 * 4);
 
 			/* move patcher function pointer onto stack */
 
-			off = dseg_addaddress(cd, pref->patcher);
-			M_ALD(REG_ITMP3, REG_PV, off);
+			disp = dseg_addaddress(cd, pref->patcher);
+			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
-			off = dseg_addaddress(cd, asm_wrapper_patcher);
-			M_ALD(REG_ITMP3, REG_PV, off);
+			disp = dseg_addaddress(cd, asm_wrapper_patcher);
+			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
 		}

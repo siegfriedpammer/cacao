@@ -31,13 +31,15 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 2957 2005-07-09 15:48:43Z twisti $
+   $Id: codegen.h 3169 2005-09-10 20:32:22Z twisti $
 
 */
 
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
+
+#include "config.h"
 
 #include "md-abi.h"
 
@@ -333,7 +335,24 @@
 #define M_STBX(a,b,c)                   M_OP3(31, 215, 0, 0, a, b, c)
 #define M_STFSX(a,b,c)                  M_OP3(31, 663, 0, 0, a, b, c)
 #define M_STFDX(a,b,c)                  M_OP3(31, 727, 0, 0, a, b, c)
-#define M_STWU(a,b,c)                   M_OP2_IMM(37, a, b, c)
+
+#define M_STWU_INTERN(a,b,disp)         M_OP2_IMM(37,a,b,disp)
+
+#define M_STWU(a,b,disp) \
+    do { \
+        s4 lo = (disp) & 0x0000ffff; \
+        s4 hi = ((disp) >> 16); \
+        if (((disp) >= -32678) && ((disp) <= 32767)) { \
+            M_STWU_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(REG_ZERO,hi,REG_ITMP3); \
+            M_OR_IMM(REG_ITMP3,lo,REG_ITMP3); \
+            M_STWUX(REG_SP,REG_SP,REG_ITMP3); \
+        } \
+    } while (0)
+
+#define M_STWUX(a,b,c)                  M_OP3(31,183,0,0,a,b,c)
+
 #define M_LDAH(a,b,c)                   M_ADDIS(b, c, a)
 #define M_TRAP                          M_OP3(31, 4, 0, 0, 31, 0, 0)
 
@@ -362,14 +381,49 @@
 #define M_FCMPU(a,b)                    M_OP3(63, 0, 0, 0, 0, a, b)
 #define M_FCMPO(a,b)                    M_OP3(63, 32, 0, 0, 0, a, b)
 
-#define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)
-#define M_SST(a,b,c)                    M_OP2_IMM(44, a, b, c)
-#define M_IST(a,b,c)                    M_OP2_IMM(36, a, b, c)
-#define M_AST(a,b,c)                    M_OP2_IMM(36, a, b, c)
 #define M_BLDU(a,b,c)                   M_OP2_IMM(34, a, b, c)
 #define M_SLDU(a,b,c)                   M_OP2_IMM(40, a, b, c)
-#define M_ILD(a,b,c)                    M_OP2_IMM(32, a, b, c)
-#define M_ALD(a,b,c)                    M_ILD(a, b, c)
+
+#define M_ILD_INTERN(a,b,disp)          M_OP2_IMM(32,a,b,disp)
+
+#define M_ILD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_ILD_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,a); \
+            M_ILD_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+#define M_ALD_INTERN(a,b,disp)          M_ILD_INTERN(a,b,disp)
+#define M_ALD(a,b,disp)                 M_ILD(a,b,disp)
+
+#define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)
+#define M_SST(a,b,c)                    M_OP2_IMM(44, a, b, c)
+
+#define M_IST_INTERN(a,b,disp)          M_OP2_IMM(36,a,b,disp)
+
+/* Stores with displacement overflow should only happen with PUTFIELD or on   */
+/* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
+/* reg_of_var call should not use REG_ITMP3!!!                                */
+
+#define M_IST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_IST_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_IST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_AST_INTERN(a,b,disp)          M_IST_INTERN(a,b,disp)
+#define M_AST(a,b,disp)                 M_IST(a,b,disp)
 
 #define M_BSEXT(a,b)                    M_OP3(31, 954, 0, 0, a, b, 0)
 #define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
@@ -394,10 +448,59 @@
 #define M_BNE(a)                        M_BRAC(16, 4, 2, a, 0, 0);
 #define M_BNAN(a)                       M_BRAC(16, 12, 3, a, 0, 0);
 
-#define M_DLD(a,b,c)                    M_OP2_IMM(50, a, b, c)
-#define M_DST(a,b,c)                    M_OP2_IMM(54, a, b, c)
-#define M_FLD(a,b,c)                    M_OP2_IMM(48, a, b, c)
-#define M_FST(a,b,c)                    M_OP2_IMM(52, a, b, c)
+#define M_FLD_INTERN(a,b,disp)          M_OP2_IMM(48,a,b,disp)
+#define M_DLD_INTERN(a,b,disp)          M_OP2_IMM(50,a,b,disp)
+
+#define M_FLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_FLD_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_FLD_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_DLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_DLD_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_DLD_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_FST_INTERN(a,b,disp)          M_OP2_IMM(52,a,b,disp)
+#define M_DST_INTERN(a,b,disp)          M_OP2_IMM(54,a,b,disp)
+
+#define M_FST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_FST_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_FST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_DST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_DST_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_DST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
 
 #define M_MFLR(a)                       M_OP3(31, 339, 0, 0, a, 8, 0)
 #define M_MFXER(a)                      M_OP3(31, 339, 0, 0, a, 1, 0)
@@ -406,7 +509,21 @@
 #define M_MTXER(a)                      M_OP3(31, 467, 0, 0, a, 1, 0)
 #define M_MTCTR(a)                      M_OP3(31, 467, 0, 0, a, 9, 0)
 
-#define M_LDA(a,b,c)                    M_IADD_IMM(b, c, a)
+#define M_LDA_INTERN(a,b,c)             M_IADD_IMM(b, c, a)
+
+#define M_LDA(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_LDA_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,a); \
+            M_LDA_INTERN(a,a,lo); \
+        } \
+    } while (0)
+
+
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
 #define M_CLR(a)                        M_IADD_IMM(0, 0, a)
 #define M_AADD_IMM(a,b,c)               M_IADD_IMM(a, b, c)

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3049 2005-07-18 18:52:20Z twisti $
+   $Id: asmpart.S 3169 2005-09-10 20:32:22Z twisti $
 
 */
 
@@ -123,7 +123,7 @@ asm_calljavafunction_int:
 	stw     t4,56(r1)
 	stw     t5,60(r1)
 	stw     t6,64(r1)
-	stw     t7,68(r1)
+/*	stw     t7,68(r1) */
 
 	stfd	ftmp1,72(r1)
 	stfd	ftmp2,80(r1)
@@ -172,7 +172,7 @@ calljava_regrestore:
 	lwz     t4,56(r1)
 	lwz     t5,60(r1)
 	lwz     t6,64(r1)
-	lwz     t7,68(r1)
+/*	lwz     t7,68(r1) */
 
 	lfd     ftmp1,72(r1)
 	lfd     ftmp2,80(r1)
@@ -192,7 +192,7 @@ calljava_regrestore:
 	blr
 
 calljava_xhandler:
-	mr      r3,itmp1
+	mr      a0,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
 	b       calljava_regrestore
@@ -239,6 +239,7 @@ asm_calljavafunction2double:
 	stw     r21,60(r1)
 	stw     r22,64(r1)
 	stw     r23,68(r1)
+
 	stfd	fr16,72(r1)
 	stfd	fr17,80(r1)
 	stfd	fr18,88(r1)
@@ -309,6 +310,7 @@ calljava_regrestore2:
 	lwz     r21,60(r1)
 	lwz     r22,64(r1)
 	lwz     r23,68(r1)
+
 	lfd     fr16,72(r1)
 	lfd     fr17,80(r1)
 	lfd     fr18,88(r1)
@@ -340,12 +342,12 @@ calljava_xhandler2:
 *******************************************************************************/
 
 asm_call_jit_compiler:
-	mflr    itmp3
-	stw     itmp3,LA_LR_OFFSET(r1)      /* save return address                */
+	mflr    r0
+	stw     r0,LA_LR_OFFSET(r1)         /* save return address                */
 	stwu    r1,-((LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo)(r1)
 	stw     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
 
-	mr      itmp1,itmp3                 /* save return address to other reg.  */
+	mr      itmp1,r0                    /* save return address to other reg.  */
 	lwz     itmp3,-12(itmp1)
 	srwi    itmp3,itmp3,16
 	andi.   itmp3,itmp3,31
@@ -794,10 +796,11 @@ ex_flt2:
    XXX
 
    Stack layout:
-     16   return address into JIT code (patch position)
-     12   pointer to virtual java_objectheader
-      8   machine code (which is patched back later)
-      4   unresolved class/method/field reference
+     20   return address into JIT code (patch position)
+     16   pointer to virtual java_objectheader
+     12   machine code (which is patched back later)
+      8   unresolved class/method/field reference
+      4   data segment displacement from load instructions
       0   patcher function pointer to call (pv is saved here afterwards)
 
 *******************************************************************************/
@@ -911,7 +914,7 @@ asm_wrapper_patcher:
 #endif
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp1,(4+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
+	lwz     itmp1,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
 	mtlr    itmp1
 
 	lwz     itmp1,LA_SIZE+(5+34)*4(sp)
