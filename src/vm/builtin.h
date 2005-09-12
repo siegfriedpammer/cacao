@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3133 2005-08-23 14:34:49Z cacao $
+   $Id: builtin.h 3174 2005-09-12 08:59:06Z twisti $
 
 */
 
@@ -37,8 +37,9 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
-#include "arch.h"
 #include "config.h"
+
+#include "arch.h"
 #include "toolbox/logging.h"
 
 #if defined(USE_THREADS)
@@ -307,10 +308,6 @@ float    builtin_d2f(double a);
 
 java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* NOT AN OP */
-
-/* conversion helper functions */
-inline float intBitsToFloat(s4 i);
-inline float longBitsToDouble(s8 l);
 
 /* this is a wrapper for calls from asmpart */
 java_objectheader **builtin_asm_get_exceptionptrptr(void);

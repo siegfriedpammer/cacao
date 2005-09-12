@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3134 2005-08-23 14:45:29Z cacao $
+   $Id: builtin.c 3174 2005-09-12 08:59:06Z twisti $
 
 */
 
@@ -343,14 +343,16 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 	if (sub == super)
 		return 1;
 
-	if (super->flags & ACC_INTERFACE)
-		return (sub->vftbl->interfacetablelength > super->index) &&
+	if (super->flags & ACC_INTERFACE) {
+		res = (sub->vftbl->interfacetablelength > super->index) &&
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 
-	asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
+	} else {
+		asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
 
-	res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
-		(u4) classvalues.super_diffval;
+		res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
+			(u4) classvalues.super_diffval;
+	}
 
 	return res;
 }
@@ -367,13 +369,14 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 
 	asm_getclassvalues_atomic(super, sub, &classvalues);
 
-	if ((base = classvalues.super_baseval) <= 0)
+	if ((base = classvalues.super_baseval) <= 0) {
 		/* super is an interface */
 		res = (sub->interfacetablelength > -base) &&
 			(sub->interfacetable[base] != NULL);
-	else
+	} else {
 	    res = (u4) (classvalues.sub_baseval - classvalues.super_baseval)
 			<= (u4) classvalues.super_diffval;
+	}
 
 	return res;
 }
@@ -392,9 +395,6 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 /* XXX should use vftbl */
 s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 {
-#ifdef DEBUG
-	log_text ("builtin_instanceof called");
-#endif	
 	if (!obj)
 		return 0;
 
@@ -413,22 +413,11 @@ s4 builtin_instanceof(java_objectheader *obj, classinfo *class)
 /* XXX should use vftbl */
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class)
 {
-#ifdef DEBUG
-	log_text("builtin_checkcast called");
-#endif
-
 	if (obj == NULL)
 		return 1;
+
 	if (builtin_isanysubclass(obj->vftbl->class, class))
 		return 1;
-
-#if DEBUG
-	printf("#### checkcast failed ");
-	utf_display(obj->vftbl->class->name);
-	printf(" -> ");
-	utf_display(class->name);
-	printf("\n");
-#endif
 
 	return 0;
 }
@@ -1869,6 +1858,28 @@ s4 builtin_lcmp(s8 a, s8 b)
 
 /*********** Functions for floating point operations *************************/
 
+/* used to convert FLT_xxx defines into float values */
+
+static inline float intBitsToFloat(s4 i)
+{
+	imm_union imb;
+
+	imb.i = i;
+	return imb.f;
+}
+
+
+/* used to convert DBL_xxx defines into double values */
+
+static inline float longBitsToDouble(s8 l)
+{
+	imm_union imb;
+
+	imb.l = l;
+	return imb.d;
+}
+
+
 float builtin_fadd(float a, float b)
 {
 	if (isnanf(a)) return intBitsToFloat(FLT_NAN);
@@ -2376,28 +2387,6 @@ float builtin_d2f(double a)
 		else
 			return copysignf(intBitsToFloat(FLT_POSINF), (float) copysign(1.0, a));
 	}
-}
-
-
-/* used to convert FLT_xxx defines into float values */
-
-inline float intBitsToFloat(s4 i)
-{
-	imm_union imb;
-
-	imb.i = i;
-	return imb.f;
-}
-
-
-/* used to convert DBL_xxx defines into double values */
-
-inline float longBitsToDouble(s8 l)
-{
-	imm_union imb;
-
-	imb.l = l;
-	return imb.d;
 }
 
 
