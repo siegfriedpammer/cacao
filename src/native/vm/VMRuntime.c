@@ -29,13 +29,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 3171 2005-09-10 22:14:29Z twisti $
+   $Id: VMRuntime.c 3172 2005-09-12 07:42:34Z twisti $
 
 */
 
 
-#include "config.h"
-
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/utsname.h>
@@ -43,6 +42,8 @@
 #if defined(__DARWIN__)
 # include <mach/mach.h>
 #endif
+
+#include "config.h"
 
 #if !defined(ENABLE_STATICVM)
 # include "libltdl/ltdl.h"
@@ -257,6 +258,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	utf         *name;
 #if !defined(ENABLE_STATICVM)
 	lt_dlhandle  handle;
+	lt_ptr       onload;
+	s4           version;
 #endif
 
 	if (!filename) {
@@ -268,12 +271,37 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	return 1;
 #else
 	name = javastring_toutf(filename, 0);
-	
-	/* here it could be interesting to store the references in a list eg for  */
-	/* nicely cleaning up or for certain platforms */
+
+	/* is the library already loaded? */
+
+	if (native_library_hash_find(name, (java_objectheader *) loader))
+		return 1;
+
+	/* try to open the library */
 
 	if (!(handle = lt_dlopenext(name->text)))
 		return 0;
+
+	/* resolve JNI_OnLoad function */
+
+	if ((onload = lt_dlsym(handle, "JNI_OnLoad"))) {
+		JNIEXPORT s4 (JNICALL *JNI_OnLoad) (JavaVM *, void *);
+		JavaVM *vm;
+
+		JNI_OnLoad = (JNIEXPORT s4 (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
+
+		(*env)->GetJavaVM(env, &vm);
+
+		version = JNI_OnLoad(vm, NULL);
+
+		/* if the version is not 1.2 and not 1.4 the library cannot be loaded */
+
+		if (version != JNI_VERSION_1_2 && version != JNI_VERSION_1_4) {
+			lt_dlclose(handle);
+
+			return 0;
+		}
+	}
 
 	/* insert the library name into the library hash */
 
