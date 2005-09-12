@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3096 2005-07-21 14:01:02Z twisti $
+   $Id: patcher.c 3173 2005-09-12 08:09:53Z twisti $
 
 */
 
@@ -73,7 +73,7 @@ bool patcher_get_putstatic(u1 *sp)
 	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
 	mcode =                       *((u8 *)     (sp + 2 * 8));
 	uf    = (unresolved_field *)  *((ptrint *) (sp + 1 * 8));
-	disp  = (unresolved_field *)  *((s4 *)     (sp + 0 * 8));
+	disp  =                       *((s4 *)     (sp + 0 * 8));
 
 	/* calculate and set the new return address */
 
