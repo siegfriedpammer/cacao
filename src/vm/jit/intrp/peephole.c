@@ -19,8 +19,12 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
 */
 
+
+#include <assert.h>
 #include <stdlib.h>
+
 #include "vm/jit/intrp/intrp.h"
+
 
 /* the numbers in this struct are primitive indices */
 typedef struct Combination {
@@ -87,18 +91,30 @@ Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable)
   return NULL;
 }
 
-Inst *last_compiled = NULL;
-
-void gen_inst(Inst **vmcodepp, Inst i)
+void gen_inst(Inst **vmcodepp, Inst instr)
 {
+  /* vmgen-0.6.2 generates gen_... calls with Inst ** as first
+     parameter, but we need to pass in cd to make last_compiled
+     thread-safe */
+  codegendata *cd = (codegendata *) vmcodepp;
+  Inst *last_compiled = cd->last_compiled;
+  
   if (last_compiled != NULL) {
-    Inst combo = peephole_opt(*last_compiled, i, peeptable);
+    Inst combo;
+
+    assert(last_compiled < cd->mcodeptr && cd->mcodeptr < last_compiled+7);
+
+    combo = peephole_opt(*last_compiled, instr, peeptable);
+
     if (combo != NULL) {
       *last_compiled = combo;
       return;
     }
   }
-  last_compiled = *vmcodepp;
-  **vmcodepp = i;
-  (*vmcodepp)++;
+
+  /* actually generate the threaded code instruction */
+
+  *((Inst *) cd->mcodeptr) = instr;
+  cd->last_compiled = cd->mcodeptr;
+  cd->mcodeptr += sizeof(Inst);
 }

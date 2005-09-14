@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3138 2005-09-02 15:15:18Z twisti $
+   $Id: md.c 3176 2005-09-14 08:51:23Z twisti $
 
 */
 
@@ -83,7 +83,14 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	assert(false);
+	functionptr ra;
+
+	/* ATTENTION: the passed sp is actually the fp! (see java.vmg for stack 
+	   layout) */
+
+	ra = (functionptr) (ptrint) *((u1 **) (sp - framesize - sizeof(void *)));
+
+	return ra;
 }
 
 

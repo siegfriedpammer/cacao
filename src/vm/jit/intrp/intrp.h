@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3140 2005-09-02 15:17:20Z twisti $
+   $Id: intrp.h 3176 2005-09-14 08:51:23Z twisti $
 
 */
 
@@ -144,6 +144,9 @@ typedef union {
 #define VM_IS_INST(inst, n) ((inst) == vm_prim[n])
 
 
+#define gen_BBSTART (cd->last_compiled = NULL)
+
+
 union Cell_float {
     Cell cell;
     float f;
@@ -154,6 +157,7 @@ union Cell_float {
 
 extern Inst *vm_prim;
 extern Cell peeptable;
+extern Inst *last_compiled;
 extern FILE *vm_out;
 
 void init_peeptable(void);
@@ -191,6 +195,8 @@ void gen_INVOKESTATIC(Inst **ctp, Inst ** aaTarget, s4 iNargs, unresolved_method
 void gen_END(Inst **ctp);
 
 void vm_uncount_block(Inst *ip);
+
+functionptr createcalljavafunction(methodinfo *m);
 
 #endif /* _INTRP_H */
 

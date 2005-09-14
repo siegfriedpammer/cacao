@@ -325,7 +325,10 @@ IDIV ( iValue1 iValue2 -- iResult ) 0x6c
 {
   CHECK_ZERO_DIVISOR(iValue2);
   ;
-  iResult = iValue1 / iValue2;
+  if (iValue1 == 0x80000000 && iValue2 == -1)
+    iResult=iValue1;
+  else
+    iResult = iValue1 / iValue2;
 }
 
 IDIVPOW2 ( i1 #ishift -- i2 ) opt
@@ -338,8 +341,10 @@ IDIVPOW2 ( i1 #ishift -- i2 ) opt
 LDIV ( lValue1 lValue2 -- lResult ) 0x6d
 {
   CHECK_ZERO_DIVISOR(lValue2);
-  ;
-  lResult = lValue1 / lValue2;
+  if (lValue1 == 0x8000000000000000LL && lValue2 == -1)
+    lResult=lValue1;
+  else
+    lResult = lValue1 / lValue2;
 }
 
 LDIVPOW2 ( l1 #ishift -- l2 )
@@ -363,7 +368,10 @@ DDIV ( dValue1 dValue2 -- dResult ) 0x6f
 IREM ( iValue1 iValue2 -- iResult ) 0x70
 {
   CHECK_ZERO_DIVISOR(iValue2);
-  iResult = iValue1 % iValue2;
+  if (iValue1 == 0x80000000 && iValue2 == -1)
+    iResult=0;
+  else
+    iResult = iValue1 % iValue2;
 }
 
 IREMPOW2 ( i1 #imask -- i2 )
@@ -376,7 +384,10 @@ i2 = i1-x;
 LREM ( lValue1 lValue2 -- lResult ) 0x71
 {
   CHECK_ZERO_DIVISOR(lValue2);
-  lResult = lValue1 % lValue2;
+  if (lValue1 == 0x8000000000000000LL && lValue2 == -1)
+    lResult=0;
+  else
+    lResult = lValue1 % lValue2;
 }
 
 LREMPOW2 ( l1 #lmask -- l2 )
@@ -1080,15 +1091,13 @@ MULTIANEWARRAY ( #avftbl #iSize #acr -- aRef ) 197
 {
   long dims[iSize];
   int i;
-  IF_spTOS(sp[0] = spTOS);
   for (i=0; i<iSize; i++) {
-    dims[i]=sp[iSize-i-1];
+    dims[i]=(sp+1)[iSize-i-1]; /* sp+1 to counter decrement by vmgen */
   }
-  global_sp=sp;
+  global_sp=sp+1;
   aRef = (java_objectheader *)builtin_multianewarray(iSize, avftbl, dims);
   CLEAR_global_sp;
   sp += iSize;
-  IF_spTOS(spTOS = sp[0]);
 }
 
 IFNULL ( #ainstTarget aRef -- )  0xc6
@@ -1108,108 +1117,169 @@ IFNONNULL ( #ainstTarget aRef -- ) 0xc7
 \ patchers for stuff that is unknown at compile time (unloaded classes)
 
 PATCHER_GETSTATIC_INT ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_INT);
 SET_IP(IP-3);
 
 PATCHER_GETSTATIC_LONG ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_LONG);
 SET_IP(IP-3);
 
 PATCHER_GETSTATIC_CELL ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_CELL);
 SET_IP(IP-3);
 
 PATCHER_PUTSTATIC_INT ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_INT);
 SET_IP(IP-3);
 
 PATCHER_PUTSTATIC_LONG ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_LONG);
 SET_IP(IP-3);
 
 PATCHER_PUTSTATIC_CELL ( #aRef #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putstatic((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_CELL);
 SET_IP(IP-3);
 
 PATCHER_GETFIELD_INT ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_INT);
 SET_IP(IP-3);
 
 PATCHER_GETFIELD_LONG ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_LONG);
 SET_IP(IP-3);
 
 PATCHER_GETFIELD_CELL ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_CELL);
 SET_IP(IP-3);
 
 PATCHER_PUTFIELD_INT ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_INT);
 SET_IP(IP-3);
 
 PATCHER_PUTFIELD_LONG ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_LONG);
 SET_IP(IP-3);
 
 PATCHER_PUTFIELD_CELL ( #iOffset #auf -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_get_putfield((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_CELL);
 SET_IP(IP-3);
@@ -1225,10 +1295,15 @@ NEW1 ( #aClass acrUnused -- aRef ) 0xbb
 PATCHER_NEW ( #aClass -- )
 /* the unresolved class is in the cell right before this VM instruction;
    our code generator guarantees thus */
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_builtin_new((u1 *)(IP-2)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_new((u1 *)(IP-2));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-2] = INST_ADDR(NEW1);
 SET_IP(IP-2);
@@ -1243,19 +1318,29 @@ NEWARRAY1 ( iSize #avftbl avftblUnused -- aRef ) 0xbd
 PATCHER_NEWARRAY ( #avftbl -- )
 /* the unresolved class is in the cell right before this VM instruction;
    our code generator guarantees thus */
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_builtin_newarray((u1 *)(IP-2)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_newarray((u1 *)(IP-2));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-2] = INST_ADDR(NEWARRAY1);
 SET_IP(IP-2);
 
 PATCHER_MULTIANEWARRAY ( #avftbl #iSize #acr -- )
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_builtin_multianewarray((u1 *)(IP-4)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_multianewarray((u1 *)(IP-4));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(MULTIANEWARRAY);
 SET_IP(IP-4);
@@ -1268,73 +1353,113 @@ ARRAYINSTANCEOF1 ( aRef #avftbl avftblUnused -- iResult ) 0xc1
 PATCHER_ARRAYINSTANCEOF ( #avftbl -- )
 /* the unresolved class is in the cell right before this VM instruction;
    our code generator guarantees thus */
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_builtin_newarray((u1 *)(IP-2)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_newarray((u1 *)(IP-2));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-2] = INST_ADDR(ARRAYINSTANCEOF1);
 SET_IP(IP-2);
 
 PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum -- ) 0xd8
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_invokestatic_special((u1 *)(IP-4)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_invokestatic_special((u1 *)(IP-4));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKESTATIC);
 SET_IP(IP-4);
 
 PATCHER_INVOKESPECIAL ( #aaTarget #iNargs #aum -- ) 0xd8
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_invokestatic_special((u1 *)(IP-4)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_invokestatic_special((u1 *)(IP-4));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKESPECIAL);
 SET_IP(IP-4);
 
 PATCHER_INVOKEVIRTUAL ( #iOffset #iNargs #aum -- ) 0xd8
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_invokevirtual((u1 *)(IP-4)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_invokevirtual((u1 *)(IP-4));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKEVIRTUAL);
 SET_IP(IP-4);
 
 PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #iOffset #iNargs #aum -- ) 0xd8
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_invokeinterface((u1 *)(IP-5)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_invokeinterface((u1 *)(IP-5));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-5] = INST_ADDR(INVOKEINTERFACE);
 SET_IP(IP-5);
 
 PATCHER_CHECKCAST ( #aClass #acr -- ) 0xc
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_checkcast_instanceof((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_checkcast_instanceof((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(CHECKCAST);
 SET_IP(IP-3);
 
 PATCHER_ARRAYCHECKCAST ( #avftbl #acr -- ) 0xc0
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_builtin_arraycheckcast((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_arraycheckcast((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(ARRAYCHECKCAST);
 SET_IP(IP-3);
 
 PATCHER_INSTANCEOF ( #aClass #acr -- ) 0xc1
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_checkcast_instanceof((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_checkcast_instanceof((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(INSTANCEOF);
 SET_IP(IP-3);
@@ -1343,34 +1468,49 @@ SET_IP(IP-3);
 \ nice to maintain.
 
 CHECKEXCEPTION ( aRef -- aRef )
-if (aRef==NULL)
+if (aRef==NULL) {
+  global_sp = sp;
+  *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+  CLEAR_global_sp;
   THROW0;
+}
 
 \ This is stub code for methods that we have not yet translated.
 \ Initially, the code for each method is set to this stub. The
 \ first time the method is called, the code in the stub runs, which
 \ translates the bytecode, and replaces the stub with the threaded code.
 
-TRANSLATE ( #am -- )
+TRANSLATE ( #am acelloldfp ainstoldip --  acelloldfp ainstoldip )
 {
   Inst *codeptr;
+  stackframeinfo sfi;
   ;
   IF_spTOS(sp[0] = spTOS);
   global_sp = sp;
+  stacktrace_create_extern_stackframeinfo(&sfi, NULL, (u1 *)acelloldfp, (functionptr) ainstoldip, (functionptr) ainstoldip);
   codeptr = (Inst *)jit_compile(am);
+  stacktrace_remove_stackframeinfo(&sfi);
+  if (codeptr == NULL) {
+    fp = acelloldfp;
+    SET_IP(ainstoldip); /* set up ip and fp for throw */
+    THROW0;
+  }
   CLEAR_global_sp;
   IP[-4] = codeptr;
   SET_IP(codeptr);
 }
 
 NATIVECALL ( #am #af acelloldfp ainstoldip -- )
-sp = nativecall(af, am, sp);
+sp = nativecall(af, am, sp, ainstoldip, acelloldfp);
 IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
+if (*exceptionptr)
+  THROW0;
+
 
 TRACENATIVECALL ( #am #af acelloldfp ainstoldip -- )
-sp = nativecall(af, am, sp);
+sp = nativecall(af, am, sp, ainstoldip, acelloldfp);
 IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
@@ -1382,13 +1522,20 @@ float f;
 vm_Cell2f(v,f);
 builtin_displaymethodstop(m, (s8)v, f, f);
 }
+if (*exceptionptr)
+  THROW0;
 
 PATCHER_NATIVECALL ( #am #af -- )
 #if !defined(ENABLE_STATICVM)
+stackframeinfo sfi;
+bool result;
 global_sp = sp;
-if (!patcher_resolve_native((u1 *)(IP-3)))
-  THROW0;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_resolve_native((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
+if (!result)
+  THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
 SET_IP(IP-3);

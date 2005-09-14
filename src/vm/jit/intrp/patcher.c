@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3138 2005-09-02 15:15:18Z twisti $
+   $Id: patcher.c 3176 2005-09-14 08:51:23Z twisti $
 
 */
 
@@ -131,6 +131,12 @@ bool patcher_builtin_new(u1 *sp)
 	/* get the classinfo */
 
 	if (!(c = helper_resolve_classinfo(cr))) {
+		return false;
+	}
+
+	/* intialize the class */
+
+	if (!initialize_class(c)) {
 		return false;
 	}
 

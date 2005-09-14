@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.c 3138 2005-09-02 15:15:18Z twisti $
+   $Id: asmpart.c 3176 2005-09-14 08:51:23Z twisti $
 
 */
 
@@ -41,6 +41,10 @@
 #include "vm/jit/intrp/types.h"
 
 #include "vm/jit/asmpart.h"
+
+
+/* this is required to link cacao with intrp */
+threadcritnode asm_criticalsections = { NULL, NULL, NULL };
 
 
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)

@@ -5,14 +5,21 @@
 #include "vm/jit/intrp/arch.h"
 #include "vm/jit/intrp/intrp.h"
 
+#include "asmoffsets.h"
 #include "md-abi.h"
 
 #include "cacao/cacao.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/jit/patcher.h"
 #include "ffcall/avcall/avcall.h"
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+# include "machine-instr.h"
+#endif
+
 
 /* threading macros */
 #  define NEXT_P0
@@ -44,120 +51,44 @@
 #define vm_uncount_block(_ip)	/* nothing */
 #endif
 
-#if !defined(USE_THREADS)
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+
+#define global_sp    (*(Cell **)&(THREADINFO->_global_sp))
+
+#else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+
 #define MAX_STACK_SIZE 128*1024
 static char stack[MAX_STACK_SIZE];
 
 static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 #define global_sp    _global_sp
-#else
-#error define global_sp
-#endif
+
+#endif /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
 
 #define CLEAR_global_sp (global_sp=NULL)
 
 
-/* call jni function */
-Cell *nativecall(functionptr f, methodinfo *m, Cell *sp)
-{
-	av_alist alist;
-	methoddesc *md;
-	Cell *p;
-	Cell *endsp;
-	s4 i;
-
-	md=m->parseddesc;
-	switch (md->returntype.type) {
-	case TYPE_INT:
-		endsp=sp-1+md->paramslots; av_start_int(alist, f, endsp); break;
-	case TYPE_LNG:
-		endsp=sp-2+md->paramslots; av_start_longlong(alist, f, endsp); break;
-	case TYPE_FLT:
-		endsp=sp-1+md->paramslots; av_start_float(alist, f, endsp); break;
-	case TYPE_DBL:
-		endsp=sp-2+md->paramslots; av_start_double(alist, f, endsp); break;
-	case TYPE_ADR:
-		endsp=sp-1+md->paramslots; av_start_ptr(alist, f, void *, endsp); break;
-	case TYPE_VOID:
-		endsp=sp-1+md->paramslots; av_start_void(alist, f); break;
-	default: assert(false);
-	}
-
-	av_ptr(alist, JNIEnv *, &env);
-	if (m->flags & ACC_STATIC)
-		av_ptr(alist, classinfo *, m->class);
-
-	for (i=0, p=sp+md->paramslots; i<md->paramcount; i++) {
-		switch (md->paramtypes[i].type) {
-		case TYPE_INT:
-			p-=1; av_int(alist, *p); break;
-		case TYPE_LNG:
-			p-=2; av_longlong(alist, *(s8 *)p); break;
-		case TYPE_FLT:
-			p-=1; av_float(alist, *(float *)p); break;
-		case TYPE_DBL:
-			p-=2; av_double(alist, *(double *)p); break;
-		case TYPE_ADR:
-			p-=1; av_ptr(alist, void *, *(void **)p); break;
-		default: assert(false);
-		}
-	}
-	/* XXX make global_sp thread-local */
-	global_sp = sp;
-	av_call(alist);
-	CLEAR_global_sp;
-	return endsp;
-}
-
-
-Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp)
-{
-#if 0
-  int i;
-
-  /* for a description of the stack see IRETURN in java.vmg */
-  for (; fp!=NULL;) {
-	  functionptr *f = codegen_findmethod(ip-1);
-
-	  /* get methodinfo pointer from method header */
-	  methodinfo *m = (methodinfo *) f[-1];
-
-	  for (i = 0; i < m->exceptiontablelength; i++) {
-		  exceptiontable *x = &(m->exceptiontable[i]);
-
-		  if (ip-1 >= x->threaded_start && ip-1 < x->threaded_end &&
-			  (x->catchtype == NULL || builtin_instanceof(o, x->catchtype))) {
-			  *new_spp = fp - m->maxlocals - 1;
-			  *new_fpp = fp;
-			  return x->threaded_handler;
-		  }
-	  }
-
-	  ip = (Cell *)access_local_int(m->maxlocals+1);
-	  fp = (Cell *)access_local_int(m->maxlocals);
-  }
-
-  return NULL; 
-#endif
-  assert(false);
-}
-
-
 #define THROW0       goto throw
-#define THROW(_ball) { global_sp = sp; *exceptionptr=(new_##_ball()); CLEAR_global_sp; THROW0; }
+#define THROW(_ball) \
+    { \
+        global_sp = sp; \
+        *exceptionptr = (stacktrace_inline_##_ball(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP)); \
+        CLEAR_global_sp; \
+        THROW0; \
+    }
 
-#define CHECK_NULL_PTR(ptr)            \
-        {                              \
-          if ( ptr == NULL ) {         \
-            THROW(nullpointerexception);          \
-	  }                            \
+#define CHECK_NULL_PTR(ptr) \
+    { \
+        if ((ptr) == NULL) { \
+            THROW(nullpointerexception); \
+	    } \
 	}
 
 #define CHECK_OUT_OF_BOUNDS(_array, _idx)              \
         {                                            \
           if (length_array(_array) <= (u4) (_idx)) { \
             global_sp = sp; \
-            *exceptionptr = new_arrayindexoutofboundsexception(_idx); \
+            *exceptionptr = stacktrace_inline_arrayindexoutofboundsexception(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP, _idx); \
 		    CLEAR_global_sp; \
             THROW0; \
           } \
@@ -210,6 +141,124 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 #define STORE_ORDER_BARRIER()
 #endif
 
+
+/* call jni function */
+static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp)
+{
+	av_alist alist;
+	methoddesc *md;
+	Cell *p;
+	Cell *endsp;
+	s4 i;
+	stackframeinfo sfi;
+
+	md=m->parseddesc;
+	switch (md->returntype.type) {
+	case TYPE_INT:
+		endsp=sp-1+md->paramslots; av_start_int(alist, f, endsp); break;
+	case TYPE_LNG:
+		endsp=sp-2+md->paramslots; av_start_longlong(alist, f, endsp); break;
+	case TYPE_FLT:
+		endsp=sp-1+md->paramslots; av_start_float(alist, f, endsp); break;
+	case TYPE_DBL:
+		endsp=sp-2+md->paramslots; av_start_double(alist, f, endsp); break;
+	case TYPE_ADR:
+		endsp=sp-1+md->paramslots; av_start_ptr(alist, f, void *, endsp); break;
+	case TYPE_VOID:
+		endsp=sp-1+md->paramslots; av_start_void(alist, f); break;
+	default: assert(false);
+	}
+
+	av_ptr(alist, JNIEnv *, &env);
+	if (m->flags & ACC_STATIC)
+		av_ptr(alist, classinfo *, m->class);
+
+	for (i=0, p=sp+md->paramslots; i<md->paramcount; i++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+			p-=1; av_int(alist, *p); break;
+		case TYPE_LNG:
+			p-=2; av_longlong(alist, *(s8 *)p); break;
+		case TYPE_FLT:
+			p-=1; av_float(alist, *(float *)p); break;
+		case TYPE_DBL:
+			p-=2; av_double(alist, *(double *)p); break;
+		case TYPE_ADR:
+			p-=1; av_ptr(alist, void *, *(void **)p); break;
+		default: assert(false);
+		}
+	}
+
+	global_sp = sp;
+
+	/* create stackframe info structure */
+
+	stacktrace_create_native_stackframeinfo(&sfi, (u1 *) m->entrypoint,
+											(u1 *)fp,
+											(functionptr) ra);
+
+	av_call(alist);
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	CLEAR_global_sp;
+
+	return endsp;
+}
+
+
+Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp)
+{
+	classinfo      *c;
+	s4              framesize;
+	exceptionentry *ex;
+	s4              exceptiontablelength;
+	s4              i;
+
+  /* for a description of the stack see IRETURN in java.vmg */
+  for (; fp!=NULL;) {
+	  functionptr f = codegen_findmethod((functionptr) (ip-1));
+
+	  /* get methodinfo pointer from method header */
+	  methodinfo *m = *(methodinfo **) (((u1 *) f) + MethodPointer);
+
+	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)))/sizeof(void *);
+	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
+	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
+
+	  builtin_trace_exception(o, m, ip, 0, 0);
+
+	  for (i = 0; i < exceptiontablelength; i++) {
+		  ex--;
+		  c = ex->catchtype;
+
+		  if (c != NULL) {
+			  if (!c->loaded)
+				  /* XXX fix me! */
+				  if (!load_class_bootstrap(c))
+					  assert(0);
+
+			  if (!c->linked)
+				  if (!link_class(c))
+					  assert(0);
+		  }
+
+		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
+			  (c == NULL || builtin_instanceof(o, c))) {
+			  *new_spp = fp - framesize - 1;
+			  *new_fpp = fp;
+			  return (Inst *) (ex->handlerpc);
+		  }
+	  }
+
+	  ip = (Inst *)access_local_cell(framesize+1);
+	  fp = (Cell *)access_local_cell(framesize);
+  }
+
+  return NULL; 
+}
+
+
 FILE *vm_out = NULL;
 
 #ifdef VM_DEBUG
@@ -250,22 +299,23 @@ engine(Inst *ip0, Cell * sp, Cell * fp)
 #undef NAME
 }
 
+
 /* true on success, false on exception */
 static bool asm_calljavafunction_intern(methodinfo *m,
 		   void *arg1, void *arg2, void *arg3, void *arg4)
 {
   java_objectheader *retval;
   Cell *sp = global_sp;
-  static Inst wrapper[5];
-  Inst *thptr = wrapper;
   methoddesc *md;
+  functionptr entrypoint;
 
   md = m->parseddesc;
 
   CLEAR_global_sp;
   assert(sp != NULL);
 
-  assert(md->paramcount < 5);
+  /* XXX ugly hack: thread's run() needs 5 arguments */
+  assert(md->paramcount < 6);
 
   if (md->paramcount > 0)
     *--sp=(Cell)arg1;
@@ -275,11 +325,15 @@ static bool asm_calljavafunction_intern(methodinfo *m,
     *--sp=(Cell)arg3;
   if (md->paramcount > 3)
     *--sp=(Cell)arg4;
+  if (md->paramcount > 4)
+    *--sp=(Cell) 0;
 
-  gen_INVOKESTATIC(&thptr, (Inst **)m->stubroutine, m->parseddesc->paramslots, 0);
-  gen_END(&thptr);
+  entrypoint = createcalljavafunction(m);
 
-  retval = engine(wrapper, sp, NULL);
+  retval = engine((Inst *) entrypoint, sp, NULL);
+
+  /* XXX remove the method from the method table */
+
   if (retval != NULL) {
 	  (void)builtin_throw_exception(retval);
 	  return false;
@@ -316,40 +370,64 @@ java_objectheader *asm_calljavafunction(methodinfo *m,
 static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
                                           jni_callblock *callblock)
 {
-  java_objectheader *retval;
-  Cell *sp = global_sp;
-  static Inst wrapper[4];
-  Inst *thptr = wrapper;
-  s4 i;
+	java_objectheader *retval;
+	Cell *sp = global_sp;
+	Inst wrapper[5];
+	s4 i;
+	functionptr entrypoint;
 
-  CLEAR_global_sp;
-  assert(sp != NULL);
+#if 0
+	codegendata *cd;
+	s4           dumpsize;
 
-  for (i = 0; i < count; i++) {
-    switch (callblock[i].itemtype) {
-    case TYPE_INT:
-    case TYPE_FLT:
-    case TYPE_ADR:
-      *(--sp) = callblock[i].item;
-      break;
-    case TYPE_LNG:
-    case TYPE_DBL:
-      sp -= 2;
-      *((u8 *) sp) = callblock[i].item;
-      break;
-    }
-  }
+	/* mark start of dump memory area */
 
-  gen_INVOKESTATIC(&thptr, (Inst **)m->stubroutine, m->parseddesc->paramslots, NULL);
-  gen_END(&thptr);
+	dumpsize = dump_size();
+	
+	cd = DNEW(codegendata);
+    cd->mcodeptr = (u1 *) wrapper;
+#endif
 
-  retval = engine(wrapper, sp, NULL);
-  if (retval != NULL) {
-	  (void)builtin_throw_exception(retval);
-	  return false;
-  }
-  else
-	  return true;
+	CLEAR_global_sp;
+	assert(sp != NULL);
+
+	for (i = 0; i < count; i++) {
+		switch (callblock[i].itemtype) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
+			*(--sp) = callblock[i].item;
+			break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			sp -= 2;
+			*((u8 *) sp) = callblock[i].item;
+			break;
+		}
+	}
+
+#if 0
+	gen_BBSTART;
+	gen_INVOKESTATIC((Inst **) cd, (Inst **)m->stubroutine, m->parseddesc->paramslots, NULL);
+	gen_END((Inst **) cd);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+#endif
+
+	entrypoint = createcalljavafunction(m);
+
+	retval = engine((Inst *) entrypoint, sp, NULL);
+
+	/* XXX remove the method from the method table */
+
+	if (retval != NULL) {
+		(void)builtin_throw_exception(retval);
+		return false;
+	}
+	else
+		return true;
 }
 
 java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
@@ -370,7 +448,7 @@ s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
                             jni_callblock *callblock)
 {
   s4 retval=0;
-  assert(m->parseddesc->returntype.type == TYPE_INT);
+
   if (jni_invoke_java_intern(m, count, size, callblock)) {
 	  if (m->parseddesc->returntype.type == TYPE_INT)
 		  retval = *global_sp++;
