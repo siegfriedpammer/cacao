@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 2855 2005-06-28 18:32:46Z twisti $
+   $Id: disass.c 3178 2005-09-14 18:14:34Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 
 *******************************************************************************/
 
-int disassinstr(u1 *code)
+u1 *disassinstr(u1 *code)
 {
 	static disassemble_info info;
 	static int dis_initialized;
@@ -118,7 +118,7 @@ int disassinstr(u1 *code)
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 
 	for (i = 0; i < seqlen; i++) {
-		printf("%02x ", *(code++));
+		printf("%02x ", *(code + i));
 	}
 	
 	for (; i < 10; i++) {
@@ -127,7 +127,7 @@ int disassinstr(u1 *code)
 
 	printf("   %s\n", mylinebuf);
 
-	return seqlen;
+	return code + seqlen;
 }
 
 
@@ -140,21 +140,16 @@ int disassinstr(u1 *code)
 
 *******************************************************************************/
 
-void disassemble(u1 *code, s4 len)
+void disassemble(u1 *start, u1 *end)
 {
-	s4 i;
-	s4 seqlen;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_x86_64;
 
 	printf("  --- disassembler listing ---\n");
-	for (i = 0; i < len; ) {
-		seqlen = disassinstr(code);
-		i += seqlen;
-		code += seqlen;
-	}
+	for (; start < end; )
+		start = disassinstr(start);
 }
 
 
