@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 3096 2005-07-21 14:01:02Z twisti $
+   $Id: asmpart.S 3179 2005-09-14 18:36:12Z twisti $
 
 */
 
@@ -741,7 +741,7 @@ noflt:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-	sub     $(19*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
+	sub     $(20*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
 
 	SAVE_ARGUMENT_REGISTERS(0)
 	SAVE_TEMPORARY_REGISTERS(14)
@@ -750,22 +750,22 @@ asm_wrapper_patcher:
 	mov     itmp2,16*8(sp)              /* can be used by some instructions   */
 
 	mov     sp,a0                       /* create stackframe info             */
-	add     $(19*8),a0
+	add     $(20*8),a0
 	xor     a1,a1                       /* if pv is NULL, use findmethod      */
 	mov     sp,a2                       /* pass java sp                       */
-	add     $((6+19)*8+sizestackframeinfo),a2
-	mov     ((5+19)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
+	add     $((6+20)*8+sizestackframeinfo),a2
+	mov     ((5+20)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
 	mov     a3,a4                       /* xpc is equal to ra                 */
 	call    stacktrace_create_extern_stackframeinfo
 
 	mov     sp,a0                       /* pass stack pointer                 */
-	add     $((1+19)*8+sizestackframeinfo),a0   /* skip function pointer      */
-	mov     (19*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
+	add     $((1+20)*8+sizestackframeinfo),a0   /* skip function pointer      */
+	mov     (20*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
 	call    *itmp3                      /* call the patcher function          */
 	mov     v0,17*8(sp)                 /* save return value                  */
 
 	mov     sp,a0                       /* remove stackframe info             */
-	add     $(19*8),a0
+	add     $(20*8),a0
 	call    stacktrace_remove_stackframeinfo
 
 	RESTORE_ARGUMENT_REGISTERS(0)
@@ -775,7 +775,7 @@ asm_wrapper_patcher:
 	mov     16*8(sp),itmp2              /* can be used by some instructions   */
 	mov     17*8(sp),itmp3              /* restore return value               */
 
-	add     $((5+19)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
+	add     $((5+20)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
