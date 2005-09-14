@@ -1,4 +1,4 @@
-/* vm/jit/i386/disass.h - disassembler header
+/* src/vm/jit/disass.h - disassembler header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 1943 2005-02-15 13:14:26Z twisti $
+   $Id: disass.h 3177 2005-09-14 18:03:11Z twisti $
 
 */
 
@@ -37,7 +37,6 @@
 #define _DISASS_H
 
 #include "types.h"
-#include "dis-asm.h"
 
 
 extern char *regs[];
@@ -45,10 +44,8 @@ extern char *regs[];
 
 /* function prototypes *******************************************************/
 
-void myprintf(PTR p, const char *fmt, ...);
-int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info);
-int disassinstr(u1 *code);
-void disassemble(u1 *code, s4 len);
+u1 *disassinstr(u1 *code);
+void disassemble(u1 *start, u1 *end);
 
 #endif /* _DISASS_H */
 

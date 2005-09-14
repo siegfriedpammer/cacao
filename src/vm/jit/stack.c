@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3155 2005-09-05 21:48:07Z twisti $
+   $Id: stack.c 3177 2005-09-14 18:03:11Z twisti $
 
 */
 
@@ -2408,6 +2408,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	basicblock     *bptr;
 	exceptiontable *ex;
 	s4              i, j;
+	u1             *u1ptr;
 
 #if defined(USE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler is not   */
@@ -2424,7 +2425,6 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	utf_fprint(stdout, m->descriptor);
 	printf("\n\nMax locals: %d\n", (int) cd->maxlocals);
 	printf("Max stack:  %d\n", (int) cd->maxstack);
-
 	printf("Line number table length: %d\n", m->linenumbercount);
 
 	printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
@@ -2552,41 +2552,15 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* show code before first basic block */
 
 	if (opt_showdisassemble) {
-#if defined(__I386__) || defined(__X86_64__)
-		u1 *u1ptr;
-		s4 a;
-
 		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen);
-		for (i = 0; i < m->basicblocks[0].mpc;) {
-			a = disassinstr(u1ptr);
-			i += a;
-			u1ptr += a;
-		}
-		printf("\n");
-#elif defined(__XDSPCORE__)
-		s4 *s4ptr;
-		s4 a;
 
-		s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen);
-		for (i = 0; i < m->basicblocks[0].mpc;) {
-			a = disassinstr(stdout, s4ptr);
-			printf("\n");
-			i += a * 4;
-			s4ptr += a;
-		}
-		printf("\n");
-#else
-		s4 *s4ptr;
+		for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + m->basicblocks[0].mpc);)
+			u1ptr = disassinstr(u1ptr);
 
-		s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen);
-		for (i = 0; i < m->basicblocks[0].mpc; i += 4, s4ptr++) {
-			disassinstr(s4ptr);
-		}
 		printf("\n");
-#endif
 	}
 
-	/* show code off all basic blocks */
+	/* show code of all basic blocks */
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 		show_icmd_block(m, cd, bptr);
@@ -2600,46 +2574,11 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 									   ((ptrint) cd->dseglen +
 										m->basicblocks[m->basicblockcount].mpc)));
 
-#if defined(__I386__) || defined(__X86_64__)
-		{
-			u1 *u1ptr;
-			s4  a;
+		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen +
+						m->basicblocks[m->basicblockcount].mpc);
 
-			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen +
-							m->basicblocks[m->basicblockcount].mpc);
-
-			for (; (ptrint) u1ptr < ((ptrint) m->mcode + m->mcodelength);) {
-				a = disassinstr(u1ptr);
-				i += a;
-				u1ptr += a;
-			}
-		}
-#elif defined(__XDSPCORE__)
-		{
-			s4 *s4ptr;
-			s4 a;
-
-			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen +
-							m->basicblocks[m->basicblockcount].mpc);
-
-			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength);) {
-				a = disassinstr(stdout, s4ptr);
-				printf("\n");
-				i += a * 4;
-				s4ptr += a;
-			}
-		}
-#else
-		{
-			s4 *s4ptr;
-
-			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen +
-							m->basicblocks[m->basicblockcount].mpc);
-
-			for (; (ptrint) s4ptr < ((ptrint) m->mcode + m->mcodelength); s4ptr++)
-				disassinstr(s4ptr);
-		}
-#endif
+		for (; (ptrint) u1ptr < ((ptrint) m->mcode + m->mcodelength);)
+			u1ptr = disassinstr(u1ptr);
 
 		printf("\n");
 	}
@@ -2652,9 +2591,10 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 {
-	int i, j;
-	int deadcode;
+	s4           i, j;
+	bool         deadcode;
 	instruction *iptr;
+	u1          *u1ptr;
 
 	if (bptr->flags != BBDELETED) {
 		deadcode = bptr->flags <= BBREACHED;
@@ -2697,73 +2637,18 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 		}
 
 		if (opt_showdisassemble && (!deadcode)) {
-#if defined(__I386__) || defined(__X86_64__)
-			u1 *u1ptr;
-			s4 a;
-
 			printf("\n");
-			i = bptr->mpc;
-			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen + i);
+			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen + bptr->mpc);
 
 			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; ) {
-					a = disassinstr(u1ptr);
-					i += a;
-					u1ptr += a;
-				}
-				printf("\n");
+				for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + bptr->next->mpc);)
+					u1ptr = disassinstr(u1ptr);
 
 			} else {
-				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength); ) {
-					a = disassinstr(u1ptr); 
-					i += a;
-					u1ptr += a;
-				}
-				printf("\n");
+				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength);)
+					u1ptr = disassinstr(u1ptr); 
 			}
-#elif defined(__XDSPCORE__)
-			s4 *s4ptr;
-			s4 a;
-
 			printf("\n");
-			i = bptr->mpc;
-			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen + i);
-
-			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc;) {
-					a = disassinstr(stdout, s4ptr);
-					printf("\n");
-					i += a * 4;
-					s4ptr += a;
-				}
-				printf("\n");
-
-			} else {
-				for (; s4ptr < (s4 *) ((ptrint) m->mcode + m->mcodelength); ) {
-					a = disassinstr(stdout, s4ptr);
-					i += a * 4;
-					s4ptr += a;
-				}
-				printf("\n");
-			}
-#else
-			s4 *s4ptr;
-
-			printf("\n");
-			i = bptr->mpc;
-			s4ptr = (s4 *) ((ptrint) m->mcode + cd->dseglen + i);
-
-			if (bptr->next != NULL) {
-				for (; i < bptr->next->mpc; i += 4, s4ptr++)
-					disassinstr(s4ptr);
-				printf("\n");
-
-			} else {
-				for (; s4ptr < (s4 *) ((ptrint) m->mcode + m->mcodelength); i += 4, s4ptr++)
-					disassinstr(s4ptr);
-				printf("\n");
-			}
-#endif
 		}
 	}
 }

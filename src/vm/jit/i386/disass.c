@@ -1,4 +1,4 @@
-/* vm/jit/i386/disass.c - wrapper functions for GNU binutils disassembler
+/* src/vm/jit/i386/disass.c - wrapper functions for GNU binutils disassembler
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,15 +29,16 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 1943 2005-02-15 13:14:26Z twisti $
+   $Id: disass.c 3177 2005-09-14 18:03:11Z twisti $
 
 */
 
 
 #include <stdarg.h>
 #include <string.h>
-#include "disass.h"
-#include "dis-asm.h"
+
+#include "vm/jit/disass.h"
+#include "vm/jit/i386/dis-asm.h"
 
 
 char mylinebuf[512];
@@ -75,20 +76,21 @@ int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, s
 
 
 
-/* function disassinstr ********************************************************
+/* disassinstr *****************************************************************
 
-	outputs a disassembler listing of one machine code instruction on 'stdout'
-	c:   instructions machine code
-	pos: instructions address relative to method start
+   Outputs a disassembler listing of one machine code instruction on
+   'stdout'.
+
+   code: instructions machine code
 
 *******************************************************************************/
 
-int disassinstr(u1 *code)
+u1 *disassinstr(u1 *code)
 {
 	static disassemble_info info;
 	static int dis_initialized;
-	int seqlen;
-	int i;
+	s4 seqlen;
+	s4 i;
 
 	if (!dis_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
@@ -101,7 +103,7 @@ int disassinstr(u1 *code)
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 
 	for (i = 0; i < seqlen; i++) {
-		printf("%02x ", *(code++));
+		printf("%02x ", *(code + i));
 	}
 
 	for (; i < 8; i++) {
@@ -110,34 +112,30 @@ int disassinstr(u1 *code)
 
 	printf("   %s\n", mylinebuf);
 
-	return seqlen;
+	return code + seqlen;
 }
 
 
 
 /* function disassemble ********************************************************
 
-	outputs a disassembler listing of some machine code on 'stdout'
-	code: pointer to first instruction
-	len:  code size (number of instructions * 4)
+   Outputs a disassembler listing of some machine code on 'stdout'.
+
+   code: pointer to first machine instruction
+   len:  code length to display (in bytes)
 
 *******************************************************************************/
 
-void disassemble(u1 *code, s4 len)
+void disassemble(u1 *start, u1 *end)
 {
-	s4 i;
-	s4 seqlen;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
 	info.mach = bfd_mach_i386_i386;
 
 	printf("  --- disassembler listing ---\n");
-	for (i = 0; i < len; ) {
-		seqlen = disassinstr(code);
-		i += seqlen;
-		code += seqlen;
-	}
+	for (; start < end; )
+		start = disassinstr(start);
 }
 
 
