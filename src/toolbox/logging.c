@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 2508 2005-05-23 08:50:25Z twisti $
+   $Id: logging.c 3183 2005-09-15 20:07:37Z twisti $
 
 */
 
@@ -174,30 +174,6 @@ void log_nl(void)
 	log_plain("\n");
 	fflush(get_logfile());
 }
-
-
-/* log_cputime *****************************************************************
-
-   XXX
-
-*******************************************************************************/
-
-#if defined(STATISTICS)
-void log_cputime(void)
-{
-	s8 t;
-	int sec, usec;
-	char logtext[MAXLOGTEXT];
-
-	t = getcputime();
-	sec = t / 1000000;
-	usec = t % 1000000;
-
-	sprintf(logtext, "Total CPU usage: %d seconds and %d milliseconds",
-			sec, usec / 1000);
-	log_text(logtext);
-}
-#endif
 
 
 /* log_message_utf *************************************************************

@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 2508 2005-05-23 08:50:25Z twisti $
+   $Id: logging.h 3183 2005-09-15 20:07:37Z twisti $
 
 */
 
@@ -63,10 +63,6 @@ void log_flush(void);
 
 /* newline and fflush */
 void log_nl(void);
-
-#if defined(STATISTICS)
-void log_cputime(void);
-#endif
 
 /* log message functions */
 void log_message_utf(const char *msg, utf *u);
