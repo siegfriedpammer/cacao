@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3176 2005-09-14 08:51:23Z twisti $
+   $Id: codegen.c 3180 2005-09-15 15:53:56Z twisti $
 
 */
 
@@ -62,6 +62,9 @@
 #include "vm/jit/patcher.h"
 
 #include "vm/jit/intrp/intrp.h"
+
+#include "libffi/include/ffi.h"
+
 
 #define gen_branch(_inst) { \
   gen_##_inst(((Inst **)cd), 0); \
@@ -1819,6 +1822,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
+#ifdef VM_PROFILING
+	vm_block_insert(m->mcode + m->mcodelength);
+#endif
 
 	/* branch resolving (walk through all basic blocks) */
 
@@ -1878,6 +1884,10 @@ functionptr createcompilerstub (methodinfo *m)
 	gen_BBSTART;
 	gen_TRANSLATE((Inst **) cd, m);
 	
+#ifdef VM_PROFILING
+	vm_block_insert(cd->mcodeptr);
+#endif
+
 #if defined(STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPILERSTUB_SIZE;
@@ -1899,22 +1909,58 @@ functionptr createcompilerstub (methodinfo *m)
 +---------+
 |function |
 +---------+
-
-where maxlocals==paramslots
+|cif      |
++---------+
 */
 
-#define NATIVE_STUBSIZE 5
+static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
+{
+#if 1
+	methoddesc  *md = m->parseddesc; 
+	ffi_cif     *pcif = NEW(ffi_cif);
+	ffi_type   **types = MNEW(ffi_type *, nmd->paramcount);
+	ffi_type   **ptypes = types;
+	s4           i;
+
+	/* pass env pointer */
+
+	*ptypes++ = &ffi_type_pointer;
+
+	/* for static methods, pass class pointer */
+
+	if (m->flags & ACC_STATIC) {
+		*ptypes++ = &ffi_type_pointer;
+	}
+
+	/* pass parameter to native function */
+
+	for (i = 0; i < md->paramcount; i++) {
+		*ptypes++ = cacaotype2ffitype(md->paramtypes[i].type);
+	}
+
+	assert(ptypes-types == nmd->paramcount);
+    if (ffi_prep_cif(pcif, FFI_DEFAULT_ABI, nmd->paramcount, cacaotype2ffitype(md->returntype.type), types) != FFI_OK)
+		assert(0);
+
+	return pcif;
+#else
+	return 0;
+#endif
+}
+
 
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *md)
+							 registerdata *rd, methoddesc *nmd)
 {
+	ffi_cif *cif;
+
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, md->paramslots * SIZEOF_VOID_P);  /* FrameSize      */
+	(void) dseg_adds4(cd, nmd->paramslots * SIZEOF_VOID_P); /* FrameSize      */
 	(void) dseg_adds4(cd, 0);                               /* IsSync         */
 	(void) dseg_adds4(cd, 0);                               /* IsLeaf         */
 	(void) dseg_adds4(cd, 0);                               /* IntSave        */
@@ -1922,21 +1968,29 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	dseg_addlinenumbertablesize(cd);
 	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
 
+	/* prepare ffi cif structure */
+
+	cif = createnativecif(m, nmd);
+
 	gen_BBSTART;
 
 	if (runverbose)
 		gen_TRACECALL(((Inst **)cd));
 
 	if (f == NULL) {
-		gen_PATCHER_NATIVECALL(((Inst **)cd), m, f);
+		gen_PATCHER_NATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
 	} else {
 		if (runverbose)
-			gen_TRACENATIVECALL(((Inst **)cd), m, f);
+			gen_TRACENATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
 		else
-			gen_NATIVECALL(((Inst **)cd), m, f);
+			gen_NATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
 	}
 
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
+
+#ifdef VM_PROFILING
+	vm_block_insert(m->mcode + m->mcodelength);
+#endif
 
 	return m->entrypoint;
 }
@@ -1993,6 +2047,9 @@ functionptr createcalljavafunction(methodinfo *m)
   
 	codegen_finish(tmpm, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
+#ifdef VM_PROFILING
+	vm_block_insert(tmpm->mcode + tmpm->mcodelength);
+#endif
 	entrypoint = tmpm->entrypoint;
 
 	/* release memory */

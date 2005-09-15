@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3176 2005-09-14 08:51:23Z twisti $
+   $Id: intrp.h 3180 2005-09-15 15:53:56Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #define _INTRP_H
 
 #include <stdio.h>
+
+/* #define VM_PROFILING */
 
 #include "vm/jit/intrp/arch.h"
 #include "vm/jit/intrp/types.h"
@@ -152,6 +154,8 @@ union Cell_float {
     float f;
 };
 
+typedef struct block_count block_count;
+
 #define vm_f2Cell(x1,x2)	((x2) =(((union Cell_float)(x1)).cell))
 #define vm_Cell2f(x1,x2)	((x2) =(((union Cell_float)(x1)).f))
 
@@ -163,6 +167,7 @@ extern FILE *vm_out;
 void init_peeptable(void);
 Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable);
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
+Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
 
 java_objectheader *engine(Inst *ip0, Cell * sp, Cell * fp);
 
@@ -195,6 +200,8 @@ void gen_INVOKESTATIC(Inst **ctp, Inst ** aaTarget, s4 iNargs, unresolved_method
 void gen_END(Inst **ctp);
 
 void vm_uncount_block(Inst *ip);
+block_count *vm_block_insert(Inst *ip);
+
 
 functionptr createcalljavafunction(methodinfo *m);
 

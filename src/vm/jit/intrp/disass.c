@@ -27,14 +27,13 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 3138 2005-09-02 15:15:18Z twisti $
+   $Id: disass.c 3180 2005-09-15 15:53:56Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "vm/jit/intrp/disass.h"
 #include "vm/jit/intrp/intrp.h"
 
 char *regs[] = {
@@ -91,10 +90,9 @@ char *regs[] = {
 
 *******************************************************************************/
 
-s4 disassinstr(s4 *code)
+u1 *disassinstr(u1 *code)
 {
-	char *end = (char *)vm_disassemble_inst((Inst *)code, vm_prim);
-	return end - (char *)code;
+	return (u1 *)vm_disassemble_inst((Inst *)code, vm_prim);
 }
 
 
@@ -106,13 +104,10 @@ s4 disassinstr(s4 *code)
 
 *******************************************************************************/
 
-void disassemble(s4 *code, s4 len)
+void disassemble(u1 *start, u1 *end)
 {
-	s4 i;
-	s4 seqlen;
-
 	printf ("  --- disassembler listing ---\n");
-	vm_disassemble((Inst *)code, (Inst *)(((char *)code)+len), vm_prim);
+	vm_disassemble((Inst *) start, (Inst *) end, vm_prim);
 }
 
 

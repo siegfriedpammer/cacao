@@ -1500,8 +1500,8 @@ TRANSLATE ( #am acelloldfp ainstoldip --  acelloldfp ainstoldip )
   SET_IP(codeptr);
 }
 
-NATIVECALL ( #am #af acelloldfp ainstoldip -- )
-sp = nativecall(af, am, sp, ainstoldip, acelloldfp);
+NATIVECALL ( #am #af #addrcif acelloldfp ainstoldip -- )
+sp = nativecall(af, am, sp, ainstoldip, acelloldfp, addrcif);
 IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
@@ -1509,8 +1509,8 @@ if (*exceptionptr)
   THROW0;
 
 
-TRACENATIVECALL ( #am #af acelloldfp ainstoldip -- )
-sp = nativecall(af, am, sp, ainstoldip, acelloldfp);
+TRACENATIVECALL ( #am #af #addrcif acelloldfp ainstoldip -- )
+sp = nativecall(af, am, sp, ainstoldip, acelloldfp, addrcif);
 IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
@@ -1525,20 +1525,20 @@ builtin_displaymethodstop(m, (s8)v, f, f);
 if (*exceptionptr)
   THROW0;
 
-PATCHER_NATIVECALL ( #am #af -- )
+PATCHER_NATIVECALL ( #am #af #addrcif -- )
 #if !defined(ENABLE_STATICVM)
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_resolve_native((u1 *)(IP-3));
+result = patcher_resolve_native((u1 *)(IP-4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
-IP[-3] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
-SET_IP(IP-3);
+IP[-4] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
+SET_IP(IP-4);
 #else
 assert(false);
 #endif
@@ -1583,4 +1583,4 @@ vm_uncount_block(IP); /* undo the count part of SUPER_END,
 			 because there is no fallthrough */
 return NULL;
 
-ICONST_ISTORE = ICONST ISTORE
+_DUP_ICONST_ =  DUP ICONST 

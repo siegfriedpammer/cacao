@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#define VM_DEBUG
+/* #define VM_DEBUG*/
 
 #include "vm/jit/intrp/arch.h"
 #include "vm/jit/intrp/intrp.h"
@@ -14,7 +14,10 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/jit/patcher.h"
+
+#define FFCALL 0
 #include "ffcall/avcall/avcall.h"
+#include "libffi/include/ffi.h"
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 # include "machine-instr.h"
@@ -142,9 +145,33 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 #endif
 
 
-/* call jni function */
-static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp)
+#if !FFCALL
+ffi_type *cacaotype2ffitype(s4 cacaotype)
 {
+	switch (cacaotype) {
+	case TYPE_INT:
+		return &ffi_type_uint;
+	case TYPE_LNG:
+		return &ffi_type_sint64;
+	case TYPE_FLT:
+		return &ffi_type_float;
+	case TYPE_DBL:
+		return &ffi_type_double;
+	case TYPE_ADR:
+		return &ffi_type_pointer;
+	case TYPE_VOID:
+		return &ffi_type_void;
+	default:
+		assert(false);
+	}
+}
+#endif
+
+
+/* call jni function */
+static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif)
+{
+#if FFCALL
 	av_alist alist;
 	methoddesc *md;
 	Cell *p;
@@ -165,7 +192,7 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 	case TYPE_ADR:
 		endsp=sp-1+md->paramslots; av_start_ptr(alist, f, void *, endsp); break;
 	case TYPE_VOID:
-		endsp=sp-1+md->paramslots; av_start_void(alist, f); break;
+		endsp=sp+md->paramslots; av_start_void(alist, f); break;
 	default: assert(false);
 	}
 
@@ -204,6 +231,60 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 	CLEAR_global_sp;
 
 	return endsp;
+#else
+	methoddesc  *md = m->parseddesc; 
+	ffi_cif      *pcif=(ffi_cif *)addrcif;
+	void        *values[md->paramcount + 2];
+	void       **pvalues = values;
+	Cell        *p;
+	Cell        *endsp;
+	s4           i;
+	stackframeinfo sfi;
+	JNIEnv     *penv = &env;
+
+	/* pass env pointer */
+
+	*pvalues++ = &penv;
+
+	/* for static methods, pass class pointer */
+
+	if (m->flags & ACC_STATIC) {
+		*pvalues++ = &m->class;
+	}
+
+	/* pass parameter to native function */
+
+	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
+		if (IS_2_WORD_TYPE(md->paramtypes[i].type)) 
+			p -= 2;
+		else
+			p--;
+
+		*pvalues++ = p;
+	}
+
+	/* calculate position of return value */
+
+	if (md->returntype.type == TYPE_VOID)
+		endsp = sp + md->paramslots;
+	else
+		endsp = sp - (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1) + md->paramslots;
+
+	global_sp = sp;
+
+	/* create stackframe info structure */
+
+	stacktrace_create_native_stackframeinfo(&sfi, (u1 *) m->entrypoint,
+											(u1 *) fp, (functionptr) ra);
+
+	ffi_call(pcif, FFI_FN(f), endsp, values);
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	CLEAR_global_sp;
+
+	return endsp;
+#endif
 }
 
 
@@ -372,21 +453,8 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 {
 	java_objectheader *retval;
 	Cell *sp = global_sp;
-	Inst wrapper[5];
 	s4 i;
 	functionptr entrypoint;
-
-#if 0
-	codegendata *cd;
-	s4           dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-	
-	cd = DNEW(codegendata);
-    cd->mcodeptr = (u1 *) wrapper;
-#endif
 
 	CLEAR_global_sp;
 	assert(sp != NULL);
@@ -405,16 +473,6 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 			break;
 		}
 	}
-
-#if 0
-	gen_BBSTART;
-	gen_INVOKESTATIC((Inst **) cd, (Inst **)m->stubroutine, m->parseddesc->paramslots, NULL);
-	gen_END((Inst **) cd);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-#endif
 
 	entrypoint = createcalljavafunction(m);
 

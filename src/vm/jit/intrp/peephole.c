@@ -25,6 +25,8 @@
 
 #include "vm/jit/intrp/intrp.h"
 
+#include "vm/options.h"
+
 
 /* the numbers in this struct are primitive indices */
 typedef struct Combination {
@@ -35,9 +37,7 @@ typedef struct Combination {
 
 Combination peephole_table[] = {
 #include "java-peephole.i"
-#ifndef __GNUC__
   {-1,-1,-1} /* unnecessary; just to shut up lcc if the file is empty */
-#endif
 };
 
 int use_super = 1; /* turned off by option -p */
@@ -58,8 +58,12 @@ Cell prepare_peephole_table(Inst insts[])
 {
   Cell i;
   Peeptable_entry **pt = (Peeptable_entry **)calloc(HASH_SIZE,sizeof(Peeptable_entry *));
+  size_t static_supers = sizeof(peephole_table)/sizeof(peephole_table[0]);
 
-  for (i=0; i<sizeof(peephole_table)/sizeof(peephole_table[0]); i++) {
+  if (opt_static_supers < static_supers)
+    static_supers = opt_static_supers;
+
+  for (i=0; i<static_supers; i++) {
     Combination *c = &peephole_table[i];
     Peeptable_entry *p = (Peeptable_entry *)malloc(sizeof(Peeptable_entry));
     Cell h;
@@ -102,7 +106,7 @@ void gen_inst(Inst **vmcodepp, Inst instr)
   if (last_compiled != NULL) {
     Inst combo;
 
-    assert(last_compiled < cd->mcodeptr && cd->mcodeptr < last_compiled+7);
+    assert(last_compiled < cd->mcodeptr && cd->mcodeptr < last_compiled+40);
 
     combo = peephole_opt(*last_compiled, instr, peeptable);
 
