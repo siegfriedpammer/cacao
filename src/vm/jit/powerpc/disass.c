@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 2807 2005-06-23 13:51:33Z twisti $
+   $Id: disass.c 3181 2005-09-15 19:19:38Z twisti $
 
 */
 
@@ -38,8 +38,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-#include "disass.h"
-#include "dis-asm.h"
+
+#include "vm/jit/powerpc/types.h"
+#include "vm/jit/powerpc/dis-asm.h"
 
 char *regs[] = {
 	"r0",
@@ -131,29 +132,49 @@ void sprintf_vma(char *buf, bfd_vma disp)
 }
 
 
-void disassinstr(s4 *code)
+/* disassinstr *****************************************************************
+
+   Outputs a disassembler listing of one machine code instruction on
+   `stdout'.
+
+   code: pointer to machine code
+
+*******************************************************************************/
+
+u1 *disassinstr(u1 *code)
 {
 	disassemble_info info;
 
-	printf("0x%08x:   %08x    ", (s4) code, *code);
-
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
-/*     	info.application_data = (u4) code - pos; */
+
+	printf("0x%08x:   %08x    ", (s4) code, *((s4 *) code));
+
 	print_insn_big_powerpc((bfd_vma) code, &info);
+
 	printf("\n");
+
+	return code + 4;
 }
 
 
-void disassemble(s4 *code, s4 len)
+/* disassemble *****************************************************************
+
+   Outputs a disassembler listing of some machine code on `stdout'.
+
+   start: pointer to first instruction
+   end:   pointer to last instruction
+
+*******************************************************************************/
+
+void disassemble(u1 *start, u1 *end)
 {
-	s4 i;
 	disassemble_info info;
 
 	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
-/*    	info.application_data = code; */
-	printf ("  --- disassembler listing ---\n");
-	for (i = 0; i < len; i += 4, code++)
-		disassinstr(code);
+
+	printf("  --- disassembler listing ---\n");
+	for (; start < end; )
+		start = disassinstr(start);
 }
 
 
