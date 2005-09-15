@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 2879 2005-06-30 09:58:38Z twisti $
+   $Id: cacaoh.c 3184 2005-09-15 20:19:20Z twisti $
 
 */
 
@@ -326,7 +326,6 @@ int main(int argc, char **argv)
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
 #if defined(STATISTICS)
-		log_cputime();
 		mem_usagelog(true);
 #endif
 	}
