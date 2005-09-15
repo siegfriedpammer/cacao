@@ -1,4 +1,4 @@
-/* vm/jit/alpha/disass.c - primitive disassembler for alpha machine code
+/* src/vm/jit/alpha/disass.c - primitive disassembler for Alpha machine code
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,14 +27,16 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 1974 2005-03-03 10:43:46Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: disass.c 3182 2005-09-15 19:36:25Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "vm/jit/alpha/disass.h"
+#include "vm/jit/alpha/types.h"
 
 
 /*  The disassembler uses two tables for decoding the instructions. The first
@@ -282,21 +284,25 @@ char *regs[] = {
 };
 
 
-/* function disassinstr ********************************************************
+/* disassinstr *****************************************************************
 
-	outputs a disassembler listing of one machine code instruction on 'stdout'
-	c:   instructions machine code
+   Outputs a disassembler listing of one machine code instruction on
+   'stdout'.
+
+   code: pointer to instructions machine code
 
 *******************************************************************************/
 
-void disassinstr(s4 *code)
+u1 *disassinstr(u1 *code)
 {
-	int op;                     /* 6 bit op code                              */
-	int opfun;                  /* 7 bit function code                        */
-	int ra, rb, rc;             /* 6 bit register specifiers                  */
-	int lit;                    /* 8 bit unsigned literal                     */
-	int i;                      /* loop counter                               */
-	s4 c = *code;
+	s4 op;                      /* 6 bit op code                              */
+	s4 opfun;                   /* 7 bit function code                        */
+	s4 ra, rb, rc;              /* 6 bit register specifiers                  */
+	s4 lit;                     /* 8 bit unsigned literal                     */
+	s4 i;                       /* loop counter                               */
+	s4 c;
+
+	c = *((s4 *) code);
 
 	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
 	opfun = (c >> 5)  & 0x7f;   /* 7 bit function code                        */
@@ -308,129 +314,133 @@ void disassinstr(s4 *code)
 	printf("0x%016lx:   %08x    ", (u8) code, c);
 	
 	switch (ops[op].itype) {
-		case ITYPE_JMP:
-			switch ((c >> 14) & 3) {  /* branch hint */
-				case 0:
-					if (ra == 31) {
-						printf ("jmp     (%s)\n", regs[rb]); 
-						return;
-						}
-					printf ("jmp     "); 
-					break;
-				case 1:
-					if (ra == 26) {
-						printf ("jsr     (%s)\n", regs[rb]); 
-						return;
-						}
-					printf ("jsr     "); 
-					break;
-				case 2:
-					if (ra == 31 && rb == 26) {
-						printf ("ret\n"); 
-						return;
-						}
-					if (ra == 31) {
-						printf ("ret     (%s)\n", regs[rb]); 
-						return;
-						}
-					printf ("ret     ");
-					break;
-				case 3:
-					printf ("jsr_co  "); 
-					break;
-				}
-			printf ("%s,(%s)\n", regs[ra], regs[rb]); 
-			break;
-
-		case ITYPE_MEM: {
-			int disp = (c << 16) >> 16; /* 16 bit signed displacement         */
-
-			if (op == 0x18 && ra == 0 && ra == 0 && disp == 0)
-				printf ("trapb\n"); 
-			else
-				printf ("%s %s,%d(%s)\n", ops[op].name, regs[ra], disp, regs[rb]); 
-			break;
+	case ITYPE_JMP:
+		switch ((c >> 14) & 3) {  /* branch hint */
+		case 0:
+			if (ra == 31) {
+				printf("jmp     (%s)\n", regs[rb]); 
+				goto _return;
 			}
-
-		case ITYPE_FMEM:
-			printf ("%s $f%d,%d(%s)\n", ops[op].name, ra, (c << 16) >> 16, regs[rb]); 
+			printf("jmp     "); 
 			break;
-
-		case ITYPE_BRA:             /* 21 bit signed branch offset */
-			if (op == 0x30 && ra == 31)
-				printf("br      0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
-			else if (op == 0x34 && ra == 26)
-				printf("brs     0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
-			else
-				printf("%s %s,0x%016lx\n",
-				       ops[op].name, regs[ra], (u8) code + 4 + ((c << 11) >> 9));
-			break;
-			
-		case ITYPE_FOP: {
-			int fopfun = (c >> 5) & 0x7ff;  /* 11 bit fp function code        */
-
-			if (op == 0x17 && fopfun == 0x020 && ra == rb) {
-				if (ra == 31 && rc == 31)
-					printf("fnop\n");
-				else
-					printf("fmov    $f%d,$f%d\n", ra, rc);
-				return;
-				}
-			for (i = 0; op3s[i].name; i++)
-				if (op3s[i].op == op && op3s[i].fun == fopfun) {
-					printf("%s $f%d,$f%d,$f%d\n", op3s[i].name, ra, rb,  rc);
-					return;
-					}
-			printf("%s%x $f%d,$f%d,$f%d\n", ops[op].name, fopfun, ra, rb, rc);
-			break;
+		case 1:
+			if (ra == 26) {
+				printf("jsr     (%s)\n", regs[rb]); 
+				goto _return;
 			}
-
-		case ITYPE_OP:
-			if (op == 0x11 && opfun == 0x20 && ra == rb && ~(c&0x1000)) {
-				if (ra == 31 && rc == 31)
-					printf("nop\n");
-				else if (ra == 31)
-					printf("clr     %s\n", regs[rc]);
-				else
-					printf("mov     %s,%s\n", regs[ra], regs[rc]);
-				return;
-				}
-			for (i = 0; op3s[i].name; i++) {
-				if (op3s[i].op == op && op3s[i].fun == opfun) {
-					if (c & 0x1000)                  /* immediate instruction */
-						printf("%s %s,%d,%s\n",
-						       op3s[i].name, regs[ra], lit, regs[rc]);
-					else
-						printf("%s %s,%s,%s\n",
-						       op3s[i].name, regs[ra], regs[rb], regs[rc]);
-					return;
-					}
-				}
-			/* fall through */
-		default:
-			if (c & 0x1000)                          /* immediate instruction */
-				printf("UNDEF  %x(%x) $%d,%d,$%d\n", op, opfun, ra, lit, rc);
-			else
-				printf("UNDEF  %x(%x) $%d,$%d,$%d\n", op, opfun, ra, rb,  rc);		
+			printf("jsr     "); 
+			break;
+		case 2:
+			if (ra == 31 && rb == 26) {
+				printf("ret\n"); 
+				goto _return;
+			}
+			if (ra == 31) {
+				printf("ret     (%s)\n", regs[rb]); 
+				goto _return;
+			}
+			printf("ret     ");
+			break;
+		case 3:
+			printf("jsr_co  "); 
+			break;
 		}
+		printf("%s,(%s)\n", regs[ra], regs[rb]); 
+		break;
+
+	case ITYPE_MEM: {
+		s4 disp = (c << 16) >> 16;              /* 16 bit signed displacement */
+
+		if (op == 0x18 && ra == 0 && ra == 0 && disp == 0)
+			printf("trapb\n"); 
+		else
+			printf("%s %s,%d(%s)\n", ops[op].name, regs[ra], disp, regs[rb]); 
+		break;
+	}
+
+	case ITYPE_FMEM:
+		printf("%s $f%d,%d(%s)\n", ops[op].name, ra, (c << 16) >> 16, regs[rb]); 
+		break;
+
+	case ITYPE_BRA:                            /* 21 bit signed branch offset */
+		if (op == 0x30 && ra == 31)
+			printf("br      0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
+		else if (op == 0x34 && ra == 26)
+			printf("brs     0x%016lx\n", (u8) code + 4 + ((c << 11) >> 9));
+		else
+			printf("%s %s,0x%016lx\n",
+				   ops[op].name, regs[ra], (u8) code + 4 + ((c << 11) >> 9));
+		break;
+			
+	case ITYPE_FOP: {
+		s4 fopfun = (c >> 5) & 0x7ff;              /* 11 bit fp function code */
+
+		if (op == 0x17 && fopfun == 0x020 && ra == rb) {
+			if (ra == 31 && rc == 31)
+				printf("fnop\n");
+			else
+				printf("fmov    $f%d,$f%d\n", ra, rc);
+			goto _return;
+		}
+		for (i = 0; op3s[i].name; i++)
+			if (op3s[i].op == op && op3s[i].fun == fopfun) {
+				printf("%s $f%d,$f%d,$f%d\n", op3s[i].name, ra, rb,  rc);
+				goto _return;
+			}
+		printf("%s%x $f%d,$f%d,$f%d\n", ops[op].name, fopfun, ra, rb, rc);
+		break;
+	}
+
+	case ITYPE_OP:
+		if (op == 0x11 && opfun == 0x20 && ra == rb && ~(c&0x1000)) {
+			if (ra == 31 && rc == 31)
+				printf("nop\n");
+			else if (ra == 31)
+				printf("clr     %s\n", regs[rc]);
+			else
+				printf("mov     %s,%s\n", regs[ra], regs[rc]);
+			goto _return;
+		}
+		for (i = 0; op3s[i].name; i++) {
+			if (op3s[i].op == op && op3s[i].fun == opfun) {
+				if (c & 0x1000)                      /* immediate instruction */
+					printf("%s %s,%d,%s\n",
+						   op3s[i].name, regs[ra], lit, regs[rc]);
+				else
+					printf("%s %s,%s,%s\n",
+						   op3s[i].name, regs[ra], regs[rb], regs[rc]);
+				goto _return;
+			}
+		}
+		/* fall through */
+	default:
+		if (c & 0x1000)                              /* immediate instruction */
+			printf("UNDEF  %x(%x) $%d,%d,$%d\n", op, opfun, ra, lit, rc);
+		else
+			printf("UNDEF  %x(%x) $%d,$%d,$%d\n", op, opfun, ra, rb,  rc);		
+	}
+
+	/* 1 instruction is 4-bytes long */
+
+ _return:
+	return code + 4;
 }
 
 
-/* function disassemble ********************************************************
+/* disassemble *****************************************************************
 
-	outputs a disassembler listing of some machine code on 'stdout'
-	code: pointer to first instruction
-	len:  code size (number of instructions * 4)
+   Outputs a disassembler listing of some machine code on 'stdout'.
+
+   start: pointer to first instruction
+   end:   pointer to last instruction
 
 *******************************************************************************/
 
-void disassemble(s4 *code, int len)
+void disassemble(u1 *start, u1 *end)
 {
-	int i;
-
-	printf ("  --- disassembler listing ---\n");
-	for (i = 0; i < len; i += 4, code++)
-		disassinstr(code);
+	printf("  --- disassembler listing ---\n");
+	for (; start < end; )
+		start = disassinstr(start);
 }
 
 
