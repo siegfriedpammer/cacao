@@ -142,7 +142,7 @@ java.lang.NullPointerException
 ---------- special exceptions -------------------
 OutOfMemoryError (array clone):               OK
 java.lang.OutOfMemoryError
-	at [B.clone(Unknown Source)
+	at [B.clone(Native Method)
 	at extest.main(extest.java:372)
 
 
