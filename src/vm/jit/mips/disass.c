@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/disass.c - primitive disassembler for mips machine code
+/* src/vm/jit/mips/disass.c - primitive disassembler for MIPS machine code
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,14 +28,14 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 1975 2005-03-03 10:59:37Z twisti $
+   $Id: disass.c 3186 2005-09-16 07:49:06Z twisti $
 
 */
 
 
 #include <stdio.h>
-#include "types.h"
-#include "disass.h"
+
+#include "vm/jit/mips/types.h"
 
 
 /*  The disassembler uses four tables for decoding the instructions. The first
@@ -451,19 +451,23 @@ static char *fregs[] = {
 
 /* disassinstr *****************************************************************
 
-	outputs a disassembler listing of one machine code instruction on 'stdout'
-	c:   instructions machine code
+   Outputs a disassembler listing of one machine code instruction on
+   'stdout'.
+
+   code: pointer to instructions machine code
 
 *******************************************************************************/
 
-void disassinstr(s4 *code)
+u1 *disassinstr(u1 *code)
 {
 	s4 op;                      /* 6 bit op code                              */
 	s4 opfun;                   /* 6 bit function code                        */
 	s4 rs, rt, rd;              /* 5 bit integer register specifiers          */
 	s4 fs, ft, fd;              /* 5 bit floating point register specifiers   */
 	s4 shift;                   /* 5 bit unsigned shift amount                */
-	s4 c = *code;
+	s4 c;
+
+	c = *((s4 *) code);
 
 	op    = (c >> 26) & 0x3f;   /* 6 bit op code                              */
 	opfun = (c >>  0) & 0x3f;   /* 6 bit function code                        */
@@ -475,163 +479,162 @@ void disassinstr(s4 *code)
 	printf("0x%016lx:   %08x    ", (u8) code, c);
 	
 	switch (ops[op].itype) {
-		case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
-			printf ("%s %#09x\n", ops[op].name, (c & 0x3ffffff) << 2); 
-			break;
+	case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
+		printf("%s %#09x\n", ops[op].name, (c & 0x3ffffff) << 2); 
+		break;
 
-		case ITYPE_IMM:                      /* 16 bit signed immediate value */
-			printf ("%s %s,%s,%d\n", ops[op].name, regs[rt],
-			                         regs[rs], (c << 16) >> 16); 
-			break;
+	case ITYPE_IMM:                      /* 16 bit signed immediate value */
+		printf("%s %s,%s,%d\n", ops[op].name, regs[rt],
+			   regs[rs], (c << 16) >> 16); 
+		break;
 
-		case ITYPE_MEM:                      /* 16 bit signed memory offset   */
-			printf ("%s %s,%d(%s)\n", ops[op].name, regs[rt],
-			                          (c << 16) >> 16, regs[rs]); 
-			break;
+	case ITYPE_MEM:                      /* 16 bit signed memory offset   */
+		printf("%s %s,%d(%s)\n", ops[op].name, regs[rt],
+			   (c << 16) >> 16, regs[rs]); 
+		break;
 
-		case ITYPE_FMEM:                     /* 16 bit signed memory offset   */
-			printf ("%s $f%d,%d(%s)\n", ops[op].name, rt,
-			                            (c << 16) >> 16, regs[rs]); 
-			break;
+	case ITYPE_FMEM:                     /* 16 bit signed memory offset   */
+		printf("%s $f%d,%d(%s)\n", ops[op].name, rt, (c << 16) >> 16, regs[rs]);
+		break;
 
-		case ITYPE_BRA:                      /* 16 bit signed branch offset   */
-			if (op == 0x04 && rs == 0 && rt == 0) {
-				printf("b        0x%016lx\n", (u8) code + 4 + ((c << 16) >> 14));
-				break;
-				}	
-			printf("%s %s,%s,0x%016lx\n", ops[op].name, regs[rs], regs[rt], 
-				   (u8) code + 4 + ((c << 16) >> 14));
+	case ITYPE_BRA:                      /* 16 bit signed branch offset   */
+		if (op == 0x04 && rs == 0 && rt == 0) {
+			printf("b        0x%016lx\n", (u8) code + 4 + ((c << 16) >> 14));
 			break;
+		}	
+		printf("%s %s,%s,0x%016lx\n", ops[op].name, regs[rs], regs[rt], 
+			   (u8) code + 4 + ((c << 16) >> 14));
+		break;
 			
-		case ITYPE_RIMM:
-			if (regimms[rt].ftype == ITYPE_IMM)
-				printf("%s %s,%d\n", regimms[rt].name, regs[rs],
-				       (c << 16) >> 16);
-			else if (regimms[rt].ftype == ITYPE_BRA)
-				printf("%s %s,0x%016lx\n", regimms[rt].name, regs[rs],
-				       (u8) code + 4 + ((c << 16) >> 14));
-			else
-				printf("regimm   %#04x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
+	case ITYPE_RIMM:
+		if (regimms[rt].ftype == ITYPE_IMM)
+			printf("%s %s,%d\n", regimms[rt].name, regs[rs], (c << 16) >> 16);
+		else if (regimms[rt].ftype == ITYPE_BRA)
+			printf("%s %s,0x%016lx\n", regimms[rt].name, regs[rs],
+				   (u8) code + 4 + ((c << 16) >> 14));
+		else
+			printf("regimm   %#04x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
+		break;
+
+	case ITYPE_OP:
+		if (c == 0) {
+			printf("nop\n");
 			break;
-
-		case ITYPE_OP:
-			if (c == 0) {
-				printf("nop\n");
-				return;
-				}
-			if (opfun == 0x25 && rt == 0) {
-				if (rs == 0)
-					printf("clr      %s\n", regs[rd]);
-				else
-					printf("move     %s,%s\n", regs[rd], regs[rs]);
-				return;
-				}
-			switch (regops[opfun].ftype) {
-				case ITYPE_OP:
-					printf("%s %s,%s,%s\n", regops[opfun].name, regs[rd],
-					       regs[rs], regs[rt]);
-					break;
-				case ITYPE_IMM:  /* immediate instruction */
-					printf("%s %s,%s,%d\n",
-					       regops[opfun].name, regs[rd], regs[rt], shift);
-					break;
-				case ITYPE_TRAP:
-					printf("%s %s,%s,%d\n", regops[opfun].name,
-					       regs[rs], regs[rt], (c << 16) >> 22);
-					break;
-				case ITYPE_DIVMUL: /* div/mul instruction */
-					printf("%s %s,%s\n", regops[opfun].name, regs[rs], regs[rt]);
-					break;
-				case ITYPE_JMP:
-					if (rd == 31) {
-						printf("%s %s\n", regops[opfun].name, regs[rs]);
-						break;
-						}
-					printf("%s %s,%s\n", regops[opfun].name, regs[rd], regs[rs]);
-					break;
-				case ITYPE_MTOJR:
-					if (opfun == 8 && rs == 31) {
-						printf("ret\n");
-						break;
-						}
-					printf("%s %s\n", regops[opfun].name, regs[rs]);
-					break;
-				case ITYPE_MFROM:
-					printf("%s %s\n", regops[opfun].name, regs[rd]);
-					break;
-				case ITYPE_SYS:
-					printf("%s\n", regops[opfun].name);
-				default:
-					printf("special  (%#04x) $%d,$%d,$%d\n", opfun, rd, rs, rt);
-				}		
-			break;
-		case ITYPE_FOP:
-			fs    = (c >> 11) & 0x1f;   /* 5 bit source register              */
-			ft    = (c >> 16) & 0x1f;   /* 5 bit source/destination register  */
-			fd    = (c >>  6) & 0x1f;   /* 5 bit destination register         */
-
-			if (rs == 8) {              /* floating point branch              */
-				printf("%s 0x%016lx\n", fbra[ft&3], (u8) code + 4 + ((c << 16) >> 14));
-				break;
-				}
-
-			if (rs == 0) {              /* move from                          */
-				printf("mfc1     %s,$f%d\n", regs[rt], fs);		
-				break;
-				}
-
-			if (rs == 1) {              /* double move from                   */
-				printf("dmfc1    %s,$f%d\n", regs[rt], fs);		
-				break;
-				}
-
-			if (rs == 4) {              /* move to                            */
-				printf("mtc1     %s,$f%d\n", regs[rt], fs);		
-				break;
-				}
-
-			if (rs == 5) {              /* double move to                     */
-				printf("dmtc1    %s,$f%d\n", regs[rt], fs);		
-				break;
-				}
-
-			rs    = rs & 7;             /* truncate to 3 bit format specifier */
-
-			if (fops[opfun].ftype == ITYPE_FOP)
-				printf("%s%s%s $f%d,$f%d,$f%d\n", fops[opfun].name, fmt[rs],
-				                               fops[opfun].fill, fd, fs, ft);
-			else if (fops[opfun].ftype == ITYPE_FOP2)
-				printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
-				                           fops[opfun].fill, fd, fs);
-			else if (fops[opfun].ftype == ITYPE_FCMP)
-				printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
-				                           fops[opfun].fill, fs, ft);
-			else
-				printf("cop1     (%#04x) $f%d,$f%d,$f%d\n", opfun, fd, fs, ft);		
-
-			break;
-
-		default:
-			printf("undef    %#04x(%#04x) $%d,$%d,$%d\n", op, opfun, rd, rs, rt);		
 		}
+		if (opfun == 0x25 && rt == 0) {
+			if (rs == 0)
+				printf("clr      %s\n", regs[rd]);
+			else
+				printf("move     %s,%s\n", regs[rd], regs[rs]);
+			break;
+		}
+		switch (regops[opfun].ftype) {
+		case ITYPE_OP:
+			printf("%s %s,%s,%s\n", regops[opfun].name, regs[rd],
+				   regs[rs], regs[rt]);
+			break;
+		case ITYPE_IMM:  /* immediate instruction */
+			printf("%s %s,%s,%d\n",
+				   regops[opfun].name, regs[rd], regs[rt], shift);
+			break;
+		case ITYPE_TRAP:
+			printf("%s %s,%s,%d\n", regops[opfun].name,
+				   regs[rs], regs[rt], (c << 16) >> 22);
+			break;
+		case ITYPE_DIVMUL: /* div/mul instruction */
+			printf("%s %s,%s\n", regops[opfun].name, regs[rs], regs[rt]);
+			break;
+		case ITYPE_JMP:
+			if (rd == 31) {
+				printf("%s %s\n", regops[opfun].name, regs[rs]);
+				break;
+			}
+			printf("%s %s,%s\n", regops[opfun].name, regs[rd], regs[rs]);
+			break;
+		case ITYPE_MTOJR:
+			if (opfun == 8 && rs == 31) {
+				printf("ret\n");
+				break;
+			}
+			printf("%s %s\n", regops[opfun].name, regs[rs]);
+			break;
+		case ITYPE_MFROM:
+			printf("%s %s\n", regops[opfun].name, regs[rd]);
+			break;
+		case ITYPE_SYS:
+			printf("%s\n", regops[opfun].name);
+		default:
+			printf("special  (%#04x) $%d,$%d,$%d\n", opfun, rd, rs, rt);
+		}		
+		break;
+
+	case ITYPE_FOP:
+		fs    = (c >> 11) & 0x1f;   /* 5 bit source register              */
+		ft    = (c >> 16) & 0x1f;   /* 5 bit source/destination register  */
+		fd    = (c >>  6) & 0x1f;   /* 5 bit destination register         */
+
+		if (rs == 8) {              /* floating point branch              */
+			printf("%s 0x%016lx\n", fbra[ft&3], (u8) code + 4 + ((c << 16) >> 14));
+			break;
+		}
+
+		if (rs == 0) {              /* move from                          */
+			printf("mfc1     %s,$f%d\n", regs[rt], fs);		
+			break;
+		}
+
+		if (rs == 1) {              /* double move from                   */
+			printf("dmfc1    %s,$f%d\n", regs[rt], fs);		
+			break;
+		}
+
+		if (rs == 4) {              /* move to                            */
+			printf("mtc1     %s,$f%d\n", regs[rt], fs);		
+			break;
+		}
+
+		if (rs == 5) {              /* double move to                     */
+			printf("dmtc1    %s,$f%d\n", regs[rt], fs);		
+			break;
+		}
+
+		rs    = rs & 7;             /* truncate to 3 bit format specifier */
+
+		if (fops[opfun].ftype == ITYPE_FOP)
+			printf("%s%s%s $f%d,$f%d,$f%d\n", fops[opfun].name, fmt[rs],
+				   fops[opfun].fill, fd, fs, ft);
+		else if (fops[opfun].ftype == ITYPE_FOP2)
+			printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
+				   fops[opfun].fill, fd, fs);
+		else if (fops[opfun].ftype == ITYPE_FCMP)
+			printf("%s%s%s $f%d,$f%d\n", fops[opfun].name, fmt[rs],
+				   fops[opfun].fill, fs, ft);
+		else
+			printf("cop1     (%#04x) $f%d,$f%d,$f%d\n", opfun, fd, fs, ft);
+		break;
+
+	default:
+		printf("undef    %#04x(%#04x) $%d,$%d,$%d\n", op, opfun, rd, rs, rt);
+	}
+
+	return code + 4;
 }
 
 
 /* disassemble *****************************************************************
 
-	outputs a disassembler listing of some machine code on 'stdout'
-	code: pointer to first instruction
-	len:  code size (number of instructions * 4)
+   Outputs a disassembler listing of some machine code on 'stdout'.
+
+   start: pointer to first instruction
+   end:   pointer to last instruction
 
 *******************************************************************************/
 
-void disassemble(s4 *code, s4 len)
+void disassemble(u1 *start, u1 *end)
 {
-	s4 i;
-
 	printf("  --- disassembler listing ---\n");	
-	for (i = 0; i < len; i += 4, code++)
-		disassinstr(code);
+	for (; start < end; )
+		start = disassinstr(start);
 }
 
 
