@@ -1,5 +1,5 @@
-/* vm/jit/powerpc/asmoffsets.h - data segment offsets for PowerPC
-		
+/* src/vm/jit/methodheader.h - method header data segment offsets
+
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
@@ -7,36 +7,62 @@
 
    This file is part of CACAO.
 
-   This program is free software.text;  you can redistribute it and/or
+   This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation;  either version 2, or (at
+   published by the Free Software Foundation; either version 2, or (at
    your option) any later version.
 
    This program is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY	;  without even the implied warranty of
+   WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program;  if not, write to the Free Software
+   along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Andreas Krall
+   Authors: Joseph Wenninger
 
-   Changes:
+   Changes: Christian Thalinger
 
-   $Id: asmoffsets.h 2957 2005-07-09 15:48:43Z twisti $
+   $Id: methodheader.h 3197 2005-09-16 16:47:15Z twisti $
 
 */
 
 
-#ifndef _ASMOFFSETS_H
-#define _ASMOFFSETS_H
+#ifndef _METHODHEADER_H
+#define _METHODHEADER_H
+
+#include "config.h"
+
 
 /* data segment offsets *******************************************************/
+
+#if SIZEOF_VOID_P == 8
+
+#define MethodPointer           -8
+#define FrameSize               -12
+#define IsSync                  -16
+#define IsLeaf                  -20
+#define IntSave                 -24
+#define FltSave                 -28
+/* 4-byte alignment padding */
+#define LineNumberTableSize     -40
+#define LineNumberTableStart    -48
+/* 4-byte alignment padding */
+#define ExTableSize             -56
+#define ExTableStart            -56
+       
+#define ExEntrySize             -32
+#define ExStartPC               -8
+#define ExEndPC                 -16
+#define ExHandlerPC             -24
+#define ExCatchType             -32
+
+#else
 
 #define MethodPointer           -4
 #define FrameSize               -8
@@ -55,11 +81,9 @@
 #define ExHandlerPC             -12
 #define ExCatchType             -16
 
-#define LineEntrySize           -8
-#define LinePC                   0
-#define LineLine                -4
+#endif
 
-#endif /* _ASMOFFSETS_H */
+#endif /* _METHODHEADER_H */
 
 
 /*
