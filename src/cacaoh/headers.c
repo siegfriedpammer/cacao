@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 2965 2005-07-09 18:21:01Z twisti $
+   $Id: headers.c 3188 2005-09-16 11:33:21Z twisti $
 
 */
 
@@ -65,6 +65,13 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
+
+
+#if defined(ENABLE_INTRP)
+/* dummy interpreter stack to keep the compiler happy */
+
+u1 intrp_main_stack[1];
+#endif
 
 
 /* for raising exceptions from native methods */
