@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3113 2005-07-27 10:36:38Z twisti $
+   $Id: asmpart.S 3185 2005-09-16 07:48:52Z twisti $
 
 */
 
@@ -282,8 +282,8 @@ calljava_nocopy:
 	ald     itmp1,4*8(t8)             /* pass method pointer via itmp1        */
 
 	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	ast     mptr,2*8(sp)              /* store function address               */
-	ala     mptr,1*8(sp)              /* set method pointer                   */
+	ast     mptr,2*8(t8)              /* store function address               */
+	ala     mptr,1*8(t8)              /* set method pointer                   */
 
 	.set    noreorder
 
