@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 2503 2005-05-23 08:22:03Z twisti $
+   $Id: statistics.c 3190 2005-09-16 12:05:10Z twisti $
 
 */
 
@@ -343,33 +343,17 @@ void print_times(void)
 	totaltime = getcputime();
 	runtime = totaltime - loadingtime - compilingtime;
 
-#if defined(__I386__) || defined(__POWERPC__)
-	dolog("Time for loading classes: %lld secs, %lld millis",
+#if SIZEOF_VOID_P == 8
+	dolog("Time for loading classes: %6ld ms", loadingtime / 1000);
+	dolog("Time for compiling code:  %6ld ms", compilingtime / 1000);
+	dolog("Time for running program: %6ld ms", runtime / 1000);
+	dolog("Total time:               %6ld ms", totaltime / 1000);
 #else
-	dolog("Time for loading classes: %ld secs, %ld millis",
+	dolog("Time for loading classes: %6lld ms", loadingtime / 1000);
+	dolog("Time for compiling code:  %6lld ms", compilingtime / 1000);
+	dolog("Time for running program: %6lld ms", runtime / 1000);
+	dolog("Total time:               %6lld ms", totaltime / 1000);
 #endif
-		  loadingtime / 1000000, (loadingtime % 1000000) / 1000);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	dolog("Time for compiling code:  %lld secs, %lld millis",
-#else
-	dolog("Time for compiling code:  %ld secs, %ld millis",
-#endif
-		  compilingtime / 1000000, (compilingtime % 1000000) / 1000);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	dolog("Time for running program: %lld secs, %lld millis",
-#else
-	dolog("Time for running program: %ld secs, %ld millis",
-#endif
-		  runtime / 1000000, (runtime % 1000000) / 1000);
-
-#if defined(__I386__) || defined(__POWERPC__) 
-	dolog("Total time: %lld secs, %lld millis",
-#else
-	dolog("Total time: %ld secs, %ld millis",
-#endif
-		  totaltime / 1000000, (totaltime % 1000000) / 1000);
 }
 
 
@@ -381,19 +365,24 @@ void print_times(void)
 
 void print_stats(void)
 {
-	dolog("Number of JitCompiler Calls: %d", count_jit_calls);
-	dolog("Number of compiled Methods: %d", count_methods);
+	dolog("Number of JIT compiler calls: %6d", count_jit_calls);
+	dolog("Number of compiled methods:   %6d", count_methods);
 
 	if (opt_rt)
 		dolog("Number of Methods marked Used: %d", count_methods_marked_used);
 
-	dolog("Number of max basic blocks per method: %d", count_max_basic_blocks);
-	dolog("Number of compiled basic blocks: %d", count_basic_blocks);
-	dolog("Number of max JavaVM-Instructions per method: %d",
+	dolog("Number of compiled basic blocks:               %6d",
+		  count_basic_blocks);
+	dolog("Number of max. basic blocks per method:        %6d",
+		  count_max_basic_blocks);
+
+	dolog("Number of compiled JavaVM instructions:        %6d",
+		  count_javainstr);
+	dolog("Number of max. JavaVM instructions per method: %6d",
 		  count_max_javainstr);
-	dolog("Number of compiled JavaVM-Instructions: %d", count_javainstr);
-	dolog("Size of compiled JavaVM-Instructions:   %d(%d)",
+	dolog("Size of compiled JavaVM instructions:          %6d(%d)",
 		  count_javacodesize, count_javacodesize - count_methods * 18);
+
 	dolog("Size of compiled Exception Tables:      %d", count_javaexcsize);
 	dolog("Number of Machine-Instructions: %d", count_code_len >> 2);
 	dolog("Number of Spills (write to memory): %d", count_spills);
