@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3169 2005-09-10 20:32:22Z twisti $
+   $Id: codegen.c 3194 2005-09-16 12:31:51Z twisti $
 
 */
 
@@ -68,8 +68,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/reg.inc"
 
-
-void asm_cacheflush(void *, long);
 
 /* #include <architecture/ppc/cframe.h> */
 
@@ -2368,7 +2366,7 @@ nowperformreturn:
 
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
-				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
+				disp = dseg_addaddress(cd, builtin_displaymethodstop);
 				M_ALD(REG_ITMP2, REG_PV, disp);
 				M_MTCTR(REG_ITMP2);
 				M_JSR;
@@ -3134,8 +3132,8 @@ gen_method:
 				disp = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, mcodeptr,
-									(functionptr) iptr->target, iptr->val.a,
-									disp);
+									(functionptr) (ptrint) iptr->target,
+									iptr->val.a, disp);
 
 				if (opt_showdisassemble)
 					M_NOP;
@@ -3734,7 +3732,7 @@ gen_method:
 
 	codegen_finish(m, cd, (ptrint) ((u1 *) mcodeptr - cd->mcodebase));
 
-	asm_cacheflush((void *) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
+	asm_cacheflush((void *) (ptrint) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 }
 
 
@@ -4244,7 +4242,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
-	asm_cacheflush((void *) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
+	asm_cacheflush((void *) (ptrint) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 
 	return m->entrypoint;
 }
@@ -4402,7 +4400,7 @@ s4 *codegen_trace_args(methodinfo *m, codegendata *cd, registerdata *rd,
 #else
 	M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
 #endif
-	p = dseg_addaddress(cd, (void *) builtin_trace_args);
+	p = dseg_addaddress(cd, builtin_trace_args);
 	M_ALD(REG_ITMP2, REG_PV, p);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;
