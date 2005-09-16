@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3174 2005-09-12 08:59:06Z twisti $
+   $Id: builtin.c 3198 2005-09-16 17:12:26Z twisti $
 
 */
 
@@ -2401,7 +2401,7 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 	java_arrayheader    *ah;
 	java_lang_Cloneable *c;
 
-	c = (java_lang_Object *) o;
+	c = (java_lang_Cloneable *) o;
 
 	ah = (java_arrayheader *) Java_java_lang_VMObject_clone(0, 0, c);
 
@@ -2423,44 +2423,15 @@ java_objectheader **builtin_asm_get_exceptionptrptr(void)
 #endif
 
 
-methodinfo *builtin_asm_get_threadrootmethod(void)
-{
-	return *threadrootmethod;
-}
-
-
-void *builtin_asm_get_stackframeinfo(void)
+void *builtin_get_stackframeinfo(void)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	return &THREADINFO->_stackframeinfo;
 #else
 	/* XXX FIXME FOR OLD THREAD IMPL (jowenn) */
 
-	return &_thread_nativestackframeinfo; /* no threading, at least no native*/
+	return &_thread_nativestackframeinfo; /* no threading, at least no native */
 #endif
-}
-
-
-stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,
-										   stacktraceelement *begin,
-										   stacktraceelement *end)
-{
-/*	stacktraceelement *el;*/
-	size_t s;
-	s=(end-begin);
-	/*printf ("begin: %p, end: %p, diff: %ld, size :%ld\n",begin,end,s,s*sizeof(stacktraceelement));*/
-	*el=heap_allocate(sizeof(stacktraceelement)*(s+1), true, 0);
-#if 0
-	*el=MNEW(stacktraceelement,s+1); /*GC*/
-#endif
-	memcpy(*el,begin,(end-begin)*sizeof(stacktraceelement));
-	(*el)[s].method=0;
-
-	/* XXX change this if line numbers bigger than u2 are allowed, the */
-	/* currently supported class file format does no allow that */
-
-	(*el)[s].linenumber=-1; /* -1 can never be reched otherwise, since line numbers are only u2, so it is save to use that as flag */
-	return *el;
 }
 
 
