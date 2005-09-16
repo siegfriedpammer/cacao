@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3156 2005-09-05 21:58:53Z twisti $
+   $Id: loader.c 3191 2005-09-16 12:08:39Z twisti $
 
 */
 
@@ -2850,14 +2850,13 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	clonedesc->returntype.type = TYPE_ADDRESS;
 	clonedesc->returntype.classref = classrefs + 1;
 	clonedesc->returntype.arraydim = 0;
+	/* initialize params to "empty", add real params below in
+	   descriptor_params_from_paramtypes */
 	clonedesc->paramcount = 0;
 	clonedesc->paramslots = 0;
 	clonedesc->paramtypes[0].classref = classrefs + 0;
 
-	/* parse the descriptor to get the register allocation */
-
-	if (!descriptor_params_from_paramtypes(clonedesc, ACC_NONE))
-		return false;
+	/* create methodinfo */
 
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
@@ -2866,25 +2865,22 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	initObjectLock(&clone->header);
 #endif
 
-	clone->flags = ACC_PUBLIC;
+	/* if you delete the ACC_NATIVE below, set clone->maxlocals=1 (interpreter 
+	   related) */
+	clone->flags = ACC_PUBLIC | ACC_NATIVE;
 	clone->name = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
 	clone->class = c;
 	clone->monoPoly = MONO;
 
+	/* parse the descriptor to get the register allocation */
+
+	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
+		return false;
+
 	clone->entrypoint =
 		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
-
-#if defined(ENABLE_INTRP)
-	if (opt_intrp) {
-		void **stub = MNEW(void *, 2);
-		stub[0] = (void *) clone->entrypoint;
-		stub[1] = (void *) 1; /* XXX set 1 paramslot */
-		clone->entrypoint = (functionptr) stub;
-		clone->stubroutine = (functionptr) stub;
-	}
-#endif
 
 	/* XXX: field: length? */
 
