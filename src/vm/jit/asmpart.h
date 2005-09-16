@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 3001 2005-07-12 16:01:56Z twisti $
+   $Id: asmpart.h 3195 2005-09-16 12:32:11Z twisti $
 
 */
 
@@ -126,6 +126,9 @@ void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
+
+/* may be required on some architectures (at least for PowerPC) */
+void asm_cacheflush(void *p, s4 size);
 
 #endif /* _ASMPART_H */
 
