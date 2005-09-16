@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 3137 2005-08-24 00:11:23Z michi $
+   $Id: VMAccessController.c 3189 2005-09-16 11:53:40Z twisti $
 
 */
 
@@ -45,26 +45,39 @@
  * Signature: ()[[Ljava/lang/Object;
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz) {
-#if defined(__I386__) || defined(__ALPHA__) || defined(__ARM__) || defined (__x86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined (__X86_64__)
+	/* these JITs support stacktraces */
+
 	return cacao_getStackForVMAccessController();
+
 #else
-	java_objectarray *result;
-	java_objectarray *classes;
-	java_objectarray *methodnames;
+# if defined(ENABLE_INTRP)
+	/* the interpreter supports stacktraces, even if the JIT does not */
 
-	if (!(result = builtin_anewarray(2, arrayclass_java_lang_Object)))
-		return NULL;
+	if (opt_intrp) {
+		return cacao_getStackForVMAccessController();
 
-	if (!(classes = builtin_anewarray(0, class_java_lang_Class)))
-		return NULL;
+	} else
+# endif
+		{
+			java_objectarray *result;
+			java_objectarray *classes;
+			java_objectarray *methodnames;
 
-	if (!(methodnames = builtin_anewarray(0, class_java_lang_String)))
-		return NULL;
+			if (!(result = builtin_anewarray(2, arrayclass_java_lang_Object)))
+				return NULL;
 
-	result->data[0] = (java_objectheader *) classes;
-	result->data[1] = (java_objectheader *) methodnames;
+			if (!(classes = builtin_anewarray(0, class_java_lang_Class)))
+				return NULL;
 
-	return result;
+			if (!(methodnames = builtin_anewarray(0, class_java_lang_String)))
+				return NULL;
+
+			result->data[0] = (java_objectheader *) classes;
+			result->data[1] = (java_objectheader *) methodnames;
+
+			return result;
+		}
 #endif
 }
 

@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 3163 2005-09-10 15:09:44Z twisti $
+   $Id: VMStackWalker.c 3189 2005-09-16 11:53:40Z twisti $
 
 */
 
@@ -54,10 +54,23 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 /*  	if (cacao_initializing) */
 /*  		return NULL; */
 
-#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+	/* these JITs support stacktraces, and so does the interpreter */
+
 	return cacao_createClassContextArray();
+
 #else
-	return builtin_anewarray(0, class_java_lang_Class);
+# if defined(ENABLE_INTRP)
+	/* the interpreter supports stacktraces, even if the JIT does not */
+
+	if (opt_intrp) {
+		return cacao_createClassContextArray();
+
+	} else
+# endif
+		{
+			return builtin_anewarray(0, class_java_lang_Class);
+		}
 #endif
 }
 
@@ -69,7 +82,9 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
  */
 JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
-#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+	/* these JITs support stacktraces, and so does the interpreter */
+
 	java_objectarray *oa;
 
 	oa = cacao_createClassContextArray();
@@ -78,8 +93,26 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
 		return NULL;
 
 	return (java_lang_Class *) oa->data[1];
+
 #else
-	return NULL;
+# if defined(ENABLE_INTRP)
+	/* the interpreter supports stacktraces, even if the JIT does not */
+
+	if (opt_intrp) {
+		java_objectarray *oa;
+
+		oa = cacao_createClassContextArray();
+
+		if (oa->header.size < 2)
+			return NULL;
+
+		return (java_lang_Class *) oa->data[1];
+
+	} else
+# endif
+		{
+			return NULL;
+		}
 #endif
 }
 
@@ -91,7 +124,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-#if !defined(ENABLE_INTRP) && (defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__))
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+	/* these JITs support stacktraces, and so does the interpreter */
+
 	java_objectarray *oa;
 	classinfo        *c;
 
@@ -103,8 +138,29 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 	c = (classinfo *) oa->data[1];
 
 	return (java_lang_ClassLoader *) c->classloader;
+
 #else
-	return NULL;
+# if defined(ENABLE_INTRP)
+	/* the interpreter supports stacktraces, even if the JIT does not */
+
+	if (opt_intrp) {
+		java_objectarray *oa;
+		classinfo        *c;
+
+		oa = cacao_createClassContextArray();
+
+		if (oa->header.size < 2)
+			return NULL;
+
+		c = (classinfo *) oa->data[1];
+
+		return (java_lang_ClassLoader *) c->classloader;
+
+	} else
+# endif
+		{
+			return NULL;
+		}
 #endif
 }
 
