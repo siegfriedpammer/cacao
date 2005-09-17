@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3188 2005-09-16 11:33:21Z twisti $
+   $Id: headers.c 3199 2005-09-17 10:25:28Z twisti $
 
 */
 
@@ -74,10 +74,10 @@ u1 intrp_main_stack[1];
 #endif
 
 
-/* for raising exceptions from native methods */
+/* for raising exceptions from native methods *********************************/
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-java_objectheader *_exceptionptr = NULL;
+java_objectheader *_no_threads_exceptionptr = NULL;
 #endif
 
 
