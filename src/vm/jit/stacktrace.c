@@ -1,4 +1,4 @@
-/* src/vm/jit/stacktrace.c
+/* src/vm/jit/stacktrace.c - machine independet stacktrace system
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3124 2005-07-28 19:56:34Z twisti $
+   $Id: stacktrace.c 3203 2005-09-17 11:14:04Z twisti $
 
 */
 
@@ -38,7 +38,6 @@
 #include <string.h>
 
 #include "config.h"
-#include "asmoffsets.h"
 
 #include "mm/boehm.h"
 #include "native/native.h"
@@ -55,11 +54,7 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
-
-
-#undef JWDEBUG
-#undef JWDEBUG2
-#undef JWDEBUG3
+#include "vm/jit/methodheader.h"
 
 
 /* lineNumberTableEntry *******************************************************/
@@ -86,6 +81,17 @@ typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
 #define BLOCK_SIZEINCREMENT 40
 
 
+/* global variables ***********************************************************/
+
+#if defined(USE_THREADS)
+#define STACKFRAMEINFO    &THREADINFO->_stackframeinfo
+#else
+THREADSPECIFIC stackframeinfo *_no_threads_stackframeinfo = NULL;
+
+#define STACKFRAMEINFO    &_no_threads_stackframeinfo
+#endif
+
+
 /* stacktrace_create_inline_stackframeinfo *************************************
 
    Creates an stackframe info structure for an inline exception stub.
@@ -96,16 +102,15 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra,
 											 functionptr xpc)
 {
-	void **osfi;
+	stackframeinfo **psfi;
 
 	/* get current stackframe info pointer */
 
-	osfi = builtin_asm_get_stackframeinfo();
+	psfi = STACKFRAMEINFO;
 
 	/* fill new stackframe info structure */
 
-	sfi->oldThreadspecificHeadValue = *osfi;
-	sfi->addressOfThreadspecificHead = osfi;
+	sfi->prev = *psfi;
 	sfi->method = NULL;
 	sfi->pv = pv;
 	sfi->sp = sp;
@@ -114,7 +119,7 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* store new stackframe info pointer */
 
-	*osfi = sfi;
+	*psfi = sfi;
 }
 
 
@@ -129,15 +134,15 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra,
 											 functionptr xpc)
 {
-	void **osfi;
+	stackframeinfo **psfi;
 #if !defined(__I386__) && !defined(__X86_64__)
-	bool   isleafmethod;
+	bool             isleafmethod;
 #endif
-	s4     framesize;
+	s4               framesize;
 
 	/* get current stackframe info pointer */
 
-	osfi = builtin_asm_get_stackframeinfo();
+	psfi = STACKFRAMEINFO;
 
 	/* sometimes we don't have pv handy (e.g. in asmpart.S: */
 	/* L_asm_call_jit_compiler_exception) */
@@ -169,8 +174,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* fill new stackframe info structure */
 
-	sfi->oldThreadspecificHeadValue = *osfi;
-	sfi->addressOfThreadspecificHead = osfi;
+	sfi->prev = *psfi;
 	sfi->method = NULL;
 	sfi->pv = pv;
 	sfi->sp = sp;
@@ -179,7 +183,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* store new stackframe info pointer */
 
-	*osfi = sfi;
+	*psfi = sfi;
 }
 
 
@@ -192,8 +196,8 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra)
 {
-	void       **osfi;
-	methodinfo  *m;
+	stackframeinfo **psfi;
+	methodinfo      *m;
 
 	/* get methodinfo pointer from data segment */
 
@@ -201,12 +205,11 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* get current stackframe info pointer */
 
-	osfi = builtin_asm_get_stackframeinfo();
+	psfi = STACKFRAMEINFO;
 
 	/* fill new stackframe info structure */
 
-	sfi->oldThreadspecificHeadValue = *osfi;
-	sfi->addressOfThreadspecificHead = osfi;
+	sfi->prev = *psfi;
 	sfi->method = m;
 	sfi->pv = NULL;
 	sfi->sp = sp;
@@ -215,7 +218,7 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* store new stackframe info pointer */
 
-	*osfi = sfi;
+	*psfi = sfi;
 }
 
 
@@ -227,15 +230,15 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 {
-	void **osfi;
+	stackframeinfo **psfi;
 
-	/* get address of pointer */
+	/* get current stackframe info pointer */
 
-	osfi = sfi->addressOfThreadspecificHead;
+	psfi = STACKFRAMEINFO;
 
 	/* restore the old pointer */
 
-	*osfi = sfi->oldThreadspecificHeadValue;
+	*psfi = sfi->prev;
 }
 
 
@@ -684,7 +687,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 {
 	stacktraceelement primaryBlock[BLOCK_INITIALSIZE*sizeof(stacktraceelement)];
 	stackTraceBuffer  buffer;
-	stackframeinfo   *info;
+	stackframeinfo   *sfi;
 	methodinfo       *m;
 	u1               *pv;
 	u1               *sp;
@@ -710,9 +713,9 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	/* the first element in the stackframe chain must always be a native      */
 	/* stackframeinfo (VMThrowable.fillInStackTrace is a native function)     */
 
-	info = *((void **) builtin_asm_get_stackframeinfo());
+	sfi = *STACKFRAMEINFO;
 
-	if (!info) {
+	if (!sfi) {
 		*target = NULL;
 		return true;
 	}
@@ -728,7 +731,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 	m = NULL;
 
-	while (m || info) {
+	while (m || sfi) {
 		/* m == NULL should only happen for the first time and inline         */
 		/* stackframe infos, like from the exception stubs or the patcher     */
 		/* wrapper                                                            */
@@ -736,12 +739,12 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 		if (m == NULL) {
 			/* for native stub stackframe infos, pv is always NULL */
 
-			if (info->pv == NULL) {
+			if (sfi->pv == NULL) {
 				/* get methodinfo, sp and ra from the current stackframe info */
 
-				m = info->method;
-				sp = info->sp;          /* sp of parent Java function         */
-				ra = info->ra;
+				m  = sfi->method;
+				sp = sfi->sp;           /* sp of parent Java function         */
+				ra = sfi->ra;
 
 				if (m)
 					addEntry(&buffer, m, 0);
@@ -771,11 +774,11 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 				/* get methodinfo, sp and ra from the current stackframe info */
 
-				m   = info->method;     /* m == NULL                          */
-				pv  = info->pv;         /* pv of parent Java function         */
-				sp  = info->sp;         /* sp of parent Java function         */
-				ra  = info->ra;         /* ra of parent Java function         */
-				xpc = info->xpc;        /* actual exception position          */
+				m   = sfi->method;      /* m == NULL                          */
+				pv  = sfi->pv;          /* pv of parent Java function         */
+				sp  = sfi->sp;          /* sp of parent Java function         */
+				ra  = sfi->ra;          /* ra of parent Java function         */
+				xpc = sfi->xpc;         /* actual exception position          */
 
 #if PRINTMETHODS
 				printf("NULL: inline stub\n");
@@ -822,9 +825,9 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				}
 			}
 
-			/* get next stackframeinfo in the chain */
+			/* get previous stackframeinfo in the chain */
 
-			info = info->oldThreadspecificHeadValue;
+			sfi = sfi->prev;
 
 		} else {
 #if PRINTMETHODS
