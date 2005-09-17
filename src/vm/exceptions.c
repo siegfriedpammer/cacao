@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 3132 2005-08-22 22:41:37Z twisti $
+   $Id: exceptions.c 3200 2005-09-17 10:25:49Z twisti $
 
 */
 
@@ -56,11 +56,10 @@
 #include "vm/jit/jit.h"
 
 
-/* for raising exceptions from native methods */
+/* for raising exceptions from native methods *********************************/
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-java_objectheader* _exceptionptr = NULL;
-u1 _dontfillinexceptionstacktrace = false;
+java_objectheader *_no_threads_exceptionptr = NULL;
 #endif
 
 
