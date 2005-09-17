@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3124 2005-07-28 19:56:34Z twisti $
+   $Id: stacktrace.h 3204 2005-09-17 11:15:13Z twisti $
 
 */
 
@@ -50,15 +50,16 @@ typedef struct stacktraceelement stacktraceelement;
 
 /* stackframeinfo *************************************************************/
 
+/* ATTENTION: Keep the number of elements of this structure even, to
+   make sure that the stack keeps aligned (e.g. 16-bytes for x86_64) */
+
 struct stackframeinfo {
-	void        *oldThreadspecificHeadValue;
-	void       **addressOfThreadspecificHead;
-	methodinfo  *method;                /* methodinfo of current function     */
-	u1          *pv;                    /* PV of current function             */
-	u1          *sp;                    /* SP of parent Java function         */
-	functionptr  ra;                    /* RA to parent Java function         */
-	functionptr  xpc;                   /* XPC (for inline stubs)             */
-	void        *padding;               /* multiple of 16-byte padding        */
+	stackframeinfo *prev;               /* pointer to prev stackframeinfo     */
+	methodinfo     *method;             /* methodinfo of current function     */
+	u1             *pv;                 /* PV of current function             */
+	u1             *sp;                 /* SP of parent Java function         */
+	functionptr    	ra;                 /* RA to parent Java function         */
+	functionptr    	xpc;                /* XPC (for inline stubs)             */
 };
 
 
