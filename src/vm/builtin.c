@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3198 2005-09-16 17:12:26Z twisti $
+   $Id: builtin.c 3202 2005-09-17 10:37:26Z twisti $
 
 */
 
@@ -80,12 +80,6 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
-
-
-#undef DEBUG /*define DEBUG 1*/
-
-THREADSPECIFIC methodinfo* _threadrootmethod = NULL;
-THREADSPECIFIC void *_thread_nativestackframeinfo = NULL;
 
 
 /* include builtin tables *****************************************************/
@@ -2421,18 +2415,6 @@ java_objectheader **builtin_asm_get_exceptionptrptr(void)
 	return builtin_get_exceptionptrptr();
 }
 #endif
-
-
-void *builtin_get_stackframeinfo(void)
-{
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	return &THREADINFO->_stackframeinfo;
-#else
-	/* XXX FIXME FOR OLD THREAD IMPL (jowenn) */
-
-	return &_thread_nativestackframeinfo; /* no threading, at least no native */
-#endif
-}
 
 
 /*

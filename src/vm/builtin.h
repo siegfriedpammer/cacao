@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3174 2005-09-12 08:59:06Z twisti $
+   $Id: builtin.h 3202 2005-09-17 10:37:26Z twisti $
 
 */
 
@@ -314,46 +314,12 @@ java_objectheader **builtin_asm_get_exceptionptrptr(void);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 static inline java_objectheader **builtin_get_exceptionptrptr(void);
-static inline u1 *builtin_get_dontfillinexceptionstacktrace(void);
-/* NOT AN OP */
-static inline methodinfo **builtin_get_threadrootmethod(void);
-/* NOT AN OP */
 
 inline java_objectheader **builtin_get_exceptionptrptr(void)
 {
 	return &THREADINFO->_exceptionptr;
 }
-
-inline u1 *builtin_get_dontfillinexceptionstacktrace(void)
-{
-	return &THREADINFO->_dontfillinexceptionstacktrace;
-}
-
-inline methodinfo **builtin_get_threadrootmethod(void)
-{
-	return &THREADINFO->_threadrootmethod;
-}
 #endif
-
-
-/* returns the root method of a thread. this is used in asmpart.S and delivers the abort condition
-   for the stack unwinding for getClassContext and getClassLoader. For the main thread this is the main function.
-   Otherwhise it is the thread's run method (at least that's how I see it) (jowenn) */
-methodinfo *builtin_asm_get_threadrootmethod(void);
-
-/* returns the current top element of the stack frame info list (needed for unwinding across native functions) */
-/* on i386 this is a pointer to a structure 
-		------------------------------------------------
-		| return adress out of native stub        	|
-		| pointer to method info			| either i have to save an arbitrary adress within this native stub or the pointer to the method info, both are equaly costly, I have chosen the method  info (JOWENN)
-		| pointer to thread specific top of this list	|<----stack frame begin
-points here---->| previous element in list        		|
-		------------------------------------------------
-*/
-void *builtin_asm_get_stackframeinfo(void);
-stacktraceelement *builtin_stacktrace_copy(stacktraceelement **el,
-										   stacktraceelement *begin,
-										   stacktraceelement *end);
 
 #endif /* _BUILTIN_H */
 
