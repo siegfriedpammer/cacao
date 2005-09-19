@@ -1,4 +1,4 @@
-/* vm/jit/mips/types.h - machine specific definitions for mips processor
+/* src/vm/types.h - type definitions for CACAO's internal types
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,9 +27,9 @@
    Authors: Reinhard Grafl
             Andreas  Krall
 
-   Changes: Christan Thalinger
+   Changes: Christian Thalinger
 
-   $Id: types.h 3141 2005-09-02 15:18:12Z twisti $
+   $Id: types.h 3214 2005-09-19 13:03:22Z twisti $
 
 */
 
@@ -37,10 +37,13 @@
 #ifndef _CACAO_TYPES_H
 #define _CACAO_TYPES_H
 
-#include "vm/jit/mips/arch.h"
+#include "config.h"
 
 
-/* Define the sizes of the integer types used internally by cacao.            */
+/* In this file we check for unknown pointersizes, so we don't have to
+   do this somewhere else. */
+
+/* Define the sizes of the integer types used internally by CACAO. ************/
 
 typedef signed char             s1;
 typedef unsigned char           u1;
@@ -51,18 +54,24 @@ typedef unsigned short int      u2;
 typedef signed int              s4;
 typedef unsigned int            u4;
 
-#if U8_AVAILABLE
+#if SIZEOF_VOID_P == 8
 typedef signed long int         s8;
-typedef unsigned long int       u8; 
+typedef unsigned long int       u8;
+#elif SIZEOF_VOID_P == 4
+typedef signed long long int    s8;
+typedef unsigned long long int  u8;
 #else
-typedef struct {u4 low, high;}  u8;
-#define s8 u8
+#error unknown pointer size
 #endif
 
 
-/* Define the size of a function pointer used in function pointer casts.      */
+/* Define the size of a function pointer used in function pointer casts. ******/
 
+#if SIZEOF_VOID_P == 8
 typedef u8                      ptrint;
+#else
+typedef u4                      ptrint;
+#endif
 
 #endif /* _CACAO_TYPES_H */
 
