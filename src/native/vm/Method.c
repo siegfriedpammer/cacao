@@ -29,14 +29,15 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 2893 2005-07-04 20:35:24Z twisti $
+   $Id: Method.c 3215 2005-09-19 13:05:24Z twisti $
 
 */
 
 
 #include <assert.h>
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "native/jni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"

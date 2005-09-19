@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3162 2005-09-10 14:33:58Z twisti $
+   $Id: VMClassLoader.c 3215 2005-09-19 13:05:24Z twisti $
 
 */
 
@@ -38,7 +38,8 @@
 #include <sys/stat.h>
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"

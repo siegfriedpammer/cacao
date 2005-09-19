@@ -29,13 +29,13 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 2865 2005-06-28 18:47:50Z twisti $
+   $Id: VMThread.c 3215 2005-09-19 13:05:24Z twisti $
 
 */
 
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
