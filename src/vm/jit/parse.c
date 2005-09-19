@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3129 2005-08-17 23:43:38Z michi $
+   $Id: parse.c 3225 2005-09-19 13:58:44Z twisti $
 
 */
 
@@ -40,7 +40,9 @@
 #include <string.h>
 
 #include "config.h"
-#include "types.h"
+
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "toolbox/logging.h"

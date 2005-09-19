@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3059 2005-07-19 04:04:17Z michi $
+   $Id: typecheck.c 3225 2005-09-19 13:58:44Z twisti $
 
 */
 
@@ -36,11 +36,12 @@
 #include <assert.h>
 #include <string.h>
 
+#include "vm/types.h"
+
 #include "vm/global.h" /* must be here because of CACAO_TYPECHECK */
 
 #ifdef CACAO_TYPECHECK
 
-#include "types.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "native/native.h"

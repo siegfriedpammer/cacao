@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 3177 2005-09-14 18:03:11Z twisti $
+   $Id: disass.h 3225 2005-09-19 13:58:44Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
-#include "types.h"
+#include "vm/types.h"
 
 
 extern char *regs[];

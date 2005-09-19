@@ -26,14 +26,15 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 2181 2005-04-01 16:53:33Z edwin $
+   $Id: sets.c 3225 2005-09-19 13:58:44Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "vm/global.h"
 #include "vm/linker.h"
