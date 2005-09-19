@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 2166 2005-03-30 20:32:30Z twisti $
+   $Id: boehm.h 3216 2005-09-19 13:07:54Z twisti $
 
 */
 
@@ -36,7 +36,8 @@
 #ifndef _BOEHM_H
 #define _BOEHM_H
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "vm/method.h"
 
 
@@ -51,7 +52,7 @@ struct otherstackcall {
 };
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void *heap_alloc_uncollectable(u4 bytelength);
 void  runboehmfinalizer(void *o, void *p);

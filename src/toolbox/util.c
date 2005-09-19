@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 3019 2005-07-12 23:44:19Z twisti $
+   $Id: util.c 3216 2005-09-19 13:07:54Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#include "types.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/exceptions.h"

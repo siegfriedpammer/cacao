@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3184 2005-09-15 20:19:20Z twisti $
+   $Id: cacaoh.c 3216 2005-09-19 13:07:54Z twisti $
 
 */
 
@@ -40,7 +40,8 @@
 #include <string.h>
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
+
 #include "cacaoh/headers.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"

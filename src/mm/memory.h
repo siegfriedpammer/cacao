@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 2552 2005-06-06 14:45:17Z twisti $
+   $Id: memory.h 3216 2005-09-19 13:07:54Z twisti $
 
 */
 
@@ -45,7 +45,8 @@ typedef struct dumpinfo dumpinfo;
 
 
 #include "arch.h"
-#include "types.h"
+#include "vm/types.h"
+
 #include "mm/boehm.h"
 
 
