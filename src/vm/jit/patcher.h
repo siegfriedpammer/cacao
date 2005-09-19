@@ -28,14 +28,15 @@
 
    Changes:
 
-   $Id: patcher.h 3151 2005-09-05 20:20:06Z twisti $
+   $Id: patcher.h 3222 2005-09-19 13:48:18Z twisti $
 
 */
 
 #ifndef _PATCHER_H
 #define _PATCHER_H
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 
 
@@ -160,8 +161,10 @@ bool patcher_checkcast_instanceof_class(u1 *sp);
 bool patcher_clinit(u1 *sp);
 #define PATCHER_clinit (functionptr) patcher_clinit
 
+#if !defined(ENABLE_STATICVM)
 bool patcher_resolve_native(u1 *sp);
 #define PATCHER_resolve_native (functionptr) patcher_resolve_native
+#endif /* !defined(ENABLE_STATICVM) */
 
 #endif /* _PATCHER_H */
 
