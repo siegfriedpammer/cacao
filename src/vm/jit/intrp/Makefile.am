@@ -28,17 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3138 2005-09-02 15:15:18Z twisti $
+## $Id: Makefile.am 3230 2005-09-19 14:07:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS=-O2
-
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir) -I$(top_builddir)/src
-
-noinst_HEADERS = \
-	arch.h \
-	types.h
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/libffi/include -I$(top_builddir) -I$(top_builddir)/src
 
 noinst_LTLIBRARIES = libintrp.la
 
