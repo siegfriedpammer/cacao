@@ -30,14 +30,15 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 3046 2005-07-18 14:46:41Z twisti $
+   $Id: asmpart.S 3211 2005-09-19 11:29:35Z twisti $
 
 */
 
 
 #include "config.h"
 #include "vm/jit/i386/offsets.h"
-#include "vm/jit/i386/asmoffsets.h"
+
+#include "vm/jit/methodheader.h"
 
 
 /* define it like the risc way */
