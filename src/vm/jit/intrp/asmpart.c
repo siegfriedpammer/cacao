@@ -1,4 +1,4 @@
-/* src/vm/jit/intrp/asmpart.S - Java-C interface functions for Interpreter
+/* src/vm/jit/intrp/asmpart.c - Java-C interface functions for Interpreter
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,16 +29,17 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
+            Anton Ertl
 
-   $Id: asmpart.c 3176 2005-09-14 08:51:23Z twisti $
+   $Id: asmpart.c 3231 2005-09-19 14:09:18Z twisti $
 
 */
 
 
 #include "config.h"
+#include "vm/types.h"
 
-#include "vm/jit/intrp/arch.h"
-#include "vm/jit/intrp/types.h"
+#include "arch.h"
 
 #include "vm/jit/asmpart.h"
 
