@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3148 2005-09-05 20:12:24Z twisti $
+   $Id: cacao.c 3209 2005-09-19 11:14:08Z twisti $
 
 */
 
@@ -1071,12 +1071,10 @@ int main(int argc, char **argv)
   	initThreads((u1 *) &dummy);
 #endif
 
-	*threadrootmethod = NULL;
-
-	/*That's important, otherwise we get into trouble, if the Runtime static
-	  initializer is called before (circular dependency. This is with
-	  classpath 0.09. Another important thing is, that this has to happen
-	  after initThreads!!! */
+	/* That's important, otherwise we get into trouble, if the Runtime
+	   static initializer is called before (circular dependency. This
+	   is with classpath 0.09. Another important thing is, that this
+	   has to happen after initThreads!!! */
 
 	if (!initialize_class(class_java_lang_System))
 		throw_main_exception_exit();
@@ -1153,8 +1151,6 @@ int main(int argc, char **argv)
 		typeinfo_test();
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
-
-		*threadrootmethod = m;
 
 		/* here we go... */
 
