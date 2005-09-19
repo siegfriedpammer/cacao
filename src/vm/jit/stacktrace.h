@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3204 2005-09-17 11:15:13Z twisti $
+   $Id: stacktrace.h 3220 2005-09-19 13:31:00Z twisti $
 
 */
 
@@ -38,20 +38,38 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct exceptionentry exceptionentry;
 typedef struct stackframeinfo stackframeinfo;
 typedef struct stackTraceBuffer stackTraceBuffer;
 typedef struct stacktraceelement stacktraceelement;
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
 
 #include "vm/method.h"
 
 
-/* stackframeinfo *************************************************************/
+/* exceptionentry **************************************************************
 
-/* ATTENTION: Keep the number of elements of this structure even, to
-   make sure that the stack keeps aligned (e.g. 16-bytes for x86_64) */
+   Datastructure which represents an exception entry in the exception
+   table residing in the data segment.
+
+*******************************************************************************/
+
+struct exceptionentry {
+	classinfo *catchtype;
+	void      *handlerpc;
+	void      *endpc;
+	void      *startpc;
+};
+
+
+/* stackframeinfo **************************************************************
+
+   ATTENTION: Keep the number of elements of this structure even, to
+   make sure that the stack keeps aligned (e.g. 16-bytes for x86_64).
+
+*******************************************************************************/
 
 struct stackframeinfo {
 	stackframeinfo *prev;               /* pointer to prev stackframeinfo     */
@@ -82,6 +100,9 @@ struct stackTraceBuffer {
 
 
 /* function prototypes ********************************************************/
+
+void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+									  u1 *sp, functionptr ra);
 
 void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra,
