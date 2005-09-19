@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3067 2005-07-19 14:11:42Z twisti $
+   $Id: memory.c 3205 2005-09-19 09:02:55Z twisti $
 
 */
 
@@ -81,13 +81,19 @@ static void *mmapcodeptr = NULL;
 
 /*******************************************************************************
 
-    This structure is used for dump memory allocation if cacao runs without
-    threads.
+    This structure is used for dump memory allocation if cacao runs
+    without threads.
 
 *******************************************************************************/
 
 #if !defined(USE_THREADS) || (defined(USE_THREADS) && !defined(NATIVE_THREADS))
-static dumpinfo nothreads_dumpinfo;
+static dumpinfo _no_threads_dumpinfo;
+#endif
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#define DUMPINFO    &((threadobject *) THREADOBJECT)->dumpinfo
+#else
+#define DUMPINFO    &_no_threads_dumpinfo
 #endif
 
 
@@ -228,11 +234,7 @@ void *dump_alloc(s4 size)
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	di = &((threadobject *) THREADOBJECT)->dumpinfo;
-#else
-	di = &nothreads_dumpinfo;
-#endif
+	di = DUMPINFO;
 
 	if (size == 0)
 		return NULL;
@@ -343,11 +345,7 @@ void dump_release(s4 size)
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	di = &((threadobject *) THREADOBJECT)->dumpinfo;
-#else
-	di = &nothreads_dumpinfo;
-#endif
+	di = DUMPINFO;
 
 	if (size < 0 || size > di->useddumpsize)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
@@ -408,11 +406,7 @@ s4 dump_size(void)
 	/* If no threads are used, the dumpinfo structure is a static structure   */
 	/* defined at the top of this file.                                       */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	di = &((threadobject *) THREADOBJECT)->dumpinfo;
-#else
-	di = &nothreads_dumpinfo;
-#endif
+	di = DUMPINFO;
 
 	if (!di)
 		return 0;
