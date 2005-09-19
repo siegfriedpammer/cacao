@@ -1,4 +1,4 @@
-/* jit/reg.h - register allocator header
+/* src/vm/jit/reg.h - register allocator header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: reg.h 2774 2005-06-22 09:47:44Z christian $
+   $Id: reg.h 3219 2005-09-19 13:27:01Z twisti $
 
 */
 
@@ -50,7 +50,11 @@ typedef struct varinfo varinfo;
 typedef struct registerdata registerdata;
 
 
-#include "types.h"
+#include "config.h"
+#include "vm/types.h"
+
+#include "arch.h"
+
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/inline/inline.h"
