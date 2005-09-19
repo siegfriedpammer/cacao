@@ -30,15 +30,14 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3177 2005-09-14 18:03:11Z twisti $
+   $Id: jit.c 3224 2005-09-19 13:58:24Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include "disass.h"
-#include "types.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -54,18 +53,21 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
+
 #ifdef LSRA
-#include "vm/jit/lsra.h"
+# include "vm/jit/lsra.h"
 #endif
+
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
 
 #if defined(USE_INLINING)
-#include "vm/jit/inline/inline.h"
-#include "vm/jit/inline/parseRT.h"
-#include "vm/jit/inline/parseXTA.h"
+# include "vm/jit/inline/inline.h"
+# include "vm/jit/inline/parseRT.h"
+# include "vm/jit/inline/parseXTA.h"
 #endif
 
 #include "vm/jit/loop/analyze.h"
