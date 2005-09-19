@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3176 2005-09-14 08:51:23Z twisti $
+   $Id: md.c 3229 2005-09-19 14:04:57Z twisti $
 
 */
 
@@ -40,9 +40,9 @@
 #include <signal.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "vm/jit/intrp/intrp.h"
-#include "vm/jit/intrp/types.h"
 
 
 Inst *vm_prim = NULL; /* initialized by md_init() */
