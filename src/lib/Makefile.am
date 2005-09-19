@@ -28,17 +28,20 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3033 2005-07-13 11:55:01Z twisti $
+## $Id: Makefile.am 3206 2005-09-19 09:03:42Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 CLEANFILES = vm.zip
 
 JAVA_VM_FILES = \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMPipe.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMSelector.java \
 	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/VMSystemProperties.java \
 	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMFrame.java \
+	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMIdManager.java \
+	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java \
+	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMPipe.java \
+	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMSelector.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/io/VMFile.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectStreamClass.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectInputStream.java \
@@ -57,11 +60,12 @@ JAVA_VM_FILES = \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Method.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/security/VMAccessController.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/util/VMTimeZone.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/nio/channels/VMChannels.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/VMProxy.java \
 	$(top_srcdir)/src/classpath/vm/reference/java/net/VMInetAddress.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/nio/VMDirectByteBuffer.java
+	$(top_srcdir)/src/classpath/vm/reference/java/nio/channels/VMChannels.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/nio/VMDirectByteBuffer.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/security/VMAccessController.java \
+	$(top_srcdir)/src/classpath/vm/reference/java/util/VMTimeZone.java
 
 GLIBJ_ZIP = $(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
 
