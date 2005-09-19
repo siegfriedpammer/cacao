@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3177 2005-09-14 18:03:11Z twisti $
+   $Id: stack.c 3218 2005-09-19 13:25:47Z twisti $
 
 */
 
@@ -39,11 +39,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "vm/types.h"
+
 #include "arch.h"
-#include "disass.h"
-#include "types.h"
 #include "md-abi.h"
-#include "codegen.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -56,6 +55,7 @@
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
@@ -276,15 +276,21 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
  /*                 iptr->target = NULL; */
 
 #if defined(USEBUILTINTABLE)
-					bte = builtintable_get_automatic(opcode);
+# if defined(ENABLE_INTRP)
+					if (!opt_intrp) {
+# endif
+						bte = builtintable_get_automatic(opcode);
 
-					if (bte && bte->opcode == opcode) {
-						iptr->opc = ICMD_BUILTIN;
-						iptr->op1 = bte->md->paramcount;
-						iptr->val.a = bte;
-						m->isleafmethod = false;
-						goto builtin;
+						if (bte && bte->opcode == opcode) {
+							iptr->opc = ICMD_BUILTIN;
+							iptr->op1 = bte->md->paramcount;
+							iptr->val.a = bte;
+							m->isleafmethod = false;
+							goto builtin;
+						}
+# if defined(ENABLE_INTRP)
 					}
+# endif
 #endif /* defined(USEBUILTINTABLE) */
 					
 					switch (opcode) {
@@ -587,9 +593,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							case ICMD_BASTORE:
 							case ICMD_CASTORE:
 							case ICMD_SASTORE:
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
-#endif
+# endif
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.i == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
@@ -615,10 +621,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									} else
 										PUSHCONST(TYPE_INT);
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_INT);
-#endif
+# endif
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -915,9 +921,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
-#endif
+# endif
 #if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.l == 0) {
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
@@ -929,10 +935,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									} else
 										PUSHCONST(TYPE_LNG);
 #endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_LNG);
-#endif
+# endif
 								break;
 
 							case ICMD_PUTSTATIC:
@@ -1241,38 +1247,41 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_IFLE:
 						COUNT(count_pcmd_bra);
 #if CONDITIONAL_LOADCONST
-						tbptr = m->basicblocks + b_index;
-						if ((b_count >= 3) &&
-							((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
-							(tbptr[1].pre_count == 1) &&
-							(tbptr[1].iinstr[0].opc == ICMD_ICONST) &&
-							(tbptr[1].iinstr[1].opc == ICMD_GOTO)   &&
-							((b_index + 3) == m->basicblockindex[tbptr[1].iinstr[1].op1]) &&
-							(tbptr[2].pre_count == 1) &&
-							(tbptr[2].iinstr[0].opc == ICMD_ICONST)  &&
-							(tbptr[2].icount==1)) {
+# if defined(ENABLE_INTRP)
+						if (!opt_intrp) {
+# endif
+							tbptr = m->basicblocks + b_index;
+							if ((b_count >= 3) &&
+								((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
+								(tbptr[1].pre_count == 1) &&
+								(tbptr[1].iinstr[0].opc == ICMD_ICONST) &&
+								(tbptr[1].iinstr[1].opc == ICMD_GOTO)   &&
+								((b_index + 3) == m->basicblockindex[tbptr[1].iinstr[1].op1]) &&
+								(tbptr[2].pre_count == 1) &&
+								(tbptr[2].iinstr[0].opc == ICMD_ICONST)  &&
+								(tbptr[2].icount==1)) {
 								/*printf("tbptr[2].icount=%d\n",tbptr[2].icount);*/
 								OP1_1(TYPE_INT, TYPE_INT);
 								switch (iptr[0].opc) {
-									case ICMD_IFEQ:
-										iptr[0].opc = ICMD_IFNE_ICONST;
-										break;
-									case ICMD_IFNE:
-										iptr[0].opc = ICMD_IFEQ_ICONST;
-										break;
-									case ICMD_IFLT:
-										iptr[0].opc = ICMD_IFGE_ICONST;
-										break;
-									case ICMD_IFGE:
-										iptr[0].opc = ICMD_IFLT_ICONST;
-										break;
-									case ICMD_IFGT:
-										iptr[0].opc = ICMD_IFLE_ICONST;
-										break;
-									case ICMD_IFLE:
-										iptr[0].opc = ICMD_IFGT_ICONST;
-										break;
-									}
+								case ICMD_IFEQ:
+									iptr[0].opc = ICMD_IFNE_ICONST;
+									break;
+								case ICMD_IFNE:
+									iptr[0].opc = ICMD_IFEQ_ICONST;
+									break;
+								case ICMD_IFLT:
+									iptr[0].opc = ICMD_IFGE_ICONST;
+									break;
+								case ICMD_IFGE:
+									iptr[0].opc = ICMD_IFLT_ICONST;
+									break;
+								case ICMD_IFGT:
+									iptr[0].opc = ICMD_IFLE_ICONST;
+									break;
+								case ICMD_IFLE:
+									iptr[0].opc = ICMD_IFGT_ICONST;
+									break;
+								}
 #if 1
 								iptr[0].val.i = iptr[1].val.i;
 								iptr[1].opc = ICMD_ELSE_ICONST;
@@ -1280,14 +1289,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[2].opc = ICMD_NOP;
 								iptr[3].opc = ICMD_NOP;
 #else
-							/* HACK: save compare value in iptr[1].op1 */ 	 
-							iptr[1].op1 = iptr[0].val.i; 	 
-							iptr[0].val.i = tbptr[1].iinstr[0].val.i; 	 
-							iptr[1].opc = ICMD_ELSE_ICONST; 	 
-							iptr[1].val.i = tbptr[2].iinstr[0].val.i; 	 
-							tbptr[1].iinstr[0].opc = ICMD_NOP; 	 
-							tbptr[1].iinstr[1].opc = ICMD_NOP; 	 
-							tbptr[2].iinstr[0].opc = ICMD_NOP; 	 
+								/* HACK: save compare value in iptr[1].op1 */ 	 
+								iptr[1].op1 = iptr[0].val.i; 	 
+								iptr[0].val.i = tbptr[1].iinstr[0].val.i; 	 
+								iptr[1].opc = ICMD_ELSE_ICONST; 	 
+								iptr[1].val.i = tbptr[2].iinstr[0].val.i; 	 
+								tbptr[1].iinstr[0].opc = ICMD_NOP; 	 
+								tbptr[1].iinstr[1].opc = ICMD_NOP; 	 
+								tbptr[2].iinstr[0].opc = ICMD_NOP; 	 
 #endif
 								tbptr[1].flags = BBDELETED;
 								tbptr[2].flags = BBDELETED;
@@ -1304,9 +1313,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									bptr->icount++;
 									len ++;
 								}
-							b_index += 2;
-							break;
+								b_index += 2;
+								break;
+							}
+# if defined(ENABLE_INTRP)
 						}
+# endif
+
 #endif /* CONDITIONAL_LOADCONST */
 
 						OP1_0(TYPE_INT);
@@ -1986,7 +1999,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								copy->varkind = ARGVAR;
 								copy->varnum = i;
 
+#if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
+#endif
 									if (md->params[i].inmemory) {
 										copy->flags = INMEMORY;
 										copy->regoff = md->params[i].regoff;
@@ -2011,7 +2026,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 													rd->argintregs[md->params[i].regoff];
 										}
 									}
+#if defined(ENABLE_INTRP)
 								}
+#endif
 							}
 							copy = copy->prev;
 						}
