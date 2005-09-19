@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3192 2005-09-16 12:15:38Z twisti $
+   $Id: codegen.inc 3223 2005-09-19 13:55:25Z twisti $
 
 */
 
@@ -56,9 +56,7 @@
 #include <string.h>
 
 #include "config.h"
-#include "types.h"
-
-#include "disass.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "toolbox/avl.h"
@@ -78,13 +76,9 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 
-#undef JWDEBUG_X86
-
-#ifdef JWDEBUG_X86
-#include <execinfo.h>
-#endif
 
 /* in this tree we store all method addresses *********************************/
 
