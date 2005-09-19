@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3100 2005-07-22 15:22:53Z twisti $
+   $Id: codegen.c 3210 2005-09-19 11:29:14Z twisti $
 
 */
 
@@ -42,6 +42,10 @@
 
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/md-abi.inc"
+
+#include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/emitfuncs.h"
+#include "vm/jit/i386/types.h"
 
 #include "cacao/cacao.h"
 #include "native/jni.h"
@@ -58,17 +62,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/i386/codegen.h"
-#include "vm/jit/i386/emitfuncs.h"
-#include "vm/jit/i386/types.h"
-#include "vm/jit/i386/asmoffsets.h"
 
-/*******************************************************************************
-
-    include independent code generation stuff -- include after register
-    descriptions to avoid extern definitions
-
-*******************************************************************************/
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
@@ -78,10 +72,6 @@
 #endif
 #include "vm/jit/lsra.inc"
 #endif
-
-void codegen_stubcalled() {
-	log_text("Stub has been called");
-}
 
 
 /* codegen *********************************************************************
