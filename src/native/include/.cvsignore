@@ -2,6 +2,8 @@ Makefile
 Makefile.in
 
 gnu_classpath_Pointer.h
+gnu_classpath_Pointer32.h
+gnu_classpath_Pointer64.h
 gnu_classpath_VMStackWalker.h
 gnu_classpath_VMSystemProperties.h
 java_io_File.h
@@ -37,6 +39,7 @@ java_lang_reflect_Field.h
 java_lang_reflect_Method.h
 java_lang_reflect_VMProxy.h
 java_net_NetworkInterface.h
+java_nio_Buffer.h
 java_nio_DirectByteBufferImpl.h
 java_security_ProtectionDomain.h
 java_security_VMAccessController.h
