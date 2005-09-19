@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 3196 2005-09-16 12:32:43Z twisti $
+   $Id: native.h 3208 2005-09-19 09:21:05Z twisti $
 
 */
 
@@ -112,12 +112,13 @@ functionptr native_findfunction(utf *cname, utf *mname,
 void native_library_hash_add(utf *filename, java_objectheader *loader,
 							 lt_dlhandle handle);
 
-/* find a library in the library hash */
+/* find a library entry in the library hash */
 library_hash_name_entry *native_library_hash_find(utf *filename,
 												  java_objectheader *loader);
+
 /* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
-#endif
+#endif /* !defined(ENABLE_STATICVM) */
 
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);
