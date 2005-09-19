@@ -26,16 +26,20 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 2605 2005-06-08 14:41:35Z christian $
+   $Id: emitfuncs.c 3227 2005-09-19 14:03:36Z twisti $
 
 */
+
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/codegen.h"
-#include "vm/jit/i386/types.h"
+
 
 #ifdef STATISTICS
 #define COUNT(a) (a)++

@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3210 2005-09-19 11:29:14Z twisti $
+   $Id: codegen.c 3227 2005-09-19 14:03:36Z twisti $
 
 */
 
@@ -39,13 +39,13 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/md-abi.inc"
 
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/emitfuncs.h"
-#include "vm/jit/i386/types.h"
 
 #include "cacao/cacao.h"
 #include "native/jni.h"

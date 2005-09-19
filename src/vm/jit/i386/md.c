@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: md.c 2970 2005-07-10 15:29:32Z twisti $
+   $Id: md.c 3227 2005-09-19 14:03:36Z twisti $
 
 */
 
 
-#include "vm/jit/i386/types.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 
 

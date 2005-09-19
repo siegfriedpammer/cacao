@@ -34,7 +34,6 @@ extern "C" {
 #include <stdio.h>
 #include "bfd.h"
 
-#include "types.h"
 #include "ansidecl.h"
 
 #define _(String) (String)

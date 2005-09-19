@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 2338 2005-04-22 13:30:40Z twisti $
+   $Id: emitfuncs.h 3227 2005-09-19 14:03:36Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _EMITFUNCS_H
 #define _EMITFUNCS_H
 
-#include "vm/jit/i386/types.h"
+#include "vm/types.h"
 
 
 /* code generation prototypes *************************************************/

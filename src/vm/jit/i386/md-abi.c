@@ -28,12 +28,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
+   $Id: md-abi.c 3227 2005-09-19 14:03:36Z twisti $
 
 */
 
 
-#include "vm/jit/i386/types.h"
+#include "vm/types.h"
+
 #include "vm/jit/i386/md-abi.h"
 
 #include "vm/descriptor.h"

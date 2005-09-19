@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2999 2005-07-12 11:20:34Z twisti $
+   $Id: md-os.c 3227 2005-09-19 14:03:36Z twisti $
 
 */
 
@@ -38,8 +38,7 @@
 #include <ucontext.h>
 
 #include "config.h"
-
-#include "vm/jit/i386/types.h"
+#include "vm/types.h"
 
 #include "vm/exceptions.h"
 #include "vm/options.h"
