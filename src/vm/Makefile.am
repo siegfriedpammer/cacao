@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3006 2005-07-12 19:50:26Z twisti $
+## $Id: Makefile.am 3232 2005-09-19 14:13:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,7 +48,9 @@ ZLIB_OBJ = \
 	unzip.h
 endif
 
-noinst_HEADERS = global.h
+noinst_HEADERS = \
+	global.h \
+	types.h
 
 noinst_LTLIBRARIES = libvmcore.la libvm.la
 
