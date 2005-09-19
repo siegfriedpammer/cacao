@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3180 2005-09-15 15:53:56Z twisti $
+   $Id: intrp.h 3212 2005-09-19 11:30:08Z twisti $
 
 */
 
@@ -59,11 +59,11 @@ typedef ptrint Cell;
 #define MAYBE_UNUSED
 #endif
 
-#if SIZEOF_VOID_P==4
+#if SIZEOF_VOID_P == 4
 typedef union {
     struct {
-		UCell low;
-		Cell high;
+		u4 low;
+		s4 high;
     } cells;
     s8 l;
     double d;
@@ -85,7 +85,7 @@ typedef union {
 
 #else /* 64-bit */
 typedef union {
-  Cell low;
+  s8 low;
   s8 l;
   double d;
 } Double_Store;
