@@ -28,14 +28,15 @@
 
    Changes:
 
-   $Id: genoffsets.c 2934 2005-07-08 12:00:39Z twisti $
+   $Id: genoffsets.c 3221 2005-09-19 13:31:31Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 #include "mm/memory.h"
 #include "vm/linker.h"

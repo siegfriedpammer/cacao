@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 3062 2005-07-19 10:03:00Z motse $
+   $Id: jni.h 3221 2005-09-19 13:31:31Z twisti $
 
 */
 
@@ -40,7 +40,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "vm/field.h"
 #include "vm/global.h"
 #include "vm/method.h"
