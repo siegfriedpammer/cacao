@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3177 2005-09-14 18:03:11Z twisti $
+   $Id: codegen.inc.h 3217 2005-09-19 13:11:24Z twisti $
 
 */
 
@@ -48,7 +48,9 @@ typedef struct linenumberref linenumberref;
 typedef struct threadcritnodetemp threadcritnodetemp;
 
 
-#include "types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/method.h"
@@ -59,6 +61,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
+
 
 /* Register Pack/Unpack Macros ************************************************/
 
@@ -91,8 +94,12 @@ struct codegendata {
 	s4             *mcodeend;       /* pointer to end of code area            */
 	s4              mcodesize;      /* complete size of code area (bytes)     */
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 	u1             *mcodeptr;       /* code generation pointer                */
+#endif
+
+#if defined(ENABLE_INTRP)
+	u1             *last_compiled;
 #endif
 
 	u1             *dsegtop;        /* pointer to top (end) of data area      */
