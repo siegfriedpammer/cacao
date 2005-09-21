@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3243 2005-09-21 14:55:34Z twisti $
+   $Id: options.c 3270 2005-09-21 20:24:11Z twisti $
 
 */
 
@@ -59,7 +59,7 @@ s4   opt_stacksize = 0;         /* thread stack size                          */
 bool opt_verbose = false;
 bool compileall = false;
 bool runverbose = false;        /* trace all method invocation                */
-bool verboseexception = false;
+bool opt_verboseexception = false;
 
 bool loadverbose = false;
 bool linkverbose = false;
