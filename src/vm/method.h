@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 2666 2005-06-13 14:23:06Z twisti $
+   $Id: method.h 3268 2005-09-21 20:22:18Z twisti $
 */
 
 
@@ -41,6 +41,8 @@ typedef struct methodinfo methodinfo;
 typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
 
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/utf8.h"
