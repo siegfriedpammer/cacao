@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 2743 2005-06-20 11:54:06Z edwin $
+   $Id: class.c 3260 2005-09-21 19:41:47Z twisti $
 
 */
 
@@ -137,6 +137,7 @@ classinfo *pseudo_class_Arraystub = NULL;
 classinfo *pseudo_class_Null = NULL;
 classinfo *pseudo_class_New = NULL;
 
+
 /* class_set_packagename *******************************************************
 
    Derive the package name from the class name and store it in the struct.
@@ -145,23 +146,32 @@ classinfo *pseudo_class_New = NULL;
 
 void class_set_packagename(classinfo *c)
 {
+	char *p = UTF_END(c->name) - 1;
+	char *start = c->name->text;
+
+	/* set the package name */
+	/* classes in the unnamed package keep packagename == NULL */
+
 	if (c->name->text[0] == '[') {
-		/* Array classes are not loaded from classfiles. */
-		c->packagename = array_packagename;
-	} 
-	else {
-		/* Find the package name */
-		/* Classes in the unnamed package keep packagename == NULL. */
-		char *p = UTF_END(c->name) - 1;
-		char *start = c->name->text;
-		for (;p > start; --p) {
-			if (*p == '/') {
-				c->packagename = utf_new(start, p - start);
-				break;
-			}
-		}
+		/* set packagename of arrays to the element's package */
+
+		for (; *start == '['; start++);
+
+		/* skip the 'L' in arrays of references */
+		if (*start == 'L')
+			start++;
+
+		for (; (p > start) && (*p != '/'); --p);
+
+		c->packagename = utf_new(start, p - start);
+
+	} else {
+		for (; (p > start) && (*p != '/'); --p);
+
+		c->packagename = utf_new(start, p - start);
 	}
 }
+
 
 /* class_create_classinfo ******************************************************
 
