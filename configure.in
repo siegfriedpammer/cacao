@@ -240,6 +240,13 @@ else
 	ENABLE_INTRP="no"
 fi
 
+if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
+	AC_ERROR(You have to enable at least the JIT or the interpreter.)
+fi
+if test x"${ENABLE_JIT}" = "xyes" -a x"${ENABLE_INTRP}" = "xyes"; then
+	AC_ERROR(This is currently not supported. Please disable the JIT or the interpreter.)
+fi
+
 dnl check for garbage collector usage
 AC_ARG_ENABLE([gc], [AS_HELP_STRING(--disable-gc,disable garbage collector (for debugging only!) [[default=yes]])])
 
@@ -521,7 +528,6 @@ dnl set some essential classpath options, even if their classpath default is
 dnl suitable for us
 ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers ${CONFIGURE_ARGS}"
 
-
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
@@ -535,7 +541,7 @@ if test x"${ENABLE_STATICVM}" = "xno"; then
 	AC_CONFIG_SUBDIRS(src/libltdl)
 fi
 if test x"${ENABLE_INTRP}" = "xyes"; then
-	AC_CONFIG_SUBDIRS(src/ffcall)
+	AC_CONFIG_SUBDIRS(src/libffi)
 fi
 
 
