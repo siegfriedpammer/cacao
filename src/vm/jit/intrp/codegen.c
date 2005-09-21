@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3180 2005-09-15 15:53:56Z twisti $
+   $Id: codegen.c 3247 2005-09-21 14:59:57Z twisti $
 
 */
 
@@ -40,12 +40,11 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "vm/types.h"
 
-#include "machine-instr.h"
+#include "arch.h"
 
-#include "vm/jit/intrp/arch.h"
 #include "vm/jit/intrp/codegen.h"
-#include "vm/jit/intrp/types.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
@@ -71,6 +70,7 @@
   codegen_addreference(cd, (basicblock *) (iptr->target), cd->mcodeptr); \
 }
 
+#define index2offset(_i) (-(_i) * SIZEOF_VOID_P)
 
 /* functions used by cacao-gen.i */
 
@@ -78,30 +78,26 @@
    parameter, but we need to pass in cd to make last_compiled
    thread-safe */
 
-void
-genarg_v(Inst **cd1, Cell v)
+void genarg_v(Inst **cd1, Cell v)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
 	*((Cell *) *mcodepp) = v;
 	(*mcodepp)++;
 }
 
-void
-genarg_i(Inst **cd1, s4 i)
+void genarg_i(Inst **cd1, s4 i)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
 	*((Cell *) *mcodepp) = i;
 	(*mcodepp)++;
 }
 
-void
-genarg_b(Inst ** cd1, s4 i)
+void genarg_b(Inst ** cd1, s4 i)
 {
   genarg_i(cd1, i);
 }
 
-void
-genarg_f(Inst ** cd1, float f)
+void genarg_f(Inst ** cd1, float f)
 {
 	s4 fi;
 
@@ -109,114 +105,100 @@ genarg_f(Inst ** cd1, float f)
 	genarg_i(cd1, fi);
 }
 
-void
-genarg_l(Inst ** cd1, s8 l)
+void genarg_l(Inst ** cd1, s8 l)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
-	vm_l2twoCell(l, ((Cell*)*mcodepp)[1], ((Cell*)*mcodepp)[0]);
+	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	vm_l2twoCell(l, ((Cell *) *mcodepp)[1], ((Cell *) *mcodepp)[0]);
 	(*mcodepp) +=2;
 }
 
-void
-genarg_aRef(Inst ** cd1, java_objectheader *a)
+void genarg_aRef(Inst ** cd1, java_objectheader *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
 	*((java_objectheader **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_aArray(Inst ** cd1, java_arrayheader *a)
+void genarg_aArray(Inst ** cd1, java_arrayheader *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
 	*((java_arrayheader **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_aaTarget(Inst ** cd1, Inst **a)
+void genarg_aaTarget(Inst ** cd1, Inst **a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((Inst ***) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_aClass(Inst ** cd1, classinfo *a)
+void genarg_aClass(Inst ** cd1, classinfo *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((classinfo **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_acr(Inst ** cd1, constant_classref *a)
+void genarg_acr(Inst ** cd1, constant_classref *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((constant_classref **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_addr(Inst ** cd1, u1 *a)
+void genarg_addr(Inst ** cd1, u1 *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((u1 **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_af(Inst ** cd1, functionptr a)
+void genarg_af(Inst ** cd1, functionptr a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((functionptr *) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_am(Inst ** cd1, methodinfo *a)
+void genarg_am(Inst ** cd1, methodinfo *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((methodinfo **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_acell(Inst ** cd1, Cell *a)
+void genarg_acell(Inst ** cd1, Cell *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((Cell **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_ainst(Inst ** cd1, Inst *a)
+void genarg_ainst(Inst ** cd1, Inst *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((Inst **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_auf(Inst ** cd1, unresolved_field *a)
+void genarg_auf(Inst ** cd1, unresolved_field *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((unresolved_field **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_aum(Inst ** cd1, unresolved_method *a)
+void genarg_aum(Inst ** cd1, unresolved_method *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((unresolved_method **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void
-genarg_avftbl(Inst ** cd1, vftbl_t *a)
+void genarg_avftbl(Inst ** cd1, vftbl_t *a)
 {
-	Inst **mcodepp = &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
 	*((vftbl_t **) *mcodepp) = a;
 	(*mcodepp)++;
 }
@@ -430,63 +412,63 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(((Inst **)cd), iptr->op1);
+			gen_ILOAD(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(((Inst **)cd), iptr->op1);
+			gen_LLOAD(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ALOAD(((Inst **)cd), iptr->op1);
+			gen_ALOAD(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(((Inst **)cd), iptr->op1);
+			gen_ILOAD(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(((Inst **)cd), iptr->op1);
+			gen_LLOAD(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(((Inst **)cd), iptr->op1);
+			gen_ISTORE(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(((Inst **)cd), iptr->op1);
+			gen_LSTORE(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ASTORE(((Inst **)cd), iptr->op1);
+			gen_ASTORE(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(((Inst **)cd), iptr->op1);
+			gen_ISTORE(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(((Inst **)cd), iptr->op1);
+			gen_LSTORE(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 
@@ -874,7 +856,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			gen_IINC(((Inst **)cd), iptr->op1, iptr->val.i);
+			gen_IINC(((Inst **)cd), index2offset(iptr->op1), iptr->val.i);
 			break;
 
 
@@ -1322,7 +1304,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = local variable                       */
 
-			gen_RET(((Inst **)cd), iptr->op1);
+			gen_RET(((Inst **)cd), index2offset(iptr->op1));
 			break;
 
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
@@ -1547,7 +1529,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (runverbose)
 				gen_TRACERETURN(((Inst **)cd));
 
-			gen_IRETURN(((Inst **)cd), cd->maxlocals);
+			gen_IRETURN(((Inst **)cd), index2offset(cd->maxlocals));
 			break;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
@@ -1566,7 +1548,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (runverbose)
 				gen_TRACELRETURN(((Inst **)cd));
 
-			gen_LRETURN(((Inst **)cd), cd->maxlocals);
+			gen_LRETURN(((Inst **)cd), index2offset(cd->maxlocals));
 			break;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
@@ -1584,7 +1566,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (runverbose)
 				gen_TRACERETURN(((Inst **)cd));
 
-			gen_RETURN(((Inst **)cd), cd->maxlocals);
+			gen_RETURN(((Inst **)cd), index2offset(cd->maxlocals));
 			break;
 
 
@@ -1915,7 +1897,6 @@ functionptr createcompilerstub (methodinfo *m)
 
 static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 {
-#if 1
 	methoddesc  *md = m->parseddesc; 
 	ffi_cif     *pcif = NEW(ffi_cif);
 	ffi_type   **types = MNEW(ffi_type *, nmd->paramcount);
@@ -1928,24 +1909,20 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 
 	/* for static methods, pass class pointer */
 
-	if (m->flags & ACC_STATIC) {
+	if (m->flags & ACC_STATIC)
 		*ptypes++ = &ffi_type_pointer;
-	}
 
 	/* pass parameter to native function */
 
-	for (i = 0; i < md->paramcount; i++) {
+	for (i = 0; i < md->paramcount; i++)
 		*ptypes++ = cacaotype2ffitype(md->paramtypes[i].type);
-	}
 
-	assert(ptypes-types == nmd->paramcount);
+	assert(ptypes - types == nmd->paramcount);
+
     if (ffi_prep_cif(pcif, FFI_DEFAULT_ABI, nmd->paramcount, cacaotype2ffitype(md->returntype.type), types) != FFI_OK)
 		assert(0);
 
 	return pcif;
-#else
-	return 0;
-#endif
 }
 
 

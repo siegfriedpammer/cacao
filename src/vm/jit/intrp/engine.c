@@ -1,11 +1,11 @@
 #include <assert.h>
 
 /* #define VM_DEBUG*/
+#define USE_spTOS
 
-#include "vm/jit/intrp/arch.h"
+#include "arch.h"
 #include "vm/jit/intrp/intrp.h"
 
-#include "asmoffsets.h"
 #include "md-abi.h"
 
 #include "cacao/cacao.h"
@@ -13,14 +13,27 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
 
 #define FFCALL 0
-#include "ffcall/avcall/avcall.h"
-#include "libffi/include/ffi.h"
+
+#if FFCALL
+# include "ffcall/avcall/avcall.h"
+#else
+# include "libffi/include/ffi.h"
+#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-# include "machine-instr.h"
+# ifndef USE_MD_THREAD_STUFF
+#  include "machine-instr.h"
+# else
+#  include "threads/native/generic-primitives.h"
+# endif
+#endif
+
+#if !defined(STORE_ORDER_BARRIER) && !defined(USE_THREADS)
+#define STORE_ORDER_BARRIER() /* nothing */
 #endif
 
 
@@ -31,8 +44,8 @@
 #  define NEXT_INST	(*IP)
 #  define INC_IP(const_inc)	({ ip+=(const_inc);})
 #  define DEF_CA
-#  define NEXT_P1	(ip++)
-#  define NEXT_P2	({goto **(ip-1);})
+#  define NEXT_P1	
+#  define NEXT_P2	({goto **(ip++);})
 #  define EXEC(XT)	({goto *(XT);})
 
 #define NEXT ({DEF_CA NEXT_P1; NEXT_P2;})
@@ -103,18 +116,18 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
   } 
 
 #define access_local_int(_offset) \
-        ( *(Cell*)(fp - (_offset)) )
+        ( *(Cell*)(((u1 *)fp) + (_offset)) )
 
 #define access_local_ref(_offset) \
-        ( *(void **)(fp - (_offset)) )
+        ( *(void **)(((u1 *)fp) + (_offset)) )
 
 #define access_local_cell(_offset) \
-        ( *(Cell *)(fp - (_offset)) )
+        ( *(Cell *)(((u1 *)fp) + (_offset)) )
 
 #if 0
 /* !! alignment bug */
 #define access_local_long(_offset) \
-        ( *(s8 *)(fp - (_offset)) )
+        ( *(s8 *)(((u1 *)fp) + (_offset)) )
 #endif
 
 #define length_array(array)                          \
@@ -140,8 +153,11 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 
 #define MAXLOCALS(stub) (((Cell *)stub)[1])
 
-#if !defined(STORE_ORDER_BARRIER) && !defined(USE_THREADS)
-#define STORE_ORDER_BARRIER()
+#if 0
+#define CLEARSTACK(_start, _end) \
+	 do {Cell *__start=(_start); MSET(__start,0,u1,(_end)-__start); } while (0)
+#else
+#define CLEARSTACK(_start, _end)
 #endif
 
 
@@ -303,7 +319,7 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 	  /* get methodinfo pointer from method header */
 	  methodinfo *m = *(methodinfo **) (((u1 *) f) + MethodPointer);
 
-	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)))/sizeof(void *);
+	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)));
 	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
 
@@ -326,14 +342,14 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 
 		  if (ip-1 >= (Inst *) ex->startpc && ip-1 < (Inst *) ex->endpc &&
 			  (c == NULL || builtin_instanceof(o, c))) {
-			  *new_spp = fp - framesize - 1;
+			  *new_spp = (Cell *)(((u1 *)fp) - framesize - SIZEOF_VOID_P);
 			  *new_fpp = fp;
 			  return (Inst *) (ex->handlerpc);
 		  }
 	  }
 
-	  ip = (Inst *)access_local_cell(framesize+1);
-	  fp = (Cell *)access_local_cell(framesize);
+	  ip = (Inst *)access_local_cell(-framesize - SIZEOF_VOID_P);
+	  fp = (Cell *)access_local_cell(-framesize);
   }
 
   return NULL; 

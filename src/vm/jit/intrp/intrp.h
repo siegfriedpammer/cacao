@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3212 2005-09-19 11:30:08Z twisti $
+   $Id: intrp.h 3247 2005-09-21 14:59:57Z twisti $
 
 */
 
@@ -41,8 +41,10 @@
 
 /* #define VM_PROFILING */
 
-#include "vm/jit/intrp/arch.h"
-#include "vm/jit/intrp/types.h"
+#include "config.h"
+#include "vm/types.h"
+
+#include "arch.h"
 
 #include "vm/class.h"
 #include "vm/global.h"
@@ -50,8 +52,16 @@
 #include "vm/references.h"
 #include "vm/resolve.h"
 
+#include "libffi/include/ffi.h"
+
+
 typedef void *Inst;
-typedef ptrint Cell;
+
+#if SIZEOF_VOID_P == 8
+typedef s8 Cell;
+#else
+typedef s4 Cell;
+#endif
 
 #if 1
 #define MAYBE_UNUSED __attribute__((unused))
@@ -60,6 +70,7 @@ typedef ptrint Cell;
 #endif
 
 #if SIZEOF_VOID_P == 4
+
 typedef union {
     struct {
 		u4 low;
@@ -83,17 +94,20 @@ typedef union {
 				     (hi) = _d.cells.high; \
 				 })
 
-#else /* 64-bit */
+#else /* SIZEOF_VOID_P == 4 */
+
 typedef union {
-  s8 low;
-  s8 l;
-  double d;
+	s8 low;
+	s8 l;
+	double d;
 } Double_Store;
 
 
 #define FETCH_DCELL_T(d_,lo,hi,t_)	({ (d_) = ((Double_Store)(lo)).t_; })
 #define STORE_DCELL_T(d_,lo,hi,t_)	({ (lo) = ((Double_Store)(d_)).low; })
-#endif /* 64-bit */
+
+#endif /* SIZEOF_VOID_P == 4 */
+
 
 #define vm_twoCell2l(hi,lo,d_)  FETCH_DCELL_T(d_,lo,hi,l);
 #define vm_twoCell2d(hi,lo,d_)  FETCH_DCELL_T(d_,lo,hi,d);
@@ -166,10 +180,13 @@ extern FILE *vm_out;
 
 void init_peeptable(void);
 Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable);
+void gen_inst(Inst **vmcodepp, Inst instr);
+
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
 
 java_objectheader *engine(Inst *ip0, Cell * sp, Cell * fp);
+ffi_type *cacaotype2ffitype(s4 cacaotype);
 
 /* print types for disassembler and tracer */
 void printarg_ui      (u4                 ui      );
@@ -196,8 +213,8 @@ void printarg_avftbl  (vftbl_t *          avftbl  );
 void printarg_Cell    (Cell               x       );
 
 /* gen_... functions used in engine.c */
-void gen_INVOKESTATIC(Inst **ctp, Inst ** aaTarget, s4 iNargs, unresolved_method * aum);
-void gen_END(Inst **ctp);
+/* void gen_INVOKESTATIC(Inst **ctp, Inst ** aaTarget, s4 iNargs, unresolved_method * aum); */
+/* void gen_END(Inst **ctp); */
 
 void vm_uncount_block(Inst *ip);
 block_count *vm_block_insert(Inst *ip);

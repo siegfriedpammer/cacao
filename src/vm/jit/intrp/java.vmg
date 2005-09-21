@@ -124,27 +124,27 @@ LCONST ( #l -- l ) opt
 
 ACONST ( #aRef -- aRef ) opt
 
-ILOAD ( #bLocal -- vResult ) 0x15
+ILOAD ( #vLocal -- vResult ) 0x15
 {
-  vResult = access_local_int(bLocal);
+  vResult = access_local_int(vLocal);
 }
 
-LLOAD ( #bLocal -- lResult ) 0x16
+LLOAD ( #vLocal -- lResult ) 0x16
 {
-  vm_twoCell2l(access_local_cell(bLocal), access_local_cell(bLocal+1), lResult);
+  vm_twoCell2l(access_local_cell(vLocal), access_local_cell(vLocal-SIZEOF_VOID_P), lResult);
 }
 
-ALOAD ( #bLocal -- aRef ) 0x19
+ALOAD ( #vLocal -- aRef ) 0x19
 {
-  aRef = (java_objectheader *)access_local_cell(bLocal);
+  aRef = (java_objectheader *)access_local_cell(vLocal);
 }
 
-IALOAD ( aArray iIndex -- iResult ) 0x2e
+IALOAD ( aArray iIndex -- vResult ) 0x2e
 {
   CHECK_NULL_PTR(aArray);
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   ;
-  iResult = access_array_int(aArray, iIndex);
+  vResult = access_array_int(aArray, iIndex);
 }
 
 LALOAD ( aArray iIndex -- lResult ) 0x2f
@@ -163,43 +163,43 @@ AALOAD ( aArray iIndex -- aRef ) 0x32
   aRef = access_array_addr(aArray, iIndex);
 }
 
-BALOAD ( aArray iIndex -- iResult ) 0x33
+BALOAD ( aArray iIndex -- vResult ) 0x33
 {
   CHECK_NULL_PTR(aArray);
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   ;
-  iResult = access_array_byte(aArray, iIndex);
+  vResult = access_array_byte(aArray, iIndex);
 }
 
-CALOAD ( aArray iIndex -- iResult ) 0x34
+CALOAD ( aArray iIndex -- vResult ) 0x34
 {
   CHECK_NULL_PTR(aArray);
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   ;
-  iResult = access_array_char(aArray, iIndex);
+  vResult = access_array_char(aArray, iIndex);
 }
 
-SALOAD ( aArray iIndex -- iResult ) 0x35
+SALOAD ( aArray iIndex -- vResult ) 0x35
 {
   CHECK_NULL_PTR(aArray);
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   ;
-  iResult = access_array_short(aArray, iIndex);
+  vResult = access_array_short(aArray, iIndex);
 }
 
-ISTORE ( #bLocal vValue -- ) 0x36
+ISTORE ( #vLocal vValue -- ) 0x36
 {
-  access_local_int(bLocal) = vValue;
+  access_local_int(vLocal) = vValue;
 }
 
-LSTORE ( #bLocal lValue -- ) 0x37
+LSTORE ( #vLocal lValue -- ) 0x37
 {
-  vm_l2twoCell(lValue, access_local_cell(bLocal), access_local_cell(bLocal+1));
+  vm_l2twoCell(lValue, access_local_cell(vLocal), access_local_cell(vLocal-SIZEOF_VOID_P));
 }
 
-ASTORE ( #bLocal aRef -- ) 0x3a
+ASTORE ( #vLocal aRef -- ) 0x3a
 {
-  access_local_cell(bLocal) = (Cell)aRef;
+  access_local_cell(vLocal) = (Cell)aRef;
 }
 
 IASTORE ( aArray iIndex iValue -- ) 0x4f
@@ -261,14 +261,14 @@ DUP2_X2 ( vValue4 vValue3 vValue2 vValue1 -- vValue2 vValue1 vValue4 vValue3 vVa
 
 SWAP ( vValue2 vValue1 -- vValue1 vValue2 ) 0x5f
 
-IADD ( iValue1 iValue2 -- iResult ) 0x60
+IADD ( vValue1 vValue2 -- vResult ) 0x60
 {
-  iResult = iValue1 + iValue2;
+  vResult = vValue2 + vValue1;
 }
 
 LADD ( lValue1 lValue2 -- lResult ) 0x61
 {
-  lResult = lValue1 + lValue2;
+  lResult = lValue2 + lValue1;
 }
 
 FADD ( fValue1 fValue2 -- fResult ) 0x62
@@ -281,9 +281,9 @@ DADD ( dValue1 dValue2 -- dResult ) 0x63
   dResult = dValue1 + dValue2;
 }
 
-ISUB ( iValue1 iValue2 -- iResult ) 0x64
+ISUB ( vValue1 vValue2 -- vResult ) 0x64
 {
-  iResult = iValue1 - iValue2;
+  vResult = vValue1 - vValue2;
 }
 
 LSUB ( lValue1 lValue2 -- lResult ) 0x65
@@ -301,9 +301,9 @@ DSUB ( dValue1 dValue2 -- dResult ) 0x67
   dResult = dValue1 - dValue2;
 }
 
-IMUL ( iValue1 iValue2 -- iResult ) 0x68
+IMUL ( vValue1 vValue2 -- vResult ) 0x68
 {
-  iResult = iValue1 * iValue2;
+  vResult = vValue1 * vValue2;
 }
 
 LMUL ( lValue1 lValue2 -- lResult ) 0x69
@@ -407,9 +407,9 @@ DREM ( dValue1 dValue2 -- dResult ) 0x73
   dResult = builtin_drem(dValue1, dValue2);
 }
 
-INEG ( iValue -- iResult ) 0x74
+INEG ( vValue -- vResult ) 0x74
 {
-  iResult = -iValue;
+  vResult = -vValue;
 }
 
 LNEG ( lValue -- lResult ) 0x75
@@ -427,14 +427,14 @@ DNEG ( dValue -- dResult ) 0x77
   dResult = -dValue;
 }
 
-ISHL ( iValue1 iValue2 -- iResult ) 0x78
+ISHL ( vValue1 vValue2 -- vResult ) 0x78
 {
-  iResult = iValue1 << (iValue2 & 31);
+  vResult = vValue1 << (vValue2 & 31);
 }
 
-LSHL ( lValue1 iValue2 -- lResult ) 0x79
+LSHL ( lValue1 vValue2 -- lResult ) 0x79
 {
-  lResult = lValue1 << (iValue2 & 63);
+  lResult = lValue1 << (vValue2 & 63);
 }
 
 ISHR ( iValue1 iValue2 -- iResult ) 0x7a
@@ -447,19 +447,19 @@ LSHR ( lValue1 iValue2 -- lResult ) 0x7b
   lResult = lValue1 >> (iValue2 & 63);
 }
 
-IUSHR ( iValue1 iValue2 -- iResult ) 0x7c
+IUSHR ( iValue1 vValue2 -- iResult ) 0x7c
 {
-  iResult = ((unsigned) iValue1) >> (iValue2 & 31);
+  iResult = ((unsigned) iValue1) >> (vValue2 & 31);
 }
 
-LUSHR ( lValue1 iValue2 -- lResult ) 0x7d
+LUSHR ( lValue1 vValue2 -- lResult ) 0x7d
 {
-  lResult = (unsigned long long) lValue1 >> (iValue2 & 63);
+  lResult = (unsigned long long) lValue1 >> (vValue2 & 63);
 }
 
-IAND ( iValue1 iValue2 -- iResult ) 0x7e
+IAND ( vValue1 vValue2 -- vResult ) 0x7e
 {
-  iResult = iValue1 & iValue2;
+  vResult = vValue1 & vValue2;
 }
 
 LAND ( lValue1 lValue2 -- lResult ) 0x7f
@@ -467,9 +467,9 @@ LAND ( lValue1 lValue2 -- lResult ) 0x7f
   lResult = lValue1 & lValue2;
 }
 
-IOR ( iValue1 iValue2 -- iResult ) 0x80
+IOR ( vValue1 vValue2 -- vResult ) 0x80
 {
-  iResult = iValue1 | iValue2;
+  vResult = vValue1 | vValue2;
 }
 
 LOR ( lValue1 lValue2 -- lResult ) 0x81
@@ -477,9 +477,9 @@ LOR ( lValue1 lValue2 -- lResult ) 0x81
   lResult = lValue1 | lValue2;
 }
 
-IXOR ( iValue1 iValue2 -- iResult ) 0x82
+IXOR ( vValue1 vValue2 -- vResult ) 0x82
 {
-  iResult = iValue1 ^ iValue2;
+  vResult = vValue1 ^ vValue2;
 }
 
 LXOR ( lValue1 lValue2 -- lResult ) 0x83
@@ -487,10 +487,9 @@ LXOR ( lValue1 lValue2 -- lResult ) 0x83
   lResult = lValue1 ^ lValue2;
 }
 
-IINC ( #bIndex #iConst  -- ) 0x84
+IINC ( #vOffset #iConst  -- ) 0x84
 {
-  access_local_int((unsigned)bIndex) =
-                 access_local_int((unsigned)bIndex) + iConst;
+  access_local_int(vOffset) += iConst;
 }
 
 I2L ( iValue -- lValue ) 0x85
@@ -569,19 +568,19 @@ INT2SHORT ( iValue -- iResult ) 0x93
   iResult = (iValue << 16) >> 16; /* XXX: try "(s2)iValue" */
 }
 
-LCMP ( lValue1 lValue2 -- iResult ) 0x94
+LCMP ( lValue1 lValue2 -- vResult ) 0x94
 {
-  iResult = lValue1 < lValue2 ? -1 : lValue1 > lValue2 ? 1 : 0;
+  vResult = lValue1 < lValue2 ? -1 : lValue1 > lValue2 ? 1 : 0;
 }
 
-FCMPL ( fValue1 fValue2 -- iResult ) 0x95
+FCMPL ( fValue1 fValue2 -- vResult ) 0x95
 {
-  iResult = builtin_fcmpl(fValue1, fValue2);
+  vResult = builtin_fcmpl(fValue1, fValue2);
 }
 
-FCMPG ( fValue1 fValue2 -- iResult ) 0x96
+FCMPG ( fValue1 fValue2 -- vResult ) 0x96
 {
-  iResult = builtin_fcmpg(fValue1, fValue2);
+  vResult = builtin_fcmpg(fValue1, fValue2);
 }
 
 DCMPL ( dValue1 dValue2 -- iResult ) 0x97
@@ -730,10 +729,10 @@ JSR (  #ainstTarget -- ainstRA ) 0xa8
   SET_IP(ainstTarget);
 }
 
-RET ( #bIndex -- ) 0xa9
+RET ( #vOffset -- ) 0xa9
 {
   Inst * saved_ip;
-  saved_ip = access_local_ref((unsigned) bIndex);
+  saved_ip = access_local_ref(vOffset);
   SET_IP(saved_ip);
 }
 
@@ -787,32 +786,38 @@ LOOKUPSWITCH ( #iNpairs #addrSegment #iOffset #ainstDefault iKey -- ) 0xab
 \       stack0 ;once there is something on the stack
 \       ...
 
-IRETURN ( #iIndexFP vValue -- vResult ) 0xac
+IRETURN ( #vOffsetFP vValue -- vResult ) 0xac
 {
   Inst *new_ip;
-  new_ip = (Inst *)access_local_cell(iIndexFP + 1);
+  Cell *currentsp = sp;
+  new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp;
-  fp = (Cell *)access_local_cell(iIndexFP);
+  fp = (Cell *)access_local_cell(vOffsetFP);
+  CLEARSTACK(currentsp-5, sp);
   vResult = vValue;
   SET_IP(new_ip);
 }
 
-LRETURN ( #iIndexFP lValue -- lResult ) 0xad
+LRETURN ( #vOffsetFP lValue -- lResult ) 0xad
 {
-  Inst *new_ip = (Inst *)access_local_cell(iIndexFP + 1);
+  Inst *new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
+  Cell *currentsp = sp;
   sp = fp - 1;
-  fp = (Cell *)access_local_cell(iIndexFP);
+  fp = (Cell *)access_local_cell(vOffsetFP);
+  CLEARSTACK(currentsp-5, sp);
   lResult = lValue;
   SET_IP(new_ip);
 }
 
-RETURN ( #iIndexFP -- ) 0xb1
+RETURN ( #vOffsetFP -- ) 0xb1
 {
   Inst *new_ip;
+  Cell *currentsp = sp;
   IF_spTOS(sp[0] = spTOS);
-  new_ip = (Inst *)access_local_cell(iIndexFP + 1);
+  new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp+1;
-  fp = (Cell *)access_local_cell(iIndexFP);
+  fp = (Cell *)access_local_cell(vOffsetFP);
+  CLEARSTACK(currentsp-5, sp-1);
   SET_IP(new_ip);
   IF_spTOS(spTOS = sp[0]);
 }
@@ -847,48 +852,48 @@ PUTSTATIC_LONG ( #addr #auf lValue -- ) opt
   *((s8 *) addr) = lValue;
 }
 
-GETFIELD_CELL ( #iOffset #auf aRef -- vResult ) opt
+GETFIELD_CELL ( #vOffset #auf aRef -- vResult ) opt
 {
   CHECK_NULL_PTR(aRef);
-  vResult = *((Cell *) (((u1 *)aRef) + iOffset));
+  vResult = *((Cell *) (((u1 *)aRef) + vOffset));
 }
 
-GETFIELD_INT ( #iOffset #auf aRef -- iResult ) opt
+GETFIELD_INT ( #vOffset #auf aRef -- iResult ) opt
 {
   CHECK_NULL_PTR(aRef);
-  iResult = *((s4 *) (((u1 *)aRef) + iOffset));
+  iResult = *((s4 *) (((u1 *)aRef) + vOffset));
 }
 
-GETFIELD_LONG ( #iOffset #auf aRef -- lResult ) opt
+GETFIELD_LONG ( #vOffset #auf aRef -- lResult ) opt
 {
   CHECK_NULL_PTR(aRef);
-  lResult = *((s8 *) (((u1 *)aRef) + iOffset));
+  lResult = *((s8 *) (((u1 *)aRef) + vOffset));
 }
 
 
-PUTFIELD_CELL ( #iOffset #auf aRef vValue -- ) opt
+PUTFIELD_CELL ( #vOffset #auf aRef vValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
-  *((Cell *) (((u1 *)aRef) + iOffset)) = vValue;
+  *((Cell *) (((u1 *)aRef) + vOffset)) = vValue;
 }
 
-PUTFIELD_INT ( #iOffset #auf aRef iValue -- ) opt
+PUTFIELD_INT ( #vOffset #auf aRef iValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
-  *((s4 *) (((u1 *)aRef) + iOffset)) = iValue;
+  *((s4 *) (((u1 *)aRef) + vOffset)) = iValue;
 }
 
-PUTFIELD_LONG ( #iOffset #auf aRef lValue -- ) opt
+PUTFIELD_LONG ( #vOffset #auf aRef lValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
-  *((s8 *) (((u1 *)aRef) + iOffset)) = lValue;
+  *((s8 *) (((u1 *)aRef) + vOffset)) = lValue;
 }
 
 \ !! called methods have the number of locals at offset -1.
 \ methods are always called indirectly through the codeptr in the stub 
 \   (see createcompilerstub and TRANSLATE).
 
-INVOKEVIRTUAL ( #iOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
+INVOKEVIRTUAL ( #vOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
 {
   java_objectheader *aRef = (java_objectheader *)(sp[iNargs + 1]); /* corrected for sp change by vmg */
   char *v;
@@ -896,7 +901,7 @@ INVOKEVIRTUAL ( #iOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
   Inst *target;
   CHECK_NULL_PTR(aRef);
   v = (char *)(aRef->vftbl);
-  stub = *(Inst ***)(v+iOffset);
+  stub = *(Inst ***)(v+vOffset);
   target = *stub;
   acelloldfp = fp;
   ainstoldip = IP;
@@ -931,7 +936,7 @@ INVOKESPECIAL ( #aaTarget #iNargs #aum -- acelloldfp ainstoldip ) 0xb7
   SET_IP(target);
 }
 
-INVOKEINTERFACE ( #iInterfaceOffset #iOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
+INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
 {
   java_objectheader *aRef;
   char   *v, *t;
@@ -942,7 +947,7 @@ INVOKEINTERFACE ( #iInterfaceOffset #iOffset #iNargs #aum -- acelloldfp ainstold
   CHECK_NULL_PTR(aRef);
   v = (char *)(aRef->vftbl);
   t = *(char **)(v + iInterfaceOffset);
-  stub = *(Inst ***)(t+iOffset);
+  stub = *(Inst ***)(t+vOffset);
   target = *stub;
   acelloldfp = fp;
   ainstoldip = IP;
@@ -1200,7 +1205,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_CELL);
 SET_IP(IP-3);
 
-PATCHER_GETFIELD_INT ( #iOffset #auf -- )
+PATCHER_GETFIELD_INT ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1214,7 +1219,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_INT);
 SET_IP(IP-3);
 
-PATCHER_GETFIELD_LONG ( #iOffset #auf -- )
+PATCHER_GETFIELD_LONG ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1228,7 +1233,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_LONG);
 SET_IP(IP-3);
 
-PATCHER_GETFIELD_CELL ( #iOffset #auf -- )
+PATCHER_GETFIELD_CELL ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1242,7 +1247,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_CELL);
 SET_IP(IP-3);
 
-PATCHER_PUTFIELD_INT ( #iOffset #auf -- )
+PATCHER_PUTFIELD_INT ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1256,7 +1261,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_INT);
 SET_IP(IP-3);
 
-PATCHER_PUTFIELD_LONG ( #iOffset #auf -- )
+PATCHER_PUTFIELD_LONG ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1270,7 +1275,7 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_LONG);
 SET_IP(IP-3);
 
-PATCHER_PUTFIELD_CELL ( #iOffset #auf -- )
+PATCHER_PUTFIELD_CELL ( #vOffset #auf -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1394,7 +1399,7 @@ STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKESPECIAL);
 SET_IP(IP-4);
 
-PATCHER_INVOKEVIRTUAL ( #iOffset #iNargs #aum -- ) 0xd8
+PATCHER_INVOKEVIRTUAL ( #vOffset #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1408,7 +1413,7 @@ STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKEVIRTUAL);
 SET_IP(IP-4);
 
-PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #iOffset #iNargs #aum -- ) 0xd8
+PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #vOffset #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
@@ -1547,17 +1552,17 @@ TRACECALL ( -- )
 functionptr f = codegen_findmethod((functionptr)(IP-1));
 methodinfo *m = ((methodinfo **) f)[-1];
 builtin_trace_args(
-	access_local_cell(0),
-	access_local_cell(1),
-	access_local_cell(2),
-	access_local_cell(3),
+	access_local_cell(0 * -SIZEOF_VOID_P),
+	access_local_cell(1 * -SIZEOF_VOID_P),
+	access_local_cell(2 * -SIZEOF_VOID_P),
+	access_local_cell(3 * -SIZEOF_VOID_P),
 #if TRACE_ARGS_NUM > 4
-	access_local_cell(4),
-	access_local_cell(5),
+	access_local_cell(4 * -SIZEOF_VOID_P),
+	access_local_cell(5 * -SIZEOF_VOID_P),
 #endif
 #if TRACE_ARGS_NUM == 8
-	access_local_cell(6),
-	access_local_cell(7),
+	access_local_cell(6 * -SIZEOF_VOID_P),
+	access_local_cell(7 * -SIZEOF_VOID_P),
 #endif
 	m);
 
