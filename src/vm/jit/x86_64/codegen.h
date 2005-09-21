@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3075 2005-07-20 13:37:34Z twisti $
+   $Id: codegen.h 3236 2005-09-21 13:22:21Z twisti $
 
 */
 
@@ -472,11 +472,6 @@ typedef enum {
 
 #define gen_resolvebranch(ip,so,to) \
     *((s4*) ((ip) - 4)) = (s4) ((to) - (so));
-
-
-/* function prototypes ********************************************************/
-
-void thread_restartcriticalsection(ucontext_t *uc);
 
 #endif /* _CODEGEN_H */
 
