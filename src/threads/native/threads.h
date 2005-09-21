@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 3098 2005-07-22 10:54:35Z motse $
+   $Id: threads.h 3249 2005-09-21 15:32:47Z twisti $
 
 */
 
@@ -103,6 +103,9 @@ struct nativethread {
 	u1                 _dontfillinexceptionstacktrace;
 	methodinfo        *_threadrootmethod;
 	void              *_stackframeinfo;
+#if defined(ENABLE_INTRP)
+	void               *_global_sp;
+#endif
 	pthread_t          tid;
 #if defined(__DARWIN__)
 	mach_port_t        mach_thread;
