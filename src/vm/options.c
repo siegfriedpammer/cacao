@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3152 2005-09-05 21:39:50Z twisti $
+   $Id: options.c 3243 2005-09-21 14:55:34Z twisti $
 
 */
 
@@ -36,14 +36,15 @@
 #include <string.h>
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
 
 #include "vm/options.h"
 
 
-/* command line option */
+/* command line option ********************************************************/
 
-bool vm_debug = false;
+s4   opt_ind = 1;               /* index of processed arguments               */
+char *opt_arg;                  /* this one exports the option argument       */
 
 #if defined(ENABLE_JIT)
 bool opt_jit = true;            /* JIT mode execution (default)               */
@@ -52,6 +53,8 @@ bool opt_intrp = false;         /* interpreter mode execution                 */
 bool opt_jit = false;           /* JIT mode execution                         */
 bool opt_intrp = true;          /* interpreter mode execution (default)       */
 #endif
+
+s4   opt_stacksize = 0;         /* thread stack size                          */
 
 bool opt_verbose = false;
 bool compileall = false;
@@ -108,8 +111,9 @@ bool opt_eager = false;
 #ifdef LSRA
 bool opt_lsra = false;
 #endif
-int opt_ind = 1;               /* index of processed arguments               */
-char *opt_arg;                 /* this one exports the option argument       */
+
+s4 opt_static_supers = 0x7fffffff;
+bool vm_debug = false;          /* XXX this should be called `opt_trace'      */
 
 
 /* get_opt *********************************************************************

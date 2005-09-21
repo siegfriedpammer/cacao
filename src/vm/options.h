@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3152 2005-09-05 21:39:50Z twisti $
+   $Id: options.h 3243 2005-09-21 14:55:34Z twisti $
 
 */
 
@@ -58,11 +58,13 @@ struct opt_struct {
 
 /* global variables ***********************************************************/
 
-extern bool vm_debug;
+extern s4    opt_ind;
+extern char *opt_arg;
 
 extern bool opt_jit;
 extern bool opt_intrp;
 
+extern s4   opt_stacksize;
 extern bool opt_verbose;
 extern bool compileall;
 extern bool runverbose;
@@ -122,8 +124,8 @@ extern bool opt_eager;
 extern bool opt_lsra;
 #endif
 
-extern int opt_ind;
-extern char *opt_arg;
+extern s4 opt_static_supers;
+extern bool vm_debug;
 
 
 /* function prototypes ********************************************************/
