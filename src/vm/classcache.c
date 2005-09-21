@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 2725 2005-06-16 19:10:35Z edwin $
+   $Id: classcache.c 3263 2005-09-21 20:18:03Z twisti $
 
 */
 
@@ -188,6 +188,7 @@ classcache_merge_loaders(
 	return result;
 }
 
+
 /* classcache_lookup_name ******************************************************
  
    Lookup a name in the first level of the cache
@@ -202,37 +203,33 @@ classcache_merge_loaders(
 	   
 *******************************************************************************/
 
-static /*@exposed@*/ /*@null@*/ classcache_name_entry *
-classcache_lookup_name(
-	/*@shared@*/ utf * name)
+static classcache_name_entry *classcache_lookup_name(utf *name)
 {
-	classcache_name_entry *c;	/* hash table element */
-	u4 key;						/* hashkey computed from classname */
-	u4 slot;					/* slot in hashtable               */
-	u4 i;
+	classcache_name_entry *c;           /* hash table element                 */
+	u4 key;                             /* hashkey computed from classname    */
+	u4 slot;                            /* slot in hashtable                  */
+/*  	u4 i; */
 
-	key = utf_hashkey(name->text, (u4) name->blength);
+	key  = utf_hashkey(name->text, (u4) name->blength);
 	slot = key & (classcache_hash.size - 1);
-	c = classcache_hash.ptr[slot];
+	c    = classcache_hash.ptr[slot];
 
 	/* search external hash chain for the entry */
+
 	while (c) {
-		if (c->name->blength == name->blength) {
-			for (i = 0; i < (u4) name->blength; i++)
-				if (name->text[i] != c->name->text[i])
-					goto nomatch;
+		/* entry found in hashtable */
 
-			/* entry found in hashtable */
+		if (c->name == name)
 			return c;
-		}
 
-	  nomatch:
-		c = c->hashlink;		/* next element in external chain */
+		c = c->hashlink;                    /* next element in external chain */
 	}
 
 	/* not found */
+
 	return NULL;
 }
+
 
 /* classcache_new_name *********************************************************
  
@@ -248,32 +245,26 @@ classcache_lookup_name(
 	   
 *******************************************************************************/
 
-static /*@exposed@*/ classcache_name_entry *
-classcache_new_name(
-	/*@shared@*/ utf * name)
+static classcache_name_entry *classcache_new_name(utf *name)
 {
 	classcache_name_entry *c;	/* hash table element */
 	u4 key;						/* hashkey computed from classname */
 	u4 slot;					/* slot in hashtable               */
 	u4 i;
 
-	key = utf_hashkey(name->text, (u4) name->blength);
+	key  = utf_hashkey(name->text, (u4) name->blength);
 	slot = key & (classcache_hash.size - 1);
-	c = classcache_hash.ptr[slot];
+	c    = classcache_hash.ptr[slot];
 
 	/* search external hash chain for the entry */
+
 	while (c) {
-		if (c->name->blength == name->blength) {
-			for (i = 0; i < (u4) name->blength; i++)
-				if (name->text[i] != c->name->text[i])
-					goto nomatch;
+		/* entry found in hashtable */
 
-			/* entry found in hashtable */
+		if (c->name == name)
 			return c;
-		}
 
-	  nomatch:
-		c = c->hashlink;		/* next element in external chain */
+		c = c->hashlink;                    /* next element in external chain */
 	}
 
 	/* location in hashtable found, create new entry */
@@ -299,10 +290,12 @@ classcache_new_name(
 		hashtable newhash;		/* the new hashtable */
 
 		/* create new hashtable, double the size */
+
 		init_hashtable(&newhash, classcache_hash.size * 2);
 		newhash.entries = classcache_hash.entries;
 
 		/* transfer elements to new hashtable */
+
 		for (i = 0; i < classcache_hash.size; i++) {
 			c2 = (classcache_name_entry *) classcache_hash.ptr[i];
 			while (c2) {
@@ -318,13 +311,14 @@ classcache_new_name(
 		}
 
 		/* dispose old table */
-		MFREE(classcache_hash.ptr, void *,
-			  classcache_hash.size);
+
+		MFREE(classcache_hash.ptr, void *, classcache_hash.size);
 		classcache_hash = newhash;
 	}
 
 	return c;
 }
+
 
 /* classcache_lookup ***********************************************************
  
@@ -342,10 +336,7 @@ classcache_new_name(
    
 *******************************************************************************/
 
-/*@null@*/ classinfo *
-classcache_lookup(
-	/*@shared@*/ classloader * initloader,
-	/*@shared@*/ utf * classname)
+classinfo *classcache_lookup(classloader *initloader, utf *classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -358,11 +349,14 @@ classcache_lookup(
 
 	if (en) {
 		/* iterate over all class entries */
+
 		for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
 			/* check if this entry has been loaded by initloader */
+
 			for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
+
 					CLASSCACHE_ASSERT(clsen->classobj != NULL);
 					cls = clsen->classobj;
 					goto found;
@@ -370,10 +364,12 @@ classcache_lookup(
 			}
 		}
 	}
+
   found:
 	CLASSCACHE_UNLOCK();
 	return cls;
 }
+
 
 /* classcache_lookup_defined ***************************************************
  
@@ -389,10 +385,7 @@ classcache_lookup(
    
 *******************************************************************************/
 
-/*@null@*/ classinfo *
-classcache_lookup_defined(
-	/*@shared@*/ classloader * defloader,
-	/*@shared@*/ utf * classname)
+classinfo *classcache_lookup_defined(classloader *defloader, utf *classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -415,10 +408,12 @@ classcache_lookup_defined(
 			}
 		}
 	}
+
   found:
 	CLASSCACHE_UNLOCK();
 	return cls;
 }
+
 
 /* classcache_store ************************************************************
    
