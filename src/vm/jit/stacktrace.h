@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3220 2005-09-19 13:31:00Z twisti $
+   $Id: stacktrace.h 3244 2005-09-21 14:58:47Z twisti $
 
 */
 
@@ -101,8 +101,10 @@ struct stackTraceBuffer {
 
 /* function prototypes ********************************************************/
 
+#if defined(ENABLE_INTRP)
 void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 									  u1 *sp, functionptr ra);
+#endif
 
 void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, functionptr ra,

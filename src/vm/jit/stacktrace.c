@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3203 2005-09-17 11:14:04Z twisti $
+   $Id: stacktrace.c 3244 2005-09-21 14:58:47Z twisti $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
@@ -84,13 +85,58 @@ typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
 /* global variables ***********************************************************/
 
 #if defined(USE_THREADS)
-#define STACKFRAMEINFO    &THREADINFO->_stackframeinfo
+#define STACKFRAMEINFO    (stackframeinfo **) (&THREADINFO->_stackframeinfo)
 #else
 THREADSPECIFIC stackframeinfo *_no_threads_stackframeinfo = NULL;
 
-#define STACKFRAMEINFO    &_no_threads_stackframeinfo
+#define STACKFRAMEINFO    (&_no_threads_stackframeinfo)
 #endif
 
+
+/* stacktrace_create_stackframeinfo ********************************************
+
+   Creates an stackframe info structure for inline code in the
+   interpreter.
+
+*******************************************************************************/
+
+#if defined(ENABLE_INTRP)
+void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
+									  u1 *sp, functionptr ra)
+{
+	stackframeinfo **psfi;
+	methodinfo      *m;
+
+	/* get current stackframe info pointer */
+
+	psfi = STACKFRAMEINFO;
+
+	/* if we don't have pv handy */
+
+	if (pv == NULL)
+		pv = (u1 *) (ptrint) codegen_findmethod(ra);
+
+	/* get methodinfo pointer from data segment */
+
+	m = *((methodinfo **) (pv + MethodPointer));
+
+	/* fill new stackframe info structure */
+
+	sfi->prev = *psfi;
+	sfi->method = m;
+	sfi->pv = pv;
+	sfi->sp = sp;
+	sfi->ra = ra;
+
+	/* xpc is the same as ra, but is required in fillInStackTrace */
+
+	sfi->xpc = ra;
+
+	/* store new stackframe info pointer */
+
+	*psfi = sfi;
+}
+#endif /* defined(ENABLE_INTRP) */
 
 /* stacktrace_create_inline_stackframeinfo *************************************
 
@@ -107,6 +153,16 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* get current stackframe info pointer */
 
 	psfi = STACKFRAMEINFO;
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		/* if we don't have pv handy */
+
+		if (pv == NULL)
+			pv = (u1 *) (ptrint) codegen_findmethod(ra);
+
+	}
+#endif
 
 	/* fill new stackframe info structure */
 
@@ -144,31 +200,39 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	psfi = STACKFRAMEINFO;
 
-	/* sometimes we don't have pv handy (e.g. in asmpart.S: */
-	/* L_asm_call_jit_compiler_exception) */
+	/* sometimes we don't have pv handy (e.g. in asmpart.S:
+       L_asm_call_jit_compiler_exception or in the interpreter). */
 
 	if (pv == NULL)
 		pv = (u1 *) (ptrint) codegen_findmethod(ra);
 
-#if defined(__I386__) || defined(__X86_64__)
-	/* On i386 and x86_64 we always have to get the return address from the */
-	/* stack. */
+#if defined(ENABLE_INTRP)
+	/* When using the interpreter, we pass RA to the function. */
 
-	framesize = *((u4 *) (pv + FrameSize));
+	if (!opt_intrp) {
+#endif
+# if defined(__I386__) || defined(__X86_64__)
+		/* On i386 and x86_64 we always have to get the return address
+		   from the stack. */
 
-	ra = md_stacktrace_get_returnaddress(sp, framesize);
-#else
-	/* If the method is a non-leaf function, we need to get the return        */
-	/* address from the stack. For leaf functions the return address is set   */
-	/* correctly. This makes the assembler and the signal handler code        */
-	/* simpler.                                                               */
-
-	isleafmethod = *((s4 *) (pv + IsLeaf));
-
-	if (!isleafmethod) {
 		framesize = *((u4 *) (pv + FrameSize));
 
 		ra = md_stacktrace_get_returnaddress(sp, framesize);
+# else
+		/* If the method is a non-leaf function, we need to get the return
+		   address from the stack. For leaf functions the return address
+		   is set correctly. This makes the assembler and the signal
+		   handler code simpler. */
+
+		isleafmethod = *((s4 *) (pv + IsLeaf));
+
+		if (!isleafmethod) {
+			framesize = *((u4 *) (pv + FrameSize));
+
+			ra = md_stacktrace_get_returnaddress(sp, framesize);
+		}
+# endif
+#if defined(ENABLE_INTRP)
 	}
 #endif
 
@@ -799,6 +863,10 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					printf(": inline stub parent\n");
 #endif
 
+#if defined(ENABLE_INTRP)
+					if (!opt_intrp) {
+#endif
+
 					/* add it to the stacktrace */
 
 					stacktrace_fillInStackTrace_method(&buffer, m, pv,
@@ -822,6 +890,10 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 					pv = (u1 *) (ptrint) codegen_findmethod(ra);
 					m = *((methodinfo **) (pv + MethodPointer));
+
+#if defined(ENABLE_INTRP)
+					}
+#endif
 				}
 			}
 
@@ -860,11 +932,18 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 			/* walk the stack */
 
-#if defined(__I386__) || defined (__X86_64__)
-			sp += framesize + SIZEOF_VOID_P;
-#else
-			sp += framesize;
+#if defined(ENABLE_INTRP)
+			if (opt_intrp)
+				sp = *(u1 **)(sp - framesize);
+			else
 #endif
+				{
+#if defined(__I386__) || defined (__X86_64__)
+					sp += framesize + SIZEOF_VOID_P;
+#else
+					sp += framesize;
+#endif
+				}
 		}
 	}
 			
