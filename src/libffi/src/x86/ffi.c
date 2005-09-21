@@ -252,10 +252,10 @@ static void
 ffi_closure_SYSV (closure)
      ffi_closure *closure;
 {
-  // this is our return value storage
+  /* this is our return value storage */
   long double    res;
 
-  // our various things...
+  /* our various things... */
   ffi_cif       *cif;
   void         **arg_area;
   unsigned short rtype;
@@ -280,23 +280,23 @@ ffi_closure_SYSV (closure)
   /* now, do a generic return based on the value of rtype */
   if (rtype == FFI_TYPE_INT)
     {
-      asm ("movl (%0),%%eax" : : "r" (resp) : "eax");
+      __asm__ ("movl (%0),%%eax" : : "r" (resp) : "eax");
     }
   else if (rtype == FFI_TYPE_FLOAT)
     {
-      asm ("flds (%0)" : : "r" (resp) : "st" );
+      __asm__ ("flds (%0)" : : "r" (resp) : "st" );
     }
   else if (rtype == FFI_TYPE_DOUBLE)
     {
-      asm ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
+      __asm__ ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
     }
   else if (rtype == FFI_TYPE_LONGDOUBLE)
     {
-      asm ("fldt (%0)" : : "r" (resp) : "st", "st(1)" );
+      __asm__ ("fldt (%0)" : : "r" (resp) : "st", "st(1)" );
     }
   else if (rtype == FFI_TYPE_SINT64)
     {
-      asm ("movl 0(%0),%%eax;"
+      __asm__ ("movl 0(%0),%%eax;"
 	   "movl 4(%0),%%edx" 
 	   : : "r"(resp)
 	   : "eax", "edx");
@@ -304,11 +304,11 @@ ffi_closure_SYSV (closure)
 #ifdef X86_WIN32
   else if (rtype == FFI_TYPE_SINT8) /* 1-byte struct  */
     {
-      asm ("movsbl (%0),%%eax" : : "r" (resp) : "eax");
+      __asm__ ("movsbl (%0),%%eax" : : "r" (resp) : "eax");
     }
   else if (rtype == FFI_TYPE_SINT16) /* 2-bytes struct */
     {
-      asm ("movswl (%0),%%eax" : : "r" (resp) : "eax");
+      __asm__ ("movswl (%0),%%eax" : : "r" (resp) : "eax");
     }
 #endif
 }
@@ -398,10 +398,10 @@ static void
 ffi_closure_raw_SYSV (closure)
      ffi_raw_closure *closure;
 {
-  // this is our return value storage
+  /* this is our return value storage */
   long double    res;
 
-  // our various things...
+  /* our various things... */
   ffi_raw         *raw_args;
   ffi_cif         *cif;
   unsigned short   rtype;
@@ -420,23 +420,23 @@ ffi_closure_raw_SYSV (closure)
   /* now, do a generic return based on the value of rtype */
   if (rtype == FFI_TYPE_INT)
     {
-      asm ("movl (%0),%%eax" : : "r" (resp) : "eax");
+      __asm__ ("movl (%0),%%eax" : : "r" (resp) : "eax");
     }
   else if (rtype == FFI_TYPE_FLOAT)
     {
-      asm ("flds (%0)" : : "r" (resp) : "st" );
+      __asm__ ("flds (%0)" : : "r" (resp) : "st" );
     }
   else if (rtype == FFI_TYPE_DOUBLE)
     {
-      asm ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
+      __asm__ ("fldl (%0)" : : "r" (resp) : "st", "st(1)" );
     }
   else if (rtype == FFI_TYPE_LONGDOUBLE)
     {
-      asm ("fldt (%0)" : : "r" (resp) : "st", "st(1)" );
+      __asm__ ("fldt (%0)" : : "r" (resp) : "st", "st(1)" );
     }
   else if (rtype == FFI_TYPE_SINT64)
     {
-      asm ("movl 0(%0),%%eax; movl 4(%0),%%edx" 
+      __asm__ ("movl 0(%0),%%eax; movl 4(%0),%%edx" 
 	   : : "r"(resp)
 	   : "eax", "edx");
     }
@@ -455,10 +455,10 @@ ffi_prep_raw_closure (ffi_raw_closure* closure,
 
   FFI_ASSERT (cif->abi == FFI_SYSV);
 
-  // we currently don't support certain kinds of arguments for raw
-  // closures.  This should be implemented by a separate assembly language
-  // routine, since it would require argument processing, something we
-  // don't do now for performance.
+  /* we currently don't support certain kinds of arguments for raw
+     closures.  This should be implemented by a separate assembly language
+     routine, since it would require argument processing, something we
+     don't do now for performance. */
 
   for (i = cif->nargs-1; i >= 0; i--)
     {
