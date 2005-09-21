@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3209 2005-09-19 11:14:08Z twisti $
+   $Id: cacao.c 3242 2005-09-21 14:54:55Z twisti $
 
 */
 
@@ -80,6 +80,11 @@
 
 #define HEAP_MAXSIZE      64 * 1024 * 1024; /* default 64MB                   */
 #define HEAP_STARTSIZE    2 * 1024 * 1024;  /* default 2MB                    */
+#define STACK_SIZE        128 * 1024;       /* default 128kB                  */
+
+#if defined(ENABLE_INTRP)
+u1 *intrp_main_stack;
+#endif
 
 
 /* Invocation API variables ***************************************************/
@@ -162,20 +167,19 @@ void **stackbottom = 0;
 #define OPT_JIT              102
 #define OPT_INTRP            103
 
-#define OPT_TRACE            104
+#define OPT_STATIC_SUPERS    104
+#define OPT_TRACE            105
+
+#define OPT_SS               106
+
 
 opt_struct opts[] = {
 	{ "classpath",         true,  OPT_CLASSPATH },
 	{ "cp",                true,  OPT_CLASSPATH },
 	{ "D",                 true,  OPT_D },
-	{ "Xms",               true,  OPT_MS },
-	{ "Xmx",               true,  OPT_MX },
-	{ "ms",                true,  OPT_MS },
-	{ "mx",                true,  OPT_MX },
 	{ "noasyncgc",         false, OPT_IGNORE },
 	{ "noverify",          false, OPT_NOVERIFY },
 	{ "liberalutf",        false, OPT_LIBERALUTF },
-	{ "ss",                true,  OPT_IGNORE },
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose",           false, OPT_VERBOSE },
 	{ "verbose:",          true,  OPT_VERBOSESPECIFIC },
@@ -198,10 +202,8 @@ opt_struct opts[] = {
     { "eager",             false, OPT_EAGER },
 	{ "m",                 true,  OPT_METHOD },
 	{ "sig",               true,  OPT_SIGNATURE },
-	{ "s",                 true,  OPT_SHOW },
 	{ "all",               false, OPT_ALL },
 	{ "oloop",             false, OPT_OLOOP },
-	{ "i",                 true,  OPT_INLINING },
 #ifdef STATIC_ANALYSIS
 	{ "rt",                false, OPT_RT },
 	{ "xta",               false, OPT_XTA },
@@ -211,18 +213,37 @@ opt_struct opts[] = {
 	{ "lsra",              false, OPT_LSRA },
 #endif
 	{ "jar",               false, OPT_JAR },
-	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
-	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
-	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
 	{ "version",           false, OPT_VERSION },
 	{ "showversion",       false, OPT_SHOWVERSION },
 	{ "fullversion",       false, OPT_FULLVERSION },
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
+
+	/* interpreter options */
+
+	{ "trace",             false, OPT_TRACE },
+	{ "static-supers",     true,  OPT_STATIC_SUPERS },
+
+	/* X options */
+
 	{ "X",                 false, OPT_X },
 	{ "Xjit",              false, OPT_JIT },
 	{ "Xint",              false, OPT_INTRP },
-	{ "t",                 false, OPT_TRACE },
+	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
+	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
+	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
+	{ "Xms",               true,  OPT_MS },
+	{ "Xmx",               true,  OPT_MX },
+	{ "Xss",               true,  OPT_SS },
+	{ "ms",                true,  OPT_MS },
+	{ "mx",                true,  OPT_MX },
+	{ "ss",                true,  OPT_SS },
+
+	/* keep these at the end of the list */
+
+	{ "i",                 true,  OPT_INLINING },
+	{ "s",                 true,  OPT_SHOW },
+
 	{ NULL,                false, 0 }
 };
 
@@ -321,8 +342,9 @@ static void Xusage(void)
 	printf("                      value is appended to the bootstrap class path\n");
 	printf("    -Xbootclasspath/p:<zip/jar files and directories separated by :>\n");
 	printf("                      value is prepended to the bootstrap class path\n");
-	printf("    -Xms<size>        set the initial size of the heap (default: 2M)\n");
-	printf("    -Xmx<size>        set the maximum size of the heap (default: 64M)\n");
+	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
+	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
+	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
 
 	/* exit with error code */
 
@@ -483,46 +505,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 }
 
 
-/* exit_handler ****************************************************************
-
-   The exit_handler function is called upon program termination.
-
-   ATTENTION: Don't free system resources here! Some threads may still
-   be running as this is called from VMRuntime.exit(). The OS does the
-   cleanup for us.
-
-*******************************************************************************/
-
-void exit_handler(void)
-{
-	/********************* Print debug tables ************************/
-				
-	if (showmethods) class_showmethods(mainclass);
-	if (showconstantpool) class_showconstantpool(mainclass);
-	if (showutf) utf_show();
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	clear_thread_flags();		/* restores standard file descriptor
-	                               flags */
-#endif
-
-	if (opt_verbose || getcompilingtime || opt_stat) {
-		log_text("CACAO terminated");
-
-#if defined(STATISTICS)
-		if (opt_stat) {
-			print_stats();
-#ifdef TYPECHECK_STATISTICS
-			typecheck_print_statistics(get_logfile());
-#endif
-		}
-
-		if (getcompilingtime)
-			print_times();
-		mem_usagelog(1);
-#endif
-	}
-}
+void exit_handler(void);
 
 
 /* main ************************************************************************
@@ -611,7 +594,7 @@ int main(int argc, char **argv)
 
 	heapmaxsize = HEAP_MAXSIZE;
 	heapstartsize = HEAP_STARTSIZE;
-
+	opt_stacksize = STACK_SIZE;
 
 	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
 		switch (i) {
@@ -685,8 +668,9 @@ int main(int argc, char **argv)
 			}	
 			break;
 
-		case OPT_MS:
 		case OPT_MX:
+		case OPT_MS:
+		case OPT_SS:
 			{
 				char c;
 				c = opt_arg[strlen(opt_arg) - 1];
@@ -697,10 +681,15 @@ int main(int argc, char **argv)
 				} else if (c == 'm' || c == 'M') {
 					j = 1024 * 1024 * atoi(opt_arg);
 
-				} else j = atoi(opt_arg);
+				} else
+					j = atoi(opt_arg);
 
-				if (i == OPT_MX) heapmaxsize = j;
-				else heapstartsize = j;
+				if (i == OPT_MX)
+					heapmaxsize = j;
+				else if (i == OPT_MS)
+					heapstartsize = j;
+				else
+					opt_stacksize = j;
 			}
 			break;
 
@@ -945,6 +934,10 @@ int main(int argc, char **argv)
 #endif
 			break;
 
+		case OPT_STATIC_SUPERS:
+			opt_static_supers = atoi(opt_arg);
+			break;
+
 		case OPT_TRACE:
 			vm_debug = true;
 			break;
@@ -1016,6 +1009,15 @@ int main(int argc, char **argv)
 	/* initialize the garbage collector */
 
 	gc_init(heapmaxsize, heapstartsize);
+
+#if defined(ENABLE_INTRP)
+	/* allocate main thread stack */
+
+	if (opt_intrp) {
+		intrp_main_stack = (u1 *) alloca(opt_stacksize);
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+	}
+#endif
 
 	tables_init();
 
@@ -1339,6 +1341,49 @@ void cacao_shutdown(s4 status)
 	}
 
 	exit(status);
+}
+
+
+/* exit_handler ****************************************************************
+
+   The exit_handler function is called upon program termination.
+
+   ATTENTION: Don't free system resources here! Some threads may still
+   be running as this is called from VMRuntime.exit(). The OS does the
+   cleanup for us.
+
+*******************************************************************************/
+
+void exit_handler(void)
+{
+	/********************* Print debug tables ************************/
+				
+	if (showmethods) class_showmethods(mainclass);
+	if (showconstantpool) class_showconstantpool(mainclass);
+	if (showutf) utf_show();
+
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
+	clear_thread_flags();		/* restores standard file descriptor
+	                               flags */
+#endif
+
+	if (opt_verbose || getcompilingtime || opt_stat) {
+		log_text("CACAO terminated");
+
+#if defined(STATISTICS)
+		if (opt_stat) {
+			print_stats();
+#ifdef TYPECHECK_STATISTICS
+			typecheck_print_statistics(get_logfile());
+#endif
+		}
+
+		if (getcompilingtime)
+			print_times();
+		mem_usagelog(1);
+#endif
+	}
+	/* vm_print_profile(stderr);*/
 }
 
 
