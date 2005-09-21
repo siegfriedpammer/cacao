@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3239 2005-09-21 14:09:22Z twisti $
+   $Id: builtin.c 3265 2005-09-21 20:19:47Z twisti $
 
 */
 
@@ -1037,14 +1037,19 @@ u4 methodindent = 0;
 java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   methodinfo *m,
 										   void *pos,
-										   s4 line,
-										   s4 noindent)
+										   s4 indent)
 {
 	char *logtext;
 	s4    logtextlen;
 	s4    dumpsize;
 
-	if (opt_verbose || runverbose || verboseexception) {
+	if (opt_verbose || runverbose || opt_verboseexception) {
+		/* when running with verbosecall we remove one indent level */
+
+		if (runverbose)
+			if (indent)
+				methodindent--;
+
 		/* calculate message length */
 
 		if (xptr) {
@@ -1052,8 +1057,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 				strlen("Exception ") +
 				utf_strlen(xptr->vftbl->class->name);
 
-		} else
+		} else {
 			logtextlen = strlen("Some Throwable");
+		}
 
 		logtextlen += strlen(" thrown in ");
 
@@ -1140,7 +1146,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 				else
 					utf_strcat(logtext, m->class->sourcefile);
 
-				sprintf(logtext + strlen(logtext), ":%d)", line);
+				sprintf(logtext + strlen(logtext), ":%d)", 0);
 			}
 
 		} else
@@ -1151,6 +1157,20 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		/* release memory */
 
 		dump_release(dumpsize);
+
+		/* print stacktrace for exception */
+
+		if (opt_verboseexception) {
+			methodinfo *pss;
+
+			pss = class_resolveclassmethod(xptr->vftbl->class,
+										   utf_printStackTrace,
+										   utf_void__void,
+										   class_java_lang_Object,
+										   false);
+
+			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
+		}
 	}
 
 	return xptr;
