@@ -28,7 +28,7 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 3179 2005-09-14 18:36:12Z twisti $
+   $Id: asmpart.S 3237 2005-09-21 13:22:49Z twisti $
 
 */
 
@@ -39,8 +39,9 @@
 #include "md-asm.h"
 
 #include "vm/jit/x86_64/arch.h"
-#include "vm/jit/x86_64/asmoffsets.h"
 #include "vm/jit/x86_64/offsets.h"
+
+#include "vm/jit/methodheader.h"
 
 
 	.text

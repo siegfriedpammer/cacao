@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3096 2005-07-21 14:01:02Z twisti $
+   $Id: codegen.c 3237 2005-09-21 13:22:49Z twisti $
 
 */
 
@@ -46,7 +46,6 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
 #include "vm/jit/x86_64/types.h"
-#include "vm/jit/x86_64/asmoffsets.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
@@ -65,6 +64,7 @@
 # include "vm/jit/lsra.inc"
 #endif
 
+#include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
