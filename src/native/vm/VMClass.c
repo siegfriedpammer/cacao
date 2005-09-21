@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3215 2005-09-19 13:05:24Z twisti $
+   $Id: VMClass.c 3257 2005-09-21 19:36:56Z twisti $
 
 */
 
@@ -67,20 +67,26 @@
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
 {
-#if 0
-	/* XXX TWISTI: we currently use the classpath default implementation, maybe 
-	   we change this someday to a faster native version */
-
-	return NULL;
-#else
 	classinfo *c;
 	utf       *u;
+	u2        *pos;
+	s4         i;
 
 	/* illegal argument */
 
 	if (!name)
 		return NULL;
-	
+
+	/* name must not contain '/' (mauve test) */
+
+	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
+		if (*pos == '/') {
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+			return NULL;
+		}
+	}
+
 	/* create utf string in which '.' is replaced by '/' */
 
 	u = javastring_toutf(name, true);
@@ -118,10 +124,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 		if (!initialize_class(c))
 			return NULL;
 
-	use_class_as_object(c);
+	if (!use_class_as_object(c))
+		return NULL;
 
 	return (java_lang_Class *) c;
-#endif
 }
 
 
@@ -424,7 +430,7 @@ java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, jav
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *that, s4 public_only)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
     classinfo        *c;
     java_objectarray *array_field; /* result: array of field-objects */
@@ -433,12 +439,12 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
     int pos = 0;
     int i;
 
-    c = (classinfo *) that;
+    c = (classinfo *) klass;
 
     /* determine number of fields */
 
     for (i = 0; i < c->fieldscount; i++)
-		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only))
+		if ((c->fields[i].flags & ACC_PUBLIC) || (publicOnly == 0))
 			public_fields++;
 
     /* create array of fields */
@@ -454,11 +460,11 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
     /* get the fields and store in the array */
 
     for (i = 0; i < c->fieldscount; i++) {
-		if ((c->fields[i].flags & ACC_PUBLIC) || (!public_only)) {
+		if ((c->fields[i].flags & ACC_PUBLIC) || (publicOnly == 0)) {
 			s = (java_lang_String *) javastring_new(c->fields[i].name);
 
 			array_field->data[pos++] = (java_objectheader *)
-				cacao_getField0(env, that, s, public_only);
+				cacao_getField0(env, klass, s, publicOnly);
 		}
 	}
 
@@ -497,7 +503,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
  * Method:    getDeclaredMethods
  * Signature: (Z)[Ljava/lang/reflect/Method;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *that, s4 public_only)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
     classinfo *c;
     java_objectheader *o;
@@ -505,33 +511,29 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
     methodinfo *m;                    /* the current method to be represented */
     int public_methods = 0;          /* number of public methods of the class */
-    int pos = 0;
-    int i;
+    s4 pos;
+    s4 i;
 
-    c = (classinfo *) that;    
+    c = (classinfo *) klass;    
 
 	/* JOWENN: array classes do not declare methods according to mauve test.  */
 	/* It should be considered, if we should return to my old clone method    */
 	/* overriding instead of declaring it as a member function.               */
 
-	if (Java_java_lang_VMClass_isArray(env, clazz, that))
+	if (Java_java_lang_VMClass_isArray(env, clazz, klass))
 		return builtin_anewarray(0, class_java_lang_reflect_Method);
 
     /* determine number of methods */
 
-    for (i = 0; i < c->methodscount; i++) 
-		if ((((c->methods[i].flags & ACC_PUBLIC)) || (!public_only)) && 
+    for (i = 0; i < c->methodscount; i++) {
+		if ((((c->methods[i].flags & ACC_PUBLIC)) || (!publicOnly)) &&
 			(!
 			 ((c->methods[i].name == utf_init) ||
 			  (c->methods[i].name == utf_clinit))
-			 ))
+			 )) {
 			public_methods++;
-
-	/*	
-		class_showmethods(class_method);
-		log_text("JOWENN");
-		assert(0);
-	*/
+		}
+	}
 
     array_method =
 		builtin_anewarray(public_methods, class_java_lang_reflect_Method);
@@ -539,8 +541,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     if (!array_method) 
 		return NULL;
 
-    for (i = 0; i < c->methodscount; i++) {
-		if (((c->methods[i].flags & ACC_PUBLIC) || (!public_only)) && 
+    for (i = 0, pos = 0; i < c->methodscount; i++) {
+		if (((c->methods[i].flags & ACC_PUBLIC) || (!publicOnly)) && 
 			(!
 			 ((c->methods[i].name == utf_init) ||
 			  (c->methods[i].name == utf_clinit))
@@ -606,7 +608,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
 
 	c = (classinfo *) klass;
 
-	return c->flags;
+	if (!ignoreInnerClassesAttrib && c->innerclass)
+		return c->innerclass->flags;
+	else
+		return c->flags;
 }
 
 
