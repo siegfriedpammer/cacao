@@ -28,17 +28,18 @@
 
    Changes:
 
-   $Id: emitfuncs.c 2650 2005-06-13 14:02:27Z twisti $
+   $Id: emitfuncs.c 3272 2005-09-21 21:13:47Z twisti $
 
 */
 
+
+#include "vm/types.h"
 
 #include "md-abi.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
-#include "vm/jit/x86_64/types.h"
 
 
 /* code generation functions */
@@ -216,8 +217,20 @@ void x86_64_emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 			x86_64_alul_imm_reg(cd, alu_op, iptr->val.i, d);
 
 		} else {
+#if 0
 			M_INTMOVE(s1, d);
 			x86_64_alul_imm_reg(cd, alu_op, iptr->val.i, d);
+#else
+			/* lea addition optimization */
+
+			if ((alu_op == X86_64_ADD) && (s1 != d)) {
+				M_ILEA(s1, iptr->val.i, d);
+
+			} else {
+				M_INTMOVE(s1, d);
+				x86_64_alul_imm_reg(cd, alu_op, iptr->val.i, d);
+			}
+#endif
 		}
 	}
 }
@@ -265,6 +278,7 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 		}
 
 	} else {
+#if 0
 		if (src->flags & INMEMORY) {
 			x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, d);
 
@@ -279,6 +293,37 @@ void x86_64_emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction
 			x86_64_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
 			x86_64_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
 		}
+#else
+		if (src->flags & INMEMORY) {
+			x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, d);
+
+			if (IS_IMM32(iptr->val.l)) {
+				x86_64_alu_imm_reg(cd, alu_op, iptr->val.l, d);
+
+			} else {
+				x86_64_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
+				x86_64_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
+			}
+
+		} else {
+			if (IS_IMM32(iptr->val.l)) {
+				/* lea addition optimization */
+
+				if ((alu_op == X86_64_ADD) && (s1 != d)) {
+					M_LLEA(s1, iptr->val.l, d);
+
+				} else {
+					M_INTMOVE(s1, d);
+					x86_64_alu_imm_reg(cd, alu_op, iptr->val.l, d);
+				}
+
+			} else {
+				M_INTMOVE(s1, d);
+				x86_64_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
+				x86_64_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
+			}
+		}
+#endif
 	}
 }
 
