@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: access.c 2096 2005-03-27 18:57:00Z edwin $
+   $Id: access.c 3258 2005-09-21 19:38:49Z twisti $
 
 */
 
@@ -55,25 +55,24 @@
 /****************************************************************************/
 
 /* for documentation see access.h */
-bool
-is_accessible_class(classinfo *referer,classinfo *cls)
+
+bool is_accessible_class(classinfo *referer, classinfo *cls)
 {
 	ACCESS_ASSERT(referer);
 	ACCESS_ASSERT(cls);
 
-	/* XXX specially check access to array classes? (vmspec 5.3.3) */
-	
 	/* public classes are always accessible */
-	if ((cls->flags & ACC_PUBLIC) != 0)
+	if (cls->flags & ACC_PUBLIC)
 		return true;
 
 	/* a class in the same package is always accessible */
-	if (SAME_PACKAGE(referer,cls))
+	if (SAME_PACKAGE(referer, cls))
 		return true;
 
 	/* a non-public class in another package is not accessible */
 	return false;
 }
+
 
 /* for documentation see access.h */
 bool
