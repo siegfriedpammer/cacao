@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3207 2005-09-19 09:20:21Z twisti $
+## $Id: Makefile.am 3280 2005-09-21 23:10:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,6 +68,7 @@ GEN_HEADER_FILES = \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \
 	java_nio_Buffer.h \
+	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
 	java_util_Vector.h
 
