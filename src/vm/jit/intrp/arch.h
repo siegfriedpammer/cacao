@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/arch.h - architecture defines for Alpha
+/* src/vm/jit/intrp/arch.h - architecture defines for Interpreter
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3138 2005-09-02 15:15:18Z twisti $
+   $Id: arch.h 3246 2005-09-21 14:59:28Z twisti $
 
 */
 
