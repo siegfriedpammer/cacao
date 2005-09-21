@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3191 2005-09-16 12:08:39Z twisti $
+   $Id: loader.c 3269 2005-09-21 20:23:47Z twisti $
 
 */
 
@@ -1966,41 +1966,47 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 	if (cl) {
 		methodinfo *lc;
+		char       *text;
+		s4          namelen;
+
+		text = name->text;
+		namelen = name->blength;
 
 		/* handle array classes */
-		if (name->text[0] == '[') {
-			char      *utf_ptr;
-			s4         len;
+		if (text[0] == '[') {
 			classinfo *comp;
 			utf       *u;
 
-			utf_ptr = name->text + 1;
-			len = name->blength - 1;
-
-			switch (*utf_ptr) {
+			switch (text[1]) {
 			case 'L':
-				utf_ptr++;
-				len -= 2;
-				/* FALLTHROUGH */
-			case '[':
-				/* load the component class */
-				u = utf_new(utf_ptr, len);
-				LOADER_INC();
-				if (!(comp = load_class_from_classloader(u, cl))) {
-					LOADER_DEC();
+				/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
+				if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
+					*exceptionptr = new_classnotfoundexception(name);
 					return false;
 				}
-				LOADER_DEC();
+
+				u = utf_new(text + 2, namelen - 3);
+
+				if (!(comp = load_class_from_classloader(u, cl)))
+					return false;
+
 				/* create the array class */
-				r = class_array_of(comp, false);
-				return r;
-				break;
+				return class_array_of(comp, false);
+
+			case '[':
+				/* load the component class */
+
+				u = utf_new(text + 1, namelen - 1);
+
+				if (!(comp = load_class_from_classloader(u, cl)))
+					return false;
+
+				/* create the array class */
+				return class_array_of(comp, false);
+
 			default:
 				/* primitive array classes are loaded by the bootstrap loader */
-				LOADER_INC();
-				r = load_class_bootstrap(name);
-				LOADER_DEC();
-				return r;
+				return load_class_bootstrap(name);
 			}
 		}
 		
@@ -2744,8 +2750,8 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	methodinfo        *clone;
 	methoddesc        *clonedesc;
 	constant_classref *classrefs;
+	char              *text;
 	s4                 namelen;
-	java_objectheader *definingloader = NULL;
 	utf               *u;
 
 #ifdef LOADER_VERBOSE
@@ -2756,21 +2762,23 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	log_text(logtext);
 #endif
 
+	text = c->name->text;
+	namelen = c->name->blength;
+
 	/* Check array class name */
 
-	namelen = c->name->blength;
-	if (namelen < 2 || c->name->text[0] != '[') {
-		*exceptionptr = new_internalerror("Invalid array class name");
+	if (namelen < 2 || text[0] != '[') {
+		*exceptionptr = new_classnotfoundexception(c->name);
 		return NULL;
 	}
 
-	/* Check the component type */
+	/* Check the element type */
 
-	switch (c->name->text[1]) {
+	switch (text[1]) {
 	case '[':
 		/* c is an array of arrays. We have to create the component class. */
 
-		u = utf_new_intern(c->name->text + 1, namelen - 1);
+		u = utf_new_intern(text + 1, namelen - 1);
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
@@ -2781,17 +2789,22 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (opt_eager)
 			if (!link_class(c))
 				return NULL;
-		definingloader = comp->classloader;
+
+		/* the array's flags are that of the component class */
+		c->flags = (comp->flags & ~ACC_INTERFACE) | ACC_FINAL | ACC_ABSTRACT;
+		c->classloader = comp->classloader;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		if (namelen < 4 || c->name->text[namelen - 1] != ';') {
-			*exceptionptr = new_internalerror("Invalid array class name");
+
+		/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
+		if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
+			*exceptionptr = new_classnotfoundexception(c->name);
 			return NULL;
 		}
 
-		u = utf_new_intern(c->name->text + 2, namelen - 3);
+		u = utf_new_intern(text + 2, namelen - 3);
 
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
@@ -2803,18 +2816,33 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (opt_eager)
 			if (!link_class(c))
 				return NULL;
-		definingloader = comp->classloader;
+
+		/* the array's flags are that of the component class */
+		c->flags = (comp->flags & ~ACC_INTERFACE) | ACC_FINAL | ACC_ABSTRACT;
+		c->classloader = comp->classloader;
 		break;
+
+	default:
+		/* c is an array of a primitive type */
+
+		/* check for cases like `[II' */
+		if (namelen > 2) {
+			*exceptionptr = new_classnotfoundexception(c->name);
+			return NULL;
+		}
+
+		/* the accessibility of the array class is public (VM Spec 5.3.3) */
+		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
+		c->classloader = NULL;
 	}
 
 	LOADER_ASSERT(class_java_lang_Object);
 	LOADER_ASSERT(class_java_lang_Cloneable);
 	LOADER_ASSERT(class_java_io_Serializable);
 
-	/* Setup the array class */
+	/* setup the array class */
 
 	c->super.cls = class_java_lang_Object;
-	c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     c->interfacescount = 2;
     c->interfaces = MNEW(classref_or_classinfo, 2);
@@ -2891,7 +2919,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	c->parseddescsize = sizeof(methodinfo);
 	c->classrefs = classrefs;
 	c->classrefcount = 1;
-	c->classloader = definingloader;
 
 	/* insert class into the loaded class cache */
 	/* XXX free classinfo if NULL returned? */
