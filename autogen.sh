@@ -15,3 +15,5 @@ cd src/boehm-gc && ./autogen.sh && cd ../..
 cd src/classpath && ./autogen.sh && cd ../..
 
 cd src/libltdl && ./autogen.sh && cd ../..
+
+cd src/libffi && ./autogen.sh && cd ../..
