@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 3172 2005-09-12 07:42:34Z twisti $
+   $Id: VMRuntime.c 3261 2005-09-21 20:01:15Z twisti $
 
 */
 
@@ -72,7 +72,6 @@
 #endif
 */
 
-#undef JOWENN_DEBUG
 
 /* should we run all finalizers on exit? */
 static bool finalizeOnExit = false;
@@ -279,7 +278,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	/* try to open the library */
 
-	if (!(handle = lt_dlopenext(name->text)))
+	if (!(handle = lt_dlopen(name->text)))
 		return 0;
 
 	/* resolve JNI_OnLoad function */
@@ -334,7 +333,17 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	/* calculate length of library name */
 
-	buffer_len = strlen("lib") + utf_strlen(u) + strlen("0");
+	buffer_len = strlen("lib");
+
+	buffer_len += utf_strlen(u);
+
+#if defined(__DARWIN__)
+	buffer_len += strlen(".dylib");
+#else
+	buffer_len += strlen(".so");
+#endif
+
+	buffer_len += strlen("0");
 
 	dumpsize = dump_size();
 	buffer = DMNEW(char, buffer_len);
@@ -344,6 +353,12 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	strcpy(buffer, "lib");
 	utf_strcat(buffer, u);
+
+#if defined(__DARWIN__)
+	strcat(buffer, ".dylib");
+#else
+	strcat(buffer, ".so");
+#endif
 
 	s = javastring_new_char(buffer);
 
