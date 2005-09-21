@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3081 2005-07-20 15:25:46Z twisti $
+   $Id: linker.c 3267 2005-09-21 20:21:48Z twisti $
 
 */
 
@@ -279,16 +279,17 @@ static bool link_primitivetype_table(void)
 		/* create primitive class */
 
 		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
+
+		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 		c->classUsed = NOTUSED; /* not used initially CO-RT */
 		c->impldBy = NULL;
 		
 		/* prevent loader from loading primitive class */
 
 		c->loaded = true;
-		if (!classcache_store_unique(c)) {
-			log_text("Could not cache primitive class");
-			return false;
-		}
+
+		/* INFO: don't put primitive classes into the classcache */
+
 		if (!link_class(c))
 			return false;
 
@@ -940,8 +941,8 @@ static arraydescriptor *link_array(classinfo *c)
 			break;
 
 		default:
-			log_text("Invalid array class name");
-			assert(0);
+			*exceptionptr = new_classnotfoundexception(c->name);
+			return NULL;
 		}
 		
 		desc->componentvftbl = NULL;
