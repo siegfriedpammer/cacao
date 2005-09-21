@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.inc 3168 2005-09-10 20:31:04Z twisti $
+   $Id: md-abi.inc 3233 2005-09-21 11:49:51Z twisti $
 
 */
 
@@ -48,8 +48,8 @@ static int nregdescint[] = {
 	/*   a5,      a6,      a7,   itmp1,   itmp2,      pv,      s0,      s1,   */
 	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV,
 
-	/*   t1,      t2,      t3,      t4,      t5,      t6,      t7,      t8,   */
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+	/*itmp3,      t1,      t2,      t3,      t4,      t5,      t6,      t7,   */
+	REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 
 	/*   s2,      s3,      s4,      s5,      s6,      s7,      s8,      s9,   */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 2890 2005-07-03 16:41:57Z christian $
+   $Id: md-abi.h 3233 2005-09-21 11:49:51Z twisti $
 
 */
 
@@ -48,7 +48,7 @@
                              /* vector has been fetched                       */
 #define REG_ITMP1       11   /* temporary register                            */
 #define REG_ITMP2       12   /* temporary register and method pointer         */
-#define REG_ITMP3        0   /* temporary register                            */
+#define REG_ITMP3       16   /* temporary register                            */
 
 #define REG_ITMP1_XPTR  11   /* exception pointer = temporary register 1      */
 #define REG_ITMP2_XPC   12   /* exception pc = temporary register 2           */
@@ -69,8 +69,8 @@
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     10   /* number of int callee saved registers          */
 #define INT_ARG_CNT      8   /* number of int argument registers              */
-#define INT_TMP_CNT      9   /* number of integer temporary registers         */
-#define INT_RES_CNT      5   /* number of integer reserved registers          */
+#define INT_TMP_CNT      8   /* number of integer temporary registers         */
+#define INT_RES_CNT      6   /* number of integer reserved registers          */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT     10   /* number of float callee saved registers        */
