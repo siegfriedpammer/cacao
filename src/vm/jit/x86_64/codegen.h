@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3236 2005-09-21 13:22:21Z twisti $
+   $Id: codegen.h 3275 2005-09-21 21:18:35Z twisti $
 
 */
 
@@ -37,7 +37,7 @@
 
 #include <ucontext.h>
 
-#include "vm/jit/x86_64/types.h"
+#include "vm/types.h"
 
 
 /* macros to create code ******************************************************/

@@ -34,8 +34,8 @@ extern "C" {
 #include <stdio.h>
 #include "bfd.h"
 
-#include "config.h"
-#include "types.h"
+#include "vm/types.h"
+
 #include "ansidecl.h"
 
 #define _(String) (String)

@@ -29,16 +29,17 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 3178 2005-09-14 18:14:34Z twisti $
+   $Id: disass.c 3275 2005-09-21 21:18:35Z twisti $
 
 */
 
 
 #include <stdarg.h>
 
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "vm/jit/x86_64/dis-asm.h"
-#include "vm/jit/x86_64/types.h"
 
 
 /* global variables ***********************************************************/
