@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: patcher.c 3173 2005-09-12 08:09:53Z twisti $
+   $Id: patcher.c 3271 2005-09-21 21:12:59Z twisti $
 
 */
 
 
-#include "vm/jit/x86_64/types.h"
+#include "config.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"

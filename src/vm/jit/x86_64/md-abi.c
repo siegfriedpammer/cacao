@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: md-abi.c 2872 2005-06-29 12:42:19Z christian $
+   $Id: md-abi.c 3271 2005-09-21 21:12:59Z twisti $
 
 */
 
 
-#include "vm/jit/x86_64/types.h"
+#include "vm/types.h"
+
 #include "vm/jit/x86_64/md-abi.h"
 
 #include "vm/descriptor.h"
@@ -129,27 +130,36 @@ rd->arg[flt|int]reguse   set to a value according the register usage
 		                 
 
 *******************************************************************************/
+
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot) {
+					 stackptr stackslot)
+{
 	/* precoloring only straightforward possible with flt/dbl types */
+
 	if (IS_FLT_DBL_TYPE(return_type)) {
 		/* In Leafmethods Local Vars holding parameters are precolored to     */
 		/* their argument register -> so leafmethods with paramcount > 0 could*/
 		/* already use a00! */
+
 		if (!m->isleafmethod || (m->paramcount == 0)) {
 			/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has   */
 			/* not to survive method invokations */
+
 			if (!(stackslot->flags & SAVEDVAR)) {
 				stackslot->varkind = ARGVAR;
 				stackslot->varnum = -1;
 				stackslot->flags = 0;
+
 			    /* float/double */
-				if (rd->argfltreguse < 1) rd->argfltreguse = 1;
+				if (rd->argfltreguse < 1)
+					rd->argfltreguse = 1;
+
 				stackslot->regoff = REG_FRESULT;
 			}
 		}
 	}
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

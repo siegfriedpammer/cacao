@@ -1,4 +1,4 @@
-/* src/jit/x86_64/emitfuncs.h - emit function prototypes
+/* src/vm/jit/x86_64/emitfuncs.h - emit function prototypes
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 2265 2005-04-11 09:58:52Z twisti $
+   $Id: emitfuncs.h 3271 2005-09-21 21:12:59Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _EMITFUNCS_H
 #define _EMITFUNCS_H
 
-#include "vm/jit/x86_64/types.h"
+#include "vm/types.h"
 
 
 /* code generation prototypes */
