@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3242 2005-09-21 14:54:55Z twisti $
+   $Id: cacao.c 3277 2005-09-21 21:24:54Z twisti $
 
 */
 
@@ -719,7 +719,7 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_VERBOSEEXCEPTION:
-			verboseexception = true;
+			opt_verboseexception = true;
 			break;
 
 #ifdef TYPECHECK_VERBOSE
