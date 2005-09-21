@@ -28,7 +28,9 @@
             Reinhard Grafl
             Christian Thalinger
 
-   $Id: asmpart.S 3237 2005-09-21 13:22:49Z twisti $
+   Changes:
+
+   $Id: asmpart.S 3276 2005-09-21 21:20:11Z twisti $
 
 */
 
@@ -457,7 +459,7 @@ L_asm_call_jit_compiler_exception:
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
-	lea     _exceptionptr,itmp2
+	lea     _no_threads_exceptionptr,itmp2
 #endif
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear exception pointer            */
@@ -494,13 +496,13 @@ asm_handle_exception:
         
 	mov     0*8(%rsp),%rax              /* restore exception pointer          */
 	mov     1*8(%rsp),%r10              /* restore exception pc               */
-        
+
+	xor     a3,a3                       /* clear indent flag (only first time)*/
+
 ex_stack_loop:
-	mov     %rax,%rdi                   /* exception pointer                  */
-	mov     MethodPointer(itmp3),%rsi   /* method pointer                     */
-	mov     xpc,%rdx                    /* exception pc                       */
-	mov     $0,%rcx
-	mov     $1,%r8                      /* set noindent flag                  */
+	mov     %rax,a0                     /* exception pointer                  */
+	mov     MethodPointer(itmp3),a1     /* method pointer                     */
+	mov     xpc,a2                      /* exception pc                       */
 	call    builtin_trace_exception
 
 	mov     2*8(%rsp),itmp3             /* %r11 = data segment pointer        */
@@ -701,30 +703,32 @@ flt1:
         movq    -8(%rax),%xmm15
                 
 noflt:					
-		pop     %r10						/* the new xpc is return address  */
-		sub     $3,%r10                     /* subtract 3 bytes for call      */
+	pop     %r10						/* the new xpc is return address      */
+	sub     $3,%r10                     /* subtract 3 bytes for call          */
+	
+	sub     $(2*8),%rsp
+	mov     %rcx,0*8(%rsp)
+	mov     %r10,1*8(%rsp)
+	
+	mov     %r10,%rdi
+	call	codegen_findmethod          /* get the new data segment ptr       */
+	mov     %rax,%r11
+	
+	mov     0*8(%rsp),%rcx
+	mov     1*8(%rsp),%r10
+	add     $(2*8),%rsp
+	
+	mov     %rcx,%rax					/* restore saved exception pointer    */
 
-        sub     $(2*8),%rsp
-        mov     %rcx,0*8(%rsp)
-        mov     %r10,1*8(%rsp)
-
-        mov     %r10,%rdi
-        call	codegen_findmethod          /* get the new data segment ptr   */
-        mov     %rax,%r11
-        
-        mov     0*8(%rsp),%rcx
-        mov     1*8(%rsp),%r10
-        add     $(2*8),%rsp
-
-        mov     %rcx,%rax					/* restore saved exception pointer*/
-
-        sub     $(4*8),%rsp
+	sub     $(4*8),%rsp
         				
-        mov     %rax,0*8(%rsp)              /* save exception pointer         */
-        mov     %r10,1*8(%rsp)              /* save exception pc              */
-		mov     %r11,2*8(%rsp)				/* save data segment pointer      */
+	mov     %rax,0*8(%rsp)              /* save exception pointer             */
+	mov     %r10,1*8(%rsp)              /* save exception pc                  */
+	mov     %r11,2*8(%rsp)				/* save data segment pointer          */
 		
-		jmp		ex_stack_loop
+	mov     $1,a3                       /* set indent flag                    */
+	
+	jmp		ex_stack_loop
 
 
 /* asm_wrapper_patcher *********************************************************
@@ -742,7 +746,7 @@ noflt:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-	sub     $(20*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
+	sub     $(18*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
 
 	SAVE_ARGUMENT_REGISTERS(0)
 	SAVE_TEMPORARY_REGISTERS(14)
@@ -751,22 +755,22 @@ asm_wrapper_patcher:
 	mov     itmp2,16*8(sp)              /* can be used by some instructions   */
 
 	mov     sp,a0                       /* create stackframe info             */
-	add     $(20*8),a0
+	add     $(18*8),a0
 	xor     a1,a1                       /* if pv is NULL, use findmethod      */
 	mov     sp,a2                       /* pass java sp                       */
-	add     $((6+20)*8+sizestackframeinfo),a2
-	mov     ((5+20)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
+	add     $((6+18)*8+sizestackframeinfo),a2
+	mov     ((5+18)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
 	mov     a3,a4                       /* xpc is equal to ra                 */
 	call    stacktrace_create_extern_stackframeinfo
 
 	mov     sp,a0                       /* pass stack pointer                 */
-	add     $((1+20)*8+sizestackframeinfo),a0   /* skip function pointer      */
-	mov     (20*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
+	add     $((1+18)*8+sizestackframeinfo),a0   /* skip function pointer      */
+	mov     (18*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
 	call    *itmp3                      /* call the patcher function          */
 	mov     v0,17*8(sp)                 /* save return value                  */
 
 	mov     sp,a0                       /* remove stackframe info             */
-	add     $(20*8),a0
+	add     $(18*8),a0
 	call    stacktrace_remove_stackframeinfo
 
 	RESTORE_ARGUMENT_REGISTERS(0)
@@ -776,7 +780,7 @@ asm_wrapper_patcher:
 	mov     16*8(sp),itmp2              /* can be used by some instructions   */
 	mov     17*8(sp),itmp3              /* restore return value               */
 
-	add     $((5+20)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
+	add     $((5+18)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
@@ -787,7 +791,7 @@ L_asm_wrapper_patcher_exception:
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
-	lea     _exceptionptr,itmp2
+	lea     _no_threads_exceptionptr,itmp2
 #endif
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear exception pointer            */
