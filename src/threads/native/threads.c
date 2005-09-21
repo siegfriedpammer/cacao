@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3123 2005-07-28 19:47:49Z twisti $
+   $Id: threads.c 3250 2005-09-21 15:33:16Z twisti $
 
 */
 
@@ -43,8 +43,18 @@
 #include <time.h>
 #include <errno.h>
 
-#include "codegen.h"
+#include <pthread.h>
+#include <semaphore.h>
+
 #include "config.h"
+
+#ifndef USE_MD_THREAD_STUFF
+#include "machine-instr.h"
+#else
+#include "threads/native/generic-primitives.h"
+#endif
+
+#include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/native.h"
@@ -60,12 +70,10 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
-
-#include <pthread.h>
-#include <semaphore.h>
 
 #if !defined(__DARWIN__)
 #if defined(__LINUX__)
@@ -74,6 +82,12 @@
 #define GC_IRIX_THREADS
 #endif
 #include "boehm-gc/include/gc.h"
+#endif
+
+#ifdef USE_MD_THREAD_STUFF
+pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 #ifdef MUTEXSIM
@@ -141,7 +155,6 @@ static void setPriority(pthread_t tid, int priority)
 	pthread_setschedparam(tid, policy, &schedp);
 }
 
-#include "machine-instr.h"
 
 static struct avl_table *criticaltree;
 threadobject *mainthreadobj;
@@ -538,6 +551,15 @@ initThreads(u1 *stackbottom)
 	mainthreadobj->info.next = mainthreadobj;
 	mainthreadobj->info.prev = mainthreadobj;
 
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		mainthreadobj->info._global_sp = intrp_main_stack + opt_stacksize;
+	}
+#endif
+
 	threadname = javastring_new(utf_new_char("main"));
 
 	/* Allocate and init ThreadGroup */
@@ -588,6 +610,7 @@ initThreads(u1 *stackbottom)
 		throw_exception_exit();
 
 	asm_calljavafunction(method, threadgroup, mainthread, NULL, NULL);
+
 	if (*exceptionptr)
 		throw_exception_exit();
 
@@ -630,6 +653,17 @@ static void *threadstartup(void *t)
 	threadobject *tnext;
 	methodinfo *method;
 
+#if defined(ENABLE_INTRP)
+	u1 *intrp_thread_stack;
+
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		intrp_thread_stack = (u1 *) alloca(opt_stacksize);
+		MSET(intrp_thread_stack, 0, u1, opt_stacksize);
+	}
+#endif
+
 	/* Seems like we've encountered a situation where info->tid was not set by
 	 * pthread_create. We alleviate this problem by waiting for pthread_create
 	 * to return. */
@@ -654,6 +688,13 @@ static void *threadstartup(void *t)
 	sem_post(psem);
 
 	setPriority(info->tid, thread->o.thread->priority);
+
+#if defined(ENABLE_INTRP)
+	/* set interpreter stack */
+
+	if (opt_intrp)
+		THREADINFO->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
+#endif
 
 	/* Find the run()V method and call it */
 
