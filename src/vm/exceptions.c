@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 3200 2005-09-17 10:25:49Z twisti $
+   $Id: exceptions.c 3264 2005-09-21 20:18:24Z twisti $
 
 */
 
@@ -455,6 +455,26 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	o = new_exception_message(string_java_lang_ClassFormatError, msg);
 
 	MFREE(msg, char, msglen);
+
+	return o;
+}
+
+
+/* new_classnotfoundexception **************************************************
+
+   Generates a java.lang.ClassNotFoundException for the classloader.
+
+*******************************************************************************/
+
+java_objectheader *new_classnotfoundexception(utf *name)
+{
+	java_objectheader *o;
+
+	o = native_new_and_init_string(class_java_lang_ClassNotFoundException,
+								   javastring_new(name));
+
+	if (!o)
+		return *exceptionptr;
 
 	return o;
 }

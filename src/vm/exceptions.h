@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.h 3201 2005-09-17 10:27:25Z twisti $
+   $Id: exceptions.h 3264 2005-09-21 20:18:24Z twisti $
 
 */
 
@@ -98,6 +98,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 /* functions to generate compiler exceptions */
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
+java_objectheader *new_classnotfoundexception(utf *name);
 java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
