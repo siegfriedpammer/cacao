@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 2743 2005-06-20 11:54:06Z edwin $
+   $Id: class.h 3259 2005-09-21 19:41:11Z twisti $
 
 */
 
@@ -41,7 +41,10 @@
 typedef struct innerclassinfo innerclassinfo;
 typedef struct extra_classref extra_classref;
 
+
 #include "config.h"
+#include "vm/types.h"
+
 #include "toolbox/list.h"
 #include "vm/global.h"
 #include "vm/utf8.h"
@@ -50,6 +53,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/linker.h"
 #include "vm/tables.h"
 #include "vm/jit/inline/sets.h"
+
 
 /* classinfo ******************************************************************/
 
