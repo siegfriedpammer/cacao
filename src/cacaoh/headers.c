@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3199 2005-09-17 10:25:28Z twisti $
+   $Id: headers.c 3278 2005-09-21 21:25:14Z twisti $
 
 */
 
@@ -280,6 +280,20 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	vfprintf(stderr, message, ap);
 	va_end(ap);
 
+	fputc('\n', stderr);
+
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
+java_objectheader *new_classnotfoundexception(classinfo *c)
+{
+	fprintf(stderr, "java.lang.ClassNotFoundException: ");
+	utf_fprint(stderr, c->name);
 	fputc('\n', stderr);
 
 	exit(1);
