@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 1839 2005-01-04 11:16:06Z twisti $
+   $Id: cacao.h 3240 2005-09-21 14:45:57Z twisti $
 
 */
 
@@ -39,6 +39,8 @@
 
 
 /* global variables ***********************************************************/
+
+extern u1 *intrp_main_stack;
 
 extern JavaVM *jvm;
 extern JNIEnv *env;
