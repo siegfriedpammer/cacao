@@ -28,14 +28,16 @@
 
    Changes:
 
-   $Id: md-os.c 2997 2005-07-12 08:39:17Z twisti $
+   $Id: md-os.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
 
 #include <ucontext.h>
 
-#include "vm/jit/powerpc/types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/jit/powerpc/linux/md-abi.h"
 
 #include "vm/exceptions.h"

@@ -28,13 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2924 2005-07-07 09:37:26Z twisti $
+## $Id: Makefile.am 3234 2005-09-21 12:11:58Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
 
-SUBDIRS = @OS_DIR@
+SUBDIRS = $(OS_DIR)
 
 DIST_SUBDIRS = darwin linux
 
@@ -44,8 +44,7 @@ CLEANFILES = offsets.h
 
 noinst_HEADERS = \
 	arch.h \
-	machine-instr.h \
-	types.h
+	machine-instr.h
 
 noinst_LTLIBRARIES = libarch.la
 
@@ -64,7 +63,7 @@ libarch_la_SOURCES = \
 	ppc.h
 
 libarch_la_LIBADD = \
-	@OS_DIR@/libmd.la
+	$(OS_DIR)/libmd.la
 
 $(srcdir)/asmpart.S: $(top_builddir)/config.h offsets.h
 

@@ -28,12 +28,14 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2928 2005-07-07 16:35:34Z christian $
+   $Id: md-abi.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
 
-#include "vm/jit/powerpc/types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/jit/powerpc/linux/md-abi.h"
 
 #include "vm/descriptor.h"
@@ -45,18 +47,18 @@
 
 /* md_param_alloc **************************************************************
 
- Allocate Arguments to Stackslots according the Calling Conventions
+   Allocate Arguments to Stackslots according the Calling Conventions
 
---- in
-md->paramcount:           Number of arguments for this method
-md->paramtypes[].type:    Argument types
-
---- out
-md->params[].inmemory:    Argument spilled on stack
-md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
-md->memuse:               Stackslots needed for argument spilling
-md->argintreguse:         max number of integer arguments used
-md->argfltreguse:         max number of float arguments used
+   --- in
+   md->paramcount:           Number of arguments for this method
+   md->paramtypes[].type:    Argument types
+   
+   --- out
+   md->params[].inmemory:    Argument spilled on stack
+   md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
+   md->memuse:               Stackslots needed for argument spilling
+   md->argintreguse:         max number of integer arguments used
+   md->argfltreguse:         max number of float arguments used
 
 *******************************************************************************/
 
@@ -153,52 +155,67 @@ void md_param_alloc(methoddesc *md)
 
 /* md_return_alloc *************************************************************
 
- Precolor the Java Stackelement containing the Return Value, if possible.
- (R3==a00 for int/adr, R4/R3 == a01/a00 for long, F1==a00 for float/double)
+   Precolor the Java Stackelement containing the Return Value, if
+   possible.  (R3==a00 for int/adr, R4/R3 == a01/a00 for long, F1==a00
+   for float/double)
 
---- in
-m:                       Methodinfo of current method
-return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                         TYPE_VOID is not allowed!
-stackslot:               Java Stackslot to contain the Return Value
-
---- out
-if precoloring was possible:
-stackslot->varkind       =ARGVAR
-         ->varnum        =-1
-		 ->flags         =0
-		 ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
-rd->arg[flt|int]reguse   set to a value according the register usage
+   --- in
+   m:                       Methodinfo of current method
+   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
+                            TYPE_VOID is not allowed!
+   stackslot:               Java Stackslot to contain the Return Value
+   
+   --- out
+   if precoloring was possible:
+   stackslot->varkind       =ARGVAR
+            ->varnum        =-1
+   	        ->flags         =0
+   	        ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+   rd->arg[flt|int]reguse   set to a value according the register usage
 		                 
 
 *******************************************************************************/
+
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot) {
+					 stackptr stackslot)
+{
 	/* In Leafmethods Local Vars holding parameters are precolored to their   */
 	/* argument register -> so leafmethods with paramcount > 0 could already  */
 	/* use  R3 == a00! */
+
 	if (!m->isleafmethod || (m->paramcount == 0)) {
 		/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has not   */
 		/* to survive method invokations */
+
 		if (!(stackslot->flags & SAVEDVAR)) {
 			stackslot->varkind = ARGVAR;
 			stackslot->varnum = -1;
 			stackslot->flags = 0;
+
 			if ( IS_INT_LNG_TYPE(return_type) ) {
 				if (!IS_2_WORD_TYPE(return_type)) {
-					if (rd->argintreguse < 1) rd->argintreguse = 1;
+					if (rd->argintreguse < 1)
+						rd->argintreguse = 1;
+
 					stackslot->regoff = REG_RESULT;
+
 				} else {
-					if (rd->argintreguse < 2) rd->argintreguse = 2;
+					if (rd->argintreguse < 2)
+						rd->argintreguse = 2;
+
 					stackslot->regoff = PACK_REGS(REG_RESULT2, REG_RESULT);
 				}
+
 			} else { /* float/double */
-				if (rd->argfltreguse < 1) rd->argfltreguse = 1;
+				if (rd->argfltreguse < 1)
+					rd->argfltreguse = 1;
+
 				stackslot->regoff = REG_FRESULT;
 			}
 		}
 	}
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

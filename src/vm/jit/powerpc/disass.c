@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 3181 2005-09-15 19:19:38Z twisti $
+   $Id: disass.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
@@ -39,7 +39,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "vm/jit/powerpc/types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/jit/powerpc/dis-asm.h"
 
 char *regs[] = {

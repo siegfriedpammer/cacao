@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: patcher.c 3169 2005-09-10 20:32:22Z twisti $
+   $Id: patcher.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
 
-#include "vm/jit/powerpc/types.h"
+#include "config.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"

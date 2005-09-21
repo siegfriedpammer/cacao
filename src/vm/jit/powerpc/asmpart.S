@@ -30,17 +30,18 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3169 2005-09-10 20:32:22Z twisti $
+   $Id: asmpart.S 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
 
 #include "config.h"
+
 #include "md-abi.h"
 #include "md-asm.h"
 
+#include "vm/jit/methodheader.h"
 #include "vm/jit/powerpc/offsets.h"
-#include "vm/jit/powerpc/asmoffsets.h"
 
 
 	.text

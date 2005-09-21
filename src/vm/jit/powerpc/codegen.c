@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3194 2005-09-16 12:31:51Z twisti $
+   $Id: codegen.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
@@ -40,13 +40,13 @@
 #include <signal.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "md-abi.h"
 #include "md-abi.inc"
 
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
-#include "vm/jit/powerpc/types.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"

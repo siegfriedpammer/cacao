@@ -28,14 +28,14 @@
 
    Changes:
 
-   $Id: md.c 2998 2005-07-12 09:16:53Z twisti $
+   $Id: md.c 3234 2005-09-21 12:11:58Z twisti $
 
 */
 
+#include "config.h"
+#include "vm/types.h"
 
 #include "md-abi.h"
-
-#include "vm/jit/powerpc/types.h"
 
 #include "vm/global.h"
 
@@ -65,7 +65,7 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 	/* on PowerPC the return address is located in the linkage area */
 
-	ra = (functionptr) *((u1 **) (sp + framesize + LA_LR_OFFSET));
+	ra = (functionptr) (ptrint) *((u1 **) (sp + framesize + LA_LR_OFFSET));
 
 	return ra;
 }
@@ -87,7 +87,7 @@ functionptr codegen_findmethod(functionptr pc)
 	u4  mcode;
 	s2  offset;
 
-	ra = (u1 *) pc;
+	ra = (u1 *) (ptrint) pc;
 	pv = ra;
 
 	/* get offset of first instruction (addi) */
@@ -105,7 +105,7 @@ functionptr codegen_findmethod(functionptr pc)
 		pv += offset;
 	}
 
-	return (functionptr) pv;
+	return (functionptr) (ptrint) pv;
 }
 
 
