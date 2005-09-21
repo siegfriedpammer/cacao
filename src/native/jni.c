@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3248 2005-09-21 15:32:13Z twisti $
+   $Id: jni.c 3279 2005-09-21 23:06:00Z twisti $
 
 */
 
@@ -40,10 +40,20 @@
 #include <string.h>
 
 #include "config.h"
+
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
+
+#include "native/include/gnu_classpath_Pointer.h"
+
+#if SIZEOF_VOID_P == 8
+# include "native/include/gnu_classpath_Pointer64.h"
+#else
+# include "native/include/gnu_classpath_Pointer32.h"
+#endif
+
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Byte.h"
 #include "native/include/java_lang_Character.h"
@@ -61,6 +71,8 @@
 #include "native/include/java_lang_Class.h" /* for java_lang_VMClass.h */
 #include "native/include/java_lang_VMClass.h"
 #include "native/include/java_lang_VMClassLoader.h"
+#include "native/include/java_nio_Buffer.h"
+#include "native/include/java_nio_DirectByteBufferImpl.h"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"
@@ -98,7 +110,7 @@ extern struct JNINativeInterface JNI_JNIEnvTable;
 /* pointers to VM and the environment needed by GetJavaVM and GetEnv */
 
 static JavaVM ptr_jvm = (JavaVM) &JNI_JavaVMTable;
-void* ptr_env = (void*) &JNI_JNIEnvTable;
+void *ptr_env = (void*) &JNI_JNIEnvTable;
 
 
 #define PTR_TO_ITEM(ptr)   ((u8)(size_t)(ptr))
@@ -476,52 +488,50 @@ static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_l
 }
 
 
-/*core function for long class functions*/
+/* callLongMethod **************************************************************
+
+   Core function for long class functions.
+
+*******************************************************************************/
+
 static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 {
-	int argcount;
+	s4             argcount;
 	jni_callblock *blk;
-	jlong ret;
+	jlong          ret;
 
 	STATS(jniinvokation();)
-
-	assert(0);
 
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
 		return 0;
 	}
 
+	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
+		   ((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return 0;
+	}
+
+	if (obj && !builtin_instanceof(obj, methodID->class)) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return 0;
+	}
+
 	argcount = methodID->parseddesc->paramcount;
 
-	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
-		   ((!(methodID->flags & ACC_STATIC)) && (obj!=0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	if (obj && !builtin_instanceof(obj,methodID->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. CallObjectMethod does not support that");
-		return 0;
-	}
-
-	blk = MNEW(jni_callblock,/* 4 */argcount+2);
+	blk = MNEW(jni_callblock, argcount);
 
 	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, TYPE_LNG);
 
 	STATS(jnicallXmethodnvokation();)
+
 	ret = asm_calljavafunction2long(methodID,
-									argcount + 1,
-									(argcount + 1) * sizeof(jni_callblock),
+									argcount,
+									argcount * sizeof(jni_callblock),
 									blk);
 
-	MFREE(blk, jni_callblock, argcount + 1);
+	MFREE(blk, jni_callblock, argcount);
 
 	return ret;
 }
@@ -559,6 +569,49 @@ static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int
 	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 
 	return ret;
+}
+
+
+static void cacao_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
+{ 	
+	s4             paramcount;
+	jni_callblock *blk;
+
+	if (m == 0) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
+		return;
+	}
+
+	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
+		((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return;
+	}
+
+	if (obj && !builtin_instanceof(obj, m->class)) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return;
+	}
+
+	paramcount = m->parseddesc->paramcount;
+
+	if (!(m->flags & ACC_STATIC))
+		paramcount++;
+
+	blk = MNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_VOID);
+
+	STATS(jnicallXmethodnvokation();)
+
+	(void) asm_calljavafunction2(m,
+								 paramcount,
+								 paramcount * sizeof(jni_callblock),
+								 blk);
+
+	MFREE(blk, jni_callblock, paramcount);
+
+	return;
 }
 
 
@@ -602,7 +655,7 @@ jint GetVersion(JNIEnv *env)
 {
 	STATS(jniinvokation();)
 
-	/* just say we support JNI 1.4 */
+	/* we support JNI 1.4 */
 
 	return JNI_VERSION_1_4;
 }
@@ -681,7 +734,8 @@ jclass FindClass(JNIEnv *env, const char *name)
 	if (!link_class(c))
 		return NULL;
 
-	use_class_as_object(c);
+	if (!use_class_as_object(c))
+		return NULL;
 
   	return c;
 }
@@ -1015,27 +1069,19 @@ jobject AllocObject(JNIEnv *env, jclass clazz)
 
 /* NewObject *******************************************************************
 
-   Constructs a new Java object. The method ID indicates which
-   constructor method to invoke. This ID must be obtained by calling
-   GetMethodID() with <init> as the method name and void (V) as the
-   return type.
+   Programmers place all arguments that are to be passed to the
+   constructor immediately following the methodID
+   argument. NewObject() accepts these arguments and passes them to
+   the Java method that the programmer wishes to invoke.
 
 *******************************************************************************/
 
 jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_objectheader *o;
-	void* args[3];
-	int argcount=methodID->parseddesc->paramcount;
-	int i;
-	va_list vaargs;
-	STATS(jniinvokation();)
+	va_list            ap;
 
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. NewObject does not support that");
-		return 0;
-	}
+	STATS(jniinvokation();)
 
 	/* create object */
 
@@ -1044,15 +1090,11 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	if (!o)
 		return NULL;
 
-	va_start(vaargs, methodID);
-	for (i = 0; i < argcount; i++) {
-		args[i] = va_arg(vaargs, void*);
-	}
-	va_end(vaargs);
-
 	/* call constructor */
 
-	asm_calljavafunction(methodID, o, args[0], args[1], args[2]);
+	va_start(ap, methodID);
+	cacao_jni_CallVoidMethod(o, methodID, ap);
+	va_end(ap);
 
 	return o;
 }
@@ -2275,19 +2317,20 @@ jlong CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 }
 
 
-jlong CallStaticLongMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
+jlong CallStaticLongMethodV(JNIEnv *env, jclass clazz, jmethodID methodID,
+							va_list args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticLongMethodV");
 	
-	return callLongMethod(0,methodID,args);
+	return callLongMethod(0, methodID, args);
 }
 
 
 jlong CallStaticLongMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticLongMethodA");
+
+	log_text("JNI-Call: CallStaticLongMethodA: IMPLEMENT ME!!!");
 
 	return 0;
 }
@@ -3710,23 +3753,9 @@ void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char 
 
 void *GetPrimitiveArrayCritical(JNIEnv *env, jarray array, jboolean *isCopy)
 {
-	java_objectheader *s;
-	arraydescriptor   *desc;
+	/* do the same as Kaffe does */
 
-	STATS(jniinvokation();)
-
-	s = (java_objectheader *) array;
-	desc = s->vftbl->arraydesc;
-
-	if (!desc)
-		return NULL;
-
-	if (isCopy)
-		*isCopy = JNI_FALSE;
-
-	/* TODO add to global refs */
-
-	return ((u1 *) s) + desc->dataoffset;
+	return GetByteArrayElements(env, (jbyteArray) array, isCopy);
 }
 
 
@@ -3741,9 +3770,9 @@ void ReleasePrimitiveArrayCritical(JNIEnv *env, jarray array, void *carray,
 {
 	STATS(jniinvokation();)
 
-	log_text("JNI-Call: ReleasePrimitiveArrayCritical: IMPLEMENT ME!!!");
+	/* do the same as Kaffe does */
 
-	/* TODO remove from global refs */
+	ReleaseByteArrayElements(env, (jbyteArray) array, (jbyte *) carray, mode);
 }
 
 
@@ -3878,10 +3907,71 @@ jboolean ExceptionCheck(JNIEnv *env)
 
 jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
-	STATS(jniinvokation();)
-	log_text("NewDirectByteBuffer: IMPLEMENT ME!");
+	utf *utf_java_nio_DirectByteBufferImpl;
+	utf *utf_gnu_classpath_Pointer64;
+	utf *utf_gnu_classpath_Pointer32;
 
-	return NULL;
+	classinfo *class_java_nio_DirectByteBufferImpl;
+	classinfo *class_gnu_classpath_Pointer64;
+	classinfo *class_gnu_classpath_Pointer32;
+
+	java_nio_DirectByteBufferImpl *nbuf;
+#if SIZEOF_VOID_P == 8
+	gnu_classpath_Pointer64 *paddress;
+#else
+	gnu_classpath_Pointer32 *paddress;
+#endif
+
+	STATS(jniinvokation();)
+
+	log_text("JNI-NewDirectByteBuffer: called");
+
+	utf_java_nio_DirectByteBufferImpl =
+		utf_new_char("java/nio/DirectByteBufferImpl");
+
+	if (!(class_java_nio_DirectByteBufferImpl =
+		  load_class_bootstrap(utf_java_nio_DirectByteBufferImpl)))
+		return NULL;
+
+	if (!link_class(class_java_nio_DirectByteBufferImpl))
+		return NULL;
+
+	utf_gnu_classpath_Pointer64 = utf_new_char("gnu/classpath/Pointer64");
+
+	if (!(class_gnu_classpath_Pointer64 =
+		  load_class_bootstrap(utf_gnu_classpath_Pointer64)))
+		return NULL;
+
+	if (!link_class(class_gnu_classpath_Pointer64))
+		return NULL;
+
+
+	/* allocate a java.nio.DirectByteBufferImpl object */
+
+	if (!(nbuf = (java_nio_DirectByteBufferImpl *) builtin_new(class_java_nio_DirectByteBufferImpl)))
+		return NULL;
+
+	/* alocate a gnu.classpath.Pointer{32,64} object */
+
+#if SIZEOF_VOID_P == 8
+	if (!(paddress = (gnu_classpath_Pointer64 *) builtin_new(class_gnu_classpath_Pointer64)))
+#else
+	if (!(paddress = (gnu_classpath_Pointer32 *) builtin_new(class_gnu_classpath_Pointer32)))
+#endif
+		return NULL;
+
+	/* fill gnu.classpath.Pointer{32,64} with address */
+
+	paddress->data = (ptrint) address;
+
+	/* fill java.nio.Buffer object */
+
+	nbuf->cap     = (s4) capacity;
+	nbuf->limit   = (s4) capacity;
+	nbuf->pos     = 0;
+	nbuf->address = (gnu_classpath_Pointer *) paddress;
+
+	return (jobject) nbuf;
 }
 
 
@@ -3894,10 +3984,29 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
-	STATS(jniinvokation();)
-	log_text("GetDirectBufferAddress: IMPLEMENT ME!");
+	java_nio_DirectByteBufferImpl *nbuf;
+#if SIZEOF_VOID_P == 8
+	gnu_classpath_Pointer64       *address;
+#else
+	gnu_classpath_Pointer32       *address;
+#endif
 
-	return NULL;
+	STATS(jniinvokation();)
+
+#if 0
+	if (!builtin_instanceof(buf, class_java_nio_DirectByteBufferImpl))
+		return NULL;
+#endif
+
+	nbuf = (java_nio_DirectByteBufferImpl *) buf;
+
+#if SIZEOF_VOID_P == 8
+	address = (gnu_classpath_Pointer64 *) nbuf->address;
+#else
+	address = (gnu_classpath_Pointer32 *) nbuf->address;
+#endif
+
+	return (void *) address->data;
 }
 
 
@@ -3910,10 +4019,16 @@ void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 jlong GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
-	STATS(jniinvokation();)
-	log_text("GetDirectBufferCapacity: IMPLEMENT ME!");
+	java_nio_Buffer *nbuf;
 
-	return 0;
+	STATS(jniinvokation();)
+
+	if (buf == NULL)
+		return -1;
+
+	nbuf = (java_nio_Buffer *) buf;
+
+	return (jlong) nbuf->cap;
 }
 
 
