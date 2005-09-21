@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3095 2005-07-21 13:51:36Z motse $
+   $Id: jni.c 3248 2005-09-21 15:32:13Z twisti $
 
 */
 
@@ -386,14 +386,10 @@ static jobject callObjectMethod(jobject obj, jmethodID methodID, va_list args)
 	jni_callblock *blk;
 	jobject ret;
 
-
-
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
 		return 0;
 	}
-
-	argcount = methodID->parseddesc->paramcount;
 
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
@@ -406,26 +402,20 @@ static jobject callObjectMethod(jobject obj, jmethodID methodID, va_list args)
 		return 0;
 	}
 
-#ifdef arglimit
+	argcount = methodID->parseddesc->paramcount;
 
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. CallObjectMethod does not support that");
-		return 0;
-	}
-#endif
-
-	blk = MNEW(jni_callblock, /*4 */argcount+2);
+	blk = MNEW(jni_callblock, argcount);
 
 	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, TYPE_ADR);
-	/*      printf("parameter: obj: %p",blk[0].item); */
+
 	STATS(jnicallXmethodnvokation();)
+
 	ret = asm_calljavafunction2(methodID,
-								argcount + 1,
-								(argcount + 1) * sizeof(jni_callblock),
+								argcount,
+								argcount * sizeof(jni_callblock),
 								blk);
-	MFREE(blk, jni_callblock, argcount + 1);
-	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
+
+	MFREE(blk, jni_callblock, argcount);
 
 	return ret;
 }
@@ -456,8 +446,6 @@ static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_l
 		return 0;
 	}
         
-	argcount = methodID->parseddesc->paramcount;
-
 	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
 		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
@@ -469,27 +457,20 @@ static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_l
 		return 0;
 	}
 
-#ifdef arglimit
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. CallIntegerMethod does not support that");
-		return 0;
-	}
-#endif
+	argcount = methodID->parseddesc->paramcount;
 
-	blk = MNEW(jni_callblock, /*4 */ argcount+2);
+	blk = MNEW(jni_callblock, argcount);
 
 	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, retType);
 
-	/*      printf("parameter: obj: %p",blk[0].item); */
 	STATS(jnicallXmethodnvokation();)
+
 	ret = asm_calljavafunction2int(methodID,
-								   argcount + 1,
-								   (argcount + 1) * sizeof(jni_callblock),
+								   argcount,
+								   argcount * sizeof(jni_callblock),
 								   blk);
 
-	MFREE(blk, jni_callblock, argcount + 1);
-	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
+	MFREE(blk, jni_callblock, argcount);
 
 	return ret;
 }
@@ -504,14 +485,8 @@ static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 	STATS(jniinvokation();)
 
-/*	
-        log_text("JNI-Call: CallObjectMethodV");
-        utf_display(methodID->name);
-        utf_display(methodID->descriptor);
-        printf("\nParmaeter count: %d\n",argcount);
-        utf_display(obj->vftbl->class->name);
-        printf("\n");
-*/      
+	assert(0);
+
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
 		return 0;
@@ -530,19 +505,16 @@ static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 		return 0;
 	}
 
-#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
-#endif
 
 	blk = MNEW(jni_callblock,/* 4 */argcount+2);
 
 	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, TYPE_LNG);
 
-	/*      printf("parameter: obj: %p",blk[0].item); */
 	STATS(jnicallXmethodnvokation();)
 	ret = asm_calljavafunction2long(methodID,
 									argcount + 1,
@@ -550,7 +522,6 @@ static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 									blk);
 
 	MFREE(blk, jni_callblock, argcount + 1);
-	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 
 	return ret;
 }
@@ -565,22 +536,13 @@ static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int
 
 	STATS(jniinvokation();)
 
-        /*
-        log_text("JNI-Call: CallObjectMethodV");
-        utf_display(methodID->name);
-        utf_display(methodID->descriptor);
-        printf("\nParmaeter count: %d\n",argcount);
-        utf_display(obj->vftbl->class->name);
-        printf("\n");
-        */
+	assert(0);
 
-#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. CallObjectMethod does not support that");
 		return 0;
 	}
-#endif
 
 	blk = MNEW(jni_callblock, /*4 */ argcount+2);
 
@@ -698,10 +660,19 @@ jclass FindClass(JNIEnv *env, const char *name)
 	/* check stacktrace for classloader, if one found use it, otherwise use */
 	/* the system classloader */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
+	/* these JITs support stacktraces, and so does the interpreter */
+
 	cl = cacao_currentClassLoader();
 #else
-	cl = NULL;
+# if defined(ENABLE_INTRP)
+	/* the interpreter supports stacktraces, even if the JIT does not */
+
+	if (opt_intrp)
+		cl = cacao_currentClassLoader();
+	else
+# endif
+		cl = NULL;
 #endif
 
 	if (!(c = load_class_from_classloader(u, cl)))
@@ -1060,13 +1031,11 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	va_list vaargs;
 	STATS(jniinvokation();)
 
-#ifdef arglimit
 	if (argcount > 3) {
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		log_text("Too many arguments. NewObject does not support that");
 		return 0;
 	}
-#endif
 
 	/* create object */
 
@@ -4510,6 +4479,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	jni_callblock *blk;
 	jobject        o;
 	s4             argcount;
+	s4             paramcount;
 
 	if (methodID == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
@@ -4517,11 +4487,12 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	}
 
 	argcount = methodID->parseddesc->paramcount;
+	paramcount = argcount;
 
 	/* if method is non-static, remove the `this' pointer */
 
 	if (!(methodID->flags & ACC_STATIC))
-		argcount--;
+		paramcount--;
 
 	/* the method is an instance method the obj has to be an instance of the 
 	   class the method belongs to. For static methods the obj parameter
@@ -4535,17 +4506,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 		return NULL;
 	}
 
-
-#ifdef arglimit
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. invokeNativeHelper does not support that");
-		return NULL;
-	}
-#endif
-
-	if (((params == NULL) && (argcount != 0)) ||
-		(params && (params->header.size != argcount))) {
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (params->header.size != paramcount))) {
 		*exceptionptr =
 			new_exception(string_java_lang_IllegalArgumentException);
 		return NULL;
@@ -4569,7 +4531,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 		}
 	}
 
-	blk = MNEW(jni_callblock, /*4 */argcount + 2);
+	blk = MNEW(jni_callblock, argcount);
 
 	if (!fill_callblock_from_objectarray(obj, methodID->parseddesc, blk,
 										 params))
@@ -4577,16 +4539,16 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 
 	switch (methodID->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
-		(void) asm_calljavafunction2(methodID, argcount + 1,
-									 (argcount + 1) * sizeof(jni_callblock),
+		(void) asm_calljavafunction2(methodID, argcount,
+									 argcount * sizeof(jni_callblock),
 									 blk);
 		o = NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
 		break;
 
 	case PRIMITIVETYPE_INT: {
 		s4 i;
-		i = asm_calljavafunction2int(methodID, argcount + 1,
-									 (argcount + 1) * sizeof(jni_callblock),
+		i = asm_calljavafunction2int(methodID, argcount,
+									 argcount * sizeof(jni_callblock),
 									 blk);
 
 		o = native_new_and_init_int(class_java_lang_Integer, i);
@@ -4595,8 +4557,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 
 	case PRIMITIVETYPE_BYTE: {
 		s4 i;
-		i = asm_calljavafunction2int(methodID, argcount + 1,
-									 (argcount + 1) * sizeof(jni_callblock),
+		i = asm_calljavafunction2int(methodID, argcount,
+									 argcount * sizeof(jni_callblock),
 									 blk);
 
 /*  		o = native_new_and_init_int(class_java_lang_Byte, i); */
@@ -4613,8 +4575,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case PRIMITIVETYPE_CHAR: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
-										  argcount + 1,
-										  (argcount + 1) * sizeof(jni_callblock),
+										  argcount,
+										  argcount * sizeof(jni_callblock),
 										  blk);
 		o = builtin_new(class_java_lang_Character);
 		CallVoidMethod(env,
@@ -4629,8 +4591,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case PRIMITIVETYPE_SHORT: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
-										  argcount + 1,
-										  (argcount + 1) * sizeof(jni_callblock),
+										  argcount,
+										  argcount * sizeof(jni_callblock),
 										  blk);
 		o = builtin_new(class_java_lang_Short);
 		CallVoidMethod(env,
@@ -4645,8 +4607,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case PRIMITIVETYPE_BOOLEAN: {
 		s4 intVal;
 		intVal = asm_calljavafunction2int(methodID,
-										  argcount + 1,
-										  (argcount + 1) * sizeof(jni_callblock),
+										  argcount,
+										  argcount * sizeof(jni_callblock),
 										  blk);
 		o = builtin_new(class_java_lang_Boolean);
 		CallVoidMethod(env,
@@ -4661,8 +4623,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case 'J': {
 		jlong longVal;
 		longVal = asm_calljavafunction2long(methodID,
-											argcount + 1,
-											(argcount + 1) * sizeof(jni_callblock),
+											argcount,
+											argcount * sizeof(jni_callblock),
 											blk);
 		o = builtin_new(class_java_lang_Long);
 		CallVoidMethod(env,
@@ -4677,8 +4639,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case PRIMITIVETYPE_FLOAT: {
 		jdouble floatVal;	
 		floatVal = asm_calljavafunction2float(methodID,
-											  argcount + 1,
-											  (argcount + 1) * sizeof(jni_callblock),
+											  argcount,
+											  argcount * sizeof(jni_callblock),
 											  blk);
 		o = builtin_new(class_java_lang_Float);
 		CallVoidMethod(env,
@@ -4693,8 +4655,8 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	case PRIMITIVETYPE_DOUBLE: {
 		jdouble doubleVal;
 		doubleVal = asm_calljavafunction2double(methodID,
-												argcount + 1,
-												(argcount + 1) * sizeof(jni_callblock),
+												argcount,
+												argcount * sizeof(jni_callblock),
 												blk);
 		o = builtin_new(class_java_lang_Double);
 		CallVoidMethod(env,
@@ -4707,19 +4669,19 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	break;
 
 	case TYPE_ADR:
-		o = asm_calljavafunction2(methodID, argcount + 1,
-								  (argcount + 1) * sizeof(jni_callblock), blk);
+		o = asm_calljavafunction2(methodID, argcount,
+								  argcount * sizeof(jni_callblock), blk);
 		break;
 
 	default:
 		/* if this happens the exception has already been set by              */
 		/* fill_callblock_from_objectarray                                    */
 
-		MFREE(blk, jni_callblock, /*4 */ argcount+2);
+		MFREE(blk, jni_callblock, argcount);
 		return (jobject *) 0;
 	}
 
-	MFREE(blk, jni_callblock, /* 4 */ argcount+2);
+	MFREE(blk, jni_callblock, argcount);
 
 	if (*exceptionptr) {
 		java_objectheader *cause;
