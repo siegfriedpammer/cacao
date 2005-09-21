@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3215 2005-09-19 13:05:24Z twisti $
+   $Id: VMClassLoader.c 3256 2005-09-21 19:34:04Z twisti $
 
 */
 
@@ -54,6 +54,7 @@
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -326,6 +327,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	classpath_info   *cpi;
 	utf              *utfname;
 	char             *charname;
+	char             *end;
 	char             *tmppath;
 	s4                namelen;
 	s4                pathlen;
@@ -341,6 +343,16 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	utf_sprint(charname, utfname);
 
+	/* search for `.class', if found remove it */
+
+	if ((end = strstr(charname, ".class"))) {
+		*end = '\0';
+		utfname = utf_new_char(charname);
+
+		/* little hack, but it should work */
+		*end = '.';
+	}
+
 	/* new Vector() */
 
 	o = native_new_and_init(class_java_util_Vector);
@@ -348,10 +360,10 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	if (!o)
 		return NULL;
 
-	/* get v.add() method */
+	/* get Vector.add() method */
 
 	m = class_resolveclassmethod(class_java_util_Vector,
-								 utf_new_char("add"),
+								 utf_add,
 								 utf_new_char("(Ljava/lang/Object;)Z"),
 								 NULL,
 								 true);
@@ -430,9 +442,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	classinfo *c;
 	utf       *u;
 
-	u = javastring_toutf(name, false);
+	/* replace `.' by `/', this is required by the classcache */
 
-	c = classcache_lookup((classloader *) cl, u);
+	u = javastring_toutf(name, true);
+
+	/* lookup for defining classloader */
+
+	c = classcache_lookup_defined((classloader *) cl, u);
+
+	/* if not found, lookup for initiating classloader */
+
+	if (c == NULL)
+		c = classcache_lookup((classloader *) cl, u);
 
 	return (java_lang_Class *) c;
 }
