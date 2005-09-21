@@ -36,7 +36,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 2505 2005-05-23 08:23:40Z twisti $
+   $Id: tables.c 3239 2005-09-21 14:09:22Z twisti $
 
 */
 
@@ -48,7 +48,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "toolbox/logging.h"

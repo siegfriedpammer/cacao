@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: tables.h 2665 2005-06-13 14:22:44Z twisti $
+   $Id: tables.h 3239 2005-09-21 14:09:22Z twisti $
 
 */
 
@@ -43,8 +43,9 @@
 
 typedef struct hashtable hashtable;
 
+#include "config.h"
+#include "vm/types.h"
 
-#include "types.h"
 #include "vm/utf8.h"
 
 

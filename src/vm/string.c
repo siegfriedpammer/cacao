@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 2663 2005-06-13 14:20:15Z twisti $
+   $Id: string.c 3239 2005-09-21 14:09:22Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 #include <assert.h>
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 
