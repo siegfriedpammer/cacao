@@ -323,7 +323,7 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
 
-	  builtin_trace_exception(o, m, ip, 0, 0);
+	  builtin_trace_exception(o, m, ip, 1);
 
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;
