@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 3211 2005-09-19 11:29:35Z twisti $
+   $Id: asmpart.S 3286 2005-09-27 22:07:36Z twisti $
 
 */
 
@@ -132,8 +132,8 @@ asm_calljavafunction_int:
 	push    %edi
 
 
-	sub		$16,%esp					/* 4 adress parameters * 4 Bytes */
-	mov     24(%ebp),%eax				/* copy adress parameters to new block */
+	sub		$16,%esp                    /* 4 adress parameters * 4 Bytes      */
+	mov     24(%ebp),%eax               /* copy adress parameters to new block*/
 	mov     %eax,12(%esp)
 		
 	mov     20(%ebp),%eax
@@ -145,29 +145,29 @@ asm_calljavafunction_int:
 	mov     12(%ebp),%eax
 	mov     %eax,(%esp)
 		
-	mov     8(%ebp),%eax              /* move function pointer to %eax        */
+	mov     8(%ebp),%eax                /* move function pointer to %eax      */
 
 	lea     asm_call_jit_compiler,%edx 
-	call    *%edx                     /* call JIT compiler                    */
+	call    *%edx                       /* call JIT compiler                  */
 
 	add     $16,%esp
-	pop     %edi                      /* restore registers                    */
+	pop     %edi                        /* restore registers                  */
 	pop     %esi
 	pop     %ebx
 	leave
 	ret
 
 calljava_xhandler:
-	push    %eax                      /* pass exception pointer               */
+	push    %eax                        /* pass exception pointer             */
 	call    builtin_throw_exception
 	add     $4,%esp
 
 	add     $16,%esp
-	pop     %edi                      /* restore registers                    */
+	pop     %edi                        /* restore registers                  */
 	pop     %esi
 	pop     %ebx
 	leave
-	xor     %eax,%eax                 /* return NULL                          */
+	xor     v0,v0                       /* return NULL                        */
 	ret
 
 
@@ -216,40 +216,46 @@ asm_calljavafunction2double:
 
 	mov     20(%ebp),%eax             /* pointer to arg block (4(push)+4(return)+4+4+4)*/
 	mov     12(%ebp),%ecx             /* arg count            (4(push)+4(return)+4     */
+
+	xor     %esi,%esi                 /* clear stackframe size (MUST be       */
+	                                  /* before args check, may be zero!!!)   */
 	test    %ecx,%ecx                 /* maybe we have no args                */
 	jle     calljava_copydone
 
-		mov		%ecx,%edx			 /* calculate stack size                 */
-		xor		%esi,%esi
-		mov		%eax,%edi			 /* save pointer to arg block */
+	mov     %ecx,%edx                 /* calculate stack size                 */
+	mov     %eax,%edi                 /* save pointer to arg block            */
+
 calljava_calcstacksize:
-		mov		offjniitemtype(%eax),%ebx
-		test	$1,%ebx					/* Two Word Type? */
-		jz		calljava_onewordtype
-		add		$4,%esi
+	mov     offjniitemtype(%eax),%ebx
+	test    $1,%ebx                   /* two word type?                       */
+	jz      calljava_onewordtype
+	add     $4,%esi                   /* add 1 slot to stackframe size        */
+
 calljava_onewordtype:
-		add		$4,%esi
-		sub		$1,%edx
-		test	%edx,%edx				/* any args left ?*/
-		jz		calljava_setstack
-		add     $sizejniblock,%eax      /* goto next argument block             */
-		jmp		calljava_calcstacksize
+	add     $4,%esi                   /* add 1 slot to stackframe size        */
+	sub     $1,%edx
+	test	%edx,%edx                 /* any args left?                       */
+	jz      calljava_setstack
+	add     $sizejniblock,%eax        /* goto next argument block             */
+	jmp     calljava_calcstacksize
 		
 calljava_setstack:				
-		mov		%edi,%eax			 /* restore pointer to arg block */
-	sub     %esi,%esp                 /* stack frame for arguments            */
-	mov     %esp,%edi
+	mov     %edi,%eax                 /* restore pointer to arg block         */
+	sub     %esi,%esp                 /* create stackframe for arguments      */
+	mov     %esp,%edi                 /* move stackpointer into temp variable */
 
 calljava_copyloop:
-	    mov     offjniitem(%eax),%edx   /* copy 4 Byte of Argument */
-	    mov     %edx,(%edi)
-		add		$4,%edi					/* increase sp to next argument         */
-		mov		offjniitemtype(%eax),%ebx /* type -> ebx */
-		test	$1,%ebx					/* Two Word Type? */
-		jz		calljava_copynext
-	    mov     offjniitem+4(%eax),%edx /* copy upper 4 Byte of 2 Word Type */  
-		mov     %edx,(%edi)			
-		add		$4,%edi					/* increase sp to next argument         */
+	mov     offjniitem(%eax),%edx     /* copy 4 Byte of Argument              */
+	mov     %edx,(%edi)
+	add     $4,%edi                   /* increase sp to next argument         */
+	mov     offjniitemtype(%eax),%ebx /* type -> ebx                          */
+	test    $1,%ebx                   /* Two Word Type?                       */
+	jz      calljava_copynext
+
+	mov     offjniitem+4(%eax),%edx   /* copy upper 4 Byte of 2 Word Type     */
+	mov     %edx,(%edi)			
+	add     $4,%edi                   /* increase sp to next argument         */
+
 calljava_copynext:		
 	sub     $1,%ecx                   /* are there any args left?             */
 	test    %ecx,%ecx
@@ -264,7 +270,6 @@ calljava_copydone:
 	lea     asm_call_jit_compiler,%edx 
 	call    *%edx                     /* call JIT compiler                    */
 	
-calljava_return2:
 	add     %esi,%esp                 /* remove arg stack frame               */
 	pop     %edi                      /* restore registers                    */
 	pop     %esi
@@ -273,7 +278,7 @@ calljava_return2:
 	ret
 
 calljava_xhandler2:
-	push    %eax                      /* pass exception pointer               */
+	push    xptr                      /* pass exception pointer               */
 	call    builtin_throw_exception
 	add     $4,%esp
     
@@ -282,7 +287,7 @@ calljava_xhandler2:
 	pop     %esi
 	pop     %ebx
 	leave
-	xor     %eax,%eax                 /* return NULL                          */
+	xor     v0,v0                     /* return NULL                          */
 	ret
 
 
@@ -427,22 +432,22 @@ asm_handle_exception_loop:
 		push    %edi
 		
 ex_stack_loop:
-		sub     $20,%esp
-		mov     %eax,(%esp)					/* exception pointer              */
-		mov     MethodPointer(%edx),%eax	/* method pointer                 */
-		mov     %eax,4(%esp)
-		mov     %ecx,8(%esp)				/* exception pc                   */
-		movl	$0,12(%esp)                 /* line number                    */
-		movl    $1,16(%esp)					/* set no unwind flag             */
-		call	builtin_trace_exception
-		add     $20,%esp
-		mov     -12(%ebp),%esi				/* %esi = data segment pointer    */
-		mov     ExTableSize(%esi),%ecx		/* %ecx = exception table size    */
-		test    %ecx,%ecx					/* if empty table skip            */
-		je      empty_table
+	sub     $(4*4),%esp
+	mov     %eax,0*4(%esp)              /* exception pointer                  */
+	mov     MethodPointer(%edx),%eax    /* method pointer                     */
+	mov     %eax,1*4(%esp)
+	mov     %ecx,2*4(%esp)              /* exception pc                       */
+	movl    $1,3*4(%esp)                /* set indent flag                    */
+	call    builtin_trace_exception
+	add     $(4*4),%esp
 
-		lea		ExTableStart(%esi),%edi		/* %edi = start of exception table*/
-		mov     -4(%ebp),%eax               /* get xptr                       */
+	mov     -12(%ebp),%esi              /* %esi = data segment pointer        */
+	mov     ExTableSize(%esi),%ecx      /* %ecx = exception table size        */
+	test    %ecx,%ecx                   /* if empty table skip                */
+	je      empty_table
+
+	lea     ExTableStart(%esi),%edi     /* %edi = start of exception table    */
+	mov     -4(%ebp),%eax               /* get xptr                           */
 		
 ex_table_loop:
 		mov     -8(%ebp),%edx				/* get xpc                        */
