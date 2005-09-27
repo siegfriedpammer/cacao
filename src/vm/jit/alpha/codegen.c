@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3109 2005-07-24 23:07:02Z twisti $
+   $Id: codegen.c 3284 2005-09-27 14:08:21Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "md.h"
 #include "md-abi.h"
@@ -46,8 +47,6 @@
 
 #include "vm/jit/alpha/arch.h"
 #include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/types.h"
-#include "vm/jit/alpha/asmoffsets.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
@@ -4370,7 +4369,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* create native stackframe info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 8 - sizeof(stackframeinfo),
+	M_AADD_IMM(REG_SP,
+			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
 			   rd->argintregs[0]);
 	M_MOV(REG_PV, rd->argintregs[1]);
 	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
@@ -4478,7 +4478,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	else
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 
-	M_AADD_IMM(REG_SP, stackframesize * 8 - sizeof(stackframeinfo),
+	M_AADD_IMM(REG_SP,
+			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
 			   rd->argintregs[0]);
 	disp = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
 	M_ALD(REG_PV, REG_PV, disp);
