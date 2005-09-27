@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2732 2005-06-17 12:14:57Z twisti $
+## $Id: Makefile.am 3282 2005-09-27 14:03:51Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,7 +41,6 @@ CLEANFILES = offsets.h
 noinst_HEADERS = \
 	arch.h \
 	machine-instr.h \
-	types.h \
 	\
 	md-abi.inc \
 	md-asm.h
