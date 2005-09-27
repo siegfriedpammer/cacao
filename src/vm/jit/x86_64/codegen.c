@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3237 2005-09-21 13:22:49Z twisti $
+   $Id: codegen.c 3283 2005-09-27 14:05:09Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "md.h"
 #include "md-abi.h"
@@ -45,7 +46,6 @@
 #include "vm/jit/x86_64/arch.h"
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
-#include "vm/jit/x86_64/types.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
