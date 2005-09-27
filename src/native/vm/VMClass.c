@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3257 2005-09-21 19:36:56Z twisti $
+   $Id: VMClass.c 3287 2005-09-27 22:11:19Z twisti $
 
 */
 
@@ -505,16 +505,18 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-    classinfo *c;
-    java_objectheader *o;
-    java_objectarray *array_method;     /* result: array of Method-objects */
-    java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
-    methodinfo *m;                    /* the current method to be represented */
-    int public_methods = 0;          /* number of public methods of the class */
-    s4 pos;
-    s4 i;
+	classinfo                *c;
+	java_objectheader        *o;
+	java_lang_reflect_Method *rm;
+	java_objectarray *array_method;     /* result: array of Method-objects */
+	java_objectarray *exceptiontypes;  /* the exceptions thrown by the method */
+	methodinfo               *m;      /* the current method to be represented */
+	s4 public_methods;          /* number of public methods of the class */
+	s4 pos;
+	s4 i;
 
-    c = (classinfo *) klass;    
+	c = (classinfo *) klass;    
+	public_methods = 0;
 
 	/* JOWENN: array classes do not declare methods according to mauve test.  */
 	/* It should be considered, if we should return to my old clone method    */
@@ -526,11 +528,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
     /* determine number of methods */
 
     for (i = 0; i < c->methodscount; i++) {
-		if ((((c->methods[i].flags & ACC_PUBLIC)) || (!publicOnly)) &&
-			(!
-			 ((c->methods[i].name == utf_init) ||
-			  (c->methods[i].name == utf_clinit))
-			 )) {
+		if (((c->methods[i].flags & ACC_PUBLIC) || (publicOnly == false)) &&
+			((c->methods[i].name != utf_init) &&
+			 (c->methods[i].name != utf_clinit))
+			) {
 			public_methods++;
 		}
 	}
@@ -542,11 +543,10 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 		return NULL;
 
     for (i = 0, pos = 0; i < c->methodscount; i++) {
-		if (((c->methods[i].flags & ACC_PUBLIC) || (!publicOnly)) && 
-			(!
-			 ((c->methods[i].name == utf_init) ||
-			  (c->methods[i].name == utf_clinit))
-			 )) {
+		if (((c->methods[i].flags & ACC_PUBLIC) || (publicOnly == false)) && 
+			((c->methods[i].name != utf_init) &&
+			 (c->methods[i].name != utf_clinit))
+			) {
 
 			m = &c->methods[i];
 			o = native_new_and_init(class_java_lang_reflect_Method);
@@ -557,40 +557,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 
 			/* initialize instance fields */
-			/*	    ((java_lang_reflect_Method*)o)->flag=(m->flags & 
-					(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
-					ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)
-					);*/
 
-			setfield_critical(class_java_lang_reflect_Method,
-							  o,
-							  "declaringClass",
-							  "Ljava/lang/Class;",
-							  jobject,
-							  (jobject) c /*this*/);
+			rm = (java_lang_reflect_Method *) o;
 
-			setfield_critical(class_java_lang_reflect_Method,
-							  o,
-							  "name",
-							  "Ljava/lang/String;",
-							  jstring,
-							  (jobject) javastring_new(m->name));
-
-			/*	    setfield_critical(class_method,o,"flag",      "I",		     jint,   (m->flags &
-					(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT | ACC_STATIC | ACC_FINAL |
-					ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT)));*/
-
-			setfield_critical(class_java_lang_reflect_Method,
-							  o,
-							  "slot",
-							  "I",
-							  jint,
-							  i);
-
-			/*	    setfield_critical(class_method,o,"returnType",     "Ljava/lang/Class;",  jclass,  get_returntype(m));
-					setfield_critical(class_method,o,"exceptionTypes", "[Ljava/lang/Class;", jobject, (jobject) exceptiontypes);
-					setfield_critical(class_method,o,"parameterTypes", "[Ljava/lang/Class;", jobject, (jobject) get_parametertypes(m));*/
-        }	     
+			rm->declaringClass = klass;
+			rm->name           = javastring_new(m->name);
+			rm->slot           = i;
+        }
 	}
 
     return array_method;
@@ -604,14 +577,46 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
 {
-	classinfo *c;
+	classinfo             *c;
+	classref_or_classinfo  inner;
+	classref_or_classinfo  outer;
+	utf                   *innername;
+	s4                     i;
 
 	c = (classinfo *) klass;
 
-	if (!ignoreInnerClassesAttrib && c->innerclass)
-		return c->innerclass->flags;
-	else
-		return c->flags;
+	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
+		/* search for passed class as inner class */
+
+		for (i = 0; i < c->innerclasscount; i++) {
+			inner = c->innerclass[i].inner_class;
+			outer = c->innerclass[i].outer_class;
+
+			/* Check if inner is a classref or a real class and get
+               the name of the structure */
+
+			if (IS_CLASSREF(inner))
+				innername = inner.ref->name;
+			else
+				innername = inner.cls->name;
+
+			/* innerclass is this class */
+
+			if (innername == c->name) {
+				/* has the class actually an outer class? */
+
+				if (outer.any)
+					/* return flags got from the outer class file */
+					return c->innerclass[i].flags;
+				else
+					return c->flags;
+			}
+		}
+	}
+
+	/* passed class is no inner class or it was not requested */
+
+	return c->flags;
 }
 
 
