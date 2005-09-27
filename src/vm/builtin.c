@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3265 2005-09-21 20:19:47Z twisti $
+   $Id: builtin.c 3291 2005-09-27 23:04:32Z twisti $
 
 */
 
@@ -1032,7 +1032,7 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 	
 *****************************************************************************/
 
-u4 methodindent = 0;
+s4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   methodinfo *m,
@@ -1046,9 +1046,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	if (opt_verbose || runverbose || opt_verboseexception) {
 		/* when running with verbosecall we remove one indent level */
 
-		if (runverbose)
-			if (indent)
-				methodindent--;
+		if (runverbose && indent)
+			methodindent--;
 
 		/* calculate message length */
 
