@@ -28,12 +28,13 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2871 2005-06-29 12:40:42Z christian $
+   $Id: md-abi.c 3285 2005-09-27 14:12:36Z twisti $
 
 */
 
 
-#include "vm/jit/alpha/types.h"
+#include "vm/types.h"
+
 #include "vm/jit/alpha/md-abi.h"
 
 #include "vm/descriptor.h"
@@ -100,43 +101,49 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+
 /* md_return_alloc *************************************************************
 
- Precolor the Java Stackelement containing the Return Value. Since alpha
- has a dedicated return register (not an reused arg or reserved reg), this
- is striaghtforward possible, as long, as this stackelement does not have to
- survive a method invokation (SAVEDVAR)
+   Precolor the Java Stackelement containing the Return Value. Since
+   alpha has a dedicated return register (not an reused arg or
+   reserved reg), this is striaghtforward possible, as long, as this
+   stackelement does not have to survive a method invokation
+   (SAVEDVAR)
 
---- in
-m:                       Methodinfo of current method
-return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                         TYPE_VOID is not allowed!
-stackslot:               Java Stackslot to contain the Return Value
-
---- out
-if precoloring was possible:
-stackslot->varkind       =ARGVAR
-         ->varnum        =-1
-		 ->flags         =0
-		 ->regoff        =[REG_RESULT, REG_FRESULT]
-		                 
+   --- in
+   m:                       Methodinfo of current method
+   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
+   							TYPE_VOID is not allowed!
+   stackslot:               Java Stackslot to contain the Return Value
+   
+   --- out
+   if precoloring was possible:
+   stackslot->varkind       =ARGVAR
+   			->varnum        =-1
+   			->flags         =0
+   			->regoff        =[REG_RESULT, REG_FRESULT]
 
 *******************************************************************************/
+
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot) {
+					 stackptr stackslot)
+{
 	/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has not   */
 	/* to survive method invokations */
+
 	if (!(stackslot->flags & SAVEDVAR)) {
 		stackslot->varkind = ARGVAR;
 		stackslot->varnum = -1;
 		stackslot->flags = 0;
-		if ( IS_INT_LNG_TYPE(return_type) ) {
+
+		if (IS_INT_LNG_TYPE(return_type)) {
 			stackslot->regoff = REG_RESULT;
 		} else { /* float/double */
 			stackslot->regoff = REG_FRESULT;
 		}
 	}
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

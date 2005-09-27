@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3107 2005-07-24 23:02:28Z twisti $
+   $Id: md.c 3285 2005-09-27 14:12:36Z twisti $
 
 */
 
@@ -39,9 +39,9 @@
 #include <ucontext.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "vm/jit/alpha/md-abi.h"
-#include "vm/jit/alpha/types.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"

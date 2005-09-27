@@ -29,14 +29,14 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 3182 2005-09-15 19:36:25Z twisti $
+   $Id: disass.c 3285 2005-09-27 14:12:36Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "vm/jit/alpha/types.h"
+#include "vm/types.h"
 
 
 /*  The disassembler uses two tables for decoding the instructions. The first

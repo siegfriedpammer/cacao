@@ -30,14 +30,15 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 3108 2005-07-24 23:04:48Z twisti $
+   $Id: asmpart.S 3285 2005-09-27 14:12:36Z twisti $
 
 */
 
 
-#include "config.h"        
+#include "config.h"
+
+#include "vm/jit/methodheader.h"
 #include "vm/jit/alpha/offsets.h"
-#include "vm/jit/alpha/asmoffsets.h"
 #include "vm/jit/alpha/md-asm.h"
 
 
