@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 3144 2005-09-05 17:41:54Z twisti $
+   $Id: signal.c 3290 2005-09-27 23:03:15Z twisti $
 
 */
 
@@ -50,6 +50,7 @@
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
+void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 
@@ -101,6 +102,14 @@ void signal_init(void)
 #endif /* !defined(__INTRP__) */
 
 
+	/* catch SIGINT for exiting properly on <ctrl>-c */
+
+	act.sa_sigaction = signal_handler_sigint;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(SIGINT, &act, NULL);
+
+
+
 	/* catch SIGQUIT for thread dump */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -133,6 +142,20 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
 	thread_dump();
 }
 #endif
+
+
+/* signal_handler_sigint *******************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
+{
+	/* exit the vm properly */
+
+	cacao_exit(0);
+}
 
 
 /* signal_handler_sigusr1 ******************************************************
