@@ -3,6 +3,5 @@ Makefile.in
 cacao
 java
 javac
-kjc
 rmic
 rmiregistry
