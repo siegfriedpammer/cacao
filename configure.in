@@ -19,7 +19,7 @@ alpha | alphaev56 | alphapca56 )
 	CFLAGS="-mieee -D__ALPHA__"
 	;;
 
-arm | armv5b )
+arm | armv4tl | armv5b )
 	ARCH_DIR="arm"
 	CFLAGS="-D__ARM__"
 	;;
