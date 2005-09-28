@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3260 2005-09-21 19:41:47Z twisti $
+   $Id: class.c 3292 2005-09-28 10:36:34Z twisti $
 
 */
 
@@ -93,7 +93,9 @@ classinfo *class_java_lang_Cloneable = NULL;
 classinfo *class_java_lang_SecurityManager = NULL;
 classinfo *class_java_lang_String = NULL;
 classinfo *class_java_lang_System = NULL;
+classinfo *class_java_lang_Thread = NULL;
 classinfo *class_java_lang_ThreadGroup = NULL;
+classinfo *class_java_lang_VMThread = NULL;
 classinfo *class_java_io_Serializable = NULL;
 
 

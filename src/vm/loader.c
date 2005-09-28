@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3269 2005-09-21 20:23:47Z twisti $
+   $Id: loader.c 3292 2005-09-28 10:36:34Z twisti $
 
 */
 
@@ -126,7 +126,7 @@ bool loader_init(u1 *stackbottom)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	classpath_info *cpi;
 
-	/* Initialize the monitor pointer for zip/jar file locking.               */
+	/* Initialize the monitor pointer for zip/jar file locking. */
 
 	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
 		if (cpi->type == CLASSPATH_ARCHIVE)
@@ -200,8 +200,16 @@ bool loader_init(u1 *stackbottom)
 	if (!(class_java_lang_System = load_class_bootstrap(utf_java_lang_System)))
 		return false;
 
+	if (!(class_java_lang_Thread =
+		  load_class_bootstrap(utf_new_char("java/lang/Thread"))))
+		return false;
+
 	if (!(class_java_lang_ThreadGroup =
 		  load_class_bootstrap(utf_java_lang_ThreadGroup)))
+		return false;
+
+	if (!(class_java_lang_VMThread =
+		  load_class_bootstrap(utf_new_char("java/lang/VMThread"))))
 		return false;
 
 

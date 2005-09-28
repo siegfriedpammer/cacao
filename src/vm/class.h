@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3259 2005-09-21 19:41:11Z twisti $
+   $Id: class.h 3292 2005-09-28 10:36:34Z twisti $
 
 */
 
@@ -163,7 +163,9 @@ extern classinfo *class_java_lang_Cloneable;
 extern classinfo *class_java_lang_SecurityManager;
 extern classinfo *class_java_lang_String;
 extern classinfo *class_java_lang_System;
+extern classinfo *class_java_lang_Thread;
 extern classinfo *class_java_lang_ThreadGroup;
+extern classinfo *class_java_lang_VMThread;
 extern classinfo *class_java_io_Serializable;
 
 

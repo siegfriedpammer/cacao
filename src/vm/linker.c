@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3267 2005-09-21 20:21:48Z twisti $
+   $Id: linker.c 3292 2005-09-28 10:36:34Z twisti $
 
 */
 
@@ -168,7 +168,13 @@ bool linker_init(void)
 	if (!link_class(class_java_lang_System))
 		return false;
 
+	if (!link_class(class_java_lang_Thread))
+		return false;
+
 	if (!link_class(class_java_lang_ThreadGroup))
+		return false;
+
+	if (!link_class(class_java_lang_VMThread))
 		return false;
 
 
@@ -214,14 +220,14 @@ bool linker_init(void)
 		assert(0);
 	}
 
-    if (!link_class(pseudo_class_Arraystub))
+	if (!link_class(pseudo_class_Arraystub))
 		return false;
 
-    /* pseudo class representing the null type */
+	/* pseudo class representing the null type */
     
 	pseudo_class_Null = class_create_classinfo(utf_new_char("$NULL$"));
 	pseudo_class_Null->loaded = true;
-    pseudo_class_Null->super.cls = class_java_lang_Object;
+	pseudo_class_Null->super.cls = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_Null)) {
 		log_text("could not cache pseudo_class_Null");
@@ -231,7 +237,7 @@ bool linker_init(void)
 	if (!link_class(pseudo_class_Null))
 		return false;
 
-    /* pseudo class representing new uninitialized objects */
+	/* pseudo class representing new uninitialized objects */
     
 	pseudo_class_New = class_create_classinfo(utf_new_char("$NEW$"));
 	pseudo_class_New->loaded = true;
