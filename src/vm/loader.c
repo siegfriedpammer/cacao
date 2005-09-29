@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3292 2005-09-28 10:36:34Z twisti $
+   $Id: loader.c 3311 2005-09-29 14:28:32Z twisti $
 
 */
 
@@ -564,10 +564,11 @@ void loader_load_all_classes(void)
 			ce = s->cacao_dir_list;
 				
 			while (ce) {
-				/* skip all entries in META-INF and .properties files */
+				/* skip all entries in META-INF and .properties, .png files */
 
 				if (strncmp(ce->name->text, "META-INF", strlen("META-INF")) &&
-					!strstr(ce->name->text, ".properties"))
+					!strstr(ce->name->text, ".properties") &&
+					!strstr(ce->name->text, ".png"))
 					c = load_class_bootstrap(ce->name);
 
 				ce = ce->next;
