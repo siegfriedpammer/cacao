@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3255 2005-09-21 19:30:52Z twisti $
+   $Id: VMSystemProperties.c 3313 2005-09-29 14:31:21Z twisti $
 
 */
 
@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "java.version", JAVA_VERSION);
 	insert_property(m, p, "java.vendor", "CACAO Team");
 	insert_property(m, p, "java.vendor.url", "http://www.cacaojvm.org/");
-	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX""CACAO_JRE_DIR);
+	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
 	insert_property(m, p, "java.vm.specification.version", "1.0");
 	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
 	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");
@@ -189,23 +189,14 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #else /* defined(ENABLE_STATICVM) */
 	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
 
-#if !defined(WITH_EXTERNAL_CLASSPATH)
-	libpathlen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_LIBRARY_PATH) +
-		strlen("0");
-#else
-	libpathlen = strlen(EXTERNAL_CLASSPATH_PREFIX) +
+	libpathlen = strlen(CLASSPATH_INSTALL_DIR) +
 		strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
-#endif
 
 	libpath = MNEW(char, libpathlen);
 
-#if !defined(WITH_EXTERNAL_CLASSPATH)
-	strcat(libpath, CACAO_INSTALL_PREFIX);
-	strcat(libpath, CACAO_LIBRARY_PATH);
-#else
-	strcat(libpath, EXTERNAL_CLASSPATH_PREFIX);
+	strcat(libpath, CLASSPATH_INSTALL_DIR);
 	strcat(libpath, CLASSPATH_LIBRARY_PATH);
-#endif
+
 	insert_property(m, p, "gnu.classpath.boot.library.path", libpath);
 
 	MFREE(libpath, char, libpathlen);
@@ -247,7 +238,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		insert_property(m, p, "java.vm.info", "JIT mode");
 	}
 
-	insert_property(m, p, "java.ext.dirs", CACAO_INSTALL_PREFIX""CACAO_EXT_DIR);
+	insert_property(m, p, "java.ext.dirs", "");
  	insert_property(m, p, "os.name", utsnamebuf.sysname);
 	insert_property(m, p, "os.arch", utsnamebuf.machine);
 	insert_property(m, p, "os.version", utsnamebuf.release);
@@ -262,12 +253,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* Are we little or big endian? */
 	u.i = 1;
 	insert_property(m, p, "gnu.cpu.endian", u.c[0] ? "little" : "big");
-
-#ifdef USE_GTK
-	/* disable gthread-jni's portable native sync due to yet unresolved 
-	   threading issues */
-	insert_property(m, p, "gnu.classpath.awt.gtk.portable.native.sync", "false");
-#endif
 
 
 	/* get locales */

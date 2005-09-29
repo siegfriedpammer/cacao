@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3291 2005-09-27 23:04:32Z twisti $
+   $Id: builtin.c 3313 2005-09-29 14:31:21Z twisti $
 
 */
 
@@ -51,7 +51,7 @@
 #include "arch.h"
 #include "md-abi.h"
 
-#include "classpath/native/fdlibm/fdlibm.h"
+#include "fdlibm/fdlibm.h"
 
 #include "mm/boehm.h"
 #include "mm/memory.h"

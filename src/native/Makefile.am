@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3066 2005-07-19 12:35:37Z twisti $
+## $Id: Makefile.am 3313 2005-09-29 14:31:21Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 SUBDIRS = include vm
 
@@ -49,8 +49,8 @@ CLEANFILES += nativetable.inc
 
 $(srcdir)/native.c: nativetable.inc
 
-nativetable.inc: $(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable
-	BOOTCLASSPATH=$(top_builddir)/src/classpath/lib/rt.jar $(top_builddir)/src/native/tools/gennativetable > $(top_builddir)/src/native/nativetable.inc
+nativetable.inc: $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip $(top_builddir)/src/native/tools/gennativetable
+	BOOTCLASSPATH=$(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip $(top_builddir)/src/native/tools/gennativetable > $(top_builddir)/src/native/nativetable.inc
 endif
 
 noinst_LTLIBRARIES = libnative.la
