@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3143 2005-09-05 15:14:32Z twisti $
+## $Id: Makefile.am 3312 2005-09-29 14:29:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,7 +44,6 @@ DIST_SUBDIRS = \
 	verify \
 	intrp \
 	alpha \
-	arm \
 	i386 \
 	mips \
 	powerpc \
