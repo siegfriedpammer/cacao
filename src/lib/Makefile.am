@@ -28,49 +28,51 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3206 2005-09-19 09:03:42Z twisti $
+## $Id: Makefile.am 3303 2005-09-29 13:07:57Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 CLEANFILES = vm.zip
 
 JAVA_VM_FILES = \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/VMSystemProperties.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/VMStackWalker.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMFrame.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMIdManager.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMPipe.java \
-	$(top_srcdir)/src/classpath/vm/reference/gnu/java/nio/VMSelector.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/io/VMFile.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectStreamClass.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/io/VMObjectInputStream.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMClass.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMClassLoader.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMCompiler.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMDouble.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMFloat.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMObject.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMProcess.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMRuntime.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMSystem.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMString.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMThread.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/VMThrowable.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Constructor.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Field.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/Method.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/lang/reflect/VMProxy.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/net/VMInetAddress.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/nio/channels/VMChannels.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/nio/VMDirectByteBuffer.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/security/VMAccessController.java \
-	$(top_srcdir)/src/classpath/vm/reference/java/util/VMTimeZone.java
+	vm/reference/gnu/classpath/VMSystemProperties.java \
+	vm/reference/gnu/classpath/VMStackWalker.java \
+	vm/reference/gnu/java/nio/VMPipe.java \
+	vm/reference/gnu/java/nio/VMSelector.java \
+	vm/reference/java/io/VMFile.java \
+	vm/reference/java/io/VMObjectStreamClass.java \
+	vm/reference/java/io/VMObjectInputStream.java \
+	vm/reference/java/lang/VMClass.java \
+	vm/reference/java/lang/VMClassLoader.java \
+	vm/reference/java/lang/VMCompiler.java \
+	vm/reference/java/lang/VMDouble.java \
+	vm/reference/java/lang/VMFloat.java \
+	vm/reference/java/lang/VMObject.java \
+	vm/reference/java/lang/VMProcess.java \
+	vm/reference/java/lang/VMRuntime.java \
+	vm/reference/java/lang/VMSystem.java \
+	vm/reference/java/lang/VMString.java \
+	vm/reference/java/lang/VMThread.java \
+	vm/reference/java/lang/VMThrowable.java \
+	vm/reference/java/lang/reflect/Constructor.java \
+	vm/reference/java/lang/reflect/Field.java \
+	vm/reference/java/lang/reflect/Method.java \
+	vm/reference/java/lang/reflect/VMProxy.java \
+	vm/reference/java/net/VMInetAddress.java \
+	vm/reference/java/nio/channels/VMChannels.java \
+	vm/reference/java/nio/VMDirectByteBuffer.java \
+	vm/reference/java/security/VMAccessController.java \
+	vm/reference/java/util/VMTimeZone.java
 
-GLIBJ_ZIP = $(EXTERNAL_CLASSPATH_PREFIX)/share/classpath/glibj.zip
+# currently disabled by GNU classpath
+#	vm/reference/gnu/classpath/jdwp/VMFrame.java \
+#	vm/reference/gnu/classpath/jdwp/VMIdManager.java \
+#	vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java \
+#
 
-vmzipdir = $(prefix)/jre/lib
-vmzip_DATA = vm.zip
+GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip
+
+pkgdata_DATA = vm.zip
 
 vm.zip: $(JAVA_VM_FILES)
 	jikes -bootclasspath $(GLIBJ_ZIP) -d classes $(JAVA_VM_FILES)
