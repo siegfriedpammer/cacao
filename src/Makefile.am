@@ -28,14 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3253 2005-09-21 17:49:46Z twisti $
+## $Id: Makefile.am 3304 2005-09-29 13:08:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	boehm-gc \
-	classpath \
 	lib \
+	fdlibm \
 	libltdl \
 	libffi \
 	mm \
@@ -57,19 +57,12 @@ else
 BOEHM = boehm-gc
 endif
 
-if WITH_EXTERNAL_CLASSPATH
-CLASSPATH = \
-	lib \
-	classpath/native/fdlibm
-else
-CLASSPATH = classpath
-endif
-
 # Keep this order!!!
 
 SUBDIRS = \
 	$(BOEHM) \
-	$(CLASSPATH) \
+	lib \
+	fdlibm \
 	$(LIBFFI) \
 	libltdl \
 	mm \
