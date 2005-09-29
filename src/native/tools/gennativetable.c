@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 2460 2005-05-12 23:38:46Z twisti $
+   $Id: gennativetable.c 3308 2005-09-29 14:22:49Z twisti $
 
 */
 
@@ -38,7 +38,8 @@
 #include <string.h>
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
+
 #include "cacaoh/headers.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
