@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3283 2005-09-27 14:05:09Z twisti $
+   $Id: codegen.c 3297 2005-09-29 12:01:43Z twisti $
 
 */
 
@@ -4222,7 +4222,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	s4          nativeparams;
 	s4          i, j;                   /* count variables                    */
 	s4          t;
-	s4          s1, s2, disp;
+	s4          s1, s2;
 
 	/* initialize variables */
 
@@ -4458,7 +4458,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_LLD(REG_ITMP3, REG_RESULT, 0);
 	M_LLD(REG_RESULT, REG_SP, 0 * 8);
 #else
-	x86_64_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg(cd, (ptrint) &_no_threads_exceptionptr, REG_ITMP3);
 	x86_64_mov_membase_reg(cd, REG_ITMP3, 0, REG_ITMP3);
 #endif
 	x86_64_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
@@ -4481,7 +4481,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_LLD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
 #else
 	x86_64_mov_reg_reg(cd, REG_ITMP3, REG_ITMP1_XPTR);
-	x86_64_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP3);
+	x86_64_mov_imm_reg(cd, (ptrint) &_no_threads_exceptionptr, REG_ITMP3);
 	x86_64_alu_reg_reg(cd, X86_64_XOR, REG_ITMP2, REG_ITMP2);
 	x86_64_mov_reg_membase(cd, REG_ITMP2, REG_ITMP3, 0);    /* clear exception pointer */
 #endif
@@ -4504,6 +4504,9 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		patchref    *pref;
 		codegendata *tmpcd;
 		ptrint       mcode;
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+		s4           disp;
+#endif
 
 		tmpcd = DNEW(codegendata);
 
