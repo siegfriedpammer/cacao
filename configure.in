@@ -121,6 +121,16 @@ AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 
+dnl this is for fdlibm
+AC_CHECK_HEADERS([stdint.h])
+AC_CHECK_HEADERS([inttypes.h])
+AC_CHECK_HEADERS([sys/config.h])
+AC_CHECK_HEADERS([sys/types.h])
+AC_EGREP_HEADER(uint32_t, stdint.h, AC_DEFINE(HAVE_INT32_DEFINED, 1, [Define to 1 if you have uint32_t]))
+AC_EGREP_HEADER(uint32_t, inttypes.h, AC_DEFINE(HAVE_INT32_DEFINED, 1, [Define to 1 if you have uint32_t]))
+AC_EGREP_HEADER(u_int32_t, sys/types.h, AC_DEFINE(HAVE_BSD_INT32_DEFINED, 1, [Define to 1 if you have BSD u_int32_t]))
+AC_EGREP_HEADER(u_int32_t, sys/config.h, AC_DEFINE(HAVE_BSD_INT32_DEFINED, 1, [Define to 1 if you have BSD u_int32_t]))
+
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
@@ -329,14 +339,14 @@ green | native | posix | pthreads)
 		CFLAGS="$CFLAGS -D_REENTRANT"
 
 		dnl tell boehm to support threads as well
-		CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-boehm-threads=posix"
+		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
 		AM_CONDITIONAL([NATIVE_THREADS], [true])
 
 	else
 		AC_MSG_RESULT(yes, green)
 
 		dnl no threads for boehm
-		CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-boehm-threads"
+		ac_configure_args="$ac_configure_args --disable-boehm-threads"
 		AM_CONDITIONAL([NATIVE_THREADS], [false])
 	fi
     ;;
@@ -450,83 +460,34 @@ fi
 AC_SUBST(ENABLE_STATICVM)
 
 
-dnl check if we build gtk peers
-AC_ARG_ENABLE([gtk-peer], [AS_HELP_STRING(--disable-gtk-peer,compile GTK native peers [[default=yes]])])
-
-AC_MSG_CHECKING(whether to compile GTK awt peers)
-if test x"$enable_gtk_peer" = "xno"; then
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([USE_GTK_PEER], [false])
-	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-gtk-peer"
-	USE_GTK_PEER=no
-else
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([USE_GTK], 1, [use gtk])
-	AM_CONDITIONAL([USE_GTK_PEER], [true])
-	USE_GTK_PEER=yes
-fi
-AC_SUBST(USE_GTK_PEER)
-
-
 dnl pass configure options to classpath
 if test x"${ENABLE_STATICVM}" = "xyes"; then
         AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
 	AM_CONDITIONAL([ENABLE_STATICVM], [true])
-	CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-static --disable-shared"
 
 	dnl check for some classpath related stuff when we link statically
 	AM_ICONV_LINK
-
-	dnl taken from GNU classpath configure.ac
-	if test x"${USE_GTK_PEER}" = "xyes"; then
-		AC_ERROR(XXX this is not supported yet)
-		AC_PATH_XTRA
-		if test "$no_x" = yes; then
-			AC_MSG_ERROR([GTK+ peers requested but no X library available])
-		fi
-		dnl We explicitly want the XTest Extension for Robot support.
-		AC_CHECK_LIB([Xtst], [XTestQueryExtension], [true],
-			     [AC_MSG_ERROR([libXtst NOT found, required for GdkRobot])],
-			     [${X_LIBS}])
-		PKG_CHECK_MODULES(GTK, gtk+-2.0 >= 2.4 gthread-2.0 >= 2.2 libart-2.0 gdk-pixbuf-2.0)
-		AC_SUBST(GTK_CFLAGS)
-		AC_SUBST(GTK_LIBS)
-
-		AC_SUBST(CAIRO_LIBS)
-		AC_SUBST(CAIRO_CFLAGS)
-		PKG_CHECK_MODULES(PANGOFT2, pangoft2)
-		AC_SUBST(PANGOFT2_LIBS)
-		AC_SUBST(PANGOFT2_CFLAGS)
-	fi
 else
 	AM_CONDITIONAL([ENABLE_STATICVM], [false])
-	CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-static --enable-shared"
 fi
 
 
-dnl should we use an external classpath installation
-AC_ARG_WITH([external-classpath], [AS_HELP_STRING(--with-external-classpath=<dir>,installation directory of external GNU classpath [[default=no]])])
+dnl is GNU classpath installed somewhere different
+AC_ARG_WITH([classpath-install-dir], [AS_HELP_STRING(--with-classpath-install-dir=<dir>,installation directory of GNU classpath [[default=/usr/local/classpath]])])
 
-AC_MSG_CHECKING(whether to use an external GNU classpath)
-if test x"$with_external_classpath" != "x"; then
-	if test x"$with_external_classpath" = "xyes"; then
+AC_MSG_CHECKING(where GNU classpath is installed)
+if test x"$with_classpath_install_dir" != "x"; then
+	if test x"$with_classpath_install_dir" = "xyes"; then
 		AC_MSG_ERROR(please specify the installation prefix)
 	fi
-	AC_MSG_RESULT($with_external_classpath)
-	AC_DEFINE([WITH_EXTERNAL_CLASSPATH], 1, [external classpath])
-	AM_CONDITIONAL([WITH_EXTERNAL_CLASSPATH], [true])
-	EXTERNAL_CLASSPATH_PREFIX="$with_external_classpath"
-	AC_DEFINE_UNQUOTED([EXTERNAL_CLASSPATH_PREFIX], "${EXTERNAL_CLASSPATH_PREFIX}", [external classpath directory])
-	AC_SUBST(EXTERNAL_CLASSPATH_PREFIX)
+	CLASSPATH_INSTALL_DIR="$with_classpath_install_dir"
 else
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([WITH_EXTERNAL_CLASSPATH], [false])
+	CLASSPATH_INSTALL_DIR="/usr/local/classpath"
 fi
+AC_MSG_RESULT(${CLASSPATH_INSTALL_DIR})
+AC_DEFINE_UNQUOTED([CLASSPATH_INSTALL_DIR], "${CLASSPATH_INSTALL_DIR}", [GNU classpath installation directory])
+AC_SUBST(CLASSPATH_INSTALL_DIR)
 
-
-dnl set some essential classpath options, even if their classpath default is
-dnl suitable for us
-ac_configure_args="$ac_configure_args --libdir=${CACAO_INSTALL_PREFIX}/jre/lib/${ARCH_DIR} --enable-jni --disable-cni --disable-regen-headers ${CONFIGURE_ARGS}"
 
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
@@ -535,11 +496,10 @@ if test x"${DISABLE_GC}" = "xno"; then
 	AC_CONFIG_SUBDIRS(src/boehm-gc)
 fi
 
-AC_CONFIG_SUBDIRS(src/classpath)
-
 if test x"${ENABLE_STATICVM}" = "xno"; then
 	AC_CONFIG_SUBDIRS(src/libltdl)
 fi
+
 if test x"${ENABLE_INTRP}" = "xyes"; then
 	AC_CONFIG_SUBDIRS(src/libffi)
 fi
@@ -553,6 +513,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
 		[src/cacaoh/Makefile]
+		[src/fdlibm/Makefile]
 		[src/lib/Makefile]
 		[src/mm/Makefile]
 		[src/native/Makefile]
