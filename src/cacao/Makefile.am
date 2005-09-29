@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3241 2005-09-21 14:46:28Z twisti $
+## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -64,25 +64,25 @@ cacao_LDFLAGS = \
 	$(LTLIBICONV)
 
 CLASSPATH_LIBS = \
-	$(top_builddir)/src/classpath/native/jni/java-io/.libs/libjavaio.a \
-	$(top_builddir)/src/classpath/native/jni/java-nio/.libs/libjavanio.a \
-	$(top_builddir)/src/classpath/native/jni/java-net/.libs/libjavanet.a \
-	$(top_builddir)/src/classpath/native/jni/java-util/.libs/libjavautil.a \
-	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalang.a \
-	$(top_builddir)/src/classpath/native/jni/java-lang/.libs/libjavalangreflect.a
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavaio.a \
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavanio.a \
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavanet.a \
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavautil.a \
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavalang.a \
+	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libjavalangreflect.a
 
-if USE_GTK_PEER
-cacao_CFLAGS = \
-	$(GTK_CFLAGS) $(CAIRO_CFLAGS) $(PANGOFT2_CFLAGS) \
-	$(XML_CFLAGS) $(XSLT_CFLAGS)
-
-cacao_LDFLAGS += \
-	$(GTK_LIBS) $(CAIRO_LIBS) $(PANGOFT2_LIBS) $(X_LIBS) -lXtst \
-	$(XML_LIBS) $(XSLT_LIBS)
-
-CLASSPATH_LIBS += \
-	$(top_builddir)/src/classpath/native/jni/gtk-peer/.libs/libgtkpeer.a
-endif
+#if USE_GTK_PEER
+#cacao_CFLAGS = \
+#	$(GTK_CFLAGS) $(CAIRO_CFLAGS) $(PANGOFT2_CFLAGS) \
+#	$(XML_CFLAGS) $(XSLT_CFLAGS)
+#
+#cacao_LDFLAGS += \
+#	$(GTK_LIBS) $(CAIRO_LIBS) $(PANGOFT2_LIBS) $(X_LIBS) -lXtst \
+#	$(XML_LIBS) $(XSLT_LIBS)
+#
+#CLASSPATH_LIBS += \
+#	$(CLASSPATH_INSTALL_DIR)/lib/classpath/libgtkpeer.a
+#endif
 
 else
 cacao_LDFLAGS = $(EXPORT_SYMBOLS_FLAGS)
@@ -111,7 +111,7 @@ cacao_SOURCES = \
 
 cacao_LDADD = \
 	libcacao.la \
-	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
+	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(GC_LIB) \
 	$(CLASSPATH_LIBS) \
 	$(FFCALL_LIB) \

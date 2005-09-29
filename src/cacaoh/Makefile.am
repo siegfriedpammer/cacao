@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2859 2005-06-28 18:36:27Z twisti $
+## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 if DISABLE_GC
 if NATIVE_THREADS
@@ -75,7 +75,7 @@ cacaoh_SOURCES = \
 
 cacaoh_LDADD = \
 	libcacaoh.la \
-	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
+	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(GC_LIB)
 
 cacaoh_DEPENDENCIES = $(cacaoh_LDADD)

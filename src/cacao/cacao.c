@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3277 2005-09-21 21:24:54Z twisti $
+   $Id: cacao.c 3309 2005-09-29 14:22:55Z twisti $
 
 */
 
@@ -550,17 +550,9 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, cp);
 
 	} else {
-#if !defined(WITH_EXTERNAL_CLASSPATH)
-		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH) +
-			strlen("0");
-
-		bootclasspath = MNEW(char, cplen);
-		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
-		strcat(bootclasspath, CACAO_RT_JAR_PATH);
-#else
 		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_VM_ZIP_PATH) +
 			strlen(":") +
-			strlen(EXTERNAL_CLASSPATH_PREFIX) +
+			strlen(CLASSPATH_INSTALL_DIR) +
 			strlen(CLASSPATH_GLIBJ_ZIP_PATH) +
 			strlen("0");
 
@@ -568,9 +560,8 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
 		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
 		strcat(bootclasspath, ":");
-		strcat(bootclasspath, EXTERNAL_CLASSPATH_PREFIX);
+		strcat(bootclasspath, CLASSPATH_INSTALL_DIR);
 		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
-#endif
 	}
 
 

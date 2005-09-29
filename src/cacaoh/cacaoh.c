@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3216 2005-09-19 13:07:54Z twisti $
+   $Id: cacaoh.c 3309 2005-09-29 14:22:55Z twisti $
 
 */
 
@@ -177,12 +177,19 @@ int main(int argc, char **argv)
 		strcpy(bootclasspath, cp);
 
 	} else {
-		cplen = strlen(CACAO_INSTALL_PREFIX) + strlen(CACAO_RT_JAR_PATH) +
+		cplen = strlen(CACAO_INSTALL_PREFIX) +
+			strlen(CACAO_VM_ZIP_PATH) +
+			strlen(":") +
+			strlen(CLASSPATH_INSTALL_DIR) +
+			strlen(CLASSPATH_GLIBJ_ZIP_PATH) +
 			strlen("0");
 
 		bootclasspath = MNEW(char, cplen);
 		strcpy(bootclasspath, CACAO_INSTALL_PREFIX);
-		strcat(bootclasspath, CACAO_RT_JAR_PATH);
+		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
+		strcat(bootclasspath, ":");
+		strcat(bootclasspath, CLASSPATH_INSTALL_DIR);
+		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
 	}
 
 

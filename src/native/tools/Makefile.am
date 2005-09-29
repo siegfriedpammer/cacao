@@ -28,12 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2877 2005-06-30 09:54:19Z twisti $
+## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 if DISABLE_GC
 if NATIVE_THREADS
@@ -51,7 +51,7 @@ gennativetable_SOURCES = gennativetable.c
 
 gennativetable_LDADD = \
 	$(top_builddir)/src/cacaoh/libcacaoh.la \
-	$(top_builddir)/src/classpath/native/fdlibm/libfdlibm.la \
+	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(GC_LIB)
 
 gennativetable_DEPENDENCIES = $(gennativetable_LDADD)
