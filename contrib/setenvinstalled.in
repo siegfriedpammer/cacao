@@ -1,0 +1,5 @@
+# sets the environment variables when GNU classpath is installed, but
+# CACAO not
+
+export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_INSTALL_DIR@/share/classpath/glibj.zip
+export PATH=$PWD/src/cacao:$PATH

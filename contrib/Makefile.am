@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3294 2005-09-28 14:01:22Z twisti $
+## $Id: Makefile.am 3318 2005-09-30 11:16:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-noinst_DATA = debugSetPathes
+noinst_DATA = \
+	setenvinstalled.in \
+	setenvsource.in
 
 ## Local variables:
 ## mode: Makefile

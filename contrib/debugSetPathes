@@ -1,9 +1,0 @@
-export LD_LIBRARY_PATH=$PWD/src/classpath/native/jni/java-lang/.libs:$PWD/src/classpath/native/jni/java-io/.libs:$PWD/src/classpath/native/jni/java-nio/.libs:\
-$PWD/src/classpath/native/jni/java-util/.libs:$PWD/src/classpath/native/jni/java-awt/.libs:$PWD/src/classpath/native/jni/gtk-peer/.libs:\
-$PWD/src/classpath/native/jni/java-io/.libs:$PWD/src/classpath/native/jni/classpath/.libs:\
-$PWD/src/classpath/native/jni/java-net/.libs:$LD_LIBRARY_PATH
-
-export BOOTCLASSPATH=$PWD/src/classpath/lib/rt.jar
-
-export PATH=$PWD/src/cacao:$PATH
-
