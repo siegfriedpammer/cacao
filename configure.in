@@ -507,6 +507,8 @@ fi
 
 AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
+		[contrib/setenvinstalled]
+		[contrib/setenvsource]
 		[doc/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]
