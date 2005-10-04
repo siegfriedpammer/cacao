@@ -171,7 +171,7 @@ public class extest {
 
 
         try {
-            p("NegativeArraySizeException:");
+            p("NegativeArraySizeException (newarray):");
             int[] ia = new int[-1];
             failed();
         } catch (NegativeArraySizeException e) {
@@ -180,8 +180,17 @@ public class extest {
   	}
 
         try {
-            p("NegativeArraySizeException:");
+            p("NegativeArraySizeException (newarray):");
             int[] ia = new int[-1];
+            failed();
+        } catch (NegativeArraySizeException e) {
+  	    ok();
+	    pstacktrace(e);
+  	}
+
+        try {
+            p("NegativeArraySizeException (multianewarray):");
+            int[][] ia = new int[1][-1];
             failed();
         } catch (NegativeArraySizeException e) {
   	    ok();
@@ -223,6 +232,16 @@ public class extest {
             p("OutOfMemoryError:");
 	    /* 100 MB should be enough */
 	    byte[] ba = new byte[100 * 1024 * 1024];
+            failed();
+        } catch (OutOfMemoryError e) {
+  	    ok();
+	    pstacktrace(e);
+  	}
+        
+        try {
+            p("OutOfMemoryError (multianewarray):");
+	    /* 100 MB should be enough */
+	    byte[][] ba = new byte[10 * 1024 * 1024][10 * 1024 * 1024];
             failed();
         } catch (OutOfMemoryError e) {
   	    ok();
