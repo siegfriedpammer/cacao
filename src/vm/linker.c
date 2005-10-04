@@ -32,12 +32,15 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3292 2005-09-28 10:36:34Z twisti $
+   $Id: linker.c 3344 2005-10-04 21:54:28Z twisti $
 
 */
 
 
 #include <assert.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -792,12 +795,6 @@ static classinfo *link_class_intern(classinfo *c)
 											   &(m->exceptiontable[j].catchtype.cls)))
 				return NULL;
 		}
-
-		for (j = 0; j < m->thrownexceptionscount; j++)
-			if (!resolve_classref_or_classinfo(NULL, m->thrownexceptions[j],
-											   resolveEager, true, false,
-											   &(m->thrownexceptions[j].cls)))
-				return NULL;
 	}
 	
 	/* final tasks */
