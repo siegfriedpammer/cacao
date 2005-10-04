@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3227 2005-09-19 14:03:36Z twisti $
+   $Id: codegen.c 3343 2005-10-04 21:40:09Z twisti $
 
 */
 
@@ -4252,8 +4252,9 @@ nowperformreturn:
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
 		                        /* op1 = arg count val.a = builtintable entry */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
-			bte = (builtintable_entry *) iptr->val.a;
+			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/
+
+			bte = iptr->val.a;
 			md = bte->md;
 			goto gen_method;
 
@@ -4264,7 +4265,7 @@ nowperformreturn:
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
+			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/
 
 			lm = iptr->val.a;
 
@@ -4276,7 +4277,7 @@ nowperformreturn:
 			}
 
 gen_method:
-			s3 = iptr->op1;
+			s3 = md->paramcount;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -4333,8 +4334,6 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				d = md->returntype.type;
-
 				if (iptr->target) {
 					codegen_addpatchref(cd, cd->mcodeptr, bte->fp,
 										iptr->target, 0);
@@ -4349,8 +4348,18 @@ gen_method:
 					a = (ptrint) bte->fp;
 				}
 
-				i386_mov_imm_reg(cd, a, REG_ITMP1);
-				i386_call_reg(cd, REG_ITMP1);
+				d = md->returntype.type;
+
+				M_MOV_IMM(a, REG_ITMP1);
+				M_CALL(REG_ITMP1);
+
+				/* if op1 == true, we need to check for an exception */
+
+				if (iptr->op1 == true) {
+					M_TEST(REG_RESULT);
+					M_BEQ(0);
+					codegen_addxexceptionrefs(cd, cd->mcodeptr);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -4381,8 +4390,8 @@ gen_method:
 					d = lm->parseddesc->returntype.type;
 				}
 
-				i386_mov_imm_reg(cd, a, REG_ITMP2);
-				i386_call_reg(cd, REG_ITMP2);
+				M_MOV_IMM(a, REG_ITMP2);
+				M_CALL(REG_ITMP2);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -4408,15 +4417,13 @@ gen_method:
 					d = md->returntype.type;
 				}
 
-				i386_mov_membase_reg(cd, REG_ITMP1,
-									 OFFSET(java_objectheader, vftbl),
-									 REG_ITMP2);
+				M_ALD(REG_ITMP2, REG_ITMP1, OFFSET(java_objectheader, vftbl));
 				i386_mov_membase32_reg(cd, REG_ITMP2, s1, REG_ITMP1);
-				i386_call_reg(cd, REG_ITMP1);
+				M_CALL(REG_ITMP1);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				i386_mov_membase_reg(cd, REG_SP, 0, REG_ITMP1);
+				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
 				gen_nullptr_check(REG_ITMP1);
 
 				if (!lm) {
@@ -4442,12 +4449,10 @@ gen_method:
 					d = md->returntype.type;
 				}
 
-				i386_mov_membase_reg(cd, REG_ITMP1,
-									 OFFSET(java_objectheader, vftbl),
-									 REG_ITMP1);
+				M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(java_objectheader, vftbl));
 				i386_mov_membase32_reg(cd, REG_ITMP1, s1, REG_ITMP2);
 				i386_mov_membase32_reg(cd, REG_ITMP2, s2, REG_ITMP1);
-				i386_call_reg(cd, REG_ITMP1);
+				M_CALL(REG_ITMP1);
 				break;
 			}
 
@@ -4919,27 +4924,6 @@ gen_method:
 			}
 			break;
 
-		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
-
-			if (src->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
-				
-			} else {
-				i386_test_reg_reg(cd, src->regoff, src->regoff);
-			}
-			i386_jcc(cd, I386_CC_L, 0);
-			codegen_addxcheckarefs(cd, cd->mcodeptr);
-			break;
-
-		case ICMD_CHECKEXCEPTION:  /* ... ==> ...                             */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
-
-			i386_test_reg_reg(cd, REG_RESULT, REG_RESULT);
-			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addxexceptionrefs(cd, cd->mcodeptr);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -4952,31 +4936,15 @@ gen_method:
   			MCODECHECK((iptr->op1 << 1) + 64);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
-				if (src->flags & INMEMORY) {
-					i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4);
-
-				} else {
-					i386_test_reg_reg(cd, src->regoff, src->regoff);
-				}
-				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addxcheckarefs(cd, cd->mcodeptr);
-
-				/* 
-				 * copy sizes to new stack location, because native function
-				 * builtin_nmultianewarray access them as (int *)
-				 */
-				/*i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);*/
-				/*i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, -(iptr->op1 - s1) * 4);*/
-
 				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
 					if (src->flags & INMEMORY) {
-						i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
-						i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (s1 +3) * 4);
+						M_ILD(REG_ITMP1, REG_SP, src->regoff * 4);
+						M_IST(REG_ITMP1, REG_SP, (s1 + 3) * 4);
 
 					} else {
-						i386_mov_reg_membase(cd, src->regoff, REG_SP, (s1 + 3) * 4);
+						M_IST(src->regoff, REG_SP, (s1 + 3) * 4);
 					}
 				}
 			}
@@ -5008,12 +4976,18 @@ gen_method:
 
 			/* a2 = pointer to dimensions = stack pointer */
 
-			M_INTMOVE(REG_SP, REG_ITMP1);
-			i386_alu_imm_reg(cd, ALU_ADD, 3 * 4, REG_ITMP1);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, 2 * 4);
+			M_MOV(REG_SP, REG_ITMP1);
+			M_AADD_IMM(3 * 4, REG_ITMP1);
+			M_AST(REG_ITMP1, REG_SP, 2 * 4);
 
-			i386_mov_imm_reg(cd, (ptrint) BUILTIN_multianewarray, REG_ITMP1);
-			i386_call_reg(cd, REG_ITMP1);
+			M_MOV_IMM((ptrint) BUILTIN_multianewarray, REG_ITMP1);
+			M_CALL(REG_ITMP1);
+
+			/* check for exception before result assignment */
+
+			M_TEST(REG_RESULT);
+			M_BEQ(0);
+			codegen_addxexceptionrefs(cd, cd->mcodeptr);
 
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
@@ -5234,57 +5208,6 @@ gen_method:
 		}
 	}
 
-	/* generate NegativeArraySizeException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
-
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			M_ASUB_IMM(4 * 4, REG_SP);
-
-			M_AST_IMM(0, REG_SP, 0 * 4);
-			dseg_adddata(cd, cd->mcodeptr);
-			M_MOV(REG_SP, REG_ITMP3);
-			M_AADD_IMM(4 * 4, REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 1 * 4);
-			M_ALD(REG_ITMP3, REG_SP, (4 + parentargs_base) * 4);
-			M_AST(REG_ITMP3, REG_SP, 2 * 4);
-			M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_negativearraysizeexception,
-					  REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 3 * 4);
-			M_AADD_IMM(4 * 4, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
 	/* generate ClassCastException stubs */
 
 	xcodeptr = NULL;
@@ -5386,7 +5309,7 @@ gen_method:
 		}
 	}
 
-	/* generate ICMD_CHECKEXCEPTION stubs */
+	/* generate exception check stubs */
 
 	xcodeptr = NULL;
 	
@@ -5738,8 +5661,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_CALL(REG_ITMP3);
 
-
-	/* remove native stackframe info */
+	/* save return value */
 
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
 		if (IS_2_WORD_TYPE(md->returntype.type))
@@ -5753,11 +5675,43 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			i386_fsts_membase(cd, REG_SP, 1 * 4);
 	}
 
+	/* remove native stackframe info */
+
 	M_MOV(REG_SP, REG_ITMP1);
 	M_AADD_IMM(stackframesize * 4 - sizeof(stackframeinfo), REG_ITMP1);
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP1);
 	M_CALL(REG_ITMP1);
+
+    if (runverbose) {
+		M_ASUB_IMM(4 + 8 + 8 + 4, REG_SP);
+
+		i386_mov_imm_membase(cd, (ptrint) m, REG_SP, 0);
+
+		M_IST(REG_RESULT, REG_SP, 4);
+		M_IST(REG_RESULT2, REG_SP, 4 + 4);
+
+		i386_fstl_membase(cd, REG_SP, 4 + 8);
+		i386_fsts_membase(cd, REG_SP, 4 + 8 + 8);
+
+		M_MOV_IMM((ptrint) builtin_displaymethodstop, REG_ITMP1);
+		M_CALL(REG_ITMP1);
+
+		M_AADD_IMM(4 + 8 + 8 + 4, REG_SP);
+    }
+
+	/* check for exception */
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+/* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
+	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
+#else
+	M_MOV_IMM((ptrint) &_exceptionptr, REG_RESULT);
+#endif
+	/* we can't use REG_ITMP3 == REG_RESULT2 */
+	M_ALD(REG_ITMP2, REG_RESULT, 0);
+
+	/* restore return value */
 
 	if (IS_INT_LNG_TYPE(md->returntype.type)) {
 		if (IS_2_WORD_TYPE(md->returntype.type))
@@ -5771,53 +5725,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			i386_flds_membase(cd, REG_SP, 1 * 4);
 	}
 
-
-    if (runverbose) {
-        i386_alu_imm_reg(cd, ALU_SUB, 4 + 8 + 8 + 4, REG_SP);
-		
-        i386_mov_imm_membase(cd, (ptrint) m, REG_SP, 0);
-		
-        i386_mov_reg_membase(cd, REG_RESULT, REG_SP, 4);
-        i386_mov_reg_membase(cd, REG_RESULT2, REG_SP, 4 + 4);
-		
-        i386_fstl_membase(cd, REG_SP, 4 + 8);
-        i386_fsts_membase(cd, REG_SP, 4 + 8 + 8);
-
-        i386_mov_imm_reg(cd, (ptrint) builtin_displaymethodstop, REG_ITMP1);
-        i386_call_reg(cd, REG_ITMP1);
-		
-        i386_mov_membase_reg(cd, REG_SP, 4, REG_RESULT);
-        i386_mov_membase_reg(cd, REG_SP, 4 + 4, REG_RESULT2);
-		
-        i386_alu_imm_reg(cd, ALU_ADD, 4 + 8 + 8 + 4, REG_SP);
-    }
-
-
 	M_AADD_IMM(stackframesize * 4, REG_SP);
 
+	M_TEST(REG_ITMP2);
+	M_BNE(1);
 
-	/* check for exception */
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	/* we can't use REG_ITMP3 == REG_RESULT2 */
-
-	i386_push_reg(cd, REG_RESULT);
-	i386_push_reg(cd, REG_RESULT2);
-/* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
-	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
-	i386_mov_membase_reg(cd, REG_RESULT, 0, REG_ITMP2);
-	i386_test_reg_reg(cd, REG_ITMP2, REG_ITMP2);
-	i386_pop_reg(cd, REG_RESULT2);
-	i386_pop_reg(cd, REG_RESULT);
-#else
-	i386_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP2);
-	i386_mov_membase_reg(cd, REG_ITMP2, 0, REG_ITMP2);
-	i386_test_reg_reg(cd, REG_ITMP2, REG_ITMP2);
-#endif
-	i386_jcc(cd, I386_CC_NE, 1);
-
-	i386_ret(cd);
-
+	M_RET;
 
 	/* handle exception */
 
@@ -5828,15 +5741,15 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	i386_mov_imm_membase(cd, 0, REG_RESULT, 0);
 	i386_pop_reg(cd, REG_ITMP1_XPTR);
 #else
-	i386_mov_reg_reg(cd, REG_ITMP2, REG_ITMP1_XPTR);
-	i386_mov_imm_reg(cd, (ptrint) &_exceptionptr, REG_ITMP2);
+	M_MOV(REG_ITMP2, REG_ITMP1_XPTR);
+	M_MOV_IMM((ptrint) &_exceptionptr, REG_ITMP2);
 	i386_mov_imm_membase(cd, 0, REG_ITMP2, 0);
 #endif
-	i386_mov_membase_reg(cd, REG_SP, 0, REG_ITMP2_XPC);
-	i386_alu_imm_reg(cd, ALU_SUB, 2, REG_ITMP2_XPC);
+	M_ALD(REG_ITMP2_XPC, REG_SP, 0);
+	M_ASUB_IMM(2, REG_ITMP2_XPC);
 
-	i386_mov_imm_reg(cd, (ptrint) asm_handle_nat_exception, REG_ITMP3);
-	i386_jmp_reg(cd, REG_ITMP3);
+	M_MOV_IMM((ptrint) asm_handle_nat_exception, REG_ITMP3);
+	M_JMP(REG_ITMP3);
 
 
 	/* process patcher calls **************************************************/
