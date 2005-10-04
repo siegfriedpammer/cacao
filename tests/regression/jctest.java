@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 3131 2005-08-18 07:44:12Z twisti $
+   $Id: jctest.java 3337 2005-10-04 19:38:35Z twisti $
 
 */
 
@@ -756,7 +756,7 @@ public class jctest implements jcinterface {
             }
             p("successfully created");
         } catch (Exception e) {
-            p("error: exception thrown");
+            p("error: exception thrown: " + e);
         }
 
         iaaa = new int[2][3][4];
