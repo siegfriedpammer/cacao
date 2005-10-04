@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3224 2005-09-19 13:58:24Z twisti $
+   $Id: jit.c 3327 2005-10-04 18:49:56Z twisti $
 
 */
 
@@ -642,8 +642,8 @@ int jcommandsize[256] = {
 #define JAVA_INVOKEINTERFACE  185
 #define ICMD_INVOKEINTERFACE  185       /* val.a = method info pointer        */
 	5,
-#define ICMD_CHECKASIZE       186       /*                                    */
-	1, /* unused */
+/* UNDEF186 */
+	1,
 #define JAVA_NEW              187
 #define ICMD_NEW              187       /* op1 = 1, val.a = class pointer     */
 	3,
@@ -688,7 +688,7 @@ int jcommandsize[256] = {
 	5,
 #define JAVA_BREAKPOINT       202
 	1,
-#define ICMD_CHECKEXCEPTION   203
+/* UNDEF 203 */
 	1,
 #define ICMD_IASTORECONST     204
 	1,
@@ -911,7 +911,7 @@ char *icmd_names[256] = {
 	"INVOKESPECIAL  ", /*             183 */
 	"INVOKESTATIC   ", /*             184 */
 	"INVOKEINTERFACE", /*             185 */
-	"CHECKASIZE     ", /* UNDEF186    186 */
+	"UNDEF186       ", /* UNDEF186    186 */
 	"NEW            ", /*             187 */
 	"NEWARRAY       ", /*             188 */
 	"ANEWARRAY      ", /*             189 */
@@ -928,7 +928,7 @@ char *icmd_names[256] = {
 	"UNDEF200       ", /* GOTO_W      200 */
 	"UNDEF201       ", /* JSR_W       201 */
 	"UNDEF202       ", /* BREAKPOINT  202 */
-	"CHECKEXCEPTION ", /* UNDEF203    203 */
+	"UNDEF203       ", /* UNDEF203    203 */
 	"IASTORECONST   ", /*             204 */
 	"LASTORECONST   ", /*             205 */
 	"FASTORECONST   ", /*             206 */
@@ -1643,8 +1643,8 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		show_icmd_method(m, cd, rd);
 
 	} else if (opt_showdisassemble) {
-		disassemble((u1 *) m->entrypoint,
-					(u1 *) m->entrypoint + (m->mcodelength - cd->dseglen));
+		disassemble((u1 *) (ptrint) m->entrypoint,
+					(u1 *) (ptrint) m->entrypoint + (m->mcodelength - cd->dseglen));
 	}
 
 	if (opt_showddatasegment)
