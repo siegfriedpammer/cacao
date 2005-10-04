@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3244 2005-09-21 14:58:47Z twisti $
+   $Id: stacktrace.c 3325 2005-10-04 18:45:58Z twisti $
 
 */
 
@@ -415,35 +415,6 @@ java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
 	/* create exception */
 
 	o = new_classcastexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_negativearraysizeexception ********************************
-
-   Creates an NegativeArraySizeException for inline stub.
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_negativearraysizeexception(u1 *pv, u1 *sp,
-																functionptr ra,
-																functionptr xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* create exception */
-
-	o = new_negativearraysizeexception();
 
 	/* remove stackframeinfo */
 

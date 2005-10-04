@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3244 2005-09-21 14:58:47Z twisti $
+   $Id: stacktrace.h 3325 2005-10-04 18:45:58Z twisti $
 
 */
 
@@ -137,10 +137,6 @@ java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
 java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
 														functionptr ra,
 														functionptr xpc);
-
-java_objectheader *stacktrace_inline_negativearraysizeexception(u1 *pv, u1 *sp,
-																functionptr ra,
-																functionptr xpc);
 
 java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
 														  functionptr ra,
