@@ -30,12 +30,15 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3009 2005-07-12 21:01:36Z twisti $
+   $Id: initialize.c 3321 2005-10-04 10:00:21Z twisti $
 
 */
 
 
 #include <string.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -161,20 +164,7 @@ static bool initialize_class_intern(classinfo *c)
 		}
 	}
 
-	/* initialize interface classes */
-
-	for (i = 0; i < c->interfacescount; i++) {
-		if (!c->interfaces[i].cls->initialized) {
-			if (initverbose)
-				log_message_class_message_class("Initialize interface class ",
-												c->interfaces[i].cls,
-												" from ",
-												c);
-			
-			if (!initialize_class(c->interfaces[i].cls))
-				return false;
-		}
-	}
+	/* interfaces implemented need not to be initialized (VM Spec 2.17.4) */
 
 	m = class_findmethod(c, utf_clinit, utf_void__void);
 
