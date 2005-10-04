@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 2932 2005-07-08 11:57:08Z twisti $
+   $Id: jit.h 3328 2005-10-04 18:50:07Z twisti $
 
 */
 
@@ -734,7 +734,7 @@ extern int jcommandsize[256];
 #define JAVA_INVOKEINTERFACE  185
 #define ICMD_INVOKEINTERFACE  185       /* val.a = method info pointer        */
 
-#define ICMD_CHECKASIZE       186       /*                                    */
+/* UNDEF186 */
 
 #define JAVA_NEW              187
 #define ICMD_NEW              187       /* op1 = 1, val.a = class pointer     */
@@ -780,7 +780,7 @@ extern int jcommandsize[256];
 
 #define JAVA_BREAKPOINT       202
 
-#define ICMD_CHECKEXCEPTION   203       /* check for an exception             */
+/* UNDEF203 */
 
 #define ICMD_IASTORECONST     204
 
