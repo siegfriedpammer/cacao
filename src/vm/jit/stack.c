@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3218 2005-09-19 13:25:47Z twisti $
+   $Id: stack.c 3331 2005-10-04 18:54:33Z twisti $
 
 */
 
@@ -300,8 +300,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_CHECKNULL:
 						COUNT(count_check_null);
 					case ICMD_NOP:
-					case ICMD_CHECKASIZE:
-					case ICMD_CHECKEXCEPTION:
 
 					case ICMD_IFEQ_ICONST:
 					case ICMD_IFNE_ICONST:
@@ -1971,8 +1969,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						md = um->methodref->parseddesc.md;
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
+
 					_callhandling:
-						i = iptr->op1;
+						i = md->paramcount;
 
 						if (md->memuse > rd->memuse)
 							rd->memuse = md->memuse;
@@ -2038,7 +2037,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							copy = copy->prev;
 						}
 
-						i = iptr->op1;
+						i = md->paramcount;
 						POPMANY(i);
 						if (md->returntype.type != TYPE_VOID)
 							OP0_1(md->returntype.type);

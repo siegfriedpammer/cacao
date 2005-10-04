@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 3127 2005-08-05 09:41:04Z michi $
+   $Id: reg.inc 3331 2005-10-04 18:54:33Z twisti $
 
 */
 
@@ -1187,13 +1187,16 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 
 static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 {
-	s4 opcode;
-	s4 i;
-	s4 len;
-	stackptr    src;
-	stackptr    dst;
-	instruction *iptr;
-	basicblock  *bptr;
+	s4                  opcode;
+	s4                  i;
+	s4                  len;
+	stackptr            src;
+	stackptr            dst;
+	instruction        *iptr;
+	basicblock         *bptr;
+	methodinfo         *lm;
+	builtintable_entry *bte;
+	methoddesc         *md;
 
 	/* initialize temp registers */
 	reg_init_temp(m, rd);
@@ -1220,8 +1223,6 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_NOP:
 				case ICMD_ELSE_ICONST:
 				case ICMD_CHECKNULL:
-				case ICMD_CHECKASIZE:
-				case ICMD_CHECKEXCEPTION:
 				case ICMD_IINC:
 				case ICMD_JSR:
 				case ICMD_RET:
@@ -1576,22 +1577,32 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_INVOKESPECIAL:
 				case ICMD_INVOKEVIRTUAL:
 				case ICMD_INVOKEINTERFACE:
-					i = iptr->op1;
+					lm = iptr->val.a;
+
+					if (lm)
+						md = lm->parseddesc;
+					else {
+						unresolved_method *um = iptr->target;
+						md = um->methodref->parseddesc.md;
+					}
+					i = md->paramcount;
 					while (--i >= 0) {
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-					if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID)
+					if (md->returntype.type != TYPE_VOID)
 						reg_new_temp(rd, dst);
 					break;
 
 				case ICMD_BUILTIN:
-					i = iptr->op1;
+					bte = iptr->val.a;
+					md = bte->md;
+					i = md->paramcount;
 					while (--i >= 0) {
 						reg_free_temp(rd, src);
 						src = src->prev;
 					}
-					if (((builtintable_entry *) iptr->val.a)->md->returntype.type != TYPE_VOID)
+					if (md->returntype.type != TYPE_VOID)
 						reg_new_temp(rd, dst);
 					break;
 
