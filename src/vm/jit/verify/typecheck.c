@@ -28,10 +28,139 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3333 2005-10-04 18:55:12Z twisti $
+   $Id: typecheck.c 3335 2005-10-04 19:03:52Z edwin $
 
 */
 
+/*
+
+What's the purpose of the `typechecker`?
+----------------------------------------
+
+The typechecker analyses (the intermediate repr. of) the bytecode of
+each method and ensures that for each instruction the values on the
+stack and in local variables are of the correct type whenever the
+instruction is executed.
+
+type checking is a mandatory part of bytecode verification.
+
+
+How does the typechecker work?
+------------------------------
+
+The JVM stack and the local variables are not statically typed, so the
+typechecker has to *infer* the static types of stack slots and local
+variables at each point of the method. The JVM spec imposes a lot of
+restrictions on the bytecode in order to guarantee that this is always
+possible.
+
+Basically the typechecker solves the data flow equations of the method.
+This is done in the usual way for a forward data flow analysis: Starting
+from the entry point of the method the typechecker follows the CFG and
+records the type of each stack slot and local variable at each point[1].
+When two or more control flow paths merge at a point, the union of the
+types for each slot/variable is taken. The algorithm continues to follow
+all possible paths[2] until the recorded types do not change anymore (ie.
+the equations have been solved).
+
+If the solution has been reached and the resulting types are valid for
+all instructions, then type checking terminates with success, otherwise
+an exception is thrown.
+
+
+Why is this code so damn complicated?
+-------------------------------------
+
+Short answer: The devil's in the details.
+
+While the basic operation of the typechecker is no big deal, there are
+many properties of Java bytecode which make type checking hard. Some of
+them are not even addressed in the JVM spec. Some problems and their
+solutions:
+
+*) Finding a good representation of the union of two reference types is
+difficult because of multiple inheritance of interfaces. 
+
+	Solution: The typeinfo system can represent such "merged" types by a
+	list of proper subclasses of a class. Example:
+
+		typeclass=java.lang.Object merged={ InterfaceA, InterfaceB }
+	
+	represents the result of merging two interface types "InterfaceA"
+	and "InterfaceB".
+
+*) When the code of a method is verified, there may still be unresolved
+references to classes/methods/fields in the code, which we may not force
+to be resolved eagerly. (A similar problem arises because of the special
+checks for protected members.)
+
+	Solution: The typeinfo system knows how to deal with unresolved
+	class references. Whenever a check has to be performed for an
+	unresolved type, the type is annotated with constraints representing
+	the check. Later, when the type is resolved, the constraints are
+	checked. (See the constrain_unresolved_... and the resolve_...
+	methods.)[3]
+
+*) The boundaries of jsr subroutines are not well-defined. For a given
+instruction it may be impossible to tell whether it is part of a
+subroutine, or to which subroutine it belongs.
+
+	Solution: The typechecker implements a method developed by
+	Alessandro Coglio[4] which treats each returnAddress as a distinct
+	type that is not merged with other returnAddresses. This way, when a
+	RET instruction is reached, we know exactly which types to propagate
+	to which return target among the possible targets of the RET. The
+	downside of this method is, that for each slot/variable we must
+	store not just one type, but one type *for each possible use of the
+	returnAddresses that currently are in a slot/variable.[5]
+
+*) Checks for uninitialized object instances are hard because after the
+invocation of <init> on an uninitialized object *all* slots/variables
+referring to this object (and exactly those slots/variables) must be
+marked as initialized.
+
+	Solution: The JVM spec describes a solution, which has been
+	implemented in this typechecker.
+
+
+--- Footnotes
+
+[1] Actually only the types of slots/variables at the start of each
+basic block are remembered. Within a basic block the algorithm only keeps
+the types of the slots/variables for the "current" instruction which is
+being analysed. 
+
+[2] Actually the algorithm iterates through the basic block list until
+there are no more changes. Theoretically it would be wise to sort the
+basic blocks topologically beforehand, but the number of average/max
+iterations observed is so low, that this was not deemed necessary.
+
+[3] This is similar to a method proposed by: Alessandro Coglio et al., A
+Formal Specification of Java Class Loading, Technical Report, Kestrel
+Institute April 2000, revised July 2000 
+http://www.kestrel.edu/home/people/coglio/loading.pdf
+An important difference is that Coglio's subtype constraints are checked
+after loading, while our constraints are checked when the field/method
+is accessed for the first time, so we can guarantee lexically correct
+error reporting.
+
+[4] Alessandro Coglio, Simple Verification Technique for Complex Java
+Bytecode Subroutines, 4th ECOOP Workshop on Formal Techniques for
+Java-like Programs, June 2002
+http://www.kestrel.edu/home/people/coglio/ftjp02.pdf
+
+[5] This is a major source of code complexity. The main data structures
+dealing with this are the "typevector set" and the typestack. The
+"typevector set" is a set of alternative typevectors, such that each
+typevector specifies the types of the local variables for a single
+combination of returnAddresses used. Thus we support full polymorphism
+of subroutines over the types of local variables. The typestack,
+however, does not support polymorphism, both for historical and JVM-spec
+reasons. A slot of the typestack may, however, contain multiple
+alternative returnAddresses, which is realized by a linked list hanging
+of the typeinfo of the stack slot.
+
+*/
 
 #include <assert.h>
 #include <string.h>
