@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3225 2005-09-19 13:58:44Z twisti $
+   $Id: parse.c 3330 2005-10-04 18:52:44Z twisti $
 
 */
 
@@ -656,7 +656,6 @@ SHOWOPCODE(DEBUG4)
 		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
-			OP(ICMD_CHECKASIZE);
 			switch (code_get_s1(p + 1, inline_env->method)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
@@ -686,12 +685,10 @@ SHOWOPCODE(DEBUG4)
 				log_text("Invalid array-type to create");
 				assert(0);
 			}
-			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
-			OP(ICMD_CHECKEXCEPTION);
+			BUILTIN(bte, true, NULL, currentline);
 			break;
 
 		case JAVA_ANEWARRAY:
-			OP(ICMD_CHECKASIZE);
 			i = code_get_u2(p + 1, inline_env->method);
 			compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
 
@@ -704,23 +701,20 @@ SHOWOPCODE(DEBUG4)
 			if (c) {
 				bte = builtintable_get_internal(BUILTIN_newarray);
 				LOADCONST_A_BUILTIN(c->vftbl);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, true, NULL, currentline);
 
 			} else {
 				bte = builtintable_get_internal(PATCHER_builtin_newarray);
 				LOADCONST_A_BUILTIN(cr);
-				BUILTIN(bte, bte->md->paramcount, cr, currentline);
+				BUILTIN(bte, true, cr, currentline);
 			}
 			s_count++;
-			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_MULTIANEWARRAY:
 			inline_env->method->isleafmethod = false;
 			i = code_get_u2(p + 1, inline_env->method);
 			{
-				constant_classref *cr;
-				classinfo *c;
 				s4 v = code_get_u1(p + 3, inline_env->method);
 
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
@@ -1071,7 +1065,7 @@ SHOWOPCODE(DEBUG4)
 					if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
 						return NULL;
 
-				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
+				OP2A_NOINC(opcode, 0, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
 											  inline_env->method, iptr);
@@ -1118,7 +1112,7 @@ SHOWOPCODE(DEBUG4)
 					if (!descriptor_params_from_paramtypes(md, 0))
 						return NULL;
 				
-				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
+				OP2A_NOINC(opcode, 0, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
 											  inline_env->method, iptr);
@@ -1164,7 +1158,7 @@ SHOWOPCODE(DEBUG4)
 					if (!descriptor_params_from_paramtypes(md, 0))
 						return NULL;
 
-				OP2A_NOINC(opcode, md->paramcount, mr, currentline);
+				OP2A_NOINC(opcode, 0, mr, currentline);
 
 				um = create_unresolved_method(inline_env->method->class,
 											  inline_env->method, iptr);
@@ -1204,16 +1198,15 @@ SHOWOPCODE(DEBUG4)
 			if (c && c->initialized) {
 				bte = builtintable_get_internal(BUILTIN_new);
 				LOADCONST_A_BUILTIN(c);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, true, NULL, currentline);
 
 			} else {
 				bte = builtintable_get_internal(PATCHER_builtin_new);
 				LOADCONST_A_BUILTIN(cr);
-				BUILTIN(bte, bte->md->paramcount, cr, currentline);
+				BUILTIN(bte, true, cr, currentline);
 			}
 
 			s_count++;
-			OP(ICMD_CHECKEXCEPTION);
 			break;
 
 		case JAVA_CHECKCAST:
@@ -1259,12 +1252,12 @@ SHOWOPCODE(DEBUG4)
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
 					LOADCONST_A_BUILTIN(c->vftbl);
-					BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+					BUILTIN(bte, false, NULL, currentline);
 
 				} else {
 					bte = builtintable_get_internal(PATCHER_builtin_arrayinstanceof);
 					LOADCONST_A_BUILTIN(cr);
-					BUILTIN(bte, bte->md->paramcount, cr, currentline);
+					BUILTIN(bte, false, cr, currentline);
 				}
 				s_count++;
 
@@ -1283,7 +1276,7 @@ SHOWOPCODE(DEBUG4)
 			if (checksync) {
 				OP(ICMD_CHECKNULL);
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else
 #endif
 				{
@@ -1296,7 +1289,7 @@ SHOWOPCODE(DEBUG4)
 #if defined(USE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else
 #endif
 				{
@@ -1351,7 +1344,7 @@ SHOWOPCODE(DEBUG4)
 			OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_frem);
-			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+			BUILTIN(bte, false, NULL, currentline);
 #endif
 			break;
 
@@ -1360,7 +1353,7 @@ SHOWOPCODE(DEBUG4)
 			OP(opcode);
 #else
 			bte = builtintable_get_internal(BUILTIN_drem);
-			BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+			BUILTIN(bte, false, NULL, currentline);
 #endif
 			break;
 
@@ -1368,7 +1361,7 @@ SHOWOPCODE(DEBUG4)
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2i);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else
 #endif
 				{
@@ -1380,7 +1373,7 @@ SHOWOPCODE(DEBUG4)
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2l);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else 
 #endif
 				{
@@ -1392,7 +1385,7 @@ SHOWOPCODE(DEBUG4)
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2i);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else
 #endif
 				{
@@ -1404,7 +1397,7 @@ SHOWOPCODE(DEBUG4)
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2l);
-				BUILTIN(bte, bte->md->paramcount, NULL, currentline);
+				BUILTIN(bte, false, NULL, currentline);
 			} else
 #endif
 				{
