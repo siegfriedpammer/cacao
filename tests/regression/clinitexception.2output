@@ -1,4 +1,4 @@
 Exception in thread "main" java.lang.ExceptionInInitializerError
-	<<No stacktrace available>>
+   <<No stacktrace available>>
 Caused by: java.lang.RuntimeException
-	at clinitexception.<clinit>(clinitexception.java:3)
+   at clinitexception.<clinit> (clinitexception.java:3)
