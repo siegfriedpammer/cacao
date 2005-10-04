@@ -28,12 +28,14 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 2871 2005-06-29 12:40:42Z christian $
+   $Id: md-abi.c 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
 
-#include "vm/jit/mips/types.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/jit/mips/md-abi.h"
 
 #include "vm/descriptor.h"

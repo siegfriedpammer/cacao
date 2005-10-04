@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 3116 2005-07-27 12:14:03Z twisti $
+   $Id: md-os.c 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
@@ -41,9 +41,9 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "vm/jit/mips/md-abi.h"
-#include "vm/jit/mips/types.h"
 
 #include "mm/boehm.h"
 #include "vm/exceptions.h"

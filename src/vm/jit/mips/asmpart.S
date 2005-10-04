@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3185 2005-09-16 07:48:52Z twisti $
+   $Id: asmpart.S 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
@@ -36,8 +36,9 @@
 #include "config.h"
 
 #include "vm/jit/mips/offsets.h"
-#include "vm/jit/mips/asmoffsets.h"
 #include "vm/jit/mips/md-asm.h"
+
+#include "vm/jit/methodheader.h"
 
 
 	.text

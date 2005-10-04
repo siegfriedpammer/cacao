@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 3115 2005-07-27 12:13:40Z twisti $
+   $Id: codegen.h 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
@@ -35,8 +35,8 @@
 #define _CODEGEN_H
 
 #include "config.h"
+#include "vm/types.h"
 
-#include "vm/jit/mips/types.h"
 
 /* additional functions and macros to generate code ***************************/
 

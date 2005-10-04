@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3126 2005-08-02 21:44:03Z cacao $
+   $Id: patcher.c 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 #include <sys/cachectl.h>
 
 #include "config.h"
-#include "vm/jit/mips/types.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"

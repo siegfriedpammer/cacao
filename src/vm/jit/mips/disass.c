@@ -28,14 +28,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 3186 2005-09-16 07:49:06Z twisti $
+   $Id: disass.c 3323 2005-10-04 18:33:30Z twisti $
 
 */
 
 
 #include <stdio.h>
 
-#include "vm/jit/mips/types.h"
+#include "config.h"
+#include "vm/types.h"
 
 
 /*  The disassembler uses four tables for decoding the instructions. The first
