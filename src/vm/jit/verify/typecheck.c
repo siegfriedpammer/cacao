@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3225 2005-09-19 13:58:44Z twisti $
+   $Id: typecheck.c 3333 2005-10-04 18:55:12Z twisti $
 
 */
 
@@ -1951,11 +1951,6 @@ return_tail:
 				/****************************************/
 				/* SIMPLE EXCEPTION THROWING TESTS      */
 
-			case ICMD_CHECKASIZE:
-				/* The argument to CHECKASIZE is typechecked by
-				 * typechecking the array creation instructions. */
-
-				/* FALLTHROUGH! */
 			case ICMD_CHECKNULL:
 				/* CHECKNULL just requires that the stack top
 				 * is an address. This is checked in stack.c */
@@ -2114,7 +2109,6 @@ return_tail:
 
 
 				/*XXX What shall we do with the following ?*/
-			case ICMD_CHECKEXCEPTION:
 			case ICMD_AASTORECONST:
 				TYPECHECK_COUNT(stat_ins_unchecked);
 				break;
