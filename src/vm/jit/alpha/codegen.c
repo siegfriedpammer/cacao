@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3284 2005-09-27 14:08:21Z twisti $
+   $Id: codegen.c 3345 2005-10-04 22:14:53Z twisti $
 
 */
 
@@ -3094,7 +3094,7 @@ nowperformreturn:
 			}
 
 gen_method:
-			s3 = iptr->op1;
+			s3 = md->paramcount;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -3143,6 +3143,16 @@ gen_method:
 				d = md->returntype.type;
 
 				M_ALD(REG_PV, REG_PV, disp);  /* Pointer to built-in-function */
+				M_JSR(REG_RA, REG_PV);
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
+
+				/* if op1 == true, we need to check for an exception */
+
+				if (iptr->op1 == true) {
+					M_BEQZ(REG_RESULT, 0);
+					codegen_addxexceptionrefs(cd, mcodeptr);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -3170,6 +3180,9 @@ gen_method:
 				}
 
 				M_ALD(REG_PV, REG_PV, disp);         /* method pointer in r27 */
+				M_JSR(REG_RA, REG_PV);
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -3196,6 +3209,9 @@ gen_method:
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
+				M_JSR(REG_RA, REG_PV);
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -3227,12 +3243,11 @@ gen_method:
 					  OFFSET(java_objectheader, vftbl));    
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
+				M_JSR(REG_RA, REG_PV);
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 			}
-
-			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, -disp);
 
 			/* d contains return type */
 
@@ -3592,20 +3607,6 @@ gen_method:
 			}
 			break;
 
-
-		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			M_BLTZ(s1, 0);
-			codegen_addxcheckarefs(cd, mcodeptr);
-			break;
-
-		case ICMD_CHECKEXCEPTION:    /* ... ==> ...                           */
-
-			M_BEQZ(REG_RESULT, 0);
-			codegen_addxexceptionrefs(cd, mcodeptr);
-			break;
-
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -3614,13 +3615,10 @@ gen_method:
 			MCODECHECK((iptr->op1 << 1) + 64);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
-				var_to_reg_int(s2, src, REG_ITMP1);
-				M_BLTZ(s2, 0);
-				codegen_addxcheckarefs(cd, mcodeptr);
-
 				/* copy SAVEDVAR sizes to stack */
 
 				if (src->varkind != ARGVAR) {
+					var_to_reg_int(s2, src, REG_ITMP1);
 					M_LST(s2, REG_SP, s1 * 8);
 				}
 			}
@@ -3658,6 +3656,11 @@ gen_method:
 			M_JSR(REG_RA, REG_PV);
 			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
+
+			/* check for exception before result assignment */
+
+			M_BEQZ(REG_RESULT, 0);
+			codegen_addxexceptionrefs(cd, mcodeptr);
 
 			d = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, d);
@@ -3733,7 +3736,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3781,7 +3785,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3845,7 +3850,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3897,7 +3903,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -3939,58 +3946,6 @@ gen_method:
 		}
 	}
 
-	/* generate NegativeArraySizeException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(16);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2],
-				  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_LDA(REG_SP, REG_SP, -2 * 8);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_negativearraysizeexception);
-			M_ALD(REG_PV, REG_PV, disp);
-			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, -disp);
-
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_LDA(REG_SP, REG_SP, 2 * 8);
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_JMP(REG_ZERO, REG_ITMP3);
-		}
-	}
-
 	/* generate NullPointerException stubs */
 
 	xcodeptr = NULL;
@@ -4012,7 +3967,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -4054,7 +4010,7 @@ gen_method:
 		}
 	}
 
-	/* generate ICMD_CHECKEXCEPTION stubs */
+	/* generate exception check stubs */
 
 	xcodeptr = NULL;
 
@@ -4075,7 +4031,8 @@ gen_method:
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
 		if (xcodeptr != NULL) {
-			M_BR(xcodeptr - mcodeptr - 1);
+			disp = xcodeptr - mcodeptr - 1;
+			M_BR(disp);
 
 		} else {
 			xcodeptr = mcodeptr;
@@ -4470,13 +4427,14 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
 
-
-	/* remove native stackframe info */
+	/* save return value */
 
 	if (IS_INT_LNG_TYPE(md->returntype.type))
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 	else
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+
+	/* remove native stackframe info */
 
 	M_AADD_IMM(REG_SP,
 			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
@@ -4487,18 +4445,9 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-
-
 	/* call finished trace */
 
 	if (runverbose) {
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-		M_DST(REG_FRESULT, REG_SP, 1 * 8);
-
 		disp = dseg_addaddress(cd, m);
 		M_ALD(rd->argintregs[0], REG_PV, disp);
 
@@ -4511,43 +4460,34 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_JSR(REG_RA, REG_PV);
 		disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 		M_LDA(REG_PV, REG_RA, -disp);
-
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		M_DLD(REG_FRESULT, REG_SP, 1 * 8);
 	}
-
 
 	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	if (IS_FLT_DBL_TYPE(md->returntype.type))
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
-	else
-		M_AST(REG_RESULT, REG_SP, 0 * 8);
-
 	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 	M_MOV(REG_RESULT, REG_ITMP3);
-
-	if (IS_FLT_DBL_TYPE(md->returntype.type))
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-	else
-		M_ALD(REG_RESULT, REG_SP, 0 * 8);
 #else
 	disp = dseg_addaddress(cd, &_exceptionptr);
-	M_ALD(REG_ITMP3, REG_PV, disp);     /* get address of exceptionptr        */
+	M_ALD(REG_RESULT, REG_PV, disp);    /* get address of exceptionptr        */
 #endif
-
 	M_ALD(REG_ITMP1, REG_ITMP3, 0);     /* load exception into reg. itmp1     */
+
+	/* restore return value */
+
+	if (IS_INT_LNG_TYPE(md->returntype.type))
+		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+	else
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+
 	M_BNEZ(REG_ITMP1, 3);               /* if no exception then return        */
 
 	M_ALD(REG_RA, REG_SP, (stackframesize - 1) * 8); /* load return address   */
-
 	M_LDA(REG_SP, REG_SP, stackframesize * 8);
-
 	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
 
 	/* handle exception */
