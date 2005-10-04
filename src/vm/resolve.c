@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3031 2005-07-13 11:52:50Z twisti $
+   $Id: resolve.c 3346 2005-10-04 22:41:23Z edwin $
 
 */
 
@@ -759,6 +759,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 		return true; /* be lazy */
 
 	RESOLVE_ASSERT(container);
+	RESOLVE_ASSERT(container->linked);
 
 	/* now we must find the declaration of the method in `container`
 	 * or one of its superclasses */
@@ -786,6 +787,28 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	declarer = mi->class;
 	RESOLVE_ASSERT(declarer);
+	RESOLVE_ASSERT(referer->linked);
+
+	/* do INVOKESPECIAL lookup of super.* method, if necessary:     */
+	/* Two of the three conditions have already been checked in     */
+	/* create_unresolved_method. We only have to check the subclass */
+	/* relationship.                                                */
+	if (((ref->flags & RESOLVE_SPECIAL) != 0) 
+		&& referer != declarer
+		&& class_issubclass(referer,declarer)) 
+	{
+		/* we have to do the special lookup starting with the direct */
+		/* superclass of the referer...                              */
+		mi = class_resolvemethod(referer->super.cls,
+								 ref->methodref->name,
+								 ref->methodref->descriptor);
+		if (!mi) {
+			/* the spec calls for an AbstractMethodError in this case */
+			*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+			return false;
+		}
+		declarer = mi->class;
+	}
 
 	/* check static */
 
@@ -1304,10 +1327,21 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	unresolved_method *ref;
 	constant_FMIref *methodref;
 	bool staticmethod;
+	bool speciallookup;
 
 	methodref = (constant_FMIref *) iptr[0].val.a;
 	RESOLVE_ASSERT(methodref);
 	staticmethod = (iptr[0].opc == ICMD_INVOKESTATIC);
+
+	/* check if we have to do the INVOKESPECIAL lookup of super.* methods */
+	/* we can perform two of the three checks given in the JVM spec now:  */
+	/*     1) the referer has ACC_SUPER set                               */
+	/*     2) the method is not an <init> method                          */
+	/* The third one (the subclass condition) can only be checked after   */
+	/* resolving the reference.                                           */
+	speciallookup = (iptr[0].opc == ICMD_INVOKESPECIAL) 
+					&& ((referer->flags & ACC_SUPER) != 0)
+					&& methodref->name != utf_init;
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
@@ -1317,6 +1351,7 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    special: %d\n",(int)speciallookup);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
@@ -1328,7 +1363,8 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 
 	/* create the data structure */
 	ref = NEW(unresolved_method);
-	ref->flags = (staticmethod) ? RESOLVE_STATIC : 0;
+	ref->flags = ((staticmethod) ? RESOLVE_STATIC : 0)
+			   | ((speciallookup) ? RESOLVE_SPECIAL : 0);
 	ref->referermethod = refmethod;
 	ref->methodref = methodref;
 	ref->paramconstraints = NULL;

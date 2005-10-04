@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 2788 2005-06-22 16:08:51Z edwin $
+   $Id: resolve.h 3346 2005-10-04 22:41:23Z edwin $
 
 */
 
@@ -51,8 +51,9 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 
 /* constants ******************************************************************/
 
-#define RESOLVE_STATIC    0x0001
-#define RESOLVE_PUTFIELD  0x0002
+#define RESOLVE_STATIC    0x0001  /* ref to static fields/methods             */
+#define RESOLVE_PUTFIELD  0x0002  /* field ref inside a PUT{FIELD,STATIC}...  */
+#define RESOLVE_SPECIAL   0x0004  /* method ref inside INVOKESPECIAL          */
 
 
 /* enums **********************************************************************/

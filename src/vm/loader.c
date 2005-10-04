@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3311 2005-09-29 14:28:32Z twisti $
+   $Id: loader.c 3346 2005-10-04 22:41:23Z edwin $
 
 */
 
@@ -3154,6 +3154,8 @@ methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *desc)
 /* class_resolvemethod *********************************************************
 	
    Searches a class and it's super classes for a method.
+
+   Superinterfaces are *not* searched.
 
 *******************************************************************************/
 
