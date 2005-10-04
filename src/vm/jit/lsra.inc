@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 3028 2005-07-13 11:41:53Z twisti $
+   $Id: lsra.inc 3329 2005-10-04 18:51:47Z twisti $
 
 */
 #include <stdio.h>
@@ -1948,8 +1948,6 @@ void lsra_scan_registers_canditates(methodinfo *m, lsradata *ls, int b_index)
 		case ICMD_NOP:
 		case ICMD_ELSE_ICONST:
 		case ICMD_CHECKNULL:
-		case ICMD_CHECKEXCEPTION:
-		case ICMD_CHECKASIZE:
 		case ICMD_PUTSTATICCONST:
 		case ICMD_INLINE_START:
 		case ICMD_INLINE_END:
@@ -2631,9 +2629,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 		case ICMD_GOTO:
 		case ICMD_NOP:
 		case ICMD_ELSE_ICONST:
-		case ICMD_CHECK_NULL:
-		case ICMD_CHECKEXCEPTION:
-		case ICMD_CHECKASIZE:
+		case ICMD_CHECKNULL:
 		case ICMD_PUTSTATICCONST:
 		case ICMD_INLINE_START:
 		case ICMD_INLINE_END:
@@ -3026,6 +3022,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 		case ICMD_INVOKESPECIAL:
 		case ICMD_INVOKESTATIC:
 		case ICMD_INVOKEINTERFACE:
+#error XXX FIXME TWISTI: use md->paramcount (2005/10/4)
 			i = iptr->op1;
 			while (--i >= 0) {
 				ret = lsra_test_from_stack(ls, rd, src, values);
