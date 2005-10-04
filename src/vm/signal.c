@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 3290 2005-09-27 23:03:15Z twisti $
+   $Id: signal.c 3340 2005-10-04 20:19:37Z twisti $
 
 */
 
@@ -36,6 +36,8 @@
 #include <signal.h>
 
 #include "config.h"
+
+#include "cacao/cacao.h"
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 # include "threads/native/threads.h"
