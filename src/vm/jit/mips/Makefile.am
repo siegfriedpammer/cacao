@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3136 2005-08-23 14:54:10Z cacao $
+## $Id: Makefile.am 3322 2005-10-04 18:31:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,9 +40,7 @@ AM_CCASFLAGS = $(INCLUDES)
 
 noinst_HEADERS = \
 	arch.h \
-	asmoffsets.h \
 	machine-instr.h \
-	types.h \
 	\
 	md-abi.inc \
 	md-asm.h
