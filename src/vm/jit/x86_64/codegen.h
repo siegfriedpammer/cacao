@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3275 2005-09-21 21:18:35Z twisti $
+   $Id: codegen.h 3324 2005-10-04 18:45:11Z twisti $
 
 */
 
@@ -445,9 +445,12 @@ typedef enum {
 #define M_LLEA(a,b,c)           x86_64_lea_membase_reg(cd, (a), (b), (c))
 #define M_ALEA(a,b,c)           M_LLEA(a,b,c)
 
+#define M_XOR(a,b)              x86_64_alu_reg_reg(cd, X86_64_XOR, (a), (b))
+
 #define M_TEST(a)               x86_64_test_reg_reg(cd, (a), (a))
 
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
+#define M_BNE(disp)             x86_64_jcc(cd, X86_64_CC_NE, (disp))
 
 #define M_PUSH(a)               x86_64_push_reg(cd, (a))
 #define M_PUSH_IMM(a)           x86_64_push_imm(cd, (a))
