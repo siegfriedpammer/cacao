@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 2948 2005-07-09 12:17:35Z twisti $
+   $Id: tracing.c 3332 2005-10-04 18:54:57Z twisti $
 
 */
 
@@ -583,7 +583,6 @@ Trace* tracing(basicblock *block, int index, int temp)
 		case ICMD_INVOKEVIRTUAL:
 		case ICMD_INVOKEINTERFACE:
 			m = iptr->val.a;        /* get method pointer and                 */
-			args = iptr->op1;       /* number of arguments                    */
 
 			if (m)
 				md = m->parseddesc;
@@ -591,6 +590,8 @@ Trace* tracing(basicblock *block, int index, int temp)
 				um = iptr->target;
 				md = um->methodref->parseddesc.md;
 			}
+
+			args = md->paramcount;  /* number of arguments                    */
 
 			if (md->returntype.type != TYPE_VOID)
 				retval = 1;         /* if function returns a value, it is on  */
@@ -629,7 +630,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 		case ICMD_BUILTIN:         /* ..., [arg1, [arg2 ...]] ==> ...         */
 			bte = iptr->val.a;
 			md = bte->md;
-			args = iptr->op1;
+			args = md->paramcount;
 			if (md->returntype.type != TYPE_VOID)
 				retval = 1;
 			else
