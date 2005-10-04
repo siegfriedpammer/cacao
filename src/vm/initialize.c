@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3321 2005-10-04 10:00:21Z twisti $
+   $Id: initialize.c 3339 2005-10-04 20:19:11Z twisti $
 
 */
 
@@ -133,7 +133,6 @@ static bool initialize_class_intern(classinfo *c)
 {
 	methodinfo        *m;
 	java_objectheader *xptr;
-	s4                 i;
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	int b;
 #endif
