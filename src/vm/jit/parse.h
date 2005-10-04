@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 2568 2005-06-06 15:28:11Z twisti $
+   $Id: parse.h 3326 2005-10-04 18:47:36Z twisti $
 
 */
 
@@ -67,9 +67,29 @@
     iptr->method = inline_env->method; \
     PINC
 
-#define OP(o)          iptr->opc=(o);/*iptr->op1=0*/;/*iptr->val.l=0*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
-#define OP1(o,o1)      iptr->opc=(o);iptr->op1=(o1);/*iptr->val.l=(0)*/;iptr->line=currentline;iptr->method=inline_env->method;PINC
-#define OP2I(o,o1,v)   iptr->opc=(o);iptr->op1=(o1);iptr->val.i=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define OP(o) \
+    iptr->opc = (o); \
+    /*iptr->op1=0*/; \
+    /*iptr->val.l=0*/; \
+    iptr->line = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define OP1(o,o1) \
+    iptr->opc = (o); \
+    iptr->op1 = (o1); \
+    /*iptr->val.l=(0)*/; \
+    iptr->line = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define OP2I(o,o1,v) \
+    iptr->opc = (o); \
+    iptr->op1 = (o1); \
+    iptr->val.i = (v); \
+    iptr->line = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
 
 #define OP2A_NOINC(o,o1,v,l) \
     iptr->opc = (o); \
