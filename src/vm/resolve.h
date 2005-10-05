@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 3346 2005-10-04 22:41:23Z edwin $
+   $Id: resolve.h 3347 2005-10-05 00:33:09Z edwin $
 
 */
 
@@ -362,6 +362,8 @@ resolve_method(unresolved_method *ref,
                         the test fails. May be:
                             resolveLinkageError, or
                             resolveIllegalAccessError
+						IMPORTANT: If error==resolveIllegalAccessError,
+						then array types in the set are skipped.
 
    OUT:
        *checked.........set to true if all checks were performed,

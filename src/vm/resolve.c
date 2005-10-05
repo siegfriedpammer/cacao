@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3346 2005-10-04 22:41:23Z edwin $
+   $Id: resolve.c 3347 2005-10-05 00:33:09Z edwin $
 
 */
 
@@ -409,6 +409,12 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		RESOLVE_ASSERT(result);
 		RESOLVE_ASSERT(result->loaded);
 		RESOLVE_ASSERT(result->linked);
+
+
+		/* do not check access to protected members of arrays */
+		if (error == resolveIllegalAccessError && result->name->text[0] == '[') {
+			continue;
+		}
 
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"performing subclass test:\n");
@@ -895,8 +901,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* check protected access */
 
-	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)
-			&& (declarer->name->text[0] == '['))
+	if (((mi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer))
 	{
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
