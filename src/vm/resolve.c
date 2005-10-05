@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3347 2005-10-05 00:33:09Z edwin $
+   $Id: resolve.c 3348 2005-10-05 09:20:30Z edwin $
 
 */
 
@@ -795,25 +795,34 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	RESOLVE_ASSERT(declarer);
 	RESOLVE_ASSERT(referer->linked);
 
-	/* do INVOKESPECIAL lookup of super.* method, if necessary:     */
-	/* Two of the three conditions have already been checked in     */
-	/* create_unresolved_method. We only have to check the subclass */
-	/* relationship.                                                */
+	/* checks for INVOKESPECIAL:                                       */
+	/* for <init> and methods of the current class we don't need any   */
+	/* special checks. Otherwise we must verify that the called method */
+	/* belongs to a super class of the current class                   */
 	if (((ref->flags & RESOLVE_SPECIAL) != 0) 
-		&& referer != declarer
-		&& class_issubclass(referer,declarer)) 
+		&& referer != declarer 
+		&& mi->name != utf_init) 
 	{
-		/* we have to do the special lookup starting with the direct */
-		/* superclass of the referer...                              */
-		mi = class_resolvemethod(referer->super.cls,
-								 ref->methodref->name,
-								 ref->methodref->descriptor);
-		if (!mi) {
-			/* the spec calls for an AbstractMethodError in this case */
-			*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+		/* check that declarer is a super class of the current class   */
+		if (!class_issubclass(referer,declarer)) {
+			*exceptionptr = new_verifyerror(ref->referermethod,
+					"INVOKESPECIAL calling non-super class method");
 			return false;
 		}
-		declarer = mi->class;
+
+		/* if the referer has ACC_SUPER set, we must do the special    */
+		/* lookup starting with the direct super class of referer      */
+		if ((referer->flags & ACC_SUPER) != 0) {
+			mi = class_resolvemethod(referer->super.cls,
+									 ref->methodref->name,
+									 ref->methodref->descriptor);
+			if (!mi) {
+				/* the spec calls for an AbstractMethodError in this case */
+				*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+				return false;
+			}
+			declarer = mi->class;
+		}
 	}
 
 	/* check static */
@@ -1332,21 +1341,10 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	unresolved_method *ref;
 	constant_FMIref *methodref;
 	bool staticmethod;
-	bool speciallookup;
 
 	methodref = (constant_FMIref *) iptr[0].val.a;
 	RESOLVE_ASSERT(methodref);
 	staticmethod = (iptr[0].opc == ICMD_INVOKESTATIC);
-
-	/* check if we have to do the INVOKESPECIAL lookup of super.* methods */
-	/* we can perform two of the three checks given in the JVM spec now:  */
-	/*     1) the referer has ACC_SUPER set                               */
-	/*     2) the method is not an <init> method                          */
-	/* The third one (the subclass condition) can only be checked after   */
-	/* resolving the reference.                                           */
-	speciallookup = (iptr[0].opc == ICMD_INVOKESPECIAL) 
-					&& ((referer->flags & ACC_SUPER) != 0)
-					&& methodref->name != utf_init;
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
@@ -1356,7 +1354,6 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
 	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
 	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    special: %d\n",(int)speciallookup);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
@@ -1369,7 +1366,7 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 	/* create the data structure */
 	ref = NEW(unresolved_method);
 	ref->flags = ((staticmethod) ? RESOLVE_STATIC : 0)
-			   | ((speciallookup) ? RESOLVE_SPECIAL : 0);
+			   | ((iptr[0].opc == ICMD_INVOKESPECIAL) ? RESOLVE_SPECIAL : 0);
 	ref->referermethod = refmethod;
 	ref->methodref = methodref;
 	ref->paramconstraints = NULL;

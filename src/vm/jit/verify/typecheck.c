@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3335 2005-10-04 19:03:52Z edwin $
+   $Id: typecheck.c 3348 2005-10-05 09:20:30Z edwin $
 
 */
 
@@ -112,7 +112,7 @@ subroutine, or to which subroutine it belongs.
 	to which return target among the possible targets of the RET. The
 	downside of this method is, that for each slot/variable we must
 	store not just one type, but one type *for each possible use of the
-	returnAddresses that currently are in a slot/variable.[5]
+	returnAddresses* that currently are in a slot/variable.[5]
 
 *) Checks for uninitialized object instances are hard because after the
 invocation of <init> on an uninitialized object *all* slots/variables
@@ -1128,19 +1128,6 @@ verify_invocation(verifier_state *state)
 	
 	if (!resolve_method(um,resolveLazy,(methodinfo **) &(state->iptr[0].val.a)))
 		return false;
-
-#if 0
-	if (opcode == ICMD_INVOKESPECIAL) {
-		/* XXX for INVOKESPECIAL: check if the invokation is done at all */
-
-		/* (If callinginit the class is checked later.) */
-		if (!callinginit) { 
-			/* XXX classrefs */
-			if (!builtin_isanysubclass(myclass,mi->class)) 
-				XXXTYPECHECK_VERIFYERROR_bool("Illegal instruction: INVOKESPECIAL calling non-superclass method"); 
-		} 
-	}
-#endif
 
 	/* allocate parameters if necessary */
 	
