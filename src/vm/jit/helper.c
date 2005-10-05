@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 3007 2005-07-12 20:58:01Z twisti $
+   $Id: helper.c 3353 2005-10-05 13:30:10Z edwin $
 
 */
 
@@ -63,6 +63,37 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 
 	if (!resolve_classref(NULL, cr, resolveEager, true, true, &c))
 		return NULL;
+
+	/* return the classinfo pointer */
+
+	return c;
+}
+
+
+/* helper_resolve_classinfo_nonabstract ****************************************
+
+   This function returns the loaded and resolved class. If the resolved class
+   is abstract the function throws an exception and returns NULL.
+
+*******************************************************************************/
+
+classinfo *helper_resolve_classinfo_nonabstract(constant_classref *cr)
+{
+	classinfo *c;
+
+	/* resolve and load the class */
+
+	c = helper_resolve_classinfo(cr);
+	if (!c) {
+		return NULL; /* exception */
+	}
+
+	/* ensure that the class is not abstract */
+
+	if ((c->flags & ACC_ABSTRACT) != 0) {
+		*exceptionptr = new_verifyerror(NULL,"creating instance of abstract class");
+		return NULL;
+	}
 
 	/* return the classinfo pointer */
 

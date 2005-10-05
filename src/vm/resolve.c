@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3348 2005-10-05 09:20:30Z edwin $
+   $Id: resolve.c 3353 2005-10-05 13:30:10Z edwin $
 
 */
 
@@ -91,7 +91,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_class_from_name(");
 	utf_fprint(stderr,referer->name);
-	fprintf(stderr,",");
+	fprintf(stderr,",%p,",referer->classloader);
 	utf_fprint(stderr,classname);
 	fprintf(stderr,",%d,%d)\n",(int)checkaccess,(int)link);
 #endif
@@ -103,7 +103,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    lookup result: %p\n",(void*)cls);
 #endif
-	
+
 	if (!cls) {
 		/* resolve array types */
 

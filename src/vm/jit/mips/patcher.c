@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3323 2005-10-04 18:33:30Z twisti $
+   $Id: patcher.c 3353 2005-10-05 13:30:10Z edwin $
 
 */
 
@@ -272,7 +272,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = helper_resolve_classinfo_nonabstract(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;

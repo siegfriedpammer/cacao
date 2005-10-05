@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3352 2005-10-05 12:28:42Z edwin $
+   $Id: typecheck.c 3353 2005-10-05 13:30:10Z edwin $
 
 */
 
@@ -1268,7 +1268,7 @@ static bool
 verify_builtin(verifier_state *state)
 {
 	builtintable_entry *bte;
-    classinfo *cls;
+    classref_or_classinfo cls;
     stackptr dst;               /* output stack of current instruction */
 
 	bte = (builtintable_entry *) state->iptr[0].val.a;
@@ -1276,14 +1276,17 @@ verify_builtin(verifier_state *state)
 
 	if (ISBUILTIN(BUILTIN_new) || ISBUILTIN(PATCHER_builtin_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without classinfo");
-		cls = (classinfo *) state->iptr[-1].val.a;
-#ifdef XXX
-		TYPECHECK_ASSERT(!cls || cls->linked);
-		/* The following check also forbids array classes and interfaces: */
-		if ((cls->flags & ACC_ABSTRACT) != 0)
-			TYPECHECK_VERIFYERROR_bool("Invalid instruction: NEW creating instance of abstract class");
-#endif
+			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
+		cls.any = state->iptr[-1].val.a;
+		if (cls.any && !IS_CLASSREF(cls)) {
+			/* The following check also forbids array classes and interfaces: */
+			if ((cls.cls->flags & ACC_ABSTRACT) != 0)
+				TYPECHECK_VERIFYERROR_bool("Invalid instruction: NEW creating instance of abstract class");
+		}
+		else {
+			/* in this case, the patcher will perform the non-abstract check */
+			TYPECHECK_ASSERT(ISBUILTIN(PATCHER_builtin_new));
+		}
 		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {

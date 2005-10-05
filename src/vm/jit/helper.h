@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.h 2360 2005-04-24 13:07:57Z jowenn $
+   $Id: helper.h 3353 2005-10-05 13:30:10Z edwin $
 
 */
 
@@ -45,6 +45,7 @@
 /* function prototypes ********************************************************/
 
 classinfo  *helper_resolve_classinfo(constant_classref *cr);
+classinfo  *helper_resolve_classinfo_nonabstract(constant_classref *cr);
 methodinfo *helper_resolve_methodinfo(unresolved_method *um);
 fieldinfo  *helper_resolve_fieldinfo(unresolved_field *uf);
 java_objectheader *helper_fillin_stacktrace(java_objectheader*);
