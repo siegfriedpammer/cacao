@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3262 2005-09-21 20:02:49Z twisti $
+   $Id: utf8.c 3356 2005-10-05 16:04:28Z twisti $
 
 */
 
@@ -980,11 +980,8 @@ bool is_valid_utf(char *utf_ptr, char *end_pos)
 		} else {
 			/* Sun Java seems to allow overlong UTF-8 encodings */
 			
-			if (v < min_codepoint[len]) { /* overlong UTF-8 */
-				if (!opt_liberalutf)
-					fprintf(stderr,"WARNING: Overlong UTF-8 sequence found.\n");
-				/* XXX change this to exception? */
-			}
+			/* if (v < min_codepoint[len]) */
+				/* XXX throw exception? */
 		}
 
 		/* surrogates in UTF-8 seem to be allowed in Java classfiles */
