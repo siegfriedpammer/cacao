@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3360 2005-10-05 21:47:53Z edwin $
+   $Id: typecheck.c 3361 2005-10-05 22:31:57Z edwin $
 
 */
 
@@ -1478,6 +1478,7 @@ verify_multianewarray(verifier_state *state)
 
 	/* check array descriptor */
 	if (state->iptr[0].target == NULL) {
+		/* the array class reference has already been resolved */
 		arrayvftbl = (vftbl_t*) state->iptr[0].val.a;
 		if (!arrayvftbl)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with unlinked class");
@@ -1490,7 +1491,23 @@ verify_multianewarray(verifier_state *state)
 		TYPEINFO_INIT_CLASSINFO(state->iptr->dst->typeinfo,arrayvftbl->class);
 	}
 	else {
-		/* XXX do checks in patcher */
+		const char *p;
+		constant_classref *cr;
+		
+		/* the array class reference is still unresolved */
+		/* check that the reference indicates an array class of correct dimension */
+		cr = (constant_classref *) state->iptr[0].val.a;
+		i = 0;
+		p = cr->name->text;
+		while (p[i] == '[')
+			i++;
+		/* { the dimension of the array class == i } */
+		if (i < 1)
+			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
+		if (i < state->iptr[0].op1)
+			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
+
+		/* set the array type of the result */
 		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].val.a)))
 			return false;
 	}
@@ -2666,8 +2683,6 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
     LOGimp("exiting typecheck");
 	return state.m;
 }
-
-#undef COPYTYPE
 
 #endif /* CACAO_TYPECHECK */
 
