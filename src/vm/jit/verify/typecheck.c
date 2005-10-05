@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3361 2005-10-05 22:31:57Z edwin $
+   $Id: typecheck.c 3362 2005-10-05 23:03:40Z edwin $
 
 */
 
@@ -2478,6 +2478,50 @@ verify_init_locals(verifier_state *state)
 	return true;
 }
 
+/* typecheck_init_flags ********************************************************
+ 
+   Initialize the basic block flags for the following CFG traversal.
+  
+   IN:
+       state............the current state of the verifier
+
+*******************************************************************************/
+
+static void
+typecheck_init_flags(verifier_state *state)
+{
+	s4 i;
+	basicblock *block;
+
+    /* set all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
+	
+    i = state->m->basicblockcount;
+    block = state->m->basicblocks;
+
+    while (--i >= 0) {
+		
+#ifdef TYPECHECK_DEBUG
+		/* check for invalid flags */
+        if (block->flags != BBFINISHED && block->flags != BBDELETED && block->flags != BBUNDEF)
+        {
+            /*show_icmd_method(state->cd->method,state->cd,state->rd);*/
+            LOGSTR1("block flags: %d\n",block->flags); LOGFLUSH;
+			TYPECHECK_ASSERT(false);
+        }
+#endif
+
+        if (block->flags >= BBFINISHED) {
+            block->flags = BBTYPECHECK_UNDEF;
+        }
+        block++;
+    }
+
+    /* the first block is always reached */
+	
+    if (state->m->basicblockcount && state->m->basicblocks[0].flags == BBTYPECHECK_UNDEF)
+        state->m->basicblocks[0].flags = BBTYPECHECK_REACHED;
+}
+
 /* typecheck_reset_flags *******************************************************
  
    Reset the flags of basic blocks we have not reached.
@@ -2580,32 +2624,9 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 
     state.initmethod = (state.m->name == utf_init);
 
-    /* reset all BBFINISHED blocks to BBTYPECHECK_UNDEF. */
-	
-    i = state.m->basicblockcount;
-    state.bptr = state.m->basicblocks;
-    while (--i >= 0) {
-#ifdef TYPECHECK_DEBUG
-        if (state.bptr->flags != BBFINISHED && state.bptr->flags != BBDELETED
-            && state.bptr->flags != BBUNDEF)
-        {
-            /*show_icmd_method(state.cd->method,state.cd,state.rd);*/
-            LOGSTR1("block flags: %d\n",state.bptr->flags); LOGFLUSH;
-			TYPECHECK_ASSERT(false);
-        }
-#endif
-        if (state.bptr->flags >= BBFINISHED) {
-            state.bptr->flags = BBTYPECHECK_UNDEF;
-        }
-        state.bptr++;
-    }
+	/* initialize the basic block flags for the following CFG traversal */
 
-    /* the first block is always reached */
-	
-    if (state.m->basicblockcount && state.m->basicblocks[0].flags == BBTYPECHECK_UNDEF)
-        state.m->basicblocks[0].flags = BBTYPECHECK_REACHED;
-
-    LOG("Blocks reset.\n");
+	typecheck_init_flags(&state);
 
     /* number of local variables */
     
