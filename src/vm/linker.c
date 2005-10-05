@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3344 2005-10-04 21:54:28Z twisti $
+   $Id: linker.c 3351 2005-10-05 11:53:28Z edwin $
 
 */
 
@@ -441,6 +441,13 @@ static classinfo *link_class_intern(classinfo *c)
 	if (!c->loaded)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Trying to link unloaded class");
+
+	/* cache the self-reference of this class                          */
+	/* we do this for cases where the defining loader of the class     */
+	/* has not yet been recorded as an initiating loader for the class */
+	/* this is needed so subsequent code can assume that self-refs     */
+	/* will always resolve lazily                                      */
+	classcache_store(c->classloader,c,false);
 
 	/* ok, this class is somewhat linked */
 

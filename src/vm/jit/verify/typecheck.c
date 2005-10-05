@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3348 2005-10-05 09:20:30Z edwin $
+   $Id: typecheck.c 3351 2005-10-05 11:53:28Z edwin $
 
 */
 
@@ -1221,20 +1221,27 @@ verify_invocation(verifier_state *state)
 
 		/* initializing the 'this' reference? */
 		if (!ins) {
+			classinfo *cls;
 			TYPECHECK_ASSERT(state->initmethod);
-			/* must be <init> of current class or direct superclass */
-			/* XXX check with classrefs */
-#if 0
-			if (mi->class != m->class && mi->class != m->class->super.cls)
+			/* { we are initializing the 'this' reference }                           */
+			/* must be <init> of current class or direct superclass                   */
+			/* the current class is linked, so must be its superclass. thus we can be */
+			/* sure that resolving will be trivial.                                   */
+			if (!resolve_classref(state->m,mref->classref,resolveLazy,false,true,&cls))
+				return false; /* exception */
+
+			/* if lazy resolving did not succeed, it's not one of the allowed classes */
+			/* otherwise we check it directly                                         */
+			if (cls == NULL || (cls != state->m->class && cls != state->m->class->super.cls)) {
 				TYPECHECK_VERIFYERROR_bool("<init> calling <init> of the wrong class");
-#endif
+			}
 
 			/* set our marker variable to type int */
 			LOG("setting <init> marker");
 			typevectorset_store(state->localset,state->numlocals-1,TYPE_INT,NULL);
 		}
 		else {
-			/* initializing an instance created with NEW */
+			/* { we are initializing an instance created with NEW } */
 			/* XXX is this strictness ok? */
 			/* XXX check with classrefs */
 #if 0

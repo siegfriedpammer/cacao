@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3263 2005-09-21 20:18:03Z twisti $
+   $Id: classcache.c 3351 2005-10-05 11:53:28Z edwin $
 
 */
 
@@ -619,13 +619,14 @@ classcache_store_defined(/*@shared@*/ classinfo *cls)
 		/* check if this class has been defined by the same classloader */
 		if (clsen->classobj != NULL && clsen->classobj->classloader == cls->classloader) {
 			/* we found an earlier definition, delete the newer one */
+			/* (if it is a different classinfo)                     */
+			if (clsen->classobj != cls) {
 #ifdef CLASSCACHE_VERBOSE
-			dolog("replacing %p with earlier defined class %p",cls,clsen->classobj);
+				dolog("replacing %p with earlier defined class %p",cls,clsen->classobj);
 #endif
-			/* we assert that the earlier object is not the same that we were given */
-			CLASSCACHE_ASSERT(clsen->classobj != cls);
-			class_free(cls);
-			cls = clsen->classobj;
+				class_free(cls);
+				cls = clsen->classobj;
+			}
 			goto return_success;
 		}
 	}
