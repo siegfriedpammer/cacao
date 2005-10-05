@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3353 2005-10-05 13:30:10Z edwin $
+   $Id: typecheck.c 3359 2005-10-05 17:52:08Z edwin $
 
 */
 
@@ -1384,6 +1384,63 @@ verify_builtin(verifier_state *state)
 	return true;
 }
 
+/* verify_multianewarray *******************************************************
+ 
+   Verify a MULTIANEWARRAY instruction.
+  
+   IN:
+       state............the current state of the verifier
+
+   RETURN VALUE:
+       true.............successful verification,
+	   false............an exception has been thrown.
+
+*******************************************************************************/
+
+static bool
+verify_multianewarray(verifier_state *state)
+{
+    stackptr srcstack;         /* source stack for copying and merging */
+	vftbl_t *arrayvftbl;
+	arraydescriptor *desc;
+	s4 i;
+
+	/* check the array lengths on the stack */
+	i = state->iptr[0].op1;
+	if (i < 1)
+		TYPECHECK_VERIFYERROR_bool("Illegal dimension argument");
+
+	srcstack = state->curstack;
+	while (i--) {
+		if (!srcstack)
+			TYPECHECK_VERIFYERROR_bool("Unable to pop operand off an empty stack");
+		TYPECHECK_INT(srcstack);
+		srcstack = srcstack->prev;
+	}
+
+	/* check array descriptor */
+	if (state->iptr[0].target == NULL) {
+		arrayvftbl = (vftbl_t*) state->iptr[0].val.a;
+		if (!arrayvftbl)
+			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with unlinked class");
+		if ((desc = arrayvftbl->arraydesc) == NULL)
+			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
+		if (desc->dimension < state->iptr[0].op1)
+			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
+
+		/* set the array type of the result */
+		TYPEINFO_INIT_CLASSINFO(state->iptr->dst->typeinfo,arrayvftbl->class);
+	}
+	else {
+		/* XXX do checks in patcher */
+		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].val.a)))
+			return false;
+	}
+
+	/* everything ok */
+	return true;
+}
+
 /* verify_basic_block **********************************************************
  
    Perform bytecode verification of a basic block.
@@ -1400,7 +1457,6 @@ verify_builtin(verifier_state *state)
 static bool
 verify_basic_block(verifier_state *state)
 {
-    stackptr srcstack;         /* source stack for copying and merging */
     int opcode;                                      /* current opcode */
     int len;                        /* for counting instructions, etc. */
     bool superblockend;        /* true if no fallthrough to next block */
@@ -2023,42 +2079,8 @@ return_tail:
 				/* MULTIANEWARRAY                       */
 
 			case ICMD_MULTIANEWARRAY:
-				/* XXX make this a separate function */
-				{
-					vftbl_t *arrayvftbl;
-					arraydescriptor *desc;
-
-					/* check the array lengths on the stack */
-					i = state->iptr[0].op1;
-					if (i < 1)
-						TYPECHECK_VERIFYERROR_bool("Illegal dimension argument");
-					srcstack = state->curstack;
-					while (i--) {
-						if (!srcstack)
-							TYPECHECK_VERIFYERROR_bool("Unable to pop operand off an empty stack");
-						TYPECHECK_INT(srcstack);
-						srcstack = srcstack->prev;
-					}
-
-					/* check array descriptor */
-					if (state->iptr[0].target == NULL) {
-						arrayvftbl = (vftbl_t*) state->iptr[0].val.a;
-						if (!arrayvftbl)
-							TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with unlinked class");
-						if ((desc = arrayvftbl->arraydesc) == NULL)
-							TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
-						if (desc->dimension < state->iptr[0].op1)
-							TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
-
-						/* set the array type of the result */
-						TYPEINFO_INIT_CLASSINFO(dst->typeinfo,arrayvftbl->class);
-					}
-					else {
-						/* XXX do checks in patcher */
-						if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].val.a)))
-							return false;
-					}
-				}
+				if (!verify_multianewarray(state))
+					return false;		
 				maythrow = true;
 				break;
 
@@ -2381,6 +2403,46 @@ verify_init_locals(verifier_state *state)
 	return true;
 }
 
+/* typecheck_reset_flags *******************************************************
+ 
+   Reset the flags of basic blocks we have not reached.
+  
+   IN:
+       state............the current state of the verifier
+
+*******************************************************************************/
+
+static void
+typecheck_reset_flags(verifier_state *state)
+{
+	s4 i;
+
+	/* check for invalid flags at exit */
+	
+#ifdef TYPECHECK_DEBUG
+	for (i=0; i<state->m->basicblockcount; ++i) {
+		if (state->m->basicblocks[i].flags != BBDELETED
+			&& state->m->basicblocks[i].flags != BBUNDEF
+			&& state->m->basicblocks[i].flags != BBFINISHED
+			&& state->m->basicblocks[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
+													 * some exception handlers,
+													 * that's ok. */
+		{
+			LOG2("block L%03d has invalid flags after typecheck: %d",
+				 state->m->basicblocks[i].debug_nr,state->m->basicblocks[i].flags);
+			TYPECHECK_ASSERT(false);
+		}
+	}
+#endif
+	
+	/* Reset blocks we never reached */
+	
+	for (i=0; i<state->m->basicblockcount; ++i) {
+		if (state->m->basicblocks[i].flags == BBTYPECHECK_UNDEF)
+			state->m->basicblocks[i].flags = BBFINISHED;
+	}
+}
+		
 /****************************************************************************/
 /* typecheck()                                                              */
 /* This is the main function of the bytecode verifier. It is called         */
@@ -2538,36 +2600,12 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	TYPECHECK_COUNTIF(state.jsrencountered,stat_typechecked_jsr);
 #endif
 
-	/* check for invalid flags at exit */
-	/* XXX make this a separate function */
-	
-#ifdef TYPECHECK_DEBUG
-	for (i=0; i<state.m->basicblockcount; ++i) {
-		if (state.m->basicblocks[i].flags != BBDELETED
-			&& state.m->basicblocks[i].flags != BBUNDEF
-			&& state.m->basicblocks[i].flags != BBFINISHED
-			&& state.m->basicblocks[i].flags != BBTYPECHECK_UNDEF) /* typecheck may never reach
-													 * some exception handlers,
-													 * that's ok. */
-		{
-			LOG2("block L%03d has invalid flags after typecheck: %d",
-				 state.m->basicblocks[i].debug_nr,state.m->basicblocks[i].flags);
-			TYPECHECK_ASSERT(false);
-		}
-	}
-#endif
-	
-	/* Reset blocks we never reached */
-	
-	for (i=0; i<state.m->basicblockcount; ++i) {
-		if (state.m->basicblocks[i].flags == BBTYPECHECK_UNDEF)
-			state.m->basicblocks[i].flags = BBFINISHED;
-	}
-		
-    LOGimp("exiting typecheck");
+	/* reset the flags of blocks we haven't reached */
+
+	typecheck_reset_flags(&state);
 
 	/* just return methodinfo* to indicate everything was ok */
-
+    LOGimp("exiting typecheck");
 	return state.m;
 }
 
