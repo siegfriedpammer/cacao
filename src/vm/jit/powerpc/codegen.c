@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3234 2005-09-21 12:11:58Z twisti $
+   $Id: codegen.c 3357 2005-10-05 16:05:04Z twisti $
 
 */
 
@@ -2562,7 +2562,7 @@ nowperformreturn:
 			}
 
 gen_method:
-			s3 = iptr->op1;
+			s3 = md->paramcount;
 
 			MCODECHECK((s3 << 1) + 64);
 
@@ -2626,6 +2626,19 @@ gen_method:
 				d = md->returntype.type;
 
 				M_ALD(REG_PV, REG_PV, disp);  /* pointer to built-in-function */
+				M_MTCTR(REG_PV);
+				M_JSR;
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_MFLR(REG_ITMP1);
+				M_LDA(REG_PV, REG_ITMP1, -disp);
+
+				/* if op1 == true, we need to check for an exception */
+
+				if (iptr->op1 == true) {
+					M_CMPI(REG_RESULT, 0);
+					M_BEQ(0);
+					codegen_addxexceptionrefs(cd, mcodeptr);
+				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2653,6 +2666,11 @@ gen_method:
 				}
 
 				M_ALD(REG_PV, REG_PV, disp);
+				M_MTCTR(REG_PV);
+				M_JSR;
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_MFLR(REG_ITMP1);
+				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
@@ -2679,6 +2697,11 @@ gen_method:
 				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
+				M_MTCTR(REG_PV);
+				M_JSR;
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_MFLR(REG_ITMP1);
+				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -2710,17 +2733,13 @@ gen_method:
 					  OFFSET(java_objectheader, vftbl));    
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
+				M_MTCTR(REG_PV);
+				M_JSR;
+				disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
+				M_MFLR(REG_ITMP1);
+				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
 			}
-
-			M_MTCTR(REG_PV);
-			M_JSR;
-
-			/* recompute pv */
-
-			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
-			M_MFLR(REG_ITMP1);
-			M_LDA(REG_PV, REG_ITMP1, -disp);
 
 			/* d contains return type */
 
@@ -3084,21 +3103,6 @@ gen_method:
 			}
 			break;
 
-		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			M_CMPI(s1, 0);
-			M_BLT(0);
-			codegen_addxcheckarefs(cd, mcodeptr);
-			break;
-
-		case ICMD_CHECKEXCEPTION:   /* ... ==> ...                            */
-
-			M_CMPI(REG_RESULT, 0);
-			M_BEQ(0);
-			codegen_addxexceptionrefs(cd, mcodeptr);
-			break;
-
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
@@ -3107,19 +3111,16 @@ gen_method:
 			MCODECHECK((iptr->op1 << 1) + 64);
 
 			for (s1 = iptr->op1; --s1 >= 0; src = src->prev) {
-				var_to_reg_int(s2, src, REG_ITMP1);
-				M_CMPI(s2, 0);
-				M_BLT(0);
-				codegen_addxcheckarefs(cd, mcodeptr);
-
 				/* copy SAVEDVAR sizes to stack */
 
-				if (src->varkind != ARGVAR)
+				if (src->varkind != ARGVAR) {
+					var_to_reg_int(s2, src, REG_ITMP1);
 #if defined(__DARWIN__)
 					M_IST(s2, REG_SP, LA_SIZE + (s1 + INT_ARG_CNT) * 4);
 #else
 					M_IST(s2, REG_SP, LA_SIZE + (s1 + 3) * 4);
 #endif
+				}
 			}
 
 			/* a0 = dimension count */
@@ -3158,6 +3159,12 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
 			M_JSR;
+
+			/* check for exception before result assignment */
+
+			M_CMPI(REG_RESULT, 0);
+			M_BEQ(0);
+			codegen_addxexceptionrefs(cd, mcodeptr);
 
 			d = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, d);
@@ -3474,58 +3481,6 @@ gen_method:
 		}
 	}
 
-	/* generate NegativeArraySizeException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcheckarefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(16);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2],
-				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_negativearraysizeexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
 	/* generate NullPointerException stubs */
 
 	xcodeptr = NULL;
@@ -3593,7 +3548,7 @@ gen_method:
 		}
 	}
 
-	/* generate ICMD_CHECKEXCEPTION stubs */
+	/* generate exception check stubs */
 
 	xcodeptr = NULL;
 
@@ -3998,24 +3953,20 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
 
+	/* save return value */
+
+	if (IS_INT_LNG_TYPE(md->returntype.type)) {
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+	} else {
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		else
+			M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+	}
 
 	/* remove native stackframe info */
-
-	switch (md->returntype.type) {
-	case TYPE_LNG:
-		M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-		/* fall through */
-	case TYPE_INT:
-	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	case TYPE_FLT:
-		M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	}
 
 	M_AADD_IMM(REG_SP, stackframesize * 4 - sizeof(stackframeinfo),
 			   rd->argintregs[0]);
@@ -4024,30 +3975,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 
-	switch (md->returntype.type) {
-	case TYPE_LNG:
-		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-		/* fall through */
-	case TYPE_INT:
-	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	case TYPE_FLT:
-		M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		break;
-	}
-
-
 	/* print call trace */
 
 	if (runverbose) {
-		M_LDA(REG_SP, REG_SP, -(LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4));
-		M_IST(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
-		M_IST(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
-		M_DST(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
+		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (1 + 2 + 2 + 1) * 4));
 
 		/* keep this order */
 		switch (md->returntype.type) {
@@ -4083,57 +4014,36 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_MTCTR(REG_ITMP2);
 		M_JSR;
 
-		M_ILD(REG_RESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 0) * 4);
-		M_ILD(REG_RESULT2, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 1) * 4);
-		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2) * 4);
-		M_LDA(REG_SP, REG_SP, LA_SIZE + ((1 + 2 + 2 + 1) + 2 + 2) * 4);
+		M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + 2 + 2 + 1) * 4);
 	}
 
 	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	switch (md->returntype.type) {
-	case TYPE_LNG:
-		M_IST(REG_RESULT2, REG_SP, (stackframesize - 1) * 4);
-		/* fall through */
-	case TYPE_INT:
-	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	case TYPE_FLT:
-		M_FST(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	}
-
 	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
 	M_MOV(REG_RESULT, REG_ITMP2);
-
-	switch (md->returntype.type) {
-	case TYPE_LNG:
-		M_ILD(REG_RESULT2, REG_SP, (stackframesize - 1) * 4);
-		/* fall through */
-	case TYPE_INT:
-	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	case TYPE_FLT:
-		M_FLD(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, (stackframesize - 2) * 4);
-		break;
-	}
 #else
 	disp = dseg_addaddress(cd, &_exceptionptr)
 	M_ALD(REG_ITMP2, REG_PV, disp);
 #endif
 	M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);/* load exception into reg. itmp1     */
+
+	/* restore return value */
+
+	if (IS_INT_LNG_TYPE(md->returntype.type)) {
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+	} else {
+		if (IS_2_WORD_TYPE(md->returntype.type))
+			M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		else
+			M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+	}
+
 	M_TST(REG_ITMP1_XPTR);
 	M_BNE(4);                           /* if no exception then return        */
 
