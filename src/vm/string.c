@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3239 2005-09-21 14:09:22Z twisti $
+   $Id: string.c 3349 2005-10-05 10:37:00Z twisti $
 
 */
 
@@ -435,12 +435,12 @@ s4 javastring_strlen(java_objectheader *so)
 java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 									bool copymode)
 {
-    literalstring *s;                /* hashtable element */
-    java_lang_String *js;            /* u2-array wrapped in javastring */
-    java_chararray *stringdata;      /* copy of u2-array */      
-    u4 key;
-    u4 slot;
-    u2 i;
+    literalstring    *s;                /* hashtable element                  */
+    java_lang_String *js;               /* u2-array wrapped in javastring     */
+    java_chararray   *stringdata;       /* copy of u2-array                   */
+    u4                key;
+    u4                slot;
+    u2                i;
 
     /* find location in hashtable */
     key  = unicode_hashkey(a->data + offset, length);
@@ -502,53 +502,64 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	/* create new javastring */
 
 	js = NEW(java_lang_String);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&js->header);
 #endif
+
 	js->header.vftbl = class_java_lang_String->vftbl;
 	js->value  = stringdata;
 	js->offset = 0;
 	js->count  = length;
 
 	/* create new literalstring */
+
 	s = NEW(literalstring);
 	s->hashlink = string_hash.ptr[slot];
 	s->string   = (java_objectheader *) js;
 	string_hash.ptr[slot] = s;
 
 	/* update number of hashtable entries */
+
 	string_hash.entries++;
 
 	/* reorganization of hashtable */       
-	if (string_hash.entries > (string_hash.size * 2)) {
-		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */  
 
-		u4 i;
-		literalstring *s;
-		hashtable newhash; /* the new hashtable */
+	if (string_hash.entries > (string_hash.size * 2)) {
+		/* reorganization of hashtable, average length of the external
+		   chains is approx. 2 */
+
+		u4                i;
+		literalstring    *s;
+		literalstring    *nexts;
+		java_lang_String *tmpjs;
+		hashtable         newhash; /* the new hashtable */
       
 		/* create new hashtable, double the size */
+
 		init_hashtable(&newhash, string_hash.size * 2);
 		newhash.entries = string_hash.entries;
       
 		/* transfer elements to new hashtable */
+
 		for (i = 0; i < string_hash.size; i++) {
 			s = string_hash.ptr[i];
+
 			while (s) {
-				literalstring *nexts = s->hashlink;
-				js   = (java_lang_String *) s->string;
-				slot = unicode_hashkey(js->value->data, js->count) & (newhash.size - 1);
+				nexts = s->hashlink;
+				tmpjs = (java_lang_String *) s->string;
+				slot  = unicode_hashkey(tmpjs->value->data, tmpjs->count) & (newhash.size - 1);
 	  
 				s->hashlink = newhash.ptr[slot];
 				newhash.ptr[slot] = s;
 	
-				/* follow link in external hash chain */  
+				/* follow link in external hash chain */
 				s = nexts;
 			}
 		}
 	
-		/* dispose old table */	
+		/* dispose old table */
+
 		MFREE(string_hash.ptr, void*, string_hash.size);
 		string_hash = newhash;
 	}
@@ -566,11 +577,11 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 java_objectheader *literalstring_new(utf *u)
 {
-    char *utf_ptr;                   /* pointer to current unicode character  */
+    char           *utf_ptr;         /* pointer to current unicode character  */
 	                                 /* utf string                            */
-    u4 utflength;                    /* length of utf-string if uncompressed  */
+    u4              utflength;       /* length of utf-string if uncompressed  */
     java_chararray *a;               /* u2-array constructed from utf string  */
-    u4 i;
+    u4              i;
 
 	utf_ptr = u->text;
 	utflength = utf_strlen(u);
