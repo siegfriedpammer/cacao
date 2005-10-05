@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3331 2005-10-04 18:54:33Z twisti $
+   $Id: stack.c 3350 2005-10-05 11:15:05Z twisti $
 
 */
 
@@ -2745,6 +2745,42 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_ACONST:
 	case ICMD_AASTORECONST:
 		printf(" %p", iptr->val.a);
+
+		if (iptr->val.a) {
+			/* check if this is a constant string */
+
+			if (iptr->op1 == 0) {
+				printf(", String = \"");
+				utf_display(javastring_toutf(iptr->val.a, false));
+				printf("\"");
+
+			} else {
+				/* it is a BUILTIN argument */
+
+				printf(", Class = \"");
+
+				/* is it resolved? */
+
+				if (iptr[1].target == NULL) {
+					builtintable_entry *bte = iptr[1].val.a;
+
+					/* NEW gets a classinfo* as argument */
+
+					if (bte->fp == BUILTIN_new) {
+						utf_display(((classinfo *) iptr->val.a)->name);
+
+					} else {
+						utf_display(((vftbl_t *) iptr->val.a)->class->name);
+					}
+
+				} else {
+					/* iptr->target is a constant_classref */
+
+					utf_display(((constant_classref *) iptr->val.a)->name);
+				}
+				printf("\"");
+			}
+		}
 		break;
 
 	case ICMD_GETFIELD:
