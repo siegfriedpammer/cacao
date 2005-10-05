@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3359 2005-10-05 17:52:08Z edwin $
+   $Id: typecheck.c 3360 2005-10-05 21:47:53Z edwin $
 
 */
 
@@ -367,9 +367,8 @@ void typecheck_print_statistics(FILE *file) {
 #define TYPECHECK_COUNT_FREQ(array,val,limit)
 #endif
 
-
 /****************************************************************************/
-/* MACROS FOR STACK TYPE CHECKING                                           */
+/* MACROS FOR THROWING EXCEPTIONS                                           */
 /****************************************************************************/
 
 #define TYPECHECK_VERIFYERROR_ret(m,msg,retval) \
@@ -380,6 +379,10 @@ void typecheck_print_statistics(FILE *file) {
 
 #define TYPECHECK_VERIFYERROR_main(msg)  TYPECHECK_VERIFYERROR_ret(state.m,(msg),NULL)
 #define TYPECHECK_VERIFYERROR_bool(msg)  TYPECHECK_VERIFYERROR_ret(state->m,(msg),false)
+
+/****************************************************************************/
+/* MACROS FOR STACK SLOT TYPE CHECKING                                      */
+/****************************************************************************/
 
 #define TYPECHECK_CHECK_TYPE(sp,tp,msg) \
     do { \
@@ -1251,9 +1254,72 @@ verify_invocation(verifier_state *state)
 	return true;
 }
 
+/* verify_generic_builtin ******************************************************
+ 
+   Verify the call of a generic builtin method.
+  
+   IN:
+       state............the current state of the verifier
+
+   RETURN VALUE:
+       true.............successful verification,
+	   false............an exception has been thrown.
+
+*******************************************************************************/
+
+static bool
+verify_generic_builtin(verifier_state *state)
+{
+	builtintable_entry *bte;
+	s4 i;
+	u1 rtype;
+	methoddesc *md;
+    stackptr sp;
+
+	TYPECHECK_COUNT(stat_ins_builtin_gen);
+
+	bte = (builtintable_entry *) state->iptr[0].val.a;
+	md = bte->md;
+	i = md->paramcount;
+	
+	/* check the types of the arguments on the stack */
+
+	sp = state->curstack;
+	for (i--; i >= 0; i--) {
+		if (sp->type != md->paramtypes[i].type) {
+			TYPECHECK_VERIFYERROR_bool("parameter type mismatch for builtin method");
+		}
+		
+#ifdef TYPECHECK_DEBUG
+		/* generic builtins may only take primitive types and java.lang.Object references */
+		if (sp->type == TYPE_ADR && md->paramtypes[i].classref->name != utf_java_lang_Object) {
+			*exceptionptr = new_internalerror("generic builtin method with non-generic reference parameter");
+			return false;
+		}
+#endif
+		
+		sp = sp->prev;
+	}
+
+	/* check the return type */
+
+	rtype = md->returntype.type;
+	if (rtype != TYPE_VOID) {
+		stackptr dst;
+
+		dst = state->iptr->dst;
+		if (rtype != dst->type)
+			TYPECHECK_VERIFYERROR_bool("Return type mismatch in generic builtin invocation");
+		if (!typeinfo_init_from_typedesc(&(md->returntype),NULL,&(dst->typeinfo)))
+			return false;
+	}
+
+	return true;
+}
+
 /* verify_builtin **************************************************************
  
-   Verify the call of a builtin function.
+   Verify the call of a builtin method.
   
    IN:
        state............the current state of the verifier
@@ -1273,6 +1339,9 @@ verify_builtin(verifier_state *state)
 
 	bte = (builtintable_entry *) state->iptr[0].val.a;
 	dst = state->iptr->dst;
+
+	/* XXX this is an ugly if-chain but twisti did not want a function */
+	/* pointer in builtintable_entry for this, so here you go.. ;)     */
 
 	if (ISBUILTIN(BUILTIN_new) || ISBUILTIN(PATCHER_builtin_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
@@ -1368,18 +1437,7 @@ verify_builtin(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
 	else {
-#if 0
-		/* XXX put these checks in a function */
-		TYPECHECK_COUNT(stat_ins_builtin_gen);
-		builtindesc = builtin_desc;
-		while (builtindesc->opcode && builtindesc->builtin
-				!= state->iptr->val.fp) builtindesc++;
-		if (!builtindesc->opcode) {
-			dolog("Builtin not in table: %s",icmd_builtin_name(state->iptr->val.fp));
-			TYPECHECK_ASSERT(false);
-		}
-		TYPECHECK_ARGS3(builtindesc->type_s3,builtindesc->type_s2,builtindesc->type_s1);
-#endif
+		return verify_generic_builtin(state);
 	}
 	return true;
 }
@@ -1400,7 +1458,7 @@ verify_builtin(verifier_state *state)
 static bool
 verify_multianewarray(verifier_state *state)
 {
-    stackptr srcstack;         /* source stack for copying and merging */
+    stackptr sp;
 	vftbl_t *arrayvftbl;
 	arraydescriptor *desc;
 	s4 i;
@@ -1410,12 +1468,12 @@ verify_multianewarray(verifier_state *state)
 	if (i < 1)
 		TYPECHECK_VERIFYERROR_bool("Illegal dimension argument");
 
-	srcstack = state->curstack;
+	sp = state->curstack;
 	while (i--) {
-		if (!srcstack)
+		if (!sp)
 			TYPECHECK_VERIFYERROR_bool("Unable to pop operand off an empty stack");
-		TYPECHECK_INT(srcstack);
-		srcstack = srcstack->prev;
+		TYPECHECK_INT(sp);
+		sp = sp->prev;
 	}
 
 	/* check array descriptor */
@@ -1503,7 +1561,7 @@ verify_basic_block(verifier_state *state)
 			state->localset,state->numlocals);
 
 	/* XXX FIXME FOR INLINING */
-	if(!useinlining) {
+	if (!useinlining) {
 		if (state->handlers[0])
 			for (i=0; i<state->numlocals; ++i)
 				if (state->localset->td[i].type == TYPE_ADR
