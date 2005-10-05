@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3351 2005-10-05 11:53:28Z edwin $
+   $Id: typecheck.c 3352 2005-10-05 12:28:42Z edwin $
 
 */
 
@@ -1242,14 +1242,12 @@ verify_invocation(verifier_state *state)
 		}
 		else {
 			/* { we are initializing an instance created with NEW } */
-			/* XXX is this strictness ok? */
-			/* XXX check with classrefs */
-#if 0
-			if (mi->class != initclass.cls)
-				TYPECHECK_VERIFYERROR_bool("Calling <init> method of the wrong class");
-#endif
+			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mref->classref->name) {
+				TYPECHECK_VERIFYERROR_bool("wrong <init> called for uninitialized reference");
+			}
 		}
 	}
+
 	return true;
 }
 
