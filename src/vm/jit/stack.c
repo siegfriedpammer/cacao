@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3350 2005-10-05 11:15:05Z twisti $
+   $Id: stack.c 3354 2005-10-05 14:16:57Z twisti $
 
 */
 
@@ -272,8 +272,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				while (--len >= 0)  {
 					opcode = iptr->opc;
-					 /* XXX TWISTI: why is this set to NULL here? */
- /*                 iptr->target = NULL; */
 
 #if defined(USEBUILTINTABLE)
 # if defined(ENABLE_INTRP)
@@ -283,7 +281,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 						if (bte && bte->opcode == opcode) {
 							iptr->opc = ICMD_BUILTIN;
-							iptr->op1 = bte->md->paramcount;
+							iptr->op1 = false;   /* don't check for exception */
 							iptr->val.a = bte;
 							m->isleafmethod = false;
 							goto builtin;
@@ -2049,8 +2047,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					case ICMD_MULTIANEWARRAY:
-						if (rd->argintreguse < 3)                                   
-							rd->argintreguse = 3;	
+						if (rd->argintreguse < 3)
+							rd->argintreguse = 3;
 
 						i = iptr->op1;
 
