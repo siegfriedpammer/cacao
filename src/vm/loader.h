@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 3368 2005-10-06 09:40:40Z edwin $
+   $Id: loader.h 3373 2005-10-06 13:10:53Z twisti $
 */
 
 
@@ -117,6 +117,7 @@ struct classbuffer {
 	u1        *data;                    /* pointer to byte code               */
 	s4         size;                    /* size of the byte code              */
 	u1        *pos;                     /* current read position              */
+	char      *path;                    /* path to file (for debugging)       */
 };
 
 
