@@ -42,7 +42,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Changes: Christian Thalinger
 
-   $Id: parseXTA.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: parseXTA.c 3365 2005-10-06 08:42:58Z edwin $
 
 */
 
@@ -1225,6 +1225,8 @@ if ((XTA_DEBUGr)||(XTA_DEBUGopcodes)) printf("\n");
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
+				if (!fr)
+					return 0;
 				if (!resolve_classref(m,fr->classref,resolveEager,true, true,&frclass)) {
 					log_text("Could not resolve class reference");
 					assert(0);
@@ -1262,6 +1264,8 @@ printf(" PUTSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
+				if (!fr)
+					return 0;
 				if (!resolve_classref(m,fr->classref,resolveEager,true, true,&frclass)) {
 					log_text("Could not resolve class reference");
 					assert(0);
@@ -1303,6 +1307,8 @@ printf(" GETSTATIC:");fflush(stdout); utf_display(fi->class->name);printf(".");f
 				classinfo *mrclass;
 
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+				if (!mr)
+					return 0;
 				if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
 					log_text("Could not resolve class reference");
 					assert(0);
@@ -1413,6 +1419,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                                 methodinfo *mi;
 								classinfo *mrclass;
 
+								/* XXX remove direct access */
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
 					if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
@@ -1473,6 +1480,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 								classinfo *mrclass;
 
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+								if (!mr)
+									return 0;
 								if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
 									log_text("Could not resolve class reference");
 									assert(0);
@@ -1505,6 +1514,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 			classinfo *cls;
 			constant_classref *cr;
 			cr = (constant_classref *)class_getconstant(m->class, i, CONSTANT_Class);
+			if (!cr)
+				return 0;
 			resolve_classref(NULL,cr,resolveEager,true, false,&cls);
                         /*** s_count++; look for s_counts for VTA */
 			/* add marked methods */
@@ -1522,6 +1533,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 							constant_classref *cr;
 							classinfo *cls;
 							cr = (constant_classref*) class_getconstant(m->class, i, CONSTANT_Class);
+							if (!cr)
+								return 0;
 							resolve_classref(NULL,cr,resolveEager,true, false,&cls);
                         LAZYLOADING(cls)
                        	CLASSNAMEop(cls,XTA_DEBUGr);

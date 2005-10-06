@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3364 2005-10-06 08:09:23Z edwin $
+   $Id: parse.c 3365 2005-10-06 08:42:58Z edwin $
 
 */
 
@@ -692,6 +692,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_ANEWARRAY:
 			i = code_get_u2(p + 1, inline_env->method);
 			compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			if (!compr)
+				return NULL;
 
 			if (!(cr = class_get_classref_multiarray_of(1, compr)))
 				return NULL;
@@ -719,6 +721,8 @@ SHOWOPCODE(DEBUG4)
 				s4 v = code_get_u1(p + 3, inline_env->method);
 
 				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				if (!cr)
+					return NULL;
 
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 					return NULL;
@@ -1012,6 +1016,8 @@ SHOWOPCODE(DEBUG4)
 				i = code_get_u2(p + 1, inline_env->method);
 				fr = class_getconstant(inline_env->method->class, i,
 									   CONSTANT_Fieldref);
+				if (!fr)
+					return NULL;
 
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
@@ -1059,6 +1065,8 @@ SHOWOPCODE(DEBUG4)
 
 				mr = class_getconstant(inline_env->method->class, i,
 									   CONSTANT_Methodref);
+				if (!mr)
+					return NULL;
 
 				md = mr->parseddesc.md;
 
@@ -1106,6 +1114,8 @@ SHOWOPCODE(DEBUG4)
 				i = code_get_u2(p + 1, inline_env->method);
 				mr = class_getconstant(inline_env->method->class, i,
 									   CONSTANT_Methodref);
+				if (!mr)
+					return NULL;
 
 				md = mr->parseddesc.md;
 
@@ -1152,6 +1162,8 @@ SHOWOPCODE(DEBUG4)
 
 				mr = class_getconstant(inline_env->method->class, i,
 									   CONSTANT_InterfaceMethodref);
+				if (!mr)
+					return NULL;
 
 				md = mr->parseddesc.md;
 
@@ -1191,6 +1203,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_NEW:
 			i = code_get_u2(p + 1, inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			if (!cr)
+				return NULL;
 
 			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true,
 								  &c))
@@ -1213,6 +1227,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_CHECKCAST:
 			i = code_get_u2(p + 1, inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			if (!cr)
+				return NULL;
 
 			if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
 								  true, &c))
@@ -1244,6 +1260,8 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_INSTANCEOF:
 			i = code_get_u2(p + 1,inline_env->method);
 			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			if (!cr)
+				return NULL;
 
 			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 				return NULL;

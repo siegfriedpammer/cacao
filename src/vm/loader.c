@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3346 2005-10-04 22:41:23Z edwin $
+   $Id: loader.c 3365 2005-10-06 08:42:58Z edwin $
 
 */
 
@@ -1132,6 +1132,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	while (forward_classes) {
 		utf *name =
 			class_getconstant(c, forward_classes->name_index, CONSTANT_Utf8);
+		if (!name)
+			return false;
 
 		if (opt_verify && !is_valid_name_utf(name)) {
 			*exceptionptr = 
@@ -1167,6 +1169,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	while (forward_strings) {
 		utf *text =
 			class_getconstant(c, forward_strings->string_index, CONSTANT_Utf8);
+		if (!text)
+			return false;
 
 		/* resolve utf-string */
 		cptags[forward_strings->thisindex] = CONSTANT_String;
@@ -1188,10 +1192,14 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		cn->name = class_getconstant(c,
 									 forward_nameandtypes->name_index,
 									 CONSTANT_Utf8);
+		if (!cn->name)
+			return false;
 
 		cn->descriptor = class_getconstant(c,
 										   forward_nameandtypes->sig_index,
 										   CONSTANT_Utf8);
+		if (!cn->descriptor)
+			return false;
 
 		if (opt_verify) {
 			/* check name */
@@ -1233,6 +1241,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		nat = class_getconstant(c,
 								forward_fieldmethints->nameandtype_index,
 								CONSTANT_NameAndType);
+		if (!nat)
+			return false;
 
 		/* add all descriptors in {Field,Method}ref to the descriptor_pool */
 

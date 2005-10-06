@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: parseRT.c 2788 2005-06-22 16:08:51Z edwin $
+   $Id: parseRT.c 3365 2005-10-06 08:42:58Z edwin $
 
 */
 
@@ -537,6 +537,8 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				classinfo *frclass;
 
 				fr = class_getconstant(m->class, i, CONSTANT_Fieldref);
+				if (!fr)
+					return 0;
 				if (!resolve_classref(m,fr->classref,resolveEager,true, true,&frclass)) {
 					log_text("Could not resolve class reference");
 					assert(0);
@@ -570,6 +572,8 @@ if ((RTA_DEBUGr)||(RTA_DEBUGopcodes)) printf("\n");
 				classinfo *mrclass;
 
 				mr = class_getconstant(m->class, i, CONSTANT_Methodref);
+				if (!mr)
+					return 0;
 				if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
 					log_text("Could not resolve class reference");
 					assert(0);
@@ -678,6 +682,7 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                                 methodinfo *mi;
 								classinfo *mrclass;
 
+								/* XXX why this direct access, this should not be! */
 			       	mr = m->class->cpinfos[i];
                                 /*mr = class_getconstant(m->class, i, CONSTANT_Methodref)*/
 					if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
@@ -729,6 +734,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 								classinfo *mrclass;
 
                                 mr = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+								if (!mr)
+									return 0;
 								if (!resolve_classref(m,mr->classref,resolveEager,true, true,&mrclass)) {
 									log_text("Could not resolve class reference");
 									assert(0);
@@ -761,6 +768,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
 				constant_classref *cr;
 				classinfo *ci;
                 cr = (constant_classref *)class_getconstant(m->class, i, CONSTANT_Class);
+				if (!cr)
+					return 0;
 				resolve_classref(NULL,cr,resolveEager,true, false,&ci);
                         /*** s_count++; look for s_counts for VTA */
 			/* add marked methods */
@@ -778,6 +787,8 @@ utf_display(mr->descriptor); printf("\n");fflush(stdout);
                         	classinfo *cls;
 
 							cr = (constant_classref*) class_getconstant(m->class, i, CONSTANT_Class);
+							if (!cr)
+								return 0;
 							resolve_classref(NULL,cr,resolveEager,true, false,&cls);
 
                         LAZYLOADING(cls)
