@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 3340 2005-10-04 20:19:37Z twisti $
+   $Id: signal.c 3378 2005-10-06 13:14:48Z twisti $
 
 */
 
@@ -107,7 +107,7 @@ void signal_init(void)
 	/* catch SIGINT for exiting properly on <ctrl>-c */
 
 	act.sa_sigaction = signal_handler_sigint;
-	act.sa_flags = SA_SIGINFO;
+	act.sa_flags = SA_NODEFER | SA_SIGINFO;
 	sigaction(SIGINT, &act, NULL);
 
 
@@ -154,6 +154,11 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
 
 void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
 {
+	/* if we are already in Runtime.exit(), just do it hardcore */
+
+	if (cacao_exiting)
+		exit(0);
+
 	/* exit the vm properly */
 
 	cacao_exit(0);
