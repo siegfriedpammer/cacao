@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3309 2005-09-29 14:22:55Z twisti $
+   $Id: cacao.c 3377 2005-10-06 13:13:08Z twisti $
 
 */
 
@@ -87,6 +87,12 @@ u1 *intrp_main_stack;
 #endif
 
 
+/* CACAO related stuff ********************************************************/
+
+bool cacao_initializing;
+bool cacao_exiting;
+
+
 /* Invocation API variables ***************************************************/
 
 JavaVM *jvm;                        /* denotes a Java VM                      */
@@ -94,8 +100,6 @@ JNIEnv *env;                        /* pointer to native method interface     */
  
 JDK1_1InitArgs vm_args;             /* JDK 1.1 VM initialization arguments    */
 
-
-bool cacao_initializing;
 
 char *bootclasspath;                    /* contains the boot classpath        */
 char *classpath;                        /* contains the classpath             */
@@ -539,6 +543,10 @@ int main(int argc, char **argv)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Unable to register exit_handler");
 
+	/* initialize global variables */
+
+	cacao_exiting = false;
+
 
 	/************ Collect info from the environment ************************/
 
@@ -697,16 +705,14 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_VERBOSESPECIFIC:
-			if (strcmp("class", opt_arg) == 0) {
-				loadverbose = true;
-				linkverbose = true;
+			if (strcmp("class", opt_arg) == 0)
+				opt_verboseclass = true;
 
-			} else if (strcmp("gc", opt_arg) == 0) {
+			else if (strcmp("gc", opt_arg) == 0)
 				opt_verbosegc = true;
 
-			} else if (strcmp("jni", opt_arg) == 0) {
+			else if (strcmp("jni", opt_arg) == 0)
 				opt_verbosejni = true;
-			}
 			break;
 
 		case OPT_VERBOSEEXCEPTION:
@@ -1281,12 +1287,15 @@ void cacao_exit(s4 status)
 {
 	methodinfo *m;
 
-
 	assert(class_java_lang_System);
 	assert(class_java_lang_System->loaded);
 
 	if (!link_class(class_java_lang_System))
 		throw_main_exception_exit();
+
+	/* signal that we are exiting */
+
+	cacao_exiting = true;
 
 	/* call java.lang.System.exit(I)V */
 
