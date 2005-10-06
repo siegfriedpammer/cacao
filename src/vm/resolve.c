@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3353 2005-10-05 13:30:10Z edwin $
+   $Id: resolve.c 3381 2005-10-06 14:04:54Z edwin $
 
 */
 
@@ -401,8 +401,13 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 
 	for (; setp->any; ++setp) {
 		/* first resolve the set member if necessary */
-		if (!resolve_classref_or_classinfo(refmethod,*setp,mode,false,true,&result))
-			return false; /* exception */
+		if (!resolve_classref_or_classinfo(refmethod,*setp,mode,false,true,&result)) {
+			/* the type could not be resolved. therefore we are sure that  */
+			/* no instances of this type will ever exist -> skip this test */
+			/* XXX this assumes that class loading has invariant results (as in JVM spec) */
+			*exceptionptr = NULL;
+			continue;
+		}
 		if (!result)
 			return true; /* be lazy */
 
