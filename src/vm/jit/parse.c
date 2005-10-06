@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3330 2005-10-04 18:52:44Z twisti $
+   $Id: parse.c 3364 2005-10-06 08:09:23Z edwin $
 
 */
 
@@ -682,8 +682,9 @@ SHOWOPCODE(DEBUG4)
 				bte = builtintable_get_internal(BUILTIN_newarray_long);
 				break;
 			default:
-				log_text("Invalid array-type to create");
-				assert(0);
+				*exceptionptr = new_verifyerror(inline_env->method,
+						"Invalid array-type to create");
+				return NULL;
 			}
 			BUILTIN(bte, true, NULL, currentline);
 			break;
