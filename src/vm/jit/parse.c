@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3383 2005-10-06 15:00:33Z edwin $
+   $Id: parse.c 3384 2005-10-06 23:32:01Z edwin $
 
 */
 
@@ -1441,7 +1441,8 @@ SHOWOPCODE(DEBUG4)
 				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
 			return NULL;
 
-		case 204: /* unused opcode */
+		case 186: /* unused opcode */
+		case 204:
 		case 205:
 		case 206:
 		case 207:
@@ -1494,7 +1495,7 @@ SHOWOPCODE(DEBUG4)
 		case 254:
 		case 255:
 			*exceptionptr =
-				new_internalerror("Illegal opcode %d at instr %d\n",
+				new_verifyerror(inline_env->method,"Illegal opcode %d at instr %d\n",
 								  opcode, ipc);
 			return NULL;
 			break;
