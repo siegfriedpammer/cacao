@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3270 2005-09-21 20:24:11Z twisti $
+   $Id: options.h 3375 2005-10-06 13:12:02Z twisti $
 
 */
 
@@ -73,6 +73,8 @@ extern bool opt_verboseexception;
 extern bool loadverbose;         /* Print debug messages during loading */
 extern bool linkverbose;
 extern bool initverbose;         /* Log class initialization */ 
+
+extern bool opt_verboseclass;
 extern bool opt_verbosegc;
 extern bool opt_verbosejni;
 

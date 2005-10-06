@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3270 2005-09-21 20:24:11Z twisti $
+   $Id: options.c 3375 2005-10-06 13:12:02Z twisti $
 
 */
 
@@ -64,6 +64,8 @@ bool opt_verboseexception = false;
 bool loadverbose = false;
 bool linkverbose = false;
 bool initverbose = false;
+
+bool opt_verboseclass = false;
 bool opt_verbosegc = false;
 bool opt_verbosejni = false;
 
