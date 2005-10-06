@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3365 2005-10-06 08:42:58Z edwin $
+   $Id: parse.c 3366 2005-10-06 09:12:46Z edwin $
 
 */
 
@@ -119,13 +119,15 @@ static exceptiontable* fillextable(methodinfo *m,
   fflush(stdout); } ***/   
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
 		if (p <= raw_extable[src].startpc) {
-			log_text("Invalid exception handler range");
-			assert(0);
+			*exceptionptr = new_verifyerror(inline_env->method,
+				"Invalid exception handler range");
+			return NULL;
 		}
 
 		if (p >inline_env->method->jcodelength) {
-			log_text("Invalid exception handler end is after code end");
-			assert(0);
+			*exceptionptr = new_verifyerror(inline_env->method,
+				"Invalid exception handler end is after code end");
+			return NULL;
 		}
 
 		if (p<inline_env->method->jcodelength) insertBlock=1; else insertBlock=0;
@@ -338,8 +340,9 @@ if (m->exceptiontablelength > 0)
 			opcode = code_get_u1(p,inline_env->method);
 			nextp = p += jcommandsize[opcode];
 			if (nextp > inline_env->method->jcodelength) {
-				log_text("Unexpected end of bytecode");
-				assert(0);
+				*exceptionptr = new_verifyerror(inline_env->method,
+					"Unexpected end of bytecode");
+				return NULL;
 			}
 
 			tmpinlinf = list_first(inlinfo->inlinedmethods);
@@ -436,8 +439,9 @@ fflush(stdout);
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 
 		if (nextp > inline_env->method->jcodelength) {
-			log_text("Unexpected end of bytecode");
-			assert(0);
+			*exceptionptr = new_verifyerror(inline_env->method,
+					"Unexpected end of bytecode");
+			return NULL;
 		}
 
 		s_count += stackreq[opcode];      	/* compute stack element count    */
@@ -467,8 +471,9 @@ SHOWOPCODE(DEBUG4)
 		pushconstantitem:
 
 			if (i >= inline_env->method->class->cpcount) {
-				dolog("Attempt to access constant outside range: %d >= %d", i, inline_env->method->class->cpcount);
-				assert(0);
+				*exceptionptr = new_verifyerror(inline_env->method,
+					"Attempt to access constant outside range");
+				return NULL;
 			}
 
 			switch (inline_env->method->class->cptags[i]) {
@@ -488,8 +493,9 @@ SHOWOPCODE(DEBUG4)
 				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
 				break;
 			default:
-				log_text("Invalid constant type to push");
-				assert(0);
+				*exceptionptr = new_verifyerror(inline_env->method,
+						"Invalid constant type to push");
+				return NULL;
 			}
 			break;
 
@@ -846,8 +852,9 @@ SHOWOPCODE(DEBUG4)
 				nextp = ALIGN((p + 1), 4);
 
 				if (nextp + 8 > inline_env->method->jcodelength) {
-					log_text("Unexpected end of bytecode");
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+							"Unexpected end of bytecode");
+					return NULL;
 				}
 
 				if (!useinlining) {
@@ -879,9 +886,9 @@ SHOWOPCODE(DEBUG4)
 				nextp += 4;
 
 				if (nextp + 8 * num > inline_env->method->jcodelength) {
-					/* XXX TODO VerifyError */
-					log_text("Unexpected end of bytecode");
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+						"Unexpected end of bytecode");
+					return NULL;
 				}
 
 				for (i = 0; i < num; i++) {
@@ -924,9 +931,9 @@ SHOWOPCODE(DEBUG4)
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
 				if (nextp + 12 > inline_env->method->jcodelength) {
-					/* XXX TODO VerifyError */
-					log_text("Unexpected end of bytecode");
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+						"Unexpected end of bytecode");
+					return NULL;
 				}
 
 				if (!useinlining) {
@@ -967,15 +974,15 @@ SHOWOPCODE(DEBUG4)
 				num -= j;  /* difference of upper - lower */
 
 				if (num < 0) {
-					/* XXX TODO VerifyError */
-					log_text("invalid TABLESWITCH: upper bound < lower bound");
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+							"invalid TABLESWITCH: upper bound < lower bound");
+					return NULL;
 				}
 
 				if (nextp + 4 * (num + 1) > inline_env->method->jcodelength) {
-					/* XXX TODO VerifyError */
-					log_text("Unexpected end of bytecode");
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+						"Unexpected end of bytecode");
+					return NULL;
 				}
 
 				for (i = 0; i <= num; i++) {
@@ -1495,8 +1502,9 @@ SHOWOPCODE(DEBUG4)
 
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide && opcode != JAVA_WIDE) {
-			log_text("Illegal instruction: WIDE before incompatible opcode");
-			assert(0);
+			*exceptionptr = new_verifyerror(inline_env->method,
+					"Illegal instruction: WIDE before incompatible opcode");
+			return NULL;
 		}
 
 #if defined(USE_INLINING)
@@ -1527,8 +1535,9 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 
 	if (p != m->jcodelength) {
 		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
-		log_text("Command-sequence crosses code-boundary");
-		assert(0);
+		*exceptionptr = new_verifyerror(inline_env->method,
+				"Command-sequence crosses code-boundary");
+		return NULL;
 	}
 
 	if (!blockend) {
@@ -1583,9 +1592,9 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 				/* instruction.                                               */
 
 				if (!instructionstart[p]) {
-					/* XXX TODO throw exception? which one? */
-					dolog("Branch into middle of instruction: Basic Block beginn: %d\n", p);
-					assert(0);
+					*exceptionptr = new_verifyerror(inline_env->method,
+						"Branch into middle of instruction");
+					return NULL;
 				}
 
 				/* allocate the block */
