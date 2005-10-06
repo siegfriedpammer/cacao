@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3155 2005-09-05 21:48:07Z twisti $
+   $Id: stack.h 3367 2005-10-06 09:23:36Z edwin $
 
 */
 
@@ -382,9 +382,8 @@
             stackptr s = curstack; \
             stackptr t = (b)->instack; \
 		    if ((b)->indepth != stackdepth) { \
-			    show_icmd_method(m, cd, rd); \
-                log_text("Stack depth mismatch"); \
-                assert(0); \
+                *exceptionptr = new_verifyerror(m,"Stack depth mismatch"); \
+                return NULL; \
             } \
 		    while (s) { \
                 if (s->type != t->type) \

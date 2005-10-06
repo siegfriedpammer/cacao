@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3354 2005-10-05 14:16:57Z twisti $
+   $Id: stack.c 3367 2005-10-06 09:23:36Z edwin $
 
 */
 
@@ -258,8 +258,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				} else if (bptr->indepth != stackdepth) {
 					show_icmd_method(m, cd, rd);
 					printf("Block: %d, required depth: %d, current depth: %d\n", bptr->debug_nr, bptr->indepth, stackdepth);
-					log_text("Stack depth mismatch");
-					assert(0);
+					*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
+					return NULL;
 				}
 
 				curstack = bptr->instack;
@@ -2006,7 +2006,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										copy->flags = 0;
 										if (IS_FLT_DBL_TYPE(copy->type))
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
-											assert(0);
+											assert(0); /* XXX is this assert ok? */
 #else
 										copy->regoff =
 											rd->argfltregs[md->params[i].regoff];
