@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3363 2005-10-06 00:11:09Z edwin $
+   $Id: typecheck.c 3369 2005-10-06 10:29:43Z edwin $
 
 */
 
@@ -1122,16 +1122,6 @@ verify_invocation(verifier_state *state)
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 
-	/* record subtype constraints for parameters */
-	
-	if (!constrain_unresolved_method(um,state->m->class,state->m,state->iptr,state->curstack))
-		return false; /* XXX maybe wrap exception */
-
-	/* try to resolve the method lazily */
-	
-	if (!resolve_method(um,resolveLazy,(methodinfo **) &(state->iptr[0].val.a)))
-		return false;
-
 	/* allocate parameters if necessary */
 	
 	if (!md->params)
@@ -1250,6 +1240,16 @@ verify_invocation(verifier_state *state)
 			}
 		}
 	}
+
+	/* record subtype constraints for parameters */
+	
+	if (!constrain_unresolved_method(um,state->m->class,state->m,state->iptr,state->curstack))
+		return false; /* XXX maybe wrap exception */
+
+	/* try to resolve the method lazily */
+	
+	if (!resolve_method(um,resolveLazy,(methodinfo **) &(state->iptr[0].val.a)))
+		return false;
 
 	return true;
 }
