@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3362 2005-10-05 23:03:40Z edwin $
+   $Id: typecheck.c 3363 2005-10-06 00:11:09Z edwin $
 
 */
 
@@ -1435,6 +1435,16 @@ verify_builtin(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("INSTANCEOF with unlinked class");
 		if (!vft->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
+	}
+	else if (ISBUILTIN(PATCHER_builtin_arrayinstanceof)) {
+		constant_classref *cr;
+		
+		TYPECHECK_ADR(state->curstack->prev);
+		if (state->iptr[-1].opc != ICMD_ACONST)
+			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without class");
+		cr = (constant_classref *) state->iptr[-1].val.a;
+		if (cr->name->text[0] != '[')
+			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class refernce");
 	}
 	else {
 		return verify_generic_builtin(state);
