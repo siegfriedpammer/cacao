@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3370 2005-10-06 10:31:15Z edwin $
+   $Id: loader.c 3372 2005-10-06 13:10:24Z twisti $
 
 */
 
@@ -495,6 +495,11 @@ void suck_init(char *classpath)
 					cpi->next = NULL;
 					cpi->path = filename;
 					cpi->pathlen = filenamelen;
+
+					/* SUN compatible -verbose:class output */
+
+					if (opt_verboseclass)
+						printf("[Opened %s]\n", filename);
 				}
 
 #else
@@ -633,9 +638,10 @@ classbuffer *suck_start(classinfo *c)
 					if (unzOpenCurrentFile(cpi->uf) == UNZ_OK) {
 						cb = NEW(classbuffer);
 						cb->class = c;
-						cb->size = file_info.uncompressed_size;
-						cb->data = MNEW(u1, cb->size);
-						cb->pos = cb->data - 1;
+						cb->size  = file_info.uncompressed_size;
+						cb->data  = MNEW(u1, cb->size);
+						cb->pos   = cb->data - 1;
+						cb->path  = cpi->path;
 
 						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
 
@@ -676,9 +682,10 @@ classbuffer *suck_start(classinfo *c)
 				if (!stat(path, &buffer)) {            /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->class = c;
-					cb->size = buffer.st_size;
-					cb->data = MNEW(u1, cb->size);
-					cb->pos = cb->data - 1;
+					cb->size  = buffer.st_size;
+					cb->data  = MNEW(u1, cb->size);
+					cb->pos   = cb->data - 1;
+					cb->path  = cpi->path;
 
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);
@@ -2046,19 +2053,30 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 		LOADER_DEC();
 
 		if (r) {
-			/* store this class in the loaded class cache */
-			/* If another class with the same (initloader,name) pair has been */
-			/* stored earlier it will be returned by classcache_store         */
-			/* In this case classcache_store may not free the class because it*/
-			/* has already been exposed to Java code which may have kept      */
-			/* references to that class.                                      */
+			/* Store this class in the loaded class cache. If another
+			   class with the same (initloader,name) pair has been
+			   stored earlier it will be returned by classcache_store
+			   In this case classcache_store may not free the class
+			   because it has already been exposed to Java code which
+			   may have kept references to that class. */
+
 		    classinfo *c = classcache_store(cl,r,false);
+
 			if (c == NULL) {
 				/* exception, free the loaded class */
 				r->loaded = false;
 				class_free(r);
 			}
+
 			r = c;
+		}
+
+		/* SUN compatible -verbose:class output */
+
+		if (opt_verboseclass && (r != NULL) && (r->classloader == cl)) {
+			printf("[Loaded ");
+			utf_display_classname(name);
+			printf("]\n");
 		}
 
 		return r;
@@ -2159,6 +2177,34 @@ classinfo *load_class_bootstrap(utf *name)
 
 	r = load_class_from_classbuffer(cb);
 
+	if (!r) {
+		/* the class could not be loaded, free the classinfo struct */
+
+		class_free(c);
+
+	} else {
+		/* Store this class in the loaded class cache this step also
+		checks the loading constraints. If the class has been loaded
+		before, the earlier loaded class is returned. */
+
+	   	classinfo *res = classcache_store(NULL, c, true);
+
+		if (!res) {
+			/* exception */
+			class_free(c);
+		}
+
+		r = res;
+	}
+
+	/* SUN compatible -verbose:class output */
+
+	if (opt_verboseclass && r) {
+		printf("[Loaded ");
+		utf_display_classname(name);
+		printf(" from %s]\n", cb->path);
+	}
+
 	/* free memory */
 
 	suck_stop(cb);
@@ -2172,24 +2218,6 @@ classinfo *load_class_bootstrap(utf *name)
 	if (getcompilingtime)
 		compilingtime_start();
 #endif
-
-	if (!r) {
-		/* the class could not be loaded, free the classinfo struct */
-
-		class_free(c);
-	}
-	else {
-		/* store this class in the loaded class cache    */
-		/* this step also checks the loading constraints */
-		/* If the class has been loaded before, the      */
-		/* earlier loaded class is returned.             */
-	   	classinfo *res = classcache_store(NULL,c,true);
-		if (!res) {
-			/* exception */
-			class_free(c);
-		}
-		r = res;
-	}
 
 	if (!r)
 		goto return_exception;
@@ -2942,6 +2970,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	return classcache_store(loader,c,true);
 }
+
 
 /****************** Function: class_resolvefield_int ***************************
 
