@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 2833 2005-06-26 21:47:29Z christian $
+   $Id: descriptor.c 3370 2005-10-06 10:31:15Z edwin $
 
 */
 
@@ -635,9 +635,7 @@ descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
 		c = c->hashlink;
 	}
 
-	*exceptionptr =
-		new_exception_message(string_java_lang_InternalError,
-							  "Class reference not found in descriptor pool");
+	*exceptionptr = new_internalerror("Class reference not found in descriptor pool");
 	return NULL;
 }
 

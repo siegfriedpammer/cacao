@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3368 2005-10-06 09:40:40Z edwin $
+   $Id: loader.c 3370 2005-10-06 10:31:15Z edwin $
 
 */
 
@@ -362,8 +362,7 @@ static float suck_float(classbuffer *cb)
 #endif
 
 	if (sizeof(float) != 4) {
-		*exceptionptr = new_exception_message(string_java_lang_InternalError,
-											  "Incompatible float-format");
+		*exceptionptr = new_internalerror("Incompatible float-format");
 
 		/* XXX should we exit in such a case? */
 		throw_exception_exit();
@@ -404,8 +403,7 @@ static double suck_double(classbuffer *cb)
 #endif
 
 	if (sizeof(double) != 8) {
-		*exceptionptr = new_exception_message(string_java_lang_InternalError,
-											  "Incompatible double-format");
+		*exceptionptr = new_internalerror("Incompatible double-format");
 
 		/* XXX should we exit in such a case? */
 		throw_exception_exit();
@@ -1215,8 +1213,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			/* disallow referencing <clinit> among others */
 			if (cn->name->text[0] == '<' && cn->name != utf_init) {
 				*exceptionptr =
-					new_exception_utfmessage(string_java_lang_InternalError,
-											 cn->name);
+					new_classformaterror(c,"Illegal reference to special method");
 				return false;
 			}
 		}
