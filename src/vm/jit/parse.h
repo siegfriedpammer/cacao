@@ -26,7 +26,7 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 3326 2005-10-04 18:47:36Z twisti $
+   $Id: parse.h 3382 2005-10-06 15:00:01Z edwin $
 
 */
 
@@ -170,8 +170,6 @@
 #define bound_check(i) \
     do { \
         if (i < 0 || i >= inline_env->cumjcodelength) { \
- printf("bound_check i=%i >= %i=cum\n",i,inline_env->cumjcodelength); \
- fflush(stdout); \
        /*  if (i < 0 || i >= m->jcodelength) { */ \
             *exceptionptr = \
                 new_verifyerror(inline_env->method, "Illegal target of jump or branch"); \
