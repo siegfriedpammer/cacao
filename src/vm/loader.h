@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 2725 2005-06-16 19:10:35Z edwin $
+   $Id: loader.h 3368 2005-10-06 09:40:40Z edwin $
 */
 
 
@@ -177,12 +177,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
 
 /* search class for a field */
-fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer, bool except);
 
 /* search for a method with a specified name and descriptor */
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
-methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: parseRTstats.c 3368 2005-10-06 09:40:40Z edwin $
 
 */
 
@@ -417,7 +417,7 @@ void printRTInterfaceClasses() {
 				        inBy = ici->impldBy;
 						cii = inBy->classType;
 						
-						mii = class_fetchmethod(cii, imi->name, imi->descriptor); 
+						mii = class_findmethod(cii, imi->name, imi->descriptor); 
 						if (mii == NULL) {
 							/* assume its resolved up the heirarchy and just 1 possiblity so MONO1 */
 							imi->monoPoly = MONO1;

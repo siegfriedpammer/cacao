@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3365 2005-10-06 08:42:58Z edwin $
+   $Id: loader.c 3368 2005-10-06 09:40:40Z edwin $
 
 */
 
@@ -1107,8 +1107,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			if (opt_verify &&
 				!is_valid_utf((char *) (cb->pos + 1),
 							  (char *) (cb->pos + 1 + length))) {
-				dolog("Invalid UTF-8 string (constant pool index %d)",idx);
-				assert(0);
+				*exceptionptr = new_classformaterror(c,"Invalid UTF-8 string");
+				return false;
 			}
 			/* insert utf-string into the utf-symboltable */
 			cpinfos[idx] = utf_new_intern((char *) (cb->pos + 1), length);
@@ -1516,14 +1516,14 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 	if (opt_verify) {
 		if (!is_valid_name_utf(m->name)) {
-			log_text("Method with invalid name");
-			assert(0);
+			*exceptionptr = new_classformaterror(c,"Method with invalid name");
+			return false;
 		}
 
 		if (m->name->text[0] == '<' &&
 			m->name != utf_init && m->name != utf_clinit) {
-			log_text("Method with invalid special name");
-			assert(0);
+			*exceptionptr = new_classformaterror(c,"Method with invalid special name");
+			return false;
 		}
 	}
 	
@@ -1573,8 +1573,9 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			if (m->name == utf_init) {
 				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
 								ACC_NATIVE | ACC_ABSTRACT)) {
-					log_text("Instance initialization method has invalid flags set");
-					assert(0);
+					*exceptionptr = new_classformaterror(c,
+							"Instance initialization method has invalid flags set");
+					return false;
 				}
 			}
 		}
@@ -2945,32 +2946,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	return classcache_store(loader,c,true);
 }
 
-
-/************************* Function: class_findfield ***************************
-	
-	Searches a 'classinfo' structure for a field having the given name and
-	type.
-
-*******************************************************************************/
-
-fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
-{
-	s4 i;
-
-	for (i = 0; i < c->fieldscount; i++) { 
-		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) 
-			return &(c->fields[i]);					   			
-    }
-
-	log_text("Can not find field given in CONSTANT_Fieldref");
-	assert(0);
-
-	/* keep compiler happy */
-
-	return NULL;
-}
-
-
 /****************** Function: class_resolvefield_int ***************************
 
     This is an internally used helper function. Do not use this directly.
@@ -3066,31 +3041,6 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 	}
 
 	return NULL;
-}
-
-
-/*********************** Function: class_fetchmethod **************************
-	
-    like class_findmethod, but aborts with an error if the method is not found
-
-*******************************************************************************/
-
-methodinfo *class_fetchmethod(classinfo *c, utf *name, utf *desc)
-{
-	methodinfo *mi;
-
-	mi = class_findmethod(c, name, desc);
-
-	if (!mi) {
-		log_plain("Class: "); if (c) log_plain_utf(c->name); log_nl();
-		log_plain("Method: "); if (name) log_plain_utf(name); log_nl();
-		log_plain("Descriptor: "); if (desc) log_plain_utf(desc); log_nl();
-
-		log_text("Method not found");
-		assert(0);
-	}
-
-	return mi;
 }
 
 
