@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3384 2005-10-06 23:32:01Z edwin $
+   $Id: parse.c 3385 2005-10-06 23:34:35Z edwin $
 
 */
 
@@ -1442,6 +1442,7 @@ SHOWOPCODE(DEBUG4)
 			return NULL;
 
 		case 186: /* unused opcode */
+		case 203:
 		case 204:
 		case 205:
 		case 206:
