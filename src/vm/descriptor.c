@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3370 2005-10-06 10:31:15Z edwin $
+   $Id: descriptor.c 3380 2005-10-06 13:48:16Z edwin $
 
 */
 
@@ -122,6 +122,8 @@ struct descriptor_hash_entry {
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
 /****************************************************************************/
+
+/*#define DESCRIPTOR_VERBOSE*/
 
 #ifndef NDEBUG
 #define DESCRIPTOR_DEBUG
@@ -388,6 +390,11 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 	DESCRIPTOR_ASSERT(pool);
 	DESCRIPTOR_ASSERT(name);
 
+#ifdef DESCRIPTOR_VERBOSE
+	fprintf(stderr,"descriptor_pool_add_class(%p,",(void*)pool);
+	utf_fprint(stderr,name);fprintf(stderr,")\n");
+#endif
+
 	/* find a place in the hashtable */
 
 	key = utf_hashkey(name->text, name->blength);
@@ -448,6 +455,11 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 	utf *name;
 	s4 argcount = 0;
 	
+#ifdef DESCRIPTOR_VERBOSE
+	fprintf(stderr,"descriptor_pool_add(%p,",(void*)pool);
+	utf_fprint(stderr,desc);fprintf(stderr,")\n");
+#endif
+
 	DESCRIPTOR_ASSERT(pool);
 	DESCRIPTOR_ASSERT(desc);
 
@@ -509,7 +521,8 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 				return false;
 
 			if (name)
-				descriptor_pool_add_class(pool, name);
+				if (!descriptor_pool_add_class(pool, name))
+					return false;
 		}
 
 		if (utf_ptr == end_pos) {
@@ -524,7 +537,8 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 			return false;
 
 		if (name)
-			descriptor_pool_add_class(pool,name);
+			if (!descriptor_pool_add_class(pool,name))
+				return false;
 
 		if (argcount > 255) {
 			*exceptionptr =
@@ -542,7 +556,8 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 			return false;
 
 		if (name)
-			descriptor_pool_add_class(pool,name);
+			if (!descriptor_pool_add_class(pool,name))
+				return false;
 	}
 
 	d->paramslots = argcount;
@@ -784,6 +799,12 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	char *end_pos;
 	s2 paramcount = 0;
 	s2 paramslots = 0;
+
+#ifdef DESCRIPTOR_VERBOSE
+	fprintf(stderr,"descriptor_pool_parse_method_descriptor(%p,%d,%p,",
+			(void*)pool,(int)mflags,(void*)thisclass);
+	utf_fprint(stderr,desc); fprintf(stderr,")\n");
+#endif
 
 	DESCRIPTOR_ASSERT(pool);
 	DESCRIPTOR_ASSERT(pool->descriptors);
