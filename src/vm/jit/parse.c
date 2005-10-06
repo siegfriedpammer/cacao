@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3366 2005-10-06 09:12:46Z edwin $
+   $Id: parse.c 3383 2005-10-06 15:00:33Z edwin $
 
 */
 
@@ -285,6 +285,8 @@ if (m->exceptiontablelength > 0)
 	nextex = fillextable(m, 
  	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, m->exceptiontablelength, 
           label_index, &b_count, inline_env);
+	if (!nextex)
+		return NULL;
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
 #if defined(USE_THREADS)
@@ -400,10 +402,13 @@ METHINFO(inline_env->method,DEBUG);
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
 				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
 			}
-			if (inline_env->method->exceptiontablelength > 0) 
-			  nextex = fillextable(m, nextex, 
-			    inline_env->method->exceptiontable, inline_env->method->exceptiontablelength, 
-			    label_index, &b_count, inline_env);
+			if (inline_env->method->exceptiontablelength > 0) {
+				nextex = fillextable(m, nextex, 
+						inline_env->method->exceptiontable, inline_env->method->exceptiontablelength, 
+						label_index, &b_count, inline_env);
+				if (!nextex)
+					return NULL;
+			}
 			continue;
 		}
 #endif /* defined(USE_INLINING) */
