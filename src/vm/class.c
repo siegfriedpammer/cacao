@@ -30,14 +30,16 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3292 2005-09-28 10:36:34Z twisti $
+   $Id: class.c 3374 2005-10-06 13:11:37Z twisti $
 
 */
 
 #include <assert.h>
 #include <string.h>
 
-#include "vm/global.h"
+#include "config.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 
 #if defined(USE_THREADS)
@@ -53,10 +55,12 @@
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"
+#include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
 
@@ -717,6 +721,69 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 	}
 
     return class_get_classref(ref->referer, utf_new(name, namelen));
+}
+
+
+/* class_findfield *************************************************************
+	
+   Searches for field with specified name and type in a classinfo
+   structure. If no such field is found NULL is returned.
+
+*******************************************************************************/
+
+fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
+{
+	s4 i;
+
+	for (i = 0; i < c->fieldscount; i++)
+		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc))
+			return &(c->fields[i]);
+
+	if (c->super.cls)
+		return class_findfield(c->super.cls, name, desc);
+
+	return NULL;
+}
+
+
+/* class_findfield_approx ******************************************************
+	
+   Searches in 'classinfo'-structure for a field with the specified
+   name.
+
+*******************************************************************************/
+ 
+fieldinfo *class_findfield_by_name(classinfo *c, utf *name)
+{
+	s4 i;
+
+	for (i = 0; i < c->fieldscount; i++) {
+		/* compare field names */
+		if ((c->fields[i].name == name))
+			return &(c->fields[i]);
+	}
+
+	/* field was not found, raise exception */	
+	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
+
+	return NULL;
+}
+
+
+s4 class_findfield_index_by_name(classinfo *c, utf *name)
+{
+	s4 i;
+
+	for (i = 0; i < c->fieldscount; i++) {
+		/* compare field names */
+		if ((c->fields[i].name == name))
+			return i;
+	}
+
+	/* field was not found, raise exception */	
+	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
+
+	return -1;
 }
 
 

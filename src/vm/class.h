@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3292 2005-09-28 10:36:34Z twisti $
+   $Id: class.h 3374 2005-10-06 13:11:37Z twisti $
 
 */
 
@@ -271,6 +271,13 @@ constant_classref *class_get_classref_multiarray_of(s4 dim,constant_classref *re
 
 /* return a classref for the component type of the given array type */
 constant_classref *class_get_classref_component_of(constant_classref *ref);
+
+/* get a class' field by name and descriptor */
+fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
+
+/* search 'classinfo'-structure for a field with the specified name */
+fieldinfo *class_findfield_by_name(classinfo *c, utf *name);
+s4 class_findfield_index_by_name(classinfo *c, utf *name);
 
 #endif /* _CLASS_H */
 
