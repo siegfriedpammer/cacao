@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3334 2005-10-04 18:57:46Z twisti $
+   $Id: codegen.c 3371 2005-10-06 13:09:52Z twisti $
 
 */
 
@@ -4371,6 +4371,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* generate call trace */
 
 	if (runverbose) {
+		/* just restore the value we need, don't care about the other */
+
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+
   		M_MOV_IMM((ptrint) m, rd->argintregs[0]);
   		M_MOV(REG_RESULT, rd->argintregs[1]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
