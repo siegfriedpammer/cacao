@@ -123,7 +123,7 @@ allocThreadStack (thread *tid, int size)
 
 	assert(stack_to_be_freed == 0);
 
-    CONTEXT(tid).stackMem = GCNEW(u1, size + 4 * pageSize);
+    CONTEXT(tid).stackMem = GCNEW_UNCOLLECTABLE(u1, size + 4 * pageSize);
     assert(CONTEXT(tid).stackMem != 0);
     CONTEXT(tid).stackEnd = CONTEXT(tid).stackMem + size + 2 * pageSize;
     
