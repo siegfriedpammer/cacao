@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3369 2005-10-06 10:29:43Z edwin $
+   $Id: typecheck.c 3387 2005-10-07 14:03:52Z edwin $
 
 */
 
@@ -1154,6 +1154,13 @@ verify_invocation(verifier_state *state)
 				else
 					initclass.cls = state->m->class;
 				LOGSTR("class: "); LOGNAME(initclass); LOGNL;
+			}
+		}
+		else {
+			/* non-adress argument. if this is the first argument and we are */
+			/* invoking an instance method, this is an error.                */
+			if (i==0 && opcode != ICMD_INVOKESTATIC) {
+				TYPECHECK_VERIFYERROR_bool("Parameter type mismatch for 'this' argument");
 			}
 		}
 		LOG("ok");
