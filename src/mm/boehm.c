@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 2896 2005-07-04 20:38:33Z twisti $
+   $Id: boehm.c 3388 2005-10-07 15:26:25Z twisti $
 
 */
 
@@ -153,14 +153,17 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 		MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength);
 	}
 
-	if (!result) {
+	if (!result)
 		return NULL;
-	}
 
 	if (finalizer)
 		GC_REGISTER_FINALIZER(result, runboehmfinalizer, 0, 0, 0);
 
-	return (u1*) result;
+	/* clear allocated memory region */
+
+	MSET(result, 0, u1, bytelength);
+
+	return (u1 *) result;
 }
 
 
