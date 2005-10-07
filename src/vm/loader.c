@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3372 2005-10-06 13:10:24Z twisti $
+   $Id: loader.c 3386 2005-10-07 14:02:52Z edwin $
 
 */
 
@@ -1310,6 +1310,13 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	if (!descriptor_pool_add(descpool, u, NULL))
 		return false;
+
+	/* descriptor_pool_add accepts method descriptors, so we have to check */
+	/* against them here before the call of desc_to_type below.            */
+	if (u->text[0] == '(') {
+		*exceptionptr = new_classformaterror(c,"Method descriptor used for field");
+		return false;
+	}
 
 	if (opt_verify) {
 		/* check name */

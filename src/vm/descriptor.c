@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3380 2005-10-06 13:48:16Z edwin $
+   $Id: descriptor.c 3386 2005-10-07 14:02:52Z edwin $
 
 */
 
@@ -548,6 +548,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	} else {
 		/* a field descriptor */
+
 		pool->fieldcount++;
 		
 	    if (!name_from_descriptor(pool->referer, utf_ptr, end_pos, NULL,
@@ -810,6 +811,14 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	DESCRIPTOR_ASSERT(pool->descriptors);
 	DESCRIPTOR_ASSERT(pool->descriptors_next);
 
+	/* check that it is a method descriptor */
+	
+	if (desc->text[0] != '(') {
+		*exceptionptr = new_classformaterror(pool->referer,
+				"Field descriptor used in method reference");
+		return NULL;
+	}
+
 	/* lookup the descriptor in the hashtable */
 
 	key = utf_hashkey(desc->text, desc->blength);
@@ -830,14 +839,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md = (methoddesc *) pool->descriptors_next;
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
-	utf_ptr = desc->text;
+	utf_ptr = desc->text + 1; /* skip '(' */
 	end_pos = UTF_END(desc);
-
-	if (*utf_ptr++ != '(') {
-		*exceptionptr = new_classformaterror(pool->referer,
-				"Field descriptor used in method reference");
-		return NULL;
-	}
 
 	td = md->paramtypes;
 
