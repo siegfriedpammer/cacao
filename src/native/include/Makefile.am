@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
+## $Id: Makefile.am 3389 2005-10-07 15:35:38Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -117,7 +117,10 @@ endif
 
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
-CLASSPATH = $(top_builddir)/src/lib/vm.zip:$(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
+GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip
+
+CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
 
 all: $(DO_HEADER_FILES)
 
@@ -126,7 +129,7 @@ $(NO_GEN_HEADER_FILES):
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
 
-$(DO_HEADER_FILES):
+$(DO_HEADER_FILES): $(VM_ZIP) $(GLIBJ_ZIP)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
 	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
 	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
