@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3313 2005-09-29 14:31:21Z twisti $
+   $Id: builtin.c 3395 2005-10-10 23:59:11Z edwin $
 
 */
 
@@ -482,7 +482,7 @@ s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target)
 s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target)
 {
 	if (!obj)
-		return 1;
+		return 0;
 
 	return builtin_arraycheckcast(obj, target);
 }
