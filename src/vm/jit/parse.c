@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3385 2005-10-06 23:34:35Z edwin $
+   $Id: parse.c 3394 2005-10-10 17:11:00Z edwin $
 
 */
 
@@ -836,11 +836,17 @@ SHOWOPCODE(DEBUG4)
 			}
 
 			blockend = true;
+			/* zero val.a so no patcher is inserted */
+			/* the type checker may set this later  */
+			iptr->val.a = NULL;
 			OP(opcode);
 			break;
 
 		case JAVA_ATHROW:
 			blockend = true;
+			/* zero val.a so no patcher is inserted */
+			/* the type checker may set this later  */
+			iptr->val.a = NULL;
 			OP(opcode);
 			break;
 				
