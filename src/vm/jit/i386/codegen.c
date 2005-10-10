@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3343 2005-10-04 21:40:09Z twisti $
+   $Id: codegen.c 3393 2005-10-10 13:45:08Z twisti $
 
 */
 
@@ -3400,16 +3400,26 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
-			i386_call_imm(cd, 0);                /* passing exception pointer */
-			i386_pop_reg(cd, REG_ITMP2_XPC);
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
 
-  			i386_mov_imm_reg(cd, (s4) asm_handle_exception, REG_ITMP3);
-  			i386_jmp_reg(cd, REG_ITMP3);
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+			}
+
+			M_CALL_IMM(0);                            /* passing exception pc */
+			M_POP(REG_ITMP2_XPC);
+
+			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+			M_JMP(REG_ITMP3);
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
@@ -4019,13 +4029,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_ARETURN:
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL */
 
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
-
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
@@ -4040,19 +4048,35 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				log_text("LRETURN: longs have to be in memory");
 				assert(0);
 			}
+			goto nowperformreturn;
 
+		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL */
+
+			var_to_reg_int(s1, src, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
+
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
+
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+			}
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
+		case ICMD_DRETURN:
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
+			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL */
 
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			/* this may be an early return -- keep the offset correct for the
 			   remaining code */
 			fpu_st_offset--;
-
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
