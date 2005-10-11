@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
+## $Id: Makefile.am 3402 2005-10-11 14:41:52Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -66,9 +66,7 @@ libcacaoh_la_LIBADD = \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvmcore.la
 
-bindir = $(prefix)/bin
-
-bin_PROGRAMS = cacaoh
+noinst_PROGRAMS = cacaoh
 
 cacaoh_SOURCES = \
 	cacaoh.c
