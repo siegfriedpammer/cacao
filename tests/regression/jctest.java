@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 3337 2005-10-04 19:38:35Z twisti $
+   $Id: jctest.java 3396 2005-10-11 08:30:15Z twisti $
 
 */
 
@@ -245,8 +245,10 @@ public class jctest implements jcinterface {
     // ****************** test type casts and array stores *********************
 
     public static void testcasts() {
+        Object     on  = null;
         Object     o   = new Object();
         Object     oi  = new Integer(0);
+        Object[]   ona = null;
         Object[]   oa  = new Object [1];
         Object[]   oia = new Integer[1];
         Integer    i   = new Integer(0);
@@ -257,9 +259,20 @@ public class jctest implements jcinterface {
 
         p ("------------------- test casts");
 
+        p("null is instanceof Object:  ", on instanceof Object);
         p("Integer is instanceof Object:  ", oi instanceof Object);
         p("Integer is instanceof Integer: ", oi instanceof Integer);
         p("Object is instanceof Integer:  ", o instanceof Integer);
+
+        p("null is instanceof Object[]:  ", on instanceof Object[]);
+        p("Integer[] is instanceof Object[]:  ", oia instanceof Object[]);
+        p("Integer[] is instanceof Integer[]: ", oia instanceof Integer[]);
+        p("Object[] is instanceof Integer[]:  ", oa instanceof Integer[]);
+
+        p("Integer is instanceof Object[]:  ", oi instanceof Object[]);
+        p("Integer[] is instanceof Object:  ", oia instanceof Object);
+        p("Integer is instanceof Integer[]: ", oi instanceof Integer[]);
+        p("Object is instanceof Integer[]:  ", o instanceof Integer[]);
 
         try {
             p ("type cast check: Integer = Object(Integer)");
