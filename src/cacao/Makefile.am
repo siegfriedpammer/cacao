@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3309 2005-09-29 14:22:55Z twisti $
+## $Id: Makefile.am 3401 2005-10-11 14:40:40Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -100,8 +100,6 @@ libcacao_la_LIBADD = \
 	$(THREAD_LIB) \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvm.la
-
-bindir = $(prefix)/jre/bin
 
 bin_PROGRAMS = cacao
 
