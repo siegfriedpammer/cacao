@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3205 2005-09-19 09:02:55Z twisti $
+   $Id: memory.c 3397 2005-10-11 13:29:01Z twisti $
 
 */
 
@@ -71,18 +71,10 @@
 #include "vm/stringlocal.h"
 
 
-/********* general types, variables and auxiliary functions *********/
-
-#if USE_CODEMMAP
-static int mmapcodesize = 0;
-static void *mmapcodeptr = NULL;
-#endif
-
-
 /*******************************************************************************
 
-    This structure is used for dump memory allocation if cacao runs
-    without threads.
+  This structure is used for dump memory allocation if cacao
+  runswithout threads.
 
 *******************************************************************************/
 
@@ -94,48 +86,6 @@ static dumpinfo _no_threads_dumpinfo;
 #define DUMPINFO    &((threadobject *) THREADOBJECT)->dumpinfo
 #else
 #define DUMPINFO    &_no_threads_dumpinfo
-#endif
-
-
-#if USE_CODEMMAP
-void *mem_mmap(s4 size)
-{
-	void *m;
-
-	size = ALIGN(size, ALIGNSIZE);
-
-	if (size > mmapcodesize) {
-		mmapcodesize = 0x10000;
-
-		if (size > mmapcodesize)
-			mmapcodesize = size;
-
-		mmapcodesize = ALIGN(mmapcodesize, getpagesize());
-		mmapcodeptr = mmap(NULL,
-						   (size_t) mmapcodesize,
-						   PROT_READ | PROT_WRITE | PROT_EXEC,
-						   MAP_PRIVATE |
-#if defined(HAVE_MAP_ANONYMOUS)
-						   MAP_ANONYMOUS,
-#elif defined(HAVE_MAP_ANON)
-						   MAP_ANON,
-#else
-						   0,
-#endif
-						   -1,
-						   (off_t) 0);
-
-		if (mmapcodeptr == MAP_FAILED)
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   "Out of memory");
-	}
-
-	m = mmapcodeptr;
-	mmapcodeptr = (void *) ((char *) mmapcodeptr + size);
-	mmapcodesize -= size;
-
-	return m;
-}
 #endif
 
 

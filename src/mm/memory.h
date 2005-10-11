@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 3216 2005-09-19 13:07:54Z twisti $
+   $Id: memory.h 3397 2005-10-11 13:29:01Z twisti $
 
 */
 
@@ -151,18 +151,12 @@ struct dumpinfo {
 #define MSET(ptr,byte,type,num) memset((ptr), (byte), sizeof(type) * (num))
 #define MMOVE(dest,src,type,num) memmove((dest), (src), sizeof(type) * (num))
 
-#if defined(USE_CODEMMAP)
-#define CNEW(type,num)        ((type *) mem_mmap(sizeof(type) * (num)))
-#define CFREE(ptr,num)        /* nothing */
-#else
-#define CNEW(type,num)        ((type *) mem_alloc(sizeof(type) * (num)))
-#define CFREE(ptr,num)        mem_free((ptr), (num))
-#endif
+#define CNEW(type,num)        MNEW(type,num)
+#define CFREE(ptr,num)        MFREE(ptr,u1,num)
 
 
 /* function prototypes ********************************************************/
 
-void *mem_mmap(s4 size);
 void *mem_alloc(s4 size);
 void  mem_free(void *m, s4 size);
 void *mem_realloc(void *src, s4 len1, s4 len2);
