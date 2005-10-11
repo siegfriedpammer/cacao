@@ -28,16 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3295 2005-09-28 14:03:06Z twisti $
+## $Id: Makefile.am 3399 2005-10-11 14:39:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-bindir = $(prefix)/bin
-
 bin_SCRIPTS = \
-	cacao \
 	java \
-	javac \
 	rmiregistry
 
 ## Local variables:
