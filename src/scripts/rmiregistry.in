@@ -30,8 +30,10 @@
 ##
 ## Changes:
 ##
-## $Id: rmiregistry.in 2006 2005-03-05 18:47:05Z twisti $
+## $Id: rmiregistry.in 3400 2005-10-11 14:40:15Z twisti $
 
 prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
 
-exec ${prefix}/jre/bin/cacao gnu.java.rmi.registry.RegistryImpl $@
+exec ${bindir}/cacao gnu.java.rmi.registry.RegistryImpl $@

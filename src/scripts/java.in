@@ -30,8 +30,10 @@
 ##
 ## Changes:
 ##
-## $Id: java.in 2006 2005-03-05 18:47:05Z twisti $
+## $Id: java.in 3400 2005-10-11 14:40:15Z twisti $
 
 prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
 
-exec ${prefix}/jre/bin/cacao $@
+exec ${bindir}/cacao $@
