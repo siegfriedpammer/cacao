@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3395 2005-10-10 23:59:11Z edwin $
+   $Id: builtin.c 3420 2005-10-12 13:26:49Z twisti $
 
 */
 
@@ -59,6 +59,8 @@
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"          /* required by VMObject */
 #include "native/include/java_lang_VMObject.h"
+#include "native/include/java_lang_Throwable.h"
+#include "native/include/java_lang_VMThrowable.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -735,8 +737,6 @@ java_objectheader *builtin_new(classinfo *c)
 	if (!o)
 		return NULL;
 
-	MSET(o, 0, u1, c->instancesize);
-
 	o->vftbl = c->vftbl;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -786,8 +786,6 @@ java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl)
 
 	if (!a)
 		return NULL;
-
-	MSET(a, 0, u1, actualsize);
 
 	a->objheader.vftbl = arrayvftbl;
 
@@ -1160,15 +1158,50 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		/* print stacktrace for exception */
 
 		if (opt_verboseexception) {
-			methodinfo *pss;
+			java_lang_Throwable   *t;
+			java_lang_VMThrowable *vmt;
+			java_lang_Throwable   *cause;
+			utf                   *u;
+			stackTraceBuffer      *stb;
 
-			pss = class_resolveclassmethod(xptr->vftbl->class,
-										   utf_printStackTrace,
-										   utf_void__void,
-										   class_java_lang_Object,
-										   false);
+			t = (java_lang_Throwable *) xptr;
+			cause = t->cause;
 
-			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
+			/* print the root exception */
+
+			utf_display_classname(t->header.vftbl->class->name);
+
+			if (t->detailMessage) {
+				u = javastring_toutf(t->detailMessage, false);
+
+				printf(": ");
+				utf_display(u);
+			}
+
+			putc('\n', stdout);
+
+			/* print the cause if available */
+
+			if (cause && (cause != t)) {
+				printf("Caused by: ");
+				utf_display_classname(cause->header.vftbl->class->name);
+
+				if (cause->detailMessage) {
+					u = javastring_toutf(cause->detailMessage, false);
+
+					printf(": ");
+					utf_display(u);
+				}
+
+				putc('\n', stdout);
+			}
+
+			/* now print the stacktrace */
+
+			vmt = t->vmState;
+			stb = (stackTraceBuffer *) vmt->vmData;
+
+			stacktrace_print_trace(stb);
 		}
 	}
 
