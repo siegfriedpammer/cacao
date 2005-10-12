@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 2186 2005-04-02 00:43:25Z edwin $
+   $Id: method.c 3412 2005-10-12 12:54:02Z twisti $
 
 */
 
@@ -60,7 +60,7 @@ void method_free(methodinfo *m)
 		MFREE(m->exceptiontable, exceptiontable, m->exceptiontablelength);
 
 	if (m->mcode)
-		CFREE(m->mcode, m->mcodelength);
+		CFREE((void *) (ptrint) m->mcode, m->mcodelength);
 
 	if (m->stubroutine) {
 		if (m->flags & ACC_NATIVE) {
