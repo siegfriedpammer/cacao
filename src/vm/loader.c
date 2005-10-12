@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3386 2005-10-07 14:02:52Z edwin $
+   $Id: loader.c 3418 2005-10-12 13:23:01Z twisti $
 
 */
 
@@ -2485,7 +2485,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
-	c->fields = GCNEW(fieldinfo, c->fieldscount);
+	c->fields = GCNEW_UNCOLLECTABLE(fieldinfo, c->fieldscount);
 /*  	c->fields = MNEW(fieldinfo, c->fieldscount); */
 	for (i = 0; i < c->fieldscount; i++) {
 		if (!load_field(cb, &(c->fields[i]),descpool))
