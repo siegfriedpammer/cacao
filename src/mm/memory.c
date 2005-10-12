@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3397 2005-10-11 13:29:01Z twisti $
+   $Id: memory.c 3403 2005-10-12 08:17:00Z twisti $
 
 */
 
@@ -45,12 +45,9 @@
 #endif
 
 #include "config.h"
-#include "arch.h"
+#include "vm/types.h"
 
-#if USE_CODEMMAP
-# include <sys/mman.h>
-# include <unistd.h>
-#endif
+#include "arch.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
