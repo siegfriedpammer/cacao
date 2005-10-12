@@ -28,12 +28,13 @@
 
    Changes:
 
-   $Id: signal.c 3378 2005-10-06 13:14:48Z twisti $
+   $Id: signal.c 3411 2005-10-12 12:49:32Z twisti $
 
 */
 
 
 #include <signal.h>
+#include <stdlib.h>
 
 #include "config.h"
 
@@ -148,7 +149,8 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
 
 /* signal_handler_sigint *******************************************************
 
-   XXX
+   Handler for SIGINT (<ctrl>-c) which shuts down CACAO properly with
+   Runtime.exit(I)V.
 
 *******************************************************************************/
 
@@ -156,8 +158,10 @@ void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* if we are already in Runtime.exit(), just do it hardcore */
 
-	if (cacao_exiting)
+	if (cacao_exiting) {
+		fprintf(stderr, "Catched SIGINT while already shutting down. Shutdown aborted...\n");
 		exit(0);
+	}
 
 	/* exit the vm properly */
 
