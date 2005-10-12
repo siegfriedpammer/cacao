@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3377 2005-10-06 13:13:08Z twisti $
+   $Id: cacao.c 3423 2005-10-12 13:32:21Z twisti $
 
 */
 
@@ -1064,6 +1064,9 @@ int main(int argc, char **argv)
 		throw_main_exception_exit();
 
 	if (!builtin_init())
+		throw_main_exception_exit();
+
+	if (!jni_init())
 		throw_main_exception_exit();
 
 #if defined(USE_THREADS)
