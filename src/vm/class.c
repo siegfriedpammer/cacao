@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3374 2005-10-06 13:11:37Z twisti $
+   $Id: class.c 3419 2005-10-12 13:24:21Z twisti $
 
 */
 
@@ -206,44 +206,11 @@ classinfo *class_create_classinfo(utf *classname)
 	if (initverbose)
 		log_message_utf("Creating class: ", classname);
 
-	c = GCNEW(classinfo, 1); /*JOWENN: NEW*/
+	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
+
+	c = GCNEW_UNCOLLECTABLE(classinfo, 1);
 	/*c=NEW(classinfo);*/
-	c->vmClass = 0;
-	c->flags = 0;
 	c->name = classname;
-	c->packagename = NULL;
-	c->cpcount = 0;
-	c->cptags = NULL;
-	c->cpinfos = NULL;
-	c->classrefs = NULL;
-	c->extclassrefs = NULL;
-	c->classrefcount = 0;
-	c->parseddescs = NULL;
-	c->parseddescsize = 0;
-	c->super.any = NULL;
-	c->sub = NULL;
-	c->nextsub = NULL;
-	c->interfacescount = 0;
-	c->interfaces = NULL;
-	c->fieldscount = 0;
-	c->fields = NULL;
-	c->methodscount = 0;
-	c->methods = NULL;
-	c->linked = false;
-	c->loaded = false;
-	c->index = 0;
-	c->instancesize = 0;
-	c->header.vftbl = NULL;
-	c->innerclasscount = 0;
-	c->innerclass = NULL;
-	c->vftbl = NULL;
-	c->initialized = false;
-	c->initializing = false;
-	c->classvftbl = false;
-    c->classUsed = 0;
-    c->impldBy = NULL;
-	c->classloader = NULL;
-	c->sourcefile = NULL;
 	
 	if (classname != utf_not_named_yet) {
 		class_set_packagename(c);
