@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3325 2005-10-04 18:45:58Z twisti $
+   $Id: stacktrace.c 3414 2005-10-12 13:07:12Z twisti $
 
 */
 
@@ -1180,9 +1180,6 @@ java_objectarray *cacao_getStackForVMAccessController(void)
 void stacktrace_dump_trace(void)
 {
 	stackTraceBuffer      *buffer;
-	stacktraceelement     *element;
-	methodinfo            *m;
-	s4                     i;
 
 #if 0
 	/* get thread stackframeinfo */
@@ -1206,30 +1203,47 @@ void stacktrace_dump_trace(void)
 
 	/* print stacktrace */
 
-	if (buffer) {
-		element = buffer->start;
+	if (buffer)
+		stacktrace_print_trace(buffer);
+}
 
-		for (i = 0; i < buffer->size; i++, element++) {
-			m = element->method;
 
-			printf("\tat ");
-			utf_display_classname(m->class->name);
-			printf(".");
-			utf_display(m->name);
-			utf_display(m->descriptor);
+/* stacktrace_print_trace ******************************************************
 
-			if (m->flags & ACC_NATIVE) {
-				printf("(Native Method)\n");
+   Print the stacktrace of a given stackTraceBuffer with CACAO intern
+   methods (no Java help). This method is used by
+   stacktrace_dump_trace and builtin_trace_exception.
 
-			} else {
-				printf("(");
-				utf_display(m->class->sourcefile);
-				printf(":%d)\n", (u4) element->linenumber);
-			}
+*******************************************************************************/
+
+void stacktrace_print_trace(stackTraceBuffer *stb)
+{
+	stacktraceelement *ste;
+	methodinfo        *m;
+	s4                 i;
+
+	ste = stb->start;
+
+	for (i = 0; i < stb->size; i++, ste++) {
+		m = ste->method;
+
+		printf("\tat ");
+		utf_display_classname(m->class->name);
+		printf(".");
+		utf_display(m->name);
+		utf_display(m->descriptor);
+
+		if (m->flags & ACC_NATIVE) {
+			printf("(Native Method)\n");
+
+		} else {
+			printf("(");
+			utf_display(m->class->sourcefile);
+			printf(":%d)\n", (u4) ste->linenumber);
 		}
 	}
 
-	/* flush stdout */
+	/* just to be sure */
 
 	fflush(stdout);
 }

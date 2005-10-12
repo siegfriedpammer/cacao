@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3325 2005-10-04 18:45:58Z twisti $
+   $Id: stacktrace.h 3414 2005-10-12 13:07:12Z twisti $
 
 */
 
@@ -162,7 +162,9 @@ java_objectarray *cacao_createClassContextArray(void);
 java_objectheader *cacao_currentClassLoader(void);
 methodinfo* cacao_callingMethod(void);
 java_objectarray *cacao_getStackForVMAccessController(void);
+
 void stacktrace_dump_trace(void);
+void stacktrace_print_trace(stackTraceBuffer *stb);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
