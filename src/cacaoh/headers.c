@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3278 2005-09-21 21:25:14Z twisti $
+   $Id: headers.c 3413 2005-10-12 13:06:22Z twisti $
 
 */
 
@@ -172,9 +172,10 @@ bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	return true;
 }
 
-void typeinfo_print(FILE *file,typeinfo *info,int indent)
-{
-}
+void typeinfo_print(FILE *file,typeinfo *info,int indent) {}
+
+void stacktrace_print_trace(stackTraceBuffer *stb) {}
+
 
 /* exception functions ********************************************************/
 
