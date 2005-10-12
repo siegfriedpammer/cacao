@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 3215 2005-09-19 13:05:24Z twisti $
+   $Id: VMThread.c 3406 2005-10-12 08:22:24Z twisti $
 
 */
 
@@ -78,11 +78,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, s8 stacksize)
 {
-	if (runverbose) 
-		log_text("java_lang_VMThread_start called");
-
 #if defined(USE_THREADS)
 	this->thread->vmThread = this;
+
 	startThread((thread *) this->thread);
 #endif
 }
@@ -204,10 +202,10 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 	java_lang_Thread *t;
 
 #if defined(USE_THREADS)
-#if !defined(NATIVE_THREADS)
-	t = (java_lang_Thread *) currentThread;
-#else
+#if defined(NATIVE_THREADS)
 	t = ((threadobject*) THREADOBJECT)->o.thread;
+#else
+	t = (java_lang_Thread *) currentThread;
 #endif
 
 	if (t == NULL)
@@ -225,7 +223,10 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 
 	return t;
 #else
-	return NULL;
+	/* we just return a fake java.lang.Thread object, otherwise we get
+       NullPointerException's in GNU classpath */
+
+	return (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 #endif
 }
 
