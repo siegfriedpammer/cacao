@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 3397 2005-10-11 13:29:01Z twisti $
+   $Id: memory.h 3404 2005-10-12 08:17:42Z twisti $
 
 */
 
@@ -124,11 +124,6 @@ struct dumpinfo {
 };
 
 
-/* Uncollectable memory which can contain references */
-
-#define GCNEW(type,num)       ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
-#define GCFREE(ptr)           heap_free((ptr))
-
 #define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((int) ((size_t) & (((s*) 0)->el)))
@@ -153,6 +148,16 @@ struct dumpinfo {
 
 #define CNEW(type,num)        MNEW(type,num)
 #define CFREE(ptr,num)        MFREE(ptr,u1,num)
+
+
+/* GC macros ******************************************************************/
+
+/* Uncollectable memory which can contain references */
+
+#define GCNEW_UNCOLLECTABLE(type,num) ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
+
+#define GCNEW(type,num)       heap_allocate(sizeof(type) * (num), true, NULL)
+#define GCFREE(ptr)           heap_free((ptr))
 
 
 /* function prototypes ********************************************************/
