@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 3189 2005-09-16 11:53:40Z twisti $
+   $Id: VMStackWalker.c 3407 2005-10-12 08:22:50Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "native/include/java_lang_ClassLoader.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/global.h"
 #include "vm/tables.h"
 
 
