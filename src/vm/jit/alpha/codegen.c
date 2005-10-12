@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3345 2005-10-04 22:14:53Z twisti $
+   $Id: codegen.c 3425 2005-10-12 15:33:35Z twisti $
 
 */
 
@@ -49,6 +49,7 @@
 #include "vm/jit/alpha/codegen.h"
 
 #include "cacao/cacao.h"
+#include "native/jni.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -4206,6 +4207,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	stackframesize =
 		1 +                             /* return address                     */
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* methodinfo for call trace          */
 		(md->paramcount > INT_ARG_CNT ? INT_ARG_CNT : md->paramcount) +
 		nmd->memuse;
@@ -4307,7 +4309,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 #endif
 
-
 	/* save integer and float argument registers */
 
 	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
@@ -4324,15 +4325,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	/* create native stackframe info */
+	/* prepare data structures for native function call */
 
-	M_AADD_IMM(REG_SP,
-			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
+	M_LDA(rd->argintregs[0], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
 	M_MOV(REG_PV, rd->argintregs[1]);
-	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
+	M_LDA(rd->argintregs[2], REG_SP, stackframesize * 8);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
-	disp = dseg_addaddress(cd, stacktrace_create_native_stackframeinfo);
+	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
@@ -4353,7 +4352,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			j++;
 		}
 	}
-
 
 	/* copy or spill arguments to new locations */
 
@@ -4436,10 +4434,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP,
-			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
-	disp = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
+	M_LDA(rd->argintregs[0], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
 	disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
@@ -4448,6 +4444,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* call finished trace */
 
 	if (runverbose) {
+		/* just restore the value we need, don't care about the other */
+
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+
 		disp = dseg_addaddress(cd, m);
 		M_ALD(rd->argintregs[0], REG_PV, disp);
 
