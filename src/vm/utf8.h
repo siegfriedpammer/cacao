@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 3262 2005-09-21 20:02:49Z twisti $
+   $Id: utf8.h 3421 2005-10-12 13:31:05Z twisti $
 
 */
 
@@ -112,11 +112,24 @@ extern utf *utf_finalize;
 extern utf *utf_run;
 
 extern utf *utf_add;
+extern utf *utf_remove;
+extern utf *utf_put;
+extern utf *utf_get;
+extern utf *utf_value;
 
 extern utf *utf_fillInStackTrace;
 extern utf *utf_getSystemClassLoader;
 extern utf *utf_loadClass;
 extern utf *utf_printStackTrace;
+
+extern utf *utf_Z;
+extern utf *utf_B;
+extern utf *utf_C;
+extern utf *utf_S;
+extern utf *utf_I;
+extern utf *utf_J;
+extern utf *utf_F;
+extern utf *utf_D;
 
 extern utf *utf_void__void;
 extern utf *utf_boolean__void;
@@ -131,6 +144,7 @@ extern utf *utf_double__void;
 extern utf *utf_void__java_lang_ClassLoader;
 extern utf *utf_void__java_lang_Object;
 extern utf *utf_void__java_lang_Throwable;
+extern utf *utf_java_lang_Object__java_lang_Object;
 extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Throwable__void;

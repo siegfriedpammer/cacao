@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3356 2005-10-05 16:04:28Z twisti $
+   $Id: utf8.c 3421 2005-10-12 13:31:05Z twisti $
 
 */
 
@@ -100,11 +100,24 @@ utf *utf_finalize;                      /* finalize                           */
 utf *utf_run;                           /* run                                */
 
 utf *utf_add;                           /* add                                */
+utf *utf_remove;                        /* remove                             */
+utf *utf_put;                           /* put                                */
+utf *utf_get;                           /* get                                */
+utf *utf_value;                         /* value                              */
 
 utf *utf_fillInStackTrace;
 utf *utf_getSystemClassLoader;
 utf *utf_loadClass;
 utf *utf_printStackTrace;
+
+utf *utf_Z;                             /* Z                                  */
+utf *utf_B;                             /* B                                  */
+utf *utf_C;                             /* C                                  */
+utf *utf_S;                             /* S                                  */
+utf *utf_I;                             /* I                                  */
+utf *utf_J;                             /* J                                  */
+utf *utf_F;                             /* F                                  */
+utf *utf_D;                             /* D                                  */
 
 utf *utf_void__void;                    /* ()V                                */
 utf *utf_boolean__void;                 /* (Z)V                               */
@@ -119,6 +132,7 @@ utf *utf_double__void;                  /* (D)V                               */
 utf *utf_void__java_lang_ClassLoader;   /* ()Ljava/lang/ClassLoader;          */
 utf *utf_void__java_lang_Object;        /* ()Ljava/lang/Object;               */
 utf *utf_void__java_lang_Throwable;     /* ()Ljava/lang/Throwable;            */
+utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
@@ -197,11 +211,24 @@ void utf8_init(void)
 	utf_run                        = utf_new_char("run");
 
 	utf_add                        = utf_new_char("add");
+	utf_remove                     = utf_new_char("remove");
+	utf_put                        = utf_new_char("put");
+	utf_get                        = utf_new_char("get");
+	utf_value                      = utf_new_char("value");
 
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
 	utf_loadClass                  = utf_new_char("loadClass");
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
+
+	utf_Z                          = utf_new_char("Z");
+	utf_B                          = utf_new_char("B");
+	utf_C                          = utf_new_char("C");
+	utf_S                          = utf_new_char("S");
+	utf_I                          = utf_new_char("I");
+	utf_J                          = utf_new_char("J");
+	utf_F                          = utf_new_char("F");
+	utf_D                          = utf_new_char("D");
 
 	utf_void__void                 = utf_new_char("()V");
 	utf_boolean__void              = utf_new_char("(Z)V");
@@ -217,6 +244,9 @@ void utf8_init(void)
 
 	utf_void__java_lang_ClassLoader =
 		utf_new_char("()Ljava/lang/ClassLoader;");
+
+	utf_java_lang_Object__java_lang_Object =
+		utf_new_char("(Ljava/lang/Object;)Ljava/lang/Object;");
 
 	utf_java_lang_String__void     = utf_new_char("(Ljava/lang/String;)V");
 
@@ -937,7 +967,7 @@ void utf_fprint_classname(FILE *file, utf *u)
 
 *******************************************************************************/
 
-static unsigned long min_codepoint[6] = {0,1L<<7,1L<<11,1L<<16,1L<<21,1L<<26};
+/*  static unsigned long min_codepoint[6] = {0,1L<<7,1L<<11,1L<<16,1L<<21,1L<<26}; */
 
 bool is_valid_utf(char *utf_ptr, char *end_pos)
 {
