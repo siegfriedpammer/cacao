@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3357 2005-10-05 16:05:04Z twisti $
+   $Id: codegen.c 3426 2005-10-12 15:53:16Z twisti $
 
 */
 
@@ -3749,7 +3749,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* calculate stackframe size */
 
 	stackframesize =
-		sizeof(stackframeinfo) / SIZEOF_VOID_P + /* native stackinfo          */
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
 		4 +                             /* 4 stackframeinfo arguments (darwin)*/
 		nmd->paramcount * 2 +           /* assume all arguments are doubles   */
 		nmd->memuse;
@@ -3831,12 +3832,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* create native stack info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 4 - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
 	M_MOV(REG_PV, rd->argintregs[1]);
 	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 4 + LA_LR_OFFSET);
-	disp = dseg_addaddress(cd, stacktrace_create_native_stackframeinfo);
+	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
@@ -3868,7 +3868,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			j++;
 		}
 	}
-
 	
 	/* copy or spill arguments to new locations */
 
@@ -3968,9 +3967,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, stackframesize * 4 - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
-	disp = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
+	M_AADD_IMM(REG_SP, stackframesize * 4, rd->argintregs[0]);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
 	M_JSR;
@@ -3978,6 +3976,19 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* print call trace */
 
 	if (runverbose) {
+		 /* just restore the value we need, don't care about the other */
+
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+		} else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+			else
+				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		}
+
 		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (1 + 2 + 2 + 1) * 4));
 
 		/* keep this order */
