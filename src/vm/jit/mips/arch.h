@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3002 2005-07-12 16:02:45Z twisti $
+   $Id: arch.h 3410 2005-10-12 12:45:56Z twisti $
 
 */
 
@@ -39,8 +39,6 @@
 /* define architecture features ***********************************************/
 
 #define U8_AVAILABLE                     1
-
-/* #define USE_CODEMMAP */
 
 #define USEBUILTINTABLE
 

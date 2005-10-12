@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3246 2005-09-21 14:59:28Z twisti $
+   $Id: arch.h 3410 2005-10-12 12:45:56Z twisti $
 
 */
 
@@ -42,8 +42,6 @@
 #define USE_spTOS
 
 #define U8_AVAILABLE                     1
-
-#define USE_CODEMMAP                     1
 
 /*  #define USEBUILTINTABLE */
 
