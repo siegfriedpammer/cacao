@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3388 2005-10-07 15:26:25Z twisti $
+   $Id: boehm.c 3422 2005-10-12 13:31:50Z twisti $
 
 */
 
@@ -126,7 +126,13 @@ static void *stackcall_free(void *p, u4 bytelength)
 void *heap_alloc_uncollectable(u4 bytelength)
 {
 	void *result;
+
 	MAINTHREADCALL(result, stackcall_malloc_uncollectable, NULL, bytelength);
+
+	/* clear allocated memory region */
+
+	MSET(result, 0, u1, bytelength);
+
 	return result;
 }
 
