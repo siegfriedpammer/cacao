@@ -32,7 +32,6 @@ java_lang_VMFloat.h
 java_lang_VMRuntime.h
 java_lang_VMString.h
 java_lang_VMSystem.h
-java_lang_VMThrowable.h
 java_lang_reflect_Array.h
 java_lang_reflect_Constructor.h
 java_lang_reflect_Field.h

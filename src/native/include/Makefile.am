@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3389 2005-10-07 15:35:38Z twisti $
+## $Id: Makefile.am 3424 2005-10-12 15:27:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,7 +41,8 @@ NO_GEN_HEADER_FILES = \
 	java_lang_ThreadGroup.h \
 	java_lang_Throwable.h \
 	java_lang_VMObject.h \
-	java_lang_VMThread.h
+	java_lang_VMThread.h \
+	java_lang_VMThrowable.h
 
 GEN_HEADER_FILES = \
 	java_util_Properties.h \
@@ -63,7 +64,6 @@ GEN_HEADER_FILES = \
 	java_lang_Process.h \
 	java_lang_Short.h \
 	java_lang_StackTraceElement.h \
-	java_lang_VMThrowable.h \
 	java_lang_reflect_Constructor.h \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \
