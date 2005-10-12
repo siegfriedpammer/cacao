@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3223 2005-09-19 13:55:25Z twisti $
+   $Id: codegen.inc 3416 2005-10-12 13:20:53Z twisti $
 
 */
 
@@ -61,6 +61,7 @@
 #include "mm/memory.h"
 #include "toolbox/avl.h"
 #include "toolbox/logging.h"
+#include "native/jni.h"
 #include "native/native.h"
 
 #if defined(USE_THREADS)
@@ -78,6 +79,7 @@
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* in this tree we store all method addresses *********************************/
@@ -150,7 +152,6 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->jumpreferences = NULL;
 	cd->datareferences = NULL;
 	cd->xboundrefs = NULL;
-	cd->xcheckarefs = NULL;
 	cd->xnullrefs = NULL;
 	cd->xcastrefs = NULL;
 	cd->xstorerefs = NULL;
@@ -485,20 +486,6 @@ static void codegen_addxboundrefs(codegendata *cd, void *branchptr, s4 reg)
 	br->reg = reg;
 	br->next = cd->xboundrefs;
 	cd->xboundrefs = br;
-}
-
-
-static void codegen_addxcheckarefs(codegendata *cd, void *branchptr)
-{
-	s4 branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-	br->branchpos = branchpos;
-	br->next = cd->xcheckarefs;
-	cd->xcheckarefs = br;
 }
 
 
@@ -995,6 +982,111 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 }
 
 
+/* codegen_start_native_call ***************************************************
+
+   Prepares the stuff required for a native (JNI) function call:
+
+   - adds a stackframe info structure to the chain, for stacktraces
+   - prepares the local references table on the stack
+
+   The layout of the native stub stackframe should look like this:
+
+   +---------------------------+ <- SP (of parent Java function)
+   | return address            |
+   +---------------------------+
+   |                           |
+   | stackframe info structure |
+   |                           |
+   +---------------------------+
+   |                           |
+   | local references table    |
+   |                           |
+   +---------------------------+
+   |                           |
+   | arguments (if any)        |
+   |                           |
+   +---------------------------+ <- SP (native stub)
+
+*******************************************************************************/
+
+void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, functionptr ra)
+{
+	stackframeinfo *sfi;
+	localref_table *lrt;
+	nativethread   *info;
+
+	/* get data structures from stack */
+
+	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
+	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
+							  sizeof(localref_table));
+
+	/* get thread info */
+
+	info = THREADINFO;
+
+	/* add a stackframeinfo to the chain */
+
+	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
+
+	/* add current JNI local references table to this thread */
+
+	lrt->capacity    = LOCALREFTABLE_CAPACITY;
+	lrt->used        = 0;
+	lrt->localframes = 1;
+	lrt->prev        = info->_localref_table;
+
+	/* clear the references array (memset is faster the a for-loop) */
+
+	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
+
+	info->_localref_table = lrt;
+}
+
+
+/* codegen_finish_native_call **************************************************
+
+   Removes the stuff required for a native (JNI) function call.
+
+*******************************************************************************/
+
+void codegen_finish_native_call(u1 *datasp)
+{
+	stackframeinfo *sfi;
+	localref_table *lrt;
+	nativethread   *info;
+	s4              localframes;
+
+	/* get data structures from stack */
+
+	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
+	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
+							  sizeof(localref_table));
+
+	/* get thread info */
+
+	info = THREADINFO;
+
+	/* remove current stackframeinfo from chain */
+
+	info->_stackframeinfo = sfi->prev;
+
+	/* release JNI local references tables for this thread */
+
+	lrt = info->_localref_table;
+
+	/* got through all current local frames */
+
+	for (localframes = lrt->localframes; localframes >= 1; localframes--) {
+		lrt = lrt->prev;
+	}
+
+	/* now store the previous local frames in the thread structure */
+
+	info->_localref_table = lrt;
+}
+
+
 /* removecompilerstub **********************************************************
 
    Deletes a compilerstub from memory (simply by freeing it).
@@ -1003,7 +1095,9 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 
 void removecompilerstub(functionptr stub)
 {
-	CFREE(stub, 1);
+	/* pass size 1 to keep the intern function happy */
+
+	CFREE((void *) (ptrint) stub, 1);
 }
 
 
@@ -1015,7 +1109,9 @@ void removecompilerstub(functionptr stub)
 
 void removenativestub(functionptr stub)
 {
-	CFREE(stub, 1);
+	/* pass size 1 to keep the intern function happy */
+
+	CFREE((void *) (ptrint) stub, 1);
 }
 
 
