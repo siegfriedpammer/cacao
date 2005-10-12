@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 3249 2005-09-21 15:32:47Z twisti $
+   $Id: threads.h 3405 2005-10-12 08:19:00Z twisti $
 
 */
 
@@ -39,11 +39,15 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_Object.h" /* required by java/lang/VMThread*/
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
+#include "vm/tables.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>
@@ -100,11 +104,10 @@ struct nativethread {
 	threadobject      *next;
 	threadobject      *prev;
 	java_objectheader *_exceptionptr;
-	u1                 _dontfillinexceptionstacktrace;
-	methodinfo        *_threadrootmethod;
 	void              *_stackframeinfo;
+	localref_table    *_localref_table; /* JNI local references               */
 #if defined(ENABLE_INTRP)
-	void               *_global_sp;
+	void              *_global_sp;
 #endif
 	pthread_t          tid;
 #if defined(__DARWIN__)
