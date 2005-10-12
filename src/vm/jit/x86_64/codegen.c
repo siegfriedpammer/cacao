@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3371 2005-10-06 13:09:52Z twisti $
+   $Id: codegen.c 3417 2005-10-12 13:21:55Z twisti $
 
 */
 
@@ -4176,6 +4176,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
 		INT_ARG_CNT + FLT_ARG_CNT + 1 +         /* + 1 for function address   */
 		nmd->memuse;
 
@@ -4277,13 +4278,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* create dynamic stack info */
 
-	M_ALEA(REG_SP, stackframesize * 8 - sizeof(stackframeinfo), rd->argintregs[0]);
+	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
 	x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
 	M_ALEA(REG_SP, stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
-	x86_64_mov_imm_reg(cd, (ptrint) stacktrace_create_native_stackframeinfo,
-					   REG_ITMP1);
-	x86_64_call_reg(cd, REG_ITMP1);
+	M_MOV_IMM((ptrint) codegen_start_native_call, REG_ITMP1);
+	M_CALL(REG_ITMP1);
 	
 	STATS({
 		x86_64_mov_imm_reg(cd, (ptrint) nativeinvokation, REG_ITMP1);
@@ -4363,9 +4363,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* remove native stackframe info */
 
-	M_ALEA(REG_SP, stackframesize * 8 - sizeof(stackframeinfo),
-		   rd->argintregs[0]);
-	M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP1);
+	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
+	M_MOV_IMM((ptrint) codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* generate call trace */
