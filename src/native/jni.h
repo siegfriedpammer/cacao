@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 3221 2005-09-19 13:31:31Z twisti $
+   $Id: jni.h 3408 2005-10-12 08:47:23Z twisti $
 
 */
 
@@ -604,13 +604,39 @@ void SetFloatField(JNIEnv *env, jobject obj, jfieldID fieldID, jfloat val);
 void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val);
 
 
+/* CACAO related stuff ********************************************************/
+
+/* local reference table ******************************************************/
+
+#define LOCALREFTABLE_CAPACITY    16
+
+typedef struct localref_table localref_table;
+
+/* localref_table **************************************************************
+
+   ATTENTION: keep this structure a multiple of 8-bytes!!! This is
+   essential for the native stub on 64-bit architectures.
+
+*******************************************************************************/
+
+struct localref_table {
+	s4                 capacity;        /* table size                         */
+	s4                 used;            /* currently used references          */
+	s4                 localframes;     /* number of current frames           */
+	s4                 PADDING;         /* 8-byte padding                     */
+	localref_table    *prev;            /* link to prev table (LocalFrame)    */
+	java_objectheader *refs[LOCALREFTABLE_CAPACITY]; /* references            */
+};
+
+
 #define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;
 #define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
 #define setfield_critical(clazz,obj,name,sig,jdatatype,val) setField(obj,jdatatype,getFieldID_critical(env,clazz,name,sig),val);
 
-jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
+/* initialize JNI subsystem */
+bool jni_init(void);
 
-void jni_init ();
+jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
 
 extern void* ptr_env;
 extern struct JNINativeInterface JNI_JNIEnvTable;
