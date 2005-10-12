@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3217 2005-09-19 13:11:24Z twisti $
+   $Id: codegen.inc.h 3415 2005-10-12 13:19:11Z twisti $
 
 */
 
@@ -110,7 +110,6 @@ struct codegendata {
 	jumpref        *jumpreferences; /* list of jumptable target addresses     */
 	dataref        *datareferences; /* list of data segment references        */
 	branchref      *xboundrefs;     /* list of bound check branches           */
-	branchref      *xcheckarefs;    /* list of array size check branches      */
 	branchref      *xnullrefs;      /* list of null check branches            */
 	branchref      *xcastrefs;      /* list of cast check branches            */
 	branchref      *xstorerefs;     /* list of array store check branches     */
