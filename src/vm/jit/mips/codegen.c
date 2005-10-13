@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3355 2005-10-05 15:44:40Z twisti $
+   $Id: codegen.c 3431 2005-10-13 16:04:03Z twisti $
 
 */
 
@@ -4079,6 +4079,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	stackframesize =
 		1 +                             /* return address                     */
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +                /* for saving arguments over calls    */
 		1 +                             /* for saving return address          */
 		nmd->memuse;
@@ -4196,15 +4197,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	/* create native stackframe info */
+	/* prepare data structures for native function call */
 
-	M_AADD_IMM(REG_SP,
-			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
+	M_AADD_IMM(REG_SP, stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
 	M_MOV(REG_PV, rd->argintregs[1]);
 	M_AADD_IMM(REG_SP, stackframesize * 8, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
-	disp = dseg_addaddress(cd, stacktrace_create_native_stackframeinfo);
+	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP; /* XXX fill me! */
@@ -4224,7 +4223,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			j++;
 		}
 	}
-
 
 	/* copy or spill arguments to new locations */
 
@@ -4304,10 +4302,8 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP,
-			   stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo),
-			   rd->argintregs[0]);
-	disp = dseg_addaddress(cd, stacktrace_remove_stackframeinfo);
+	M_AADD_IMM(REG_SP, stackframesize * 8 - SIZEOF_VOID_P, rd->argintregs[0]);
+	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP; /* XXX fill me! */
@@ -4315,6 +4311,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* call finished trace function */
 
 	if (runverbose) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+
 		disp = dseg_addaddress(cd, m);
 		M_ALD(rd->argintregs[0], REG_PV, disp);
 
