@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3423 2005-10-12 13:32:21Z twisti $
+   $Id: cacao.c 3427 2005-10-13 09:39:36Z twisti $
 
 */
 
@@ -203,8 +203,7 @@ opt_struct opts[] = {
 	{ "log",               true,  OPT_LOG },
 	{ "c",                 true,  OPT_CHECK },
 	{ "l",                 false, OPT_LOAD },
-    { "eager",             false, OPT_EAGER },
-	{ "m",                 true,  OPT_METHOD },
+	{ "eager",             false, OPT_EAGER },
 	{ "sig",               true,  OPT_SIGNATURE },
 	{ "all",               false, OPT_ALL },
 	{ "oloop",             false, OPT_OLOOP },
@@ -246,6 +245,7 @@ opt_struct opts[] = {
 	/* keep these at the end of the list */
 
 	{ "i",                 true,  OPT_INLINING },
+	{ "m",                 true,  OPT_METHOD },
 	{ "s",                 true,  OPT_SHOW },
 
 	{ NULL,                false, 0 }
@@ -1066,9 +1066,6 @@ int main(int argc, char **argv)
 	if (!builtin_init())
 		throw_main_exception_exit();
 
-	if (!jni_init())
-		throw_main_exception_exit();
-
 #if defined(USE_THREADS)
   	initThreads((u1 *) &dummy);
 #endif
@@ -1079,6 +1076,10 @@ int main(int argc, char **argv)
 	   has to happen after initThreads!!! */
 
 	if (!initialize_class(class_java_lang_System))
+		throw_main_exception_exit();
+
+	/* JNI init creates a Java object (this means running Java code) */
+	if (!jni_init())
 		throw_main_exception_exit();
 
 	cacao_initializing = false;
