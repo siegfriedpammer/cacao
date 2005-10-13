@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 2886 2005-07-02 14:05:47Z edwin $
+   $Id: typeinfo.c 3435 2005-10-13 16:25:56Z edwin $
 
 */
 
@@ -1917,9 +1917,9 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint(stderr,xname);fprintf(stderr,"\n");
 		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint(stderr,yname);fprintf(stderr,"\n");
 		fflush(stderr);
-		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgx,x);
+		typeinfo_init_class(&dbgx,x);
 		dbgx.merged = mergedx;
-		TYPEINFO_INIT_CLASSREF_OR_CLASSINFO(dbgy,y);
+		typeinfo_init_class(&dbgy,y);
 		dbgy.merged = mergedy;
 		typeinfo_print(stderr,&dbgx,4);
 		fprintf(stderr,"  with:\n");
