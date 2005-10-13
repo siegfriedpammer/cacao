@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3381 2005-10-06 14:04:54Z edwin $
+   $Id: resolve.c 3436 2005-10-13 16:48:45Z edwin $
 
 */
 
@@ -589,8 +589,18 @@ resolve_field(unresolved_field *ref,
 	fi = class_resolvefield(container,
 							ref->fieldref->name,ref->fieldref->descriptor,
 							referer,true);
-	if (!fi)
+	if (!fi) {
+		if (mode == resolveLazy) {
+			/* The field does not exist. But since we were called lazily, */
+			/* this error must not be reported now. (It will be reported   */
+			/* if eager resolving of this field is ever tried.)           */
+
+			*exceptionptr = NULL;
+			return true; /* be lazy */
+		}
+		
 		return false; /* exception */
+	}
 
 	/* { the field reference has been resolved } */
 	declarer = fi->class;
@@ -788,8 +798,18 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 									  referer, true);
 	}
 
-	if (!mi)
+	if (!mi) {
+		if (mode == resolveLazy) {
+			/* The method does not exist. But since we were called lazily, */
+			/* this error must not be reported now. (It will be reported   */
+			/* if eager resolving of this method is ever tried.)           */
+
+			*exceptionptr = NULL;
+			return true; /* be lazy */
+		}
+		
 		return false; /* exception */ /* XXX set exceptionptr? */
+	}
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    flags: %02x\n",mi->flags);
