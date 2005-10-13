@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3409 2005-10-12 11:28:23Z twisti $
+   $Id: jni.c 3429 2005-10-13 13:48:21Z edwin $
 
 */
 
@@ -4820,7 +4820,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	}
 	break;
 
-	case 'J': {
+	case PRIMITIVETYPE_LONG: {
 		jlong longVal;
 		longVal = asm_calljavafunction2long(methodID,
 											argcount,
