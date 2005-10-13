@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3393 2005-10-10 13:45:08Z twisti $
+   $Id: codegen.c 3428 2005-10-13 09:50:19Z twisti $
 
 */
 
@@ -5508,14 +5508,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
-	/* initial 4 bytes is space for jni env, + 4 byte thread pointer + 4 byte */
-	/* previous pointer + method info + 4 offset native                       */
-	/* already handled by nmd->memuse */
+	/* calculate stackframe size */
 
 	stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* function pointer                   */
-		4 * 4 +                         /* 4 arguments (create stackframe)    */
+		4 * 4 +                         /* 4 arguments (start_native_call)    */
 		nmd->memuse;
 
 
@@ -5605,7 +5604,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		i386_alu_imm_reg(cd, ALU_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
-
 	/* get function address (this must happen before the stackframeinfo) */
 
 #if !defined(ENABLE_STATICVM)
@@ -5620,7 +5618,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_AST_IMM((ptrint) f, REG_SP, 4 * 4);
 
-
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
 	/* register count == 0).                                                  */
 
@@ -5633,24 +5630,25 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	i386_ffree_reg(cd, 6);
 	i386_ffree_reg(cd, 7);
 
-
-	/* create dynamic stack info */
+	/* prepare data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(stackframesize * 4 - sizeof(stackframeinfo), REG_ITMP1);
+	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
+
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_IST_IMM(0, REG_SP, 1 * 4);
 	dseg_adddata(cd, cd->mcodeptr);
+
 	M_MOV(REG_SP, REG_ITMP2);
 	M_AADD_IMM(stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
+
 	M_AST(REG_ITMP2, REG_SP, 2 * 4);
 	M_ALD(REG_ITMP3, REG_SP, stackframesize * 4);
 	M_AST(REG_ITMP3, REG_SP, 3 * 4);
-	M_MOV_IMM((ptrint) stacktrace_create_native_stackframeinfo, REG_ITMP1);
+	M_MOV_IMM((ptrint) codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	M_ALD(REG_ITMP3, REG_SP, 4 * 4);
-
 
 	/* copy arguments into new stackframe */
 
@@ -5699,12 +5697,13 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			i386_fsts_membase(cd, REG_SP, 1 * 4);
 	}
 
-	/* remove native stackframe info */
+	/* remove data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(stackframesize * 4 - sizeof(stackframeinfo), REG_ITMP1);
+	M_AADD_IMM(stackframesize * 4, REG_ITMP1);
+
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
-	M_MOV_IMM((ptrint) stacktrace_remove_stackframeinfo, REG_ITMP1);
+	M_MOV_IMM((ptrint) codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
     if (runverbose) {
