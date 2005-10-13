@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3429 2005-10-13 13:48:21Z edwin $
+   $Id: jni.c 3434 2005-10-13 16:10:12Z twisti $
 
 */
 
@@ -1182,6 +1182,10 @@ jobject NewLocalRef(JNIEnv *env, jobject ref)
 	/* should not happen, just to be sure */
 
 	assert(0);
+
+	/* keep compiler happy */
+
+	return NULL;
 }
 
 
