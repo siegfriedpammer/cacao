@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3323 2005-10-04 18:33:30Z twisti $
+   $Id: asmpart.S 3433 2005-10-13 16:08:43Z twisti $
 
 */
 
@@ -347,18 +347,6 @@ calljava_xhandler2:
 	.ent    asm_call_jit_compiler
 
 asm_call_jit_compiler:
-	lw      t0,-12(ra)            /* load instruction LD PV,xxx($y)           */
-	srl     t0,t0,21              /* shift right register number $y           */
-	and     t0,t0,31              /* isolate register number                  */
-	addiu   t0,t0,-mptrreg        /* test for REG_METHODPTR                   */
-	beqz    t0,noregchange       
-
-	lw      t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,t0,16
-	sra     t0,t0,16              /* isolate offset                           */
-	aaddu   mptr,t0,ra            /* compute update address                   */
-
-noregchange:
 	aaddiu  sp,sp,-(20*8+sizestackframeinfo) /* allocate stack space          */
 
 	SAVE_ARGUMENT_REGISTERS(0)
@@ -370,7 +358,7 @@ noregchange:
 	aaddiu  a0,sp,20*8            /* create stackframe info                   */
 	move    a1,zero               /* we don't have pv handy                   */
 	aaddiu  a2,sp,(20*8+sizestackframeinfo) /* pass java sp                   */
-	move    a3,ra                 /* pass java ra                             */
+	ald     a3,17*8(sp)           /* pass java ra                             */
 	move    a4,a3                 /* xpc is equal to ra                       */
 	jal     stacktrace_create_extern_stackframeinfo
 
@@ -381,24 +369,22 @@ noregchange:
 	aaddiu  a0,sp,20*8            /* remove stackframe info                   */
 	jal     stacktrace_remove_stackframeinfo
 
+	ald     a0,17*8(sp)           /* pass return address                      */
+	aaddiu  a1,sp,20*8            /* pass stackframeinfo (for PV)             */
+	ald     a2,16*8(sp)           /* pass method pointer                      */
+	jal     md_assembler_get_patch_address /* get address of patch position   */
+	move    t0,v0                 /* move offset to t0 for later use          */
+
 	RESTORE_ARGUMENT_REGISTERS(0)
 
-	ald     mptr,16*8(sp)         /* restore method pointer                   */
 	ald     ra,17*8(sp)           /* restore return address                   */
 	ald     v0,18*8(sp)           /* restore return value                     */
 	aaddiu  sp,sp,20*8+sizestackframeinfo /* deallocate stack area            */
 
 	beqz    v0,L_asm_call_jit_compiler_exception
 
-	lw      t0,-12(ra)            /* load instruction LDQ PV,xxx($yy)         */
-	sll     t0,t0,16
-	sra     t0,t0,16              /* isolate offset                           */
-
-	aaddu   t0,t0,mptr            /* compute update address via method pointer*/
-	ast     v0,0(t0)              /* save new method address there            */
-
+	ast     v0,0(t0)              /* store new method address                 */
 	move    pv,v0                 /* move method address into pv              */
-
 	jr      pv                    /* and call method. The method returns      */
 	                              /* directly to the caller (ra).             */
 
