@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3287 2005-09-27 22:11:19Z twisti $
+   $Id: VMClass.c 3437 2005-10-14 10:42:55Z twisti $
 
 */
 
@@ -263,35 +263,50 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructo
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *that, s4 publicOnly)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-	/* XXX fix the public only case */
+	classinfo             *c;
+	classref_or_classinfo  outer;
+	utf                   *outername;
+	s4                     declaredclasscount;  /* number of declared classes */
+	s4                     pos;                     /* current declared class */
+	java_objectarray      *oa;                   /* array of declared classes */
+	s4                     i;
 
-	classinfo *c = (classinfo *) that;
-	int pos = 0;                /* current declared class */
-	int declaredclasscount = 0; /* number of declared classes */
-	java_objectarray *result;   /* array of declared classes */
-	int notPublicOnly = !publicOnly;
-	int i;
+	c = (classinfo *) klass;
+	declaredclasscount = 0;
 
-	if (!that)
-		return NULL;
-
-	/*printf("PublicOnly: %d\n",publicOnly);*/
-	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, (java_lang_Class *) c) && (c->name->text[0] != '[')) {
+	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
+		(c->name->text[0] != '[')) {
 		/* determine number of declared classes */
+
 		for (i = 0; i < c->innerclasscount; i++) {
-			if ( (c->innerclass[i].outer_class.cls == c) && (notPublicOnly || (c->innerclass[i].flags & ACC_PUBLIC)))
-				/* outer class is this class */
+			outer = c->innerclass[i].outer_class;
+
+			/* check if outer_class is a classref or a real class and
+               get the class name from the structure */
+
+			if (IS_CLASSREF(outer))
+				outername = outer.ref->name;
+			else
+				outername = outer.cls->name;
+
+			/* outer class is this class */
+
+			if ((outername == c->name) &&
+				((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC)))
 				declaredclasscount++;
 		}
 	}
 
-	/*class_showmethods(c); */
+	/* allocate Class[] and check for OOM */
 
-	result = builtin_anewarray(declaredclasscount, class_java_lang_Class);    	
+	oa = builtin_anewarray(declaredclasscount, class_java_lang_Class);
 
-	for (i = 0; i < c->innerclasscount; i++) {
+	if (!oa)
+		return NULL;
+
+	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
 		classinfo *inner;
 		classinfo *outer;
 
@@ -303,15 +318,17 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 										   resolveEager, false, false, &outer))
 			return NULL;
 		
-		if ((outer == c) && (notPublicOnly || (inner->flags & ACC_PUBLIC))) {
+		if ((outer == c) &&
+			((publicOnly == 0) || (inner->flags & ACC_PUBLIC))) {
 			/* outer class is this class, store innerclass in array */
-			use_class_as_object(inner);
+			if (!use_class_as_object(inner))
+				return NULL;
 
-			result->data[pos++] = (java_objectheader *) inner;
+			oa->data[pos++] = (java_objectheader *) inner;
 		}
 	}
 
-	return result;
+	return oa;
 }
 
 
@@ -322,27 +339,44 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	/* XXX fixme */
-
-	classinfo *c;
-	s4         i;
+	classinfo             *c;
+	classref_or_classinfo  inner;
+	utf                   *innername;
+	classinfo             *outer;
+	s4                     i;
 
 	c = (classinfo *) klass;
 
-	if (klass && !Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
+	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
 		(c->name->text[0] != '[')) {
 
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
 		for (i = 0; i < c->innerclasscount; i++) {
-			classinfo *inner = c->innerclass[i].inner_class.cls;
-			classinfo *outer = c->innerclass[i].outer_class.cls;
-      
-			if (inner == c) {
-				/* innerclass is this class */
+			inner = c->innerclass[i].inner_class;
 
-				use_class_as_object(outer);
+			/* check if inner_class is a classref or a real class and
+               get the class name from the structure */
+
+			if (IS_CLASSREF(inner))
+				innername = inner.ref->name;
+			else
+				innername = inner.cls->name;
+
+			/* innerclass is this class */
+
+			if (innername == c->name) {
+				/* maybe the outer class is not loaded yet */
+
+				if (!resolve_classref_or_classinfo(NULL,
+												   c->innerclass[i].outer_class,
+												   resolveEager, false, false,
+												   &outer))
+					return NULL;
+
+				if (!use_class_as_object(outer))
+					return NULL;
 
 				return (java_lang_Class *) outer;
 			}
@@ -371,7 +405,7 @@ java_lang_reflect_Field* cacao_getField0(JNIEnv *env, java_lang_Class *that, jav
 
     /* get fieldinfo entry */
 	
-    idx = class_findfield_index_approx(c, javastring_toutf(name, false));
+    idx = class_findfield_index_by_name(c, javastring_toutf(name, false));
 
     if (idx < 0) {
 	    *exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
@@ -531,9 +565,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 		if (((c->methods[i].flags & ACC_PUBLIC) || (publicOnly == false)) &&
 			((c->methods[i].name != utf_init) &&
 			 (c->methods[i].name != utf_clinit))
-			) {
+			)
 			public_methods++;
-		}
 	}
 
     array_method =
