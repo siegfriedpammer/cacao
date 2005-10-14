@@ -1,4 +1,3 @@
-/* $Id: alpha_mach_dep.S 2993 2005-07-11 22:00:25Z twisti $               */
 	.arch ev6
 
         .text
