@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3434 2005-10-13 16:10:12Z twisti $
+   $Id: jni.c 3438 2005-10-14 11:27:40Z twisti $
 
 */
 
@@ -760,7 +760,7 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader,
 	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env, NULL, cl, s, ba,
 														  0, bufLen, NULL);
 
-	return c;
+	return (jclass) NewLocalRef(env, (jobject) c);
 }
 
 
@@ -872,6 +872,7 @@ jmethodID FromReflectedMethod(JNIEnv *env, jobject method)
 jclass GetSuperclass(JNIEnv *env, jclass sub)
 {
 	classinfo *c;
+
 	STATS(jniinvokation();)
 
 	c = ((classinfo *) sub)->super.cls;
@@ -879,9 +880,10 @@ jclass GetSuperclass(JNIEnv *env, jclass sub)
 	if (!c)
 		return NULL;
 
-	use_class_as_object(c);
+	if (!use_class_as_object(c))
+		return NULL;
 
-	return c;
+	return (jclass) NewLocalRef(env, (jobject) c);
 }
   
  
@@ -1320,14 +1322,18 @@ jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, jvalue *args)
 jclass GetObjectClass(JNIEnv *env, jobject obj)
 {
 	classinfo *c;
+
 	STATS(jniinvokation();)
 	
 	if (!obj || !obj->vftbl)
 		return NULL;
 
  	c = obj->vftbl->class;
-	use_class_as_object(c);
-	return c;
+
+	if (!use_class_as_object(c))
+		return NULL;
+
+	return (jclass) NewLocalRef(env, (jobject) c);
 }
 
 
