@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 3135 2005-08-23 14:53:07Z cacao $
+   $Id: md-os.c 3442 2005-10-18 12:38:16Z twisti $
 
 */
 
@@ -39,9 +39,9 @@
 #include <ucontext.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "vm/jit/mips/md-abi.h"
-#include "vm/jit/mips/types.h"
 
 #include "mm/boehm.h"
 #include "vm/exceptions.h"
@@ -96,7 +96,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* in ucontext.h the registers are defined as long long, even for MIPS32, so we cast them */
+	/* in ucontext.h the registers are defined as long long, even for
+	   MIPS32, so we cast them */
 	
 	instr = *((u4 *) ((ptrint) _mc->pc));
 	addr = _mc->gregs[(instr >> 21) & 0x1f];
