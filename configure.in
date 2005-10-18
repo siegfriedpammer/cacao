@@ -31,15 +31,7 @@ i386 | i486 | i586 | i686 )
 
 mips )
 	ARCH_DIR="mips"
-
-dnl for MIPSPro Compiler
-dnl	CFLAGS="-64 -OPT:Olimit=0 -woff 1110,1164,1515 -D__MIPS__ -D__MIPSEB__"
-	CFLAGS="-64 -OPT:Olimit=0 -D__MIPS__ -D__MIPSEB__"
-dnl	CFLAGS="-D__MIPS__ -D__MIPSEB__"
-
-dnl for GCC
-dnl	CFLAGS="-mabi=64 -D__MIPS__ -D__MIPSEB__"
-dnl	LDFLAGS="-mabi=64"
+	CFLAGS="-D__MIPS__"
 	;;
 
 powerpc )
@@ -492,18 +484,7 @@ AC_SUBST(CLASSPATH_INSTALL_DIR)
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-if test x"${DISABLE_GC}" = "xno"; then
-	AC_CONFIG_SUBDIRS(src/boehm-gc)
-fi
-
-if test x"${ENABLE_STATICVM}" = "xno"; then
-	AC_CONFIG_SUBDIRS(src/libltdl)
-fi
-
-if test x"${ENABLE_INTRP}" = "xyes"; then
-	AC_CONFIG_SUBDIRS(src/libffi)
-fi
-
+AC_CONFIG_SUBDIRS(src/boehm-gc src/libltdl src/libffi)
 
 AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
@@ -541,6 +522,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/loop/Makefile]
 		[src/vm/jit/mips/Makefile]
 		[src/vm/jit/mips/irix/Makefile]
+		[src/vm/jit/mips/linux/Makefile]
 		[src/vm/jit/powerpc/Makefile]
 		[src/vm/jit/powerpc/darwin/Makefile]
 		[src/vm/jit/powerpc/linux/Makefile]
