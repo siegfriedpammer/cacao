@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 3323 2005-10-04 18:33:30Z twisti $
+   $Id: disass.c 3441 2005-10-18 12:22:22Z twisti $
 
 */
 
@@ -477,8 +477,12 @@ u1 *disassinstr(u1 *code)
 	rd    = (c >> 11) & 0x1f;   /* 5 bit destination register specifier       */
 	shift = (c >>  6) & 0x1f;   /* 5 bit unsigned shift amount                */
 
+#if SIZEOF_VOID_P == 8
 	printf("0x%016lx:   %08x    ", (u8) code, c);
-	
+#else
+	printf("0x%08x:   %08x    ", (u4) code, c);
+#endif
+
 	switch (ops[op].itype) {
 	case ITYPE_JMP:                      /* 26 bit unsigned jump offset   */
 		printf("%s %#09x\n", ops[op].name, (c & 0x3ffffff) << 2); 
@@ -500,19 +504,33 @@ u1 *disassinstr(u1 *code)
 
 	case ITYPE_BRA:                      /* 16 bit signed branch offset   */
 		if (op == 0x04 && rs == 0 && rt == 0) {
+#if SIZEOF_VOID_P == 8
 			printf("b        0x%016lx\n", (u8) code + 4 + ((c << 16) >> 14));
+#else
+			printf("b        0x%08x\n", (u4) code + 4 + ((c << 16) >> 14));
+#endif
 			break;
 		}	
+#if SIZEOF_VOID_P == 8
 		printf("%s %s,%s,0x%016lx\n", ops[op].name, regs[rs], regs[rt], 
 			   (u8) code + 4 + ((c << 16) >> 14));
+#else
+		printf("%s %s,%s,0x%08x\n", ops[op].name, regs[rs], regs[rt], 
+			   (u4) code + 4 + ((c << 16) >> 14));
+#endif
 		break;
 			
 	case ITYPE_RIMM:
 		if (regimms[rt].ftype == ITYPE_IMM)
 			printf("%s %s,%d\n", regimms[rt].name, regs[rs], (c << 16) >> 16);
 		else if (regimms[rt].ftype == ITYPE_BRA)
+#if SIZEOF_VOID_P == 8
 			printf("%s %s,0x%016lx\n", regimms[rt].name, regs[rs],
 				   (u8) code + 4 + ((c << 16) >> 14));
+#else
+			printf("%s %s,0x%08x\n", regimms[rt].name, regs[rs],
+				   (u4) code + 4 + ((c << 16) >> 14));
+#endif
 		else
 			printf("regimm   %#04x,$%d,%d\n", rt, rs, (c << 16) >> 16);		
 		break;
@@ -575,7 +593,13 @@ u1 *disassinstr(u1 *code)
 		fd    = (c >>  6) & 0x1f;   /* 5 bit destination register         */
 
 		if (rs == 8) {              /* floating point branch              */
-			printf("%s 0x%016lx\n", fbra[ft&3], (u8) code + 4 + ((c << 16) >> 14));
+#if SIZEOF_VOID_P == 8
+			printf("%s 0x%016lx\n", fbra[ft & 3],
+				   (u8) code + 4 + ((c << 16) >> 14));
+#else
+			printf("%s 0x%08x\n", fbra[ft & 3],
+				   (u4) code + 4 + ((c << 16) >> 14));
+#endif
 			break;
 		}
 
