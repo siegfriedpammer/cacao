@@ -1,4 +1,4 @@
-/* toolbox/chain.c - management of doubly linked lists with external linking
+/* src/toolbox/chain.c - management of doubly linked lists with external linking
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: chain.c 1735 2004-12-07 14:33:27Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: chain.c 3448 2005-10-19 19:56:13Z twisti $
 
 */
 
@@ -39,7 +41,7 @@
 #include "toolbox/chain.h"
 
 
-chain *chain_new()
+chain *chain_new(void)
 {
 	chain *c;
 	
@@ -53,7 +55,7 @@ chain *chain_new()
 }
 
 
-chain *chain_dnew()
+chain *chain_dnew(void)
 {
 	chain *c;
 	
