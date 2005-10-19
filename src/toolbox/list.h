@@ -1,4 +1,4 @@
-/* toolbox/list.h - 
+/* src/toolbox/list.h - 
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.h 1735 2004-12-07 14:33:27Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: list.h 3449 2005-10-19 19:56:46Z twisti $
 
 */
 
