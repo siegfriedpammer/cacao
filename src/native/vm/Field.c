@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3444 2005-10-19 11:27:42Z twisti $
+   $Id: Field.c 3446 2005-10-19 11:40:53Z twisti $
 
 */
 
@@ -54,47 +54,6 @@
 #include "vm/tables.h"
 #include "vm/utf8.h"
 #include "vm/jit/stacktrace.h"
-
-
-/* cacao_get_field_address *****************************************************
-
-   XXX
-
-*******************************************************************************/
-
-static void *cacao_get_field_address(classinfo *c, fieldinfo *f,
-									 java_lang_Object *o)
-{
-	CHECKFIELDACCESS(this,f,c,return 0);
-
-	if (f->flags & ACC_STATIC) {
-		/* initialize class if required */
-
-		if (!initialize_class(c))
-			return NULL;
-
-		/* return value address */
-
-		return &(f->value);
-
-	} else {
-		/* obj is required for not-static fields */
-
-		if (o == NULL) {
-			*exceptionptr = new_nullpointerexception();
-			return NULL;
-		}
-	
-		if (builtin_instanceof((java_objectheader *) o, c))
-			return (void *) ((ptrint) o + f->offset);
-	}
-
-	/* exception path */
-
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-
-	return NULL;
-}
 
 
 /* XXX FIXE SET NATIVES */
@@ -137,6 +96,47 @@ static void *cacao_get_field_address(classinfo *c, fieldinfo *f,
 #define CHECKFIELDACCESS(this,fi,c,doret) \
     (c) = (c) /* prevent compiler warning */
 #endif
+
+
+/* cacao_get_field_address *****************************************************
+
+   XXX
+
+*******************************************************************************/
+
+static void *cacao_get_field_address(classinfo *c, fieldinfo *f,
+									 java_lang_Object *o)
+{
+	CHECKFIELDACCESS(this,f,c,return 0);
+
+	if (f->flags & ACC_STATIC) {
+		/* initialize class if required */
+
+		if (!initialize_class(c))
+			return NULL;
+
+		/* return value address */
+
+		return &(f->value);
+
+	} else {
+		/* obj is required for not-static fields */
+
+		if (o == NULL) {
+			*exceptionptr = new_nullpointerexception();
+			return NULL;
+		}
+	
+		if (builtin_instanceof((java_objectheader *) o, c))
+			return (void *) ((ptrint) o + f->offset);
+	}
+
+	/* exception path */
+
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return NULL;
+}
 
 
 /*
