@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3455 2005-10-19 22:04:36Z twisti $
+   $Id: Field.c 3457 2005-10-19 22:11:27Z twisti $
 
 */
 
@@ -702,7 +702,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((s8 *) faddr) = ival;
+		*((s8 *) faddr) = lval;
 		return;
 
 	case PRIMITIVETYPE_FLOAT:
@@ -771,7 +771,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			return;
 		}
 
-		*((double *) faddr) = fval;
+		*((double *) faddr) = dval;
 		return;
 
 	case TYPE_ADR:
