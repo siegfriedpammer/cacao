@@ -29,13 +29,16 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 2893 2005-07-04 20:35:24Z twisti $
+   $Id: Constructor.c 3450 2005-10-19 21:35:52Z twisti $
 
 */
 
 
 #include <assert.h>
 #include <stdlib.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
