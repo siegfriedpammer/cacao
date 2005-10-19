@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 3264 2005-09-21 20:18:24Z twisti $
+   $Id: exceptions.c 3454 2005-10-19 22:03:45Z twisti $
 
 */
 
@@ -93,22 +93,12 @@ bool exceptions_init(void)
 		!link_class(class_java_lang_Error))
 		return false;
 
-
-	/* java/lang/Exception */
-
-	if (!(class_java_lang_Exception =
-		  load_class_bootstrap(utf_java_lang_Exception)) ||
-		!link_class(class_java_lang_Exception))
-		return false;
-
-
 	/* java/lang/NoClassDefFoundError */
 
 	if (!(class_java_lang_NoClassDefFoundError =
 		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
 		!link_class(class_java_lang_NoClassDefFoundError))
 		return false;
-
 
 	/* java/lang/OutOfMemoryError */
 
@@ -118,12 +108,27 @@ bool exceptions_init(void)
 		return false;
 
 
+	/* java/lang/Exception */
+
+	if (!(class_java_lang_Exception =
+		  load_class_bootstrap(utf_java_lang_Exception)) ||
+		!link_class(class_java_lang_Exception))
+		return false;
+
 	/* java/lang/ClassNotFoundException */
 
 	if (!(class_java_lang_ClassNotFoundException =
 		  load_class_bootstrap(utf_java_lang_ClassNotFoundException)) ||
 		!link_class(class_java_lang_ClassNotFoundException))
 		return false;
+
+	/* java/lang/IllegalArgumentException */
+
+	if (!(class_java_lang_IllegalArgumentException =
+		  load_class_bootstrap(utf_java_lang_IllegalArgumentException)) ||
+		!link_class(class_java_lang_IllegalArgumentException))
+		return false;
+
 
 	return true;
 }
@@ -721,6 +726,23 @@ java_objectheader *new_classcastexception(void)
 	e = new_exception(string_java_lang_ClassCastException);
 
 	if (!e)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_illegalargumentexception ************************************************
+
+   Generates a java.lang.IllegalArgumentException for the VM system.
+
+*******************************************************************************/
+
+java_objectheader *new_illegalargumentexception(void)
+{
+	java_objectheader *e;
+
+	if (!(e = native_new_and_init(class_java_lang_IllegalArgumentException)))
 		return *exceptionptr;
 
 	return e;

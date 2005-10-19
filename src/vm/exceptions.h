@@ -28,13 +28,16 @@
 
    Changes:
 
-   $Id: exceptions.h 3264 2005-09-21 20:18:24Z twisti $
+   $Id: exceptions.h 3454 2005-10-19 22:03:45Z twisti $
 
 */
 
 
 #ifndef _EXCEPTIONS_H
 #define _EXCEPTIONS_H
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
@@ -67,11 +70,11 @@ bool exceptions_init(void);
 
 /* exception throwing functions */
 
-void throw_exception();
-void throw_exception_exit();
+void throw_exception(void);
+void throw_exception_exit(void);
 
-void throw_main_exception();
-void throw_main_exception_exit();
+void throw_main_exception(void);
+void throw_main_exception_exit(void);
 
 void throw_cacao_exception_exit(const char *exception, const char *message, ...);
 
@@ -104,12 +107,13 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
 													const char *message, ...);
 
-java_objectheader *new_arithmeticexception();
+java_objectheader *new_arithmeticexception(void);
 java_objectheader *new_arrayindexoutofboundsexception(s4 index);
-java_objectheader *new_arraystoreexception();
-java_objectheader *new_classcastexception();
-java_objectheader *new_negativearraysizeexception();
-java_objectheader *new_nullpointerexception();
+java_objectheader *new_arraystoreexception(void);
+java_objectheader *new_classcastexception(void);
+java_objectheader *new_illegalargumentexception(void);
+java_objectheader *new_negativearraysizeexception(void);
+java_objectheader *new_nullpointerexception(void);
 
 #endif /* _EXCEPTIONS_H */
 
