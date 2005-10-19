@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3457 2005-10-19 22:11:27Z twisti $
+   $Id: Field.c 3458 2005-10-19 23:38:32Z twisti $
 
 */
 
@@ -74,20 +74,29 @@
 
 *******************************************************************************/
 
-static void *cacao_get_field_address(classinfo *c, fieldinfo *f,
+static void *cacao_get_field_address(java_lang_reflect_Field *this,
 									 java_lang_Object *o)
 {
+	classinfo  *c;
+	fieldinfo  *f;
 	methodinfo *caller;
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
 
 	/* check field access */
 
 	if (!(f->flags & ACC_PUBLIC)) {
-		caller = cacao_callingMethod();
+		/* check if we should bypass security checks (AccessibleObject) */
 
-		if (!access_is_accessible_member(caller->class, c, f->flags)) {
-			*exceptionptr =
-				new_exception(string_java_lang_IllegalAccessException);
-			return NULL;
+		if (this->flag == false) {
+			caller = cacao_callingMethod();
+
+			if (!access_is_accessible_member(caller->class, c, f->flags)) {
+				*exceptionptr =
+					new_exception(string_java_lang_IllegalAccessException);
+				return NULL;
+			}
 		}
 	}
 
@@ -139,7 +148,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 
 	/* get address of the source field value */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return NULL;
 
 	switch (f->parseddesc->decltype) {
@@ -265,7 +274,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -298,7 +307,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -331,7 +340,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -364,7 +373,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -398,7 +407,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -434,7 +443,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -472,7 +481,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -512,7 +521,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return 0;
 
 	/* check the field type and return the value */
@@ -548,10 +557,6 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	fieldinfo *sf;
 	fieldinfo *df;
 	void      *faddr;
-	s4         ival;
-	s8         lval;
-	float      fval;
-	double     dval;
 
 	/* get the class and the field */
 
@@ -560,7 +565,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 	/* get the address of the destination field */
 
-	if ((faddr = cacao_get_field_address(dc, df, o)) == NULL)
+	if ((faddr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	if (value == NULL) {
@@ -577,7 +582,9 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	   object */
 
 	switch (df->parseddesc->decltype) {
-	case PRIMITIVETYPE_BOOLEAN:
+	case PRIMITIVETYPE_BOOLEAN: {
+		s4 val;
+
 		/* determine the field to read the value */
 
 		if (!(sf = class_findfield(sc, utf_value, utf_Z)))
@@ -585,49 +592,58 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BOOLEAN:
-			ival = ((java_lang_Boolean *) value)->value;
+			val = ((java_lang_Boolean *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s4 *) faddr) = ival;
+		*((s4 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_BYTE:
+	case PRIMITIVETYPE_BYTE: {
+		s4 val;
+
 		if (!(sf = class_findfield(sc, utf_value, utf_B)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			ival = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		default:	
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s4 *) faddr) = ival;
+		*((s4 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_CHAR:
+	case PRIMITIVETYPE_CHAR: {
+		s4 val;
+
 		if (!(sf = class_findfield(sc, utf_value, utf_C)))
 			break;
 				   
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_CHAR:
-			ival = ((java_lang_Character *) value)->value;
+			val = ((java_lang_Character *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s4 *) faddr) = ival;
+		*((s4 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_SHORT:
+	case PRIMITIVETYPE_SHORT: {
+		s4 val;
+
 		/* get field only by name, it can be one of B, S */
 
 		if (!(sf = class_findfield_by_name(sc, utf_value)))
@@ -635,20 +651,23 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 				   
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			ival = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		case PRIMITIVETYPE_SHORT:
-			ival = ((java_lang_Short *) value)->value;
+			val = ((java_lang_Short *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s4 *) faddr) = ival;
+		*((s4 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_INT:
+	case PRIMITIVETYPE_INT: {
+		s4 val;
+
 		/* get field only by name, it can be one of B, S, C, I */
 
 		if (!(sf = class_findfield_by_name(sc, utf_value)))
@@ -656,26 +675,29 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			ival = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		case PRIMITIVETYPE_CHAR:
-			ival = ((java_lang_Character *) value)->value;
+			val = ((java_lang_Character *) value)->value;
 			break;
 		case PRIMITIVETYPE_SHORT:
-			ival = ((java_lang_Short *) value)->value;
+			val = ((java_lang_Short *) value)->value;
 			break;
 		case PRIMITIVETYPE_INT:
-			ival = ((java_lang_Integer *) value)->value;
+			val = ((java_lang_Integer *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s4 *) faddr) = ival;
+		*((s4 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_LONG:
+	case PRIMITIVETYPE_LONG: {
+		s8 val;
+
 		/* get field only by name, it can be one of B, S, C, I, J */
 
 		if (!(sf = class_findfield_by_name(sc, utf_value)))
@@ -683,29 +705,32 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			lval = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		case PRIMITIVETYPE_CHAR:
-			lval = ((java_lang_Character *) value)->value;
+			val = ((java_lang_Character *) value)->value;
 			break;
 		case PRIMITIVETYPE_SHORT:
-			lval = ((java_lang_Short *) value)->value;
+			val = ((java_lang_Short *) value)->value;
 			break;
 		case PRIMITIVETYPE_INT:
-			lval = ((java_lang_Integer *) value)->value;
+			val = ((java_lang_Integer *) value)->value;
 			break;
 		case PRIMITIVETYPE_LONG:
-			lval = ((java_lang_Long *) value)->value;
+			val = ((java_lang_Long *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((s8 *) faddr) = lval;
+		*((s8 *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_FLOAT:
+	case PRIMITIVETYPE_FLOAT: {
+		float val;
+
 		/* get field only by name, it can be one of B, S, C, I, J, F */
 
 		if (!(sf = class_findfield_by_name(sc, utf_value)))
@@ -713,32 +738,35 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			fval = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		case PRIMITIVETYPE_CHAR:
-			fval = ((java_lang_Character *) value)->value;
+			val = ((java_lang_Character *) value)->value;
 			break;
 		case PRIMITIVETYPE_SHORT:
-			fval = ((java_lang_Short *) value)->value;
+			val = ((java_lang_Short *) value)->value;
 			break;
 		case PRIMITIVETYPE_INT:
-			fval = ((java_lang_Integer *) value)->value;
+			val = ((java_lang_Integer *) value)->value;
 			break;
 		case PRIMITIVETYPE_LONG:
-			fval = ((java_lang_Long *) value)->value;
+			val = ((java_lang_Long *) value)->value;
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			fval = ((java_lang_Float *) value)->value;
+			val = ((java_lang_Float *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((float *) faddr) = fval;
+		*((float *) faddr) = val;
 		return;
+	}
 
-	case PRIMITIVETYPE_DOUBLE:
+	case PRIMITIVETYPE_DOUBLE: {
+		double val;
+
 		/* get field only by name, it can be one of B, S, C, I, J, F, D */
 
 		if (!(sf = class_findfield_by_name(sc, utf_value)))
@@ -746,33 +774,34 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			dval = ((java_lang_Byte *) value)->value;
+			val = ((java_lang_Byte *) value)->value;
 			break;
 		case PRIMITIVETYPE_CHAR:
-			dval = ((java_lang_Character *) value)->value;
+			val = ((java_lang_Character *) value)->value;
 			break;
 		case PRIMITIVETYPE_SHORT:
-			dval = ((java_lang_Short *) value)->value;
+			val = ((java_lang_Short *) value)->value;
 			break;
 		case PRIMITIVETYPE_INT:
-			dval = ((java_lang_Integer *) value)->value;
+			val = ((java_lang_Integer *) value)->value;
 			break;
 		case PRIMITIVETYPE_LONG:
-			dval = ((java_lang_Long *) value)->value;
+			val = ((java_lang_Long *) value)->value;
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			dval = ((java_lang_Float *) value)->value;
+			val = ((java_lang_Float *) value)->value;
 			break;
 		case PRIMITIVETYPE_DOUBLE:
-			dval = ((java_lang_Double *) value)->value;
+			val = ((java_lang_Double *) value)->value;
 			break;
 		default:
 			*exceptionptr = new_illegalargumentexception();
 			return;
 		}
 
-		*((double *) faddr) = dval;
+		*((double *) faddr) = val;
 		return;
+	}
 
 	case TYPE_ADR:
 		/* check if value is an instance of the destination class */
@@ -809,7 +838,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -844,7 +873,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -890,7 +919,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -935,7 +964,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -980,7 +1009,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -1024,7 +1053,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -1065,7 +1094,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
@@ -1103,7 +1132,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 
 	/* get the address of the field with an internal helper */
 
-	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
 	/* check the field type and set the value */
