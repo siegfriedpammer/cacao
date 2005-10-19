@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 3208 2005-09-19 09:21:05Z twisti $
+   $Id: native.h 3445 2005-10-19 11:28:41Z twisti $
 
 */
 
@@ -135,12 +135,8 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
    mainly used for exceptions with cause */
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
 
-/* add property to temporary property list -- located in nat/VMRuntime.c */
+/* add property to temporary property list -- located in vm/VMRuntime.c */
 void create_property(char *key, char *value);
-
-/* search 'classinfo'-structure for a field with the specified name */
-fieldinfo *class_findfield_approx(classinfo *c, utf *name);
-s4 class_findfield_index_approx(classinfo *c, utf *name);
 
 void copy_vftbl(vftbl_t **dest, vftbl_t *src);
 

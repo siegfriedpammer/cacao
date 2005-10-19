@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 3215 2005-09-19 13:05:24Z twisti $
+   $Id: native.c 3445 2005-10-19 11:28:41Z twisti $
 
 */
 
@@ -798,47 +798,6 @@ functionptr native_resolve_function(methodinfo *m)
 #endif /* !defined(ENABLE_STATICVM) */
 
 
-/****************** function class_findfield_approx ****************************
-	
-	searches in 'classinfo'-structure for a field with the
-	specified name
-
-*******************************************************************************/
- 
-fieldinfo *class_findfield_approx(classinfo *c, utf *name)
-{
-	s4 i;
-
-	for (i = 0; i < c->fieldscount; i++) {
-		/* compare field names */
-		if ((c->fields[i].name == name))
-			return &(c->fields[i]);
-	}
-
-	/* field was not found, raise exception */	
-	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
-
-	return NULL;
-}
-
-
-s4 class_findfield_index_approx(classinfo *c, utf *name)
-{
-	s4 i;
-
-	for (i = 0; i < c->fieldscount; i++) {
-		/* compare field names */
-		if ((c->fields[i].name == name))
-			return i;
-	}
-
-	/* field was not found, raise exception */	
-	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
-
-	return -1;
-}
-
-
 /* native_new_and_init *********************************************************
 
    Creates a new object on the heap and calls the initializer.
@@ -1170,7 +1129,8 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 										   resolveEager, true, false, &c))
 			return NULL;
 
-		use_class_as_object(c);
+		if (!use_class_as_object(c))
+			return NULL;
 
 		oa->data[i] = (java_objectheader *) c;
 	}
