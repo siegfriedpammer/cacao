@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3436 2005-10-13 16:48:45Z edwin $
+   $Id: resolve.c 3451 2005-10-19 22:01:25Z twisti $
 
 */
 
@@ -162,7 +162,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 #endif
 	
 	/* check access rights of referer to refered class */
-	if (checkaccess && !is_accessible_class(referer,cls)) {
+	if (checkaccess && !access_is_accessible_class(referer,cls)) {
 		int msglen;
 		char *message;
 
@@ -673,7 +673,7 @@ resolve_field(unresolved_field *ref,
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    checking access rights...\n");
 #endif
-	if (!is_accessible_member(referer,declarer,fi->flags)) {
+	if (!access_is_accessible_member(referer,declarer,fi->flags)) {
 		int msglen;
 		char *message;
 
@@ -913,7 +913,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* check access rights */
 
-	if (!is_accessible_member(referer,declarer,mi->flags)) {
+	if (!access_is_accessible_member(referer,declarer,mi->flags)) {
 		int msglen;
 		char *message;
 
