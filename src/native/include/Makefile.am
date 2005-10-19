@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3424 2005-10-12 15:27:22Z twisti $
+## $Id: Makefile.am 3447 2005-10-19 14:35:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -122,7 +122,7 @@ GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip
 
 CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
 
-all: $(DO_HEADER_FILES)
+noinst_DATA = $(DO_HEADER_FILES)
 
 $(NO_GEN_HEADER_FILES):
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
