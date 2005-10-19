@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3414 2005-10-12 13:07:12Z twisti $
+   $Id: stacktrace.c 3456 2005-10-19 22:06:23Z twisti $
 
 */
 
@@ -1085,10 +1085,7 @@ java_objectheader *cacao_currentClassLoader(void)
 
 static bool callingMethodCollector(void **target, stackTraceBuffer *buffer)
 {
-	if (buffer->full > 2)
-		*target = buffer->start[2].method;
-	else
-		*target = NULL;
+	*target = buffer->start[1].method;
 
 	return true;
 }
