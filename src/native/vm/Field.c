@@ -29,12 +29,15 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3026 2005-07-13 11:37:18Z twisti $
+   $Id: Field.c 3444 2005-10-19 11:27:42Z twisti $
 
 */
 
 
 #include <assert.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -46,12 +49,53 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/loader.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
-#include "vm/resolve.h"
+#include "vm/utf8.h"
 #include "vm/jit/stacktrace.h"
 
-#undef DEBUG
+
+/* cacao_get_field_address *****************************************************
+
+   XXX
+
+*******************************************************************************/
+
+static void *cacao_get_field_address(classinfo *c, fieldinfo *f,
+									 java_lang_Object *o)
+{
+	CHECKFIELDACCESS(this,f,c,return 0);
+
+	if (f->flags & ACC_STATIC) {
+		/* initialize class if required */
+
+		if (!initialize_class(c))
+			return NULL;
+
+		/* return value address */
+
+		return &(f->value);
+
+	} else {
+		/* obj is required for not-static fields */
+
+		if (o == NULL) {
+			*exceptionptr = new_nullpointerexception();
+			return NULL;
+		}
+	
+		if (builtin_instanceof((java_objectheader *) o, c))
+			return (void *) ((ptrint) o + f->offset);
+	}
+
+	/* exception path */
+
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return NULL;
+}
+
 
 /* XXX FIXE SET NATIVES */
 
@@ -95,11 +139,6 @@
 #endif
 
 
-
-
-
-
-
 /*
  * Class:     java/lang/reflect/Field
  * Method:    get
@@ -115,7 +154,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 
 	/* get the fieldid of the field represented by this Field-object */
 	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	/*fid = class_findfield_approx((classinfo *) this->declaringClass,javastring_toutf(this->name, false));*/
+	/*fid = class_findfield_by_name((classinfo *) this->declaringClass,javastring_toutf(this->name, false));*/
 	st = (fid->flags & ACC_STATIC); /* true if field is static */
 
 
@@ -263,65 +302,29 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
  * Method:    getBoolean
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
-		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
 
-	} */
+	/* check the field type and return the value */
 
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-			case 'Z': return fid->value.i;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'Z':return getField(obj,jboolean,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-	}
+	if (f->descriptor == utf_Z)
+		return (s4) *((s4 *) addr);
+
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	return 0;
 }
 
 
@@ -330,67 +333,32 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
  * Method:    getByte
  * Signature: (Ljava/lang/Object;)B
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
+	/* get the class and the field */
 
-	CHECKFIELDACCESS(this,fid,c,return 0);
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
-		return 0;
-	}
-	
-	/* if (!(fid->flags & ACC_PUBLIC)) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
 
-	}*/
+	/* check the field type and return the value */
 
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B': return fid->value.i;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-	}
+	if (f->descriptor == utf_B)
+		return (s4) *((s4 *) addr);
+
+	/* incompatible field type */
+
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return 0;
 }
 
 
@@ -399,221 +367,65 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
  * Method:    getChar
  * Signature: (Ljava/lang/Object;)C
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
+	/* get the class and the field */
 
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
-		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
 
-	}*/
+	/* check the field type and return the value */
 
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) { 
-                        case 'C': return fid->value.i;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'C':return getField(obj,jchar,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-	}
+	if (f->descriptor == utf_C)
+		return (s4) *((s4 *) addr);
+
+	/* incompatible field type */
+
+	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return 0;
 }
 
 
 /*
  * Class:     java/lang/reflect/Field
- * Method:    getDouble
- * Signature: (Ljava/lang/Object;)D
+ * Method:    getShort
+ * Signature: (Ljava/lang/Object;)S
  */
-JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
+	/* get the class and the field */
 
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
+
+	/* check the field type and return the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'S':
+		return (s4) *((s4 *) addr);
+	default:
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
-
-	}*/
-
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B':
-			case 'S': 
-                        case 'C': 
-			case 'I': return fid->value.i;
-			case 'F': return fid->value.f;
-			case 'D': return fid->value.d;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			case 'S':return getField(obj,jshort,fid);
-			case 'C':return getField(obj,jchar,fid);
-			case 'I':return getField(obj,jint,fid);
-			case 'D':return getField(obj,jdouble,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-	}
-}
-
-
-/*
- * Class:     java/lang/reflect/Field
- * Method:    getFloat
- * Signature: (Ljava/lang/Object;)F
- */
-JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
-{
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
-
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
-
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
-		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		return 0;
-
-	}*/
-
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B':
-			case 'S': 
-                        case 'C': 
-			case 'I': return fid->value.i;
-			case 'F': return fid->value.f;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			case 'S':return getField(obj,jshort,fid);
-			case 'C':return getField(obj,jchar,fid);
-			case 'I':return getField(obj,jint,fid);
-			case 'F':return getField(obj,jfloat,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
 	}
 }
 
@@ -623,71 +435,33 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
  * Method:    getInt
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
+
+	/* check the field type and return the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return (s4) *((s4 *) addr);
+	default:
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
-
-	} */
-
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B':
-			case 'S': 
-                        case 'C': 
-			case 'I': return fid->value.i;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			case 'S':return getField(obj,jshort,fid);
-			case 'C':return getField(obj,jchar,fid);
-			case 'I':return getField(obj,jint,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
 	}
 }
 
@@ -697,145 +471,117 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
  * Method:    getLong
  * Signature: (Ljava/lang/Object;)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
+	/* get the class and the field */
 
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
+
+	/* check the field type and return the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return (s8) *((s4 *) addr);
+	case 'J':
+		return (s8) *((s8 *) addr);
+	default:
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
-
-	}*/
-
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B':
-			case 'S': 
-                        case 'C': 
-			case 'I': return fid->value.i;
-			case 'J': return fid->value.l;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			case 'S':return getField(obj,jshort,fid);
-			case 'C':return getField(obj,jchar,fid);
-			case 'I':return getField(obj,jint,fid);
-			case 'J':return getField(obj,jlong,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
 	}
 }
 
 
 /*
  * Class:     java/lang/reflect/Field
- * Method:    getShort
- * Signature: (Ljava/lang/Object;)S
+ * Method:    getFloat
+ * Signature: (Ljava/lang/Object;)F
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj)
+JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
 {
-	jfieldID fid;
-	char *utf_ptr;
-	classinfo *c = (classinfo *) this->declaringClass;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-#ifdef DEBUG
-	/* check if the specified slot could be a valid field of this class*/
-	if (this->slot>((classinfo*)this->declaringClass)->fieldscount) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: fieldscount mismatch");
-#endif
-	fid=&((classinfo*)this->declaringClass)->fields[this->slot]; /*get field*/
-	CHECKFIELDACCESS(this,fid,c,return 0);
+	/* get the class and the field */
 
-#ifdef DEBUG
-	/* check if the field really has the same name and check if the type descriptor is not empty*/
-	if (fid->name!=javastring_toutf(this->name,false)) throw_cacao_exception_exit(string_java_lang_IncompatibleClassChangeError,
-                                                                          "declaring class: field name mismatch");
-	if (fid->descriptor->blength<1) {
-		log_text("Type-Descriptor is empty");
-		assert(0);
-	}
-#endif
-	/* check if obj would be needed (not static field), but is 0)*/
-	if ((!(fid->flags & ACC_STATIC)) && (obj==0)) {
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
 		return 0;
-	}
-	
-	/*if (!(fid->flags & ACC_PUBLIC)) {
+
+	/* check the field type and return the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return (float) *((s4 *) addr);
+	case 'J':
+		return (float) *((s8 *) addr);
+	case 'F':
+		return (float) *((float *) addr);
+	default:
 		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 		return 0;
+	}
+}
 
-	}*/
 
-	if (fid->flags & ACC_STATIC) {
-		/* initialize class if needed*/
-		fprintf(stderr, "calling initialize_class %s\n",((classinfo*) this->declaringClass)->name->text);
-		initialize_class((classinfo *) this->declaringClass);
-		if (*exceptionptr) return 0;
-		/*return value*/
-                utf_ptr = fid->descriptor->text;
-                switch (*utf_ptr) {
-                        case 'B':
-			case 'S': return fid->value.i;
-                        default:
-                                *exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-                                return 0;
-                }
-	} else {
-		if (!builtin_instanceof((java_objectheader*)obj,(classinfo*)this->declaringClass)) {
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
-		utf_ptr = fid->descriptor->text;
-		switch (*utf_ptr) {
-			case 'B':return getField(obj,jbyte,fid);
-			case 'S':return getField(obj,jshort,fid);
-			default:
-				*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-				return 0;
-		}
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    getDouble
+ * Signature: (Ljava/lang/Object;)D
+ */
+JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
+{
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
+
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return 0;
+
+	/* check the field type and return the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return (double) *((s4 *) addr);
+	case 'J':
+		return (double) *((s8 *) addr);
+	case 'F':
+		return (double) *((float *) addr);
+	case 'D':
+		return (double) *((double *) addr);
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+		return 0;
 	}
 }
 
@@ -845,156 +591,300 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
  * Method:    set
  * Signature: (Ljava/lang/Object;Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, java_lang_Object *val)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, java_lang_Object *value)
 {
-	jfieldID source_fid;  /* the field containing the value to be written */
-	jfieldID fid;         /* the field to be written */
-	classinfo *c;
-	int st;
+	classinfo *sc;                      /* source classinfo                   */
+	fieldinfo *sf;                      /* source fieldinfo                   */
+	classinfo *dc;                      /* destination classinfo              */
+	fieldinfo *df;                      /* destination fieldinfo              */
 
-	c = (classinfo *) this->declaringClass;
+	/* get the destination fieldinfo from the destination class */
 
-	fid = class_findfield_approx(c, javastring_toutf(this->name, false));
+	dc = (classinfo *) this->declaringClass;
 
-	st = (fid->flags & ACC_STATIC); /* true if the field is static */
+	df = class_findfield_by_name(dc, javastring_toutf(this->name, false));
 
-	CHECKFIELDACCESS(this,fid,c,return);
+	CHECKFIELDACCESS(this, fid, dc, return);
 
-	if (val && (st || obj)) {
+	/* for non-static fields check the object for NPE */
 
-		c = val->header.vftbl->class;
+	if (!(df->flags & ACC_STATIC) && (o == NULL)) {
+		*exceptionptr = new_nullpointerexception();
+		return;
+	}
 
-		/* The fieldid is used to set the new value, for primitive types the value
-		   has to be retrieved from the wrapping object */  
-		switch ((((classinfo *) this->declaringClass)->fields[this->slot]).descriptor->text[0]) {
-		case 'I':
-			/* illegal argument specified */
-			if (c != class_java_lang_Integer)
+	if (value) {
+		/* get the source classinfo from the object */
+
+		sc = value->header.vftbl->class;
+
+		/* The fieldid is used to set the new value, for primitive
+		   types the value has to be retrieved from the wrapping
+		   object */
+
+		switch (dc->fields[this->slot].descriptor->text[0]) {
+		case 'Z':
+			/* check the wrapping class */
+			if (sc != class_java_lang_Boolean)
 				break;
+
 			/* determine the field to read the value */
-			source_fid = (*env)->GetFieldID(env, c, "value", "I");
-			if (!source_fid)
+			if (!(sf = class_findfield(sc, utf_value, utf_Z)))
 				break;
 				   
 			/* set the new value */
-			if (st)
+			if (df->flags & ACC_STATIC)
 		        /* static field */
-				(*env)->SetStaticIntField(env, c, fid, GetIntField(env, (jobject) val, source_fid));
+				(*env)->SetStaticBooleanField(env, dc, df, GetBooleanField(env, (jobject) value, sf));
 			else
 				/* instance field */
-				(*env)->SetIntField(env, (jobject) obj, fid, GetIntField(env, (jobject) val, source_fid));
-
-			return;
-
-		case 'J':
-			if (c != class_java_lang_Long)
-				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "J");
-			if (!source_fid)
-				break;
-				   
-			if (st)
-				(*env)->SetStaticLongField(env, c, fid, GetLongField(env, (jobject) val, source_fid));
-			else
-				(*env)->SetLongField(env, (jobject) obj, fid, GetLongField(env, (jobject) val, source_fid));
-
-			return;
-
-		case 'F':
-			if (c != class_java_lang_Float)
-				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "F");
-			if (!source_fid)
-				break;
-				   
-			if (st)
-				(*env)->SetStaticFloatField(env, c, fid, GetFloatField(env, (jobject) val, source_fid));
-			else
-				(*env)->SetFloatField(env, (jobject) obj, fid, GetFloatField(env, (jobject) val, source_fid));
-
-			return;
-
-		case 'D':
-			if (c != class_java_lang_Double)
-				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "D");
-			if (!source_fid) break;
-				   
-			if (st)
-				(*env)->SetStaticDoubleField(env, c, fid, GetDoubleField(env,(jobject) val,source_fid));
-			else
-				(*env)->SetDoubleField(env, (jobject) obj, fid, GetDoubleField(env,(jobject) val,source_fid));
+				(*env)->SetBooleanField(env, (jobject) o, df, GetBooleanField(env, (jobject) value, sf));
 
 			return;
 
 		case 'B':
-			if (c != class_java_lang_Byte)
+			if (sc != class_java_lang_Byte)
 				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "B");
-			if (!source_fid)
+
+			if (!(sf = class_findfield(sc, utf_value, utf_B)))
 				break;
-				   
-			if (st)
-				(*env)->SetStaticByteField(env, c, fid, GetByteField(env, (jobject) val, source_fid));
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticByteField(env, dc, df, GetByteField(env, (jobject) value, sf));
 			else
-				(*env)->SetByteField(env, (jobject) obj, fid, GetByteField(env, (jobject) val, source_fid));
+				(*env)->SetByteField(env, (jobject) o, df, GetByteField(env, (jobject) value, sf));
 
 			return;
 
 		case 'C':
-			if (c != class_java_lang_Character)
+			if (sc != class_java_lang_Character)
 				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "C");
-			if (!source_fid)
+
+			if (!(sf = class_findfield(sc, utf_value, utf_C)))
 				break;
 				   
-			if (st)
-				(*env)->SetStaticCharField(env, c, fid, GetCharField(env, (jobject) val, source_fid));
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticCharField(env, dc, df, GetCharField(env, (jobject) value, sf));
 			else
-				(*env)->SetCharField(env, (jobject) obj, fid, GetCharField(env, (jobject) val, source_fid));
+				(*env)->SetCharField(env, (jobject) o, df, GetCharField(env, (jobject) value, sf));
 
 			return;
 
-		case 'S':
-			if (c != class_java_lang_Short)
+		case 'S': {
+			s4 val;
+
+			if ((sc != class_java_lang_Byte) &&
+				(sc != class_java_lang_Short))
 				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "S");
-			if (!source_fid)
+
+			/* get field only by name, it can be one of B, S */
+			if (!(sf = class_findfield_by_name(sc, utf_value)))
 				break;
 				   
-			if (st)
-				(*env)->SetStaticShortField(env, c, fid, GetShortField(env, (jobject) val, source_fid));
+			switch (sf->descriptor->text[0]) {
+			case 'B':
+				val = (s4) GetByteField(env, (jobject) value, sf);
+				break;
+			case 'S':
+				val = (s4) GetShortField(env, (jobject) value, sf);
+				break;
+			}
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticShortField(env, dc, df, val);
 			else
-				(*env)->SetShortField(env, (jobject) obj, fid, GetShortField(env, (jobject) val, source_fid));
+				(*env)->SetShortField(env, (jobject) o, df, val);
 
 			return;
+		}
 
-		case 'Z':
-			if (c != class_java_lang_Boolean)
+		case 'I': {
+			s4 val;
+
+			if ((sc != class_java_lang_Byte) &&
+				(sc != class_java_lang_Short) &&
+				(sc != class_java_lang_Character) &&
+				(sc != class_java_lang_Integer))
 				break;
-			source_fid = (*env)->GetFieldID(env, c, "value", "Z");
-			if (!source_fid)
+
+			/* get field only by name, it can be one of B, S, C, I */
+			if (!(sf = class_findfield_by_name(sc, utf_value)))
 				break;
-				   
-			if (st)
-				(*env)->SetStaticBooleanField(env, c, fid, GetBooleanField(env, (jobject) val, source_fid));
+
+			switch (sf->descriptor->text[0]) {
+			case 'B':
+				val = (s4) GetByteField(env, (jobject) value, sf);
+				break;
+			case 'C':
+				val = (s4) GetCharField(env, (jobject) value, sf);
+				break;
+			case 'S':
+				val = (s4) GetShortField(env, (jobject) value, sf);
+				break;
+			case 'I':
+				val = GetIntField(env, (jobject) value, sf);
+				break;
+			}
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticIntField(env, dc, df, val);
 			else
-				(*env)->SetBooleanField(env, (jobject) obj, fid, GetBooleanField(env, (jobject) val, source_fid));
+				(*env)->SetIntField(env, (jobject) o, df, val);
 
 			return;
+		}
+
+		case 'J': {
+			s8 val;
+
+			if ((sc != class_java_lang_Byte) &&
+				(sc != class_java_lang_Short) &&
+				(sc != class_java_lang_Character) &&
+				(sc != class_java_lang_Integer) &&
+				(sc != class_java_lang_Long))
+				break;
+
+			/* get field only by name, it can be one of B, S, C, I, J */
+			if (!(sf = class_findfield_by_name(sc, utf_value)))
+				break;
+
+			switch (sf->descriptor->text[0]) {
+			case 'B':
+				val = (s8) GetByteField(env, (jobject) value, sf);
+				break;
+			case 'C':
+				val = (s8) GetCharField(env, (jobject) value, sf);
+				break;
+			case 'S':
+				val = (s8) GetShortField(env, (jobject) value, sf);
+				break;
+			case 'I':
+				val = (s8) GetIntField(env, (jobject) value, sf);
+				break;
+			case 'J':
+				val = GetLongField(env, (jobject) value, sf);
+				break;
+			}
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticLongField(env, dc, df, val);
+			else
+				(*env)->SetLongField(env, (jobject) o, df, val);
+
+			return;
+		}
+
+		case 'F': {
+			float val;
+
+			if ((sc != class_java_lang_Byte) &&
+				(sc != class_java_lang_Short) &&
+				(sc != class_java_lang_Character) &&
+				(sc != class_java_lang_Integer) &&
+				(sc != class_java_lang_Long) &&
+				(sc != class_java_lang_Float))
+				break;
+
+			/* get field only by name, it can be one of B, S, C, I, J, F */
+			if (!(sf = class_findfield_by_name(sc, utf_value)))
+				break;
+
+			switch (sf->descriptor->text[0]) {
+			case 'B':
+				val = (float) GetByteField(env, (jobject) value, sf);
+				break;
+			case 'C':
+				val = (float) GetCharField(env, (jobject) value, sf);
+				break;
+			case 'S':
+				val = (float) GetShortField(env, (jobject) value, sf);
+				break;
+			case 'I':
+				val = (float) GetIntField(env, (jobject) value, sf);
+				break;
+			case 'J':
+				val = (float) GetLongField(env, (jobject) value, sf);
+				break;
+			case 'F':
+				val = GetFloatField(env, (jobject) value, sf);
+				break;
+			}
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticFloatField(env, dc, df, val);
+			else
+				(*env)->SetFloatField(env, (jobject) o, df, val);
+
+			return;
+		}
+
+		case 'D': {
+			double val;
+
+			if ((sc != class_java_lang_Byte) &&
+				(sc != class_java_lang_Short) &&
+				(sc != class_java_lang_Character) &&
+				(sc != class_java_lang_Integer) &&
+				(sc != class_java_lang_Long) &&
+				(sc != class_java_lang_Float) &&
+				(sc != class_java_lang_Double))
+				break;
+
+			/* get field only by name, it can be one of B, S, C, I, J, F, D */
+			if (!(sf = class_findfield_by_name(sc, utf_value)))
+				break;
+
+			switch (sf->descriptor->text[0]) {
+			case 'B':
+				val = (double) GetByteField(env, (jobject) value, sf);
+				break;
+			case 'C':
+				val = (double) GetCharField(env, (jobject) value, sf);
+				break;
+			case 'S':
+				val = (double) GetShortField(env, (jobject) value, sf);
+				break;
+			case 'I':
+				val = (double) GetIntField(env, (jobject) value, sf);
+				break;
+			case 'J':
+				val = (double) GetLongField(env, (jobject) value, sf);
+				break;
+			case 'F':
+				val = (double) GetFloatField(env, (jobject) value, sf);
+				break;
+			case 'D':
+				val = GetDoubleField(env, (jobject) value, sf);
+				break;
+			}
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticDoubleField(env, dc, df, val);
+			else
+				(*env)->SetDoubleField(env, (jobject) o, df, val);
+
+			return;
+		}
 
 		case '[':
 		case 'L':
-			if (st)
-				(*env)->SetStaticObjectField(env, c, fid, (jobject) val);
+			/* check if value is an instance of the destination class */
+
+			/* XXX TODO */
+/*  			if (!builtin_instanceof((java_objectheader *) value, df->class)) */
+/*  				break; */
+
+			if (df->flags & ACC_STATIC)
+				(*env)->SetStaticObjectField(env, dc, df, (jobject) value);
 			else
-				(*env)->SetObjectField(env, (jobject) obj, fid, (jobject) val);
+				(*env)->SetObjectField(env, (jobject) o, df, (jobject) value);
 
 			return;
 		}
 	}
 
 	/* raise exception */
+
 	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 }
 
@@ -1004,22 +894,30 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
  * Method:    setBoolean
  * Signature: (Ljava/lang/Object;Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s4 val)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
 {
-	jfieldID fid;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+	/* get the class and the field */
 
-		if (fid) {
-			(*env)->SetBooleanField(env, (jobject) obj, fid, val);
-			return;
-		}
-	}
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	if (f->descriptor == utf_Z)
+		*((s4 *) addr) = value;
+	else
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return;
 }
 
 
@@ -1028,22 +926,44 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
  * Method:    setByte
  * Signature: (Ljava/lang/Object;B)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s4 val)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
 {
-	jfieldID fid;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+	/* get the class and the field */
 
-		if (fid) {
-			(*env)->SetByteField(env, (jobject) obj, fid, val);
-			return;
-		}
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'B':
+	case 'S':
+	case 'I':
+		*((s4 *) addr) = value;
+		break;
+	case 'J':
+		*((s8 *) addr) = value;
+		break;
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	return;
 }
 
 
@@ -1052,118 +972,43 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
  * Method:    setChar
  * Signature: (Ljava/lang/Object;C)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s4 val)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
 {
-	jfieldID fid;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+	/* get the class and the field */
 
-		if (fid) {
-			(*env)->SetCharField(env, (jobject) obj, fid, val);
-			return;
-		}
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'C':
+	case 'I':
+		*((s4 *) addr) = value;
+		break;
+	case 'J':
+		*((s8 *) addr) = value;
+		break;
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-}
-
-
-/*
- * Class:     java/lang/reflect/Field
- * Method:    setDouble
- * Signature: (Ljava/lang/Object;D)V
- */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, double val)
-{
-	jfieldID fid;
-
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
-
-		if (fid) {
-			(*env)->SetDoubleField(env, (jobject) obj, fid, val);
-			return;
-		} 
-	}
-
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-}
-
-
-/*
- * Class:     java/lang/reflect/Field
- * Method:    setFloat
- * Signature: (Ljava/lang/Object;F)V
- */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, float val)
-{
-	jfieldID fid;
-
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
-
-		if (fid) {
-			(*env)->SetFloatField(env, (jobject) obj, fid, val);
-			return;
-		}
-	}
-
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-}
-
-
-/*
- * Class:     java/lang/reflect/Field
- * Method:    setInt
- * Signature: (Ljava/lang/Object;I)V
- */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s4 val)
-{
-	jfieldID fid;
-
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
-
-		if (fid) {
-			(*env)->SetIntField(env, (jobject) obj, fid, val);
-			return;
-		}
-	}
-
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-}
-
-
-/*
- * Class:     java/lang/reflect/Field
- * Method:    setLong
- * Signature: (Ljava/lang/Object;J)V
- */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s8 val)
-{
-	jfieldID fid;
-
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
-
-		if (fid) {
-			(*env)->SetLongField(env, (jobject) obj, fid, val);
-			return;
-		}
-	}
-
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	return;
 }
 
 
@@ -1172,22 +1017,198 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
  * Method:    setShort
  * Signature: (Ljava/lang/Object;S)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *obj, s4 val)
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
 {
-	jfieldID fid;
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
 
-	if (this->declaringClass && obj) {
-		fid = class_findfield_approx((classinfo *) this->declaringClass,
-									 javastring_toutf(this->name, false));
+	/* get the class and the field */
 
-		if (fid) {
-			(*env)->SetShortField(env, (jobject) obj, fid, val);
-			return;
-		}
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'S':
+	case 'I':
+		*((s4 *) addr) = value;
+		break;
+	case 'J':
+		*((s8 *) addr) = value;
+		break;
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
 	}
 
-	/* raise exception */
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	return;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    setInt
+ * Signature: (Ljava/lang/Object;I)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s4 value)
+{
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
+
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'I':
+		*((s4 *) addr) = value;
+		break;
+	case 'J':
+		*((s8 *) addr) = value;
+		break;
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	}
+
+	return;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    setLong
+ * Signature: (Ljava/lang/Object;J)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, s8 value)
+{
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
+
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'J':
+		*((s8 *) addr) = value;
+		break;
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	}
+
+	return;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    setFloat
+ * Signature: (Ljava/lang/Object;F)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, float value)
+{
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
+
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	switch (f->descriptor->text[0]) {
+	case 'F':
+		*((float *) addr) = value;
+		break;
+	case 'D':
+		*((double *) addr) = value;
+		break;
+	default:
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	}
+
+	return;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    setDouble
+ * Signature: (Ljava/lang/Object;D)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, double value)
+{
+	classinfo *c;
+	fieldinfo *f;
+	void      *addr;
+
+	/* get the class and the field */
+
+	c = (classinfo *) this->declaringClass;
+	f = &c->fields[this->slot];
+
+	/* get the address of the field with an internal helper */
+
+	if ((addr = cacao_get_field_address(c, f, o)) == NULL)
+		return;
+
+	/* check the field type and set the value */
+
+	if (f->descriptor == utf_D)
+		*((double *) addr) = value;
+	else
+		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+
+	return;
 }
 
 
@@ -1211,7 +1232,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 	if (!resolve_class_from_typedesc(desc, true, false, &ret))
 		return NULL;
 	
-	use_class_as_object(ret);
+	if (!use_class_as_object(ret))
+		return NULL;
 
 	return (java_lang_Class *) ret;
 }
@@ -1224,7 +1246,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
  */
 JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiers(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	return (((classinfo *) this->declaringClass)->fields[this->slot]).flags;
+	classinfo *c;
+
+	c = (classinfo *) this->declaringClass;
+
+	return c->fields[this->slot].flags;
 }
 
 
