@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 3454 2005-10-19 22:03:45Z twisti $
+   $Id: exceptions.c 3459 2005-10-20 00:49:47Z edwin $
 
 */
 
@@ -482,6 +482,67 @@ java_objectheader *new_classnotfoundexception(utf *name)
 		return *exceptionptr;
 
 	return o;
+}
+
+
+/* new_noclassdeffounderror ****************************************************
+
+   Generates a java.lang.NoClassDefFoundError
+
+*******************************************************************************/
+
+java_objectheader *new_noclassdeffounderror(utf *name)
+{
+	java_objectheader *o;
+
+	o = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
+								   javastring_new(name));
+
+	if (!o)
+		return *exceptionptr;
+
+	return o;
+}
+
+
+/* classnotfoundexception_to_noclassdeffounderror ******************************
+
+   Check the *exceptionptr for a ClassNotFoundException. If it is one,
+   convert it to a NoClassDefFoundError.
+
+*******************************************************************************/
+
+void classnotfoundexception_to_noclassdeffounderror(void)
+{
+	java_objectheader *xptr;
+	java_objectheader *cause;
+
+	/* get the cause */
+
+	cause = *exceptionptr;
+
+	/* convert ClassNotFoundException's to NoClassDefFoundError's */
+
+	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+		/* clear exception, because we are calling jit code again */
+
+		*exceptionptr = NULL;
+
+		/* create new error */
+
+		xptr =
+			new_exception_javastring(string_java_lang_NoClassDefFoundError,
+					((java_lang_Throwable *) cause)->detailMessage);
+
+		/* we had an exception while creating the error */
+
+		if (*exceptionptr)
+			return NULL;
+
+		/* set new exception */
+
+		*exceptionptr = xptr;
+	}
 }
 
 

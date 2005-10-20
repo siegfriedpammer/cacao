@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.h 3454 2005-10-19 22:03:45Z twisti $
+   $Id: exceptions.h 3459 2005-10-20 00:49:47Z edwin $
 
 */
 
@@ -102,6 +102,7 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
 java_objectheader *new_classnotfoundexception(utf *name);
+java_objectheader *new_noclassdeffounderror(utf *name);
 java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
@@ -114,6 +115,8 @@ java_objectheader *new_classcastexception(void);
 java_objectheader *new_illegalargumentexception(void);
 java_objectheader *new_negativearraysizeexception(void);
 java_objectheader *new_nullpointerexception(void);
+
+void classnotfoundexception_to_noclassdeffounderror(void);
 
 #endif /* _EXCEPTIONS_H */
 
