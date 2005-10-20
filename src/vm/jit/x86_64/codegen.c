@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3417 2005-10-12 13:21:55Z twisti $
+   $Id: codegen.c 3463 2005-10-20 10:07:16Z edwin $
 
 */
 
@@ -57,7 +57,6 @@
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc"
-#include "vm/jit/helper.h"
 #include "vm/jit/jit.h"
 
 #if defined(LSRA)

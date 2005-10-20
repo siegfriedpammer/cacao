@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3461 2005-10-20 09:53:00Z edwin $
+   $Id: patcher.c 3463 2005-10-20 10:07:16Z edwin $
 
 */
 
@@ -46,7 +46,6 @@
 #include "vm/options.h"
 #include "vm/references.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/helper.h"
 #include "vm/jit/patcher.h"
 
 
