@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3353 2005-10-05 13:30:10Z edwin $
+   $Id: patcher.c 3461 2005-10-20 09:53:00Z edwin $
 
 */
 
@@ -86,7 +86,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = helper_resolve_fieldinfo(uf))) {
+	if (!(fi = resolve_field_eager(uf))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -153,7 +153,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = helper_resolve_fieldinfo(uf))) {
+	if (!(fi = resolve_field_eager(uf))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -234,7 +234,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo_nonabstract(cr))) {
+	if (!(c = resolve_classref_eager_nonabstract(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -306,7 +306,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -375,7 +375,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -443,7 +443,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -516,7 +516,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -583,7 +583,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um))) {
+	if (!(m = resolve_method_eager(um))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -643,7 +643,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um))) {
+	if (!(m = resolve_method_eager(um))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -710,7 +710,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = helper_resolve_methodinfo(um))) {
+	if (!(m = resolve_method_eager(um))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -782,7 +782,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -843,7 +843,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -914,7 +914,7 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
@@ -976,7 +976,7 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(c = helper_resolve_classinfo(cr))) {
+	if (!(c = resolve_classref_eager(cr))) {
 		PATCHER_MONITOREXIT;
 
 		return false;
