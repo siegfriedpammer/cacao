@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3463 2005-10-20 10:07:16Z edwin $
+   $Id: patcher.c 3464 2005-10-20 10:16:29Z edwin $
 
 */
 
@@ -42,6 +42,7 @@
 #include "vm/field.h"
 #include "vm/initialize.h"
 #include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/references.h"
 #include "vm/jit/patcher.h"
 
