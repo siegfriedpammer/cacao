@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: exceptions.c 3459 2005-10-20 00:49:47Z edwin $
+   $Id: exceptions.c 3465 2005-10-20 10:40:09Z edwin $
 
 */
 
@@ -537,7 +537,7 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 		/* we had an exception while creating the error */
 
 		if (*exceptionptr)
-			return NULL;
+			return;
 
 		/* set new exception */
 
