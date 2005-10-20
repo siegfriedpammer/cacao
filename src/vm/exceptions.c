@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: exceptions.c 3465 2005-10-20 10:40:09Z edwin $
+   $Id: exceptions.c 3466 2005-10-20 10:42:12Z edwin $
 
 */
 
