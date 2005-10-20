@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3418 2005-10-12 13:23:01Z twisti $
+   $Id: loader.c 3460 2005-10-20 09:34:16Z edwin $
 
 */
 
@@ -2012,7 +2012,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			case 'L':
 				/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 				if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
-					*exceptionptr = new_classnotfoundexception(name);
+					*exceptionptr = new_noclassdeffounderror(name);
 					return false;
 				}
 
@@ -2076,6 +2076,14 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			}
 
 			r = c;
+		}
+		else {
+			/* loadClass has thrown an exception */
+			/* we must convert ClassNotFoundException into NoClassDefFoundException */
+			/* XXX maybe we should have a flag that avoids this conversion */
+			/* for calling load_class_from_classloader from Class.forName  */
+			/* Currently we do a double conversion in these cases          */
+			classnotfoundexception_to_noclassdeffounderror();
 		}
 
 		/* SUN compatible -verbose:class output */
@@ -2820,7 +2828,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	/* Check array class name */
 
 	if (namelen < 2 || text[0] != '[') {
-		*exceptionptr = new_classnotfoundexception(c->name);
+		*exceptionptr = new_noclassdeffounderror(c->name);
 		return NULL;
 	}
 
@@ -2852,7 +2860,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		/* check for cases like `[L;' or `[L[I;' or `[Ljava.lang.Object' */
 		if (namelen < 4 || text[2] == '[' || text[namelen - 1] != ';') {
-			*exceptionptr = new_classnotfoundexception(c->name);
+			*exceptionptr = new_noclassdeffounderror(c->name);
 			return NULL;
 		}
 
@@ -2879,7 +2887,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		/* check for cases like `[II' */
 		if (namelen > 2) {
-			*exceptionptr = new_classnotfoundexception(c->name);
+			*exceptionptr = new_noclassdeffounderror(c->name);
 			return NULL;
 		}
 

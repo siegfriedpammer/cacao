@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3451 2005-10-19 22:01:25Z twisti $
+   $Id: resolve.c 3460 2005-10-20 09:34:16Z edwin $
 
 */
 
@@ -54,37 +54,60 @@
 
 /*#define RESOLVE_VERBOSE*/
 
-#ifndef NDEBUG
-#define RESOLVE_DEBUG
-#endif
-
-#ifdef RESOLVE_DEBUG
-#define RESOLVE_ASSERT(cond)  assert(cond)
-#else
-#define RESOLVE_ASSERT(cond)
-#endif
-
 /******************************************************************************/
 /* CLASS RESOLUTION                                                           */
 /******************************************************************************/
 
-/* resolve symbolic class reference -- see resolve.h */
-bool
-resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
-			  utf *classname,
-			  resolve_mode_t mode,
-			  bool checkaccess,
-			  bool link,
-			  classinfo **result)
+/* resolve_class_from_name *****************************************************
+ 
+   Resolve a symbolic class reference
+  
+   IN:
+       referer..........the class containing the reference
+       refmethod........the method from which resolution was triggered
+                        (may be NULL if not applicable)
+       classname........class name to resolve
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+  
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+
+   NOTE:
+       The returned class is *not* guaranteed to be linked!
+	   (It is guaranteed to be loaded, though.)
+   
+*******************************************************************************/
+
+bool resolve_class_from_name(classinfo *referer,
+							 methodinfo *refmethod,
+							 utf *classname,
+							 resolve_mode_t mode,
+							 bool checkaccess,
+							 bool link,
+							 classinfo **result)
 {
 	classinfo *cls = NULL;
 	char *utf_ptr;
 	int len;
 	
-	RESOLVE_ASSERT(result);
-	RESOLVE_ASSERT(referer);
-	RESOLVE_ASSERT(classname);
-	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
+	assert(result);
+	assert(referer);
+	assert(classname);
+	assert(mode == resolveLazy || mode == resolveEager);
 	
 	*result = NULL;
 
@@ -126,7 +149,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 									   mode,checkaccess,link,&cls))
 						return false; /* exception */
 					if (!cls) {
-						RESOLVE_ASSERT(mode == resolveLazy);
+						assert(mode == resolveLazy);
 						return true; /* be lazy */
 					}
 					/* create the array class */
@@ -154,8 +177,8 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 	}
 
 	/* the class is now loaded */
-	RESOLVE_ASSERT(cls);
-	RESOLVE_ASSERT(cls->loaded);
+	assert(cls);
+	assert(cls->loaded);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    checking access rights...\n");
@@ -183,7 +206,7 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 		if (!cls->linked)
 			if (!link_class(cls))
 				return false; /* exception */
-		RESOLVE_ASSERT(cls->linked);
+		assert(cls->linked);
 	}
 
 	/* resolution succeeds */
@@ -194,32 +217,86 @@ resolve_class_from_name(classinfo *referer,methodinfo *refmethod,
 	return true;
 }
 
-bool
-resolve_classref(methodinfo *refmethod,
-				 constant_classref *ref,
-				 resolve_mode_t mode,
-				 bool checkaccess,
-			     bool link,
-				 classinfo **result)
+/* resolve_classref ************************************************************
+ 
+   Resolve a symbolic class reference
+  
+   IN:
+       refmethod........the method from which resolution was triggered
+                        (may be NULL if not applicable)
+       ref..............class reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+  
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool resolve_classref(methodinfo *refmethod,
+					  constant_classref *ref,
+					  resolve_mode_t mode,
+					  bool checkaccess,
+					  bool link,
+					  classinfo **result)
 {
 	return resolve_classref_or_classinfo(refmethod,CLASSREF_OR_CLASSINFO(ref),mode,checkaccess,link,result);
 }
 
-bool
-resolve_classref_or_classinfo(methodinfo *refmethod,
-							  classref_or_classinfo cls,
-							  resolve_mode_t mode,
-							  bool checkaccess,
-							  bool link,
-							  classinfo **result)
+/* resolve_classref_or_classinfo ***********************************************
+ 
+   Resolve a symbolic class reference if necessary
+  
+   IN:
+       refmethod........the method from which resolution was triggered
+                        (may be NULL if not applicable)
+       cls..............class reference or classinfo
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+  
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool resolve_classref_or_classinfo(methodinfo *refmethod,
+								   classref_or_classinfo cls,
+								   resolve_mode_t mode,
+								   bool checkaccess,
+								   bool link,
+								   classinfo **result)
 {
 	classinfo         *c;
-	java_objectheader *e;
-	java_objectheader *cause;
 	
-	RESOLVE_ASSERT(cls.any);
-	RESOLVE_ASSERT(mode == resolveEager || mode == resolveLazy);
-	RESOLVE_ASSERT(result);
+	assert(cls.any);
+	assert(mode == resolveEager || mode == resolveLazy);
+	assert(result);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_classref_or_classinfo(");
@@ -239,22 +316,22 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	} else {
 		/* cls has already been resolved */
 		c = cls.cls;
-		RESOLVE_ASSERT(c->loaded);
+		assert(c->loaded);
 	}
-	RESOLVE_ASSERT(c || (mode == resolveLazy));
+	assert(c || (mode == resolveLazy));
 
 	if (!c)
 		return true; /* be lazy */
 	
-	RESOLVE_ASSERT(c);
-	RESOLVE_ASSERT(c->loaded);
+	assert(c);
+	assert(c->loaded);
 
 	if (link) {
 		if (!c->linked)
 			if (!link_class(c))
 				goto return_exception;
 
-		RESOLVE_ASSERT(c->linked);
+		assert(c->linked);
 	}
 
 	/* succeeded */
@@ -262,44 +339,41 @@ resolve_classref_or_classinfo(methodinfo *refmethod,
 	return true;
 
  return_exception:
-	/* get the cause */
-
-	cause = *exceptionptr;
-
-	/* convert ClassNotFoundException's to NoClassDefFoundError's */
-
-	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
-		/* clear exception, because we are calling jit code again */
-
-		*exceptionptr = NULL;
-
-		/* create new error */
-
-		e = new_exception_javastring(string_java_lang_NoClassDefFoundError,
-									 ((java_lang_Throwable *) cause)->detailMessage);
-
-		/* we had an exception while creating the error */
-
-		if (*exceptionptr)
-			return false;
-
-		/* set new exception */
-
-		*exceptionptr = e;
-	}
-
 	*result = NULL;
 	return false;
 }
 
 
-bool 
-resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
+/* resolve_class_from_typedesc *************************************************
+ 
+   Return a classinfo * for the given type descriptor
+  
+   IN:
+       d................type descriptor
+	   checkaccess......if true, access rights to the class are checked
+	   link.............if true, guarantee that the returned class, if any,
+	                    has been linked
+   OUT:
+       *result..........set to result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+       false............an exception has been thrown
+
+   NOTE:
+       This function always resolved eagerly.
+   
+*******************************************************************************/
+
+bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
 {
 	classinfo *cls;
 	
-	RESOLVE_ASSERT(d);
-	RESOLVE_ASSERT(result);
+	assert(d);
+	assert(result);
 
 	*result = NULL;
 
@@ -318,14 +392,14 @@ resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo 
 	else {
 		/* a primitive type */
 		cls = primitivetype_table[d->decltype].class_primitive;
-		RESOLVE_ASSERT(cls->loaded);
+		assert(cls->loaded);
 		if (!cls->linked)
 			if (!link_class(cls))
 				return false; /* exception */
 	}
-	RESOLVE_ASSERT(cls);
-	RESOLVE_ASSERT(cls->loaded);
-	RESOLVE_ASSERT(!link || cls->linked);
+	assert(cls);
+	assert(cls->loaded);
+	assert(!link || cls->linked);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    result = ");utf_fprint(stderr,cls->name);fprintf(stderr,"\n");
@@ -339,15 +413,56 @@ resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo 
 /* SUBTYPE SET CHECKS                                                         */
 /******************************************************************************/
 
-/* for documentation see resolve.h */
-bool
-resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
-							  unresolved_subtype_set *ref,
-							  classref_or_classinfo typeref,
-							  bool reversed,
-							  resolve_mode_t mode,
-							  resolve_err_t error,
-							  bool *checked)
+/* resolve_and_check_subtype_set ***********************************************
+ 
+   Resolve the references in the given set and test subtype relationships
+  
+   IN:
+       referer..........the class containing the references
+       refmethod........the method triggering the resolution
+       ref..............a set of class/interface references
+                        (may be empty)
+       type.............the type to test against the set
+       reversed.........if true, test if type is a subtype of
+                        the set members, instead of the other
+                        way round
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+       error............which type of exception to throw if
+                        the test fails. May be:
+                            resolveLinkageError, or
+                            resolveIllegalAccessError
+						IMPORTANT: If error==resolveIllegalAccessError,
+						then array types in the set are skipped.
+
+   OUT:
+       *checked.........set to true if all checks were performed,
+	                    otherwise set to false
+	                    (This is guaranteed to be true if mode was
+						resolveEager and no exception occured.)
+						If checked == NULL, this parameter is not used.
+  
+   RETURN VALUE:
+       true.............the check succeeded
+       false............the check failed. An exception has been
+                        thrown.
+   
+   NOTE:
+       The references in the set are resolved first, so any
+       exception which may occurr during resolution may
+       be thrown by this function.
+   
+*******************************************************************************/
+
+bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
+								   unresolved_subtype_set *ref,
+								   classref_or_classinfo typeref,
+								   bool reversed,
+								   resolve_mode_t mode,
+								   resolve_err_t error,
+								   bool *checked)
 {
 	classref_or_classinfo *setp;
 	classinfo *result;
@@ -358,11 +473,11 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	int msglen;
 	typecheck_result r;
 
-	RESOLVE_ASSERT(referer);
-	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(typeref.any);
-	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
-	RESOLVE_ASSERT(error == resolveLinkageError || error == resolveIllegalAccessError);
+	assert(referer);
+	assert(ref);
+	assert(typeref.any);
+	assert(mode == resolveLazy || mode == resolveEager);
+	assert(error == resolveLinkageError || error == resolveIllegalAccessError);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_and_check_subtype_set\n");
@@ -394,9 +509,9 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	if (!type)
 		return true; /* be lazy */
 
-	RESOLVE_ASSERT(type);
-	RESOLVE_ASSERT(type->loaded);
-	RESOLVE_ASSERT(type->linked);
+	assert(type);
+	assert(type->loaded);
+	assert(type->linked);
 	TYPEINFO_INIT_CLASSINFO(typeti,type);
 
 	for (; setp->any; ++setp) {
@@ -411,9 +526,9 @@ resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		if (!result)
 			return true; /* be lazy */
 
-		RESOLVE_ASSERT(result);
-		RESOLVE_ASSERT(result->loaded);
-		RESOLVE_ASSERT(result->linked);
+		assert(result);
+		assert(result->loaded);
+		assert(result->linked);
 
 
 		/* do not check access to protected members of arrays */
@@ -483,19 +598,42 @@ throw_error:
 /* CLASS RESOLUTION                                                           */
 /******************************************************************************/
 
-/* for documentation see resolve.h */
-bool
-resolve_class(unresolved_class *ref,
-			  resolve_mode_t mode,
-			  bool checkaccess,
-			  classinfo **result)
+/* resolve_class ***************************************************************
+ 
+   Resolve an unresolved class reference. The class is also linked.
+  
+   IN:
+       ref..............struct containing the reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+	   checkaccess......if true, access rights to the class are checked
+   
+   OUT:
+       *result..........set to the result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool resolve_class(unresolved_class *ref,
+				   resolve_mode_t mode,
+				   bool checkaccess,
+				   classinfo **result)
 {
 	classinfo *cls;
 	bool checked;
 	
-	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(result);
-	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
+	assert(ref);
+	assert(result);
+	assert(mode == resolveLazy || mode == resolveEager);
 
 	*result = NULL;
 
@@ -513,8 +651,8 @@ resolve_class(unresolved_class *ref,
 	if (!cls)
 		return true; /* be lazy */
 
-	RESOLVE_ASSERT(cls);
-	RESOLVE_ASSERT(cls->loaded && cls->linked);
+	assert(cls);
+	assert(cls->loaded && cls->linked);
 
 	/* now we check the subtype constraints */
 	if (!resolve_and_check_subtype_set(ref->classref->referer,ref->referermethod,
@@ -534,15 +672,117 @@ resolve_class(unresolved_class *ref,
 	return true;
 }
 
+/* resolve_classref_eager ******************************************************
+ 
+   Resolve an unresolved class reference eagerly. The class is also linked and
+   access rights to the class are checked.
+  
+   IN:
+       ref..............constant_classref to the class
+   
+   RETURN VALUE:
+       classinfo * to the class, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+classinfo * resolve_classref_eager(constant_classref *ref)
+{
+	classinfo *c;
+
+	if (!resolve_classref(NULL,ref,resolveEager,true,true,&c))
+		return NULL;
+
+	return c;
+}
+
+/* resolve_classref_eager_nonabstract ******************************************
+ 
+   Resolve an unresolved class reference eagerly. The class is also linked and
+   access rights to the class are checked. A check is performed that the class
+   is not abstract.
+  
+   IN:
+       ref..............constant_classref to the class
+   
+   RETURN VALUE:
+       classinfo * to the class, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+classinfo * resolve_classref_eager_nonabstract(constant_classref *ref)
+{
+	classinfo *c;
+
+	if (!resolve_classref(NULL,ref,resolveEager,true,true,&c))
+		return NULL;
+
+	/* ensure that the class is not abstract */
+
+	if (c->flags & ACC_ABSTRACT) {
+		*exceptionptr = new_verifyerror(NULL,"creating instance of abstract class");
+		return NULL;
+	}
+
+	return c;
+}
+
+/* resolve_class_eager *********************************************************
+ 
+   Resolve an unresolved class reference eagerly. The class is also linked and
+   access rights to the class are checked.
+  
+   IN:
+       ref..............struct containing the reference
+   
+   RETURN VALUE:
+       classinfo * to the class, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+classinfo * resolve_class_eager(unresolved_class *ref)
+{
+	classinfo *c;
+
+	if (!resolve_class(ref,resolveEager,true,&c))
+		return NULL;
+
+	return c;
+}
+
 /******************************************************************************/
 /* FIELD RESOLUTION                                                           */
 /******************************************************************************/
 
-/* for documentation see resolve.h */
-bool
-resolve_field(unresolved_field *ref,
-			  resolve_mode_t mode,
-			  fieldinfo **result)
+/* resolve_field ***************************************************************
+ 
+   Resolve an unresolved field reference
+  
+   IN:
+       ref..............struct containing the reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+  
+   OUT:
+       *result..........set to the result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool resolve_field(unresolved_field *ref,
+				   resolve_mode_t mode,
+				   fieldinfo **result)
 {
 	classinfo *referer;
 	classinfo *container;
@@ -551,9 +791,9 @@ resolve_field(unresolved_field *ref,
 	fieldinfo *fi;
 	bool checked;
 	
-	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(result);
-	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
+	assert(ref);
+	assert(result);
+	assert(mode == resolveLazy || mode == resolveEager);
 
 	*result = NULL;
 
@@ -564,7 +804,7 @@ resolve_field(unresolved_field *ref,
 	/* the class containing the reference */
 
 	referer = ref->fieldref->classref->referer;
-	RESOLVE_ASSERT(referer);
+	assert(referer);
 
 	/* first we must resolve the class containg the field */
 	if (!resolve_class_from_name(referer,ref->referermethod,
@@ -576,8 +816,8 @@ resolve_field(unresolved_field *ref,
 	if (!container)
 		return true; /* be lazy */
 
-	RESOLVE_ASSERT(container);
-	RESOLVE_ASSERT(container->loaded && container->linked);
+	assert(container);
+	assert(container->loaded && container->linked);
 
 	/* now we must find the declaration of the field in `container`
 	 * or one of its superclasses */
@@ -604,8 +844,8 @@ resolve_field(unresolved_field *ref,
 
 	/* { the field reference has been resolved } */
 	declarer = fi->class;
-	RESOLVE_ASSERT(declarer);
-	RESOLVE_ASSERT(declarer->loaded && declarer->linked);
+	assert(declarer);
+	assert(declarer->loaded && declarer->linked);
 
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking static...\n");
@@ -653,7 +893,7 @@ resolve_field(unresolved_field *ref,
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking value constraints...\n");
 #endif
-		RESOLVE_ASSERT(fieldtyperef);
+		assert(fieldtyperef);
 		if (!SUBTYPESET_IS_EMPTY(ref->valueconstraints)) {
 			/* check subtype constraints */
 			if (!resolve_and_check_subtype_set(referer, ref->referermethod,
@@ -722,7 +962,7 @@ resolve_field(unresolved_field *ref,
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    adding constraint...\n");
 #endif
-		RESOLVE_ASSERT(fieldtyperef);
+		assert(fieldtyperef);
 		if (!classcache_add_constraint(declarer->classloader,
 									   referer->classloader,
 									   fieldtyperef->name))
@@ -738,13 +978,58 @@ resolve_field(unresolved_field *ref,
 	return true;
 }
 
+/* resolve_field_eager *********************************************************
+ 
+   Resolve an unresolved field reference eagerly.
+  
+   IN:
+       ref..............struct containing the reference
+   
+   RETURN VALUE:
+       fieldinfo * to the field, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+fieldinfo * resolve_field_eager(unresolved_field *ref)
+{
+	fieldinfo *fi;
+
+	if (!resolve_field(ref,resolveEager,&fi))
+		return NULL;
+
+	return fi;
+}
+
 /******************************************************************************/
 /* METHOD RESOLUTION                                                          */
 /******************************************************************************/
 
-/* for documentation see resolve.h */
-bool
-resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
+/* resolve_method **************************************************************
+ 
+   Resolve an unresolved method reference
+  
+   IN:
+       ref..............struct containing the reference
+       mode.............mode of resolution:
+                            resolveLazy...only resolve if it does not
+                                          require loading classes
+                            resolveEager..load classes if necessary
+  
+   OUT:
+       *result..........set to the result of resolution, or to NULL if
+                        the reference has not been resolved
+                        In the case of an exception, *result is
+                        guaranteed to be set to NULL.
+  
+   RETURN VALUE:
+       true.............everything ok 
+                        (*result may still be NULL for resolveLazy)
+       false............an exception has been thrown
+   
+*******************************************************************************/
+
+bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 {
 	classinfo *referer;
 	classinfo *container;
@@ -755,9 +1040,9 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	int i;
 	bool checked;
 	
-	RESOLVE_ASSERT(ref);
-	RESOLVE_ASSERT(result);
-	RESOLVE_ASSERT(mode == resolveLazy || mode == resolveEager);
+	assert(ref);
+	assert(result);
+	assert(mode == resolveLazy || mode == resolveEager);
 
 #ifdef RESOLVE_VERBOSE
 	unresolved_method_debug_dump(ref,stderr);
@@ -767,7 +1052,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* the class containing the reference */
 	referer = ref->methodref->classref->referer;
-	RESOLVE_ASSERT(referer);
+	assert(referer);
 
 	/* first we must resolve the class containg the method */
 	if (!resolve_class_from_name(referer,ref->referermethod,
@@ -779,8 +1064,8 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	if (!container)
 		return true; /* be lazy */
 
-	RESOLVE_ASSERT(container);
-	RESOLVE_ASSERT(container->linked);
+	assert(container);
+	assert(container->linked);
 
 	/* now we must find the declaration of the method in `container`
 	 * or one of its superclasses */
@@ -817,8 +1102,8 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	/* { the method reference has been resolved } */
 
 	declarer = mi->class;
-	RESOLVE_ASSERT(declarer);
-	RESOLVE_ASSERT(referer->linked);
+	assert(declarer);
+	assert(referer->linked);
 
 	/* checks for INVOKESPECIAL:                                       */
 	/* for <init> and methods of the current class we don't need any   */
@@ -890,7 +1175,7 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 
 	/* check subtype constraints for TYPE_ADR parameters */
 
-	RESOLVE_ASSERT(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
+	assert(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
 	paramtypes = mi->parseddesc->paramtypes;
 	
 	for (i = 0; i < mi->parseddesc->paramcount-instancecount; i++) {
@@ -982,20 +1267,44 @@ resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **result)
 	return true;
 }
 
+/* resolve_method_eager ********************************************************
+ 
+   Resolve an unresolved method reference eagerly.
+  
+   IN:
+       ref..............struct containing the reference
+   
+   RETURN VALUE:
+       methodinfo * to the method, or
+	   NULL if an exception has been thrown
+   
+*******************************************************************************/
+
+methodinfo * resolve_method_eager(unresolved_method *ref)
+{
+	methodinfo *mi;
+
+	if (!resolve_method(ref,resolveEager,&mi))
+		return NULL;
+
+	return mi;
+}
+
 /******************************************************************************/
 /* CREATING THE DATA STRUCTURES                                               */
 /******************************************************************************/
 
-static bool
-unresolved_subtype_set_from_typeinfo(classinfo *referer,methodinfo *refmethod,
-		unresolved_subtype_set *stset,typeinfo *tinfo,
-		constant_classref *declaredtype)
+static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
+												 methodinfo *refmethod,
+												 unresolved_subtype_set *stset,
+												 typeinfo *tinfo,
+												 constant_classref *declaredtype)
 {
 	int count;
 	int i;
 	
-	RESOLVE_ASSERT(stset);
-	RESOLVE_ASSERT(tinfo);
+	assert(stset);
+	assert(tinfo);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"unresolved_subtype_set_from_typeinfo\n");
@@ -1088,10 +1397,9 @@ empty_set:
 
 *******************************************************************************/
 
-unresolved_class *
-create_unresolved_class(methodinfo *refmethod,
-						constant_classref *classref,
-						typeinfo *valuetype)
+unresolved_class * create_unresolved_class(methodinfo *refmethod,
+										   constant_classref *classref,
+										   typeinfo *valuetype)
 {
 	unresolved_class *ref;
 	
@@ -1136,9 +1444,8 @@ create_unresolved_class(methodinfo *refmethod,
 
 *******************************************************************************/
 
-unresolved_field *
-create_unresolved_field(classinfo *referer, methodinfo *refmethod,
-						instruction *iptr)
+unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refmethod,
+										   instruction *iptr)
 {
 	unresolved_field *ref;
 	constant_FMIref *fieldref = NULL;
@@ -1186,7 +1493,7 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 			break;
 	}
 	
-	RESOLVE_ASSERT(fieldref);
+	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
@@ -1219,11 +1526,10 @@ create_unresolved_field(classinfo *referer, methodinfo *refmethod,
 
 *******************************************************************************/
 
-bool
-constrain_unresolved_field(unresolved_field *ref,
-						   classinfo *referer, methodinfo *refmethod,
-						   instruction *iptr,
-						   stackelement *stack)
+bool constrain_unresolved_field(unresolved_field *ref,
+							    classinfo *referer, methodinfo *refmethod,
+							    instruction *iptr,
+							    stackelement *stack)
 {
 	constant_FMIref *fieldref;
 	stackelement *instanceslot = NULL;
@@ -1232,10 +1538,10 @@ constrain_unresolved_field(unresolved_field *ref,
 	typeinfo *tip = NULL;
 	typedesc *fd;
 
-	RESOLVE_ASSERT(ref);
+	assert(ref);
 
 	fieldref = ref->fieldref;
-	RESOLVE_ASSERT(fieldref);
+	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"constrain_unresolved_field\n");
@@ -1269,9 +1575,9 @@ constrain_unresolved_field(unresolved_field *ref,
 			break;
 	}
 	
-	RESOLVE_ASSERT(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
+	assert(instanceslot || ((ref->flags & RESOLVE_STATIC) != 0));
 	fd = fieldref->parseddesc.fd;
-	RESOLVE_ASSERT(fd);
+	assert(fd);
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
@@ -1303,7 +1609,7 @@ constrain_unresolved_field(unresolved_field *ref,
 			}
 			/* XXX check that class of field == refmethod->class */
 			initclass = refmethod->class; /* XXX classrefs */
-			RESOLVE_ASSERT(initclass->loaded && initclass->linked);
+			assert(initclass->loaded && initclass->linked);
 			TYPEINFO_INIT_CLASSINFO(tinfo,initclass);
 			insttip = &tinfo;
 		}
@@ -1325,9 +1631,9 @@ constrain_unresolved_field(unresolved_field *ref,
 			/* we have a PUTSTATICCONST or PUTFIELDCONST with TYPE_ADR */
 			tip = &tinfo;
 			if (INSTRUCTION_PUTCONST_VALUE_ADR(iptr)) {
-				RESOLVE_ASSERT(class_java_lang_String);
-				RESOLVE_ASSERT(class_java_lang_String->loaded);
-				RESOLVE_ASSERT(class_java_lang_String->linked);
+				assert(class_java_lang_String);
+				assert(class_java_lang_String->loaded);
+				assert(class_java_lang_String->linked);
 				TYPEINFO_INIT_CLASSINFO(tinfo,class_java_lang_String);
 			}
 			else
@@ -1359,16 +1665,15 @@ constrain_unresolved_field(unresolved_field *ref,
 
 *******************************************************************************/
 
-unresolved_method *
-create_unresolved_method(classinfo *referer, methodinfo *refmethod,
-						 instruction *iptr)
+unresolved_method * create_unresolved_method(classinfo *referer, methodinfo *refmethod,
+											 instruction *iptr)
 {
 	unresolved_method *ref;
 	constant_FMIref *methodref;
 	bool staticmethod;
 
 	methodref = (constant_FMIref *) iptr[0].val.a;
-	RESOLVE_ASSERT(methodref);
+	assert(methodref);
 	staticmethod = (iptr[0].opc == ICMD_INVOKESTATIC);
 
 #ifdef RESOLVE_VERBOSE
@@ -1417,11 +1722,10 @@ create_unresolved_method(classinfo *referer, methodinfo *refmethod,
 
 *******************************************************************************/
 
-bool
-constrain_unresolved_method(unresolved_method *ref,
-							classinfo *referer, methodinfo *refmethod,
-						 	instruction *iptr,
-						 	stackelement *stack)
+bool constrain_unresolved_method(unresolved_method *ref,
+								 classinfo *referer, methodinfo *refmethod,
+								 instruction *iptr,
+								 stackelement *stack)
 {
 	constant_FMIref *methodref;
 	stackelement *instanceslot = NULL;
@@ -1432,12 +1736,12 @@ constrain_unresolved_method(unresolved_method *ref,
 	int type;
 	int instancecount;
 
-	RESOLVE_ASSERT(ref);
+	assert(ref);
 	methodref = ref->methodref;
-	RESOLVE_ASSERT(methodref);
+	assert(methodref);
 	md = methodref->parseddesc.md;
-	RESOLVE_ASSERT(md);
-	RESOLVE_ASSERT(md->params != NULL);
+	assert(md);
+	assert(md->params != NULL);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"constrain_unresolved_method\n");
@@ -1461,13 +1765,13 @@ constrain_unresolved_method(unresolved_method *ref,
 		instancecount = 0;
 	}
 	
-	RESOLVE_ASSERT((instanceslot && instancecount==1) || ((ref->flags & RESOLVE_STATIC) != 0));
+	assert((instanceslot && instancecount==1) || ((ref->flags & RESOLVE_STATIC) != 0));
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceslot) {
 		typeinfo *tip;
 		
-		RESOLVE_ASSERT(instanceslot->type == TYPE_ADR);
+		assert(instanceslot->type == TYPE_ADR);
 		
 		if (iptr[0].opc == ICMD_INVOKESPECIAL && 
 				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
@@ -1492,8 +1796,8 @@ constrain_unresolved_method(unresolved_method *ref,
 	for (i=md->paramcount-1-instancecount; i>=0; --i, param=param->prev) {
 		type = md->paramtypes[i+instancecount].type;
 
-		RESOLVE_ASSERT(param);
-		RESOLVE_ASSERT(type == param->type);
+		assert(param);
+		assert(type == param->type);
 
 		if (type == TYPE_ADR) {
 			if (!ref->paramconstraints) {
@@ -1501,7 +1805,7 @@ constrain_unresolved_method(unresolved_method *ref,
 				for (j=md->paramcount-1-instancecount; j>i; --j)
 					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
-			RESOLVE_ASSERT(ref->paramconstraints);
+			assert(ref->paramconstraints);
 			if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
 						ref->paramconstraints + i,&(param->typeinfo),
 						md->paramtypes[i+instancecount].classref))
@@ -1520,8 +1824,7 @@ constrain_unresolved_method(unresolved_method *ref,
 /* FREEING MEMORY                                                             */
 /******************************************************************************/
 
-inline static void 
-unresolved_subtype_set_free_list(classref_or_classinfo *list)
+inline static void unresolved_subtype_set_free_list(classref_or_classinfo *list)
 {
 	if (list) {
 		classref_or_classinfo *p = list;
@@ -1542,10 +1845,9 @@ unresolved_subtype_set_free_list(classref_or_classinfo *list)
 
 *******************************************************************************/
 
-void 
-unresolved_class_free(unresolved_class *ref)
+void unresolved_class_free(unresolved_class *ref)
 {
-	RESOLVE_ASSERT(ref);
+	assert(ref);
 
 	unresolved_subtype_set_free_list(ref->subtypeconstraints.subtyperefs);
 	FREE(ref,unresolved_class);
@@ -1560,10 +1862,9 @@ unresolved_class_free(unresolved_class *ref)
 
 *******************************************************************************/
 
-void 
-unresolved_field_free(unresolved_field *ref)
+void unresolved_field_free(unresolved_field *ref)
 {
-	RESOLVE_ASSERT(ref);
+	assert(ref);
 
 	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
 	unresolved_subtype_set_free_list(ref->valueconstraints.subtyperefs);
@@ -1579,10 +1880,9 @@ unresolved_field_free(unresolved_field *ref)
 
 *******************************************************************************/
 
-void 
-unresolved_method_free(unresolved_method *ref)
+void unresolved_method_free(unresolved_method *ref)
 {
-	RESOLVE_ASSERT(ref);
+	assert(ref);
 
 	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
 	if (ref->paramconstraints) {
@@ -1596,6 +1896,7 @@ unresolved_method_free(unresolved_method *ref)
 	FREE(ref,unresolved_method);
 }
 
+#ifndef NDEBUG
 /******************************************************************************/
 /* DEBUG DUMPS                                                                */
 /******************************************************************************/
@@ -1610,8 +1911,7 @@ unresolved_method_free(unresolved_method *ref)
 
 *******************************************************************************/
 
-void
-unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
+void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 {
 	classref_or_classinfo *p;
 	
@@ -1644,8 +1944,7 @@ unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 
 *******************************************************************************/
 
-void 
-unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
+void unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
 {
 	fprintf(file,"unresolved_class(%p):\n",(void *)ref);
 	if (ref) {
@@ -1672,8 +1971,7 @@ unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
 
 *******************************************************************************/
 
-void 
-unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
+void unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 {
 	fprintf(file,"unresolved_field(%p):\n",(void *)ref);
 	if (ref) {
@@ -1709,8 +2007,7 @@ unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 
 *******************************************************************************/
 
-void 
-unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
+void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 {
 	int i;
 
@@ -1745,6 +2042,7 @@ unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 		}
 	}
 }
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

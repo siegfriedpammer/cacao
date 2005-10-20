@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3351 2005-10-05 11:53:28Z edwin $
+   $Id: linker.c 3460 2005-10-20 09:34:16Z edwin $
 
 */
 
@@ -951,7 +951,7 @@ static arraydescriptor *link_array(classinfo *c)
 			break;
 
 		default:
-			*exceptionptr = new_classnotfoundexception(c->name);
+			*exceptionptr = new_noclassdeffounderror(c->name);
 			return NULL;
 		}
 		

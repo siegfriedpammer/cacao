@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: helper.c 3353 2005-10-05 13:30:10Z edwin $
+   $Id: helper.c 3460 2005-10-20 09:34:16Z edwin $
 
 */
 
@@ -57,16 +57,7 @@
 
 classinfo *helper_resolve_classinfo(constant_classref *cr)
 {
-	classinfo *c;
-
-	/* resolve and load the class */
-
-	if (!resolve_classref(NULL, cr, resolveEager, true, true, &c))
-		return NULL;
-
-	/* return the classinfo pointer */
-
-	return c;
+	return resolve_classref_eager(cr);
 }
 
 
@@ -79,25 +70,7 @@ classinfo *helper_resolve_classinfo(constant_classref *cr)
 
 classinfo *helper_resolve_classinfo_nonabstract(constant_classref *cr)
 {
-	classinfo *c;
-
-	/* resolve and load the class */
-
-	c = helper_resolve_classinfo(cr);
-	if (!c) {
-		return NULL; /* exception */
-	}
-
-	/* ensure that the class is not abstract */
-
-	if ((c->flags & ACC_ABSTRACT) != 0) {
-		*exceptionptr = new_verifyerror(NULL,"creating instance of abstract class");
-		return NULL;
-	}
-
-	/* return the classinfo pointer */
-
-	return c;
+	return resolve_classref_eager_nonabstract(cr);
 }
 
 
@@ -110,47 +83,7 @@ classinfo *helper_resolve_classinfo_nonabstract(constant_classref *cr)
 
 methodinfo *helper_resolve_methodinfo(unresolved_method *um)
 {
-	methodinfo *m;
-
-	/* resolve the method */
-
-	if (!resolve_method(um, resolveEager, &m)) {
-		java_objectheader *xptr;
-		java_objectheader *cause;
-
-		/* get the cause */
-
-		cause = *exceptionptr;
-
-		/* convert ClassNotFoundException's to NoClassDefFoundError's */
-
-		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
-			/* clear exception, because we are calling jit code again */
-
-			*exceptionptr = NULL;
-
-			/* create new error */
-
-			xptr =
-				new_exception_javastring(string_java_lang_NoClassDefFoundError,
-										 ((java_lang_Throwable *) cause)->detailMessage);
-
-			/* we had an exception while creating the error */
-
-			if (*exceptionptr)
-				return NULL;
-
-			/* set new exception */
-
-			*exceptionptr = xptr;
-		}
-
-		return NULL;
-	}
-
-	/* return the methodinfo pointer */
-
-	return m;
+	return resolve_method_eager(um);
 }
 
 
@@ -162,47 +95,7 @@ methodinfo *helper_resolve_methodinfo(unresolved_method *um)
 
 void *helper_resolve_fieldinfo(unresolved_field *uf)
 {
-	fieldinfo *fi;
-
-	/* resolve the field */
-
-	if (!resolve_field(uf, resolveEager, &fi)) {
-		java_objectheader *xptr;
-		java_objectheader *cause;
-
-		/* get the cause */
-
-		cause = *exceptionptr;
-
-		/* convert ClassNotFoundException's to NoClassDefFoundError's */
-
-		if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
-			/* clear exception, because we are calling jit code again */
-
-			*exceptionptr = NULL;
-
-			/* create new error */
-
-			xptr =
-				new_exception_javastring(string_java_lang_NoClassDefFoundError,
-										 ((java_lang_Throwable *) cause)->detailMessage);
-
-			/* we had an exception while creating the error */
-
-			if (*exceptionptr)
-				return NULL;
-
-			/* set new exception */
-
-			*exceptionptr = xptr;
-		}
-
-		return NULL;
-	}
-
-	/* return the fieldinfo pointer */
-
-	return fi;
+	return resolve_field_eager(uf);
 }
 
 
