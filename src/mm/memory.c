@@ -28,15 +28,18 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3403 2005-10-12 08:17:00Z twisti $
+   $Id: memory.c 3479 2005-10-21 13:08:19Z twisti $
 
 */
 
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not included. So      */
@@ -89,6 +92,7 @@ static dumpinfo _no_threads_dumpinfo;
 static void *checked_alloc(s4 size)
 {
 	/* always allocate memory zeroed out */
+
 	void *m = calloc(size, 1);
 
 	if (!m)
@@ -96,6 +100,42 @@ static void *checked_alloc(s4 size)
 								   "Out of memory");
 
 	return m;
+}
+
+
+/* memory_cnew *****************************************************************
+
+   Allocates memory from the heap, aligns it to architecutres PAGESIZE
+   and make the memory read-, write-, and executeable.
+
+*******************************************************************************/
+
+void *memory_cnew(s4 size)
+{
+	void *p;
+	int   pagesize;
+
+	/* get the pagesize of this architecture */
+
+	pagesize = getpagesize();
+
+	/* allocate normal heap memory */
+
+	if ((p = mem_alloc(size + pagesize - 1)) == NULL)
+		return NULL;
+
+	/* align the memory allocated to a multiple of PAGESIZE, mprotect
+	   requires this */
+
+	p = (void *) (((ptrint) p + pagesize - 1) & ~(pagesize - 1));
+
+	/* make the memory read-, write-, and executeable */
+
+	if (mprotect(p, size, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   strerror(errno));
+
+	return p;
 }
 
 
