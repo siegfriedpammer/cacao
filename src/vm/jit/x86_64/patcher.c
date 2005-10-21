@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3469 2005-10-21 09:06:30Z twisti $
+   $Id: patcher.c 3472 2005-10-21 11:43:50Z twisti $
 
 */
 
@@ -1121,7 +1121,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	PATCHER_MONITORENTER;
 
-	/* check if the class is initialized */
+	/* resolve the class */
 
 	if (!resolve_class(uc, resolveEager, false, &c)) {
 		PATCHER_MONITOREXIT;
