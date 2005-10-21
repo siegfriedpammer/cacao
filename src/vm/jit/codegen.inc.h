@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3415 2005-10-12 13:19:11Z twisti $
+   $Id: codegen.inc.h 3467 2005-10-21 08:44:21Z twisti $
 
 */
 
@@ -96,6 +96,10 @@ struct codegendata {
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
 	u1             *mcodeptr;       /* code generation pointer                */
+#endif
+
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+	u1             *lastmcodeptr;   /* last patcher position of basic block   */
 #endif
 
 #if defined(ENABLE_INTRP)
