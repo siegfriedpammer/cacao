@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3468 2005-10-21 08:46:14Z twisti $
+   $Id: codegen.inc 3474 2005-10-21 12:02:40Z twisti $
 
 */
 
@@ -231,13 +231,22 @@ void codegen_close(void)
 }
 
 
-/* codegen_increase doubles code area                                         */
+/* codegen_increase ************************************************************
 
-static s4 *codegen_increase(codegendata *cd, u1 *codeptr)
+   Doubles code area.
+
+*******************************************************************************/
+
+static s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 {
-	long len;
+	u1 *oldmcodebase;
 
-	len = codeptr - cd->mcodebase;
+	/* save old mcodebase pointer */
+
+	oldmcodebase = cd->mcodebase;
+
+	/* reallocate to new, doubled memory */
+
 	cd->mcodebase = DMREALLOC(cd->mcodebase,
 							  u1,
 							  cd->mcodesize,
@@ -245,11 +254,23 @@ static s4 *codegen_increase(codegendata *cd, u1 *codeptr)
 	cd->mcodesize *= 2;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
-	return (s4 *) (cd->mcodebase + len);
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+	/* adjust the pointer to the last patcher position */
+
+	cd->lastmcodeptr = cd->mcodebase + (cd->lastmcodeptr - oldmcodebase);
+#endif
+
+	/* return the new mcodeptr */
+
+	return (s4 *) (cd->mcodebase + (mcodeptr - oldmcodebase));
 }
 
 
-/* desg_increase doubles data area                                            */
+/* desg_increase ***************************************************************
+
+   Doubles data area.
+
+*******************************************************************************/
 
 static void dseg_increase(codegendata *cd)
 {
