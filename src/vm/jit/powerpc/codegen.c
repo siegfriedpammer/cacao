@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3426 2005-10-12 15:53:16Z twisti $
+   $Id: codegen.c 3485 2005-10-21 13:44:43Z twisti $
 
 */
 
@@ -1956,11 +1956,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
+			var_to_reg_int(s1, src, REG_ITMP1);
+			M_INTMOVE(s1, REG_ITMP1_XPTR);
+
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
+
+				if (opt_showdisassemble)
+					M_NOP;
+			}
+
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_MTCTR(REG_ITMP2);
-			var_to_reg_int(s1, src, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
 			if (m->isleafmethod) M_MFLR(REG_ITMP3);         /* save LR        */
 			M_BL(0);                                        /* get current PC */
@@ -2303,18 +2313,35 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_ARETURN:
+
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_TINTMOVE(src->type, s1, REG_RESULT);
 			goto nowperformreturn;
 
-		case ICMD_LRETURN:
+		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
+
+			var_to_reg_int(s1, src, REG_RESULT);
+			M_TINTMOVE(src->type, s1, REG_RESULT);
+
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
+
+				if (opt_showdisassemble)
+					M_NOP;
+			}
+			goto nowperformreturn;
+
+		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
+
 			var_to_reg_int(s1, src, PACK_REGS(REG_RESULT2, REG_RESULT));
 			M_TINTMOVE(src->type, s1, PACK_REGS(REG_RESULT2, REG_RESULT));
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:
+
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
