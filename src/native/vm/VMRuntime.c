@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 3261 2005-09-21 20:01:15Z twisti $
+   $Id: VMRuntime.c 3488 2005-10-21 13:48:20Z twisti $
 
 */
 
@@ -40,10 +40,12 @@
 #include <sys/utsname.h>
 
 #if defined(__DARWIN__)
+# define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
 # include <mach/mach.h>
 #endif
 
 #include "config.h"
+#include "vm/types.h"
 
 #if !defined(ENABLE_STATICVM)
 # include "libltdl/ltdl.h"
