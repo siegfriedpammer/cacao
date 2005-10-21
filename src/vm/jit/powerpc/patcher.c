@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3464 2005-10-20 10:16:29Z edwin $
+   $Id: patcher.c 3484 2005-10-21 13:43:51Z twisti $
 
 */
 
@@ -1035,6 +1035,58 @@ bool patcher_clinit(u1 *sp)
 
 			return false;
 		}
+	}
+
+	/* patch back original code */
+
+	*((u4 *) ra) = mcode;
+
+	/* synchronize instruction cache */
+
+	asm_cacheflush(ra, 4);
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return true;
+}
+
+
+/* patcher_athrow_areturn ******************************************************
+
+   Machine code:
+
+   <patched call position>
+
+*******************************************************************************/
+
+bool patcher_athrow_areturn(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+	u4                 mcode;
+	unresolved_class  *uc;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
+	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
+	mcode =                       *((u4 *)     (sp + 3 * 4));
+	uc    = (unresolved_class *)  *((ptrint *) (sp + 2 * 4));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 4;
+	*((ptrint *) (sp + 5 * 4)) = (ptrint) ra;
+
+	PATCHER_MONITORENTER;
+
+	/* resolve the class */
+
+	if (!resolve_class(uc, resolveEager, false, &c)) {
+		PATCHER_MONITOREXIT;
+
+		return false;
 	}
 
 	/* patch back original code */
