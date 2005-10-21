@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3416 2005-10-12 13:20:53Z twisti $
+   $Id: codegen.inc 3468 2005-10-21 08:46:14Z twisti $
 
 */
 
@@ -407,7 +407,7 @@ static void dseg_adddata(codegendata *cd, u1 *ptr)
 
 static void dseg_addlinenumbertablesize(codegendata *cd)
 {
-#if defined (__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
+#if SIZEOF_VOID_P == 8
 	/* 4-byte ALIGNMENT PADDING */
 
 	dseg_adds4(cd, 0);
@@ -416,7 +416,7 @@ static void dseg_addlinenumbertablesize(codegendata *cd)
 	cd->linenumbertablesizepos = dseg_addaddress(cd, NULL);
 	cd->linenumbertablestartpos = dseg_addaddress(cd, NULL);
 
-#if defined(__ALPHA__) || defined(__MIPS__) || defined (__X86_64__)
+#if SIZEOF_VOID_P == 8
 	/* 4-byte ALIGNMENT PADDING */
 
 	dseg_adds4(cd, 0);
@@ -594,6 +594,16 @@ static void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
+
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+	/* On some architectures the patcher stub call instruction might
+	be longer than the actual instruction generated.  On this
+	architectures we store the last patcher call position and after
+	the basic block code generation is completed, we check the range
+	and maybe generate some nop's. */
+
+	cd->lastmcodeptr = ((u1 *) branchptr) + PATCHER_CALL_SIZE;
+#endif
 }
 
 
