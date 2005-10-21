@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 3323 2005-10-04 18:33:30Z twisti $
+   $Id: codegen.h 3476 2005-10-21 12:03:33Z twisti $
 
 */
 
@@ -36,6 +36,11 @@
 
 #include "config.h"
 #include "vm/types.h"
+
+
+/* some defines ***************************************************************/
+
+#define PATCHER_CALL_SIZE    2 * 4      /* size in bytes of a patcher call    */
 
 
 /* additional functions and macros to generate code ***************************/
