@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3463 2005-10-20 10:07:16Z edwin $
+   $Id: codegen.c 3471 2005-10-21 09:09:18Z twisti $
 
 */
 
@@ -163,6 +163,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 	MCODECHECK(512);
+
+	/* initialize the last patcher pointer */
+
+	cd->lastmcodeptr = cd->mcodeptr;
 
 	/* create stack frame (if necessary) */
 
@@ -2546,24 +2550,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
-			x86_64_call_imm(cd, 0); /* passing exception pointer              */
-			x86_64_pop_reg(cd, REG_ITMP2_XPC);
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
 
-  			x86_64_mov_imm_reg(cd, (ptrint) asm_handle_exception, REG_ITMP3);
-  			x86_64_jmp_reg(cd, REG_ITMP3);
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+			}
+
+			M_CALL_IMM(0);                            /* passing exception pc */
+			M_POP(REG_ITMP2_XPC);
+
+  			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+  			M_JMP(REG_ITMP3);
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
-			x86_64_jmp_imm(cd, 0);
+			M_JMP_IMM(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 
-  			x86_64_call_imm(cd, 0);
+  			M_CALL_IMM(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 			
@@ -2572,7 +2586,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var = &(rd->locals[iptr->op1][TYPE_ADR]);
 			var_to_reg_int(s1, var, REG_ITMP1);
-			x86_64_jmp_reg(cd, s1);
+			M_JMP(s1);
 			break;
 
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
@@ -3752,6 +3766,18 @@ gen_method:
 		}
 		src = src->prev;
 	}
+
+	/* At the end of a basic block we may have to append some nops,
+	   because the patcher stub calling code might be longer than the
+	   actual instruction. So codepatching does not change the
+	   following block unintentionally. */
+
+	if (cd->mcodeptr < cd->lastmcodeptr) {
+		while (cd->mcodeptr < cd->lastmcodeptr) {
+			M_NOP;
+		}
+	}
+
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
