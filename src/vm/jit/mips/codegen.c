@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3431 2005-10-13 16:04:03Z twisti $
+   $Id: codegen.c 3477 2005-10-21 12:04:52Z twisti $
 
 */
 
@@ -156,6 +156,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	mcodeptr = (s4 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 	MCODECHECK(128 + m->paramcount);
+
+	/* initialize the last patcher pointer */
+
+	cd->lastmcodeptr = (u1 *) mcodeptr;
 
 	/* create stack frame (if necessary) */
 
@@ -2014,8 +2018,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			}
-			/* XXX TWISTI quick hack */
-			M_NOP;
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
@@ -2062,8 +2064,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DST(s2, s1, a);
 				break;
 			}
-			/* XXX TWISTI quick hack */
-			M_NOP;
 			break;
 
 		case ICMD_PUTFIELDCONST:  /* ..., objectref  ==> ...                  */
@@ -2106,8 +2106,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DST(REG_ZERO, s1, a);
 				break;
 			}
-			/* XXX TWISTI quick hack */
-			M_NOP;
 			break;
 
 
@@ -2117,6 +2115,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
+
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
+
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP;
+				}
+			}
+
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_JSR(REG_ITMP2_XPC, REG_ITMP2);
@@ -2672,21 +2681,25 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
-		case ICMD_ARETURN:
+
+			var_to_reg_int(s1, src, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
+			goto nowperformreturn;
+
+		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
+
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
-#if defined(USE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_LST(REG_RESULT, REG_SP, rd->memuse * 8);      /* delay slot */
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
 
-				M_LLD(REG_RESULT, REG_SP, rd->memuse * 8);
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP;
+				}
 			}
-#endif
 			goto nowperformreturn;
 
 	    case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
@@ -2696,30 +2709,9 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				int t = ((iptr->opc == ICMD_FRETURN) ? TYPE_FLT : TYPE_DBL);
 				M_TFLTMOVE(t, s1, REG_FRESULT);
 			}
-
-#if defined(USE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); 
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_DST(REG_FRESULT, REG_SP, rd->memuse * 8);     /* delay slot */
-
-				M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
-			}
-#endif
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-#if defined(USE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);/* delay slot*/
-			}
-#endif
 
 nowperformreturn:
 			{
@@ -2727,6 +2719,74 @@ nowperformreturn:
 			
 			p = parentargs_base;
 			
+			/* call trace function */
+
+			if (runverbose) {
+				M_LDA(REG_SP, REG_SP, -3 * 8);
+				M_LST(REG_RA, REG_SP, 0 * 8);
+				M_LST(REG_RESULT, REG_SP, 1 * 8);
+				M_DST(REG_FRESULT, REG_SP, 2 * 8);
+
+				disp = dseg_addaddress(cd, m);
+				M_ALD(rd->argintregs[0], REG_PV, disp);
+				M_MOV(REG_RESULT, rd->argintregs[1]);
+				M_FLTMOVE(REG_FRESULT, rd->argfltregs[2]);
+				M_FMOV(REG_FRESULT, rd->argfltregs[3]);
+
+				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+
+				M_DLD(REG_FRESULT, REG_SP, 2 * 8);
+				M_LLD(REG_RESULT, REG_SP, 1 * 8);
+				M_LLD(REG_RA, REG_SP, 0 * 8);
+				M_LDA(REG_SP, REG_SP, 3 * 8);
+			}
+
+#if defined(USE_THREADS)
+			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+
+				/* we need to save the proper return value */
+
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+				case ICMD_LRETURN:
+					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+					M_JSR(REG_RA, REG_ITMP3);
+					M_LST(REG_RESULT, REG_SP, rd->memuse * 8);  /* delay slot */
+					break;
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8);
+					M_JSR(REG_RA, REG_ITMP3);
+					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8); /* delay slot */
+					break;
+				case ICMD_RETURN:
+					M_JSR(REG_RA, REG_ITMP3);
+					M_ALD(rd->argintregs[0], REG_SP, rd->memuse * 8); /* delay*/
+					break;
+				}
+
+				/* and now restore the proper return value */
+
+				switch (iptr->opc) {
+				case ICMD_IRETURN:
+				case ICMD_ARETURN:
+				case ICMD_LRETURN:
+					M_LLD(REG_RESULT, REG_SP, rd->memuse * 8);
+					break;
+				case ICMD_FRETURN:
+				case ICMD_DRETURN:
+					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8);
+					break;
+				}
+			}
+#endif
+
 			/* restore return address                                         */
 
 			if (!m->isleafmethod) {
@@ -2740,28 +2800,6 @@ nowperformreturn:
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
 				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
-			}
-
-			/* call trace function */
-
-			if (runverbose) {
-				M_LDA(REG_SP, REG_SP, -24);
-				M_LST(REG_RA, REG_SP, 0);
-				M_LST(REG_RESULT, REG_SP, 8);
-				M_DST(REG_FRESULT, REG_SP,16);
-				disp = dseg_addaddress(cd, m);
-				M_ALD(rd->argintregs[0], REG_PV, disp);
-				M_MOV(REG_RESULT, rd->argintregs[1]);
-				M_FLTMOVE(REG_FRESULT, rd->argfltregs[2]);
-				M_FMOV(REG_FRESULT, rd->argfltregs[3]);
-				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
-				M_ALD(REG_ITMP3, REG_PV, disp);
-				M_JSR(REG_RA, REG_ITMP3);
-				M_NOP;
-				M_DLD(REG_FRESULT, REG_SP,16);
-				M_LLD(REG_RESULT, REG_SP, 8);
-				M_LLD(REG_RA, REG_SP, 0);
-				M_LDA(REG_SP, REG_SP, 24);
 			}
 
 			/* deallocate stack and return                                    */
@@ -3539,6 +3577,18 @@ gen_method:
 		}
 		src = src->prev;
 	}
+
+	/* At the end of a basic block we may have to append some nops,
+	   because the patcher stub calling code might be longer than the
+	   actual instruction. So codepatching does not change the
+	   following block unintentionally. */
+
+	if ((u1 *) mcodeptr < cd->lastmcodeptr) {
+		while ((u1 *) mcodeptr < cd->lastmcodeptr) {
+			M_NOP;
+		}
+	}
+
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
