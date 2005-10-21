@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3471 2005-10-21 09:09:18Z twisti $
+   $Id: codegen.c 3473 2005-10-21 11:44:26Z twisti $
 
 */
 
@@ -2875,11 +2875,25 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_LRETURN:
-		case ICMD_ARETURN:
+
+			var_to_reg_int(s1, src, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
+			goto nowperformreturn;
+
+		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
+			if (iptr->val.a) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_athrow_areturn,
+									(unresolved_class *) iptr->val.a, 0);
+
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+			}
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
@@ -2887,7 +2901,6 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src, REG_FRESULT);
 			M_FLTMOVE(s1, REG_FRESULT);
-
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -2936,8 +2949,8 @@ nowperformreturn:
 					break;
 				}
 
-				x86_64_mov_imm_reg(cd, (ptrint) builtin_monitorexit, REG_ITMP1);
-				x86_64_call_reg(cd, REG_ITMP1);
+				M_MOV_IMM((ptrint) builtin_monitorexit, REG_ITMP1);
+				M_CALL(REG_ITMP1);
 
 				/* and now restore the proper return value */
 				switch (iptr->opc) {
