@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3324 2005-10-04 18:45:11Z twisti $
+   $Id: codegen.h 3470 2005-10-21 09:07:25Z twisti $
 
 */
 
@@ -37,7 +37,13 @@
 
 #include <ucontext.h>
 
+#include "config.h"
 #include "vm/types.h"
+
+
+/* some defines ***************************************************************/
+
+#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
 
 
 /* macros to create code ******************************************************/
@@ -454,10 +460,12 @@ typedef enum {
 
 #define M_PUSH(a)               x86_64_push_reg(cd, (a))
 #define M_PUSH_IMM(a)           x86_64_push_imm(cd, (a))
+#define M_POP(a)                x86_64_pop_reg(cd, (a))
 
 #define M_JMP(a)                x86_64_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            x86_64_jmp_imm(cd, (a))
 #define M_CALL(a)               x86_64_call_reg(cd, (a))
+#define M_CALL_IMM(a)           x86_64_call_imm(cd, (a))
 #define M_RET                   x86_64_ret(cd)
 
 #define M_NOP                   x86_64_nop(cd)
