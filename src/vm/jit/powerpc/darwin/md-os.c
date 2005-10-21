@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 2998 2005-07-12 09:16:53Z twisti $
+   $Id: md-os.c 3486 2005-10-21 13:45:10Z twisti $
 
 */
 
@@ -37,8 +37,8 @@
 #include <ucontext.h>
 
 #include "config.h"
+#include "vm/types.h"
 
-#include "vm/jit/powerpc/types.h"
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
 #include "vm/exceptions.h"
