@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 3391 2005-10-10 13:34:01Z twisti $
+   $Id: codegen.h 3482 2005-10-21 13:22:38Z twisti $
 
 */
 
@@ -43,6 +43,11 @@
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
 #define LSRA_USES_REG_RES
 #endif
+
+/* some defines ***************************************************************/
+
+#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+
 
 /* additional functions and macros to generate code ***************************/
 
