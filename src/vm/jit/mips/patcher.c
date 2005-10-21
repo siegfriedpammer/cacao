@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3464 2005-10-20 10:16:29Z edwin $
+   $Id: patcher.c 3475 2005-10-21 12:03:06Z twisti $
 
 */
 
@@ -1188,6 +1188,73 @@ bool patcher_clinit(u1 *sp)
 
 			return false;
 		}
+	}
+
+	/* patch back original code */
+
+#if SIZEOF_VOID_P == 8
+	*((u4 *) (ra + 0 * 4)) = mcode;
+	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
+#else
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
+#endif
+
+	/* synchronize instruction cache */
+
+	cacheflush(ra, 2 * 4, ICACHE);
+
+	PATCHER_MARK_PATCHED_MONITOREXIT;
+
+	return true;
+}
+
+
+/* patcher_athrow_areturn ******************************************************
+
+   Machine code:
+
+   <patched call position>
+
+*******************************************************************************/
+
+bool patcher_athrow_areturn(u1 *sp)
+{
+	u1                *ra;
+	java_objectheader *o;
+#if SIZEOF_VOID_P == 8
+	u8                 mcode;
+#else
+	u4                 mcode[2];
+#endif
+	unresolved_class  *uc;
+	classinfo         *c;
+
+	/* get stuff from the stack */
+
+	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
+	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+#if SIZEOF_VOID_P == 8
+	mcode    =                       *((u8 *)     (sp + 3 * 8));
+#else
+	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
+	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
+#endif
+	uc       = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
+
+	/* calculate and set the new return address */
+
+	ra = ra - 2 * 4;
+	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
+
+	PATCHER_MONITORENTER;
+
+	/* resolve the class */
+
+	if (!resolve_class(uc, resolveEager, false, &c)) {
+		PATCHER_MONITOREXIT;
+
+		return false;
 	}
 
 	/* patch back original code */
