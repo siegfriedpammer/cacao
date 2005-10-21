@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3428 2005-10-13 09:50:19Z twisti $
+   $Id: codegen.c 3483 2005-10-21 13:23:25Z twisti $
 
 */
 
@@ -171,6 +171,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 	MCODECHECK(128 + m->paramcount);
+
+	/* initialize the last patcher pointer */
+
+	cd->lastmcodeptr = cd->mcodeptr;
 
 	/* create stack frame (if necessary) */
 
@@ -5071,6 +5075,18 @@ gen_method:
 		}
 		src = src->prev;
 	}
+
+	/* At the end of a basic block we may have to append some nops,
+	   because the patcher stub calling code might be longer than the
+	   actual instruction. So codepatching does not change the
+	   following block unintentionally. */
+
+	if (cd->mcodeptr < cd->lastmcodeptr) {
+		while (cd->mcodeptr < cd->lastmcodeptr) {
+			M_NOP;
+		}
+	}
+
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
