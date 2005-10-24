@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3492 2005-10-24 21:11:10Z edwin $
+   $Id: typecheck.c 3493 2005-10-24 21:28:15Z edwin $
 
 */
 
@@ -2115,6 +2115,16 @@ switch_instruction_tail:
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ATHROW on non-Throwable");
 				if (r == typecheck_FAIL)
 					return false;
+				if (r == typecheck_MAYBE) {
+					/* the check has to be postponed. we need a patcher */
+					TYPECHECK_COUNT(stat_ins_athrow_unresolved);
+					state->iptr->val.a = create_unresolved_class(
+							state->m, 
+							/* XXX make this more efficient, use class_java_lang_Throwable
+							 * directly */
+							class_get_classref(state->m->class,utf_java_lang_Throwable),
+							&state->curstack->typeinfo);
+				}
 				superblockend = true;
 				maythrow = true;
 				break;
@@ -2130,6 +2140,14 @@ switch_instruction_tail:
 					TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				if (r == typecheck_FAIL)
 					return false;
+				if (r == typecheck_MAYBE) {
+					/* the check has to be postponed, we need a patcher */
+					TYPECHECK_COUNT(stat_ins_areturn_unresolved);
+					state->iptr->val.a = create_unresolved_class(
+							state->m, 
+							state->m->parseddesc->returntype.classref,
+							&state->curstack->typeinfo);
+				}
 				goto return_tail;
 
 				/****************************************/
