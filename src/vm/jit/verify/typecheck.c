@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3387 2005-10-07 14:03:52Z edwin $
+   $Id: typecheck.c 3492 2005-10-24 21:11:10Z edwin $
 
 */
 
@@ -295,6 +295,8 @@ typestate_print(FILE *file,stackptr instack,typevector *localset,int size)
 
 static int stat_typechecked = 0;
 static int stat_typechecked_jsr = 0;
+static int stat_methods_with_handlers = 0;
+static int stat_methods_maythrow = 0;
 static int stat_iterations[STAT_ITERATIONS+1] = { 0 };
 static int stat_reached = 0;
 static int stat_copied = 0;
@@ -304,18 +306,29 @@ static int stat_backwards = 0;
 static int stat_blocks[STAT_BLOCKS+1] = { 0 };
 static int stat_locals[STAT_LOCALS+1] = { 0 };
 static int stat_ins = 0;
+static int stat_ins_maythrow = 0;
+static int stat_ins_stack = 0;
 static int stat_ins_field = 0;
+static int stat_ins_field_unresolved = 0;
+static int stat_ins_field_uninitialized = 0;
 static int stat_ins_invoke = 0;
+static int stat_ins_invoke_unresolved = 0;
 static int stat_ins_primload = 0;
 static int stat_ins_aload = 0;
 static int stat_ins_builtin = 0;
 static int stat_ins_builtin_gen = 0;
 static int stat_ins_branch = 0;
 static int stat_ins_switch = 0;
+static int stat_ins_primitive_return = 0;
+static int stat_ins_areturn = 0;
+static int stat_ins_areturn_unresolved = 0;
+static int stat_ins_athrow = 0;
+static int stat_ins_athrow_unresolved = 0;
 static int stat_ins_unchecked = 0;
 static int stat_handlers_reached = 0;
 static int stat_savedstack = 0;
 
+#define TYPECHECK_MARK(var)   ((var) = true)
 #define TYPECHECK_COUNT(cnt)  (cnt)++
 #define TYPECHECK_COUNTIF(cond,cnt)  do{if(cond) (cnt)++;} while(0)
 #define TYPECHECK_COUNT_FREQ(array,val,limit) \
@@ -334,7 +347,9 @@ static void print_freq(FILE *file,int *array,int limit)
 
 void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"typechecked methods: %8d\n",stat_typechecked);
-	fprintf(file,"methods with JSR   : %8d\n",stat_typechecked_jsr);
+	fprintf(file,"    with JSR       : %8d\n",stat_typechecked_jsr);
+	fprintf(file,"    with handler(s): %8d\n",stat_methods_with_handlers);
+	fprintf(file,"    with throw(s)  : %8d\n",stat_methods_maythrow);
 	fprintf(file,"reached blocks     : %8d\n",stat_reached);
 	fprintf(file,"copied states      : %8d\n",stat_copied);
 	fprintf(file,"merged states      : %8d\n",stat_merged);
@@ -343,15 +358,25 @@ void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"handlers reached   : %8d\n",stat_handlers_reached);
 	fprintf(file,"saved stack (times): %8d\n",stat_savedstack);
 	fprintf(file,"instructions       : %8d\n",stat_ins);
+	fprintf(file,"    stack          : %8d\n",stat_ins_stack);
 	fprintf(file,"    field access   : %8d\n",stat_ins_field);
+	fprintf(file,"      (unresolved) : %8d\n",stat_ins_field_unresolved);
+	fprintf(file,"      (uninit.)    : %8d\n",stat_ins_field_uninitialized);
 	fprintf(file,"    invocations    : %8d\n",stat_ins_invoke);
+	fprintf(file,"      (unresolved) : %8d\n",stat_ins_invoke_unresolved);
 	fprintf(file,"    load primitive : %8d\n",stat_ins_primload);
 	fprintf(file,"    load address   : %8d\n",stat_ins_aload);
 	fprintf(file,"    builtins       : %8d\n",stat_ins_builtin);
 	fprintf(file,"        generic    : %8d\n",stat_ins_builtin_gen);
-	fprintf(file,"    unchecked      : %8d\n",stat_ins_unchecked);
 	fprintf(file,"    branches       : %8d\n",stat_ins_branch);
 	fprintf(file,"    switches       : %8d\n",stat_ins_switch);
+	fprintf(file,"    prim. return   : %8d\n",stat_ins_primitive_return);
+	fprintf(file,"    areturn        : %8d\n",stat_ins_areturn);
+	fprintf(file,"      (unresolved) : %8d\n",stat_ins_areturn_unresolved);
+	fprintf(file,"    athrow         : %8d\n",stat_ins_athrow);
+	fprintf(file,"      (unresolved) : %8d\n",stat_ins_athrow_unresolved);
+	fprintf(file,"    unchecked      : %8d\n",stat_ins_unchecked);
+	fprintf(file,"    maythrow       : %8d\n",stat_ins_maythrow);
 	fprintf(file,"iterations used:\n");
 	print_freq(file,stat_iterations,STAT_ITERATIONS);
 	fprintf(file,"basic blocks per method / 10:\n");
@@ -363,6 +388,7 @@ void typecheck_print_statistics(FILE *file) {
 #else
 						   
 #define TYPECHECK_COUNT(cnt)
+#define TYPECHECK_MARK(var)
 #define TYPECHECK_COUNTIF(cond,cnt)
 #define TYPECHECK_COUNT_FREQ(array,val,limit)
 #endif
@@ -429,6 +455,10 @@ typedef struct verifier_state {
     bool repeat;            /* if true, blocks are iterated over again */
     bool initmethod;             /* true if this is an "<init>" method */
 	bool jsrencountered;                 /* true if we there was a JSR */
+
+#ifdef TYPECHECK_STATISTICS
+	bool stat_maythrow;          /* at least one instruction may throw */
+#endif
 } verifier_state;
 
 /****************************************************************************/
@@ -1647,16 +1677,19 @@ verify_basic_block(verifier_state *state)
 			 */
 
 			case ICMD_DUP:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				break;
 
 			case ICMD_DUP_X1:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				COPYTYPE(state->curstack,dst-2);
 				COPYTYPE(state->curstack->prev,dst-1);
 				break;
 
 			case ICMD_DUP_X2:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				COPYTYPE(state->curstack,dst-3);
 				COPYTYPE(state->curstack->prev,dst-1);
@@ -1664,11 +1697,13 @@ verify_basic_block(verifier_state *state)
 				break;
 
 			case ICMD_DUP2:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				COPYTYPE(state->curstack->prev,dst-1);
 				break;
 
 			case ICMD_DUP2_X1:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				COPYTYPE(state->curstack->prev,dst-1);
 				COPYTYPE(state->curstack,dst-3);
@@ -1677,6 +1712,7 @@ verify_basic_block(verifier_state *state)
 				break;
 
 			case ICMD_DUP2_X2:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst);
 				COPYTYPE(state->curstack->prev,dst-1);
 				COPYTYPE(state->curstack,dst-4);
@@ -1686,6 +1722,7 @@ verify_basic_block(verifier_state *state)
 				break;
 
 			case ICMD_SWAP:
+				TYPECHECK_COUNT(stat_ins_stack);
 				COPYTYPE(state->curstack,dst-1);
 				COPYTYPE(state->curstack->prev,dst);
 				break;
@@ -1803,6 +1840,8 @@ fieldaccess_tail:
 				if (!*fieldinfop || !(*fieldinfop)->class->initialized)
 					state->cd->method->isleafmethod = false;
 #endif
+				TYPECHECK_COUNTIF(!*fieldinfop,stat_ins_field_unresolved);
+				TYPECHECK_COUNTIF(*fieldinfop && !(*fieldinfop)->class->initialized,stat_ins_field_uninitialized);
 					
 				maythrow = true;
 				break;
@@ -2069,18 +2108,19 @@ switch_instruction_tail:
 				/* ADDRESS RETURNS AND THROW            */
 
 			case ICMD_ATHROW:
+				TYPECHECK_COUNT(stat_ins_athrow);
 				r = typeinfo_is_assignable_to_class(&state->curstack->typeinfo,
 						CLASSREF_OR_CLASSINFO(class_java_lang_Throwable));
 				if (r == typecheck_FALSE)
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ATHROW on non-Throwable");
 				if (r == typecheck_FAIL)
 					return false;
-				/* XXX handle typecheck_MAYBE */
 				superblockend = true;
 				maythrow = true;
 				break;
 
 			case ICMD_ARETURN:
+				TYPECHECK_COUNT(stat_ins_areturn);
 				if (!TYPEINFO_IS_REFERENCE(state->curstack->typeinfo))
 					TYPECHECK_VERIFYERROR_bool("illegal instruction: ARETURN on non-reference");
 
@@ -2090,7 +2130,6 @@ switch_instruction_tail:
 					TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 				if (r == typecheck_FAIL)
 					return false;
-				/* XXX handle typecheck_MAYBE */
 				goto return_tail;
 
 				/****************************************/
@@ -2115,6 +2154,7 @@ switch_instruction_tail:
 			case ICMD_RETURN:
 				if (state->returntype.type != TYPE_VOID) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 return_tail:
+				TYPECHECK_COUNT(stat_ins_primitive_return);
 				TYPECHECK_LEAVE;
 				superblockend = true;
 				maythrow = true;
@@ -2164,6 +2204,7 @@ return_tail:
 				TYPECHECK_COUNT(stat_ins_invoke);
 				if (!verify_invocation(state))
 					return false;
+				TYPECHECK_COUNTIF(!state->iptr[0].val.a,stat_ins_invoke_unresolved);
 				maythrow = true;
 				break;
 
@@ -2364,6 +2405,8 @@ return_tail:
 
 		/* reach exception handlers for this instruction */
 		if (maythrow) {
+			TYPECHECK_COUNT(stat_ins_maythrow);
+			TYPECHECK_MARK(state->stat_maythrow);
 			LOG("reaching exception handlers");
 			i = 0;
 			while (state->handlers[i]) {
@@ -2611,11 +2654,13 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	int count_iterations = 0;
 	TYPECHECK_COUNT(stat_typechecked);
 	TYPECHECK_COUNT_FREQ(stat_locals,cdata->maxlocals,STAT_LOCALS);
-	TYPECHECK_COUNT_FREQ(stat_blocks,meth->basicblockcount/10,STAT_BLOCKS);
+	TYPECHECK_COUNT_FREQ(stat_blocks,cdata->method->basicblockcount/10,STAT_BLOCKS);
+	TYPECHECK_COUNTIF(cdata->method->exceptiontablelength != 0,stat_methods_with_handlers);
+	state.stat_maythrow = false;
 #endif
 
 	/* some logging on entry */
-	
+
     LOGSTR("\n==============================================================================\n");
     /*DOLOG( show_icmd_method(cdata->method,cdata,rdata));*/
     LOGSTR("\n==============================================================================\n");
@@ -2711,6 +2756,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	LOG1("Typechecker did %4d iterations",count_iterations);
 	TYPECHECK_COUNT_FREQ(stat_iterations,count_iterations,STAT_ITERATIONS);
 	TYPECHECK_COUNTIF(state.jsrencountered,stat_typechecked_jsr);
+	TYPECHECK_COUNTIF(state.stat_maythrow,stat_methods_maythrow);
 #endif
 
 	/* reset the flags of blocks we haven't reached */
