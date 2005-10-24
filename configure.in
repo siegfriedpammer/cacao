@@ -12,42 +12,47 @@ AM_CONFIG_HEADER([config.h])
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 
+dnl set optimization and debugging for all architectures and systems
+if test x"$CFLAGS" = "x"; then
+	CFLAGS="-O0 -g3"
+fi
+
 dnl system type
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
 	ARCH_DIR="alpha"
-	CFLAGS="-mieee -D__ALPHA__"
+	CFLAGS="$CFLAGS -mieee -D__ALPHA__"
 	;;
 
 arm | armv4tl | armv5b )
 	ARCH_DIR="arm"
-	CFLAGS="-D__ARM__"
+	CFLAGS="$CFLAGS -D__ARM__"
 	;;
 
 i386 | i486 | i586 | i686 )
 	ARCH_DIR="i386"
-	CFLAGS="-D__I386__"
+	CFLAGS="$CFLAGS -D__I386__"
 	;;
 
 mips )
 	ARCH_DIR="mips"
-	CFLAGS="-D__MIPS__"
+	CFLAGS="$CFLAGS -D__MIPS__"
 	;;
 
 powerpc )
 	ARCH_DIR="powerpc"
-	CFLAGS="-D__POWERPC__"
+	CFLAGS="$CFLAGS -D__POWERPC__"
 	;;
 
 x86_64 )
 	ARCH_DIR="x86_64"
-	CFLAGS="-D__X86_64__"
+	CFLAGS="$CFLAGS -D__X86_64__"
 	;;
 
 xdspcore )
 	ARCH_DIR="xdspcore"
 	ENABLE_STATICVM="yes"
-	CFLAGS="-D__XDSPCORE__"
+	CFLAGS="$CFLAGS -D__XDSPCORE__"
 	USE_SCHEDULER="1"
 	;;
 * )
@@ -55,23 +60,19 @@ xdspcore )
         ;;
 esac
 
-
-dnl set optimization and debugging for all architectures and systems
-CFLAGS="-O0 -g3 $CFLAGS"
-
-
+dnl host type
 case "$host_os" in
 *linux* | *Linux* )
 	OS_DIR="linux"
-        CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+        CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
 	;;
 *darwin* )
 	OS_DIR="darwin"
-        CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__DARWIN__"
+        CFLAGS="$CFLAGS __DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
         ;;
 *freebsd* )
 	OS_DIR="freebsd"
-	CFLAGS="-ansi -pedantic -Wall -Wno-long-long $CFLAGS -D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED"
+	CFLAGS="$CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
 	;;
 *irix* )
 	OS_DIR="irix"
@@ -135,60 +136,14 @@ AC_STRUCT_TM
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MEMCMP
-AC_FUNC_MMAP
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS(getcwd gettimeofday mkdir mktime select socket)
+AC_CHECK_FUNCS(getcwd gettimeofday)
 
 dnl Checks for libraries.
 
 dnl Checking sizeof void *
 AC_COMPILE_CHECK_SIZEOF(void *)
 AC_C_BIGENDIAN
-
-dnl Check for mmap header anomalies (missing MAP_FAILED, etc.)
-if test $ac_cv_func_mmap_fixed_mapped = yes; then
-	AC_CACHE_CHECK(whether MAP_FAILED is defined,
-		       ac_cv_map_failed,
-		       AC_EGREP_CPP(yes, 
-			            [#include <sys/mman.h>
-				     #ifdef MAP_FAILED
-					yes
-				     #endif],
-				    ac_cv_map_failed=yes,
-				    ac_cv_map_failed=no))
-
-	AC_CACHE_CHECK(whether MAP_ANONYMOUS is defined,
-		       ac_cv_map_anonymous,
-		       AC_EGREP_CPP(yes, 
-			            [#include <sys/mman.h>
-				     #ifdef MAP_ANONYMOUS
-					yes
-				     #endif],
-				    ac_cv_map_anonymous=yes,
-				    ac_cv_map_anonymous=no))
-
-	AC_CACHE_CHECK(whether MAP_ANON is defined,
-		       ac_cv_map_anon,
-		       AC_EGREP_CPP(yes, 
-			            [#include <sys/mman.h>
-				     #ifdef MAP_ANON
-					yes
-				     #endif],
-				    ac_cv_map_anon=yes,
-				    ac_cv_map_anon=no))
-
-	if test $ac_cv_map_failed = yes; then
-		AC_DEFINE([HAVE_MAP_FAILED], 1, [Define if <sys/mman.h> defines MAP_FAILED])
-	fi
-
-	if test $ac_cv_map_anonymous = yes; then
-		AC_DEFINE([HAVE_MAP_ANONYMOUS], 1, [Define if <sys/mman.h> defines MAP_ANONYMOUS])
-	fi
-
-	if test $ac_cv_map_anon = yes; then
-		AC_DEFINE([HAVE_MAP_ANON], 1, [Define if <sys/mman.h> defines MAP_ANON])
-	fi
-fi
 
 
 dnl check which ld flags are required to export symbols
