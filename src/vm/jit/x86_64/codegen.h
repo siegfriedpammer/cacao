@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3470 2005-10-21 09:07:25Z twisti $
+   $Id: codegen.h 3490 2005-10-24 19:38:52Z twisti $
 
 */
 
@@ -454,6 +454,10 @@ typedef enum {
 #define M_XOR(a,b)              x86_64_alu_reg_reg(cd, X86_64_XOR, (a), (b))
 
 #define M_TEST(a)               x86_64_test_reg_reg(cd, (a), (a))
+
+#define M_CMP(a,b)              x86_64_alu_reg_reg(cd, X86_64_CMP, (a), (b))
+#define M_CMP_IMM(a,b)          x86_64_alu_imm_reg(cd, X86_64_CMP, (a), (b))
+#define M_CMP_MEMBASE(a,b,c)    x86_64_alu_membase_reg(cd, X86_64_CMP, (a), (b), (c))
 
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
 #define M_BNE(disp)             x86_64_jcc(cd, X86_64_CC_NE, (disp))
