@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3473 2005-10-21 11:44:26Z twisti $
+   $Id: codegen.c 3491 2005-10-24 19:40:57Z twisti $
 
 */
 
@@ -1327,40 +1327,42 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
+
 	        if (src->prev->flags & INMEMORY) {
-				x86_64_mov_membase_reg(cd, REG_SP, src->prev->regoff * 8, REG_ITMP1);
+				M_LLD(RAX, REG_SP, src->prev->regoff * 8);
 
 			} else {
-				M_INTMOVE(src->prev->regoff, REG_ITMP1);
+				M_INTMOVE(src->prev->regoff, RAX);
 			}
 			
 			if (src->flags & INMEMORY) {
-				x86_64_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP3);
+				M_LLD(REG_ITMP3, REG_SP, src->regoff * 8);
 
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
 			gen_div_check(src);
 
-			x86_64_mov_imm_reg(cd, 0x8000000000000000LL, REG_ITMP2);    /* check as described in jvm spec */
-			x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP2, REG_ITMP1);
-			x86_64_jcc(cd, X86_64_CC_NE, 4 + 6);
-			x86_64_alu_imm_reg(cd, X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
-			x86_64_jcc(cd, X86_64_CC_E, 3 + 2 + 3);                     /* 6 bytes */
+			/* check as described in jvm spec */
+			disp = dseg_adds8(cd, 0x8000000000000000LL);
+  			M_CMP_MEMBASE(RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, RAX);
+			M_BNE(4 + 6);
+			M_CMP_IMM(-1, REG_ITMP3);                              /* 4 bytes */
+			M_BEQ(3 + 2 + 3);                                      /* 6 bytes */
 
-			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
+			M_MOV(RDX, REG_ITMP2); /* save %rdx, cause it's an argument register */
   			x86_64_cqto(cd);
 			x86_64_idiv_reg(cd, REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_reg_membase(cd, RAX, REG_SP, iptr->dst->regoff * 8);
-				x86_64_mov_reg_reg(cd, REG_ITMP2, RDX);    /* restore %rdx */
+				M_LST(RAX, REG_SP, iptr->dst->regoff * 8);
+				M_MOV(REG_ITMP2, RDX);                        /* restore %rdx */
 
 			} else {
 				M_INTMOVE(RAX, iptr->dst->regoff);
 
 				if (iptr->dst->regoff != RDX) {
-					x86_64_mov_reg_reg(cd, REG_ITMP2, RDX);    /* restore %rdx */
+					M_MOV(REG_ITMP2, RDX);                    /* restore %rdx */
 				}
 			}
 			break;
@@ -1369,43 +1371,46 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			d = reg_of_var(rd, iptr->dst, REG_NULL);
 			if (src->prev->flags & INMEMORY) {
-				x86_64_mov_membase_reg(cd, REG_SP, src->prev->regoff * 8, REG_ITMP1);
+				M_LLD(REG_ITMP1, REG_SP, src->prev->regoff * 8);
 
 			} else {
 				M_INTMOVE(src->prev->regoff, REG_ITMP1);
 			}
 			
 			if (src->flags & INMEMORY) {
-				x86_64_mov_membase_reg(cd, REG_SP, src->regoff * 8, REG_ITMP3);
+				M_LLD(REG_ITMP3, REG_SP, src->regoff * 8);
 
 			} else {
 				M_INTMOVE(src->regoff, REG_ITMP3);
 			}
 			gen_div_check(src);
 
-			x86_64_mov_reg_reg(cd, RDX, REG_ITMP2);    /* save %rdx, cause it's an argument register */
+			M_MOV(RDX, REG_ITMP2); /* save %rdx, cause it's an argument register */
 
-			x86_64_mov_imm_reg(cd, 0x8000000000000000LL, REG_ITMP2);    /* check as described in jvm spec */
-			x86_64_alu_reg_reg(cd, X86_64_CMP, REG_ITMP2, REG_ITMP1);
-			x86_64_jcc(cd, X86_64_CC_NE, 2 + 4 + 6);
+			/* check as described in jvm spec */
+			disp = dseg_adds8(cd, 0x8000000000000000LL);
+  			M_CMP_MEMBASE(RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP1);
+			M_BNE(3 + 4 + 6);
 
-
-			x86_64_alul_reg_reg(cd, X86_64_XOR, RDX, RDX);              /* 2 bytes */
-			x86_64_alu_imm_reg(cd, X86_64_CMP, -1, REG_ITMP3);          /* 4 bytes */
-			x86_64_jcc(cd, X86_64_CC_E, 2 + 3);                         /* 6 bytes */
+#if 0
+			x86_64_alul_reg_reg(cd, X86_64_XOR, RDX, RDX);         /* 2 bytes */
+#endif
+			M_XOR(RDX, RDX);                                       /* 3 bytes */
+			M_CMP_IMM(-1, REG_ITMP3);                              /* 4 bytes */
+			M_BEQ(2 + 3);                                          /* 6 bytes */
 
   			x86_64_cqto(cd);
 			x86_64_idiv_reg(cd, REG_ITMP3);
 
 			if (iptr->dst->flags & INMEMORY) {
-				x86_64_mov_reg_membase(cd, RDX, REG_SP, iptr->dst->regoff * 8);
-				x86_64_mov_reg_reg(cd, REG_ITMP2, RDX);    /* restore %rdx */
+				M_LST(RDX, REG_SP, iptr->dst->regoff * 8);
+				M_MOV(REG_ITMP2, RDX);                        /* restore %rdx */
 
 			} else {
 				M_INTMOVE(RDX, iptr->dst->regoff);
 
 				if (iptr->dst->regoff != RDX) {
-					x86_64_mov_reg_reg(cd, REG_ITMP2, RDX);    /* restore %rdx */
+					M_MOV(REG_ITMP2, RDX);                    /* restore %rdx */
 				}
 			}
 			break;
