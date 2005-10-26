@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3456 2005-10-19 22:06:23Z twisti $
+   $Id: stacktrace.c 3500 2005-10-26 20:22:30Z twisti $
 
 */
 
@@ -1080,26 +1080,6 @@ java_objectheader *cacao_currentClassLoader(void)
 		return NULL;
 
 	return header;
-}
-
-
-static bool callingMethodCollector(void **target, stackTraceBuffer *buffer)
-{
-	*target = buffer->start[1].method;
-
-	return true;
-}
-
-
-methodinfo *cacao_callingMethod(void)
-{
-	methodinfo *method;
-
-	if (!cacao_stacktrace_fillInStackTrace((void **) &method,
-										   &callingMethodCollector))
-		return NULL;
-
-	return method;
 }
 
 
