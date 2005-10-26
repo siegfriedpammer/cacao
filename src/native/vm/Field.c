@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3458 2005-10-19 23:38:32Z twisti $
+   $Id: Field.c 3504 2005-10-26 20:40:00Z twisti $
 
 */
 
@@ -77,9 +77,10 @@
 static void *cacao_get_field_address(java_lang_reflect_Field *this,
 									 java_lang_Object *o)
 {
-	classinfo  *c;
-	fieldinfo  *f;
-	methodinfo *caller;
+	classinfo        *c;
+	fieldinfo        *f;
+	java_objectarray *oa;
+	classinfo        *callerclass;
 
 	c = (classinfo *) this->declaringClass;
 	f = &c->fields[this->slot];
@@ -90,9 +91,19 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 		/* check if we should bypass security checks (AccessibleObject) */
 
 		if (this->flag == false) {
-			caller = cacao_callingMethod();
+			/* get the calling class */
 
-			if (!access_is_accessible_member(caller->class, c, f->flags)) {
+			oa = cacao_createClassContextArray();
+
+			/* this function is always called like this:
+
+			       java.lang.reflect.Field.xxx (Native Method)
+			   [0] <caller>
+			*/
+
+			callerclass = (classinfo *) oa->data[0];
+
+			if (!access_is_accessible_member(callerclass, c, f->flags)) {
 				*exceptionptr =
 					new_exception(string_java_lang_IllegalAccessException);
 				return NULL;
