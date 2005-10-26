@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3453 2005-10-19 22:03:06Z twisti $
+   $Id: utf8.c 3496 2005-10-26 14:58:15Z twisti $
 
 */
 
@@ -71,6 +71,8 @@ utf *utf_java_lang_OutOfMemoryError;
 utf *utf_java_lang_Exception;
 utf *utf_java_lang_ClassNotFoundException;
 utf *utf_java_lang_IllegalArgumentException;
+
+utf *utf_java_lang_NullPointerException;
 
 utf* utf_java_lang_Void;
 utf* utf_java_lang_Boolean;
@@ -182,6 +184,9 @@ void utf8_init(void)
 
 	utf_java_lang_IllegalArgumentException =
 		utf_new_char(string_java_lang_IllegalArgumentException);
+
+	utf_java_lang_NullPointerException =
+		utf_new_char(string_java_lang_NullPointerException);
 
 	utf_java_lang_Void             = utf_new_char("java/lang/Void");
 	utf_java_lang_Boolean          = utf_new_char("java/lang/Boolean");
