@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3420 2005-10-12 13:26:49Z twisti $
+   $Id: builtin.c 3502 2005-10-26 20:30:43Z twisti $
 
 */
 
@@ -960,7 +960,7 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 }
 
 
-/* builtin_multianewarray ******************************************************
+/* builtin_multianewarray_intern ***********************************************
 
    Creates a multi-dimensional array on the heap. The dimensions are
    passed in an array of longs.
@@ -975,11 +975,14 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 
 ******************************************************************************/
 
-java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
+static java_arrayheader *builtin_multianewarray_intern(int n,
+													   vftbl_t *arrayvftbl,
+													   long *dims)
 {
-	s4 size, i;
+	s4                size;
 	java_arrayheader *a;
-	vftbl_t *componentvftbl;
+	vftbl_t          *componentvftbl;
+	s4                i;
 
 	/* create this dimension */
 
@@ -1007,9 +1010,9 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 #if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
 			/* we save an s4 to a s8 slot, 8-byte aligned */
 
-			builtin_multianewarray(n, componentvftbl, dims + 2);
+			builtin_multianewarray_intern(n, componentvftbl, dims + 2);
 #else
-			builtin_multianewarray(n, componentvftbl, dims + 1);
+			builtin_multianewarray_intern(n, componentvftbl, dims + 1);
 #endif
 
 		if (!ea)
@@ -1019,6 +1022,40 @@ java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
 	}
 
 	return a;
+}
+
+
+/* builtin_multianewarray ******************************************************
+
+   Wrapper for builtin_multianewarray_intern which checks all
+   dimensions before we start allocating.
+
+******************************************************************************/
+
+java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims)
+{
+	s4 i;
+	s4 size;
+
+	/* check all dimensions before doing anything */
+
+	for (i = 0; i < n; i++) {
+#if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
+		/* we save an s4 to a s8 slot, 8-byte aligned */
+		size = (s4) dims[i * 2];
+#else
+		size = (s4) dims[i];
+#endif
+
+		if (size < 0) {
+			*exceptionptr = new_negativearraysizeexception();
+			return NULL;
+		}
+	}
+
+	/* now call the real function */
+
+	return builtin_multianewarray_intern(n, arrayvftbl, dims);
 }
 
 
