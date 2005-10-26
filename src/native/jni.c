@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3438 2005-10-14 11:27:40Z twisti $
+   $Id: jni.c 3505 2005-10-26 20:41:49Z twisti $
 
 */
 
@@ -1394,17 +1394,37 @@ jobject ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID, jboolean 
 }
 
 
+/* Calling Instance Methods ***************************************************/
+
 /* GetMethodID *****************************************************************
 
-   returns the method ID for an instance method
+   Returns the method ID for an instance (nonstatic) method of a class
+   or interface. The method may be defined in one of the clazz's
+   superclasses and inherited by clazz. The method is determined by
+   its name and signature.
+
+   GetMethodID() causes an uninitialized class to be initialized.
 
 *******************************************************************************/
 
-jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name, const char *sig)
+jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
+					  const char *sig)
 {
+	classinfo  *c;
 	methodinfo *m;
 
 	STATS(jniinvokation();)
+
+	c = (classinfo *) clazz;
+
+	if (!c)
+		return NULL;
+
+	if (!c->initialized)
+		if (!initialize_class(c))
+			return NULL;
+
+	/* try to get the method of the class or one of it's superclasses */
 
  	m = class_resolvemethod(clazz, 
 							utf_new_char((char *) name), 
@@ -2241,12 +2261,36 @@ void SetDoubleField (JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val)
 }
 
 
-/**************** JNI-functions for calling static methods **********************/ 
+/* Calling Static Methods *****************************************************/
 
-jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name, const char *sig)
+/* GetStaticMethodID ***********************************************************
+
+   Returns the method ID for a static method of a class. The method is
+   specified by its name and signature.
+
+   GetStaticMethodID() causes an uninitialized class to be
+   initialized.
+
+*******************************************************************************/
+
+jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
+							const char *sig)
 {
-	jmethodID m;
+	classinfo  *c;
+	methodinfo *m;
+
 	STATS(jniinvokation();)
+
+	c = (classinfo *) clazz;
+
+	if (!c)
+		return NULL;
+
+	if (!c->initialized)
+		if (!initialize_class(c))
+			return NULL;
+
+	/* try to get the static method of the class */
 
  	m = class_resolvemethod(clazz,
 							utf_new_char((char *) name),
