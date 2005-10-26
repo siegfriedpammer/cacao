@@ -1,4 +1,4 @@
-/* jit/parse.h - parser header
+/* src/vm/jit/parse.h - parser header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -26,7 +26,9 @@
 
    Author: Christian Thalinger
 
-   $Id: parse.h 3382 2005-10-06 15:00:01Z edwin $
+   Changes:
+
+   $Id: parse.h 3499 2005-10-26 16:49:18Z twisti $
 
 */
 
@@ -34,27 +36,57 @@
 #ifndef _PARSE_H
 #define _PARSE_H
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/inline/inline.h"
 
 
-/* intermediate code generating macros */
+/* intermediate code generating macros ****************************************/
 
 #define PINC           iptr++;ipc++
 
 #define LOADCONST_I(v) \
-    iptr->opc = ICMD_ICONST; \
+    iptr->opc    = ICMD_ICONST; \
     /*iptr->op1=0;*/ \
-    iptr->val.i = (v); \
-    iptr->line = currentline; \
+    iptr->val.i  = (v); \
+    iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
 
-#define LOADCONST_L(v) iptr->opc=ICMD_LCONST;/*iptr->op1=0*/;iptr->val.l=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
-#define LOADCONST_F(v) iptr->opc=ICMD_FCONST;/*iptr->op1=0*/;iptr->val.f=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
-#define LOADCONST_D(v) iptr->opc=ICMD_DCONST;/*iptr->op1=0*/;iptr->val.d=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
-#define LOADCONST_A(v) iptr->opc=ICMD_ACONST;/*iptr->op1=0*/;iptr->val.a=(v);iptr->line=currentline;iptr->method=inline_env->method;PINC
+#define LOADCONST_L(v) \
+    iptr->opc    = ICMD_LCONST; \
+    /*iptr->op1=0*/; \
+    iptr->val.l  = (v); \
+    iptr->line   = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define LOADCONST_F(v) \
+    iptr->opc    = ICMD_FCONST; \
+    /*iptr->op1=0*/; \
+    iptr->val.f  = (v); \
+    iptr->line   = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define LOADCONST_D(v) \
+    iptr->opc    = ICMD_DCONST; \
+    /*iptr->op1=0*/; \
+    iptr->val.d  = (v); \
+    iptr->line   = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define LOADCONST_A(v) \
+    iptr->opc    = ICMD_ACONST; \
+    /*iptr->op1=0*/; \
+    iptr->val.a  = (v); \
+    iptr->line   = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
 
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
@@ -68,34 +100,34 @@
     PINC
 
 #define OP(o) \
-    iptr->opc = (o); \
+    iptr->opc    = (o); \
     /*iptr->op1=0*/; \
     /*iptr->val.l=0*/; \
-    iptr->line = currentline; \
+    iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
 
 #define OP1(o,o1) \
-    iptr->opc = (o); \
-    iptr->op1 = (o1); \
+    iptr->opc    = (o); \
+    iptr->op1    = (o1); \
     /*iptr->val.l=(0)*/; \
-    iptr->line = currentline; \
+    iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
 
 #define OP2I(o,o1,v) \
-    iptr->opc = (o); \
-    iptr->op1 = (o1); \
-    iptr->val.i = (v); \
-    iptr->line = currentline; \
+    iptr->opc    = (o); \
+    iptr->op1    = (o1); \
+    iptr->val.i  = (v); \
+    iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
 
 #define OP2A_NOINC(o,o1,v,l) \
-    iptr->opc = (o); \
-    iptr->op1 = (o1); \
-    iptr->val.a = (v); \
-    iptr->line = (l); \
+    iptr->opc    = (o); \
+    iptr->op1    = (o1); \
+    iptr->val.a  = (v); \
+    iptr->line   = (l); \
     iptr->method = inline_env->method
 
 #define OP2A(o,o1,v,l) \
@@ -109,11 +141,11 @@
 
 #define BUILTIN(v,o1,t,l) \
     inline_env->method->isleafmethod = false; \
-    iptr->opc = ICMD_BUILTIN; \
-    iptr->op1 = (o1); \
-    iptr->val.a = (v); \
+    iptr->opc    = ICMD_BUILTIN; \
+    iptr->op1    = (o1); \
+    iptr->val.a  = (v); \
     iptr->target = (t); \
-    iptr->line = (l); \
+    iptr->line   = (l); \
     iptr->method = inline_env->method; \
     PINC
 
@@ -161,7 +193,6 @@
             b_count++; \
             m->basicblockindex[(i)] |= 1; \
         } \
-	/*printf("Block has been inserted: %d\n",i); */ \
     } while (0)
 
 
@@ -204,7 +235,8 @@
 #define code_get_s4(p,m)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
                              +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
 
-/* function prototypes */
+
+/* function prototypes ********************************************************/
 
 void compiler_addinitclass(classinfo *c);
 methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env);
