@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3497 2005-10-26 15:00:20Z twisti $
+   $Id: class.c 3501 2005-10-26 20:27:15Z twisti $
 
 */
 
@@ -657,6 +657,7 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     return class_get_classref(ref->referer,utf_new(namebuf, namelen));
 }
 
+
 /* class_get_classref_component_of *********************************************
 
    Returns the component classref of a given array type reference
@@ -697,6 +698,267 @@ constant_classref *class_get_classref_component_of(constant_classref *ref)
 }
 
 
+/* class_findmethod ************************************************************
+	
+   Searches a 'classinfo' structure for a method having the given name
+   and descriptor. If descriptor is NULL, it is ignored.
+
+*******************************************************************************/
+
+methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
+{
+	methodinfo *m;
+	s4          i;
+
+	for (i = 0; i < c->methodscount; i++) {
+		m = &(c->methods[i]);
+
+		if ((m->name == name) && ((desc == NULL) || (m->descriptor == desc)))
+			return m;
+	}
+
+	return NULL;
+}
+
+
+/************************* Function: class_findmethod_approx ******************
+	
+	like class_findmethod but ignores the return value when comparing the
+	descriptor.
+
+*******************************************************************************/
+
+methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc)
+{
+	s4 i;
+
+	for (i = 0; i < c->methodscount; i++) {
+		if (c->methods[i].name == name) {
+			utf *meth_descr = c->methods[i].descriptor;
+			
+			if (desc == NULL) 
+				/* ignore type */
+				return &(c->methods[i]);
+
+			if (desc->blength <= meth_descr->blength) {
+				/* current position in utf text   */
+				char *desc_utf_ptr = desc->text;      
+				char *meth_utf_ptr = meth_descr->text;					  
+				/* points behind utf strings */
+				char *desc_end = UTF_END(desc);         
+				char *meth_end = UTF_END(meth_descr);   
+				char ch;
+
+				/* compare argument types */
+				while (desc_utf_ptr < desc_end && meth_utf_ptr < meth_end) {
+
+					if ((ch = *desc_utf_ptr++) != (*meth_utf_ptr++))
+						break; /* no match */
+
+					if (ch == ')')
+						return &(c->methods[i]); /* all parameter types equal */
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
+/* class_resolvemethod *********************************************************
+	
+   Searches a class and it's super classes for a method.
+
+   Superinterfaces are *not* searched.
+
+*******************************************************************************/
+
+methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
+{
+	methodinfo *m;
+
+	while (c) {
+		m = class_findmethod(c, name, desc);
+
+		if (m)
+			return m;
+
+		/* JVM Specification bug: 
+
+		   It is important NOT to resolve special <init> and <clinit>
+		   methods to super classes or interfaces; yet, this is not
+		   explicited in the specification.  Section 5.4.3.3 should be
+		   updated appropriately.  */
+
+		if (name == utf_init || name == utf_clinit)
+			return NULL;
+
+		c = c->super.cls;
+	}
+
+	return NULL;
+}
+
+
+/* class_resolveinterfacemethod_intern *****************************************
+
+   Internally used helper function. Do not use this directly.
+
+*******************************************************************************/
+
+static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
+													   utf *name, utf *desc)
+{
+	methodinfo *m;
+	s4          i;
+	
+	m = class_findmethod(c, name, desc);
+
+	if (m)
+		return m;
+
+	/* try the superinterfaces */
+
+	for (i = 0; i < c->interfacescount; i++) {
+		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
+												name, desc);
+
+		if (m)
+			return m;
+	}
+	
+	return NULL;
+}
+
+
+/* class_resolveclassmethod ****************************************************
+	
+   Resolves a reference from REFERER to a method with NAME and DESC in
+   class C.
+
+   If the method cannot be resolved the return value is NULL. If
+   EXCEPT is true *exceptionptr is set, too.
+
+*******************************************************************************/
+
+methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
+									 classinfo *referer, bool except)
+{
+	classinfo  *cls;
+	methodinfo *m;
+	s4          i;
+	char       *msg;
+	s4          msglen;
+
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+/*  	if (c->flags & ACC_INTERFACE) { */
+/*  		if (except) */
+/*  			*exceptionptr = */
+/*  				new_exception(string_java_lang_IncompatibleClassChangeError); */
+/*  		return NULL; */
+/*  	} */
+
+	/* try class c and its superclasses */
+
+	cls = c;
+
+	m = class_resolvemethod(cls, name, desc);
+
+	if (m)
+		goto found;
+
+	/* try the superinterfaces */
+
+	for (i = 0; i < c->interfacescount; i++) {
+		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
+												 name, desc);
+
+		if (m)
+			goto found;
+	}
+	
+	if (except) {
+		msglen = utf_strlen(c->name) + strlen(".") + utf_strlen(name) +
+			utf_strlen(desc) + strlen("0");
+
+		msg = MNEW(char, msglen);
+
+		utf_sprint(msg, c->name);
+		strcat(msg, ".");
+		utf_sprint(msg + strlen(msg), name);
+		utf_sprint(msg + strlen(msg), desc);
+
+		*exceptionptr =
+			new_exception_message(string_java_lang_NoSuchMethodError, msg);
+
+		MFREE(msg, char, msglen);
+	}
+
+	return NULL;
+
+ found:
+	if ((m->flags & ACC_ABSTRACT) && !(c->flags & ACC_ABSTRACT)) {
+		if (except)
+			*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
+
+		return NULL;
+	}
+
+	/* XXX check access rights */
+
+	return m;
+}
+
+
+/* class_resolveinterfacemethod ************************************************
+
+   Resolves a reference from REFERER to a method with NAME and DESC in
+   interface C.
+
+   If the method cannot be resolved the return value is NULL. If
+   EXCEPT is true *exceptionptr is set, too.
+
+*******************************************************************************/
+
+methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
+										 classinfo *referer, bool except)
+{
+	methodinfo *mi;
+
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+	if (!(c->flags & ACC_INTERFACE)) {
+		if (except)
+			*exceptionptr =
+				new_exception(string_java_lang_IncompatibleClassChangeError);
+
+		return NULL;
+	}
+
+	mi = class_resolveinterfacemethod_intern(c, name, desc);
+
+	if (mi)
+		return mi;
+
+	/* try class java.lang.Object */
+
+	mi = class_findmethod(class_java_lang_Object, name, desc);
+
+	if (mi)
+		return mi;
+
+	if (except)
+		*exceptionptr =
+			new_exception_utfmessage(string_java_lang_NoSuchMethodError, name);
+
+	return NULL;
+}
+
+
 /* class_findfield *************************************************************
 	
    Searches for field with specified name and type in a classinfo
@@ -730,16 +992,18 @@ fieldinfo *class_findfield_by_name(classinfo *c, utf *name)
 {
 	s4 i;
 
-	for (i = 0; i < c->fieldscount; i++) {
-		/* compare field names */
-		if ((c->fields[i].name == name))
-			return &(c->fields[i]);
-	}
+	/* get field index */
 
-	/* field was not found, raise exception */	
-	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
+	i = class_findfield_index_by_name(c, name);
 
-	return NULL;
+	/* field was not found, return */
+
+	if (i == -1)
+		return NULL;
+
+	/* return field address */
+
+	return &(c->fields[i]);
 }
 
 
@@ -749,14 +1013,318 @@ s4 class_findfield_index_by_name(classinfo *c, utf *name)
 
 	for (i = 0; i < c->fieldscount; i++) {
 		/* compare field names */
+
 		if ((c->fields[i].name == name))
 			return i;
 	}
 
 	/* field was not found, raise exception */	
+
 	*exceptionptr = new_exception(string_java_lang_NoSuchFieldException);
 
 	return -1;
+}
+
+
+/****************** Function: class_resolvefield_int ***************************
+
+    This is an internally used helper function. Do not use this directly.
+
+	Tries to resolve a field having the given name and type.
+    If the field cannot be resolved, NULL is returned.
+
+*******************************************************************************/
+
+static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
+{
+	fieldinfo *fi;
+	s4         i;
+
+	/* search for field in class c */
+
+	for (i = 0; i < c->fieldscount; i++) { 
+		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc)) {
+			return &(c->fields[i]);
+		}
+    }
+
+	/* try superinterfaces recursively */
+
+	for (i = 0; i < c->interfacescount; i++) {
+		fi = class_resolvefield_int(c->interfaces[i].cls, name, desc);
+		if (fi)
+			return fi;
+	}
+
+	/* try superclass */
+
+	if (c->super.cls)
+		return class_resolvefield_int(c->super.cls, name, desc);
+
+	/* not found */
+
+	return NULL;
+}
+
+
+/********************* Function: class_resolvefield ***************************
+	
+	Resolves a reference from REFERER to a field with NAME and DESC in class C.
+
+    If the field cannot be resolved the return value is NULL. If EXCEPT is
+    true *exceptionptr is set, too.
+
+*******************************************************************************/
+
+fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
+							  classinfo *referer, bool except)
+{
+	fieldinfo *fi;
+
+	/* XXX resolve class c */
+	/* XXX check access from REFERER to C */
+	
+	fi = class_resolvefield_int(c, name, desc);
+
+	if (!fi) {
+		if (except)
+			*exceptionptr =
+				new_exception_utfmessage(string_java_lang_NoSuchFieldError,
+										 name);
+
+		return NULL;
+	}
+
+	/* XXX check access rights */
+
+	return fi;
+}
+
+
+/* class_issubclass ************************************************************
+
+   Checks if sub is a descendant of super.
+	
+*******************************************************************************/
+
+bool class_issubclass(classinfo *sub, classinfo *super)
+{
+	for (;;) {
+		if (!sub)
+			return false;
+
+		if (sub == super)
+			return true;
+
+		sub = sub->super.cls;
+	}
+}
+
+
+void class_showconstanti(classinfo *c, int ii) 
+{
+	u4 i = ii;
+	voidptr e;
+		
+	e = c->cpinfos [i];
+	printf ("#%d:  ", (int) i);
+	if (e) {
+		switch (c->cptags [i]) {
+		case CONSTANT_Class:
+			printf("Classreference -> ");
+			utf_display(((constant_classref*)e)->name);
+			break;
+				
+		case CONSTANT_Fieldref:
+			printf("Fieldref -> "); goto displayFMIi;
+		case CONSTANT_Methodref:
+			printf("Methodref -> "); goto displayFMIi;
+		case CONSTANT_InterfaceMethodref:
+			printf("InterfaceMethod -> "); goto displayFMIi;
+		displayFMIi:
+			{
+				constant_FMIref *fmi = e;
+				utf_display(fmi->classref->name);
+				printf(".");
+				utf_display(fmi->name);
+				printf(" ");
+				utf_display(fmi->descriptor);
+			}
+			break;
+
+		case CONSTANT_String:
+			printf("String -> ");
+			utf_display(e);
+			break;
+		case CONSTANT_Integer:
+			printf("Integer -> %d", (int) (((constant_integer*)e)->value));
+			break;
+		case CONSTANT_Float:
+			printf("Float -> %f", ((constant_float*)e)->value);
+			break;
+		case CONSTANT_Double:
+			printf("Double -> %f", ((constant_double*)e)->value);
+			break;
+		case CONSTANT_Long:
+			{
+				u8 v = ((constant_long*)e)->value;
+#if U8_AVAILABLE
+				printf("Long -> %ld", (long int) v);
+#else
+				printf("Long -> HI: %ld, LO: %ld\n", 
+					    (long int) v.high, (long int) v.low);
+#endif 
+			}
+			break;
+		case CONSTANT_NameAndType:
+			{ 
+				constant_nameandtype *cnt = e;
+				printf("NameAndType: ");
+				utf_display(cnt->name);
+				printf(" ");
+				utf_display(cnt->descriptor);
+			}
+			break;
+		case CONSTANT_Utf8:
+			printf("Utf8 -> ");
+			utf_display(e);
+			break;
+		default: 
+			log_text("Invalid type of ConstantPool-Entry");
+			assert(0);
+		}
+	}
+	printf("\n");
+}
+
+
+void class_showconstantpool (classinfo *c) 
+{
+	u4 i;
+	voidptr e;
+
+	printf ("---- dump of constant pool ----\n");
+
+	for (i=0; i<c->cpcount; i++) {
+		printf ("#%d:  ", (int) i);
+		
+		e = c -> cpinfos [i];
+		if (e) {
+			
+			switch (c -> cptags [i]) {
+			case CONSTANT_Class:
+				printf ("Classreference -> ");
+				utf_display ( ((constant_classref*)e) -> name );
+				break;
+				
+			case CONSTANT_Fieldref:
+				printf ("Fieldref -> "); goto displayFMI;
+			case CONSTANT_Methodref:
+				printf ("Methodref -> "); goto displayFMI;
+			case CONSTANT_InterfaceMethodref:
+				printf ("InterfaceMethod -> "); goto displayFMI;
+			displayFMI:
+				{
+					constant_FMIref *fmi = e;
+					utf_display ( fmi->classref->name );
+					printf (".");
+					utf_display ( fmi->name);
+					printf (" ");
+					utf_display ( fmi->descriptor );
+				}
+				break;
+
+			case CONSTANT_String:
+				printf ("String -> ");
+				utf_display (e);
+				break;
+			case CONSTANT_Integer:
+				printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
+				break;
+			case CONSTANT_Float:
+				printf ("Float -> %f", ((constant_float*)e) -> value);
+				break;
+			case CONSTANT_Double:
+				printf ("Double -> %f", ((constant_double*)e) -> value);
+				break;
+			case CONSTANT_Long:
+				{
+					u8 v = ((constant_long*)e) -> value;
+#if U8_AVAILABLE
+					printf ("Long -> %ld", (long int) v);
+#else
+					printf ("Long -> HI: %ld, LO: %ld\n", 
+							(long int) v.high, (long int) v.low);
+#endif 
+				}
+				break;
+			case CONSTANT_NameAndType:
+				{
+					constant_nameandtype *cnt = e;
+					printf ("NameAndType: ");
+					utf_display (cnt->name);
+					printf (" ");
+					utf_display (cnt->descriptor);
+				}
+				break;
+			case CONSTANT_Utf8:
+				printf ("Utf8 -> ");
+				utf_display (e);
+				break;
+			default: 
+				log_text("Invalid type of ConstantPool-Entry");
+				assert(0);
+			}
+		}
+
+		printf ("\n");
+	}
+}
+
+
+
+/********** Function: class_showmethods   (debugging only) *************/
+
+void class_showmethods (classinfo *c)
+{
+	s4 i;
+	
+	printf ("--------- Fields and Methods ----------------\n");
+	printf ("Flags: ");	printflags (c->flags);	printf ("\n");
+
+	printf ("This: "); utf_display (c->name); printf ("\n");
+	if (c->super.cls) {
+		printf ("Super: "); utf_display (c->super.cls->name); printf ("\n");
+		}
+	printf ("Index: %d\n", c->index);
+	
+	printf ("interfaces:\n");	
+	for (i=0; i < c-> interfacescount; i++) {
+		printf ("   ");
+		utf_display (c -> interfaces[i].cls -> name);
+		printf (" (%d)\n", c->interfaces[i].cls -> index);
+		}
+
+	printf ("fields:\n");		
+	for (i=0; i < c -> fieldscount; i++) {
+		field_display (&(c -> fields[i]));
+		}
+
+	printf ("methods:\n");
+	for (i=0; i < c -> methodscount; i++) {
+		methodinfo *m = &(c->methods[i]);
+		if ( !(m->flags & ACC_STATIC)) 
+			printf ("vftblindex: %d   ", m->vftblindex);
+
+		method_display ( m );
+
+		}
+
+	printf ("Virtual function table:\n");
+	for (i=0; i<c->vftbl->vftbllength; i++) {
+		printf ("entry: %d,  %ld\n", i, (long int) (c->vftbl->table[i]) );
+		}
+
 }
 
 

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 3373 2005-10-06 13:10:53Z twisti $
+   $Id: loader.h 3501 2005-10-26 20:27:15Z twisti $
 */
 
 
@@ -177,28 +177,8 @@ classinfo *load_class_bootstrap(utf *name);
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
 
-/* search class for a field */
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer, bool except);
-
-/* search for a method with a specified name and descriptor */
-methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
-methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
-methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
-
-/* search for a method with specified name and arguments (returntype ignored) */
-methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
-
-bool class_issubclass(classinfo *sub, classinfo *super);
-
-/* debug purposes */
-void class_showmethods(classinfo *c);
-void class_showconstantpool(classinfo *c);
-
 /* return the primitive class inidicated by the given signature character */
 classinfo *class_primitive_from_sig(char sig);
-
 
 /* debug helpers */
 void fprintflags(FILE *fp, u2 f);
