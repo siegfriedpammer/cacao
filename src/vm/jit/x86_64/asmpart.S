@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 3276 2005-09-21 21:20:11Z twisti $
+   $Id: asmpart.S 3495 2005-10-26 13:29:53Z twisti $
 
 */
 
@@ -588,122 +588,122 @@ _crit_end1:
 	ja      ex_table_cont
 		
 ex_handle_it:
-		mov     ExHandlerPC(%rdi),xpc       /* xpc = exception handler pc     */
+	mov     ExHandlerPC(%rdi),xpc       /* xpc = exception handler pc         */
 
-        mov     0*8(%rsp),%rax              /* restore exception pointer      */
-        add     $(4*8),%rsp                 /* free stack frame               */
+	mov     0*8(%rsp),%rax              /* restore exception pointer          */
+	add     $(4*8),%rsp                 /* free stack frame                   */
 
-        jmp		*xpc                        /* jump to the handler            */
+	jmp     *xpc                        /* jump to the handler                */
 
 ex_table_cont:
-        lea		ExEntrySize(%rdi),%rdi      /* next exception table entry     */
-        dec     %rcx                        /* decrement entry counter        */
-        test	%rcx,%rcx                   /* if (t0 > 0) next entry         */
-        jg		ex_table_loop
+	lea     ExEntrySize(%rdi),%rdi      /* next exception table entry         */
+	dec     %rcx                        /* decrement entry counter            */
+	test    %rcx,%rcx                   /* if (t0 > 0) next entry             */
+	jg      ex_table_loop
 		
 empty_table:
-        mov     0*8(%rsp),%rax              /* restore exception pointer      */
-        mov     1*8(%rsp),%r10              /* restore exception pc           */
-        mov     2*8(%rsp),%r11				/* restore data segment pointer   */
-        add     $(4*8),%rsp
-        
-		mov     %rax,%rcx					/* save exception pointer         */
+	mov     0*8(%rsp),%rax              /* restore exception pointer          */
+	mov     1*8(%rsp),%r10              /* restore exception pc               */
+	mov     2*8(%rsp),%r11              /* restore data segment pointer       */
+	add     $(4*8),%rsp
+	
+	mov     %rax,%rcx                   /* save exception pointer             */
 				
 ex_already_cleared:		
-		movl    IsSync(%r11),%eax			/* %rax = SyncOffset              */
-		test	%rax,%rax					/* if zero no monitorexit         */
-		je		no_monitor_exit
+	movl    IsSync(%r11),%eax           /* %rax = SyncOffset                  */
+	test    %rax,%rax                   /* if zero no monitorexit             */
+	je      no_monitor_exit
 
 #if defined(USE_THREADS)		
-		add     %rsp,%rax
-		mov     -8(%rax),%rdi
-
-        sub     $(4*8),%rsp
-        mov     %rcx,0*8(%rsp)
-        mov     %r10,1*8(%rsp)
-        mov     %r11,2*8(%rsp)
-        
-		call	builtin_monitorexit
-
-        mov     0*8(%rsp),%rcx
-        mov     1*8(%rsp),%r10
-        mov     2*8(%rsp),%r11
-        add     $(4*8),%rsp
+	add     %rsp,%rax
+	mov     -8(%rax),%rdi
+	
+	sub     $(4*8),%rsp
+	mov     %rcx,0*8(%rsp)
+	mov     %r10,1*8(%rsp)
+	mov     %r11,2*8(%rsp)
+	
+	call	builtin_monitorexit
+	
+	mov     0*8(%rsp),%rcx
+	mov     1*8(%rsp),%r10
+	mov     2*8(%rsp),%r11
+	add     $(4*8),%rsp
 #endif
 
 no_monitor_exit:
-		mov		FrameSize(%r11),%eax        /* %eax = frame size              */
-		add		%rax,%rsp                   /* unwind stack                   */
-		mov		%rsp,%rax                   /* %rax = pointer to save area    */
-
-		mov		IntSave(%r11),%edx          /* %edx = saved int register count*/
-        test	%edx,%edx
-        je		noint
-        
-   		cmp     $1,%edx
-		je		int1
-		cmp		$2,%edx
-		je		int2
-		cmp		$3,%edx
-		je		int3
-		cmp		$4,%edx
-		je		int4
-		cmp		$5,%edx
-		je		int5
-        
-        mov     -48(%rax),%rbx
+	mov     FrameSize(%r11),%eax        /* %eax = frame size                  */
+	add     %rax,%rsp                   /* unwind stack                       */
+	mov     %rsp,%rax                   /* %rax = pointer to save area        */
+	
+	mov     IntSave(%r11),%edx          /* %edx = saved int register count    */
+	test    %edx,%edx
+	je      noint
+	
+	cmp     $1,%edx
+	je      int1
+	cmp     $2,%edx
+	je      int2
+	cmp     $3,%edx
+	je      int3
+	cmp     $4,%edx
+	je      int4
+	cmp     $5,%edx
+	je      int5
+	
+	mov     -48(%rax),%rbx
 int5:   
-        mov     -40(%rax),%rbp
+	mov     -40(%rax),%rbp
 int4:   
-        mov     -32(%rax),%r12
+	mov     -32(%rax),%r12
 int3:   
-        mov     -24(%rax),%r13
+	mov     -24(%rax),%r13
 int2:   
-		mov     -16(%rax),%r14
+	mov     -16(%rax),%r14
 int1:   
-		mov     -8(%rax),%r15
+	mov     -8(%rax),%r15
 
-		shl		$3,%edx                     /* multiply by 8 bytes            */
-		sub     %rdx,%rax
+	shl     $3,%edx                     /* multiply by 8 bytes                */
+	sub     %rdx,%rax
 		
 noint:
-		mov     FltSave(%r11),%edx          /* %edx = saved flt register count*/
-		test	%edx,%edx
-		je      noflt
+	mov     FltSave(%r11),%edx          /* %edx = saved flt register count    */
+	test	%edx,%edx
+	je      noflt
+	
+	cmpl    $1,%edx
+	je      flt1
+	cmpl    $2,%edx
+	je      flt2
+	cmpl    $3,%edx
+	je      flt3
+	cmpl    $4,%edx
+	je      flt4
+	cmpl    $5,%edx
+	je      flt5
+	cmpl    $6,%edx
+	je      flt7
+	cmpl    $7,%edx
+	je      flt7
 
-        cmpl    $1,%edx
-        je      flt1
-        cmpl    $2,%edx
-        je      flt2
-        cmpl    $3,%edx
-        je      flt3
-        cmpl    $4,%edx
-        je      flt4
-        cmpl    $5,%edx
-        je      flt5
-        cmpl    $6,%edx
-        je      flt7
-        cmpl    $7,%edx
-        je      flt7
-
-        movq    -64(%rax),%xmm8
+	movq    -64(%rax),%xmm8
 flt7:   
-        movq    -56(%rax),%xmm9
+	movq    -56(%rax),%xmm9
 flt6:   
-        movq    -48(%rax),%xmm10
+	movq    -48(%rax),%xmm10
 flt5:   
-        movq    -40(%rax),%xmm11
+	movq    -40(%rax),%xmm11
 flt4:   
-        movq    -32(%rax),%xmm12
+	movq    -32(%rax),%xmm12
 flt3:   
-        movq    -24(%rax),%xmm13
+	movq    -24(%rax),%xmm13
 flt2:   
-        movq    -16(%rax),%xmm14
+	movq    -16(%rax),%xmm14
 flt1:   
-        movq    -8(%rax),%xmm15
+	movq    -8(%rax),%xmm15
                 
 noflt:					
-	pop     %r10						/* the new xpc is return address      */
+	pop     %r10                        /* the new xpc is return address      */
 	sub     $3,%r10                     /* subtract 3 bytes for call          */
 	
 	sub     $(2*8),%rsp
