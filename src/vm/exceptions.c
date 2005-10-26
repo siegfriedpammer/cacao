@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3466 2005-10-20 10:42:12Z edwin $
+   $Id: exceptions.c 3498 2005-10-26 16:42:22Z twisti $
 
 */
 
@@ -127,6 +127,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_IllegalArgumentException =
 		  load_class_bootstrap(utf_java_lang_IllegalArgumentException)) ||
 		!link_class(class_java_lang_IllegalArgumentException))
+		return false;
+
+	/* java/lang/NullPointerException */
+
+	if (!(class_java_lang_NullPointerException =
+		  load_class_bootstrap(utf_java_lang_NullPointerException)) ||
+		!link_class(class_java_lang_NullPointerException))
 		return false;
 
 
@@ -766,6 +773,7 @@ java_objectheader *new_arraystoreexception(void)
 	java_objectheader *e;
 
 	e = new_exception(string_java_lang_ArrayStoreException);
+/*  	e = native_new_and_init(class_java_lang_ArrayStoreException); */
 
 	if (!e)
 		return *exceptionptr;
@@ -839,7 +847,7 @@ java_objectheader *new_nullpointerexception(void)
 {
 	java_objectheader *e;
 
-	e = new_exception(string_java_lang_NullPointerException);
+	e = native_new_and_init(class_java_lang_NullPointerException);
 
 	if (!e)
 		return *exceptionptr;
