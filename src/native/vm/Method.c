@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 3215 2005-09-19 13:05:24Z twisti $
+   $Id: Method.c 3503 2005-10-26 20:37:42Z twisti $
 
 */
 
@@ -44,11 +44,13 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_reflect_Method.h"
 #include "toolbox/logging.h"
+#include "vm/access.h"
 #include "vm/global.h"
 #include "vm/builtin.h"
-#include "vm/jit/stacktrace.h"
 #include "vm/exceptions.h"
+#include "vm/initialize.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/stacktrace.h"
 
 
 /*
@@ -62,12 +64,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, jav
 	methodinfo *m;
 
 	c = (classinfo *) this->declaringClass;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
 	return (m->flags &
@@ -88,12 +84,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 	methodinfo *m;
 
 	c = (classinfo *) this->declaringClass;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
 	return (java_lang_Class *) native_get_returntype(m);
@@ -111,12 +101,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getParameterTy
 	methodinfo *m;
 
 	c = (classinfo *) this->declaringClass;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
 	return native_get_parametertypes(m);
@@ -134,12 +118,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
 	methodinfo *m;
 
 	c = (classinfo *) this->declaringClass;
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
 	return native_get_exceptiontypes(m);
@@ -151,61 +129,53 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Method_getExceptionTy
  * Method:    invokeNative
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *obj, java_objectarray *params, java_lang_Class *declaringClass, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	classinfo  *c;
-	methodinfo *m;
-	jfieldID    fid;
+	classinfo        *c;
+	methodinfo       *m;
+	java_objectarray *oa;
+	classinfo        *callerclass;
 
 	c = (classinfo *) declaringClass;
-
-	if ((slot < 0) || (slot >= c->methodscount)) {
-		log_text("error illegal slot for method in class(getParameterTypes)");
-		assert(0);
-	}
-
 	m = &(c->methods[slot]);
 
-#if defined(__ALPHA__) || defined(__I386__) || defined(__X86_64__)
-	fid = getFieldID_critical(env, this->header.vftbl->class, "flag", "Z");
+	/* check method access */
 
-	if (!getField(this, jboolean, fid)) {
-		methodinfo *callingMethod;
-		bool        throwAccess;
+	if (!(m->flags & ACC_PUBLIC)) {
+		/* check if we should bypass security checks (AccessibleObject) */
 
-		if (!(m->flags & ACC_PUBLIC)) {
-			callingMethod = cacao_callingMethod();
-			throwAccess = false;
+		if (this->flag == false) {
+			/* get the calling class */
 
-			if (m->flags & ACC_PRIVATE) {
-				if (c != callingMethod->class)
-					throwAccess = true;
+			oa = cacao_createClassContextArray();
 
-			} else {
-				if (m->flags & ACC_PROTECTED) {
-					if (!builtin_isanysubclass(callingMethod->class, c))
-						throwAccess = true;
+			/* this function is always called like this:
 
-				} else {
-					/* default visibility */
-					if (c->packagename != callingMethod->class->packagename)
-						throwAccess = true;
-				}
-			}
+			       java.lang.reflect.Method.invokeNative (Native Method)
+			   [0] java.lang.reflect.Method.invoke (Method.java:329)
+			   [1] <caller>
+			*/
 
-			if (throwAccess) {
+			callerclass = (classinfo *) oa->data[1];
+
+			if (!access_is_accessible_member(callerclass, c, m->flags)) {
 				*exceptionptr =
 					new_exception(string_java_lang_IllegalAccessException);
-
 				return NULL;
 			}
 		}
 	}
 
-#endif
+	/* check if method class is initialized */
 
-    return (java_lang_Object *)
-		jni_method_invokeNativeHelper(env, m, (jobject) obj, params);
+	if (!c->initialized)
+		if (!initialize_class(c))
+			return NULL;
+
+	/* call the Java method via a helper function */
+
+	return (java_lang_Object *)
+		jni_method_invokeNativeHelper(env, m, (jobject) o, args);
 }
 
 
