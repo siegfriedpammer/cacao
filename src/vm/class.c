@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3452 2005-10-19 22:02:48Z twisti $
+   $Id: class.c 3497 2005-10-26 15:00:20Z twisti $
 
 */
 
@@ -124,6 +124,11 @@ classinfo *class_java_lang_Integer = NULL;
 classinfo *class_java_lang_Long = NULL;
 classinfo *class_java_lang_Float = NULL;
 classinfo *class_java_lang_Double = NULL;
+
+
+/* some runtime exception */
+
+classinfo *class_java_lang_NullPointerException = NULL;
 
 
 /* some classes which may be used more often */

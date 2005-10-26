@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3452 2005-10-19 22:02:48Z twisti $
+   $Id: class.h 3497 2005-10-26 15:00:20Z twisti $
 
 */
 
@@ -191,6 +191,11 @@ extern classinfo *class_java_lang_Integer;
 extern classinfo *class_java_lang_Long;
 extern classinfo *class_java_lang_Float;
 extern classinfo *class_java_lang_Double;
+
+
+/* some runtime exception */
+
+extern classinfo *class_java_lang_NullPointerException;
 
 
 /* some classes which may be used more often */
