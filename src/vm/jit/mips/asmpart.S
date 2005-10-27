@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3433 2005-10-13 16:08:43Z twisti $
+   $Id: asmpart.S 3510 2005-10-27 10:49:57Z twisti $
 
 */
 
@@ -677,52 +677,54 @@ ex_flt2:
     .ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	aaddiu  sp,sp,-((16+21+4)*8+sizestackframeinfo) /* create stack frame     */
+	aaddiu  sp,sp,-((2+16+22+4)*8+sizestackframeinfo) /* create stack frame   */
 
-	SAVE_ARGUMENT_REGISTERS(0)    /* save 8 int/8 float argument registers    */
-	SAVE_TEMPORARY_REGISTERS(16)  /* save 5 int/16 float temporary registers  */
+	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
+	SAVE_ARGUMENT_REGISTERS(2)    /* save 8 int/8 float argument registers    */
+	SAVE_TEMPORARY_REGISTERS(18)  /* save 5 int/16 float temporary registers  */
 
-	ast     itmp1,(16+21+0)*8(sp) /* save itmp1                               */
-	ast     itmp2,(16+21+1)*8(sp) /* save itmp2                               */
-	ast     ra,(16+21+2)*8(sp)    /* save method return address (for leafs)   */
-	ast     pv,(16+21+3)*8(sp)    /* save pv of calling java function         */
+	ast     itmp1,(2+16+22+0)*8(sp) /* save itmp1                             */
+	ast     itmp2,(2+16+22+1)*8(sp) /* save itmp2                             */
+	ast     ra,(2+16+22+2)*8(sp)  /* save method return address (for leafs)   */
+	ast     pv,(2+16+22+3)*8(sp)  /* save pv of calling java function         */
 
-	aaddiu  a0,sp,(16+21+4)*8     /* create stackframe info                   */
+	aaddiu  a0,sp,(2+16+22+4)*8   /* create stackframe info                   */
 	move    a1,pv                 /* pass java pv                             */
-	aaddiu  a2,sp,((6+16+21+4)*8+sizestackframeinfo) /* pass java sp          */
+	aaddiu  a2,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* pass java sp        */
 	move    a3,ra                 /* this is correct for leafs                */
-	ald     a4,((5+16+21+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
+	ald     a4,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* pass xpc           */
 	jal     stacktrace_create_extern_stackframeinfo
 
-	aaddiu  a0,sp,((0+16+21+4)*8+sizestackframeinfo) /* pass sp               */
-	ald     itmp3,((0+16+21+4)*8+sizestackframeinfo)(sp) /* get function      */
-	ald     itmp1,(16+21+3)*8(sp) /* save pv to the position of fp            */
-	ast     itmp1,((0+16+21+4)*8+sizestackframeinfo)(sp)
+	aaddiu  a0,sp,((0+2+16+22+4)*8+sizestackframeinfo) /* pass sp             */
+	ald     itmp3,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* get function    */
+	ald     itmp1,(2+16+22+3)*8(sp) /* save pv to the position of fp          */
+	ast     itmp1,((0+2+16+22+4)*8+sizestackframeinfo)(sp)
 	jalr    itmp3
-	ast     v0,((0+16+21+4)*8+sizestackframeinfo)(sp) /* save return value    */
+	ast     v0,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* save return value  */
 
-	aaddiu  a0,sp,(16+21+4)*8     /* remove stackframe info                   */
+	aaddiu  a0,sp,(2+16+22+4)*8   /* remove stackframe info                   */
 	jal     stacktrace_remove_stackframeinfo
 
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 8 int/8 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(16) /* restore 5 int/16 float temporary reg.  */
+	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
+	RESTORE_ARGUMENT_REGISTERS(2) /* restore 8 int/8 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(18) /* restore 5 int/16 float temporary reg.  */
 
-	ald     itmp1,(16+21+0)*8(sp) /* restore itmp1                            */
-	ald     itmp2,(16+21+1)*8(sp) /* restore itmp2                            */
-	ald     ra,(16+21+2)*8(sp)    /* restore method return address (for leafs)*/
-	ald     pv,(16+21+3)*8(sp)    /* restore pv of calling java function      */
+	ald     itmp1,(2+16+22+0)*8(sp) /* restore itmp1                          */
+	ald     itmp2,(2+16+22+1)*8(sp) /* restore itmp2                          */
+	ald     ra,(2+16+22+2)*8(sp)  /* restore method return address (for leafs)*/
+	ald     pv,(2+16+22+3)*8(sp)  /* restore pv of calling java function      */
 
-	ald     v0,((0+16+21+4)*8+sizestackframeinfo)(sp) /* restore return value */
+	ald     itmp3,((0+2+16+22+4)*8+sizestackframeinfo)(sp) /* get return value*/
+	beqz    itmp3,L_asm_wrapper_patcher_exception
 
-	ald     itmp3,((5+16+21+4)*8+sizestackframeinfo)(sp) /* get ra to jit code*/
-	aaddiu  sp,sp,((6+16+21+4)*8+sizestackframeinfo) /* remove stack frame    */
-
-	beqz    v0,L_asm_wrapper_patcher_exception
+	ald     itmp3,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* get RA to JIT   */
+	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
 
 	jr      itmp3                 /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
-	move    xpc,itmp3             /* return address into JIT code is xpc      */
+	ald     xpc,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* RA to JIT is xpc  */
+	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	daddiu  sp,sp,-4*8
