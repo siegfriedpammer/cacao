@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2615 2005-06-08 20:54:18Z twisti $
+   $Id: md-asm.h 3506 2005-10-27 10:20:48Z twisti $
 
 */
 
@@ -86,6 +86,7 @@
 #define xpc     itmp2
 
 
+#define fv0     $f0
 #define ft0     $f1
 
 #define fs0     $f2
@@ -131,6 +132,14 @@
 
 
 /* save and restore macros ****************************************************/
+
+#define SAVE_RETURN_REGISTERS(off) \
+	stq     v0,(0+(off))*8(sp)      ; \
+	stt     fv0,(1+(off))*8(sp)     ;
+
+#define RESTORE_RETURN_REGISTERS(off) \
+	ldq     v0,(0+(off))*8(sp)      ; \
+	ldt     fv0,(1+(off))*8(sp)     ;
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	stq     a0,(0+(off))*8(sp)      ; \
