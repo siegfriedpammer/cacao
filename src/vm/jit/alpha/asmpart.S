@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 3285 2005-09-27 14:12:36Z twisti $
+   $Id: asmpart.S 3507 2005-10-27 10:22:20Z twisti $
 
 */
 
@@ -462,6 +462,7 @@ asm_handle_exception:
 	stq     a5,17*8(sp)
 
 	lda     t3,1(zero)            /* set no unwind flag                       */
+
 ex_stack_loop:
 	lda     sp,-5*8(sp)           /* allocate stack                           */
 	stq     xptr,0*8(sp)          /* save used register                       */
@@ -473,9 +474,7 @@ ex_stack_loop:
 	mov     xptr,a0
 	ldq     a1,MethodPointer(pv)
 	mov     xpc,a2
-/*	mov     t3,a3 */
-	lda		a3,0(zero)
-	lda		a4,1(zero)
+	xor     t3,0x1,a3
 	br      ra,ex_trace           /* set ra for gp loading                    */
 ex_trace:
 	ldgp    gp,0(ra)              /* load gp                                  */
@@ -725,56 +724,61 @@ ex_flt2:
 	.ent    asm_wrapper_patcher
 
 asm_wrapper_patcher:
-	lda     sp,-((12+27+4)*8+sizestackframeinfo)(sp) /* create stack frame    */
+	lda     sp,-((2+12+27+4)*8+sizestackframeinfo)(sp) /* create stack frame  */
 
-	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
-	SAVE_TEMPORARY_REGISTERS(12)  /* save 11 int/16 float temporary registers */
+	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
+	SAVE_ARGUMENT_REGISTERS(2)    /* save 6 int/6 float argument registers    */
+	SAVE_TEMPORARY_REGISTERS(14)  /* save 11 int/16 float temporary registers */
 
-	stq     itmp1,(12+27+0)*8(sp) /* save itmp1                               */
-	stq     itmp2,(12+27+1)*8(sp) /* save itmp2                               */
-	stq     ra,(12+27+2)*8(sp)    /* save method return address (for leafs)   */
-	stq     pv,(12+27+3)*8(sp)    /* save pv of calling java function         */
+	stq     itmp1,(2+12+27+0)*8(sp) /* save itmp1                             */
+	stq     itmp2,(2+12+27+1)*8(sp) /* save itmp2                             */
+	stq     ra,(2+12+27+2)*8(sp)  /* save method return address (for leafs)   */
+	stq     pv,(2+12+27+3)*8(sp)  /* save pv of calling java function         */
 
 	br      ra,L_asm_wrapper_patcher_load_gp
 L_asm_wrapper_patcher_load_gp:
 	ldgp    gp,0(ra)              /* load gp (it's not set correctly in jit)  */
 
-	lda     a0,(12+27+4)*8(sp)    /* create stackframe info                   */
+	lda     a0,(2+12+27+4)*8(sp)  /* create stackframe info                   */
 	mov     pv,a1                 /* pass java pv                             */
-	lda     a2,((6+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp         */
-	ldq     a3,(12+27+2)*8(sp)    /* this is correct for leafs                */
-	ldq     a4,((5+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc             */
+	lda     a2,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass java sp       */
+	ldq     a3,(2+12+27+2)*8(sp)  /* this is correct for leafs                */
+	ldq     a4,((5+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass xpc           */
 	jsr     ra,stacktrace_create_extern_stackframeinfo
 	ldgp    gp,0(ra)
 
-	lda     a0,((0+12+27+4)*8+sizestackframeinfo)(sp) /* pass sp              */
-	ldq     pv,((0+12+27+4)*8+sizestackframeinfo)(sp) /* get function pointer */
-	ldq     itmp1,(12+27+3)*8(sp) /* save pv to the position of fp            */
-	stq     itmp1,((0+12+27+4)*8+sizestackframeinfo)(sp)
+	lda     a0,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* pass sp            */
+	ldq     pv,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* get function       */
+	ldq     itmp1,(2+12+27+3)*8(sp) /* save pv to the position of fp          */
+	stq     itmp1,((0+2+12+27+4)*8+sizestackframeinfo)(sp)
 	jmp     ra,(pv)               /* call the patcher function                */
 	ldgp    gp,0(ra)
+	stq     v0,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* save return value  */
 
-	lda     a0,(12+27+4)*8(sp)    /* remove stackframe info                   */
+	lda     a0,(2+12+27+4)*8(sp)  /* remove stackframe info                   */
 	jsr     ra,stacktrace_remove_stackframeinfo
 	ldgp    gp,0(ra)
 
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(12)/* restore 11 integer temporary registers  */
+	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
+	RESTORE_ARGUMENT_REGISTERS(2) /* restore 6 int/6 float argument registers */
+	RESTORE_TEMPORARY_REGISTERS(14) /* restore 11 integer temporary registers */
 
-	ldq     itmp1,(12+27+0)*8(sp) /* restore itmp1                            */
-	ldq     itmp2,(12+27+1)*8(sp) /* restore itmp2                            */
-	ldq     ra,(12+27+2)*8(sp)    /* restore method return address (for leafs)*/
-	ldq     pv,(12+27+3)*8(sp)    /* restore pv of calling java function      */
+	ldq     itmp1,(2+12+27+0)*8(sp) /* restore itmp1                          */
+	ldq     itmp2,(2+12+27+1)*8(sp) /* restore itmp2                          */
+	ldq     ra,(2+12+27+2)*8(sp)  /* restore method return address (for leafs)*/
+	ldq     pv,(2+12+27+3)*8(sp)  /* restore pv of calling java function      */
 
-	ldq     itmp3,((5+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to jit code */
-	lda     sp,((6+12+27+4)*8+sizestackframeinfo)(sp)  /* remove stack frame  */
+	ldq     itmp3,((0+2+12+27+4)*8+sizestackframeinfo)(sp) /* get return value*/
+	beq     itmp3,L_asm_wrapper_patcher_exception
 
-	beq     v0,L_asm_wrapper_patcher_exception
+	ldq     itmp3,((5+2+12+27+4)*8+sizestackframeinfo)(sp)/* get RA to JIT    */
+	lda     sp,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* remove stack frame */
 
 	jmp     zero,(itmp3)          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
-	mov     itmp3,xpc             /* return address into JIT code is xpc      */
+	ldq     xpc,((5+2+12+27+4)*8+sizestackframeinfo)(sp) /* RA is xpc         */
+	lda     sp,((6+2+12+27+4)*8+sizestackframeinfo)(sp) /* remove stack frame */
 
 	br      itmp1,L_asm_wrapper_patcher_exception_load_gp
 L_asm_wrapper_patcher_exception_load_gp:
