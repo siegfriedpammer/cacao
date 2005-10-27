@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 2712 2005-06-15 14:10:07Z twisti $
+   $Id: md-asm.h 3509 2005-10-27 10:49:20Z twisti $
 
 */
 
@@ -163,6 +163,14 @@
 
 
 /* save and restore macros ****************************************************/
+
+#define SAVE_RETURN_REGISTERS(off) \
+	sd      v0,(0+(off))*8(sp)	; \
+	sdc1    fv0,(1+(off))*8(sp)	;
+
+#define RESTORE_RETURN_REGISTERS(off) \
+	ld      v0,(0+(off))*8(sp)	; \
+	ldc1    fv0,(1+(off))*8(sp)	;
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	sd      a0,(0+(off))*8(sp)	; \
