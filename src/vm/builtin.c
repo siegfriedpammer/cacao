@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3502 2005-10-26 20:30:43Z twisti $
+   $Id: builtin.c 3508 2005-10-27 10:23:59Z edwin $
 
 */
 
@@ -1270,13 +1270,14 @@ void builtin_trace_args(s8 a0, s8 a1,
 	s4          logtextlen;
 	s4          dumpsize;
 	s4          i;
+	s4          pos;
 
 	md = m->parseddesc;
 
 	/* calculate message length */
 
 	logtextlen =
-		methodindent + strlen("called: ") +
+		6 + methodindent + strlen("called: ") +
 		utf_strlen(m->class->name) +
 		strlen(".") +
 		utf_strlen(m->name) +
@@ -1293,10 +1294,13 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 	logtext = DMNEW(char, logtextlen);
 
-	for (i = 0; i < methodindent; i++)
-		logtext[i] = '\t';
+	sprintf(logtext,"-%d-",methodindent);
+	pos = strlen(logtext);
 
-	strcpy(logtext + methodindent, "called: ");
+	for (i = 0; i < methodindent; i++)
+		logtext[pos++] = '\t';
+
+	strcpy(logtext + pos, "called: ");
 
 	utf_strcat_classname(logtext, m->class->name);
 	strcat(logtext, ".");
@@ -1511,6 +1515,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	s4          logtextlen;
 	s4          dumpsize;
 	s4          i;
+	s4          pos;
 	imm_union   imu;
 
 	md = m->parseddesc;
@@ -1518,7 +1523,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	/* calculate message length */
 
 	logtextlen =
-		methodindent + strlen("finished: ") +
+		6 + methodindent + strlen("finished: ") +
 		utf_strlen(m->class->name) +
 		strlen(".") +
 		utf_strlen(m->name) +
@@ -1535,17 +1540,22 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	logtext = DMNEW(char, logtextlen);
 
-	/* generate the message */
-
-	for (i = 0; i < methodindent; i++)
-		logtext[i] = '\t';
+	/* outdent the log message */
 
 	if (methodindent)
 		methodindent--;
 	else
 		log_text("WARNING: unmatched methodindent--");
 
-	strcpy(logtext + methodindent, "finished: ");
+	/* generate the message */
+
+	sprintf(logtext,"-%d-",methodindent);
+	pos = strlen(logtext);
+
+	for (i = 0; i < methodindent; i++)
+		logtext[pos++] = '\t';
+
+	strcpy(logtext + pos, "finished: ");
 	utf_strcat_classname(logtext, m->class->name);
 	strcat(logtext, ".");
 	utf_strcat(logtext, m->name);
