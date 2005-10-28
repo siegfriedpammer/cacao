@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3496 2005-10-26 14:58:15Z twisti $
+   $Id: utf8.c 3512 2005-10-28 11:29:52Z twisti $
 
 */
 
@@ -479,7 +479,7 @@ utf *utf_new_intern(const char *text, u2 length)
 
 #ifdef STATISTICS
 	if (opt_stat)
-		count_utf_len += sizeof(utf) + length;
+		count_utf_len += sizeof(utf) + length + 1;
 #endif
 
 	/* location in hashtable found, create new utf element */
