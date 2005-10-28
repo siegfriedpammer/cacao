@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.c 3521 2005-10-28 18:06:59Z twisti $
+   $Id: testarguments.c 3522 2005-10-28 18:07:00Z twisti $
 
 */
 
@@ -80,8 +80,30 @@ JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong
 JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f, jfloat g, jfloat h, jfloat i, jfloat j, jfloat k, jfloat l, jfloat m, jfloat n, jfloat o)
 {
     jmethodID mid;
+    union {
+      jint i;
+      jfloat f;
+    } x;
 
-    printf("java-native: 0x%x %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native:");
+
+    x.f = a; printf(" 0x%x", x.i);
+    x.f = b; printf(" 0x%x", x.i);
+    x.f = c; printf(" 0x%x", x.i);
+    x.f = d; printf(" 0x%x", x.i);
+    x.f = e; printf(" 0x%x", x.i);
+    x.f = f; printf(" 0x%x", x.i);
+    x.f = g; printf(" 0x%x", x.i);
+    x.f = h; printf(" 0x%x", x.i);
+    x.f = i; printf(" 0x%x", x.i);
+    x.f = j; printf(" 0x%x", x.i);
+    x.f = k; printf(" 0x%x", x.i);
+    x.f = l; printf(" 0x%x", x.i);
+    x.f = m; printf(" 0x%x", x.i);
+    x.f = n; printf(" 0x%x", x.i);
+    x.f = o; printf(" 0x%x", x.i);
+
+    printf("\n");
     fflush(stdout);
 
     mid = (*env)->GetStaticMethodID(env, clazz, "jfsub", "(FFFFFFFFFFFFFFF)V");
@@ -98,8 +120,48 @@ JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloa
 JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdouble a, jdouble b, jdouble c, jdouble d, jdouble e, jdouble f, jdouble g, jdouble h, jdouble i, jdouble j, jdouble k, jdouble l, jdouble m, jdouble n, jdouble o)
 {
     jmethodID mid;
+    union {
+      jlong l;
+      jdouble d;
+    } x;
 
-    printf("java-native: %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g %.16g\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native:");
+
+#if SIZEOF_VOID_P == 4
+    x.d = a; printf(" 0x%llx", x.l);
+    x.d = b; printf(" 0x%llx", x.l);
+    x.d = c; printf(" 0x%llx", x.l);
+    x.d = d; printf(" 0x%llx", x.l);
+    x.d = e; printf(" 0x%llx", x.l);
+    x.d = f; printf(" 0x%llx", x.l);
+    x.d = g; printf(" 0x%llx", x.l);
+    x.d = h; printf(" 0x%llx", x.l);
+    x.d = i; printf(" 0x%llx", x.l);
+    x.d = j; printf(" 0x%llx", x.l);
+    x.d = k; printf(" 0x%llx", x.l);
+    x.d = l; printf(" 0x%llx", x.l);
+    x.d = m; printf(" 0x%llx", x.l);
+    x.d = n; printf(" 0x%llx", x.l);
+    x.d = o; printf(" 0x%llx", x.l);
+#else
+    x.d = a; printf(" 0x%lx", x.l);
+    x.d = b; printf(" 0x%lx", x.l);
+    x.d = c; printf(" 0x%lx", x.l);
+    x.d = d; printf(" 0x%lx", x.l);
+    x.d = e; printf(" 0x%lx", x.l);
+    x.d = f; printf(" 0x%lx", x.l);
+    x.d = g; printf(" 0x%lx", x.l);
+    x.d = h; printf(" 0x%lx", x.l);
+    x.d = i; printf(" 0x%lx", x.l);
+    x.d = j; printf(" 0x%lx", x.l);
+    x.d = k; printf(" 0x%lx", x.l);
+    x.d = l; printf(" 0x%lx", x.l);
+    x.d = m; printf(" 0x%lx", x.l);
+    x.d = n; printf(" 0x%lx", x.l);
+    x.d = o; printf(" 0x%lx", x.l);
+#endif
+
+    printf("\n");
     fflush(stdout);
 
     mid = (*env)->GetStaticMethodID(env, clazz, "jdsub", "(DDDDDDDDDDDDDDD)V");
