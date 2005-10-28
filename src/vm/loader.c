@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3501 2005-10-26 20:27:15Z twisti $
+   $Id: loader.c 3513 2005-10-28 11:30:19Z twisti $
 
 */
 
@@ -1692,7 +1692,8 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 #if defined(STATISTICS)
 			if (opt_stat) {
 				count_vmcode_len += m->jcodelength + 18;
-				count_extable_len += 8 * m->exceptiontablelength;
+				count_extable_len +=
+					m->exceptiontablelength * sizeof(exceptiontable);
 			}
 #endif
 
