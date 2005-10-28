@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.java 2882 2005-06-30 20:54:41Z twisti $
+   $Id: testarguments.java 3523 2005-10-28 19:56:29Z twisti $
 
 */
 
@@ -66,9 +66,9 @@ public class testarguments {
     static void itest() {
         pln("testing int --------------------------------------------------");
 
-        isub(i(), i(), i(), i(), i(),
-             i(), i(), i(), i(), i(),
-             i(), i(), i(), i(), i());
+        isub(0x11111111, 0x22222222, 0x33333333, 0x44444444, 0x55555555,
+             0x66666666, 0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa,
+             0xbbbbbbbb, 0xcccccccc, 0xdddddddd, 0xeeeeeeee, 0xffffffff);
 
         pln();
     }
@@ -76,9 +76,11 @@ public class testarguments {
     static void ltest() {
         pln("testing long -------------------------------------------------");
 
-        lsub(l(), l(), l(), l(), l(),
-             l(), l(), l(), l(), l(),
-             l(), l(), l(), l(), l());
+        lsub(0x1111111111111111L, 0x2222222222222222L, 0x3333333333333333L,
+             0x4444444444444444L, 0x5555555555555555L, 0x6666666666666666L,
+             0x7777777777777777L, 0x8888888888888888L, 0x9999999999999999L,
+             0xaaaaaaaaaaaaaaaaL, 0xbbbbbbbbbbbbbbbbL, 0xccccccccccccccccL,
+             0xddddddddddddddddL, 0xeeeeeeeeeeeeeeeeL, 0xffffffffffffffffL);
 
         pln();
     }
@@ -86,9 +88,11 @@ public class testarguments {
     static void ftest() {
         pln("testing float ------------------------------------------------");
 
-        fsub(f(), f(), f(), f(), f(),
-             f(), f(), f(), f(), f(),
-             f(), f(), f(), f(), f());
+        fsub(i2f(0x11111111), i2f(0x22222222), i2f(0x33333333),
+             i2f(0x44444444), i2f(0x55555555), i2f(0x66666666),
+             i2f(0x77777777), i2f(0x88888888), i2f(0x99999999),
+             i2f(0xaaaaaaaa), i2f(0xbbbbbbbb), i2f(0xcccccccc),
+             i2f(0xdddddddd), i2f(0xeeeeeeee), i2f(0xffffffff));
 
         pln();
     }
@@ -96,9 +100,14 @@ public class testarguments {
     static void dtest() {
         pln("testing double -----------------------------------------------");
 
-        dsub(d(), d(), d(), d(), d(),
-             d(), d(), d(), d(), d(),
-             d(), d(), d(), d(), d());
+        dsub(l2d(0x1111111111111111L), l2d(0x2222222222222222L),
+             l2d(0x3333333333333333L), l2d(0x4444444444444444L),
+             l2d(0x5555555555555555L), l2d(0x6666666666666666L),
+             l2d(0x7777777777777777L), l2d(0x8888888888888888L),
+             l2d(0x9999999999999999L), l2d(0xaaaaaaaaaaaaaaaaL),
+             l2d(0xbbbbbbbbbbbbbbbbL), l2d(0xccccccccccccccccL),
+             l2d(0xddddddddddddddddL), l2d(0xeeeeeeeeeeeeeeeeL),
+             l2d(0xffffffffffffffffL));
     }
 
 
@@ -211,26 +220,31 @@ public class testarguments {
         pln();
     }
 
+    static float i2f(int i) {
+        return Float.intBitsToFloat(i);
+    }
 
-    static int i() { return r.nextInt(); }
-    static long l() { return r.nextLong(); }
-    static float f() { return r.nextFloat(); }
-    static double d() { return r.nextDouble(); }
+    static double l2d(long l) {
+        return Double.longBitsToDouble(l);
+    }
 
     static void p(String s) { System.out.print(s); }
 
     static void p(int i) {
-        System.out.print(" " + i);
-//          System.out.print(" (0x" + Integer.toHexString(i) + ")");
+        System.out.print(" 0x" + Integer.toHexString(i));
     }
 
     static void p(long l) {
-        System.out.print(" " + l);
-//          System.out.print(" (0x" + Long.toHexString(l) + ")");
+        System.out.print(" 0x" + Long.toHexString(l));
     }
 
-    static void p(float f) { System.out.print(" " + f); }
-    static void p(double d) { System.out.print(" " + d); }
+    static void p(float f) {
+        p(Float.floatToIntBits(f));
+    }
+
+    static void p(double d) {
+        p(Double.doubleToLongBits(d));
+    }
 
     static void pln() { System.out.println(); }
     static void pln(String s) { System.out.println(s); }
