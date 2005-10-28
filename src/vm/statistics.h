@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 2424 2005-04-30 13:45:06Z jowenn $
+   $Id: statistics.h 3514 2005-10-28 11:34:23Z twisti $
 
 */
 
@@ -63,8 +63,12 @@
 
 /* global variables ***********************************************************/
 
+extern s4 codememusage;
+extern s4 maxcodememusage;
+
 extern s4 memoryusage;
 extern s4 maxmemusage;
+
 extern s4 maxdumpsize;
 
 extern s4 globalallocateddumpsize;

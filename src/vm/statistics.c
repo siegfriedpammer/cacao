@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 3190 2005-09-16 12:05:10Z twisti $
+   $Id: statistics.c 3514 2005-10-28 11:34:23Z twisti $
 
 */
 
@@ -53,8 +53,12 @@ static s8 compilingstarttime = 0;
 static s8 compilingstoptime = 0;
 static s4 compilingtime_recursion = 0;
 
+s4 codememusage = 0;
+s4 maxcodememusage = 0;
+
 s4 memoryusage = 0;
 s4 maxmemusage = 0;
+
 s4 maxdumpsize = 0;
 
 s4 globalallocateddumpsize = 0;
@@ -467,27 +471,26 @@ void print_stats(void)
 		  count_block_size_distribution[12], count_block_size_distribution[13],
 		  count_block_size_distribution[14], count_block_size_distribution[15],
 		  count_block_size_distribution[16], count_block_size_distribution[17]);
-	dolog("Size of Code Area (Kb):  %10.3f", (float) count_code_len / 1024);
-	dolog("Size of data Area (Kb):  %10.3f", (float) count_data_len / 1024);
-	dolog("Size of Class Infos (Kb):%10.3f", (float) count_class_infos / 1024);
-	dolog("Size of Const Pool (Kb): %10.3f",
-		  (float) (count_const_pool_len + count_utf_len) / 1024);
-	dolog("Size of Class refs (Kb): %10.3f", (float) count_classref_len / 1024);
-	dolog("Size of descriptors(Kb): %10.3f",
-		  (float) count_parsed_desc_len / 1024);
-	dolog("Size of Vftbl (Kb):      %10.3f", (float) count_vftbl_len / 1024);
-	dolog("Size of comp stub (Kb):  %10.3f", (float) count_cstub_len / 1024);
-	dolog("Size of native stub (Kb):%10.3f", (float) count_nstub_len / 1024);
-	dolog("Size of Utf (Kb):        %10.3f", (float) count_utf_len / 1024);
-	dolog("Size of VMCode (Kb):     %10.3f(%d)",
+	dolog("Size of Code Area:        %10.3f kB", (float) count_code_len / 1024);
+	dolog("Size of Data Area:        %10.3f kB", (float) count_data_len / 1024);
+	dolog("Size of Class Infos:      %10.3f kB", (float) count_class_infos / 1024);
+	dolog("Size of Const Pool:       %10.3f kB", (float) (count_const_pool_len + count_utf_len) / 1024);
+	dolog("Size of Class refs:       %10.3f kB", (float) count_classref_len / 1024);
+	dolog("Size of descriptors:      %10.3f kB", (float) count_parsed_desc_len / 1024);
+	dolog("Size of vftbl:            %10.3f kB", (float) count_vftbl_len / 1024);
+	dolog("Size of compiler stubs:   %10.3f kB", (float) count_cstub_len / 1024);
+	dolog("Size of native stubs:     %10.3f kB", (float) count_nstub_len / 1024);
+	dolog("Size of utf:              %10.3f kB", (float) count_utf_len / 1024);
+	dolog("Size of VMCode:           %10.3f kB (%d)",
 		  (float) count_vmcode_len / 1024,
 		  count_vmcode_len - 18 * count_all_methods);
-	dolog("Size of ExTable (Kb):    %10.3f", (float) count_extable_len / 1024);
-	dolog("Number of class loads:   %d", count_class_loads);
-	dolog("Number of class inits:   %d", count_class_inits);
-	dolog("Number of loaded Methods: %d\n", count_all_methods);
+	dolog("Size of exception tables: %10.3f kB\n", (float) count_extable_len / 1024);
 
-	dolog("Calls of utf_new: %22d", count_utf_new);
+	dolog("Number of class loads:    %6d", count_class_loads);
+	dolog("Number of class inits:    %6d", count_class_inits);
+	dolog("Number of loaded Methods: %6d\n", count_all_methods);
+
+	dolog("Calls of utf_new:                 %6d", count_utf_new);
 	dolog("Calls of utf_new (element found): %6d\n", count_utf_new_found);
 
 
@@ -636,15 +639,19 @@ void print_stats(void)
 void mem_usagelog(bool givewarnings)
 {
 	if ((memoryusage != 0) && givewarnings) {
-		dolog("Allocated memory not returned: %d", (s4) memoryusage);
+		dolog("Allocated memory not returned: %9d", (s4) memoryusage);
 	}
 
 	if ((globalallocateddumpsize != 0) && givewarnings) {
-		dolog("Dump memory not returned: %d", (s4) globalallocateddumpsize);
+		dolog("Dump memory not returned:      %9d",
+			  (s4) globalallocateddumpsize);
 	}
 
-	dolog("Random/Dump - max. memory usage: %dkB/%dkB", 
-		  (s4) ((maxmemusage + 1023) / 1024),
+	dolog("Code - max. memory usage:      %9d kB",
+		  (s4) ((maxcodememusage + 1023) / 1024));
+	dolog("Random - max. memory usage:    %9d kB",
+		  (s4) ((maxmemusage + 1023) / 1024));
+	dolog("Dump - max. memory usage:      %9d kB",
 		  (s4) ((maxdumpsize + 1023) / 1024));
 }
 
