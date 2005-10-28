@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3475 2005-10-21 12:03:06Z twisti $
+   $Id: patcher.c 3518 2005-10-28 14:47:11Z twisti $
 
 */
 
@@ -87,11 +87,6 @@ bool patcher_get_putstatic(u1 *sp)
 	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -171,11 +166,6 @@ bool patcher_get_putfield(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	uf       = (unresolved_field *)  *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -265,7 +255,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - (3 * 4);
+	ra = ra - 1 * 4;
 	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -352,7 +342,7 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - (3 * 4);
+	ra = ra - 1 * 4;
 	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -434,11 +424,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	PATCHER_MONITORENTER;
 
 	/* get the classinfo */
@@ -516,11 +501,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -607,7 +587,7 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - 3 * 4;
+	ra = ra - 1 * 4;
 	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -687,11 +667,6 @@ bool patcher_invokestatic_special(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	PATCHER_MONITORENTER;
 
 	/* get the fieldinfo */
@@ -761,11 +736,6 @@ bool patcher_invokevirtual(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -846,11 +816,6 @@ bool patcher_invokeinterface(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	um       = (unresolved_method *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -940,11 +905,6 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	PATCHER_MONITORENTER;
 
 	/* get the fieldinfo */
@@ -1016,11 +976,6 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1105,11 +1060,6 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
 
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
 	PATCHER_MONITORENTER;
 
 	/* get the fieldinfo */
@@ -1172,11 +1122,6 @@ bool patcher_clinit(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	c        = (classinfo *)         *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -1241,11 +1186,6 @@ bool patcher_athrow_areturn(u1 *sp)
 	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
 #endif
 	uc       = (unresolved_class *)  *((ptrint *) (sp + 2 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 2 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
