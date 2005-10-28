@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3518 2005-10-28 14:47:11Z twisti $
+   $Id: patcher.c 3520 2005-10-28 17:50:55Z twisti $
 
 */
 
@@ -194,14 +194,33 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* patch the field's offset */
 
-	*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
+#if SIZEOF_VOID_P == 4
+	if (fi->type == TYPE_LNG) {
+# if WORDS_BIGENDIAN == 1
+		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+# else
+		/* ATTENTION: order of these instructions depend on M_LLD_INTERN */
+		*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+		*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+# endif
+	} else
+#endif
+		*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
 
 	/* synchronize instruction cache */
 
-	if (opt_showdisassemble)
-		cacheflush(ra - 2 * 4, 3 * 4, ICACHE);
-	else
+	if (opt_showdisassemble) {
+#if SIZEOF_VOID_P == 4
+		if (fi->type == TYPE_LNG) {
+			cacheflush(ra - 2 * 4, 4 * 4, ICACHE);
+		} else
+#endif
+			cacheflush(ra - 2 * 4, 3 * 4, ICACHE);
+	} else {
 		cacheflush(ra, 2 * 4, ICACHE);
+	}
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -290,6 +309,10 @@ bool patcher_builtin_new(u1 *sp)
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_new;
 
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
+
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
@@ -377,6 +400,10 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_newarray;
 
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
+
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
@@ -451,6 +478,10 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	/* patch the class' vftbl pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -534,6 +565,10 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	*((ptrint *) (pv + (disp - SIZEOF_VOID_P))) =
 		(ptrint) BUILTIN_arraycheckcast;
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp - SIZEOF_VOID_P, SIZEOF_VOID_P * 2, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -622,6 +657,10 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_arrayinstanceof;
 
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
+
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
@@ -694,6 +733,10 @@ bool patcher_invokestatic_special(u1 *sp)
 	/* patch stubroutine */
 
 	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -933,6 +976,10 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	*((s4 *) (pv + disp)) = (s4) c->flags;
 
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, sizeof(s4), DCACHE);
+
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
 	return true;
@@ -1087,6 +1134,10 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 	/* patch super class' vftbl */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1284,6 +1335,10 @@ bool patcher_resolve_native(u1 *sp)
 	/* patch native function pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) f;
+
+	/* synchronize data cache */
+
+	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
