@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3479 2005-10-21 13:08:19Z twisti $
+   $Id: memory.c 3516 2005-10-28 11:37:03Z twisti $
 
 */
 
@@ -89,17 +89,54 @@ static dumpinfo _no_threads_dumpinfo;
 #endif
 
 
-static void *checked_alloc(s4 size)
+/* global code memory variables ***********************************************/
+
+#define DEFAULT_CODEMEM_SIZE    128 * 1024  /* defaulting to 128kB            */
+
+static java_objectheader *codememlock = NULL;
+static int                codememsize = 0;
+static void              *codememptr  = NULL;
+
+
+/* memory_init *****************************************************************
+
+   Initialize the memory subsystem.
+
+*******************************************************************************/
+
+bool memory_init(void)
+{
+#if defined(USE_THREADS)
+	codememlock = NEW(java_objectheader);
+
+# if defined(NATIVE_THREADS)
+	initObjectLock(codememlock);
+# endif
+#endif
+
+	/* everything's ok */
+
+	return true;
+}
+
+
+/* memory_checked_alloc ********************************************************
+
+   Allocated zeroed-out memory and does an OOM check.
+
+*******************************************************************************/
+
+static void *memory_checked_alloc(s4 size)
 {
 	/* always allocate memory zeroed out */
 
-	void *m = calloc(size, 1);
+	void *p = calloc(size, 1);
 
-	if (!m)
+	if (!p)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Out of memory");
 
-	return m;
+	return p;
 }
 
 
@@ -115,25 +152,67 @@ void *memory_cnew(s4 size)
 	void *p;
 	int   pagesize;
 
-	/* get the pagesize of this architecture */
+#if defined(USE_THREADS)
+	builtin_monitorenter(codememlock);
+#endif
 
-	pagesize = getpagesize();
+	size = ALIGN(size, ALIGNSIZE);
 
-	/* allocate normal heap memory */
+	/* check if enough memory is available */
 
-	if ((p = mem_alloc(size + pagesize - 1)) == NULL)
-		return NULL;
+	if (size > codememsize) {
+		/* set default code size */
 
-	/* align the memory allocated to a multiple of PAGESIZE, mprotect
-	   requires this */
+		codememsize = DEFAULT_CODEMEM_SIZE;
 
-	p = (void *) (((ptrint) p + pagesize - 1) & ~(pagesize - 1));
+		/* do we need more? */
 
-	/* make the memory read-, write-, and executeable */
+		if (size > codememsize)
+			codememsize = size;
 
-	if (mprotect(p, size, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   strerror(errno));
+		/* get the pagesize of this architecture */
+
+		pagesize = getpagesize();
+
+		/* allocate normal heap memory */
+
+		if ((p = memory_checked_alloc(codememsize + pagesize - 1)) == NULL)
+			return NULL;
+
+#if defined(STATISTICS)
+		if (opt_stat) {
+			codememusage += codememsize + pagesize - 1;
+
+			if (codememusage > maxcodememusage)
+				maxcodememusage = codememusage;
+		}
+#endif
+
+		/* align the memory allocated to a multiple of PAGESIZE,
+		   mprotect requires this */
+
+		p = (void *) (((ptrint) p + pagesize - 1) & ~(pagesize - 1));
+
+		/* make the memory read-, write-, and executeable */
+
+		if (mprotect(p, codememsize, PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+			throw_cacao_exception_exit(string_java_lang_InternalError,
+									   strerror(errno));
+
+		/* set global code memory pointer */
+
+		codememptr = p;
+	}
+
+	/* get a memory chunk of the allocated memory */
+
+	p = codememptr;
+	codememptr = (void *) ((ptrint) codememptr + size);
+	codememsize -= size;
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(codememlock);
+#endif
 
 	return p;
 }
@@ -153,7 +232,7 @@ void *mem_alloc(s4 size)
 	}
 #endif
 
-	return checked_alloc(size);
+	return memory_checked_alloc(size);
 }
 
 
@@ -234,7 +313,7 @@ void *dump_alloc(s4 size)
 
 		/* allocate a new dumplist structure */
 
-		newdumpblock = checked_alloc(sizeof(dumpblock));
+		newdumpblock = memory_checked_alloc(sizeof(dumpblock));
 
 		/* If requested size is greater than the default, make the new dump   */
 		/* block as big as the size requested. Else use the default size.     */
@@ -248,7 +327,7 @@ void *dump_alloc(s4 size)
 
 		/* allocate dumpblock memory */
 
-		newdumpblock->dumpmem = checked_alloc(newdumpblocksize);
+		newdumpblock->dumpmem = memory_checked_alloc(newdumpblocksize);
 
 		newdumpblock->prev = di->currentdumpblock;
 		newdumpblock->size = newdumpblocksize;
