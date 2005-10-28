@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3477 2005-10-21 12:04:52Z twisti $
+   $Id: codegen.c 3519 2005-10-28 14:48:18Z twisti $
 
 */
 
@@ -3987,8 +3987,8 @@ gen_method:
 										   disp, 0x00007fff);
 			}
 
-			M_BRS(disp);
-			M_MOV(REG_RA, REG_ITMP3);       /* branch delay slot              */
+			M_BR(disp);
+			M_NOP;
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
@@ -3996,10 +3996,10 @@ gen_method:
 
 			M_ASUB_IMM(REG_SP, 6 * 8, REG_SP);
 
-			/* move return address onto stack */
+			/* calculate return address and move it onto the stack */
 
-			M_AST(REG_RA, REG_SP, 5 * 8);
-			M_MOV(REG_ITMP3, REG_RA);       /* restore return address         */
+			M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
+			M_AST(REG_ITMP3, REG_SP, 5 * 8);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -4007,18 +4007,12 @@ gen_method:
 			/* create a virtual java_objectheader */
 
 			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
-			a = dseg_addaddress(cd, NULL);                      /* vftbl      */
+			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
-			if (a >= -32768) {
-				M_LDA(REG_ITMP3, REG_PV, a);
-			} else {
-				M_LUI(REG_ITMP3, (a >> 16) & 0x0000ffff);
-				M_OR_IMM(REG_ITMP3, a & 0x0000ffff, REG_ITMP3);
-				M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-			}
+			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 4 * 8);
 #else
-			M_AST(REG_ZERO, REG_SP, 4 * 8);
+			/* do nothing */
 #endif
 
 			/* move machine code onto stack */
