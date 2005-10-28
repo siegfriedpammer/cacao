@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 3478 2005-10-21 13:07:58Z twisti $
+   $Id: memory.h 3515 2005-10-28 11:34:55Z twisti $
 
 */
 
@@ -161,6 +161,9 @@ struct dumpinfo {
 
 
 /* function prototypes ********************************************************/
+
+/* initializes the memory subsystem */
+bool memory_init(void);
 
 void *memory_cnew(s4 size);
 
