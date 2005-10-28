@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.c 2721 2005-06-16 11:49:27Z twisti $
+   $Id: testarguments.c 3521 2005-10-28 18:06:59Z twisti $
 
 */
 
@@ -41,7 +41,7 @@ JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint 
 {
     jmethodID mid;
 
-    printf("java-native: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     fflush(stdout);
 
     mid = (*env)->GetStaticMethodID(env, clazz, "jisub", "(IIIIIIIIIIIIIII)V");
@@ -51,7 +51,6 @@ JNIEXPORT void JNICALL Java_testarguments_nisub(JNIEnv *env, jclass clazz, jint 
         return;
     }
 
-/*      (*env)->CallVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j); */
     (*env)->CallStaticVoidMethod(env, clazz, mid, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 }
 
@@ -61,9 +60,9 @@ JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong
     jmethodID mid;
 
 #if SIZEOF_VOID_P == 4
-    printf("java-native: %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native: 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 #else
-    printf("java-native: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
 #endif
     fflush(stdout);
 
@@ -82,7 +81,7 @@ JNIEXPORT void JNICALL Java_testarguments_nfsub(JNIEnv *env, jclass clazz, jfloa
 {
     jmethodID mid;
 
-    printf("java-native: %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    printf("java-native: 0x%x %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     fflush(stdout);
 
     mid = (*env)->GetStaticMethodID(env, clazz, "jfsub", "(FFFFFFFFFFFFFFF)V");
