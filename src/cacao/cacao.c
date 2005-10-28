@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3427 2005-10-13 09:39:36Z twisti $
+   $Id: cacao.c 3517 2005-10-28 11:39:25Z twisti $
 
 */
 
@@ -1031,11 +1031,17 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
+	/* initialize the memory subsystem (this must be done _after_
+       thread init) */
+
+	if (!memory_init())
+		throw_main_exception_exit();
+
 	/* install architecture dependent signal handler used for exceptions */
 
 	signal_init();
 
-	/* initialize the codegen sub systems */
+	/* initialize the codegen subsystems */
 
 	codegen_init();
 
@@ -1382,9 +1388,10 @@ void exit_handler(void)
 #endif
 		}
 
+		mem_usagelog(1);
+
 		if (getcompilingtime)
 			print_times();
-		mem_usagelog(1);
 #endif
 	}
 	/* vm_print_profile(stderr);*/
