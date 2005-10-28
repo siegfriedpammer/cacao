@@ -135,8 +135,9 @@ AC_STRUCT_TM
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
-AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
+AC_FUNC_MEMCMP
+AC_CHECK_FUNCS(calloc mprotect getpagesize free)
 AC_CHECK_FUNCS(getcwd gettimeofday)
 
 dnl Checks for libraries.
@@ -144,7 +145,6 @@ dnl Checks for libraries.
 dnl Checking sizeof void *
 AC_COMPILE_CHECK_SIZEOF(void *)
 AC_C_BIGENDIAN
-
 
 dnl check which ld flags are required to export symbols
 if test x"$with_gnu_ld" = "xyes"; then
