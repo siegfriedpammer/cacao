@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3500 2005-10-26 20:22:30Z twisti $
+   $Id: stacktrace.c 3524 2005-11-01 12:36:30Z twisti $
 
 */
 
@@ -759,6 +759,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 #if PRINTMETHODS
 	printf("\n\nfillInStackTrace start:\n");
+	fflush(stdout);
 #endif
 
 	/* loop while we have a method pointer (asm_calljavafunction has NULL) or */
@@ -790,6 +791,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				utf_display(m->name);
 				utf_display(m->descriptor);
 				printf(": native stub\n");
+				fflush(stdout);
 #endif
 				/* this is an native stub stackframe info, so we can get the */
 				/* parent pv from the return address (ICMD_INVOKE*) */
@@ -817,6 +819,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 #if PRINTMETHODS
 				printf("NULL: inline stub\n");
+				fflush(stdout);
 #endif
 
 				/* get methodinfo from current Java method */
@@ -832,6 +835,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					utf_display(m->name);
 					utf_display(m->descriptor);
 					printf(": inline stub parent\n");
+					fflush(stdout);
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -866,6 +870,12 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					}
 #endif
 				}
+#if PRINTMETHODS
+				else {
+					printf("asm_calljavafunction\n");
+					fflush(stdout);
+				}
+#endif
 			}
 
 			/* get previous stackframeinfo in the chain */
