@@ -29,13 +29,15 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMSystem.c 2459 2005-05-12 23:21:10Z twisti $
+   $Id: VMSystem.c 3529 2005-11-01 21:59:33Z twisti $
 
 */
 
 
 #include <string.h>
-#include <time.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -47,23 +49,23 @@
 
 
 /*
- * Class:     java/lang/System
+ * Class:     java/lang/VMSystem
  * Method:    arraycopy
  * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
  */
 JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *source, s4 sp, java_lang_Object *dest, s4 dp, s4 len)
 {
-	s4 i;
-	java_arrayheader *s = (java_arrayheader *) source;
-	java_arrayheader *d = (java_arrayheader *) dest;
-	arraydescriptor *sdesc;
-	arraydescriptor *ddesc;
+	java_arrayheader *s;
+	java_arrayheader *d;
+	arraydescriptor  *sdesc;
+	arraydescriptor  *ddesc;
+	s4                i;
 
-	/*	printf("arraycopy: %p:%x->%p:%x\n",source,sp,dest,dp);
-		fflush(stdout);*/
+	s = (java_arrayheader *) source;
+	d = (java_arrayheader *) dest;
 
 	if (!s || !d) { 
-		*exceptionptr = new_exception(string_java_lang_NullPointerException);
+		*exceptionptr = new_nullpointerexception();
 		return; 
 	}
 
@@ -71,25 +73,33 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 	ddesc = d->objheader.vftbl->arraydesc;
 
 	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
-		*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
+		*exceptionptr = new_arraystoreexception();
 		return; 
 	}
 
-	if ((len < 0) || (sp < 0) || (sp + len > s->size) || (dp < 0) || (dp + len > d->size) || (dp+len<0)) {
-		*exceptionptr = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+	/* we try to throw exception with the same message as SUN does */
+
+	if ((len < 0) || (sp < 0) || (dp < 0) ||
+		(sp + len < 0) || (sp + len > s->size) ||
+		(dp + len < 0) || (dp + len > d->size)) {
+		*exceptionptr =
+			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
 		return; 
 	}
 
 	if (sdesc->componentvftbl == ddesc->componentvftbl) {
 		/* We copy primitive values or references of exactly the same type */
+
 		s4 dataoffset = sdesc->dataoffset;
 		s4 componentsize = sdesc->componentsize;
+
 		memmove(((u1 *) d) + dataoffset + componentsize * dp,
 				((u1 *) s) + dataoffset + componentsize * sp,
 				(size_t) len * componentsize);
 
 	} else {
 		/* We copy references of different type */
+
 		java_objectarray *oas = (java_objectarray *) s;
 		java_objectarray *oad = (java_objectarray *) d;
                 
@@ -97,7 +107,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 			for (i = 0; i < len; i++) {
 				java_objectheader *o = oas->data[sp + i];
 				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
+					*exceptionptr = new_arraystoreexception();
 					return;
 				}
 				oad->data[dp + i] = o;
@@ -105,18 +115,19 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 
 		} else {
 			/* XXX this does not completely obey the specification!
-			 * If an exception is thrown only the elements above
-			 * the current index have been copied. The
-			 * specification requires that only the elements
-			 * *below* the current index have been copied before
-			 * the throw.
-			 */
+			   If an exception is thrown only the elements above the
+			   current index have been copied. The specification
+			   requires that only the elements *below* the current
+			   index have been copied before the throw. */
+
 			for (i = len - 1; i >= 0; i--) {
 				java_objectheader *o = oas->data[sp + i];
+
 				if (!builtin_canstore(oad, o)) {
-					*exceptionptr = new_exception(string_java_lang_ArrayStoreException);
+					*exceptionptr = new_arraystoreexception();
 					return;
 				}
+
 				oad->data[dp + i] = o;
 			}
 		}
@@ -125,7 +136,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 
 
 /*
- * Class:     java/lang/System
+ * Class:     java/lang/VMSystem
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
