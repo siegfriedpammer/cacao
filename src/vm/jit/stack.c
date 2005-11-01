@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3379 2005-10-06 13:47:40Z edwin $
+   $Id: stack.c 3525 2005-11-01 12:39:01Z twisti $
 
 */
 
@@ -1679,6 +1679,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
+
+						/* fall through */
 #endif /* !SUPPORT_DIVISION */
 
 					case ICMD_ISHL:
@@ -1713,6 +1715,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							copy->flags |= SAVEDVAR;
 							copy = copy->prev;
 						}
+
+						/* fall through */
 #endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
 
 					case ICMD_LMUL:
@@ -2066,6 +2070,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 # if defined(__I386__)
 						if (rd->memuse < i + 3)
 							rd->memuse = i + 3; /* n integer args spilled on stack */
+# elif defined(__MIPS__) && SIZEOF_VOID_P == 4
+						if (rd->memuse < i + 2)
+							rd->memuse = i + 2; /* 4*4 bytes callee save space */
 # else
 						if (rd->memuse < i)
 							rd->memuse = i; /* n integer args spilled on stack */
@@ -2087,6 +2094,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #else
 # if defined(__I386__)
 								copy->regoff = i + 3;
+# elif defined(__MIPS__) && SIZEOF_VOID_P == 4
+								copy->regoff = i + 2;
 # else
 								copy->regoff = i;
 # endif /* defined(__I386__) */
@@ -2284,7 +2293,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				if (s->varnum == -1) {
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
-					printf("  RA");
+					printf("  V0");
 				} else /* "normal" Argvar */
 					printf(" A%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
@@ -2332,7 +2341,7 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 				if (s->varnum == -1) {
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
-					printf("  ra");
+					printf("  v0");
 				} else /* "normal" Argvar */
 				printf(" a%02d", s->varnum);
 #ifdef INVOKE_NEW_DEBUG
@@ -2815,27 +2824,35 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_PUTFIELDCONST:
 		switch (iptr[1].op1) {
 		case TYPE_INT:
-			printf(" %d,", iptr->val.i);
+			printf(" %d (0x%08x),", iptr->val.i, iptr->val.i);
 			break;
 		case TYPE_LNG:
 #if SIZEOF_VOID_P == 4
-			printf(" %lld,", iptr->val.l);
+			printf(" %lld (0x%016llx),", iptr->val.l, iptr->val.l);
 #else
-			printf(" %ld,", iptr->val.l);
+			printf(" %ld (0x%016lx),", iptr->val.l, iptr->val.l);
 #endif
 			break;
 		case TYPE_ADR:
 			printf(" %p,", iptr->val.a);
 			break;
 		case TYPE_FLT:
-			printf(" %g,", iptr->val.f);
+			printf(" %g (0x%08x),", iptr->val.f, iptr->val.i);
 			break;
 		case TYPE_DBL:
-			printf(" %g,", iptr->val.d);
+#if SIZEOF_VOID_P == 4
+			printf(" %g (0x%016llx),", iptr->val.d, iptr->val.l);
+#else
+			printf(" %g (0x%016lx),", iptr->val.d, iptr->val.l);
+#endif
 			break;
 		}
-		if (iptr->opc == ICMD_PUTFIELDCONST) 	 
-			printf(" NOT RESOLVED,"); 	 
+		if (iptr->opc == ICMD_PUTFIELDCONST) {
+			if (iptr[1].val.a)
+				printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
+			else
+				printf(" (NOT RESOLVED),");
+		}
 		printf(" "); 	 
 		utf_display_classname(((unresolved_field *) iptr[1].target)->fieldref->classref->name); 	 
 		printf("."); 	 
@@ -3001,9 +3018,9 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IFGT:
 	case ICMD_IFLE:
 		if (deadcode || !iptr->target)
-			printf("(%d) op1=%d", iptr->val.i, iptr->op1);
+			printf(" %d (0x%08x) op1=%d", iptr->val.i, iptr->val.i, iptr->op1);
 		else
-			printf("(%d) L%03d", iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+			printf(" %d (0x%08x) L%03d", iptr->val.i, iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
 		break;
 
 	case ICMD_IF_LEQ:
@@ -3101,6 +3118,13 @@ void show_icmd(instruction *iptr, bool deadcode)
 			}
 		}
 		break;
+
+	case ICMD_ARETURN:
+		if (iptr->val.a) {
+			printf(" (NOT RESOLVED), Class = \"");
+			utf_display(((unresolved_class *) iptr->val.a)->classref->name);
+			printf("\"");
+		}
 	}
 }
 
