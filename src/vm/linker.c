@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3460 2005-10-20 09:34:16Z edwin $
+   $Id: linker.c 3528 2005-11-01 21:33:28Z edwin $
 
 */
 
@@ -447,7 +447,10 @@ static classinfo *link_class_intern(classinfo *c)
 	/* has not yet been recorded as an initiating loader for the class */
 	/* this is needed so subsequent code can assume that self-refs     */
 	/* will always resolve lazily                                      */
-	classcache_store(c->classloader,c,false);
+	/* No need to do it for the bootloader - it is always registered   */
+	/* as initiating loader for the classes it loads.                  */
+	if (c->classloader)
+		classcache_store(c->classloader,c,false);
 
 	/* ok, this class is somewhat linked */
 
