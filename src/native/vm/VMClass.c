@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3437 2005-10-14 10:42:55Z twisti $
+   $Id: VMClass.c 3526 2005-11-01 15:26:34Z twisti $
 
 */
 
@@ -286,10 +286,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 			/* check if outer_class is a classref or a real class and
                get the class name from the structure */
 
-			if (IS_CLASSREF(outer))
-				outername = outer.ref->name;
-			else
-				outername = outer.cls->name;
+			outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
 
 			/* outer class is this class */
 
@@ -307,20 +304,25 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 		return NULL;
 
 	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
-		classinfo *inner;
-		classinfo *outer;
+		outer = c->innerclass[i].outer_class;
 
-		if (!resolve_classref_or_classinfo(NULL, c->innerclass[i].inner_class,
-										   resolveEager, false, false, &inner))
-			return NULL;
+		/* check if outer_class is a classref or a real class and
+		   get the class name from the structure */
 
-		if (!resolve_classref_or_classinfo(NULL, c->innerclass[i].outer_class,
-										   resolveEager, false, false, &outer))
-			return NULL;
-		
-		if ((outer == c) &&
-			((publicOnly == 0) || (inner->flags & ACC_PUBLIC))) {
-			/* outer class is this class, store innerclass in array */
+		outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
+
+		/* outer class is this class */
+
+		if ((outername == c->name) &&
+			((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC))) {
+			classinfo *inner;
+
+			if (!resolve_classref_or_classinfo(NULL,
+											   c->innerclass[i].inner_class,
+											   resolveEager, false, false,
+											   &inner))
+				return NULL;
+
 			if (!use_class_as_object(inner))
 				return NULL;
 
@@ -359,10 +361,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 			/* check if inner_class is a classref or a real class and
                get the class name from the structure */
 
-			if (IS_CLASSREF(inner))
-				innername = inner.ref->name;
-			else
-				innername = inner.cls->name;
+			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
 
 			/* innerclass is this class */
 
@@ -513,22 +512,25 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {
-	classinfo *c = (classinfo *) that;
-	u4 i;
-	java_objectarray *a;
+	classinfo        *c;
+	java_objectarray *oa;
+	u4                i;
 
-	a = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+	c = (classinfo *) that;
 
-	if (!a)
+	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+
+	if (!oa)
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		use_class_as_object(c->interfaces[i].cls);
+		if (!use_class_as_object(c->interfaces[i].cls))
+			return NULL;
 
-		a->data[i] = (java_objectheader *) c->interfaces[i].cls;
+		oa->data[i] = (java_objectheader *) c->interfaces[i].cls;
 	}
 
-	return a;
+	return oa;
 }
 
 
@@ -628,10 +630,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
 			/* Check if inner is a classref or a real class and get
                the name of the structure */
 
-			if (IS_CLASSREF(inner))
-				innername = inner.ref->name;
-			else
-				innername = inner.cls->name;
+			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
 
 			/* innerclass is this class */
 
@@ -772,18 +771,22 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getBeautifiedName(JNI
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *that)
 {
-	classinfo *cl = (classinfo *) that;
-	classinfo *c = cl->super.cls;
+	classinfo *c;
+	classinfo *sc;
 
-	if (cl->flags & ACC_INTERFACE)
+	c = (classinfo *) that;
+	sc = c->super.cls;
+
+	if (c->flags & ACC_INTERFACE)
 		return NULL;
 
-	if (!c)
+	if (!sc)
 		return NULL;
 
-	use_class_as_object(c);
+	if (!use_class_as_object(sc))
+		return NULL;
 
-	return (java_lang_Class *) c;
+	return (java_lang_Class *) sc;
 }
 
 
@@ -805,16 +808,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
  * Method:    isAssignableFrom
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *that, java_lang_Class *sup)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
 {
-	if (!sup) {
+	if (c == NULL) {
 		*exceptionptr = new_nullpointerexception();
 		return 0;
 	}
 
 	/* XXX this may be wrong for array classes */
-	return builtin_isanysubclass((classinfo*)sup, (classinfo*)that);
-
+	return builtin_isanysubclass((classinfo *) c, (classinfo *) klass);
 }
 
 
