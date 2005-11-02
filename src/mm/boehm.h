@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 3216 2005-09-19 13:07:54Z twisti $
+   $Id: boehm.h 3531 2005-11-02 13:29:38Z twisti $
 
 */
 
@@ -57,7 +57,6 @@ struct otherstackcall {
 void *heap_alloc_uncollectable(u4 bytelength);
 void  runboehmfinalizer(void *o, void *p);
 void *heap_allocate (u4 bytelength, bool references, methodinfo *finalizer);
-void *heap_reallocate(void *p, u4 bytelength);
 void  heap_free(void *p);
 
 void  gc_init(u4 heapmaxsize, u4 heapstartsize);

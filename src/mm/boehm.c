@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3422 2005-10-12 13:31:50Z twisti $
+   $Id: boehm.c 3531 2005-11-02 13:29:38Z twisti $
 
 */
 
@@ -91,11 +91,6 @@ static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
 	return GC_MALLOC_UNCOLLECTABLE(bytelength);
 }
 
-
-static void *stackcall_realloc(void *p, u4 bytelength)
-{
-	return GC_REALLOC(p, bytelength);
-}
 
 static void *stackcall_free(void *p, u4 bytelength)
 {
@@ -172,15 +167,6 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 	return (u1 *) result;
 }
 
-
-void *heap_reallocate(void *p, u4 bytelength)
-{
-	void *result;
-
-	MAINTHREADCALL(result, stackcall_realloc, p, bytelength);
-
-	return result;
-}
 
 void heap_free(void *p)
 {
