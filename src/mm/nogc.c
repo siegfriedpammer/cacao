@@ -28,12 +28,16 @@
 
    Changes:
 
-   $Id: nogc.c 2869 2005-06-28 19:01:39Z twisti $
+   $Id: nogc.c 3532 2005-11-02 13:33:26Z twisti $
 
 */
 
 
 #include <stdlib.h>
+#include <sys/mman.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "boehm-gc/include/gc.h"
 
@@ -48,85 +52,93 @@
 #include "vm/tables.h"
 
 
-void *heap_alloc_uncollectable(u4 size)
-{
-	void *m;
+/* global stuff ***************************************************************/
 
-	m = calloc(size, 1);
+#define MMAP_HEAPADDRESS    0x10000000  /* try to map the heap to this addr.  */
+#define ALIGNSIZE           8
 
-	if (!m)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
-	
-	return m;
-}
+static void *mmapptr = NULL;
+static int mmapsize = 0;
+static void *mmaptop = NULL;
 
 
 void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 {
 	void *m;
 
-	m = calloc(size, 1);
+	mmapptr = (void *) ALIGN((ptrint) mmapptr, ALIGNSIZE);
+	
+	m = mmapptr;
+	mmapptr = (void *) ((ptrint) mmapptr + size);
 
-	if (!m)
+	if (mmapptr > mmaptop)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Out of memory");
-	
+
+	MSET(m, 0, u1, size);
+
 	return m;
 }
 
 
-void *heap_reallocate(void *p, u4 size)
+void *heap_alloc_uncollectable(u4 size)
 {
-	void *m;
-
-	m = realloc(p, size);
-
-	if (!m)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
-	
-	return m;
+	return heap_allocate(size, false, NULL);
 }
 
 
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
+	heapmaxsize = ALIGN(heapmaxsize, ALIGNSIZE);
+
+	mmapptr = mmap((void *) MMAP_HEAPADDRESS,
+				   (size_t) heapmaxsize,
+				   PROT_READ | PROT_WRITE,
+				   MAP_PRIVATE | MAP_ANONYMOUS,
+				   -1,
+				   (off_t) 0);
+
+	if (mmapptr == MAP_FAILED)
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Out of memory");
+
+	mmapsize = heapmaxsize;
+	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
 }
 
 
-void gc_call()
+void gc_call(void)
 {
 	log_text("GC call: nothing done...");
 	/* nop */
 }
 
 
-s8 gc_get_heap_size()
+s8 gc_get_heap_size(void)
 {
 	return 0;
 }
 
 
-s8 gc_get_free_bytes()
+s8 gc_get_free_bytes(void)
 {
 	return 0;
 }
 
 
-s8 gc_get_max_heap_size()
+s8 gc_get_max_heap_size(void)
 {
 	return 0;
 }
 
 
-void gc_invoke_finalizers()
+void gc_invoke_finalizers(void)
 {
 	/* nop */
 }
 
 
-void gc_finalize_all()
+void gc_finalize_all(void)
 {
 	/* nop */
 }
