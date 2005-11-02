@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3530 2005-11-02 00:05:11Z twisti $
+   $Id: VMSystemProperties.c 3533 2005-11-02 13:35:21Z twisti $
 
 */
 
@@ -239,9 +239,23 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	}
 
 	insert_property(m, p, "java.ext.dirs", "");
+
+#if defined(DISABLE_GC)
+	/* When we disable the GC, we mmap the whole heap to a specific
+	   address, so we can compare call traces. For this reason we have
+	   to add the same properties on different machines, otherwise
+	   more memory may be allocated (e.g. strlen("i386")
+	   vs. strlen("powerpc"). */
+
+ 	insert_property(m, p, "os.name", "unknown");
+	insert_property(m, p, "os.arch", "unknown");
+	insert_property(m, p, "os.version", "unknown");
+#else
  	insert_property(m, p, "os.name", utsnamebuf.sysname);
 	insert_property(m, p, "os.arch", utsnamebuf.machine);
 	insert_property(m, p, "os.version", utsnamebuf.release);
+#endif
+
 	insert_property(m, p, "file.separator", "/");
 	/* insert_property(m, p, "file.encoding", "null"); -- this must be set properly */
 	insert_property(m, p, "path.separator", ":");
@@ -251,11 +265,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "user.dir", cwd ? cwd : "null");
 
 	/* Are we little or big endian? */
+
 	u.i = 1;
 	insert_property(m, p, "gnu.cpu.endian", u.c[0] ? "little" : "big");
 
-
 	/* get locales */
+
 	locale = getenv("LANG");
 	if (locale != NULL) { /* gnu classpath is going to set en as language */
 		if (strlen(locale) <= 2) {
