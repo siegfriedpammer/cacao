@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3501 2005-10-26 20:27:15Z twisti $
+   $Id: class.h 3542 2005-11-03 20:34:14Z twisti $
 
 */
 
@@ -180,6 +180,7 @@ extern classinfo *class_java_lang_OutOfMemoryError;
 extern classinfo *class_java_lang_Exception;
 extern classinfo *class_java_lang_ClassNotFoundException;
 extern classinfo *class_java_lang_IllegalArgumentException;
+extern classinfo *class_java_lang_IllegalMonitorStateException;
 
 
 extern classinfo *class_java_lang_Void;

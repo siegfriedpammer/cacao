@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3501 2005-10-26 20:27:15Z twisti $
+   $Id: class.c 3542 2005-11-03 20:34:14Z twisti $
 
 */
 
@@ -114,6 +114,7 @@ classinfo *class_java_lang_OutOfMemoryError = NULL;
 classinfo *class_java_lang_Exception = NULL;
 classinfo *class_java_lang_ClassNotFoundException = NULL;
 classinfo *class_java_lang_IllegalArgumentException = NULL;
+classinfo *class_java_lang_IllegalMonitorStateException = NULL;
 
 classinfo *class_java_lang_Void = NULL;
 classinfo *class_java_lang_Boolean = NULL;
