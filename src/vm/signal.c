@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 3411 2005-10-12 12:49:32Z twisti $
+   $Id: signal.c 3543 2005-11-03 20:34:57Z twisti $
 
 */
 
@@ -142,7 +142,7 @@ void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* do thread dump */
 
-	thread_dump();
+	threads_dump();
 }
 #endif
 
