@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3549 2005-11-03 20:40:52Z twisti $
+   $Id: jni.c 3558 2005-11-03 23:07:30Z twisti $
 
 */
 
@@ -690,6 +690,7 @@ static void cacao_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
 
 	paramcount = m->parseddesc->paramcount;
 
+/* #error XXX does not work on intrp, but on JIT */
 	if (!(m->flags & ACC_STATIC))
 		paramcount++;
 
@@ -2340,8 +2341,9 @@ jobject CallStaticObjectMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, j
 
 jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
+	va_list  vaargs;
 	jboolean ret;
-	va_list vaargs;
+
 	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
@@ -2355,6 +2357,7 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 jboolean CallStaticBooleanMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	STATS(jniinvokation();)
+
 	return (jboolean) callIntegerMethod(0, methodID, PRIMITIVETYPE_BOOLEAN, args);
 }
 
@@ -2362,7 +2365,8 @@ jboolean CallStaticBooleanMethodV(JNIEnv *env, jclass clazz, jmethodID methodID,
 jboolean CallStaticBooleanMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticBooleanMethodA");
+
+	log_text("JNI-Call: CallStaticBooleanMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
@@ -2370,11 +2374,10 @@ jboolean CallStaticBooleanMethodA(JNIEnv *env, jclass clazz, jmethodID methodID,
 
 jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jbyte ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jbyte   ret;
 
-	/*      log_text("JNI-Call: CallStaticByteMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = (jbyte) callIntegerMethod(0, methodID, PRIMITIVETYPE_BYTE, vaargs);
@@ -2394,7 +2397,8 @@ jbyte CallStaticByteMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_li
 jbyte CallStaticByteMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticByteMethodA");
+
+	log_text("JNI-Call: CallStaticByteMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
@@ -2402,11 +2406,10 @@ jbyte CallStaticByteMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 
 jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jchar ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jchar   ret;
 
-	/*      log_text("JNI-Call: CallStaticByteMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, vaargs);
@@ -2419,6 +2422,7 @@ jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jchar CallStaticCharMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	STATS(jniinvokation();)
+
 	return (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, args);
 }
 
@@ -2426,20 +2430,19 @@ jchar CallStaticCharMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_li
 jchar CallStaticCharMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticCharMethodA");
+
+	log_text("JNI-Call: CallStaticCharMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-
 jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jshort ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jshort  ret;
 
-	/*      log_text("JNI-Call: CallStaticByteMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, vaargs);
@@ -2452,7 +2455,7 @@ jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jshort CallStaticShortMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	STATS(jniinvokation();)
-	/*log_text("JNI-Call: CallStaticShortMethodV");*/
+
 	return (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, args);
 }
 
@@ -2460,20 +2463,19 @@ jshort CallStaticShortMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_
 jshort CallStaticShortMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticShortMethodA");
+
+	log_text("JNI-Call: CallStaticShortMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-
 jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jint ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jint    ret;
 
-	/*      log_text("JNI-Call: CallStaticIntMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, vaargs);
@@ -2486,7 +2488,6 @@ jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jint CallStaticIntMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticIntMethodV");
 
 	return callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, args);
 }
@@ -2495,20 +2496,19 @@ jint CallStaticIntMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list
 jint CallStaticIntMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticIntMethodA");
+
+	log_text("JNI-Call: CallStaticIntMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-
 jlong CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jlong ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jlong   ret;
 
-	/*      log_text("JNI-Call: CallStaticLongMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = callLongMethod(0, methodID, vaargs);
@@ -2531,7 +2531,7 @@ jlong CallStaticLongMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 {
 	STATS(jniinvokation();)
 
-	log_text("JNI-Call: CallStaticLongMethodA: IMPLEMENT ME!!!");
+	log_text("JNI-Call: CallStaticLongMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
@@ -2540,11 +2540,10 @@ jlong CallStaticLongMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 
 jfloat CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jfloat ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jfloat  ret;
 
-	/*      log_text("JNI-Call: CallStaticLongMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
 	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_FLOAT);
@@ -2566,20 +2565,19 @@ jfloat CallStaticFloatMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_
 jfloat CallStaticFloatMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticFloatMethodA");
+
+	log_text("JNI-Call: CallStaticFloatMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-
 jdouble CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	jdouble ret;
 	va_list vaargs;
-	STATS(jniinvokation();)
+	jdouble ret;
 
-	/*      log_text("JNI-Call: CallStaticDoubleMethod");*/
+	STATS(jniinvokation();)
 
 	va_start(vaargs,methodID);
 	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_DOUBLE);
@@ -2592,7 +2590,6 @@ jdouble CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ..
 jdouble CallStaticDoubleMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticDoubleMethodV");
 
 	return callFloatMethod(0, methodID, args, PRIMITIVETYPE_DOUBLE);
 }
@@ -2601,7 +2598,8 @@ jdouble CallStaticDoubleMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, v
 jdouble CallStaticDoubleMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticDoubleMethodA");
+
+	log_text("JNI-Call: CallStaticDoubleMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
@@ -2610,6 +2608,7 @@ jdouble CallStaticDoubleMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, j
 void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
 {
 	va_list vaargs;
+
 	STATS(jniinvokation();)
 
 	va_start(vaargs, methodID);
@@ -2620,16 +2619,17 @@ void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
 
 void CallStaticVoidMethodV(JNIEnv *env, jclass cls, jmethodID methodID, va_list args)
 {
-	log_text("JNI-Call: CallStaticVoidMethodV");
 	STATS(jniinvokation();)
-	(void)callIntegerMethod(0, methodID, TYPE_VOID, args);
+
+	(void) callIntegerMethod(0, methodID, TYPE_VOID, args);
 }
 
 
 void CallStaticVoidMethodA(JNIEnv *env, jclass cls, jmethodID methodID, jvalue * args)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: CallStaticVoidMethodA");
+
+	log_text("JNI-Call: CallStaticVoidMethodA: IMPLEMENT ME!");
 }
 
 
