@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3535 2005-11-03 19:07:57Z twisti $
+   $Id: threads.c 3554 2005-11-03 20:45:04Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include <semaphore.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #ifndef USE_MD_THREAD_STUFF
 #include "machine-instr.h"
@@ -462,11 +463,14 @@ static monitorLockRecord *dummyLR;
 
 static void initPools();
 
-/*
- * Initialize threads.
- */
-void
-initThreadsEarly()
+
+/* thread_preinit **************************************************************
+
+   Do some early initialization of stuff required.
+
+*******************************************************************************/
+
+void threads_preinit(void)
 {
 #ifndef MUTEXSIM
 	pthread_mutexattr_t mutexattr;
@@ -483,8 +487,8 @@ initThreadsEarly()
 	pthread_mutex_init(&threadlistlock, NULL);
 	pthread_mutex_init(&stopworldlock, NULL);
 
-	/* Allocate something so the garbage collector's signal handlers are  */
-	/* installed. */
+	/* Allocate something so the garbage collector's signal handlers
+	   are installed. */
 	heap_allocate(1, false, NULL);
 
 	mainthreadobj = NEW(threadobject);
@@ -499,8 +503,8 @@ initThreadsEarly()
 	thread_addstaticcritical();
 	sem_init(&suspend_ack, 0, 0);
 
-	/* Every newly created object's monitorPtr points here so we save a check
-	 * against NULL */
+	/* Every newly created object's monitorPtr points here so we save
+	   a check against NULL */
 	dummyLR = NEW(monitorLockRecord);
 	dummyLR->o = NULL;
 	dummyLR->ownerThread = NULL;
@@ -511,43 +515,46 @@ static pthread_attr_t threadattr;
 
 static void freeLockRecordPools(lockRecordPool *);
 
-void
-initThreads(u1 *stackbottom)
+
+/* threads_init ****************************************************************
+
+   Initializes the threads required by the JVM: main, finalizer.
+
+*******************************************************************************/
+
+bool threads_init(u1 *stackbottom)
 {
-	classinfo *threadclass;
-	java_lang_String *threadname;
-	java_lang_Thread *mainthread;
+	java_lang_String      *threadname;
+	java_lang_Thread      *mainthread;
 	java_lang_ThreadGroup *threadgroup;
-	threadobject *tempthread = mainthreadobj;
-	methodinfo *method;
+	threadobject          *tempthread;
+	methodinfo            *method;
 
-	if (!(threadclass = load_class_bootstrap(utf_new_char("java/lang/VMThread"))))
-		throw_exception_exit();
-
-	if (!threadclass)
-		throw_exception_exit();
-
-	if (!link_class(threadclass))
-		throw_exception_exit();
+	tempthread = mainthreadobj;
 
 	freeLockRecordPools(mainthreadobj->ee.lrpool);
-	/* This is kinda tricky, we grow the java.lang.Thread object so we can keep
-	 * the execution environment there. No Thread object must have been created
-	 * at an earlier time */
-	threadclass->instancesize = sizeof(threadobject);
 
-	/* Create a VMThread */
-	mainthreadobj = (threadobject *) builtin_new(threadclass);
+	/* This is kinda tricky, we grow the java.lang.Thread object so we
+	   can keep the execution environment there. No Thread object must
+	   have been created at an earlier time. */
+
+	class_java_lang_VMThread->instancesize = sizeof(threadobject);
+
+	/* create a VMThread */
+
+	mainthreadobj = (threadobject *) builtin_new(class_java_lang_VMThread);
 
 	if (!mainthreadobj)
-		throw_exception_exit();
+		return false;
 
 	FREE(tempthread, threadobject);
+
 	initThread(&mainthreadobj->o);
 
 	setthreadobject(mainthreadobj);
 
 	initLocks();
+
 	mainthreadobj->info.next = mainthreadobj;
 	mainthreadobj->info.prev = mainthreadobj;
 
@@ -562,7 +569,7 @@ initThreads(u1 *stackbottom)
 
 	threadname = javastring_new(utf_new_char("main"));
 
-	/* Allocate and init ThreadGroup */
+	/* allocate and init ThreadGroup */
 
 	threadgroup = (java_lang_ThreadGroup *)
 		native_new_and_init(class_java_lang_ThreadGroup);
@@ -570,36 +577,36 @@ initThreads(u1 *stackbottom)
 	if (!threadgroup)
 		throw_exception_exit();
 
-	/* Create a Thread */
+	/* create a Thread */
 
-	if (!(threadclass = load_class_bootstrap(utf_new_char("java/lang/Thread"))))
-		throw_exception_exit();
-
-	mainthread = (java_lang_Thread*) builtin_new(threadclass);
-	mainthreadobj->o.thread = mainthread;
+	mainthread = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	if (!mainthread)
 		throw_exception_exit();
 
-	/* Call Thread constructor */
-	method = class_resolveclassmethod(threadclass,
+	mainthreadobj->o.thread = mainthread;
+
+	/* call Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+
+	method = class_resolveclassmethod(class_java_lang_Thread,
 									  utf_init,
 									  utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-									  threadclass,
+									  class_java_lang_Thread,
 									  true);
 
 	if (!method)
-		throw_exception_exit();
+		return false;
 
 	asm_calljavafunction(method, mainthread, mainthreadobj, threadname, (void*) 5);
 	if (*exceptionptr)
-		throw_exception_exit();
+		return false;
 
 	mainthread->group = threadgroup;
 	/* XXX This is a hack because the fourth argument was omitted */
 	mainthread->daemon = false;
 
-	/* Add mainthread to ThreadGroup */
+	/* add mainthread to ThreadGroup */
+
 	method = class_resolveclassmethod(class_java_lang_ThreadGroup,
 									  utf_new_char("addThread"),
 									  utf_new_char("(Ljava/lang/Thread;)V"),
@@ -607,18 +614,23 @@ initThreads(u1 *stackbottom)
 									  true);
 
 	if (!method)
-		throw_exception_exit();
+		return false;
 
 	asm_calljavafunction(method, threadgroup, mainthread, NULL, NULL);
 
 	if (*exceptionptr)
-		throw_exception_exit();
+		return false;
 
 	setPriority(pthread_self(), 5);
 
 	pthread_attr_init(&threadattr);
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
+
+	/* everything's ok */
+
+	return true;
 }
+
 
 void initThread(java_lang_VMThread *t)
 {
@@ -638,20 +650,30 @@ void initThread(java_lang_VMThread *t)
 
 static void initThreadLocks(threadobject *);
 
+
 typedef struct {
 	threadobject *thread;
-	sem_t *psem;
-	sem_t *psem_first;
+	functionptr   function;
+	sem_t        *psem;
+	sem_t        *psem_first;
 } startupinfo;
 
-static void *threadstartup(void *t)
+
+/* threads_startup *************************************************************
+
+   Thread startup function called by pthread_create.
+
+******************************************************************************/
+
+static void *threads_startup_thread(void *t)
 {
-	startupinfo *startup = t;
-	threadobject *thread = startup->thread;
-	sem_t *psem = startup->psem;
-	nativethread *info = &thread->info;
+	startupinfo  *startup;
+	threadobject *thread;
+	sem_t        *psem;
+	nativethread *info;
 	threadobject *tnext;
-	methodinfo *method;
+	methodinfo   *method;
+	functionptr   function;
 
 #if defined(ENABLE_INTRP)
 	u1 *intrp_thread_stack;
@@ -664,6 +686,16 @@ static void *threadstartup(void *t)
 	}
 #endif
 
+	/* get passed startupinfo structure and the values in there */
+
+	startup = t;
+
+	thread   = startup->thread;
+	function = startup->function;
+	psem     = startup->psem;
+
+	info = &thread->info;
+
 	/* Seems like we've encountered a situation where info->tid was not set by
 	 * pthread_create. We alleviate this problem by waiting for pthread_create
 	 * to return. */
@@ -675,11 +707,15 @@ static void *threadstartup(void *t)
 #endif
 	setthreadobject(thread);
 
+	/* insert the thread into the threadlist */
+
 	pthread_mutex_lock(&threadlistlock);
+
 	info->prev = mainthreadobj;
 	info->next = tnext = mainthreadobj->info.next;
 	mainthreadobj->info.next = thread;
 	tnext->info.prev = thread;
+
 	pthread_mutex_unlock(&threadlistlock);
 
 	initThreadLocks(thread);
@@ -696,61 +732,90 @@ static void *threadstartup(void *t)
 		THREADINFO->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
 #endif
 
-	/* Find the run()V method and call it */
+	/* find and run the Thread.run()V method if no other function was passed */
 
-	method = class_resolveclassmethod(thread->o.header.vftbl->class,
-									  utf_run,
-									  utf_void__void,
-									  thread->o.header.vftbl->class,
-									  true);
+	if (function == NULL) {
+		method = class_resolveclassmethod(thread->o.header.vftbl->class,
+										  utf_run,
+										  utf_void__void,
+										  thread->o.header.vftbl->class,
+										  true);
 
-	if (!method)
-		throw_exception();
+		if (!method)
+			throw_exception();
 
-	asm_calljavafunction(method, thread, NULL, NULL, NULL);
+		asm_calljavafunction(method, thread, NULL, NULL, NULL);
 
-	/* Allow lock record pools to be used by other threads. They cannot be
-	 * deleted so we'd better not waste them. */
+	} else {
+		/* call passed function, e.g. finalizer_thread */
+
+		(function)();
+	}
+
+	/* Allow lock record pools to be used by other threads. They
+	   cannot be deleted so we'd better not waste them. */
+
 	freeLockRecordPools(thread->ee.lrpool);
+
+	/* remove thread from thread list, do this inside a lock */
 
 	pthread_mutex_lock(&threadlistlock);
 	info->next->info.prev = info->prev;
 	info->prev->info.next = info->next;
 	pthread_mutex_unlock(&threadlistlock);
 
+	/* reset thread id (lock on joinMutex? TWISTI) */
+
 	pthread_mutex_lock(&info->joinMutex);
 	info->tid = 0;
 	pthread_mutex_unlock(&info->joinMutex);
+
 	pthread_cond_broadcast(&info->joinCond);
 
 	return NULL;
 }
 
-void startThread(thread *t)
-{
-	nativethread *info = &((threadobject*) t->vmThread)->info;
-	sem_t sem;
-	sem_t sem_first;
-	startupinfo startup;
 
-	startup.thread = (threadobject*) t->vmThread;
-	startup.psem = &sem;
+/* threads_start_thread ********************************************************
+
+   Start a thread in the JVM.
+
+******************************************************************************/
+
+void threads_start_thread(thread *t, functionptr function)
+{
+	nativethread *info;
+	sem_t         sem;
+	sem_t         sem_first;
+	startupinfo   startup;
+
+	info = &((threadobject *) t->vmThread)->info;
+
+	/* fill startupinfo structure passed by pthread_create to XXX */
+
+	startup.thread     = (threadobject*) t->vmThread;
+	startup.function   = function;       /* maybe we don't call Thread.run()V */
+	startup.psem       = &sem;
 	startup.psem_first = &sem_first;
 
 	sem_init(&sem, 0, 0);
 	sem_init(&sem_first, 0, 0);
 	
-	if (pthread_create(&info->tid, &threadattr, threadstartup, &startup)) {
+	if (pthread_create(&info->tid, &threadattr, threads_startup_thread,
+					   &startup)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
+
 	sem_post(&sem_first);
 
-	/* Wait here until the thread has entered itself into the thread list */
+	/* wait here until the thread has entered itself into the thread list */
+
 	sem_wait(&sem);
 	sem_destroy(&sem);
 	sem_destroy(&sem_first);
 }
+
 
 /* At the end of the program, we wait for all running non-daemon threads to die
  */
@@ -920,9 +985,12 @@ monitorLockRecord *get_dummyLR(void)
 static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 {
 	atomic_add(&lr->queuers, 1);
+
 	MEMORY_BARRIER_AFTER_ATOMIC();
+
 	while (lr->o == o)
 		sem_wait(&lr->queueSem);
+
 	atomic_add(&lr->queuers, -1);
 }
 
@@ -987,12 +1055,21 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 
 static void wakeWaiters(monitorLockRecord *lr)
 {
+	monitorLockRecord *tmplr;
+	s4 q;
+
+	/* assign lock record to a temporary variable */
+
+	tmplr = lr;
+
 	do {
-		int q = lr->queuers;
+		q = tmplr->queuers;
+
 		while (q--)
-			sem_post(&lr->queueSem);
-		lr = lr->waiter;
-	} while (lr);
+			sem_post(&tmplr->queueSem);
+
+		tmplr = tmplr->waiter;
+	} while (tmplr != NULL && tmplr != lr);
 }
 
 #define GRAB_LR(lr,t) \
@@ -1002,7 +1079,7 @@ static void wakeWaiters(monitorLockRecord *lr)
 
 #define CHECK_MONITORSTATE(lr,t,mo,a) \
     if (lr == NULL || lr->o != mo || lr->ownerThread != t) { \
-		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException); \
+		*exceptionptr = new_illegalmonitorstateexception(); \
 		a; \
 	}
 
@@ -1058,25 +1135,38 @@ static bool timeIsEarlier(const struct timespec *tv)
 	return timespec_less(&tsnow, tv);
 }
 
-bool waitWithTimeout(threadobject *t, monitorLockRecord *lr, struct timespec *wakeupTime)
+
+/* waitWithTimeout *************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+static bool waitWithTimeout(threadobject *t, monitorLockRecord *lr, struct timespec *wakeupTime)
 {
 	bool wasinterrupted;
 
 	pthread_mutex_lock(&t->waitLock);
+
 	t->isSleeping = true;
+
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec)
 		while (!t->interrupted && !t->signaled && timeIsEarlier(wakeupTime))
 			pthread_cond_timedwait(&t->waitCond, &t->waitLock, wakeupTime);
 	else
 		while (!t->interrupted && !t->signaled)
 			pthread_cond_wait(&t->waitCond, &t->waitLock);
+
 	wasinterrupted = t->interrupted;
 	t->interrupted = false;
 	t->signaled = false;
 	t->isSleeping = false;
+
 	pthread_mutex_unlock(&t->waitLock);
+
 	return wasinterrupted;
 }
+
 
 static void calcAbsoluteTime(struct timespec *tm, s8 millis, s4 nanos)
 {
@@ -1223,14 +1313,14 @@ void broadcast_cond_for_object(java_objectheader *o)
 }
 
 
-/* thread_dump *****************************************************************
+/* threads_dump ****************************************************************
 
    Dumps info for all threads running in the JVM. This function is
    called when SIGQUIT (<ctrl>-\) is sent to CACAO.
 
 *******************************************************************************/
 
-void thread_dump(void)
+void threads_dump(void)
 {
 	threadobject       *tobj;
 	java_lang_VMThread *vmt;
@@ -1262,10 +1352,15 @@ void thread_dump(void)
 
 			printf("\n\"");
 			utf_display(name);
+			printf("\" ");
+
+			if (t->daemon)
+				printf("daemon ");
+
 #if SIZEOF_VOID_P == 8
-			printf("\" prio=%d tid=0x%016lx\n", t->priority, nt->tid);
+			printf("prio=%d tid=0x%016lx\n", t->priority, nt->tid);
 #else
-			printf("\" prio=%d tid=0x%08lx\n", t->priority, nt->tid);
+			printf("prio=%d tid=0x%08lx\n", t->priority, nt->tid);
 #endif
 
 			/* send SIGUSR1 to thread to print stacktrace */
