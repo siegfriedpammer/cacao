@@ -7,13 +7,13 @@
 
 typedef struct java_lang_ClassLoader {
    java_objectheader header;
-   struct java_util_HashMap* loadedClasses;
    struct java_util_HashMap* definedPackages;
    struct java_lang_ClassLoader* parent;
    s4 initialized;
    s4 defaultAssertionStatus;
    struct java_util_Map* packageAssertionStatus;
    struct java_util_Map* classAssertionStatus;
+   struct java_lang_Object* vmdata;
 } java_lang_ClassLoader;
 
 #endif

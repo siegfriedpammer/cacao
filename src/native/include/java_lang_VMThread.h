@@ -12,16 +12,25 @@ typedef struct java_lang_VMThread {
    s4 status;
    s4 priority;
    s4 restorePoint;
-   struct gnu_classpath_RawData* stackMem;
-   struct gnu_classpath_RawData* stackBase;
-   struct gnu_classpath_RawData* stackEnd;
-   struct gnu_classpath_RawData* usedStackTop;
+   struct gnu_classpath_Pointer* stackMem;
+   struct gnu_classpath_Pointer* stackBase;
+   struct gnu_classpath_Pointer* stackEnd;
+   struct gnu_classpath_Pointer* usedStackTop;
    s8 time;
    struct java_lang_Throwable* texceptionptr;
    struct java_lang_Thread* nextlive;
    struct java_lang_Thread* next;
    s4 flags;
+   struct java_lang_Object* vmdata;
 } java_lang_VMThread;
+
+
+/*
+ * Class:     java/lang/VMThread
+ * Method:    countStackFrames
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, struct java_lang_VMThread* this);
 
 
 /*
