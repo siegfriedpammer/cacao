@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3516 2005-10-28 11:37:03Z twisti $
+   $Id: memory.c 3552 2005-11-03 20:43:17Z twisti $
 
 */
 
@@ -93,7 +93,9 @@ static dumpinfo _no_threads_dumpinfo;
 
 #define DEFAULT_CODEMEM_SIZE    128 * 1024  /* defaulting to 128kB            */
 
+#if defined(USE_THREADS)
 static java_objectheader *codememlock = NULL;
+#endif
 static int                codememsize = 0;
 static void              *codememptr  = NULL;
 
