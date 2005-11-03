@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 3405 2005-10-12 08:19:00Z twisti $
+   $Id: threads.h 3553 2005-11-03 20:43:49Z twisti $
 
 */
 
@@ -38,6 +38,10 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <ucontext.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "config.h"
 #include "vm/types.h"
@@ -47,6 +51,7 @@
 #include "native/include/java_lang_Object.h" /* required by java/lang/VMThread*/
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
+#include "vm/global.h"
 #include "vm/tables.h"
 
 #if defined(__DARWIN__)
@@ -149,9 +154,9 @@ struct threadobject {
 struct monitorLockRecord {
 	threadobject      *ownerThread;
 	java_objectheader *o;
-	int                lockCount;
+	s4                 lockCount;
 	monitorLockRecord *nextFree;
-	int                queuers;
+	s4                 queuers;
 	monitorLockRecord *waiter;
 	monitorLockRecord *incharge;
 	bool               waiting;
@@ -176,19 +181,23 @@ monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
 
 bool threadHoldsLock(threadobject *t, java_objectheader *o);
-void signal_cond_for_object (java_objectheader *obj);
-void broadcast_cond_for_object (java_objectheader *obj);
-void wait_cond_for_object (java_objectheader *obj, s8 time, s4 nanos);
+void signal_cond_for_object(java_objectheader *obj);
+void broadcast_cond_for_object(java_objectheader *obj);
+void wait_cond_for_object(java_objectheader *obj, s8 time, s4 nanos);
 
 void *thread_getself(void);
 
-void initThreadsEarly();
-void initThreads(u1 *stackbottom);
+void threads_preinit(void);
+bool threads_init(u1 *stackbottom);
+
 void initObjectLock(java_objectheader *);
 monitorLockRecord *get_dummyLR(void);
 void initLocks();
 void initThread(java_lang_VMThread *);
-void startThread(thread *t);
+
+/* start a thread */
+void threads_start_thread(thread *t, functionptr function);
+
 void joinAllThreads();
 
 void sleepThread(s8 millis, s4 nanos);
@@ -218,7 +227,10 @@ void cast_stopworld();
 void cast_startworld();
 
 /* dumps all threads */
-void thread_dump(void);
+void threads_dump(void);
+
+/* this is a machine dependent functions (src/vm/jit/$(ARCH_DIR)/md.c) */
+void thread_restartcriticalsection(ucontext_t *);
 
 #endif /* _THREADS_H */
 
