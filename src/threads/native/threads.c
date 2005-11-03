@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3250 2005-09-21 15:33:16Z twisti $
+   $Id: threads.c 3535 2005-11-03 19:07:57Z twisti $
 
 */
 
@@ -1001,7 +1001,7 @@ static void wakeWaiters(monitorLockRecord *lr)
 	}
 
 #define CHECK_MONITORSTATE(lr,t,mo,a) \
-    if (lr->o != mo || lr->ownerThread != t) { \
+    if (lr == NULL || lr->o != mo || lr->ownerThread != t) { \
 		*exceptionptr = new_exception(string_java_lang_IllegalMonitorStateException); \
 		a; \
 	}
