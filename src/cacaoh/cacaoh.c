@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3309 2005-09-29 14:22:55Z twisti $
+   $Id: cacaoh.c 3548 2005-11-03 20:39:46Z twisti $
 
 */
 
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
    
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
-	initThreadsEarly();
+	threads_preinit();
 #endif
 	initLocks();
 #endif
