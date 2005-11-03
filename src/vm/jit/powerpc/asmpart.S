@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3234 2005-09-21 12:11:58Z twisti $
+   $Id: asmpart.S 3556 2005-11-03 21:39:25Z twisti $
 
 */
 
@@ -258,27 +258,44 @@ asm_calljavafunction2double:
 	ble     calljava_argsloaded
 
 	addi    itmp2,itmp2,-1
-	lwz     r3,offjniitem+4(itmp1)
+	lwz     a0,offjniitem+4(itmp1)
 	mr.     itmp2,itmp2
 	ble     calljava_argsloaded
 
 	addi    itmp2,itmp2,-1
-	lwz     r4,offjniitem+sizejniblock*1+4(itmp1)
+	lwz     a1,offjniitem+sizejniblock*1+4(itmp1)
 	mr.     itmp2,itmp2
 	ble     calljava_argsloaded
-	addi    itmp2,itmp2,-1
 
 	addi    itmp2,itmp2,-1
-	lwz     r5,offjniitem+sizejniblock*2+4(itmp1)
+	lwz     a2,offjniitem+sizejniblock*2+4(itmp1)
 	mr.     itmp2,itmp2
 	ble     calljava_argsloaded
-	addi    itmp2,itmp2,-1
 
 	addi    itmp2,itmp2,-1
-	lwz     r6,offjniitem+sizejniblock*3+4(itmp1)
+	lwz     a3,offjniitem+sizejniblock*3+4(itmp1)
 	mr.     itmp2,itmp2
 	ble     calljava_argsloaded
+
 	addi    itmp2,itmp2,-1
+	lwz     a4,offjniitem+sizejniblock*4+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
+
+	addi    itmp2,itmp2,-1
+	lwz     a5,offjniitem+sizejniblock*5+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
+
+	addi    itmp2,itmp2,-1
+	lwz     a6,offjniitem+sizejniblock*6+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
+
+	addi    itmp2,itmp2,-1
+	lwz     a7,offjniitem+sizejniblock*7+4(itmp1)
+	mr.     itmp2,itmp2
+	ble     calljava_argsloaded
 
 calljava_argsloaded:
 	addi    itmp1,r1,36
@@ -810,7 +827,7 @@ asm_wrapper_patcher:
 	mflr	r0
 	stw     r0,8*4+LA_LR_OFFSET(r1) /* skip stack frame of patcher stub       */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    r1,-(LA_SIZE+(5+38)*4+sizestackframeinfo)(r1)
+	stwu    sp,-(LA_SIZE+(5+38)*4+sizestackframeinfo)(sp)
 
 #if 1
 	stw     a0,LA_SIZE+(5+0)*4(r1)      /* save argument registers            */
@@ -859,7 +876,7 @@ asm_wrapper_patcher:
 	mr      a1,pv
 	addi    a2,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
 	mr      a3,r0                       /* this is correct for leafs          */
-	mr      a4,a3                       /* pass xpc                           */
+	lwz     a4,((5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo)(sp) /* pass xpc   */
 	bl      stacktrace_create_extern_stackframeinfo
 
 	addi    a0,sp,(0+LA_WORD_SIZE+5+38)*4+sizestackframeinfo  /* pass sp      */
@@ -872,8 +889,6 @@ asm_wrapper_patcher:
 
 	addi    a0,sp,LA_SIZE+(5+38)*4
 	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
-
-	lwz     itmp3,LA_SIZE+(5+37)*4(sp)  /* restore return value into temp reg.*/
 
 #if 1
 	lwz     a0,LA_SIZE+(5+0)*4(r1)
@@ -916,19 +931,21 @@ asm_wrapper_patcher:
 
 	                              /* get return address (into JIT code)       */
 	lwz     itmp1,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
-	mtlr    itmp1
+	mtctr   itmp1
 
 	lwz     itmp1,LA_SIZE+(5+34)*4(sp)
 	lwz     itmp2,LA_SIZE+(5+35)*4(sp)
 	lwz     pv,LA_SIZE+(5+36)*4(sp)
 
-	                              /* remove stack frame + patcher stub stack  */
-	addi    r1,r1,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+	lwz     itmp3,LA_SIZE+(5+37)*4(sp)  /* restore return value into temp reg.*/
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	beq     L_asm_wrapper_patcher_exception
 
-	blr                           /* jump to new patched code                 */
+	                              /* remove stack frame + patcher stub stack  */
+	addi    sp,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+
+	bctr                          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -952,7 +969,7 @@ L_asm_wrapper_patcher_exception:
 	li      itmp3,0
 	stw     itmp3,0(v0)           /* clear the exception pointer              */
 
-	mflr    xpc
+	mfctr   xpc
 	b       asm_handle_exception
 
 

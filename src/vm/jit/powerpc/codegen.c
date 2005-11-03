@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3485 2005-10-21 13:44:43Z twisti $
+   $Id: codegen.c 3556 2005-11-03 21:39:25Z twisti $
 
 */
 
@@ -68,15 +68,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/reg.inc"
 
-
-/* #include <architecture/ppc/cframe.h> */
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(void *u)
-{
-	/* XXX set pc to restart address */
-}
-#endif
 
 s4 *codegen_trace_args( methodinfo *m, codegendata *cd, registerdata *rd,
 						s4 *mcodeptr, s4 parentargs_base, bool nativestub);
@@ -3651,7 +3642,7 @@ gen_method:
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
 			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
 
-			M_BL(tmpmcodeptr - (xcodeptr + 1));
+			M_BR(tmpmcodeptr - (xcodeptr + 1));
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
@@ -3659,10 +3650,10 @@ gen_method:
 
 			M_AADD_IMM(REG_SP, -8 * 4, REG_SP);
 
-			/* move return address onto stack */
+			/* calculate return address and move it onto the stack */
 
-			M_MFLR(REG_ZERO);
-			M_AST_INTERN(REG_ZERO, REG_SP, 5 * 4);
+			M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
+			M_AST_INTERN(REG_ITMP3, REG_SP, 5 * 4);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -3675,8 +3666,7 @@ gen_method:
 			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
 #else
-			M_CLR(REG_ITMP3);
-			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
+			/* do nothing */
 #endif
 
 			/* move machine code onto stack */
@@ -4153,8 +4143,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 4 * 4);
 #else
-			M_CLR(REG_ITMP3);
-			M_AST(REG_ITMP3, REG_SP, 4 * 4);
+			/* do nothing */
 #endif
 
 			/* move machine code onto stack */
