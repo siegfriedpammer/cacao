@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3474 2005-10-21 12:02:40Z twisti $
+   $Id: codegen.inc 3540 2005-11-03 20:33:20Z twisti $
 
 */
 
@@ -1044,17 +1044,12 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, functionptr ra)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
-	nativethread   *info;
 
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
 	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
 							  sizeof(localref_table));
-
-	/* get thread info */
-
-	info = THREADINFO;
 
 	/* add a stackframeinfo to the chain */
 
@@ -1065,13 +1060,13 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, functionptr ra)
 	lrt->capacity    = LOCALREFTABLE_CAPACITY;
 	lrt->used        = 0;
 	lrt->localframes = 1;
-	lrt->prev        = info->_localref_table;
+	lrt->prev        = LOCALREFTABLE;
 
 	/* clear the references array (memset is faster the a for-loop) */
 
 	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
 
-	info->_localref_table = lrt;
+	LOCALREFTABLE = lrt;
 }
 
 
@@ -1083,10 +1078,10 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, functionptr ra)
 
 void codegen_finish_native_call(u1 *datasp)
 {
-	stackframeinfo *sfi;
-	localref_table *lrt;
-	nativethread   *info;
-	s4              localframes;
+	stackframeinfo  *sfi;
+	stackframeinfo **psfi;
+	localref_table  *lrt;
+	s4               localframes;
 
 	/* get data structures from stack */
 
@@ -1094,17 +1089,15 @@ void codegen_finish_native_call(u1 *datasp)
 	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
 							  sizeof(localref_table));
 
-	/* get thread info */
-
-	info = THREADINFO;
-
 	/* remove current stackframeinfo from chain */
 
-	info->_stackframeinfo = sfi->prev;
+	psfi = STACKFRAMEINFO;
+
+	*psfi = sfi->prev;
 
 	/* release JNI local references tables for this thread */
 
-	lrt = info->_localref_table;
+	lrt = LOCALREFTABLE;
 
 	/* got through all current local frames */
 
@@ -1114,7 +1107,7 @@ void codegen_finish_native_call(u1 *datasp)
 
 	/* now store the previous local frames in the thread structure */
 
-	info->_localref_table = lrt;
+	LOCALREFTABLE = lrt;
 }
 
 

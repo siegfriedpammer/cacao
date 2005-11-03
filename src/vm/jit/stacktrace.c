@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3524 2005-11-01 12:36:30Z twisti $
+   $Id: stacktrace.c 3540 2005-11-03 20:33:20Z twisti $
 
 */
 
@@ -84,12 +84,8 @@ typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
 
 /* global variables ***********************************************************/
 
-#if defined(USE_THREADS)
-#define STACKFRAMEINFO    (stackframeinfo **) (&THREADINFO->_stackframeinfo)
-#else
-THREADSPECIFIC stackframeinfo *_no_threads_stackframeinfo = NULL;
-
-#define STACKFRAMEINFO    (&_no_threads_stackframeinfo)
+#if !defined(USE_THREADS)
+stackframeinfo *_no_threads_stackframeinfo = NULL;
 #endif
 
 
@@ -1190,8 +1186,13 @@ void stacktrace_dump_trace(void)
 
 	/* print stacktrace */
 
-	if (buffer)
+	if (buffer) {
 		stacktrace_print_trace(buffer);
+
+	} else {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+	}
 }
 
 
@@ -1221,7 +1222,7 @@ void stacktrace_print_trace(stackTraceBuffer *stb)
 		utf_display(m->descriptor);
 
 		if (m->flags & ACC_NATIVE) {
-			printf("(Native Method)\n");
+			puts("(Native Method)");
 
 		} else {
 			printf("(");

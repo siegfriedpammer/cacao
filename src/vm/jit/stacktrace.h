@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3500 2005-10-26 20:22:30Z twisti $
+   $Id: stacktrace.h 3540 2005-11-03 20:33:20Z twisti $
 
 */
 
@@ -79,6 +79,14 @@ struct stackframeinfo {
 	functionptr    	ra;                 /* RA to parent Java function         */
 	functionptr    	xpc;                /* XPC (for inline stubs)             */
 };
+
+#if defined(USE_THREADS)
+#define STACKFRAMEINFO    (stackframeinfo **) (&THREADINFO->_stackframeinfo)
+#else
+extern stackframeinfo *_no_threads_stackframeinfo;
+
+#define STACKFRAMEINFO    (&_no_threads_stackframeinfo)
+#endif
 
 
 struct stacktraceelement {
