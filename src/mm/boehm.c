@@ -28,9 +28,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3531 2005-11-02 13:29:38Z twisti $
+   $Id: boehm.c 3551 2005-11-03 20:43:01Z twisti $
 
 */
+
+
+#include "config.h"
+#include "vm/types.h"
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
@@ -41,6 +45,7 @@
 
 #include "boehm-gc/include/gc.h"
 #include "mm/boehm.h"
+#include "mm/memory.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -54,12 +59,15 @@
 #include "vm/options.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
+
+/* global variables ***********************************************************/
 
 static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */
 
@@ -132,17 +140,6 @@ void *heap_alloc_uncollectable(u4 bytelength)
 }
 
 
-void runboehmfinalizer(void *o, void *p)
-{
-	java_objectheader *ob = (java_objectheader *) o;
-
-	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
-	
-	/* if we had an exception in the finalizer, ignore it */
-	*exceptionptr = NULL;
-}
-
-
 void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 {
 	void *result;
@@ -158,7 +155,7 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 		return NULL;
 
 	if (finalizer)
-		GC_REGISTER_FINALIZER(result, runboehmfinalizer, 0, 0, 0);
+		GC_REGISTER_FINALIZER(result, finalizer_add, 0, 0, 0);
 
 	/* clear allocated memory region */
 
@@ -181,23 +178,28 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
-	size_t heapcurrentsize;
+	size_t  heapcurrentsize;
 
 	GC_INIT();
 
 	/* set the maximal heap size */
+
 	GC_set_max_heap_size(heapmaxsize);
 
 	/* set the initial heap size */
+
 	heapcurrentsize = GC_get_heap_size();
+
 	if (heapstartsize > heapcurrentsize) {
 		GC_expand_hp(heapstartsize - heapcurrentsize);
 	}
 
 	/* define OOM function */
+
 	GC_oom_fn = gc_out_of_memory;
 
 	/* suppress warnings */
+
 	GC_set_warn_proc(gc_ignore_warnings);
 }
 
