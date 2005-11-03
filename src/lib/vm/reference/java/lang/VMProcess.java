@@ -88,9 +88,9 @@ final class VMProcess extends Process
   final File dir;			       // copied from Runtime.exec()
   Throwable exception;			       // if process failed to start
   long pid;				       // process id
-  OutputStream _stdin;			       // process input stream
-  InputStream _stdout;			       // process output stream
-  InputStream _stderr;			       // process error stream
+  OutputStream stdin;			       // process input stream
+  InputStream stdout;			       // process output stream
+  InputStream stderr;			       // process error stream
   int exitValue;			       // process exit value
 
   //
@@ -277,9 +277,9 @@ final class VMProcess extends Process
   private void setProcessInfo(OutputStream stdin,
                  InputStream stdout, InputStream stderr, long pid)
   {
-    this._stdin = stdin;
-    this._stdout = stdout;
-    this._stderr = stderr;
+    this.stdin = stdin;
+    this.stdout = stdout;
+    this.stderr = stderr;
     this.pid = pid;
   }
 
@@ -293,17 +293,17 @@ final class VMProcess extends Process
 
   public OutputStream getOutputStream()
   {
-    return _stdin;
+    return stdin;
   }
 
   public InputStream getInputStream()
   {
-    return _stdout;
+    return stdout;
   }
 
   public InputStream getErrorStream()
   {
-    return _stderr;
+    return stderr;
   }
 
   public synchronized int waitFor() throws InterruptedException
