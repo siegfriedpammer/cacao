@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3517 2005-10-28 11:39:25Z twisti $
+   $Id: cacao.c 3546 2005-11-03 20:38:44Z twisti $
 
 */
 
@@ -59,6 +59,7 @@
 
 #include "toolbox/logging.h"
 #include "vm/exceptions.h"
+#include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/loader.h"
@@ -1026,15 +1027,21 @@ int main(int argc, char **argv)
 
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
-  	initThreadsEarly();
+  	threads_preinit();
 #endif
 	initLocks();
 #endif
 
-	/* initialize the memory subsystem (this must be done _after_
-       thread init) */
+	/* initialize the memory subsystem (must be done _after_
+       threads_preinit) */
 
 	if (!memory_init())
+		throw_main_exception_exit();
+
+	/* initialize the finalizer stuff: lock, linked list (must be done
+	   _after_ threads_preinit) */
+
+	if (!finalizer_init())
 		throw_main_exception_exit();
 
 	/* install architecture dependent signal handler used for exceptions */
@@ -1073,7 +1080,8 @@ int main(int argc, char **argv)
 		throw_main_exception_exit();
 
 #if defined(USE_THREADS)
-  	initThreads((u1 *) &dummy);
+  	if (!threads_init((u1 *) &dummy))
+		throw_main_exception_exit();
 #endif
 
 	/* That's important, otherwise we get into trouble, if the Runtime
@@ -1085,8 +1093,16 @@ int main(int argc, char **argv)
 		throw_main_exception_exit();
 
 	/* JNI init creates a Java object (this means running Java code) */
+
 	if (!jni_init())
 		throw_main_exception_exit();
+
+#if defined(USE_THREADS)
+	/* finally, start the finalizer thread */
+
+	if (!finalizer_start_thread())
+		throw_main_exception_exit();
+#endif
 
 	cacao_initializing = false;
 
