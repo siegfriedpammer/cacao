@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3505 2005-10-26 20:41:49Z twisti $
+   $Id: jni.c 3549 2005-11-03 20:40:52Z twisti $
 
 */
 
@@ -147,14 +147,8 @@ static classinfo *class_gnu_classpath_Pointer32;
 
 /* local reference table ******************************************************/
 
-#if defined(USE_THREADS)
-#define LOCALREFTABLE    (THREADINFO->_localref_table)
-#else
-#define LOCALREFTABLE    (_no_threads_localref_table)
-#endif
-
 #if !defined(USE_THREADS)
-static localref_table *_no_threads_localref_table;
+localref_table *_no_threads_localref_table;
 #endif
 
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 3408 2005-10-12 08:47:23Z twisti $
+   $Id: jni.h 3549 2005-11-03 20:40:52Z twisti $
 
 */
 
@@ -627,6 +627,14 @@ struct localref_table {
 	localref_table    *prev;            /* link to prev table (LocalFrame)    */
 	java_objectheader *refs[LOCALREFTABLE_CAPACITY]; /* references            */
 };
+
+#if defined(USE_THREADS)
+#define LOCALREFTABLE    (THREADINFO->_localref_table)
+#else
+extern localref_table *_no_threads_localref_table;
+
+#define LOCALREFTABLE    (_no_threads_localref_table)
+#endif
 
 
 #define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;
