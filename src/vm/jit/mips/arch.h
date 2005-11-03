@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3410 2005-10-12 12:45:56Z twisti $
+   $Id: arch.h 3557 2005-11-03 22:42:00Z twisti $
 
 */
 
@@ -36,11 +36,16 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
+#include "config.h"
+
+
 /* define architecture features ***********************************************/
 
 #define U8_AVAILABLE                     1
 
 #define USEBUILTINTABLE
+
+#if SIZEOF_VOID_P == 8
 
 #define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1
@@ -68,6 +73,44 @@
                                             /* only store REG_ZERO            */
 
 /* #define CONDITIONAL_LOADCONST           1 */
+
+#else /* SIZEOF_VOID_P == 8 */
+
+#define SUPPORT_DIVISION                 1
+#define SUPPORT_LONG                     1
+#define SUPPORT_FLOAT                    1
+#define SUPPORT_DOUBLE                   1
+
+#define SUPPORT_FMOD                     0
+#define SUPPORT_IFCVT                    0
+#define SUPPORT_FICVT                    0
+
+#define SUPPORT_LONG_ADD                 1
+#define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_LOGICAL             1
+#define SUPPORT_LONG_SHIFT               0
+#define SUPPORT_LONG_MUL                 0
+#define SUPPORT_LONG_DIV                 0
+#define SUPPORT_LONG_ICVT                0
+#define SUPPORT_LONG_FCVT                0
+
+#define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
+#define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
+
+#define SUPPORT_CONST_STORE              1  /* do we support const stores     */
+#define SUPPORT_CONST_STORE_ZERO_ONLY    1  /* on some risc machines we can   */
+                                            /* only store REG_ZERO            */
+
+/* #define CONDITIONAL_LOADCONST           1 */
+
+#define SUPPORT_COMBINE_INTEGER_REGISTERS
+#define SUPPORT_PASS_FLOATARGS_IN_INTREGS
+
+#if defined(ENABLE_SOFT_FLOAT)
+# define SUPPORT_PASS_FLOATARGS_IN_INTREGS
+#endif
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 #endif /* _ARCH_H */
 

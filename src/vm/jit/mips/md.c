@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md.c 3432 2005-10-13 16:08:01Z twisti $
+   $Id: md.c 3557 2005-11-03 22:42:00Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/jit/stacktrace.h"
 
@@ -68,7 +69,9 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 	/* on MIPS the return address is located on the top of the stackframe */
 
-	ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+	/* XXX change this if we ever want to use 4-byte stackslots */
+	/* ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P)); */
+	ra = (functionptr) (ptrint) *((u1 **) (sp + framesize - 8));
 
 	return ra;
 }
@@ -128,7 +131,11 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* check for call with REG_METHODPTR: ld s8,x(t9) */
 
+#if SIZEOF_VOID_P == 8
 		if ((mcode >> 16) == 0xdf3e) {
+#else
+		if ((mcode >> 16) == 0x8f3e) {
+#endif
 			/* in this case we use the passed method pointer */
 
 			pa = mptr + offset;
@@ -136,7 +143,11 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		} else {
 			/* in the normal case we check for a `ld s8,x(s8)' instruction */
 
+#if SIZEOF_VOID_P == 8
 			if ((mcode >> 16) != 0xdfde) {
+#else
+			if ((mcode >> 16) != 0x8fde) {
+#endif
 				log_text("No `ld s8,x(s8)' instruction found!");
 				assert(0);
 			}
@@ -155,8 +166,9 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
    Machine code:
 
-   6b5b4000    jsr     (pv)
-   237affe8    lda     pv,-24(ra)
+   03c0f809    jalr     s8
+   00000000    nop
+   27feff9c    addiu    s8,ra,-100
 
 *******************************************************************************/
 
@@ -167,7 +179,7 @@ functionptr codegen_findmethod(functionptr pc)
 	u4  mcode;
 	s4  offset;
 
-	ra = (u1 *) pc;
+	ra = (u1 *) (ptrint) pc;
 
 	/* get the offset of the instructions */
 
@@ -176,7 +188,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	mcode = *((u4 *) ra);
 
-	/* check if we have 2 instructions (ldah, lda) */
+	/* check if we have 2 instructions (lui, daddiu) */
 
 	if ((mcode >> 16) == 0x3c19) {
 		/* get displacement of first instruction (lui) */
@@ -187,7 +199,11 @@ functionptr codegen_findmethod(functionptr pc)
 
 		mcode = *((u4 *) (ra + 1 * 4));
 
+#if SIZEOF_VOID_P == 8
 		if ((mcode >> 16) != 0x6739) {
+#else	
+		if ((mcode >> 16) != 0x2739) {
+#endif
 			log_text("No `daddiu' instruction found on return address!");
 			assert(0);
 		}
@@ -199,7 +215,11 @@ functionptr codegen_findmethod(functionptr pc)
 
 		mcode = *((u4 *) ra);
 
+#if SIZEOF_VOID_P == 8
 		if ((mcode >> 16) != 0x67fe) {
+#else
+		if ((mcode >> 16) != 0x27fe) {
+#endif
 			log_text("No `daddiu s8,ra,x' instruction found on return address!");
 			assert(0);
 		}
@@ -211,7 +231,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	pv = ra + offset;
 
-	return (functionptr) pv;
+	return (functionptr) (ptrint) pv;
 }
 
 
