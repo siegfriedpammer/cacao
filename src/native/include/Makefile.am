@@ -28,11 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3536 2005-11-03 20:08:26Z twisti $
+## $Id: Makefile.am 3539 2005-11-03 20:18:51Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 NO_GEN_HEADER_FILES = \
+	gnu_classpath_Pointer.h \
 	java_lang_ClassLoader.h \
 	java_lang_Cloneable.h \
 	java_lang_Object.h \
@@ -49,7 +50,6 @@ GEN_HEADER_FILES = \
 	java_io_InputStream.h \
 	java_io_PrintStream.h \
 	\
-	gnu_classpath_Pointer.h \
 	gnu_classpath_Pointer32.h \
 	gnu_classpath_Pointer64.h \
 	java_io_File.h \
