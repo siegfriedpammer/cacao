@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3498 2005-10-26 16:42:22Z twisti $
+   $Id: exceptions.c 3547 2005-11-03 20:38:59Z twisti $
 
 */
 
@@ -127,6 +127,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_IllegalArgumentException =
 		  load_class_bootstrap(utf_java_lang_IllegalArgumentException)) ||
 		!link_class(class_java_lang_IllegalArgumentException))
+		return false;
+
+	/* java/lang/IllegalMonitorStateException */
+
+	if (!(class_java_lang_IllegalMonitorStateException =
+		  load_class_bootstrap(utf_java_lang_IllegalMonitorStateException)) ||
+		!link_class(class_java_lang_IllegalMonitorStateException))
 		return false;
 
 	/* java/lang/NullPointerException */
@@ -812,6 +819,24 @@ java_objectheader *new_illegalargumentexception(void)
 	java_objectheader *e;
 
 	if (!(e = native_new_and_init(class_java_lang_IllegalArgumentException)))
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* new_illegalmonitorstateexception ********************************************
+
+   Generates a java.lang.IllegalMonitorStateException for the VM
+   thread system.
+
+*******************************************************************************/
+
+java_objectheader *new_illegalmonitorstateexception(void)
+{
+	java_objectheader *e;
+
+	if (!(e = native_new_and_init(class_java_lang_IllegalMonitorStateException)))
 		return *exceptionptr;
 
 	return e;

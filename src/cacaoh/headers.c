@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3459 2005-10-20 00:49:47Z edwin $
+   $Id: headers.c 3547 2005-11-03 20:38:59Z twisti $
 
 */
 
@@ -350,6 +350,17 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 	vfprintf(stderr, message, ap);
 	va_end(ap);
 
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
+java_objectheader *new_illegalmonitorstateexception(void)
+{
+	fprintf(stderr, "%s", string_java_lang_IllegalMonitorStateException);
 	exit(1);
 
 	/* keep compiler happy */
