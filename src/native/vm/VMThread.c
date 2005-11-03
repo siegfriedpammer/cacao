@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 3406 2005-10-12 08:22:24Z twisti $
+   $Id: VMThread.c 3550 2005-11-03 20:41:44Z twisti $
 
 */
 
@@ -81,7 +81,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 #if defined(USE_THREADS)
 	this->thread->vmThread = this;
 
-	startThread((thread *) this->thread);
+	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
+
+	threads_start_thread((thread *) this->thread, NULL);
 #endif
 }
 
