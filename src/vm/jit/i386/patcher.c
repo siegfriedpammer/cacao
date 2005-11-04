@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3464 2005-10-20 10:16:29Z edwin $
+   $Id: patcher.c 3569 2005-11-04 16:47:25Z twisti $
 
 */
 
@@ -435,9 +435,9 @@ bool patcher_builtin_newarray(u1 *sp)
 	*((u4 *) (ra + 8 + 0)) = (u4) mcode;
 	*((u1 *) (ra + 8 + 4)) = (u1) (mcode >> 32);
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 4)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 4)) = (ptrint) c;
 
 	/* if we show disassembly, we have to skip the nop's */
 
@@ -509,9 +509,9 @@ bool patcher_builtin_multianewarray(u1 *sp)
 	if (opt_showdisassemble)
 		ra = ra + 5;
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 7 + 4)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 7 + 4)) = (ptrint) c;
 
 	/* patch new function address */
 
@@ -574,9 +574,9 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	if (opt_showdisassemble)
 		ra = ra + 5;
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 4)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 4)) = (ptrint) c;
 
 	/* patch new function address */
 
@@ -634,9 +634,9 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 	*((u4 *) (ra + 8 + 0)) = (u4) mcode;
 	*((u1 *) (ra + 8 + 4)) = (u1) (mcode >> 32);
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 4)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 4)) = (ptrint) c;
 
 	/* if we show disassembly, we have to skip the nop's */
 
