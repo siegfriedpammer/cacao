@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3558 2005-11-03 23:07:30Z twisti $
+   $Id: jni.c 3561 2005-11-04 16:19:32Z twisti $
 
 */
 
@@ -438,7 +438,7 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 
 				if (params->data[j] != 0) {
 					if (paramtypes->arraydim > 0) {
-						if (!builtin_arrayinstanceof(params->data[j], c->vftbl))
+						if (!builtin_arrayinstanceof(params->data[j], c))
 							goto illegal_arg;
 
 					} else {
@@ -462,7 +462,7 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 	return true;
 
 illegal_arg:
-	*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
+	*exceptionptr = new_illegalargumentexception();
 	return false;
 }
 
