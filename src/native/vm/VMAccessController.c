@@ -28,10 +28,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 3189 2005-09-16 11:53:40Z twisti $
+   $Id: VMAccessController.c 3560 2005-11-04 16:18:27Z twisti $
 
 */
 
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "vm/builtin.h"
