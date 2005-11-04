@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3493 2005-10-24 21:28:15Z edwin $
+   $Id: typecheck.c 3566 2005-11-04 16:27:56Z twisti $
 
 */
 
@@ -1429,16 +1429,16 @@ verify_builtin(verifier_state *state)
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
-		vftbl_t *vft;
+		classinfo *c;
 		TYPECHECK_INT(state->curstack->prev);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without classinfo");
-		vft = (vftbl_t *)state->iptr[-1].val.a;
-		if (!vft)
+		c = (classinfo *) state->iptr[-1].val.a;
+		if (!c)
 			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with unlinked class");
-		if (!vft->arraydesc)
+		if (!c->vftbl->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with non-array class");
-		TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
+		TYPEINFO_INIT_CLASSINFO(dst->typeinfo, c);
 	}
 	else if (ISBUILTIN(PATCHER_builtin_newarray))
 	{
@@ -1448,29 +1448,16 @@ verify_builtin(verifier_state *state)
 		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
 			return false;
 	}
-	else if (ISBUILTIN(BUILTIN_newarray))
-	{
-		vftbl_t *vft;
-		TYPECHECK_INT(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without classinfo");
-		vft = (vftbl_t *)state->iptr[-1].val.a;
-		if (!vft)
-			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with unlinked class");
-		if (!vft->arraydesc)
-			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with non-array class");
-		TYPEINFO_INIT_CLASSINFO(dst->typeinfo,vft->class);
-	}
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
-		vftbl_t *vft;
+		classinfo *c;
 		TYPECHECK_ADR(state->curstack->prev);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without classinfo");
-		vft = (vftbl_t *)state->iptr[-1].val.a;
-		if (!vft)
+		c = (classinfo *) state->iptr[-1].val.a;
+		if (!c)
 			TYPECHECK_VERIFYERROR_bool("INSTANCEOF with unlinked class");
-		if (!vft->arraydesc)
+		if (!c->vftbl->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
 	else if (ISBUILTIN(PATCHER_builtin_arrayinstanceof)) {
@@ -1506,7 +1493,7 @@ static bool
 verify_multianewarray(verifier_state *state)
 {
     stackptr sp;
-	vftbl_t *arrayvftbl;
+	classinfo *arrayclass;
 	arraydescriptor *desc;
 	s4 i;
 
@@ -1526,16 +1513,16 @@ verify_multianewarray(verifier_state *state)
 	/* check array descriptor */
 	if (state->iptr[0].target == NULL) {
 		/* the array class reference has already been resolved */
-		arrayvftbl = (vftbl_t*) state->iptr[0].val.a;
-		if (!arrayvftbl)
+		arrayclass = (classinfo *) state->iptr[0].val.a;
+		if (!arrayclass)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with unlinked class");
-		if ((desc = arrayvftbl->arraydesc) == NULL)
+		if ((desc = arrayclass->vftbl->arraydesc) == NULL)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY with non-array class");
 		if (desc->dimension < state->iptr[0].op1)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		TYPEINFO_INIT_CLASSINFO(state->iptr->dst->typeinfo,arrayvftbl->class);
+		TYPEINFO_INIT_CLASSINFO(state->iptr->dst->typeinfo, arrayclass);
 	}
 	else {
 		const char *p;
@@ -2011,8 +1998,8 @@ fieldaccess_tail:
 
 				if (state->iptr[0].op1) {
 					/* a resolved array class */
-					cls = ((vftbl_t *)state->iptr[0].target)->class;
-					TYPEINFO_INIT_CLASSINFO(dst->typeinfo,cls);
+					cls = (classinfo *) state->iptr[0].target;
+					TYPEINFO_INIT_CLASSINFO(dst->typeinfo, cls);
 				}
 				else {
 					/* an unresolved array class reference */
