@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3483 2005-10-21 13:23:25Z twisti $
+   $Id: codegen.c 3567 2005-11-04 16:33:20Z twisti $
 
 */
 
@@ -5559,65 +5559,65 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	if (runverbose) {
 		s4 p, t;
-		s4 stack_off = 0;
 
-		i386_alu_imm_reg(cd, ALU_SUB, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+		disp = stackframesize * 4;
+
+		M_ASUB_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
     
 		for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++) {
 			t = md->paramtypes[p].type;
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					i386_mov_membase_reg(cd, REG_SP,
-					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
-					i386_mov_membase_reg(cd, REG_SP,
-				        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off + 4, REG_ITMP2);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
+					M_ILD(REG_ITMP1, REG_SP,
+						  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
+					M_ILD(REG_ITMP2, REG_SP,
+						  4 + TRACE_ARGS_NUM * 8 + 4 + disp + 4);
+					M_IST(REG_ITMP1, REG_SP, p * 8);
+					M_IST(REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else if (t == TYPE_ADR) {
-					i386_mov_membase_reg(cd, REG_SP,
-                        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, REG_ITMP1);
-					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
-					i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
+					M_ALD(REG_ITMP1, REG_SP,
+						  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
+					M_CLR(REG_ITMP2);
+					M_AST(REG_ITMP1, REG_SP, p * 8);
+					M_AST(REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
-					i386_mov_membase_reg(cd, REG_SP,
-                        4 + TRACE_ARGS_NUM * 8 + 4 + stack_off, EAX);
+					M_ILD(EAX, REG_SP, 4 + TRACE_ARGS_NUM * 8 + 4 + disp);
 					i386_cltd(cd);
-					i386_mov_reg_membase(cd, EAX, REG_SP, p * 8);
-					i386_mov_reg_membase(cd, EDX, REG_SP, p * 8 + 4);
+					M_IST(EAX, REG_SP, p * 8);
+					M_IST(EDX, REG_SP, p * 8 + 4);
 				}
 
 			} else {
 				if (!IS_2_WORD_TYPE(t)) {
 					i386_flds_membase(cd, REG_SP,
-					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
+									  4 + TRACE_ARGS_NUM * 8 + 4 + disp);
 					i386_fstps_membase(cd, REG_SP, p * 8);
 					i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP2, REG_ITMP2);
-					i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, p * 8 + 4);
+					M_IST(REG_ITMP2, REG_SP, p * 8 + 4);
 
 				} else {
 					i386_fldl_membase(cd, REG_SP,
-					    4 + TRACE_ARGS_NUM * 8 + 4 + stack_off);
+					    4 + TRACE_ARGS_NUM * 8 + 4 + disp);
 					i386_fstpl_membase(cd, REG_SP, p * 8);
 				}
 			}
-			stack_off += (IS_2_WORD_TYPE(t)) ? 8 : 4;
+			disp += (IS_2_WORD_TYPE(t)) ? 8 : 4;
 		}
 	
-		i386_alu_reg_reg(cd, ALU_XOR, REG_ITMP1, REG_ITMP1);
+		M_CLR(REG_ITMP1);
 		for (p = md->paramcount; p < TRACE_ARGS_NUM; p++) {
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8);
-			i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, p * 8 + 4);
+			M_IST(REG_ITMP1, REG_SP, p * 8);
+			M_IST(REG_ITMP1, REG_SP, p * 8 + 4);
 		}
 
-		i386_mov_imm_membase(cd, (ptrint) m, REG_SP, TRACE_ARGS_NUM * 8);
+		M_AST_IMM((ptrint) m, REG_SP, TRACE_ARGS_NUM * 8);
 
-		i386_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
-		i386_call_reg(cd, REG_ITMP1);
+		M_MOV_IMM((ptrint) builtin_trace_args, REG_ITMP1);
+		M_CALL(REG_ITMP1);
 
-		i386_alu_imm_reg(cd, ALU_ADD, TRACE_ARGS_NUM * 8 + 4, REG_SP);
+		M_AADD_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
 
 	/* get function address (this must happen before the stackframeinfo) */
@@ -5723,9 +5723,23 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_CALL(REG_ITMP1);
 
     if (runverbose) {
+		/* restore return value */
+
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
+			M_ILD(REG_RESULT, REG_SP, 1 * 4);
+	
+		} else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				i386_fldl_membase(cd, REG_SP, 1 * 4);
+			else
+				i386_flds_membase(cd, REG_SP, 1 * 4);
+		}
+
 		M_ASUB_IMM(4 + 8 + 8 + 4, REG_SP);
 
-		i386_mov_imm_membase(cd, (ptrint) m, REG_SP, 0);
+		M_AST_IMM((ptrint) m, REG_SP, 0);
 
 		M_IST(REG_RESULT, REG_SP, 4);
 		M_IST(REG_RESULT2, REG_SP, 4 + 4);
