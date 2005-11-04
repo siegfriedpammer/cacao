@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3265 2005-09-21 20:19:47Z twisti $
+   $Id: builtin.h 3562 2005-11-04 16:20:54Z twisti $
 
 */
 
@@ -128,9 +128,9 @@ s4 builtin_isanysubclass_vftbl (vftbl_t *sub, vftbl_t *super);
 /* NOT AN OP */
 s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_arrayinstanceof(java_objectheader *obj, vftbl_t *target);
+s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
-s4 builtin_arraycheckcast(java_objectheader *o, vftbl_t *target);
+s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass);
 #define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
 
 java_objectheader *builtin_throw_exception(java_objectheader *exception);
@@ -144,10 +144,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 java_objectheader *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
 
-java_arrayheader *builtin_newarray(s4 size, vftbl_t *arrayvftbl);
+java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_newarray
 
-java_objectarray *builtin_anewarray(s4 size, classinfo *component);
+java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass);
 #define BUILTIN_anewarray (functionptr) builtin_anewarray
 
 java_booleanarray *builtin_newarray_boolean(s4 size);
@@ -167,7 +167,8 @@ java_intarray *builtin_newarray_int(s4 size);
 java_longarray *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
 
-java_arrayheader *builtin_multianewarray(int n, vftbl_t *arrayvftbl, long *dims);
+java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
+										 long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
 s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
