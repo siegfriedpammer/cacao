@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3394 2005-10-10 17:11:00Z edwin $
+   $Id: parse.c 3564 2005-11-04 16:24:04Z twisti $
 
 */
 
@@ -497,6 +497,19 @@ SHOWOPCODE(DEBUG4)
 			case CONSTANT_String:
 				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
 				break;
+#if 0
+			case CONSTANT_Class:
+				cr = (constant_classref *) (inline_env->method->class->cpinfos[i]);
+
+				if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+									  true, &c))
+					return NULL;
+
+				/* if not resolved, c == NULL */
+
+				LOADCONST_A_CLASS(c, cr);
+				break;
+#endif
 			default:
 				*exceptionptr = new_verifyerror(inline_env->method,
 						"Invalid constant type to push");
@@ -714,7 +727,7 @@ SHOWOPCODE(DEBUG4)
 
 			if (c) {
 				bte = builtintable_get_internal(BUILTIN_newarray);
-				LOADCONST_A_BUILTIN(c->vftbl);
+				LOADCONST_A_BUILTIN(c);
 				BUILTIN(bte, true, NULL, currentline);
 
 			} else {
@@ -739,7 +752,7 @@ SHOWOPCODE(DEBUG4)
 					return NULL;
 
 				if (c) {
-					OP2AT(opcode, v, c->vftbl, NULL, currentline);
+					OP2AT(opcode, v, c, NULL, currentline);
 
 				} else {
 					OP2AT(opcode, v, cr,
@@ -1256,7 +1269,7 @@ SHOWOPCODE(DEBUG4)
 				/* array type cast-check */
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
-					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c->vftbl, currentline);
+					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c, currentline);
 
 				} else {
 					bte = builtintable_get_internal(PATCHER_builtin_arraycheckcast);
@@ -1288,7 +1301,7 @@ SHOWOPCODE(DEBUG4)
 				/* array type cast-check */
 				if (c) {
 					bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
-					LOADCONST_A_BUILTIN(c->vftbl);
+					LOADCONST_A_BUILTIN(c);
 					BUILTIN(bte, false, NULL, currentline);
 
 				} else {
