@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3540 2005-11-03 20:33:20Z twisti $
+   $Id: stacktrace.h 3570 2005-11-04 16:58:36Z motse $
 
 */
 
@@ -175,6 +175,16 @@ void stacktrace_print_trace(stackTraceBuffer *stb);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+
+#ifdef ENABLE_JVMTI
+typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
+
+bool cacao_stacktrace_fillInStackTrace(void **target,
+									   CacaoStackTraceCollector coll,
+									   threadobject* thread);
+
+bool stackTraceCollector(void **target, stackTraceBuffer *buffer);
+#endif
 
 #endif /* _STACKTRACE_H */
 

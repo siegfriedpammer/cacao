@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3546 2005-11-03 20:38:44Z twisti $
+   $Id: cacao.c 3570 2005-11-04 16:58:36Z motse $
 
 */
 
@@ -54,7 +54,11 @@
 #include "native/native.h"
 
 #if defined(ENABLE_JVMTI)
-# include "native/jvmti/jvmti.h"
+#include "native/jvmti/jvmti.h"
+#include "native/jvmti/dbg.h"
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
 #endif
 
 #include "toolbox/logging.h"
@@ -177,6 +181,11 @@ void **stackbottom = 0;
 
 #define OPT_SS               106
 
+#ifdef ENABLE_JVMTI
+#define OPT_DEBUG            107
+#define OPT_AGENTLIB         108
+#define OPT_AGENTPATH        109
+#endif 
 
 opt_struct opts[] = {
 	{ "classpath",         true,  OPT_CLASSPATH },
@@ -228,6 +237,12 @@ opt_struct opts[] = {
 	{ "trace",             false, OPT_TRACE },
 	{ "static-supers",     true,  OPT_STATIC_SUPERS },
 
+	/* JVMTI Agent Command Line Options */
+#ifdef ENABLE_JVMTI
+	{ "agentlib:",         true,  OPT_AGENTLIB },
+	{ "agentpath:",        true,  OPT_AGENTPATH },
+#endif
+
 	/* X options */
 
 	{ "X",                 false, OPT_X },
@@ -236,6 +251,9 @@ opt_struct opts[] = {
 	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
 	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
+#ifdef ENABLE_JVMTI
+	{ "Xdebug",            false, OPT_DEBUG },
+#endif 
 	{ "Xms",               true,  OPT_MS },
 	{ "Xmx",               true,  OPT_MX },
 	{ "Xss",               true,  OPT_SS },
@@ -276,6 +294,11 @@ static void usage(void)
 	printf("    -showversion             print product version and continue\n");
 	printf("    -help, -?                print this help message\n");
 	printf("    -X                       print help on non-standard Java options\n\n");
+
+#ifdef ENABLE_JVMTI
+	printf("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent\n");
+	printf("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent\n");
+#endif
 
 	printf("CACAO options:\n");
 	printf("    -v                       write state-information\n");
@@ -350,6 +373,9 @@ static void Xusage(void)
 	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
 	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
 	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
+#if defined(ENABLE_JVMTI)
+	printf("    -Xdebug<transport> enable remote debugging\n");
+#endif 
 
 	/* exit with error code */
 
@@ -406,6 +432,65 @@ static void fullversion(void)
 void typecheck_print_statistics(FILE *file);
 #endif
 
+/* setup_debugger_process *****************************************************
+
+   Helper function to start JDWP threads
+
+*******************************************************************************/
+#if defined(ENABLE_JVMTI)
+
+static void setup_debugger_process(char* transport) {
+	java_objectheader *o;
+	methodinfo *m;
+	java_lang_String  *s;
+
+	/* new gnu.classpath.jdwp.Jdwp() */
+	mainclass = 
+		load_class_from_sysloader(utf_new_char("gnu.classpath.jdwp.Jdwp"));
+	if (!mainclass)
+		throw_main_exception_exit();
+
+	o = builtin_new(mainclass);
+
+	if (!o)
+		throw_main_exception_exit();
+	
+	m = class_resolveclassmethod(mainclass,
+								 utf_init, 
+								 utf_java_lang_String__void,
+								 class_java_lang_Object,
+								 true);
+	if (!m)
+		throw_main_exception_exit();
+
+	asm_calljavafunction(m, o, NULL, NULL, NULL);
+
+	/* configure(transport,NULL) */
+	m = class_resolveclassmethod(
+		mainclass, utf_new_char("configure"), 
+		utf_new_char("(Ljava/lang/String;Ljava/lang/Thread;)V"),
+		class_java_lang_Object,
+		false);
+
+
+	s = javastring_new_char(transport);
+	asm_calljavafunction(m, o, s, NULL, NULL);
+	if (!m)
+		throw_main_exception_exit();
+
+	/* _doInitialization */
+	m = class_resolveclassmethod(mainclass,
+								 utf_new_char("_doInitialization"), 
+								 utf_new_char("()V"),
+								 mainclass,
+								 false);
+	
+	if (!m)
+		throw_main_exception_exit();
+
+	asm_calljavafunction(m, o, NULL, NULL, NULL);
+}
+#endif
 
 
 /* getmainclassfromjar *********************************************************
@@ -535,6 +620,12 @@ int main(int argc, char **argv)
 	char *specificmethodname = NULL;
 	char *specificsignature = NULL;
 	bool jar = false;
+#if defined(ENABLE_JVMTI)
+	bool dbg = false;
+	char *transport;
+	int waitval;
+#endif
+
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
@@ -650,6 +741,20 @@ int main(int argc, char **argv)
 		case OPT_JAR:
 			jar = true;
 			break;
+
+#if defined(ENABLE_JVMTI)
+		case OPT_DEBUG:
+			dbg = true;
+			transport = opt_arg;
+			break;
+
+		case OPT_AGENTPATH:
+		case OPT_AGENTLIB:
+			set_jvmti_phase(JVMTI_PHASE_ONLOAD);
+			agentload(opt_arg);
+			set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
+			break;
+#endif
 			
 		case OPT_D:
 			{
@@ -1177,6 +1282,54 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
+#if defined(ENABLE_JVMTI) && defined(NATIVE_THREADS)
+		if(dbg) {
+			debuggee = fork();
+			if (debuggee == (-1)) {
+				log_text("fork error");
+				exit(1);
+			} else {
+				if (debuggee == 0) {
+					/* child: allow helper process to trace us  */
+					if (TRACEME != 0)  exit(0);
+					
+					/* give parent/helper debugger process control */
+					kill(0, SIGTRAP);  /* do we need this at this stage ? */
+
+					/* continue with normal startup */	
+
+				} else {
+
+					/* parent/helper debugger process */
+					wait(&waitval);
+
+					remotedbgjvmtienv = new_jvmtienv();
+					/* set eventcallbacks */
+					if (JVMTI_ERROR_NONE == 
+						remotedbgjvmtienv->
+						SetEventCallbacks(remotedbgjvmtienv,
+										  &jvmti_jdwp_EventCallbacks,
+										  sizeof(jvmti_jdwp_EventCallbacks))){
+						log_text("unable to setup event callbacks");
+						cacao_exit(1);						
+					}
+
+					/* setup listening process (JDWP) */
+					setup_debugger_process(transport);
+
+					/* start to be debugged program */
+					CONT(debuggee);
+
+                    /* exit debugger process - todo: cleanup */
+					joinAllThreads();
+					cacao_exit(0);
+				}
+			}
+		}
+		else 
+			debuggee= -1;
+		
+#endif
 		/* here we go... */
 
 		asm_calljavafunction(m, a, NULL, NULL, NULL);
@@ -1316,6 +1469,11 @@ void cacao_exit(s4 status)
 	assert(class_java_lang_System);
 	assert(class_java_lang_System->loaded);
 
+#if defined(ENABLE_JVMTI)
+	set_jvmti_phase(JVMTI_PHASE_DEAD);
+	agentunload();
+#endif
+
 	if (!link_class(class_java_lang_System))
 		throw_main_exception_exit();
 
@@ -1361,6 +1519,11 @@ void cacao_exit(s4 status)
 
 void cacao_shutdown(s4 status)
 {
+
+#if defined(ENABLE_JVMTI)
+	agentunload();
+#endif
+
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);

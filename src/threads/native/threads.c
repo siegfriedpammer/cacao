@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3554 2005-11-03 20:45:04Z twisti $
+   $Id: threads.c 3570 2005-11-04 16:58:36Z motse $
 
 */
 
@@ -900,8 +900,8 @@ static lockRecordPool *allocNewLockRecordPool(threadobject *thread, int size)
 
 #define INITIALLOCKRECORDS 8
 
-static pthread_mutex_t pool_lock;
-static lockRecordPool *global_pool;
+pthread_mutex_t pool_lock;
+lockRecordPool *global_pool;
 
 static void initPools()
 {

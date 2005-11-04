@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3540 2005-11-03 20:33:20Z twisti $
+   $Id: stacktrace.c 3570 2005-11-04 16:58:36Z motse $
 
 */
 
@@ -75,8 +75,9 @@ typedef struct lineNumberTableEntryInlineBegin {
 	methodinfo *method;
 } lineNumberTableEntryInlineBegin;
 
-
+#ifndef ENABLE_JVMTI
 typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
+#endif
 
 #define BLOCK_INITIALSIZE 40
 #define BLOCK_SIZEINCREMENT 40
@@ -712,9 +713,15 @@ static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
    XXX
 
 *******************************************************************************/
-
+#ifdef ENABLE_JVMTI
+bool cacao_stacktrace_fillInStackTrace(void **target,
+									   CacaoStackTraceCollector coll,
+									   threadobject* thread)
+#else
 static bool cacao_stacktrace_fillInStackTrace(void **target,
-											  CacaoStackTraceCollector coll)
+									   CacaoStackTraceCollector coll)
+#endif
+
 {
 	stacktraceelement primaryBlock[BLOCK_INITIALSIZE*sizeof(stacktraceelement)];
 	stackTraceBuffer  buffer;
@@ -744,7 +751,14 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	/* the first element in the stackframe chain must always be a native      */
 	/* stackframeinfo (VMThrowable.fillInStackTrace is a native function)     */
 
+#ifdef ENABLE_JVMTI
+	if (thread == NULL) 
+		sfi = *STACKFRAMEINFO; /* invocation from Throwable */
+	else
+		sfi = thread->info._stackframeinfo; /* invocation from JVMTI */
+#else
 	sfi = *STACKFRAMEINFO;
+#endif
 
 	if (!sfi) {
 		*target = NULL;
@@ -939,8 +953,11 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
    XXX
 
 *******************************************************************************/
-
+#ifdef ENABLE_JVMTI
+bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
+#else
 static bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
+#endif
 {
 	stackTraceBuffer *dest;
 
@@ -962,7 +979,12 @@ static bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
 
 bool cacao_stacktrace_NormalTrace(void **target)
 {
+#ifdef ENABLE_JVMTI
+	return cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector, NULL);
+#else
 	return cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector);
+#endif
+
 }
 
 
@@ -1022,8 +1044,13 @@ java_objectarray *cacao_createClassContextArray(void)
 {
 	java_objectarray *array = NULL;
 
+#ifdef ENABLE_JVMTI
+	if (!cacao_stacktrace_fillInStackTrace((void **) &array,
+										   &classContextCollector, NULL))
+#else
 	if (!cacao_stacktrace_fillInStackTrace((void **) &array,
 										   &classContextCollector))
+#endif
 		return NULL;
 
 	return array;
@@ -1081,8 +1108,15 @@ java_objectheader *cacao_currentClassLoader(void)
 {
 	java_objectheader *header = NULL;
 
+
+#ifdef ENABLE_JVMTI
+	if (!cacao_stacktrace_fillInStackTrace((void**)&header,
+										   &stacktrace_classLoaderCollector,
+										   NULL))
+#else
 	if (!cacao_stacktrace_fillInStackTrace((void**)&header,
 										   &stacktrace_classLoaderCollector))
+#endif
 		return NULL;
 
 	return header;
@@ -1145,8 +1179,13 @@ java_objectarray *cacao_getStackForVMAccessController(void)
 {
 	java_objectarray *result = NULL;
 
+#ifdef ENABLE_JVMTI
+	if (!cacao_stacktrace_fillInStackTrace((void **) &result,
+										   &getStackCollector,NULL))
+#else
 	if (!cacao_stacktrace_fillInStackTrace((void **) &result,
 										   &getStackCollector))
+#endif
 		return NULL;
 
 	return result;

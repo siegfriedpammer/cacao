@@ -1,7 +1,44 @@
+/* src/native/jvmti.c - implementation of the Java Virtual Machine Tool 
+                        Interface functions
+
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Author: Martin Platter
+
+   Changes:             
+
+   
+   $Id: jvmti.h 3570 2005-11-04 16:58:36Z motse $
+
+*/
 #ifndef JVMTI_H
 #define JVMTI_H
 
 #include "native/jni.h"
+#include "native/include/java_lang_String.h"
+#include <sys/types.h>
 
 #define JVMTI_VERSION_1_0 0x30010000
 
@@ -599,7 +636,7 @@ typedef enum {
 } jvmtiEventMode;
 
 typedef enum {
-    JVMTI_MIN_EVENT_TYPE_VAL = 50,
+    JVMTI_EVENT_START_ENUM = 50,
     JVMTI_EVENT_VM_INIT = 50,
     JVMTI_EVENT_VM_DEATH = 51,
     JVMTI_EVENT_THREAD_START = 52,
@@ -630,7 +667,7 @@ typedef enum {
     JVMTI_EVENT_GARBAGE_COLLECTION_FINISH = 82,
     JVMTI_EVENT_OBJECT_FREE = 83,
     JVMTI_EVENT_VM_OBJECT_ALLOC = 84,
-    JVMTI_MAX_EVENT_TYPE_VAL = 84
+    JVMTI_EVENT_END_ENUM = 84
 } jvmtiEvent;
 
 
@@ -1111,10 +1148,77 @@ struct jvmtiEnv_struct {
                                          jlong* size_ptr);
 }; 
 
+
+#define JVMTI_THREAD_STATE_ALIVE 0x0001
+#define JVMTI_THREAD_STATE_TERMINATED  0x0002   
+#define JVMTI_THREAD_STATE_RUNNABLE  0x0004   
+#define JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER  0x0400
+#define JVMTI_THREAD_STATE_WAITING  0x0080
+#define JVMTI_THREAD_STATE_WAITING_INDEFINITELY  0x0010
+#define JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT  0x0020
+#define JVMTI_THREAD_STATE_SLEEPING  0x0040
+#define JVMTI_THREAD_STATE_IN_OBJECT_WAIT  0x0100
+#define JVMTI_THREAD_STATE_PARKED  0x0200
+#define JVMTI_THREAD_STATE_SUSPENDED  0x100000
+#define JVMTI_THREAD_STATE_INTERRUPTED  0x200000
+#define JVMTI_THREAD_STATE_IN_NATIVE  0x400000
+#define JVMTI_THREAD_STATE_VENDOR_1  0x10000000
+#define JVMTI_THREAD_STATE_VENDOR_2  0x20000000
+#define JVMTI_THREAD_STATE_VENDOR_3  0x40000000
+
+#define JVMTI_THREAD_MIN_PRIORITY  1   
+#define JVMTI_THREAD_NORM_PRIORITY  5
+#define JVMTI_THREAD_MAX_PRIORITY  10
+
+#define JVMTI_CLASS_STATUS_VERIFIED  1   
+#define JVMTI_CLASS_STATUS_PREPARED  2   
+#define JVMTI_CLASS_STATUS_INITIALIZED  4
+#define JVMTI_CLASS_STATUS_ERROR  8   
+#define JVMTI_CLASS_STATUS_ARRAY  16  
+#define JVMTI_CLASS_STATUS_PRIMITIVE  32 
+
 /* cacao specific */
+
+typedef struct {
+	jvmtiEnv *jvmti_env;
+	jthread thread;
+	jmethodID method;
+	jlocation location;
+	jclass klass;
+	jobject object;
+	jfieldID field;
+	char signature_type;
+	jvalue value;
+	jboolean b;
+	void* address;
+	void** new_address_ptr;
+	jmethodID catch_method;
+	jlocation catch_location;
+	char* name;
+	jobject protection_domain;
+	jint jint1;
+	jint jint2;
+	unsigned char* class_data;
+	jint* new_class_data_len;
+	unsigned char** new_class_data;
+	jvmtiAddrLocationMap* map;
+	void* compile_info;
+	jlong jlong;
+} genericEventData;
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+struct _jrawMonitorID {
+	java_lang_String *name;
+};
+#endif
+
 jvmtiEnv* new_jvmtienv();
 void set_jvmti_phase(jvmtiPhase p);
-
+pid_t debuggee;
+jvmtiEnv* remotedbgjvmtienv;
+jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
+void agentload(char* opt_arg);
+void agentunload();
 #endif
 
 

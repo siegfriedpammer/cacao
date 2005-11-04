@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 3553 2005-11-03 20:43:49Z twisti $
+   $Id: threads.h 3570 2005-11-04 16:58:36Z motse $
 
 */
 
@@ -221,6 +221,9 @@ u1 *thread_checkcritical(u1*);
 
 extern volatile int stopworldwhere;
 extern threadobject *mainthreadobj;
+
+extern pthread_mutex_t pool_lock;
+extern lockRecordPool *global_pool;
 
 
 void cast_stopworld();
