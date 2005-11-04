@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3481 2005-10-21 13:16:52Z twisti $
+   $Id: patcher.c 3571 2005-11-04 17:17:36Z twisti $
 
 */
 
@@ -308,9 +308,9 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
+	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
 
 	/* patch new function address */
 
@@ -376,9 +376,9 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+	*((ptrint *) (pv + disp)) = (ptrint) c;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -443,9 +443,9 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+	*((ptrint *) (pv + disp)) = (ptrint) c;
 
 	/* patch new function address */
 
@@ -515,9 +515,9 @@ bool patcher_builtin_arrayinstanceof(u1 *sp)
 
 	asm_sync_instruction_cache();
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 	
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c->vftbl;
+	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
 
 	/* patch new function address */
 
