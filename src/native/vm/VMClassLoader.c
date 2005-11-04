@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3256 2005-09-21 19:34:04Z twisti $
+   $Id: VMClassLoader.c 3559 2005-11-04 09:57:34Z twisti $
 
 */
 
@@ -68,28 +68,21 @@
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *this, java_lang_String *name, java_bytearray *buf, s4 off, s4 len, java_security_ProtectionDomain *pd)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
 	classinfo   *c;
 	classinfo   *r;
 	classbuffer *cb;
 	utf         *utfname;
 
-	if ((off < 0) || (len < 0) || ((off + len) > buf->header.size)) {
+	if ((cl == NULL) || (data == NULL)) {
+		*exceptionptr = new_nullpointerexception();
+		return NULL;
+	}
+
+	if ((offset < 0) || (len < 0) || ((offset + len) > data->header.size)) {
 		*exceptionptr =
 			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-		return NULL;
-	}
-
-	/* thrown by SUN JVM */
-
-	if (len == 0) {
-		*exceptionptr = new_classformaterror(NULL, "Truncated class file");
-		return NULL;
-	}
-
-	if (this == NULL) {
-		*exceptionptr = new_nullpointerexception();
 		return NULL;
 	}
 
@@ -100,7 +93,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		
 		/* check if this class has already been defined */
 
-		c = classcache_lookup_defined((java_objectheader *) this, utfname);
+		c = classcache_lookup_defined((java_objectheader *) cl, utfname);
 		if (c) {
 			return (java_lang_Class *) c;
 		}
@@ -124,13 +117,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	cb = NEW(classbuffer);
 	cb->class = c;
-	cb->size = len;
-	cb->data = (u1 *) &buf->data[off];
-	cb->pos = cb->data - 1;
+	cb->size  = len;
+	cb->data  = (u1 *) &data->data[offset];
+	cb->pos   = cb->data - 1;
 
 	/* preset the defining classloader */
 
-	c->classloader = (java_objectheader *) this;
+	c->classloader = (java_objectheader *) cl;
 
 	/* load the class from this buffer */
 
