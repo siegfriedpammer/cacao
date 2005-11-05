@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 3532 2005-11-02 13:33:26Z twisti $
+   $Id: nogc.c 3584 2005-11-05 22:31:49Z twisti $
 
 */
 
@@ -87,7 +87,26 @@ void *heap_alloc_uncollectable(u4 size)
 }
 
 
-void gc_init(u4 heapmaxsize, u4 heapstartsize)
+void *nogc_realloc(void *src, s4 len1, s4 len2)
+{
+	void *p;
+
+	p = heap_allocate(len2, false, NULL);
+
+	MCOPY(p, src, u1, len1);
+
+	return p;
+}
+
+
+void heap_free(void *p)
+{
+	/* nop */
+}
+
+
+
+void nogc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	heapmaxsize = ALIGN(heapmaxsize, ALIGNSIZE);
 
@@ -104,6 +123,12 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
+}
+
+
+void gc_init(u4 heapmaxsize, u4 heapstartsize)
+{
+	/* nop */
 }
 
 
