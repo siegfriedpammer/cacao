@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3556 2005-11-03 21:39:25Z twisti $
+   $Id: codegen.c 3578 2005-11-05 16:31:41Z twisti $
 
 */
 
@@ -4054,7 +4054,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_JSR;
 	M_MOV(REG_RESULT, REG_ITMP2);
 #else
-	disp = dseg_addaddress(cd, &_exceptionptr)
+	disp = dseg_addaddress(cd, &_no_threads_exceptionptr);
 	M_ALD(REG_ITMP2, REG_PV, disp);
 #endif
 	M_ALD(REG_ITMP1_XPTR, REG_ITMP2, 0);/* load exception into reg. itmp1     */
