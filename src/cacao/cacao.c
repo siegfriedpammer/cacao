@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3570 2005-11-04 16:58:36Z motse $
+   $Id: cacao.c 3586 2005-11-05 22:32:38Z twisti $
 
 */
 
@@ -83,9 +83,9 @@
 
 /* define heap sizes **********************************************************/
 
-#define HEAP_MAXSIZE      64 * 1024 * 1024; /* default 64MB                   */
-#define HEAP_STARTSIZE    2 * 1024 * 1024;  /* default 2MB                    */
-#define STACK_SIZE        128 * 1024;       /* default 128kB                  */
+#define HEAP_MAXSIZE      64 * 1024 * 1024  /* default 64MB                   */
+#define HEAP_STARTSIZE    2 * 1024 * 1024   /* default 2MB                    */
+#define STACK_SIZE        128 * 1024        /* default 128kB                  */
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_main_stack;
@@ -641,6 +641,10 @@ int main(int argc, char **argv)
 
 
 	/************ Collect info from the environment ************************/
+
+#if defined(DISABLE_GC)
+	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
+#endif
 
 	/* set the bootclasspath */
 
