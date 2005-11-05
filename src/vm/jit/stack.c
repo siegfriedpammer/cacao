@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3525 2005-11-01 12:39:01Z twisti $
+   $Id: stack.c 3580 2005-11-05 17:57:09Z twisti $
 
 */
 
@@ -2970,7 +2970,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_ARRAYCHECKCAST:
 		if (iptr->op1) {
-			classinfo *c = ((vftbl_t *) iptr->target)->class;
+			classinfo *c = iptr->target;
 			if (c->flags & ACC_INTERFACE)
 				printf(" (INTERFACE) ");
 			else
