@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3540 2005-11-03 20:33:20Z twisti $
+   $Id: codegen.inc 3587 2005-11-05 23:42:13Z twisti $
 
 */
 
@@ -731,7 +731,7 @@ void codegen_insertmethod(functionptr startpc, functionptr endpc)
 
 functionptr codegen_findmethod(functionptr pc)
 {
-	methodtree_element *mtepc;
+	methodtree_element  mtepc;
 	methodtree_element *mte;
 
 #if defined(USE_THREADS)
@@ -740,13 +740,10 @@ functionptr codegen_findmethod(functionptr pc)
 #endif
 #endif
 
-	mtepc = NEW(methodtree_element);
-	mtepc->startpc = pc;
-	mtepc->endpc = pc;
+	mtepc.startpc = pc;
+	mtepc.endpc = pc;
 
-	mte = avl_find(methodtree, mtepc);
-
-	FREE(mtepc, methodtree_element);
+	mte = avl_find(methodtree, &mtepc);
 
 	if (!mte) {
 #if defined(USE_THREADS)
