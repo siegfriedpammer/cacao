@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 3515 2005-10-28 11:34:55Z twisti $
+   $Id: memory.h 3583 2005-11-05 22:30:59Z twisti $
 
 */
 
@@ -44,7 +44,7 @@ typedef struct dumpblock dumpblock;
 typedef struct dumpinfo dumpinfo;
 
 
-#include "arch.h"
+#include "config.h"
 #include "vm/types.h"
 
 #include "mm/boehm.h"
@@ -128,14 +128,29 @@ struct dumpinfo {
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((int) ((size_t) & (((s*) 0)->el)))
 
+#if !defined(DISABLE_GC)
 
 #define NEW(type)             ((type *) mem_alloc(sizeof(type)))
 #define FREE(ptr,type)        mem_free((ptr), sizeof(type))
 
 #define MNEW(type,num)        ((type *) mem_alloc(sizeof(type) * (num)))
 #define MFREE(ptr,type,num)   mem_free((ptr), sizeof(type) * (num))
+
 #define MREALLOC(ptr,type,num1,num2) mem_realloc((ptr), sizeof(type) * (num1), \
                                                         sizeof(type) * (num2))
+
+#else
+
+#define NEW(type)             GCNEW(type,1)
+#define FREE(ptr,type)        GCFREE(ptr)
+
+#define MNEW(type,num)        GCNEW(type,num)
+#define MFREE(ptr,type,num)   GCFREE(ptr)
+
+#define MREALLOC(ptr,type,num1,num2) nogc_realloc((ptr), sizeof(type) * (num1), \
+                                                        sizeof(type) * (num2))
+
+#endif
 
 #define DNEW(type)            ((type *) dump_alloc(sizeof(type)))
 #define DMNEW(type,num)       ((type *) dump_alloc(sizeof(type) * (num)))
