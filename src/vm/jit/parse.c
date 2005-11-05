@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3574 2005-11-05 16:13:34Z twisti $
+   $Id: parse.c 3576 2005-11-05 16:29:36Z twisti $
 
 */
 
@@ -1069,7 +1069,7 @@ SHOWOPCODE(DEBUG4)
 
 					iptr->val.a = fi;
 
-#if defined(__MIPS__) || defined(__POWERPC__)
+#if defined(__MIPS__)
 					if ((!fi || !fi->class->initialized) && inline_env->method->isleafmethod == true) {
 						utf_display(inline_env->method->class->name);
 						printf(".");
@@ -1288,7 +1288,7 @@ SHOWOPCODE(DEBUG4)
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
 
-#if defined(__MIPS__) || defined(__POWERPC__)
+#if defined(__MIPS__)
 				if (!c && inline_env->method->isleafmethod == true) {
 					utf_display(inline_env->method->class->name);
 					printf(".");
@@ -1329,7 +1329,7 @@ SHOWOPCODE(DEBUG4)
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
 			}
-#if defined(__MIPS__) || defined(__POWERPC__)
+#if defined(__MIPS__)
 			if (!c && inline_env->method->isleafmethod == true) {
 				utf_display(inline_env->method->class->name);
 				printf(".");
