@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 3531 2005-11-02 13:29:38Z twisti $
+   $Id: boehm.h 3585 2005-11-05 22:32:07Z twisti $
 
 */
 
@@ -67,6 +67,11 @@ s8    gc_get_max_heap_size(void);
 void  gc_invoke_finalizers(void);
 void  gc_finalize_all(void);
 void *gc_out_of_memory(size_t bytes_requested);
+
+#if defined(DISABLE_GC)
+void  nogc_init(u4 heapmaxsize, u4 heapstartsize);
+void *nogc_realloc(void *src, s4 len1, s4 len2);
+#endif
 
 #endif /* _BOEHM_H */
 
