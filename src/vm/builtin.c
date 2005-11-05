@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3562 2005-11-04 16:20:54Z twisti $
+   $Id: builtin.c 3582 2005-11-05 19:51:18Z twisti $
 
 */
 
@@ -727,6 +727,15 @@ java_objectheader *builtin_new(classinfo *c)
 	/* is the class loaded */
 
 	assert(c->loaded);
+
+	/* check if we can instantiate this class */
+
+	if (c->flags & ACC_ABSTRACT) {
+		*exceptionptr =
+			new_exception_utfmessage(string_java_lang_InstantiationError,
+									 c->name);
+		return NULL;
+	}
 
 	/* is the class linked */
 	if (!c->linked)
