@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3556 2005-11-03 21:39:25Z twisti $
+   $Id: asmpart.S 3579 2005-11-05 16:33:53Z twisti $
 
 */
 
@@ -474,18 +474,18 @@ noregchange:
 L_asm_call_jit_compiler_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-LA_SIZE_ALIGNED(r1)     /* preserve linkage area              */
+	stw     r0,LA_LR_OFFSET(sp)
+	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
 	bl      builtin_asm_get_exceptionptrptr
-	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(r1)
+	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
 	mtlr    r0	
-	addi    r1,r1,LA_SIZE_ALIGNED
+	addi    sp,sp,LA_SIZE_ALIGNED
 #else
 # if defined(__DARWIN__)
-	lwz     v0,lo16(_exceptionptr-0b)(pv)
+	lwz     v0,lo16(_no_threads_exceptionptr-0b)(pv)
 # else
-	lis     v0,_exceptionptr@ha
-	addi    v0,v0,_exceptionptr@l
+	lis     v0,_no_threads_exceptionptr@ha
+	addi    v0,v0,_no_threads_exceptionptr@l
 # endif
 #endif
 	lwz     xptr,0(v0)                  /* get the exception pointer          */
@@ -824,8 +824,8 @@ ex_flt2:
 *******************************************************************************/
 
 asm_wrapper_patcher:
-	mflr	r0
-	stw     r0,8*4+LA_LR_OFFSET(r1) /* skip stack frame of patcher stub       */
+	mflr	r0                    /* get Java return address (leaf)           */
+	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
 	stwu    sp,-(LA_SIZE+(5+38)*4+sizestackframeinfo)(sp)
 
@@ -885,7 +885,7 @@ asm_wrapper_patcher:
 	stw     itmp1,(0+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
 	mtctr   pv                          /* call the patcher function          */
 	bctrl
-	stw     r3,LA_SIZE+(5+37)*4(sp)     /* save return value                  */
+	stw     v0,LA_SIZE+(5+37)*4(sp)     /* save return value                  */
 
 	addi    a0,sp,LA_SIZE+(5+38)*4
 	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
@@ -929,47 +929,52 @@ asm_wrapper_patcher:
 	lwz     r23,33*8(r1)		
 #endif
 
-	                              /* get return address (into JIT code)       */
-	lwz     itmp1,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
-	mtctr   itmp1
-
 	lwz     itmp1,LA_SIZE+(5+34)*4(sp)
 	lwz     itmp2,LA_SIZE+(5+35)*4(sp)
 	lwz     pv,LA_SIZE+(5+36)*4(sp)
-
 	lwz     itmp3,LA_SIZE+(5+37)*4(sp)  /* restore return value into temp reg.*/
+
+	lwz     r0,(6+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp) /* restore RA   */
+	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	beq     L_asm_wrapper_patcher_exception
 
+	                              /* get return address (into JIT code)       */
+	lwz     itmp3,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
+
 	                              /* remove stack frame + patcher stub stack  */
 	addi    sp,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
 
+	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
+	lwz     xpc,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
+	addi    sp,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-LA_SIZE_ALIGNED(r1) /* preserve linkage area                  */
+	stw     r0,LA_LR_OFFSET(sp)
+	stwu    sp,-(LA_SIZE+1*4)(sp) /* preserve linkage area                    */
+	stw     xpc,LA_SIZE+0*4(sp)
 	bl      builtin_asm_get_exceptionptrptr
-	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(r1)
-	mtlr    r0	
-	addi    r1,r1,LA_SIZE_ALIGNED
+	lwz     xpc,LA_SIZE+0*4(sp)
+	lwz     r0,LA_SIZE+1*4+LA_LR_OFFSET(sp)
+	mtlr    r0
+	addi    sp,sp,LA_SIZE+1*4
 #else
 # if defined(__DARWIN__)
-	lwz     v0,lo16(_exceptionptr-0b)(pv)
+	lwz     v0,lo16(_no_threads_exceptionptr-0b)(pv)
 # else
-	lis     v0,_exceptionptr@ha
-	addi    v0,v0,_exceptionptr@l
+	lis     v0,_no_threads_exceptionptr@ha
+	addi    v0,v0,_no_threads_exceptionptr@l
 # endif
 #endif
 
 	lwz     xptr,0(v0)            /* get the exception pointer                */
 	li      itmp3,0
 	stw     itmp3,0(v0)           /* clear the exception pointer              */
-
-	mfctr   xpc
 	b       asm_handle_exception
 
 
