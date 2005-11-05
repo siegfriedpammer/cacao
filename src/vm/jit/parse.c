@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3564 2005-11-04 16:24:04Z twisti $
+   $Id: parse.c 3574 2005-11-05 16:13:34Z twisti $
 
 */
 
@@ -1070,8 +1070,15 @@ SHOWOPCODE(DEBUG4)
 					iptr->val.a = fi;
 
 #if defined(__MIPS__) || defined(__POWERPC__)
-					if (!fi || !fi->class->initialized)
+					if ((!fi || !fi->class->initialized) && inline_env->method->isleafmethod == true) {
+						utf_display(inline_env->method->class->name);
+						printf(".");
+						utf_display(inline_env->method->name);
+						utf_display(inline_env->method->descriptor);
+						printf(": NO LEAF!\n");
+
 						inline_env->method->isleafmethod = false;
+					}
 #endif
 				}
 				else {
@@ -1282,8 +1289,15 @@ SHOWOPCODE(DEBUG4)
 				OP2AT(opcode, 1, c, cr, currentline);
 
 #if defined(__MIPS__) || defined(__POWERPC__)
-				if (!c)
+				if (!c && inline_env->method->isleafmethod == true) {
+					utf_display(inline_env->method->class->name);
+					printf(".");
+					utf_display(inline_env->method->name);
+					utf_display(inline_env->method->descriptor);
+					printf(": NO LEAF!\n");
+
 					inline_env->method->isleafmethod = false;
+				}
 #endif
 			}
 			break;
@@ -1316,8 +1330,15 @@ SHOWOPCODE(DEBUG4)
 				OP2AT(opcode, 1, c, cr, currentline);
 			}
 #if defined(__MIPS__) || defined(__POWERPC__)
-			if (!c)
+			if (!c && inline_env->method->isleafmethod == true) {
+				utf_display(inline_env->method->class->name);
+				printf(".");
+				utf_display(inline_env->method->name);
+				utf_display(inline_env->method->descriptor);
+				printf(": NO LEAF!\n");
+
 				inline_env->method->isleafmethod = false;
+			}
 #endif
 			break;
 
