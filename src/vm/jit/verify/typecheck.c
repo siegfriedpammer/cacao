@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3566 2005-11-04 16:27:56Z twisti $
+   $Id: typecheck.c 3577 2005-11-05 16:30:33Z twisti $
 
 */
 
@@ -1823,7 +1823,7 @@ fieldaccess_tail:
 					return false;
 
 				/* we need a patcher, so this is not a leafmethod */
-#if defined(__MIPS__) || defined(__POWERPC__)
+#if defined(__MIPS__)
 				if (!*fieldinfop || !(*fieldinfop)->class->initialized)
 					state->cd->method->isleafmethod = false;
 #endif
