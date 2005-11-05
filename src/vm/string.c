@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3349 2005-10-05 10:37:00Z twisti $
+   $Id: string.c 3581 2005-11-05 19:44:38Z twisti $
 
 */
 
@@ -141,6 +141,9 @@ const char *string_java_lang_ExceptionInInitializerError =
 
 const char *string_java_lang_IncompatibleClassChangeError =
     "java/lang/IncompatibleClassChangeError";
+
+const char *string_java_lang_InstantiationError =
+    "java/lang/InstantiationError";
 
 const char *string_java_lang_InternalError =
     "java/lang/InternalError";

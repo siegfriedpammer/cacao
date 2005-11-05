@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 2802 2005-06-23 11:12:28Z twisti $
+   $Id: stringlocal.h 3581 2005-11-05 19:44:38Z twisti $
 
 */
 
@@ -97,6 +97,7 @@ extern const char *string_java_lang_Error;
 extern const char *string_java_lang_ExceptionInInitializerError;
 extern const char *string_java_lang_IncompatibleClassChangeError;
 extern const char *string_java_lang_InternalError;
+extern const char *string_java_lang_InstantiationError;
 extern const char *string_java_lang_LinkageError;
 extern const char *string_java_lang_NoClassDefFoundError;
 extern const char *string_java_lang_NoSuchFieldError;
