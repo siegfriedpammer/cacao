@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 3550 2005-11-03 20:41:44Z twisti $
+   $Id: VMThread.c 3575 2005-11-05 16:26:56Z twisti $
 
 */
 
@@ -222,14 +222,14 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 		if (t->group == NULL)
 			log_text("unable to create ThreadGroup");
   	}
-
-	return t;
 #else
 	/* we just return a fake java.lang.Thread object, otherwise we get
        NullPointerException's in GNU classpath */
 
-	return (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 #endif
+
+	return t;
 }
 
 
