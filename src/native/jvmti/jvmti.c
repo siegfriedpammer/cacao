@@ -30,7 +30,7 @@
    Changes:             
 
    
-   $Id: jvmti.c 3570 2005-11-04 16:58:36Z motse $
+   $Id: jvmti.c 3588 2005-11-06 14:01:10Z motse $
 
 */
 
@@ -990,11 +990,12 @@ GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
 static jvmtiError getcacaostacktrace(stackTraceBuffer** trace, jthread thread) {
 
 	/* todo: suspend specified thread */
-	
+/*	
 	if (!cacao_stacktrace_fillInStackTrace((void**)trace,&stackTraceCollector, (threadobject*)thread)) 
 		return JVMTI_ERROR_INTERNAL;
-
+*/
 	/* todo: resume specified thread */
+	log_text("todo: stacktraces");
     return JVMTI_ERROR_NONE;
 }
 

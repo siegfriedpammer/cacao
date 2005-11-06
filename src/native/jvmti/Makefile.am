@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3066 2005-07-19 12:35:37Z twisti $
+## $Id: Makefile.am 3588 2005-11-06 14:01:10Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,9 @@ noinst_LTLIBRARIES = libjvmti.la
 
 libjvmti_la_SOURCES = \
 	jvmti.c \
-	jvmti.h
+	jvmti.h \
+	VMjdwp.c \
+	dbg.h
 
 
 ## Local variables:

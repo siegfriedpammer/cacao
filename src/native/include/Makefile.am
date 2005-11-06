@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3539 2005-11-03 20:18:51Z twisti $
+## $Id: Makefile.am 3588 2005-11-06 14:01:10Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,9 +68,13 @@ GEN_HEADER_FILES = \
 	java_lang_reflect_Field.h \
 	java_lang_reflect_Method.h \
 	java_nio_Buffer.h \
+	java_nio_ByteBuffer.h \
 	java_nio_DirectByteBufferImpl.h \
 	java_security_ProtectionDomain.h \
-	java_util_Vector.h
+	java_util_Vector.h \
+	gnu_classpath_jdwp_VMFrame.h \
+	gnu_classpath_jdwp_VMVirtualMachine.h \
+	gnu_classpath_jdwp_event_EventRequest
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
