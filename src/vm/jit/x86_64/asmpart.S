@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 3495 2005-10-26 13:29:53Z twisti $
+   $Id: asmpart.S 3590 2005-11-06 14:46:37Z twisti $
 
 */
 
@@ -616,7 +616,7 @@ ex_already_cleared:
 
 #if defined(USE_THREADS)		
 	add     %rsp,%rax
-	mov     -8(%rax),%rdi
+	mov     -8(%rax),%rdi               /* get monitor object from stack      */
 	
 	sub     $(4*8),%rsp
 	mov     %rcx,0*8(%rsp)
@@ -742,11 +742,16 @@ noflt:
      16   unresolved class/method/field reference
       8   data segment displacement from load instructions
       0   pointer to patcher function
+     -8   bp
 
 *******************************************************************************/
 
 asm_wrapper_patcher:
+	push    bp                          /* save base pointer                  */
+	mov     sp,bp                       /* move actual sp to bp               */
 	sub     $(18*8+sizestackframeinfo),sp /* stack frame (16-byte aligned)    */
+	and     $0xfffffffffffffff0,sp      /* align sp to 16-byte (this is for   */
+	                                    /* leaf functions)                    */
 
 	SAVE_ARGUMENT_REGISTERS(0)
 	SAVE_TEMPORARY_REGISTERS(14)
@@ -757,15 +762,15 @@ asm_wrapper_patcher:
 	mov     sp,a0                       /* create stackframe info             */
 	add     $(18*8),a0
 	xor     a1,a1                       /* if pv is NULL, use findmethod      */
-	mov     sp,a2                       /* pass java sp                       */
-	add     $((6+18)*8+sizestackframeinfo),a2
-	mov     ((5+18)*8+sizestackframeinfo)(sp),a3 /* pass ra to java function  */
+	mov     bp,a2                       /* pass java sp                       */
+	add     $((6+1)*8),a2
+	mov     ((5+1)*8)(bp),a3            /* pass ra to java function           */
 	mov     a3,a4                       /* xpc is equal to ra                 */
 	call    stacktrace_create_extern_stackframeinfo
 
-	mov     sp,a0                       /* pass stack pointer                 */
-	add     $((1+18)*8+sizestackframeinfo),a0   /* skip function pointer      */
-	mov     (18*8+sizestackframeinfo)(sp),itmp3 /* get function pointer       */
+	mov     bp,a0                       /* pass stack pointer                 */
+	add     $((1+1)*8),a0               /* skip function pointer              */
+	mov     1*8(bp),itmp3               /* get function pointer               */
 	call    *itmp3                      /* call the patcher function          */
 	mov     v0,17*8(sp)                 /* save return value                  */
 
@@ -780,7 +785,9 @@ asm_wrapper_patcher:
 	mov     16*8(sp),itmp2              /* can be used by some instructions   */
 	mov     17*8(sp),itmp3              /* restore return value               */
 
-	add     $((5+18)*8+sizestackframeinfo),sp /* remove stack frame, keep ra  */
+	mov     bp,sp                       /* restore original sp                */
+	pop     bp                          /* restore bp                         */
+	add     $(5*8),sp                   /* remove patcher stackframe, keep ra */
 
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
