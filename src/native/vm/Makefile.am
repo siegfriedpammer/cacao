@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3588 2005-11-06 14:01:10Z motse $
+## $Id: Makefile.am 3595 2005-11-06 16:27:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,6 +40,7 @@ libnativevm_la_SOURCES = \
 	Constructor.c \
 	Field.c \
 	Method.c \
+	VMAccessController.c \
 	VMClass.c \
 	VMClassLoader.c \
 	VMObject.c \
@@ -50,9 +51,13 @@ libnativevm_la_SOURCES = \
 	VMSystem.c \
 	VMSystemProperties.c \
 	VMThread.c \
-	VMThrowable.c \
-	VMAccessController.c \
-	VMjvmti.c
+	VMThrowable.c
+
+if ENABLE_JVMTI
+libnativevm_la_SOURCES += \
+	VMFrame.c \
+	VMVirtualMachine.c
+endif
 
 
 ## Local variables:
