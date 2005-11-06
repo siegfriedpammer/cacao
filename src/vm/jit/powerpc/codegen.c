@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3578 2005-11-05 16:31:41Z twisti $
+   $Id: codegen.c 3599 2005-11-06 20:28:40Z twisti $
 
 */
 
@@ -3253,18 +3253,11 @@ gen_method:
 	xcodeptr = NULL;
 
 	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(20);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3324,7 +3317,7 @@ gen_method:
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(21);
+		MCODECHECK(100);
 
 		/* move index register into REG_ITMP1 */
 
@@ -3385,18 +3378,11 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xstorerefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(15);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3437,18 +3423,11 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(20);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3504,18 +3483,11 @@ gen_method:
 	xcodeptr = NULL;
 
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(20);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3571,18 +3543,11 @@ gen_method:
 	xcodeptr = NULL;
 
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((m->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(16);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
