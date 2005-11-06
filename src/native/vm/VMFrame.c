@@ -29,9 +29,14 @@ Authors: Martin Platter
 Changes: 
 
 
-$Id: VMFrame.c 3593 2005-11-06 16:16:07Z motse $
+$Id: VMFrame.c 3597 2005-11-06 16:41:06Z motse $
 
 */
+
+#include "toolbox/logging.h"
+#include "native/jni.h"
+#include "native/include/gnu_classpath_jdwp_VMFrame.h"
+
 
 /*
  * Class:     gnu/classpath/jdwp/VMFrame
