@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3594 2005-11-06 16:21:03Z motse $
+## $Id: Makefile.am 3596 2005-11-06 16:32:15Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -72,13 +72,11 @@ GEN_HEADER_FILES = \
 	java_security_ProtectionDomain.h \
 	java_util_Vector.h 
 
-if ENABLE_JVMTI
-GEN_HEADER_FILES += \
+GEN_JVMTI_HEADER_FILES = \
 	java_nio_ByteBuffer.h \
 	gnu_classpath_jdwp_VMFrame.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
-	gnu_classpath_jdwp_event_EventRequest
-endif
+	gnu_classpath_jdwp_event_EventRequest.h
 
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
@@ -108,6 +106,7 @@ ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
 
 CLEANFILES = \
 	$(GEN_HEADER_FILES) \
+	$(GEN_JVMTI_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES) \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 
@@ -117,6 +116,11 @@ noinst_HEADERS = \
 DO_HEADER_FILES = \
 	$(GEN_HEADER_FILES) \
 	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
+
+if ENABLE_JVMTI
+DO_HEADER_FILES += \
+	$(GEN_JVMTI_HEADER_FILES)
+endif
 
 if ENABLE_STATICVM
 DO_HEADER_FILES += \
