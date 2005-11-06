@@ -1,4 +1,4 @@
-/* src/native/vm/VMjvmti.c - jdwp->jvmti interface
+/* src/native/vm/VMVirtualMachine.c - jdwp->jvmti interface
 
 Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: 
 
 
-$Id: VMjvmti.c 3588 2005-11-06 14:01:10Z motse $
+$Id: VMVirtualMachine.c 3593 2005-11-06 16:16:07Z motse $
 
 */
 
