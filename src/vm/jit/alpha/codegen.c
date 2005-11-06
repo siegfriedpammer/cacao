@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3480 2005-10-21 13:16:35Z twisti $
+   $Id: codegen.c 3601 2005-11-06 21:51:11Z twisti $
 
 */
 
@@ -3741,18 +3741,11 @@ gen_method:
 	/* generate ArithmeticException stubs */
 
 	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(16);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3798,7 +3791,7 @@ gen_method:
 		                  bref->branchpos,
 						  (u1*) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(18);
+		MCODECHECK(100);
 
 		/* move index register into REG_ITMP1 */
 
@@ -3855,18 +3848,11 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xstorerefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(16);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3908,18 +3894,11 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(18);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -3972,18 +3951,11 @@ gen_method:
 	xcodeptr = NULL;
 
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(18);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -4036,18 +4008,11 @@ gen_method:
 	xcodeptr = NULL;
 
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos,
-							  bref->branchpos,
-							  (u1 *) xcodeptr - (u1 *) cd->mcodebase - 4);
-			continue;
-		}
-
 		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  (u1 *) mcodeptr - cd->mcodebase);
 
-		MCODECHECK(16);
+		MCODECHECK(100);
 
 		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
 
@@ -4094,7 +4059,7 @@ gen_method:
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
-			MCODECHECK(30);
+			MCODECHECK(100);
 
 			/* Get machine code which is patched back in later. The call is   */
 			/* 1 instruction word long.                                       */
@@ -4131,7 +4096,7 @@ gen_method:
 			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 4 * 8);
 #else
-			M_AST(REG_ZERO, REG_SP, 4 * 8);
+			/* do nothing */
 #endif
 
 			/* move machine code onto stack */
