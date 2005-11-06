@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3567 2005-11-04 16:33:20Z twisti $
+   $Id: codegen.c 3600 2005-11-06 21:24:30Z twisti $
 
 */
 
@@ -5102,22 +5102,15 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5157,15 +5150,15 @@ gen_method:
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
 		/* move index register into REG_ITMP1 */
 
-		M_INTMOVE(bref->reg, REG_ITMP1);                           /* 2 bytes */
+		M_INTMOVE(bref->reg, REG_ITMP1);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5202,22 +5195,15 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xstorerefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5253,22 +5239,15 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5303,22 +5282,15 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 						  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 		
-		MCODECHECK(100);
+		MCODECHECK(512);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 		
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5354,22 +5326,15 @@ gen_method:
 	xcodeptr = NULL;
 	
 	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		if ((cd->exceptiontablelength == 0) && (xcodeptr != NULL)) {
-			gen_resolvebranch(cd->mcodebase + bref->branchpos,
-							  bref->branchpos,
-							  xcodeptr - cd->mcodebase - (5 + 6));
-			continue;
-		}
-
 		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 		                  bref->branchpos,
 						  cd->mcodeptr - cd->mcodebase);
 
-		MCODECHECK(100);
+		MCODECHECK(512);
 
-		M_MOV_IMM(0, REG_ITMP2_XPC);                               /* 5 bytes */
+		M_MOV_IMM(0, REG_ITMP2_XPC);
 		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);          /* 6 bytes */
+		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);
 
 		if (xcodeptr != NULL) {
 			M_JMP_IMM((xcodeptr - cd->mcodeptr) - 5);
@@ -5411,7 +5376,7 @@ gen_method:
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
-			MCODECHECK(100);
+			MCODECHECK(512);
 
 			/* Get machine code which is patched back in later. A             */
 			/* `call rel32' is 5 bytes long.                                  */
