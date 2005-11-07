@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 3313 2005-09-29 14:31:21Z twisti $
+   $Id: global.h 3608 2005-11-07 17:37:47Z twisti $
 
 */
 
@@ -147,7 +147,7 @@ typedef struct java_objectarray java_objectarray;
 /* Java class file constants **************************************************/
 
 #define MAGIC             0xCAFEBABE
-#define MAJOR_VERSION     48
+#define MAJOR_VERSION     49
 #define MINOR_VERSION     0
 
 
