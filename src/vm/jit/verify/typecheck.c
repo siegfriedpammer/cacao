@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3577 2005-11-05 16:30:33Z twisti $
+   $Id: typecheck.c 3617 2005-11-07 18:39:10Z twisti $
 
 */
 
@@ -1380,6 +1380,7 @@ verify_builtin(verifier_state *state)
 	/* XXX this is an ugly if-chain but twisti did not want a function */
 	/* pointer in builtintable_entry for this, so here you go.. ;)     */
 
+#if 0
 	if (ISBUILTIN(BUILTIN_new) || ISBUILTIN(PATCHER_builtin_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
@@ -1393,6 +1394,14 @@ verify_builtin(verifier_state *state)
 			/* in this case, the patcher will perform the non-abstract check */
 			TYPECHECK_ASSERT(ISBUILTIN(PATCHER_builtin_new));
 		}
+		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
+	}
+	else
+#endif
+	if (ISBUILTIN(BUILTIN_new)) {
+		if (state->iptr[-1].opc != ICMD_ACONST)
+			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
+		cls.any = state->iptr[-1].val.a;
 		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
@@ -1440,6 +1449,7 @@ verify_builtin(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with non-array class");
 		TYPEINFO_INIT_CLASSINFO(dst->typeinfo, c);
 	}
+#if 0
 	else if (ISBUILTIN(PATCHER_builtin_newarray))
 	{
 		TYPECHECK_INT(state->curstack->prev);
@@ -1448,6 +1458,7 @@ verify_builtin(verifier_state *state)
 		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
 			return false;
 	}
+#endif
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
 		classinfo *c;
@@ -1460,6 +1471,7 @@ verify_builtin(verifier_state *state)
 		if (!c->vftbl->arraydesc)
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
 	}
+#if 0
 	else if (ISBUILTIN(PATCHER_builtin_arrayinstanceof)) {
 		constant_classref *cr;
 		
@@ -1470,6 +1482,7 @@ verify_builtin(verifier_state *state)
 		if (cr->name->text[0] != '[')
 			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class refernce");
 	}
+#endif
 	else {
 		return verify_generic_builtin(state);
 	}
@@ -1987,25 +2000,6 @@ fieldaccess_tail:
 				else
 					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
 						return false;
-				maythrow = true;
-				break;
-
-			case ICMD_ARRAYCHECKCAST:
-				TYPECHECK_ADR(state->curstack);
-				/* returnAddress is not allowed */
-				if (!TYPEINFO_IS_REFERENCE(state->curstack->typeinfo))
-					TYPECHECK_VERIFYERROR_bool("Illegal instruction: ARRAYCHECKCAST on non-reference");
-
-				if (state->iptr[0].op1) {
-					/* a resolved array class */
-					cls = (classinfo *) state->iptr[0].target;
-					TYPEINFO_INIT_CLASSINFO(dst->typeinfo, cls);
-				}
-				else {
-					/* an unresolved array class reference */
-					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
-						return false;
-				}
 				maythrow = true;
 				break;
 

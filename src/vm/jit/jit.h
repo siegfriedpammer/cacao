@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3328 2005-10-04 18:50:07Z twisti $
+   $Id: jit.h 3617 2005-11-07 18:39:10Z twisti $
 
 */
 
@@ -805,8 +805,6 @@ extern int jcommandsize[256];
 #define ICMD_IMULPOW2         214
 
 #define ICMD_LMULPOW2         215
-
-#define ICMD_ARRAYCHECKCAST   216
 
 #define ICMD_INLINE_START     251       /* instruction before inlined method  */
 #define ICMD_INLINE_END       252       /* instruction after inlined method   */

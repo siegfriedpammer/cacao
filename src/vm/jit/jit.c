@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3327 2005-10-04 18:49:56Z twisti $
+   $Id: jit.c 3617 2005-11-07 18:39:10Z twisti $
 
 */
 
@@ -941,9 +941,8 @@ char *icmd_names[256] = {
 	"PUTFIELDCONST  ", /*             213 */
 	"IMULPOW2       ", /*             214 */
 	"LMULPOW2       ", /*             215 */
-	"ARRAYCHECKCAST ", /*             216 */
 
-	            "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
+	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
 	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
 	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
 	"UNDEF231", "UNDEF232", "UNDEF233", "UNDEF234", "UNDEF235",

@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 3331 2005-10-04 18:54:33Z twisti $
+   $Id: reg.inc 3617 2005-11-07 18:39:10Z twisti $
 
 */
 
@@ -1550,7 +1550,6 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_D2F:
 
 				case ICMD_CHECKCAST:
-				case ICMD_ARRAYCHECKCAST:
 
 				case ICMD_ARRAYLENGTH:
 				case ICMD_INSTANCEOF:
