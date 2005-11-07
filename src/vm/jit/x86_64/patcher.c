@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3565 2005-11-04 16:25:00Z twisti $
+   $Id: patcher.c 3619 2005-11-07 18:44:32Z twisti $
 
 */
 
@@ -279,18 +279,16 @@ bool patcher_putfieldconst(u1 *sp)
 }
 
 
-/* patcher_builtin_new *********************************************************
+/* patcher_aconst **************************************************************
 
    Machine code:
 
+   <patched call position>
    48 bf a0 f0 92 00 00 00 00 00    mov    $0x92f0a0,%rdi
-   <patched call position>
-   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
-   48 ff d0                         callq  *%rax
 
 *******************************************************************************/
 
-bool patcher_builtin_new(u1 *sp)
+bool patcher_aconst(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
@@ -307,77 +305,7 @@ bool patcher_builtin_new(u1 *sp)
 
 	/* calculate and set the new return address */
 
-	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager_nonabstract(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	if (!initialize_class(c)) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-	*((u8 *) (ra + 10)) = mcode;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (ra + 2)) = (ptrint) c;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 5;
-
-	/* patch new function address */
-
-	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_new;
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_newarray ****************************************************
-
-   Machine code:
-
-   48 be 88 13 9b 00 00 00 00 00    mov    $0x9b1388,%rsi
-   <patched call position>
-   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
-   48 ff d0                         callq  *%rax
-
-*******************************************************************************/
-
-bool patcher_builtin_newarray(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-	u8                 mcode;
-	constant_classref *cr;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - (10 + 5);
+	ra = ra - 5;
 	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
@@ -390,22 +318,24 @@ bool patcher_builtin_newarray(u1 *sp)
 		return false;
 	}
 
+	if (!use_class_as_object(c)) {
+		PATCHER_MONITOREXIT;
+
+		return false;
+	}
+
 	/* patch back original code */
 
-	*((u8 *) (ra + 10)) = mcode;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (ra + 2)) = (ptrint) c;
+	*((u8 *) ra) = mcode;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_showdisassemble)
 		ra = ra + 5;
 
-	/* patch new function address */
+	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_newarray;
+	*((ptrint *) (ra + 2)) = (ptrint) c;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -536,70 +466,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* patch new function address */
 
 	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arraycheckcast;
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_arrayinstanceof *********************************************
-
-   Machine code:
-
-   48 be 30 3c b2 00 00 00 00 00    mov    $0xb23c30,%rsi
-   <patched call position>
-   48 b8 00 00 00 00 00 00 00 00    mov    $0x0,%rax
-   48 ff d0                         callq  *%rax
-
-*******************************************************************************/
-
-bool patcher_builtin_arrayinstanceof(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-	u8                 mcode;
-	constant_classref *cr;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 4 * 8));
-	o     = (java_objectheader *) *((ptrint *) (sp + 3 * 8));
-	mcode =                       *((u8 *)     (sp + 2 * 8));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - (10 + 5);
-	*((ptrint *) (sp + 4 * 8)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-	*((u8 *) (ra + 10)) = mcode;
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (ra + 2)) = (ptrint) c;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_showdisassemble)
-		ra = ra + 5;
-
-	/* patch new function address */
-
-	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arrayinstanceof;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 

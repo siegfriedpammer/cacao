@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 3392 2005-10-10 13:40:11Z twisti $
+   $Id: patcher.h 3619 2005-11-07 18:44:32Z twisti $
 
 */
 
@@ -107,20 +107,14 @@ bool patcher_putfieldconst(u1 *sp);
 
 #endif /* defined(__I386__) || defined(__X86_64__) */
 
-bool patcher_builtin_new(u1 *sp);
-#define PATCHER_builtin_new (functionptr) patcher_builtin_new
-
-bool patcher_builtin_newarray(u1 *sp);
-#define PATCHER_builtin_newarray (functionptr) patcher_builtin_newarray
+bool patcher_aconst(u1 *sp);
+#define PATCHER_aconst (functionptr) patcher_aconst
 
 bool patcher_builtin_multianewarray(u1 *sp);
 #define PATCHER_builtin_multianewarray (functionptr) patcher_builtin_multianewarray
 
 bool patcher_builtin_arraycheckcast(u1 *sp);
 #define PATCHER_builtin_arraycheckcast (functionptr) patcher_builtin_arraycheckcast
-
-bool patcher_builtin_arrayinstanceof(u1 *sp);
-#define PATCHER_builtin_arrayinstanceof (functionptr) patcher_builtin_arrayinstanceof
 
 bool patcher_invokestatic_special(u1 *sp);
 #define PATCHER_invokestatic_special (functionptr) patcher_invokestatic_special
