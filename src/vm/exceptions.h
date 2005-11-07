@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 3547 2005-11-03 20:38:59Z twisti $
+   $Id: exceptions.h 3612 2005-11-07 17:47:49Z twisti $
 
 */
 
@@ -76,7 +76,10 @@ void throw_exception_exit(void);
 void throw_main_exception(void);
 void throw_main_exception_exit(void);
 
-void throw_cacao_exception_exit(const char *exception, const char *message, ...);
+void throw_cacao_exception_exit(const char *exception,
+								const char *message, ...);
+
+void exceptions_throw_outofmemory_exit(void);
 
 
 /* initialize new exceptions */

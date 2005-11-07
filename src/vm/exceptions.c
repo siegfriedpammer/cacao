@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3547 2005-11-03 20:38:59Z twisti $
+   $Id: exceptions.c 3612 2005-11-07 17:47:49Z twisti $
 
 */
 
@@ -275,6 +275,19 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 	/* good bye! */
 
 	exit(1);
+}
+
+
+/* exceptions_throw_outofmemory_exit *******************************************
+
+   Just print an: java.lang.InternalError: Out of memory
+
+*******************************************************************************/
+
+void exceptions_throw_outofmemory_exit(void)
+{
+	throw_cacao_exception_exit(string_java_lang_InternalError,
+							   "Out of memory");
 }
 
 
@@ -667,10 +680,13 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 
 	/* calculate exception message length */
 
-	msglen = strlen("(class: ") + utf_strlen(m->class->name) +
-		strlen(", method: ") + utf_strlen(m->name) +
-		strlen(" signature: ") + utf_strlen(m->descriptor) +
-		strlen(") ") + strlen("0");
+	msglen = 0;
+
+	if (m)
+		msglen = strlen("(class: ") + utf_strlen(m->class->name) +
+			strlen(", method: ") + utf_strlen(m->name) +
+			strlen(" signature: ") + utf_strlen(m->descriptor) +
+			strlen(") ") + strlen("0");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
@@ -682,13 +698,15 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 
 	/* generate message */
 
-	strcpy(msg, "(class: ");
-	utf_strcat(msg, m->class->name);
-	strcat(msg, ", method: ");
-	utf_strcat(msg, m->name);
-	strcat(msg, " signature: ");
-	utf_strcat(msg, m->descriptor);
-	strcat(msg, ") ");
+	if (m) {
+		strcpy(msg, "(class: ");
+		utf_strcat(msg, m->class->name);
+		strcat(msg, ", method: ");
+		utf_strcat(msg, m->name);
+		strcat(msg, " signature: ");
+		utf_strcat(msg, m->descriptor);
+		strcat(msg, ") ");
+	}
 
 	va_start(ap, message);
 	vsprintf(msg + strlen(msg), message, ap);
