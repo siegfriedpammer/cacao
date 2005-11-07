@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3582 2005-11-05 19:51:18Z twisti $
+   $Id: builtin.c 3613 2005-11-07 17:57:56Z twisti $
 
 */
 
@@ -574,14 +574,14 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 *******************************************************************************/
 
-s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
-	vftbl_t *componentvftbl;
-	vftbl_t *valuevftbl;
-	int base;
-	castinfo classvalues;
+	vftbl_t         *componentvftbl;
+	vftbl_t         *valuevftbl;
+	s4               base;
+	castinfo         classvalues;
 	
 	if (!o)
 		return 1;
@@ -593,9 +593,9 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 	 *     *) o->vftbl is not an interface vftbl
 	 */
 	
-	desc = a->header.objheader.vftbl->arraydesc;
+	desc           = oa->header.objheader.vftbl->arraydesc;
 	componentvftbl = desc->componentvftbl;
-	valuevftbl = o->vftbl;
+	valuevftbl     = o->vftbl;
 
 	if ((desc->dimension - 1) == 0) {
 		s4 res;
@@ -613,8 +613,8 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 			return (valuevftbl->interfacetablelength > -base &&
 					valuevftbl->interfacetable[base] != NULL);
 		
-		res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-			<= (unsigned) classvalues.super_diffval;
+		res = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
+			   <= (unsigned) classvalues.super_diffval);
 
 		return res;
 	}
@@ -623,11 +623,13 @@ s4 builtin_canstore(java_objectarray *a, java_objectheader *o)
 	/* {componentvftbl->arraydesc != NULL} */
 
 	/* check if o is an array */
+
 	if ((valuedesc = valuevftbl->arraydesc) == NULL)
 		return 0;
+
 	/* {o is an array} */
 
-	return builtin_descriptorscompatible(valuedesc,componentvftbl->arraydesc);
+	return builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
 }
 
 

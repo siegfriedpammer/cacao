@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 3562 2005-11-04 16:20:54Z twisti $
+   $Id: builtin.h 3613 2005-11-07 17:57:56Z twisti $
 
 */
 
@@ -171,7 +171,7 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 										 long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
-s4 builtin_canstore(java_objectarray *a, java_objectheader *o);
+s4 builtin_canstore(java_objectarray *oa, java_objectheader *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
 #if defined(TRACE_ARGS_NUM)
