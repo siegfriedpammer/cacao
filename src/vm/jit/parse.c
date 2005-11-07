@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3576 2005-11-05 16:29:36Z twisti $
+   $Id: parse.c 3615 2005-11-07 18:22:11Z twisti $
 
 */
 
@@ -497,7 +497,6 @@ SHOWOPCODE(DEBUG4)
 			case CONSTANT_String:
 				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
 				break;
-#if 0
 			case CONSTANT_Class:
 				cr = (constant_classref *) (inline_env->method->class->cpinfos[i]);
 
@@ -505,11 +504,16 @@ SHOWOPCODE(DEBUG4)
 									  true, &c))
 					return NULL;
 
+				/* XXX TWISTI: edwin said i should do that */
+
+				if (c)
+					if (!use_class_as_object(c))
+						return NULL;
+
 				/* if not resolved, c == NULL */
 
 				LOADCONST_A_CLASS(c, cr);
 				break;
-#endif
 			default:
 				*exceptionptr = new_verifyerror(inline_env->method,
 						"Invalid constant type to push");
@@ -725,16 +729,9 @@ SHOWOPCODE(DEBUG4)
 			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 				return NULL;
 
-			if (c) {
-				bte = builtintable_get_internal(BUILTIN_newarray);
-				LOADCONST_A_BUILTIN(c);
-				BUILTIN(bte, true, NULL, currentline);
-
-			} else {
-				bte = builtintable_get_internal(PATCHER_builtin_newarray);
-				LOADCONST_A_BUILTIN(cr);
-				BUILTIN(bte, true, cr, currentline);
-			}
+			LOADCONST_A_BUILTIN(c, cr);
+			bte = builtintable_get_internal(BUILTIN_newarray);
+			BUILTIN(bte, true, NULL, currentline);
 			s_count++;
 			break;
 
@@ -1030,8 +1027,7 @@ SHOWOPCODE(DEBUG4)
 		/* load and store of object fields ************************************/
 
 		case JAVA_AASTORE:
-			bte = builtintable_get_internal(BUILTIN_canstore);
-			OP2A(opcode, bte->md->paramcount, bte, currentline);
+			OP(opcode);
 			inline_env->method->isleafmethod = false;
 			break;
 
@@ -1248,17 +1244,9 @@ SHOWOPCODE(DEBUG4)
 								  &c))
 				return NULL;
 
-			if (c && c->initialized) {
-				bte = builtintable_get_internal(BUILTIN_new);
-				LOADCONST_A_BUILTIN(c);
-				BUILTIN(bte, true, NULL, currentline);
-
-			} else {
-				bte = builtintable_get_internal(PATCHER_builtin_new);
-				LOADCONST_A_BUILTIN(cr);
-				BUILTIN(bte, true, cr, currentline);
-			}
-
+			LOADCONST_A_BUILTIN(c, cr);
+			bte = builtintable_get_internal(BUILTIN_new);
+			BUILTIN(bte, true, NULL, currentline);
 			s_count++;
 			break;
 
@@ -1274,14 +1262,7 @@ SHOWOPCODE(DEBUG4)
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-				if (c) {
-					bte = builtintable_get_internal(BUILTIN_arraycheckcast);
-					OP2AT(ICMD_ARRAYCHECKCAST, 1, bte, c, currentline);
-
-				} else {
-					bte = builtintable_get_internal(PATCHER_builtin_arraycheckcast);
-					OP2AT(ICMD_ARRAYCHECKCAST, 0, bte, cr, currentline);
-				}
+				OP2AT(opcode, 0, c, cr, currentline);
 				inline_env->method->isleafmethod = false;
 
 			} else {
@@ -1313,16 +1294,9 @@ SHOWOPCODE(DEBUG4)
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
-				if (c) {
-					bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
-					LOADCONST_A_BUILTIN(c);
-					BUILTIN(bte, false, NULL, currentline);
-
-				} else {
-					bte = builtintable_get_internal(PATCHER_builtin_arrayinstanceof);
-					LOADCONST_A_BUILTIN(cr);
-					BUILTIN(bte, false, cr, currentline);
-				}
+				LOADCONST_A_BUILTIN(c, cr);
+				bte = builtintable_get_internal(BUILTIN_arrayinstanceof);
+				BUILTIN(bte, false, NULL, currentline);
 				s_count++;
 
 			} else {
