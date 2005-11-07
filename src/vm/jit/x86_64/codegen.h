@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3563 2005-11-04 16:21:48Z twisti $
+   $Id: codegen.h 3620 2005-11-07 18:45:19Z twisti $
 
 */
 
@@ -425,6 +425,7 @@ typedef enum {
 
 #define M_MOV(a,b)              x86_64_mov_reg_reg(cd, (a), (b))
 #define M_MOV_IMM(a,b)          x86_64_mov_imm_reg(cd, (a), (b))
+
 #define M_IMOV_IMM(a,b)         x86_64_movl_imm_reg(cd, (a), (b))
 
 #define M_ILD(a,b,disp)         x86_64_movl_membase_reg(cd, (b), (disp), (a))
@@ -437,6 +438,7 @@ typedef enum {
 
 #define M_LADD(a,b)             x86_64_alu_reg_reg(cd, X86_64_ADD, (a), (b))
 #define M_LADD_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_ADD, (a), (b))
+#define M_LSUB(a,b)             x86_64_alu_reg_reg(cd, X86_64_SUB, (a), (b))
 #define M_LSUB_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_SUB, (a), (b))
 
 #define M_ALD(a,b,c)            M_LLD(a,b,c)
@@ -447,12 +449,18 @@ typedef enum {
 
 #define M_LADD_IMM32(a,b)       x86_64_alu_imm32_reg(cd, X86_64_ADD, (a), (b))
 #define M_AADD_IMM32(a,b)       M_LADD_IMM32(a,b)
+#define M_LSUB_IMM32(a,b)       x86_64_alu_imm32_reg(cd, X86_64_SUB, (a), (b))
 
 #define M_ILEA(a,b,c)           x86_64_leal_membase_reg(cd, (a), (b), (c))
 #define M_LLEA(a,b,c)           x86_64_lea_membase_reg(cd, (a), (b), (c))
 #define M_ALEA(a,b,c)           M_LLEA(a,b,c)
 
+#define M_AND(a,b)              x86_64_alu_reg_reg(cd, X86_64_AND, (a), (b))
 #define M_XOR(a,b)              x86_64_alu_reg_reg(cd, X86_64_XOR, (a), (b))
+
+#define M_IAND(a,b)             x86_64_alul_reg_reg(cd, X86_64_AND, (a), (b))
+#define M_IAND_IMM(a,b)         x86_64_alul_imm_reg(cd, X86_64_AND, (a), (b))
+#define M_IXOR(a,b)             x86_64_alul_reg_reg(cd, X86_64_XOR, (a), (b))
 
 #define M_TEST(a)               x86_64_test_reg_reg(cd, (a), (a))
 
@@ -462,6 +470,8 @@ typedef enum {
 
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
 #define M_BNE(disp)             x86_64_jcc(cd, X86_64_CC_NE, (disp))
+#define M_BLE(disp)             x86_64_jcc(cd, X86_64_CC_LE, (disp))
+#define M_BA(disp)              x86_64_jcc(cd, X86_64_CC_A, (disp))
 
 #define M_PUSH(a)               x86_64_push_reg(cd, (a))
 #define M_PUSH_IMM(a)           x86_64_push_imm(cd, (a))
