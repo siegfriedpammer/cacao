@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3230 2005-09-19 14:07:16Z twisti $
+## $Id: Makefile.am 3625 2005-11-07 21:26:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/libffi/include -I$(top_builddir) -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_srcdir)/src/libffi/include -I$(top_builddir) -I$(top_builddir)/src
 
 noinst_LTLIBRARIES = libintrp.la
 
