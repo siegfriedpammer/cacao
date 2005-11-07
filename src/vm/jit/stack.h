@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3367 2005-10-06 09:23:36Z edwin $
+   $Id: stack.h 3616 2005-11-07 18:32:36Z twisti $
 
 */
 
@@ -217,12 +217,26 @@
 #define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
 #define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
 #define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
-#define OP1_0(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
-#define OP1_0ANY    {REQUIRE_1;POPANY;SETDST;stackdepth--;}
+
+#define OP1_0(s) \
+    do { \
+        REQUIRE_1; \
+        POP(s); \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
+
+#define OP1_0ANY \
+    do { \
+        REQUIRE_1; \
+        POPANY; \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
 
 #define OP0_1(s) \
     do { \
-        NEWSTACKn((s),stackdepth); \
+        NEWSTACKn(s, stackdepth); \
         SETDST; \
         stackdepth++; \
     } while (0)
@@ -230,23 +244,98 @@
 #define OP1_1(s,d) \
     do { \
         REQUIRE_1; \
-        POP((s)); \
-        NEWSTACKn((d),stackdepth - 1);\
+        POP(s); \
+        NEWSTACKn(d, stackdepth - 1);\
         SETDST; \
     } while (0)
 
-#define OP2_0(s)    {REQUIRE_2;POP(s);POP(s);SETDST;stackdepth-=2;}
-#define OPTT2_0(t,b){REQUIRE_2;POP(t);POP(b);SETDST;stackdepth-=2;}
-#define OP2_1(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);SETDST;stackdepth--;}
-#define OP2IAT_1(s) {REQUIRE_2;POP(TYPE_INT);POP(TYPE_ADR);NEWSTACKn(s,stackdepth-2);\
-                     SETDST;stackdepth--;}
-#define OP2IT_1(s)  {REQUIRE_2;POP(TYPE_INT);POP(s);NEWSTACKn(s,stackdepth-2);\
-                     SETDST;stackdepth--;}
-#define OPTT2_1(s,d){REQUIRE_2;POP(s);POP(s);NEWSTACKn(d,stackdepth-2);SETDST;stackdepth--;}
-#define OP2_2(s)    {REQUIRE_2;POP(s);POP(s);NEWSTACKn(s,stackdepth-2);\
-                     NEWSTACKn(s,stackdepth-1);SETDST;}
-#define OP3TIA_0(s) {REQUIRE_3;POP(s);POP(TYPE_INT);POP(TYPE_ADR);SETDST;stackdepth-=3;}
-#define OP3_0(s)    {REQUIRE_3;POP(s);POP(s);POP(s);SETDST;stackdepth-=3;}
+#define OP2_0(s) \
+    do { \
+        REQUIRE_2; \
+        POP(s); \
+        POP(s); \
+        SETDST; \
+        stackdepth -= 2; \
+    } while (0)
+
+#define OPTT2_0(t,b) \
+    do { \
+        REQUIRE_2; \
+        POP(t); \
+        POP(b); \
+        SETDST; \
+        stackdepth -= 2; \
+    } while (0)
+
+#define OP2_1(s) \
+    do { \
+        REQUIRE_2; \
+        POP(s); \
+        POP(s); \
+        NEWSTACKn(s, stackdepth - 2); \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
+
+#define OP2IAT_1(s) \
+    do { \
+        REQUIRE_2; \
+        POP(TYPE_INT); \
+        POP(TYPE_ADR); \
+        NEWSTACKn(s, stackdepth - 2); \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
+
+#define OP2IT_1(s) \
+    do { \
+        REQUIRE_2; \
+        POP(TYPE_INT); \
+        POP(s); \
+        NEWSTACKn(s, stackdepth - 2); \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
+
+#define OPTT2_1(s,d) \
+    do { \
+        REQUIRE_2; \
+        POP(s); \
+        POP(s); \
+        NEWSTACKn(d, stackdepth - 2); \
+        SETDST; \
+        stackdepth--; \
+    } while (0)
+
+#define OP2_2(s) \
+    do { \
+        REQUIRE_2; \
+        POP(s); \
+        POP(s); \
+        NEWSTACKn(s, stackdepth - 2); \
+        NEWSTACKn(s, stackdepth - 1); \
+        SETDST; \
+    } while (0)
+
+#define OP3TIA_0(s) \
+    do { \
+        REQUIRE_3; \
+        POP(s); \
+        POP(TYPE_INT); \
+        POP(TYPE_ADR); \
+        SETDST; \
+        stackdepth -= 3; \
+    } while (0)
+
+#define OP3_0(s) \
+    do { \
+        REQUIRE_3; \
+        POP(s); \
+        POP(s); \
+        POP(s); \
+        SETDST; \
+        stackdepth -= 3; \
+    } while (0)
 
 #define POPMANY(i) \
     do { \
