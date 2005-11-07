@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3552 2005-11-03 20:43:17Z twisti $
+   $Id: memory.c 3610 2005-11-07 17:44:54Z twisti $
 
 */
 
@@ -135,8 +135,7 @@ static void *memory_checked_alloc(s4 size)
 	void *p = calloc(size, 1);
 
 	if (!p)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+		exceptions_throw_outofmemory_exit();
 
 	return p;
 }
@@ -257,8 +256,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 	dst = realloc(src, len2);
 
 	if (!dst)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+		exceptions_throw_outofmemory_exit();
 
 	return dst;
 }
