@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 3435 2005-10-13 16:25:56Z edwin $
+   $Id: typeinfo.c 3628 2005-11-07 23:22:38Z edwin $
 
 */
 
@@ -2599,7 +2599,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
             fprintf(file,"%sNEW(%p):",ind,(void*)ins);
-			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
+			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].target));
             fprintf(file,"\n");
         }
         else {
@@ -2678,7 +2678,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
         if (ins) {
 			/*fprintf(file,"<ins %p>",ins);*/
             fprintf(file,"NEW(%p):",(void*)ins);
-			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].val.a));
+			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].target));
         }
         else
             fprintf(file,"NEW(this)");

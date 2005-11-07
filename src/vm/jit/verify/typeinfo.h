@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 3440 2005-10-17 11:52:00Z edwin $
+   $Id: typeinfo.h 3628 2005-11-07 23:22:38Z edwin $
 
 */
 
@@ -357,13 +357,20 @@ struct typevector {
 #define TYPEINFO_IS_NEWOBJECT(info)                             \
             ((info).typeclass.cls == pseudo_class_New)
 
+#define TYPEINFO_IS_JAVA_LANG_CLASS(info)                       \
+            ((info).typeclass.cls == class_java_lang_Class)
+
 /* only use this if TYPEINFO_IS_PRIMITIVE returned true! */
 #define TYPEINFO_RETURNADDRESS(info)                            \
-            ((void *)(info).elementclass.any)
+            ((info).elementclass.any)
 
 /* only use this if TYPEINFO_IS_NEWOBJECT returned true! */
 #define TYPEINFO_NEWOBJECT_INSTRUCTION(info)                    \
-            ((void *)(info).elementclass.any)
+		((info).elementclass.any)
+
+/* only use this if TYPEINFO_IS_JAVA_LANG_CLASS returned true! */
+#define TYPEINFO_JAVA_LANG_CLASS_CLASSREF(info)                 \
+		((info).elementclass.ref)
 
 /* macros for array type queries ********************************************/
 
@@ -440,6 +447,13 @@ struct typevector {
              (info).elementclass.any = NULL;            \
              (info).merged = NULL;                      \
              (info).dimension = 0;                      \
+             (info).elementtype = 0;} while(0)
+
+#define TYPEINFO_INIT_JAVA_LANG_CLASS(info,cr)                  \
+         do {(info).typeclass.any = class_java_lang_Class;      \
+             (info).elementclass.ref = (cr);                    \
+             (info).merged = NULL;                              \
+             (info).dimension = 0;                              \
              (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_NULLTYPE(info)                            \

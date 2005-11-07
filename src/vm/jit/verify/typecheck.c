@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3617 2005-11-07 18:39:10Z twisti $
+   $Id: typecheck.c 3628 2005-11-07 23:22:38Z edwin $
 
 */
 
@@ -1180,7 +1180,7 @@ verify_invocation(verifier_state *state)
 				LOGINFO(&(stack->typeinfo));
 				ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(stack->typeinfo);
 				if (ins)
-					initclass = CLASSREF_OR_CLASSINFO(ins[-1].val.a);
+					initclass = CLASSREF_OR_CLASSINFO(ins[-1].target);
 				else
 					initclass.cls = state->m->class;
 				LOGSTR("class: "); LOGNAME(initclass); LOGNL;
@@ -1380,28 +1380,10 @@ verify_builtin(verifier_state *state)
 	/* XXX this is an ugly if-chain but twisti did not want a function */
 	/* pointer in builtintable_entry for this, so here you go.. ;)     */
 
-#if 0
-	if (ISBUILTIN(BUILTIN_new) || ISBUILTIN(PATCHER_builtin_new)) {
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		cls.any = state->iptr[-1].val.a;
-		if (cls.any && !IS_CLASSREF(cls)) {
-			/* The following check also forbids array classes and interfaces: */
-			if ((cls.cls->flags & ACC_ABSTRACT) != 0)
-				TYPECHECK_VERIFYERROR_bool("Invalid instruction: NEW creating instance of abstract class");
-		}
-		else {
-			/* in this case, the patcher will perform the non-abstract check */
-			TYPECHECK_ASSERT(ISBUILTIN(PATCHER_builtin_new));
-		}
-		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
-	}
-	else
-#endif
 	if (ISBUILTIN(BUILTIN_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		cls.any = state->iptr[-1].val.a;
+		cls.any = state->iptr[-1].target;
 		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
@@ -1438,51 +1420,19 @@ verify_builtin(verifier_state *state)
 	}
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
-		classinfo *c;
 		TYPECHECK_INT(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without classinfo");
-		c = (classinfo *) state->iptr[-1].val.a;
-		if (!c)
-			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with unlinked class");
-		if (!c->vftbl->arraydesc)
-			TYPECHECK_VERIFYERROR_bool("ANEWARRAY with non-array class");
-		TYPEINFO_INIT_CLASSINFO(dst->typeinfo, c);
+		if (state->iptr[-1].opc != ICMD_ACONST || !state->iptr[-1].target)
+			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without class");
+		/* XXX check that it is an array class(ref) */
+		typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].target));
 	}
-#if 0
-	else if (ISBUILTIN(PATCHER_builtin_newarray))
-	{
-		TYPECHECK_INT(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without classinfo");
-		if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].val.a)))
-			return false;
-	}
-#endif
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
-		classinfo *c;
-		TYPECHECK_ADR(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST)
-			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without classinfo");
-		c = (classinfo *) state->iptr[-1].val.a;
-		if (!c)
-			TYPECHECK_VERIFYERROR_bool("INSTANCEOF with unlinked class");
-		if (!c->vftbl->arraydesc)
-			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class");
-	}
-#if 0
-	else if (ISBUILTIN(PATCHER_builtin_arrayinstanceof)) {
-		constant_classref *cr;
-		
 		TYPECHECK_ADR(state->curstack->prev);
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_arrayinstanceof without class");
-		cr = (constant_classref *) state->iptr[-1].val.a;
-		if (cr->name->text[0] != '[')
-			TYPECHECK_VERIFYERROR_bool("internal error: builtin_arrayinstanceof with non-array class refernce");
+		/* XXX check that it is an array class(ref) */
 	}
-#endif
 	else {
 		return verify_generic_builtin(state);
 	}
@@ -1978,11 +1928,18 @@ fieldaccess_tail:
 				/* ADDRESS CONSTANTS                    */
 
 			case ICMD_ACONST:
-				if (state->iptr->val.a == NULL)
-					TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
-				else
-					/* string constant (or constant for builtin function) */
-					TYPEINFO_INIT_CLASSINFO(dst->typeinfo,class_java_lang_String);
+				if (state->iptr->target) {
+					/* a java.lang.Class reference */
+					TYPEINFO_INIT_JAVA_LANG_CLASS(dst->typeinfo,(constant_classref *)state->iptr->target);
+				}
+				else {
+					if (state->iptr->val.a == NULL)
+						TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
+					else {
+						/* string constant (or constant for builtin function) */
+						TYPEINFO_INIT_CLASSINFO(dst->typeinfo,class_java_lang_String);
+					}
+				}
 				break;
 
 				/****************************************/
