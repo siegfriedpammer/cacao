@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3572 2005-11-04 17:49:54Z twisti $
+   $Id: patcher.c 3626 2005-11-07 22:31:03Z twisti $
 
 */
 
@@ -180,23 +180,19 @@ bool patcher_get_putfield(u1 *sp)
 }
 
 
-/* patcher_builtin_new *********************************************************
+/* patcher_aconst **************************************************************
 
    Machine code:
 
-   806dffc4    lwz   r3,-60(r13)
    <patched call postition>
+   806dffc4    lwz   r3,-60(r13)
    81adffc0    lwz   r13,-64(r13)
    7da903a6    mtctr r13
    4e800421    bctrl
 
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the classinfo pointer is one below (above, in
-   addresses speaking). This is for sure.
-
 *******************************************************************************/
 
-bool patcher_builtin_new(u1 *sp)
+bool patcher_aconst(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
@@ -214,83 +210,6 @@ bool patcher_builtin_new(u1 *sp)
 	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
 	disp  =                       *((s4 *)     (sp + 1 * 4));
 	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 4)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager_nonabstract(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 4)) = mcode;
-
-	/* synchronize instruction cache */
-
-	asm_cacheflush(ra + 4, 4);
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_new;
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_newarray ****************************************************
-
-   Machine code:
-
-   808dffc8    lwz   r4,-56(r13)
-   <patched call position>
-   81adffc4    lwz   r13,-60(r13)
-   7da903a6    mtctr r13
-   4e800421    bctrl
-
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the vftbl pointer is one below (above, in
-   addresses speaking). This is for sure.
-
-*******************************************************************************/
-
-bool patcher_builtin_newarray(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-	u4                 mcode;
-	constant_classref *cr;
-	u1                *pv;
-	s4                 disp;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 4)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -304,19 +223,15 @@ bool patcher_builtin_newarray(u1 *sp)
 
 	/* patch back original code */
 
-	*((u4 *) (ra + 4)) = mcode;
+	*((u4 *) ra) = mcode;
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra + 4, 4);
+	asm_cacheflush(ra, 4);
 
 	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_newarray;
+	*((ptrint *) (pv + disp)) = (ptrint) c;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -394,10 +309,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
    7da903a6    mtctr r13
    4e800421    bctrl
 
-   NOTICE: Only the displacement of the vftbl pointer address is
-   passed, but the address of the function pointer is one above
-   (below, in addresses speaking). This is for sure.
-
 *******************************************************************************/
 
 bool patcher_builtin_arraycheckcast(u1 *sp)
@@ -440,83 +351,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + (disp - SIZEOF_VOID_P))) =
-		(ptrint) BUILTIN_arraycheckcast;
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_arrayinstanceof *********************************************
-
-   Machine code:
-
-   808dff50    lwz   r4,-176(r13)
-   <patched call position>
-   81adff4c    lwz   r13,-180(r13)
-   7da903a6    mtctr r13
-   4e800421    bctrl
-
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the vftbl pointer is one below (above, in
-   addresses speaking). This is for sure.
-
-*******************************************************************************/
-
-bool patcher_builtin_arrayinstanceof(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-	u4                 mcode;
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	o     = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 4)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-	*((u4 *) (ra + 4)) = mcode;
-
-	/* synchronize instruction cache */
-
-	asm_cacheflush(ra + 4, 4);
-
-	/* patch the classinfo pointer */
-	
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_arrayinstanceof;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
