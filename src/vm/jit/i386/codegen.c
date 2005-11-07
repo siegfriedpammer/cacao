@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3600 2005-11-06 21:24:30Z twisti $
+   $Id: codegen.c 3624 2005-11-07 21:12:29Z twisti $
 
 */
 
@@ -576,16 +576,17 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
+
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
-				i386_mov_imm_membase(cd, iptr->val.i, REG_SP, iptr->dst->regoff * 4);
+				M_IST_IMM(iptr->val.i, REG_SP, iptr->dst->regoff * 4);
 
 			} else {
 				if (iptr->val.i == 0) {
-					i386_alu_reg_reg(cd, ALU_XOR, d, d);
+					M_CLR(d);
 
 				} else {
-					i386_mov_imm_reg(cd, iptr->val.i, d);
+					M_MOV_IMM(iptr->val.i, d);
 				}
 			}
 			break;
@@ -595,10 +596,11 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
+
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
-				i386_mov_imm_membase(cd, iptr->val.l, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_imm_membase(cd, iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
+				M_IST_IMM(iptr->val.l, REG_SP, iptr->dst->regoff * 4);
+				M_IST_IMM(iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
 				
 			} else {
 				log_text("LCONST: longs have to be in memory");
@@ -608,6 +610,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.f = constant                    */
+
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
@@ -643,6 +646,7 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.d = constant                    */
+
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
@@ -678,19 +682,34 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
+
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-			if (iptr->dst->flags & INMEMORY) {
-				i386_mov_imm_membase(cd, (s4) iptr->val.a, REG_SP, iptr->dst->regoff * 4);
+
+			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
+				codegen_addpatchref(cd, cd->mcodeptr,
+									PATCHER_aconst,
+									(unresolved_class *) iptr->target, 0);
+
+				if (opt_showdisassemble) {
+					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+				}
+
+				M_MOV_IMM((ptrint) iptr->val.a, d);
+				store_reg_to_var_int(iptr->dst, d);
 
 			} else {
-				if ((s4) iptr->val.a == 0) {
-					i386_alu_reg_reg(cd, ALU_XOR, d, d);
+				if (iptr->dst->flags & INMEMORY) {
+					M_AST_IMM((ptrint) iptr->val.a, REG_SP, iptr->dst->regoff * 4);
 
 				} else {
-					i386_mov_imm_reg(cd, (s4) iptr->val.a, d);
+					if ((ptrint) iptr->val.a == 0) {
+						M_CLR(d);
+					} else {
+						M_MOV_IMM((ptrint) iptr->val.a, d);
+					}
 				}
 			}
 			break;
@@ -2963,22 +2982,21 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL */
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
-/* 			if (iptr->op1 == 0) { */
+			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
-/* 			} */
+			}
 			var_to_reg_int(s3, src, REG_ITMP3);
-
-			bte = iptr->val.a;
 
 			M_AST(s1, REG_SP, 0 * 4);
 			M_AST(s3, REG_SP, 1 * 4);
-			M_MOV_IMM((ptrint) bte->fp, REG_ITMP1);
+			M_MOV_IMM((ptrint) BUILTIN_canstore, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
@@ -4292,16 +4310,17 @@ nowperformreturn:
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 		case ICMD_INVOKEINTERFACE:
+
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/
+			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX */
 
 			lm = iptr->val.a;
 
-			if (lm)
-				md = lm->parseddesc;
-			else {
+			if (lm == NULL) {
 				unresolved_method *um = iptr->target;
 				md = um->methodref->parseddesc.md;
+			} else {
+				md = lm->parseddesc;
 			}
 
 gen_method:
@@ -4362,20 +4381,7 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				if (iptr->target) {
-					codegen_addpatchref(cd, cd->mcodeptr, bte->fp,
-										iptr->target, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-					}
-
-					a = 0;
-
-				} else {
-					a = (ptrint) bte->fp;
-				}
-
+				a = (ptrint) bte->fp;
 				d = md->returntype.type;
 
 				M_MOV_IMM(a, REG_ITMP1);
@@ -4400,7 +4406,7 @@ gen_method:
 				/* fall through */
 
 			case ICMD_INVOKESTATIC:
-				if (!lm) {
+				if (lm == NULL) {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -4423,10 +4429,10 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				i386_mov_membase_reg(cd, REG_SP, 0, REG_ITMP1);
+				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
 				gen_nullptr_check(REG_ITMP1);
 
-				if (!lm) {
+				if (lm == NULL) {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -4454,7 +4460,7 @@ gen_method:
 				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
 				gen_nullptr_check(REG_ITMP1);
 
-				if (!lm) {
+				if (lm == NULL) {
 					unresolved_method *um = iptr->target;
 
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -4521,11 +4527,11 @@ gen_method:
 
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
-			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: YES ECX: I|YES EDX: I|YES OUTPUT: REG_NULL*/ 
-
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo*) superclass               */
+
+			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
+			/* EAX: YES ECX: I|YES EDX: I|YES OUTPUT: REG_NULL */
 
 			/*  superclass is an interface:
 			 *
@@ -4540,221 +4546,215 @@ gen_method:
 			 *         super->vftbl->diffval));
 			 */
 
-			{
-			classinfo *super;
-			vftbl_t   *supervftbl;
-			s4         superindex;
+			if (iptr->op1 == 1) {
+				/* object type cast-check */
 
-			super = (classinfo *) iptr->val.a;
+				classinfo *super;
+				vftbl_t   *supervftbl;
+				s4         superindex;
 
-			if (!super) {
-				superindex = 0;
-				supervftbl = NULL;
+				super = (classinfo *) iptr->val.a;
 
-			} else {
-				superindex = super->index;
-				supervftbl = super->vftbl;
-			}
+				if (!super) {
+					superindex = 0;
+					supervftbl = NULL;
+
+				} else {
+					superindex = super->index;
+					supervftbl = super->vftbl;
+				}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
-			var_to_reg_int(s1, src, REG_ITMP1);
+				var_to_reg_int(s1, src, REG_ITMP1);
 
-			/* calculate interface checkcast code size */
+				/* calculate interface checkcast code size */
 
-			s2 = 2; /* mov_membase_reg */
-			CALCOFFSETBYTES(s2, s1, OFFSET(java_objectheader, vftbl));
+				s2 = 2; /* mov_membase_reg */
+				CALCOFFSETBYTES(s2, s1, OFFSET(java_objectheader, vftbl));
 
-			s2 += (2 + 4 /* mov_membase32_reg */ + 2 + 4 /* sub imm32 */ +
-				   2 /* test */ + 6 /* jcc */ + 2 + 4 /* mov_membase32_reg */ +
-				   2 /* test */ + 6 /* jcc */);
-
-			if (!super)
-				s2 += (opt_showdisassemble ? 5 : 0);
-
-			/* calculate class checkcast code size */
-
-			s3 = 2; /* mov_membase_reg */
-			CALCOFFSETBYTES(s3, s1, OFFSET(java_objectheader, vftbl));
-
-			s3 += 5 /* mov_imm_reg */ + 2 + 4 /* mov_membase32_reg */;
-
-#if 0
-			if (s1 != REG_ITMP1) {
-				a += 2;
-				CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
-				
-				a += 2;
-				CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
-				
-				a += 2;
-				
-			} else
-#endif
-				{
-					s3 += (2 + 4 /* mov_membase32_reg */ + 2 /* sub */ +
-						   5 /* mov_imm_reg */ + 2 /* mov_membase_reg */);
-					CALCOFFSETBYTES(s3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-				}
-
-			s3 += 2 /* cmp */ + 6 /* jcc */;
-
-			if (!super)
-				s3 += (opt_showdisassemble ? 5 : 0);
-
-			/* if class is not resolved, check which code to call */
-
-			if (!super) {
-				i386_test_reg_reg(cd, s1, s1);
-				i386_jcc(cd, I386_CC_Z, 5 + (opt_showdisassemble ? 5 : 0) + 6 + 6 + s2 + 5 + s3);
-
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_checkcast_instanceof_flags,
-									(constant_classref *) iptr->target, 0);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-				}
-
-				i386_mov_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
-				i386_alu_imm_reg(cd, ALU_AND, ACC_INTERFACE, REG_ITMP2);
-				i386_jcc(cd, I386_CC_Z, s2 + 5);
-			}
-
-			/* interface checkcast code */
-
-			if (!super || (super->flags & ACC_INTERFACE)) {
-				if (super) {
-					i386_test_reg_reg(cd, s1, s1);
-					i386_jcc(cd, I386_CC_Z, s2);
-				}
-
-				i386_mov_membase_reg(cd, s1,
-									 OFFSET(java_objectheader, vftbl),
-									 REG_ITMP2);
-
-				if (!super) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_checkcast_instanceof_interface,
-										(constant_classref *) iptr->target, 0);
-
-					if (opt_showdisassemble) {
-						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-					}
-				}
-
-				i386_mov_membase32_reg(cd, REG_ITMP2,
-									   OFFSET(vftbl_t, interfacetablelength),
-									   REG_ITMP3);
-				i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
-				i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
-				i386_jcc(cd, I386_CC_LE, 0);
-				codegen_addxcastrefs(cd, cd->mcodeptr);
-				i386_mov_membase32_reg(cd, REG_ITMP2,
-									   OFFSET(vftbl_t, interfacetable[0]) -
-									   superindex * sizeof(methodptr*),
-									   REG_ITMP3);
-				i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
-				i386_jcc(cd, I386_CC_E, 0);
-				codegen_addxcastrefs(cd, cd->mcodeptr);
+				s2 += (2 + 4 /* mov_membase32_reg */ + 2 + 4 /* sub imm32 */ +
+					   2 /* test */ + 6 /* jcc */ + 2 + 4 /* mov_membase32_reg */ +
+					   2 /* test */ + 6 /* jcc */);
 
 				if (!super)
-					i386_jmp_imm(cd, s3);
-			}
+					s2 += (opt_showdisassemble ? 5 : 0);
 
-			/* class checkcast code */
+				/* calculate class checkcast code size */
 
-			if (!super || !(super->flags & ACC_INTERFACE)) {
-				if (super) {
-					i386_test_reg_reg(cd, s1, s1);
-					i386_jcc(cd, I386_CC_Z, s3);
-				}
+				s3 = 2; /* mov_membase_reg */
+				CALCOFFSETBYTES(s3, s1, OFFSET(java_objectheader, vftbl));
 
-				i386_mov_membase_reg(cd, s1,
-									 OFFSET(java_objectheader, vftbl),
-									 REG_ITMP2);
+				s3 += 5 /* mov_imm_reg */ + 2 + 4 /* mov_membase32_reg */;
+
+#if 0
+				if (s1 != REG_ITMP1) {
+					a += 2;
+					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, baseval));
+				
+					a += 2;
+					CALCOFFSETBYTES(a, REG_ITMP3, OFFSET(vftbl_t, diffval));
+				
+					a += 2;
+				
+				} else
+#endif
+					{
+						s3 += (2 + 4 /* mov_membase32_reg */ + 2 /* sub */ +
+							   5 /* mov_imm_reg */ + 2 /* mov_membase_reg */);
+						CALCOFFSETBYTES(s3, REG_ITMP3, OFFSET(vftbl_t, diffval));
+					}
+
+				s3 += 2 /* cmp */ + 6 /* jcc */;
+
+				if (!super)
+					s3 += (opt_showdisassemble ? 5 : 0);
+
+				/* if class is not resolved, check which code to call */
 
 				if (!super) {
+					i386_test_reg_reg(cd, s1, s1);
+					i386_jcc(cd, I386_CC_Z, 5 + (opt_showdisassemble ? 5 : 0) + 6 + 6 + s2 + 5 + s3);
+
 					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_checkcast_class,
+										PATCHER_checkcast_instanceof_flags,
 										(constant_classref *) iptr->target, 0);
+
+					if (opt_showdisassemble) {
+						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+					}
+
+					i386_mov_imm_reg(cd, 0, REG_ITMP2); /* super->flags */
+					i386_alu_imm_reg(cd, ALU_AND, ACC_INTERFACE, REG_ITMP2);
+					i386_jcc(cd, I386_CC_Z, s2 + 5);
+				}
+
+				/* interface checkcast code */
+
+				if (!super || (super->flags & ACC_INTERFACE)) {
+					if (super) {
+						i386_test_reg_reg(cd, s1, s1);
+						i386_jcc(cd, I386_CC_Z, s2);
+					}
+
+					i386_mov_membase_reg(cd, s1,
+										 OFFSET(java_objectheader, vftbl),
+										 REG_ITMP2);
+
+					if (!super) {
+						codegen_addpatchref(cd, cd->mcodeptr,
+											PATCHER_checkcast_instanceof_interface,
+											(constant_classref *) iptr->target, 0);
+
+						if (opt_showdisassemble) {
+							M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+						}
+					}
+
+					i386_mov_membase32_reg(cd, REG_ITMP2,
+										   OFFSET(vftbl_t, interfacetablelength),
+										   REG_ITMP3);
+					i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
+					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
+					i386_jcc(cd, I386_CC_LE, 0);
+					codegen_addxcastrefs(cd, cd->mcodeptr);
+					i386_mov_membase32_reg(cd, REG_ITMP2,
+										   OFFSET(vftbl_t, interfacetable[0]) -
+										   superindex * sizeof(methodptr*),
+										   REG_ITMP3);
+					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
+					i386_jcc(cd, I386_CC_E, 0);
+					codegen_addxcastrefs(cd, cd->mcodeptr);
+
+					if (!super)
+						i386_jmp_imm(cd, s3);
+				}
+
+				/* class checkcast code */
+
+				if (!super || !(super->flags & ACC_INTERFACE)) {
+					if (super) {
+						i386_test_reg_reg(cd, s1, s1);
+						i386_jcc(cd, I386_CC_Z, s3);
+					}
+
+					i386_mov_membase_reg(cd, s1,
+										 OFFSET(java_objectheader, vftbl),
+										 REG_ITMP2);
+
+					if (!super) {
+						codegen_addpatchref(cd, cd->mcodeptr,
+											PATCHER_checkcast_class,
+											(constant_classref *) iptr->target, 0);
+
+						if (opt_showdisassemble) {
+							M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
+						}
+					}
+
+					i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+					i386_mov_membase32_reg(cd, REG_ITMP2,
+										   OFFSET(vftbl_t, baseval),
+										   REG_ITMP2);
+
+					/* 				if (s1 != REG_ITMP1) { */
+					/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP1); */
+					/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3); */
+					/* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
+					/* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
+					/* #endif */
+					/* 					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP1, REG_ITMP2); */
+
+					/* 				} else { */
+					i386_mov_membase32_reg(cd, REG_ITMP3,
+										   OFFSET(vftbl_t, baseval),
+										   REG_ITMP3);
+					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP3, REG_ITMP2);
+					i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
+					i386_mov_membase_reg(cd, REG_ITMP3,
+										 OFFSET(vftbl_t, diffval),
+										 REG_ITMP3);
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
+#endif
+					/* 				} */
+
+					i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP2);
+					i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
+					codegen_addxcastrefs(cd, cd->mcodeptr);
+				}
+				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+
+			} else {
+				/* array type cast-check */
+
+				var_to_reg_int(s1, src, REG_ITMP1);
+				M_AST(s1, REG_SP, 0 * 4);
+
+				if (iptr->val.a == NULL) {
+					codegen_addpatchref(cd, cd->mcodeptr,
+										PATCHER_builtin_arraycheckcast,
+										iptr->target, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
 				}
 
-				i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
-#endif
-				i386_mov_membase32_reg(cd, REG_ITMP2,
-									   OFFSET(vftbl_t, baseval),
-									   REG_ITMP2);
-
-/* 				if (s1 != REG_ITMP1) { */
-/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP1); */
-/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3); */
-/* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
-/* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
-/* #endif */
-/* 					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP1, REG_ITMP2); */
-
-/* 				} else { */
-				i386_mov_membase32_reg(cd, REG_ITMP3,
-									   OFFSET(vftbl_t, baseval),
-									   REG_ITMP3);
-				i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP3, REG_ITMP2);
-				i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
-				i386_mov_membase_reg(cd, REG_ITMP3,
-									 OFFSET(vftbl_t, diffval),
-									 REG_ITMP3);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
-#endif
-/* 				} */
-
-				i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP2);
-				i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
+				M_AST_IMM((ptrint) iptr->val.a, REG_SP, 1 * 4);
+				M_MOV_IMM((ptrint) BUILTIN_arraycheckcast, REG_ITMP3);
+				M_CALL(REG_ITMP3);
+				M_TEST(REG_RESULT);
+				M_BEQ(0);
 				codegen_addxcastrefs(cd, cd->mcodeptr);
+
+				var_to_reg_int(s1, src, REG_ITMP1);
+				d = reg_of_var(rd, iptr->dst, s1);
 			}
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			M_INTMOVE(s1, d);
-			store_reg_to_var_int(iptr->dst, d);
-			}
-			break;
-
-		case ICMD_ARRAYCHECKCAST: /* ..., objectref ==> ..., objectref        */
-		                          /* op1: 1... resolved, 0... not resolved    */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			M_AST(s1, REG_SP, 0 * 4);
-
-			bte = iptr->val.a;
-
-			if (!iptr->op1) {
-				codegen_addpatchref(cd, cd->mcodeptr, bte->fp, iptr->target, 0);
-
-				if (opt_showdisassemble) {
-					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
-				}
-
-				a = 0;
-
-			} else {
-				a = (ptrint) bte->fp;
-			}
-
-			M_AST_IMM((ptrint) iptr->target, REG_SP, 1 * 4);
-			M_MOV_IMM((ptrint) a, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-			M_TEST(REG_RESULT);
-			M_BEQ(0);
-			codegen_addxcastrefs(cd, cd->mcodeptr);
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, s1);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
