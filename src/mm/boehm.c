@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3551 2005-11-03 20:43:01Z twisti $
+   $Id: boehm.c 3609 2005-11-07 17:44:28Z twisti $
 
 */
 
@@ -256,8 +256,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+		exceptions_throw_outofmemory_exit();
 	}
 
 	in_gc_out_of_memory = true;
