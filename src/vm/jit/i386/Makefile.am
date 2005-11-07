@@ -28,15 +28,17 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3226 2005-09-19 14:03:07Z twisti $
+## $Id: Makefile.am 3603 2005-11-07 11:53:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
+DIST_SUBDIRS = \
+	freebsd \
+	linux
 
 SUBDIRS = $(OS_DIR)
 
-DIST_SUBDIRS = freebsd linux
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
 
 AM_CCASFLAGS = $(INCLUDES)
 
