@@ -28,9 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3322 2005-10-04 18:31:47Z twisti $
+## $Id: Makefile.am 3602 2005-11-07 11:52:41Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+DIST_SUBDIRS = \
+	irix \
+	linux
 
 SUBDIRS = $(OS_DIR)
 
