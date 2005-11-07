@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 3499 2005-10-26 16:49:18Z twisti $
+   $Id: parse.h 3614 2005-11-07 18:20:48Z twisti $
 
 */
 
@@ -50,7 +50,6 @@
 
 #define LOADCONST_I(v) \
     iptr->opc    = ICMD_ICONST; \
-    /*iptr->op1=0;*/ \
     iptr->val.i  = (v); \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
@@ -58,7 +57,6 @@
 
 #define LOADCONST_L(v) \
     iptr->opc    = ICMD_LCONST; \
-    /*iptr->op1=0*/; \
     iptr->val.l  = (v); \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
@@ -66,7 +64,6 @@
 
 #define LOADCONST_F(v) \
     iptr->opc    = ICMD_FCONST; \
-    /*iptr->op1=0*/; \
     iptr->val.f  = (v); \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
@@ -74,7 +71,6 @@
 
 #define LOADCONST_D(v) \
     iptr->opc    = ICMD_DCONST; \
-    /*iptr->op1=0*/; \
     iptr->val.d  = (v); \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
@@ -82,8 +78,15 @@
 
 #define LOADCONST_A(v) \
     iptr->opc    = ICMD_ACONST; \
-    /*iptr->op1=0*/; \
     iptr->val.a  = (v); \
+    iptr->line   = currentline; \
+    iptr->method = inline_env->method; \
+    PINC
+
+#define LOADCONST_A_CLASS(v,t) \
+    iptr->opc    = ICMD_ACONST; \
+    iptr->val.a  = (v); \
+    iptr->target = (t); \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
@@ -91,18 +94,17 @@
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
-#define LOADCONST_A_BUILTIN(v) \
-    iptr->opc = ICMD_ACONST; \
-    iptr->op1 = 1; \
-    iptr->val.a = (v); \
-    iptr->line = currentline; \
+#define LOADCONST_A_BUILTIN(v,t) \
+    iptr->opc    = ICMD_ACONST; \
+    iptr->op1    = 1; \
+    iptr->val.a  = (v); \
+    iptr->target = (t); \
+    iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
 
 #define OP(o) \
     iptr->opc    = (o); \
-    /*iptr->op1=0*/; \
-    /*iptr->val.l=0*/; \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
@@ -110,7 +112,6 @@
 #define OP1(o,o1) \
     iptr->opc    = (o); \
     iptr->op1    = (o1); \
-    /*iptr->val.l=(0)*/; \
     iptr->line   = currentline; \
     iptr->method = inline_env->method; \
     PINC
