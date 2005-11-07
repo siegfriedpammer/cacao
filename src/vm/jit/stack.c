@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3580 2005-11-05 17:57:09Z twisti $
+   $Id: stack.c 3618 2005-11-07 18:43:33Z twisti $
 
 */
 
@@ -1145,9 +1145,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 
-						bte = (builtintable_entry *) iptr->val.a;
+						bte = builtintable_get_internal(BUILTIN_canstore);
 						md = bte->md;
-						i = iptr->op1;
 
 						if (md->memuse > rd->memuse)
 							rd->memuse = md->memuse;
@@ -1882,26 +1881,25 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					case ICMD_CHECKCAST:
-						OP1_1(TYPE_ADR, TYPE_ADR);
-						break;
+						if (iptr->op1 == 0) {
+							/* array type cast-check */
 
-					case ICMD_ARRAYCHECKCAST:
-						bte = (builtintable_entry *) iptr->val.a;
-						md = bte->md;
+							bte = builtintable_get_internal(BUILTIN_arraycheckcast);
+							md = bte->md;
 
-						if (md->memuse > rd->memuse)
-							rd->memuse = md->memuse;
-						if (md->argintreguse > rd->argintreguse)
-							rd->argintreguse = md->argintreguse;
+							if (md->memuse > rd->memuse)
+								rd->memuse = md->memuse;
+							if (md->argintreguse > rd->argintreguse)
+								rd->argintreguse = md->argintreguse;
 
-						/* make all stack variables saved */
+							/* make all stack variables saved */
 
-						copy = curstack;
-						while (copy) {
-							copy->flags |= SAVEDVAR;
-							copy = copy->prev;
+							copy = curstack;
+							while (copy) {
+								copy->flags |= SAVEDVAR;
+								copy = copy->prev;
+							}
 						}
-
 						OP1_1(TYPE_ADR, TYPE_ADR);
 						break;
 
@@ -2750,40 +2748,23 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_ACONST:
 	case ICMD_AASTORECONST:
-		printf(" %p", iptr->val.a);
+		/* check if this is a constant string or a class reference */
 
-		if (iptr->val.a) {
-			/* check if this is a constant string */
+		if (iptr->target) {
+			if (iptr->val.a)
+				printf(" %p", iptr->val.a);
+			else
+				printf(" (NOT RESOLVED)");
 
-			if (iptr->op1 == 0) {
+			printf(", Class = \"");
+			utf_display(((constant_classref *) iptr->target)->name);
+			printf("\"");
+
+		} else {
+			printf(" %p", iptr->val.a);
+			if (iptr->val.a) {
 				printf(", String = \"");
 				utf_display(javastring_toutf(iptr->val.a, false));
-				printf("\"");
-
-			} else {
-				/* it is a BUILTIN argument */
-
-				printf(", Class = \"");
-
-				/* is it resolved? */
-
-				if (iptr[1].target == NULL) {
-					builtintable_entry *bte = iptr[1].val.a;
-
-					/* NEW gets a classinfo* as argument */
-
-					if (bte->fp == BUILTIN_new) {
-						utf_display(((classinfo *) iptr->val.a)->name);
-
-					} else {
-						utf_display(((vftbl_t *) iptr->val.a)->class->name);
-					}
-
-				} else {
-					/* iptr->target is a constant_classref */
-
-					utf_display(((constant_classref *) iptr->val.a)->name);
-				}
 				printf("\"");
 			}
 		}
@@ -2968,20 +2949,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 		break;
 
-	case ICMD_ARRAYCHECKCAST:
-		if (iptr->op1) {
-			classinfo *c = iptr->target;
-			if (c->flags & ACC_INTERFACE)
-				printf(" (INTERFACE) ");
-			else
-				printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			utf_display_classname(c->name);
-		} else {
-			printf(" (NOT RESOLVED) ");
-			utf_display_classname(((constant_classref *) iptr->target)->name);
-		}
-		break;
-
 	case ICMD_INLINE_START:
 		printf(" ");
 		utf_display_classname(iptr->method->class->name);
@@ -2990,6 +2957,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		utf_display_classname(iptr->method->descriptor);
 		printf(", depth=%i", iptr->op1);
 		break;
+
 	case ICMD_INLINE_END:
 		break;
 
