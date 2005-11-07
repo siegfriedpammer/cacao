@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 3001 2005-07-12 16:01:56Z twisti $
+   $Id: builtintable.inc 3622 2005-11-07 18:49:17Z twisti $
 
 */
 
@@ -239,31 +239,10 @@ static builtintable_entry builtintable_internal[] = {
 	/* assembler code patching functions **************************************/
 
 	{
-		ICMD_NEW,
-		PATCHER_builtin_new,
-		"(Ljava/lang/Class;)Ljava/lang/Object;",
-		"new (NOT RESOLVED)",
-		NULL
-	},
-	{
-		ICMD_ANEWARRAY,
-		PATCHER_builtin_newarray,
-		"(ILjava/lang/Class;)[Ljava/lang/Object;",
-		"newarray (NOT RESOLVED)",
-		NULL
-	},
-	{
 		ICMD_CHECKCAST,
 		PATCHER_builtin_arraycheckcast,
 		"([Ljava/lang/Class;[Ljava/lang/Class;)[Ljava/lang/Object;",
 		"arraycheckcast (NOT RESOLVED)",
-		NULL
-	},
-	{
-		ICMD_INSTANCEOF,
-		PATCHER_builtin_arrayinstanceof,
-		"([Ljava/lang/Class;[Ljava/lang/Class;)I",
-		"arrayinstanceof (NOT RESOLVED)",
 		NULL
 	},
 };
