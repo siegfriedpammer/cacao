@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 3271 2005-09-21 21:12:59Z twisti $
+   $Id: md-abi.c 3607 2005-11-07 16:38:07Z christian $
 
 */
 
@@ -135,6 +135,9 @@ void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
 					 stackptr stackslot)
 {
 	/* precoloring only straightforward possible with flt/dbl types */
+	/* For Address/Integer/Long REG_RESULT == rax == REG_ITMP1 and  */
+	/* so could be destroyed if the return value Stack Slot "lives  */
+	/* too long" */
 
 	if (IS_FLT_DBL_TYPE(return_type)) {
 		/* In Leafmethods Local Vars holding parameters are precolored to     */
