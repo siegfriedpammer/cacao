@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3547 2005-11-03 20:38:59Z twisti $
+   $Id: headers.c 3611 2005-11-07 17:47:09Z twisti $
 
 */
 
@@ -215,6 +215,13 @@ void throw_cacao_exception_exit(const char *exception, const char *message, ...)
 
 	fputc('\n', stderr);
 
+	exit(1);
+}
+
+
+void exceptions_throw_outofmemory_exit(void)
+{
+	fprintf(stderr, "java.lang.InternalError: Out of memory\n");
 	exit(1);
 }
 
