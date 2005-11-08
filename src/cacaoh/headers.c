@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3611 2005-11-07 17:47:09Z twisti $
+   $Id: headers.c 3641 2005-11-08 17:27:29Z twisti $
 
 */
 
@@ -316,6 +316,24 @@ java_objectheader *new_noclassdeffounderror(utf *name)
 {
 	fprintf(stderr, "java.lang.NoClassDefFoundError: ");
 	utf_fprint(stderr, name);
+	fputc('\n', stderr);
+
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
+java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
+													utf *name, utf *desc)
+{
+	fprintf(stderr, "java.lang.NoSuchMethodError: ");
+	utf_fprint(stderr, c->name);
+	fprintf(stderr, ".");
+	utf_fprint(stderr, name);
+	utf_fprint(stderr, desc);
 	fputc('\n', stderr);
 
 	exit(1);
