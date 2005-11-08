@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 3628 2005-11-07 23:22:38Z edwin $
+   $Id: typeinfo.c 3642 2005-11-08 19:01:17Z edwin $
 
 */
 
@@ -98,6 +98,30 @@ typevectorset_copy(typevector *src,int k,int size)
 	if (src->alt)
 		dst->alt = typevectorset_copy(src->alt,k+1,size);
 	return dst;
+}
+
+/* typevectorset_copy_inplace **************************************************
+ 
+   Return a copy of the given typevector set.
+
+   The DST typevector is overwritten, but alternative vectors, if SRC has any,
+   are newly allocated.
+  
+   IN:
+	   src..............typevector set to copy, must be != NULL
+	   dst..............destination to write the copy to
+	   size.............number of elements per typevector
+
+*******************************************************************************/
+
+void
+typevectorset_copy_inplace(typevector *src,typevector *dst,int size)
+{
+	memcpy(dst,src,TYPEVECTOR_SIZE(size));
+	dst->k = 0; 
+	if ((src)->alt) {
+		(dst)->alt = typevectorset_copy((src)->alt,1,size);
+	}
 }
 
 /* typevectorset_checktype *****************************************************
@@ -1197,6 +1221,41 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 /* The following functions fill in uninitialized typeinfo structures. */
 /**********************************************************************/
 
+/* typeinfo_init_classinfo *****************************************************
+ 
+   Initialize a typeinfo to a resolved class.
+   
+   IN:
+	   c................the class
+
+   OUT:
+       *info............is initialized
+
+   RETURN VALUE:
+       true.............success
+	   false............an exception has been thrown
+
+*******************************************************************************/
+
+void
+typeinfo_init_classinfo(typeinfo *info, classinfo *c)
+{
+	if ((info->typeclass.cls = c)->vftbl->arraydesc) {
+		if (c->vftbl->arraydesc->elementvftbl)
+			info->elementclass.cls = c->vftbl->arraydesc->elementvftbl->class;
+		else
+			info->elementclass.any = NULL;
+		info->dimension = c->vftbl->arraydesc->dimension;
+		info->elementtype = c->vftbl->arraydesc->elementtype;
+	}
+	else {
+		info->elementclass.any = NULL;
+		info->dimension = 0;
+		info->elementtype = 0;
+	}
+	info->merged = NULL;
+}
+
 /* typeinfo_init_class *********************************************************
  
    Initialize a typeinfo to a possibly unresolved class type.
@@ -1231,7 +1290,7 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	}
 	
 	if (cls) {
-		TYPEINFO_INIT_CLASSINFO(*info,cls);
+		typeinfo_init_classinfo(info,cls);
 		return true;
 	}
 
@@ -1557,7 +1616,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 
 		comp = srcarray->typeclass.cls->vftbl->arraydesc->componentvftbl;
 		if (comp)
-			TYPEINFO_INIT_CLASSINFO(*dst,comp->class);
+			typeinfo_init_classinfo(dst,comp->class);
 		else
 			TYPEINFO_INIT_PRIMITIVE(*dst);
 	}

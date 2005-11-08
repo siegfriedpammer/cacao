@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 3628 2005-11-07 23:22:38Z edwin $
+   $Id: typeinfo.h 3642 2005-11-08 19:01:17Z edwin $
 
 */
 
@@ -322,13 +322,6 @@ struct typevector {
 #define MGET_TYPEVECTOR(array,index,size) \
     ((typevector*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
 
-#define COPY_TYPEVECTORSET(src,dst,size)						\
-    do {memcpy(dst,src,TYPEVECTOR_SIZE(size));					\
-        dst->k = 0;                                             \
-        if ((src)->alt) {										\
-	        (dst)->alt = typevectorset_copy((src)->alt,1,size);	\
-        }} while(0)
-
 /* internally used macros ***************************************************/
 
 /* internal, don't use this explicitly! */
@@ -467,23 +460,7 @@ struct typevector {
              (info).elementtype = 0;} while(0)
 
 #define TYPEINFO_INIT_PRIMITIVE_ARRAY(info,arraytype)                   \
-    TYPEINFO_INIT_CLASSINFO(info,primitivetype_table[arraytype].arrayclass);
-
-#define TYPEINFO_INIT_CLASSINFO(info,c)                                 \
-        do {if (((info).typeclass.cls = (c))->vftbl->arraydesc) {       \
-                if ((c)->vftbl->arraydesc->elementvftbl)                \
-                    (info).elementclass.cls = (c)->vftbl->arraydesc->elementvftbl->class; \
-                else                                                    \
-                    (info).elementclass.any = NULL;                     \
-                (info).dimension = (c)->vftbl->arraydesc->dimension;    \
-                (info).elementtype = (c)->vftbl->arraydesc->elementtype;\
-            }                                                           \
-            else {                                                      \
-                (info).elementclass.any = NULL;                         \
-                (info).dimension = 0;                                   \
-                (info).elementtype = 0;                                 \
-            }                                                           \
-            (info).merged = NULL;} while(0)
+    typeinfo_init_classinfo(&(info),primitivetype_table[arraytype].arrayclass);
 
 /* macros for copying types (destinition is not checked or freed) ***********/
 
@@ -523,6 +500,7 @@ typecheck_result typevector_merge(methodinfo *m,typevector *dst,typevector *y,in
 
 /* vector set functions */
 typevector *typevectorset_copy(typevector *src,int k,int size);
+void typevectorset_copy_inplace(typevector *src,typevector *dst,int size);
 bool typevectorset_separable_with(typevector *set,typevector *add,int size);
 typecheck_result typevectorset_collapse(methodinfo *m,typevector *dst,int size);
 void typevectorset_add(typevector *dst,typevector *v,int size);
@@ -547,6 +525,7 @@ typecheck_result typeinfo_is_assignable_to_class(typeinfo *value,classref_or_cla
  *     >= 0.............ok,
  *     -1...............an exception has been thrown.
  */
+void typeinfo_init_classinfo(typeinfo *info,classinfo *c);
 bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c);
 bool typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
 

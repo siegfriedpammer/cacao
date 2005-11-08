@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3629 2005-11-08 01:40:34Z edwin $
+   $Id: typecheck.c 3642 2005-11-08 19:01:17Z edwin $
 
 */
 
@@ -957,7 +957,7 @@ typestate_reach(verifier_state *state,
 		
 		if (!typestack_copy(state,destblock->instack,ystack,yloc))
 			return false;
-		COPY_TYPEVECTORSET(yloc,destloc,state->numlocals);
+		typevectorset_copy_inplace(yloc,destloc,state->numlocals);
 		changed = true;
 	}
 	else {
@@ -1509,7 +1509,7 @@ verify_multianewarray(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		TYPEINFO_INIT_CLASSINFO(state->iptr->dst->typeinfo, arrayclass);
+		typeinfo_init_classinfo(&(state->iptr->dst->typeinfo), arrayclass);
 	}
 	else {
 		const char *p;
@@ -1595,7 +1595,7 @@ verify_basic_block(verifier_state *state)
 	state->handlers[len] = NULL;
 
 	/* init variable types at the start of this block */
-	COPY_TYPEVECTORSET(MGET_TYPEVECTOR(state->localbuf,b_index,state->numlocals),
+	typevectorset_copy_inplace(MGET_TYPEVECTOR(state->localbuf,b_index,state->numlocals),
 			state->localset,state->numlocals);
 
 	/* XXX FIXME FOR INLINING */
@@ -1961,7 +1961,7 @@ fieldaccess_tail:
 						TYPEINFO_INIT_NULLTYPE(dst->typeinfo);
 					else {
 						/* string constant (or constant for builtin function) */
-						TYPEINFO_INIT_CLASSINFO(dst->typeinfo,class_java_lang_String);
+						typeinfo_init_classinfo(&(dst->typeinfo),class_java_lang_String);
 					}
 				}
 				break;
@@ -1977,7 +1977,7 @@ fieldaccess_tail:
 
 				cls = (classinfo *) state->iptr[0].val.a;
 				if (cls)
-					TYPEINFO_INIT_CLASSINFO(dst->typeinfo,cls);
+					typeinfo_init_classinfo(&(dst->typeinfo),cls);
 				else
 					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
 						return false;
@@ -2489,7 +2489,7 @@ verify_init_locals(verifier_state *state)
         if (state->initmethod)
             TYPEINFO_INIT_NEWOBJECT(td->info,NULL);
         else
-            TYPEINFO_INIT_CLASSINFO(td->info, state->m->class);
+            typeinfo_init_classinfo(&(td->info), state->m->class);
         td++;
 		i--;
     }
@@ -2701,7 +2701,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	
 	state.excstack.prev = NULL;
 	state.excstack.type = TYPE_ADR;
-	TYPEINFO_INIT_CLASSINFO(state.excstack.typeinfo,
+	typeinfo_init_classinfo(&(state.excstack.typeinfo),
 							class_java_lang_Throwable); /* changed later */
 
     LOG("Exception handler stacks set.\n");

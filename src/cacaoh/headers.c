@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3641 2005-11-08 17:27:29Z twisti $
+   $Id: headers.c 3642 2005-11-08 19:01:17Z edwin $
 
 */
 
@@ -165,6 +165,10 @@ void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this)
 typecheck_result typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 {
 	return typecheck_TRUE;
+}
+
+void typeinfo_init_classinfo(typeinfo *info,classinfo *c)
+{
 }
 
 bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c)

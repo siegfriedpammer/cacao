@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3628 2005-11-07 23:22:38Z edwin $
+   $Id: resolve.c 3642 2005-11-08 19:01:17Z edwin $
 
 */
 
@@ -512,7 +512,7 @@ bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 	assert(type);
 	assert(type->loaded);
 	assert(type->linked);
-	TYPEINFO_INIT_CLASSINFO(typeti,type);
+	typeinfo_init_classinfo(&typeti,type);
 
 	for (; setp->any; ++setp) {
 		/* first resolve the set member if necessary */
@@ -544,7 +544,7 @@ bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 #endif
 
 		/* now check the subtype relationship */
-		TYPEINFO_INIT_CLASSINFO(resultti,result);
+		typeinfo_init_classinfo(&resultti,result);
 		if (reversed) {
 			/* we must test against `true` because `MAYBE` is also != 0 */
 			r = typeinfo_is_assignable_to_class(&typeti,CLASSREF_OR_CLASSINFO(result));
@@ -1610,7 +1610,7 @@ bool constrain_unresolved_field(unresolved_field *ref,
 			/* XXX check that class of field == refmethod->class */
 			initclass = refmethod->class; /* XXX classrefs */
 			assert(initclass->loaded && initclass->linked);
-			TYPEINFO_INIT_CLASSINFO(tinfo,initclass);
+			typeinfo_init_classinfo(&tinfo,initclass);
 			insttip = &tinfo;
 		}
 		else {
@@ -1634,7 +1634,7 @@ bool constrain_unresolved_field(unresolved_field *ref,
 				assert(class_java_lang_String);
 				assert(class_java_lang_String->loaded);
 				assert(class_java_lang_String->linked);
-				TYPEINFO_INIT_CLASSINFO(tinfo,class_java_lang_String);
+				typeinfo_init_classinfo(&tinfo,class_java_lang_String);
 			}
 			else
 				TYPEINFO_INIT_NULLTYPE(tinfo);
