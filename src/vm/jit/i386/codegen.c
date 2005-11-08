@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3624 2005-11-07 21:12:29Z twisti $
+   $Id: codegen.c 3643 2005-11-08 20:54:36Z twisti $
 
 */
 
@@ -4149,17 +4149,17 @@ nowperformreturn:
 					break;
 
 				case ICMD_FRETURN:
-					i386_fsts_membase(cd, REG_SP, rd->memuse * 4);
+					i386_fstps_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 
 				case ICMD_DRETURN:
-					i386_fstl_membase(cd, REG_SP, rd->memuse * 4);
+					i386_fstpl_membase(cd, REG_SP, rd->memuse * 4);
 					break;
 				}
 
 				M_AST(REG_ITMP2, REG_SP, 0);
-				i386_mov_imm_reg(cd, (ptrint) BUILTIN_monitorexit, REG_ITMP1);
-				i386_call_reg(cd, REG_ITMP1);
+				M_MOV_IMM((ptrint) BUILTIN_monitorexit, REG_ITMP1);
+				M_CALL(REG_ITMP1);
 
 				/* and now restore the proper return value */
 				switch (iptr->opc) {
