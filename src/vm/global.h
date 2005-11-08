@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 3608 2005-11-07 17:37:47Z twisti $
+   $Id: global.h 3636 2005-11-08 17:00:15Z twisti $
 
 */
 
@@ -74,11 +74,6 @@ typedef union {
 
 typedef struct java_objectheader java_objectheader; 
 typedef struct java_objectarray java_objectarray;
-
-
-/* some Java related defines **************************************************/
-
-#define JAVA_VERSION    "1.4.2"         /* this version is supported by CACAO */
 
 
 /* define some CACAO paths ****************************************************/
@@ -143,6 +138,12 @@ typedef struct java_objectarray java_objectarray;
 #define PRIMITIVETYPE_BOOLEAN 8
 #define PRIMITIVETYPE_DUMMY2  9            /* not used! */
 #define PRIMITIVETYPE_VOID    TYPE_VOID
+
+/* some Java related defines **************************************************/
+
+#define JAVA_VERSION    "1.4.2"         /* this version is supported by CACAO */
+#define CLASS_VERSION   "49.0"
+
 
 /* Java class file constants **************************************************/
 
