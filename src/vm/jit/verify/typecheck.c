@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3628 2005-11-07 23:22:38Z edwin $
+   $Id: typecheck.c 3629 2005-11-08 01:40:34Z edwin $
 
 */
 
@@ -223,6 +223,14 @@ bool typecheckverbose = false;
 #define LOGSTR3(str,a,b,c) DOLOG(dolog_plain(str,a,b,c))
 #define LOGSTRu(utf)       DOLOG(log_plain_utf(utf))
 #define LOGNAME(c)         DOLOG(do {log_plain_utf(IS_CLASSREF(c) ? c.ref->name : c.cls->name);} while(0))
+#define WORDCHECKFAULT \
+  	do { \
+		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
+		state->iptr->op1,state->iptr->method->class->name->text, \
+			state->iptr->method->name->text,state->m->class->name->text,state->m->name->text); \
+		show_icmd(state->iptr++, false); \
+		show_icmd(state->iptr, false); \
+	} while (0)
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -238,6 +246,7 @@ bool typecheckverbose = false;
 #define LOGSTR3(str,a,b,c)
 #define LOGSTRu(utf)
 #define LOGNAME(c)
+#define WORDCHECKFAULT
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
@@ -477,20 +486,11 @@ typedef struct verifier_state {
 #define TYPESTACK_IS_RETURNADDRESS(sptr) \
             TYPE_IS_RETURNADDRESS((sptr)->type,(sptr)->typeinfo)
 
-#define TYPESTACK_IS_REFERENCE(sptr) \
-            TYPE_IS_REFERENCE((sptr)->type,(sptr)->typeinfo)
-
 #define TYPESTACK_RETURNADDRESSSET(sptr) \
             ((typeinfo_retaddr_set*)TYPEINFO_RETURNADDRESS((sptr)->typeinfo))
 
 #define RETURNADDRESSSET_SEEK(set,pos) \
             do {int i; for (i=pos;i--;) set=set->alt;} while(0)
-
-#define TYPESTACK_COPY(sp,copy)									\
-	        do {for(; sp; sp=sp->prev, copy=copy->prev) {		\
-					copy->type = sp->type;						\
-					TYPEINFO_COPY(sp->typeinfo,copy->typeinfo);	\
-				}} while (0)									\
 
 /* typestack_copy **************************************************************
  
@@ -712,6 +712,7 @@ typestack_add(stackptr dst,stackptr y,int ky)
 	}
 }
 
+/* XXX document */
 /* 'a' and 'b' are assumed to have passed typestack_canmerge! */
 static bool
 typestack_separable_with(stackptr a,stackptr b,int kb)
@@ -735,6 +736,7 @@ typestack_separable_with(stackptr a,stackptr b,int kb)
 	return false;
 }
 
+/* XXX document */
 /* 'a' and 'b' are assumed to have passed typestack_canmerge! */
 static bool
 typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
@@ -1023,62 +1025,76 @@ typestate_ret(verifier_state *state,int retindex)
 	return true;
 }
 
-/****************************************************************************/
-/* MACROS FOR LOCAL VARIABLE CHECKING                                       */
-/****************************************************************************/
+/* typestate_save_instack ******************************************************
+ 
+   Save the input stack of the current basic block in the "savedstackbuf"
+   of the verifier state.
 
-#define INDEX_ONEWORD(num)										\
-	do { if((num)<0 || (num)>=state->validlocals)				\
-			TYPECHECK_VERIFYERROR_bool("Invalid local variable index"); } while (0)
-#define INDEX_TWOWORD(num)										\
-	do { if((num)<0 || ((num)+1)>=state->validlocals)			\
-			TYPECHECK_VERIFYERROR_bool("Invalid local variable index"); } while (0)
+   This function must be called before an instruction modifies a stack slot
+   that happens to be part of the instack of the current block. In such
+   cases the instack of the block must be saved, and restored at the end
+   of the analysis of this basic block, so that the instack again reflects
+   the *input* to this basic block (and does not randomly contain types
+   that appear within the block).
 
-#define STORE_ONEWORD(num,type)									\
- 	do {typevectorset_store(state->localset,num,type,NULL);} while(0)
+   IN:
+       state............current state of the verifier
 
-#define STORE_TWOWORD(num,type)										\
- 	do {typevectorset_store_twoword(state->localset,num,type);} while(0)
+*******************************************************************************/
 
+static void
+typestate_save_instack(verifier_state *state)
+{
+	stackptr sp;
+	stackptr dest;
+	s4 i;
+	
+	LOG("saving input stack types");
+	if (!state->savedstackbuf) {
+		LOG("allocating savedstack buffer");
+		state->savedstackbuf = DMNEW(stackelement, state->cd->maxstack);
+		state->savedstackbuf->prev = NULL;
+		for (i = 1; i < state->cd->maxstack; ++i)
+			state->savedstackbuf[i].prev = state->savedstackbuf+(i-1);
+	}
+	sp = state->savedstack = state->bptr->instack;
+	dest = state->bptr->instack = state->savedstackbuf + (state->bptr->indepth-1);
+	
+	for(; sp; sp=sp->prev, dest=dest->prev) {
+		dest->type = sp->type;
+		TYPEINFO_COPY(sp->typeinfo,dest->typeinfo);
+	}
+}
 
-#ifdef TYPECHECK_VERBOSE
-#define WORDCHECKFAULT \
-  	do { \
-		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
-		state->iptr->op1,state->iptr->method->class->name->text, \
-			state->iptr->method->name->text,state->m->class->name->text,state->m->name->text); \
-		show_icmd(state->iptr++, false); \
-		show_icmd(state->iptr, false); \
-	} while (0)
-#else
-#define WORDCHECKFAULT
-#endif
+/* typestate_restore_instack ***************************************************
+ 
+   Restore the input stack of the current basic block that has been previously
+   saved by `typestate_save_instack`.
 
+   IN:
+       state............current state of the verifier
 
-#define CHECK_ONEWORD(num,tp)											\
-	do {TYPECHECK_COUNT(stat_ins_primload);								\
-		if (state->jsrencountered) {											\
-			if (!typevectorset_checktype(state->localset,num,tp)) {				\
-				WORDCHECKFAULT;	\
-				TYPECHECK_VERIFYERROR_bool("Variable type mismatch");						\
-			}	\
-		}																\
-		else {															\
-			if (state->localset->td[num].type != tp) {							\
-				TYPECHECK_VERIFYERROR_bool("Variable type mismatch");						\
-				WORDCHECKFAULT;	\
-			} \
-		}																\
-		} while(0)
+*******************************************************************************/
 
-#define CHECK_TWOWORD(num,type)											\
-	do {TYPECHECK_COUNT(stat_ins_primload);								\
-		if (!typevectorset_checktype(state->localset,num,type)) {                \
-			WORDCHECKFAULT;	\
-            		TYPECHECK_VERIFYERROR_bool("Variable type mismatch");	                        \
-		} \
-	} while(0)
+static void
+typestate_restore_instack(verifier_state *state)
+{
+	stackptr sp;
+	stackptr dest;
+	
+	TYPECHECK_COUNT(stat_savedstack);
+	LOG("restoring saved instack");
 
+	sp = state->bptr->instack;
+	dest = state->savedstack;
+	for(; sp; sp=sp->prev, dest=dest->prev) {
+		dest->type = sp->type;
+		TYPEINFO_COPY(sp->typeinfo,dest->typeinfo);
+	}
+
+	state->bptr->instack = state->savedstack;
+	state->savedstack = NULL;
+}
 
 /****************************************************************************/
 /* MISC MACROS                                                              */
@@ -1090,20 +1106,42 @@ typestate_ret(verifier_state *state,int retindex)
 
 #define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
 
-/* TYPECHECK_LEAVE: executed when the method is exited non-abruptly
- * Input:
- *     class........class of the current method
- *     state........verifier state
- */
-#define TYPECHECK_LEAVE                                                 \
-    do {                                                                \
-        if (state->initmethod && state->m->class != class_java_lang_Object) {         \
-            /* check the marker variable */                             \
-            LOG("Checking <init> marker");                              \
-            if (!typevectorset_checktype(state->localset,state->numlocals-1,TYPE_INT))\
-                TYPECHECK_VERIFYERROR_bool("<init> method does not initialize 'this'");      \
-        }                                                               \
-    } while (0)
+/* verify_local_variable_type **************************************************
+ 
+   Verify the type of a local variable in the current state.
+  
+   IN:
+       state............the current state of the verifier
+	   index............the index of the local variable to check (0-based)
+	   tp...............the TYPE_* constant of the type to check
+
+   RETURN VALUE:
+       true.............successful verification,
+	   false............an exception has been thrown.
+
+*******************************************************************************/
+
+static bool
+verify_local_variable_type(verifier_state *state, int index, int tp)
+{
+
+	TYPECHECK_COUNT(stat_ins_primload);
+
+	if (state->jsrencountered) {
+		if (!typevectorset_checktype(state->localset,index,tp)) {
+			WORDCHECKFAULT;
+			TYPECHECK_VERIFYERROR_bool("Variable type mismatch");
+		}
+	}
+	else {
+		/* XXX check if this "optimized" branch really matters */
+		if (state->localset->td[index].type != tp) {
+			WORDCHECKFAULT;
+			TYPECHECK_VERIFYERROR_bool("Variable type mismatch");
+		}
+	}	
+	return true;
+}
 
 /* verify_invocation ***********************************************************
  
@@ -1224,21 +1262,7 @@ verify_invocation(verifier_state *state)
 				 * we are going to replace.
 				 */
 				if (stack <= state->bptr->instack && !state->savedstack)
-				{
-					stackptr sp;
-					stackptr copy;
-					LOG("saving input stack types");
-					if (!state->savedstackbuf) {
-						LOG("allocating savedstack buffer");
-						state->savedstackbuf = DMNEW(stackelement, state->cd->maxstack);
-						state->savedstackbuf->prev = NULL;
-						for (i = 1; i < state->cd->maxstack; ++i)
-							state->savedstackbuf[i].prev = state->savedstackbuf+(i-1);
-					}
-					sp = state->savedstack = state->bptr->instack;
-					copy = state->bptr->instack = state->savedstackbuf + (state->bptr->indepth-1);
-					TYPESTACK_COPY(sp,copy);
-				}
+					typestate_save_instack(state);
 
 				if (!typeinfo_init_class(&(stack->typeinfo),initclass))
 					return false;
@@ -1680,16 +1704,16 @@ verify_basic_block(verifier_state *state)
 				/****************************************/
 				/* PRIMITIVE VARIABLE ACCESS            */
 
-			case ICMD_ILOAD: CHECK_ONEWORD(state->iptr->op1,TYPE_INT); break;
-			case ICMD_FLOAD: CHECK_ONEWORD(state->iptr->op1,TYPE_FLOAT); break;
-			case ICMD_IINC:  CHECK_ONEWORD(state->iptr->op1,TYPE_INT); break;
-			case ICMD_LLOAD: CHECK_TWOWORD(state->iptr->op1,TYPE_LONG); break;
-			case ICMD_DLOAD: CHECK_TWOWORD(state->iptr->op1,TYPE_DOUBLE); break;
+			case ICMD_ILOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_INT)) return false; break;
+			case ICMD_FLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_FLOAT)) return false; break;
+			case ICMD_IINC:  if (!verify_local_variable_type(state,state->iptr->op1,TYPE_INT)) return false; break;
+			case ICMD_LLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_LONG)) return false; break;
+			case ICMD_DLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_DOUBLE)) return false; break;
 
-			case ICMD_FSTORE: STORE_ONEWORD(state->iptr->op1,TYPE_FLOAT); break;
-			case ICMD_ISTORE: STORE_ONEWORD(state->iptr->op1,TYPE_INT); break;
-			case ICMD_LSTORE: STORE_TWOWORD(state->iptr->op1,TYPE_LONG); break;
-			case ICMD_DSTORE: STORE_TWOWORD(state->iptr->op1,TYPE_DOUBLE); break;
+			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_FLOAT,NULL); break;
+			case ICMD_ISTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_INT,NULL); break;
+			case ICMD_LSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_LONG); break;
+			case ICMD_DSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_DOUBLE); break;
 
 				/****************************************/
 				/* LOADING ADDRESS FROM VARIABLE        */
@@ -2111,7 +2135,14 @@ switch_instruction_tail:
 				if (state->returntype.type != TYPE_VOID) TYPECHECK_VERIFYERROR_bool("Return type mismatch");
 return_tail:
 				TYPECHECK_COUNT(stat_ins_primitive_return);
-				TYPECHECK_LEAVE;
+
+				if (state->initmethod && state->m->class != class_java_lang_Object) {
+					/* Check if the 'this' instance has been initialized. */
+					LOG("Checking <init> marker");
+					if (!typevectorset_checktype(state->localset,state->numlocals-1,TYPE_INT))
+						TYPECHECK_VERIFYERROR_bool("<init> method does not initialize 'this'");
+				}
+
 				superblockend = true;
 				maythrow = true;
 				break;
@@ -2408,15 +2439,9 @@ return_tail:
 	 * have been saved if an <init> call inside the block has
 	 * modified the instack types. (see INVOKESPECIAL) */
 
-	if (state->savedstack) {
-		stackptr sp = state->bptr->instack;
-		stackptr copy = state->savedstack;
-		TYPECHECK_COUNT(stat_savedstack);
-		LOG("restoring saved instack");
-		TYPESTACK_COPY(sp,copy);
-		state->bptr->instack = state->savedstack;
-		state->savedstack = NULL;
-	}
+	if (state->savedstack)
+		typestate_restore_instack(state);
+
 	return true;
 }
 
