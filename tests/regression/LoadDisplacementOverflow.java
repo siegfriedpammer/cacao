@@ -2033,9 +2033,9 @@ public class LoadDisplacementOverflow {
         if (f++ % 100 == 0) System.out.println(f);
 
         // check FCONST instruction
-        System.out.println(1.2345678F);
+        System.out.println(1.23456789F);
 
         // check DCONST instruction
-        System.out.println(1.2345678D);
+        System.out.println(1.23456789D);
     }
 }
