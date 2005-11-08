@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3612 2005-11-07 17:47:49Z twisti $
+   $Id: exceptions.c 3639 2005-11-08 17:21:37Z twisti $
 
 */
 
@@ -98,6 +98,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_NoClassDefFoundError =
 		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
 		!link_class(class_java_lang_NoClassDefFoundError))
+		return false;
+
+	/* java/lang/NoSuchMethodError */
+
+	if (!(class_java_lang_NoSuchMethodError =
+		  load_class_bootstrap(utf_java_lang_NoSuchMethodError)) ||
+		!link_class(class_java_lang_NoSuchMethodError))
 		return false;
 
 	/* java/lang/OutOfMemoryError */
@@ -605,6 +612,46 @@ java_objectheader *new_internalerror(const char *message, ...)
 	/* create exception object */
 
 	o = new_exception_message(string_java_lang_InternalError, msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	return o;
+}
+
+
+/* exceptions_new_nosuchmethoderror ********************************************
+
+   Generates a java.lang.NoSuchMethodError with an error message.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
+													utf *name, utf *desc)
+{
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+
+	/* calculate exception message length */
+
+	msglen = utf_strlen(c->name) + strlen(".") + utf_strlen(name) +
+		utf_strlen(desc) + strlen("0");
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
+
+	utf_sprint(msg, c->name);
+	strcat(msg, ".");
+	utf_strcat(msg, name);
+	utf_strcat(msg, desc);
+
+	o = native_new_and_init_string(class_java_lang_NoSuchMethodError,
+								   javastring_new_char(msg));
 
 	/* free memory */
 

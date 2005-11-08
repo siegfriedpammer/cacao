@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 3612 2005-11-07 17:47:49Z twisti $
+   $Id: exceptions.h 3639 2005-11-08 17:21:37Z twisti $
 
 */
 
@@ -106,6 +106,8 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
 java_objectheader *new_classnotfoundexception(utf *name);
 java_objectheader *new_noclassdeffounderror(utf *name);
+java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
+													utf *name, utf *desc);
 java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
