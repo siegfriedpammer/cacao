@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3542 2005-11-03 20:34:14Z twisti $
+   $Id: class.c 3638 2005-11-08 17:21:11Z twisti $
 
 */
 
@@ -109,6 +109,7 @@ classinfo *class_java_lang_Throwable = NULL;
 classinfo *class_java_lang_VMThrowable = NULL;
 classinfo *class_java_lang_Error = NULL;
 classinfo *class_java_lang_NoClassDefFoundError = NULL;
+classinfo *class_java_lang_NoSuchMethodError = NULL;
 classinfo *class_java_lang_OutOfMemoryError = NULL;
 
 classinfo *class_java_lang_Exception = NULL;
@@ -849,8 +850,6 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	classinfo  *cls;
 	methodinfo *m;
 	s4          i;
-	char       *msg;
-	s4          msglen;
 
 	/* XXX resolve class c */
 	/* XXX check access from REFERER to C */
@@ -881,22 +880,8 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 			goto found;
 	}
 	
-	if (except) {
-		msglen = utf_strlen(c->name) + strlen(".") + utf_strlen(name) +
-			utf_strlen(desc) + strlen("0");
-
-		msg = MNEW(char, msglen);
-
-		utf_sprint(msg, c->name);
-		strcat(msg, ".");
-		utf_sprint(msg + strlen(msg), name);
-		utf_sprint(msg + strlen(msg), desc);
-
-		*exceptionptr =
-			new_exception_message(string_java_lang_NoSuchMethodError, msg);
-
-		MFREE(msg, char, msglen);
-	}
+	if (except)
+		*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
 
 	return NULL;
 
@@ -954,7 +939,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 
 	if (except)
 		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_NoSuchMethodError, name);
+			exceptions_new_nosuchmethoderror(c, name, desc);
 
 	return NULL;
 }
