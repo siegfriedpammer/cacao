@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3541 2005-11-03 20:33:51Z twisti $
+   $Id: utf8.c 3637 2005-11-08 17:19:52Z twisti $
 
 */
 
@@ -66,6 +66,7 @@ utf *utf_java_lang_Throwable;
 utf *utf_java_lang_VMThrowable;
 utf *utf_java_lang_Error;
 utf *utf_java_lang_NoClassDefFoundError;
+utf *utf_java_lang_NoSuchMethodError;
 utf *utf_java_lang_OutOfMemoryError;
 
 utf *utf_java_lang_Exception;
@@ -174,6 +175,9 @@ void utf8_init(void)
 
 	utf_java_lang_NoClassDefFoundError =
 		utf_new_char(string_java_lang_NoClassDefFoundError);
+
+	utf_java_lang_NoSuchMethodError =
+		utf_new_char(string_java_lang_NoSuchMethodError);
 
 	utf_java_lang_OutOfMemoryError =
 		utf_new_char(string_java_lang_OutOfMemoryError);
