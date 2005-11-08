@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3561 2005-11-04 16:19:32Z twisti $
+   $Id: jni.c 3640 2005-11-08 17:24:37Z twisti $
 
 */
 
@@ -1406,6 +1406,8 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 					  const char *sig)
 {
 	classinfo  *c;
+	utf        *uname;
+	utf        *udesc;
 	methodinfo *m;
 
 	STATS(jniinvokation();)
@@ -1421,13 +1423,13 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 
 	/* try to get the method of the class or one of it's superclasses */
 
- 	m = class_resolvemethod(clazz, 
-							utf_new_char((char *) name), 
-							utf_new_char((char *) sig));
+	uname = utf_new_char((char *) name);
+	udesc = utf_new_char((char *) sig);
+
+ 	m = class_resolvemethod(clazz, uname, udesc);
 
 	if (!m || (m->flags & ACC_STATIC)) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_NoSuchMethodError, name);
+		*exceptionptr = exceptions_new_nosuchmethoderror(c, uname, udesc);
 
 		return NULL;
 	}
@@ -2272,6 +2274,8 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 							const char *sig)
 {
 	classinfo  *c;
+	utf        *uname;
+	utf        *udesc;
 	methodinfo *m;
 
 	STATS(jniinvokation();)
@@ -2287,13 +2291,13 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 
 	/* try to get the static method of the class */
 
- 	m = class_resolvemethod(clazz,
-							utf_new_char((char *) name),
-							utf_new_char((char *) sig));
+	uname = utf_new_char((char *) name);
+	udesc = utf_new_char((char *) sig);
+
+ 	m = class_resolvemethod(c, uname, udesc);
 
 	if (!m || !(m->flags & ACC_STATIC)) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_NoSuchMethodError, name);
+		*exceptionptr = exceptions_new_nosuchmethoderror(c, uname, udesc);
 
 		return NULL;
 	}
