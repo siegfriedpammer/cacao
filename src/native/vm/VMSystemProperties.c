@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3533 2005-11-02 13:35:21Z twisti $
+   $Id: VMSystemProperties.c 3635 2005-11-08 16:59:55Z twisti $
 
 */
 
@@ -172,7 +172,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	insert_property(m, p, "java.specification.version", "1.4");
 	insert_property(m, p, "java.specification.vendor", "Sun Microsystems Inc.");
 	insert_property(m, p, "java.specification.name", "Java Platform API Specification");
-	insert_property(m, p, "java.class.version", "48.0");
+	insert_property(m, p, "java.class.version", CLASS_VERSION);
 	insert_property(m, p, "java.class.path", classpath);
 
 	insert_property(m, p, "java.runtime.version", VERSION);
