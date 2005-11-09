@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3644 2005-11-09 19:32:03Z edwin $
+   $Id: typecheck.c 3645 2005-11-09 19:33:45Z edwin $
 
 */
 
@@ -364,7 +364,7 @@ void typecheck_print_statistics(FILE *file) {
 	fprintf(file,"      (uninit.)    : %8d\n",stat_ins_field_uninitialized);
 	fprintf(file,"    invocations    : %8d\n",stat_ins_invoke);
 	fprintf(file,"      (unresolved) : %8d\n",stat_ins_invoke_unresolved);
-	fprintf(file,"    load primitive : %8d\n",stat_ins_primload);
+	fprintf(file,"    load primitive : (currently not counted) %8d\n",stat_ins_primload);
 	fprintf(file,"    load address   : %8d\n",stat_ins_aload);
 	fprintf(file,"    builtins       : %8d\n",stat_ins_builtin);
 	fprintf(file,"        generic    : %8d\n",stat_ins_builtin_gen);
