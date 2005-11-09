@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 2297 2005-04-13 12:50:07Z christian $
+   $Id: lsra.h 3647 2005-11-09 21:40:39Z christian $
 
 */
 
@@ -34,18 +34,20 @@
 #ifndef _LSRA_H
 #define _LSRA_H
 
-/* #define LSRA_DEBUG */
+/*  #define LSRA_DEBUG  */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
-/*  #define LSRA_PRINTLIFETIMES */
+/*  #define LSRA_PRINTLIFETIMES  */
 /* #define LSRA_USES_REG_RES */ /* is now in i386/codegen.h */
 /*  #define LSRA_TESTLT */
 /* #define LSRA_LEAF */
-#define JOIN_DEST_STACK
-#define JOIN_DUP_STACK
-#define LSRA_DO_SR
-#define LSRA_DO_EX
-
+#if defined(__I386__) || defined(__X86_64__)
+#define JOIN_DEST_STACK           /* The destination stackslot gets the same  */
+        /* register as one of the src stackslots. Important for i386 & X86_64 */
+        /* since they do not have "3 operand" arithmetic instructions to      */
+        /* prevent usage of a reserved register (REG_ITMPX)                   */
+#endif
+#define JOIN_DUP_STACK         /* join "identical" stackslots created by dup* */
 
 #define USAGE_COUNT        /* influence LSRA with usagecount */
 #define USAGE_PER_INSTR    /* divide usagecount by lifetimelength */
@@ -70,13 +72,16 @@
 #define LSRA_POP -1
 
 /* join types and flags*/
-#define JOIN     0           /* join that are not in any way dangerous */
-#define JOIN_BB  1           /* join Stackslots over Basic Block Boundaries */
-#define JOIN_DUP 2           /* join of two possibly concurring lifeteimes through DUP* */
-#define JOIN_OP  4           /* join of src operand with dst operand on i386 and x86_64 architecture */
-                             /* JOIN_DUP and JOIN_OP is mutually exclusive as JOIN_OP and JOIN_BB    */
-#define JOINING  8           /* set while joining for DUP or OP to prevent assignement to a */
-                             /* REG_RES before all involved lifetimes have been seen fully  */
+#define JOIN     0 /* joins that are not in any way dangerous                 */
+#define JOIN_BB  1 /* join Stackslots over Basic Block Boundaries             */
+#define JOIN_DUP 2 /* join of two possibly concurring lifeteimes through DUP* */
+#define JOIN_OP  4 /* join of src operand with dst operand on i386 and x86_64 */
+                   /* architecture                                            */
+                   /* JOIN_DUP and JOIN_OP is mutually exclusive as JOIN_OP   */
+                   /* and JOIN_BB                                             */
+#define JOINING  8 /* set while joining for DUP or OP to prevent assignement  */
+                   /* to a REG_RES before all involved lifetimes have been    */
+                   /* seen completely */
 
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
@@ -93,20 +98,20 @@ struct _backedge {
 };
 
 struct lifetime {
-	int i_start; /* instruction number of first use */
-	int i_end; /* instruction number of last use */
-	int v_index; /* local variable index or negative for stackslots */
-	int type; /* TYPE_??? or -1 for unused lifetime */
-	long usagecount; /* number of references*/
-	int reg; /* regoffset durch lsra zugewiesen */
+	int i_start;                /* instruction number of first use */
+	int i_end;                  /* instruction number of last use */
+	int v_index;           /* local variable index or negative for stackslots */
+	int type;                   /* TYPE_XXX or -1 for unused lifetime */
+	long usagecount;            /* number of references*/
+	int reg;                    /* regoffset allocated by lsra*/
 	int savedvar;
 	int flags;
-	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL (=="pure" Local Var) */
+	struct stackslot *local_ss; /* Stackslots for this Lifetime or NULL ( ==  */
+                                /* "pure" Local Var) */
 	int bb_last_use;
 	int i_last_use;
 	int bb_first_def;
 	int i_first_def;
-/* 	struct lifetime *next; */
 };
 
 struct active_lt {
@@ -146,8 +151,8 @@ struct lsra_reg {
 };
 
 struct _sbr {
-	int header;
-	struct _list *ret;
+	int header;          /* BB Index of subroutine start (SBR_HEADER) */
+	struct _list *ret;   /* List of possible return BB indizes */
 	struct _sbr *next;
 };
 
@@ -159,31 +164,34 @@ struct lsradata {
 	struct _list **pred; /* CFG predecessors */
 	int *num_pred;       /* CFG number of predecessors */
 	int *sorted;         /* BB sorted in reverse post order */
-	int *sorted_rev;     /* BB reverse of sorted */
-	struct _backedge **backedge;
-	int backedge_count;
+	int *sorted_rev;     /* BB reverse lookup of sorted */
 
-	struct _sbr sbr;
+	struct _backedge **backedge; /* backedge data structure */
+	int backedge_count;          /* number of backedges */
 
-	long *nesting;
+	struct _sbr sbr;     /* list of subroutines, sorted by header */
 
-	int maxlifetimes; /* copy from methodinfo to prevent passing methodinfo as parameter */
+	long *nesting;    /* Nesting level of BB*/
+
+	int maxlifetimes; /* copy from methodinfo to prevent passing methodinfo   */
+                      /* as parameter */
+
 	struct lifetime *lifetime; /* array of lifetimes */
-	int *lt_used; /* index to lifetimearray for used lifetimes */
-	int lifetimecount;
-	int *lt_int; /* index to lifetimearray for int lifetimes */
-	int lt_int_count;
-	int *lt_flt; /* index to lifetimearray for float lifetimes */
-	int lt_flt_count;
-	int *lt_rest; /* index to lifetimearray for all lifetimes not to be allocated in registers */
-	int lt_rest_count;
+	int lifetimecount;         /* number of lifetimes */
+	int *lt_used;              /* index to lifetimearray for used lifetimes   */
+	int *lt_int;               /* index to lifetimearray for int lifetimes    */
+	int lt_int_count;          /* number of int/[lng]/[adr] lifetimes */
+	int *lt_flt;               /* index to lifetimearray for float lifetimes  */
+	int lt_flt_count;          /* number of float/double lifetimes */
+	int *lt_mem;               /* index to lifetimearray for all lifetimes    */
+                               /* not to be allocated in registers */
+	int lt_mem_count;          /* number of this other lifetimes */
 
 	struct active_lt *active_tmp, *active_sav;
 
 	struct lsra_exceptiontable *ex;
-	int icount_max;
-	int end_bb;
-	int v_index;
+	int v_index;               /* next free index for stack slot lifetimes    */
+	                           /* decrements from -1 */
 };
 
 struct freemem {
