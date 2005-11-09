@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3642 2005-11-08 19:01:17Z edwin $
+   $Id: typecheck.c 3644 2005-11-09 19:32:03Z edwin $
 
 */
 
@@ -223,14 +223,6 @@ bool typecheckverbose = false;
 #define LOGSTR3(str,a,b,c) DOLOG(dolog_plain(str,a,b,c))
 #define LOGSTRu(utf)       DOLOG(log_plain_utf(utf))
 #define LOGNAME(c)         DOLOG(do {log_plain_utf(IS_CLASSREF(c) ? c.ref->name : c.cls->name);} while(0))
-#define WORDCHECKFAULT \
-  	do { \
-		dolog("localset->td index: %ld\ninstruction belongs to:%s.%s, outermethod:%s.%s\n", \
-		state->iptr->op1,state->iptr->method->class->name->text, \
-			state->iptr->method->name->text,state->m->class->name->text,state->m->name->text); \
-		show_icmd(state->iptr++, false); \
-		show_icmd(state->iptr, false); \
-	} while (0)
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -246,7 +238,6 @@ bool typecheckverbose = false;
 #define LOGSTR3(str,a,b,c)
 #define LOGSTRu(utf)
 #define LOGNAME(c)
-#define WORDCHECKFAULT
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
@@ -1106,43 +1097,6 @@ typestate_restore_instack(verifier_state *state)
 
 #define ISBUILTIN(v)   (bte->fp == (functionptr) (v))
 
-/* verify_local_variable_type **************************************************
- 
-   Verify the type of a local variable in the current state.
-  
-   IN:
-       state............the current state of the verifier
-	   index............the index of the local variable to check (0-based)
-	   tp...............the TYPE_* constant of the type to check
-
-   RETURN VALUE:
-       true.............successful verification,
-	   false............an exception has been thrown.
-
-*******************************************************************************/
-
-static bool
-verify_local_variable_type(verifier_state *state, int index, int tp)
-{
-
-	TYPECHECK_COUNT(stat_ins_primload);
-
-	if (state->jsrencountered) {
-		if (!typevectorset_checktype(state->localset,index,tp)) {
-			WORDCHECKFAULT;
-			TYPECHECK_VERIFYERROR_bool("Variable type mismatch");
-		}
-	}
-	else {
-		/* XXX check if this "optimized" branch really matters */
-		if (state->localset->td[index].type != tp) {
-			WORDCHECKFAULT;
-			TYPECHECK_VERIFYERROR_bool("Variable type mismatch");
-		}
-	}	
-	return true;
-}
-
 /* verify_invocation ***********************************************************
  
    Verify an ICMD_INVOKE* instruction.
@@ -1704,14 +1658,24 @@ verify_basic_block(verifier_state *state)
 				/****************************************/
 				/* PRIMITIVE VARIABLE ACCESS            */
 
-			case ICMD_ILOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_INT)) return false; break;
-			case ICMD_FLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_FLOAT)) return false; break;
-			case ICMD_IINC:  if (!verify_local_variable_type(state,state->iptr->op1,TYPE_INT)) return false; break;
-			case ICMD_LLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_LONG)) return false; break;
-			case ICMD_DLOAD: if (!verify_local_variable_type(state,state->iptr->op1,TYPE_DOUBLE)) return false; break;
+			case ICMD_ILOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_INT)) 
+								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 break;
+			case ICMD_IINC:  if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_INT))
+								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 break;
+			case ICMD_FLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_FLOAT))
+								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 break;
+			case ICMD_LLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_LONG))
+								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 break;
+			case ICMD_DLOAD: if (!typevectorset_checktype(state->localset,state->iptr->op1,TYPE_DOUBLE))
+								 TYPECHECK_VERIFYERROR_bool("Local variable type mismatch");
+							 break;
 
-			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_FLOAT,NULL); break;
 			case ICMD_ISTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_INT,NULL); break;
+			case ICMD_FSTORE: typevectorset_store(state->localset,state->iptr->op1,TYPE_FLOAT,NULL); break;
 			case ICMD_LSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_LONG); break;
 			case ICMD_DSTORE: typevectorset_store_twoword(state->localset,state->iptr->op1,TYPE_DOUBLE); break;
 
