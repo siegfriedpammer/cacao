@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3617 2005-11-07 18:39:10Z twisti $
+   $Id: jit.c 3656 2005-11-11 11:38:55Z twisti $
 
 */
 
@@ -1631,7 +1631,12 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	/* now generate the machine code */
 
-	codegen(m, cd, rd);
+	if (!codegen(m, cd, rd)) {
+		if (compileverbose)
+			log_message_method("Exception while generating code: ", m);
+
+		return NULL;
+	}
 
 	if (compileverbose)
 		log_message_method("Generating code done: ", m);
