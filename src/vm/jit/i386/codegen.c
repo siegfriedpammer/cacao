@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3643 2005-11-08 20:54:36Z twisti $
+   $Id: codegen.c 3664 2005-11-11 14:27:09Z twisti $
 
 */
 
@@ -80,7 +80,7 @@
 
 *******************************************************************************/
 
-void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4     len, s1, s2, s3, d, off;
 	ptrint a;
@@ -5023,8 +5023,9 @@ gen_method:
 			break;
 
 		default:
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   "Unknown ICMD %d", iptr->opc);
+			*exceptionptr =
+				new_internalerror("Unknown ICMD %d", iptr->opc);
+			return false;
 	} /* switch */
 		
 	} /* for instruction */
@@ -5417,6 +5418,10 @@ gen_method:
 	}
 	
 	codegen_finish(m, cd, (ptrint) (cd->mcodeptr - cd->mcodebase));
+
+	/* everything's ok */
+
+	return true;
 }
 
 
