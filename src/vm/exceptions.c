@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3639 2005-11-08 17:21:37Z twisti $
+   $Id: exceptions.c 3653 2005-11-11 11:16:42Z twisti $
 
 */
 
@@ -943,6 +943,53 @@ java_objectheader *new_nullpointerexception(void)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_print_exception **************************************************
+
+   Prints an exception, the detail message and the cause, if
+   available, with CACAO internal functions to stdout.
+
+*******************************************************************************/
+
+void exceptions_print_exception(java_objectheader *xptr)
+{
+	java_lang_Throwable   *t;
+	java_lang_Throwable   *cause;
+	utf                   *u;
+
+	t = (java_lang_Throwable *) xptr;
+	cause = t->cause;
+
+	/* print the root exception */
+
+	utf_display_classname(t->header.vftbl->class->name);
+
+	if (t->detailMessage) {
+		u = javastring_toutf(t->detailMessage, false);
+
+		printf(": ");
+		utf_display(u);
+	}
+
+	putc('\n', stdout);
+
+	/* print the cause if available */
+
+	if (cause && (cause != t)) {
+		printf("Caused by: ");
+		utf_display_classname(cause->header.vftbl->class->name);
+
+		if (cause->detailMessage) {
+			u = javastring_toutf(cause->detailMessage, false);
+
+			printf(": ");
+			utf_display(u);
+		}
+
+		putc('\n', stdout);
+	}
 }
 
 
