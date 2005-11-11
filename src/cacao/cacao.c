@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3586 2005-11-05 22:32:38Z twisti $
+   $Id: cacao.c 3658 2005-11-11 11:57:07Z twisti $
 
 */
 
@@ -1369,7 +1369,7 @@ int main(int argc, char **argv)
 		classcache_name_entry *nmen;
 		classcache_class_entry *clsen;
 
-		/* create all classes found in the classpath */
+		/* create all classes found in the bootclasspath */
 		/* XXX currently only works with zip/jar's */
 
 		loader_load_all_classes();
@@ -1388,20 +1388,28 @@ int main(int argc, char **argv)
 					if (!c)
 						continue;
 
-					assert(c);
-					assert(c->loaded);
-					/*utf_fprint_classname(stderr,c->name);fprintf(stderr,"\n");*/
-
 					if (!c->linked)
 						if (!link_class(c))
 							throw_main_exception_exit();
 
 					/* compile all class methods */
+
 					for (i = 0; i < c->methodscount; i++) {
 						m = &(c->methods[i]);
+
 						if (m->jcode) {
-							/*fprintf(stderr,"    compiling:");utf_fprint(stderr,m->name);fprintf(stderr,"\n");*/
-							(void) jit_compile(m);
+							if (!jit_compile(m)) {
+								fprintf(stderr, "Error compiling: ");
+								utf_fprint_classname(stderr, c->name);
+								fprintf(stderr, ".");
+								utf_fprint(stderr, m->name);
+								utf_fprint(stderr, m->descriptor);
+								fprintf(stderr, "\n");
+
+								/* print out exception and cause */
+
+								exceptions_print_exception(*exceptionptr);
+							}
 						}
 					}
 				}
