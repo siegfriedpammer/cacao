@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3618 2005-11-07 18:43:33Z twisti $
+   $Id: stack.c 3662 2005-11-11 14:05:31Z twisti $
 
 */
 
@@ -2135,7 +2135,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					default:
-						*exceptionptr = new_internalerror("Unknown ICMD");
+						*exceptionptr =
+							new_internalerror("Unknown ICMD %d", opcode);
 						return NULL;
 					} /* switch */
 
