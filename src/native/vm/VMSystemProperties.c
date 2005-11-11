@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3635 2005-11-08 16:59:55Z twisti $
+   $Id: VMSystemProperties.c 3666 2005-11-11 21:58:18Z twisti $
 
 */
 
@@ -219,7 +219,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		MFREE(libpath, char, libpathlen);
 
 	} else {
-		insert_property(m, p, "java.library.path", ".");
+		insert_property(m, p, "java.library.path", "");
 	}
 #endif /* defined(ENABLE_STATICVM) */
 
