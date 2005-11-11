@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3640 2005-11-08 17:24:37Z twisti $
+   $Id: jni.c 3663 2005-11-11 14:06:36Z twisti $
 
 */
 
@@ -156,8 +156,6 @@ localref_table *_no_threads_localref_table;
 
 #define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;  
 #define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
-#define setfield_critical(clazz,obj,name,sig,jdatatype,val) \
-    setField(obj, jdatatype, getFieldID_critical(env,clazz,name,sig), val);
 
 
 /* some forward declarations **************************************************/
@@ -2108,26 +2106,6 @@ jfieldID GetFieldID(JNIEnv *env, jclass clazz, const char *name, const char *sig
 	return f;
 }
 
-/*************************** retrieve fieldid, abort on error ************************/
-
-jfieldID getFieldID_critical(JNIEnv *env, jclass clazz, char *name, char *sig)
-{
-    jfieldID id = GetFieldID(env, clazz, name, sig);
-	STATS(jniinvokation();)
-
-    if (!id) {
-       log_text("class:");
-       utf_display(clazz->name);
-       log_text("\nfield:");
-       log_text(name);
-       log_text("sig:");
-       log_text(sig);
-
-       log_text("setfield_critical failed");
-	   assert(0);
-    }
-    return id;
-}
 
 jobject GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
@@ -2139,6 +2117,7 @@ jobject GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	return NewLocalRef(env, o);
 }
+
 
 jboolean GetBooleanField (JNIEnv *env, jobject obj, jfieldID fieldID)
 {
