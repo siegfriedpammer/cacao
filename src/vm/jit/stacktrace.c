@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3570 2005-11-04 16:58:36Z motse $
+   $Id: stacktrace.c 3652 2005-11-11 11:14:31Z twisti $
 
 */
 
@@ -44,6 +44,8 @@
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/include/java_lang_ClassLoader.h"
+#include "native/include/java_lang_Throwable.h"
+#include "native/include/java_lang_VMThrowable.h"
 
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
@@ -796,6 +798,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					addEntry(&buffer, m, 0);
 
 #if PRINTMETHODS
+				printf("ra=%p sp=%p, ", ra, sp);
 				utf_display_classname(m->class->name);
 				printf(".");
 				utf_display(m->name);
@@ -828,6 +831,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				xpc = sfi->xpc;         /* actual exception position          */
 
 #if PRINTMETHODS
+				printf("ra=%p sp=%p, ", ra, sp);
 				printf("NULL: inline stub\n");
 				fflush(stdout);
 #endif
@@ -840,11 +844,12 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 				if (m != NULL) {
 #if PRINTMETHODS
+					printf("ra=%p sp=%p, ", ra, sp);
 					utf_display_classname(m->class->name);
 					printf(".");
 					utf_display(m->name);
 					utf_display(m->descriptor);
-					printf(": inline stub parent\n");
+					printf(": inline stub parent");
 					fflush(stdout);
 #endif
 
@@ -860,6 +865,11 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					/* get the current stack frame size */
 
 					framesize = *((u4 *) (pv + FrameSize));
+
+#if PRINTMETHODS
+					printf(", framsize=%d\n", framesize);
+					fflush(stdout);
+#endif
 
 					/* set stack pointer to stackframe of parent Java */
 					/* function of the current Java function */
@@ -882,6 +892,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				}
 #if PRINTMETHODS
 				else {
+					printf("ra=%p sp=%p, ", ra, sp);
 					printf("asm_calljavafunction\n");
 					fflush(stdout);
 				}
@@ -894,11 +905,13 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 		} else {
 #if PRINTMETHODS
+			printf("ra=%p sp=%p, ", ra, sp);
 			utf_display_classname(m->class->name);
 			printf(".");
 			utf_display(m->name);
 			utf_display(m->descriptor);
-			printf(": JIT\n");
+			printf(": JIT");
+			fflush(stdout);
 #endif
 
 			/* JIT method found, add it to the stacktrace (we subtract 1 from */
@@ -911,6 +924,11 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 			/* get the current stack frame size */
 
 			framesize = *((u4 *) (pv + FrameSize));
+
+#if PRINTMETHODS
+			printf(", framsize=%d\n", framesize);
+			fflush(stdout);
+#endif
 
 			/* get return address of current stack frame */
 
@@ -1192,6 +1210,47 @@ java_objectarray *cacao_getStackForVMAccessController(void)
 }
 
 
+/* stacktrace_print_trace_from_buffer ******************************************
+
+   Print the stacktrace of a given stackTraceBuffer with CACAO intern
+   methods (no Java help). This method is used by
+   stacktrace_dump_trace and builtin_trace_exception.
+
+*******************************************************************************/
+
+static void stacktrace_print_trace_from_buffer(stackTraceBuffer *stb)
+{
+	stacktraceelement *ste;
+	methodinfo        *m;
+	s4                 i;
+
+	ste = stb->start;
+
+	for (i = 0; i < stb->size; i++, ste++) {
+		m = ste->method;
+
+		printf("\tat ");
+		utf_display_classname(m->class->name);
+		printf(".");
+		utf_display(m->name);
+		utf_display(m->descriptor);
+
+		if (m->flags & ACC_NATIVE) {
+			puts("(Native Method)");
+
+		} else {
+			printf("(");
+			utf_display(m->class->sourcefile);
+			printf(":%d)\n", (u4) ste->linenumber);
+		}
+	}
+
+	/* just to be sure */
+
+	fflush(stdout);
+}
+
+
 /* stacktrace_dump_trace *******************************************************
 
    This method is call from signal_handler_sigusr1 to dump the
@@ -1226,7 +1285,7 @@ void stacktrace_dump_trace(void)
 	/* print stacktrace */
 
 	if (buffer) {
-		stacktrace_print_trace(buffer);
+		stacktrace_print_trace_from_buffer(buffer);
 
 	} else {
 		puts("\t<<No stacktrace available>>");
@@ -1237,42 +1296,25 @@ void stacktrace_dump_trace(void)
 
 /* stacktrace_print_trace ******************************************************
 
-   Print the stacktrace of a given stackTraceBuffer with CACAO intern
-   methods (no Java help). This method is used by
-   stacktrace_dump_trace and builtin_trace_exception.
+   Print the stacktrace of a given exception. More or less a wrapper
+   to stacktrace_print_trace_from_buffer.
 
 *******************************************************************************/
 
-void stacktrace_print_trace(stackTraceBuffer *stb)
+void stacktrace_print_trace(java_objectheader *xptr)
 {
-	stacktraceelement *ste;
-	methodinfo        *m;
-	s4                 i;
+	java_lang_Throwable   *t;
+	java_lang_VMThrowable *vmt;
+	stackTraceBuffer      *stb;
 
-	ste = stb->start;
+	t = (java_lang_Throwable *) xptr;
 
-	for (i = 0; i < stb->size; i++, ste++) {
-		m = ste->method;
+	/* now print the stacktrace */
 
-		printf("\tat ");
-		utf_display_classname(m->class->name);
-		printf(".");
-		utf_display(m->name);
-		utf_display(m->descriptor);
+	vmt = t->vmState;
+	stb = (stackTraceBuffer *) vmt->vmData;
 
-		if (m->flags & ACC_NATIVE) {
-			puts("(Native Method)");
-
-		} else {
-			printf("(");
-			utf_display(m->class->sourcefile);
-			printf(":%d)\n", (u4) ste->linenumber);
-		}
-	}
-
-	/* just to be sure */
-
-	fflush(stdout);
+	stacktrace_print_trace_from_buffer(stb);
 }
 
 
