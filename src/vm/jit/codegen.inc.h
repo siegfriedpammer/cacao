@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3467 2005-10-21 08:44:21Z twisti $
+   $Id: codegen.inc.h 3655 2005-11-11 11:37:04Z twisti $
 
 */
 
@@ -198,7 +198,7 @@ struct _methodtree_element {
 
 void codegen_init(void);
 void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
-void codegen(methodinfo *m, codegendata *cd, registerdata *rd);
+bool codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close(void);
 void codegen_insertmethod(functionptr startpc, functionptr endpc);
