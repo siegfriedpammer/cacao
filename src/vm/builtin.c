@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3613 2005-11-07 17:57:56Z twisti $
+   $Id: builtin.c 3654 2005-11-11 11:17:33Z twisti $
 
 */
 
@@ -59,8 +59,6 @@
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"          /* required by VMObject */
 #include "native/include/java_lang_VMObject.h"
-#include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_VMThrowable.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -1216,50 +1214,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		/* print stacktrace for exception */
 
 		if (opt_verboseexception) {
-			java_lang_Throwable   *t;
-			java_lang_VMThrowable *vmt;
-			java_lang_Throwable   *cause;
-			utf                   *u;
-			stackTraceBuffer      *stb;
-
-			t = (java_lang_Throwable *) xptr;
-			cause = t->cause;
-
-			/* print the root exception */
-
-			utf_display_classname(t->header.vftbl->class->name);
-
-			if (t->detailMessage) {
-				u = javastring_toutf(t->detailMessage, false);
-
-				printf(": ");
-				utf_display(u);
-			}
-
-			putc('\n', stdout);
-
-			/* print the cause if available */
-
-			if (cause && (cause != t)) {
-				printf("Caused by: ");
-				utf_display_classname(cause->header.vftbl->class->name);
-
-				if (cause->detailMessage) {
-					u = javastring_toutf(cause->detailMessage, false);
-
-					printf(": ");
-					utf_display(u);
-				}
-
-				putc('\n', stdout);
-			}
-
-			/* now print the stacktrace */
-
-			vmt = t->vmState;
-			stb = (stackTraceBuffer *) vmt->vmData;
-
-			stacktrace_print_trace(stb);
+			exceptions_print_exception(xptr);
+			stacktrace_print_trace(xptr);
 		}
 	}
 
