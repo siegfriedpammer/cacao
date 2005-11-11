@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3621 2005-11-07 18:48:16Z twisti $
+   $Id: codegen.c 3661 2005-11-11 14:02:45Z twisti $
 
 */
 
@@ -76,7 +76,7 @@
 
 *******************************************************************************/
 
-void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4                  len, s1, s2, s3, d, disp;
 	u2                  currentline;
@@ -3477,15 +3477,10 @@ gen_method:
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
-
-					a = 0;
-
-				} else {
-					a = (ptrint) BUILTIN_arraycheckcast;
 				}
 
 				M_MOV_IMM((ptrint) iptr->val.a, rd->argintregs[1]);
-				M_MOV_IMM((ptrint) a, REG_ITMP1);
+				M_MOV_IMM((ptrint) BUILTIN_arraycheckcast, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 				M_TEST(REG_RESULT);
 				M_BEQ(0);
@@ -3740,8 +3735,8 @@ gen_method:
 			break;
 
 		default:
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   "Unknown ICMD %d", iptr->opc);
+			*exceptionptr = new_internalerror("Unknown ICMD %d", iptr->opc);
+			return false;
 	} /* switch */
 
 	} /* for instruction */
@@ -4108,6 +4103,10 @@ gen_method:
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) cd->mcodeptr - cd->mcodebase));
+
+	/* everything's ok */
+
+	return true;
 }
 
 
