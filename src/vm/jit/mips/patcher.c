@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3573 2005-11-05 11:10:42Z twisti $
+   $Id: patcher.c 3659 2005-11-11 11:59:05Z twisti $
 
 */
 
@@ -228,23 +228,16 @@ bool patcher_get_putfield(u1 *sp)
 }
 
 
-/* patcher_builtin_new *********************************************************
+/* patcher_aconst **************************************************************
 
    Machine code:
 
-   dfc4ff98    ld       a0,-104(s8)
    <patched call postition>
-   dfd9ff90    ld       t9,-112(s8)
-   0320f809    jalr     t9
-   00000000    nop
-
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the classinfo pointer is one below (above, in
-   addresses speaking). This is for sure.
+   dfc4ff98    ld       a0,-104(s8)
 
 *******************************************************************************/
 
-bool patcher_builtin_new(u1 *sp)
+bool patcher_aconst(u1 *sp)
 {
 	u1                *ra;
 	java_objectheader *o;
@@ -271,102 +264,6 @@ bool patcher_builtin_new(u1 *sp)
 	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
 	disp     =                       *((s4 *)     (sp + 1 * 8));
 	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager_nonabstract(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 1 * 4)) = mcode;
-	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
-#else
-	*((u4 *) (ra + 1 * 4)) = mcode[0];
-	*((u4 *) (ra + 2 * 4)) = mcode[1];
-#endif
-
-	/* synchronize instruction cache */
-
-	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_new;
-
-	/* synchronize data cache */
-
-	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_newarray ****************************************************
-
-   Machine code:
-
-   dfc5ffa0    ld       a1,-96(s8)
-   <patched call position>
-   dfd9ff98    ld       t9,-104(s8)
-   0320f809    jalr     t9
-   00000000    nop
-
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the classinfo pointer is one below (above, in
-   addresses speaking). This is for sure.
-
-*******************************************************************************/
-
-bool patcher_builtin_newarray(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
-	u4                 mcode[2];
-#endif
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
 
 	PATCHER_MONITORENTER;
 
@@ -381,28 +278,24 @@ bool patcher_builtin_newarray(u1 *sp)
 	/* patch back original code */
 
 #if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 1 * 4)) = mcode;
-	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
+	*((u4 *) (ra + 0 * 4)) = mcode;
+	*((u4 *) (ra + 1 * 4)) = mcode >> 32;
 #else
-	*((u4 *) (ra + 1 * 4)) = mcode[0];
-	*((u4 *) (ra + 2 * 4)) = mcode[1];
+	*((u4 *) (ra + 0 * 4)) = mcode[0];
+	*((u4 *) (ra + 1 * 4)) = mcode[1];
 #endif
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
+	cacheflush(ra, 2 * 4, ICACHE);
 
 	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_newarray;
+	*((ptrint *) (pv + disp)) = (ptrint) c;
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
+	cacheflush(pv + disp, SIZEOF_VOID_P * 1, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -499,10 +392,6 @@ bool patcher_builtin_multianewarray(u1 *sp)
    0320f809    jalr     t9
    00000000    nop
 
-   NOTICE: Only the displacement of the vftbl pointer address is
-   passed, but the address of the function pointer is one above
-   (below, in addresses speaking). This is for sure.
-
 *******************************************************************************/
 
 bool patcher_builtin_arraycheckcast(u1 *sp)
@@ -561,105 +450,9 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	*((ptrint *) (pv + disp)) = (ptrint) c;
 
-	/* patch new function address */
-
-	*((ptrint *) (pv + (disp - SIZEOF_VOID_P))) =
-		(ptrint) BUILTIN_arraycheckcast;
-
 	/* synchronize data cache */
 
-	cacheflush(pv + disp - SIZEOF_VOID_P, SIZEOF_VOID_P * 2, DCACHE);
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return true;
-}
-
-
-/* patcher_builtin_arrayinstanceof *********************************************
-
-   Machine code:
-
-   dfc5fe98    ld       a1,-360(s8)
-   <patched call position>
-   dfd9fe90    ld       t9,-368(s8)
-   0320f809    jalr     t9
-   00000000    nop
-
-   NOTICE: Only the displacement for the function address is passed,
-   but the address of the vftbl pointer is one below (above, in
-   addresses speaking). This is for sure.
-
-*******************************************************************************/
-
-bool patcher_builtin_arrayinstanceof(u1 *sp)
-{
-	u1                *ra;
-	java_objectheader *o;
-#if SIZEOF_VOID_P == 8
-	u8                 mcode;
-#else
-	u4                 mcode[2];
-#endif
-	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra       = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o        = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
-#if SIZEOF_VOID_P == 8
-	mcode    =                       *((u8 *)     (sp + 3 * 8));
-#else
-	mcode[0] =                       *((u4 *)     (sp + 3 * 8));
-	mcode[1] =                       *((u4 *)     (sp + 3 * 8 + 4));
-#endif
-	cr       = (constant_classref *) *((ptrint *) (sp + 2 * 8));
-	disp     =                       *((s4 *)     (sp + 1 * 8));
-	pv       = (u1 *)                *((ptrint *) (sp + 0 * 8));
-
-	/* calculate and set the new return address */
-
-	ra = ra - 1 * 4;
-	*((ptrint *) (sp + 5 * 8)) = (ptrint) ra;
-
-	PATCHER_MONITORENTER;
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	/* patch back original code */
-
-#if SIZEOF_VOID_P == 8
-	*((u4 *) (ra + 1 * 4)) = mcode;
-	*((u4 *) (ra + 2 * 4)) = mcode >> 32;
-#else
-	*((u4 *) (ra + 1 * 4)) = mcode[0];
-	*((u4 *) (ra + 2 * 4)) = mcode[1];
-#endif
-
-	/* synchronize instruction cache */
-
-	cacheflush(ra + 1 * 4, 2 * 4, ICACHE);
-
-	/* patch the classinfo pointer */
-	
-	*((ptrint *) (pv + (disp + SIZEOF_VOID_P))) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (pv + disp)) = (ptrint) BUILTIN_arrayinstanceof;
-
-	/* synchronize data cache */
-
-	cacheflush(pv + disp, SIZEOF_VOID_P * 2, DCACHE);
+	cacheflush(pv + disp, SIZEOF_VOID_P * 1, DCACHE);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
