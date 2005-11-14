@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3665 2005-11-11 14:42:26Z twisti $
+   $Id: codegen.c 3667 2005-11-14 19:47:26Z twisti $
 
 */
 
@@ -3784,7 +3784,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* save integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
@@ -3801,7 +3801,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount && j < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
 			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
@@ -3822,7 +3822,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* restore integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
+	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
@@ -3840,7 +3840,7 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	for (i = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount && j < FLT_ARG_CNT; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 			s1 = md->params[i].regoff;
 			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + 4 * 4 + j * 8);
@@ -3886,10 +3886,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 				s2 = nmd->params[j].regoff;
 
 				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(REG_ITMP2, REG_SP, s1 * 4 + 4);
+				}
 				M_IST(REG_ITMP1, REG_SP, s2 * 4);
 				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(REG_ITMP1, REG_SP, s1 * 4 + 4);
-					M_IST(REG_ITMP1, REG_SP, s2 * 4 + 4);
+					M_IST(REG_ITMP2, REG_SP, s2 * 4 + 4);
 				}
 			}
 
@@ -3933,15 +3935,17 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* save return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type)) {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-	} else {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		else
-			M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_IST(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+			M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+		} else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+			else
+				M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		}
 	}
 
 	/* remove native stackframe info */
@@ -3957,15 +3961,17 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	if (runverbose) {
 		 /* just restore the value we need, don't care about the other */
 
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-		} else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-			else
-				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		if (md->returntype.type != TYPE_VOID) {
+			if (IS_INT_LNG_TYPE(md->returntype.type)) {
+				if (IS_2_WORD_TYPE(md->returntype.type))
+					M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+				M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+			} else {
+				if (IS_2_WORD_TYPE(md->returntype.type))
+					M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+				else
+					M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+			}
 		}
 
 		M_LDA(REG_SP, REG_SP, -(LA_SIZE + (1 + 2 + 2 + 1) * 4));
@@ -4023,15 +4029,17 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* restore return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type)) {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
-		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
-	} else {
-		if (IS_2_WORD_TYPE(md->returntype.type))
-			M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
-		else
-			M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type)) {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_ILD(REG_RESULT2, REG_SP, LA_SIZE + 2 * 4);
+			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 4);
+		} else {
+			if (IS_2_WORD_TYPE(md->returntype.type))
+				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+			else
+				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 4);
+		}
 	}
 
 	M_TST(REG_ITMP1_XPTR);
@@ -4040,7 +4048,6 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET); /* load ra   */
 	M_MTLR(REG_ZERO);
 	M_LDA(REG_SP, REG_SP, stackframesize * 4); /* remove stackframe           */
-
 	M_RET;
 
 	/* handle exception */
