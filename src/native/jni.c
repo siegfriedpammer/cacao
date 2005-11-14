@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3663 2005-11-11 14:06:36Z twisti $
+   $Id: jni.c 3668 2005-11-14 19:48:30Z twisti $
 
 */
 
@@ -152,10 +152,13 @@ localref_table *_no_threads_localref_table;
 #endif
 
 
-/********************* accessing instance-fields **********************************/
+/* accessing instance fields macros *******************************************/
 
-#define setField(obj,typ,var,val) *((typ*) ((long int) obj + (long int) var->offset))=val;  
-#define getField(obj,typ,var)     *((typ*) ((long int) obj + (long int) var->offset))
+#define SET_FIELD(obj,type,var,value) \
+    *((type *) ((ptrint) (obj) + (ptrint) (var)->offset)) = (type) (value)
+
+#define GET_FIELD(obj,type,var) \
+    *((type *) ((ptrint) (obj) + (ptrint) (var)->offset))
 
 
 /* some forward declarations **************************************************/
@@ -900,8 +903,10 @@ jboolean IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 
 jobject ToReflectedField(JNIEnv* env, jclass cls, jfieldID fieldID, jboolean isStatic)
 {
-	log_text("JNI-Call: ToReflectedField: IMPLEMENT ME!!!");
 	STATS(jniinvokation();)
+
+	log_text("JNI-Call: ToReflectedField: IMPLEMENT ME!!!");
+
 	return NULL;
 }
 
@@ -914,8 +919,9 @@ jobject ToReflectedField(JNIEnv* env, jclass cls, jfieldID fieldID, jboolean isS
 
 jint Throw(JNIEnv *env, jthrowable obj)
 {
-	*exceptionptr = (java_objectheader *) obj;
 	STATS(jniinvokation();)
+
+	*exceptionptr = (java_objectheader *) obj;
 
 	return JNI_OK;
 }
@@ -933,6 +939,7 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 {
 	java_lang_Throwable *o;
 	java_lang_String    *s;
+
 	STATS(jniinvokation();)
 
 	s = (java_lang_String *) javastring_new_char(msg);
@@ -2090,15 +2097,31 @@ void CallNonvirtualVoidMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 	log_text("JNI-Call: CallNonvirtualVoidMethodA");
 }
 
-/************************* JNI-functions for accessing fields ************************/
 
-jfieldID GetFieldID(JNIEnv *env, jclass clazz, const char *name, const char *sig) 
+/* Accessing Fields of Objects ************************************************/
+
+/* GetFieldID ******************************************************************
+
+   Returns the field ID for an instance (nonstatic) field of a
+   class. The field is specified by its name and signature. The
+   Get<type>Field and Set<type>Field families of accessor functions
+   use field IDs to retrieve object fields.
+
+*******************************************************************************/
+
+jfieldID GetFieldID(JNIEnv *env, jclass clazz, const char *name,
+					const char *sig) 
 {
-	jfieldID f;
+	fieldinfo *f;
+	utf       *uname;
+	utf       *udesc;
 
 	STATS(jniinvokation();)
 
-	f = class_findfield(clazz, utf_new_char((char *) name), utf_new_char((char *) sig)); 
+	uname = utf_new_char((char *) name);
+	udesc = utf_new_char((char *) sig);
+
+	f = class_findfield(clazz, uname, udesc); 
 	
 	if (!f)
 		*exceptionptr =	new_exception(string_java_lang_NoSuchFieldError);  
@@ -2107,133 +2130,199 @@ jfieldID GetFieldID(JNIEnv *env, jclass clazz, const char *name, const char *sig
 }
 
 
+/* Get<type>Field Routines *****************************************************
+
+   This family of accessor routines returns the value of an instance
+   (nonstatic) field of an object. The field to access is specified by
+   a field ID obtained by calling GetFieldID().
+
+*******************************************************************************/
+
 jobject GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
 	java_objectheader *o;
 
 	STATS(jniinvokation();)
 
-	o = getField(obj, java_objectheader*, fieldID);
+	o = GET_FIELD(obj, java_objectheader*, fieldID);
 
 	return NewLocalRef(env, o);
 }
 
 
-jboolean GetBooleanField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jboolean GetBooleanField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s4 i;
+
 	STATS(jniinvokation();)
-	return getField(obj,jboolean,fieldID);
+
+	i = GET_FIELD(obj, s4, fieldID);
+
+	return (jboolean) i;
 }
 
 
-jbyte GetByteField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jbyte GetByteField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s4 i;
+
 	STATS(jniinvokation();)
-	return getField(obj,jbyte,fieldID);
+
+	i = GET_FIELD(obj, s4, fieldID);
+
+	return (jbyte) i;
 }
 
 
-jchar GetCharField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jchar GetCharField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s4 i;
+
 	STATS(jniinvokation();)
-	return getField(obj,jchar,fieldID);
+
+	i = GET_FIELD(obj, s4, fieldID);
+
+	return (jchar) i;
 }
 
 
-jshort GetShortField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jshort GetShortField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s4 i;
+
 	STATS(jniinvokation();)
-	return getField(obj,jshort,fieldID);
+
+	i = GET_FIELD(obj, s4, fieldID);
+
+	return (jshort) i;
 }
 
 
-jint GetIntField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jint GetIntField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s4 i;
+
 	STATS(jniinvokation();)
-	return getField(obj,jint,fieldID);
+
+	i = GET_FIELD(obj, s4, fieldID);
+
+	return i;
 }
 
 
-jlong GetLongField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jlong GetLongField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	s8 l;
+
 	STATS(jniinvokation();)
-	return getField(obj,jlong,fieldID);
+
+	l = GET_FIELD(obj, s8, fieldID);
+
+	return l;
 }
 
 
-jfloat GetFloatField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jfloat GetFloatField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
+	float f;
+
 	STATS(jniinvokation();)
-	return getField(obj,jfloat,fieldID);
+
+	f = GET_FIELD(obj, float, fieldID);
+
+	return f;
 }
 
 
-jdouble GetDoubleField (JNIEnv *env, jobject obj, jfieldID fieldID)
+jdouble GetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
-	STATS(jniinvokation();)
-	return getField(obj,jdouble,fieldID);
-}
+	double d;
 
-void SetObjectField (JNIEnv *env, jobject obj, jfieldID fieldID, jobject val)
-{
 	STATS(jniinvokation();)
-        setField(obj,jobject,fieldID,val);
-}
 
+	d = GET_FIELD(obj, double, fieldID);
 
-void SetBooleanField (JNIEnv *env, jobject obj, jfieldID fieldID, jboolean val)
-{
-	STATS(jniinvokation();)
-        setField(obj,jboolean,fieldID,val);
+	return d;
 }
 
 
-void SetByteField (JNIEnv *env, jobject obj, jfieldID fieldID, jbyte val)
+/* Set<type>Field Routines *****************************************************
+
+   This family of accessor routines sets the value of an instance
+   (nonstatic) field of an object. The field to access is specified by
+   a field ID obtained by calling GetFieldID().
+
+*******************************************************************************/
+
+void SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID, jobject value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jbyte,fieldID,val);
+
+	SET_FIELD(obj, java_objectheader*, fieldID, value);
 }
 
 
-void SetCharField (JNIEnv *env, jobject obj, jfieldID fieldID, jchar val)
+void SetBooleanField(JNIEnv *env, jobject obj, jfieldID fieldID, jboolean value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jchar,fieldID,val);
+
+	SET_FIELD(obj, s4, fieldID, value);
 }
 
 
-void SetShortField (JNIEnv *env, jobject obj, jfieldID fieldID, jshort val)
+void SetByteField(JNIEnv *env, jobject obj, jfieldID fieldID, jbyte value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jshort,fieldID,val);
+
+	SET_FIELD(obj, s4, fieldID, value);
 }
 
 
-void SetIntField (JNIEnv *env, jobject obj, jfieldID fieldID, jint val)
+void SetCharField(JNIEnv *env, jobject obj, jfieldID fieldID, jchar value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jint,fieldID,val);
+
+	SET_FIELD(obj, s4, fieldID, value);
 }
 
 
-void SetLongField (JNIEnv *env, jobject obj, jfieldID fieldID, jlong val)
+void SetShortField(JNIEnv *env, jobject obj, jfieldID fieldID, jshort value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jlong,fieldID,val);
+
+	SET_FIELD(obj, s4, fieldID, value);
 }
 
 
-void SetFloatField (JNIEnv *env, jobject obj, jfieldID fieldID, jfloat val)
+void SetIntField(JNIEnv *env, jobject obj, jfieldID fieldID, jint value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jfloat,fieldID,val);
+
+	SET_FIELD(obj, s4, fieldID, value);
 }
 
 
-void SetDoubleField (JNIEnv *env, jobject obj, jfieldID fieldID, jdouble val)
+void SetLongField(JNIEnv *env, jobject obj, jfieldID fieldID, jlong value)
 {
 	STATS(jniinvokation();)
-        setField(obj,jdouble,fieldID,val);
+
+	SET_FIELD(obj, s8, fieldID, value);
+}
+
+
+void SetFloatField(JNIEnv *env, jobject obj, jfieldID fieldID, jfloat value)
+{
+	STATS(jniinvokation();)
+
+	SET_FIELD(obj, float, fieldID, value);
+}
+
+
+void SetDoubleField(JNIEnv *env, jobject obj, jfieldID fieldID, jdouble value)
+{
+	STATS(jniinvokation();)
+
+	SET_FIELD(obj, double, fieldID, value);
 }
 
 
@@ -3958,7 +4047,8 @@ void GetStringRegion (JNIEnv* env, jstring str, jsize start, jsize len, jchar *b
 void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char *buf)
 {
 	STATS(jniinvokation();)
-	log_text("JNI-Call: GetStringUTFRegion");
+
+	log_text("JNI-Call: GetStringUTFRegion: IMPLEMENT ME!");
 }
 
 
@@ -3970,9 +4060,16 @@ void GetStringUTFRegion (JNIEnv* env, jstring str, jsize start, jsize len, char 
 
 void *GetPrimitiveArrayCritical(JNIEnv *env, jarray array, jboolean *isCopy)
 {
+	java_bytearray *ba;
+	jbyte          *bp;
+
+	ba = (java_bytearray *) array;
+
 	/* do the same as Kaffe does */
 
-	return GetByteArrayElements(env, (jbyteArray) array, isCopy);
+	bp = GetByteArrayElements(env, ba, isCopy);
+
+	return (void *) bp;
 }
 
 
