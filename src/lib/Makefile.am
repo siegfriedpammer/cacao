@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3320 2005-09-30 12:16:40Z twisti $
+## $Id: Makefile.am 3669 2005-11-15 00:18:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,7 +70,7 @@ JAVA_VM_FILES = \
 #	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java \
 #
 
-GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip
+GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
 
 pkgdata_DATA = vm.zip
 

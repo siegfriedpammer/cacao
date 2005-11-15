@@ -28,12 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3630 2005-11-08 08:57:21Z twisti $
+## $Id: Makefile.am 3669 2005-11-15 00:18:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/glibj.zip -nowarn
+JAVAC = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
 
 CLEANFILES = \
 	*.class \

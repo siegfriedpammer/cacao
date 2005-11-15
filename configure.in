@@ -436,6 +436,15 @@ AC_MSG_RESULT(${CLASSPATH_INSTALL_DIR})
 AC_DEFINE_UNQUOTED([CLASSPATH_INSTALL_DIR], "${CLASSPATH_INSTALL_DIR}", [GNU classpath installation directory])
 AC_SUBST(CLASSPATH_INSTALL_DIR)
 
+dnl Maybe the user has Classpath installed 'flat'.
+AC_ARG_WITH([flat-classpath], [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
+if test x"$with_flat_classpath" = "x"; then
+	GLIBJZ=glibj.zip
+else
+	GLIBJZ=
+fi
+AC_SUBST(GLIBJZ)
+AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of the classpath zip file])
 
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)

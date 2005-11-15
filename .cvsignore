@@ -9,3 +9,10 @@ config.status
 configure
 libtool
 stamp-h1
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+ltmain.sh
+missing
