@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jctest.java 3396 2005-10-11 08:30:15Z twisti $
+   $Id: jctest.java 3671 2005-11-15 21:13:09Z twisti $
 
 */
 
@@ -123,6 +123,7 @@ public class jctest implements jcinterface {
         testlong(0x3333,143444);
         testlong(4444441,12342);
         testlong(0x8000000000000000L,-1);
+        testlong(0x0000000080000000L,0x0000000080000000L);
 
         p("------------------- test floats");
         testfloat((float) 1,(float) 2.042);

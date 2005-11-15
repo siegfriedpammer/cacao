@@ -4430,189 +4430,218 @@
 4427.    not IF_LCMPEQ
 4428.    not IF_LCMPGT
 4429.    not IF_LCMPGE
-4430.    ------------------- test floats
-4431.    TESTFLOAT called with float: 1065353216
-4432.                      AND float: 1073917985
-4433.    FADD:  float: 1078112289
-4434.    FSUB:  float: -1081778110
-4435.    FMUL:  float: 1073917985
-4436.    FDIV:  float: 1056619533
-4437.    FREM:  float: 1065353216
-4438.    F2I:   int: 1
-4439.    F2L:   long: 1
-4440.    F2D:   double: 4607182418800017408
-4441.    FCMP a != b
-4442.    FCMP a < b
-4443.    FCMP a <= b
-4444.    TESTFLOAT called with float: -1080167498
-4445.                      AND float: 1099662623
-4446.    FADD:  float: 1099015652
-4447.    FSUB:  float: -1047174054
-4448.    FMUL:  float: -1045681427
-4449.    FDIV:  float: -1114576645
-4450.    FREM:  float: -1080167498
-4451.    F2I:   int: -1
-4452.    F2L:   long: -1
-4453.    F2D:   double: -4615135775887982592
-4454.    FCMP a != b
-4455.    FCMP a < b
-4456.    FCMP a <= b
-4457.    TESTFLOAT called with float: -960610816
-4458.                      AND float: 1186756096
-4459.    FADD:  float: -1016856576
-4460.    FSUB:  float: -952280576
-4461.    FMUL:  float: -838070983
-4462.    FDIV:  float: -1082051147
-4463.    FREM:  float: -1016856576
-4464.    F2I:   int: -24351
-4465.    F2L:   long: -24351
-4466.    F2D:   double: -4550949270986948608
-4467.    FCMP a != b
-4468.    FCMP a < b
-4469.    FCMP a <= b
-4470.    TESTFLOAT called with float: 1036831949
-4471.                      AND float: 1151033344
-4472.    FADD:  float: 1151034163
-4473.    FSUB:  float: -996451123
-4474.    FMUL:  float: 1123588506
-4475.    FDIV:  float: 950581132
-4476.    FREM:  float: 1036831949
-4477.    F2I:   int: 0
-4478.    F2L:   long: 0
-4479.    F2D:   double: 4591870180174331904
-4480.    FCMP a != b
-4481.    FCMP a < b
-4482.    FCMP a <= b
-4483.    TESTFLOAT called with float: 0
-4484.                      AND float: -1005921678
-4485.    FADD:  float: -1005921678
-4486.    FSUB:  float: 1141561970
-4487.    FMUL:  float: -2147483648
-4488.    FDIV:  float: -2147483648
-4489.    FREM:  float: 0
-4490.    F2I:   int: 0
-4491.    F2L:   long: 0
-4492.    F2D:   double: 0
-4493.    FCMP a != b
-4494.    FCMP a > b
-4495.    FCMP a >= b
-4496.    TESTFLOAT called with float: 1117388800
-4497.                      AND float: -1005928448
-4498.    FADD:  float: -1007747072
-4499.    FSUB:  float: 1142816768
-4500.    FMUL:  float: -953749760
-4501.    FDIV:  float: -1106374265
-4502.    FREM:  float: 1117388800
-4503.    F2I:   int: 77
-4504.    F2L:   long: 77
-4505.    F2D:   double: 4635118810238550016
-4506.    FCMP a != b
-4507.    FCMP a > b
-4508.    FCMP a >= b
-4509.    TESTFLOAT called with float: 1325400059
-4510.                      AND float: -922251744
-4511.    FADD:  float: 1325395721
-4512.    FSUB:  float: 1325402230
-4513.    FMUL:  float: -662204899
-4514.    FDIV:  float: -982402220
-4515.    FREM:  float: 1220539712
-4516.    F2I:   int: 2147483008
-4517.    F2L:   long: 2147483008
-4518.    F2D:   double: 4746794004564148224
-4519.    FCMP a != b
-4520.    FCMP a > b
-4521.    FCMP a >= b
-4522.    ------------------- test doubles
-4523.    TESTDOUBLE called with double: 4607182418800017408
-4524.                       AND double: 4611780594019562684
-4525.    DADD:  double: 4614032393833247932
-4526.    DSUB:  double: -4616000466870408840
-4527.    DMUL:  double: 4611780594019562684
-4528.    DDIV:  double: 4602493558463195825
-4529.    DREM:  double: 4607182418800017408
-4530.    D2I:   int: 1
-4531.    D2L:   long: 1
-4532.    D2F:   float: 1065353216
-4533.    DCMP a != b
-4534.    DCMP a < b
-4535.    DCMP a <= b
-4536.    TESTDOUBLE called with double: -4615135775741953704
-4537.                       AND double: 4625602141275962737
-4538.    DADD:  double: 4625254801154701788
-4539.    DSUB:  double: -4597422555457552122
-4540.    DMUL:  double: -4596621207457855952
-4541.    DDIV:  double: -4633609045604294190
-4542.    DREM:  double: -4615135775741953704
-4543.    D2I:   int: -1
-4544.    D2L:   long: -1
-4545.    D2F:   float: -1080167498
-4546.    DCMP a != b
-4547.    DCMP a < b
-4548.    DCMP a <= b
-4549.    TESTDOUBLE called with double: -4550949270986948608
-4550.                       AND double: 4672360093705043968
-4551.    DADD:  double: -4581145983454281728
-4552.    DSUB:  double: -4546477007440969728
-4553.    DMUL:  double: -4485161199314403328
-4554.    DDIV:  double: -4616147052009281450
-4555.    DREM:  double: -4581145983454281728
-4556.    D2I:   int: -24351
-4557.    D2L:   long: -24351
-4558.    D2F:   float: -960610816
-4559.    DCMP a != b
-4560.    DCMP a < b
-4561.    DCMP a <= b
-4562.    TESTDOUBLE called with double: 4591870180066957722
-4563.                       AND double: 4653181587259654144
-4564.    DADD:  double: 4653182027064305254
-4565.    DSUB:  double: -4570190889399772774
-4566.    DMUL:  double: 4638447251838153524
-4567.    DDIV:  double: 4545564625217685086
-4568.    DREM:  double: 4591870180066957722
-4569.    D2I:   int: 0
-4570.    D2L:   long: 0
-4571.    D2F:   float: 1036831949
-4572.    DCMP a != b
-4573.    DCMP a < b
-4574.    DCMP a <= b
-4575.    TESTDOUBLE called with double: 0
-4576.                       AND double: -4575275354862832216
-4577.    DADD:  double: -4575275354862832216
-4578.    DSUB:  double: 4648096681991943592
-4579.    DMUL:  double: -9223372036854775808
-4580.    DDIV:  double: -9223372036854775808
-4581.    DREM:  double: 0
-4582.    D2I:   int: 0
-4583.    D2L:   long: 0
-4584.    D2F:   float: 0
-4585.    DCMP a != b
-4586.    DCMP a > b
-4587.    DCMP a >= b
-4588.    TESTDOUBLE called with double: 4635118810238550016
-4589.                       AND double: -4575278989408468992
-4590.    DADD:  double: -4576255355733934080
-4591.    DSUB:  double: 4648770346609016832
-4592.    DMUL:  double: -4547265769594945536
-4593.    DDIV:  double: -4629205426707555293
-4594.    DREM:  double: 4635118810238550016
-4595.    D2I:   int: 77
-4596.    D2L:   long: 77
-4597.    D2F:   float: 1117388800
-4598.    DCMP a != b
-4599.    DCMP a > b
-4600.    DCMP a >= b
-4601.    TESTDOUBLE called with double: 4746794004530593792
-4602.                       AND double: -4530355401018834944
-4603.    DADD:  double: 4746791675710406656
-4604.    DSUB:  double: 4746795170299641856
-4605.    DMUL:  double: -4390743814009516096
-4606.    DDIV:  double: -4562648441878701322
-4607.    DREM:  double: 4690497396998668288
-4608.    D2I:   int: 2147483000
-4609.    D2L:   long: 2147483000
-4610.    D2F:   float: 1325400059
-4611.    DCMP a != b
-4612.    DCMP a > b
-4613.    DCMP a >= b
-4614.    =================== end of test =========================
-4615.    
+4430.    TESTLONG called with long: 2147483648
+4431.                     AND long: 2147483648
+4432.    LADD:  long: 4294967296
+4433.    LSUB:  long: 0
+4434.    LMUL:  long: 4611686018427387904
+4435.    LDIV:  long: 1
+4436.    LREM:  long: 0
+4437.    LNEG:  long: -2147483648
+4438.    LSHL:  long: 2147483648
+4439.    LSHR:  long: 2147483648
+4440.    LUSHR: long: 2147483648
+4441.    LAND:  long: 2147483648
+4442.    LOR:   long: 2147483648
+4443.    LXOR:  long: 0
+4444.    L2I:   int: -2147483648
+4445.    L2F:   float: 1325400064
+4446.    L2D:   double: 4746794007248502784
+4447.    LCMP a == b : true
+4448.    LCMP a != b : false
+4449.    LCMP a <  b : false
+4450.    LCMP a <= b : true
+4451.    LCMP a >  b : false
+4452.    LCMP a >= b : true
+4453.    not IF_LEQ
+4454.    not IF_LLT
+4455.    not IF_LLE
+4456.    not IF_LCMPNE
+4457.    not IF_LCMPLT
+4458.    not IF_LCMPGT
+4459.    ------------------- test floats
+4460.    TESTFLOAT called with float: 1065353216
+4461.                      AND float: 1073917985
+4462.    FADD:  float: 1078112289
+4463.    FSUB:  float: -1081778110
+4464.    FMUL:  float: 1073917985
+4465.    FDIV:  float: 1056619533
+4466.    FREM:  float: 1065353216
+4467.    F2I:   int: 1
+4468.    F2L:   long: 1
+4469.    F2D:   double: 4607182418800017408
+4470.    FCMP a != b
+4471.    FCMP a < b
+4472.    FCMP a <= b
+4473.    TESTFLOAT called with float: -1080167498
+4474.                      AND float: 1099662623
+4475.    FADD:  float: 1099015652
+4476.    FSUB:  float: -1047174054
+4477.    FMUL:  float: -1045681427
+4478.    FDIV:  float: -1114576645
+4479.    FREM:  float: -1080167498
+4480.    F2I:   int: -1
+4481.    F2L:   long: -1
+4482.    F2D:   double: -4615135775887982592
+4483.    FCMP a != b
+4484.    FCMP a < b
+4485.    FCMP a <= b
+4486.    TESTFLOAT called with float: -960610816
+4487.                      AND float: 1186756096
+4488.    FADD:  float: -1016856576
+4489.    FSUB:  float: -952280576
+4490.    FMUL:  float: -838070983
+4491.    FDIV:  float: -1082051147
+4492.    FREM:  float: -1016856576
+4493.    F2I:   int: -24351
+4494.    F2L:   long: -24351
+4495.    F2D:   double: -4550949270986948608
+4496.    FCMP a != b
+4497.    FCMP a < b
+4498.    FCMP a <= b
+4499.    TESTFLOAT called with float: 1036831949
+4500.                      AND float: 1151033344
+4501.    FADD:  float: 1151034163
+4502.    FSUB:  float: -996451123
+4503.    FMUL:  float: 1123588506
+4504.    FDIV:  float: 950581132
+4505.    FREM:  float: 1036831949
+4506.    F2I:   int: 0
+4507.    F2L:   long: 0
+4508.    F2D:   double: 4591870180174331904
+4509.    FCMP a != b
+4510.    FCMP a < b
+4511.    FCMP a <= b
+4512.    TESTFLOAT called with float: 0
+4513.                      AND float: -1005921678
+4514.    FADD:  float: -1005921678
+4515.    FSUB:  float: 1141561970
+4516.    FMUL:  float: -2147483648
+4517.    FDIV:  float: -2147483648
+4518.    FREM:  float: 0
+4519.    F2I:   int: 0
+4520.    F2L:   long: 0
+4521.    F2D:   double: 0
+4522.    FCMP a != b
+4523.    FCMP a > b
+4524.    FCMP a >= b
+4525.    TESTFLOAT called with float: 1117388800
+4526.                      AND float: -1005928448
+4527.    FADD:  float: -1007747072
+4528.    FSUB:  float: 1142816768
+4529.    FMUL:  float: -953749760
+4530.    FDIV:  float: -1106374265
+4531.    FREM:  float: 1117388800
+4532.    F2I:   int: 77
+4533.    F2L:   long: 77
+4534.    F2D:   double: 4635118810238550016
+4535.    FCMP a != b
+4536.    FCMP a > b
+4537.    FCMP a >= b
+4538.    TESTFLOAT called with float: 1325400059
+4539.                      AND float: -922251744
+4540.    FADD:  float: 1325395721
+4541.    FSUB:  float: 1325402230
+4542.    FMUL:  float: -662204899
+4543.    FDIV:  float: -982402220
+4544.    FREM:  float: 1220539712
+4545.    F2I:   int: 2147483008
+4546.    F2L:   long: 2147483008
+4547.    F2D:   double: 4746794004564148224
+4548.    FCMP a != b
+4549.    FCMP a > b
+4550.    FCMP a >= b
+4551.    ------------------- test doubles
+4552.    TESTDOUBLE called with double: 4607182418800017408
+4553.                       AND double: 4611780594019562684
+4554.    DADD:  double: 4614032393833247932
+4555.    DSUB:  double: -4616000466870408840
+4556.    DMUL:  double: 4611780594019562684
+4557.    DDIV:  double: 4602493558463195825
+4558.    DREM:  double: 4607182418800017408
+4559.    D2I:   int: 1
+4560.    D2L:   long: 1
+4561.    D2F:   float: 1065353216
+4562.    DCMP a != b
+4563.    DCMP a < b
+4564.    DCMP a <= b
+4565.    TESTDOUBLE called with double: -4615135775741953704
+4566.                       AND double: 4625602141275962737
+4567.    DADD:  double: 4625254801154701788
+4568.    DSUB:  double: -4597422555457552122
+4569.    DMUL:  double: -4596621207457855952
+4570.    DDIV:  double: -4633609045604294190
+4571.    DREM:  double: -4615135775741953704
+4572.    D2I:   int: -1
+4573.    D2L:   long: -1
+4574.    D2F:   float: -1080167498
+4575.    DCMP a != b
+4576.    DCMP a < b
+4577.    DCMP a <= b
+4578.    TESTDOUBLE called with double: -4550949270986948608
+4579.                       AND double: 4672360093705043968
+4580.    DADD:  double: -4581145983454281728
+4581.    DSUB:  double: -4546477007440969728
+4582.    DMUL:  double: -4485161199314403328
+4583.    DDIV:  double: -4616147052009281450
+4584.    DREM:  double: -4581145983454281728
+4585.    D2I:   int: -24351
+4586.    D2L:   long: -24351
+4587.    D2F:   float: -960610816
+4588.    DCMP a != b
+4589.    DCMP a < b
+4590.    DCMP a <= b
+4591.    TESTDOUBLE called with double: 4591870180066957722
+4592.                       AND double: 4653181587259654144
+4593.    DADD:  double: 4653182027064305254
+4594.    DSUB:  double: -4570190889399772774
+4595.    DMUL:  double: 4638447251838153524
+4596.    DDIV:  double: 4545564625217685086
+4597.    DREM:  double: 4591870180066957722
+4598.    D2I:   int: 0
+4599.    D2L:   long: 0
+4600.    D2F:   float: 1036831949
+4601.    DCMP a != b
+4602.    DCMP a < b
+4603.    DCMP a <= b
+4604.    TESTDOUBLE called with double: 0
+4605.                       AND double: -4575275354862832216
+4606.    DADD:  double: -4575275354862832216
+4607.    DSUB:  double: 4648096681991943592
+4608.    DMUL:  double: -9223372036854775808
+4609.    DDIV:  double: -9223372036854775808
+4610.    DREM:  double: 0
+4611.    D2I:   int: 0
+4612.    D2L:   long: 0
+4613.    D2F:   float: 0
+4614.    DCMP a != b
+4615.    DCMP a > b
+4616.    DCMP a >= b
+4617.    TESTDOUBLE called with double: 4635118810238550016
+4618.                       AND double: -4575278989408468992
+4619.    DADD:  double: -4576255355733934080
+4620.    DSUB:  double: 4648770346609016832
+4621.    DMUL:  double: -4547265769594945536
+4622.    DDIV:  double: -4629205426707555293
+4623.    DREM:  double: 4635118810238550016
+4624.    D2I:   int: 77
+4625.    D2L:   long: 77
+4626.    D2F:   float: 1117388800
+4627.    DCMP a != b
+4628.    DCMP a > b
+4629.    DCMP a >= b
+4630.    TESTDOUBLE called with double: 4746794004530593792
+4631.                       AND double: -4530355401018834944
+4632.    DADD:  double: 4746791675710406656
+4633.    DSUB:  double: 4746795170299641856
+4634.    DMUL:  double: -4390743814009516096
+4635.    DDIV:  double: -4562648441878701322
+4636.    DREM:  double: 4690497396998668288
+4637.    D2I:   int: 2147483000
+4638.    D2L:   long: 2147483000
+4639.    D2F:   float: 1325400059
+4640.    DCMP a != b
+4641.    DCMP a > b
+4642.    DCMP a >= b
+4643.    =================== end of test =========================
+4644.    
