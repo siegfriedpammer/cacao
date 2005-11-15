@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3604 2005-11-07 11:59:33Z twisti $
+   $Id: Field.c 3672 2005-11-15 23:43:17Z twisti $
 
 */
 
@@ -583,14 +583,12 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	if ((faddr = cacao_get_field_address(this, o)) == NULL)
 		return;
 
-	if (value == NULL) {
-		assert(0);
-		return;
-	}
-
 	/* get the source classinfo from the object */
 
-	sc = value->header.vftbl->class;
+	if (value == NULL)
+		sc = NULL;
+	else
+		sc = value->header.vftbl->class;
 
 	/* The fieldid is used to set the new value, for primitive
 	   types the value has to be retrieved from the wrapping
@@ -602,7 +600,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* determine the field to read the value */
 
-		if (!(sf = class_findfield(sc, utf_value, utf_Z)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_Z)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
@@ -621,7 +619,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	case PRIMITIVETYPE_BYTE: {
 		s4 val;
 
-		if (!(sf = class_findfield(sc, utf_value, utf_B)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_B)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
@@ -640,7 +638,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	case PRIMITIVETYPE_CHAR: {
 		s4 val;
 
-		if (!(sf = class_findfield(sc, utf_value, utf_C)))
+		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_C)))
 			break;
 				   
 		switch (sf->parseddesc->decltype) {
@@ -661,7 +659,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* get field only by name, it can be one of B, S */
 
-		if (!(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 				   
 		switch (sf->parseddesc->decltype) {
@@ -685,7 +683,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* get field only by name, it can be one of B, S, C, I */
 
-		if (!(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
@@ -715,7 +713,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* get field only by name, it can be one of B, S, C, I, J */
 
-		if (!(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
@@ -748,7 +746,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* get field only by name, it can be one of B, S, C, I, J, F */
 
-		if (!(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
@@ -784,7 +782,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		/* get field only by name, it can be one of B, S, C, I, J, F, D */
 
-		if (!(sf = class_findfield_by_name(sc, utf_value)))
+		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
 		switch (sf->parseddesc->decltype) {
