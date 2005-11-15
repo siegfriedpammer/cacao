@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3603 2005-11-07 11:53:28Z twisti $
+## $Id: Makefile.am 3670 2005-11-15 00:26:07Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,6 +41,8 @@ SUBDIRS = $(OS_DIR)
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/@OS_DIR@ -I$(top_builddir) -I$(top_builddir)/src
 
 AM_CCASFLAGS = $(INCLUDES)
+
+BUILT_SOURCES = offsets.h
 
 CLEANFILES = offsets.h
 

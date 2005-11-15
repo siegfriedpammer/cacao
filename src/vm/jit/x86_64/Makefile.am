@@ -28,13 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3273 2005-09-21 21:14:01Z twisti $
+## $Id: Makefile.am 3670 2005-11-15 00:26:07Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
 
 AM_CCASFLAGS = $(INCLUDES)
+
+BUILT_SOURCES = offsets.h
 
 CLEANFILES = offsets.h
 
