@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3548 2005-11-03 20:39:46Z twisti $
+   $Id: cacaoh.c 3674 2005-11-16 12:03:58Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
@@ -271,17 +272,11 @@ int main(int argc, char **argv)
 
 	gc_init(heapmaxsize, heapstartsize);
 
-	tables_init();
-	
-	/* initialize the loader with bootclasspath */
+	/* intialize the utf8 and string hashtable */
 
-	suck_init(bootclasspath);
+	if (!tables_init())
+		throw_main_exception_exit();
 
-	/* Also add the normal classpath, so the bootstrap class loader can find  */
-	/* the files.                                                             */
-
-	suck_init(classpath);
-   
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
 	threads_preinit();
@@ -289,10 +284,32 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
-	/* initialize some cacao subsystems */
+	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
+	   (must be done _after_ threads_preinit) */
 
-	utf8_init();
-	loader_init((u1 *) &dummy);
+	if (!utf8_init())
+		throw_main_exception_exit();
+
+	/* initialize the classcache hashtable stuff: lock, hashtable
+	   (must be done _after_ threads_preinit) */
+
+	if (!classcache_init())
+		throw_main_exception_exit();
+
+	/* initialize the loader with bootclasspath (must be done _after_
+	   thread_preinit) */
+
+	suck_init(bootclasspath);
+
+	/* Also add the normal classpath, so the bootstrap class loader can find  */
+	/* the files.                                                             */
+
+	suck_init(classpath);
+
+	/* initialize the loader subsystems (must be done _after_ classcache_init) */
+
+	if (!loader_init((u1 *) &dummy))
+		throw_main_exception_exit();
 
 
 	/*********************** Load JAVA classes  **************************/
