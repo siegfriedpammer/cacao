@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 3637 2005-11-08 17:19:52Z twisti $
+   $Id: utf8.h 3676 2005-11-16 12:09:48Z twisti $
 
 */
 
@@ -43,6 +43,8 @@
 
 typedef struct utf utf;
 
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 
@@ -51,7 +53,7 @@ typedef struct utf utf;
 
 struct utf {
 	utf  *hashlink;                     /* link for external hash chain       */
-	int   blength;                      /* text length in bytes               */
+	s4    blength;                      /* text length in bytes               */
 	char *text;                         /* pointer to text                    */
 };
 
@@ -162,7 +164,8 @@ extern utf *array_packagename;
 
 /* function prototypes ********************************************************/
 
-void utf8_init(void);
+/* initialize the utf8 subsystem */
+bool utf8_init(void);
 
 u4 utf_hashkey(const char *text, u4 length);
 
