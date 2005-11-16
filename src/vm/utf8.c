@@ -30,12 +30,13 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3683 2005-11-16 13:27:46Z twisti $
+   $Id: utf8.c 3687 2005-11-16 19:13:37Z edwin $
 
 */
 
 
 #include <string.h>
+#include <assert.h>
 
 #include "mm/memory.h"
 #include "vm/exceptions.h"
@@ -44,7 +45,6 @@
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
 #include "vm/utf8.h"
-
 
 /* global variables ***********************************************************/
 
@@ -456,13 +456,15 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
+	/* XXX REMOVE ME! after testing of course ;-) */
+	static int running = 0;
+	/* XXX REMOVE ME! */
+
 #if defined(USE_THREADS)
 	builtin_monitorenter(lock_utf_hashtable);
 #endif
 
 	/* XXX REMOVE ME! after testing of course ;-) */
-	#include <assert.h>
-	static int running = 0;
 	assert(running == 0);
 	running = 1;
 	/* XXX REMOVE ME! */
