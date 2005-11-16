@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3657 2005-11-11 11:39:39Z twisti $
+   $Id: headers.c 3673 2005-11-16 12:03:38Z twisti $
 
 */
 
@@ -186,6 +186,7 @@ void stacktrace_print_trace(java_objectheader *xptr) {}
 
 /* these should not be called */
 
+void throw_main_exception_exit(void) { assert(0); }
 void throw_exception(void) { assert(0); }
 void throw_exception_exit(void) { assert(0); }
 
