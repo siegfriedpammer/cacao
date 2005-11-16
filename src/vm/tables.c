@@ -36,7 +36,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 3239 2005-09-21 14:09:22Z twisti $
+   $Id: tables.c 3679 2005-11-16 12:12:02Z twisti $
 
 */
 
@@ -98,19 +98,16 @@ void init_hashtable(hashtable *hash, u4 size)
 }
 
 
-/*********************** function: tables_init  *****************************
+/* tables_init *****************************************************************
 
-    creates hashtables for symboltables 
-	(called once at startup)			 
+   Creates hashtables for symboltables (called once at startup).
 	
-*****************************************************************************/
+*******************************************************************************/
 
-void tables_init()
+bool tables_init(void)
 {
 	init_hashtable(&utf_hash,    UTF_HASHSTART);  /* hashtable for utf8-symbols */
 	init_hashtable(&string_hash, HASHSTART);      /* hashtable for javastrings */
-
-	classcache_init();
 
 /*  	if (opt_eager) */
 /*  		list_init(&unlinkedclasses, OFFSET(classinfo, listnode)); */
@@ -119,6 +116,10 @@ void tables_init()
 	if (opt_stat)
 		count_utf_len += sizeof(utf*) * utf_hash.size;
 #endif
+
+	/* everything's ok */
+
+	return true;
 }
 
 
