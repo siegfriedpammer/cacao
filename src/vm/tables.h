@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: tables.h 3239 2005-09-21 14:09:22Z twisti $
+   $Id: tables.h 3678 2005-11-16 12:11:22Z twisti $
 
 */
 
@@ -118,7 +118,7 @@ extern hashtable string_hash;  /* hashtable for javastrings  */
 /* function prototypes ********************************************************/
 
 /* creates hashtables for symboltables */
-void tables_init(void);
+bool tables_init(void);
 
 /* free memory for hashtables */ 
 void tables_close(void);
