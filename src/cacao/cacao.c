@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3658 2005-11-11 11:57:07Z twisti $
+   $Id: cacao.c 3675 2005-11-16 12:08:42Z twisti $
 
 */
 
@@ -62,6 +62,7 @@
 #endif
 
 #include "toolbox/logging.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
 #include "vm/global.h"
@@ -72,7 +73,6 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/tables.h"
-#include "vm/classcache.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
@@ -1126,11 +1126,10 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	tables_init();
+	/* intialize the utf8 and string hashtable */
 
-	/* initialize the loader with bootclasspath */
-
-	suck_init(bootclasspath);
+	if (!tables_init())
+		throw_main_exception_exit();
 
 	cacao_initializing = true;
 
@@ -1141,8 +1140,25 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
+	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
+	   (must be done _after_ threads_preinit) */
+
+	if (!utf8_init())
+		throw_main_exception_exit();
+
+	/* initialize the classcache hashtable stuff: lock, hashtable
+	   (must be done _after_ threads_preinit) */
+
+	if (!classcache_init())
+		throw_main_exception_exit();
+
+	/* initialize the loader with bootclasspath (must be done _after_
+	   thread_preinit) */
+
+	suck_init(bootclasspath);
+
 	/* initialize the memory subsystem (must be done _after_
-       threads_preinit) */
+	   threads_preinit) */
 
 	if (!memory_init())
 		throw_main_exception_exit();
@@ -1169,9 +1185,7 @@ int main(int argc, char **argv)
 
 	md_init();
 
-	/* initialize some cacao subsystems */
-
-	utf8_init();
+	/* initialize the loader subsystems (must be done _after_ classcache_init) */
 
 	if (!loader_init((u1 *) &dummy))
 		throw_main_exception_exit();
