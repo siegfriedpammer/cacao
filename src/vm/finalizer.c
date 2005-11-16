@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 3545 2005-11-03 20:36:59Z twisti $
+   $Id: finalizer.c 3686 2005-11-16 13:29:58Z twisti $
 
 */
 
@@ -39,7 +39,6 @@
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_Thread.h"
-#include "native/include/gnu_classpath_Pointer.h"
 #include "native/include/java_lang_VMThread.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
