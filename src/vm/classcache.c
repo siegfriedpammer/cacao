@@ -28,12 +28,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3351 2005-10-05 11:53:28Z edwin $
+   $Id: classcache.c 3681 2005-11-16 12:13:47Z twisti $
 
 */
 
 
 #include <assert.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/classcache.h"
@@ -71,17 +74,21 @@
 	/*          NOT synchronized!              */
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-#  define CLASSCACHE_LOCK()    tables_lock()
-#  define CLASSCACHE_UNLOCK()  tables_unlock()
+#if defined(USE_THREADS)
+# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_classcache_hashtable)
+# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_classcache_hashtable)
 #else
-#  define CLASSCACHE_LOCK()
-#  define CLASSCACHE_UNLOCK()
+# define CLASSCACHE_LOCK()
+# define CLASSCACHE_UNLOCK()
 #endif
 
 /*============================================================================*/
 /* GLOBAL VARIABLES                                                           */
 /*============================================================================*/
+
+#if defined(USE_THREADS)
+static java_objectheader *lock_classcache_hashtable;
+#endif
 
 hashtable classcache_hash;
 
@@ -97,11 +104,23 @@ hashtable classcache_hash;
   
 *******************************************************************************/
 
-void
-classcache_init(
-	)
+bool classcache_init(void)
 {
+#if defined(USE_THREADS)
+	/* create utf hashtable lock object */
+
+	lock_classcache_hashtable = NEW(java_objectheader);
+
+# if defined(NATIVE_THREADS)
+	initObjectLock(lock_classcache_hashtable);
+# endif
+#endif
+
 	init_hashtable(&classcache_hash, CLASSCACHE_INIT_SIZE);
+
+	/* everything's ok */
+
+	return true;
 }
 
 /* classcache_new_loader_entry *************************************************
