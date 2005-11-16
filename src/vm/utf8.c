@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3677 2005-11-16 12:10:43Z twisti $
+   $Id: utf8.c 3683 2005-11-16 13:27:46Z twisti $
 
 */
 
@@ -449,11 +449,12 @@ u4 unicode_hashkey(u2 *text, u2 len)
 
 *******************************************************************************/
 
-utf *utf_new_intern(const char *text, u2 length);
-
 utf *utf_new(const char *text, u2 length)
 {
-	utf *r;
+	u4 key;                             /* hashkey computed from utf-text     */
+	u4 slot;                            /* slot in hashtable                  */
+	utf *u;                             /* hashtable element                  */
+	u2 i;
 
 #if defined(USE_THREADS)
 	builtin_monitorenter(lock_utf_hashtable);
@@ -466,27 +467,6 @@ utf *utf_new(const char *text, u2 length)
 	running = 1;
 	/* XXX REMOVE ME! */
 
-	r = utf_new_intern(text, length);
-
-	/* XXX REMOVE ME! */
-	running = 0;
-	/* XXX REMOVE ME! */
-
-#if defined(USE_THREADS)
-	builtin_monitorexit(lock_utf_hashtable);
-#endif
-
-	return r;
-}
-
-
-utf *utf_new_intern(const char *text, u2 length)
-{
-	u4 key;                             /* hashkey computed from utf-text     */
-	u4 slot;                            /* slot in hashtable                  */
-	utf *u;                             /* hashtable element                  */
-	u2 i;
-
 #ifdef STATISTICS
 	if (opt_stat)
 		count_utf_new++;
@@ -497,26 +477,38 @@ utf *utf_new_intern(const char *text, u2 length)
 	u    = utf_hash.ptr[slot];
 
 	/* search external hash chain for utf-symbol */
+
 	while (u) {
 		if (u->blength == length) {
-
 			/* compare text of hashtable elements */
+
 			for (i = 0; i < length; i++)
-				if (text[i] != u->text[i]) goto nomatch;
+				if (text[i] != u->text[i])
+					goto nomatch;
 			
-#ifdef STATISTICS
+#if defined(STATISTICS)
 			if (opt_stat)
 				count_utf_new_found++;
 #endif
 
 			/* symbol found in hashtable */
+
+			/* XXX REMOVE ME! */
+			running = 0;
+			/* XXX REMOVE ME! */
+
+#if defined(USE_THREADS)
+			builtin_monitorexit(lock_utf_hashtable);
+#endif
+
 			return u;
 		}
+
 	nomatch:
 		u = u->hashlink; /* next element in external chain */
 	}
 
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_utf_len += sizeof(utf) + length + 1;
 #endif
@@ -569,6 +561,14 @@ utf *utf_new_intern(const char *text, u2 length)
 		MFREE(utf_hash.ptr, void*, utf_hash.size);
 		utf_hash = newhash;
 	}
+
+	/* XXX REMOVE ME! */
+	running = 0;
+	/* XXX REMOVE ME! */
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(lock_utf_hashtable);
+#endif
 
 	return u;
 }

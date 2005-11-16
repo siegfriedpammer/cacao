@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 3676 2005-11-16 12:09:48Z twisti $
+   $Id: utf8.h 3683 2005-11-16 13:27:46Z twisti $
 
 */
 
@@ -174,9 +174,6 @@ u4 unicode_hashkey(u2 *text, u2 length);
 
 /* create new utf-symbol */
 utf *utf_new(const char *text, u2 length);
-
-/* without locking (caller already holding lock*/
-utf *utf_new_intern(const char *text, u2 length);
 
 /* make utf symbol from u2 array */
 utf *utf_new_u2(u2 *unicodedata, u4 unicodelength, bool isclassname);
