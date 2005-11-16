@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 2725 2005-06-16 19:10:35Z edwin $
+   $Id: classcache.h 3680 2005-11-16 12:12:29Z twisti $
 
 */
 
@@ -97,7 +97,7 @@ extern hashtable classcache_hash;
 struct classcache_name_entry
 {
 	utf                     *name;        /* class name                       */
-	classcache_name_entry   *hashlink;	  /* link for external chaining       */
+	classcache_name_entry   *hashlink;    /* link for external chaining       */
 	classcache_class_entry  *classes;     /* equivalence classes for this name*/
 };
 
@@ -117,13 +117,8 @@ struct classcache_loader_entry
 
 /* function prototypes ********************************************************/
 
-/* classcache_init *************************************************************
- 
-   Initialize the loaded class cache
-  
-*******************************************************************************/
-
-void classcache_init();
+/* initialize the loaded class cache */
+bool classcache_init(void);
 
 /* classcache_free *************************************************************
  
