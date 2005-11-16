@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3637 2005-11-08 17:19:52Z twisti $
+   $Id: utf8.c 3677 2005-11-16 12:10:43Z twisti $
 
 */
 
@@ -45,6 +45,12 @@
 #include "vm/tables.h"
 #include "vm/utf8.h"
 
+
+/* global variables ***********************************************************/
+
+#if defined(USE_THREADS)
+static java_objectheader *lock_utf_hashtable;
+#endif
 
 hashtable utf_hash;                     /* hashtable for utf8-symbols         */
 
@@ -154,8 +160,18 @@ utf *array_packagename;
 
 *******************************************************************************/
 
-void utf8_init(void)
+bool utf8_init(void)
 {
+#if defined(USE_THREADS)
+	/* create utf hashtable lock object */
+
+	lock_utf_hashtable = NEW(java_objectheader);
+
+# if defined(NATIVE_THREADS)
+	initObjectLock(lock_utf_hashtable);
+# endif
+#endif
+
 	/* create utf-symbols for pointer comparison of frequently used strings */
 
 	utf_java_lang_Object           = utf_new_char("java/lang/Object");
@@ -277,6 +293,10 @@ void utf8_init(void)
 	utf_not_named_yet              = utf_new_char("\t<not_named_yet>");
 
 	array_packagename              = utf_new_char("\t<the array package>");
+
+	/* everything's ok */
+
+	return true;
 }
 
 
@@ -433,19 +453,30 @@ utf *utf_new_intern(const char *text, u2 length);
 
 utf *utf_new(const char *text, u2 length)
 {
-    utf *r;
+	utf *r;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_lock();
+#if defined(USE_THREADS)
+	builtin_monitorenter(lock_utf_hashtable);
 #endif
 
-    r = utf_new_intern(text, length);
+	/* XXX REMOVE ME! after testing of course ;-) */
+	#include <assert.h>
+	static int running = 0;
+	assert(running == 0);
+	running = 1;
+	/* XXX REMOVE ME! */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    tables_unlock();
+	r = utf_new_intern(text, length);
+
+	/* XXX REMOVE ME! */
+	running = 0;
+	/* XXX REMOVE ME! */
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(lock_utf_hashtable);
 #endif
 
-    return r;
+	return r;
 }
 
 
