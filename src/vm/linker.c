@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3528 2005-11-01 21:33:28Z edwin $
+   $Id: linker.c 3685 2005-11-16 13:28:59Z twisti $
 
 */
 
@@ -846,14 +846,14 @@ static arraydescriptor *link_array(classinfo *c)
 	switch (c->name->text[1]) {
 	case '[':
 		/* c is an array of arrays. */
-		u = utf_new_intern(c->name->text + 1, namelen - 1);
+		u = utf_new(c->name->text + 1, namelen - 1);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
 
 	case 'L':
 		/* c is an array of objects. */
-		u = utf_new_intern(c->name->text + 2, namelen - 3);
+		u = utf_new(c->name->text + 2, namelen - 3);
 		if (!(comp = load_class_from_classloader(u, c->classloader)))
 			return NULL;
 		break;
