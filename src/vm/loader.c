@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3513 2005-10-28 11:30:19Z twisti $
+   $Id: loader.c 3684 2005-11-16 13:28:33Z twisti $
 
 */
 
@@ -1116,7 +1116,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				return false;
 			}
 			/* insert utf-string into the utf-symboltable */
-			cpinfos[idx] = utf_new_intern((char *) (cb->pos + 1), length);
+			cpinfos[idx] = utf_new((char *) (cb->pos + 1), length);
 
 			/* skip bytes of the string (buffer size check above) */
 			skip_nbytes(cb, length);
@@ -2839,7 +2839,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	case '[':
 		/* c is an array of arrays. We have to create the component class. */
 
-		u = utf_new_intern(text + 1, namelen - 1);
+		u = utf_new(text + 1, namelen - 1);
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
 			LOADER_DEC();
@@ -2865,7 +2865,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 			return NULL;
 		}
 
-		u = utf_new_intern(text + 2, namelen - 3);
+		u = utf_new(text + 2, namelen - 3);
 
 		LOADER_INC();
 		if (!(comp = load_class_from_classloader(u, loader))) {
