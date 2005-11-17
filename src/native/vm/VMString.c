@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMString.c 1919 2005-02-10 10:08:53Z twisti $
+   $Id: VMString.c 3688 2005-11-17 10:21:35Z twisti $
 
 */
 
@@ -46,16 +46,18 @@
  * Method:    intern
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
 {
-	if (this) {
-		/* search table so identical strings will get identical pointers */
-		return (java_lang_String *)
-			literalstring_u2(this->value, this->count, this->offset, true);
+	java_objectheader *o;
 
-	} else {
+	if (!str)
 		return NULL;
-	}
+
+	/* search table so identical strings will get identical pointers */
+
+	o = literalstring_u2(str->value, str->count, str->offset, true);
+
+	return (java_lang_String *) o;
 }
 
 
