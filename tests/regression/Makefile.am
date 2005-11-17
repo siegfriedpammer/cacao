@@ -28,12 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3697 2005-11-17 18:33:50Z twisti $
+## $Id: Makefile.am 3698 2005-11-17 18:40:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
+JAVA      = $(top_builddir)/src/cacao/cacao
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
+JAVAC     = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
 
 CLEANFILES = \
 	*.class \
@@ -58,12 +59,12 @@ checkall: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 $(SIMPLE_JAVA_TESTS):
 	@$(JAVAC) -d . $(srcdir)/$@.java
 	@echo -n "$@: "
-	@$(JAVA) $@
+	@$(JAVA) $(JAVAFLAGS) $@
 
 
 $(OUTPUT_JAVA_TESTS):
 	@$(JAVAC) -d . $(srcdir)/$@.java
-	@$(SHELL) $(srcdir)/Test.sh $(JAVA) $@
+	@$(SHELL) $(srcdir)/Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
 
 ## Local variables:
