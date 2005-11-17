@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3704 2005-11-17 19:06:35Z twisti $
+   $Id: asmpart.S 3706 2005-11-17 22:30:41Z twisti $
 
 */
 
@@ -292,7 +292,8 @@ L_register_copy:
 
 L_register_handle_int:
 #if defined(__DARWIN__)
-	lwz     v0,lo16(jumptable_long-0b)(pv)
+	lis     itmp3,ha16(jumptable_int)
+	addi    itmp3,itmp3,lo16(jumptable_int)
 #else
 	lis     itmp3,jumptable_int@ha
 	addi    itmp3,itmp3,jumptable_int@l
@@ -306,7 +307,8 @@ L_register_handle_int:
 
 L_register_handle_long:
 #if defined(__DARWIN__)
-	lwz     v0,lo16(jumptable_long-0b)(pv)
+	lis     itmp3,ha16(jumptable_long)
+	addi    itmp3,itmp3,lo16(jumptable_long)
 #else
 	lis     itmp3,jumptable_long@ha
 	addi    itmp3,itmp3,jumptable_long@l
