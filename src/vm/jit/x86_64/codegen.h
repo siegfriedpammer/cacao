@@ -28,7 +28,7 @@
             Christian Thalinger
 
 
-   $Id: codegen.h 3620 2005-11-07 18:45:19Z twisti $
+   $Id: codegen.h 3690 2005-11-17 10:23:11Z twisti $
 
 */
 
@@ -434,6 +434,7 @@ typedef enum {
 
 #define M_IST(a,b,disp)         x86_64_movl_reg_membase(cd, (a), (b), (disp))
 #define M_LST(a,b,disp)         x86_64_mov_reg_membase(cd, (a), (b), (disp))
+#define M_LST_IMM32(a,b,disp)   x86_64_mov_imm_membase(cd, (a), (b), (disp))
 #define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
 
 #define M_LADD(a,b)             x86_64_alu_reg_reg(cd, X86_64_ADD, (a), (b))
@@ -443,6 +444,7 @@ typedef enum {
 
 #define M_ALD(a,b,c)            M_LLD(a,b,c)
 #define M_AST(a,b,c)            M_LST(a,b,c)
+#define M_AST_IMM32(a,b,c)      M_LST_IMM32(a,b,c)
 #define M_AADD(a,b)             M_LADD(a,b)
 #define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
 #define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
