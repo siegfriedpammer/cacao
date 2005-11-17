@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3167 2005-09-10 20:30:43Z twisti $
+   $Id: md-asm.h 3696 2005-11-17 16:58:31Z twisti $
 
 */
 
@@ -179,7 +179,6 @@
 	stw     t4,(4+(off))*4(sp); \
 	stw     t5,(5+(off))*4(sp); \
 	stw     t6,(6+(off))*4(sp); \
-	stw     t7,(7+(off))*4(sp); \
 	\
 	stfd    ft0,(8+(off))*4(sp); \
 	stfd    ft1,(10+(off))*4(sp); \
@@ -196,7 +195,6 @@
 	lwz     t4,(4+(off))*4(sp); \
 	lwz     t5,(5+(off))*4(sp); \
 	lwz     t6,(6+(off))*4(sp); \
-	lwz     t7,(7+(off))*4(sp); \
 	\
 	lfd     ft0,(8+(off))*4(sp); \
 	lfd     ft1,(10+(off))*4(sp); \
