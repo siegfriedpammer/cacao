@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3581 2005-11-05 19:44:38Z twisti $
+   $Id: string.c 3695 2005-11-17 13:47:58Z twisti $
 
 */
 
@@ -49,6 +49,13 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
+
+
+/* global variables ***********************************************************/
+
+#if defined(USE_THREADS)
+static java_objectheader *lock_string_hashtable;
+#endif
 
 
 /* global string definitions **************************************************/
@@ -174,6 +181,30 @@ const char *string_java_lang_VerifyError =
 
 const char *string_java_lang_VirtualMachineError =
     "java/lang/VirtualMachineError";
+
+
+/* string_init *****************************************************************
+
+   Initialize the string hashtable lock.
+
+*******************************************************************************/
+
+bool string_init(void)
+{
+#if defined(USE_THREADS)
+	/* create string hashtable lock object */
+
+	lock_string_hashtable = NEW(java_objectheader);
+
+# if defined(NATIVE_THREADS)
+	initObjectLock(lock_string_hashtable);
+# endif
+#endif
+
+	/* everything's ok */
+
+	return true;
+}
 
 
 /* stringtable_update **********************************************************
@@ -445,7 +476,12 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     u4                slot;
     u2                i;
 
+#if defined(USE_THREADS)
+	builtin_monitorenter(lock_string_hashtable);
+#endif
+
     /* find location in hashtable */
+
     key  = unicode_hashkey(a->data + offset, length);
     slot = key & (string_hash.size - 1);
     s    = string_hash.ptr[slot];
@@ -455,14 +491,19 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 		if (length == js->count) {
 			/* compare text */
-			for (i = 0; i < length; i++) {
+
+			for (i = 0; i < length; i++)
 				if (a->data[offset + i] != js->value->data[i])
 					goto nomatch;
-			}
 
 			/* string already in hashtable, free memory */
+
 			if (!copymode)
 				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
+
+#if defined(USE_THREADS)
+			builtin_monitorexit(lock_string_hashtable);
+#endif
 
 			return (java_objectheader *) js;
 		}
@@ -566,6 +607,10 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		MFREE(string_hash.ptr, void*, string_hash.size);
 		string_hash = newhash;
 	}
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(lock_string_hashtable);
+#endif
 
 	return (java_objectheader *) js;
 }
