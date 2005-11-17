@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 3686 2005-11-16 13:29:58Z twisti $
+   $Id: finalizer.c 3692 2005-11-17 13:35:49Z twisti $
 
 */
 
@@ -47,22 +47,11 @@
 #include "vm/jit/asmpart.h"
 
 
-/* local structures ***********************************************************/
-
-typedef struct finalizer_entry finalizer_entry;
-
-struct finalizer_entry {
-	java_objectheader *o;
-	listnode           linkage;
-};
-
-
 /* global variables ***********************************************************/
 
 #if defined(USE_THREADS)
 static java_lang_VMThread *finalizer_vmthread;
 static java_objectheader *lock_finalizer_thread;
-static list *finalizer_list;
 #endif
 
 
@@ -80,11 +69,6 @@ bool finalizer_init(void)
 # if defined(NATIVE_THREADS)
 	initObjectLock(lock_finalizer_thread);
 # endif
-
-	/* initialize the finalizer list */
-
-	finalizer_list = NEW(list);
-	list_init(finalizer_list, OFFSET(finalizer_entry, linkage));
 #endif
 
 	/* everything's ok */
@@ -104,68 +88,26 @@ bool finalizer_init(void)
 #if defined(USE_THREADS)
 static void finalizer_thread(void)
 {
-	finalizer_entry   *fi;
-	java_objectheader *o;
-
-	/* get the lock on the finalizer lock object, so we can call wait */
-
 	while (true) {
+		/* get the lock on the finalizer lock object, so we can call wait */
+
+		builtin_monitorenter(lock_finalizer_thread);
+
 		/* wait forever (0, 0) on that object till we are signaled */
 	
 		wait_cond_for_object(lock_finalizer_thread, 0, 0);
 
-		/* now handle all finalizers stored in the list */
-
-		fi = (finalizer_entry *) list_first(finalizer_list);
-
-		/* release the lock so other threads, or the finalizer thread
-		   itself, can add new finalizers to the list */
+		/* leave the lock */
 
 		builtin_monitorexit(lock_finalizer_thread);
 
-		/* is there actually a finalizer in the list? */
+		/* and call the finalizers */
 
-		if (fi) {
-			do {
-				/* just for simpler code */
-
-				o = fi->o;
-
-				/* call the finalizer function */
-
-				asm_calljavafunction(o->vftbl->class->finalizer, o,
-									 NULL, NULL, NULL);
-
-				/* if we had an exception in the finalizer, ignore it */
-
-				*exceptionptr = NULL;
-
-				/* enter the monitor again, so we don't get finalizer
-				   list race conditions */
-
-				builtin_monitorenter(lock_finalizer_thread);
-
-				/* remove and clear finalized entry */
-
-				list_remove(finalizer_list, fi);
-
-				fi->o = NULL;
-				FREE(fi, finalizer_entry);
-
-				/* get next finalizer from the list */
-
-				fi = list_first(finalizer_list);
-
-				/* leave the monitor again */
-
-				builtin_monitorexit(lock_finalizer_thread);
-			} while (fi != NULL);
-		}
-
-		builtin_monitorenter(lock_finalizer_thread);
+		gc_invoke_finalizers();
 	}
 }
 #endif
+
 
 /* finalizer_start_thread ******************************************************
 
@@ -206,42 +148,44 @@ bool finalizer_start_thread(void)
 #endif
 
 
-/* finalizer_add ***************************************************************
+/* finalizer_notify ************************************************************
 
-   Adds a finalizer to be called to the linked list of finalizers.
+   Notifies the finalizer thread that it should run the
+   gc_invoke_finalizers from the GC.
 
 *******************************************************************************/
 
-void finalizer_add(void *o, void *p)
+void finalizer_notify(void)
 {
 #if defined(USE_THREADS)
-	java_objectheader *ob;
-	finalizer_entry   *fi;
-
-	ob = (java_objectheader *) o;
-
-	/* wait for the finalizer thread to finish finalizer list operations */
+	/* get the lock on the finalizer lock object, so we can call wait */
 
 	builtin_monitorenter(lock_finalizer_thread);
 
-	/* create finalizer entry, fill it and add it to the list */
-
-	fi = NEW(finalizer_entry);
-	fi->o = ob;
-
-	list_addlast(finalizer_list, fi);
-
-	/* wakeup the finalizer thread */
-
+	/* signal the finalizer thread */
+	
 	signal_cond_for_object(lock_finalizer_thread);
 
-	/* release the lock after the entry is added */
+	/* leave the lock */
 
 	builtin_monitorexit(lock_finalizer_thread);
 #else
-	java_objectheader *ob;
+	/* if we don't have threads, just run the finalizers */
 
-	ob = (java_objectheader *) o;
+	gc_invoke_finalizers();
+#endif
+}
+
+
+/* finalizer_run ***************************************************************
+
+   Actually run the finalizer functions.
+
+*******************************************************************************/
+
+void finalizer_run(void *o, void *p)
+{
+	java_objectheader *ob = (java_objectheader *) o;
 
 	/* call the finalizer function */
 
@@ -250,7 +194,6 @@ void finalizer_add(void *o, void *p)
 	/* if we had an exception in the finalizer, ignore it */
 
 	*exceptionptr = NULL;
-#endif
 }
 
 

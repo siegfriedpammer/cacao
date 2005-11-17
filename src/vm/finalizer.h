@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.h 3545 2005-11-03 20:36:59Z twisti $
+   $Id: finalizer.h 3692 2005-11-17 13:35:49Z twisti $
 
 */
 
@@ -46,7 +46,8 @@
 
 bool finalizer_init(void);
 bool finalizer_start_thread(void);
-void finalizer_add(void *o, void *p);
+void finalizer_notify(void);
+void finalizer_run(void *o, void *p);
 
 #endif /* _FINALIZER_H */
 
