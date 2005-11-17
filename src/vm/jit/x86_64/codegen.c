@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3661 2005-11-11 14:02:45Z twisti $
+   $Id: codegen.c 3689 2005-11-17 10:22:35Z twisti $
 
 */
 
@@ -4358,10 +4358,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* save return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LST(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DST(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
 	/* remove native stackframe info */
 
@@ -4374,10 +4376,12 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	if (runverbose) {
 		/* just restore the value we need, don't care about the other */
 
-		if (IS_INT_LNG_TYPE(md->returntype.type))
-			M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		else
-			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		if (md->returntype.type != TYPE_VOID) {
+			if (IS_INT_LNG_TYPE(md->returntype.type))
+				M_LLD(REG_RESULT, REG_SP, 0 * 8);
+			else
+				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		}
 
   		M_MOV_IMM((ptrint) m, rd->argintregs[0]);
   		M_MOV(REG_RESULT, rd->argintregs[1]);
@@ -4396,19 +4400,20 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 #else
 	M_MOV_IMM((ptrint) &_no_threads_exceptionptr, REG_RESULT);
 #endif
-	M_ALD(REG_ITMP3, REG_RESULT, 0);
-
+	M_ALD(REG_ITMP2, REG_RESULT, 0);
 
 	/* restore return value */
 
-	if (IS_INT_LNG_TYPE(md->returntype.type))
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-	else
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	if (md->returntype.type != TYPE_VOID) {
+		if (IS_INT_LNG_TYPE(md->returntype.type))
+			M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		else
+			M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+	}
 
 	/* test for exception */
 
-	M_TEST(REG_ITMP3);
+	M_TEST(REG_ITMP2);
 	M_BNE(7 + 1);
 
 	/* remove stackframe */
@@ -4420,16 +4425,15 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* handle exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	M_LST(REG_ITMP3, REG_SP, 0 * 8);
+	M_LST(REG_ITMP2, REG_SP, 0 * 8);
 	M_MOV_IMM((ptrint) builtin_get_exceptionptrptr, REG_ITMP3);
 	M_CALL(REG_ITMP3);
-	x86_64_mov_imm_membase(cd, 0, REG_RESULT, 0);
+	M_AST_IMM32(0, REG_RESULT, 0);                 /* clear exception pointer */
 	M_LLD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
 #else
 	M_MOV(REG_ITMP3, REG_ITMP1_XPTR);
 	M_MOV_IMM((ptrint) &_no_threads_exceptionptr, REG_ITMP3);
-	M_XOR(REG_ITMP2, REG_ITMP2);
-	M_AST(REG_ITMP2, REG_ITMP3, 0);                /* clear exception pointer */
+	M_AST_IMM32(0, REG_ITMP3, 0);                  /* clear exception pointer */
 #endif
 
 	/* remove stackframe */
