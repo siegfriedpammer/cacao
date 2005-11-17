@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3410 2005-10-12 12:45:56Z twisti $
+   $Id: arch.h 3700 2005-11-17 18:53:38Z twisti $
 
 */
 
@@ -53,6 +53,7 @@
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               0
 #define SUPPORT_LONG_MUL                 0
@@ -67,8 +68,7 @@
 #define SUPPORT_CONST_STORE_ZERO_ONLY    0  /* on some risc machines we can   */
                                             /* only store REG_ZERO            */
 
-/* #define CONDITIONAL_LOADCONST           1 */
-#define NOLONG_CONDITIONAL
+/* #define CONDITIONAL_LOADCONST            1 */
 
 #define SPECIALMEMUSE
 #define HAS_4BYTE_STACKSLOT
