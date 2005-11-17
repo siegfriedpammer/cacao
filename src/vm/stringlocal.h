@@ -1,4 +1,4 @@
-/* vm/stringlocal.h - java.lang.String header
+/* src/vm/stringlocal.h - string header
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 3581 2005-11-05 19:44:38Z twisti $
+   $Id: stringlocal.h 3694 2005-11-17 13:47:28Z twisti $
 
 */
 
@@ -38,6 +38,9 @@
 
 typedef struct literalstring literalstring;
 
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"                  /* required before java_lang_String.h */
 #include "native/include/java_lang_String.h"
@@ -110,6 +113,9 @@ extern const char *string_java_lang_VirtualMachineError;
 
 
 /* function prototypes ********************************************************/
+
+/* initialize string subsystem */
+bool string_init(void);
 
 void stringtable_update(void);
 
