@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3605 2005-11-07 16:15:33Z twisti $
+   $Id: asmpart.S 3704 2005-11-17 19:06:35Z twisti $
 
 */
 
@@ -109,7 +109,7 @@ asm_calljavafunction_int:
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-148(r1)
+	stwu    r1,-40*4(r1)
 
 #if defined(__DARWIN__)
 	bl      0f
@@ -117,23 +117,28 @@ asm_calljavafunction_int:
 	mflr    r31
 #endif
 
-	stw     t0,40(r1)
-	stw     t1,44(r1)
-	stw     t2,48(r1)
-	stw     t3,52(r1)
-	stw     t4,56(r1)
-	stw     t5,60(r1)
-	stw     t6,64(r1)
-/*	stw     t7,68(r1) */
+	stw     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
+	stfd	ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
+	stfd	ftmp2,14*4(sp)
 
-	stfd	ftmp1,72(r1)
-	stfd	ftmp2,80(r1)
-	stfd	ft0,88(r1)
-	stfd	ft1,96(r1)
-	stfd	ft2,104(r1)
-	stfd	ft3,112(r1)
-	stfd	ft4,120(r1)
-	stfd	ft5,128(r1)
+#if defined(__DARWIN__)
+	stw     t0,16*4(r1)
+	stw     t1,17*4(r1)
+	stw     t2,18*4(r1)
+	stw     t3,19*4(r1)
+	stw     t4,20*4(r1)
+	stw     t5,21*4(r1)
+	stw     t6,22*4(r1)
+
+	stfd	ft0,24*4(r1)
+	stfd	ft1,26*4(r1)
+	stfd	ft2,28*4(r1)
+	stfd	ft3,30*4(r1)
+	stfd	ft4,32*4(r1)
+	stfd	ft5,34*4(r1)
+#else
+	SAVE_TEMPORARY_REGISTERS(16)      /* the offset has to be even            */
+#endif
 
 	stw     a0,36(r1)
 	addi    itmp1,r1,36
@@ -165,28 +170,33 @@ asm_calljavafunction_int:
 	addi    pv,itmp1,(asm_calljavafunction-1b)@l
 #endif
 
-calljava_regrestore:
-	lwz     t0,40(r1)
-	lwz     t1,44(r1)
-	lwz     t2,48(r1)
-	lwz     t3,52(r1)
-	lwz     t4,56(r1)
-	lwz     t5,60(r1)
-	lwz     t6,64(r1)
-/*	lwz     t7,68(r1) */
+L_asm_calljavafunction_restore:
+	lwz     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
+	lfd     ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp2,14*4(sp)
 
-	lfd     ftmp1,72(r1)
-	lfd     ftmp2,80(r1)
-	lfd     ft0,88(r1)
-	lfd     ft1,96(r1)
-	lfd     ft2,104(r1)
-	lfd     ft3,112(r1)
-	lfd     ft4,120(r1)
-	lfd     ft5,128(r1)
+#if defined(__DARWIN__)
+	lwz     t0,16*4(r1)
+	lwz     t1,17*4(r1)
+	lwz     t2,18*4(r1)
+	lwz     t3,19*4(r1)
+	lwz     t4,20*4(r1)
+	lwz     t5,21*4(r1)
+	lwz     t6,22*4(r1)
 
-	lwz     r0,148+LA_LR_OFFSET(r1)
+	lfd     ft0,24*4(r1)
+	lfd     ft1,26*4(r1)
+	lfd     ft2,28*4(r1)
+	lfd     ft3,30*4(r1)
+	lfd     ft4,32*4(r1)
+	lfd     ft5,34*4(r1)
+#else
+	RESTORE_TEMPORARY_REGISTERS(16)   /* the offset has to be even            */
+#endif
+
+	lwz     r0,40*4+LA_LR_OFFSET(r1)
 	mtlr    r0
-	addi    r1,r1,148
+	addi    r1,r1,40*4
 	lwz     pv,-12(r1)
 /*	lwz     r30,-8(r1)*/
 	lwz     r31,-4(r1)
@@ -196,7 +206,7 @@ calljava_xhandler:
 	mr      a0,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
-	b       calljava_regrestore
+	b       L_asm_calljavafunction_restore
 
 
 
@@ -227,77 +237,94 @@ asm_calljavafunction2double:
 /*	stw     r30,-8(r1)*/
 	stw     pv,-12(r1)
 	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-148(r1)
+	stwu    r1,-40*4(r1)
 	bl      0f
 0:
 	mflr    r31
 
-	stw     r16,40(r1)
-	stw     r17,44(r1)
-	stw     r18,48(r1)
-	stw     r19,52(r1)
-	stw     r20,56(r1)
-	stw     r21,60(r1)
-	stw     r22,64(r1)
-	stw     r23,68(r1)
+	stw     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
+	stfd	ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
+	stfd	ftmp2,14*4(sp)
 
-	stfd	fr16,72(r1)
-	stfd	fr17,80(r1)
-	stfd	fr18,88(r1)
-	stfd	fr19,96(r1)
-	stfd	fr20,104(r1)
-	stfd	fr21,112(r1)
-	stfd	fr22,120(r1)
-	stfd	fr23,128(r1)
+#if defined(__DARWIN__)
+	stw     t0,16*4(r1)
+	stw     t1,17*4(r1)
+	stw     t2,18*4(r1)
+	stw     t3,19*4(r1)
+	stw     t4,20*4(r1)
+	stw     t5,21*4(r1)
+	stw     t6,22*4(r1)
+
+	stfd	ft0,24*4(r1)
+	stfd	ft1,26*4(r1)
+	stfd	ft2,28*4(r1)
+	stfd	ft3,30*4(r1)
+	stfd	ft4,32*4(r1)
+	stfd	ft5,34*4(r1)
+#else
+	SAVE_TEMPORARY_REGISTERS(16)      /* the offset has to be even            */
+#endif
 
 	stw     r3,36(r1)                 /* save method pointer for compiler     */
 	mr      itmp1,r6                  /* pointer to arg block                 */
 	mr      itmp2,r4                  /* arg count                            */
 
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+	addi    itmp1,itmp1,-sizejniblock /* initialize pointer (smaller code)    */
+	addi    itmp2,itmp2,1             /* initialize argument count            */
+	li      r17,0                     /* initialize integer argument counter  */
+	li      r18,0                     /* initialize float argument counter    */
 
-	addi    itmp2,itmp2,-1
-	lwz     a0,offjniitem+4(itmp1)
+L_register_copy:
+	addi    itmp1,itmp1,sizejniblock  /* goto next argument block             */
+	addi    itmp2,itmp2,-1            /* argument count - 1                   */
 	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+	beq     L_register_copy_done
 
-	addi    itmp2,itmp2,-1
-	lwz     a1,offjniitem+sizejniblock*1+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+	lwz     itmp3,offjniitemtype+4(itmp1)
+	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
+	bne     L_register_handle_float
 
-	addi    itmp2,itmp2,-1
-	lwz     a2,offjniitem+sizejniblock*2+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+	cmpwi   r17,INT_ARG_CNT           /* are we out of integer argument       */
+	beq     L_register_copy           /* registers? yes, next loop            */
 
-	addi    itmp2,itmp2,-1
-	lwz     a3,offjniitem+sizejniblock*3+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+	andi.   r0,itmp3,0x0001           /* is this a long type?                 */
+	bne     L_register_handle_long
 
-	addi    itmp2,itmp2,-1
-	lwz     a4,offjniitem+sizejniblock*4+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+L_register_handle_int:
+#if defined(__DARWIN__)
+	lwz     v0,lo16(jumptable_long-0b)(pv)
+#else
+	lis     itmp3,jumptable_int@ha
+	addi    itmp3,itmp3,jumptable_int@l
+#endif
+	slwi    r19,r17,2                 /* multiple of 4-bytes                  */
+	add     itmp3,itmp3,r19           /* calculate address of jumptable       */
+	lwz     itmp3,0(itmp3)            /* load function address                */
+	addi    r17,r17,1                 /* integer argument counter + 1         */
+	mtctr   itmp3
+	bctr
 
-	addi    itmp2,itmp2,-1
-	lwz     a5,offjniitem+sizejniblock*5+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+L_register_handle_long:
+#if defined(__DARWIN__)
+	lwz     v0,lo16(jumptable_long-0b)(pv)
+#else
+	lis     itmp3,jumptable_long@ha
+	addi    itmp3,itmp3,jumptable_long@l
+#endif
+	addi    r19,r17,1                 /* align to even numbers                */
+	srwi    r19,r19,1
+	slwi    r19,r19,1
+	slwi    r19,r19,2                 /* multiple of 4-bytes                  */
+	add     itmp3,itmp3,r19           /* calculate address of jumptable       */
+	lwz     itmp3,0(itmp3)            /* load function address                */
+	addi    r17,r17,1                 /* integer argument counter + 1         */
+	mtctr   itmp3
+	bctr
 
-	addi    itmp2,itmp2,-1
-	lwz     a6,offjniitem+sizejniblock*6+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
+L_register_handle_float:
+L_register_copy_done:
 
-	addi    itmp2,itmp2,-1
-	lwz     a7,offjniitem+sizejniblock*7+4(itmp1)
-	mr.     itmp2,itmp2
-	ble     calljava_argsloaded
-
-calljava_argsloaded:
+L_stack_copy_done:
 	addi    itmp1,r1,36
 #if defined(__DARWIN__)
 /*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
@@ -319,28 +346,33 @@ calljava_argsloaded:
 	addi    pv,itmp1,(asm_calljavafunction2-1b)@l
 #endif
 
-calljava_regrestore2:
-	lwz     r16,40(r1)
-	lwz     r17,44(r1)
-	lwz     r18,48(r1)
-	lwz     r19,52(r1)
-	lwz     r20,56(r1)
-	lwz     r21,60(r1)
-	lwz     r22,64(r1)
-	lwz     r23,68(r1)
+L_asm_calljavafunction2_restore:
+	lwz     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
+	lfd     ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp2,14*4(sp)
 
-	lfd     fr16,72(r1)
-	lfd     fr17,80(r1)
-	lfd     fr18,88(r1)
-	lfd     fr19,96(r1)
-	lfd     fr20,104(r1)
-	lfd     fr21,112(r1)
-	lfd     fr22,120(r1)
-	lfd     fr23,128(r1)
+#if defined(__DARWIN__)
+	lwz     t0,16*4(r1)
+	lwz     t1,17*4(r1)
+	lwz     t2,18*4(r1)
+	lwz     t3,19*4(r1)
+	lwz     t4,20*4(r1)
+	lwz     t5,21*4(r1)
+	lwz     t6,22*4(r1)
 
-	lwz     r0,148+LA_LR_OFFSET(r1)
+	lfd     ft0,24*4(r1)
+	lfd     ft1,26*4(r1)
+	lfd     ft2,28*4(r1)
+	lfd     ft3,30*4(r1)
+	lfd     ft4,32*4(r1)
+	lfd     ft5,34*4(r1)
+#else
+	RESTORE_TEMPORARY_REGISTERS(16)   /* the offset has to be even            */
+#endif
+
+	lwz     r0,40*4+LA_LR_OFFSET(r1)
 	mtlr    r0
-	addi    r1,r1,148
+	addi    r1,r1,40*4
 	lwz     pv,-12(r1)
 /*	lwz     r30,-8(r1)*/
 	lwz     r31,-4(r1)
@@ -350,7 +382,77 @@ calljava_xhandler2:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
-	b       calljava_regrestore2
+	b       L_asm_calljavafunction2_restore
+
+
+jumptable_int:
+	.long   L_handle_a0
+	.long   L_handle_a1
+	.long   L_handle_a2
+	.long   L_handle_a3
+	.long   L_handle_a4
+	.long   L_handle_a5
+	.long   L_handle_a6
+	.long   L_handle_a7
+
+L_handle_a0:
+	lwz     a0,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a1:
+	lwz     a1,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a2:
+	lwz     a2,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a3:
+	lwz     a3,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a4:
+	lwz     a4,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a5:
+	lwz     a5,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a6:
+	lwz     a6,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a7:
+	lwz     a7,offjniitem+4(itmp1)
+	b       L_register_copy
+
+
+jumptable_long:
+#if defined(__DARWIN__)
+#else
+	/* we have two entries here, so we get the even argument register
+	alignment for linux */
+
+	.long   L_handle_a0_a1
+	.long   0
+	.long   L_handle_a2_a3
+	.long   0
+	.long   L_handle_a4_a5
+	.long   0
+	.long   L_handle_a6_a7
+	.long   0
+#endif
+
+L_handle_a0_a1:
+	lwz     a0,offjniitem+0(itmp1)
+	lwz     a1,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a2_a3:
+	lwz     a2,offjniitem+0(itmp1)
+	lwz     a3,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a4_a5:
+	lwz     a4,offjniitem+0(itmp1)
+	lwz     a5,offjniitem+4(itmp1)
+	b       L_register_copy
+L_handle_a6_a7:
+	lwz     a6,offjniitem+0(itmp1)
+	lwz     a7,offjniitem+4(itmp1)
+	b       L_register_copy
 
 
 /* asm_call_jit_compiler *******************************************************
