@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3675 2005-11-16 12:08:42Z twisti $
+   $Id: cacao.c 3693 2005-11-17 13:46:59Z twisti $
 
 */
 
@@ -1140,8 +1140,14 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
-	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
-	   (must be done _after_ threads_preinit) */
+	/* initialize the string hashtable stuff: lock (must be done
+	   _after_ threads_preinit) */
+
+	if (!string_init())
+		throw_main_exception_exit();
+
+	/* initialize the utf8 hashtable stuff: lock, often used utf8
+	   strings (must be done _after_ threads_preinit) */
 
 	if (!utf8_init())
 		throw_main_exception_exit();
@@ -1185,7 +1191,8 @@ int main(int argc, char **argv)
 
 	md_init();
 
-	/* initialize the loader subsystems (must be done _after_ classcache_init) */
+	/* initialize the loader subsystems (must be done _after_
+       classcache_init) */
 
 	if (!loader_init((u1 *) &dummy))
 		throw_main_exception_exit();
