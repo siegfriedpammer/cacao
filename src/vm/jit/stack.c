@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3662 2005-11-11 14:05:31Z twisti $
+   $Id: stack.c 3699 2005-11-17 18:53:07Z twisti $
 
 */
 
@@ -871,7 +871,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_LXORCONST;
 								goto icmd_lconst_tail;
 #endif /* SUPPORT_LONG_LOGICAL && SUPPORT_CONST_LOGICAL */
-#if !defined(NOLONG_CONDITIONAL)
+
+#if SUPPORT_LONG_CMP_CONST
 							case ICMD_LCMP:
 								if ((len > 1) && (iptr[2].val.i == 0)) {
 									switch (iptr[2].opc) {
@@ -914,7 +915,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								else
 									PUSHCONST(TYPE_LNG);
 								break;
-#endif /* !defined(NOLONG_CONDITIONAL) */
+#endif /* SUPPORT_LONG_CMP_CONST */
 
 #if SUPPORT_CONST_STORE
 							case ICMD_LASTORE:
@@ -1757,7 +1758,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 					case ICMD_LCMP:
 						COUNT(count_pcmd_op);
-#if !defined(NOLONG_CONDITIONAL)
+#if SUPPORT_LONG_CMP_CONST
 						if ((len > 0) && (iptr[1].val.i == 0)) {
 							switch (iptr[1].opc) {
 							case ICMD_IFEQ:
@@ -1795,7 +1796,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 						}
 						else
-#endif
+#endif /* SUPPORT_LONG_CMP_CONST */
 							OPTT2_1(TYPE_LNG, TYPE_INT);
 						break;
 					case ICMD_FCMPL:
