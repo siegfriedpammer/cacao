@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 3169 2005-09-10 20:32:22Z twisti $
+   $Id: codegen.h 3703 2005-11-17 19:01:00Z twisti $
 
 */
 
@@ -143,7 +143,7 @@
 
 /* fetch only the low part of v, regnr hast to be a single register */
 
-#define var_to_reg_int_low(regnr,v,tempnr) \
+#define var_to_reg_lng_low(regnr,v,tempnr) \
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
@@ -157,7 +157,7 @@
 
 /* fetch only the high part of v, regnr hast to be a single register */
 
-#define var_to_reg_int_high(regnr,v,tempnr) \
+#define var_to_reg_lng_high(regnr,v,tempnr) \
 	do { \
 		if ((v)->flags & INMEMORY) { \
 			COUNT_SPILLS; \
@@ -256,8 +256,8 @@
 
 /* macros to create code ******************************************************/
 
-#define M_OP3(x,y,oe,rc,d,a,b) \
-	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
+#define M_OP3(opcode,y,oe,rc,d,a,b) \
+	*(mcodeptr++) = (((opcode) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
 
 #define M_OP4(x,y,rc,d,a,b,c) \
 	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc))
@@ -429,24 +429,24 @@
 #define M_SSEXT(a,b)                    M_OP3(31, 922, 0, 0, a, b, 0)
 #define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)
 
-#define M_BR(a)                         M_BRA(18, a, 0, 0);
-#define M_BL(a)                         M_BRA(18, a, 0, 1);
-#define M_RET                           M_OP3(19, 16, 0, 0, 20, 0, 0);
-#define M_JSR                           M_OP3(19, 528, 0, 1, 20, 0, 0);
-#define M_RTS                           M_OP3(19, 528, 0, 0, 20, 0, 0);
+#define M_BR(a)                         M_BRA(18, a, 0, 0)
+#define M_BL(a)                         M_BRA(18, a, 0, 1)
+#define M_RET                           M_OP3(19, 16, 0, 0, 20, 0, 0)
+#define M_JSR                           M_OP3(19, 528, 0, 1, 20, 0, 0)
+#define M_RTS                           M_OP3(19, 528, 0, 0, 20, 0, 0)
 
-#define M_CMP(a,b)                      M_OP3(31, 0, 0, 0, 0, a, b);
-#define M_CMPU(a,b)                     M_OP3(31, 32, 0, 0, 0, a, b);
-#define M_CMPI(a,b)                     M_OP2_IMM(11, 0, a, b);
-#define M_CMPUI(a,b)                    M_OP2_IMM(10, 0, a, b);
+#define M_CMP(a,b)                      M_OP3(31, 0, 0, 0, 0, a, b)
+#define M_CMPU(a,b)                     M_OP3(31, 32, 0, 0, 0, a, b)
+#define M_CMPI(a,b)                     M_OP2_IMM(11, 0, a, b)
+#define M_CMPUI(a,b)                    M_OP2_IMM(10, 0, a, b)
 
-#define M_BLT(a)                        M_BRAC(16, 12, 0, a, 0, 0);
-#define M_BLE(a)                        M_BRAC(16, 4, 1, a, 0, 0);
-#define M_BGT(a)                        M_BRAC(16, 12, 1, a, 0, 0);
-#define M_BGE(a)                        M_BRAC(16, 4, 0, a, 0, 0);
-#define M_BEQ(a)                        M_BRAC(16, 12, 2, a, 0, 0);
-#define M_BNE(a)                        M_BRAC(16, 4, 2, a, 0, 0);
-#define M_BNAN(a)                       M_BRAC(16, 12, 3, a, 0, 0);
+#define M_BLT(a)                        M_BRAC(16, 12, 0, a, 0, 0)
+#define M_BLE(a)                        M_BRAC(16, 4, 1, a, 0, 0)
+#define M_BGT(a)                        M_BRAC(16, 12, 1, a, 0, 0)
+#define M_BGE(a)                        M_BRAC(16, 4, 0, a, 0, 0)
+#define M_BEQ(a)                        M_BRAC(16, 12, 2, a, 0, 0)
+#define M_BNE(a)                        M_BRAC(16, 4, 2, a, 0, 0)
+#define M_BNAN(a)                       M_BRAC(16, 12, 3, a, 0, 0)
 
 #define M_FLD_INTERN(a,b,disp)          M_OP2_IMM(48,a,b,disp)
 #define M_DLD_INTERN(a,b,disp)          M_OP2_IMM(50,a,b,disp)
