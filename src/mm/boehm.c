@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3609 2005-11-07 17:44:28Z twisti $
+   $Id: boehm.c 3691 2005-11-17 13:34:13Z twisti $
 
 */
 
@@ -81,6 +81,57 @@ static void
 	return (*p->p2)(p->p, p->l);
 }
 
+/* prototype static functions *************************************************/
+
+static void gc_ignore_warnings(char *msg, GC_word arg);
+
+
+/* gc_init *********************************************************************
+
+   Initializes the boehm garbage collector.
+
+*******************************************************************************/
+
+void gc_init(u4 heapmaxsize, u4 heapstartsize)
+{
+	size_t heapcurrentsize;
+
+	GC_INIT();
+
+	/* set the maximal heap size */
+
+	GC_set_max_heap_size(heapmaxsize);
+
+	/* set the initial heap size */
+
+	heapcurrentsize = GC_get_heap_size();
+
+	if (heapstartsize > heapcurrentsize) {
+		GC_expand_hp(heapstartsize - heapcurrentsize);
+	}
+
+	/* define OOM function */
+
+	GC_oom_fn = gc_out_of_memory;
+
+	/* just to be sure (should be set to 1 by JAVA_FINALIZATION macro) */
+
+	GC_java_finalization = 1;
+
+	/* suppress warnings */
+
+	GC_set_warn_proc(gc_ignore_warnings);
+
+	/* install a GC notifier */
+
+	GC_finalize_on_demand = 1;
+	GC_finalizer_notifier = finalizer_notify;
+}
+
+
+static void gc_ignore_warnings(char *msg, GC_word arg)
+{
+}
 
 static void *stackcall_malloc(void *p, u4 bytelength)
 {
@@ -155,7 +206,7 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 		return NULL;
 
 	if (finalizer)
-		GC_REGISTER_FINALIZER(result, finalizer_add, 0, 0, 0);
+		GC_REGISTER_FINALIZER(result, finalizer_run, 0, 0, 0);
 
 	/* clear allocated memory region */
 
@@ -171,38 +222,6 @@ void heap_free(void *p)
 
 	MAINTHREADCALL(result, stackcall_free, p, 0);
 }
-
-static void gc_ignore_warnings(char *msg, GC_word arg)
-{
-}
-
-void gc_init(u4 heapmaxsize, u4 heapstartsize)
-{
-	size_t  heapcurrentsize;
-
-	GC_INIT();
-
-	/* set the maximal heap size */
-
-	GC_set_max_heap_size(heapmaxsize);
-
-	/* set the initial heap size */
-
-	heapcurrentsize = GC_get_heap_size();
-
-	if (heapstartsize > heapcurrentsize) {
-		GC_expand_hp(heapstartsize - heapcurrentsize);
-	}
-
-	/* define OOM function */
-
-	GC_oom_fn = gc_out_of_memory;
-
-	/* suppress warnings */
-
-	GC_set_warn_proc(gc_ignore_warnings);
-}
-
 
 void gc_call(void)
 {
