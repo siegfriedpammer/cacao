@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3667 2005-11-14 19:47:26Z twisti $
+   $Id: codegen.c 3702 2005-11-17 19:00:29Z twisti $
 
 */
 
@@ -733,7 +733,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
-			var_to_reg_int_low(s1, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -789,12 +789,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_low(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_ADDC(s1, s2, GET_LOW_REG(d));
-			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_ADDE(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -803,7 +803,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			s3 = iptr->val.l & 0xffffffff;
-			var_to_reg_int_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= -32768) && (s3 <= 32767)) {
 				M_ADDIC(s1, s3, GET_LOW_REG(d));
@@ -811,7 +811,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				ICONST(REG_ITMP2, s3);
 				M_ADDC(s1, REG_ITMP2, GET_LOW_REG(d));
 			}
-			var_to_reg_int_high(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if (s3 == -1) {
 				M_ADDME(s1, GET_HIGH_REG(d));
@@ -849,12 +849,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_low(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_SUBC(s1, s2, GET_LOW_REG(d));
-			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_SUBE(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -863,7 +863,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			s3 = (-iptr->val.l) & 0xffffffff;
-			var_to_reg_int_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= -32768) && (s3 <= 32767)) {
 				M_ADDIC(s1, s3, GET_LOW_REG(d));
@@ -871,7 +871,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				ICONST(REG_ITMP2, s3);
 				M_ADDC(s1, REG_ITMP2, GET_LOW_REG(d));
 			}
-			var_to_reg_int_high(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s1, src, REG_ITMP1);
 			s3 = (-iptr->val.l) >> 32;
 			if (s3 == -1)
 				M_ADDME(s1, GET_HIGH_REG(d));
@@ -1078,12 +1078,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_low(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_AND(s1, s2, GET_LOW_REG(d));
-			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_AND(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1092,7 +1092,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			s3 = iptr->val.l & 0xffffffff;
-			var_to_reg_int_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_AND_IMM(s1, s3, GET_LOW_REG(d));
@@ -1100,7 +1100,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				ICONST(REG_ITMP3, s3);
 				M_AND(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
-			var_to_reg_int_high(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_AND_IMM(s1, s3, GET_HIGH_REG(d));
@@ -1161,12 +1161,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LOR:       /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_low(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_OR(s1, s2, GET_LOW_REG(d));
-			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_OR(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1175,7 +1175,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			s3 = iptr->val.l & 0xffffffff;
-			var_to_reg_int_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_OR_IMM(s1, s3, GET_LOW_REG(d));
@@ -1183,7 +1183,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				ICONST(REG_ITMP3, s3);
 				M_OR(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
-			var_to_reg_int_high(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_OR_IMM(s1, s3, GET_HIGH_REG(d));
@@ -1219,12 +1219,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			var_to_reg_int_low(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_low(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_XOR(s1, s2, GET_LOW_REG(d));
-			var_to_reg_int_high(s1, src->prev, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP3);   /* don't use REG_ITMP2 */
 			M_XOR(s1, s2, GET_HIGH_REG(d));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1233,7 +1233,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			s3 = iptr->val.l & 0xffffffff;
-			var_to_reg_int_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_XOR_IMM(s1, s3, GET_LOW_REG(d));
@@ -1241,7 +1241,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				ICONST(REG_ITMP3, s3);
 				M_XOR(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
-			var_to_reg_int_high(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s1, src, REG_ITMP1);
 			s3 = iptr->val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535)) {
 				M_XOR_IMM(s1, s3, GET_HIGH_REG(d));
@@ -1256,8 +1256,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/*******************************************************************
                 TODO: CHANGE THIS TO A VERSION THAT WORKS !!!
 			*******************************************************************/
-			var_to_reg_int_high(s1, src->prev, REG_ITMP3);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP3);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			{
 				int tempreg = false;
@@ -1283,8 +1283,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_BGT(0);
 				br1 = mcodeptr;
 				M_BLT(0);
-				var_to_reg_int_low(s1, src->prev, REG_ITMP3);
-				var_to_reg_int_low(s2, src, REG_ITMP2);
+				var_to_reg_lng_low(s1, src->prev, REG_ITMP3);
+				var_to_reg_lng_low(s2, src, REG_ITMP2);
 				M_CMPU(s1, s2);
 				M_BGT(3);
 				M_BEQ(1);
@@ -1673,12 +1673,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_int_high(s3, src, REG_ITMP3);
+			var_to_reg_lng_high(s3, src, REG_ITMP3);
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, OFFSET(java_longarray, data[0]), REG_ITMP2);
 			M_STWX(s3, s1, REG_ITMP2);
 			M_IADD_IMM(REG_ITMP2, 4, REG_ITMP2);
-			var_to_reg_int_low(s3, src, REG_ITMP3);
+			var_to_reg_lng_low(s3, src, REG_ITMP3);
 			M_STWX(s3, s1, REG_ITMP2);
 			break;
 
@@ -2075,21 +2075,20 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
 			if (iptr->val.l == 0) {
-				M_OR(s1, s2, REG_ITMP3);
-				M_CMPI(REG_ITMP3, 0);
-  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
-				M_BNE(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+				M_OR_TST(s1, s2, REG_ITMP3);
+  			} else if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+				M_XOR_IMM(s2, 0, REG_ITMP2);
+				M_XOR_IMM(s1, iptr->val.l & 0xffff, REG_ITMP1);
+				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
-  				M_CMP(s2, REG_ITMP3);
-				M_BNE(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_XOR(s1, REG_ITMP3, REG_ITMP1);
+				ICONST(REG_ITMP3, iptr->val.l >> 32);
+				M_XOR(s2, REG_ITMP3, REG_ITMP2);
+				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
 			}
 			M_BEQ(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
@@ -2097,27 +2096,25 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
-/*  			if (iptr->val.l == 0) { */
-/*  				M_OR(s1, s2, REG_ITMP3); */
-/*  				M_CMPI(REG_ITMP3, 0); */
-
-/*    			} else  */
-			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			if (iptr->val.l == 0) {
+				/* if high word is less than zero, the whole long is too */
+				M_CMPI(s2, 0);
+			} else if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+  				M_CMPI(s2, 0);
 				M_BLT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+  				M_CMPUI(s1, iptr->val.l & 0xffff);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				ICONST(REG_ITMP3, iptr->val.l >> 32);
   				M_CMP(s2, REG_ITMP3);
 				M_BLT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+  				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_CMPU(s1, REG_ITMP3);
 			}
 			M_BLT(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
@@ -2126,27 +2123,27 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
 /*  			if (iptr->val.l == 0) { */
 /*  				M_OR(s1, s2, REG_ITMP3); */
 /*  				M_CMPI(REG_ITMP3, 0); */
 
 /*    			} else  */
-			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+			if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+  				M_CMPI(s2, 0);
 				M_BLT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+  				M_CMPUI(s1, iptr->val.l & 0xffff);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				ICONST(REG_ITMP3, iptr->val.l >> 32);
   				M_CMP(s2, REG_ITMP3);
 				M_BLT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BGT(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+  				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_CMPU(s1, REG_ITMP3);
 			}
 			M_BLE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
@@ -2155,21 +2152,20 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
 			if (iptr->val.l == 0) {
-				M_OR(s1, s2, REG_ITMP3);
-				M_CMPI(REG_ITMP3, 0);
-  			} else if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
-				M_BEQ(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+				M_OR_TST(s1, s2, REG_ITMP3);
+			} else if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+				M_XOR_IMM(s2, 0, REG_ITMP2);
+				M_XOR_IMM(s1, iptr->val.l & 0xffff, REG_ITMP1);
+				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
-  				M_CMP(s2, REG_ITMP3);
-				M_BEQ(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_XOR(s1, REG_ITMP3, REG_ITMP1);
+				ICONST(REG_ITMP3, iptr->val.l >> 32);
+				M_XOR(s2, REG_ITMP3, REG_ITMP2);
+				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
 			}
 			M_BNE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
@@ -2178,27 +2174,27 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
 /*  			if (iptr->val.l == 0) { */
 /*  				M_OR(s1, s2, REG_ITMP3); */
 /*  				M_CMPI(REG_ITMP3, 0); */
 
 /*    			} else  */
-			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+			if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+  				M_CMPI(s2, 0);
 				M_BGT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+  				M_CMPUI(s1, iptr->val.l & 0xffff);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				ICONST(REG_ITMP3, iptr->val.l >> 32);
   				M_CMP(s2, REG_ITMP3);
 				M_BGT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+  				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_CMPU(s1, REG_ITMP3);
 			}
 			M_BGT(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
@@ -2206,39 +2202,32 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
-			var_to_reg_int_low(s1, src, REG_ITMP1);
-			var_to_reg_int_high(s2, src, REG_ITMP2);
-/*  			if (iptr->val.l == 0) { */
-/*  				M_OR(s1, s2, REG_ITMP3); */
-/*  				M_CMPI(REG_ITMP3, 0); */
-
-/*    			} else  */
-			if ((iptr->val.l >= -32768) && (iptr->val.l <= 32767)) {
-  				M_CMPI(s2, (u4) (iptr->val.l >> 32));
+			var_to_reg_lng_low(s1, src, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			if (iptr->val.l == 0) {
+				/* if high word is greater equal zero, the whole long is too */
+				M_CMPI(s2, 0);
+			} else if ((iptr->val.l >= 0) && (iptr->val.l <= 0xffff)) {
+  				M_CMPI(s2, 0);
 				M_BGT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(2);
-  				M_CMPI(s1, (u4) (iptr->val.l & 0xffffffff));
+  				M_CMPUI(s1, iptr->val.l & 0xffff);
   			} else {
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l >> 32));
+  				ICONST(REG_ITMP3, iptr->val.l >> 32);
   				M_CMP(s2, REG_ITMP3);
 				M_BGT(0);
 				codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 				M_BLT(3);
-  				ICONST(REG_ITMP3, (u4) (iptr->val.l & 0xffffffff));
-				M_CMP(s1, REG_ITMP3)
+  				ICONST(REG_ITMP3, iptr->val.l & 0xffffffff);
+				M_CMPU(s1, REG_ITMP3);
 			}
 			M_BGE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
-			/* CUT: alle _L */
 		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPEQ:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
-		case ICMD_IF_ACMPEQ:
+		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2247,12 +2236,23 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
+		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			/* load low-bits before the branch, so we know the distance */
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_BNE(2);
+			M_CMP(s1, s2);
+			M_BEQ(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPNE:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
-		case ICMD_IF_ACMPNE:
+		case ICMD_IF_ACMPNE:    /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2261,11 +2261,23 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
+		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BNE(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BNE(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPLT:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
+		                        /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2274,11 +2286,25 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
+		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BLT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			/* load low-bits before the branch, so we know the distance */
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_BGT(2);
+			M_CMPU(s1, s2);
+			M_BLT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
 		case ICMD_IF_ICMPGT:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPGT:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
+		                        /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2287,11 +2313,25 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
+		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BGT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			/* load low-bits before the branch, so we know the distance */	
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_BLT(2);
+			M_CMPU(s1, s2);
+			M_BGT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
 		case ICMD_IF_ICMPLE:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPLE:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
+		                        /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2300,15 +2340,46 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
 
+		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BLT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			/* load low-bits before the branch, so we know the distance */
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_BGT(2);
+			M_CMPU(s1, s2);
+			M_BLE(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
 		case ICMD_IF_ICMPGE:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_LCMPGE:    /* op1 = target JavaVM pc                     */
-			/******************************************************************
-            TODO: CMP UPPER 32 BIT OF LONGS, TOO!
-			*******************************************************************/
+		                        /* op1 = target JavaVM pc                     */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
 			M_CMP(s1, s2);
+			M_BGE(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			break;
+
+		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
+		                        /* op1 = target JavaVM pc                     */
+
+			var_to_reg_lng_high(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_high(s2, src, REG_ITMP2);
+			M_CMP(s1, s2);
+			M_BGT(0);
+			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
+			/* load low-bits before the branch, so we know the distance */
+			var_to_reg_lng_low(s1, src->prev, REG_ITMP1);
+			var_to_reg_lng_low(s2, src, REG_ITMP2);
+			M_BLT(2);
+			M_CMPU(s1, s2);
 			M_BGE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, mcodeptr);
 			break;
