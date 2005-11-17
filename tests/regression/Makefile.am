@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3669 2005-11-15 00:18:01Z twisti $
+## $Id: Makefile.am 3697 2005-11-17 18:33:50Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -56,14 +56,14 @@ OUTPUT_JAVA_TESTS = \
 checkall: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
 $(SIMPLE_JAVA_TESTS):
-	@$(JAVAC) $@.java
+	@$(JAVAC) -d . $(srcdir)/$@.java
 	@echo -n "$@: "
 	@$(JAVA) $@
 
 
 $(OUTPUT_JAVA_TESTS):
-	@$(JAVAC) $@.java
-	@$(SHELL) Test.sh $(JAVA) $@
+	@$(JAVAC) -d . $(srcdir)/$@.java
+	@$(SHELL) $(srcdir)/Test.sh $(JAVA) $@
 
 
 ## Local variables:
