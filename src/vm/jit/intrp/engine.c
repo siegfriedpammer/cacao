@@ -1,6 +1,6 @@
 #include <assert.h>
 
-/* #define VM_DEBUG*/
+/*  #define VM_DEBUG */
 #define USE_spTOS
 
 #include "arch.h"
@@ -13,6 +13,7 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/jit/codegen.inc.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
 
@@ -193,42 +194,72 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 	Cell *p;
 	Cell *endsp;
 	s4 i;
-	stackframeinfo sfi;
 
-	md=m->parseddesc;
+	struct {
+		stackframeinfo sfi;
+		localref_table lrt;
+	} s;
+
+	md = m->parseddesc;
+
 	switch (md->returntype.type) {
 	case TYPE_INT:
-		endsp=sp-1+md->paramslots; av_start_int(alist, f, endsp); break;
+		endsp = sp - 1 + md->paramslots;
+		av_start_int(alist, f, endsp);
+		break;
 	case TYPE_LNG:
-		endsp=sp-2+md->paramslots; av_start_longlong(alist, f, endsp); break;
+		endsp = sp - 2 + md->paramslots;
+		av_start_longlong(alist, f, endsp);
+		break;
 	case TYPE_FLT:
-		endsp=sp-1+md->paramslots; av_start_float(alist, f, endsp); break;
+		endsp = sp - 1 + md->paramslots;
+		av_start_float(alist, f, endsp);
+		break;
 	case TYPE_DBL:
-		endsp=sp-2+md->paramslots; av_start_double(alist, f, endsp); break;
+		endsp = sp - 2 + md->paramslots;
+		av_start_double(alist, f, endsp);
+		break;
 	case TYPE_ADR:
-		endsp=sp-1+md->paramslots; av_start_ptr(alist, f, void *, endsp); break;
+		endsp = sp - 1 + md->paramslots;
+		av_start_ptr(alist, f, void *, endsp);
+		break;
 	case TYPE_VOID:
-		endsp=sp+md->paramslots; av_start_void(alist, f); break;
-	default: assert(false);
+		endsp = sp + md->paramslots;
+		av_start_void(alist, f);
+		break;
+	default:
+		assert(false);
 	}
 
 	av_ptr(alist, JNIEnv *, &env);
+
 	if (m->flags & ACC_STATIC)
 		av_ptr(alist, classinfo *, m->class);
 
-	for (i=0, p=sp+md->paramslots; i<md->paramcount; i++) {
+	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
-			p-=1; av_int(alist, *p); break;
+			p -= 1;
+			av_int(alist, *p);
+			break;
 		case TYPE_LNG:
-			p-=2; av_longlong(alist, *(s8 *)p); break;
+			p -= 2;
+			av_longlong(alist, *(s8 *)p);
+			break;
 		case TYPE_FLT:
-			p-=1; av_float(alist, *(float *)p); break;
+			p -= 1;
+			av_float(alist, *(float *) p);
+			break;
 		case TYPE_DBL:
-			p-=2; av_double(alist, *(double *)p); break;
+			p -= 2;
+			av_double(alist, *(double *) p);
+			break;
 		case TYPE_ADR:
-			p-=1; av_ptr(alist, void *, *(void **)p); break;
-		default: assert(false);
+			p -= 1;
+			av_ptr(alist, void *, *(void **) p);
+			break;
+		default:
+			assert(false);
 		}
 	}
 
@@ -236,30 +267,37 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 
 	/* create stackframe info structure */
 
-	stacktrace_create_native_stackframeinfo(&sfi, (u1 *) m->entrypoint,
-											(u1 *)fp,
-											(functionptr) ra);
+	codegen_start_native_call(&s, (u1 *) m->entrypoint,
+							  (u1 *) fp,
+							  (functionptr) ra);
 
 	av_call(alist);
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	codegen_finish_native_call(&s);
 
 	CLEAR_global_sp;
 
 	return endsp;
 #else
 	methoddesc  *md = m->parseddesc; 
-	ffi_cif      *pcif=(ffi_cif *)addrcif;
+	ffi_cif     *pcif;
 	void        *values[md->paramcount + 2];
 	void       **pvalues = values;
 	Cell        *p;
 	Cell        *endsp;
 	s4           i;
-	stackframeinfo sfi;
-	JNIEnv     *penv = &env;
+	JNIEnv      *penv;
+
+	struct {
+		stackframeinfo sfi;
+		localref_table lrt;
+	} s;
+
+	pcif = (ffi_cif *) addrcif;
 
 	/* pass env pointer */
 
+	penv = (JNIEnv *) &env;
 	*pvalues++ = &penv;
 
 	/* for static methods, pass class pointer */
@@ -271,7 +309,7 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 	/* pass parameter to native function */
 
 	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
-		if (IS_2_WORD_TYPE(md->paramtypes[i].type)) 
+		if (IS_2_WORD_TYPE(md->paramtypes[i].type))
 			p -= 2;
 		else
 			p--;
@@ -290,12 +328,13 @@ static Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *
 
 	/* create stackframe info structure */
 
-	stacktrace_create_native_stackframeinfo(&sfi, (u1 *) m->entrypoint,
-											(u1 *) fp, (functionptr) ra);
+	codegen_start_native_call((u1 *) (((ptrint ) &s) + sizeof(s)),
+							  (u1 *) (ptrint) m->entrypoint,
+							  (u1 *) fp, (u1 *) ra);
 
 	ffi_call(pcif, FFI_FN(f), endsp, values);
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	codegen_finish_native_call((u1 *) (((ptrint) &s) + sizeof(s)));
 
 	CLEAR_global_sp;
 
