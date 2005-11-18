@@ -124,6 +124,22 @@ LCONST ( #l -- l ) opt
 
 ACONST ( #aRef -- aRef ) opt
 
+ACONST1 ( #aRef #acrUnused -- aRef ) opt
+
+PATCHER_ACONST ( #aRef #acr -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_aconst((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(ACONST1);
+SET_IP(IP - 3);
+
 ILOAD ( #vLocal -- vResult ) 0x15
 {
   vResult = access_local_int(vLocal);
@@ -223,7 +239,7 @@ AASTORE ( aArray iIndex aRef -- ) 0x53
   CHECK_NULL_PTR(aArray);
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   if (!builtin_canstore((java_objectarray *)aArray, aRef))
-	THROW(arraystoreexception);
+      THROW(arraystoreexception);
   access_array_addr(aArray, iIndex) = aRef;
 }
 
@@ -961,58 +977,133 @@ INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum -- acelloldfp ainstold
 
 NEW ( aClass -- aRef ) 0xbb
 {
-  /* fprintf(stderr,"new: class %lx, class-state=%d\n",(long)aClass,((Hjava_lang_Class*)aClass)->state); */
-  global_sp=sp;
-  aRef = builtin_new((classinfo *)aClass);
+  global_sp = sp;
+  aRef = builtin_new((classinfo *) aClass);
+  if (aRef == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
   CLEAR_global_sp;
 }
 
 \ !! use a macro
 
 NEWARRAY_BOOLEAN ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_boolean(iSize);
-CLEAR_global_sp;
-
-NEWARRAY_CHAR ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_char(iSize);
-CLEAR_global_sp;
-
-NEWARRAY_FLOAT ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_float(iSize);
-CLEAR_global_sp;
-
-NEWARRAY_DOUBLE ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_double(iSize);
-CLEAR_global_sp;
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_boolean(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
 
 NEWARRAY_BYTE ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_byte(iSize);
-CLEAR_global_sp;
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_byte(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
+
+NEWARRAY_CHAR ( iSize -- aArray )
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_char(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
 
 NEWARRAY_SHORT ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_short(iSize);
-CLEAR_global_sp;
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_short(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
 
 NEWARRAY_INT ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_int(iSize);
-CLEAR_global_sp;
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_int(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
 
 NEWARRAY_LONG ( iSize -- aArray )
-global_sp=sp;
-aArray = (java_arrayheader *)builtin_newarray_long(iSize);
-CLEAR_global_sp;
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_long(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
+
+NEWARRAY_FLOAT ( iSize -- aArray )
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_float(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
+
+NEWARRAY_DOUBLE ( iSize -- aArray )
+{
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray_double(iSize);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
+  CLEAR_global_sp;
+}
 
 NEWARRAY ( iSize avftbl -- aArray ) 0xbd
 {
-  global_sp=sp;
-  aArray = (java_arrayheader *)builtin_newarray(iSize, (vftbl_t *)avftbl);
+  global_sp = sp;
+  aArray = (java_arrayheader *) builtin_newarray(iSize, (vftbl_t *) avftbl);
+  if (aArray == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
   CLEAR_global_sp;
 }
 
@@ -1051,15 +1142,29 @@ athrow:
 
 CHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
 {
-  if (!builtin_checkcast((java_objectheader *)aRef, (classinfo *)aClass))
+  if (!builtin_checkcast((java_objectheader *) aRef, (classinfo *) aClass))
     THROW(classcastexception);
 }
 
-ARRAYCHECKCAST ( #avftbl #acr aRef -- aRef ) 0xc0
+ARRAYCHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
 {
-  if (!builtin_arraycheckcast(aRef, avftbl))
+  if (!builtin_arraycheckcast(aRef, aClass))
     THROW(classcastexception);
 }
+
+PATCHER_ARRAYCHECKCAST ( #avftbl #acr -- ) 0xc0
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = patcher_builtin_arraycheckcast((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(ARRAYCHECKCAST);
+SET_IP(IP - 3);
 
 INSTANCEOF ( #aClass #acr aRef  -- iResult ) 0xc1
 {
@@ -1096,11 +1201,17 @@ MULTIANEWARRAY ( #avftbl #iSize #acr -- aRef ) 197
 {
   long dims[iSize];
   int i;
-  for (i=0; i<iSize; i++) {
-    dims[i]=(sp+1)[iSize-i-1]; /* sp+1 to counter decrement by vmgen */
+  for (i = 0; i < iSize; i++) {
+    dims[i] = (sp + 1)[iSize - i - 1]; /* sp+1 to counter decrement by vmgen */
   }
-  global_sp=sp+1;
+  global_sp = sp + 1;
   aRef = (java_objectheader *)builtin_multianewarray(iSize, avftbl, dims);
+  if (aRef == NULL) {
+    global_sp = sp;
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    CLEAR_global_sp;
+    THROW0;
+  }
   CLEAR_global_sp;
   sp += iSize;
 }
@@ -1289,87 +1400,19 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_CELL);
 SET_IP(IP-3);
 
-NEW1 ( #aClass acrUnused -- aRef ) 0xbb
-{
-  /* fprintf(stderr,"new: class %lx, class-state=%d\n",(long)aClass,((Hjava_lang_Class*)aClass)->state); */
-  global_sp=sp;
-  aRef = builtin_new((classinfo *)aClass);
-  CLEAR_global_sp;
-}
-
-PATCHER_NEW ( #aClass -- )
-/* the unresolved class is in the cell right before this VM instruction;
-   our code generator guarantees thus */
+PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_new((u1 *)(IP-2));
-stacktrace_remove_stackframeinfo(&sfi);
-CLEAR_global_sp;
-if (!result)
-  THROW0;
-STORE_ORDER_BARRIER();
-IP[-2] = INST_ADDR(NEW1);
-SET_IP(IP-2);
-
-NEWARRAY1 ( iSize #avftbl avftblUnused -- aRef ) 0xbd
-{
-  global_sp=sp;
-  aRef = (java_objectheader *)builtin_newarray(iSize, (vftbl_t *)avftbl);
-  CLEAR_global_sp;
-}
-
-PATCHER_NEWARRAY ( #avftbl -- )
-/* the unresolved class is in the cell right before this VM instruction;
-   our code generator guarantees thus */
-stackframeinfo sfi;
-bool result;
-global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_newarray((u1 *)(IP-2));
-stacktrace_remove_stackframeinfo(&sfi);
-CLEAR_global_sp;
-if (!result)
-  THROW0;
-STORE_ORDER_BARRIER();
-IP[-2] = INST_ADDR(NEWARRAY1);
-SET_IP(IP-2);
-
-PATCHER_MULTIANEWARRAY ( #avftbl #iSize #acr -- )
-stackframeinfo sfi;
-bool result;
-global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_multianewarray((u1 *)(IP-4));
+result = patcher_builtin_multianewarray((u1 *)(IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(MULTIANEWARRAY);
-SET_IP(IP-4);
-
-ARRAYINSTANCEOF1 ( aRef #avftbl avftblUnused -- iResult ) 0xc1
-{
-  iResult = builtin_arrayinstanceof(aRef, avftbl);
-}
-
-PATCHER_ARRAYINSTANCEOF ( #avftbl -- )
-/* the unresolved class is in the cell right before this VM instruction;
-   our code generator guarantees thus */
-stackframeinfo sfi;
-bool result;
-global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_newarray((u1 *)(IP-2));
-stacktrace_remove_stackframeinfo(&sfi);
-CLEAR_global_sp;
-if (!result)
-  THROW0;
-STORE_ORDER_BARRIER();
-IP[-2] = INST_ADDR(ARRAYINSTANCEOF1);
-SET_IP(IP-2);
+SET_IP(IP - 4);
 
 PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
@@ -1441,20 +1484,6 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(CHECKCAST);
 SET_IP(IP-3);
 
-PATCHER_ARRAYCHECKCAST ( #avftbl #acr -- ) 0xc0
-stackframeinfo sfi;
-bool result;
-global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_arraycheckcast((u1 *)(IP-3));
-stacktrace_remove_stackframeinfo(&sfi);
-CLEAR_global_sp;
-if (!result)
-  THROW0;
-STORE_ORDER_BARRIER();
-IP[-3] = INST_ADDR(ARRAYCHECKCAST);
-SET_IP(IP-3);
-
 PATCHER_INSTANCEOF ( #aClass #acr -- ) 0xc1
 stackframeinfo sfi;
 bool result;
@@ -1468,17 +1497,6 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(INSTANCEOF);
 SET_IP(IP-3);
-
-\ CHECKEXCEPTION could be integrated into NEW etc., but that's not as
-\ nice to maintain.
-
-CHECKEXCEPTION ( aRef -- aRef )
-if (aRef==NULL) {
-  global_sp = sp;
-  *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
-  CLEAR_global_sp;
-  THROW0;
-}
 
 \ This is stub code for methods that we have not yet translated.
 \ Initially, the code for each method is set to this stub. The
@@ -1536,14 +1554,14 @@ stackframeinfo sfi;
 bool result;
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_resolve_native((u1 *)(IP-4));
+result = patcher_resolve_native((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
 IP[-4] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
-SET_IP(IP-4);
+SET_IP(IP - 4);
 #else
 assert(false);
 #endif

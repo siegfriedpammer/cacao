@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3247 2005-09-21 14:59:57Z twisti $
+   $Id: codegen.c 3714 2005-11-18 00:57:20Z twisti $
 
 */
 
@@ -246,17 +246,6 @@ struct builtin_gen builtin_gen_table[] = {
     {BUILTIN_drem,					  gen_DREM,            },
 };
 
-/*
-  The following ones cannot use the BUILTIN mechanism, because they
-  need the class as immediate arguments of the patcher
-
-	PATCHER_builtin_new,		     gen_PATCHER_NEW,	 
-	PATCHER_builtin_newarray,	     gen_PATCHER_NEWARRAY,	 
-	PATCHER_builtin_arrayinstanceof, gen_PATCHER_ARRAYINSTANCEOF,
-*/
-
-
-
 
 /* codegen *********************************************************************
 
@@ -264,7 +253,7 @@ struct builtin_gen builtin_gen_table[] = {
 
 *******************************************************************************/
 
-void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4                  i, len, s1, s2, d;
 	stackptr            src;
@@ -403,7 +392,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
-			gen_ACONST(((Inst **)cd), iptr->val.a);
+			if ((iptr->target != NULL) && (iptr->val.a == NULL))
+				gen_PATCHER_ACONST(((Inst **) cd), NULL, iptr->target);
+			else
+				gen_ACONST(((Inst **) cd), iptr->val.a);
 			break;
 
 
@@ -1643,22 +1635,15 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_BUILTIN:      /* ..., arg1, arg2, arg3 ==> ...              */
 		                        /* op1 = arg count val.a = builtintable entry */
 			bte = iptr->val.a;
-			if (bte->fp == PATCHER_builtin_new) {
-				gen_PATCHER_NEW(((Inst **)cd), 0);
-			} else if (bte->fp == PATCHER_builtin_newarray) {
-				gen_PATCHER_NEWARRAY(((Inst **)cd), 0);
-			} else if (bte->fp == PATCHER_builtin_arrayinstanceof) {
-				gen_PATCHER_ARRAYINSTANCEOF(((Inst **)cd), 0);
-			} else {
-				for (i = 0; i < sizeof(builtin_gen_table)/sizeof(builtin_gen); i++) {
-					builtin_gen *bg = &builtin_gen_table[i];
-					if (bg->builtin == bte->fp) {
-						(bg->gen)(((Inst **)cd));
-						goto gen_builtin_end;
-					}
+
+			for (i = 0; i < sizeof(builtin_gen_table)/sizeof(builtin_gen); i++) {
+				builtin_gen *bg = &builtin_gen_table[i];
+				if (bg->builtin == bte->fp) {
+					(bg->gen)(((Inst **)cd));
+					goto gen_builtin_end;
 				}
-				assert(0);
 			}
+			assert(0);
 		gen_builtin_end:
 			break;
 
@@ -1738,22 +1723,16 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo *) superclass              */
 
-			if (iptr->val.a == NULL) {
-				gen_PATCHER_CHECKCAST(((Inst **)cd), 0, iptr->target);
-
+			if (iptr->op1 == 1) {
+				if (iptr->val.a == NULL)
+					gen_PATCHER_CHECKCAST(((Inst **) cd), NULL, iptr->target);
+				else
+					gen_CHECKCAST(((Inst **) cd), iptr->val.a, NULL);
 			} else {
-				gen_CHECKCAST(((Inst **)cd), iptr->val.a, iptr->target);
-			}
-			
-			break;
-
-		case ICMD_ARRAYCHECKCAST: /* ..., objectref ==> ..., objectref        */
-		                          /* op1: 1... resolved, 0... not resolved    */
-
-			if (iptr->op1 == 0) {
-				gen_PATCHER_ARRAYCHECKCAST(((Inst **)cd), 0, iptr->target);
-			} else {
-				gen_ARRAYCHECKCAST(((Inst **)cd), iptr->target, 0);
+				if (iptr->val.a == NULL)
+					gen_PATCHER_ARRAYCHECKCAST(((Inst **) cd), NULL, iptr->target);
+				else
+					gen_ARRAYCHECKCAST(((Inst **) cd), iptr->val.a, NULL);
 			}
 			break;
 
@@ -1761,23 +1740,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1:   0 == array, 1 == class                */
 		                      /* val.a: (classinfo *) superclass              */
 
-			if (iptr->val.a == NULL) {
-				gen_PATCHER_INSTANCEOF(((Inst **)cd), 0, iptr->target);
-			} else {
-				gen_INSTANCEOF(((Inst **)cd), iptr->val.a, iptr->target);
-			}
-			
-			break;
-
-
-		case ICMD_CHECKASIZE:  /* ..., size ==> ..., size                     */
-
-			/* XXX remove me! */
-			break;
-
-		case ICMD_CHECKEXCEPTION:    /* ..., objectref ==> ..., objectref     */
-
-			gen_CHECKEXCEPTION(((Inst **)cd));
+			if (iptr->val.a == NULL)
+				gen_PATCHER_INSTANCEOF(((Inst **) cd), 0, iptr->target);
+			else
+				gen_INSTANCEOF(((Inst **) cd), iptr->val.a, iptr->target);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
@@ -1791,8 +1757,8 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		default:
-			throw_cacao_exception_exit(string_java_lang_InternalError,
-									   "Unknown ICMD %d", iptr->opc);
+			*exceptionptr = new_internalerror("Unknown ICMD %d", iptr->opc);
+			return false;
 	} /* switch */
 		
 	} /* for instruction */
@@ -1818,6 +1784,10 @@ void codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			                     ((u1 *)m->entrypoint) + bptr->mpc);
 		}
 	}
+
+	/* everything's ok */
+
+	return true;
 }
 
 
