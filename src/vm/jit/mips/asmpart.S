@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3510 2005-10-27 10:49:57Z twisti $
+   $Id: asmpart.S 3707 2005-11-18 00:11:55Z twisti $
 
 */
 
@@ -112,18 +112,16 @@
 
 asm_calljavafunction:
 asm_calljavafunction_int:
+	.set    noreorder                 /* XXX we need to recompute pv          */
+
 	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
 	ast     ra,0(sp)                  /* save return address                  */
-
-	.set    noreorder
 
 	bal     call_java_pc
 	ast     pv,3*8(sp)                /* procedure vector (delay slot)        */
 call_java_pc:
 	aaddiu  pv,ra,-4*4
 
-	.set    reorder
-	
 	sdc1    fss0,4*8(sp)              /* save non JavaABI saved flt registers */
 	sdc1    fss1,5*8(sp)
 	sdc1    fss2,6*8(sp)
@@ -142,14 +140,14 @@ call_java_pc:
 	ast     mptr,1*8(sp)              /* store function address               */
 	move    mptr,sp                   /* set method pointer                   */
 
-	.set    noreorder
-
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
-	aaddiu  pv,ra,-22*4               /* recompute procedure vector           */
+L_asm_calljavafunction_recompute:
+/*	aaddiu  pv,ra,(asm_calljavafunction - L_asm_calljavafunction_recompute)*/
+	aaddiu  pv,ra,-22*4
 
-	.set    reorder
+	.set    reorder                   /* XXX we need to recompute pv          */
 
 calljava_return:
 	ald     ra,0(sp)                  /* restore return address               */
@@ -199,18 +197,17 @@ asm_calljavafunction2int:
 asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
+	.set    noreorder                 /* XXX we need to recompute pv          */
+
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
 	ast     ra,0(sp)                  /* save return address                  */
 
-	.set    noreorder
 	bal     call_java_pc2
 	ast     pv,1*8(sp)                /* procedure vector                     */
 call_java_pc2:
 	aaddiu  pv,ra,-4*4
 	ast     s7,3*8(sp)
 
-	.set    reorder
-	
 	sdc1    fss0,5*8(sp)              /* save non JavaABI saved flt registers */
 	sdc1    fss1,6*8(sp)
 	sdc1    fss2,7*8(sp)
@@ -223,41 +220,49 @@ call_java_pc2:
 	move    t0,a3
 	move    s7,a1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a0,offjniitem(t0)
 	ldc1    fa0,offjniitem(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a1,offjniitem+sizejniblock*1(t0)
 	ldc1    fa1,offjniitem+sizejniblock*1(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a2,offjniitem+sizejniblock*2(t0)
 	ldc1    fa2,offjniitem+sizejniblock*2(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a3,offjniitem+sizejniblock*3(t0)
 	ldc1    fa3,offjniitem+sizejniblock*3(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a4,offjniitem+sizejniblock*4(t0)
 	ldc1    fa4,offjniitem+sizejniblock*4(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a5,offjniitem+sizejniblock*5(t0)
 	ldc1    fa5,offjniitem+sizejniblock*5(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a6,offjniitem+sizejniblock*6(t0)
 	ldc1    fa6,offjniitem+sizejniblock*6(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
+	nop
 
 	ald     a7,offjniitem+sizejniblock*7(t0)
 	ldc1    fa7,offjniitem+sizejniblock*7(t0)
@@ -266,6 +271,7 @@ call_java_pc2:
 calljava_argsloaded:
 	move    t8,sp                      /* save stack pointer                  */
 	blez    s7,calljava_nocopy
+	nop
 	subu    t1,zero,s7
 	sll     t2,t1,3
 	aaddu   sp,sp,t2
@@ -278,6 +284,7 @@ calljava_copyloop:
 	ala     t0,sizejniblock(t0)
 	ala     t2,8(t2)
 	bnez    t1,calljava_copyloop
+	nop
 
 calljava_nocopy:
 	ald     itmp1,4*8(t8)             /* pass method pointer via itmp1        */
@@ -286,14 +293,14 @@ calljava_nocopy:
 	ast     mptr,2*8(t8)              /* store function address               */
 	ala     mptr,1*8(t8)              /* set method pointer                   */
 
-	.set    noreorder
-
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
+L_asm_calljavafunction2_recompute:
+/*	aaddiu  pv,ra,(asm_calljavafunction2 - L_asm_calljavafunction2_recompute)*/
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
 
-	.set    reorder
+	.set    reorder                   /* XXX we need to recompute pv          */
 
 calljava_return2:
 	ald     ra,0(sp)                  /* restore return address               */
