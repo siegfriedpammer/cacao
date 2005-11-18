@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3619 2005-11-07 18:44:32Z twisti $
+   $Id: patcher.c 3708 2005-11-18 00:30:10Z twisti $
 
 */
 
@@ -462,10 +462,6 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (ra + 2)) = (ptrint) c;
-
-	/* patch new function address */
-
-	*((ptrint *) (ra + 10 + 2)) = (ptrint) BUILTIN_arraycheckcast;
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
