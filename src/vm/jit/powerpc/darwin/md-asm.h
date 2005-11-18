@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3233 2005-09-21 11:49:51Z twisti $
+   $Id: md-asm.h 3709 2005-11-18 00:41:29Z twisti $
 
 */
 
@@ -231,6 +231,9 @@
 #define asm_calljavafunction2long             _asm_calljavafunction2long
 #define asm_calljavafunction2float            _asm_calljavafunction2float
 #define asm_calljavafunction2double           _asm_calljavafunction2double
+
+#define jumptable_int                         _jumptable_int
+#define jumptable_long                        _jumptable_long
 
 #define asm_call_jit_compiler                 _asm_call_jit_compiler
 
