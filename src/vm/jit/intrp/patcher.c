@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3464 2005-10-20 10:16:29Z edwin $
+   $Id: patcher.c 3711 2005-11-18 00:53:01Z twisti $
 
 */
 
@@ -65,17 +65,14 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = resolve_field_eager(uf))) {
+	if (!(fi = resolve_field_eager(uf)))
 		return false;
-	}
 
 	/* check if the field's class is initialized */
 
-	if (!fi->class->initialized) {
-		if (!initialize_class(fi->class)) {
+	if (!fi->class->initialized)
+		if (!initialize_class(fi->class))
 			return false;
-		}
-	}
 
 	/* patch the field's address */
 
@@ -102,9 +99,8 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(fi = resolve_field_eager(uf))) {
+	if (!(fi = resolve_field_eager(uf)))
 		return false;
-	}
 
 	/* patch the field's offset */
 
@@ -114,75 +110,31 @@ bool patcher_get_putfield(u1 *sp)
 }
 
 
-/* patcher_builtin_new *********************************************************
+/* patcher_aconst **************************************************************
 
    Machine code:
 
 *******************************************************************************/
 
-bool patcher_builtin_new(u1 *sp)
+bool patcher_aconst(u1 *sp)
 {
 	ptrint            *ip;
 	constant_classref *cr;
 	classinfo         *c;
 
 	ip = (ptrint *) sp;
-	cr = (constant_classref *) ip[-1];
+	cr = (constant_classref *) ip[2];
 	
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager_nonabstract(cr))) {
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
-
-	/* intialize the class */
-
-	if (!initialize_class(c)) {
-		return false;
-	}
 
 	/* patch the classinfo pointer */
 
 	ip[1] = (ptrint) c;
 
 	return true;
-}
-
-
-/* patcher_builtin_newarray ****************************************************
-
-   Machine code:
-
-   INFO: This one is also used for arrayinstanceof!
-
-*******************************************************************************/
-
-bool patcher_builtin_newarray(u1 *sp)
-{
-	ptrint            *ip;
-	constant_classref *cr;
-	classinfo         *c;
-
-	ip = (ptrint *) sp;
-	cr = (constant_classref *) ip[-1];
-
-	/* get the classinfo */
-
-	if (!(c = resolve_classref_eager(cr))) {
-		return false;
-	}
-
-	/* patch the class' vftbl pointer */
-
-	ip[1] = (ptrint) c->vftbl;
-
-	return true;
-}
-
-
-bool patcher_builtin_arrayinstanceof(u1 *sp)
-{
-	return patcher_builtin_newarray(sp);
 }
 
 
@@ -203,13 +155,12 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	ip[1] = (ptrint) c->vftbl;
+	ip[1] = (ptrint) c;
 
 	return true;
 }
@@ -232,13 +183,12 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
-	/* patch the class' vftbl pointer */
+	/* patch the classinfo pointer */
 
-	ip[1] = (ptrint) c->vftbl;
+	ip[1] = (ptrint) c;
 
 	return true;
 }
@@ -261,9 +211,8 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = resolve_method_eager(um))) {
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch stubroutine */
 
@@ -290,9 +239,8 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* get the fieldinfo */
 
-	if (!(m = resolve_method_eager(um))) {
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch vftbl index */
 
@@ -319,9 +267,8 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* get the methodinfo */
 
-	if (!(m = resolve_method_eager(um))) {
+	if (!(m = resolve_method_eager(um)))
 		return false;
-	}
 
 	/* patch interfacetable index */
 
@@ -353,9 +300,8 @@ bool patcher_checkcast_instanceof(u1 *sp)
 
 	/* get the classinfo */
 
-	if (!(c = resolve_classref_eager(cr))) {
+	if (!(c = resolve_classref_eager(cr)))
 		return false;
-	}
 
 	/* patch super class pointer */
 
@@ -383,9 +329,8 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* resolve native function */
 
-	if (!(f = native_resolve_function(m))) {
+	if (!(f = native_resolve_function(m)))
 		return false;
-	}
 
 	/* patch native function pointer */
 
