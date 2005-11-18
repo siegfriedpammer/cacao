@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 3176 2005-09-14 08:51:23Z twisti $
+   $Id: codegen.h 3713 2005-11-18 00:54:55Z twisti $
 
 */
 
@@ -38,6 +38,11 @@
 #define _CODEGEN_H
 
 #include "config.h"
+
+
+/* some defines ***************************************************************/
+
+#define PATCHER_CALL_SIZE    0          /* dummy define (for codegen.inc)     */
 
 
 /* additional functions and macros to generate code ***************************/
