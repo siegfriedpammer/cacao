@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3664 2005-11-11 14:27:09Z twisti $
+   $Id: codegen.c 3716 2005-11-19 01:57:23Z edwin $
 
 */
 
@@ -2747,8 +2747,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVNE_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVNE(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVNE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
