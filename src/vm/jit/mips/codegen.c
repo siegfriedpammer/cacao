@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3717 2005-11-19 01:59:07Z edwin $
+   $Id: codegen.c 3718 2005-11-19 02:02:53Z edwin $
 
 */
 
@@ -2525,8 +2525,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVEQ_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVEQ(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVEQ(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2590,8 +2590,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVLT_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVLT(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVLT(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2622,8 +2622,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVGE_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVGE(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVGE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2654,8 +2654,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVGT_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVGT(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVGT(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2686,8 +2686,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVLE_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVLE(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVLE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
