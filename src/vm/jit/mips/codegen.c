@@ -29,12 +29,13 @@
 
    Changes: Christian Thalinger
             Christian Ullrich
+            Edwin Steiner
 
    Contains the codegenerator for an MIPS (R4000 or higher) processor.
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3718 2005-11-19 02:02:53Z edwin $
+   $Id: codegen.c 3720 2005-11-19 03:10:38Z edwin $
 
 */
 

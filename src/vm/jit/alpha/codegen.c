@@ -30,8 +30,9 @@
    Changes: Joseph Wenninger
             Christian Thalinger
             Christian Ullrich
+            Edwin Steiner
 
-   $Id: codegen.c 3719 2005-11-19 02:04:39Z edwin $
+   $Id: codegen.c 3720 2005-11-19 03:10:38Z edwin $
 
 */
 
