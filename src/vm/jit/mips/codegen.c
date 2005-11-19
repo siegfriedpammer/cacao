@@ -34,7 +34,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3660 2005-11-11 12:00:46Z twisti $
+   $Id: codegen.c 3717 2005-11-19 01:59:07Z edwin $
 
 */
 
@@ -2558,8 +2558,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if ((s3 >= 0) && (s3 <= 255)) {
 				M_CMOVNE_IMM(s1, s3, d);
 			} else {
-				ICONST(REG_ITMP2, s3);
-				M_CMOVNE(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, s3);
+				M_CMOVNE(s1, REG_ITMP3, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
