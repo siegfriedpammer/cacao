@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3699 2005-11-17 18:53:07Z twisti $
+   $Id: stack.c 3721 2005-11-20 13:21:02Z christian $
 
 */
 
@@ -2638,21 +2638,6 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			else
 				icmd_print_stack(cd, iptr->dst);
 			printf("] %5d (line: %5d)  ", i, iptr->line);
-
-#ifdef LSRA_EDX
-			if (icmd_uses_tmp[iptr->opc][0])
-				printf("  ---");
-			else
-				printf("  EAX");
-			if (icmd_uses_tmp[iptr->opc][1])
-				printf(" ---");
-			else
-				printf(" ECX");
-			if (icmd_uses_tmp[iptr->opc][2])
-				printf(" ---  ");
-			else
-				printf(" EDX  ");
-#endif
 
 			show_icmd(iptr, deadcode);
 			printf("\n");
