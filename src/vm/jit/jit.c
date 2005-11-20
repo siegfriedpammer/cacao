@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3656 2005-11-11 11:38:55Z twisti $
+   $Id: jit.c 3722 2005-11-20 13:21:18Z christian $
 
 */
 
@@ -1457,11 +1457,6 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 									  registerdata *rd, loopdata *ld,
 									  t_inlining_globals *id)
 {
-#ifdef LSRA
-	bool old_opt_lsra;
-#endif
-
-
 	/* print log message for compiled method */
 
 	if (compileverbose)
@@ -1588,31 +1583,20 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 		/* allocate registers */
 #ifdef LSRA
-		old_opt_lsra=opt_lsra;
 		if (opt_lsra) {
-			if (!lsra(m, cd, rd, id)) {
-				opt_lsra = false;
-				/* 			log_message_method("Regalloc Fallback: ", m); */
-				regalloc( m, cd, rd );
-			} else {
+			lsra(m, cd, rd, id);
 #ifdef STATISTICS
-				if (opt_stat) count_methods_allocated_by_lsra++;
+			if (opt_stat) count_methods_allocated_by_lsra++;
 #endif
-				/* 			log_message_method("Regalloc LSRA: ", m); */
-			}
-		}
-		else
+		} else
 #endif /* LSRA */
-			{
+		{
 #ifdef STATISTICS
-				if (opt_stat)
-#ifdef LSRA
-					if (!opt_lsra)
+			if (opt_stat)
+				count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
 #endif		
-						count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
-#endif		
-				regalloc(m, cd, rd);
-			}
+			regalloc(m, cd, rd);
+		}
 
 #ifdef STATISTICS
 		if (opt_stat)
@@ -1657,9 +1641,6 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 	if (compileverbose)
 		log_message_method("Compiling done: ", m);
 
-#ifdef LSRA
-	opt_lsra=old_opt_lsra;
-#endif
 	/* return pointer to the methods entry point */
 
 	return m->entrypoint;
