@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 3647 2005-11-09 21:40:39Z christian $
+   $Id: lsra.h 3723 2005-11-20 13:22:51Z christian $
 
 */
 
@@ -34,10 +34,11 @@
 #ifndef _LSRA_H
 #define _LSRA_H
 
-/*  #define LSRA_DEBUG  */
+/* #define LSRA_DEBUG */  /* lsra debug messages */
+/* #define LSRA_DEBUG_DEBUG */ /* internal lsra debug messages */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
-/*  #define LSRA_PRINTLIFETIMES  */
+/* #define LSRA_PRINTLIFETIMES */
 /* #define LSRA_USES_REG_RES */ /* is now in i386/codegen.h */
 /*  #define LSRA_TESTLT */
 /* #define LSRA_LEAF */
@@ -50,7 +51,7 @@
 #define JOIN_DUP_STACK         /* join "identical" stackslots created by dup* */
 
 #define USAGE_COUNT        /* influence LSRA with usagecount */
-#define USAGE_PER_INSTR    /* divide usagecount by lifetimelength */
+/* #define USAGE_PER_INSTR  */   /* divide usagecount by lifetimelength */
 
 #ifdef LSRA_DEBUG
 #undef LSRA_LEAF
@@ -94,6 +95,7 @@ struct _list {
 struct _backedge {
 	int start;
 	int end;
+	int nesting;
 	struct _backedge *next;
 };
 
@@ -112,11 +114,6 @@ struct lifetime {
 	int i_last_use;
 	int bb_first_def;
 	int i_first_def;
-};
-
-struct active_lt {
-	struct lifetime *lt;
-	struct active_lt *next;
 };
 
 struct l_loop {
@@ -187,7 +184,8 @@ struct lsradata {
                                /* not to be allocated in registers */
 	int lt_mem_count;          /* number of this other lifetimes */
 
-	struct active_lt *active_tmp, *active_sav;
+	struct lifetime **active_tmp, **active_sav;
+	int active_tmp_top, active_sav_top;
 
 	struct lsra_exceptiontable *ex;
 	int v_index;               /* next free index for stack slot lifetimes    */
@@ -203,10 +201,10 @@ struct freemem {
 typedef struct lsradata lsradata;
 
 /* function prototypes */
-bool lsra(methodinfo *, codegendata *, registerdata *,t_inlining_globals *);
+void lsra(methodinfo *, codegendata *, registerdata *,t_inlining_globals *);
 bool lsra_test(methodinfo *, codegendata *);
 void lsra_init(methodinfo *, codegendata *, t_inlining_globals *, lsradata *);
-bool lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *);
+void lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *);
 void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *);
 void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *);
 
@@ -235,10 +233,11 @@ void lsra_usage_local(lsradata *, s4 , int , int , int , int );
 
 void _lsra_main( methodinfo *, lsradata *, int *, int, struct lsra_register *, int *);
 void lsra_expire_old_intervalls(methodinfo *, lsradata *, struct lifetime *, struct lsra_register *);
-void _lsra_expire_old_intervalls(methodinfo *, struct lifetime *, struct lsra_register *, struct active_lt **/* , int * */);
 void spill_at_intervall(methodinfo *, lsradata *, struct lifetime *);
-void _spill_at_intervall(struct lifetime *, struct active_lt **);
-void lsra_add_active(struct lifetime *, struct active_lt **);
+void lsra_add_active(struct lifetime *, struct lifetime **, int *);
+void _lsra_expire_old_intervalls(methodinfo *, struct lifetime *, struct lsra_register *, struct lifetime **, int *);
+void _spill_at_intervall(struct lifetime *, struct lifetime **, int *);
+
 void lsra_alloc(methodinfo *, registerdata *, struct lsradata *, int *, int, int *);
 int lsra_getmem(struct lifetime *, struct freemem *, int *);
 struct freemem *lsra_getnewmem(int *);
