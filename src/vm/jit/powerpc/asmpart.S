@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3726 2005-11-21 21:38:44Z twisti $
+   $Id: asmpart.S 3727 2005-11-21 22:01:57Z twisti $
 
 */
 
@@ -513,7 +513,6 @@ noregchange:
 	stfd    fa12,(LA_WORD_SIZE+5+32)*4(r1)
 #else
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
-	SAVE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
 #endif
 
 	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
@@ -1039,8 +1038,8 @@ asm_wrapper_patcher:
 	lfd     ft4,(LA_WORD_SIZE+5+50)*4(r1)
 	lfd     ft5,(LA_WORD_SIZE+5+52)*4(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+4) /* restore 8 int/8 float args  */
-	RESTORE_TEMPORARY_REGISTERS(LA_WORD_SIZE+4+24)
+	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* restore 8 int/8 float args  */
+	RESTORE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
 #endif
 
 	lwz     itmp1,LA_SIZE+(5+54)*4(sp)
