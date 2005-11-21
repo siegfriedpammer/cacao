@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3696 2005-11-17 16:58:31Z twisti $
+   $Id: md-asm.h 3725 2005-11-21 20:59:53Z twisti $
 
 */
 
@@ -43,6 +43,8 @@
 
 #define zero  r0
 #define sp    r1
+
+/* #define XXX   r2  -  system reserved register */
 
 #define a0    r3
 #define a1    r4
