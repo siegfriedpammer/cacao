@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3706 2005-11-17 22:30:41Z twisti $
+   $Id: asmpart.S 3726 2005-11-21 21:38:44Z twisti $
 
 */
 
@@ -105,39 +105,35 @@
 asm_calljavafunction:
 asm_calljavafunction_int:
 	mflr    r0
-	stw     r31,-4(r1)
-/*	stw     r30,-8(r1)*/
-	stw     pv,-12(r1)
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
 
 #if defined(__DARWIN__)
-	bl      0f
-0:
-	mflr    r31
+	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
 #endif
+	stw     pv,11*4(sp)               /* save PV register                     */
 
-	stw     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
-	stfd	ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
-	stfd	ftmp2,14*4(sp)
+	stw     itmp3,12*4(sp)            /* registers r14-r31 are callee saved   */
+	stfd	ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
+	stfd	ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
-	stw     t0,16*4(r1)
-	stw     t1,17*4(r1)
-	stw     t2,18*4(r1)
-	stw     t3,19*4(r1)
-	stw     t4,20*4(r1)
-	stw     t5,21*4(r1)
-	stw     t6,22*4(r1)
+	stw     t1,18*4(r1)
+	stw     t2,19*4(r1)
+	stw     t3,20*4(r1)
+	stw     t4,21*4(r1)
+	stw     t5,22*4(r1)
+	stw     t6,23*4(r1)
+	stw     t7,24*4(r1)
 
-	stfd	ft0,24*4(r1)
-	stfd	ft1,26*4(r1)
-	stfd	ft2,28*4(r1)
-	stfd	ft3,30*4(r1)
-	stfd	ft4,32*4(r1)
-	stfd	ft5,34*4(r1)
+	stfd	ft0,26*4(r1)
+	stfd	ft1,28*4(r1)
+	stfd	ft2,30*4(r1)
+	stfd	ft3,32*4(r1)
+	stfd	ft4,34*4(r1)
+	stfd	ft5,36*4(r1)
 #else
-	SAVE_TEMPORARY_REGISTERS(16)      /* the offset has to be even            */
+	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
 #endif
 
 	stw     a0,36(r1)
@@ -148,10 +144,9 @@ asm_calljavafunction_int:
 	mr      a3,a4
 
 #if defined(__DARWIN__)
-/*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
-	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
+	lis     mptr,ha16(asm_call_jit_compiler)
+	addi    mptr,mptr,lo16(asm_call_jit_compiler)
 #else
-/*	addi    mptr,r31,(asm_call_jit_compiler-0b)@l*/
 	lis     mptr,asm_call_jit_compiler@ha
 	addi    mptr,mptr,asm_call_jit_compiler@l
 #endif
@@ -171,35 +166,37 @@ asm_calljavafunction_int:
 #endif
 
 L_asm_calljavafunction_restore:
-	lwz     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
-	lfd     ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
-	lfd     ftmp2,14*4(sp)
+#if defined(__DARWIN__)
+	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
+#endif
+	lwz     pv,11*4(sp)               /* save PV register                     */
+
+	lwz     itmp3,12*4(sp)
+	lfd     ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
-	lwz     t0,16*4(r1)
-	lwz     t1,17*4(r1)
-	lwz     t2,18*4(r1)
-	lwz     t3,19*4(r1)
-	lwz     t4,20*4(r1)
-	lwz     t5,21*4(r1)
-	lwz     t6,22*4(r1)
+	lwz     t1,18*4(r1)
+	lwz     t2,19*4(r1)
+	lwz     t3,20*4(r1)
+	lwz     t4,21*4(r1)
+	lwz     t5,22*4(r1)
+	lwz     t6,23*4(r1)
+	lwz     t7,24*4(r1)
 
-	lfd     ft0,24*4(r1)
-	lfd     ft1,26*4(r1)
-	lfd     ft2,28*4(r1)
-	lfd     ft3,30*4(r1)
-	lfd     ft4,32*4(r1)
-	lfd     ft5,34*4(r1)
+	lfd     ft0,26*4(r1)
+	lfd     ft1,28*4(r1)
+	lfd     ft2,30*4(r1)
+	lfd     ft3,32*4(r1)
+	lfd     ft4,34*4(r1)
+	lfd     ft5,36*4(r1)
 #else
-	RESTORE_TEMPORARY_REGISTERS(16)   /* the offset has to be even            */
+	RESTORE_TEMPORARY_REGISTERS(18)   /* the offset has to be even            */
 #endif
 
 	lwz     r0,40*4+LA_LR_OFFSET(r1)
 	mtlr    r0
 	addi    r1,r1,40*4
-	lwz     pv,-12(r1)
-/*	lwz     r30,-8(r1)*/
-	lwz     r31,-4(r1)
 	blr
 
 calljava_xhandler:
@@ -233,36 +230,35 @@ asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
 	mflr    r0
-	stw     r31,-4(r1)
-/*	stw     r30,-8(r1)*/
-	stw     pv,-12(r1)
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
-	bl      0f
-0:
-	mflr    r31
-
-	stw     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
-	stfd	ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
-	stfd	ftmp2,14*4(sp)
 
 #if defined(__DARWIN__)
-	stw     t0,16*4(r1)
-	stw     t1,17*4(r1)
-	stw     t2,18*4(r1)
-	stw     t3,19*4(r1)
-	stw     t4,20*4(r1)
-	stw     t5,21*4(r1)
-	stw     t6,22*4(r1)
+	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
+#endif
+	stw     pv,11*4(sp)               /* save PV register                     */
 
-	stfd	ft0,24*4(r1)
-	stfd	ft1,26*4(r1)
-	stfd	ft2,28*4(r1)
-	stfd	ft3,30*4(r1)
-	stfd	ft4,32*4(r1)
-	stfd	ft5,34*4(r1)
+	stw     itmp3,12*4(sp)            /* registers r14-r31 are callee saved   */
+	stfd	ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
+	stfd	ftmp2,16*4(sp)
+
+#if defined(__DARWIN__)
+	stw     t1,18*4(r1)
+	stw     t2,19*4(r1)
+	stw     t3,20*4(r1)
+	stw     t4,21*4(r1)
+	stw     t5,22*4(r1)
+	stw     t6,23*4(r1)
+	stw     t7,24*4(r1)
+
+	stfd	ft0,26*4(r1)
+	stfd	ft1,28*4(r1)
+	stfd	ft2,30*4(r1)
+	stfd	ft3,32*4(r1)
+	stfd	ft4,34*4(r1)
+	stfd	ft5,36*4(r1)
 #else
-	SAVE_TEMPORARY_REGISTERS(16)      /* the offset has to be even            */
+	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
 #endif
 
 	stw     r3,36(r1)                 /* save method pointer for compiler     */
@@ -329,10 +325,11 @@ L_register_copy_done:
 L_stack_copy_done:
 	addi    itmp1,r1,36
 #if defined(__DARWIN__)
-/*	addis   mptr,r31,ha16(_asm_call_jit_compiler-0b)*/
-	addi    mptr,r31,lo16(asm_call_jit_compiler-0b)
+	lis     mptr,ha16(asm_call_jit_compiler)
+	addi    mptr,mptr,lo16(asm_call_jit_compiler)
 #else
-	addi    mptr,r31,(asm_call_jit_compiler-0b)@l
+	lis     mptr,asm_call_jit_compiler@ha
+	addi    mptr,mptr,asm_call_jit_compiler@l
 #endif
 	stw     mptr,32(r1)
 	addi    mptr,r1,28
@@ -349,35 +346,37 @@ L_stack_copy_done:
 #endif
 
 L_asm_calljavafunction2_restore:
-	lwz     itmp3,10*4(sp)            /* registers r14-r31 are callee saved   */
-	lfd     ftmp1,12*4(sp)            /* registers f14-f31 are callee saved   */
-	lfd     ftmp2,14*4(sp)
+#if defined(__DARWIN__)
+	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
+#endif
+	lwz     pv,11*4(sp)               /* save PV register                     */
+
+	lwz     itmp3,12*4(sp)
+	lfd     ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
-	lwz     t0,16*4(r1)
-	lwz     t1,17*4(r1)
-	lwz     t2,18*4(r1)
-	lwz     t3,19*4(r1)
-	lwz     t4,20*4(r1)
-	lwz     t5,21*4(r1)
-	lwz     t6,22*4(r1)
+	lwz     t1,18*4(r1)
+	lwz     t2,19*4(r1)
+	lwz     t3,20*4(r1)
+	lwz     t4,21*4(r1)
+	lwz     t5,22*4(r1)
+	lwz     t6,23*4(r1)
+	lwz     t7,24*4(r1)
 
-	lfd     ft0,24*4(r1)
-	lfd     ft1,26*4(r1)
-	lfd     ft2,28*4(r1)
-	lfd     ft3,30*4(r1)
-	lfd     ft4,32*4(r1)
-	lfd     ft5,34*4(r1)
+	lfd     ft0,26*4(r1)
+	lfd     ft1,28*4(r1)
+	lfd     ft2,30*4(r1)
+	lfd     ft3,32*4(r1)
+	lfd     ft4,34*4(r1)
+	lfd     ft5,36*4(r1)
 #else
-	RESTORE_TEMPORARY_REGISTERS(16)   /* the offset has to be even            */
+	RESTORE_TEMPORARY_REGISTERS(18)   /* the offset has to be even            */
 #endif
 
 	lwz     r0,40*4+LA_LR_OFFSET(r1)
 	mtlr    r0
 	addi    r1,r1,40*4
-	lwz     pv,-12(r1)
-/*	lwz     r30,-8(r1)*/
-	lwz     r31,-4(r1)
 	blr
 
 calljava_xhandler2:
@@ -514,6 +513,7 @@ noregchange:
 	stfd    fa12,(LA_WORD_SIZE+5+32)*4(r1)
 #else
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
+	SAVE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
 #endif
 
 	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
@@ -931,9 +931,9 @@ asm_wrapper_patcher:
 	mflr	r0                    /* get Java return address (leaf)           */
 	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
 	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    sp,-(LA_SIZE+(5+38)*4+sizestackframeinfo)(sp)
+	stwu    sp,-(LA_SIZE+(5+58)*4+sizestackframeinfo)(sp)
 
-#if 1
+#if defined(__DARWIN__)
 	stw     a0,LA_SIZE+(5+0)*4(r1)      /* save argument registers            */
 	stw     a1,LA_SIZE+(5+1)*4(r1)      /* preserve linkage area (24 bytes)   */
 	stw     a2,LA_SIZE+(5+2)*4(r1)      /* and 4 bytes for 4 argument         */
@@ -956,45 +956,50 @@ asm_wrapper_patcher:
 	stfd    fa10,LA_SIZE+(5+28)*4(sp)
 	stfd    fa11,LA_SIZE+(5+30)*4(sp)
 	stfd    fa12,LA_SIZE+(5+32)*4(sp)
+
+	stw     t0,(LA_WORD_SIZE+5+33)*4(r1)
+	stw     t1,(LA_WORD_SIZE+5+34)*4(r1)
+	stw     t2,(LA_WORD_SIZE+5+35)*4(r1)
+	stw     t3,(LA_WORD_SIZE+5+36)*4(r1)
+	stw     t4,(LA_WORD_SIZE+5+37)*4(r1)
+	stw     t5,(LA_WORD_SIZE+5+38)*4(r1)
+	stw     t6,(LA_WORD_SIZE+5+39)*4(r1)
+	stw     t7,(LA_WORD_SIZE+5+40)*4(r1)
+
+	stfd    ft0,(LA_WORD_SIZE+5+42)*4(r1)
+	stfd    ft1,(LA_WORD_SIZE+5+44)*4(r1)
+	stfd    ft2,(LA_WORD_SIZE+5+46)*4(r1)
+	stfd    ft3,(LA_WORD_SIZE+5+48)*4(r1)
+	stfd    ft4,(LA_WORD_SIZE+5+50)*4(r1)
+	stfd    ft5,(LA_WORD_SIZE+5+52)*4(r1)
 #else
-	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* save 8 int/13 float arguments  */
+	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1) /* save 8 int/8 float arguments   */
+	SAVE_TEMPORARY_REGISTERS(LA_WORD_SIZE+1+24)
 #endif
 
-#if 0
-	stw     r2,25*8(r1)
-	stw     r16,26*8(r1)
-	stw     r17,27*8(r1)
-	stw     r18,28*8(r1)
-	stw     r19,29*8(r1)
-	stw     r20,30*8(r1)
-	stw     r21,31*8(r1)
-	stw     r22,32*8(r1)
-	stw     r23,33*8(r1)
-#endif
+	stw     itmp1,LA_SIZE+(5+54)*4(sp)
+	stw     itmp2,LA_SIZE+(5+55)*4(sp)
+	stw     pv,LA_SIZE+(5+56)*4(sp)
 
-	stw     itmp1,LA_SIZE+(5+34)*4(sp)
-	stw     itmp2,LA_SIZE+(5+35)*4(sp)
-	stw     pv,LA_SIZE+(5+36)*4(sp)
-
-	addi    a0,sp,LA_SIZE+(5+38)*4      /* create stackframe info             */
+	addi    a0,sp,LA_SIZE+(5+58)*4      /* create stackframe info             */
 	mr      a1,pv
-	addi    a2,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+	addi    a2,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 	mr      a3,r0                       /* this is correct for leafs          */
-	lwz     a4,((5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo)(sp) /* pass xpc   */
+	lwz     a4,((5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo)(sp) /* pass xpc   */
 	bl      stacktrace_create_extern_stackframeinfo
 
-	addi    a0,sp,(0+LA_WORD_SIZE+5+38)*4+sizestackframeinfo  /* pass sp      */
-	lwz     pv,(0+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp) /* get function */
-	lwz     itmp1,LA_SIZE+(5+36)*4(sp)  /* move pv to position of fp          */
-	stw     itmp1,(0+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
+	addi    a0,sp,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo  /* pass sp      */
+	lwz     pv,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* get function */
+	lwz     itmp1,LA_SIZE+(5+56)*4(sp)  /* move pv to position of fp          */
+	stw     itmp1,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
 	mtctr   pv                          /* call the patcher function          */
 	bctrl
-	stw     v0,LA_SIZE+(5+37)*4(sp)     /* save return value                  */
+	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
 
-	addi    a0,sp,LA_SIZE+(5+38)*4
+	addi    a0,sp,LA_SIZE+(5+58)*4
 	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
 
-#if 1
+#if defined(__DARWIN__)
 	lwz     a0,LA_SIZE+(5+0)*4(r1)
 	lwz     a1,LA_SIZE+(5+1)*4(r1)
 	lwz     a2,LA_SIZE+(5+2)*4(r1)
@@ -1017,45 +1022,50 @@ asm_wrapper_patcher:
 	lfd     fa10,LA_SIZE+(5+28)*4(sp)
 	lfd     fa11,LA_SIZE+(5+30)*4(sp)
 	lfd     fa12,LA_SIZE+(5+32)*4(sp)
+
+	lwz     t0,(LA_WORD_SIZE+5+33)*4(r1)
+	lwz     t1,(LA_WORD_SIZE+5+34)*4(r1)
+	lwz     t2,(LA_WORD_SIZE+5+35)*4(r1)
+	lwz     t3,(LA_WORD_SIZE+5+36)*4(r1)
+	lwz     t4,(LA_WORD_SIZE+5+37)*4(r1)
+	lwz     t5,(LA_WORD_SIZE+5+38)*4(r1)
+	lwz     t6,(LA_WORD_SIZE+5+39)*4(r1)
+	lwz     t7,(LA_WORD_SIZE+5+40)*4(r1)
+
+	lfd     ft0,(LA_WORD_SIZE+5+42)*4(r1)
+	lfd     ft1,(LA_WORD_SIZE+5+44)*4(r1)
+	lfd     ft2,(LA_WORD_SIZE+5+46)*4(r1)
+	lfd     ft3,(LA_WORD_SIZE+5+48)*4(r1)
+	lfd     ft4,(LA_WORD_SIZE+5+50)*4(r1)
+	lfd     ft5,(LA_WORD_SIZE+5+52)*4(r1)
 #else
-	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+4)/* restore 8 int/13 float args  */
+	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+4) /* restore 8 int/8 float args  */
+	RESTORE_TEMPORARY_REGISTERS(LA_WORD_SIZE+4+24)
 #endif
 
-#if 0
-	lwz     r2,25*8(r1)
-	lwz     r16,26*8(r1)
-	lwz     r17,27*8(r1)
-	lwz     r18,28*8(r1)
-	lwz     r19,29*8(r1)
-	lwz     r20,30*8(r1)
-	lwz     r21,31*8(r1)
-	lwz     r22,32*8(r1)
-	lwz     r23,33*8(r1)		
-#endif
+	lwz     itmp1,LA_SIZE+(5+54)*4(sp)
+	lwz     itmp2,LA_SIZE+(5+55)*4(sp)
+	lwz     pv,LA_SIZE+(5+56)*4(sp)
+	lwz     itmp3,LA_SIZE+(5+57)*4(sp)  /* restore return value into temp reg.*/
 
-	lwz     itmp1,LA_SIZE+(5+34)*4(sp)
-	lwz     itmp2,LA_SIZE+(5+35)*4(sp)
-	lwz     pv,LA_SIZE+(5+36)*4(sp)
-	lwz     itmp3,LA_SIZE+(5+37)*4(sp)  /* restore return value into temp reg.*/
-
-	lwz     r0,(6+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp) /* restore RA   */
+	lwz     r0,(6+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* restore RA   */
 	mtlr	r0
 
 	mr.     itmp3,itmp3           /* check for an exception                   */
 	beq     L_asm_wrapper_patcher_exception
 
 	                              /* get return address (into JIT code)       */
-	lwz     itmp3,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
+	lwz     itmp3,(5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
 
 	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 
 	mtctr   itmp3
 	bctr                          /* jump to new patched code                 */
 
 L_asm_wrapper_patcher_exception:
-	lwz     xpc,(5+LA_WORD_SIZE+5+38)*4+sizestackframeinfo(sp)
-	addi    sp,sp,(8+LA_WORD_SIZE+5+38)*4+sizestackframeinfo
+	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
+	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	mflr	r0
