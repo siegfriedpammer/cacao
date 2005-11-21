@@ -30,7 +30,7 @@
             Christian Thalinger
 			Christian Ullrich
 
-   $Id: stack.c 3721 2005-11-20 13:21:02Z christian $
+   $Id: stack.c 3724 2005-11-21 19:59:12Z edwin $
 
 */
 
@@ -1088,6 +1088,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							i--;
 							copy = copy->prev;
 						}
+
+						/* allocate a dummy stack slot to keep ISTORE from */
+						/* marking its input stack as a LOCALVAR, since we */
+						/* change the value of the local variable here.    */
+						NEWSTACK0(TYPE_INT);
+						POP(TYPE_INT);
+						
 						SETDST;
 						break;
 
