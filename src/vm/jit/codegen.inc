@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3729 2005-11-22 11:38:12Z twisti $
+   $Id: codegen.inc 3739 2005-11-22 23:05:51Z twisti $
 
 */
 
@@ -84,7 +84,7 @@
 
 /* in this tree we store all method addresses *********************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 static struct avl_table *methodtree = NULL;
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param);
@@ -99,7 +99,7 @@ static int methodtree_comparator(const void *pc, const void *element,
 
 void codegen_init(void)
 {
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* this tree is global, not method specific */
 
 	if (!methodtree) {
@@ -650,7 +650,7 @@ static void codegen_createlinenumbertable(codegendata *cd)
 }
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 /* methodtree_comparator *******************************************************
 
    XXX
@@ -765,7 +765,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	return mte->startpc;
 }
-#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) */
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 
 
 /* codegen_finish **************************************************************
@@ -839,7 +839,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* add method into methodtree to find the entrypoint */
 
 	codegen_insertmethod(m->entrypoint,
@@ -1037,7 +1037,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 
 *******************************************************************************/
 
-void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, functionptr ra)
+void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
