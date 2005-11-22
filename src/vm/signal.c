@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 3543 2005-11-03 20:34:57Z twisti $
+   $Id: signal.c 3729 2005-11-22 11:38:12Z twisti $
 
 */
 
@@ -102,7 +102,7 @@ void signal_init(void)
 # if defined(ENABLE_INTRP)
 	}
 # endif
-#endif /* !defined(__INTRP__) */
+#endif /* !defined(ENABLE_INTRP) */
 
 
 	/* catch SIGINT for exiting properly on <ctrl>-c */

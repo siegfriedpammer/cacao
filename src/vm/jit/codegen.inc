@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3587 2005-11-05 23:42:13Z twisti $
+   $Id: codegen.inc 3729 2005-11-22 11:38:12Z twisti $
 
 */
 
@@ -84,7 +84,7 @@
 
 /* in this tree we store all method addresses *********************************/
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 static struct avl_table *methodtree = NULL;
 static int methodtree_comparator(const void *pc, const void *element,
 								 void *param);
@@ -99,17 +99,17 @@ static int methodtree_comparator(const void *pc, const void *element,
 
 void codegen_init(void)
 {
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* this tree is global, not method specific */
 
 	if (!methodtree) {
-#if !defined(__INTRP__)
+#if !defined(ENABLE_INTRP)
 		methodtree_element *mte;
 #endif
 
 		methodtree = avl_create(methodtree_comparator, NULL, NULL);
 
-#if !defined(__INTRP__)
+#if !defined(ENABLE_INTRP)
 		/* insert asm_calljavafunction */
 
 		mte = NEW(methodtree_element);
@@ -127,7 +127,7 @@ void codegen_init(void)
 		mte->endpc = (functionptr) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
-#endif /* !defined(__INTRP__) */
+#endif /* !defined(ENABLE_INTRP) */
 	}
 #endif
 }
@@ -471,7 +471,7 @@ static void codegen_addreference(codegendata *cd, basicblock *target, void *bran
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
-#if !defined(__INTRP__)
+#if !defined(ENABLE_INTRP)
 	/* The interpreter uses absolute branches, so we do branch resolving */
 	/* after the code and data segment move. */
 
@@ -650,7 +650,7 @@ static void codegen_createlinenumbertable(codegendata *cd)
 }
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 /* methodtree_comparator *******************************************************
 
    XXX
@@ -765,7 +765,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	return mte->startpc;
 }
-#endif /* defined(__I386__) || defined(__X86_64__) || defined(__INTRP__) */
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) */
 
 
 /* codegen_finish **************************************************************
@@ -839,7 +839,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
 	}
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* add method into methodtree to find the entrypoint */
 
 	codegen_insertmethod(m->entrypoint,
@@ -931,7 +931,7 @@ functionptr codegen_createnativestub(functionptr f, methodinfo *m)
 	/* setup code generation stuff */
 
 	inlining_setup(m, id);
-#if !defined(__INTRP__)
+#if !defined(ENABLE_INTRP)
 	reg_setup(m, rd, id);
 #endif
 	codegen_setup(m, cd, id);

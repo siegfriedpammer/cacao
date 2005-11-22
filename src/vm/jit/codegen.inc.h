@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: codegen.inc.h 3655 2005-11-11 11:37:04Z twisti $
+   $Id: codegen.inc.h 3729 2005-11-22 11:38:12Z twisti $
 
 */
 
@@ -94,7 +94,7 @@ struct codegendata {
 	s4             *mcodeend;       /* pointer to end of code area            */
 	s4              mcodesize;      /* complete size of code area (bytes)     */
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	u1             *mcodeptr;       /* code generation pointer                */
 #endif
 
@@ -184,7 +184,7 @@ struct linenumberref {
 };
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__INTRP__)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 typedef struct _methodtree_element methodtree_element;
 
 struct _methodtree_element {
