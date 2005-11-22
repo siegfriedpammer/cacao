@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3735 2005-11-22 22:32:30Z twisti $
+   $Id: jit.h 3744 2005-11-22 23:42:43Z twisti $
 
 */
 
@@ -841,10 +841,14 @@ extern int stackreq[256];
 
 /* function prototypes ********************************************************/
 
-functionptr jit_compile(methodinfo *m); /* compile a method with jit compiler */
+/* compiler initialisation */
+void jit_init(void);
 
-void jit_init(void);                    /* compiler initialisation            */
-void jit_close(void);                   /* compiler finalisation              */
+/* compiler finalisation */
+void jit_close(void);
+
+/* compile a method with jit compiler */
+u1 *jit_compile(methodinfo *m);
 
 /* machine dependent initialization */
 void md_init(void);

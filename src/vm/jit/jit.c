@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3736 2005-11-22 22:47:00Z christian $
+   $Id: jit.c 3744 2005-11-22 23:42:43Z twisti $
 
 */
 
@@ -1302,7 +1302,7 @@ void jit_close(void)
 
 /* dummy function, used when there is no JavaVM code available                */
 
-static functionptr do_nothing_function(void)
+static u1 *do_nothing_function(void)
 {
 	return NULL;
 }
@@ -1314,13 +1314,12 @@ static functionptr do_nothing_function(void)
 
 *******************************************************************************/
 
-static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
-									  registerdata *rd, loopdata *ld,
-									  t_inlining_globals *id);
+static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
+							  loopdata *ld, t_inlining_globals *id);
 
-functionptr jit_compile(methodinfo *m)
+u1 *jit_compile(methodinfo *m)
 {
-	functionptr         r;
+	u1                 *r;
 	codegendata        *cd;
 	registerdata       *rd;
 	loopdata           *ld;
@@ -1458,9 +1457,8 @@ functionptr jit_compile(methodinfo *m)
 
 *******************************************************************************/
 
-static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
-									  registerdata *rd, loopdata *ld,
-									  t_inlining_globals *id)
+static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
+							  loopdata *ld, t_inlining_globals *id)
 {
 	/* print log message for compiled method */
 
@@ -1503,7 +1501,7 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 		if (compileverbose)
 			log_message_method("No code given for: ", m);
 
-		m->entrypoint = (functionptr) do_nothing_function;
+		m->entrypoint = (u1 *) (ptrint) do_nothing_function;
 
 		return m->entrypoint;           /* return empty method                */
 	}
