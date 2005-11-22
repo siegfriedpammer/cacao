@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 3590 2005-11-06 14:46:37Z twisti $
+   $Id: asmpart.S 3746 2005-11-22 23:45:10Z twisti $
 
 */
 
@@ -65,8 +65,6 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
-
-	.globl asm_builtin_arraycheckcast
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
