@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3734 2005-11-22 22:21:20Z christian $
+   Changes: Christian Ullrich
+
+   $Id: stack.h 3736 2005-11-22 22:47:00Z christian $
 
 */
 

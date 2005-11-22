@@ -29,8 +29,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
+	    Christian Ullrich
 
-   $Id: jit.c 3735 2005-11-22 22:32:30Z twisti $
+   $Id: jit.c 3736 2005-11-22 22:47:00Z christian $
 
 */
 

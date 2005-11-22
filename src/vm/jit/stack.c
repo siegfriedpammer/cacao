@@ -28,9 +28,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
-			Christian Ullrich
+	    Christian Ullrich
 
-   $Id: stack.c 3724 2005-11-21 19:59:12Z edwin $
+   $Id: stack.c 3736 2005-11-22 22:47:00Z christian $
 
 */
 

@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3729 2005-11-22 11:38:12Z twisti $
+   $Id: codegen.inc.h 3736 2005-11-22 22:47:00Z christian $
 
 */
 
