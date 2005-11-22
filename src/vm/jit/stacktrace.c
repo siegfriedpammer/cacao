@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3652 2005-11-11 11:14:31Z twisti $
+   $Id: stacktrace.c 3741 2005-11-22 23:07:41Z twisti $
 
 */
 
@@ -100,8 +100,8 @@ stackframeinfo *_no_threads_stackframeinfo = NULL;
 *******************************************************************************/
 
 #if defined(ENABLE_INTRP)
-void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-									  u1 *sp, functionptr ra)
+void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
+									  u1 *ra)
 {
 	stackframeinfo **psfi;
 	methodinfo      *m;
@@ -113,7 +113,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* if we don't have pv handy */
 
 	if (pv == NULL)
-		pv = (u1 *) (ptrint) codegen_findmethod(ra);
+		pv = md_codegen_findmethod(ra);
 
 	/* get methodinfo pointer from data segment */
 
@@ -121,15 +121,15 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* fill new stackframe info structure */
 
-	sfi->prev = *psfi;
+	sfi->prev   = *psfi;
 	sfi->method = m;
-	sfi->pv = pv;
-	sfi->sp = sp;
-	sfi->ra = ra;
+	sfi->pv     = pv;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
 
 	/* xpc is the same as ra, but is required in fillInStackTrace */
 
-	sfi->xpc = ra;
+	sfi->xpc    = ra;
 
 	/* store new stackframe info pointer */
 
@@ -144,8 +144,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 *******************************************************************************/
 
 void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra,
-											 functionptr xpc)
+											 u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
 
@@ -158,19 +157,19 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 		/* if we don't have pv handy */
 
 		if (pv == NULL)
-			pv = (u1 *) (ptrint) codegen_findmethod(ra);
+			pv = md_codegen_findmethod(ra);
 
 	}
 #endif
 
 	/* fill new stackframe info structure */
 
-	sfi->prev = *psfi;
+	sfi->prev   = *psfi;
 	sfi->method = NULL;
-	sfi->pv = pv;
-	sfi->sp = sp;
-	sfi->ra = ra;
-	sfi->xpc = xpc;
+	sfi->pv     = pv;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
+	sfi->xpc    = xpc;
 
 	/* store new stackframe info pointer */
 
@@ -186,8 +185,7 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 *******************************************************************************/
 
 void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra,
-											 functionptr xpc)
+											 u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
 #if !defined(__I386__) && !defined(__X86_64__)
@@ -203,7 +201,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
        L_asm_call_jit_compiler_exception or in the interpreter). */
 
 	if (pv == NULL)
-		pv = (u1 *) (ptrint) codegen_findmethod(ra);
+		pv = md_codegen_findmethod(ra);
 
 #if defined(ENABLE_INTRP)
 	/* When using the interpreter, we pass RA to the function. */
@@ -237,12 +235,12 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* fill new stackframe info structure */
 
-	sfi->prev = *psfi;
+	sfi->prev   = *psfi;
 	sfi->method = NULL;
-	sfi->pv = pv;
-	sfi->sp = sp;
-	sfi->ra = ra;
-	sfi->xpc = xpc;
+	sfi->pv     = pv;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
+	sfi->xpc    = xpc;
 
 	/* store new stackframe info pointer */
 
@@ -257,7 +255,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 *******************************************************************************/
 
 void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra)
+											 u1 *sp, u1 *ra)
 {
 	stackframeinfo **psfi;
 	methodinfo      *m;
@@ -272,12 +270,12 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 	/* fill new stackframe info structure */
 
-	sfi->prev = *psfi;
+	sfi->prev   = *psfi;
 	sfi->method = m;
-	sfi->pv = NULL;
-	sfi->sp = sp;
-	sfi->ra = ra;
-	sfi->xpc = NULL;
+	sfi->pv     = NULL;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
+	sfi->xpc    = NULL;
 
 	/* store new stackframe info pointer */
 
@@ -312,8 +310,7 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 *******************************************************************************/
 
 java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
-														 functionptr ra,
-														 functionptr xpc)
+														 u1 *ra, u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -342,8 +339,8 @@ java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
 
 java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
 																	u1 *sp,
-																	functionptr ra,
-																	functionptr xpc,
+																	u1 *ra,
+																	u1 *xpc,
 																	s4 index)
 {
 	stackframeinfo     sfi;
@@ -371,9 +368,8 @@ java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
-														 functionptr ra,
-														 functionptr xpc)
+java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
+														 u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -400,9 +396,8 @@ java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
-														functionptr ra,
-														functionptr xpc)
+java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp, u1 *ra,
+														u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -430,8 +425,7 @@ java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
 *******************************************************************************/
 
 java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
-														  functionptr ra,
-														  functionptr xpc)
+														  u1 *ra, u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -459,8 +453,7 @@ java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
 *******************************************************************************/
 
 java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
-														   functionptr ra,
-														   functionptr xpc)
+														   u1 *ra, u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -488,8 +481,7 @@ java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
 *******************************************************************************/
 
 java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
-															functionptr ra,
-															functionptr xpc)
+															u1 *ra, u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -517,9 +509,8 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc)
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
+													  u1 *xpc)
 {
 	stackframeinfo     sfi;
 	java_objectheader *o;
@@ -732,8 +723,8 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	u1               *pv;
 	u1               *sp;
 	u4                framesize;
-	functionptr       ra;
-	functionptr       xpc;
+	u1               *ra;
+	u1               *xpc;
 	bool              result;
 
 	/* prevent compiler warnings */
@@ -809,7 +800,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				/* this is an native stub stackframe info, so we can get the */
 				/* parent pv from the return address (ICMD_INVOKE*) */
 
-				pv = (u1 *) (ptrint) codegen_findmethod(ra);
+				pv = md_codegen_findmethod(ra);
 
 				/* get methodinfo pointer from parent data segment */
 
@@ -883,7 +874,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					/* get data segment and methodinfo pointer from parent */
 					/* method */
 
-					pv = (u1 *) (ptrint) codegen_findmethod(ra);
+					pv = md_codegen_findmethod(ra);
 					m = *((methodinfo **) (pv + MethodPointer));
 
 #if defined(ENABLE_INTRP)
@@ -936,7 +927,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 			/* get data segment and methodinfo pointer from parent method */
 
-			pv = (u1 *) (ptrint) codegen_findmethod(ra);
+			pv = md_codegen_findmethod(ra);
 			m = *((methodinfo **) (pv + MethodPointer));
 
 			/* walk the stack */

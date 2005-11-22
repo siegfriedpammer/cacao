@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3651 2005-11-11 11:13:01Z twisti $
+   $Id: stacktrace.h 3741 2005-11-22 23:07:41Z twisti $
 
 */
 
@@ -76,8 +76,8 @@ struct stackframeinfo {
 	methodinfo     *method;             /* methodinfo of current function     */
 	u1             *pv;                 /* PV of current function             */
 	u1             *sp;                 /* SP of parent Java function         */
-	functionptr    	ra;                 /* RA to parent Java function         */
-	functionptr    	xpc;                /* XPC (for inline stubs)             */
+	u1             *ra;                 /* RA to parent Java function         */
+	u1             *xpc;                /* XPC (for inline stubs)             */
 };
 
 #if defined(USE_THREADS)
@@ -110,60 +110,51 @@ struct stackTraceBuffer {
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_INTRP)
-void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-									  u1 *sp, functionptr ra);
+void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
+									  u1 *ra);
 #endif
 
 void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra,
-											 functionptr xpc);
+											 u1 *sp, u1 *ra, u1 *xpc);
 
 void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra,
-											 functionptr xpc);
+											 u1 *sp, u1 *ra, u1 *xpc);
 
 void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, functionptr ra);
+											 u1 *sp, u1 *ra);
 
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
 /* inline exception creating functions */
-java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp,
-														 functionptr ra,
-														 functionptr xpc);
+java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp, u1 *ra,
+														 u1 *xpc);
 
 java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
 																	u1 *sp,
-																	functionptr ra,
-																	functionptr xpc,
+																	u1 *ra,
+																	u1 *xpc,
 																	s4 index);
 
-java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp,
-														 functionptr ra,
-														 functionptr xpc);
+java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
+														 u1 *xpc);
 
-java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp,
-														functionptr ra,
-														functionptr xpc);
+java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp, u1 *ra,
+														u1 *xpc);
 
 java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
-														  functionptr ra,
-														  functionptr xpc);
+														  u1 *ra, u1 *xpc);
 
 
 /* hardware exception creating functions */
 java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
-														   functionptr ra,
-														   functionptr xpc);
+														   u1 *ra, u1 *xpc);
 
 java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
-															functionptr ra,
-															functionptr xpc);
+															u1 *ra, u1 *xpc);
 
 /* refill the stacktrace of an existing exception */
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp,
-													  functionptr ra,
-													  functionptr xpc);
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
+													  u1 *xpc);
 
 bool cacao_stacktrace_NormalTrace(void **target);
 java_objectarray *cacao_createClassContextArray(void);
@@ -174,7 +165,7 @@ void stacktrace_dump_trace(void);
 void stacktrace_print_trace(java_objectheader *xptr);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
 
 #ifdef ENABLE_JVMTI
 typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
