@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: stack.h 3646 2005-11-09 21:40:15Z christian $
+   $Id: stack.h 3734 2005-11-22 22:21:20Z christian $
 
 */
 
@@ -194,10 +194,21 @@
         curstack = curstack->prev; \
     } while (0)
 
+/*******************************************************
+Quick Fix to prevent dependence problems of local vars
+varnum is not set to the according position within the stack
+like it is done normaly in stack.c
+-> if this shows to be a problem this can be solved in all the
+DUP* and SWAP Macros
+TODO: dependences should be prevented as described in the
+CACAO JVM Paper
+*******************************************************/
 #define COPY(s,d) \
     do { \
         (d)->flags = 0; \
         (d)->type = (s)->type; \
+		if ((s)->varkind == LOCALVAR) \
+			(s)->varkind = TEMPVAR; \
         (d)->varkind = (s)->varkind; \
         (d)->varnum = (s)->varnum; \
     } while (0)
@@ -349,7 +360,11 @@
         SETDST; \
     } while (0)
 
-#define DUP         {REQUIRE_1;NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
+/* Same dependency quick fix as at COPY */
+#define DUP         {REQUIRE_1; \
+		            if (CURKIND == LOCALVAR) \
+			            CURKIND = TEMPVAR; \
+                    NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
                     stackdepth++; INC_LIFETIMES(1);}
 #define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
