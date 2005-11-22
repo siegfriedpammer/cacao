@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3285 2005-09-27 14:12:36Z twisti $
+   $Id: md.c 3738 2005-11-22 23:04:38Z twisti $
 
 */
 
@@ -57,7 +57,6 @@
 
 void md_init(void)
 {
-#if 0
 	/* XXX TWISTI: do we really need this? fptest's seem to work fine */
 
 #if defined(__LINUX__)
@@ -79,7 +78,6 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 /*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
 						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
-#endif
 
 	/* nothing to do */
 }
@@ -99,8 +97,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint       addr;
 	u1          *pv;
 	u1          *sp;
-	functionptr  ra;
-	functionptr  xpc;
+	u1          *ra;
+	u1          *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -111,8 +109,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr == 0) {
 		pv  = (u1 *) _mc->sc_regs[REG_PV];
 		sp  = (u1 *) _mc->sc_regs[REG_SP];
-		ra  = (functionptr) _mc->sc_regs[REG_RA]; /* this is correct for leafs*/
-		xpc = (functionptr) _mc->sc_pc;
+		ra  = (u1 *) _mc->sc_regs[REG_RA];       /* this is correct for leafs */
+		xpc = (u1 *) _mc->sc_pc;
 
 		_mc->sc_regs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
@@ -150,19 +148,19 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* on Alpha the return address is located on the top of the stackframe */
 
-	ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
 
 	return ra;
 }
 
 
-/* codegen_findmethod **********************************************************
+/* md_codegen_findmethod *******************************************************
 
    Machine code:
 
@@ -172,14 +170,12 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-functionptr codegen_findmethod(functionptr pc)
+u1 *md_codegen_findmethod(u1 *ra)
 {
-	u1 *ra;
 	u1 *pv;
 	u4  mcode;
 	s4  offset;
 
-	ra = (u1 *) pc;
 	pv = ra;
 
 	/* get first instruction word after jump */
@@ -218,7 +214,7 @@ functionptr codegen_findmethod(functionptr pc)
 		pv += offset;
 	}
 
-	return (functionptr) pv;
+	return pv;
 }
 
 
