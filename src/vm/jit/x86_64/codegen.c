@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3689 2005-11-17 10:22:35Z twisti $
+   $Id: codegen.c 3728 2005-11-22 00:14:44Z twisti $
 
 */
 
@@ -4211,19 +4211,19 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	if (runverbose) {
 		/* save integer and float argument registers */
 
-		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++)
 			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
 				M_LST(rd->argintregs[j++], REG_SP, (1 + i) * 8);
 
-		for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+		for (i = 0, j = 0; i < md->paramcount && j < FLT_ARG_CNT; i++)
 			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 				M_DST(rd->argfltregs[j++], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 
 		/* show integer hex code for float arguments */
 
-		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-			/* if the paramtype is a float, we have to right shift all        */
-			/* following integer registers                                    */
+		for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
+			/* if the paramtype is a float, we have to right shift all
+			   following integer registers */
 
 			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
 				for (s1 = INT_ARG_CNT - 2; s1 >= i; s1--)
@@ -4234,18 +4234,18 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			}
 		}
 
-		x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP1);
-		x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, 0 * 8);
-		x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
-		x86_64_call_reg(cd, REG_ITMP1);
+		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_AST(REG_ITMP1, REG_SP, 0 * 8);
+		M_MOV_IMM((ptrint) builtin_trace_args, REG_ITMP1);
+		M_CALL(REG_ITMP1);
 
 		/* restore integer and float argument registers */
 
-		for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+		for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++)
 			if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
 				M_LLD(rd->argintregs[j++], REG_SP, (1 + i) * 8);
 
-		for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+		for (i = 0, j = 0; i < md->paramcount && j < FLT_ARG_CNT; i++)
 			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 				M_DLD(rd->argfltregs[j++], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 	}
@@ -4268,11 +4268,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* save integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++)
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
 			M_LST(rd->argintregs[j++], REG_SP, i * 8);
 
-	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && j < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DST(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
@@ -4294,11 +4294,11 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* restore integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++)
 		if (IS_INT_LNG_TYPE(md->paramtypes[i].type))
 			M_LLD(rd->argintregs[j++], REG_SP, i * 8);
 
-	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++)
+	for (i = 0, j = 0; i < md->paramcount && j < FLT_ARG_CNT; i++)
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 			M_DLD(rd->argfltregs[j++], REG_SP, (INT_ARG_CNT + i) * 8);
 
