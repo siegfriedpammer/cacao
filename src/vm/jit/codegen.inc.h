@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3736 2005-11-22 22:47:00Z christian $
+   $Id: codegen.inc.h 3737 2005-11-22 22:55:16Z twisti $
 
 */
 
@@ -213,6 +213,9 @@ void dseg_display(methodinfo *m, codegendata *cd);
 
 functionptr codegen_createnativestub(functionptr f, methodinfo *m);
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
+
+void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
+void codegen_finish_native_call(u1 *datasp);
 
 functionptr createcompilerstub(methodinfo *m);
 functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
