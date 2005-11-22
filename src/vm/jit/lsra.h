@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 3723 2005-11-20 13:22:51Z christian $
+   $Id: lsra.h 3732 2005-11-22 14:36:16Z christian $
 
 */
 
@@ -35,7 +35,6 @@
 #define _LSRA_H
 
 /* #define LSRA_DEBUG */  /* lsra debug messages */
-/* #define LSRA_DEBUG_DEBUG */ /* internal lsra debug messages */
 /* #define LSRA_SAVEDVAR */
 /* #define LSRA_MEMORY */
 /* #define LSRA_PRINTLIFETIMES */
@@ -51,7 +50,7 @@
 #define JOIN_DUP_STACK         /* join "identical" stackslots created by dup* */
 
 #define USAGE_COUNT        /* influence LSRA with usagecount */
-/* #define USAGE_PER_INSTR  */   /* divide usagecount by lifetimelength */
+#define USAGE_PER_INSTR    /* divide usagecount by lifetimelength */
 
 #ifdef LSRA_DEBUG
 #undef LSRA_LEAF

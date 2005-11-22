@@ -26,7 +26,7 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 3723 2005-11-20 13:22:51Z christian $
+   $Id: lsra.inc 3732 2005-11-22 14:36:16Z christian $
 
 */
 #include <stdio.h>
@@ -772,9 +772,10 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls)
 	/* Generate the Control Flow Graph */
 	lsra_make_cfg(m, ls);
 	/* gather nesting before adding of Exceptions and Subroutines!!! */
-
+#ifdef USAGE_COUNT
 	lsra_DFS(m, ls);  
 	lsra_get_nesting( m, ls);
+#endif
 #ifdef LSRA_DEBUG	
 	printf("Successors:\n");
 	for (i=0; i < m->basicblockcount; i++) {
@@ -1491,9 +1492,7 @@ void _lsra_main( methodinfo *m, lsradata *ls, int *lifet, int lifetimecount,
 void lsra_add_active(struct lifetime *lt, struct lifetime **active, int *active_top)
 {
 	int i, j;
-#ifdef LSRA_DEBUG_DEBUG
-	printf("lsra: Add to active\n");
-#endif
+
 	for(i = 0; (i < *active_top) && (active[i]->i_end < lt->i_end); i++);
 
 	for(j = *active_top; j > i; j--) active[j] = active[j-1];
@@ -1502,26 +1501,12 @@ void lsra_add_active(struct lifetime *lt, struct lifetime **active, int *active_
 
 	active[i] = lt;
 
-#ifdef LSRA_DEBUG_DEBUG
-	for (j = 0; j < *active_top; j++) {
-		if (i!=j)
-			printf("    %2i lt_index: %3i reg: %2i i_start: %3i i_end:  %3i usage: %5li\n",j,active[j]->v_index, active[j]->reg, active[j]->i_start, active[j]->i_end, active[j]->usagecount);
-		else
-			printf("   *%2i lt_index: %3i reg: %2i i_start: %3i i_end:  %3i usage: %5li\n",j,active[j]->v_index, active[j]->reg, active[j]->i_start, active[j]->i_end, active[j]->usagecount);
-	}
-#endif
 }
 
 void lsra_expire_old_intervalls(methodinfo *m, lsradata *ls,
 								struct lifetime *lt, struct lsra_register *reg)
 {
-#ifdef LSRA_DEBUG_DEBUG
-	printf("lsra: TMP Expire old intervals Active lt_index: %3i i_start: %3i i_end: %3i\n", lt->v_index, lt->i_start, lt->i_end);
-#endif
 	_lsra_expire_old_intervalls(m, lt, reg, ls->active_tmp, &(ls->active_tmp_top));
-#ifdef LSRA_DEBUG_DEBUG
-	printf("lsra: SAV Expire old intervals Active lt_index: %3i i_start: %3i i_end: %3i\n", lt->v_index, lt->i_start, lt->i_end);
-#endif
 	_lsra_expire_old_intervalls(m, lt, reg, ls->active_sav, &(ls->active_sav_top));
 }
 
@@ -1575,30 +1560,15 @@ void _lsra_expire_old_intervalls(methodinfo *m, struct lifetime *lt,
 
 	(*active_top) -= i;
 
-#ifdef LSRA_DEBUG_DEBUG
-	for (j = 0; j < *active_top; j++) {
-		printf("    %2i lt_index: %3i reg: %2i i_start: %3i i_end: %3i usage: %5li\n",j,active[j]->v_index, active[j]->reg, active[j]->i_start, active[j]->i_end, active[j]->usagecount);
-
-	}
-#endif
 }
 
 void spill_at_intervall(methodinfo *m, lsradata *ls, struct lifetime *lt )
 {
 	if (lt->savedvar || m->isleafmethod) {
-#ifdef LSRA_DEBUG_DEBUG
-		printf("lsra: SAV Spill At Intervall lt_index: %3i i_start: %3i i_end: %3i usage: %5li\n", lt->v_index, lt->i_start, lt->i_end, lt->usagecount);
-#endif
 		_spill_at_intervall(lt, ls->active_sav, &(ls->active_sav_top));
 	} else {
-#ifdef LSRA_DEBUG_DEBUG
-		printf("lsra: TMP Spill At Intervall lt_index: %3i i_start: %3i i_end: %3i usage: %5li\n", lt->v_index, lt->i_start, lt->i_end, lt->usagecount);
-#endif
 		_spill_at_intervall(lt, ls->active_tmp, &(ls->active_tmp_top));
 		if (lt->reg == -1) { /* kein tmp mehr frei gewesen */
-#ifdef LSRA_DEBUG_DEBUG
-			printf("lsra: SAV as TMP Spill At Intervall lt_index: %3i i_start: %3i i_end: %3i usage: %5li\n", lt->v_index, lt->i_start, lt->i_end, lt->usagecount);
-#endif
 			_spill_at_intervall(lt, ls->active_sav, &(ls->active_sav_top));
 		}
 	}
@@ -1607,8 +1577,10 @@ void spill_at_intervall(methodinfo *m, lsradata *ls, struct lifetime *lt )
 void _spill_at_intervall(struct lifetime *lt, struct lifetime **active, int *active_top)
 {
 	int i, j;
+#if 0
 #ifdef USAGE_COUNT
 	int u_min, i_min;
+#endif
 #endif
 
 	if (*active_top == 0) {
@@ -1618,6 +1590,7 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active, int *act
 	
 	i = *active_top - 1;
 #ifdef USAGE_COUNT
+#if 0
 	/* find intervall which ends later or equal than than lt and has the lowest usagecount lower than lt*/
 	i_min = -1;
 	u_min = lt->usagecount;
@@ -1630,6 +1603,8 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active, int *act
 
 	if (i_min != -1) {
 		i = i_min;
+#endif
+	if ((active[i]->i_end >= lt->i_end) && (active[i]->usagecount < lt->usagecount)) {
 #else
 	/* get last intervall from active */
 	if (active[i]->i_end > lt->i_end) {
@@ -1651,14 +1626,6 @@ void _spill_at_intervall(struct lifetime *lt, struct lifetime **active, int *act
 	} else {
 		lt->reg=-1;
 	}
-#ifdef LSRA_DEBUG_DEBUG
-	for (j = 0; j < *active_top; j++) {
-		if ((lt->reg == -1) || (i != j))
-			printf("    %2i lt_index: %3i reg: %2i i_start: %3i i_end: %3i usage: %5li\n",j,active[j]->v_index, active[j]->reg, active[j]->i_start, active[j]->i_end, active[j]->usagecount);
-		else
-			printf("   *%2i lt_index: %3i reg: %2i i_start: %3i i_end: %3i usage: %5li\n",j,active[j]->v_index, active[j]->reg, active[j]->i_start, active[j]->i_end, active[j]->usagecount);
-	}
-#endif
 }
 
 void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
@@ -1666,7 +1633,9 @@ void lsra_calc_lifetime_length(methodinfo *m, lsradata *ls, codegendata *cd)
 	struct lifetime *lt;
 	int i, lt_index;
 	int lifetimecount;
-/* 	struct stackslot *ss; */
+#if 0
+ 	struct stackslot *ss;
+#endif
 	int *icount_block, icount;
 	int flags; /* 0 INMEMORY -> ls->lt_mem */
 	           /* 1 INTREG   -> ls->lt_int  */
