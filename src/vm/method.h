@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 3268 2005-09-21 20:22:18Z twisti $
+   $Id: method.h 3743 2005-11-22 23:41:34Z twisti $
 */
 
 
@@ -103,10 +103,10 @@ struct methodinfo {                 /* method structure                       */
 	int       c_debug_nr;           /* a counter to number all BB with an     */
 	                                /* unique value                           */
 
-	functionptr stubroutine;        /* stub for compiling or calling natives  */
+	u1         *stubroutine;        /* stub for compiling or calling natives  */
 	s4          mcodelength;        /* legth of generated machine code        */
-	functionptr mcode;              /* pointer to machine code                */
-	functionptr entrypoint;         /* entry point in machine code            */
+	u1         *mcode;              /* pointer to machine code                */
+	u1         *entrypoint;         /* entry point in machine code            */
 
 	/*rtainfo   rta;*/
 	xtainfo    *xta;
