@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 2991 2005-07-11 21:25:31Z twisti $
+   $Id: md.c 3749 2005-11-22 23:47:28Z twisti $
 
 */
 
@@ -70,8 +70,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
 	u1          *sp;
-	functionptr  ra;
-	functionptr  xpc;
+	u1          *ra;
+	u1          *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -79,9 +79,9 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
 	/* different to the ones in <ucontext.h>                                  */
 
-	sp = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (functionptr) _mc->gregs[REG_RIP];
-	ra = xpc;                           /* return address is equal to xpc     */
+	sp  = (u1 *) _mc->gregs[REG_RSP];
+	xpc = (u1 *) _mc->gregs[REG_RIP];
+	ra  = xpc;                          /* return address is equal to xpc     */
 
 	_mc->gregs[REG_RAX] =
 		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
@@ -102,8 +102,8 @@ void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
 	u1          *sp;
-	functionptr  ra;
-	functionptr  xpc;
+	u1          *ra;
+	u1          *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -111,9 +111,9 @@ void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
 	/* different to the ones in <ucontext.h>                                  */
 
-	sp = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (functionptr) _mc->gregs[REG_RIP];
-	ra = xpc;                           /* return address is equal to xpc     */
+	sp  = (u1 *) _mc->gregs[REG_RSP];
+	xpc = (u1 *) _mc->gregs[REG_RIP];
+	ra  = xpc;                          /* return address is equal to xpc     */
 
 	_mc->gregs[REG_RAX] =
 		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
@@ -143,15 +143,34 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* on x86_64 the return address is above the current stack frame */
 
-	ra = (functionptr) (ptrint) *((u1 **) (sp + framesize));
+	ra = *((u1 **) (sp + framesize));
 
 	return ra;
+}
+
+
+/* md_codegen_findmethod *******************************************************
+
+   On this architecture just a wrapper function to codegen_findmethod.
+
+*******************************************************************************/
+
+u1 *md_codegen_findmethod(u1 *ra)
+{
+	u1 *pv;
+
+	/* the the start address of the function which contains this
+       address from the method table */
+
+	pv = codegen_findmethod(ra);
+
+	return pv;
 }
 
 
