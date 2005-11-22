@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3739 2005-11-22 23:05:51Z twisti $
+   $Id: codegen.inc 3745 2005-11-22 23:43:53Z twisti $
 
 */
 
@@ -114,8 +114,8 @@ void codegen_init(void)
 
 		mte = NEW(methodtree_element);
 
-		mte->startpc = (functionptr) asm_calljavafunction;
-		mte->endpc = (functionptr) ((ptrint) asm_calljavafunction2 - 1);
+		mte->startpc = (u1 *) (ptrint) asm_calljavafunction;
+		mte->endpc   = (u1 *) ((ptrint) asm_calljavafunction2 - 1);
 
 		avl_insert(methodtree, mte);
 
@@ -123,8 +123,8 @@ void codegen_init(void)
 
 		mte = NEW(methodtree_element);
 
-		mte->startpc = (functionptr) asm_calljavafunction2;
-		mte->endpc = (functionptr) ((ptrint) asm_call_jit_compiler - 1);
+		mte->startpc = (u1 *) (ptrint) asm_calljavafunction2;
+		mte->endpc   = (u1 *) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
 #endif /* !defined(ENABLE_INTRP) */
@@ -618,10 +618,10 @@ static void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 
 #if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
 	/* On some architectures the patcher stub call instruction might
-	be longer than the actual instruction generated.  On this
-	architectures we store the last patcher call position and after
-	the basic block code generation is completed, we check the range
-	and maybe generate some nop's. */
+	   be longer than the actual instruction generated.  On this
+	   architectures we store the last patcher call position and after
+	   the basic block code generation is completed, we check the
+	   range and maybe generate some nop's. */
 
 	cd->lastmcodeptr = ((u1 *) branchptr) + PATCHER_CALL_SIZE;
 #endif
@@ -690,7 +690,7 @@ static int methodtree_comparator(const void *pc, const void *element, void *para
 
 *******************************************************************************/
 
-void codegen_insertmethod(functionptr startpc, functionptr endpc)
+void codegen_insertmethod(u1 *startpc, u1 *endpc)
 {
 	methodtree_element *mte;
 
@@ -702,7 +702,7 @@ void codegen_insertmethod(functionptr startpc, functionptr endpc)
 
 	mte = NEW(methodtree_element);
 	mte->startpc = startpc;
-	mte->endpc = endpc;
+	mte->endpc   = endpc;
 
 	if (avl_insert(methodtree, mte)) {
 #if defined(USE_THREADS)
@@ -729,7 +729,7 @@ void codegen_insertmethod(functionptr startpc, functionptr endpc)
 
 *******************************************************************************/
 
-functionptr codegen_findmethod(functionptr pc)
+u1 *codegen_findmethod(u1 *pc)
 {
 	methodtree_element  mtepc;
 	methodtree_element *mte;
@@ -778,10 +778,10 @@ functionptr codegen_findmethod(functionptr pc)
 
 static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
-	jumpref     *jr;
-	functionptr  epoint;
-	s4           extralen;
-	s4           alignedlen;
+	jumpref *jr;
+	u1      *epoint;
+	s4       extralen;
+	s4       alignedlen;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen = sizeof(threadcritnode) * cd->threadcritcount;
@@ -802,16 +802,14 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	/* allocate new memory */
 
 	m->mcodelength = mcodelen + cd->dseglen;
-	m->mcode = (functionptr) (ptrint) CNEW(u1, alignedlen + extralen);
+	m->mcode = CNEW(u1, alignedlen + extralen);
 
 	/* copy data and code to their new location */
 
-	MCOPY((void *) (ptrint) m->mcode, cd->dsegtop - cd->dseglen, u1,
-		  cd->dseglen);
-	MCOPY((void *) ((ptrint) m->mcode + cd->dseglen), cd->mcodebase, u1,
-		  mcodelen);
+	MCOPY((void *) m->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
+	MCOPY((void *) (m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
 
-	m->entrypoint = epoint = (functionptr) ((ptrint) m->mcode + cd->dseglen);
+	m->entrypoint = epoint = (m->mcode + cd->dseglen);
 
 	/* jump table resolving */
 
@@ -842,8 +840,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* add method into methodtree to find the entrypoint */
 
-	codegen_insertmethod(m->entrypoint,
-						 (functionptr) ((ptrint) m->entrypoint + mcodelen));
+	codegen_insertmethod(m->entrypoint, m->entrypoint + mcodelen);
 #endif
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__)
@@ -854,8 +851,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 		dr = cd->datareferences;
 		while (dr != NULL) {
-			*((functionptr *) ((ptrint) epoint + (ptrint) dr->pos -
-							   SIZEOF_VOID_P)) = epoint;
+			*((u1 **) (epoint + (ptrint) dr->pos - SIZEOF_VOID_P)) = epoint;
 			dr = dr->next;
 		}
 	}
@@ -910,7 +906,7 @@ void dseg_display(methodinfo *m, codegendata *cd)
 
 *******************************************************************************/
 
-functionptr codegen_createnativestub(functionptr f, methodinfo *m)
+u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 {
 	codegendata        *cd;
 	registerdata       *rd;
@@ -1114,11 +1110,11 @@ void codegen_finish_native_call(u1 *datasp)
 
 *******************************************************************************/
 
-void removecompilerstub(functionptr stub)
+void removecompilerstub(u1 *stub)
 {
 	/* pass size 1 to keep the intern function happy */
 
-	CFREE((void *) (ptrint) stub, 1);
+	CFREE((void *) stub, 1);
 }
 
 
@@ -1128,11 +1124,11 @@ void removecompilerstub(functionptr stub)
     
 *******************************************************************************/
 
-void removenativestub(functionptr stub)
+void removenativestub(u1 *stub)
 {
 	/* pass size 1 to keep the intern function happy */
 
-	CFREE((void *) (ptrint) stub, 1);
+	CFREE((void *) stub, 1);
 }
 
 

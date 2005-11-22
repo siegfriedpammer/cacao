@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3740 2005-11-22 23:06:26Z twisti $
+   $Id: codegen.inc.h 3745 2005-11-22 23:43:53Z twisti $
 
 */
 
@@ -188,8 +188,8 @@ struct linenumberref {
 typedef struct _methodtree_element methodtree_element;
 
 struct _methodtree_element {
-	functionptr startpc;
-	functionptr endpc;
+	u1 *startpc;
+	u1 *endpc;
 };
 #endif
 
@@ -201,9 +201,9 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
 bool codegen(methodinfo *m, codegendata *cd, registerdata *rd);
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close(void);
-void codegen_insertmethod(functionptr startpc, functionptr endpc);
+void codegen_insertmethod(u1 *startpc, u1 *endpc);
 
-functionptr codegen_findmethod(functionptr pc);
+u1 *codegen_findmethod(u1 *pc);
 
 #if defined(__I386__) || defined(__X86_64__)
 void codegen_addreference(codegendata *cd, struct basicblock *target, void *branchptr);
@@ -211,18 +211,18 @@ void codegen_addreference(codegendata *cd, struct basicblock *target, void *bran
 
 void dseg_display(methodinfo *m, codegendata *cd);
 
-functionptr codegen_createnativestub(functionptr f, methodinfo *m);
+u1 *codegen_createnativestub(functionptr f, methodinfo *m);
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 
 void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
 void codegen_finish_native_call(u1 *datasp);
 
-functionptr createcompilerstub(methodinfo *m);
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *md);
+u1 *createcompilerstub(methodinfo *m);
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *md);
 
-void removecompilerstub(functionptr stub);
-void removenativestub(functionptr stub);
+void removecompilerstub(u1 *stub);
+void removenativestub(u1 *stub);
 
 /* machine dependent find method function */
 u1 *md_codegen_findmethod(u1 *ra);
