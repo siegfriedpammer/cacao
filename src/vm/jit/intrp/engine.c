@@ -6,8 +6,6 @@
 #include "arch.h"
 #include "vm/jit/intrp/intrp.h"
 
-#include "md-abi.h"
-
 #include "cacao/cacao.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
