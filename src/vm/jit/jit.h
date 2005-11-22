@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3617 2005-11-07 18:39:10Z twisti $
+   $Id: jit.h 3735 2005-11-22 22:32:30Z twisti $
 
 */
 
@@ -846,9 +846,8 @@ functionptr jit_compile(methodinfo *m); /* compile a method with jit compiler */
 void jit_init(void);                    /* compiler initialisation            */
 void jit_close(void);                   /* compiler finalisation              */
 
-void compile_all_class_methods(classinfo *c);
-
-void md_init(void);                     /* machine dependent initialization   */
+/* machine dependent initialization */
+void md_init(void);
 
 #endif /* _JIT_H */
 

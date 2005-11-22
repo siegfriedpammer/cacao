@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: jit.c 3724 2005-11-21 19:59:12Z edwin $
+   $Id: jit.c 3735 2005-11-22 22:32:30Z twisti $
 
 */
 
@@ -1649,16 +1649,6 @@ static functionptr jit_compile_intern(methodinfo *m, codegendata *cd,
 
 	return m->entrypoint;
 } 
-
-
-void compile_all_class_methods(classinfo *c)
-{
-	s4 i;
-
-	for (i = 0; i < c->methodscount; i++) {
-		(void) jit_compile(&(c->methods[i]));
-	}
-}
 
 
 /*
