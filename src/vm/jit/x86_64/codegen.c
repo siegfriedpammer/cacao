@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3728 2005-11-22 00:14:44Z twisti $
+   $Id: codegen.c 3747 2005-11-22 23:45:51Z twisti $
 
 */
 
@@ -4118,7 +4118,7 @@ gen_method:
 
 #define COMPILERSTUB_SIZE    23
 
-functionptr createcompilerstub(methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
 	codegendata *cd;
@@ -4135,9 +4135,9 @@ functionptr createcompilerstub(methodinfo *m)
 
 	/* code for the stub */
 
-	x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP1); /* pass method to compiler */
-	x86_64_mov_imm_reg(cd, (ptrint) asm_call_jit_compiler, REG_ITMP3);
-	x86_64_jmp_reg(cd, REG_ITMP3);
+	M_MOV_IMM((ptrint) m, REG_ITMP1);   /* pass method to compiler            */
+	M_MOV_IMM((ptrint) asm_call_jit_compiler, REG_ITMP3);
+	M_JMP(REG_ITMP3);
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -4148,7 +4148,7 @@ functionptr createcompilerstub(methodinfo *m)
 
 	dump_release(dumpsize);
 
-	return (functionptr) (ptrint) s;
+	return s;
 }
 
 
@@ -4158,8 +4158,8 @@ functionptr createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	methoddesc *md;
 	s4          stackframesize;         /* size of stackframe if needed       */
