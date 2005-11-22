@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 3720 2005-11-19 03:10:38Z edwin $
+   $Id: codegen.c 3750 2005-11-22 23:54:41Z twisti $
 
 */
 
@@ -4146,7 +4146,7 @@ gen_method:
 
 #define COMPSTUBSIZE    3
 
-functionptr createcompilerstub(methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
 	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
 	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
@@ -4163,7 +4163,7 @@ functionptr createcompilerstub(methodinfo *m)
 		count_cstub_len += COMPSTUBSIZE * 8;
 #endif
 
-	return (functionptr) s;
+	return (u1 *) s;
 }
 
 
@@ -4173,8 +4173,8 @@ functionptr createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
