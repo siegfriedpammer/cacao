@@ -125,13 +125,13 @@ int icmd_uses_reg_res[256][REG_RES_CNT + 1] ={
 { S|YES, S|YES, S|YES, REG_NULL},    /* ICMD_SASTORE	*/
 {  NO,  NO,  NO, REG_NULL},    /* ICMD_POP	*/
 {  NO,  NO,  NO, REG_NULL},    /* ICMD_POP2	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP_X1	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP_X2	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP2	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP2_X1	*/
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_DUP2_X2	*/	
-{ YES,  NO,  NO, REG_NULL},    /* ICMD_SWAP	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP_X1	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP_X2	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP2	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP2_X1	*/
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_DUP2_X2	*/	
+{YES|S|D,NO, NO, REG_NULL},    /* ICMD_SWAP	*/
 { S|YES,  NO,  NO, REG_NULL},    /* ICMD_IADD	*/
 { S|YES,  NO,  NO, REG_NULL},    /* ICMD_LADD	*/
 {  NO,  NO,  NO, REG_NULL},    /* ICMD_FADD	*/
