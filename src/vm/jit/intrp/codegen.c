@@ -30,12 +30,10 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3714 2005-11-18 00:57:20Z twisti $
+   $Id: codegen.c 3731 2005-11-22 11:39:17Z twisti $
 
 */
 
-
-#define __INTRP__
 
 #include <stdio.h>
 
