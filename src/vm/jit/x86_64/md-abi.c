@@ -28,11 +28,12 @@
 
    Changes:
 
-   $Id: md-abi.c 3607 2005-11-07 16:38:07Z christian $
+   $Id: md-abi.c 3748 2005-11-22 23:46:22Z twisti $
 
 */
 
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/x86_64/md-abi.h"
@@ -73,7 +74,6 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory = false;
 				pd->regoff = iarg;
-
 			} else {
 				pd->inmemory = true;
 				pd->regoff = stacksize;
@@ -107,27 +107,27 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+
 /* md_return_alloc *************************************************************
 
- Precolor the Java Stackelement containing the Return Value. Only for float/
- double types straight forward possible, since INT_LNG types use "reserved"
- registers
- Float/Double values use a00 as return register.
+   Precolor the Java Stackelement containing the Return Value. Only
+   for float/ double types straight forward possible, since INT_LNG
+   types use "reserved" registers Float/Double values use a00 as
+   return register.
 
---- in
-m:                       Methodinfo of current method
-return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
-                         TYPE_VOID is not allowed!
-stackslot:               Java Stackslot to contain the Return Value
+   --- in
+   m:                       Methodinfo of current method
+   return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
+   							TYPE_VOID is not allowed!
+   stackslot:               Java Stackslot to contain the Return Value
 
---- out
-if precoloring was possible:
-stackslot->varkind       =ARGVAR
-         ->varnum        =-1
-		 ->flags         =0
-		 ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
-rd->arg[flt|int]reguse   set to a value according the register usage
-		                 
+   --- out
+   if precoloring was possible:
+   stackslot->varkind       =ARGVAR
+   			->varnum        =-1
+   			->flags         =0
+   			->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
+   rd->arg[flt|int]reguse   set to a value according the register usage
 
 *******************************************************************************/
 
