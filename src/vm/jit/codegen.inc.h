@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3737 2005-11-22 22:55:16Z twisti $
+   $Id: codegen.inc.h 3740 2005-11-22 23:06:26Z twisti $
 
 */
 
@@ -184,7 +184,7 @@ struct linenumberref {
 };
 
 
-#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 typedef struct _methodtree_element methodtree_element;
 
 struct _methodtree_element {
@@ -223,6 +223,9 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 void removecompilerstub(functionptr stub);
 void removenativestub(functionptr stub);
+
+/* machine dependent find method function */
+u1 *md_codegen_findmethod(u1 *ra);
 
 #endif /* _CODEGEN_INC_H */
 
