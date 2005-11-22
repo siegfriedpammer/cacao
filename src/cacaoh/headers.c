@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3673 2005-11-16 12:03:38Z twisti $
+   $Id: headers.c 3742 2005-11-22 23:40:30Z twisti $
 
 */
 
@@ -103,15 +103,7 @@ java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 void asm_call_jit_compiler(void) {}
 
 /* code patching functions */
-void patcher_builtin_new(u1 *sp) {}
-void patcher_builtin_newarray(u1 *sp) {}
 void patcher_builtin_arraycheckcast(u1 *sp) {}
-void patcher_builtin_arrayinstanceof(u1 *sp) {}
-
-s4 asm_builtin_idiv(s4 a, s4 b) { return 0; }
-s4 asm_builtin_irem(s4 a, s4 b) { return 0; }
-s8 asm_builtin_ldiv(s8 a, s8 b) { return 0; }
-s8 asm_builtin_lrem(s8 a, s8 b) { return 0; }
 
 s4 asm_builtin_f2i(float a) { return 0; }
 s8 asm_builtin_f2l(float a) { return 0; }
@@ -119,13 +111,6 @@ s4 asm_builtin_d2i(double a) { return 0; }
 s8 asm_builtin_d2l(double a) { return 0; }
 
 void use_class_as_object(void) {}
-void asm_builtin_monitorenter(java_objectheader *o) {}
-void *asm_builtin_monitorexit(java_objectheader *o) { return NULL; }
-
-s4 asm_builtin_arraycheckcast(java_objectheader *obj, vftbl_t *target)
-{
-	return 0;
-}
 
 #if defined(__MIPS__)
 long compare_and_swap(long *p, long oldval, long newval)
@@ -139,13 +124,11 @@ long compare_and_swap(long *p, long oldval, long newval)
 #endif
 
 
-void asm_builtin_aastore(java_objectarray *a, s4 index, java_objectheader *o) {}
+u1 *createcompilerstub(methodinfo *m) { return NULL; }
+u1 *codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
 
-functionptr createcompilerstub(methodinfo *m) { return NULL; }
-functionptr codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
-
-void removecompilerstub(functionptr stub) {}
-void removenativestub(functionptr stub) {}
+void removecompilerstub(u1 *stub) {}
+void removenativestub(u1 *stub) {}
 
 void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop) {}
 u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
@@ -156,7 +139,6 @@ void asm_handle_builtin_exception(classinfo *c) {}
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 
 
-void setVMClassField(classinfo *c) {}
 void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this)
 {
 	return NULL;
