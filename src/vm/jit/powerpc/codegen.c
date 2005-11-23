@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3751 2005-11-23 00:03:54Z twisti $
+   $Id: codegen.c 3760 2005-11-23 11:56:47Z twisti $
 
 */
 
@@ -1880,8 +1880,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 			case TYPE_LNG:
    				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
-				M_ILD(GET_LOW_REG(d), s1, disp + 4);       /* keep this order */
-				M_ILD(GET_HIGH_REG(d), s1, disp);          /* keep this order */
+				if (GET_HIGH_REG(d) == s1) {
+					M_ILD(GET_LOW_REG(d), s1, disp + 4);
+					M_ILD(GET_HIGH_REG(d), s1, disp);
+				} else {
+					M_ILD(GET_HIGH_REG(d), s1, disp);
+					M_ILD(GET_LOW_REG(d), s1, disp + 4);
+				}
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
