@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3463 2005-10-20 10:07:16Z edwin $
+## $Id: Makefile.am 3768 2005-11-23 15:05:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -71,8 +71,10 @@ noinst_HEADERS = \
 	asmpart.h \
 	codegen.inc \
 	codegen.inc.h \
+	disass.h \
 	lsra.inc \
 	lsra.h \
+	methodheader.h \
 	patcher.h \
 	reg.inc \
 	reg.h
