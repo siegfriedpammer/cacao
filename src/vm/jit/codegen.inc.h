@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3745 2005-11-22 23:43:53Z twisti $
+   $Id: codegen.inc.h 3778 2005-11-23 22:36:14Z twisti $
 
 */
 
@@ -98,12 +98,8 @@ struct codegendata {
 	u1             *mcodeptr;       /* code generation pointer                */
 #endif
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	u1             *lastmcodeptr;   /* last patcher position of basic block   */
-#endif
-
-#if defined(ENABLE_INTRP)
-	u1             *last_compiled;
 #endif
 
 	u1             *dsegtop;        /* pointer to top (end) of data area      */
