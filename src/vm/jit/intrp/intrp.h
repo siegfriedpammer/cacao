@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3247 2005-09-21 14:59:57Z twisti $
+   $Id: intrp.h 3782 2005-11-23 22:39:16Z twisti $
 
 */
 
@@ -160,7 +160,7 @@ typedef union {
 #define VM_IS_INST(inst, n) ((inst) == vm_prim[n])
 
 
-#define gen_BBSTART (cd->last_compiled = NULL)
+#define gen_BBSTART (cd->lastmcodeptr = NULL)
 
 
 union Cell_float {
@@ -219,8 +219,7 @@ void printarg_Cell    (Cell               x       );
 void vm_uncount_block(Inst *ip);
 block_count *vm_block_insert(Inst *ip);
 
-
-functionptr createcalljavafunction(methodinfo *m);
+u1 *createcalljavafunction(methodinfo *m);
 
 #endif /* _INTRP_H */
 
