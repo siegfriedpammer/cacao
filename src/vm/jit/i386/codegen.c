@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3664 2005-11-11 14:27:09Z twisti $
+   $Id: codegen.c 3757 2005-11-23 00:46:19Z twisti $
 
 */
 
@@ -5433,7 +5433,7 @@ gen_method:
 
 #define COMPILERSTUB_SIZE    12
 
-functionptr createcompilerstub(methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
     u1          *s;                     /* memory to hold the stub            */
 	codegendata *cd;
@@ -5463,7 +5463,7 @@ functionptr createcompilerstub(methodinfo *m)
 
 	dump_release(dumpsize);
 	
-    return (functionptr) (ptrint) s;
+    return s;
 }
 
 
@@ -5479,8 +5479,8 @@ functionptr createcompilerstub(methodinfo *m)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
 #endif
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	methoddesc *md;
 	s4          nativeparams;
