@@ -28,9 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3669 2005-11-15 00:18:01Z twisti $
+## $Id: Makefile.am 3766 2005-11-23 15:04:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+EXTRA_DIST = \
+	$(JAVA_VM_FILES)
 
 CLEANFILES = vm.zip
 
