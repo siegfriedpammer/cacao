@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3789 2005-11-23 22:55:56Z twisti $
+## $Id: Makefile.am 3791 2005-11-23 23:16:29Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -74,7 +74,7 @@ OUTPUT_JAVA_TESTS = \
 	FieldDisplacementOverflow \
 	StackDisplacementOverflow
 
-checkall: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
+check: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
 $(SIMPLE_JAVA_TESTS):
 	@$(JAVAC) -d . $(srcdir)/$@.java
