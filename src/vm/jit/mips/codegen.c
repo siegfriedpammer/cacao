@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3754 2005-11-23 00:20:13Z twisti $
+   $Id: codegen.c 3761 2005-11-23 12:31:43Z twisti $
 
 */
 
@@ -1529,8 +1529,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_AADD(s2, s1, REG_ITMP1);
-			M_BLDS(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			M_AADD(s2, s1, REG_ITMP3);
+			M_BLDS(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1543,9 +1543,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_AADD(s2, s1, REG_ITMP1);
-			M_AADD(s2, REG_ITMP1, REG_ITMP1);
-			M_SLDU(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			M_AADD(s2, s1, REG_ITMP3);
+			M_AADD(s2, REG_ITMP3, REG_ITMP3);
+			M_SLDU(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;			
 
@@ -1558,9 +1558,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_AADD(s2, s1, REG_ITMP1);
-			M_AADD(s2, REG_ITMP1, REG_ITMP1);
-			M_SLDS(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			M_AADD(s2, s1, REG_ITMP3);
+			M_AADD(s2, REG_ITMP3, REG_ITMP3);
+			M_SLDS(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1573,9 +1573,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_ASLL_IMM(s2, 2, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_ASLL_IMM(s2, 2, REG_ITMP3);
+			M_AADD(REG_ITMP3, s1, REG_ITMP3);
+			M_ILD(d, REG_ITMP3, OFFSET(java_intarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1588,9 +1588,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_ASLL_IMM(s2, 3, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			M_ASLL_IMM(s2, 3, REG_ITMP3);
+			M_AADD(REG_ITMP3, s1, REG_ITMP3);
+			M_LLD(d, REG_ITMP3, OFFSET(java_longarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1603,9 +1603,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_ASLL_IMM(s2, 2, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_ASLL_IMM(s2, 2, REG_ITMP3);
+			M_AADD(REG_ITMP3, s1, REG_ITMP3);
+			M_FLD(d, REG_ITMP3, OFFSET(java_floatarray, data[0]));
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1618,9 +1618,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_ASLL_IMM(s2, 3, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			M_ASLL_IMM(s2, 3, REG_ITMP3);
+			M_AADD(REG_ITMP3, s1, REG_ITMP3);
+			M_DLD(d, REG_ITMP3, OFFSET(java_doublearray, data[0]));
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
@@ -1633,9 +1633,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_ALD(d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP3);
+			M_AADD(REG_ITMP3, s1, REG_ITMP3);
+			M_ALD(d, REG_ITMP3, OFFSET(java_objectarray, data[0]));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
