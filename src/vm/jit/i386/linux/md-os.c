@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 3227 2005-09-19 14:03:36Z twisti $
+   $Id: md-os.c 3759 2005-11-23 00:47:27Z twisti $
 
 */
 
@@ -55,18 +55,18 @@
 
 void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *sp;
-	functionptr     ra;
-	functionptr     xpc;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *sp;
+	u1         *ra;
+	u1         *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	sp = (u1 *) _mc->gregs[REG_ESP];
-	xpc = (functionptr) _mc->gregs[REG_EIP];
-	ra = xpc;                           /* return address is equal to xpc     */
+	sp  = (u1 *) _mc->gregs[REG_ESP];
+	xpc = (u1 *) _mc->gregs[REG_EIP];
+	ra  = xpc;                          /* return address is equal to xpc     */
 
 	_mc->gregs[REG_EAX] =
 		(ptrint) stacktrace_hardware_nullpointerexception(NULL, sp, ra, xpc);
@@ -84,18 +84,18 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *sp;
-	functionptr     ra;
-	functionptr     xpc;
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *sp;
+	u1         *ra;
+	u1         *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	sp = (u1 *) _mc->gregs[REG_ESP];
-	xpc = (functionptr) _mc->gregs[REG_EIP];
-	ra = xpc;                           /* return address is equal to xpc     */
+	sp  = (u1 *) _mc->gregs[REG_ESP];
+	xpc = (u1 *) _mc->gregs[REG_EIP];
+	ra  = xpc;                          /* return address is equal to xpc     */
 
 	_mc->gregs[REG_EAX] =
 		(ptrint) stacktrace_hardware_arithmeticexception(NULL, sp, ra, xpc);
