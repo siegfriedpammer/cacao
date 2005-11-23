@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3776 2005-11-23 22:33:55Z twisti $
+## $Id: Makefile.am 3786 2005-11-23 22:49:44Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,7 +46,7 @@ EXTRA_DIST = \
 	fp.output\
 	extest.java \
 	extest.2output \
-	clinitexception \
+	clinitexception.java \
 	clinitexception.2output \
 	LoadDisplacementOverflow.java \
 	LoadDisplacementOverflow.output \
