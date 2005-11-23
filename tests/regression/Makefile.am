@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3786 2005-11-23 22:49:44Z twisti $
+## $Id: Makefile.am 3789 2005-11-23 22:55:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,6 +37,7 @@ JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_INSTALL_D
 JAVAC     = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
 
 EXTRA_DIST = \
+	Test.sh \
 	HelloWorld.java \
 	jctest.java \
 	jctest.output \
