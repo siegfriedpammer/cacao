@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 3227 2005-09-19 14:03:36Z twisti $
+   $Id: md.c 3758 2005-11-23 00:46:54Z twisti $
 
 */
 
@@ -57,15 +57,34 @@ void md_init(void)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* on i386 the return address is above the current stack frame */
 
-	ra = (functionptr) *((u1 **) (sp + framesize));
+	ra = *((u1 **) (sp + framesize));
 
 	return ra;
+}
+
+
+/* md_codegen_findmethod *******************************************************
+
+   On this architecture just a wrapper function to codegen_findmethod.
+
+*******************************************************************************/
+
+u1 *md_codegen_findmethod(u1 *ra)
+{
+	u1 *pv;
+
+	/* the the start address of the function which contains this
+       address from the method table */
+
+	pv = codegen_findmethod(ra);
+
+	return pv;
 }
 
 
