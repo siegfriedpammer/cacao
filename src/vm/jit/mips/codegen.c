@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3720 2005-11-19 03:10:38Z edwin $
+   $Id: codegen.c 3754 2005-11-23 00:20:13Z twisti $
 
 */
 
@@ -4031,7 +4031,7 @@ gen_method:
 #define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
 
 
-functionptr createcompilerstub(methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
 	ptrint *s;                          /* memory to hold the stub            */
 	s4     *mcodeptr;                   /* code generation pointer            */
@@ -4055,7 +4055,7 @@ functionptr createcompilerstub(methodinfo *m)
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
 
-	return (functionptr) (((u1 *) s) + COMPILERSTUB_DATASIZE);
+	return (((u1 *) s) + COMPILERSTUB_DATASIZE);
 }
 
 
@@ -4065,8 +4065,8 @@ functionptr createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
