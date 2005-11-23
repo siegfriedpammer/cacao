@@ -28,11 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3780 2005-11-23 22:37:53Z twisti $
+## $Id: Makefile.am 3790 2005-11-23 23:16:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_srcdir)/src/libffi/include -I$(top_builddir) -I$(top_builddir)/src
+
+EXTRA_DIST = \
+	java.vmg
 
 noinst_LTLIBRARIES = libintrp.la
 
