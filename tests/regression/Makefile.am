@@ -28,13 +28,32 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3698 2005-11-17 18:40:04Z twisti $
+## $Id: Makefile.am 3776 2005-11-23 22:33:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
 JAVAC     = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
+
+EXTRA_DIST = \
+	HelloWorld.java \
+	jctest.java \
+	jctest.output \
+	fptest.java \
+	fptest.output \
+	fp.java \
+	fp.output\
+	extest.java \
+	extest.2output \
+	clinitexception \
+	clinitexception.2output \
+	LoadDisplacementOverflow.java \
+	LoadDisplacementOverflow.output \
+	FieldDisplacementOverflow.java \
+	FieldDisplacementOverflow.output \
+	StackDisplacementOverflow.java \
+	StackDisplacementOverflow.output
 
 CLEANFILES = \
 	*.class \
