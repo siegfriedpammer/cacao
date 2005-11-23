@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3765 2005-11-23 14:41:16Z twisti $
+## $Id: Makefile.am 3780 2005-11-23 22:37:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,9 +46,8 @@ libintrp_la_SOURCES = \
 	intrp.h \
 	md.c \
 	patcher.c \
-	peephole.c
-
-BUILT_SOURCES = \
+	peephole.c \
+	\
 	java-vm.i \
 	java-disasm.i \
 	java-gen.i \
