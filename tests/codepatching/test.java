@@ -32,7 +32,11 @@ public class test extends Thread {
 
     public test() {
     }
-    
+
+    public void start() {
+        run();
+    }
+
     public void run() {
         invokestatic();
 
@@ -66,7 +70,7 @@ public class test extends Thread {
     }
 
 
-    public void getstatic() {
+    private void getstatic() {
         try {
             p("getstatic (I): ");
             if (doit)
@@ -118,8 +122,7 @@ public class test extends Thread {
         }
     }
 
-
-    public void putstatic() {
+    private void putstatic() {
         try {
             p("putstatic (I): ");
             if (doit) {
@@ -182,7 +185,7 @@ public class test extends Thread {
         }
     }
 
-    public void getfield() {
+    private void getfield() {
         try {
             p("getfield (I): ");
             if (doit)
@@ -234,8 +237,7 @@ public class test extends Thread {
         }
     }
 
-
-    public void putfield() {
+    private void putfield() {
         try {
             p("putfield (I): ");
             if (doit) {
@@ -302,7 +304,7 @@ public class test extends Thread {
         }
     }
 
-    public void putfieldconst() {
+    private void putfieldconst() {
         try {
             p("putfieldconst (I,F): ");
             if (doit) {
@@ -376,7 +378,7 @@ public class test extends Thread {
         }
     }
 
-    public void invokespecial() {
+    private void invokespecial() {
         try {
             p("invokespecial: ");
             if (doit)
@@ -498,35 +500,35 @@ public class test extends Thread {
         pln("FAILED: " + t);
     }
 
-    public void check(int a, int b) {
+    private void check(int a, int b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    public void check(long a, long b) {
+    private void check(long a, long b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    public void check(float a, float b) {
+    private void check(float a, float b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    public void check(double a, double b) {
+    private void check(double a, double b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    public void check(Object a, Object b) {
+    private void check(Object a, Object b) {
         if (a == b)
             ok();
         else
