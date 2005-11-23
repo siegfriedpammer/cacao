@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3057 2005-07-18 22:34:58Z twisti $
+## $Id: Makefile.am 3764 2005-11-23 14:40:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,10 +36,6 @@ SUBDIRS = codepatching native regression
 
 EXTRA_DIST = \
 	x.java x.output \
-	jctest.java jctest.output \
-	fptest.java fptest.output \
-	fp.java fp.output \
-	extest.java extest.output extest.2output\
 	TestBase.java TestArrayClasses.java TestArrayClasses.output \
 	BasicToStrings.java BasicToStrings.output \
 	GCBench.java \
