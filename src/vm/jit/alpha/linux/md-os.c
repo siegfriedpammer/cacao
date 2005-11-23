@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.c - machine dependent Alpha functions
+/* src/vm/jit/alpha/linux/md.c - machine dependent Alpha Linux functions
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -24,13 +24,11 @@
 
    Contact: cacao@complang.tuwien.ac.at
 
-   Authors: Andreas Krall
-            Reinhard Grafl
+   Authors: Christian Thalinger
 
-   Changes: Joseph Wenninger
-            Christian Thalinger
+   Changes:
 
-   $Id: md-os.c 3772 2005-11-23 21:36:35Z twisti $
+   $Id: md-os.c 3774 2005-11-23 21:47:11Z twisti $
 
 */
 
@@ -46,41 +44,6 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
-
-
-/* md_init *********************************************************************
-
-   Do some machine dependent initialization.
-
-*******************************************************************************/
-
-void md_init(void)
-{
-	/* XXX TWISTI: do we really need this? fptest's seem to work fine */
-
-#if defined(__LINUX__)
-/* Linux on Digital Alpha needs an initialisation of the ieee floating point
-	control for IEEE compliant arithmetic (option -mieee of GCC). Under
-	Digital Unix this is done automatically.
-*/
-
-#include <asm/fpu.h>
-
-extern unsigned long ieee_get_fp_control();
-extern void ieee_set_fp_control(unsigned long fp_control);
-
-	/* initialize floating point control */
-
-	ieee_set_fp_control(ieee_get_fp_control()
-						& ~IEEE_TRAP_ENABLE_INV
-						& ~IEEE_TRAP_ENABLE_DZE
-/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-						& ~IEEE_TRAP_ENABLE_OVF);
-#endif
-
-	/* nothing to do */
-}
 
 
 /* signal_handler_sigsegv ******************************************************
@@ -129,93 +92,19 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
+void thread_restartcriticalsection(ucontext_t *_uc)
 {
-	void *critical;
+	mcontext_t *_mc;
+	void       *critical;
 
-	critical = thread_checkcritical((void *) uc->uc_mcontext.sc_pc);
+	_mc = &_uc->uc_mcontext;
+
+	critical = thread_checkcritical((void *) _mc->sc_pc);
 
 	if (critical)
-		uc->uc_mcontext.sc_pc = (ptrint) critical;
+		_mc->sc_pc = (ptrint) critical;
 }
 #endif
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on Alpha the return address is located on the top of the stackframe */
-
-	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
-
-	return ra;
-}
-
-
-/* md_codegen_findmethod *******************************************************
-
-   Machine code:
-
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
-
-*******************************************************************************/
-
-u1 *md_codegen_findmethod(u1 *ra)
-{
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
-
-	pv = ra;
-
-	/* get first instruction word after jump */
-
-	mcode = *((u4 *) ra);
-
-	/* check if we have 2 instructions (ldah, lda) */
-
-	if ((mcode >> 16) == 0x277a) {
-		/* get displacement of first instruction (ldah) */
-
-		offset = (s4) (mcode << 16);
-		pv += offset;
-
-		/* get displacement of second instruction (lda) */
-
-		mcode = *((u4 *) (ra + 1 * 4));
-
-		if ((mcode >> 16) != 0x237b) {
-			log_text("No `lda pv,x(pv)' instruction found on return address!");
-			assert(0);
-		}
-
-		offset = (s2) (mcode & 0x0000ffff);
-		pv += offset;
-
-	} else {
-		/* get displacement of first instruction (lda) */
-
-		if ((mcode >> 16) != 0x237a) {
-			log_text("No `lda pv,x(ra)' instruction found on return address!");
-			assert(0);
-		}
-
-		offset = (s2) (mcode & 0x0000ffff);
-		pv += offset;
-	}
-
-	return pv;
-}
 
 
 /*
