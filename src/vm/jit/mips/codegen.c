@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3761 2005-11-23 12:31:43Z twisti $
+   $Id: codegen.c 3762 2005-11-23 12:54:34Z twisti $
 
 */
 
@@ -1648,8 +1648,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_int(s3, src, REG_ITMP3);
 			M_AADD(s2, s1, REG_ITMP1);
+			var_to_reg_int(s3, src, REG_ITMP3);
 			M_BST(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
 			break;
 
@@ -1662,9 +1662,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_int(s3, src, REG_ITMP3);
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
+			var_to_reg_int(s3, src, REG_ITMP3);
 			M_SST(s3, REG_ITMP1, OFFSET(java_chararray, data[0]));
 			break;
 
@@ -1676,10 +1676,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_int(s3, src, REG_ITMP3);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_IST(s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			var_to_reg_int(s3, src, REG_ITMP3);
+			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1690,10 +1690,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_int(s3, src, REG_ITMP3);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_LST(s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			var_to_reg_int(s3, src, REG_ITMP3);
+			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1704,10 +1704,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_flt(s3, src, REG_FTMP1);
 			M_ASLL_IMM(s2, 2, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_FST(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			var_to_reg_flt(s3, src, REG_FTMP1);
+			M_FST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1718,10 +1718,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			var_to_reg_flt(s3, src, REG_FTMP1);
 			M_ASLL_IMM(s2, 3, REG_ITMP2);
 			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_DST(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			var_to_reg_flt(s3, src, REG_FTMP1);
+			M_DST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
 			break;
 
 
@@ -1748,51 +1748,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
 			var_to_reg_int(s3, src, REG_ITMP3);
-			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_AST(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_AST_INTERN(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
 			break;
 
-
-		case ICMD_IASTORECONST:   /* ..., arrayref, index  ==> ...            */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			M_ASLL_IMM(s2, 2, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_IST(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
-			break;
-
-		case ICMD_LASTORECONST:   /* ..., arrayref, index  ==> ...            */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			M_ASLL_IMM(s2, 3, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_LST(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
-			break;
-
-		case ICMD_AASTORECONST:   /* ..., arrayref, index  ==> ...            */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
-			M_AADD(REG_ITMP2, s1, REG_ITMP1);
-			M_AST(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
-			break;
 
 		case ICMD_BASTORECONST:   /* ..., arrayref, index  ==> ...            */
 
@@ -1818,6 +1779,45 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_AADD(s2, s1, REG_ITMP1);
 			M_AADD(s2, REG_ITMP1, REG_ITMP1);
 			M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			break;
+
+		case ICMD_IASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, 2, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_IST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			break;
+
+		case ICMD_LASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, 3, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_LST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			break;
+
+		case ICMD_AASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			M_ASLL_IMM(s2, POINTERSHIFT, REG_ITMP2);
+			M_AADD(REG_ITMP2, s1, REG_ITMP1);
+			M_AST_INTERN(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
 			break;
 
 
