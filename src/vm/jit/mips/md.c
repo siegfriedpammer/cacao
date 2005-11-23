@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md.c 3557 2005-11-03 22:42:00Z twisti $
+   $Id: md.c 3755 2005-11-23 00:21:14Z twisti $
 
 */
 
@@ -63,15 +63,15 @@ void docacheflush(u1 *p, long bytelen)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* on MIPS the return address is located on the top of the stackframe */
 
 	/* XXX change this if we ever want to use 4-byte stackslots */
-	/* ra = (functionptr) *((u1 **) (sp + framesize - SIZEOF_VOID_P)); */
-	ra = (functionptr) (ptrint) *((u1 **) (sp + framesize - 8));
+	/* ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P)); */
+	ra = *((u1 **) (sp + framesize - 8));
 
 	return ra;
 }
@@ -162,7 +162,7 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 }
 
 
-/* codegen_findmethod **********************************************************
+/* md_codegen_findmethod *******************************************************
 
    Machine code:
 
@@ -172,17 +172,13 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 *******************************************************************************/
 
-functionptr codegen_findmethod(functionptr pc)
+u1 *md_codegen_findmethod(u1 *ra)
 {
-	u1 *ra;
 	u1 *pv;
 	u4  mcode;
 	s4  offset;
 
-	ra = (u1 *) (ptrint) pc;
-
 	/* get the offset of the instructions */
-
 
 	/* get first instruction word after jump */
 
@@ -231,7 +227,7 @@ functionptr codegen_findmethod(functionptr pc)
 
 	pv = ra + offset;
 
-	return (functionptr) (ptrint) pv;
+	return pv;
 }
 
 
