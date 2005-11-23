@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3772 2005-11-23 21:36:35Z twisti $
+   $Id: md-os.c 3772 2005-11-23 21:36:35Z twisti $
 
 */
 
@@ -81,6 +81,64 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 	/* nothing to do */
 }
+
+
+/* signal_handler_sigsegv ******************************************************
+
+   NullPointerException signal handler for hardware null pointer check.
+
+*******************************************************************************/
+
+void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t  *_uc;
+	mcontext_t  *_mc;
+	u4           instr;
+	ptrint       addr;
+	u1          *pv;
+	u1          *sp;
+	u1          *ra;
+	u1          *xpc;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	instr = *((s4 *) (_mc->sc_pc));
+	addr = _mc->sc_regs[(instr >> 16) & 0x1f];
+
+	if (addr == 0) {
+		pv  = (u1 *) _mc->sc_regs[REG_PV];
+		sp  = (u1 *) _mc->sc_regs[REG_SP];
+		ra  = (u1 *) _mc->sc_regs[REG_RA];       /* this is correct for leafs */
+		xpc = (u1 *) _mc->sc_pc;
+
+		_mc->sc_regs[REG_ITMP1_XPTR] =
+			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+
+		_mc->sc_regs[REG_ITMP2_XPC] = (ptrint) xpc;
+		_mc->sc_pc = (ptrint) asm_handle_exception;
+
+	} else {
+		addr += (long) ((instr << 16) >> 16);
+
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
+								   addr, _mc->sc_pc);
+	}
+}
+
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+void thread_restartcriticalsection(ucontext_t *uc)
+{
+	void *critical;
+
+	critical = thread_checkcritical((void *) uc->uc_mcontext.sc_pc);
+
+	if (critical)
+		uc->uc_mcontext.sc_pc = (ptrint) critical;
+}
+#endif
 
 
 /* md_stacktrace_get_returnaddress *********************************************
