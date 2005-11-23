@@ -101,7 +101,7 @@ void gen_inst(Inst **vmcodepp, Inst instr)
      parameter, but we need to pass in cd to make last_compiled
      thread-safe */
   codegendata *cd = (codegendata *) vmcodepp;
-  Inst *last_compiled = cd->last_compiled;
+  Inst *last_compiled = cd->lastmcodeptr;
   
   if (last_compiled != NULL) {
     Inst combo;
@@ -119,6 +119,7 @@ void gen_inst(Inst **vmcodepp, Inst instr)
   /* actually generate the threaded code instruction */
 
   *((Inst *) cd->mcodeptr) = instr;
-  cd->last_compiled = cd->mcodeptr;
+
+  cd->lastmcodeptr = cd->mcodeptr;
   cd->mcodeptr += sizeof(Inst);
 }
