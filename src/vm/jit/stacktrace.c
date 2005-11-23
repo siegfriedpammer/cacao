@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3741 2005-11-22 23:07:41Z twisti $
+   $Id: stacktrace.c 3779 2005-11-23 22:36:59Z twisti $
 
 */
 
@@ -112,8 +112,18 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 
 	/* if we don't have pv handy */
 
-	if (pv == NULL)
-		pv = md_codegen_findmethod(ra);
+	if (pv == NULL) {
+#if defined(ENABLE_INTRP)
+		if (opt_intrp)
+			pv = codegen_findmethod(ra);
+		else
+#endif
+			{
+#if defined(ENABLE_JIT)
+				pv = md_codegen_findmethod(ra);
+#endif
+			}
+	}
 
 	/* get methodinfo pointer from data segment */
 
@@ -157,7 +167,7 @@ void stacktrace_create_inline_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 		/* if we don't have pv handy */
 
 		if (pv == NULL)
-			pv = md_codegen_findmethod(ra);
+			pv = codegen_findmethod(ra);
 
 	}
 #endif
@@ -200,8 +210,18 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* sometimes we don't have pv handy (e.g. in asmpart.S:
        L_asm_call_jit_compiler_exception or in the interpreter). */
 
-	if (pv == NULL)
-		pv = md_codegen_findmethod(ra);
+	if (pv == NULL) {
+#if defined(ENABLE_INTRP)
+		if (opt_intrp)
+			pv = codegen_findmethod(ra);
+		else
+#endif
+			{
+#if defined(ENABLE_JIT)
+				pv = md_codegen_findmethod(ra);
+#endif
+			}
+	}
 
 #if defined(ENABLE_INTRP)
 	/* When using the interpreter, we pass RA to the function. */
@@ -800,7 +820,16 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				/* this is an native stub stackframe info, so we can get the */
 				/* parent pv from the return address (ICMD_INVOKE*) */
 
-				pv = md_codegen_findmethod(ra);
+#if defined(ENABLE_INTRP)
+				if (opt_intrp)
+					pv = codegen_findmethod(ra);
+				else
+#endif
+					{
+#if defined(ENABLE_JIT)
+						pv = md_codegen_findmethod(ra);
+#endif
+					}
 
 				/* get methodinfo pointer from parent data segment */
 
@@ -874,7 +903,10 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					/* get data segment and methodinfo pointer from parent */
 					/* method */
 
+#if defined(ENABLE_JIT)
 					pv = md_codegen_findmethod(ra);
+#endif
+
 					m = *((methodinfo **) (pv + MethodPointer));
 
 #if defined(ENABLE_INTRP)
@@ -927,7 +959,17 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 			/* get data segment and methodinfo pointer from parent method */
 
-			pv = md_codegen_findmethod(ra);
+#if defined(ENABLE_INTRP)
+			if (opt_intrp)
+				pv = codegen_findmethod(ra);
+			else
+#endif
+				{
+#if defined(ENABLE_JIT)
+					pv = md_codegen_findmethod(ra);
+#endif
+				}
+
 			m = *((methodinfo **) (pv + MethodPointer));
 
 			/* walk the stack */
