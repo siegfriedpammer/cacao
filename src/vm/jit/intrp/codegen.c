@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3731 2005-11-22 11:39:17Z twisti $
+   $Id: codegen.c 3781 2005-11-23 22:38:24Z twisti $
 
 */
 
@@ -1808,7 +1808,7 @@ all methods are called indirectly through methodptr
 
 #define COMPILERSTUB_SIZE 4
 
-functionptr createcompilerstub (methodinfo *m)
+u1 *createcompilerstub (methodinfo *m)
 {
 	Inst        *s;
 	codegendata *cd;
@@ -1847,7 +1847,7 @@ functionptr createcompilerstub (methodinfo *m)
 
 	dump_release(dumpsize);
 	
-	return (functionptr) s;
+	return (u1 *) s;
 }
 
 
@@ -1894,8 +1894,8 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 }
 
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	ffi_cif *cif;
 
@@ -1941,10 +1941,10 @@ functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 }
 
 
-functionptr createcalljavafunction(methodinfo *m)
+u1 *createcalljavafunction(methodinfo *m)
 {
 	methodinfo         *tmpm;
-	functionptr         entrypoint;
+	u1                 *entrypoint;
 	codegendata        *cd;
 	registerdata       *rd;
 	t_inlining_globals *id;
