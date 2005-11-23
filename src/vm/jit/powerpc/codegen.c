@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3702 2005-11-17 19:00:29Z twisti $
+   $Id: codegen.c 3751 2005-11-23 00:03:54Z twisti $
 
 */
 
@@ -3749,7 +3749,7 @@ gen_method:
 
 #define COMPSTUBSIZE 6
 
-functionptr createcompilerstub(methodinfo *m)
+u1 *createcompilerstub(methodinfo *m)
 {
 	s4 *s = CNEW(s4, COMPSTUBSIZE);     /* memory to hold the stub            */
 	s4 *mcodeptr = s;                   /* code generation pointer            */
@@ -3769,7 +3769,7 @@ functionptr createcompilerstub(methodinfo *m)
 		count_cstub_len += COMPSTUBSIZE * 4;
 #endif
 
-	return (functionptr) (ptrint) s;
+	return (u1 *) s;
 }
 
 
@@ -3779,8 +3779,8 @@ functionptr createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-functionptr createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-							 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+					 registerdata *rd, methoddesc *nmd)
 {
 	s4         *mcodeptr;               /* code generation pointer            */
 	s4          stackframesize;         /* size of stackframe if needed       */
