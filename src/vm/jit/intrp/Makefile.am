@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3710 2005-11-18 00:52:13Z twisti $
+## $Id: Makefile.am 3765 2005-11-23 14:41:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -42,7 +42,6 @@ libintrp_la_SOURCES = \
 	codegen.h \
 	disasm.c \
 	disass.c \
-	disass.h \
 	engine.c \
 	intrp.h \
 	md.c \

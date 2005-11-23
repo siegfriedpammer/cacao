@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3670 2005-11-15 00:26:07Z twisti $
+## $Id: Makefile.am 3765 2005-11-23 14:41:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -60,7 +60,6 @@ libarch_la_SOURCES = \
 	codegen.c \
 	codegen.h \
 	disass.c \
-	disass.h \
 	patcher.c \
 	\
 	md-abi.c \
