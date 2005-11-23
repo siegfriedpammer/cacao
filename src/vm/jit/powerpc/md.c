@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 3234 2005-09-21 12:11:58Z twisti $
+   $Id: md.c 3752 2005-11-23 00:05:04Z twisti $
 
 */
 
@@ -59,19 +59,19 @@ void md_init(void)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* on PowerPC the return address is located in the linkage area */
 
-	ra = (functionptr) (ptrint) *((u1 **) (sp + framesize + LA_LR_OFFSET));
+	ra = *((u1 **) (sp + framesize + LA_LR_OFFSET));
 
 	return ra;
 }
 
 
-/* codegen_findmethod **********************************************************
+/* md_codegen_findmethod *******************************************************
 
    Machine code:
 
@@ -80,14 +80,12 @@ functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-functionptr codegen_findmethod(functionptr pc)
+u1 *md_codegen_findmethod(u1 *ra)
 {
-	u1 *ra;
 	u1 *pv;
 	u4  mcode;
 	s2  offset;
 
-	ra = (u1 *) (ptrint) pc;
 	pv = ra;
 
 	/* get offset of first instruction (addi) */
@@ -105,7 +103,7 @@ functionptr codegen_findmethod(functionptr pc)
 		pv += offset;
 	}
 
-	return (functionptr) (ptrint) pv;
+	return pv;
 }
 
 
