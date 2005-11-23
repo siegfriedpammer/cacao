@@ -28,16 +28,21 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3764 2005-11-23 14:40:36Z twisti $
+## $Id: Makefile.am 3777 2005-11-23 22:34:54Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = codepatching native regression
 
 EXTRA_DIST = \
-	x.java x.output \
-	TestBase.java TestArrayClasses.java TestArrayClasses.output \
-	BasicToStrings.java BasicToStrings.output \
+	hello.java \
+	x.java \
+	x.output \
+	TestBase.java \
+	TestArrayClasses.java \
+	TestArrayClasses.output \
+	BasicToStrings.java \
+	BasicToStrings.output \
 	GCBench.java \
 	JavaPerformance.java \
 	param_test.java
@@ -45,7 +50,7 @@ EXTRA_DIST = \
 JAVA = $(top_builddir)/src/cacao/cacao
 JAVAC = jikes -nowarn
 
-checkall: x.tst jctest.tst fptest.tst fp.tst extest.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
+checkall: x.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
 
 %.tst:
 	$(JAVAC) $*.java
