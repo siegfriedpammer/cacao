@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3777 2005-11-23 22:34:54Z twisti $
+## $Id: Makefile.am 3788 2005-11-23 22:55:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,6 +36,7 @@ SUBDIRS = codepatching native regression
 
 EXTRA_DIST = \
 	hello.java \
+	prop.java \
 	x.java \
 	x.output \
 	TestBase.java \
