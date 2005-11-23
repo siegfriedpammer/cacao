@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 3323 2005-10-04 18:33:30Z twisti $
+   $Id: md-os.c 3756 2005-11-23 00:21:56Z twisti $
 
 */
 
@@ -91,8 +91,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint       addr;
 	u1          *pv;
 	u1          *sp;
-	functionptr  ra;
-	functionptr  xpc;
+	u1          *ra;
+	u1          *xpc;
 
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -103,8 +103,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr == 0) {
 		pv  = (u1 *) _mc->gregs[REG_PV];
 		sp  = (u1 *) _mc->gregs[REG_SP];
-		ra  = (functionptr) _mc->gregs[REG_RA]; /* this is correct for leafs*/
-		xpc = (functionptr) _mc->gregs[CTX_EPC];
+		ra  = (u1 *) _mc->gregs[REG_RA];         /* this is correct for leafs */
+		xpc = (u1 *) _mc->gregs[CTX_EPC];
 
 		_mc->gregs[REG_ITMP1_XPTR] =
 			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
