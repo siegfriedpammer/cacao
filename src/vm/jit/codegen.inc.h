@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3778 2005-11-23 22:36:14Z twisti $
+   $Id: codegen.inc.h 3796 2005-11-25 11:31:01Z twisti $
 
 */
 
@@ -36,8 +36,7 @@
 #ifndef _CODEGEN_INC_H
 #define _CODEGEN_INC_H
 
-/* We typedef these structures before #includes to resolve circular           */
-/* dependencies.                                                              */
+/* forward typedefs ***********************************************************/
 
 typedef struct codegendata codegendata;
 typedef struct branchref branchref;
@@ -65,11 +64,14 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 /* Register Pack/Unpack Macros ************************************************/
 
-#define GET_LOW_REG(a)  (((a) & 0xffff0000) >> 16)
-#define GET_HIGH_REG(a) ((a) &  0x0000ffff)
+/* ATTENTION: Don't change the order where low and high bits are
+   stored! At least mips32 release in one case on that order. */
 
 #define PACK_REGS(low,high) \
-	( ((high) & 0x0000ffff) | (((low) & 0x0000ffff) << 16) )
+    ( (((high) & 0x0000ffff) << 16) | ((low) & 0x0000ffff) )
+
+#define GET_LOW_REG(a)      ((a) & 0x0000ffff)
+#define GET_HIGH_REG(a)    (((a) & 0xffff0000) >> 16)
 
 
 #if SIZEOF_VOID_P == 8
