@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3668 2005-11-14 19:48:30Z twisti $
+   $Id: jni.c 3804 2005-11-26 19:23:19Z twisti $
 
 */
 
@@ -802,9 +802,6 @@ jclass FindClass(JNIEnv *env, const char *name)
 	if (!link_class(c))
 		return NULL;
 
-	if (!use_class_as_object(c))
-		return NULL;
-
   	return (jclass) NewLocalRef(env, (jobject) c);
 }
   
@@ -874,9 +871,6 @@ jclass GetSuperclass(JNIEnv *env, jclass sub)
 	c = ((classinfo *) sub)->super.cls;
 
 	if (!c)
-		return NULL;
-
-	if (!use_class_as_object(c))
 		return NULL;
 
 	return (jclass) NewLocalRef(env, (jobject) c);
@@ -1329,9 +1323,6 @@ jclass GetObjectClass(JNIEnv *env, jobject obj)
 		return NULL;
 
  	c = obj->vftbl->class;
-
-	if (!use_class_as_object(c))
-		return NULL;
 
 	return (jclass) NewLocalRef(env, (jobject) c);
 }
