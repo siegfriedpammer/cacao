@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: VMClassLoader.c 3807 2005-11-26 21:51:11Z edwin $
 
 */
 
@@ -95,7 +95,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 		c = classcache_lookup_defined((java_objectheader *) cl, utfname);
 		if (c) {
-			return (java_lang_Class *) c;
+			*exceptionptr =
+				exceptions_new_linkageerror("duplicate class definition: ",c);
+			return NULL;
 		}
 
 	} else {

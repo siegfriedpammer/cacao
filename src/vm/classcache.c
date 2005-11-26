@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3681 2005-11-16 12:13:47Z twisti $
+   $Id: classcache.c 3807 2005-11-26 21:51:11Z edwin $
 
 */
 
@@ -513,8 +513,8 @@ classcache_store(
 				/* check if is has already been resolved to another class */
 				if (clsen->classobj != NULL && clsen->classobj != cls) {
 					/* a loading constraint is violated */
-					*exceptionptr = new_exception_message(string_java_lang_LinkageError,
-														  "loading constraint violated XXX add message");
+					*exceptionptr = exceptions_new_linkageerror(
+										"loading constraint violated: ",cls);
 					goto return_exception;
 				}
 
@@ -894,8 +894,8 @@ classcache_add_constraint(
 		if (clsenA->classobj != NULL && clsenB->classobj != NULL
 			&& clsenA->classobj != clsenB->classobj) {
 			/* no, the constraint is violated */
-			*exceptionptr = new_exception_message(string_java_lang_LinkageError,
-												  "loading constraint violated XXX add message");
+			*exceptionptr = exceptions_new_linkageerror(
+							  "loading constraint violated: ",clsenA->classobj);
 			goto return_exception;
 		}
 

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3800 2005-11-26 19:13:42Z twisti $
+   $Id: headers.c 3807 2005-11-26 21:51:11Z edwin $
 
 */
 
@@ -304,6 +304,22 @@ java_objectheader *new_noclassdeffounderror(utf *name)
 	return NULL;
 }
 
+
+java_objectheader *exceptions_new_linkageerror(const char *message,
+											   classinfo *c)
+{
+	fprintf(stderr, "java.lang.LinkageError: %s",message);
+	if (c) {
+		utf_fprint_classname(stderr, c->name);
+	}
+	fputc('\n', stderr);
+
+	exit(1);
+
+	/* keep compiler happy */
+
+	return NULL;
+}
 
 java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 													utf *name, utf *desc)

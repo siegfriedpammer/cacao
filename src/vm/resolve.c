@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3642 2005-11-08 19:01:17Z edwin $
+   $Id: resolve.c 3807 2005-11-26 21:51:11Z edwin $
 
 */
 
@@ -589,7 +589,7 @@ throw_error:
 	if (error == resolveIllegalAccessError)
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
 	else
-		*exceptionptr = new_exception_message(string_java_lang_LinkageError,message);
+		*exceptionptr = exceptions_new_linkageerror(message,NULL);
 	MFREE(message,char,msglen);
 	return false; /* exception */
 }

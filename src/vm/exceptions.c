@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3653 2005-11-11 11:16:42Z twisti $
+   $Id: exceptions.c 3807 2005-11-26 21:51:11Z edwin $
 
 */
 
@@ -98,6 +98,13 @@ bool exceptions_init(void)
 	if (!(class_java_lang_NoClassDefFoundError =
 		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
 		!link_class(class_java_lang_NoClassDefFoundError))
+		return false;
+
+	/* java/lang/LinkageError */
+
+	if (!(class_java_lang_LinkageError =
+		  load_class_bootstrap(utf_java_lang_LinkageError)) ||
+		!link_class(class_java_lang_LinkageError))
 		return false;
 
 	/* java/lang/NoSuchMethodError */
@@ -612,6 +619,49 @@ java_objectheader *new_internalerror(const char *message, ...)
 	/* create exception object */
 
 	o = new_exception_message(string_java_lang_InternalError, msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	return o;
+}
+
+
+/* exceptions_new_linkageerror *************************************************
+
+   Generates a java.lang.LinkageError with an error message.
+   If c != NULL, the name of c is appended to the error message.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_linkageerror(const char *message,
+											   classinfo *c)
+{
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+
+	/* calculate exception message length */
+
+	msglen = strlen(message) + 1;
+	if (c) {
+		msglen += utf_strlen(c->name);
+	}
+		
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
+
+	strcpy(msg,message);
+	if (c) {
+		utf_strcat(msg, c->name);
+	}
+
+	o = native_new_and_init_string(class_java_lang_LinkageError,
+								   javastring_new_char(msg));
 
 	/* free memory */
 
