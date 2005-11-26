@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3684 2005-11-16 13:28:33Z twisti $
+   $Id: loader.c 3806 2005-11-26 21:45:09Z twisti $
 
 */
 
@@ -79,8 +79,6 @@
 /* DEBUG HELPERS                                                              */
 /******************************************************************************/
 
-/*#define LOADER_VERBOSE*/
-
 #ifndef NDEBUG
 #define LOADER_DEBUG
 #endif
@@ -89,20 +87,6 @@
 #define LOADER_ASSERT(cond)  assert(cond)
 #else
 #define LOADER_ASSERT(cond)
-#endif
-
-#undef JOWENN_DEBUG
-#undef JOWENN_DEBUG1
-#undef JOWENN_DEBUG2
-
-#ifdef LOADER_VERBOSE
-static int loader_recursion = 0;
-#define LOADER_INDENT(str)   do { int i; for(i=0;i<loader_recursion*4;++i) {str[i]=' ';} str[i]=0;} while (0)
-#define LOADER_INC()  loader_recursion++
-#define LOADER_DEC()  loader_recursion--
-#else
-#define LOADER_INC()
-#define LOADER_DEC()
 #endif
 
 
@@ -1916,15 +1900,7 @@ classinfo *load_class_from_sysloader(utf *name)
 {
 	methodinfo        *m;
 	java_objectheader *cl;
-	classinfo         *r;
-
-#ifdef LOADER_VERBOSE
-	char logtext[MAXLOGTEXT];
-	LOADER_INDENT(logtext);
-	sprintf(logtext+strlen(logtext),"load_class_from_sysloader(");
-	utf_sprint(logtext+strlen(logtext),name);strcat(logtext,")");
-	log_text(logtext);
-#endif
+	classinfo         *c;
 
 	LOADER_ASSERT(class_java_lang_Object);
 	LOADER_ASSERT(class_java_lang_ClassLoader);
@@ -1940,15 +1916,15 @@ classinfo *load_class_from_sysloader(utf *name)
 		return false;
 
 	cl = (java_objectheader *) asm_calljavafunction(m, NULL, NULL, NULL, NULL);
+
 	if (!cl)
 		return false;
 
-	LOADER_INC();
-	r = load_class_from_classloader(name, cl);
-	LOADER_DEC();
+	c = load_class_from_classloader(name, cl);
 
-	return r;
+	return c;
 }
+
 
 /* load_class_from_classloader *************************************************
 
@@ -1966,33 +1942,17 @@ classinfo *load_class_from_sysloader(utf *name)
 
 classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 {
-	classinfo *r;
-
-#ifdef LOADER_VERBOSE
-	char logtext[MAXLOGTEXT];
-	LOADER_INDENT(logtext);
-	strcat(logtext,"load_class_from_classloader(");
-	utf_sprint(logtext+strlen(logtext),name);sprintf(logtext+strlen(logtext),",%p,",(void*)cl);
-	if (!cl) strcat(logtext,"<bootstrap>");
-	else if (cl->vftbl && cl->vftbl->class) utf_sprint(logtext+strlen(logtext),cl->vftbl->class->name);
-	else strcat(logtext,"<unknown class>");
-	strcat(logtext,")");
-	log_text(logtext);
-#endif
+	classinfo *c;
+	classinfo *tmpc;
 
 	LOADER_ASSERT(name);
 
 	/* lookup if this class has already been loaded */
 
-	r = classcache_lookup(cl, name);
+	c = classcache_lookup(cl, name);
 
-#ifdef LOADER_VERBOSE
-	if (r)
-		dolog("        cached -> %p",(void*)r);
-#endif
-
-	if (r)
-		return r;
+	if (c)
+		return c;
 
 	/* if other class loader than bootstrap, call it */
 
@@ -2023,7 +1983,18 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 					return false;
 
 				/* create the array class */
-				return class_array_of(comp, false);
+
+				c = class_array_of(comp, false);
+
+				tmpc = classcache_store(cl, c, true);
+
+				if (tmpc == NULL) {
+					/* exception, free the loaded class */
+					c->loaded = false;
+					class_free(c);
+				}
+
+				return tmpc;
 
 			case '[':
 				/* load the component class */
@@ -2034,11 +2005,25 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 					return false;
 
 				/* create the array class */
-				return class_array_of(comp, false);
+
+				c = class_array_of(comp, false);
+
+				tmpc = classcache_store(cl, c, true);
+
+				if (tmpc == NULL) {
+					/* exception, free the loaded class */
+					c->loaded = false;
+					class_free(c);
+				}
+
+				return tmpc;
 
 			default:
 				/* primitive array classes are loaded by the bootstrap loader */
-				return load_class_bootstrap(name);
+
+				c = load_class_bootstrap(name);
+
+				return c;
 			}
 		}
 		
@@ -2053,14 +2038,12 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 		if (!lc)
 			return false; /* exception */
 
-		LOADER_INC();
-		r = (classinfo *) asm_calljavafunction(lc,
+		c = (classinfo *) asm_calljavafunction(lc,
 											   cl,
 											   javastring_new_slash_to_dot(name),
 											   NULL, NULL);
-		LOADER_DEC();
 
-		if (r) {
+		if (c) {
 			/* Store this class in the loaded class cache. If another
 			   class with the same (initloader,name) pair has been
 			   stored earlier it will be returned by classcache_store
@@ -2068,17 +2051,17 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			   because it has already been exposed to Java code which
 			   may have kept references to that class. */
 
-		    classinfo *c = classcache_store(cl,r,false);
+		    tmpc = classcache_store(cl, c, false);
 
-			if (c == NULL) {
+			if (tmpc == NULL) {
 				/* exception, free the loaded class */
-				r->loaded = false;
-				class_free(r);
+				c->loaded = false;
+				class_free(c);
 			}
 
-			r = c;
-		}
-		else {
+			c = tmpc;
+
+		} else {
 			/* loadClass has thrown an exception */
 			/* we must convert ClassNotFoundException into NoClassDefFoundException */
 			/* XXX maybe we should have a flag that avoids this conversion */
@@ -2089,20 +2072,18 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		/* SUN compatible -verbose:class output */
 
-		if (opt_verboseclass && (r != NULL) && (r->classloader == cl)) {
+		if (opt_verboseclass && (c != NULL) && (c->classloader == cl)) {
 			printf("[Loaded ");
 			utf_display_classname(name);
 			printf("]\n");
 		}
 
-		return r;
+		return c;
 	} 
 
-	LOADER_INC();
-	r = load_class_bootstrap(name);
-	LOADER_DEC();
+	c = load_class_bootstrap(name);
 
-	return r;
+	return c;
 }
 
 
@@ -2128,26 +2109,15 @@ classinfo *load_class_bootstrap(utf *name)
 	classbuffer *cb;
 	classinfo   *c;
 	classinfo   *r;
-#ifdef LOADER_VERBOSE
-	char logtext[MAXLOGTEXT];
-#endif
 
 	/* for debugging */
 
 	LOADER_ASSERT(name);
-	LOADER_INC();
 
 	/* lookup if this class has already been loaded */
 
 	if ((r = classcache_lookup(NULL, name)))
-		goto success;
-
-#ifdef LOADER_VERBOSE
-	LOADER_INDENT(logtext);
-	strcat(logtext,"load_class_bootstrap(");
-	utf_sprint(logtext+strlen(logtext),name);strcat(logtext,")");
-	log_text(logtext);
-#endif
+		return r;
 
 	/* create the classinfo */
 
@@ -2158,10 +2128,9 @@ classinfo *load_class_bootstrap(utf *name)
 	if (name->text[0] == '[') {
 		c = load_newly_created_array(c, NULL);
 		if (c == NULL)
-			goto return_exception;
+			return NULL;
 		LOADER_ASSERT(c->loaded);
-		r = c;
-		goto success;
+		return c;
 	}
 
 #if defined(STATISTICS)
@@ -2186,7 +2155,8 @@ classinfo *load_class_bootstrap(utf *name)
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
 									 name);
-		goto return_exception;
+
+		return NULL;
 	}
 	
 	/* load the class from the buffer */
@@ -2235,18 +2205,7 @@ classinfo *load_class_bootstrap(utf *name)
 		compilingtime_start();
 #endif
 
-	if (!r)
-		goto return_exception;
-
-success:
-	LOADER_DEC();
-
 	return r;
-
-return_exception:
-	LOADER_DEC();
-
-	return NULL;
 }
 
 
@@ -2279,9 +2238,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 classrefsize;
 	u4 descsize;
 #endif
-#ifdef LOADER_VERBOSE
-	char logtext[MAXLOGTEXT];
-#endif
 
 	/* get the classbuffer's class */
 
@@ -2291,14 +2247,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	if (c->loaded)
 		return c;
-
-#ifdef LOADER_VERBOSE
-	LOADER_INDENT(logtext);
-	strcat(logtext,"load_class_from_classbuffer(");
-	utf_sprint(logtext+strlen(logtext),c->name);strcat(logtext,")");
-	log_text(logtext);
-	LOADER_INC();
-#endif
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -2772,7 +2720,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (loadverbose)
 		log_message_class("Loading done class: ", c);
 
-	LOADER_DEC();
 	return c;
 
 return_exception:
@@ -2782,7 +2729,6 @@ return_exception:
 
 	/* an exception has been thrown */
 
-	LOADER_DEC();
 	return NULL;
 }
 
@@ -2815,14 +2761,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	s4                 namelen;
 	utf               *u;
 
-#ifdef LOADER_VERBOSE
-	char logtext[MAXLOGTEXT];
-	LOADER_INDENT(logtext);
-	strcat(logtext,"load_newly_created_array(");utf_sprint_classname(logtext+strlen(logtext),c->name);
-	sprintf(logtext+strlen(logtext),") loader=%p",loader);
-	log_text(logtext);
-#endif
-
 	text = c->name->text;
 	namelen = c->name->blength;
 
@@ -2840,13 +2778,11 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		/* c is an array of arrays. We have to create the component class. */
 
 		u = utf_new(text + 1, namelen - 1);
-		LOADER_INC();
-		if (!(comp = load_class_from_classloader(u, loader))) {
-			LOADER_DEC();
+		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
-		}
-		LOADER_DEC();
+
 		LOADER_ASSERT(comp->loaded);
+
 		if (opt_eager)
 			if (!link_class(c))
 				return NULL;
@@ -2867,13 +2803,11 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		u = utf_new(text + 2, namelen - 3);
 
-		LOADER_INC();
-		if (!(comp = load_class_from_classloader(u, loader))) {
-			LOADER_DEC();
+		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
-		}
-		LOADER_DEC();
+
 		LOADER_ASSERT(comp->loaded);
+
 		if (opt_eager)
 			if (!link_class(c))
 				return NULL;
@@ -2984,7 +2918,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	/* insert class into the loaded class cache */
 	/* XXX free classinfo if NULL returned? */
 
-	return classcache_store(loader,c,true);
+	return classcache_store(loader, c, true);
 }
 
 
