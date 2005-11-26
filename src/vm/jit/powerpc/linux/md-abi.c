@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 3234 2005-09-21 12:11:58Z twisti $
+   $Id: md-abi.c 3797 2005-11-26 15:56:07Z twisti $
 
 */
 
@@ -52,7 +52,7 @@
    --- in
    md->paramcount:           Number of arguments for this method
    md->paramtypes[].type:    Argument types
-   
+
    --- out
    md->params[].inmemory:    Argument spilled on stack
    md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
@@ -153,6 +153,7 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+
 /* md_return_alloc *************************************************************
 
    Precolor the Java Stackelement containing the Return Value, if
@@ -164,7 +165,7 @@ void md_param_alloc(methoddesc *md)
    return_type:             Return Type of the Method (TYPE_INT.. TYPE_ADR)
                             TYPE_VOID is not allowed!
    stackslot:               Java Stackslot to contain the Return Value
-   
+
    --- out
    if precoloring was possible:
    stackslot->varkind       =ARGVAR
@@ -172,7 +173,6 @@ void md_param_alloc(methoddesc *md)
    	        ->flags         =0
    	        ->regoff        =[REG_RESULT, (REG_RESULT2/REG_RESULT), REG_FRESULT]
    rd->arg[flt|int]reguse   set to a value according the register usage
-		                 
 
 *******************************************************************************/
 
