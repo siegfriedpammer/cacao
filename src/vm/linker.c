@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3685 2005-11-16 13:28:59Z twisti $
+   $Id: linker.c 3803 2005-11-26 19:18:33Z twisti $
 
 */
 
@@ -112,6 +112,19 @@ bool linker_init(void)
 
 	interfaceindex = 0;
 
+	/* link java.lang.Class as first class of the system, because we
+       need it's vftbl for all other classes so we can use a class as
+       object */
+
+	if (!link_class(class_java_lang_Class))
+		return false;
+
+	/* now set the header.vftbl of all classes which were created
+       before java.lang.Class was linked */
+
+	class_postset_header_vftbl();
+
+
 	/* link important system classes */
 
 	if (!link_class(class_java_lang_Object))
@@ -158,9 +171,6 @@ bool linker_init(void)
 
 
 	/* load some other important classes */
-
-	if (!link_class(class_java_lang_Class))
-		return false;
 
 	if (!link_class(class_java_lang_ClassLoader))
 		return false;
@@ -714,7 +724,7 @@ static classinfo *link_class_intern(classinfo *c)
 							  sizeof(methodptr*) * (interfacetablelength - (interfacetablelength > 0)));
 	v = (vftbl_t *) (((methodptr *) v) +
 					 (interfacetablelength - 1) * (interfacetablelength > 1));
-	c->header.vftbl = c->vftbl = v;
+	c->vftbl = v;
 	v->class = c;
 	v->vftbllength = vftbllength;
 	v->interfacetablelength = interfacetablelength;
