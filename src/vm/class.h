@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3802 2005-11-26 19:17:04Z twisti $
+   $Id: class.h 3805 2005-11-26 21:40:54Z twisti $
 
 */
 
@@ -110,8 +110,6 @@ struct classinfo {                /* class structure                          */
 
 	u2          innerclasscount;  /* number of inner classes                  */
 	innerclassinfo *innerclass;
-
-	bool        classvftbl;       /* has its own copy of the Class vtbl       */
 
 	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
 
