@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 3703 2005-11-17 19:01:00Z twisti $
+   $Id: codegen.h 3799 2005-11-26 15:57:19Z twisti $
 
 */
 
@@ -185,37 +185,54 @@
 	} while (0)
 
 
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
+/* store_reg_to_var_xxx ********************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable.  If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
     
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-#define store_reg_to_var_int0(sptr, tempregnum, a, b) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		if (a) M_IST(GET_HIGH_REG((tempregnum)), REG_SP, 4 * (sptr)->regoff); \
-		if ((b) && IS_2_WORD_TYPE((sptr)->type)) \
-			M_IST(GET_LOW_REG((tempregnum)), REG_SP, 4 * (sptr)->regoff + 4); \
-		}                                              \
-	}
+   v ............ Pseudovariable
+   tempregnum ... Number of the temporary registers as returned by
+                  reg_of_var.
+
+*******************************************************************************/
 
 #define store_reg_to_var_int(sptr, tempregnum) \
-	store_reg_to_var_int0(sptr, tempregnum, 1, 1)
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_IST(tempregnum, REG_SP, (sptr)->regoff * 4); \
+        } \
+    } while (0)
 
-#define store_reg_to_var_flt(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		if ((sptr)->type==TYPE_DBL) \
-			M_DST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
-		else \
-			M_FST(tempregnum, REG_SP, 4 * (sptr)->regoff); \
-		}                                              \
-	}
+#define store_reg_to_var_lng(sptr, tempregnum) \
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_IST(GET_HIGH_REG(tempregnum), REG_SP, (sptr)->regoff * 4); \
+            M_IST(GET_LOW_REG(tempregnum), REG_SP, (sptr)->regoff * 4 + 4); \
+        } \
+    } while (0)
+
+#define store_reg_to_var_adr(sptr, tempregnum) \
+    store_reg_to_var_int(sptr, tempregnum)
+
+#define store_reg_to_var_flt(sptr, tempregnum) \
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_FST(tempregnum, REG_SP, (sptr)->regoff * 4); \
+        } \
+    } while (0)
+
+#define store_reg_to_var_dbl(sptr, tempregnum) \
+    do { \
+        if ((sptr)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_DST(tempregnum, REG_SP, (sptr)->regoff * 4); \
+        } \
+    } while (0)
 
 
 #define ICONST(reg,c) \
@@ -541,9 +558,8 @@
 	*((s4*)(ip)-1)=(*((s4*)(ip)-1) & ~M_BRMASK) | (((s4)((to)-(so))+4)&((((*((s4*)(ip)-1)>>26)&63)==18)?M_BRAMASK:M_BRMASK))
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
-void preregpass(methodinfo *m, registerdata *rd);
 void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
