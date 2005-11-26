@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: classcache.c 3808 2005-11-26 22:28:43Z edwin $
 
 */
 
@@ -185,9 +185,9 @@ classcache_merge_loaders(
 	result = NULL;
 	chain = &result;
 
-	for (ldenA = lista; ldenA != NULL; ldenA = ldenA->next) {
+	for (ldenA = lista; ldenA; ldenA = ldenA->next) {
 
-		for (ldenB = listb; ldenB != NULL; ldenB = ldenB->next) {
+		for (ldenB = listb; ldenB; ldenB = ldenB->next) {
 			if (ldenB->loader == ldenA->loader)
 				goto common_element;
 		}
@@ -369,14 +369,14 @@ classinfo *classcache_lookup(classloader *initloader, utf *classname)
 	if (en) {
 		/* iterate over all class entries */
 
-		for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+		for (clsen = en->classes; clsen; clsen = clsen->next) {
 			/* check if this entry has been loaded by initloader */
 
-			for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
+			for (lden = clsen->loaders; lden; lden = lden->next) {
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
 
-					CLASSCACHE_ASSERT(clsen->classobj != NULL);
+					CLASSCACHE_ASSERT(clsen->classobj);
 					cls = clsen->classobj;
 					goto found;
 				}
@@ -416,7 +416,7 @@ classinfo *classcache_lookup_defined(classloader *defloader, utf *classname)
 
 	if (en) {
 		/* iterate over all class entries */
-		for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+		for (clsen = en->classes; clsen; clsen = clsen->next) {
 			if (!clsen->classobj)
 				continue;
 
@@ -424,6 +424,64 @@ classinfo *classcache_lookup_defined(classloader *defloader, utf *classname)
 			if (clsen->classobj->classloader == defloader) {
 				cls = clsen->classobj;
 				goto found;
+			}
+		}
+	}
+
+  found:
+	CLASSCACHE_UNLOCK();
+	return cls;
+}
+
+
+/* classcache_lookup_defined_or_initiated **************************************
+ 
+   Lookup a class that has been defined or initiated by the given loader
+  
+   IN:
+       loader...........defining or initiating loader
+       classname........class name to look up
+  
+   RETURN VALUE:
+       The return value is a pointer to the cached class object,
+       or NULL, if the class is not in the cache.
+
+   Note: synchronized with global tablelock
+   
+*******************************************************************************/
+
+classinfo *classcache_lookup_defined_or_initiated(classloader *loader, 
+												  utf *classname)
+{
+	classcache_name_entry *en;
+	classcache_class_entry *clsen;
+	classcache_loader_entry *lden;
+	classinfo *cls = NULL;
+
+	CLASSCACHE_LOCK();
+
+	en = classcache_lookup_name(classname);
+
+	if (en) {
+		/* iterate over all class entries */
+
+		for (clsen = en->classes; clsen; clsen = clsen->next) {
+
+			/* check if this entry has been defined by loader */
+			if (clsen->classobj && clsen->classobj->classloader == loader) {
+				cls = clsen->classobj;
+				goto found;
+			}
+			
+			/* check if this entry has been initiated by loader */
+			for (lden = clsen->loaders; lden; lden = lden->next) {
+				if (lden->loader == loader) {
+					/* found the loaded class entry */
+
+					CLASSCACHE_ASSERT(clsen->classobj);
+					cls = clsen->classobj;
+					goto found;
+				}
 			}
 		}
 	}
@@ -471,7 +529,7 @@ classcache_store(
 	char logbuffer[1024];
 #endif
 	
-	CLASSCACHE_ASSERT(cls != NULL);
+	CLASSCACHE_ASSERT(cls);
 	CLASSCACHE_ASSERT(cls->loaded != 0);
 
 	CLASSCACHE_LOCK();
@@ -485,20 +543,20 @@ classcache_store(
 
 	en = classcache_new_name(cls->name);
 
-	CLASSCACHE_ASSERT(en != NULL);
+	CLASSCACHE_ASSERT(en);
 
 	/* iterate over all class entries */
-	for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+	for (clsen = en->classes; clsen; clsen = clsen->next) {
 
 		/* check if this entry has already been loaded by initloader */
-		for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
+		for (lden = clsen->loaders; lden; lden = lden->next) {
 			if (lden->loader == initloader) {
 				/* A class with the same (initloader,name) pair has been stored already. */
 				/* We free the given class and return the earlier one.                   */
 #ifdef CLASSCACHE_VERBOSE
 				dolog("replacing %p with earlier loaded class %p",cls,clsen->classobj);
 #endif
-				CLASSCACHE_ASSERT(clsen->classobj != NULL);
+				CLASSCACHE_ASSERT(clsen->classobj);
 				if (mayfree)
 					class_free(cls);
 				cls = clsen->classobj;
@@ -507,11 +565,11 @@ classcache_store(
 		}
 
 		/* check if initloader is constrained to this entry */
-		for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
+		for (lden = clsen->constraints; lden; lden = lden->next) {
 			if (lden->loader == initloader) {
 				/* we have to use this entry */
 				/* check if is has already been resolved to another class */
-				if (clsen->classobj != NULL && clsen->classobj != cls) {
+				if (clsen->classobj && clsen->classobj != cls) {
 					/* a loading constraint is violated */
 					*exceptionptr = exceptions_new_linkageerror(
 										"loading constraint violated: ",cls);
@@ -616,7 +674,7 @@ classcache_store_defined(/*@shared@*/ classinfo *cls)
 	char logbuffer[1024];
 #endif
 
-	CLASSCACHE_ASSERT(cls != NULL);
+	CLASSCACHE_ASSERT(cls);
 	CLASSCACHE_ASSERT(cls->loaded != 0);
 
 	CLASSCACHE_LOCK();
@@ -630,13 +688,13 @@ classcache_store_defined(/*@shared@*/ classinfo *cls)
 
 	en = classcache_new_name(cls->name);
 
-	CLASSCACHE_ASSERT(en != NULL);
+	CLASSCACHE_ASSERT(en);
 
 	/* iterate over all class entries */
-	for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
+	for (clsen = en->classes; clsen; clsen = clsen->next) {
 		
 		/* check if this class has been defined by the same classloader */
-		if (clsen->classobj != NULL && clsen->classobj->classloader == cls->classloader) {
+		if (clsen->classobj && clsen->classobj->classloader == cls->classloader) {
 			/* we found an earlier definition, delete the newer one */
 			/* (if it is a different classinfo)                     */
 			if (clsen->classobj != cls) {
@@ -689,19 +747,19 @@ classcache_find_loader(
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
 
-	CLASSCACHE_ASSERT(entry != NULL);
+	CLASSCACHE_ASSERT(entry);
 
 	/* iterate over all class entries */
-	for (clsen = entry->classes; clsen != NULL; clsen = clsen->next) {
+	for (clsen = entry->classes; clsen; clsen = clsen->next) {
 
 		/* check if this entry has already been loaded by initloader */
-		for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
+		for (lden = clsen->loaders; lden; lden = lden->next) {
 			if (lden->loader == loader)
 				return clsen;	/* found */
 		}
 
 		/* check if loader is constrained to this entry */
-		for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
+		for (lden = clsen->constraints; lden; lden = lden->next) {
 			if (lden->loader == loader)
 				return clsen;	/* found */
 		}
@@ -727,13 +785,13 @@ classcache_free_class_entry(
 	classcache_loader_entry *lden;
 	classcache_loader_entry *next;
 
-	CLASSCACHE_ASSERT(clsen != NULL);
+	CLASSCACHE_ASSERT(clsen);
 
-	for (lden = clsen->loaders; lden != NULL; lden = next) {
+	for (lden = clsen->loaders; lden; lden = next) {
 		next = lden->next;
 		FREE(lden, classcache_loader_entry);
 	}
-	for (lden = clsen->constraints; lden != NULL; lden = next) {
+	for (lden = clsen->constraints; lden; lden = next) {
 		next = lden->next;
 		FREE(lden, classcache_loader_entry);
 	}
@@ -760,8 +818,8 @@ classcache_remove_class_entry(
 {
 	classcache_class_entry **chain;
 
-	CLASSCACHE_ASSERT(entry != NULL);
-	CLASSCACHE_ASSERT(clsen != NULL);
+	CLASSCACHE_ASSERT(entry);
+	CLASSCACHE_ASSERT(clsen);
 
 	chain = &(entry->classes);
 	while (*chain) {
@@ -790,7 +848,7 @@ classcache_free_name_entry(
 	classcache_class_entry *clsen;
 	classcache_class_entry *next;
 
-	CLASSCACHE_ASSERT(entry != NULL);
+	CLASSCACHE_ASSERT(entry);
 
 	for (clsen = entry->classes; clsen; clsen = next) {
 		next = clsen->next;
@@ -861,7 +919,7 @@ classcache_add_constraint(
 	classcache_class_entry *clsenA;
 	classcache_class_entry *clsenB;
 
-	CLASSCACHE_ASSERT(classname != NULL);
+	CLASSCACHE_ASSERT(classname);
 
 #ifdef CLASSCACHE_VERBOSE
 	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
@@ -877,13 +935,13 @@ classcache_add_constraint(
 
 	en = classcache_new_name(classname);
 
-	CLASSCACHE_ASSERT(en != NULL);
+	CLASSCACHE_ASSERT(en);
 
 	/* find the entry loaded by / constrained to each loader */
 	clsenA = classcache_find_loader(en, a);
 	clsenB = classcache_find_loader(en, b);
 
-	if (clsenA != NULL && clsenB != NULL) {
+	if (clsenA && clsenB) {
 		/* { both loaders have corresponding entries } */
 
 		/* if the entries are the same, the constraint is already recorded */
@@ -891,7 +949,7 @@ classcache_add_constraint(
 			goto return_success;
 
 		/* check if the entries can be merged */
-		if (clsenA->classobj != NULL && clsenB->classobj != NULL
+		if (clsenA->classobj && clsenB->classobj
 			&& clsenA->classobj != clsenB->classobj) {
 			/* no, the constraint is violated */
 			*exceptionptr = exceptions_new_linkageerror(
@@ -987,12 +1045,12 @@ classcache_debug_dump(
 	for (slot = 0; slot < classcache_hash.size; ++slot) {
 		c = (classcache_name_entry *) classcache_hash.ptr[slot];
 
-		for (; c != NULL; c = c->hashlink) {
+		for (; c; c = c->hashlink) {
 			utf_fprint_classname(file, c->name);
 			fprintf(file, "\n");
 
 			/* iterate over all class entries */
-			for (clsen = c->classes; clsen != NULL; clsen = clsen->next) {
+			for (clsen = c->classes; clsen; clsen = clsen->next) {
 				if (clsen->classobj) {
 					fprintf(file, "    loaded %p\n", (void *) clsen->classobj);
 				}
@@ -1000,11 +1058,11 @@ classcache_debug_dump(
 					fprintf(file, "    unresolved\n");
 				}
 				fprintf(file, "        loaders:");
-				for (lden = clsen->loaders; lden != NULL; lden = lden->next) {
+				for (lden = clsen->loaders; lden; lden = lden->next) {
 					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
 				}
 				fprintf(file, "\n        constraints:");
-				for (lden = clsen->constraints; lden != NULL; lden = lden->next) {
+				for (lden = clsen->constraints; lden; lden = lden->next) {
 					fprintf(file, "<%p> %p", (void *) lden, (void *) lden->loader);
 				}
 				fprintf(file, "\n");
