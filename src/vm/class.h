@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3638 2005-11-08 17:21:11Z twisti $
+   $Id: class.h 3802 2005-11-26 19:17:04Z twisti $
 
 */
 
@@ -244,6 +244,9 @@ extern classinfo *pseudo_class_New;
 
 /* create a new classinfo struct */
 classinfo *class_create_classinfo(utf *u);
+
+/* postset's the header.vftbl */
+void class_postset_header_vftbl(void);
 
 /* set the package name after the name has been set */
 void class_set_packagename(classinfo *c);

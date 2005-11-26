@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3638 2005-11-08 17:21:11Z twisti $
+   $Id: class.c 3802 2005-11-26 19:17:04Z twisti $
 
 */
 
@@ -219,10 +219,16 @@ classinfo *class_create_classinfo(utf *classname)
 	c = GCNEW_UNCOLLECTABLE(classinfo, 1);
 	/*c=NEW(classinfo);*/
 	c->name = classname;
+
+	/* set the header.vftbl of all loaded classes to the one of
+       java.lang.Class, so Java code can use a class as object */
+
+	if (class_java_lang_Class)
+		if (class_java_lang_Class->vftbl)
+			c->header.vftbl = class_java_lang_Class->vftbl;
 	
-	if (classname != utf_not_named_yet) {
+	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
-	}
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(&c->header);
@@ -230,6 +236,43 @@ classinfo *class_create_classinfo(utf *classname)
 
 	return c;
 }
+
+
+/* class_postset_header_vftbl **************************************************
+
+   Set the header.vftbl of all classes created before java.lang.Class
+   was linked.  This is necessary that Java code can use a class as
+   object.
+
+*******************************************************************************/
+
+void class_postset_header_vftbl(void)
+{
+	classinfo *c;
+	u4 slot;
+	classcache_name_entry *nmen;
+	classcache_class_entry *clsen;
+
+	assert(class_java_lang_Class);
+
+	for (slot = 0; slot < classcache_hash.size; slot++) {
+		nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
+
+		for (; nmen; nmen = nmen->hashlink) {
+			/* iterate over all class entries */
+
+			for (clsen = nmen->classes; clsen; clsen = clsen->next) {
+				c = clsen->classobj;
+
+				/* now set the the vftbl */
+
+				if (c->header.vftbl == NULL)
+					c->header.vftbl = class_java_lang_Class->vftbl;
+			}
+		}
+	}
+}
+
 
 /* class_freepool **************************************************************
 
