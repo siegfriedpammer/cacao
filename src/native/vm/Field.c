@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3672 2005-11-15 23:43:17Z twisti $
+   $Id: Field.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -1182,9 +1182,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 	if (!resolve_class_from_typedesc(desc, true, false, &ret))
 		return NULL;
 	
-	if (!use_class_as_object(ret))
-		return NULL;
-
 	return (java_lang_Class *) ret;
 }
 

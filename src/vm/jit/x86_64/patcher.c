@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3708 2005-11-18 00:30:10Z twisti $
+   $Id: patcher.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -313,12 +313,6 @@ bool patcher_aconst(u1 *sp)
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr))) {
-		PATCHER_MONITOREXIT;
-
-		return false;
-	}
-
-	if (!use_class_as_object(c)) {
 		PATCHER_MONITOREXIT;
 
 		return false;

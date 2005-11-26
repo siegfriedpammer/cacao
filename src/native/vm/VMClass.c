@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3649 2005-11-10 22:05:22Z twisti $
+   $Id: VMClass.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -124,9 +124,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
 		if (!initialize_class(c))
 			return NULL;
 
-	if (!use_class_as_object(c))
-		return NULL;
-
 	return (java_lang_Class *) c;
 }
 
@@ -168,11 +165,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 	else
 		comp = primitivetype_table[desc->arraytype].class_primitive;
 		
-	/* set vftbl */
-	
-	if (!use_class_as_object(comp))
-		return NULL;
-	
 	return (java_lang_Class *) comp;
 }
 
@@ -301,8 +293,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 											   &inner))
 				return NULL;
 
-			if (!use_class_as_object(inner))
-				return NULL;
+			if (!inner->linked)
+				if (!link_class(inner))
+					return NULL;
 
 			oa->data[pos++] = (java_objectheader *) inner;
 		}
@@ -352,8 +345,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 												   &outer))
 					return NULL;
 
-				if (!use_class_as_object(outer))
-					return NULL;
+				if (!outer->linked)
+					if (!link_class(outer))
+						return NULL;
 
 				return (java_lang_Class *) outer;
 			}
@@ -434,10 +428,15 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
 	classinfo        *c;
+	classinfo        *ic;
 	java_objectarray *oa;
 	u4                i;
 
 	c = (classinfo *) klass;
+
+	if (!c->linked)
+		if (!link_class(c))
+			return NULL;
 
 	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
 
@@ -445,10 +444,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		if (!use_class_as_object(c->interfaces[i].cls))
-			return NULL;
+		ic = c->interfaces[i].cls;
 
-		oa->data[i] = (java_objectheader *) c->interfaces[i].cls;
+		oa->data[i] = (java_objectheader *) ic;
 	}
 
 	return oa;
@@ -618,9 +616,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	if (!sc)
 		return NULL;
 
-	if (!use_class_as_object(sc))
-		return NULL;
-
 	return (java_lang_Class *) sc;
 }
 
@@ -634,6 +629,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
 {
 	classinfo *c = (classinfo *) klass;
 
+	if (!c->linked)
+		if (!link_class(c))
+			return 0;
+
 	return (c->vftbl->arraydesc != NULL);
 }
 
@@ -645,13 +644,28 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
 {
-	if (c == NULL) {
+	classinfo *kc;
+	classinfo *cc;
+
+	kc = (classinfo *) klass;
+	cc = (classinfo *) c;
+
+	if (cc == NULL) {
 		*exceptionptr = new_nullpointerexception();
 		return 0;
 	}
 
+	if (!kc->linked)
+		if (!link_class(kc))
+			return 0;
+
+	if (!cc->linked)
+		if (!link_class(cc))
+			return 0;
+
 	/* XXX this may be wrong for array classes */
-	return builtin_isanysubclass((classinfo *) c, (classinfo *) klass);
+
+	return builtin_isanysubclass(cc, kc);
 }
 
 
@@ -667,6 +681,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
 
 	c = (classinfo *) klass;
 	ob = (java_objectheader *) o;
+
+	if (!c->linked)
+		if (!link_class(c))
+			return 0;
 
 	return builtin_instanceof(ob, c);
 }

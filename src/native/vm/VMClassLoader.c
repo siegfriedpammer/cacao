@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3559 2005-11-04 09:57:34Z twisti $
+   $Id: VMClassLoader.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -154,9 +154,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	c->pd = pd;
 
-	if (!use_class_as_object(c))
-		return NULL;
-
 	/* Store the newly defined class in the class cache. This call also       */
 	/* checks whether a class of the same name has already been defined by    */
 	/* the same defining loader, and if so, replaces the newly created class  */
@@ -216,14 +213,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 		c = NULL;
 	}
 
-#if 0
-	/* XXX TWISTI is this neccessary? */
-	if (!initialize_class(c))
-		return NULL;
-#endif
-
-	use_class_as_object(c);
-
 	return (java_lang_Class *) c;
 }
 
@@ -282,8 +271,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 /*  	if (resolve) { */
 		if (!link_class(c))
 			goto exception;
-
-		use_class_as_object(c);
 /*  	} */
 
 	return (java_lang_Class *) c;

@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 3445 2005-10-19 11:28:41Z twisti $
+   $Id: native.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -223,34 +223,6 @@ static functionptr dummynativetable[] = {
 };
 
 #endif /* defined(ENABLE_STATICVM) */
-
-
-/************* use classinfo structure as java.lang.Class object **************/
-
-bool use_class_as_object(classinfo *c)
-{
-	if (!c->classvftbl) {
-		/* is the class loaded */
-		if (!c->loaded) {
-/*  			if (!class_load(c)) */
-/*  				throw_exception_exit(); */
-			log_text("use_class_as_object: class_load should not happen");
-			assert(0);
-		}
-
-		/* is the class linked */
-		if (!c->linked)
-			if (!link_class(c))
-				return false;
-
-		assert(class_java_lang_Class);
-
-		c->header.vftbl = class_java_lang_Class->vftbl;
-		c->classvftbl = true;
-  	}
-
-	return true;
-}
 
 
 /************************** tables for methods ********************************/
@@ -1093,13 +1065,10 @@ java_objectarray *native_get_parametertypes(methodinfo *m)
 
     /* get classes */
 
-	for (i = 0; i < paramcount; i++) {
+	for (i = 0; i < paramcount; i++)
 		if (!resolve_class_from_typedesc(&paramtypes[i], true, false,
 										 (classinfo **) &oa->data[i]))
 			return NULL;
-
-		use_class_as_object((classinfo *) oa->data[i]);
-	}
 
 	return oa;
 }
@@ -1129,9 +1098,6 @@ java_objectarray *native_get_exceptiontypes(methodinfo *m)
 										   resolveEager, true, false, &c))
 			return NULL;
 
-		if (!use_class_as_object(c))
-			return NULL;
-
 		oa->data[i] = (java_objectheader *) c;
 	}
 
@@ -1152,8 +1118,6 @@ classinfo *native_get_returntype(methodinfo *m)
 	if (!resolve_class_from_typedesc(&(m->parseddesc->returntype), true, false,
 									 &c))
 		return NULL;
-
-	use_class_as_object(c);
 
 	return c;
 }

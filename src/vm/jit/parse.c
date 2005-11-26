@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3615 2005-11-07 18:22:11Z twisti $
+   $Id: parse.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -503,12 +503,6 @@ SHOWOPCODE(DEBUG4)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
 									  true, &c))
 					return NULL;
-
-				/* XXX TWISTI: edwin said i should do that */
-
-				if (c)
-					if (!use_class_as_object(c))
-						return NULL;
 
 				/* if not resolved, c == NULL */
 

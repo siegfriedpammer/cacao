@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 3079 2005-07-20 15:23:18Z twisti $
+   $Id: VMObject.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -75,8 +75,6 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
 		return NULL;
 
 	c = ((java_objectheader *) obj)->vftbl->class;
-
-	use_class_as_object(c);
 
 	return (java_lang_Class *) c;
 }

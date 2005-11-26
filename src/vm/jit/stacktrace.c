@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3779 2005-11-23 22:36:59Z twisti $
+   $Id: stacktrace.c 3801 2005-11-26 19:15:45Z twisti $
 
 */
 
@@ -1079,8 +1079,6 @@ static bool classContextCollector(void **target, stackTraceBuffer *buffer)
 			continue;
 		}
 
-		use_class_as_object(current->method->class);
-
 		oa->data[i] = (java_objectheader *) current->method->class;
 	}
 
@@ -1208,8 +1206,6 @@ static bool getStackCollector(void **target, stackTraceBuffer *buffer)
 
 	for (i = 0, current = &(buffer->start[0]); i < size; i++, current++) {
 		c = current->method->class;
-
-		use_class_as_object(c);
 
 		classes->data[i] = (java_objectheader *) c;
 		str = javastring_new(current->method->name);
