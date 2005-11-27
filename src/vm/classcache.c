@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3808 2005-11-26 22:28:43Z edwin $
+   $Id: classcache.c 3809 2005-11-27 13:52:23Z edwin $
 
 */
 
@@ -550,7 +550,7 @@ classcache_store(
 
 		/* check if this entry has already been loaded by initloader */
 		for (lden = clsen->loaders; lden; lden = lden->next) {
-			if (lden->loader == initloader) {
+			if (lden->loader == initloader && clsen->classobj != cls) {
 				/* A class with the same (initloader,name) pair has been stored already. */
 				/* We free the given class and return the earlier one.                   */
 #ifdef CLASSCACHE_VERBOSE
