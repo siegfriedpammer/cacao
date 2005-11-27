@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 3808 2005-11-26 22:28:43Z edwin $
+   $Id: classcache.h 3810 2005-11-27 14:11:44Z edwin $
 
 */
 
@@ -119,7 +119,7 @@ struct classcache_loader_entry
 
 /* initialize the loaded class cache */
 bool classcache_init(void);
-void classcache_free();
+void classcache_free(void);
 
 classinfo * classcache_lookup(classloader *initloader,utf *classname);
 classinfo * classcache_lookup_defined(classloader *defloader,utf *classname);

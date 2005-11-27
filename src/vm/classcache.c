@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3809 2005-11-27 13:52:23Z edwin $
+   $Id: classcache.c 3810 2005-11-27 14:11:44Z edwin $
 
 */
 
@@ -137,10 +137,9 @@ bool classcache_init(void)
   
 *******************************************************************************/
 
-static classcache_loader_entry *
-classcache_new_loader_entry(
-	/*@shared@*/ /*@null@*/ classloader * loader,
-	/*@only  @*/ /*@null@*/ classcache_loader_entry * next)
+static classcache_loader_entry * classcache_new_loader_entry(
+									classloader * loader,
+									classcache_loader_entry * next)
 {
 	classcache_loader_entry *lden;
 
@@ -168,10 +167,9 @@ classcache_new_loader_entry(
   
 *******************************************************************************/
 
-static /*@null@*/ classcache_loader_entry *
-classcache_merge_loaders(
-	/*@null@*/ classcache_loader_entry * lista,
-	/*@null@*/ classcache_loader_entry * listb)
+static classcache_loader_entry * classcache_merge_loaders(
+									classcache_loader_entry * lista,
+									classcache_loader_entry * listb)
 {
 	classcache_loader_entry *result;
 	classcache_loader_entry *ldenA;
@@ -516,11 +514,9 @@ classinfo *classcache_lookup_defined_or_initiated(classloader *loader,
    
 *******************************************************************************/
 
-/*@shared@*/ /*@null@*/ classinfo *
-classcache_store(
-	/*@shared@*/ /*@null@*/ classloader * initloader,
-	/*@shared@*/ classinfo * cls,
-	bool mayfree)
+classinfo * classcache_store(classloader * initloader,
+							 classinfo * cls,
+							 bool mayfree)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -629,11 +625,9 @@ classcache_store(
    
 *******************************************************************************/
 
-bool 
-classcache_store_unique(
-		/*@shared@*/ classinfo *cls)
+bool classcache_store_unique(classinfo *cls)
 {
-	/*@shared@*/ classinfo *result;
+	classinfo *result;
 
 	result = classcache_store(NULL,cls,false);
 	if (result == NULL)
@@ -665,8 +659,7 @@ classcache_store_unique(
    
 *******************************************************************************/
 
-/*@shared@*/ /*@null@*/ classinfo * 
-classcache_store_defined(/*@shared@*/ classinfo *cls)
+classinfo * classcache_store_defined(classinfo *cls)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -739,10 +732,9 @@ return_success:
    
 *******************************************************************************/
 
-static /*@exposed@*/ /*@null@*/ classcache_class_entry *
-classcache_find_loader(
-	classcache_name_entry * entry,
-	/*@shared@*/ /*@null@*/ classloader * loader)
+static classcache_class_entry * classcache_find_loader(
+									classcache_name_entry * entry,
+									classloader * loader)
 {
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
@@ -778,9 +770,7 @@ classcache_find_loader(
 	   
 *******************************************************************************/
 
-static void
-classcache_free_class_entry(
-	classcache_class_entry * clsen)
+static void classcache_free_class_entry(classcache_class_entry * clsen)
 {
 	classcache_loader_entry *lden;
 	classcache_loader_entry *next;
@@ -811,10 +801,8 @@ classcache_free_class_entry(
   
 *******************************************************************************/
 
-static void
-classcache_remove_class_entry(
-	classcache_name_entry * entry,
-	classcache_class_entry * clsen)
+static void classcache_remove_class_entry(classcache_name_entry * entry,
+										  classcache_class_entry * clsen)
 {
 	classcache_class_entry **chain;
 
@@ -841,9 +829,7 @@ classcache_remove_class_entry(
 	   
 *******************************************************************************/
 
-static void
-classcache_free_name_entry(
-	classcache_name_entry * entry)
+static void classcache_free_name_entry(classcache_name_entry * entry)
 {
 	classcache_class_entry *clsen;
 	classcache_class_entry *next;
@@ -870,10 +856,7 @@ classcache_free_name_entry(
   
 *******************************************************************************/
 
-void
-classcache_free(
-	)
-	/*@globals killed classcache_hash@*/
+void classcache_free(void)
 {
 	u4 slot;
 	classcache_name_entry *entry;
@@ -909,11 +892,9 @@ classcache_free(
    
 *******************************************************************************/
 
-bool
-classcache_add_constraint(
-	/*@shared@*/ /*@null@*/ classloader * a,
-	/*@shared@*/ /*@null@*/ classloader * b,
-	/*@shared@*/ utf * classname)
+bool classcache_add_constraint(classloader * a,
+							   classloader * b,
+							   utf * classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsenA;
@@ -1026,9 +1007,7 @@ classcache_add_constraint(
    
 *******************************************************************************/
 
-void
-classcache_debug_dump(
-	/*@shared@*/ FILE * file)
+void classcache_debug_dump(FILE * file)
 {
 	classcache_name_entry *c;
 	classcache_class_entry *clsen;
