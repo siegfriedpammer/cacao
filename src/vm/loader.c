@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3806 2005-11-26 21:45:09Z twisti $
+   $Id: loader.c 3813 2005-11-28 18:31:29Z edwin $
 
 */
 
@@ -42,6 +42,7 @@
 #include <sys/stat.h>
 
 #include "config.h"
+#include "vm/types.h"
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Throwable.h"
@@ -251,12 +252,14 @@ bool loader_init(u1 *stackbottom)
 
 inline bool check_classbuffer_size(classbuffer *cb, s4 len)
 {
+#ifdef ENABLE_VERIFIER
 	if (len < 0 || ((cb->data + cb->size) - cb->pos - 1) < len) {
 		*exceptionptr =
 			new_classformaterror((cb)->class, "Truncated class file");
 
 		return false;
 	}
+#endif /* ENABLE_VERIFIER */
 
 	return true;
 }
@@ -1093,12 +1096,15 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			if (!check_classbuffer_size(cb, length))
 				return false;
 
+#ifdef ENABLE_VERIFIER
 			if (opt_verify &&
 				!is_valid_utf((char *) (cb->pos + 1),
-							  (char *) (cb->pos + 1 + length))) {
+							  (char *) (cb->pos + 1 + length))) 
+			{
 				*exceptionptr = new_classformaterror(c,"Invalid UTF-8 string");
 				return false;
 			}
+#endif /* ENABLE_VERIFIER */
 			/* insert utf-string into the utf-symboltable */
 			cpinfos[idx] = utf_new((char *) (cb->pos + 1), length);
 
@@ -1124,11 +1130,13 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		if (!name)
 			return false;
 
+#ifdef ENABLE_VERIFIER
 		if (opt_verify && !is_valid_name_utf(name)) {
 			*exceptionptr = 
 				new_classformaterror(c, "Class reference with invalid name");
 			return false;
 		}
+#endif /* ENABLE_VERIFIER */
 
 		/* add all class references to the descriptor_pool */
 
@@ -1190,6 +1198,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		if (!cn->descriptor)
 			return false;
 
+#ifdef ENABLE_VERIFIER
 		if (opt_verify) {
 			/* check name */
 			if (!is_valid_name_utf(cn->name)) {
@@ -1208,6 +1217,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				return false;
 			}
 		}
+#endif /* ENABLE_VERIFIER */
 
 		cptags[forward_nameandtypes->thisindex] = CONSTANT_NameAndType;
 		cpinfos[forward_nameandtypes->thisindex] = cn;
@@ -1302,6 +1312,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		return false;
 	}
 
+#ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		/* check name */
 		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<') {
@@ -1335,6 +1346,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			}
 		}
 	}
+#endif /* ENABLE_VERIFIER */
 		
 	f->type = jtype = desc_to_type(f->descriptor);    /* data type            */
 	f->offset = 0;                             /* offset from start of object */
@@ -1509,6 +1521,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
 
+#ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		if (!is_valid_name_utf(m->name)) {
 			*exceptionptr = new_classformaterror(c,"Method with invalid name");
@@ -1521,10 +1534,12 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			return false;
 		}
 	}
+#endif /* ENABLE_VERIFIER */
 	
 	if (!(m->flags & ACC_STATIC))
 		argcount++; /* count the 'this' argument */
 
+#ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		if (argcount > 255) {
 			*exceptionptr =
@@ -1575,6 +1590,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			}
 		}
 	}
+#endif /* ENABLE_VERIFIER */
 		
 	m->jcode = NULL;
 	m->basicblockcount = 0;
@@ -2585,6 +2601,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 	}
 
+#ifdef ENABLE_VERIFIER
 	/* Check if all fields and methods can be uniquely
 	 * identified by (name,descriptor). */
 
@@ -2679,6 +2696,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		
 		MFREE(hashtab, u2, (hashlen + len));
 	}
+#endif /* ENABLE_VERIFIER */
 
 #if defined(STATISTICS)
 	if (opt_stat) {
