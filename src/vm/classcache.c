@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3810 2005-11-27 14:11:44Z edwin $
+   $Id: classcache.c 3814 2005-11-28 18:51:26Z edwin $
 
 */
 
@@ -54,16 +54,6 @@
 /*============================================================================*/
 
 /*#define CLASSCACHE_VERBOSE*/
-
-#ifndef NDEBUG
-#define CLASSCACHE_DEBUG
-#endif
-
-#ifdef CLASSCACHE_DEBUG
-#define CLASSCACHE_ASSERT(cond)  assert(cond)
-#else
-#define CLASSCACHE_ASSERT(cond)
-#endif
 
 /*============================================================================*/
 /* THREAD-SAFE LOCKING                                                        */
@@ -374,7 +364,7 @@ classinfo *classcache_lookup(classloader *initloader, utf *classname)
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
 
-					CLASSCACHE_ASSERT(clsen->classobj);
+					assert(clsen->classobj);
 					cls = clsen->classobj;
 					goto found;
 				}
@@ -476,7 +466,7 @@ classinfo *classcache_lookup_defined_or_initiated(classloader *loader,
 				if (lden->loader == loader) {
 					/* found the loaded class entry */
 
-					CLASSCACHE_ASSERT(clsen->classobj);
+					assert(clsen->classobj);
 					cls = clsen->classobj;
 					goto found;
 				}
@@ -525,8 +515,8 @@ classinfo * classcache_store(classloader * initloader,
 	char logbuffer[1024];
 #endif
 	
-	CLASSCACHE_ASSERT(cls);
-	CLASSCACHE_ASSERT(cls->loaded != 0);
+	assert(cls);
+	assert(cls->loaded != 0);
 
 	CLASSCACHE_LOCK();
 
@@ -539,7 +529,7 @@ classinfo * classcache_store(classloader * initloader,
 
 	en = classcache_new_name(cls->name);
 
-	CLASSCACHE_ASSERT(en);
+	assert(en);
 
 	/* iterate over all class entries */
 	for (clsen = en->classes; clsen; clsen = clsen->next) {
@@ -552,7 +542,7 @@ classinfo * classcache_store(classloader * initloader,
 #ifdef CLASSCACHE_VERBOSE
 				dolog("replacing %p with earlier loaded class %p",cls,clsen->classobj);
 #endif
-				CLASSCACHE_ASSERT(clsen->classobj);
+				assert(clsen->classobj);
 				if (mayfree)
 					class_free(cls);
 				cls = clsen->classobj;
@@ -667,8 +657,8 @@ classinfo * classcache_store_defined(classinfo *cls)
 	char logbuffer[1024];
 #endif
 
-	CLASSCACHE_ASSERT(cls);
-	CLASSCACHE_ASSERT(cls->loaded != 0);
+	assert(cls);
+	assert(cls->loaded != 0);
 
 	CLASSCACHE_LOCK();
 
@@ -681,7 +671,7 @@ classinfo * classcache_store_defined(classinfo *cls)
 
 	en = classcache_new_name(cls->name);
 
-	CLASSCACHE_ASSERT(en);
+	assert(en);
 
 	/* iterate over all class entries */
 	for (clsen = en->classes; clsen; clsen = clsen->next) {
@@ -739,7 +729,7 @@ static classcache_class_entry * classcache_find_loader(
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
 
-	CLASSCACHE_ASSERT(entry);
+	assert(entry);
 
 	/* iterate over all class entries */
 	for (clsen = entry->classes; clsen; clsen = clsen->next) {
@@ -775,7 +765,7 @@ static void classcache_free_class_entry(classcache_class_entry * clsen)
 	classcache_loader_entry *lden;
 	classcache_loader_entry *next;
 
-	CLASSCACHE_ASSERT(clsen);
+	assert(clsen);
 
 	for (lden = clsen->loaders; lden; lden = next) {
 		next = lden->next;
@@ -806,8 +796,8 @@ static void classcache_remove_class_entry(classcache_name_entry * entry,
 {
 	classcache_class_entry **chain;
 
-	CLASSCACHE_ASSERT(entry);
-	CLASSCACHE_ASSERT(clsen);
+	assert(entry);
+	assert(clsen);
 
 	chain = &(entry->classes);
 	while (*chain) {
@@ -834,7 +824,7 @@ static void classcache_free_name_entry(classcache_name_entry * entry)
 	classcache_class_entry *clsen;
 	classcache_class_entry *next;
 
-	CLASSCACHE_ASSERT(entry);
+	assert(entry);
 
 	for (clsen = entry->classes; clsen; clsen = next) {
 		next = clsen->next;
@@ -900,7 +890,7 @@ bool classcache_add_constraint(classloader * a,
 	classcache_class_entry *clsenA;
 	classcache_class_entry *clsenB;
 
-	CLASSCACHE_ASSERT(classname);
+	assert(classname);
 
 #ifdef CLASSCACHE_VERBOSE
 	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
@@ -916,7 +906,7 @@ bool classcache_add_constraint(classloader * a,
 
 	en = classcache_new_name(classname);
 
-	CLASSCACHE_ASSERT(en);
+	assert(en);
 
 	/* find the entry loaded by / constrained to each loader */
 	clsenA = classcache_find_loader(en, a);
@@ -1007,6 +997,7 @@ bool classcache_add_constraint(classloader * a,
    
 *******************************************************************************/
 
+#ifndef NDEBUG
 void classcache_debug_dump(FILE * file)
 {
 	classcache_name_entry *c;
@@ -1052,6 +1043,7 @@ void classcache_debug_dump(FILE * file)
 
 	CLASSCACHE_UNLOCK();
 }
+#endif /* NDEBUG */
 
 /*
  * These are local overrides for various environment variables in Emacs.
