@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3799 2005-11-26 15:57:19Z twisti $
+   $Id: codegen.c 3812 2005-11-28 18:00:47Z edwin $
 
 */
 
@@ -1991,6 +1991,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
+#ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_athrow_areturn,
@@ -1999,6 +2000,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble)
 					M_NOP;
 			}
+#endif /* ENABLE_VERIFIER */
 
 			disp = dseg_addaddress(cd, asm_handle_exception);
 			M_ALD(REG_ITMP2, REG_PV, disp);
@@ -2426,6 +2428,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_TINTMOVE(src->type, s1, REG_RESULT);
 
+#ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_athrow_areturn,
@@ -2434,6 +2437,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble)
 					M_NOP;
 			}
+#endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3623 2005-11-07 21:12:01Z twisti $
+   $Id: patcher.c 3812 2005-11-28 18:00:47Z edwin $
 
 */
 
@@ -1020,6 +1020,7 @@ bool patcher_clinit(u1 *sp)
 
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 bool patcher_athrow_areturn(u1 *sp)
 {
 	u1                *ra;
@@ -1059,6 +1060,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	return true;
 }
+#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_resolve_native ******************************************************

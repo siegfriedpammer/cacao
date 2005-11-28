@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3757 2005-11-23 00:46:19Z twisti $
+   $Id: codegen.c 3812 2005-11-28 18:00:47Z edwin $
 
 */
 
@@ -3427,6 +3427,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
 
+#ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_athrow_areturn,
@@ -3436,6 +3437,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 			}
+#endif /* ENABLE_VERIFIER */
 
 			M_CALL_IMM(0);                            /* passing exception pc */
 			M_POP(REG_ITMP2_XPC);
@@ -4079,6 +4081,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
 
+#ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_athrow_areturn,
@@ -4088,6 +4091,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 			}
+#endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
