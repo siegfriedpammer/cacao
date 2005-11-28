@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: resolve.c 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -413,6 +413,8 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 /* SUBTYPE SET CHECKS                                                         */
 /******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
+
 /* resolve_and_check_subtype_set ***********************************************
  
    Resolve the references in the given set and test subtype relationships
@@ -594,6 +596,8 @@ throw_error:
 	return false; /* exception */
 }
 
+#endif /* ENABLE_VERIFIER */
+
 /******************************************************************************/
 /* CLASS RESOLUTION                                                           */
 /******************************************************************************/
@@ -623,6 +627,7 @@ throw_error:
    
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 bool resolve_class(unresolved_class *ref,
 				   resolve_mode_t mode,
 				   bool checkaccess,
@@ -671,6 +676,7 @@ bool resolve_class(unresolved_class *ref,
 	*result = cls;
 	return true;
 }
+#endif /* ENABLE_VERIFIER */
 
 /* resolve_classref_eager ******************************************************
  
@@ -742,6 +748,7 @@ classinfo * resolve_classref_eager_nonabstract(constant_classref *ref)
    
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 classinfo * resolve_class_eager(unresolved_class *ref)
 {
 	classinfo *c;
@@ -751,6 +758,7 @@ classinfo * resolve_class_eager(unresolved_class *ref)
 
 	return c;
 }
+#endif /* ENABLE_VERIFIER */
 
 /******************************************************************************/
 /* FIELD RESOLUTION                                                           */
@@ -841,6 +849,8 @@ bool resolve_field(unresolved_field *ref,
 		
 		return false; /* exception */
 	}
+
+#ifdef ENABLE_VERIFIER
 
 	/* { the field reference has been resolved } */
 	declarer = fi->class;
@@ -941,7 +951,7 @@ bool resolve_field(unresolved_field *ref,
 	/* check protected access */
 	if (((fi->flags & ACC_PROTECTED) != 0) && !SAME_PACKAGE(declarer,referer)) {
 #ifdef RESOLVE_VERBOSE
-		fprintf(stderr,"    checking protectec access...\n");
+		fprintf(stderr,"    checking protected access...\n");
 #endif
 		if (!resolve_and_check_subtype_set(referer,ref->referermethod,
 										   &(ref->instancetypes),
@@ -968,6 +978,7 @@ bool resolve_field(unresolved_field *ref,
 									   fieldtyperef->name))
 			return false;
 	}
+#endif /* ENABLE_VERIFIER */
 
 	/* succeed */
 #ifdef RESOLVE_VERBOSE
@@ -1095,6 +1106,8 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 		
 		return false; /* exception */ /* XXX set exceptionptr? */
 	}
+
+#ifdef ENABLE_VERIFIER
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    flags: %02x\n",mi->flags);
@@ -1262,6 +1275,8 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 			return false; /* exception */
 	}
 
+#endif /* ENABLE_VERIFIER */
+
 	/* succeed */
 	*result = mi;
 	return true;
@@ -1294,6 +1309,7 @@ methodinfo * resolve_method_eager(unresolved_method *ref)
 /* CREATING THE DATA STRUCTURES                                               */
 /******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 												 methodinfo *refmethod,
 												 unresolved_subtype_set *stset,
@@ -1380,6 +1396,7 @@ empty_set:
 	UNRESOLVED_SUBTYPE_SET_EMTPY(*stset);
 	return true;
 }
+#endif /* ENABLE_VERIFIER */
 
 /* create_unresolved_class *****************************************************
  
@@ -1397,6 +1414,7 @@ empty_set:
 
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 unresolved_class * create_unresolved_class(methodinfo *refmethod,
 										   constant_classref *classref,
 										   typeinfo *valuetype)
@@ -1428,6 +1446,7 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 	return ref;
 }
+#endif /* ENABLE_VERIFIER */
 
 /* create_unresolved_field *****************************************************
  
@@ -1526,6 +1545,7 @@ unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refme
 
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 bool constrain_unresolved_field(unresolved_field *ref,
 							    classinfo *referer, methodinfo *refmethod,
 							    instruction *iptr,
@@ -1649,6 +1669,7 @@ bool constrain_unresolved_field(unresolved_field *ref,
 
 	return true;
 }
+#endif /* ENABLE_VERIFIER */
 
 /* create_unresolved_method ****************************************************
  
@@ -1722,6 +1743,7 @@ unresolved_method * create_unresolved_method(classinfo *referer, methodinfo *ref
 
 *******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 bool constrain_unresolved_method(unresolved_method *ref,
 								 classinfo *referer, methodinfo *refmethod,
 								 instruction *iptr,
@@ -1819,11 +1841,13 @@ bool constrain_unresolved_method(unresolved_method *ref,
 
 	return true;
 }
+#endif /* ENABLE_VERIFIER */
 
 /******************************************************************************/
 /* FREEING MEMORY                                                             */
 /******************************************************************************/
 
+#ifdef ENABLE_VERIFIER
 inline static void unresolved_subtype_set_free_list(classref_or_classinfo *list)
 {
 	if (list) {
@@ -1835,6 +1859,7 @@ inline static void unresolved_subtype_set_free_list(classref_or_classinfo *list)
 		MFREE(list,classref_or_classinfo,(p - list));
 	}
 }
+#endif /* ENABLE_VERIFIER */
 
 /* unresolved_class_free *******************************************************
  
@@ -1849,7 +1874,9 @@ void unresolved_class_free(unresolved_class *ref)
 {
 	assert(ref);
 
+#ifdef ENABLE_VERIFIER
 	unresolved_subtype_set_free_list(ref->subtypeconstraints.subtyperefs);
+#endif
 	FREE(ref,unresolved_class);
 }
 
@@ -1866,8 +1893,10 @@ void unresolved_field_free(unresolved_field *ref)
 {
 	assert(ref);
 
+#ifdef ENABLE_VERIFIER
 	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
 	unresolved_subtype_set_free_list(ref->valueconstraints.subtyperefs);
+#endif
 	FREE(ref,unresolved_field);
 }
 
@@ -1884,6 +1913,7 @@ void unresolved_method_free(unresolved_method *ref)
 {
 	assert(ref);
 
+#ifdef ENABLE_VERIFIER
 	unresolved_subtype_set_free_list(ref->instancetypes.subtyperefs);
 	if (ref->paramconstraints) {
 		int i;
@@ -1893,6 +1923,7 @@ void unresolved_method_free(unresolved_method *ref)
 			unresolved_subtype_set_free_list(ref->paramconstraints[i].subtyperefs);
 		MFREE(ref->paramconstraints,unresolved_subtype_set,count);
 	}
+#endif
 	FREE(ref,unresolved_method);
 }
 

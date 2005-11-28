@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 3460 2005-10-20 09:34:16Z edwin $
+   $Id: resolve.h 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -44,6 +44,8 @@ typedef struct unresolved_method unresolved_method;
 typedef struct unresolved_subtype_set unresolved_subtype_set;
 
 
+#include "config.h"
+#include "vm/types.h"
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/jit/jit.h"
@@ -133,10 +135,14 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 
 bool resolve_class_from_typedesc(typedesc *d,bool checkaccess,bool link,classinfo **result);
 
+#ifdef ENABLE_VERIFIER
 bool resolve_class(unresolved_class *ref,
 			  resolve_mode_t mode,
 			  bool checkaccess,
 			  classinfo **result);
+
+classinfo * resolve_class_eager(unresolved_class *ref);
+#endif /* ENABLE_VERIFIER */
 
 bool resolve_field(unresolved_field *ref,
 			  resolve_mode_t mode,
@@ -148,9 +154,35 @@ bool resolve_method(unresolved_method *ref,
 
 classinfo * resolve_classref_eager(constant_classref *ref);
 classinfo * resolve_classref_eager_nonabstract(constant_classref *ref);
-classinfo * resolve_class_eager(unresolved_class *ref);
 fieldinfo * resolve_field_eager(unresolved_field *ref);
 methodinfo * resolve_method_eager(unresolved_method *ref);
+
+#ifdef ENABLE_VERIFIER
+unresolved_class * create_unresolved_class(methodinfo *refmethod,
+						constant_classref *classref,
+						typeinfo *valuetype);
+#endif
+
+unresolved_field * create_unresolved_field(classinfo *referer,methodinfo *refmethod,
+						instruction *iptr);
+
+unresolved_method * create_unresolved_method(classinfo *referer,methodinfo *refmethod,
+						 instruction *iptr);
+
+void unresolved_class_free(unresolved_class *ref);
+void unresolved_field_free(unresolved_field *ref);
+void unresolved_method_free(unresolved_method *ref);
+
+#ifdef ENABLE_VERIFIER
+bool constrain_unresolved_field(unresolved_field *ref,
+						   classinfo *referer,methodinfo *refmethod,
+						   instruction *iptr,
+						   stackelement *stack);
+
+bool constrain_unresolved_method(unresolved_method *ref,
+						 	classinfo *referer,methodinfo *refmethod,
+						 	instruction *iptr,
+						 	stackelement *stack);
 
 bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 							  unresolved_subtype_set *ref,
@@ -159,35 +191,14 @@ bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 							  resolve_mode_t mode,
 							  resolve_err_t error,
 							  bool *checked);
+#endif
 
-unresolved_class * create_unresolved_class(methodinfo *refmethod,
-						constant_classref *classref,
-						typeinfo *valuetype);
-
-unresolved_field * create_unresolved_field(classinfo *referer,methodinfo *refmethod,
-						instruction *iptr);
-
-bool constrain_unresolved_field(unresolved_field *ref,
-						   classinfo *referer,methodinfo *refmethod,
-						   instruction *iptr,
-						   stackelement *stack);
-
-unresolved_method * create_unresolved_method(classinfo *referer,methodinfo *refmethod,
-						 instruction *iptr);
-
-bool constrain_unresolved_method(unresolved_method *ref,
-						 	classinfo *referer,methodinfo *refmethod,
-						 	instruction *iptr,
-						 	stackelement *stack);
-
-void unresolved_class_free(unresolved_class *ref);
-void unresolved_field_free(unresolved_field *ref);
-void unresolved_method_free(unresolved_method *ref);
-
+#ifndef NDEBUG
 void unresolved_class_debug_dump(unresolved_class *ref,FILE *file);
 void unresolved_field_debug_dump(unresolved_field *ref,FILE *file);
 void unresolved_method_debug_dump(unresolved_method *ref,FILE *file);
 void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file);
+#endif
 	
 #endif /* _RESOLVE_H */
 

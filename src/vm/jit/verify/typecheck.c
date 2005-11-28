@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3645 2005-11-09 19:33:45Z edwin $
+   $Id: typecheck.c 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -165,11 +165,11 @@ of the typeinfo of the stack slot.
 #include <assert.h>
 #include <string.h>
 
+#include "config.h"
 #include "vm/types.h"
+#include "vm/global.h"
 
-#include "vm/global.h" /* must be here because of CACAO_TYPECHECK */
-
-#ifdef CACAO_TYPECHECK
+#ifdef ENABLE_VERIFIER
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
@@ -2713,7 +2713,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	return state.m;
 }
 
-#endif /* CACAO_TYPECHECK */
+#endif /* ENABLE_VERIFIER */
 
 /*
  * These are local overrides for various environment variables in Emacs.

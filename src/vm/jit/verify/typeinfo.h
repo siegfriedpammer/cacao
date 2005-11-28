@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 3642 2005-11-08 19:01:17Z edwin $
+   $Id: typeinfo.h 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -47,7 +47,7 @@
  * TYPECHECK_VERBOSE activates all debug messages
  * TYPEINFO_VERBOSE activates debug prints in typeinfo.c
  */
-#ifdef CACAO_TYPECHECK
+#ifdef ENABLE_VERIFIER
 #ifndef NDEBUG
 /*#define TYPECHECK_STATISTICS*/
 #define TYPEINFO_DEBUG

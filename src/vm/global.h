@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 3669 2005-11-15 00:18:01Z twisti $
+   $Id: global.h 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -84,9 +84,9 @@ typedef struct java_objectarray java_objectarray;
 
 
 /*
- * CACAO_TYPECHECK activates typechecking (part of bytecode verification)
+ * ENABLE_VERIFIER activates bytecode verification and other checks
  */
-#define CACAO_TYPECHECK
+#define ENABLE_VERIFIER
 
 /*
  * TYPECHECK_STACK_COMPCAT activates full checking of computational

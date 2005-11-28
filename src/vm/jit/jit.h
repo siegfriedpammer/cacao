@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3744 2005-11-22 23:42:43Z twisti $
+   $Id: jit.h 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -94,7 +94,7 @@ typedef struct subroutineinfo subroutineinfo;
 struct stackelement {
 	stackptr prev;              /* pointer to next element towards bottom     */
 	s4       type;              /* slot type of stack element                 */
-#ifdef CACAO_TYPECHECK
+#ifdef ENABLE_VERIFIER
 	typeinfo typeinfo;          /* info on reference types                    */
 #endif
 	s4       flags;             /* flags (SAVED, INMEMORY)                    */

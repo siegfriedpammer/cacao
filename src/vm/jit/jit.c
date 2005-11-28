@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3744 2005-11-22 23:42:43Z twisti $
+   $Id: jit.c 3811 2005-11-28 16:23:40Z edwin $
 
 */
 
@@ -1553,7 +1553,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	if (compileverbose)
 		log_message_method("Analysing done: ", m);
 
-#ifdef CACAO_TYPECHECK
+#ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		if (compileverbose)
 			log_message_method("Typechecking: ", m);
