@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3386 2005-10-07 14:02:52Z edwin $
+   $Id: descriptor.c 3815 2005-11-28 19:28:57Z edwin $
 
 */
 
@@ -125,15 +125,9 @@ struct descriptor_hash_entry {
 
 /*#define DESCRIPTOR_VERBOSE*/
 
-#ifndef NDEBUG
-#define DESCRIPTOR_DEBUG
-#endif
-
-#ifdef DESCRIPTOR_DEBUG
-#define DESCRIPTOR_ASSERT(cond)  assert(cond)
-#else
-#define DESCRIPTOR_ASSERT(cond)
-#endif
+/****************************************************************************/
+/* FUNCTIONS                                                                */
+/****************************************************************************/
 
 /* name_from_descriptor ********************************************************
 
@@ -183,10 +177,10 @@ name_from_descriptor(classinfo *c,
 	char *start = utf_ptr;
 	bool error = false;
 
-	DESCRIPTOR_ASSERT(c);
-	DESCRIPTOR_ASSERT(utf_ptr);
-	DESCRIPTOR_ASSERT(end_ptr);
-	DESCRIPTOR_ASSERT(name);
+	assert(c);
+	assert(utf_ptr);
+	assert(end_ptr);
+	assert(name);
 	
 	*name = NULL;		
 	SKIP_FIELDDESCRIPTOR_SAFE(utf_ptr, end_ptr, error);
@@ -305,7 +299,7 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 			td->type = TYPE_VOID;
 			break;
 		default:
-			DESCRIPTOR_ASSERT(false);
+			assert(false);
 		}
 
 		td->arraydim = 0;
@@ -336,7 +330,7 @@ descriptor_pool_new(classinfo *referer)
 	u4 slot;
 
 	pool = DNEW(descriptor_pool);
-	DESCRIPTOR_ASSERT(pool);
+	assert(pool);
 
 	pool->referer = referer;
 	pool->fieldcount = 0;
@@ -387,8 +381,8 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 	u4 key,slot;
 	classref_hash_entry *c;
 	
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT(name);
+	assert(pool);
+	assert(name);
 
 #ifdef DESCRIPTOR_VERBOSE
 	fprintf(stderr,"descriptor_pool_add_class(%p,",(void*)pool);
@@ -460,8 +454,8 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 	utf_fprint(stderr,desc);fprintf(stderr,")\n");
 #endif
 
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT(desc);
+	assert(pool);
+	assert(desc);
 
 	/* find a place in the hashtable */
 
@@ -594,7 +588,7 @@ descriptor_pool_create_classrefs(descriptor_pool *pool, s4 *count)
 	classref_hash_entry *c;
 	constant_classref *ref;
 	
-	DESCRIPTOR_ASSERT(pool);
+	assert(pool);
 
 	nclasses = pool->classrefhash.entries;
 	pool->classrefs = MNEW(constant_classref,nclasses);
@@ -637,9 +631,9 @@ descriptor_pool_lookup_classref(descriptor_pool *pool, utf *classname)
 	u4 key,slot;
 	classref_hash_entry *c;
 
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT(pool->classrefs);
-	DESCRIPTOR_ASSERT(classname);
+	assert(pool);
+	assert(pool->classrefs);
+	assert(classname);
 
 	key = utf_hashkey(classname->text, classname->blength);
 	slot = key & (pool->classrefhash.size - 1);
@@ -674,7 +668,7 @@ descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
 {
 	u4 size;
 	
-	DESCRIPTOR_ASSERT(pool);
+	assert(pool);
 
 	/* TWISTI: paramcount + 1: we don't know if the method is static or   */
 	/* not, i have no better solution yet.                                */
@@ -724,9 +718,9 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 	descriptor_hash_entry *d;
 	typedesc *td;
 
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT(pool->descriptors);
-	DESCRIPTOR_ASSERT(pool->descriptors_next);
+	assert(pool);
+	assert(pool->descriptors);
+	assert(pool->descriptors_next);
 
 	/* lookup the descriptor in the hashtable */
 
@@ -744,7 +738,7 @@ descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc)
 		d = d->hashlink;
 	}
 
-	DESCRIPTOR_ASSERT(d);
+	assert(d);
 	
 	if (desc->text[0] == '(') {
 		*exceptionptr = new_classformaterror(pool->referer,
@@ -807,9 +801,9 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	utf_fprint(stderr,desc); fprintf(stderr,")\n");
 #endif
 
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT(pool->descriptors);
-	DESCRIPTOR_ASSERT(pool->descriptors_next);
+	assert(pool);
+	assert(pool->descriptors);
+	assert(pool->descriptors_next);
 
 	/* check that it is a method descriptor */
 	
@@ -834,7 +828,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 		d = d->hashlink;
 	}
 
-	DESCRIPTOR_ASSERT(d);
+	assert(d);
 
 	md = (methoddesc *) pool->descriptors_next;
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
@@ -951,9 +945,9 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 {
 	typedesc *td;
 
-	DESCRIPTOR_ASSERT(md);
-	DESCRIPTOR_ASSERT(md->params == NULL);
-	DESCRIPTOR_ASSERT(mflags != ACC_UNDEF);
+	assert(md);
+	assert(md->params == NULL);
+	assert(mflags != ACC_UNDEF);
 
 	td = md->paramtypes;
 
@@ -964,7 +958,7 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 
 		/* fetch class reference from reserved param slot */
 		thisclass = td[md->paramcount].classref;
-		DESCRIPTOR_ASSERT(thisclass);
+		assert(thisclass);
 
 		if (md->paramcount > 0) {
 			/* shift param types by 1 argument */
@@ -1026,8 +1020,8 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 void * 
 descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size)
 {
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
+	assert(pool);
+	assert((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
 	
 	if (size)
 		*size = pool->descriptorsize;
@@ -1058,17 +1052,22 @@ descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size)
 void 
 descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize, u4 *descsize)
 {
-	DESCRIPTOR_ASSERT(pool);
-	DESCRIPTOR_ASSERT((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
-	DESCRIPTOR_ASSERT(pool->classrefs);
-	DESCRIPTOR_ASSERT(classrefsize);
-	DESCRIPTOR_ASSERT(descsize);
+	assert(pool);
+	assert((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
+	assert(pool->classrefs);
+	assert(classrefsize);
+	assert(descsize);
 
 	*classrefsize = pool->classrefhash.entries * sizeof(constant_classref);
 	*descsize = pool->descriptorsize;
 }
 
 
+/****************************************************************************/
+/* DEBUG HELPERS                                                            */
+/****************************************************************************/
+
+#ifndef NDEBUG
 /* descriptor_debug_print_typedesc *********************************************
  
    Print the given typedesc to the given stream
@@ -1265,6 +1264,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 
 	fprintf(file,"==========================================================\n");
 }
+#endif /* !defined(NDEBUG) */
 
 /*
  * These are local overrides for various environment variables in Emacs.

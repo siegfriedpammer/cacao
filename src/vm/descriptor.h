@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 2796 2005-06-23 09:42:34Z twisti $
+   $Id: descriptor.h 3815 2005-11-28 19:28:57Z edwin $
 
 */
 
@@ -141,305 +141,33 @@ struct methoddesc {
 
 /* function prototypes ********************************************************/
 
-/* descriptor_debug_print_typedesc *********************************************
- 
-   Print the given typedesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
-
-
-/* descriptor_debug_print_methoddesc *******************************************
- 
-   Print the given methoddesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
-
-
-/* descriptor_debug_print_paramdesc ********************************************
- 
-   Print the given paramdesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parameter descriptor
-
-*******************************************************************************/
-
-void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
-
-/* descriptor_pool_new *********************************************************
- 
-   Allocate a new descriptor_pool
-
-   IN:
-       referer..........class for which to create the pool
-
-   RETURN VALUE:
-       a pointer to the new descriptor_pool
-
-*******************************************************************************/
-
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
-
-/* descriptor_pool_add_class ***************************************************
- 
-   Add the given class reference to the pool
-
-   IN:
-       pool.............the descriptor_pool
-	   name.............the class reference to add
-
-   RETURN VALUE:
-       true.............reference has been added
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
 bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
-
-
-/* descriptor_pool_add *********************************************************
- 
-   Check the given descriptor and add it to the pool
-
-   IN:
-       pool.............the descriptor_pool
-	   desc.............the descriptor to add. Maybe a field or method desc.
-
-   OUT:
-       *paramslots......if non-NULL, set to the number of parameters.
-	                    LONG and DOUBLE are counted twice
-
-   RETURN VALUE:
-       true.............descriptor has been added
-	   false............an exception has been thrown
-
-*******************************************************************************/
-
 bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
-
-
-/* descriptor_pool_create_classrefs ********************************************
- 
-   Create a table containing all the classrefs which were added to the pool
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-       *count...........if count is non-NULL, this is set to the number
-	                    of classrefs in the table
-
-   RETURN VALUE:
-       a pointer to the constant_classref table
-
-*******************************************************************************/
 
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);
-
-
-/* descriptor_pool_lookup_classref *********************************************
- 
-   Return the constant_classref for the given class name
-
-   IN:
-       pool.............the descriptor_pool
-	   classname........name of the class to look up
-
-   RETURN VALUE:
-       a pointer to the constant_classref, or
-	   NULL if an exception has been thrown
-
-*******************************************************************************/
-
 constant_classref * descriptor_pool_lookup_classref(descriptor_pool *pool,utf *classname);
-
-
-/* descriptor_pool_alloc_parsed_descriptors ************************************
- 
-   Allocate space for the parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   NOTE:
-       This function must be called after all descriptors have been added
-	   with descriptor_pool_add.
-
-*******************************************************************************/
 
 void descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool);
 
-
-/* descriptor_pool_parse_field_descriptor **************************************
- 
-   Parse the given field descriptor
-
-   IN:
-       pool.............the descriptor_pool
-	   desc.............the field descriptor
-
-   RETURN VALUE:
-       a pointer to the parsed field descriptor, or
-	   NULL if an exception has been thrown
-
-   NOTE:
-       descriptor_pool_alloc_parsed_descriptors must be called (once) before this
-	   function is used.
-
-*******************************************************************************/
-
 typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *desc);
-
-
-/* descriptor_pool_parse_method_descriptor *************************************
- 
-   Parse the given method descriptor
-
-   IN:
-       pool.............the descriptor_pool
-       desc.............the method descriptor
-       mflags...........the method flags
-	   thisclass........classref to the class containing the method.
-	   					This is ignored if mflags contains ACC_STATIC.
-						The classref is stored for inserting the 'this' argument.
-
-   RETURN VALUE:
-       a pointer to the parsed method descriptor, or
-	   NULL if an exception has been thrown
-
-   NOTE:
-       descriptor_pool_alloc_parsed_descriptors must be called (once) before this
-	   function is used.
-
-*******************************************************************************/
-
 methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
 													constant_classref *thisclass);
 
-/* descriptor_params_from_paramtypes *******************************************
- 
-   Create the paramdescs for a method descriptor. This function is called
-   when we know whether the method is static or not. This function may only
-   be called once for each methoddesc, and only if md->params == NULL.
-
-   IN:
-       md...............the parsed method descriptor
-	                    md->params MUST be NULL.
-	   mflags...........the ACC_* access flags of the method. Only the
-	                    ACC_STATIC bit is checked.
-						The value ACC_UNDEF is NOT allowed.
-
-   RETURN VALUE:
-       true.............the paramdescs were created successfully
-	   false............an exception has been thrown
-
-   POSTCONDITION:
-       md->parms != NULL
-
-*******************************************************************************/
-
 bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
 
-/* descriptor_pool_get_parsed_descriptors **************************************
- 
-   Return a pointer to the block of parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-   	   *size............if size is non-NULL, this is set to the size of the
-	                    parsed descriptor block (in u1)
-
-   RETURN VALUE:
-       a pointer to the block of parsed descriptors,
-	   NULL if there are no descriptors in the pool
-
-   NOTE:
-       descriptor_pool_alloc_parsed_descriptors must be called (once) before this
-	   function is used.
-
-*******************************************************************************/
-
 void *descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size);
-
-
-/* descriptor_pool_get_sizes ***************************************************
- 
-   Get the sizes of the class reference table and the parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-       *classrefsize....set to size of the class reference table
-	   *descsize........set to size of the parsed descriptors
-
-   NOTE:
-       This function may only be called after both
-	       descriptor_pool_create_classrefs, and
-		   descriptor_pool_alloc_parsed_descriptors
-	   have been called.
-
-*******************************************************************************/
-
 void descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize,
 							   u4 *descsize);
 
-
-/* descriptor_debug_print_typedesc *********************************************
- 
-   Print the given typedesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void descriptor_debug_print_typedesc(FILE *file, typedesc *d);
-
-
-/* descriptor_debug_print_methoddesc *******************************************
- 
-   Print the given methoddesc to the given stream
-
-   IN:
-	   file.............stream to print to
-	   d................the parsed descriptor
-
-*******************************************************************************/
-
-void descriptor_debug_print_methoddesc(FILE *file, methoddesc *d);
-
-
-/* descriptor_pool_debug_dump **************************************************
- 
-   Print the state of the descriptor_pool to the given stream
-
-   IN:
-       pool.............the descriptor_pool
-	   file.............stream to print to
-
-*******************************************************************************/
-
+#ifndef NDEBUG
+void descriptor_debug_print_typedesc(FILE *file,typedesc *d);
+void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
+void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
-
+#endif /* !defined(NDEBUG) */
 
 /* machine dependent descriptor function */
 void md_param_alloc(methoddesc *md);
