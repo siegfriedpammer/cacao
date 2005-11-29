@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3745 2005-11-22 23:43:53Z twisti $
+   $Id: codegen.inc 3817 2005-11-29 14:33:08Z anton $
 
 */
 
@@ -254,10 +254,11 @@ static s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 	cd->mcodesize *= 2;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* adjust the pointer to the last patcher position */
 
-	cd->lastmcodeptr = cd->mcodebase + (cd->lastmcodeptr - oldmcodebase);
+	if (cd->lastmcodeptr != NULL)
+		cd->lastmcodeptr = cd->mcodebase + (cd->lastmcodeptr - oldmcodebase);
 #endif
 
 	/* return the new mcodeptr */
