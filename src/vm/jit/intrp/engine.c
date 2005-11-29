@@ -6,6 +6,8 @@
 #include "arch.h"
 #include "vm/jit/intrp/intrp.h"
 
+#include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
+
 #include "cacao/cacao.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
