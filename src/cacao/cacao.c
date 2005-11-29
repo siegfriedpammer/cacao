@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3693 2005-11-17 13:46:59Z twisti $
+   $Id: cacao.c 3816 2005-11-29 14:31:50Z anton $
 
 */
 
@@ -1270,6 +1270,9 @@ int main(int argc, char **argv)
 			throw_main_exception_exit();
 		}
 
+		if (!link_class(mainclass))
+			throw_main_exception_exit();
+			
 		/* find the `main' method of the main class */
 
 		m = class_resolveclassmethod(mainclass,
