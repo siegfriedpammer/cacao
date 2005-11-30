@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3229 2005-09-19 14:04:57Z twisti $
+   $Id: md.c 3820 2005-11-30 15:28:11Z anton $
 
 */
 
@@ -57,6 +57,10 @@ Inst *vm_prim = NULL; /* initialized by md_init() */
 void md_init(void)
 {
 	vm_out = stdout;
+    if (setvbuf(stdout,NULL, _IOLBF,0) != 0) {
+		perror("setvbuf error");
+		exit(1);
+	}
 	if ( vm_prim == NULL ) {
 		(void)engine(NULL, NULL, NULL);
 	}
@@ -81,14 +85,14 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 *******************************************************************************/
 
-functionptr md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
-	functionptr ra;
+	u1 *ra;
 
 	/* ATTENTION: the passed sp is actually the fp! (see java.vmg for stack 
 	   layout) */
 
-	ra = (functionptr) (ptrint) *((u1 **) (sp - framesize - sizeof(void *)));
+	ra = *((u1 **) (sp - framesize - sizeof(void *)));
 
 	return ra;
 }
