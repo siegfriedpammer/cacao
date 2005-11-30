@@ -1,7 +1,7 @@
 README
 ======
 
-CACAO is a Java Virtual Machine with a JIT compiler for different
+CACAO is a Java Virtual Machine with a JIT compiler for various
 architectures. It includes the GNU classpath and the Boehm garbage
 collector.
 
