@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3813 2005-11-28 18:31:29Z edwin $
+   $Id: loader.c 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -1305,8 +1305,8 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	if (!descriptor_pool_add(descpool, u, NULL))
 		return false;
 
-	/* descriptor_pool_add accepts method descriptors, so we have to check */
-	/* against them here before the call of desc_to_type below.            */
+	/* descriptor_pool_add accepts method descriptors, so we have to check  */
+	/* against them here before the call of descriptor_to_basic_type below. */
 	if (u->text[0] == '(') {
 		*exceptionptr = new_classformaterror(c,"Method descriptor used for field");
 		return false;
@@ -1348,8 +1348,8 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	}
 #endif /* ENABLE_VERIFIER */
 		
-	f->type = jtype = desc_to_type(f->descriptor);    /* data type            */
-	f->offset = 0;                             /* offset from start of object */
+	f->type = jtype = descriptor_to_basic_type(f->descriptor); /* data type */
+	f->offset = 0;                           /* offset from start of object */
 	f->class = c;
 	f->xta = NULL;
 	

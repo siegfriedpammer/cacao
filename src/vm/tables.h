@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: tables.h 3678 2005-11-16 12:11:22Z twisti $
+   $Id: tables.h 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -122,12 +122,6 @@ bool tables_init(void);
 
 /* free memory for hashtables */ 
 void tables_close(void);
-
-/* get javatype according to a typedescriptor */
-u2 desc_to_type(utf *descriptor);
-
-/* get length of a datatype */
-u2 desc_typesize(utf *descriptor);
 
 /* create hashtable */
 void init_hashtable(hashtable *hash, u4 size);

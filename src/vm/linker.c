@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3803 2005-11-26 19:18:33Z twisti $
+   $Id: linker.c 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -762,7 +762,7 @@ static classinfo *link_class_intern(classinfo *c)
 		fieldinfo *f = &(c->fields[i]);
 		
 		if (!(f->flags & ACC_STATIC)) {
-			dsize = desc_typesize(f->descriptor);
+			dsize = descriptor_typesize(f->parseddesc);
 			c->instancesize = ALIGN(c->instancesize, dsize);
 			f->offset = c->instancesize;
 			c->instancesize += dsize;

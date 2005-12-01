@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3815 2005-11-28 19:28:57Z edwin $
+   $Id: descriptor.c 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -128,6 +128,75 @@ struct descriptor_hash_entry {
 /****************************************************************************/
 /* FUNCTIONS                                                                */
 /****************************************************************************/
+
+/* descriptor_to_basic_type ****************************************************
+
+   Return the basic type to use for a value with this descriptor.
+
+   IN:
+       utf..............descriptor utf string
+
+   OUT:
+       A TYPE_* constant.
+
+   PRECONDITIONS:
+       This function assumes that the descriptor has passed 
+	   descriptor_pool_add checks and that it does not start with '('.
+
+*******************************************************************************/
+
+u2 descriptor_to_basic_type(utf *descriptor)
+{
+	char *utf_ptr = descriptor->text;
+
+	assert(descriptor->blength >= 1);
+	
+	switch (*utf_ptr++) {
+	case 'B': 
+	case 'C':
+	case 'I':
+	case 'S':  
+	case 'Z':  return TYPE_INT;
+	case 'D':  return TYPE_DOUBLE;
+	case 'F':  return TYPE_FLOAT;
+	case 'J':  return TYPE_LONG;
+	case 'L':
+	case '[':  return TYPE_ADDRESS;
+	}
+			
+	assert(0);
+
+	return 0; /* keep the compiler happy */
+}
+
+/* descriptor_typesize**** ****************************************************
+
+   Return the size in bytes needed for the given type.
+
+   IN:
+       td..............typedesc describing the type
+
+   OUT:
+       The number of bytes
+
+*******************************************************************************/
+
+u2 descriptor_typesize(typedesc *td)
+{
+	assert(td);
+
+	switch (td->type) {
+		case TYPE_INT:     return 4;
+		case TYPE_LONG:    return 8;
+		case TYPE_FLOAT:   return 4;
+		case TYPE_DOUBLE:  return 8;
+		case TYPE_ADDRESS: return sizeof(voidptr);
+	}
+
+	assert(0);
+
+	return 0; /* keep the compiler happy */
+}
 
 /* name_from_descriptor ********************************************************
 

@@ -36,7 +36,7 @@
        - the heap
        - additional support functions
 
-   $Id: tables.c 3679 2005-11-16 12:12:02Z twisti $
+   $Id: tables.c 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -165,67 +165,6 @@ void tables_close()
 	MFREE(utf_hash.ptr,    void*, utf_hash.size);
 	MFREE(string_hash.ptr, void*, string_hash.size);
 }
-
-
-/******************************************************************************
-*********************** Misc support functions ********************************
-******************************************************************************/
-
-
-/******************** Function: desc_to_type **********************************
-   
-	Determines the corresponding Java base data type for a given type
-	descriptor.
-	
-******************************************************************************/
-
-u2 desc_to_type(utf *descriptor)
-{
-	char *utf_ptr = descriptor->text;  /* current position in utf text */
-
-	if (descriptor->blength < 1) {
-		log_text("Type-Descriptor is empty string");
-		assert(0);
-	}
-	
-	switch (*utf_ptr++) {
-	case 'B': 
-	case 'C':
-	case 'I':
-	case 'S':  
-	case 'Z':  return TYPE_INT;
-	case 'D':  return TYPE_DOUBLE;
-	case 'F':  return TYPE_FLOAT;
-	case 'J':  return TYPE_LONG;
-	case 'L':
-	case '[':  return TYPE_ADDRESS;
-	}
-			
-	assert(0);
-
-	return 0;
-}
-
-
-/********************** Function: desc_typesize *******************************
-
-	Calculates the lenght in bytes needed for a data element of the type given
-	by its type descriptor.
-	
-******************************************************************************/
-
-u2 desc_typesize(utf *descriptor)
-{
-	switch (desc_to_type(descriptor)) {
-	case TYPE_INT:     return 4;
-	case TYPE_LONG:    return 8;
-	case TYPE_FLOAT:   return 4;
-	case TYPE_DOUBLE:  return 8;
-	case TYPE_ADDRESS: return sizeof(voidptr);
-	default:           return 0;
-	}
-}
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

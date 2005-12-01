@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 3815 2005-11-28 19:28:57Z edwin $
+   $Id: descriptor.h 3825 2005-12-01 18:46:29Z edwin $
 
 */
 
@@ -145,6 +145,9 @@ descriptor_pool * descriptor_pool_new(classinfo *referer);
 
 bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
 bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
+
+u2 descriptor_to_basic_type(utf *desc);
+u2 descriptor_typesize(typedesc *td);
 
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);
