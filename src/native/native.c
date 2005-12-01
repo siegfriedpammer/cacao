@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 3824 2005-12-01 18:21:11Z twisti $
+   $Id: native.c 3828 2005-12-01 19:46:05Z twisti $
 
 */
 
@@ -49,11 +49,11 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/hashtable.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
