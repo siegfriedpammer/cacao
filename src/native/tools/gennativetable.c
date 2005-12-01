@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 3308 2005-09-29 14:22:49Z twisti $
+   $Id: gennativetable.c 3833 2005-12-01 23:22:45Z twisti $
 
 */
 
@@ -229,7 +229,6 @@ int main(int argc, char **argv)
 	/* release all resources */
 
 	loader_close();
-	tables_close();
 
 	/* everything is ok */
 
