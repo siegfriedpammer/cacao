@@ -1,4 +1,4 @@
-/* src/vm/tables.h - 
+/* src/vm/hashtable.h - functions for internal hashtables
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,16 +28,13 @@
 
    Changes: Christian Thalinger
 
-   $Id: tables.h 3825 2005-12-01 18:46:29Z edwin $
+   $Id: hashtable.h 3836 2005-12-01 23:45:13Z twisti $
 
 */
 
 
-#ifndef _TABLES_H
-#define _TABLES_H
-
-#include <stdio.h>
-
+#ifndef _HASHTABLE_H
+#define _HASHTABLE_H
 
 /* forward typedefs ***********************************************************/
 
@@ -109,29 +106,17 @@ struct hashtable {
 };
 
 
-#define CLASS(name)     (unicode_getclasslink(unicode_new_char(name)))
-
-extern hashtable utf_hash;     /* hashtable for utf8-symbols */
-extern hashtable string_hash;  /* hashtable for javastrings  */
-
-
 /* function prototypes ********************************************************/
 
-/* creates hashtables for symboltables */
-bool tables_init(void);
-
-/* free memory for hashtables */ 
-void tables_close(void);
-
 /* create hashtable */
-void init_hashtable(hashtable *hash, u4 size);
+void hashtable_create(hashtable *hash, u4 size);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void tables_lock(void);
 void tables_unlock(void);
 #endif
 
-#endif /* _TABLES_H */
+#endif /* _HASHTABLE_H */
 
 
 /*
