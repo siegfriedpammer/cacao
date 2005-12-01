@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 3488 2005-10-21 13:48:20Z twisti $
+   $Id: VMRuntime.c 3823 2005-12-01 18:20:34Z twisti $
 
 */
 
@@ -275,7 +275,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	/* is the library already loaded? */
 
-	if (native_library_hash_find(name, (java_objectheader *) loader))
+	if (native_hashtable_library_find(name, (java_objectheader *) loader))
 		return 1;
 
 	/* try to open the library */
@@ -306,7 +306,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	/* insert the library name into the library hash */
 
-	native_library_hash_add(name, (java_objectheader *) loader, handle);
+	native_hashtable_library_add(name, (java_objectheader *) loader, handle);
 
 	return 1;
 #endif
