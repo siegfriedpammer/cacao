@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 3694 2005-11-17 13:47:28Z twisti $
+   $Id: stringlocal.h 3831 2005-12-01 23:18:04Z twisti $
 
 */
 
@@ -45,8 +45,8 @@ typedef struct literalstring literalstring;
 #include "vm/global.h"                  /* required before java_lang_String.h */
 #include "native/include/java_lang_String.h"
 
+#include "vm/hashtable.h"
 #include "vm/utf8.h"
-#include "vm/tables.h"
 
 
 /* data structure of internal javastrings stored in global hashtable **********/
@@ -56,8 +56,9 @@ struct literalstring {
 	java_objectheader *string;  
 };
 
+
 /* javastring-hashtable */
-extern hashtable string_hash;
+extern hashtable hashtable_string;
 
 
 /* global string definitions **************************************************/
