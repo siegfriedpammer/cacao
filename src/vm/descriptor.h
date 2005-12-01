@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: descriptor.h 3825 2005-12-01 18:46:29Z edwin $
+   $Id: descriptor.h 3838 2005-12-01 23:50:48Z twisti $
 
 */
 
@@ -43,9 +43,9 @@ typedef struct paramdesc paramdesc;
 
 #include "vm/class.h"
 #include "vm/global.h"
+#include "vm/hashtable.h"
 #include "vm/method.h"
 #include "vm/references.h"
-#include "vm/tables.h"
 
 
 /* data structures ************************************************************/ 
