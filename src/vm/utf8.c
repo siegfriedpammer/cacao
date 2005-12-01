@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: utf8.c 3835 2005-12-01 23:32:57Z twisti $
 
 */
 
@@ -38,21 +38,28 @@
 #include <string.h>
 #include <assert.h>
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "vm/exceptions.h"
+#include "vm/hashtable.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/utf8.h"
 
 /* global variables ***********************************************************/
 
-#if defined(USE_THREADS)
-static java_objectheader *lock_utf_hashtable;
-#endif
+/* hashsize must be power of 2 */
 
-hashtable utf_hash;                     /* hashtable for utf8-symbols         */
+#define HASHTABLE_UTF_SIZE    16384     /* initial size of utf-hash           */
+
+hashtable hashtable_utf;                /* hashtable for utf8-symbols         */
+
+#if defined(USE_THREADS)
+static java_objectheader *lock_hashtable_utf;
+#endif
 
 
 /* utf-symbols for pointer comparison of frequently used strings **************/
@@ -163,13 +170,22 @@ utf *array_packagename;
 
 bool utf8_init(void)
 {
+	/* create utf8 hashtable */
+
+	hashtable_create(&hashtable_utf, HASHTABLE_UTF_SIZE);
+
+#if defined(STATISTICS)
+	if (opt_stat)
+		count_utf_len += sizeof(utf*) * hashtable_utf.size;
+#endif
+
 #if defined(USE_THREADS)
 	/* create utf hashtable lock object */
 
-	lock_utf_hashtable = NEW(java_objectheader);
+	lock_hashtable_utf = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_utf_hashtable);
+	initObjectLock(lock_hashtable_utf);
 # endif
 #endif
 
@@ -465,7 +481,7 @@ utf *utf_new(const char *text, u2 length)
 	/* XXX REMOVE ME! */
 
 #if defined(USE_THREADS)
-	builtin_monitorenter(lock_utf_hashtable);
+	builtin_monitorenter(lock_hashtable_utf);
 #endif
 
 	/* XXX REMOVE ME! after testing of course ;-) */
@@ -473,14 +489,14 @@ utf *utf_new(const char *text, u2 length)
 	running = 1;
 	/* XXX REMOVE ME! */
 
-#ifdef STATISTICS
+#if defined(STATISTICS)
 	if (opt_stat)
 		count_utf_new++;
 #endif
 
 	key  = utf_hashkey(text, length);
-	slot = key & (utf_hash.size - 1);
-	u    = utf_hash.ptr[slot];
+	slot = key & (hashtable_utf.size - 1);
+	u    = hashtable_utf.ptr[slot];
 
 	/* search external hash chain for utf-symbol */
 
@@ -504,7 +520,7 @@ utf *utf_new(const char *text, u2 length)
 			/* XXX REMOVE ME! */
 
 #if defined(USE_THREADS)
-			builtin_monitorexit(lock_utf_hashtable);
+			builtin_monitorexit(lock_hashtable_utf);
 #endif
 
 			return u;
@@ -522,50 +538,58 @@ utf *utf_new(const char *text, u2 length)
 	/* location in hashtable found, create new utf element */
 	u = NEW(utf);
 	u->blength  = length;               /* length in bytes of utfstring       */
-	u->hashlink = utf_hash.ptr[slot];   /* link in external hashchain         */
+	u->hashlink = hashtable_utf.ptr[slot]; /* link in external hashchain      */
 	u->text     = mem_alloc(length + 1);/* allocate memory for utf-text       */
+
 	memcpy(u->text, text, length);      /* copy utf-text                      */
 	u->text[length] = '\0';
-	utf_hash.ptr[slot] = u;             /* insert symbol into table           */
 
-	utf_hash.entries++;                 /* update number of entries           */
+	hashtable_utf.ptr[slot] = u;        /* insert symbol into table           */
+	hashtable_utf.entries++;            /* update number of entries           */
 
-	if (utf_hash.entries > (utf_hash.size * 2)) {
+	if (hashtable_utf.entries > (hashtable_utf.size * 2)) {
 
-        /* reorganization of hashtable, average length of 
-           the external chains is approx. 2                */  
+        /* reorganization of hashtable, average length of the external
+           chains is approx. 2 */
 
-		u4 i;
-		utf *u;
-		hashtable newhash; /* the new hashtable */
+		hashtable  newhash;                              /* the new hashtable */
+		u4         i;
+		utf       *u;
+		utf       *nextu;
+		u4         slot;
 
 		/* create new hashtable, double the size */
-		init_hashtable(&newhash, utf_hash.size * 2);
-		newhash.entries = utf_hash.entries;
 
-#ifdef STATISTICS
+		hashtable_create(&newhash, hashtable_utf.size * 2);
+		newhash.entries = hashtable_utf.entries;
+
+#if defined(STATISTICS)
 		if (opt_stat)
-			count_utf_len += sizeof(utf*) * utf_hash.size;
+			count_utf_len += sizeof(utf*) * hashtable_utf.size;
 #endif
 
 		/* transfer elements to new hashtable */
-		for (i = 0; i < utf_hash.size; i++) {
-			u = (utf *) utf_hash.ptr[i];
+
+		for (i = 0; i < hashtable_utf.size; i++) {
+			u = hashtable_utf.ptr[i];
+
 			while (u) {
-				utf *nextu = u->hashlink;
-				u4 slot = utf_hashkey(u->text, u->blength) & (newhash.size - 1);
+				nextu = u->hashlink;
+				slot  = utf_hashkey(u->text, u->blength) & (newhash.size - 1);
 						
 				u->hashlink = (utf *) newhash.ptr[slot];
 				newhash.ptr[slot] = u;
 
 				/* follow link in external hash chain */
+
 				u = nextu;
 			}
 		}
 	
 		/* dispose old table */
-		MFREE(utf_hash.ptr, void*, utf_hash.size);
-		utf_hash = newhash;
+
+		MFREE(hashtable_utf.ptr, void*, hashtable_utf.size);
+		hashtable_utf = newhash;
 	}
 
 	/* XXX REMOVE ME! */
@@ -573,7 +597,7 @@ utf *utf_new(const char *text, u2 length)
 	/* XXX REMOVE ME! */
 
 #if defined(USE_THREADS)
-	builtin_monitorexit(lock_utf_hashtable);
+	builtin_monitorexit(lock_hashtable_utf);
 #endif
 
 	return u;
@@ -1123,6 +1147,7 @@ bool is_valid_name_utf(utf *u)
 
 *******************************************************************************/
 
+#if defined(ENABLE_DEBUG)
 void utf_show(void)
 {
 
@@ -1134,29 +1159,30 @@ void utf_show(void)
 	u4 beyond_limit = 0;         /* number of utf-symbols in chains with length>=CHAIN_LIMIT-1 */
 	u4 i;
 
-	printf ("UTF-HASH:\n");
+	printf("UTF-HASH:\n");
 
 	/* show element of utf-hashtable */
-	for (i=0; i<utf_hash.size; i++) {
-		utf *u = utf_hash.ptr[i];
+
+	for (i = 0; i < hashtable_utf.size; i++) {
+		utf *u = hashtable_utf.ptr[i];
+
 		if (u) {
-			printf ("SLOT %d: ", (int) i);
+			printf("SLOT %d: ", (int) i);
+
 			while (u) {
-				printf ("'");
-				utf_display (u);
-				printf ("' ");
+				printf("'");
+				utf_display(u);
+				printf("' ");
 				u = u->hashlink;
 			}	
-			printf ("\n");
+			printf("\n");
 		}
-		
 	}
 
-	printf ("UTF-HASH: %d slots for %d entries\n", 
-			(int) utf_hash.size, (int) utf_hash.entries );
+	printf("UTF-HASH: %d slots for %d entries\n", 
+		   (int) hashtable_utf.size, (int) hashtable_utf.entries );
 
-
-	if (utf_hash.entries == 0)
+	if (hashtable_utf.entries == 0)
 		return;
 
 	printf("chains:\n  chainlength    number of chains    %% of utfstrings\n");
@@ -1165,9 +1191,9 @@ void utf_show(void)
 		chain_count[i]=0;
 
 	/* count numbers of hashchains according to their length */
-	for (i=0; i<utf_hash.size; i++) {
+	for (i=0; i<hashtable_utf.size; i++) {
 		  
-		utf *u = (utf*) utf_hash.ptr[i];
+		utf *u = (utf*) hashtable_utf.ptr[i];
 		u4 chain_length = 0;
 
 		/* determine chainlength */
@@ -1195,16 +1221,17 @@ void utf_show(void)
 
 	/* display results */  
 	for (i=1;i<CHAIN_LIMIT-1;i++) 
-		printf("       %2d %17d %18.2f%%\n",i,chain_count[i],(((float) chain_count[i]*i*100)/utf_hash.entries));
+		printf("       %2d %17d %18.2f%%\n",i,chain_count[i],(((float) chain_count[i]*i*100)/hashtable_utf.entries));
 	  
-	printf("     >=%2d %17d %18.2f%%\n",CHAIN_LIMIT-1,chain_count[CHAIN_LIMIT-1],((float) beyond_limit*100)/utf_hash.entries);
+	printf("     >=%2d %17d %18.2f%%\n",CHAIN_LIMIT-1,chain_count[CHAIN_LIMIT-1],((float) beyond_limit*100)/hashtable_utf.entries);
 
 
 	printf("max. chainlength:%5d\n",max_chainlength);
 
 	/* avg. chainlength = sum of chainlengths / number of chains */
-	printf("avg. chainlength:%5.2f\n",(float) sum_chainlength / (utf_hash.size-chain_count[0]));
+	printf("avg. chainlength:%5.2f\n",(float) sum_chainlength / (hashtable_utf.size-chain_count[0]));
 }
+#endif /* defined(ENABLE_DEBUG) */
 
 
 /*
