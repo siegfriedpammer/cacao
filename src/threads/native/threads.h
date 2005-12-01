@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 3570 2005-11-04 16:58:36Z motse $
+   $Id: threads.h 3830 2005-12-01 23:07:33Z twisti $
 
 */
 
@@ -52,7 +52,6 @@
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
 #include "vm/global.h"
-#include "vm/tables.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>

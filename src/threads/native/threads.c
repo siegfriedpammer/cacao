@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3570 2005-11-04 16:58:36Z motse $
+   $Id: threads.c 3830 2005-12-01 23:07:33Z twisti $
 
 */
 
@@ -73,7 +73,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
 #if !defined(__DARWIN__)
