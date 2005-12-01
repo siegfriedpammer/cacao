@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3674 2005-11-16 12:03:58Z twisti $
+   $Id: cacaoh.c 3827 2005-12-01 19:38:20Z twisti $
 
 */
 
@@ -59,11 +59,12 @@
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/hashtable.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
+#include "vm/suck.h"
 
 
 /* define heap sizes **********************************************************/
@@ -272,11 +273,6 @@ int main(int argc, char **argv)
 
 	gc_init(heapmaxsize, heapstartsize);
 
-	/* intialize the utf8 and string hashtable */
-
-	if (!tables_init())
-		throw_main_exception_exit();
-
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
 	threads_preinit();
@@ -346,7 +342,6 @@ int main(int argc, char **argv)
 	/************************ Release all resources **********************/
 
 	loader_close();
-	tables_close();
 
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
