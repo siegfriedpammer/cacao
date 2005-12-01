@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 3445 2005-10-19 11:28:41Z twisti $
+   $Id: native.h 3824 2005-12-01 18:21:11Z twisti $
 
 */
 
@@ -57,24 +57,25 @@ typedef struct nativecompref nativecompref;
 
 
 #if !defined(ENABLE_STATICVM)
-typedef struct library_hash_loader_entry library_hash_loader_entry;
-typedef struct library_hash_name_entry library_hash_name_entry;
+typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
+typedef struct hashtable_library_name_entry hashtable_library_name_entry;
 
-/* library_hash_loader_entry **************************************************/
 
-struct library_hash_loader_entry {
-	java_objectheader         *loader;  /* class loader                       */
-	library_hash_name_entry   *namelink;/* libraries loaded by this loader    */
-	library_hash_loader_entry *hashlink;/* link for external chaining         */
+/* hashtable_library_loader_entry *********************************************/
+
+struct hashtable_library_loader_entry {
+	java_objectheader              *loader;  /* class loader                  */
+	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
+	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };
 
 
-/* library_hash_name_entry ****************************************************/
+/* hashtable_library_name_entry ***********************************************/
 
-struct library_hash_name_entry {
-	utf                     *name;      /* library name                       */
-	lt_dlhandle              handle;    /* libtool library handle             */
-	library_hash_name_entry *hashlink;  /* link for external chaining         */
+struct hashtable_library_name_entry {
+	utf                          *name;      /* library name                  */
+	lt_dlhandle                   handle;    /* libtool library handle        */
+	hashtable_library_name_entry *hashlink;  /* link for external chaining    */
 };
 #endif
 
@@ -109,12 +110,12 @@ functionptr native_findfunction(utf *cname, utf *mname,
 
 #if !defined(ENABLE_STATICVM)
 /* add a library to the library hash */
-void native_library_hash_add(utf *filename, java_objectheader *loader,
-							 lt_dlhandle handle);
+void native_hashtable_library_add(utf *filename, java_objectheader *loader,
+								  lt_dlhandle handle);
 
 /* find a library entry in the library hash */
-library_hash_name_entry *native_library_hash_find(utf *filename,
-												  java_objectheader *loader);
+hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
+															java_objectheader *loader);
 
 /* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
