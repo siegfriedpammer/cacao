@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3825 2005-12-01 18:46:29Z edwin $
+   $Id: descriptor.c 3826 2005-12-01 18:52:50Z edwin $
 
 */
 
@@ -147,21 +147,19 @@ struct descriptor_hash_entry {
 
 u2 descriptor_to_basic_type(utf *descriptor)
 {
-	char *utf_ptr = descriptor->text;
-
 	assert(descriptor->blength >= 1);
 	
-	switch (*utf_ptr++) {
-	case 'B': 
-	case 'C':
-	case 'I':
-	case 'S':  
-	case 'Z':  return TYPE_INT;
-	case 'D':  return TYPE_DOUBLE;
-	case 'F':  return TYPE_FLOAT;
-	case 'J':  return TYPE_LONG;
-	case 'L':
-	case '[':  return TYPE_ADDRESS;
+	switch (descriptor->text[0]) {
+		case 'B': 
+		case 'C':
+		case 'I':
+		case 'S':  
+		case 'Z':  return TYPE_INT;
+		case 'D':  return TYPE_DOUBLE;
+		case 'F':  return TYPE_FLOAT;
+		case 'J':  return TYPE_LONG;
+		case 'L':
+		case '[':  return TYPE_ADDRESS;
 	}
 			
 	assert(0);
