@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3695 2005-11-17 13:47:58Z twisti $
+   $Id: string.c 3832 2005-12-01 23:19:29Z twisti $
 
 */
 
@@ -53,8 +53,14 @@
 
 /* global variables ***********************************************************/
 
+/* hashsize must be power of 2 */
+
+#define HASHTABLE_STRING_SIZE    2048   /* initial size of javastring-hash    */
+
+hashtable hashtable_string;             /* hashtable for javastrings          */
+
 #if defined(USE_THREADS)
-static java_objectheader *lock_string_hashtable;
+static java_objectheader *lock_hashtable_string;
 #endif
 
 
@@ -191,13 +197,17 @@ const char *string_java_lang_VirtualMachineError =
 
 bool string_init(void)
 {
+	/* create string (javastring) hashtable */
+
+	hashtable_create(&hashtable_string, HASHTABLE_STRING_SIZE);
+
 #if defined(USE_THREADS)
 	/* create string hashtable lock object */
 
-	lock_string_hashtable = NEW(java_objectheader);
+	lock_hashtable_string = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_string_hashtable);
+	initObjectLock(lock_hashtable_string);
 # endif
 #endif
 
@@ -222,8 +232,8 @@ void stringtable_update(void)
 	literalstring *s;       /* hashtable entry */
 	int i;
 
-	for (i = 0; i < string_hash.size; i++) {
-		s = string_hash.ptr[i];
+	for (i = 0; i < hashtable_string.size; i++) {
+		s = hashtable_string.ptr[i];
 		if (s) {
 			while (s) {
                                                                
@@ -477,14 +487,14 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     u2                i;
 
 #if defined(USE_THREADS)
-	builtin_monitorenter(lock_string_hashtable);
+	builtin_monitorenter(lock_hashtable_string);
 #endif
 
     /* find location in hashtable */
 
     key  = unicode_hashkey(a->data + offset, length);
-    slot = key & (string_hash.size - 1);
-    s    = string_hash.ptr[slot];
+    slot = key & (hashtable_string.size - 1);
+    s    = hashtable_string.ptr[slot];
 
     while (s) {
 		js = (java_lang_String *) s->string;
@@ -502,7 +512,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
 
 #if defined(USE_THREADS)
-			builtin_monitorexit(lock_string_hashtable);
+			builtin_monitorexit(lock_hashtable_string);
 #endif
 
 			return (java_objectheader *) js;
@@ -559,17 +569,17 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	/* create new literalstring */
 
 	s = NEW(literalstring);
-	s->hashlink = string_hash.ptr[slot];
+	s->hashlink = hashtable_string.ptr[slot];
 	s->string   = (java_objectheader *) js;
-	string_hash.ptr[slot] = s;
+	hashtable_string.ptr[slot] = s;
 
 	/* update number of hashtable entries */
 
-	string_hash.entries++;
+	hashtable_string.entries++;
 
 	/* reorganization of hashtable */       
 
-	if (string_hash.entries > (string_hash.size * 2)) {
+	if (hashtable_string.entries > (hashtable_string.size * 2)) {
 		/* reorganization of hashtable, average length of the external
 		   chains is approx. 2 */
 
@@ -577,17 +587,17 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		literalstring    *s;
 		literalstring    *nexts;
 		java_lang_String *tmpjs;
-		hashtable         newhash; /* the new hashtable */
+		hashtable         newhash;                       /* the new hashtable */
       
 		/* create new hashtable, double the size */
 
-		init_hashtable(&newhash, string_hash.size * 2);
-		newhash.entries = string_hash.entries;
+		hashtable_create(&newhash, hashtable_string.size * 2);
+		newhash.entries = hashtable_string.entries;
       
 		/* transfer elements to new hashtable */
 
-		for (i = 0; i < string_hash.size; i++) {
-			s = string_hash.ptr[i];
+		for (i = 0; i < hashtable_string.size; i++) {
+			s = hashtable_string.ptr[i];
 
 			while (s) {
 				nexts = s->hashlink;
@@ -604,12 +614,12 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	
 		/* dispose old table */
 
-		MFREE(string_hash.ptr, void*, string_hash.size);
-		string_hash = newhash;
+		MFREE(hashtable_string.ptr, void*, hashtable_string.size);
+		hashtable_string = newhash;
 	}
 
 #if defined(USE_THREADS)
-	builtin_monitorexit(lock_string_hashtable);
+	builtin_monitorexit(lock_hashtable_string);
 #endif
 
 	return (java_objectheader *) js;
