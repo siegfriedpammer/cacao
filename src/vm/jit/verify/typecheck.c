@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3811 2005-11-28 16:23:40Z edwin $
+   $Id: typecheck.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -178,7 +178,6 @@ of the typeinfo of the stack slot.
 #include "vm/jit/patcher.h"
 #include "vm/loader.h"
 #include "vm/options.h"
-#include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/stack.h"
 #include "vm/access.h"

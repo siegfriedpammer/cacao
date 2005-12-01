@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 3183 2005-09-15 20:07:37Z twisti $
+   $Id: logging.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -39,11 +39,12 @@
 #include <string.h>
 
 #include "config.h"
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 #include "vm/global.h"
-#include "vm/tables.h"
 #include "vm/statistics.h"
 
 #if defined(USE_THREADS)

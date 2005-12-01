@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: parse.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -55,7 +55,6 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"

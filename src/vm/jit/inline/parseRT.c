@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: parseRT.c 3365 2005-10-06 08:42:58Z edwin $
+   $Id: parseRT.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -77,7 +77,6 @@ Results: (currently) with -stat see # methods marked used
 #include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/inline/parseRT.h"

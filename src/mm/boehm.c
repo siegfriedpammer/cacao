@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 3691 2005-11-17 13:34:13Z twisti $
+   $Id: boehm.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -63,7 +63,6 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
 

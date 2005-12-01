@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: stacktrace.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -54,7 +54,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/methodheader.h"

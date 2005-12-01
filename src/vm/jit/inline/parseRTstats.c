@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 3368 2005-10-06 09:40:40Z edwin $
+   $Id: parseRTstats.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -38,7 +38,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include "vm/tables.h"
 #include "vm/jit/inline/parseRT.h"
 #include "vm/jit/inline/parseRTstats.h"
 #include "vm/jit/inline/parseRTprint.h"

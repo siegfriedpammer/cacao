@@ -29,13 +29,14 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: VMClass.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
 
 #include <string.h>
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -55,9 +56,8 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/loader.h"
-#include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/resolve.h"
+#include "vm/stringlocal.h"
 
 
 /*

@@ -26,7 +26,7 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 3365 2005-10-06 08:42:58Z edwin $
+   $Id: inline.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -66,7 +66,6 @@ Method to be inlined must:
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
-#include "vm/tables.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/statistics.h"

@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: headers.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 # if defined(__DARWIN__)
@@ -60,7 +61,6 @@
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/method.h"
-#include "vm/tables.h"
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"

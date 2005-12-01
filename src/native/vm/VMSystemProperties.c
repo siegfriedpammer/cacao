@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3666 2005-11-11 21:58:18Z twisti $
+   $Id: VMSystemProperties.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -39,6 +39,8 @@
 #include <time.h>
 
 #include "config.h"
+#include "vm/types.h"
+
 #include "cacao/cacao.h"
 #include "mm/memory.h"
 #include "native/jni.h"
@@ -51,7 +53,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
 

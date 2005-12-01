@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 3642 2005-11-08 19:01:17Z edwin $
+   $Id: typeinfo.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -37,7 +37,6 @@
 #include "toolbox/logging.h"
 #include "vm/class.h"
 #include "vm/loader.h"
-#include "vm/tables.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
 #include "vm/descriptor.h"

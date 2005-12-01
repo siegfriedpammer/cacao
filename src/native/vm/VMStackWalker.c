@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 3407 2005-10-12 08:22:50Z twisti $
+   $Id: VMStackWalker.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -42,7 +42,6 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/global.h"
-#include "vm/tables.h"
 
 
 /*

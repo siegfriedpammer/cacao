@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: Field.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -60,7 +60,6 @@
 #include "vm/loader.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/utf8.h"
 #include "vm/jit/stacktrace.h"
 

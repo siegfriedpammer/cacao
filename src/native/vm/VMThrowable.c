@@ -28,12 +28,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 3158 2005-09-10 13:28:19Z twisti $
+   $Id: VMThrowable.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
 
 #include <assert.h>
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -44,12 +47,10 @@
 #include "native/include/java_lang_VMThrowable.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
-#include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/exceptions.h"
 
 
 /*

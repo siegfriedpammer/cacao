@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 3450 2005-10-19 21:35:52Z twisti $
+   $Id: Constructor.c 3829 2005-12-01 19:47:56Z twisti $
 
 */
 
@@ -51,7 +51,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
 
