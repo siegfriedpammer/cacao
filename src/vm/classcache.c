@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3814 2005-11-28 18:51:26Z edwin $
+   $Id: classcache.c 3837 2005-12-01 23:50:28Z twisti $
 
 */
 
@@ -41,8 +41,8 @@
 #include "mm/memory.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
+#include "vm/hashtable.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/utf8.h"
 
 
@@ -65,8 +65,8 @@
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #if defined(USE_THREADS)
-# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_classcache_hashtable)
-# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_classcache_hashtable)
+# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_hashtable_classcache)
+# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_hashtable_classcache)
 #else
 # define CLASSCACHE_LOCK()
 # define CLASSCACHE_UNLOCK()
@@ -76,11 +76,12 @@
 /* GLOBAL VARIABLES                                                           */
 /*============================================================================*/
 
+hashtable hashtable_classcache;
+
 #if defined(USE_THREADS)
-static java_objectheader *lock_classcache_hashtable;
+static java_objectheader *lock_hashtable_classcache;
 #endif
 
-hashtable classcache_hash;
 
 /*============================================================================*/
 /*                                                                            */
@@ -96,17 +97,19 @@ hashtable classcache_hash;
 
 bool classcache_init(void)
 {
+	/* create the hashtable */
+
+	hashtable_create(&hashtable_classcache, CLASSCACHE_INIT_SIZE);
+
 #if defined(USE_THREADS)
 	/* create utf hashtable lock object */
 
-	lock_classcache_hashtable = NEW(java_objectheader);
+	lock_hashtable_classcache = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_classcache_hashtable);
+	initObjectLock(lock_hashtable_classcache);
 # endif
 #endif
-
-	init_hashtable(&classcache_hash, CLASSCACHE_INIT_SIZE);
 
 	/* everything's ok */
 
@@ -218,8 +221,8 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 /*  	u4 i; */
 
 	key  = utf_hashkey(name->text, (u4) name->blength);
-	slot = key & (classcache_hash.size - 1);
-	c    = classcache_hash.ptr[slot];
+	slot = key & (hashtable_classcache.size - 1);
+	c    = hashtable_classcache.ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -260,8 +263,8 @@ static classcache_name_entry *classcache_new_name(utf *name)
 	u4 i;
 
 	key  = utf_hashkey(name->text, (u4) name->blength);
-	slot = key & (classcache_hash.size - 1);
-	c    = classcache_hash.ptr[slot];
+	slot = key & (hashtable_classcache.size - 1);
+	c    = hashtable_classcache.ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -282,13 +285,13 @@ static classcache_name_entry *classcache_new_name(utf *name)
 	c->classes = NULL;
 
 	/* insert entry into hashtable */
-	c->hashlink = (classcache_name_entry *) classcache_hash.ptr[slot];
-	classcache_hash.ptr[slot] = c;
+	c->hashlink = (classcache_name_entry *) hashtable_classcache.ptr[slot];
+	hashtable_classcache.ptr[slot] = c;
 
 	/* update number of hashtable-entries */
-	classcache_hash.entries++;
+	hashtable_classcache.entries++;
 
-	if (classcache_hash.entries > (classcache_hash.size * 2)) {
+	if (hashtable_classcache.entries > (hashtable_classcache.size * 2)) {
 
 		/* reorganization of hashtable, average length of 
 		   the external chains is approx. 2                */
@@ -298,13 +301,13 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 		/* create new hashtable, double the size */
 
-		init_hashtable(&newhash, classcache_hash.size * 2);
-		newhash.entries = classcache_hash.entries;
+		hashtable_create(&newhash, hashtable_classcache.size * 2);
+		newhash.entries = hashtable_classcache.entries;
 
 		/* transfer elements to new hashtable */
 
-		for (i = 0; i < classcache_hash.size; i++) {
-			c2 = (classcache_name_entry *) classcache_hash.ptr[i];
+		for (i = 0; i < hashtable_classcache.size; i++) {
+			c2 = (classcache_name_entry *) hashtable_classcache.ptr[i];
 			while (c2) {
 				classcache_name_entry *nextc = c2->hashlink;
 				u4 newslot =
@@ -319,8 +322,8 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 		/* dispose old table */
 
-		MFREE(classcache_hash.ptr, void *, classcache_hash.size);
-		classcache_hash = newhash;
+		MFREE(hashtable_classcache.ptr, void *, hashtable_classcache.size);
+		hashtable_classcache = newhash;
 	}
 
 	return c;
@@ -852,17 +855,17 @@ void classcache_free(void)
 	classcache_name_entry *entry;
 	classcache_name_entry *next;
 
-	for (slot = 0; slot < classcache_hash.size; ++slot) {
-		for (entry = (classcache_name_entry *) classcache_hash.ptr[slot]; entry; entry = next) {
+	for (slot = 0; slot < hashtable_classcache.size; ++slot) {
+		for (entry = (classcache_name_entry *) hashtable_classcache.ptr[slot]; entry; entry = next) {
 			next = entry->hashlink;
 			classcache_free_name_entry(entry);
 		}
 	}
 
-	MFREE(classcache_hash.ptr, voidptr, classcache_hash.size);
-	classcache_hash.size = 0;
-	classcache_hash.entries = 0;
-	classcache_hash.ptr = NULL;
+	MFREE(hashtable_classcache.ptr, voidptr, hashtable_classcache.size);
+	hashtable_classcache.size = 0;
+	hashtable_classcache.entries = 0;
+	hashtable_classcache.ptr = NULL;
 }
 
 /* classcache_add_constraint ***************************************************
@@ -1008,12 +1011,12 @@ void classcache_debug_dump(FILE * file)
 	CLASSCACHE_LOCK();
 
 	fprintf(file, "\n=== [loaded class cache] =====================================\n\n");
-	fprintf(file, "hash size   : %d\n", (int) classcache_hash.size);
-	fprintf(file, "hash entries: %d\n", (int) classcache_hash.entries);
+	fprintf(file, "hash size   : %d\n", (int) hashtable_classcache.size);
+	fprintf(file, "hash entries: %d\n", (int) hashtable_classcache.entries);
 	fprintf(file, "\n");
 
-	for (slot = 0; slot < classcache_hash.size; ++slot) {
-		c = (classcache_name_entry *) classcache_hash.ptr[slot];
+	for (slot = 0; slot < hashtable_classcache.size; ++slot) {
+		c = (classcache_name_entry *) hashtable_classcache.ptr[slot];
 
 		for (; c; c = c->hashlink) {
 			utf_fprint_classname(file, c->name);

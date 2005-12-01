@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 3814 2005-11-28 18:51:26Z edwin $
+   $Id: classcache.h 3837 2005-12-01 23:50:28Z twisti $
 
 */
 
@@ -38,8 +38,11 @@
 
 #include <stdio.h>  /* for FILE */
 
+#include "config.h"
+#include "vm/types.h"
+
+#include "vm/hashtable.h"
 #include "vm/references.h"
-#include "vm/tables.h"
 
 
 /* forward declarations *******************************************************/
@@ -52,10 +55,10 @@ typedef java_objectheader classloader;
 
 /* global variables ***********************************************************/
 
-extern hashtable classcache_hash;
+extern hashtable hashtable_classcache;
+
 
 /* structs ********************************************************************/
-
 
 /*----------------------------------------------------------------------------*/
 /* The Loaded Class Cache                                                     */
@@ -114,6 +117,7 @@ struct classcache_loader_entry
 	classloader              *loader;     /* class loader object              */
 	classcache_loader_entry  *next;       /* next loader entry in the list    */
 };
+
 
 /* function prototypes ********************************************************/
 
