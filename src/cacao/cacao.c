@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3816 2005-11-29 14:31:50Z anton $
+   $Id: cacao.c 3840 2005-12-02 15:15:39Z twisti $
 
 */
 
@@ -72,7 +72,7 @@
 #include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
+#include "vm/suck.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
@@ -1126,11 +1126,6 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	/* intialize the utf8 and string hashtable */
-
-	if (!tables_init())
-		throw_main_exception_exit();
-
 	cacao_initializing = true;
 
 #if defined(USE_THREADS)
@@ -1161,7 +1156,8 @@ int main(int argc, char **argv)
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
-	suck_init(bootclasspath);
+	if (!suck_init(bootclasspath))
+		throw_main_exception_exit();
 
 	/* initialize the memory subsystem (must be done _after_
 	   threads_preinit) */
@@ -1400,8 +1396,8 @@ int main(int argc, char **argv)
 
 		/* link all classes */
 
-		for (slot = 0; slot < classcache_hash.size; slot++) {
-			nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
+		for (slot = 0; slot < hashtable_classcache.size; slot++) {
+			nmen = (classcache_name_entry *) hashtable_classcache.ptr[slot];
 
 			for (; nmen; nmen = nmen->hashlink) {
 				/* iterate over all class entries */
@@ -1582,10 +1578,17 @@ void cacao_shutdown(s4 status)
 void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
-				
-	if (showmethods) class_showmethods(mainclass);
-	if (showconstantpool) class_showconstantpool(mainclass);
-	if (showutf) utf_show();
+
+#if defined(ENABLE_DEBUG)
+	if (showmethods)
+		class_showmethods(mainclass);
+
+	if (showconstantpool)
+		class_showconstantpool(mainclass);
+
+	if (showutf)
+		utf_show();
+#endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	clear_thread_flags();		/* restores standard file descriptor
