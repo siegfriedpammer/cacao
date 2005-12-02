@@ -32,14 +32,13 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3825 2005-12-01 18:46:29Z edwin $
+   $Id: loader.c 3842 2005-12-02 15:26:16Z twisti $
 
 */
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <sys/stat.h>
 
 #include "config.h"
 #include "vm/types.h"
@@ -57,7 +56,6 @@
 #endif
 
 #include "toolbox/logging.h"
-#include "toolbox/util.h"
 #include "vm/exceptions.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -66,7 +64,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
+#include "vm/suck.h"
 #include "vm/classcache.h"
 
 #if defined(USE_ZLIB)
@@ -236,303 +234,6 @@ bool loader_init(u1 *stackbottom)
 }
 
 
-/************* functions for reading classdata *********************************
-
-    getting classdata in blocks of variable size
-    (8,16,32,64-bit integer or float)
-
-*******************************************************************************/
-
-/* check_classbuffer_size ******************************************************
-
-   assert that at least <len> bytes are left to read
-   <len> is limited to the range of non-negative s4 values
-
-*******************************************************************************/
-
-inline bool check_classbuffer_size(classbuffer *cb, s4 len)
-{
-#ifdef ENABLE_VERIFIER
-	if (len < 0 || ((cb->data + cb->size) - cb->pos - 1) < len) {
-		*exceptionptr =
-			new_classformaterror((cb)->class, "Truncated class file");
-
-		return false;
-	}
-#endif /* ENABLE_VERIFIER */
-
-	return true;
-}
-
-
-/* suck_nbytes *****************************************************************
-
-   transfer block of classfile data into a buffer
-
-*******************************************************************************/
-
-inline void suck_nbytes(u1 *buffer, classbuffer *cb, s4 len)
-{
-	memcpy(buffer, cb->pos + 1, len);
-	cb->pos += len;
-}
-
-
-/* skip_nbytes ****************************************************************
-
-   skip block of classfile data
-
-*******************************************************************************/
-
-inline void skip_nbytes(classbuffer *cb, s4 len)
-{
-	cb->pos += len;
-}
-
-
-inline u1 suck_u1(classbuffer *cb)
-{
-	return *++(cb->pos);
-}
-
-
-inline u2 suck_u2(classbuffer *cb)
-{
-	u1 a = suck_u1(cb);
-	u1 b = suck_u1(cb);
-	return ((u2) a << 8) + (u2) b;
-}
-
-
-inline u4 suck_u4(classbuffer *cb)
-{
-	u1 a = suck_u1(cb);
-	u1 b = suck_u1(cb);
-	u1 c = suck_u1(cb);
-	u1 d = suck_u1(cb);
-	return ((u4) a << 24) + ((u4) b << 16) + ((u4) c << 8) + (u4) d;
-}
-
-
-/* get u8 from classfile data */
-static u8 suck_u8(classbuffer *cb)
-{
-#if U8_AVAILABLE
-	u8 lo, hi;
-	hi = suck_u4(cb);
-	lo = suck_u4(cb);
-	return (hi << 32) + lo;
-#else
-	u8 v;
-	v.high = suck_u4(cb);
-	v.low = suck_u4(cb);
-	return v;
-#endif
-}
-
-
-/* get float from classfile data */
-static float suck_float(classbuffer *cb)
-{
-	float f;
-
-#if !WORDS_BIGENDIAN 
-	u1 buffer[4];
-	u2 i;
-
-	for (i = 0; i < 4; i++)
-		buffer[3 - i] = suck_u1(cb);
-
-	memcpy((u1*) (&f), buffer, 4);
-#else
-	suck_nbytes((u1*) (&f), cb, 4);
-#endif
-
-	if (sizeof(float) != 4) {
-		*exceptionptr = new_internalerror("Incompatible float-format");
-
-		/* XXX should we exit in such a case? */
-		throw_exception_exit();
-	}
-	
-	return f;
-}
-
-
-/* get double from classfile data */
-static double suck_double(classbuffer *cb)
-{
-	double d;
-
-#if !WORDS_BIGENDIAN 
-	u1 buffer[8];
-	u2 i;	
-
-#if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
-	/*
-	 * On little endian ARM processors when using FPA, word order
-	 * of doubles is still big endian. So take that into account
-	 * here. When using VFP, word order of doubles follows byte
-	 * order. (michi 2005/07/24)
-	 */
-	for (i = 0; i < 4; i++)
-		buffer[3 - i] = suck_u1(cb);
-	for (i = 0; i < 4; i++)
-		buffer[7 - i] = suck_u1(cb);
-#else
-	for (i = 0; i < 8; i++)
-		buffer[7 - i] = suck_u1(cb);
-#endif /* defined(__ARM__) && ... */
-
-	memcpy((u1*) (&d), buffer, 8);
-#else 
-	suck_nbytes((u1*) (&d), cb, 8);
-#endif
-
-	if (sizeof(double) != 8) {
-		*exceptionptr = new_internalerror("Incompatible double-format");
-
-		/* XXX should we exit in such a case? */
-		throw_exception_exit();
-	}
-	
-	return d;
-}
-
-
-/************************** function suck_init *********************************
-
-	called once at startup, sets the searchpath for the classfiles
-
-*******************************************************************************/
-
-void suck_init(char *classpath)
-{
-	char           *start;
-	char           *end;
-	char           *filename;
-	s4              filenamelen;
-	bool            is_zip;
-	classpath_info *cpi;
-	classpath_info *lastcpi;
-	char           *cwd;
-	s4              cwdlen;
-
-	/* search for last classpath entry (only if there already some) */
-
-	if ((lastcpi = classpath_entries)) {
-		while (lastcpi->next)
-			lastcpi = lastcpi->next;
-	}
-
-	for (start = classpath; (*start) != '\0';) {
-
-		/* search for ':' delimiter to get the end of the current entry */
-		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
-
-		if (start != end) {
-			is_zip = false;
-			filenamelen = end - start;
-
-			if (filenamelen > 3) {
-				if (strncasecmp(end - 3, "zip", 3) == 0 ||
-					strncasecmp(end - 3, "jar", 3) == 0) {
-					is_zip = true;
-				}
-			}
-
-			/* save classpath entries as absolute pathnames */
-
-			cwd = NULL;
-			cwdlen = 0;
-
-			if (*start != '/') {                      /* XXX fix me for win32 */
-				cwd = _Jv_getcwd();
-				cwdlen = strlen(cwd) + strlen("/");
-			}
-
-			/* allocate memory for filename and fill it */
-
-			filename = MNEW(char, filenamelen + cwdlen + strlen("/") +
-							strlen("0"));
-
-			if (cwd) {
-				strcpy(filename, cwd);
-				strcat(filename, "/");
-				strncat(filename, start, filenamelen);
-
-				/* add cwd length to file length */
-				filenamelen += cwdlen;
-
-			} else {
-				strncpy(filename, start, filenamelen);
-				filename[filenamelen] = '\0';
-			}
-
-			cpi = NULL;
-
-			if (is_zip) {
-#if defined(USE_ZLIB)
-				unzFile uf = unzOpen(filename);
-
-				if (uf) {
-					cpi = NEW(classpath_info);
-					cpi->type = CLASSPATH_ARCHIVE;
-					cpi->uf = uf;
-					cpi->next = NULL;
-					cpi->path = filename;
-					cpi->pathlen = filenamelen;
-
-					/* SUN compatible -verbose:class output */
-
-					if (opt_verboseclass)
-						printf("[Opened %s]\n", filename);
-				}
-
-#else
-				throw_cacao_exception_exit(string_java_lang_InternalError,
-										   "zip/jar files not supported");
-#endif
-				
-			} else {
-				cpi = NEW(classpath_info);
-				cpi->type = CLASSPATH_PATH;
-				cpi->next = NULL;
-
-				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
-					filename[filenamelen] = '/';
-					filename[filenamelen + 1] = '\0';
-					filenamelen++;
-				}
-
-				cpi->path = filename;
-				cpi->pathlen = filenamelen;
-			}
-
-			/* attach current classpath entry */
-
-			if (cpi) {
-				if (!classpath_entries)
-					classpath_entries = cpi;
-				else
-					lastcpi->next = cpi;
-
-				lastcpi = cpi;
-			}
-		}
-
-		/* goto next classpath entry, skip ':' delimiter */
-
-		if ((*end) == ':') {
-			start = end + 1;
-
-		} else {
-			start = end;
-		}
-	}
-}
-
-
 /* loader_load_all_classes *****************************************************
 
    Loads all classes specified in the BOOTCLASSPATH.
@@ -570,162 +271,6 @@ void loader_load_all_classes(void)
 		}
 #endif
 	}
-}
-
-
-/* suck_start ******************************************************************
-
-   Returns true if classbuffer is already loaded or a file for the
-   specified class has succussfully been read in. All directories of
-   the searchpath are used to find the classfile (<classname>.class).
-   Returns false if no classfile is found and writes an error message.
-	
-*******************************************************************************/
-
-classbuffer *suck_start(classinfo *c)
-{
-	classpath_info *cpi;
-	char           *filename;
-	s4             filenamelen;
-	char *path;
-	FILE *classfile;
-	bool found;
-	s4 len;
-	struct stat buffer;
-	classbuffer *cb;
-
-	/* initialize return value */
-
-	found = false;
-	cb = NULL;
-
-	filenamelen = utf_strlen(c->name) + strlen(".class") + strlen("0");
-	filename = MNEW(char, filenamelen);
-
-	utf_sprint(filename, c->name);
-	strcat(filename, ".class");
-
-	/* walk through all classpath entries */
-
-	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
-#if defined(USE_ZLIB)
-		if (cpi->type == CLASSPATH_ARCHIVE) {
-
-#if defined(USE_THREADS)
-			/* enter a monitor on zip/jar archives */
-
-			builtin_monitorenter((java_objectheader *) cpi);
-#endif
-
-			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
-				unz_file_info file_info;
-
-				if (unzGetCurrentFileInfo(cpi->uf, &file_info, filename,
-										  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
-					if (unzOpenCurrentFile(cpi->uf) == UNZ_OK) {
-						cb = NEW(classbuffer);
-						cb->class = c;
-						cb->size  = file_info.uncompressed_size;
-						cb->data  = MNEW(u1, cb->size);
-						cb->pos   = cb->data - 1;
-						cb->path  = cpi->path;
-
-						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
-
-						if (len != cb->size) {
-							suck_stop(cb);
-							log_text("Error while unzipping");
-
-						} else {
-							found = true;
-						}
-
-					} else {
-						log_text("Error while opening file in archive");
-					}
-
-				} else {
-					log_text("Error while retrieving fileinfo");
-				}
-			}
-			unzCloseCurrentFile(cpi->uf);
-
-#if defined(USE_THREADS)
-			/* leave the monitor */
-
-			builtin_monitorexit((java_objectheader *) cpi);
-#endif
-
-		} else {
-#endif /* defined(USE_ZLIB) */
-			
-			path = MNEW(char, cpi->pathlen + filenamelen);
-			strcpy(path, cpi->path);
-			strcat(path, filename);
-
-			classfile = fopen(path, "r");
-
-			if (classfile) {                                   /* file exists */
-				if (!stat(path, &buffer)) {            /* read classfile data */
-					cb = NEW(classbuffer);
-					cb->class = c;
-					cb->size  = buffer.st_size;
-					cb->data  = MNEW(u1, cb->size);
-					cb->pos   = cb->data - 1;
-					cb->path  = cpi->path;
-
-					/* read class data */
-					len = fread(cb->data, 1, cb->size, classfile);
-
-					if (len != buffer.st_size) {
-						suck_stop(cb);
-/*  						if (ferror(classfile)) { */
-/*  						} */
-
-					} else {
-						found = true;
-					}
-				}
-			}
-
-			MFREE(path, char, cpi->pathlen + filenamelen);
-#if defined(USE_ZLIB)
-		}
-#endif
-	}
-
-	if (opt_verbose)
-		if (!found) {
-			dolog("Warning: Can not open class file '%s'", filename);
-
-			if (strcmp(filename, "org/mortbay/util/MultiException.class") == 0) {
-				static int i = 0;
-				i++;
-				if (i == 3)
-					assert(0);
-			}
-		}
-
-	MFREE(filename, char, filenamelen);
-
-	return cb;
-}
-
-
-/************************** function suck_stop *********************************
-
-	frees memory for buffer with classfile data.
-	Caution: this function may only be called if buffer has been allocated
-	         by suck_start with reading a file
-	
-*******************************************************************************/
-
-void suck_stop(classbuffer *cb)
-{
-	/* free memory */
-
-	MFREE(cb->data, u1, cb->size);
-	FREE(cb, classbuffer);
 }
 
 
@@ -768,15 +313,15 @@ static bool skipattributebody(classbuffer *cb)
 {
 	u4 len;
 
-	if (!check_classbuffer_size(cb, 4))
+	if (!suck_check_classbuffer_size(cb, 4))
 		return false;
 
 	len = suck_u4(cb);
 
-	if (!check_classbuffer_size(cb, len))
+	if (!suck_check_classbuffer_size(cb, len))
 		return false;
 
-	skip_nbytes(cb, len);
+	suck_skip_nbytes(cb, len);
 
 	return true;
 }
@@ -794,16 +339,16 @@ static bool skipattributes(classbuffer *cb, u4 num)
 	u4 len;
 
 	for (i = 0; i < num; i++) {
-		if (!check_classbuffer_size(cb, 2 + 4))
+		if (!suck_check_classbuffer_size(cb, 2 + 4))
 			return false;
 
 		suck_u2(cb);
 		len = suck_u4(cb);
 
-		if (!check_classbuffer_size(cb, len))
+		if (!suck_check_classbuffer_size(cb, len))
 			return false;
 
-		skip_nbytes(cb, len);
+		suck_skip_nbytes(cb, len);
 	}
 
 	return true;
@@ -878,7 +423,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	c = cb->class;
 
 	/* number of entries in the constant_pool table plus one */
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
 
 	cpcount = c->cpcount = suck_u2(cb);
@@ -913,7 +458,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		u4 t;
 
 		/* get constant type */
-		if (!check_classbuffer_size(cb, 1))
+		if (!suck_check_classbuffer_size(cb, 1))
 			return false;
 
 		t = suck_u1(cb);
@@ -927,7 +472,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 			nfc->thisindex = idx;
 			/* reference to CONSTANT_NameAndType */
-			if (!check_classbuffer_size(cb, 2))
+			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
 			nfc->name_index = suck_u2(cb);
@@ -944,7 +489,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			nfs->thisindex = idx;
 
 			/* reference to CONSTANT_Utf8_info with string characters */
-			if (!check_classbuffer_size(cb, 2))
+			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
 			nfs->string_index = suck_u2(cb);
@@ -960,7 +505,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				
 			nfn->thisindex = idx;
 
-			if (!check_classbuffer_size(cb, 2 + 2))
+			if (!suck_check_classbuffer_size(cb, 2 + 2))
 				return false;
 
 			/* reference to CONSTANT_Utf8_info containing simple name */
@@ -985,7 +530,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			/* constant type */
 			nff->tag = t;
 
-			if (!check_classbuffer_size(cb, 2 + 2))
+			if (!suck_check_classbuffer_size(cb, 2 + 2))
 				return false;
 
 			/* class or interface type that contains the declaration of the
@@ -1006,7 +551,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				count_const_pool_len += sizeof(constant_integer);
 #endif
 
-			if (!check_classbuffer_size(cb, 4))
+			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
 
 			ci->value = suck_s4(cb);
@@ -1025,7 +570,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				count_const_pool_len += sizeof(constant_float);
 #endif
 
-			if (!check_classbuffer_size(cb, 4))
+			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
 
 			cf->value = suck_float(cb);
@@ -1044,7 +589,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				count_const_pool_len += sizeof(constant_long);
 #endif
 
-			if (!check_classbuffer_size(cb, 8))
+			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
 
 			cl->value = suck_s8(cb);
@@ -1067,7 +612,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 				count_const_pool_len += sizeof(constant_double);
 #endif
 
-			if (!check_classbuffer_size(cb, 8))
+			if (!suck_check_classbuffer_size(cb, 8))
 				return false;
 
 			cd->value = suck_double(cb);
@@ -1086,30 +631,29 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			u4 length;
 
 			/* number of bytes in the bytes array (not string-length) */
-			if (!check_classbuffer_size(cb, 2))
+			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
 			length = suck_u2(cb);
 			cptags[idx] = CONSTANT_Utf8;
 
 			/* validate the string */
-			if (!check_classbuffer_size(cb, length))
+			if (!suck_check_classbuffer_size(cb, length))
 				return false;
 
 #ifdef ENABLE_VERIFIER
 			if (opt_verify &&
-				!is_valid_utf((char *) (cb->pos + 1),
-							  (char *) (cb->pos + 1 + length))) 
+				!is_valid_utf((char *) cb->pos, (char *) (cb->pos + length))) 
 			{
 				*exceptionptr = new_classformaterror(c,"Invalid UTF-8 string");
 				return false;
 			}
 #endif /* ENABLE_VERIFIER */
 			/* insert utf-string into the utf-symboltable */
-			cpinfos[idx] = utf_new((char *) (cb->pos + 1), length);
+			cpinfos[idx] = utf_new((char *) cb->pos, length);
 
 			/* skip bytes of the string (buffer size check above) */
-			skip_nbytes(cb, length);
+			suck_skip_nbytes(cb, length);
 			idx++;
 			break;
 		}
@@ -1286,7 +830,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	c = cb->class;
 
-	if (!check_classbuffer_size(cb, 2 + 2 + 2))
+	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
 	f->flags = suck_u2(cb);
@@ -1367,19 +911,19 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	}
 
 	/* read attributes */
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
 
 	attrnum = suck_u2(cb);
 	for (i = 0; i < attrnum; i++) {
-		if (!check_classbuffer_size(cb, 2))
+		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
 		if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
 		if (u == utf_ConstantValue) {
-			if (!check_classbuffer_size(cb, 4 + 2))
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
 			/* check attribute length */
@@ -1502,7 +1046,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	m->class = c;
 	m->nativelyoverloaded = false;
 	
-	if (!check_classbuffer_size(cb, 2 + 2 + 2))
+	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
 	m->flags = suck_u2(cb);
@@ -1611,14 +1155,14 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 	m->xta = NULL;
 
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
 	
 	attrnum = suck_u2(cb);
 	for (i = 0; i < attrnum; i++) {
 		utf *aname;
 
-		if (!check_classbuffer_size(cb, 2))
+		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
 		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
@@ -1640,7 +1184,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				return false;
 			}
 
-			if (!check_classbuffer_size(cb, 4 + 2 + 2))
+			if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 				return false;
 
 			suck_u4(cb);
@@ -1654,7 +1198,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				return false;
 			}
 			
-			if (!check_classbuffer_size(cb, 4))
+			if (!suck_check_classbuffer_size(cb, 4))
 				return false;
 
 			m->jcodelength = suck_u4(cb);
@@ -1674,17 +1218,17 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				return false;
 			}
 
-			if (!check_classbuffer_size(cb, m->jcodelength))
+			if (!suck_check_classbuffer_size(cb, m->jcodelength))
 				return false;
 
 			m->jcode = MNEW(u1, m->jcodelength);
 			suck_nbytes(m->jcode, cb, m->jcodelength);
 
-			if (!check_classbuffer_size(cb, 2))
+			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
 			m->exceptiontablelength = suck_u2(cb);
-			if (!check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->exceptiontablelength))
+			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->exceptiontablelength))
 				return false;
 
 			m->exceptiontable = MNEW(exceptiontable, m->exceptiontablelength);
@@ -1715,7 +1259,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				}
 			}
 
-			if (!check_classbuffer_size(cb, 2))
+			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
 			codeattrnum = suck_u2(cb);
@@ -1723,7 +1267,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			for (; codeattrnum > 0; codeattrnum--) {
 				utf *caname;
 
-				if (!check_classbuffer_size(cb, 2))
+				if (!suck_check_classbuffer_size(cb, 2))
 					return false;
 
 				if (!(caname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
@@ -1732,13 +1276,13 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				if (caname == utf_LineNumberTable) {
 					u2 lncid;
 
-					if (!check_classbuffer_size(cb, 4 + 2))
+					if (!suck_check_classbuffer_size(cb, 4 + 2))
 						return false;
 
 					suck_u4(cb);
 					m->linenumbercount = suck_u2(cb);
 
-					if (!check_classbuffer_size(cb,
+					if (!suck_check_classbuffer_size(cb,
 												(2 + 2) * m->linenumbercount))
 						return false;
 
@@ -1770,13 +1314,13 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 				return false;
 			}
 
-			if (!check_classbuffer_size(cb, 4 + 2))
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
 			suck_u4(cb); /* length */
 			m->thrownexceptionscount = suck_u2(cb);
 
-			if (!check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
+			if (!suck_check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
 				return false;
 
 			m->thrownexceptions = MNEW(classref_or_classinfo, m->thrownexceptionscount);
@@ -1822,7 +1366,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 
 	for (i = 0; i < num; i++) {
 		/* retrieve attribute name */
-		if (!check_classbuffer_size(cb, 2))
+		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
 		if (!(aname = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
@@ -1836,7 +1380,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 				return false;
 			}
 				
-			if (!check_classbuffer_size(cb, 4 + 2))
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
 			/* skip attribute length */
@@ -1845,7 +1389,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 			/* number of records */
 			c->innerclasscount = suck_u2(cb);
 
-			if (!check_classbuffer_size(cb, (2 + 2 + 2 + 2) * c->innerclasscount))
+			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * c->innerclasscount))
 				return false;
 
 			/* allocate memory for innerclass structure */
@@ -1870,7 +1414,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 			}
 
 		} else if (aname == utf_SourceFile) {
-			if (!check_classbuffer_size(cb, 4 + 2))
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
 				return false;
 
 			if (suck_u4(cb) != 2) {
@@ -2282,7 +1826,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	c->loaded = true;
 
-	if (!check_classbuffer_size(cb, 4 + 2 + 2))
+	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 		goto return_exception;
 
 	/* check signature */
@@ -2316,16 +1860,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (!load_constantpool(cb, descpool))
 		goto return_exception;
 
-	/*JOWENN*/
-	c->erroneous_state = 0;
-	c->initializing_thread = 0;	
-	/*JOWENN*/
 	c->classUsed = NOTUSED; /* not used initially CO-RT */
 	c->impldBy = NULL;
 
 	/* ACC flags */
 
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->flags = suck_u2(cb);
@@ -2360,7 +1900,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		goto return_exception;
 	}
 
-	if (!check_classbuffer_size(cb, 2 + 2))
+	if (!suck_check_classbuffer_size(cb, 2 + 2))
 		goto return_exception;
 
 	/* this class */
@@ -2438,12 +1978,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			 
 	/* retrieve interfaces */
 
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->interfacescount = suck_u2(cb);
 
-	if (!check_classbuffer_size(cb, 2 * c->interfacescount))
+	if (!suck_check_classbuffer_size(cb, 2 * c->interfacescount))
 		goto return_exception;
 
 	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
@@ -2454,7 +1994,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* load fields */
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
@@ -2466,7 +2006,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	/* load methods */
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->methodscount = suck_u2(cb);
@@ -2708,7 +2248,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* load attribute structures */
 
-	if (!check_classbuffer_size(cb, 2))
+	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	if (!load_attributes(cb, suck_u2(cb)))
@@ -2721,7 +2261,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	 */
 	if ((ma == 45 && mi > 3) || ma > 45) {
 		/* check if all data has been read */
-		s4 classdata_left = ((cb->data + cb->size) - cb->pos - 1);
+		s4 classdata_left = ((cb->data + cb->size) - cb->pos);
 
 		if (classdata_left > 0) {
 			*exceptionptr =
