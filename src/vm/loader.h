@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 3501 2005-10-26 20:27:15Z twisti $
+   $Id: loader.h 3841 2005-12-02 15:19:04Z twisti $
 */
 
 
@@ -35,6 +35,9 @@
 
 #include <stdio.h>
 
+#include "config.h"
+#include "vm/types.h"
+
 
 /* forward typedefs ***********************************************************/
 
@@ -42,23 +45,16 @@ typedef struct classbuffer classbuffer;
 typedef struct classpath_info classpath_info;
 
 
-#include "vm/global.h"
-#include "vm/utf8.h"
-#include "vm/references.h"
+#include "vm/class.h"
 #include "vm/descriptor.h"
+#include "vm/global.h"
+#include "vm/references.h"
 #include "vm/method.h"
+#include "vm/utf8.h"
 
 #if defined(USE_ZLIB)
 # include "vm/unzip.h"
 #endif
-
-
-/* signed suck defines ********************************************************/
-
-#define suck_s8(a)    (s8) suck_u8((a))
-#define suck_s2(a)    (s2) suck_u2((a))
-#define suck_s4(a)    (s4) suck_u4((a))
-#define suck_s1(a)    (s1) suck_u1((a))
 
 
 /* constant pool entries *******************************************************
@@ -155,15 +151,7 @@ extern classpath_info *classpath_entries;
 /* initialize loader, load important systemclasses */
 bool loader_init(u1 *stackbottom);
 
-void suck_init(char *cpath);
 void loader_load_all_classes(void);
-void suck_stop(classbuffer *cb);
-
-inline bool check_classbuffer_size(classbuffer *cb, s4 len);
-
-inline u1 suck_u1(classbuffer *cb);
-inline u2 suck_u2(classbuffer *cb);
-inline u4 suck_u4(classbuffer *cb);
 
 /* free resources */
 void loader_close(void);
