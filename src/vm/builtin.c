@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3801 2005-11-26 19:15:45Z twisti $
+   $Id: builtin.c 3854 2005-12-03 12:35:43Z twisti $
 
 */
 
@@ -78,7 +78,6 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
 
@@ -738,11 +737,12 @@ java_objectheader *builtin_new(classinfo *c)
 	}
 
 	/* is the class linked */
+
 	if (!c->linked)
 		if (!link_class(c))
 			return NULL;
 
-	if (!c->initialized) {
+	if (!(c->state & CLASS_INITIALIZED)) {
 		if (initverbose)
 			log_message_class("Initialize class (from builtin_new): ", c);
 
@@ -1696,7 +1696,7 @@ void builtin_monitorenter(java_objectheader *o)
  */
 void builtin_staticmonitorenter(classinfo *c)
 {
-	builtin_monitorenter(&c->header);
+	builtin_monitorenter(&c->object.header);
 }
 #endif
 
