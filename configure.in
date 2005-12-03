@@ -230,6 +230,17 @@ else
 	AC_MSG_RESULT(yes)
 fi
 
+dnl check for debug
+AC_ARG_ENABLE([debug], [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=yes]])])
+
+AC_MSG_CHECKING(whether debug code generation should be enabled)
+if test x"$enable_debug" = "xno"; then
+	AC_MSG_RESULT(no)
+else
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([ENABLE_DEBUG], 1, [enable debug code])
+fi
+
 dnl check for statistics
 AC_ARG_ENABLE([statistics], [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])])
 
@@ -239,7 +250,7 @@ if test x"$enable_statistics" = "xno"; then
 	AM_CONDITIONAL([STATISTICS], [false])
 else
 	AC_MSG_RESULT(yes)
-	AC_DEFINE([STATISTICS], 1, [use statistics])
+	AC_DEFINE([STATISTICS], 1, [enable statistics])
 	AM_CONDITIONAL([STATISTICS], [true])
 fi
 
