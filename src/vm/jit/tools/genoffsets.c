@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 3221 2005-09-19 13:31:31Z twisti $
+   $Id: genoffsets.c 3850 2005-12-03 12:32:39Z twisti $
 
 */
 
@@ -52,31 +52,21 @@ int main(int argc, char **argv)
 
     printf("/* define some sizeof()'s */\n\n");
 
-	printf("#define sizemethodinfo             %3d\n", (s4) sizeof(methodinfo));
-
 	printf("#define sizejniblock               %3d\n", (s4) sizeof(jni_callblock));
 	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
 
     printf("\n\n/* define some offsets */\n\n");
 
 	printf("#define offobjvftbl                %3d\n", (s4) OFFSET(java_objectheader, vftbl));
-	printf("#define offarraysize               %3d\n", (s4) OFFSET(java_arrayheader, size));
-	printf("#define offobjarrdata              %3d\n", (s4) OFFSET(java_objectarray, data[0]));
 	printf("\n\n");
 
 	printf("/* vftbl_t */\n\n");
-	printf("#define offclass                   %3d\n", (s4) OFFSET(vftbl_t, class));
 	printf("#define offbaseval                 %3d\n", (s4) OFFSET(vftbl_t, baseval));
 	printf("#define offdiffval                 %3d\n", (s4) OFFSET(vftbl_t, diffval));
-	printf("#define offvftbltable              %3d\n", (s4) OFFSET(vftbl_t, table[0]));
-	printf("#define offvftblinterfacetable     %3d\n", (s4) OFFSET(vftbl_t, interfacetable[0]));
 	printf("\n\n");
 
 	printf("/* classinfo */\n\n");
 	printf("#define offclassvftbl              %3d\n", (s4) OFFSET(classinfo, vftbl));
-	printf("#define offclassmethods            %3d\n", (s4) OFFSET(classinfo, methods));
-	printf("#define offclassindex              %3d\n", (s4) OFFSET(classinfo, index));
-	printf("#define offclassinit               %3d\n", (s4) OFFSET(classinfo, initialized));
 	printf("#define offclassloaded             %3d\n", (s4) OFFSET(classinfo, loaded));
 	printf("#define offclasslinked             %3d\n", (s4) OFFSET(classinfo, linked));
 	printf("\n\n");
@@ -84,18 +74,6 @@ int main(int argc, char **argv)
 	printf("#define offjniitemtype             %3d\n", (s4) OFFSET(jni_callblock, itemtype));
 	printf("#define offjniitem                 %3d\n", (s4) OFFSET(jni_callblock, item));
 	printf("\n\n");
-
-	printf("/* methodinfo */\n\n");
-	printf("#define offmethodclass             %3d\n", (s4) OFFSET(methodinfo, class));
-	printf("\n\n");
-
-	printf("#define offmethodnative            %3d\n", (s4) OFFSET(stackframeinfo, method));
-	/*	printf("#define offreturnfromnative %3d\n", (s4) OFFSET(native_stackframeinfo,returnFromNative));
-		printf("#define offaddrreturnfromnative %3d\n", (s4) OFFSET(native_stackframeinfo,addrReturnFromNative));
-		printf("#define offprevnative %3d\n", (s4) OFFSET(native_stackframeinfo,prev));
-		printf("#define offnextnative %3d\n", (s4) OFFSET(native_stackframeinfo,next));*/
-
-	printf("\n");
 
 	printf("#define offcast_super_baseval      %3d\n", (s4) OFFSET(castinfo, super_baseval));
 	printf("#define offcast_super_diffval      %3d\n", (s4) OFFSET(castinfo, super_diffval));
