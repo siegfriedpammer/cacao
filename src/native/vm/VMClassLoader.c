@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3808 2005-11-26 22:28:43Z edwin $
+   $Id: VMClassLoader.c 3846 2005-12-03 12:19:38Z twisti $
 
 */
 
@@ -59,7 +59,6 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -121,7 +120,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	cb->class = c;
 	cb->size  = len;
 	cb->data  = (u1 *) &data->data[offset];
-	cb->pos   = cb->data - 1;
+	cb->pos   = cb->data;
 
 	/* preset the defining classloader */
 
@@ -154,7 +153,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	/* set ProtectionDomain */
 
-	c->pd = pd;
+	c->object.pd = pd;
 
 	/* Store the newly defined class in the class cache. This call also       */
 	/* checks whether a class of the same name has already been defined by    */
