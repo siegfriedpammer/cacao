@@ -1,0 +1,516 @@
+/* src/vm/suck.c - functions to read LE ordered types from a buffer
+
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Christian Thalinger
+
+   Changes:
+
+   $Id: suck.c 3862 2005-12-03 14:32:40Z twisti $
+
+*/
+
+
+#include <sys/stat.h>
+
+#include "config.h"
+#include "vm/types.h"
+
+#include "mm/memory.h"
+#include "toolbox/logging.h"
+#include "toolbox/util.h"
+#include "vm/exceptions.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/suck.h"
+#include "vm/zip.h"
+
+
+/* suck_init *******************************************************************
+
+   Called once at startup, sets the searchpath for the classfiles.
+
+*******************************************************************************/
+
+bool suck_init(char *classpath)
+{
+	char           *start;
+	char           *end;
+	char           *filename;
+	s4              filenamelen;
+	bool            is_zip;
+	classpath_info *cpi;
+	classpath_info *lastcpi;
+	char           *cwd;
+	s4              cwdlen;
+
+	/* search for last classpath entry (only if there already some) */
+
+	if ((lastcpi = classpath_entries)) {
+		while (lastcpi->next)
+			lastcpi = lastcpi->next;
+	}
+
+	for (start = classpath; (*start) != '\0';) {
+
+		/* search for ':' delimiter to get the end of the current entry */
+		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
+
+		if (start != end) {
+			is_zip = false;
+			filenamelen = end - start;
+
+			if (filenamelen > 3) {
+				if (strncasecmp(end - 3, "zip", 3) == 0 ||
+					strncasecmp(end - 3, "jar", 3) == 0) {
+					is_zip = true;
+				}
+			}
+
+			/* save classpath entries as absolute pathnames */
+
+			cwd = NULL;
+			cwdlen = 0;
+
+			if (*start != '/') {                      /* XXX fix me for win32 */
+				cwd = _Jv_getcwd();
+				cwdlen = strlen(cwd) + strlen("/");
+			}
+
+			/* allocate memory for filename and fill it */
+
+			filename = MNEW(char, filenamelen + cwdlen + strlen("/") +
+							strlen("0"));
+
+			if (cwd) {
+				strcpy(filename, cwd);
+				strcat(filename, "/");
+				strncat(filename, start, filenamelen);
+
+				/* add cwd length to file length */
+				filenamelen += cwdlen;
+
+			} else {
+				strncpy(filename, start, filenamelen);
+				filename[filenamelen] = '\0';
+			}
+
+			cpi = NULL;
+
+			if (is_zip) {
+#if defined(USE_ZLIB)
+/*  				(void) zip_open(filename); */
+				unzFile uf = unzOpen(filename);
+
+				if (uf) {
+					cpi = NEW(classpath_info);
+					cpi->type    = CLASSPATH_ARCHIVE;
+					cpi->uf      = uf;
+					cpi->next    = NULL;
+					cpi->path    = filename;
+					cpi->pathlen = filenamelen;
+
+					/* SUN compatible -verbose:class output */
+
+					if (opt_verboseclass)
+						printf("[Opened %s]\n", filename);
+				}
+
+#else
+				throw_cacao_exception_exit(string_java_lang_InternalError,
+										   "zip/jar files not supported");
+#endif
+				
+			} else {
+				cpi = NEW(classpath_info);
+				cpi->type = CLASSPATH_PATH;
+				cpi->next = NULL;
+
+				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
+					filename[filenamelen] = '/';
+					filename[filenamelen + 1] = '\0';
+					filenamelen++;
+				}
+
+				cpi->path    = filename;
+				cpi->pathlen = filenamelen;
+			}
+
+			/* attach current classpath entry */
+
+			if (cpi) {
+				if (!classpath_entries)
+					classpath_entries = cpi;
+				else
+					lastcpi->next = cpi;
+
+				lastcpi = cpi;
+			}
+		}
+
+		/* goto next classpath entry, skip ':' delimiter */
+
+		if ((*end) == ':') {
+			start = end + 1;
+
+		} else {
+			start = end;
+		}
+	}
+
+	/* everything's ok */
+
+	return true;
+}
+
+
+/* suck_check_classbuffer_size *************************************************
+
+   Assert that at least <len> bytes are left to read <len> is limited
+   to the range of non-negative s4 values.
+
+*******************************************************************************/
+
+bool suck_check_classbuffer_size(classbuffer *cb, s4 len)
+{
+#ifdef ENABLE_VERIFIER
+	if (len < 0 || ((cb->data + cb->size) - cb->pos) < len) {
+		*exceptionptr =
+			new_classformaterror((cb)->class, "Truncated class file");
+
+		return false;
+	}
+#endif /* ENABLE_VERIFIER */
+
+	return true;
+}
+
+
+u1 suck_u1(classbuffer *cb)
+{
+	u1 a;
+
+	a = SUCK_BE_U1(cb->pos);
+	cb->pos++;
+
+	return a;
+}
+
+
+u2 suck_u2(classbuffer *cb)
+{
+	u2 a;
+
+	a = SUCK_BE_U2(cb->pos);
+	cb->pos += 2;
+
+	return a;
+}
+
+
+u4 suck_u4(classbuffer *cb)
+{
+	u4 a;
+
+	a = SUCK_BE_U4(cb->pos);
+	cb->pos += 4;
+
+	return a;
+}
+
+
+u8 suck_u8(classbuffer *cb)
+{
+#if U8_AVAILABLE == 1
+	u8 a;
+
+	a = SUCK_BE_U8(cb->pos);
+	cb->pos += 8;
+
+	return a;
+#else
+	u8 v;
+
+	v.high = suck_u4(cb);
+	v.low = suck_u4(cb);
+
+	return v;
+#endif
+}
+
+
+float suck_float(classbuffer *cb)
+{
+	float f;
+
+#if WORDS_BIGENDIAN == 0
+	u1 buffer[4];
+	u2 i;
+
+	for (i = 0; i < 4; i++)
+		buffer[3 - i] = suck_u1(cb);
+
+	MCOPY((u1 *) (&f), buffer, u1, 4);
+#else
+	suck_nbytes((u1*) (&f), cb, 4);
+#endif
+
+	if (sizeof(float) != 4) {
+		*exceptionptr = new_internalerror("Incompatible float-format");
+
+		/* XXX should we exit in such a case? */
+		throw_exception_exit();
+	}
+	
+	return f;
+}
+
+
+double suck_double(classbuffer *cb)
+{
+	double d;
+
+#if WORDS_BIGENDIAN == 0
+	u1 buffer[8];
+	u2 i;	
+
+#if defined(__ARM__) && defined(__ARMEL__) && !defined(__VFP_FP__)
+	/*
+	 * On little endian ARM processors when using FPA, word order
+	 * of doubles is still big endian. So take that into account
+	 * here. When using VFP, word order of doubles follows byte
+	 * order. (michi 2005/07/24)
+	 */
+	for (i = 0; i < 4; i++)
+		buffer[3 - i] = suck_u1(cb);
+	for (i = 0; i < 4; i++)
+		buffer[7 - i] = suck_u1(cb);
+#else
+	for (i = 0; i < 8; i++)
+		buffer[7 - i] = suck_u1(cb);
+#endif /* defined(__ARM__) && ... */
+
+	MCOPY((u1 *) (&d), buffer, u1, 8);
+#else 
+	suck_nbytes((u1*) (&d), cb, 8);
+#endif
+
+	if (sizeof(double) != 8) {
+		*exceptionptr = new_internalerror("Incompatible double-format");
+
+		/* XXX should we exit in such a case? */
+		throw_exception_exit();
+	}
+	
+	return d;
+}
+
+
+/* suck_nbytes *****************************************************************
+
+   Transfer block of classfile data into a buffer.
+
+*******************************************************************************/
+
+void suck_nbytes(u1 *buffer, classbuffer *cb, s4 len)
+{
+	MCOPY(buffer, cb->pos, u1, len);
+	cb->pos += len;
+}
+
+
+/* suck_skip_nbytes ************************************************************
+
+   Skip block of classfile data.
+
+*******************************************************************************/
+
+void suck_skip_nbytes(classbuffer *cb, s4 len)
+{
+	cb->pos += len;
+}
+
+
+/* suck_start ******************************************************************
+
+   Returns true if classbuffer is already loaded or a file for the
+   specified class has succussfully been read in. All directories of
+   the searchpath are used to find the classfile (<classname>.class).
+   Returns false if no classfile is found and writes an error message.
+	
+*******************************************************************************/
+
+classbuffer *suck_start(classinfo *c)
+{
+	classpath_info *cpi;
+	char           *filename;
+	s4              filenamelen;
+	char           *path;
+	FILE           *classfile;
+	bool            found;
+	s4              len;
+	struct stat     buffer;
+	classbuffer    *cb;
+
+	/* initialize return value */
+
+	found = false;
+	cb = NULL;
+
+	filenamelen = utf_strlen(c->name) + strlen(".class") + strlen("0");
+	filename = MNEW(char, filenamelen);
+
+	utf_sprint(filename, c->name);
+	strcat(filename, ".class");
+
+	/* walk through all classpath entries */
+
+	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
+#if defined(USE_ZLIB)
+		if (cpi->type == CLASSPATH_ARCHIVE) {
+
+#if defined(USE_THREADS)
+			/* enter a monitor on zip/jar archives */
+
+			builtin_monitorenter((java_objectheader *) cpi);
+#endif
+
+			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
+				unz_file_info file_info;
+
+				if (unzGetCurrentFileInfo(cpi->uf, &file_info, filename,
+										  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
+					if (unzOpenCurrentFile(cpi->uf) == UNZ_OK) {
+						cb = NEW(classbuffer);
+						cb->class = c;
+						cb->size  = file_info.uncompressed_size;
+						cb->data  = MNEW(u1, cb->size);
+						cb->pos   = cb->data;
+						cb->path  = cpi->path;
+
+						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
+
+						if (len != cb->size) {
+							suck_stop(cb);
+							log_text("Error while unzipping");
+
+						} else {
+							found = true;
+						}
+
+					} else {
+						log_text("Error while opening file in archive");
+					}
+
+				} else {
+					log_text("Error while retrieving fileinfo");
+				}
+			}
+			unzCloseCurrentFile(cpi->uf);
+
+#if defined(USE_THREADS)
+			/* leave the monitor */
+
+			builtin_monitorexit((java_objectheader *) cpi);
+#endif
+
+		} else {
+#endif /* defined(USE_ZLIB) */
+			
+			path = MNEW(char, cpi->pathlen + filenamelen);
+			strcpy(path, cpi->path);
+			strcat(path, filename);
+
+			classfile = fopen(path, "r");
+
+			if (classfile) {                                   /* file exists */
+				if (!stat(path, &buffer)) {            /* read classfile data */
+					cb = NEW(classbuffer);
+					cb->class = c;
+					cb->size  = buffer.st_size;
+					cb->data  = MNEW(u1, cb->size);
+					cb->pos   = cb->data;
+					cb->path  = cpi->path;
+
+					/* read class data */
+					len = fread(cb->data, 1, cb->size, classfile);
+
+					if (len != buffer.st_size) {
+						suck_stop(cb);
+/*  						if (ferror(classfile)) { */
+/*  						} */
+
+					} else {
+						found = true;
+					}
+				}
+			}
+
+			MFREE(path, char, cpi->pathlen + filenamelen);
+#if defined(USE_ZLIB)
+		}
+#endif
+	}
+
+	if (opt_verbose)
+		if (!found)
+			dolog("Warning: Can not open class file '%s'", filename);
+
+	MFREE(filename, char, filenamelen);
+
+	return cb;
+}
+
+
+/* suck_stop *******************************************************************
+
+   Frees memory for buffer with classfile data.
+
+   CAUTION: This function may only be called if buffer has been
+   allocated by suck_start with reading a file.
+	
+*******************************************************************************/
+
+void suck_stop(classbuffer *cb)
+{
+	/* free memory */
+
+	MFREE(cb->data, u1, cb->size);
+	FREE(cb, classbuffer);
+}
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
