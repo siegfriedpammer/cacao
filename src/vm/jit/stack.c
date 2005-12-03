@@ -30,7 +30,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: stack.c 3736 2005-11-22 22:47:00Z christian $
+   $Id: stack.c 3848 2005-12-03 12:31:30Z twisti $
 
 */
 
@@ -53,7 +53,6 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
@@ -65,7 +64,7 @@
 /* global variables ***********************************************************/
 
 #if defined(USE_THREADS)
-static java_objectheader show_icmd_lock;
+static java_objectheader *lock_show_icmd;
 #endif
 
 
@@ -80,7 +79,11 @@ bool stack_init(void)
 #if defined(USE_THREADS)
 	/* initialize the show lock */
 
-	show_icmd_lock.monitorPtr = get_dummyLR();
+	lock_show_icmd = NEW(java_objectheader);
+
+# if defined(NATIVE_THREADS)
+	initObjectLock(lock_show_icmd);
+# endif
 #endif
 
 	/* everything's ok */
@@ -2440,11 +2443,11 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	u1             *u1ptr;
 
 #if defined(USE_THREADS)
-	/* We need to enter a lock here, since the binutils disassembler is not   */
-	/* reentrant-able and we could not read functions printed at the same     */
-	/* time.                                                                  */
+	/* We need to enter a lock here, since the binutils disassembler
+	   is not reentrant-able and we could not read functions printed
+	   at the same time. */
 
-	builtin_monitorenter(&show_icmd_lock);
+	builtin_monitorenter(lock_show_icmd);
 #endif
 
 	printf("\n");
@@ -2613,7 +2616,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 
 #if defined(USE_THREADS)
-	builtin_monitorexit(&show_icmd_lock);
+	builtin_monitorexit(lock_show_icmd);
 #endif
 }
 
@@ -2781,7 +2784,7 @@ void show_icmd(instruction *iptr, bool deadcode)
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
 		if (iptr->val.a) {
-			if (!((fieldinfo *) iptr->val.a)->class->initialized)
+			if (!(((fieldinfo *) iptr->val.a)->class->state & CLASS_INITIALIZED))
 				printf(" (NOT INITIALIZED) ");
 			else
 				printf(" ");
