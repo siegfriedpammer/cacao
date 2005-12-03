@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: class.c 3859 2005-12-03 13:00:28Z twisti $
 
 */
 
@@ -61,7 +61,6 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/utf8.h"
 
 
@@ -226,13 +225,13 @@ classinfo *class_create_classinfo(utf *classname)
 
 	if (class_java_lang_Class)
 		if (class_java_lang_Class->vftbl)
-			c->header.vftbl = class_java_lang_Class->vftbl;
+			c->object.header.vftbl = class_java_lang_Class->vftbl;
 	
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&c->header);
+	initObjectLock(&c->object.header);
 #endif
 
 	return c;
@@ -256,8 +255,8 @@ void class_postset_header_vftbl(void)
 
 	assert(class_java_lang_Class);
 
-	for (slot = 0; slot < classcache_hash.size; slot++) {
-		nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
+	for (slot = 0; slot < hashtable_classcache.size; slot++) {
+		nmen = (classcache_name_entry *) hashtable_classcache.ptr[slot];
 
 		for (; nmen; nmen = nmen->hashlink) {
 			/* iterate over all class entries */
@@ -267,8 +266,8 @@ void class_postset_header_vftbl(void)
 
 				/* now set the the vftbl */
 
-				if (c->header.vftbl == NULL)
-					c->header.vftbl = class_java_lang_Class->vftbl;
+				if (c->object.header.vftbl == NULL)
+					c->object.header.vftbl = class_java_lang_Class->vftbl;
 			}
 		}
 	}
@@ -1151,6 +1150,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 }
 
 
+#if defined(ENABLE_DEBUG)
 void class_showconstanti(classinfo *c, int ii) 
 {
 	u4 i = ii;
@@ -1356,6 +1356,7 @@ void class_showmethods (classinfo *c)
 		}
 
 }
+#endif /* defined(ENABLE_DEBUG) */
 
 
 /*
