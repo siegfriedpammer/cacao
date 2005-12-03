@@ -28,11 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3682 2005-11-16 13:15:29Z twisti $
+## $Id: Makefile.am 3843 2005-12-03 12:15:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 NO_GEN_HEADER_FILES = \
+	java_lang_Class.h \
 	java_lang_ClassLoader.h \
 	java_lang_Cloneable.h \
 	java_lang_Object.h \
@@ -56,7 +57,6 @@ GEN_HEADER_FILES = \
 	java_lang_Boolean.h \
 	java_lang_Byte.h \
 	java_lang_Character.h \
-	java_lang_Class.h \
 	java_lang_Double.h \
 	java_lang_Float.h \
 	java_lang_Integer.h \
