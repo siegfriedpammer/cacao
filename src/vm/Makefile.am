@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3544 2005-11-03 20:35:18Z twisti $
+## $Id: Makefile.am 3863 2005-12-03 14:34:09Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,6 +70,8 @@ libvmcore_la_SOURCES = \
 	field.h \
 	finalizer.c \
 	finalizer.h \
+	hashtable.c \
+	hashtable.h \
 	initialize.c \
 	initialize.h \
 	linker.c \
@@ -88,8 +90,8 @@ libvmcore_la_SOURCES = \
 	signallocal.h \
 	string.c \
 	stringlocal.h \
-	tables.c \
-	tables.h \
+	suck.c \
+	suck.h \
 	utf8.c \
 	utf8.h \
 	$(ZLIB_OBJ)
