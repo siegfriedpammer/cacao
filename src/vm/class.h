@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3807 2005-11-26 21:51:11Z edwin $
+   $Id: class.h 3855 2005-12-03 12:40:35Z twisti $
 
 */
 
@@ -45,28 +45,32 @@ typedef struct extra_classref extra_classref;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/global.h"                  /* define java_objectheader for j.l.C */
+#include "native/include/java_lang_Class.h"
+
 #include "toolbox/list.h"
-#include "vm/global.h"
-#include "vm/utf8.h"
-#include "vm/references.h"
 #include "vm/field.h"
 #include "vm/linker.h"
-#include "vm/tables.h"
+#include "vm/references.h"
+#include "vm/utf8.h"
 #include "vm/jit/inline/sets.h"
+
+
+/* class state defines ********************************************************/
+
+#define CLASS_LOADING         0x0001
+#define CLASS_LOADED          0x0002
+#define CLASS_LINKING         0x0004
+#define CLASS_LINKED          0x0008
+#define CLASS_INITIALIZING    0x0010
+#define CLASS_INITIALIZED     0x0020
+#define CLASS_ERROR           0x0040
 
 
 /* classinfo ******************************************************************/
 
 struct classinfo {                /* class structure                          */
-	java_objectheader header;     /* classes are also objects                 */
-	java_objectarray* signers;
-	struct java_security_ProtectionDomain* pd;
-	struct java_lang_VMClass* vmClass;
-	struct java_lang_reflect_Constructor* constructor;
-
-	s4 initializing_thread;       /* gnu classpath                            */
-	s4 erroneous_state;           /* gnu classpath                            */
-	struct gnu_classpath_RawData* vmData; /* gnu classpath                    */
+	java_lang_Class object;       /* classinfos are also j.l.C objects        */
 
 	s4          flags;            /* ACC flags                                */
 	utf        *name;             /* class name                               */
@@ -96,10 +100,11 @@ struct classinfo {                /* class structure                          */
 
 	listnode    listnode;         /* linkage                                  */
 
-	bool        initialized;      /* true, if class already initialized       */
-	bool        initializing;     /* flag for the compiler                    */
+#if 1
 	bool        loaded;           /* true, if class already loaded            */
 	bool        linked;           /* true, if class already linked            */
+#endif
+	s4          state;            /* current class state                      */
 	s4          index;            /* hierarchy depth (classes) or index       */
 	                              /* (interfaces)                             */
 	s4          instancesize;     /* size of an instance of this class        */
