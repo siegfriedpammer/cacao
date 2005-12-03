@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 3503 2005-10-26 20:37:42Z twisti $
+   $Id: Method.c 3845 2005-12-03 12:18:12Z twisti $
 
 */
 
@@ -168,7 +168,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 	/* check if method class is initialized */
 
-	if (!c->initialized)
+	if (!(c->state & CLASS_INITIALIZED))
 		if (!initialize_class(c))
 			return NULL;
 
