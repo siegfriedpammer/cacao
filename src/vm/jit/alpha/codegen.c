@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 3812 2005-11-28 18:00:47Z edwin $
+   $Id: codegen.c 3867 2005-12-03 15:24:55Z twisti $
 
 */
 
@@ -56,7 +56,6 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc"
 #include "vm/jit/jit.h"
@@ -2037,7 +2036,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -2094,7 +2093,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -2148,7 +2147,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
