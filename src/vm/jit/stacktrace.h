@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3741 2005-11-22 23:07:41Z twisti $
+   $Id: stacktrace.h 3847 2005-12-03 12:23:34Z twisti $
 
 */
 
@@ -38,7 +38,6 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct exceptionentry exceptionentry;
 typedef struct stackframeinfo stackframeinfo;
 typedef struct stackTraceBuffer stackTraceBuffer;
 typedef struct stacktraceelement stacktraceelement;
@@ -47,21 +46,6 @@ typedef struct stacktraceelement stacktraceelement;
 #include "vm/types.h"
 
 #include "vm/method.h"
-
-
-/* exceptionentry **************************************************************
-
-   Datastructure which represents an exception entry in the exception
-   table residing in the data segment.
-
-*******************************************************************************/
-
-struct exceptionentry {
-	classinfo *catchtype;
-	void      *handlerpc;
-	void      *endpc;
-	void      *startpc;
-};
 
 
 /* stackframeinfo **************************************************************
