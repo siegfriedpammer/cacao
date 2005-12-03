@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3807 2005-11-26 21:51:11Z edwin $
+   $Id: exceptions.c 3860 2005-12-03 13:06:19Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include <stdlib.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -51,9 +52,9 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/methodheader.h"
 
 
 /* for raising exceptions from native methods *********************************/
@@ -993,6 +994,86 @@ java_objectheader *new_nullpointerexception(void)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_handle_exception *************************************************
+
+   XXX
+
+*******************************************************************************/
+
+u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
+{
+	methodinfo            *m;
+	exceptionentry        *ex;
+	s4                     exceptiontablelength;
+	classref_or_classinfo  cr;
+	s4                     i;
+	classinfo             *c;
+
+	/* get methodinfo pointer from method header */
+
+	m                    = *((methodinfo **)    (pv + MethodPointer));
+	ex                   =   (exceptionentry *) (pv + ExTableStart);
+	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
+
+/*  	if (m != NULL) { */
+/*  		printf("exceptions_handle_exception: "); */
+/*  		utf_display(m->class->name); */
+/*  		printf("."); */
+/*  		utf_display(m->name); */
+/*  		utf_display(m->descriptor); */
+/*  		printf(", %d\n", exceptiontablelength); */
+/*  	} */
+
+	builtin_trace_exception(xptr, m, pc, 1);
+
+	for (i = 0; i < exceptiontablelength; i++) {
+		/* ATTENTION: keep this here, as we need to decrement the
+           pointer before the loop executes! */
+
+		ex--;
+
+		/* is the PC is the current catch range */
+
+		if (ex->startpc <= pc && pc < ex->endpc) {
+			cr = ex->catchtype;
+
+			/* NULL catches everything */
+
+			if (cr.any == NULL)
+				return ex->handlerpc;
+
+			/* resolve or load/link the exception class */
+
+			if (IS_CLASSREF(cr)) {
+				c = resolve_classref_eager(cr.ref);
+
+			} else {
+				c = cr.cls;
+
+				if (!(c->state & CLASS_LOADED))
+					/* XXX we need to use the methods' classloader */
+					if (!load_class_from_classloader(c->name,
+													 m->class->classloader))
+						return NULL;
+
+				if (!(c->state & CLASS_LINKED))
+					if (!link_class(c))
+						return NULL;
+			}
+
+			/* is the thrown exception an instance of the catch class? */
+
+			if (builtin_instanceof(xptr, c))
+				return ex->handlerpc;
+		}
+	}
+
+	/* none of the exceptions catch this one */
+
+	return NULL;
 }
 
 
