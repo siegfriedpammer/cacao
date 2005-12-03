@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3339 2005-10-04 20:19:11Z twisti $
+   $Id: initialize.c 3858 2005-12-03 12:58:36Z twisti $
 
 */
 
@@ -81,12 +81,7 @@ bool initialize_class(classinfo *c)
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
 
-	/* JOWENN: In future we need an additinal flag: initializationfailed,
-		since further access to the class should cause a NoClassDefFound,
-		if the static initializer failed once
-        */
-
-	if (c->initialized || c->initializing) {
+	if ((c->state & CLASS_INITIALIZING) || (c->state & CLASS_INITIALIZED)) {
 #if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
@@ -94,23 +89,38 @@ bool initialize_class(classinfo *c)
 		return true;
 	}
 
+	/* if <clinit> throw an Error before, the class was marked with an
+       error and we have to throw a NoClassDefFoundError */
+
+	if (c->state & CLASS_ERROR) {
+		*exceptionptr = new_noclassdeffounderror(c->name);
+
+#if defined(USE_THREADS)
+		builtin_monitorexit((java_objectheader *) c);
+#endif
+
+		/* ...but return true, this is ok (mauve test) */
+
+		return true;
+	}
+
 	/* this initalizing run begins NOW */
 
-	c->initializing = true;
+	c->state |= CLASS_INITIALIZING;
 
 	/* call the internal function */
 
 	r = initialize_class_intern(c);
 
-	/* if return value is not NULL everything was ok and the class is */
-	/* initialized */
+	/* if return value is not NULL everything was ok and the class is
+	   initialized */
 
 	if (r)
-		c->initialized = true;
+		c->state |= CLASS_INITIALIZED;
 
 	/* this initalizing run is done */
 
-	c->initializing = false;
+	c->state &= ~CLASS_INITIALIZING;
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
@@ -151,7 +161,7 @@ static bool initialize_class_intern(classinfo *c)
 	/* initialize super class */
 
 	if (c->super.cls) {
-		if (!c->super.cls->initialized) {
+		if (!(c->super.cls->state & CLASS_INITIALIZED)) {
 			if (initverbose)
 				log_message_class_message_class("Initialize super class ",
 												c->super.cls,
@@ -200,9 +210,9 @@ static bool initialize_class_intern(classinfo *c)
 	xptr = *exceptionptr;
 
 	if (xptr) {
-		/* class is NOT initialized */
+		/* class is NOT initialized and is marked with error */
 
-		c->initialized = false;
+		c->state |= CLASS_ERROR;
 
 		/* is this an exception, than wrap it */
 
