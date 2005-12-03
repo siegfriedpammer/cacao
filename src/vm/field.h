@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 2181 2005-04-01 16:53:33Z edwin $
+   $Id: field.h 3857 2005-12-03 12:43:29Z twisti $
 */
 
 
@@ -39,6 +39,8 @@
 
 typedef struct fieldinfo fieldinfo; 
 
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
 #include "vm/utf8.h"
@@ -71,9 +73,12 @@ struct fieldinfo {	      /* field of a class                                 */
 /* function prototypes ********************************************************/
 
 void field_free(fieldinfo *f);
-void field_display(fieldinfo *f);
 
-#endif /* _LOADER_H */
+#if defined(ENABLE_DEBUG)
+void field_display(fieldinfo *f);
+#endif
+
+#endif /* _FIELD_H */
 
 
 /*
