@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3812 2005-11-28 18:00:47Z edwin $
+   $Id: patcher.c 3868 2005-12-03 15:25:18Z twisti $
 
 */
 
@@ -94,7 +94,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!fi->class->initialized) {
+	if (!(fi->class->state & CLASS_INITIALIZED)) {
 		if (!initialize_class(fi->class)) {
 			PATCHER_MONITOREXIT;
 
@@ -786,7 +786,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* check if the class is initialized */
 
-	if (!c->initialized) {
+	if (!(c->state & CLASS_INITIALIZED)) {
 		if (!initialize_class(c)) {
 			PATCHER_MONITOREXIT;
 
