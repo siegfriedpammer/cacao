@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3811 2005-11-28 16:23:40Z edwin $
+   $Id: jit.c 3849 2005-12-03 12:32:11Z twisti $
 
 */
 
@@ -51,7 +51,6 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/disass.h"
@@ -1467,7 +1466,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* initialize the static function's class */
 
-  	if ((m->flags & ACC_STATIC) && !m->class->initialized) {
+  	if ((m->flags & ACC_STATIC) && !(m->class->state & CLASS_INITIALIZED)) {
 		if (initverbose)
 			log_message_class("Initialize class ", m->class);
 
