@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3804 2005-11-26 19:23:19Z twisti $
+   $Id: jni.c 3865 2005-12-03 14:43:47Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "vm/types.h"
 
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -96,7 +97,6 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/statistics.h"
@@ -130,19 +130,21 @@ static methodinfo *removemid = NULL;
 
 /* direct buffer stuff ********************************************************/
 
-static utf *utf_java_nio_DirectByteBufferImpl;
+static utf *utf_java_nio_DirectByteBufferImpl_ReadWrite;
 #if SIZEOF_VOID_P == 8
 static utf *utf_gnu_classpath_Pointer64;
 #else
 static utf *utf_gnu_classpath_Pointer32;
 #endif
 
-static classinfo *class_java_nio_DirectByteBufferImpl;
+static classinfo *class_java_nio_DirectByteBufferImpl_ReadWrite;
 #if SIZEOF_VOID_P == 8
 static classinfo *class_gnu_classpath_Pointer64;
 #else
 static classinfo *class_gnu_classpath_Pointer32;
 #endif
+
+static methodinfo *dbbirw_init;
 
 
 /* local reference table ******************************************************/
@@ -201,14 +203,20 @@ bool jni_init(void)
 
 	/* direct buffer stuff */
 
-	utf_java_nio_DirectByteBufferImpl =
-		utf_new_char("java/nio/DirectByteBufferImpl");
+	utf_java_nio_DirectByteBufferImpl_ReadWrite =
+		utf_new_char("java/nio/DirectByteBufferImpl$ReadWrite");
 
-	if (!(class_java_nio_DirectByteBufferImpl =
-		  load_class_bootstrap(utf_java_nio_DirectByteBufferImpl)))
+	if (!(class_java_nio_DirectByteBufferImpl_ReadWrite =
+		  load_class_bootstrap(utf_java_nio_DirectByteBufferImpl_ReadWrite)))
 		return false;
 
-	if (!link_class(class_java_nio_DirectByteBufferImpl))
+	if (!link_class(class_java_nio_DirectByteBufferImpl_ReadWrite))
+		return false;
+
+	if (!(dbbirw_init =
+		class_resolvemethod(class_java_nio_DirectByteBufferImpl_ReadWrite,
+							utf_init,
+							utf_new_char("(Ljava/lang/Object;Lgnu/classpath/Pointer;III)V"))))
 		return false;
 
 #if SIZEOF_VOID_P == 8
@@ -1413,7 +1421,7 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 	if (!c)
 		return NULL;
 
-	if (!c->initialized)
+	if (!(c->state & CLASS_INITIALIZED))
 		if (!initialize_class(c))
 			return NULL;
 
@@ -2344,7 +2352,7 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 	if (!c)
 		return NULL;
 
-	if (!c->initialized)
+	if (!(c->state & CLASS_INITIALIZED))
 		if (!initialize_class(c))
 			return NULL;
 
@@ -2734,7 +2742,7 @@ jobject GetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return NULL;
 
@@ -2746,7 +2754,7 @@ jboolean GetStaticBooleanField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return false;
 
@@ -2758,7 +2766,7 @@ jbyte GetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0;
 
@@ -2770,7 +2778,7 @@ jchar GetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0;
 
@@ -2782,7 +2790,7 @@ jshort GetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0;
 
@@ -2794,7 +2802,7 @@ jint GetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0;
 
@@ -2806,7 +2814,7 @@ jlong GetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0;
 
@@ -2818,7 +2826,7 @@ jfloat GetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0.0;
 
@@ -2830,7 +2838,7 @@ jdouble GetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return 0.0;
 
@@ -2849,7 +2857,7 @@ void SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID, jobject v
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2861,7 +2869,7 @@ void SetStaticBooleanField(JNIEnv *env, jclass clazz, jfieldID fieldID, jboolean
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2873,7 +2881,7 @@ void SetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID, jbyte value
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2885,7 +2893,7 @@ void SetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID, jchar value
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2897,7 +2905,7 @@ void SetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID, jshort val
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2909,7 +2917,7 @@ void SetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID, jint value)
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2921,7 +2929,7 @@ void SetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID, jlong value
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2933,7 +2941,7 @@ void SetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID, jfloat val
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -2945,7 +2953,7 @@ void SetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID, jdouble v
 {
 	STATS(jniinvokation();)
 
-	if (!clazz->initialized)
+	if (!(clazz->state & CLASS_INITIALIZED))
 		if (!initialize_class(clazz))
 			return;
 
@@ -4243,7 +4251,7 @@ jboolean ExceptionCheck(JNIEnv *env)
 
 jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
-	java_nio_DirectByteBufferImpl *nbuf;
+	java_objectheader *nbuf;
 #if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64 *paddress;
 #else
@@ -4254,17 +4262,22 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	log_text("JNI-NewDirectByteBuffer: called");
 
-	/* allocate a java.nio.DirectByteBufferImpl object */
+#if 0
+	/* allocate a java.nio.DirectByteBufferImpl$ReadWrite object */
 
-	if (!(nbuf = (java_nio_DirectByteBufferImpl *) builtin_new(class_java_nio_DirectByteBufferImpl)))
+	if (!(nbuf = (java_nio_DirectByteBufferImpl$ReadWrite *)
+		  builtin_new(class_java_nio_DirectByteBufferImpl_ReadWrite)))
 		return NULL;
+#endif
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
 #if SIZEOF_VOID_P == 8
-	if (!(paddress = (gnu_classpath_Pointer64 *) builtin_new(class_gnu_classpath_Pointer64)))
+	if (!(paddress = (gnu_classpath_Pointer64 *)
+		  builtin_new(class_gnu_classpath_Pointer64)))
 #else
-	if (!(paddress = (gnu_classpath_Pointer32 *) builtin_new(class_gnu_classpath_Pointer32)))
+	if (!(paddress = (gnu_classpath_Pointer32 *)
+		  builtin_new(class_gnu_classpath_Pointer32)))
 #endif
 		return NULL;
 
@@ -4272,16 +4285,22 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	paddress->data = (ptrint) address;
 
+#if 0
 	/* fill java.nio.Buffer object */
 
 	nbuf->cap     = (s4) capacity;
 	nbuf->limit   = (s4) capacity;
 	nbuf->pos     = 0;
 	nbuf->address = (gnu_classpath_Pointer *) paddress;
+#endif
+
+	nbuf = (*env)->NewObject(env, class_java_nio_DirectByteBufferImpl_ReadWrite,
+							 dbbirw_init, NULL, paddress,
+							 (jint) capacity, (jint) capacity, (jint) 0);
 
 	/* add local reference and return the value */
 
-	return NewLocalRef(env, (jobject) nbuf);
+	return NewLocalRef(env, nbuf);
 }
 
 
