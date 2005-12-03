@@ -32,18 +32,16 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 2099 2005-03-28 21:56:52Z twisti $
+   $Id: field.c 3856 2005-12-03 12:41:44Z twisti $
 
 */
 
 
-#include "arch.h"
-#include "types.h"
-#include "vm/exceptions.h"
-#include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/options.h"
-#include "vm/stringlocal.h"
+#include "config.h"
+#include "vm/types.h"
+
+#include "vm/field.h"
+#include "vm/utf8.h"
 
 
 /* field_free ******************************************************************
@@ -64,6 +62,7 @@ void field_free(fieldinfo *f)
 
 *******************************************************************************/
 
+#if defined(ENABLE_DEBUG)
 void field_display(fieldinfo *f)
 {
 	printf("   ");
@@ -74,6 +73,7 @@ void field_display(fieldinfo *f)
 	utf_display(f->descriptor);	
 	printf(" offset: %ld\n", (long int) (f->offset));
 }
+#endif
 
 
 /*
