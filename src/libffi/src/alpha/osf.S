@@ -3,7 +3,7 @@
    
    Alpha/OSF Foreign Function Interface 
 
-   $Id: osf.S 3235 2005-09-21 13:17:31Z twisti $
+   $Id: osf.S 3885 2005-12-05 20:01:32Z twisti $
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -60,7 +60,7 @@ $LCFI2:
 	stq	$19, 24($1)
 	mov	$20, $27
 
-	# Load up all of the (potential) argument registers.
+	/* Load up all of the (potential) argument registers. */
 	ldq	$16, 0($30)
 	ldt	$f16, 0($30)
 	ldt	$f17, 8($30)
@@ -74,19 +74,19 @@ $LCFI2:
 	ldt	$f21, 40($30)
 	ldq	$21, 40($30)
 
-	# Deallocate the register argument area.
+	/* Deallocate the register argument area. */
 	lda	$30, 48($30)
 
 	jsr	$26, ($27), 0
 	ldgp	$29, 0($26)
 
-	# If the return value pointer is NULL, assume no return value.
+	/* If the return value pointer is NULL, assume no return value. */
 	ldq	$19, 24($15)
 	ldq	$18, 16($15)
 	ldq	$26, 0($15)
 	beq	$19, $noretval
 
-	# Store the return value out in the proper type.
+	/* Store the return value out in the proper type. */
 	cmpeq	$18, FFI_TYPE_INT, $1
 	bne	$1, $retint
 	cmpeq	$18, FFI_TYPE_FLOAT, $2
@@ -137,7 +137,7 @@ $LCFI5:
 $LCFI6:
 	.prologue 1
 
-	# Store all of the potential argument registers in va_list format.
+	/* Store all of the potential argument registers in va_list format. */
 	stt	$f16, 4*8($30)
 	stt	$f17, 5*8($30)
 	stt	$f18, 6*8($30)
@@ -151,7 +151,7 @@ $LCFI6:
 	stq	$20, 14*8($30)
 	stq	$21, 15*8($30)
 
-	# Call ffi_closure_osf_inner to do the bulk of the work.
+	/* Call ffi_closure_osf_inner to do the bulk of the work. */
 	mov	$1, $16
 	lda	$17, 2*8($30)
 	lda	$18, 10*8($30)
@@ -159,7 +159,7 @@ $LCFI6:
 	ldgp	$29, 0($26)
 	ldq	$26, 0($30)
 
-	# Load up the return value in the proper type.
+	/* Load up the return value in the proper type. */
 	lda	$1, $load_table
 	s4addq	$0, $1, $1
 	ldl	$1, 0($1)
