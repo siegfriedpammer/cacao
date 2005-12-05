@@ -352,10 +352,12 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 	s4              i;
 
   /* for a description of the stack see IRETURN in java.vmg */
-  for (; fp!=NULL;) {
-	  functionptr f = codegen_findmethod((functionptr) (ip-1));
+
+  for (; fp != NULL; ) {
+	  u1 *f = codegen_findmethod((u1 *) (ip - 1));
 
 	  /* get methodinfo pointer from method header */
+
 	  methodinfo *m = *(methodinfo **) (((u1 *) f) + MethodPointer);
 
 	  framesize = (*((s4 *) (((u1 *) f) + FrameSize)));
@@ -366,12 +368,12 @@ Inst *builtin_throw(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Ce
 
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;
-		  c = ex->catchtype;
+		  c = ex->catchtype.cls;
 
 		  if (c != NULL) {
 			  if (!c->loaded)
 				  /* XXX fix me! */
-				  if (!load_class_bootstrap(c))
+				  if (!load_class_bootstrap(c->name))
 					  assert(0);
 
 			  if (!c->linked)
