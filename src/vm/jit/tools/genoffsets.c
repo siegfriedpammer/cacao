@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: genoffsets.c 3850 2005-12-03 12:32:39Z twisti $
+   $Id: genoffsets.c 3890 2005-12-05 22:10:54Z twisti $
 
 */
 
@@ -67,8 +67,6 @@ int main(int argc, char **argv)
 
 	printf("/* classinfo */\n\n");
 	printf("#define offclassvftbl              %3d\n", (s4) OFFSET(classinfo, vftbl));
-	printf("#define offclassloaded             %3d\n", (s4) OFFSET(classinfo, loaded));
-	printf("#define offclasslinked             %3d\n", (s4) OFFSET(classinfo, linked));
 	printf("\n\n");
 
 	printf("#define offjniitemtype             %3d\n", (s4) OFFSET(jni_callblock, itemtype));
