@@ -172,7 +172,7 @@ ffi_prep_closure (ffi_closure* closure,
      instead, since both Compaq as and gas can handle it.
 
      0x86 is PAL_imb in Tru64 UNIX <alpha/pal.h>.  */
-  asm volatile ("call_pal 0x86" : : : "memory");
+  __asm__ __volatile__ ("call_pal 0x86" : : : "memory");
 
   return FFI_OK;
 }
