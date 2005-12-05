@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3711 2005-11-18 00:53:01Z twisti $
+   $Id: patcher.c 3873 2005-12-05 18:14:33Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
 #include "vm/options.h"
@@ -70,7 +71,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!fi->class->initialized)
+	if (!(fi->class->state & CLASS_INITIALIZED))
 		if (!initialize_class(fi->class))
 			return false;
 
