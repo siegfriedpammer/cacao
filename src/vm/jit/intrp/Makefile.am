@@ -28,14 +28,25 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3790 2005-11-23 23:16:14Z twisti $
+## $Id: Makefile.am 3881 2005-12-05 19:48:08Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_srcdir)/src/libffi/include -I$(top_builddir) -I$(top_builddir)/src
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src -I$(top_builddir)/src/libffi/include
 
 EXTRA_DIST = \
 	java.vmg
+
+BUILT_SOURCES = \
+	java-vm.i \
+	java-disasm.i \
+	java-gen.i \
+	java-labels.i \
+	java-profile.i \
+	java-peephole.i
+
+CLEANFILES = \
+	$(BUILT_SOURCES)
 
 noinst_LTLIBRARIES = libintrp.la
 
@@ -49,17 +60,10 @@ libintrp_la_SOURCES = \
 	intrp.h \
 	md.c \
 	patcher.c \
-	peephole.c \
-	\
-	java-vm.i \
-	java-disasm.i \
-	java-gen.i \
-	java-labels.i \
-	java-profile.i \
-	java-peephole.i
+	peephole.c
 
-java-vm.i java-disasm.i java-gen.i java-labels.i java-profile.i java-peephole.i: java.vmg
-	vmgen java.vmg
+$(BUILT_SOURCES): java.vmg
+	vmgen $(srcdir)/java.vmg
 
 
 ## Local variables:
