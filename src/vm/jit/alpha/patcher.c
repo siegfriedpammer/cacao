@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3868 2005-12-03 15:25:18Z twisti $
+   $Id: patcher.c 3883 2005-12-05 19:56:54Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
 #include "vm/options.h"
