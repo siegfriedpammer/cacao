@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 3862 2005-12-03 14:32:40Z twisti $
+   $Id: suck.h 3876 2005-12-05 19:03:54Z twisti $
 
 */
 
@@ -116,6 +116,37 @@
 
 /* we can optimize the BE access on big endian machines */
 
+#if defined(__MIPS__)
+
+/* MIPS needs aligned access */
+
+#define SUCK_BE_U1(p) \
+      ((u1) (p)[0])
+
+#define SUCK_BE_U2(p) \
+    ((((u2) (p)[0]) << 8) + \
+      ((u2) (p)[1]))
+
+#define SUCK_BE_U4(p) \
+    ((((u4) (p)[0]) << 24) + \
+     (((u4) (p)[1]) << 16) + \
+     (((u4) (p)[2]) << 8) + \
+      ((u4) (p)[3]))
+
+#if U8_AVAILABLE == 1
+#define SUCK_BE_U8(p) \
+    ((((u8) (p)[0]) << 56) + \
+     (((u8) (p)[1]) << 48) + \
+     (((u8) (p)[2]) << 40) + \
+     (((u8) (p)[3]) << 32) + \
+     (((u8) (p)[4]) << 24) + \
+     (((u8) (p)[5]) << 16) + \
+     (((u8) (p)[6]) << 8) + \
+      ((u8) (p)[7]))
+#endif
+
+#else /* defined(__MIPS__) */
+
 #define SUCK_BE_U1(p)    *((u1 *) (p))
 #define SUCK_BE_U2(p)    *((u2 *) (p))
 #define SUCK_BE_U4(p)    *((u4 *) (p))
@@ -123,6 +154,8 @@
 #if U8_AVAILABLE == 1
 #define SUCK_BE_U8(p)    *((u8 *) (p))
 #endif
+
+#endif /* defined(__MIPS__) */
 
 #endif /* WORDS_BIGENDIAN == 0 */
 
