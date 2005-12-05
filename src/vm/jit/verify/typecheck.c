@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: typecheck.c 3878 2005-12-05 19:32:14Z twisti $
 
 */
 
@@ -1772,11 +1772,6 @@ fieldaccess_tail:
 				if (!resolve_field(uf,resolveLazy,fieldinfop))
 					return false;
 
-				/* we need a patcher, so this is not a leafmethod */
-#if defined(__MIPS__)
-				if (!*fieldinfop || !(*fieldinfop)->class->initialized)
-					state->cd->method->isleafmethod = false;
-#endif
 				TYPECHECK_COUNTIF(!*fieldinfop,stat_ins_field_unresolved);
 				TYPECHECK_COUNTIF(*fieldinfop && !(*fieldinfop)->class->initialized,stat_ins_field_uninitialized);
 					
@@ -2271,10 +2266,6 @@ return_tail:
 			case ICMD_LSHL:
 			case ICMD_LSHR:
 			case ICMD_LUSHR:
-#if 0
-			case ICMD_IREM0X10001:
-			case ICMD_LREM0X10001:
-#endif
 			case ICMD_IMULPOW2:
 			case ICMD_LMULPOW2:
 			case ICMD_IDIVPOW2:
