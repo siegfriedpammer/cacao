@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3855 2005-12-03 12:40:35Z twisti $
+   $Id: class.h 3889 2005-12-05 22:09:59Z twisti $
 
 */
 
@@ -100,10 +100,6 @@ struct classinfo {                /* class structure                          */
 
 	listnode    listnode;         /* linkage                                  */
 
-#if 1
-	bool        loaded;           /* true, if class already loaded            */
-	bool        linked;           /* true, if class already linked            */
-#endif
 	s4          state;            /* current class state                      */
 	s4          index;            /* hierarchy depth (classes) or index       */
 	                              /* (interfaces)                             */
