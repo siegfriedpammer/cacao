@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3812 2005-11-28 18:00:47Z edwin $
+   $Id: codegen.c 3879 2005-12-05 19:36:57Z twisti $
 
 */
 
@@ -56,6 +56,7 @@
 #include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc"
@@ -1840,7 +1841,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -1899,7 +1900,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -1955,7 +1956,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!fi->class->initialized) {
+				if (!(fi->class->state & CLASS_INITIALIZED)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
