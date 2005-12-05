@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3842 2005-12-02 15:26:16Z twisti $
+   $Id: loader.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -1464,7 +1464,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 	LOADER_ASSERT(class_java_lang_Object);
 	LOADER_ASSERT(class_java_lang_ClassLoader);
-	LOADER_ASSERT(class_java_lang_ClassLoader->linked);
+	LOADER_ASSERT(class_java_lang_ClassLoader->state & CLASS_LINKED);
 	
 	m = class_resolveclassmethod(class_java_lang_ClassLoader,
 								 utf_getSystemClassLoader,
@@ -1550,7 +1550,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 				if (tmpc == NULL) {
 					/* exception, free the loaded class */
-					c->loaded = false;
+					c->state &= ~CLASS_LOADING;
 					class_free(c);
 				}
 
@@ -1572,7 +1572,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 				if (tmpc == NULL) {
 					/* exception, free the loaded class */
-					c->loaded = false;
+					c->state &= ~CLASS_LOADING;
 					class_free(c);
 				}
 
@@ -1615,7 +1615,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 			if (tmpc == NULL) {
 				/* exception, free the loaded class */
-				c->loaded = false;
+				c->state &= ~CLASS_LOADING;
 				class_free(c);
 			}
 
@@ -1689,7 +1689,7 @@ classinfo *load_class_bootstrap(utf *name)
 		c = load_newly_created_array(c, NULL);
 		if (c == NULL)
 			return NULL;
-		LOADER_ASSERT(c->loaded);
+		LOADER_ASSERT(c->state & CLASS_LOADED);
 		return c;
 	}
 
@@ -1803,9 +1803,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	c = cb->class;
 
-	/* maybe the class is already loaded */
+	/* the class is already loaded */
 
-	if (c->loaded)
+	if (c->state & CLASS_LOADED)
 		return c;
 
 #if defined(STATISTICS)
@@ -1822,9 +1822,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	dumpsize = dump_size();
 
-	/* class is somewhat loaded */
+	/* class is currently loading */
 
-	c->loaded = true;
+	c->state |= CLASS_LOADING;
 
 	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 		goto return_exception;
@@ -2274,7 +2274,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* release dump area */
 
 	dump_release(dumpsize);
-	
+
+	/* revert loading state and class is loaded */
+
+	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
+
 	if (loadverbose)
 		log_message_class("Loading done class: ", c);
 
@@ -2339,7 +2343,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
 
-		LOADER_ASSERT(comp->loaded);
+		LOADER_ASSERT(comp->state & CLASS_LOADED);
 
 		if (opt_eager)
 			if (!link_class(c))
@@ -2364,7 +2368,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		if (!(comp = load_class_from_classloader(u, loader)))
 			return NULL;
 
-		LOADER_ASSERT(comp->loaded);
+		LOADER_ASSERT(comp->state & CLASS_LOADED);
 
 		if (opt_eager)
 			if (!link_class(c))
@@ -2404,12 +2408,12 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 		classinfo *tc;
 
 		tc = class_java_lang_Cloneable;
-		LOADER_ASSERT(tc->loaded);
+		LOADER_ASSERT(tc->state & CLASS_LOADED);
 		list_addfirst(&unlinkedclasses, tc);
 		c->interfaces[0].cls = tc;
 
 		tc = class_java_io_Serializable;
-		LOADER_ASSERT(tc->loaded);
+		LOADER_ASSERT(tc->state & CLASS_LOADED);
 		list_addfirst(&unlinkedclasses, tc);
 		c->interfaces[1].cls = tc;
 
@@ -2467,7 +2471,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	/* array classes are not loaded from class files */
 
-	c->loaded = true;
+	c->state |= CLASS_LOADED;
 	c->parseddescs = (u1 *) clonedesc;
 	c->parseddescsize = sizeof(methodinfo);
 	c->classrefs = classrefs;

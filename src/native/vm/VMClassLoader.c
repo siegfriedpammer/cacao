@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3846 2005-12-03 12:19:38Z twisti $
+   $Id: VMClassLoader.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -236,7 +236,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
 
 	/* link the class */
 
-	if (!ci->linked)
+	if (!(ci->state & CLASS_LINKED))
 		link_class(ci);
 
 	return;

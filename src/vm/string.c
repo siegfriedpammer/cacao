@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3832 2005-12-01 23:19:29Z twisti $
+   $Id: string.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -546,7 +546,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		class_java_lang_String = load_class_bootstrap(utf_java_lang_String);
 
 	assert(class_java_lang_String);
-	assert(class_java_lang_String->loaded);
+	assert(class_java_lang_String->state & CLASS_LOADED);
 
 	/* if we use eager loading, we have to check loaded String class */
 

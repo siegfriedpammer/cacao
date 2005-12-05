@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3811 2005-11-28 16:23:40Z edwin $
+   $Id: resolve.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -178,7 +178,7 @@ bool resolve_class_from_name(classinfo *referer,
 
 	/* the class is now loaded */
 	assert(cls);
-	assert(cls->loaded);
+	assert(cls->state & CLASS_LOADED);
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    checking access rights...\n");
@@ -203,10 +203,11 @@ bool resolve_class_from_name(classinfo *referer,
 
 	/* link the class if necessary */
 	if (link) {
-		if (!cls->linked)
+		if (!(cls->state & CLASS_LINKED))
 			if (!link_class(cls))
 				return false; /* exception */
-		assert(cls->linked);
+
+		assert(cls->state & CLASS_LINKED);
 	}
 
 	/* resolution succeeds */
@@ -316,7 +317,7 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 	} else {
 		/* cls has already been resolved */
 		c = cls.cls;
-		assert(c->loaded);
+		assert(c->state & CLASS_LOADED);
 	}
 	assert(c || (mode == resolveLazy));
 
@@ -324,14 +325,14 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 		return true; /* be lazy */
 	
 	assert(c);
-	assert(c->loaded);
+	assert(c->state & CLASS_LOADED);
 
 	if (link) {
-		if (!c->linked)
+		if (!(c->state & CLASS_LINKED))
 			if (!link_class(c))
 				goto return_exception;
 
-		assert(c->linked);
+		assert(c->state & CLASS_LINKED);
 	}
 
 	/* succeeded */
@@ -392,14 +393,14 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	else {
 		/* a primitive type */
 		cls = primitivetype_table[d->decltype].class_primitive;
-		assert(cls->loaded);
-		if (!cls->linked)
+		assert(cls->state & CLASS_LOADED);
+		if (!(cls->state & CLASS_LINKED))
 			if (!link_class(cls))
 				return false; /* exception */
 	}
 	assert(cls);
-	assert(cls->loaded);
-	assert(!link || cls->linked);
+	assert(cls->state & CLASS_LOADED);
+	assert(!link || (cls->state & CLASS_LINKED));
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"    result = ");utf_fprint(stderr,cls->name);fprintf(stderr,"\n");
@@ -512,8 +513,8 @@ bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 		return true; /* be lazy */
 
 	assert(type);
-	assert(type->loaded);
-	assert(type->linked);
+	assert(type->state & CLASS_LOADED);
+	assert(type->state & CLASS_LINKED);
 	typeinfo_init_classinfo(&typeti,type);
 
 	for (; setp->any; ++setp) {
@@ -529,8 +530,8 @@ bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
 			return true; /* be lazy */
 
 		assert(result);
-		assert(result->loaded);
-		assert(result->linked);
+		assert(result->state & CLASS_LOADED);
+		assert(result->state & CLASS_LINKED);
 
 
 		/* do not check access to protected members of arrays */
@@ -657,7 +658,7 @@ bool resolve_class(unresolved_class *ref,
 		return true; /* be lazy */
 
 	assert(cls);
-	assert(cls->loaded && cls->linked);
+	assert((cls->state & CLASS_LOADED) && (cls->state & CLASS_LINKED));
 
 	/* now we check the subtype constraints */
 	if (!resolve_and_check_subtype_set(ref->classref->referer,ref->referermethod,
@@ -825,7 +826,8 @@ bool resolve_field(unresolved_field *ref,
 		return true; /* be lazy */
 
 	assert(container);
-	assert(container->loaded && container->linked);
+	assert(container->state & CLASS_LOADED);
+	assert(container->state & CLASS_LINKED);
 
 	/* now we must find the declaration of the field in `container`
 	 * or one of its superclasses */
@@ -855,7 +857,8 @@ bool resolve_field(unresolved_field *ref,
 	/* { the field reference has been resolved } */
 	declarer = fi->class;
 	assert(declarer);
-	assert(declarer->loaded && declarer->linked);
+	assert(declarer->state & CLASS_LOADED);
+	assert(declarer->state & CLASS_LINKED);
 
 #ifdef RESOLVE_VERBOSE
 		fprintf(stderr,"    checking static...\n");
@@ -1076,7 +1079,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 		return true; /* be lazy */
 
 	assert(container);
-	assert(container->linked);
+	assert(container->state & CLASS_LINKED);
 
 	/* now we must find the declaration of the method in `container`
 	 * or one of its superclasses */
@@ -1116,7 +1119,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 
 	declarer = mi->class;
 	assert(declarer);
-	assert(referer->linked);
+	assert(referer->state & CLASS_LINKED);
 
 	/* checks for INVOKESPECIAL:                                       */
 	/* for <init> and methods of the current class we don't need any   */
@@ -1629,7 +1632,9 @@ bool constrain_unresolved_field(unresolved_field *ref,
 			}
 			/* XXX check that class of field == refmethod->class */
 			initclass = refmethod->class; /* XXX classrefs */
-			assert(initclass->loaded && initclass->linked);
+			assert(initclass->state & CLASS_LOADED);
+			assert(initclass->state & CLASS_LINKED);
+
 			typeinfo_init_classinfo(&tinfo,initclass);
 			insttip = &tinfo;
 		}
@@ -1652,8 +1657,8 @@ bool constrain_unresolved_field(unresolved_field *ref,
 			tip = &tinfo;
 			if (INSTRUCTION_PUTCONST_VALUE_ADR(iptr)) {
 				assert(class_java_lang_String);
-				assert(class_java_lang_String->loaded);
-				assert(class_java_lang_String->linked);
+				assert(class_java_lang_String->state & CLASS_LOADED);
+				assert(class_java_lang_String->state & CLASS_LINKED);
 				typeinfo_init_classinfo(&tinfo,class_java_lang_String);
 			}
 			else

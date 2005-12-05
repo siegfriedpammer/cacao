@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: VMClass.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -293,7 +293,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 											   &inner))
 				return NULL;
 
-			if (!inner->linked)
+			if (!(inner->state & CLASS_LINKED))
 				if (!link_class(inner))
 					return NULL;
 
@@ -345,7 +345,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
 												   &outer))
 					return NULL;
 
-				if (!outer->linked)
+				if (!(outer->state & CLASS_LINKED))
 					if (!link_class(outer))
 						return NULL;
 
@@ -434,7 +434,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv 
 
 	c = (classinfo *) klass;
 
-	if (!c->linked)
+	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
 
@@ -629,7 +629,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
 {
 	classinfo *c = (classinfo *) klass;
 
-	if (!c->linked)
+	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return 0;
 
@@ -655,11 +655,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
 		return 0;
 	}
 
-	if (!kc->linked)
+	if (!(kc->state & CLASS_LINKED))
 		if (!link_class(kc))
 			return 0;
 
-	if (!cc->linked)
+	if (!(cc->state & CLASS_LINKED))
 		if (!link_class(cc))
 			return 0;
 
@@ -682,7 +682,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
 	c = (classinfo *) klass;
 	ob = (java_objectheader *) o;
 
-	if (!c->linked)
+	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return 0;
 

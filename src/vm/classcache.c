@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 3837 2005-12-01 23:50:28Z twisti $
+   $Id: classcache.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -507,9 +507,8 @@ classinfo *classcache_lookup_defined_or_initiated(classloader *loader,
    
 *******************************************************************************/
 
-classinfo * classcache_store(classloader * initloader,
-							 classinfo * cls,
-							 bool mayfree)
+classinfo *classcache_store(classloader *initloader, classinfo *cls,
+							bool mayfree)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -519,7 +518,7 @@ classinfo * classcache_store(classloader * initloader,
 #endif
 	
 	assert(cls);
-	assert(cls->loaded != 0);
+	assert(cls->state & CLASS_LOADED);
 
 	CLASSCACHE_LOCK();
 
@@ -652,7 +651,7 @@ bool classcache_store_unique(classinfo *cls)
    
 *******************************************************************************/
 
-classinfo * classcache_store_defined(classinfo *cls)
+classinfo *classcache_store_defined(classinfo *cls)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -661,7 +660,7 @@ classinfo * classcache_store_defined(classinfo *cls)
 #endif
 
 	assert(cls);
-	assert(cls->loaded != 0);
+	assert(cls->state & CLASS_LOADED);
 
 	CLASSCACHE_LOCK();
 

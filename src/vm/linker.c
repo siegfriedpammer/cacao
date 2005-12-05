@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3825 2005-12-01 18:46:29Z edwin $
+   $Id: linker.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -219,14 +219,14 @@ bool linker_init(void)
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
     
-    pseudo_class_Arraystub =
+	pseudo_class_Arraystub =
 		class_create_classinfo(utf_new_char("$ARRAYSTUB$"));
-	pseudo_class_Arraystub->loaded = true;
-    pseudo_class_Arraystub->super.cls = class_java_lang_Object;
-    pseudo_class_Arraystub->interfacescount = 2;
-    pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
-    pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
-    pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
+	pseudo_class_Arraystub->state |= CLASS_LOADED;
+	pseudo_class_Arraystub->super.cls = class_java_lang_Object;
+	pseudo_class_Arraystub->interfacescount = 2;
+	pseudo_class_Arraystub->interfaces = MNEW(classref_or_classinfo, 2);
+	pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
+	pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
 
 	if (!classcache_store_unique(pseudo_class_Arraystub)) {
 		log_text("could not cache pseudo_class_Arraystub");
@@ -237,9 +237,9 @@ bool linker_init(void)
 		return false;
 
 	/* pseudo class representing the null type */
-    
+
 	pseudo_class_Null = class_create_classinfo(utf_new_char("$NULL$"));
-	pseudo_class_Null->loaded = true;
+	pseudo_class_Null->state |= CLASS_LOADED;
 	pseudo_class_Null->super.cls = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_Null)) {
@@ -253,8 +253,8 @@ bool linker_init(void)
 	/* pseudo class representing new uninitialized objects */
     
 	pseudo_class_New = class_create_classinfo(utf_new_char("$NEW$"));
-	pseudo_class_New->loaded = true;
-	pseudo_class_New->linked = true; /* XXX is this allright? */
+	pseudo_class_New->state |= CLASS_LOADED;
+	pseudo_class_New->state |= CLASS_LINKED; /* XXX is this allright? */
 	pseudo_class_New->super.cls = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_New)) {
@@ -305,7 +305,7 @@ static bool link_primitivetype_table(void)
 		
 		/* prevent loader from loading primitive class */
 
-		c->loaded = true;
+		c->state |= CLASS_LOADED;
 
 		/* INFO: don't put primitive classes into the classcache */
 
@@ -336,8 +336,9 @@ static bool link_primitivetype_table(void)
 
 			primitivetype_table[i].arrayclass = c;
 
-			assert(c->loaded);
-			if (!c->linked)
+			assert(c->state & CLASS_LOADED);
+
+			if (!(c->state & CLASS_LINKED))
 				if (!link_class(c))
 					return false;
 
@@ -372,7 +373,8 @@ classinfo *link_class(classinfo *c)
 #endif
 
 	/* maybe the class is already linked */
-	if (c->linked) {
+
+	if (c->state & CLASS_LINKED) {
 #if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
@@ -397,7 +399,7 @@ classinfo *link_class(classinfo *c)
 	/* if return value is NULL, we had a problem and the class is not linked */
 
 	if (!r)
-		c->linked = false;
+		c->state &= ~CLASS_LINKING;
 
 #if defined(STATISTICS)
 	/* measure time */
@@ -438,9 +440,9 @@ static classinfo *link_class_intern(classinfo *c)
 	s4 i,j;                       /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
 
-	/* maybe the class is already linked */
+	/* the class is already linked */
 
-	if (c->linked)
+	if (c->state & CLASS_LINKED)
 		return c;
 
 	if (linkverbose)
@@ -448,9 +450,8 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* the class must be loaded */
 
-	if (!c->loaded)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Trying to link unloaded class");
+	/* XXX should this be a specific exception? */
+	assert(c->state & CLASS_LOADED);
 
 	/* cache the self-reference of this class                          */
 	/* we do this for cases where the defining loader of the class     */
@@ -462,9 +463,9 @@ static classinfo *link_class_intern(classinfo *c)
 	if (c->classloader)
 		classcache_store(c->classloader,c,false);
 
-	/* ok, this class is somewhat linked */
+	/* this class is currently linking */
 
-	c->linked = true;
+	c->state |= CLASS_LINKING;
 
 	arraydesc = NULL;
 
@@ -488,7 +489,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 
-		assert(tc->loaded);
+		assert(tc->state & CLASS_LOADED);
 
 		if (!(tc->flags & ACC_INTERFACE)) {
 			*exceptionptr =
@@ -497,7 +498,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 
-		if (!tc->linked)
+		if (!(tc->state & CLASS_LINKED))
 			if (!link_class(tc))
 				return NULL;
 	}
@@ -533,7 +534,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 
-		assert(super->loaded);
+		assert(super->state & CLASS_LOADED);
 
 		if (super->flags & ACC_INTERFACE) {
 			/* java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class */
@@ -550,7 +551,7 @@ static classinfo *link_class_intern(classinfo *c)
 			return NULL;
 		}
 		
-		if (!super->linked)
+		if (!(super->state & CLASS_LINKED))
 			if (!link_class(super))
 				return NULL;
 
@@ -821,6 +822,10 @@ static classinfo *link_class_intern(classinfo *c)
 
 	linker_compute_subclasses(c);
 
+	/* revert the linking state and class is linked */
+
+	c->state = (c->state & ~CLASS_LINKING) | CLASS_LINKED;
+
 	if (linkverbose)
 		log_message_class("Linking done class: ", c);
 
@@ -870,14 +875,15 @@ static arraydescriptor *link_array(classinfo *c)
 	}
 
 	/* If the component type has not been linked, link it now */
-	assert(!comp || comp->loaded);
-	if (comp && !comp->linked) {
 
+	assert(!comp || (comp->state & CLASS_LOADED));
+
+	if (comp && !(comp->state & CLASS_LINKED))
 		if (!link_class(comp))
 			return NULL;
-	}
 
 	/* Allocate the arraydescriptor */
+
 	desc = NEW(arraydescriptor);
 
 	if (comp) {

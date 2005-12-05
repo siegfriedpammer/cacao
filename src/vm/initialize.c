@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3858 2005-12-03 12:58:36Z twisti $
+   $Id: initialize.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -149,7 +149,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* maybe the class is not already linked */
 
-	if (!c->linked)
+	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return false;
 

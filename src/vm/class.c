@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3859 2005-12-03 13:00:28Z twisti $
+   $Id: class.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -459,14 +459,14 @@ static classinfo *get_array_class(utf *name,java_objectheader *initloader,
 	}
 
 	CLASS_ASSERT(c);
-	CLASS_ASSERT(c->loaded);
+	CLASS_ASSERT(c->state & CLASS_LOADED);
 	CLASS_ASSERT(c->classloader == defloader);
 
-	if (link && !c->linked)
+	if (link && !(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
 
-	CLASS_ASSERT(!link || c->linked);
+	CLASS_ASSERT(!link || (c->state & CLASS_LINKED));
 
 	return c;
 }

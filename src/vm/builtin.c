@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3854 2005-12-03 12:35:43Z twisti $
+   $Id: builtin.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -72,6 +72,7 @@
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
@@ -725,7 +726,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 	/* is the class loaded */
 
-	assert(c->loaded);
+	assert(c->state & CLASS_LOADED);
 
 	/* check if we can instantiate this class */
 
@@ -738,7 +739,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 	/* is the class linked */
 
-	if (!c->linked)
+	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
 
@@ -830,11 +831,11 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
 	
 	/* is class loaded */
 
-	assert(componentclass->loaded);
+	assert(componentclass->state & CLASS_LOADED);
 
 	/* is class linked */
 
-	if (!componentclass->linked)
+	if (!(componentclass->state & CLASS_LINKED))
 		if (!link_class(componentclass))
 			return NULL;
 

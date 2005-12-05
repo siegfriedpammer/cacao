@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3840 2005-12-02 15:15:39Z twisti $
+   $Id: cacao.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -1408,7 +1408,7 @@ int main(int argc, char **argv)
 					if (!c)
 						continue;
 
-					if (!c->linked)
+					if (!(c->state & CLASS_LINKED))
 						if (!link_class(c))
 							throw_main_exception_exit();
 
@@ -1499,7 +1499,7 @@ void cacao_exit(s4 status)
 	methodinfo *m;
 
 	assert(class_java_lang_System);
-	assert(class_java_lang_System->loaded);
+	assert(class_java_lang_System->state & CLASS_LOADED);
 
 #if defined(ENABLE_JVMTI)
 	set_jvmti_phase(JVMTI_PHASE_DEAD);

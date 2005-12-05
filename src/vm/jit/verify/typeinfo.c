@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: typeinfo.c 3888 2005-12-05 22:08:45Z twisti $
 
 */
 
@@ -782,7 +782,7 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 	TYPEINFO_ASSERT((cls->flags & ACC_INTERFACE) != 0);
-	TYPEINFO_ASSERT(cls->linked);
+	TYPEINFO_ASSERT(cls->state & CLASS_LINKED);
 
     /* first check direct superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
@@ -821,7 +821,7 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
 	TYPEINFO_ASSERT(interf);
 	TYPEINFO_ASSERT((interf->flags & ACC_INTERFACE) != 0);
 
-	if (!cls->linked)
+	if (!(cls->state & CLASS_LINKED))
 		if (!link_class(cls))
 			return typecheck_FAIL;
 
@@ -834,7 +834,7 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
         return interface_extends_interface(cls,interf);
     }
 
-	TYPEINFO_ASSERT(cls->linked);
+	TYPEINFO_ASSERT(cls->state & CLASS_LINKED);
     return CLASSINFO_IMPLEMENTS_INTERFACE(cls,interf->index);
 }
 
@@ -971,8 +971,8 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist *merged,
     if (typeclass == pseudo_class_Null)
         return typecheck_TRUE;
 
-	TYPEINFO_ASSERT(typeclass->loaded);
-	TYPEINFO_ASSERT(typeclass->linked);
+	TYPEINFO_ASSERT(typeclass->state & CLASS_LOADED);
+	TYPEINFO_ASSERT(typeclass->state & CLASS_LINKED);
 
     /* check if the common typeclass is a subclass of CLS. */
 	if (class_issubclass(typeclass,cls))
@@ -992,7 +992,7 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist *merged,
 		if (IS_CLASSREF(*mlist)) {
 			return typecheck_MAYBE;
 		}
-		if (!mlist->cls->linked)
+		if (!(mlist->cls->state & CLASS_LINKED))
 			if (!link_class(mlist->cls))
 				return typecheck_FAIL;
 		if (!class_issubclass(mlist->cls,cls))
@@ -1089,20 +1089,20 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 
 	cls = c.cls;
 	
-	TYPEINFO_ASSERT(cls->loaded);
-	TYPEINFO_ASSERT(dest.cls->loaded);
+	TYPEINFO_ASSERT(cls->state & CLASS_LOADED);
+	TYPEINFO_ASSERT(dest.cls->state & CLASS_LOADED);
 
 	/* maybe we need to link the classes */
-	if (!cls->linked)
+	if (!(cls->state & CLASS_LINKED))
 		if (!link_class(cls))
 			return typecheck_FAIL;
-	if (!dest.cls->linked)
+	if (!(dest.cls->state & CLASS_LINKED))
 		if (!link_class(dest.cls))
 			return typecheck_FAIL;
 
 	/* { we know that both c and dest are linked classes } */
-	TYPEINFO_ASSERT(cls->linked);
-	TYPEINFO_ASSERT(dest.cls->linked);
+	TYPEINFO_ASSERT(cls->state & CLASS_LINKED);
+	TYPEINFO_ASSERT(dest.cls->state & CLASS_LINKED);
 
     if (dest.cls->flags & ACC_INTERFACE) {
         /* We are assigning to an interface type. */
@@ -1604,7 +1604,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 	else {
 		vftbl_t *comp;
 		
-		if (!srcarray->typeclass.cls->linked) {
+		if (!(srcarray->typeclass.cls->state & CLASS_LINKED)) {
 			if (!link_class(srcarray->typeclass.cls)) {
 				return false;
 			}
@@ -1985,8 +1985,8 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	}
 #endif
 
-	TYPEINFO_ASSERT(IS_CLASSREF(x) || x.cls->loaded);
-	TYPEINFO_ASSERT(IS_CLASSREF(y) || y.cls->loaded);
+	TYPEINFO_ASSERT(IS_CLASSREF(x) || (x.cls->state & CLASS_LOADED));
+	TYPEINFO_ASSERT(IS_CLASSREF(y) || (y.cls->state & CLASS_LOADED));
 
     /* If y is unresolved or an interface, swap x and y. */
     if (IS_CLASSREF(y) || (!IS_CLASSREF(x) && y.cls->flags & ACC_INTERFACE))
@@ -2015,8 +2015,8 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     /* {We know: If only one of x,y is an interface it is x.} */
 
 	TYPEINFO_ASSERT(!IS_CLASSREF(x) && !IS_CLASSREF(y));
-	TYPEINFO_ASSERT(x.cls->loaded);
-	TYPEINFO_ASSERT(y.cls->loaded);
+	TYPEINFO_ASSERT(x.cls->state & CLASS_LOADED);
+	TYPEINFO_ASSERT(y.cls->state & CLASS_LOADED);
 
     /* Handle merging of interfaces: */
     if (x.cls->flags & ACC_INTERFACE) {
@@ -2044,15 +2044,15 @@ typeinfo_merge_nonarrays(typeinfo *dest,
          */
 
 		/* we may have to link the classes */
-		if (!x.cls->linked)
+		if (!(x.cls->state & CLASS_LINKED))
 			if (!link_class(x.cls))
 				return typecheck_FAIL;
-		if (!y.cls->linked)
+		if (!(y.cls->state & CLASS_LINKED))
 			if (!link_class(y.cls))
 				return typecheck_FAIL;
         
-		TYPEINFO_ASSERT(x.cls->linked);
-		TYPEINFO_ASSERT(y.cls->linked);
+		TYPEINFO_ASSERT(x.cls->state & CLASS_LINKED);
+		TYPEINFO_ASSERT(y.cls->state & CLASS_LINKED);
 
         if (CLASSINFO_IMPLEMENTS_INTERFACE(y.cls,x.cls->index))
 		{
@@ -2079,15 +2079,15 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     /* {We know: x and y are classes (not interfaces).} */
     
 	/* we may have to link the classes */
-	if (!x.cls->linked)
+	if (!(x.cls->state & CLASS_LINKED))
 		if (!link_class(x.cls))
 			return typecheck_FAIL;
-	if (!y.cls->linked)
+	if (!(y.cls->state & CLASS_LINKED))
 		if (!link_class(y.cls))
 			return typecheck_FAIL;
         
-	TYPEINFO_ASSERT(x.cls->linked);
-	TYPEINFO_ASSERT(y.cls->linked);
+	TYPEINFO_ASSERT(x.cls->state & CLASS_LINKED);
+	TYPEINFO_ASSERT(y.cls->state & CLASS_LINKED);
 
     /* If *x is deeper in the inheritance hierarchy swap x and y. */
     if (x.cls->index > y.cls->index) {
