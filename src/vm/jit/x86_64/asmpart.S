@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 3746 2005-11-22 23:45:10Z twisti $
+   $Id: asmpart.S 3891 2005-12-05 22:54:42Z twisti $
 
 */
 
@@ -498,108 +498,21 @@ asm_handle_exception:
 	xor     a3,a3                       /* clear indent flag (only first time)*/
 
 ex_stack_loop:
-	mov     %rax,a0                     /* exception pointer                  */
-	mov     MethodPointer(itmp3),a1     /* method pointer                     */
-	mov     xpc,a2                      /* exception pc                       */
-	call    builtin_trace_exception
+	mov     0*8(sp),a0                  /* pass exception pointer             */
+	mov     1*8(sp),a1                  /* pass exception pc                  */
+	mov     2*8(sp),a2                  /* pass data segment pointer          */
+	call    exceptions_handle_exception
 
-	mov     2*8(%rsp),itmp3             /* %r11 = data segment pointer        */
-	mov     ExTableSize(itmp3),%rcx     /* %rcx = exception table size        */
-	test    %rcx,%rcx					/* if empty table skip                */
-	je      empty_table
+	test    v0,v0
+	jz      L_asm_handle_exception_not_catched
 
-	lea     ExTableStart(itmp3),%rdi    /* %rdi = start of exception table    */
-	mov     0*8(%rsp),xptr              /* get xptr                           */
-		
-ex_table_loop:
-	mov     1*8(%rsp),xpc               /* get xpc                            */
-		
-	mov     ExStartPC(%rdi),%rdx        /* %rdx = exception start pc          */
-	cmp     xpc,%rdx                    /* %rdx = (startpc <= xpc)            */
-	jg      ex_table_cont               /* if (false) continue                */
-	mov     ExEndPC(%rdi),%rdx          /* %rdx = exception end pc            */
-	cmp     %rdx,xpc                    /* %rdx = (xpc < endpc)               */
-	jge     ex_table_cont               /* if (false) continue                */
-	mov     ExCatchType(%rdi),%rdx      /* %rdx = exception catch type        */
-	test    %rdx,%rdx                   /* NULL catches everything            */
-	je      ex_handle_it
-
-	cmpl    $0,offclassloaded(%rdx)     /* check if class is loaded           */
-	jne     L_class_loaded
-
-	sub     $(4*8),%rsp
-	mov     %rax,0*8(%rsp)
-	mov     %rcx,1*8(%rsp)
-	mov     %rdx,2*8(%rsp)
-	mov     %rdi,3*8(%rsp)
-
-	mov     %rdx,%rdi
-	call    load_class_bootstrap
-
-	mov     0*8(%rsp),%rax
-	mov     1*8(%rsp),%rcx
-	mov     2*8(%rsp),%rdx
-	mov     3*8(%rsp),%rdi
-	add     $(4*8),%rsp
-
-L_class_loaded:
-	cmpl    $0,offclasslinked(%rdx)     /* check if class is linked           */
-	jne     L_class_linked
-
-	sub     $(4*8),%rsp
-	mov     %rax,0*8(%rsp)
-	mov     %rcx,1*8(%rsp)
-	mov     %rdx,2*8(%rsp)
-	mov     %rdi,3*8(%rsp)
-
-	mov     %rdx,%rdi
-	call    link_class
-
-	mov     0*8(%rsp),%rax
-	mov     1*8(%rsp),%rcx
-	mov     2*8(%rsp),%rdx
-	mov     3*8(%rsp),%rdi
-	add     $(4*8),%rsp
-
-L_class_linked:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	push    %rdx
-
-_crit_restart1:
-	mov     0(%rsp),%rdx
-#endif
-
-_crit_begin1:
-	mov     offobjvftbl(%rax),%rsi      /* %rsi = vftblptr(xptr)              */
-	mov     offclassvftbl(%rdx),%rdx    /* %rdx = vftblptr(catchtype) class (not obj) */
-	mov     offbaseval(%rsi),%esi       /* %esi = baseval(xptr)               */
-	mov     offbaseval(%rdx),%r10d      /* %r10d = baseval(catchtype)         */
-	mov     offdiffval(%rdx),%edx       /* %edx = diffval(catchtype)          */
-_crit_end1:
-	sub     %r10d,%esi                  /* %esi = baseval(xptr) - baseval(catchtype) */
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	add     $8,%rsp
-#endif
-
-	cmp     %edx,%esi                   /* xptr is instanceof catchtype       */
-	ja      ex_table_cont
-		
-ex_handle_it:
-	mov     ExHandlerPC(%rdi),xpc       /* xpc = exception handler pc         */
-
-	mov     0*8(%rsp),%rax              /* restore exception pointer          */
-	add     $(4*8),%rsp                 /* free stack frame                   */
+	mov     v0,xpc                      /* move handlerpc into xpc            */
+	mov     0*8(sp),%rax                /* restore exception pointer          */
+	add     $(4*8),sp                   /* free stack frame                   */
 
 	jmp     *xpc                        /* jump to the handler                */
 
-ex_table_cont:
-	lea     ExEntrySize(%rdi),%rdi      /* next exception table entry         */
-	dec     %rcx                        /* decrement entry counter            */
-	test    %rcx,%rcx                   /* if (t0 > 0) next entry             */
-	jg      ex_table_loop
-		
-empty_table:
+L_asm_handle_exception_not_catched:
 	mov     0*8(%rsp),%rax              /* restore exception pointer          */
 	mov     1*8(%rsp),%r10              /* restore exception pc               */
 	mov     2*8(%rsp),%r11              /* restore data segment pointer       */
@@ -979,9 +892,11 @@ _crit_end2:
 		
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if 0
 	.quad   _crit_begin1
 	.quad   _crit_end1
 	.quad   _crit_restart1
+#endif
 	.quad   _crit_begin2
 	.quad   _crit_end2
 	.quad   _crit_restart2
