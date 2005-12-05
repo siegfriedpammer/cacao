@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: parse.c 3877 2005-12-05 19:23:25Z twisti $
 
 */
 
@@ -1058,19 +1058,7 @@ SHOWOPCODE(DEBUG4)
 
 					iptr->val.a = fi;
 
-#if defined(__MIPS__)
-					if ((!fi || !fi->class->initialized) && inline_env->method->isleafmethod == true) {
-						utf_display(inline_env->method->class->name);
-						printf(".");
-						utf_display(inline_env->method->name);
-						utf_display(inline_env->method->descriptor);
-						printf(": NO LEAF!\n");
-
-						inline_env->method->isleafmethod = false;
-					}
-#endif
-				}
-				else {
+				} else {
 					iptr->val.a = NULL;
 				}
 				PINC;
@@ -1261,18 +1249,6 @@ SHOWOPCODE(DEBUG4)
 			} else {
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
-
-#if defined(__MIPS__)
-				if (!c && inline_env->method->isleafmethod == true) {
-					utf_display(inline_env->method->class->name);
-					printf(".");
-					utf_display(inline_env->method->name);
-					utf_display(inline_env->method->descriptor);
-					printf(": NO LEAF!\n");
-
-					inline_env->method->isleafmethod = false;
-				}
-#endif
 			}
 			break;
 
@@ -1296,17 +1272,6 @@ SHOWOPCODE(DEBUG4)
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
 			}
-#if defined(__MIPS__)
-			if (!c && inline_env->method->isleafmethod == true) {
-				utf_display(inline_env->method->class->name);
-				printf(".");
-				utf_display(inline_env->method->name);
-				utf_display(inline_env->method->descriptor);
-				printf(": NO LEAF!\n");
-
-				inline_env->method->isleafmethod = false;
-			}
-#endif
 			break;
 
 		case JAVA_MONITORENTER:
