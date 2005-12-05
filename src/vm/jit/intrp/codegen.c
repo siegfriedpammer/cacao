@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3781 2005-11-23 22:38:24Z twisti $
+   $Id: codegen.c 3874 2005-12-05 18:15:14Z twisti $
 
 */
 
@@ -47,10 +47,10 @@
 #include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc"
 #include "vm/jit/jit.h"
@@ -1062,7 +1062,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_GETSTATIC_INT(((Inst **)cd), 0, uf);
 				} else {
 					gen_GETSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
@@ -1070,14 +1070,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_GETSTATIC_LONG(((Inst **)cd), 0, uf);
 				} else {
 					gen_GETSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_GETSTATIC_CELL(((Inst **)cd), 0, uf);
 				} else {
 					gen_GETSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
@@ -1097,7 +1097,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_INT(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
@@ -1105,14 +1105,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_LONG(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_CELL(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
@@ -1135,7 +1135,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 				gen_ICONST(((Inst **)cd), iptr->val.i);
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_INT(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
@@ -1144,7 +1144,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_LNG:
 			case TYPE_DBL:
 				gen_LCONST(((Inst **)cd), iptr->val.l);
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_LONG(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
@@ -1152,7 +1152,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 			case TYPE_ADR:
 				gen_ACONST(((Inst **)cd), iptr->val.a);
-				if (fi == NULL || !fi->class->initialized) {
+				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
 					gen_PATCHER_PUTSTATIC_CELL(((Inst **)cd), 0, uf);
 				} else {
 					gen_PUTSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
