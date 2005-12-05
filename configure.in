@@ -176,10 +176,12 @@ AC_MSG_CHECKING(whether JIT compiled should be compiled)
 if test x"$enable_jit" = "xno"; then
 	AC_MSG_RESULT(no)
 	AM_CONDITIONAL([ENABLE_JIT], [false])
+	ENABLE_JIT="no"
 else
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
 	AM_CONDITIONAL([ENABLE_JIT], [true])
+	ENABLE_JIT="yes"
 fi
 
 dnl check for interpreter
