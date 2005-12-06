@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 3891 2005-12-05 22:54:42Z twisti $
+   $Id: asmpart.S 3892 2005-12-06 20:13:26Z twisti $
 
 */
 
@@ -467,7 +467,7 @@ L_asm_call_jit_compiler_exception:
 	jmp     asm_handle_exception
 
 
-/********************* function asm_handle_exception ***************************
+/* asm_handle_exception ********************************************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
 *   conventions. The exception pointer is passed in REG_ITMP1 and the          *
@@ -475,79 +475,49 @@ L_asm_call_jit_compiler_exception:
 *   the local exception table for a handler. If no one is found, it unwinds    *
 *   stacks and continues searching the callers.                                *
 *                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
 *******************************************************************************/
 
 asm_handle_nat_exception:
 	add     $8,%rsp                     /* clear return address of native stub*/
 		
 asm_handle_exception:
-	sub     $(4*8),%rsp
-	mov     xptr,0*8(%rsp)              /* save exception pointer             */
-	mov     xpc,1*8(%rsp)               /* save exception pc                  */
-        
-	mov     xpc,%rdi                    /* exception pc                       */
-	call    codegen_findmethod
-	mov     %rax,itmp3
-	mov     %rax,2*8(%rsp)              /* save data segment pointer          */
-        
-	mov     0*8(%rsp),%rax              /* restore exception pointer          */
-	mov     1*8(%rsp),%r10              /* restore exception pc               */
-
 	xor     a3,a3                       /* clear indent flag (only first time)*/
 
-ex_stack_loop:
+L_asm_handle_exception_stack_loop:
+	sub     $(4*8),sp
+	mov     xptr,0*8(sp)                /* save exception pointer             */
+	mov     xpc,1*8(sp)                 /* save exception pc                  */
+
+	mov     xpc,a0                      /* exception pc                       */
+	call    codegen_findmethod
+	mov     v0,2*8(sp)                  /* save data segment pointer          */
+        
 	mov     0*8(sp),a0                  /* pass exception pointer             */
 	mov     1*8(sp),a1                  /* pass exception pc                  */
-	mov     2*8(sp),a2                  /* pass data segment pointer          */
+	mov     v0,a2                       /* pass data segment pointer          */
+	mov     sp,a3
+	add     $(4*8),a3                   /* pass Java stack pointer            */
 	call    exceptions_handle_exception
 
 	test    v0,v0
 	jz      L_asm_handle_exception_not_catched
 
 	mov     v0,xpc                      /* move handlerpc into xpc            */
-	mov     0*8(sp),%rax                /* restore exception pointer          */
+	mov     0*8(sp),xptr                /* restore exception pointer          */
 	add     $(4*8),sp                   /* free stack frame                   */
 
 	jmp     *xpc                        /* jump to the handler                */
 
 L_asm_handle_exception_not_catched:
-	mov     0*8(%rsp),%rax              /* restore exception pointer          */
-	mov     1*8(%rsp),%r10              /* restore exception pc               */
-	mov     2*8(%rsp),%r11              /* restore data segment pointer       */
-	add     $(4*8),%rsp
-	
-	mov     %rax,%rcx                   /* save exception pointer             */
-				
-ex_already_cleared:		
-	movl    IsSync(%r11),%eax           /* %rax = SyncOffset                  */
-	test    %rax,%rax                   /* if zero no monitorexit             */
-	je      no_monitor_exit
+	mov     0*8(sp),xptr                /* restore exception pointer          */
+	mov     2*8(sp),itmp3               /* restore data segment pointer       */
+	add     $(4*8),sp
 
-#if defined(USE_THREADS)		
-	add     %rsp,%rax
-	mov     -8(%rax),%rdi               /* get monitor object from stack      */
+	mov     FrameSize(itmp3),itmp2l     /* get frame size                     */
+	add     itmp2,sp                    /* unwind stack                       */
+	mov     sp,itmp2                    /* pointer to save area               */
 	
-	sub     $(4*8),%rsp
-	mov     %rcx,0*8(%rsp)
-	mov     %r10,1*8(%rsp)
-	mov     %r11,2*8(%rsp)
-	
-	call	builtin_monitorexit
-	
-	mov     0*8(%rsp),%rcx
-	mov     1*8(%rsp),%r10
-	mov     2*8(%rsp),%r11
-	add     $(4*8),%rsp
-#endif
-
-no_monitor_exit:
-	mov     FrameSize(%r11),%eax        /* %eax = frame size                  */
-	add     %rax,%rsp                   /* unwind stack                       */
-	mov     %rsp,%rax                   /* %rax = pointer to save area        */
-	
-	mov     IntSave(%r11),%edx          /* %edx = saved int register count    */
+	mov     IntSave(itmp3),%edx         /* %edx = saved int register count    */
 	test    %edx,%edx
 	je      noint
 	
@@ -562,23 +532,23 @@ no_monitor_exit:
 	cmp     $5,%edx
 	je      int5
 	
-	mov     -48(%rax),%rbx
+	mov     -48(itmp2),%rbx
 int5:   
-	mov     -40(%rax),%rbp
+	mov     -40(itmp2),%rbp
 int4:   
-	mov     -32(%rax),%r12
+	mov     -32(itmp2),%r12
 int3:   
-	mov     -24(%rax),%r13
+	mov     -24(itmp2),%r13
 int2:   
-	mov     -16(%rax),%r14
+	mov     -16(itmp2),%r14
 int1:   
-	mov     -8(%rax),%r15
+	mov     -8(itmp2),%r15
 
 	shl     $3,%edx                     /* multiply by 8 bytes                */
-	sub     %rdx,%rax
+	sub     %rdx,itmp2
 		
 noint:
-	mov     FltSave(%r11),%edx          /* %edx = saved flt register count    */
+	mov     FltSave(itmp3),%edx         /* %edx = saved flt register count    */
 	test	%edx,%edx
 	je      noflt
 	
@@ -597,49 +567,30 @@ noint:
 	cmpl    $7,%edx
 	je      flt7
 
-	movq    -64(%rax),%xmm8
+	movq    -64(itmp2),%xmm8
 flt7:   
-	movq    -56(%rax),%xmm9
+	movq    -56(itmp2),%xmm9
 flt6:   
-	movq    -48(%rax),%xmm10
+	movq    -48(itmp2),%xmm10
 flt5:   
-	movq    -40(%rax),%xmm11
+	movq    -40(itmp2),%xmm11
 flt4:   
-	movq    -32(%rax),%xmm12
+	movq    -32(itmp2),%xmm12
 flt3:   
-	movq    -24(%rax),%xmm13
+	movq    -24(itmp2),%xmm13
 flt2:   
-	movq    -16(%rax),%xmm14
+	movq    -16(itmp2),%xmm14
 flt1:   
-	movq    -8(%rax),%xmm15
+	movq    -8(itmp2),%xmm15
                 
 noflt:					
-	pop     %r10                        /* the new xpc is return address      */
-	sub     $3,%r10                     /* subtract 3 bytes for call          */
+	                                    /* exception pointer is still set     */
+	pop     xpc                         /* the new xpc is return address      */
+	sub     $3,xpc                      /* subtract 3 bytes for call          */
 	
-	sub     $(2*8),%rsp
-	mov     %rcx,0*8(%rsp)
-	mov     %r10,1*8(%rsp)
-	
-	mov     %r10,%rdi
-	call	codegen_findmethod          /* get the new data segment ptr       */
-	mov     %rax,%r11
-	
-	mov     0*8(%rsp),%rcx
-	mov     1*8(%rsp),%r10
-	add     $(2*8),%rsp
-	
-	mov     %rcx,%rax					/* restore saved exception pointer    */
-
-	sub     $(4*8),%rsp
-        				
-	mov     %rax,0*8(%rsp)              /* save exception pointer             */
-	mov     %r10,1*8(%rsp)              /* save exception pc                  */
-	mov     %r11,2*8(%rsp)				/* save data segment pointer          */
-		
 	mov     $1,a3                       /* set indent flag                    */
 	
-	jmp		ex_stack_loop
+	jmp		L_asm_handle_exception_stack_loop
 
 
 /* asm_wrapper_patcher *********************************************************
