@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 3286 2005-09-27 22:07:36Z twisti $
+   $Id: asmpart.S 3894 2005-12-06 22:30:30Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 #define v0       %eax
 
 #define sp       %esp
+#define bp       %ebp
 
 #define itmp1    %eax
 #define itmp2    %ecx
@@ -397,7 +398,7 @@ L_asm_call_jit_compiler_exception:
 	jmp     asm_handle_exception
 
 
-/********************* function asm_handle_exception ***************************
+/* asm_handle_exception ********************************************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
 *   conventions. The exception pointer is passed in REG_ITMP1 and the          *
@@ -405,229 +406,118 @@ L_asm_call_jit_compiler_exception:
 *   the local exception table for a handler. If no one is found, it unwinds    *
 *   stacks and continues searching the callers.                                *
 *                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
 *******************************************************************************/
 
 asm_handle_nat_exception:
-	add     $4,%esp                    /* clear return address of native stub */
+	add     $4,sp                       /* clear return address of native stub*/
 		
 asm_handle_exception:
-asm_handle_exception_loop:
-		push    %ebp
-		mov     %esp,%ebp
-        
-		push    %eax						/* save exception pointer         */
-		push    %ecx                        /* save exception pc              */
-
-		call    codegen_findmethod          /* get the data segment ptr       */
-		mov     %eax,%edx
-		        
-		mov     -4(%ebp),%eax
-		mov     -8(%ebp),%ecx               /* could be changed in findmethod */
-
-		push    %edx						/* save data segment pointer      */
-		push    %ebx
-		push    %esi
-		push    %edi
-		
-ex_stack_loop:
-	sub     $(4*4),%esp
-	mov     %eax,0*4(%esp)              /* exception pointer                  */
-	mov     MethodPointer(%edx),%eax    /* method pointer                     */
-	mov     %eax,1*4(%esp)
-	mov     %ecx,2*4(%esp)              /* exception pc                       */
-	movl    $1,3*4(%esp)                /* set indent flag                    */
-	call    builtin_trace_exception
-	add     $(4*4),%esp
-
-	mov     -12(%ebp),%esi              /* %esi = data segment pointer        */
-	mov     ExTableSize(%esi),%ecx      /* %ecx = exception table size        */
-	test    %ecx,%ecx                   /* if empty table skip                */
-	je      empty_table
-
-	lea     ExTableStart(%esi),%edi     /* %edi = start of exception table    */
-	mov     -4(%ebp),%eax               /* get xptr                           */
-		
-ex_table_loop:
-		mov     -8(%ebp),%edx				/* get xpc                        */
-
-		mov     ExStartPC(%edi),%ebx		/* %ebx = exception start pc      */
-		cmp     %edx,%ebx					/* %ebx = (startpc <= xpc)        */
-		jg      ex_table_cont				/* if (false) continue            */
-		mov     ExEndPC(%edi),%ebx			/* %ebx = exception end pc        */
-		cmp     %ebx,%edx					/* %ebx = (xpc < endpc)           */
-		jge     ex_table_cont				/* if (false) continue            */
-		mov     ExCatchType(%edi),%ebx		/* arg1 = exception catch type    */
-		test    %ebx,%ebx					/* NULL catches everything        */
-		je      ex_handle_it
-
-	cmpl    $0,offclassloaded(%ebx)     /* check if class is loaded           */
-	jne     L_class_loaded
-
-	sub     $3*4,%esp
-	mov     %eax,1*4(%esp)              /* save not callee saved regs         */
-	mov     %ecx,2*4(%esp)
-
-	mov     %ebx,0*4(%esp)              /* exception class is argument        */
-	call    load_class_bootstrap
-
-	mov     0*4(%esp),%ebx
-	mov     1*4(%esp),%eax
-	mov     2*4(%esp),%ecx
-	add     $3*4,%esp
-
-L_class_loaded:
-	cmpl    $0,offclasslinked(%ebx)
-	jne     L_class_linked
-
-	sub     $3*4,%esp
-	mov     %eax,1*4(%esp)              /* save not callee saved regs         */
-	mov     %ecx,2*4(%esp)
-
-	mov     %ebx,0*4(%esp)              /* exception class is argument        */
-	call    link_class
-
-	mov     0*4(%esp),%ebx
-	mov     1*4(%esp),%eax
-	mov     2*4(%esp),%ecx
-	add     $3*4,%esp
-
-L_class_linked:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	push    %ebx
-
-_crit_restart1:
-	mov     0(%esp),%ebx
-#endif
-		
-_crit_begin1:
-	mov     offobjvftbl(%eax),%esi		/* %esi = vftblptr(xptr)              */
-	mov     offclassvftbl(%ebx),%ebx    /* %ebx = vftblptr(catchtype) class (not obj) */
-	mov     offbaseval(%esi),%esi		/* %esi = baseval(xptr)               */
-	mov     offbaseval(%ebx),%edx		/* %edx = baseval(catchtype)          */
-	mov     offdiffval(%ebx),%ebx		/* %ebx = diffval(catchtype)          */
-_crit_end1:
-	sub     %edx,%esi					/* %esi = baseval(xptr) - baseval(catchtype) */
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	add     $4,%esp
-#endif
-        
-	cmp     %ebx,%esi					/* xptr is instanceof catchtype       */
-	ja      ex_table_cont
-		
-ex_handle_it:
-		mov     ExHandlerPC(%edi),%edx
-		
-		pop     %edi                        /* restore registers              */
-		pop     %esi
-		pop     %ebx
-        add     $8,%esp                     /* suck %ecx, %edx                */
-        pop     %eax                        /* restore xptr                   */
-
-		leave
-		jmp		*%edx                       /* jump to exception handler      */
-
-ex_table_cont:
-		lea     ExEntrySize(%edi),%edi
-		dec     %ecx
-		test    %ecx,%ecx
-		jg      ex_table_loop
-		
-empty_table:
-        pop     %edi
-        pop     %esi
-        pop     %ebx
-        pop     %edx                        /* restore data segment pointer   */
-        pop     %ecx
-        pop     %eax
-        pop     %ebp
-
-        push    %eax                        /* save exception pointer         */
-        
-ex_already_cleared:
-		mov     IsSync(%edx),%eax			/* %eax = SyncOffset              */
-		test    %eax,%eax					/* if zero no monitorexit         */
-		je      no_monitor_exit
-
-#if defined(USE_THREADS)
-        add     %esp,%eax
-        mov     (%eax),%eax               /* we have the xptr on the stack (+4-4=0)  */
-        push    %edx                        /* save regs                      */
-        push    %eax
-		call    builtin_monitorexit
-		add     $4,%esp
-        pop     %edx                        /* restore regs                   */
+#if 0
+	xor     %edi,%edi                   /* clear indent flag (only first time)*/
 #endif
 
-no_monitor_exit:
-        mov     %esp,%eax
-        add     FrameSize(%edx),%eax        /* %eax = frame size              */
-        add     $4,%eax                     /* we have the xptr on the stack  */
-        
-   		mov     IntSave(%edx),%ecx          /* %ecx = saved int register count*/
-		test    %ecx,%ecx
-		je      noint
-		cmp     $1,%ecx
-		je      int1
-		cmp     $2,%ecx
-		je      int2
-		cmp     $3,%ecx
-		je      int3
+L_asm_handle_exception_stack_loop:
+	sub     $(10*4),sp                   /* create stackframe                  */
+	mov     xptr,4*4(sp)                /* save exception pointer             */
+	mov     xpc,5*4(sp)                 /* save exception pc                  */
 
-int4:	
-		mov     -16(%eax),%ebx
+#if 0
+	mov     %ebx,7*4(sp)                /* save registers (non-callee)        */
+	mov     %ebp,8*4(sp)
+#endif
 
-int3:	
-		mov     -12(%eax),%ebp
+	mov     xpc,0*4(sp)                 /* pass exception pc                  */
+	call    codegen_findmethod
+	mov     v0,6*4(sp)                  /* save data segment pointer          */
 
+	mov     4*4(sp),itmp3               /* pass exception pointer             */
+	mov     itmp3,0*4(sp)
+	mov     5*4(sp),itmp3               /* pass exception pc                  */
+	mov     itmp3,1*4(sp)
+	mov     v0,2*4(sp)                  /* pass data segment pointer          */
+	mov     sp,itmp3                    /* pass Java stack pointer            */
+	add     $(10*4),itmp3
+	mov     itmp3,3*4(sp)
+	call    exceptions_handle_exception
+
+	test    v0,v0
+	jz      L_asm_handle_exception_not_catched
+
+	mov     v0,xpc                      /* move handlerpc into xpc            */
+	mov     4*4(sp),xptr                /* restore exception pointer          */
+#if 0
+	mov     7*4(sp),%ebx                /* restore registers (non-callee)     */
+	mov     8*4(sp),%ebp
+#endif
+	add     $(10*4),sp                   /* free stackframe                    */
+
+	jmp     *xpc                        /* jump to exception handler          */
+
+L_asm_handle_exception_not_catched:
+	mov     4*4(sp),xptr                /* restore exception pointer          */
+	mov     6*4(sp),itmp3               /* restore data segment pointer       */
+#if 0
+	mov     7*4(sp),%ebx                /* restore registers (non-callee)     */
+	mov     8*4(sp),%ebp
+#endif
+	add     $(10*4),sp                   /* free stackframe                    */
+
+	mov     FrameSize(itmp3),itmp2      /* get frame size                     */
+	add     itmp2,sp                    /* unwind stack                       */
+	mov     sp,itmp2                    /* pointer to save area               */
+
+	mov     IntSave(itmp3),%ebx         /* %ecx = saved int register count    */
+	test    %ebx,%ebx
+	je      noint
+
+	cmp     $1,%ebx
+	je      int1
+	cmp     $2,%ebx
+	je      int2
+
+	mov     -12(itmp2),%ebp
 int2:	
-		mov     -8(%eax),%esi
-
+	mov     -8(itmp2),%esi
 int1:	
-		mov     -4(%eax),%edi
+	mov     -4(itmp2),%edi
 
-   		shl     $2,%ecx						/* multiply by 4 bytes             */
-		sub     %ecx,%eax
+	shl     $2,%ebx                     /* multiply by 4 bytes                */
+	sub     %ebx,itmp2
 		
 noint:
-		mov     FltSave(%edx),%ecx			/* %ecx = saved flt register count */
-		test    %ecx,%ecx
-		je      noflt
-		cmp     $1,%ecx
-		je      flt1
-		cmp     $2,%ecx
-		je      flt2
-		cmp     $3,%ecx
-		je      flt3
-		
-flt4:	
-		fldl	-32(%eax)
-		fstp	%st(1)
+	mov     FltSave(itmp3),%ebx         /* %ecx = saved flt register count    */
+	test    %ebx,%ebx
+	je      noflt
 
-flt3:	
-		fldl	-24(%eax)
-		fstp	%st(2)
+	cmp     $1,%ebx
+	je      flt1
+	cmp     $2,%ebx
+	je      flt2
+	cmp     $3,%ebx
+	je      flt3
 		
-flt2:	
-		fldl	-16(%eax)
-		fstp	%st(3)
-		
-flt1:	
-		fldl	-8(%eax)
-		fstp	%st(4)
+	fldl    -32(itmp2)
+	fstp    %st(1)
+flt3:
+	fldl    -24(itmp2)
+	fstp    %st(2)
+flt2:
+	fldl    -16(itmp2)
+	fstp    %st(3)
+flt1:
+	fldl    -8(itmp2)
+	fstp    %st(4)
 		
 noflt:
-        pop     %eax                        /* restore exception pointer      */
-        
-        mov     FrameSize(%edx),%ecx        /* %ecx = frame size              */
-        add     %ecx,%esp                   /* unwind stack                   */
-        
-		pop     %ecx                        /* the new xpc is return address  */
-		sub     $2,%ecx						/* -2 -> call */
-		
-		jmp		asm_handle_exception_loop
+	                                    /* exception pointer is still set     */
+	pop     xpc                         /* the new xpc is return address      */
+	sub     $2,xpc                      /* subtract 2-bytes for call          */
+
+#if 0
+	mov     $1,%edi                     /* set indent flag                    */
+#endif
+
+	jmp     L_asm_handle_exception_stack_loop
 		
 
 /* asm_wrapper_patcher *********************************************************
@@ -865,9 +755,11 @@ _crit_end2:
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if 0
 	.long   _crit_begin1
 	.long   _crit_end1
 	.long   _crit_restart1
+#endif
 	.long   _crit_begin2
 	.long   _crit_end2
 	.long   _crit_restart2
