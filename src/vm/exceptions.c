@@ -28,16 +28,18 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3860 2005-12-03 13:06:19Z twisti $
+   $Id: exceptions.c 3893 2005-12-06 20:18:01Z twisti $
 
 */
 
 
+#include "config.h"
+
+#include <assert.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -1003,18 +1005,23 @@ java_objectheader *new_nullpointerexception(void)
 
 *******************************************************************************/
 
-u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
+u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp)
 {
 	methodinfo            *m;
+	s4                     framesize;
+	s4                     issync;
 	exceptionentry        *ex;
 	s4                     exceptiontablelength;
-	classref_or_classinfo  cr;
 	s4                     i;
+	classref_or_classinfo  cr;
 	classinfo             *c;
+	java_objectheader     *o;
 
 	/* get methodinfo pointer from method header */
 
 	m                    = *((methodinfo **)    (pv + MethodPointer));
+	framesize            = *((s4 *)             (pv + FrameSize));
+	issync               = *((s4 *)             (pv + IsSync));
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
@@ -1027,7 +1034,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
 /*  		printf(", %d\n", exceptiontablelength); */
 /*  	} */
 
-	builtin_trace_exception(xptr, m, pc, 1);
+	builtin_trace_exception(xptr, m, xpc, 1);
 
 	for (i = 0; i < exceptiontablelength; i++) {
 		/* ATTENTION: keep this here, as we need to decrement the
@@ -1035,9 +1042,9 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
 
 		ex--;
 
-		/* is the PC is the current catch range */
+		/* is the xpc is the current catch range */
 
-		if (ex->startpc <= pc && pc < ex->endpc) {
+		if (ex->startpc <= xpc && xpc < ex->endpc) {
 			cr = ex->catchtype;
 
 			/* NULL catches everything */
@@ -1054,7 +1061,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
 				c = cr.cls;
 
 				if (!(c->state & CLASS_LOADED))
-					/* XXX we need to use the methods' classloader */
+					/* use the methods' classloader */
 					if (!load_class_from_classloader(c->name,
 													 m->class->classloader))
 						return NULL;
@@ -1070,6 +1077,20 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *pc, u1 *pv)
 				return ex->handlerpc;
 		}
 	}
+
+#if defined(USE_THREADS)
+	/* is this method synchronized? */
+
+	if (issync) {
+		/* get synchronization object */
+
+		o = *((java_objectheader **) (sp + issync - SIZEOF_VOID_P));
+
+		assert(o);
+
+		builtin_monitorexit(o);
+	}
+#endif
 
 	/* none of the exceptions catch this one */
 
