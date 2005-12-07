@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 3195 2005-09-16 12:32:11Z twisti $
+   $Id: asmpart.h 3896 2005-12-07 16:04:48Z anton $
 
 */
 
@@ -94,11 +94,21 @@ s4 asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
    possibly needs compilation) with up to 4 parameters. 
    also supports a return value
 */
-java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size, void *callblock);
-s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size, void *callblock);
-s8 asm_calljavafunction2long(methodinfo *m, u4 count, u4 size, void *callblock);
-float asm_calljavafunction2float(methodinfo *m, u4 count, u4 size, void *callblock);
-double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size, void *callblock);
+java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
+										 jni_callblock *callblock);
+
+s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
+							jni_callblock *callblock);
+
+s8 asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
+							 jni_callblock *callblock);
+
+float asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
+								 jni_callblock *callblock);
+
+double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size,
+								   jni_callblock *callblock);
+
 
 /* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
    into the methodtable */
@@ -108,8 +118,10 @@ void calljava_xhandler2(void);
 #endif
 
 /* exception handling functions */
+#if 0
 void asm_handle_exception(void);
 void asm_handle_nat_exception(void);
+#endif
 
 /* wrapper for code patching functions */
 void asm_wrapper_patcher(void);
