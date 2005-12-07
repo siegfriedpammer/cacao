@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3900 2005-12-07 16:09:26Z anton $
+   $Id: cacao.c 3904 2005-12-07 17:44:37Z twisti $
 
 */
 
@@ -1415,9 +1415,24 @@ int main(int argc, char **argv)
 					if (!c)
 						continue;
 
-					if (!(c->state & CLASS_LINKED))
-						if (!link_class(c))
-							throw_main_exception_exit();
+					if (!(c->state & CLASS_LINKED)) {
+						if (!link_class(c)) {
+							fprintf(stderr, "Error linking: ");
+							utf_fprint_classname(stderr, c->name);
+							fprintf(stderr, ".");
+							utf_fprint(stderr, m->name);
+							utf_fprint(stderr, m->descriptor);
+							fprintf(stderr, "\n");
+
+							/* print out exception and cause */
+
+							exceptions_print_exception(*exceptionptr);
+
+							/* goto next class */
+
+							continue;
+						}
+					}
 
 					/* compile all class methods */
 
