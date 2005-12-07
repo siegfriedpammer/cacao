@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3820 2005-11-30 15:28:11Z anton $
+   $Id: md.c 3895 2005-12-07 16:03:37Z anton $
 
 */
 
@@ -46,7 +46,7 @@
 
 
 Inst *vm_prim = NULL; /* initialized by md_init() */
-
+FILE *vm_out = NULL;  /* debugging output for vmgenerated stuff */
 
 /* md_init *********************************************************************
 
@@ -62,11 +62,12 @@ void md_init(void)
 		exit(1);
 	}
 	if ( vm_prim == NULL ) {
-		(void)engine(NULL, NULL, NULL);
+		vm_prim = (Inst *)engine(NULL, NULL, NULL);
 	}
 	if (peeptable == 0) {
 		init_peeptable();
 	}
+	check_prims(vm_prim);
 }
 
 

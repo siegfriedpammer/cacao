@@ -94,32 +94,3 @@ Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable)
       return p->combination_prim;
   return NULL;
 }
-
-void gen_inst(Inst **vmcodepp, Inst instr)
-{
-  /* vmgen-0.6.2 generates gen_... calls with Inst ** as first
-     parameter, but we need to pass in cd to make last_compiled
-     thread-safe */
-  codegendata *cd = (codegendata *) vmcodepp;
-  Inst *last_compiled = cd->lastmcodeptr;
-  
-  if (last_compiled != NULL) {
-    Inst combo;
-
-    assert(last_compiled < cd->mcodeptr && cd->mcodeptr < last_compiled+40);
-
-    combo = peephole_opt(*last_compiled, instr, peeptable);
-
-    if (combo != NULL) {
-      *last_compiled = combo;
-      return;
-    }
-  }
-
-  /* actually generate the threaded code instruction */
-
-  *((Inst *) cd->mcodeptr) = instr;
-
-  cd->lastmcodeptr = cd->mcodeptr;
-  cd->mcodeptr += sizeof(Inst);
-}

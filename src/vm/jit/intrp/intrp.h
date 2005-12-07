@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3782 2005-11-23 22:39:16Z twisti $
+   $Id: intrp.h 3895 2005-12-07 16:03:37Z anton $
 
 */
 
@@ -55,6 +55,7 @@
 #include "libffi/include/ffi.h"
 
 
+typedef void *Label;
 typedef void *Inst;
 
 #if SIZEOF_VOID_P == 8
@@ -109,6 +110,23 @@ typedef union {
 #endif /* SIZEOF_VOID_P == 4 */
 
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+
+#define global_sp    (*(Cell **)&(THREADINFO->_global_sp))
+
+#else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+
+#define MAX_STACK_SIZE 128*1024
+static char stack[MAX_STACK_SIZE];
+
+static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
+#define global_sp    _global_sp
+
+#endif /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+
+#define CLEAR_global_sp (global_sp=NULL)
+
+
 #define vm_twoCell2l(hi,lo,d_)  FETCH_DCELL_T(d_,lo,hi,l);
 #define vm_twoCell2d(hi,lo,d_)  FETCH_DCELL_T(d_,lo,hi,d);
 					   							 
@@ -160,13 +178,24 @@ typedef union {
 #define VM_IS_INST(inst, n) ((inst) == vm_prim[n])
 
 
-#define gen_BBSTART (cd->lastmcodeptr = NULL)
+#define gen_BBSTART (cd->lastmcodeptr = NULL, append_dispatch(cd))
 
 
 union Cell_float {
     Cell cell;
     float f;
 };
+
+
+#define access_local_int(_offset) \
+        ( *(Cell*)(((u1 *)fp) + (_offset)) )
+
+#define access_local_ref(_offset) \
+        ( *(void **)(((u1 *)fp) + (_offset)) )
+
+#define access_local_cell(_offset) \
+        ( *(Cell *)(((u1 *)fp) + (_offset)) )
+
 
 typedef struct block_count block_count;
 
@@ -180,7 +209,8 @@ extern FILE *vm_out;
 
 void init_peeptable(void);
 Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable);
-void gen_inst(Inst **vmcodepp, Inst instr);
+void check_prims(Label symbols1[]);
+void gen_inst(codegendata *cd, u4 instr);
 
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
@@ -212,14 +242,13 @@ void printarg_aum     (unresolved_method *aum     );
 void printarg_avftbl  (vftbl_t *          avftbl  );
 void printarg_Cell    (Cell               x       );
 
-/* gen_... functions used in engine.c */
-/* void gen_INVOKESTATIC(Inst **ctp, Inst ** aaTarget, s4 iNargs, unresolved_method * aum); */
-/* void gen_END(Inst **ctp); */
-
 void vm_uncount_block(Inst *ip);
 block_count *vm_block_insert(Inst *ip);
 
+Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif);
 u1 *createcalljavafunction(methodinfo *m);
+
+Inst *asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp);
 
 #endif /* _INTRP_H */
 

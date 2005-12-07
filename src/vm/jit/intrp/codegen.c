@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3874 2005-12-05 18:15:14Z twisti $
+   $Id: codegen.c 3895 2005-12-07 16:03:37Z anton $
 
 */
 
@@ -64,7 +64,7 @@
 
 
 #define gen_branch(_inst) { \
-  gen_##_inst(((Inst **)cd), 0); \
+  gen_##_inst(cd, 0); \
   codegen_addreference(cd, (basicblock *) (iptr->target), cd->mcodeptr); \
 }
 
@@ -72,30 +72,26 @@
 
 /* functions used by cacao-gen.i */
 
-/* vmgen-0.6.2 generates gen_... calls with Inst ** as first
-   parameter, but we need to pass in cd to make last_compiled
-   thread-safe */
-
-void genarg_v(Inst **cd1, Cell v)
+void genarg_v(codegendata *cd1, Cell v)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((Cell *) *mcodepp) = v;
 	(*mcodepp)++;
 }
 
-void genarg_i(Inst **cd1, s4 i)
+void genarg_i(codegendata *cd1, s4 i)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((Cell *) *mcodepp) = i;
 	(*mcodepp)++;
 }
 
-void genarg_b(Inst ** cd1, s4 i)
+void genarg_b(codegendata *cd1, s4 i)
 {
   genarg_i(cd1, i);
 }
 
-void genarg_f(Inst ** cd1, float f)
+void genarg_f(codegendata *cd1, float f)
 {
 	s4 fi;
 
@@ -103,100 +99,100 @@ void genarg_f(Inst ** cd1, float f)
 	genarg_i(cd1, fi);
 }
 
-void genarg_l(Inst ** cd1, s8 l)
+void genarg_l(codegendata *cd1, s8 l)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	vm_l2twoCell(l, ((Cell *) *mcodepp)[1], ((Cell *) *mcodepp)[0]);
 	(*mcodepp) +=2;
 }
 
-void genarg_aRef(Inst ** cd1, java_objectheader *a)
+void genarg_aRef(codegendata *cd1, java_objectheader *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((java_objectheader **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_aArray(Inst ** cd1, java_arrayheader *a)
+void genarg_aArray(codegendata *cd1, java_arrayheader *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *) cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((java_arrayheader **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_aaTarget(Inst ** cd1, Inst **a)
+void genarg_aaTarget(codegendata *cd1, Inst **a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((Inst ***) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_aClass(Inst ** cd1, classinfo *a)
+void genarg_aClass(codegendata *cd1, classinfo *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((classinfo **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_acr(Inst ** cd1, constant_classref *a)
+void genarg_acr(codegendata *cd1, constant_classref *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((constant_classref **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_addr(Inst ** cd1, u1 *a)
+void genarg_addr(codegendata *cd1, u1 *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((u1 **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_af(Inst ** cd1, functionptr a)
+void genarg_af(codegendata *cd1, functionptr a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((functionptr *) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_am(Inst ** cd1, methodinfo *a)
+void genarg_am(codegendata *cd1, methodinfo *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((methodinfo **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_acell(Inst ** cd1, Cell *a)
+void genarg_acell(codegendata *cd1, Cell *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((Cell **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_ainst(Inst ** cd1, Inst *a)
+void genarg_ainst(codegendata *cd1, Inst *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((Inst **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_auf(Inst ** cd1, unresolved_field *a)
+void genarg_auf(codegendata *cd1, unresolved_field *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((unresolved_field **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_aum(Inst ** cd1, unresolved_method *a)
+void genarg_aum(codegendata *cd1, unresolved_method *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((unresolved_method **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
-void genarg_avftbl(Inst ** cd1, vftbl_t *a)
+void genarg_avftbl(codegendata *cd1, vftbl_t *a)
 {
-	Inst **mcodepp = (Inst **) &(((codegendata *)cd1)->mcodeptr);
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((vftbl_t **) *mcodepp) = a;
 	(*mcodepp)++;
 }
@@ -207,7 +203,7 @@ void genarg_avftbl(Inst ** cd1, vftbl_t *a)
 #include "vm/jit/intrp/java-gen.i"
 
 
-typedef void (*genfunctionptr) (Inst **);
+typedef void (*genfunctionptr) (codegendata *);
 
 typedef struct builtin_gen builtin_gen;
 
@@ -299,27 +295,29 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		dseg_addtarget(cd, ex->handler);
 		(void) dseg_addaddress(cd, ex->catchtype.cls);
 	}
-	
+
+#if 0	
 	/* initialize mcode variables */
 	
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+#endif
 
 	gen_BBSTART;
 
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		if (m->flags & ACC_STATIC)
-			gen_ACONST(((Inst **)cd), (java_objectheader *) m->class);
+			gen_ACONST(cd, (java_objectheader *) m->class);
 		else
-			gen_ALOAD(((Inst **)cd), 0);
+			gen_ALOAD(cd, 0);
 		
-		gen_MONITORENTER(((Inst **)cd));
+		gen_MONITORENTER(cd);
 	}			
 #endif
 
 	if (runverbose)
-		gen_TRACECALL(((Inst **)cd));
+		gen_TRACECALL(cd);
 
 	/* walk through all basic blocks */
 
@@ -343,6 +341,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 
 		MCODECHECK(64);       /* an instruction usually needs < 64 words      */
+
 		switch (iptr->opc) {
 
 		case ICMD_INLINE_START:
@@ -354,7 +353,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
 
-			gen_CHECKNULL(((Inst **)cd));
+			gen_CHECKNULL(cd);
 			break;
 
 		/* constant operations ************************************************/
@@ -362,13 +361,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
+			gen_ICONST(cd, iptr->val.i);
 			break;
 
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
@@ -377,23 +376,23 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				s4 fi;
 
 				vm_f2Cell(iptr->val.f, fi);
-				gen_ICONST(((Inst **)cd), fi);
+				gen_ICONST(cd, fi);
 			}
 			break;
 			
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.d = constant                    */
 
-			gen_LCONST(((Inst **)cd), *(s8 *)&(iptr->val.d));
+			gen_LCONST(cd, *(s8 *)&(iptr->val.d));
 			break;
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
 			if ((iptr->target != NULL) && (iptr->val.a == NULL))
-				gen_PATCHER_ACONST(((Inst **) cd), NULL, iptr->target);
+				gen_PATCHER_ACONST(cd, NULL, iptr->target);
 			else
-				gen_ACONST(((Inst **) cd), iptr->val.a);
+				gen_ACONST(cd, iptr->val.a);
 			break;
 
 
@@ -402,63 +401,63 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(((Inst **)cd), index2offset(iptr->op1));
+			gen_ILOAD(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_LLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(((Inst **)cd), index2offset(iptr->op1));
+			gen_LLOAD(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_ALOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ALOAD(((Inst **)cd), index2offset(iptr->op1));
+			gen_ALOAD(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_ILOAD(((Inst **)cd), index2offset(iptr->op1));
+			gen_ILOAD(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_DLOAD:      /* ...  ==> ..., content of local variable      */
 		                      /* op1 = local variable                         */
 
-			gen_LLOAD(((Inst **)cd), index2offset(iptr->op1));
+			gen_LLOAD(cd, index2offset(iptr->op1));
 			break;
 
 
 		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(((Inst **)cd), index2offset(iptr->op1));
+			gen_ISTORE(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_LSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(((Inst **)cd), index2offset(iptr->op1));
+			gen_LSTORE(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_ASTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ASTORE(((Inst **)cd), index2offset(iptr->op1));
+			gen_ASTORE(cd, index2offset(iptr->op1));
 			break;
 
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_ISTORE(((Inst **)cd), index2offset(iptr->op1));
+			gen_ISTORE(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
 		                      /* op1 = local variable                         */
 
-			gen_LSTORE(((Inst **)cd), index2offset(iptr->op1));
+			gen_LSTORE(cd, index2offset(iptr->op1));
 			break;
 
 
@@ -473,37 +472,37 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 
 			if (IS_2_WORD_TYPE(src->type))
-				gen_POP2(((Inst **)cd));
+				gen_POP2(cd);
 			else
-				gen_POP(((Inst **)cd));
+				gen_POP(cd);
 			break;
 
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 
-			gen_POP2(((Inst **)cd));
+			gen_POP2(cd);
 			break;
 
 		case ICMD_DUP:        /* ..., a ==> ..., a, a                         */
 
 			if (IS_2_WORD_TYPE(src->type))
-				gen_DUP2(((Inst **)cd));
+				gen_DUP2(cd);
 			else
-				gen_DUP(((Inst **)cd));
+				gen_DUP(cd);
 			break;
 
 		case ICMD_DUP_X1:     /* ..., a, b ==> ..., b, a, b                   */
 
 			if (IS_2_WORD_TYPE(src->type)) {
 				if (IS_2_WORD_TYPE(src->prev->type)) {
-					gen_DUP2_X2(((Inst **)cd));
+					gen_DUP2_X2(cd);
 				} else {
-					gen_DUP2_X1(((Inst **)cd));
+					gen_DUP2_X1(cd);
 				}
 			} else {
 				if (IS_2_WORD_TYPE(src->prev->type)) {
-					gen_DUP_X2(((Inst **)cd));
+					gen_DUP_X2(cd);
 				} else {
-					gen_DUP_X1(((Inst **)cd));
+					gen_DUP_X1(cd);
 				}
 			}
 			break;
@@ -511,32 +510,32 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DUP_X2:     /* ..., a, b, c ==> ..., c, a, b, c             */
 
 			if (IS_2_WORD_TYPE(src->type)) {
-				gen_DUP2_X2(((Inst **)cd));
+				gen_DUP2_X2(cd);
 			} else
-				gen_DUP_X2(((Inst **)cd));
+				gen_DUP_X2(cd);
 			break;
 
 		case ICMD_DUP2:       /* ..., a, b ==> ..., a, b, a, b                */
 
-			gen_DUP2(((Inst **)cd));
+			gen_DUP2(cd);
 			break;
 
 		case ICMD_DUP2_X1:    /* ..., a, b, c ==> ..., b, c, a, b, c          */
 
 			if (IS_2_WORD_TYPE(src->prev->prev->type))
-				gen_DUP2_X2(((Inst **)cd));
+				gen_DUP2_X2(cd);
 			else
-				gen_DUP2_X1(((Inst **)cd));
+				gen_DUP2_X1(cd);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
 
-			gen_DUP2_X2(((Inst **)cd));
+			gen_DUP2_X2(cd);
 			break;
 
 		case ICMD_SWAP:       /* ..., a, b ==> ..., b, a                      */
 
-			gen_SWAP(((Inst **)cd));
+			gen_SWAP(cd);
 			break;
 
 
@@ -544,309 +543,309 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
 
-			gen_INEG(((Inst **)cd));
+			gen_INEG(cd);
 			break;
 
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
-			gen_LNEG(((Inst **)cd));
+			gen_LNEG(cd);
 			break;
 
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
-			gen_I2L(((Inst **)cd));
+			gen_I2L(cd);
 			break;
 
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
-			gen_L2I(((Inst **)cd));
+			gen_L2I(cd);
 			break;
 
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
-			gen_INT2BYTE(((Inst **)cd));
+			gen_INT2BYTE(cd);
 			break;
 
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
-			gen_INT2CHAR(((Inst **)cd));
+			gen_INT2CHAR(cd);
 			break;
 
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
-			gen_INT2SHORT(((Inst **)cd));
+			gen_INT2SHORT(cd);
 			break;
 
 
 		case ICMD_IADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			gen_IADD(((Inst **)cd));
+			gen_IADD(cd);
 			break;
 
 		case ICMD_IADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IADD(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IADD(cd);
 			break;
 
 		case ICMD_LADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			gen_LADD(((Inst **)cd));
+			gen_LADD(cd);
 			break;
 
 		case ICMD_LADDCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LADD(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LADD(cd);
 			break;
 
 		case ICMD_ISUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			gen_ISUB(((Inst **)cd));
+			gen_ISUB(cd);
 			break;
 
 		case ICMD_ISUBCONST:  /* ..., value  ==> ..., value + constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_ISUB(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_ISUB(cd);
 			break;
 
 		case ICMD_LSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			gen_LSUB(((Inst **)cd));
+			gen_LSUB(cd);
 			break;
 
 		case ICMD_LSUBCONST:  /* ..., value  ==> ..., value - constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LSUB(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LSUB(cd);
 			break;
 
 		case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_IMUL(((Inst **)cd));
+			gen_IMUL(cd);
 			break;
 
 		case ICMD_IMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IMUL(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IMUL(cd);
 			break;
 
 		case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_LMUL(((Inst **)cd));
+			gen_LMUL(cd);
 			break;
 
 		case ICMD_LMULCONST:  /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LMUL(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LMUL(cd);
 			break;
 
 		case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			gen_IDIV(((Inst **)cd));
+			gen_IDIV(cd);
 			break;
 
 		case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			gen_IREM(((Inst **)cd));
+			gen_IREM(cd);
 			break;
 
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			gen_LDIV(((Inst **)cd));
+			gen_LDIV(cd);
 			break;
 
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			gen_LREM(((Inst **)cd));
+			gen_LREM(cd);
 			break;
 
 		case ICMD_IDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
-			gen_IDIVPOW2(((Inst **)cd), iptr->val.i);
+			gen_IDIVPOW2(cd, iptr->val.i);
 			break;
 
 		case ICMD_IREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.i = constant                             */
 
-			gen_IREMPOW2(((Inst **)cd), iptr->val.i);
+			gen_IREMPOW2(cd, iptr->val.i);
 			break;
 
 		case ICMD_LDIVPOW2:   /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 		                      
-			gen_LDIVPOW2(((Inst **)cd), iptr->val.i);
+			gen_LDIVPOW2(cd, iptr->val.i);
 			break;
 
 		case ICMD_LREMPOW2:   /* ..., value  ==> ..., value % constant        */
 		                      /* val.l = constant                             */
 
-			gen_LREMPOW2(((Inst **)cd), iptr->val.i);
+			gen_LREMPOW2(cd, iptr->val.i);
 			break;
 
 		case ICMD_ISHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
-			gen_ISHL(((Inst **)cd));
+			gen_ISHL(cd);
 			break;
 
 		case ICMD_ISHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_ISHL(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_ISHL(cd);
 			break;
 
 		case ICMD_ISHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
-			gen_ISHR(((Inst **)cd));
+			gen_ISHR(cd);
 			break;
 
 		case ICMD_ISHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_ISHR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_ISHR(cd);
 			break;
 
 		case ICMD_IUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
-			gen_IUSHR(((Inst **)cd));
+			gen_IUSHR(cd);
 			break;
 
 		case ICMD_IUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IUSHR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IUSHR(cd);
 			break;
 
 		case ICMD_LSHL:       /* ..., val1, val2  ==> ..., val1 << val2       */
 
-			gen_LSHL(((Inst **)cd));
+			gen_LSHL(cd);
 			break;
 
 		case ICMD_LSHLCONST:  /* ..., value  ==> ..., value << constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_LSHL(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_LSHL(cd);
 			break;
 
 		case ICMD_LSHR:       /* ..., val1, val2  ==> ..., val1 >> val2       */
 
-			gen_LSHR(((Inst **)cd));
+			gen_LSHR(cd);
 			break;
 
 		case ICMD_LSHRCONST:  /* ..., value  ==> ..., value >> constant       */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_LSHR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_LSHR(cd);
 			break;
 
 		case ICMD_LUSHR:      /* ..., val1, val2  ==> ..., val1 >>> val2      */
 
-			gen_LUSHR(((Inst **)cd));
+			gen_LUSHR(cd);
 			break;
 
 		case ICMD_LUSHRCONST: /* ..., value  ==> ..., value >>> constant      */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_LUSHR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_LUSHR(cd);
 			break;
 
 		case ICMD_IAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			gen_IAND(((Inst **)cd));
+			gen_IAND(cd);
 			break;
 
 		case ICMD_IANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IAND(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IAND(cd);
 			break;
 
 		case ICMD_LAND:       /* ..., val1, val2  ==> ..., val1 & val2        */
 
-			gen_LAND(((Inst **)cd));
+			gen_LAND(cd);
 			break;
 
 		case ICMD_LANDCONST:  /* ..., value  ==> ..., value & constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LAND(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LAND(cd);
 			break;
 
 		case ICMD_IOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			gen_IOR(((Inst **)cd));
+			gen_IOR(cd);
 			break;
 
 		case ICMD_IORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IOR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IOR(cd);
 			break;
 
 		case ICMD_LOR:        /* ..., val1, val2  ==> ..., val1 | val2        */
 
-			gen_LOR(((Inst **)cd));
+			gen_LOR(cd);
 			break;
 
 		case ICMD_LORCONST:   /* ..., value  ==> ..., value | constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LOR(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LOR(cd);
 			break;
 
 		case ICMD_IXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			gen_IXOR(((Inst **)cd));
+			gen_IXOR(cd);
 			break;
 
 		case ICMD_IXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.i = constant                             */
 
-			gen_ICONST(((Inst **)cd), iptr->val.i);
-			gen_IXOR(((Inst **)cd));
+			gen_ICONST(cd, iptr->val.i);
+			gen_IXOR(cd);
 			break;
 
 		case ICMD_LXOR:       /* ..., val1, val2  ==> ..., val1 ^ val2        */
 
-			gen_LXOR(((Inst **)cd));
+			gen_LXOR(cd);
 			break;
 
 		case ICMD_LXORCONST:  /* ..., value  ==> ..., value ^ constant        */
 		                      /* val.l = constant                             */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
-			gen_LXOR(((Inst **)cd));
+			gen_LCONST(cd, iptr->val.l);
+			gen_LXOR(cd);
 			break;
 
 
 		case ICMD_LCMP:       /* ..., val1, val2  ==> ..., val1 cmp val2      */
 
-			gen_LCMP(((Inst **)cd));
+			gen_LCMP(cd);
 			break;
 
 
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 
-			gen_IINC(((Inst **)cd), index2offset(iptr->op1), iptr->val.i);
+			gen_IINC(cd, index2offset(iptr->op1), iptr->val.i);
 			break;
 
 
@@ -854,132 +853,132 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_FNEG:       /* ..., value  ==> ..., - value                 */
 
-			gen_FNEG(((Inst **)cd));
+			gen_FNEG(cd);
 			break;
 
 		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
 
-			gen_DNEG(((Inst **)cd));
+			gen_DNEG(cd);
 			break;
 
 		case ICMD_FADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			gen_FADD(((Inst **)cd));
+			gen_FADD(cd);
 			break;
 
 		case ICMD_DADD:       /* ..., val1, val2  ==> ..., val1 + val2        */
 
-			gen_DADD(((Inst **)cd));
+			gen_DADD(cd);
 			break;
 
 		case ICMD_FSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			gen_FSUB(((Inst **)cd));
+			gen_FSUB(cd);
 			break;
 
 		case ICMD_DSUB:       /* ..., val1, val2  ==> ..., val1 - val2        */
 
-			gen_DSUB(((Inst **)cd));
+			gen_DSUB(cd);
 			break;
 
 		case ICMD_FMUL:       /* ..., val1, val2  ==> ..., val1 * val2        */
 
-			gen_FMUL(((Inst **)cd));
+			gen_FMUL(cd);
 			break;
 
 		case ICMD_DMUL:       /* ..., val1, val2  ==> ..., val1 *** val2      */
 
-			gen_DMUL(((Inst **)cd));
+			gen_DMUL(cd);
 			break;
 
 		case ICMD_FDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			gen_FDIV(((Inst **)cd));
+			gen_FDIV(cd);
 			break;
 
 		case ICMD_DDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 
-			gen_DDIV(((Inst **)cd));
+			gen_DDIV(cd);
 			break;
 		
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			gen_FREM(((Inst **)cd));
+			gen_FREM(cd);
 			break;
 
 		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			gen_DREM(((Inst **)cd));
+			gen_DREM(cd);
 			break;
 		
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 
-			gen_I2F(((Inst **)cd));
+			gen_I2F(cd);
 			break;
 
 		case ICMD_L2F:       /* ..., value  ==> ..., (float) value            */
 
-			gen_L2F(((Inst **)cd));
+			gen_L2F(cd);
 			break;
 
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
 
-			gen_I2D(((Inst **)cd));
+			gen_I2D(cd);
 			break;
 			
 		case ICMD_L2D:       /* ..., value  ==> ..., (double) value           */
 
-			gen_L2D(((Inst **)cd));
+			gen_L2D(cd);
 			break;
 			
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 
-			gen_F2I(((Inst **)cd));
+			gen_F2I(cd);
 			break;
 		
 		case ICMD_D2I:       /* ..., value  ==> ..., (int) value              */
 
-			gen_D2I(((Inst **)cd));
+			gen_D2I(cd);
 			break;
 		
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
 
-			gen_F2L(((Inst **)cd));
+			gen_F2L(cd);
 			break;
 
 		case ICMD_D2L:       /* ..., value  ==> ..., (long) value             */
 
-			gen_D2L(((Inst **)cd));
+			gen_D2L(cd);
 			break;
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
-			gen_F2D(((Inst **)cd));
+			gen_F2D(cd);
 			break;
 					
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
 
-			gen_D2F(((Inst **)cd));
+			gen_D2F(cd);
 			break;
 		
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 
-			gen_FCMPL(((Inst **)cd));
+			gen_FCMPL(cd);
 			break;
 			
 		case ICMD_DCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpl val2    */
 
-			gen_DCMPL(((Inst **)cd));
+			gen_DCMPL(cd);
 			break;
 			
 		case ICMD_FCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 
-			gen_FCMPG(((Inst **)cd));
+			gen_FCMPG(cd);
 			break;
 
 		case ICMD_DCMPG:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 
-			gen_DCMPG(((Inst **)cd));
+			gen_DCMPG(cd);
 			break;
 
 
@@ -987,68 +986,68 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
-			gen_ARRAYLENGTH(((Inst **)cd));
+			gen_ARRAYLENGTH(cd);
 			break;
 
 		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_BALOAD(((Inst **)cd));
+			gen_BALOAD(cd);
 			break;
 
 		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_CALOAD(((Inst **)cd));
+			gen_CALOAD(cd);
 			break;			
 
 		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_SALOAD(((Inst **)cd));
+			gen_SALOAD(cd);
 			break;
 
 		case ICMD_IALOAD:     /* ..., arrayref, index  ==> ..., value         */
 		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_IALOAD(((Inst **)cd));
+			gen_IALOAD(cd);
 			break;
 
 		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
 		case ICMD_DALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_LALOAD(((Inst **)cd));
+			gen_LALOAD(cd);
 			break;
 
 		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
-			gen_AALOAD(((Inst **)cd));
+			gen_AALOAD(cd);
 			break;
 
 
 		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			gen_BASTORE(((Inst **)cd));
+			gen_BASTORE(cd);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			gen_CASTORE(((Inst **)cd));
+			gen_CASTORE(cd);
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			gen_IASTORE(((Inst **)cd));
+			gen_IASTORE(cd);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			gen_LASTORE(((Inst **)cd));
+			gen_LASTORE(cd);
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
-			gen_AASTORE(((Inst **)cd));
+			gen_AASTORE(cd);
 			break;
 
 
@@ -1063,24 +1062,24 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_GETSTATIC_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
 				} else {
-					gen_GETSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
+					gen_GETSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_GETSTATIC_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
 				} else {
-					gen_GETSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
+					gen_GETSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_GETSTATIC_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
 				} else {
-					gen_GETSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
+					gen_GETSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
 				}
 				break;
 			}
@@ -1098,24 +1097,24 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
+					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
+					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
+					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
 				}
 				break;
 			}
@@ -1134,28 +1133,28 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_INT(((Inst **)cd), (u1 *)&(fi->value.i), uf);
+					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				gen_LCONST(((Inst **)cd), iptr->val.l);
+				gen_LCONST(cd, iptr->val.l);
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_LONG(((Inst **)cd), (u1 *)&(fi->value.l), uf);
+					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
-				gen_ACONST(((Inst **)cd), iptr->val.a);
+				gen_ACONST(cd, iptr->val.a);
 				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
 				} else {
-					gen_PUTSTATIC_CELL(((Inst **)cd), (u1 *)&(fi->value.a), uf);
+					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
 				}
 				break;
 			}
@@ -1174,24 +1173,24 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 				if (fi == NULL) {
-					gen_PATCHER_GETFIELD_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETFIELD_INT(cd, 0, uf);
 				} else {
-					gen_GETFIELD_INT(((Inst **)cd), fi->offset, uf);
+					gen_GETFIELD_INT(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
 				if (fi == NULL) {
-					gen_PATCHER_GETFIELD_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETFIELD_LONG(cd, 0, uf);
 				} else {
-					gen_GETFIELD_LONG(((Inst **)cd), fi->offset, uf);
+					gen_GETFIELD_LONG(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_ADR:
 				if (fi == NULL) {
-					gen_PATCHER_GETFIELD_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_GETFIELD_CELL(cd, 0, uf);
 				} else {
-					gen_GETFIELD_CELL(((Inst **)cd), fi->offset, uf);
+					gen_GETFIELD_CELL(cd, fi->offset, uf);
 				}
 				break;
 			}
@@ -1209,24 +1208,24 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_INT(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_INT(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_LONG(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_LONG(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_LONG(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_ADR:
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_CELL(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_CELL(cd, fi->offset, uf);
 				}
 				break;
 			}
@@ -1245,28 +1244,28 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr[1].op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_INT(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_INT(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_INT(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				gen_LCONST(((Inst **)cd), iptr->val.l);
+				gen_LCONST(cd, iptr->val.l);
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_LONG(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_LONG(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_LONG(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_LONG(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_ADR:
-				gen_ACONST(((Inst **)cd), iptr->val.a);
+				gen_ACONST(cd, iptr->val.a);
 				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_CELL(((Inst **)cd), 0, uf);
+					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_CELL(((Inst **)cd), fi->offset, uf);
+					gen_PUTFIELD_CELL(cd, fi->offset, uf);
 				}
 				break;
 			}
@@ -1278,7 +1277,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			gen_ATHROW(((Inst **)cd));
+			gen_ATHROW(cd);
 			break;
 
 		case ICMD_GOTO:         /* ... ==> ...                                */
@@ -1294,7 +1293,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_RET:          /* ... ==> ...                                */
 		                        /* op1 = local variable                       */
 
-			gen_RET(((Inst **)cd), index2offset(iptr->op1));
+			gen_RET(cd, index2offset(iptr->op1));
 			break;
 
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
@@ -1315,7 +1314,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFEQ);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPEQ);
 			}
 			break;
@@ -1326,7 +1325,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFLT);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPLT);
 			}
 			break;
@@ -1337,7 +1336,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFLE);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPLE);
 			}
 			break;
@@ -1348,7 +1347,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFNE);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPNE);
 			}
 			break;
@@ -1359,7 +1358,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFGT);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPGT);
 			}
 			break;
@@ -1370,7 +1369,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.i == 0) {
 				gen_branch(IFGE);
 			} else {
-				gen_ICONST(((Inst **)cd), iptr->val.i);
+				gen_ICONST(cd, iptr->val.i);
 				gen_branch(IF_ICMPGE);
 			}
 			break;
@@ -1378,42 +1377,42 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPEQ);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPLT);
 			break;
 
 		case ICMD_IF_LLE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPLE);
 			break;
 
 		case ICMD_IF_LNE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPNE);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPGT);
 			break;
 
 		case ICMD_IF_LGE:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc, val.l = constant   */
 
-			gen_LCONST(((Inst **)cd), iptr->val.l);
+			gen_LCONST(cd, iptr->val.l);
 			gen_branch(IF_LCMPGE);
 			break;
 
@@ -1509,17 +1508,17 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(((Inst **)cd), (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(((Inst **)cd), 0);
+					gen_ALOAD(cd, 0);
 				}
-				gen_MONITOREXIT(((Inst **)cd));
+				gen_MONITOREXIT(cd);
 			}
 #endif
 			if (runverbose)
-				gen_TRACERETURN(((Inst **)cd));
+				gen_TRACERETURN(cd);
 
-			gen_IRETURN(((Inst **)cd), index2offset(cd->maxlocals));
+			gen_IRETURN(cd, index2offset(cd->maxlocals));
 			break;
 
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
@@ -1528,17 +1527,17 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(((Inst **)cd), (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(((Inst **)cd), 0);
+					gen_ALOAD(cd, 0);
 				}
-				gen_MONITOREXIT(((Inst **)cd));
+				gen_MONITOREXIT(cd);
 			}
 #endif
 			if (runverbose)
-				gen_TRACELRETURN(((Inst **)cd));
+				gen_TRACELRETURN(cd);
 
-			gen_LRETURN(((Inst **)cd), index2offset(cd->maxlocals));
+			gen_LRETURN(cd, index2offset(cd->maxlocals));
 			break;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
@@ -1546,17 +1545,17 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(((Inst **)cd), (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
-					gen_ALOAD(((Inst **)cd), 0);
+					gen_ALOAD(cd, 0);
 				}
-				gen_MONITOREXIT(((Inst **)cd));
+				gen_MONITOREXIT(cd);
 			}
 #endif
 			if (runverbose)
-				gen_TRACERETURN(((Inst **)cd));
+				gen_TRACERETURN(cd);
 
-			gen_RETURN(((Inst **)cd), index2offset(cd->maxlocals));
+			gen_RETURN(cd, index2offset(cd->maxlocals));
 			break;
 
 
@@ -1575,7 +1574,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* arguments: low, range, datasegment address, table offset in     */
 			/* datasegment, default target                                    */
-			gen_TABLESWITCH(((Inst **)cd), l, i, NULL, 0, NULL);
+			gen_TABLESWITCH(cd, l, i, NULL, 0, NULL);
 			dseg_adddata(cd, (cd->mcodeptr - 2*sizeof(Inst))); /* actually -3 cells offset*/
 			codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
@@ -1608,7 +1607,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			
 			/* arguments: count, datasegment address, table offset in         */
 			/* datasegment, default target                                    */
-			gen_LOOKUPSWITCH(((Inst **)cd), i, NULL, 0, NULL);
+			gen_LOOKUPSWITCH(cd, i, NULL, 0, NULL);
 			dseg_adddata(cd, (cd->mcodeptr - 2*sizeof(Inst))); /* actually -3 cells offset*/
 			codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
@@ -1637,7 +1636,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			for (i = 0; i < sizeof(builtin_gen_table)/sizeof(builtin_gen); i++) {
 				builtin_gen *bg = &builtin_gen_table[i];
 				if (bg->builtin == bte->fp) {
-					(bg->gen)(((Inst **)cd));
+					(bg->gen)(cd);
 					goto gen_builtin_end;
 				}
 			}
@@ -1653,11 +1652,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (lm == NULL) {
 				md = um->methodref->parseddesc.md;
-				gen_PATCHER_INVOKESTATIC(((Inst **)cd), 0, md->paramslots, um);
+				gen_PATCHER_INVOKESTATIC(cd, 0, md->paramslots, um);
 
 			} else {
 				md = lm->parseddesc;
-				gen_INVOKESTATIC(((Inst **)cd), (Inst **)lm->stubroutine, md->paramslots, um);
+				gen_INVOKESTATIC(cd, (Inst **)lm->stubroutine, md->paramslots, um);
 			}
 			break;
 
@@ -1668,11 +1667,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (lm == NULL) {
 				md = um->methodref->parseddesc.md;
-				gen_PATCHER_INVOKESPECIAL(((Inst **)cd), 0, md->paramslots, um);
+				gen_PATCHER_INVOKESPECIAL(cd, 0, md->paramslots, um);
 
 			} else {
 				md = lm->parseddesc;
-				gen_INVOKESPECIAL(((Inst **)cd), (Inst **)lm->stubroutine, md->paramslots, um);
+				gen_INVOKESPECIAL(cd, (Inst **)lm->stubroutine, md->paramslots, um);
 			}
 			break;
 
@@ -1683,7 +1682,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (lm == NULL) {
 				md = um->methodref->parseddesc.md;
-				gen_PATCHER_INVOKEVIRTUAL(((Inst **)cd), 0, md->paramslots, um);
+				gen_PATCHER_INVOKEVIRTUAL(cd, 0, md->paramslots, um);
 
 			} else {
 				md = lm->parseddesc;
@@ -1691,7 +1690,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				s1 = OFFSET(vftbl_t, table[0]) +
 					sizeof(methodptr) * lm->vftblindex;
 
-				gen_INVOKEVIRTUAL(((Inst **)cd), s1, md->paramslots, um);
+				gen_INVOKEVIRTUAL(cd, s1, md->paramslots, um);
 			}
 			break;
 
@@ -1702,7 +1701,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (lm == NULL) {
 				md = um->methodref->parseddesc.md;
-				gen_PATCHER_INVOKEINTERFACE(((Inst **)cd), 0, 0, md->paramslots, um);
+				gen_PATCHER_INVOKEINTERFACE(cd, 0, 0, md->paramslots, um);
 
 			} else {
 				md = lm->parseddesc;
@@ -1712,7 +1711,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				s2 = sizeof(methodptr) * (lm - lm->class->methods);
 
-				gen_INVOKEINTERFACE(((Inst **)cd), s1, s2, md->paramslots, um);
+				gen_INVOKEINTERFACE(cd, s1, s2, md->paramslots, um);
 			}
 			break;
 
@@ -1723,14 +1722,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (iptr->op1 == 1) {
 				if (iptr->val.a == NULL)
-					gen_PATCHER_CHECKCAST(((Inst **) cd), NULL, iptr->target);
+					gen_PATCHER_CHECKCAST(cd, NULL, iptr->target);
 				else
-					gen_CHECKCAST(((Inst **) cd), iptr->val.a, NULL);
+					gen_CHECKCAST(cd, iptr->val.a, NULL);
 			} else {
 				if (iptr->val.a == NULL)
-					gen_PATCHER_ARRAYCHECKCAST(((Inst **) cd), NULL, iptr->target);
+					gen_PATCHER_ARRAYCHECKCAST(cd, NULL, iptr->target);
 				else
-					gen_ARRAYCHECKCAST(((Inst **) cd), iptr->val.a, NULL);
+					gen_ARRAYCHECKCAST(cd, iptr->val.a, NULL);
 			}
 			break;
 
@@ -1739,18 +1738,18 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.a: (classinfo *) superclass              */
 
 			if (iptr->val.a == NULL)
-				gen_PATCHER_INSTANCEOF(((Inst **) cd), 0, iptr->target);
+				gen_PATCHER_INSTANCEOF(cd, 0, iptr->target);
 			else
-				gen_INSTANCEOF(((Inst **) cd), iptr->val.a, iptr->target);
+				gen_INSTANCEOF(cd, iptr->val.a, iptr->target);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 		                      /* op1 = dimension, val.a = array descriptor    */
 
 			if (iptr->target) {
-				gen_PATCHER_MULTIANEWARRAY(((Inst **)cd), 0, iptr->op1, iptr->val.a);
+				gen_PATCHER_MULTIANEWARRAY(cd, 0, iptr->op1, iptr->val.a);
 			} else {
-				gen_MULTIANEWARRAY(((Inst **)cd), iptr->val.a, iptr->op1, 0);
+				gen_MULTIANEWARRAY(cd, iptr->val.a, iptr->op1, 0);
 			}
 			break;
 
@@ -1822,17 +1821,19 @@ u1 *createcompilerstub (methodinfo *m)
 	
 	cd = DNEW(codegendata);
     cd->mcodeptr = (u1 *) s;
+	cd->lastinstwithoutdispatch = ~0;
+	cd->superstarts = NULL;
 
-	genarg_ainst((Inst **) cd, s + 2);
+	genarg_ainst(cd, s + 2);
 
 	if (m->flags & ACC_NATIVE) {
-		genarg_i((Inst **) cd, m->parseddesc->paramslots);
+		genarg_i(cd, m->parseddesc->paramslots);
 	} else {
-		genarg_i((Inst **) cd, m->maxlocals);
+		genarg_i(cd, m->maxlocals);
 	}
 
 	gen_BBSTART;
-	gen_TRANSLATE((Inst **) cd, m);
+	gen_TRANSLATE(cd, m);
 	
 #ifdef VM_PROFILING
 	vm_block_insert(cd->mcodeptr);
@@ -1899,8 +1900,10 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 {
 	ffi_cif *cif;
 
+#if 0
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+#endif
 
 	/* create method header */
 
@@ -1920,15 +1923,15 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	gen_BBSTART;
 
 	if (runverbose)
-		gen_TRACECALL(((Inst **)cd));
+		gen_TRACECALL(cd);
 
 	if (f == NULL) {
-		gen_PATCHER_NATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
+		gen_PATCHER_NATIVECALL(cd, m, f, (u1 *)cif);
 	} else {
 		if (runverbose)
-			gen_TRACENATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
+			gen_TRACENATIVECALL(cd, m, f, (u1 *)cif);
 		else
-			gen_NATIVECALL(((Inst **)cd), m, f, (u1 *)cif);
+			gen_NATIVECALL(cd, m, f, (u1 *)cif);
 	}
 
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
@@ -1938,6 +1941,187 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 #endif
 
 	return m->entrypoint;
+}
+
+
+#if !FFCALL
+ffi_type *cacaotype2ffitype(s4 cacaotype)
+{
+	switch (cacaotype) {
+	case TYPE_INT:
+		return &ffi_type_uint;
+	case TYPE_LNG:
+		return &ffi_type_sint64;
+	case TYPE_FLT:
+		return &ffi_type_float;
+	case TYPE_DBL:
+		return &ffi_type_double;
+	case TYPE_ADR:
+		return &ffi_type_pointer;
+	case TYPE_VOID:
+		return &ffi_type_void;
+	default:
+		assert(false);
+	}
+}
+#endif
+
+
+/* call jni function */
+Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif)
+{
+#if FFCALL
+	av_alist alist;
+	methoddesc *md;
+	Cell *p;
+	Cell *endsp;
+	s4 i;
+
+	struct {
+		stackframeinfo sfi;
+		localref_table lrt;
+	} s;
+
+	md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+		endsp = sp - 1 + md->paramslots;
+		av_start_int(alist, f, endsp);
+		break;
+	case TYPE_LNG:
+		endsp = sp - 2 + md->paramslots;
+		av_start_longlong(alist, f, endsp);
+		break;
+	case TYPE_FLT:
+		endsp = sp - 1 + md->paramslots;
+		av_start_float(alist, f, endsp);
+		break;
+	case TYPE_DBL:
+		endsp = sp - 2 + md->paramslots;
+		av_start_double(alist, f, endsp);
+		break;
+	case TYPE_ADR:
+		endsp = sp - 1 + md->paramslots;
+		av_start_ptr(alist, f, void *, endsp);
+		break;
+	case TYPE_VOID:
+		endsp = sp + md->paramslots;
+		av_start_void(alist, f);
+		break;
+	default:
+		assert(false);
+	}
+
+	av_ptr(alist, JNIEnv *, &env);
+
+	if (m->flags & ACC_STATIC)
+		av_ptr(alist, classinfo *, m->class);
+
+	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+			p -= 1;
+			av_int(alist, *p);
+			break;
+		case TYPE_LNG:
+			p -= 2;
+			av_longlong(alist, *(s8 *)p);
+			break;
+		case TYPE_FLT:
+			p -= 1;
+			av_float(alist, *(float *) p);
+			break;
+		case TYPE_DBL:
+			p -= 2;
+			av_double(alist, *(double *) p);
+			break;
+		case TYPE_ADR:
+			p -= 1;
+			av_ptr(alist, void *, *(void **) p);
+			break;
+		default:
+			assert(false);
+		}
+	}
+
+	global_sp = sp;
+
+	/* create stackframe info structure */
+
+	codegen_start_native_call(&s, (u1 *) m->entrypoint,
+							  (u1 *) fp,
+							  (functionptr) ra);
+
+	av_call(alist);
+
+	codegen_finish_native_call(&s);
+
+	CLEAR_global_sp;
+
+	return endsp;
+#else
+	methoddesc  *md = m->parseddesc; 
+	ffi_cif     *pcif;
+	void        *values[md->paramcount + 2];
+	void       **pvalues = values;
+	Cell        *p;
+	Cell        *endsp;
+	s4           i;
+	JNIEnv      *penv;
+
+	struct {
+		stackframeinfo sfi;
+		localref_table lrt;
+	} s;
+
+	pcif = (ffi_cif *) addrcif;
+
+	/* pass env pointer */
+
+	penv = (JNIEnv *) &env;
+	*pvalues++ = &penv;
+
+	/* for static methods, pass class pointer */
+
+	if (m->flags & ACC_STATIC) {
+		*pvalues++ = &m->class;
+	}
+
+	/* pass parameter to native function */
+
+	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
+		if (IS_2_WORD_TYPE(md->paramtypes[i].type))
+			p -= 2;
+		else
+			p--;
+
+		*pvalues++ = p;
+	}
+
+	/* calculate position of return value */
+
+	if (md->returntype.type == TYPE_VOID)
+		endsp = sp + md->paramslots;
+	else
+		endsp = sp - (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1) + md->paramslots;
+
+	global_sp = sp;
+
+	/* create stackframe info structure */
+
+	codegen_start_native_call((u1 *) (((ptrint ) &s) + sizeof(s)),
+							  (u1 *) (ptrint) m->entrypoint,
+							  (u1 *) fp, (u1 *) ra);
+
+	ffi_call(pcif, FFI_FN(f), endsp, values);
+
+	codegen_finish_native_call((u1 *) (((ptrint) &s) + sizeof(s)));
+
+	CLEAR_global_sp;
+
+	return endsp;
+#endif
 }
 
 
@@ -1969,8 +2153,10 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	md = m->parseddesc;
 
+#if 0
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+#endif
 
 	/* create method header */
 
@@ -1987,8 +2173,8 @@ u1 *createcalljavafunction(methodinfo *m)
 	/* generate code */
 	
 	gen_BBSTART;
-	gen_INVOKESTATIC(((Inst **)cd), (Inst **)m->stubroutine, md->paramslots, 0);
-	gen_END(((Inst **)cd));
+	gen_INVOKESTATIC(cd, (Inst **)m->stubroutine, md->paramslots, 0);
+	gen_END(cd);
   
 	codegen_finish(tmpm, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 

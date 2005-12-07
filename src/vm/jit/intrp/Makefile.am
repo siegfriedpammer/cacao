@@ -28,22 +28,29 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3881 2005-12-05 19:48:08Z twisti $
+## $Id: Makefile.am 3895 2005-12-07 16:03:37Z anton $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src -I$(top_builddir)/src/libffi/include
 
 EXTRA_DIST = \
-	java.vmg
+	java.vmg \
+	prims2x.fs \
+	vmgenx
+
+noinst_HEADERS = \
+	engine.c
 
 BUILT_SOURCES = \
-	java-vm.i \
 	java-disasm.i \
 	java-gen.i \
 	java-labels.i \
+	java-names.i \
+	java-peephole.i \
 	java-profile.i \
-	java-peephole.i
+	java-superend.i \
+	java-vm.i
 
 CLEANFILES = \
 	$(BUILT_SOURCES)
@@ -56,14 +63,16 @@ libintrp_la_SOURCES = \
 	codegen.h \
 	disasm.c \
 	disass.c \
-	engine.c \
+	dynamic-super.c \
+	engine1.c \
+	engine2.c \
 	intrp.h \
 	md.c \
 	patcher.c \
 	peephole.c
 
-$(BUILT_SOURCES): java.vmg
-	vmgen $(srcdir)/java.vmg
+$(BUILT_SOURCES): java.vmg prims2x.fs vmgenx
+	$(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 
 
 ## Local variables:
