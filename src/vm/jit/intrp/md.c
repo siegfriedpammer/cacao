@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: md.c 3902 2005-12-07 17:32:57Z anton $
 
 */
 
@@ -67,7 +67,7 @@ void md_init(void)
 	if (peeptable == 0) {
 		init_peeptable();
 	}
-	check_prims(vm_prim);
+	dynamic_super_init();
 }
 
 

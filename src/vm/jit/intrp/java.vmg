@@ -168,6 +168,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(ACONST1);
 SET_IP(IP - 3);
+patchersuper_rewrite(IP);
 
 ILOAD ( #vLocal -- vResult ) 0x15
 {
@@ -1195,6 +1196,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(ARRAYCHECKCAST);
 SET_IP(IP - 3);
+patchersuper_rewrite(IP);
 
 INSTANCEOF ( #aClass #acr aRef  -- iResult ) 0xc1
 {
@@ -1276,6 +1278,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_INT);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_GETSTATIC_LONG ( #aRef #auf -- )
 stackframeinfo sfi;
@@ -1291,6 +1294,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_LONG);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_GETSTATIC_CELL ( #aRef #auf -- )
 stackframeinfo sfi;
@@ -1306,6 +1310,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETSTATIC_CELL);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTSTATIC_INT ( #aRef #auf -- )
 stackframeinfo sfi;
@@ -1321,6 +1326,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_INT);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTSTATIC_LONG ( #aRef #auf -- )
 stackframeinfo sfi;
@@ -1336,6 +1342,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_LONG);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTSTATIC_CELL ( #aRef #auf -- )
 stackframeinfo sfi;
@@ -1351,6 +1358,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_CELL);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_GETFIELD_INT ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1366,6 +1374,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_INT);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_GETFIELD_LONG ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1381,6 +1390,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_LONG);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_GETFIELD_CELL ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1396,6 +1406,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(GETFIELD_CELL);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTFIELD_INT ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1411,6 +1422,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_INT);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTFIELD_LONG ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1426,6 +1438,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_LONG);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_PUTFIELD_CELL ( #vOffset #auf -- )
 stackframeinfo sfi;
@@ -1441,6 +1454,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_CELL);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr -- )
 stackframeinfo sfi;
@@ -1456,6 +1470,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(MULTIANEWARRAY);
 SET_IP(IP - 4);
+patchersuper_rewrite(IP);
 
 PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
@@ -1471,6 +1486,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKESTATIC);
 SET_IP(IP-4);
+patchersuper_rewrite(IP);
 
 PATCHER_INVOKESPECIAL ( #aaTarget #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
@@ -1486,6 +1502,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKESPECIAL);
 SET_IP(IP-4);
+patchersuper_rewrite(IP);
 
 PATCHER_INVOKEVIRTUAL ( #vOffset #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
@@ -1501,6 +1518,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-4] = INST_ADDR(INVOKEVIRTUAL);
 SET_IP(IP-4);
+patchersuper_rewrite(IP);
 
 PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #vOffset #iNargs #aum -- ) 0xd8
 stackframeinfo sfi;
@@ -1516,6 +1534,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-5] = INST_ADDR(INVOKEINTERFACE);
 SET_IP(IP-5);
+patchersuper_rewrite(IP);
 
 PATCHER_CHECKCAST ( #aClass #acr -- ) 0xc
 stackframeinfo sfi;
@@ -1531,6 +1550,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(CHECKCAST);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 PATCHER_INSTANCEOF ( #aClass #acr -- ) 0xc1
 stackframeinfo sfi;
@@ -1546,6 +1566,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(INSTANCEOF);
 SET_IP(IP-3);
+patchersuper_rewrite(IP);
 
 \ This is stub code for methods that we have not yet translated.
 \ Initially, the code for each method is set to this stub. The
@@ -1612,6 +1633,7 @@ if (!result)
 STORE_ORDER_BARRIER();
 IP[-4] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
 SET_IP(IP - 4);
+patchersuper_rewrite(IP);
 #else
 assert(false);
 #endif
