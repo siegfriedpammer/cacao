@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3796 2005-11-25 11:31:01Z twisti $
+   $Id: codegen.inc.h 3897 2005-12-07 16:06:19Z anton $
 
 */
 
@@ -60,6 +60,8 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 #define DSEGINITSIZE  (1<<12)       /*  4 Kbyte data area initialization size */
+
+#define NCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
 
 
 /* Register Pack/Unpack Macros ************************************************/
@@ -100,8 +102,21 @@ struct codegendata {
 	u1             *mcodeptr;       /* code generation pointer                */
 #endif
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
 	u1             *lastmcodeptr;   /* last patcher position of basic block   */
+#endif
+
+#if defined(ENABLE_INTRP)
+	u1             *ncodebase;      /* base pointer of native code area       */
+	s4              ncodesize;      /* complete size of native code area      */
+	u1             *ncodeptr;       /* native code generation pointer         */
+
+	u4              lastinstwithoutdispatch; /* ~0 if there was a dispatch    */
+
+	s4              lastpatcheroffset; /* -1 if current super has no patcher  */
+	s4              dynsuperm;      /* offsets of start of current dynamic ...*/
+	s4              dynsupern;      /* ... superinstruction starts            */
+	struct superstart *superstarts; /* list of supers without patchers        */
 #endif
 
 	u1             *dsegtop;        /* pointer to top (end) of data area      */
@@ -224,6 +239,8 @@ void removenativestub(u1 *stub);
 
 /* machine dependent find method function */
 u1 *md_codegen_findmethod(u1 *ra);
+
+u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 
 #endif /* _CODEGEN_INC_H */
 
