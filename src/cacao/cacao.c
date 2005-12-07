@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: cacao.c 3900 2005-12-07 16:09:26Z anton $
 
 */
 
@@ -187,6 +187,8 @@ void **stackbottom = 0;
 #define OPT_AGENTPATH        109
 #endif 
 
+#define OPT_NO_DYNAMIC       110
+
 opt_struct opts[] = {
 	{ "classpath",         true,  OPT_CLASSPATH },
 	{ "cp",                true,  OPT_CLASSPATH },
@@ -236,6 +238,7 @@ opt_struct opts[] = {
 
 	{ "trace",             false, OPT_TRACE },
 	{ "static-supers",     true,  OPT_STATIC_SUPERS },
+	{ "no-dynamic",        false, OPT_NO_DYNAMIC },
 
 	/* JVMTI Agent Command Line Options */
 #ifdef ENABLE_JVMTI
@@ -1043,6 +1046,10 @@ int main(int argc, char **argv)
 
 		case OPT_STATIC_SUPERS:
 			opt_static_supers = atoi(opt_arg);
+			break;
+
+		case OPT_NO_DYNAMIC:
+			opt_no_dynamic = true;
 			break;
 
 		case OPT_TRACE:
