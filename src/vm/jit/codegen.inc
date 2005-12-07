@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3817 2005-11-29 14:33:08Z anton $
+   $Id: codegen.inc 3898 2005-12-07 16:07:54Z anton $
 
 */
 
@@ -143,6 +143,27 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 {
 	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
 	cd->mcodesize = MCODEINITSIZE;
+
+	/* initialize mcode variables */
+	
+	cd->mcodeptr = cd->mcodebase;
+	cd->mcodeend = (s4 *) (cd->mcodebase + MCODEINITSIZE);
+
+#if defined(ENABLE_INTRP)
+	/* native dynamic superinstructions variables */
+
+	if (opt_intrp) {
+		cd->ncodebase = DMNEW(u1, NCODEINITSIZE);
+		cd->ncodesize = NCODEINITSIZE;
+
+		/* initialize ncode variables */
+	
+		cd->ncodeptr = cd->ncodebase;
+
+		cd->lastinstwithoutdispatch = ~0; /* no inst without dispatch */
+		cd->superstarts = NULL;
+	}
+#endif
 	
 	cd->dsegtop = DMNEW(u1, DSEGINITSIZE);
 	cd->dsegsize = DSEGINITSIZE;
@@ -264,6 +285,34 @@ static s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 	/* return the new mcodeptr */
 
 	return (s4 *) (cd->mcodebase + (mcodeptr - oldmcodebase));
+}
+
+
+/* codegen_ncode_increase ******************************************************
+
+   Doubles code area.
+
+*******************************************************************************/
+
+u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
+{
+	u1 *oldncodebase;
+
+	/* save old ncodebase pointer */
+
+	oldncodebase = cd->ncodebase;
+
+	/* reallocate to new, doubled memory */
+
+	cd->ncodebase = DMREALLOC(cd->ncodebase,
+							  u1,
+							  cd->ncodesize,
+							  cd->ncodesize * 2);
+	cd->ncodesize *= 2;
+
+	/* return the new ncodeptr */
+
+	return (cd->ncodebase + (ncodeptr - oldncodebase));
 }
 
 
@@ -779,6 +828,11 @@ u1 *codegen_findmethod(u1 *pc)
 
 static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 {
+#if 0
+	s4       mcodelen;
+#endif
+	s4       ncodelen;
+	s4       alignedmcodelen;
 	jumpref *jr;
 	u1      *epoint;
 	s4       extralen;
@@ -797,8 +851,25 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	}
 #endif
 
+#if 0
+	mcodelen = cd->mcodeptr - cd->mcodebase;
+#endif
+	alignedmcodelen = ALIGN(mcodelen, MAX_ALIGN);
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		ncodelen = cd->ncodeptr - cd->ncodebase;
+	}
+#endif
+
 	cd->dseglen = ALIGN(cd->dseglen, MAX_ALIGN);
-	alignedlen = ALIGN(mcodelen, MAX_ALIGN) + cd->dseglen;
+	alignedlen = alignedmcodelen + cd->dseglen;
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		alignedlen += ncodelen;
+	}
+#endif
 
 	/* allocate new memory */
 
@@ -811,6 +882,23 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	MCOPY((void *) (m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
 
 	m->entrypoint = epoint = (m->mcode + cd->dseglen);
+
+#if defined(ENABLE_INTRP)
+	/* relocate native dynamic superinstruction code (if any) */
+
+	if (opt_intrp) {
+		if (ncodelen > 0) {
+			u1 *ncodebase = m->mcode + cd->dseglen + alignedmcodelen;
+			MCOPY((void *)ncodebase, cd->ncodebase, u1, ncodelen);
+
+			/* set some cd variables for dynamic_super_rerwite */
+
+			cd->mcodebase = m->entrypoint;
+			cd->ncodebase = ncodebase;
+			dynamic_super_rewrite(cd);
+		}
+	}
+#endif
 
 	/* jump table resolving */
 
