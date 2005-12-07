@@ -27,3 +27,53 @@ _ACEOF
     ;;
 esac
 ])# AC_C_ATTRIBUTE
+
+
+#check how to do asm(".skip 16")
+
+AN_IDENTIFIER([skip16], [AC_ASM_SKIP16])
+AC_DEFUN([AC_ASM_SKIP16],
+[AC_MSG_CHECKING([if and how we can waste code space])
+if test -z "$skipcode"; then
+    skipcode=no
+    CFLAGS_1="$CFLAGS"
+    CFLAGS="$CFLAGS $ENGINE_FLAGS"
+    for i in ".skip 16" ".block 16" ".org .+16" ".=.+16" ".space 16"
+    do
+	AC_TRY_RUN(
+[int foo(int,int,int);
+main()
+{
+  exit(foo(0,0,0)!=16);
+}
+int foo(int x, int y, int z)
+{
+  static void *labels[]={&&label1, &&label2};
+  if (x) {
+    y++; /* workaround for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12108 */
+  label1:
+    __asm__("$i"); /* or ".space 16" or somesuch */
+  label2: ;
+  }
+  {
+  if (y) goto *labels[z]; /* workaround for gcc PR12108 */
+  return labels[1]-labels[0];
+  }
+}]
+	,skipcode=$i; break
+	,,)
+    done
+    CFLAGS=$CFLAGS_1
+fi
+AC_MSG_RESULT($skipcode)
+if test "$skipcode" = no
+then 
+    if test -z $no_dynamic_default; then
+	no_dynamic_default=1
+	AC_MSG_WARN(Disabling default dynamic native code generation)
+    fi
+    AC_DEFINE_UNQUOTED(SKIP16,((void)0),statement for skipping 16 bytes)
+else
+    AC_DEFINE_UNQUOTED(SKIP16,__asm__("$skipcode"),statement for skipping 16 bytes)
+fi
+])

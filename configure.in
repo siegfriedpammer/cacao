@@ -193,6 +193,7 @@ if test x"$enable_intrp" = "xyes"; then
 	AC_DEFINE([ENABLE_INTRP], 1, [enable interpreter])
 	AM_CONDITIONAL([ENABLE_INTRP], [true])
 	ENABLE_INTRP="yes"
+	AC_ASM_SKIP16
 else
 	AC_MSG_RESULT(no)
 	AM_CONDITIONAL([ENABLE_INTRP], [false])
