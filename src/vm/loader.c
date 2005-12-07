@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: loader.c 3903 2005-12-07 17:43:29Z twisti $
 
 */
 
@@ -1712,9 +1712,7 @@ classinfo *load_class_bootstrap(utf *name)
 			throw_cacao_exception_exit(string_java_lang_NoClassDefFoundError,
 									   "java/lang/Object");
 
-		*exceptionptr =
-			new_exception_utfmessage(string_java_lang_NoClassDefFoundError,
-									 name);
+		*exceptionptr =	new_noclassdeffounderror(name);
 
 		return NULL;
 	}
