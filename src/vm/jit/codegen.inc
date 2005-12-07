@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3898 2005-12-07 16:07:54Z anton $
+   $Id: codegen.inc 3905 2005-12-07 20:22:11Z twisti $
 
 */
 
@@ -294,6 +294,7 @@ static s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 
 *******************************************************************************/
 
+#if defined(ENABLE_INTRP)
 u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
 {
 	u1 *oldncodebase;
@@ -314,6 +315,7 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
 
 	return (cd->ncodebase + (ncodeptr - oldncodebase));
 }
+#endif
 
 
 /* desg_increase ***************************************************************
@@ -831,7 +833,9 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #if 0
 	s4       mcodelen;
 #endif
+#if defined(ENABLE_INTRP)
 	s4       ncodelen;
+#endif
 	s4       alignedmcodelen;
 	jumpref *jr;
 	u1      *epoint;
