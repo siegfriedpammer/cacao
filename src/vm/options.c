@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3375 2005-10-06 13:12:02Z twisti $
+   $Id: options.c 3899 2005-12-07 16:08:52Z anton $
 
 */
 
@@ -113,6 +113,10 @@ bool opt_eager = false;
 #ifdef LSRA
 bool opt_lsra = false;
 #endif
+
+/* interpreter options ********************************************************/
+
+bool opt_no_dynamic = false;   /* suppress dynamic superinstructions          */
 
 s4 opt_static_supers = 0x7fffffff;
 bool vm_debug = false;          /* XXX this should be called `opt_trace'      */

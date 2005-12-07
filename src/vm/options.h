@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3375 2005-10-06 13:12:02Z twisti $
+   $Id: options.h 3899 2005-12-07 16:08:52Z anton $
 
 */
 
@@ -126,7 +126,10 @@ extern bool opt_eager;
 extern bool opt_lsra;
 #endif
 
-extern s4 opt_static_supers;
+/* interpreter options ********************************************************/
+
+extern bool opt_no_dynamic;
+extern s4   opt_static_supers;
 extern bool vm_debug;
 
 
