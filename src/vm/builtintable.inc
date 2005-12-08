@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 3622 2005-11-07 18:49:17Z twisti $
+   $Id: builtintable.inc 3923 2005-12-08 23:17:21Z twisti $
 
 */
 
@@ -43,7 +43,7 @@
 
 static builtintable_entry builtintable_internal[] = {
 
-#if defined(__ALPHA__)
+#if defined(__ALPHA__) || defined(DISABLE_GC)
 	{
 		ICMD_F2L,
 		BUILTIN_f2l,
@@ -74,7 +74,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 #endif
 
-#if !SUPPORT_DIVISION
+#if !SUPPORT_DIVISION || defined(DISABLE_GC)
 	{
 		ICMD_IDIV,
 		BUILTIN_idiv,
@@ -91,7 +91,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 #endif
 
-#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) || defined(DISABLE_GC)
 	{
 		ICMD_LDIV,
 		BUILTIN_ldiv,
