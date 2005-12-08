@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: builtin.c 3918 2005-12-08 23:08:47Z twisti $
 
 */
 
@@ -1098,126 +1098,122 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	s4    logtextlen;
 	s4    dumpsize;
 
-	if (opt_verbose || runverbose || opt_verboseexception) {
-		/* when running with verbosecall we remove one indent level */
+	if (runverbose && indent)
+		methodindent--;
 
-		if (runverbose && indent)
-			methodindent--;
+	/* calculate message length */
 
-		/* calculate message length */
+	if (xptr) {
+		logtextlen =
+			strlen("Exception ") +
+			utf_strlen(xptr->vftbl->class->name);
 
-		if (xptr) {
-			logtextlen =
-				strlen("Exception ") +
-				utf_strlen(xptr->vftbl->class->name);
+	} else {
+		logtextlen = strlen("Some Throwable");
+	}
 
-		} else {
-			logtextlen = strlen("Some Throwable");
-		}
+	logtextlen += strlen(" thrown in ");
 
-		logtextlen += strlen(" thrown in ");
-
-		if (m) {
-			logtextlen +=
-				utf_strlen(m->class->name) +
-				strlen(".") +
-				utf_strlen(m->name) +
-				utf_strlen(m->descriptor) +
-				strlen("(NOSYNC,NATIVE");
+	if (m) {
+		logtextlen +=
+			utf_strlen(m->class->name) +
+			strlen(".") +
+			utf_strlen(m->name) +
+			utf_strlen(m->descriptor) +
+			strlen("(NOSYNC,NATIVE");
 
 #if SIZEOF_VOID_P == 8
-			logtextlen +=
-				strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
+		logtextlen +=
+			strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
 #else
-			logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
+		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
+#endif
+
+		if (m->class->sourcefile == NULL)
+			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
+		else
+			logtextlen += utf_strlen(m->class->sourcefile);
+
+		logtextlen += strlen(":65536)");
+
+	} else
+		logtextlen += strlen("call_java_method");
+
+	logtextlen += strlen("0");
+
+	/* allocate memory */
+
+	dumpsize = dump_size();
+
+	logtext = DMNEW(char, logtextlen);
+
+	if (xptr) {
+		strcpy(logtext, "Exception ");
+		utf_strcat_classname(logtext, xptr->vftbl->class->name);
+
+	} else {
+		strcpy(logtext, "Some Throwable");
+	}
+
+	strcat(logtext, " thrown in ");
+
+	if (m) {
+		utf_strcat_classname(logtext, m->class->name);
+		strcat(logtext, ".");
+		utf_strcat(logtext, m->name);
+		utf_strcat(logtext, m->descriptor);
+
+		if (m->flags & ACC_SYNCHRONIZED)
+			strcat(logtext, "(SYNC");
+		else
+			strcat(logtext, "(NOSYNC");
+
+		if (m->flags & ACC_NATIVE) {
+			strcat(logtext, ",NATIVE");
+
+#if SIZEOF_VOID_P == 8
+			sprintf(logtext + strlen(logtext),
+					")(0x%016lx) at position 0x%016lx",
+					(ptrint) m->entrypoint, (ptrint) pos);
+#else
+			sprintf(logtext + strlen(logtext),
+					")(0x%08x) at position 0x%08x",
+					(ptrint) m->entrypoint, (ptrint) pos);
+#endif
+
+		} else {
+#if SIZEOF_VOID_P == 8
+			sprintf(logtext + strlen(logtext),
+					")(0x%016lx) at position 0x%016lx (",
+					(ptrint) m->entrypoint, (ptrint) pos);
+#else
+			sprintf(logtext + strlen(logtext),
+					")(0x%08x) at position 0x%08x (",
+					(ptrint) m->entrypoint, (ptrint) pos);
 #endif
 
 			if (m->class->sourcefile == NULL)
-				logtextlen += strlen("<NO CLASSFILE INFORMATION>");
+				strcat(logtext, "<NO CLASSFILE INFORMATION>");
 			else
-				logtextlen += utf_strlen(m->class->sourcefile);
+				utf_strcat(logtext, m->class->sourcefile);
 
-			logtextlen += strlen(":65536)");
-
-		} else
-			logtextlen += strlen("call_java_method");
-
-		logtextlen += strlen("0");
-
-		/* allocate memory */
-
-		dumpsize = dump_size();
-
-		logtext = DMNEW(char, logtextlen);
-
-		if (xptr) {
-			strcpy(logtext, "Exception ");
-			utf_strcat_classname(logtext, xptr->vftbl->class->name);
-
-		} else {
-			strcpy(logtext, "Some Throwable");
+			sprintf(logtext + strlen(logtext), ":%d)", 0);
 		}
 
-		strcat(logtext, " thrown in ");
+	} else
+		strcat(logtext, "call_java_method");
 
-		if (m) {
-			utf_strcat_classname(logtext, m->class->name);
-			strcat(logtext, ".");
-			utf_strcat(logtext, m->name);
-			utf_strcat(logtext, m->descriptor);
+	log_text(logtext);
 
-			if (m->flags & ACC_SYNCHRONIZED)
-				strcat(logtext, "(SYNC");
-			else
-				strcat(logtext, "(NOSYNC");
+	/* release memory */
 
-			if (m->flags & ACC_NATIVE) {
-				strcat(logtext, ",NATIVE");
+	dump_release(dumpsize);
 
-#if SIZEOF_VOID_P == 8
-				sprintf(logtext + strlen(logtext),
-						")(0x%016lx) at position 0x%016lx",
-						(ptrint) m->entrypoint, (ptrint) pos);
-#else
-				sprintf(logtext + strlen(logtext),
-						")(0x%08x) at position 0x%08x",
-						(ptrint) m->entrypoint, (ptrint) pos);
-#endif
+	/* print stacktrace for exception */
 
-			} else {
-#if SIZEOF_VOID_P == 8
-				sprintf(logtext + strlen(logtext),
-						")(0x%016lx) at position 0x%016lx (",
-						(ptrint) m->entrypoint, (ptrint) pos);
-#else
-				sprintf(logtext + strlen(logtext),
-						")(0x%08x) at position 0x%08x (",
-						(ptrint) m->entrypoint, (ptrint) pos);
-#endif
-
-				if (m->class->sourcefile == NULL)
-					strcat(logtext, "<NO CLASSFILE INFORMATION>");
-				else
-					utf_strcat(logtext, m->class->sourcefile);
-
-				sprintf(logtext + strlen(logtext), ":%d)", 0);
-			}
-
-		} else
-			strcat(logtext, "call_java_method");
-
-		log_text(logtext);
-
-		/* release memory */
-
-		dump_release(dumpsize);
-
-		/* print stacktrace for exception */
-
-		if (opt_verboseexception) {
-			exceptions_print_exception(xptr);
-			stacktrace_print_trace(xptr);
-		}
+	if (opt_verboseexception) {
+		exceptions_print_exception(xptr);
+		stacktrace_print_trace(xptr);
 	}
 
 	return xptr;
