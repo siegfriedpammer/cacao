@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 3867 2005-12-03 15:24:55Z twisti $
+   $Id: codegen.c 3921 2005-12-08 23:12:01Z twisti $
 
 */
 
@@ -113,10 +113,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	parentargs_base = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
-
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
-
 #endif
 
 	/* create method header */
@@ -125,7 +123,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	(void) dseg_adds4(cd, parentargs_base * 8);             /* FrameSize      */
 
 #if defined(USE_THREADS)
-
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
@@ -133,16 +130,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);     /* IsSync         */
+		(void) dseg_adds4(cd, (rd->memuse + 1) * 8);        /* IsSync         */
 	else
-
 #endif
-
-	(void) dseg_adds4(cd, 0);                               /* IsSync         */
+		(void) dseg_adds4(cd, 0);                           /* IsSync         */
 	                                       
 	(void) dseg_adds4(cd, m->isleafmethod);                 /* IsLeaf         */
-	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);/* IntSave  */
-	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);/* FltSave  */
+	(void) dseg_adds4(cd, INT_SAV_CNT - rd->savintreguse);  /* IntSave        */
+	(void) dseg_adds4(cd, FLT_SAV_CNT - rd->savfltreguse);  /* FltSave        */
 
 	dseg_addlinenumbertablesize(cd);
 
@@ -159,8 +154,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+	mcodeptr = (s4 *) cd->mcodeptr;
+
 	MCODECHECK(128 + m->paramcount);
 
 	/* create stack frame (if necessary) */
@@ -259,9 +254,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_addaddress(cd, m->class);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_AST(REG_ITMP1, REG_SP, s1 * 8);
-			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
+			M_ALD(rd->argintregs[0], REG_PV, disp);
+			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
 			disp = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
@@ -4219,8 +4213,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+	mcodeptr = (s4 *) cd->mcodeptr;
 
 
 	/* generate stub code */
