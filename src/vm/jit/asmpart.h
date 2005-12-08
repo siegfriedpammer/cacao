@@ -29,13 +29,17 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 3906 2005-12-07 20:23:33Z twisti $
+   $Id: asmpart.h 3911 2005-12-08 14:33:46Z twisti $
 
 */
 
 
 #ifndef _ASMPART_H
 #define _ASMPART_H
+
+#include "config.h"
+#include "vm/types.h"
+
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -45,6 +49,8 @@
 # endif
 #endif
 
+#include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/resolve.h"
 #include "vm/jit/stacktrace.h"
 
