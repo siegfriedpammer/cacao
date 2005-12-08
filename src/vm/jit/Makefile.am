@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3768 2005-11-23 15:05:59Z twisti $
+## $Id: Makefile.am 3909 2005-12-08 14:31:19Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,6 +68,7 @@ SCHEDULE_LIB = schedule/libschedule.la
 endif
 
 noinst_HEADERS = \
+	abi.h \
 	asmpart.h \
 	codegen.inc \
 	codegen.inc.h \
