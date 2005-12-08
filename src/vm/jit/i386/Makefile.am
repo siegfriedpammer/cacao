@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3765 2005-11-23 14:41:16Z twisti $
+## $Id: Makefile.am 3914 2005-12-08 16:27:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -52,7 +52,8 @@ noinst_HEADERS = \
 	machine-instr.h \
 	\
 	md-abi.h \
-	md-abi.inc
+	md-abi.inc \
+	md-asm.h
 
 noinst_LTLIBRARIES = libarch.la
 
