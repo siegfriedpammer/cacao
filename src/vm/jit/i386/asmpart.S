@@ -30,40 +30,25 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 3894 2005-12-06 22:30:30Z twisti $
+   $Id: asmpart.S 3915 2005-12-08 16:29:33Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include "vm/jit/abi.h"
+#include "vm/jit/i386/md-abi.h"
+#include "vm/jit/i386/md-asm.h"
 #include "vm/jit/i386/offsets.h"
 
 #include "vm/jit/methodheader.h"
 
 
-/* define it like the risc way */
-
-#define v0       %eax
-
-#define sp       %esp
-#define bp       %ebp
-
-#define itmp1    %eax
-#define itmp2    %ecx
-#define itmp3    %edx
-
-#define itmp1b   %al
-#define itmp2b   %cl
-#define itmp3b   %dl
-
-#define xptr     itmp1
-#define xpc      itmp2
-
-
 	.text
 
 
-/********************* exported functions and variables ***********************/
+/* exported functions and variables *******************************************/
 
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction_int
@@ -106,52 +91,51 @@
 *                                                                              *
 *******************************************************************************/
 
-call_name:
 	.align	8
 
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler         /* handler pc                           */
-	.long   calljava_xhandler         /* end pc                               */
-	.long   asm_calljavafunction      /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* line number table start              */
-	.long   0                         /* line number table size               */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
+	.long   0                           /* catch type all                     */
+	.long   calljava_xhandler           /* handler pc                         */
+	.long   calljava_xhandler           /* end pc                             */
+	.long   asm_calljavafunction        /* start pc                           */
+	.long   1                           /* extable size                       */
+	.long   0                           /* line number table start            */
+	.long   0                           /* line number table size             */
+	.long   0                           /* fltsave                            */
+	.long   0                           /* intsave                            */
+	.long   0                           /* isleaf                             */
+	.long   0                           /* IsSync                             */
+	.long   0                           /* frame size                         */
+	.long   0                           /* method pointer (pointer to name)   */
 
 asm_calljavafunction:
 asm_calljavafunction_int:
-	push    %ebp                      /* allocate stack space                 */
-	mov     %esp, %ebp
+	push    bp                          /* allocate stack space               */
+	mov     sp,bp
 
-	push    %ebx                      /* save registers                       */
+	push    %ebx                        /* save registers                     */
 	push    %esi
 	push    %edi
 
-
-	sub		$16,%esp                    /* 4 adress parameters * 4 Bytes      */
-	mov     24(%ebp),%eax               /* copy adress parameters to new block*/
-	mov     %eax,12(%esp)
+	sub		$(4*4),sp                   /* 4 adress parameters * 4 Bytes      */
+	mov     5*4(bp),itmp1               /* copy adress parameters to new block*/
+	mov     itmp1,3*4(sp)
 		
-	mov     20(%ebp),%eax
-	mov     %eax,8(%esp)
+	mov     5*4(bp),itmp1
+	mov     itmp1,2*4(sp)
 
-	mov     16(%ebp),%eax
-	mov     %eax,4(%esp)
+	mov     4*4(bp),itmp1
+	mov     itmp1,1*4(sp)
 
-	mov     12(%ebp),%eax
-	mov     %eax,(%esp)
+	mov     3*4(bp),itmp1
+	mov     itmp1,0*4(sp)
 		
-	mov     8(%ebp),%eax                /* move function pointer to %eax      */
+	mov     2*4(bp),itmp1               /* move function pointer to %eax      */
 
-	lea     asm_call_jit_compiler,%edx 
-	call    *%edx                       /* call JIT compiler                  */
+	lea     asm_call_jit_compiler,itmp3
+	call    *itmp3                      /* call JIT compiler                  */
 
-	add     $16,%esp
+L_asm_calljavafunction_return:
+	add     $(4*4),sp
 	pop     %edi                        /* restore registers                  */
 	pop     %esi
 	pop     %ebx
@@ -159,17 +143,11 @@ asm_calljavafunction_int:
 	ret
 
 calljava_xhandler:
-	push    %eax                        /* pass exception pointer             */
+	push    xptr                        /* pass exception pointer             */
 	call    builtin_throw_exception
-	add     $4,%esp
-
-	add     $16,%esp
-	pop     %edi                        /* restore registers                  */
-	pop     %esi
-	pop     %ebx
-	leave
+	add     $4,sp
 	xor     v0,v0                       /* return NULL                        */
-	ret
+	jmp     L_asm_calljavafunction_return
 
 
 /********************* function asm_calljavafunction ***************************
@@ -186,22 +164,21 @@ calljava_xhandler:
 *                                                                              *
 *******************************************************************************/
 
-call_name2:
 	.align	8
 
-	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler2        /* handler pc                           */
-	.long   calljava_xhandler2        /* end pc                               */
-	.long   asm_calljavafunction2     /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* line number table start              */
-	.long   0                         /* line number table size               */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   32                        /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
+	.long   0                           /* catch type all                     */
+	.long   calljava_xhandler2          /* handler pc                         */
+	.long   calljava_xhandler2          /* end pc                             */
+	.long   asm_calljavafunction2       /* start pc                           */
+	.long   1                           /* extable size                       */
+	.long   0                           /* line number table start            */
+	.long   0                           /* line number table size             */
+	.long   0                           /* fltsave                            */
+	.long   0                           /* intsave                            */
+	.long   0                           /* isleaf                             */
+	.long   0                           /* IsSync                             */
+	.long   0                           /* frame size                         */
+	.long   0                           /* method pointer (pointer to name)   */
 
 asm_calljavafunction2:
 asm_calljavafunction2int:
@@ -268,28 +245,23 @@ calljava_copynext:
 calljava_copydone:
 	mov     8(%ebp),%eax              /* move function pointer to %eax        */
 
-	lea     asm_call_jit_compiler,%edx 
-	call    *%edx                     /* call JIT compiler                    */
-	
-	add     %esi,%esp                 /* remove arg stack frame               */
-	pop     %edi                      /* restore registers                    */
+	lea     asm_call_jit_compiler,itmp3
+	call    *itmp3                      /* call JIT compiler                  */
+
+L_asm_calljavafunction2_return:
+	add     %esi,%esp                   /* remove arg stack frame             */
+	pop     %edi                        /* restore registers                  */
 	pop     %esi
 	pop     %ebx
 	leave
 	ret
 
 calljava_xhandler2:
-	push    xptr                      /* pass exception pointer               */
+	push    xptr                        /* pass exception pointer             */
 	call    builtin_throw_exception
-	add     $4,%esp
-    
-	add     %esi,%esp                 /* remove arg stack frame               */
-	pop     %edi                      /* restore registers                    */
-	pop     %esi
-	pop     %ebx
-	leave
-	xor     v0,v0                     /* return NULL                          */
-	ret
+	add     $4,sp
+	xor     v0,v0                       /* return NULL                        */
+	jmp     L_asm_calljavafunction2_return
 
 
 /****************** function asm_call_jit_compiler *****************************
@@ -412,19 +384,22 @@ asm_handle_nat_exception:
 	add     $4,sp                       /* clear return address of native stub*/
 		
 asm_handle_exception:
-#if 0
-	xor     %edi,%edi                   /* clear indent flag (only first time)*/
-#endif
+	sub     $((ARG_CNT+TMP_CNT)*4),sp   /* create maybe-leaf stackframe       */
+
+	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
+	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
+
+	mov     $((ARG_CNT+TMP_CNT)*4),itmp3/* prepare a3 for handle_exception    */
+	mov     $1,t0                       /* set maybe-leaf flag                */
 
 L_asm_handle_exception_stack_loop:
-	sub     $(10*4),sp                   /* create stackframe                  */
+	sub     $(10*4),sp                  /* create stackframe                  */
 	mov     xptr,4*4(sp)                /* save exception pointer             */
 	mov     xpc,5*4(sp)                 /* save exception pc                  */
-
-#if 0
-	mov     %ebx,7*4(sp)                /* save registers (non-callee)        */
-	mov     %ebp,8*4(sp)
-#endif
+	add     sp,itmp3                    /* calculate Java sp into a3...       */
+	add     $(10*4),itmp3
+	mov     itmp3,7*4(sp)               /* ...and save it                     */
+	mov     t0,8*4(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,0*4(sp)                 /* pass exception pc                  */
 	call    codegen_findmethod
@@ -435,8 +410,7 @@ L_asm_handle_exception_stack_loop:
 	mov     5*4(sp),itmp3               /* pass exception pc                  */
 	mov     itmp3,1*4(sp)
 	mov     v0,2*4(sp)                  /* pass data segment pointer          */
-	mov     sp,itmp3                    /* pass Java stack pointer            */
-	add     $(10*4),itmp3
+	mov     7*4(sp),itmp3               /* pass Java stack pointer            */
 	mov     itmp3,3*4(sp)
 	call    exceptions_handle_exception
 
@@ -445,77 +419,91 @@ L_asm_handle_exception_stack_loop:
 
 	mov     v0,xpc                      /* move handlerpc into xpc            */
 	mov     4*4(sp),xptr                /* restore exception pointer          */
-#if 0
-	mov     7*4(sp),%ebx                /* restore registers (non-callee)     */
-	mov     8*4(sp),%ebp
-#endif
-	add     $(10*4),sp                   /* free stackframe                    */
+	mov     8*4(sp),t0                  /* get maybe-leaf flag                */
+	add     $(10*4),sp                  /* free stackframe                    */
 
+	test    t0,t0                       /* test for maybe-leaf flag           */
+	jz      L_asm_handle_exception_no_leaf
+
+	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
+	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
+
+	add     $((ARG_CNT+TMP_CNT)*4),sp   /* remove maybe-leaf stackframe       */
+
+L_asm_handle_exception_no_leaf:
 	jmp     *xpc                        /* jump to exception handler          */
 
 L_asm_handle_exception_not_catched:
 	mov     4*4(sp),xptr                /* restore exception pointer          */
 	mov     6*4(sp),itmp3               /* restore data segment pointer       */
-#if 0
-	mov     7*4(sp),%ebx                /* restore registers (non-callee)     */
-	mov     8*4(sp),%ebp
-#endif
-	add     $(10*4),sp                   /* free stackframe                    */
+	mov     8*4(sp),t0                  /* get maybe-leaf flag                */
+	add     $(10*4),sp                  /* free stackframe                    */
 
+	test    t0,t0
+	jz      L_asm_handle_exception_no_leaf_stack
+
+	add     $((ARG_CNT+TMP_CNT)*4),sp   /* remove maybe-leaf stackframe       */
+	xor     t0,t0                       /* clear the maybe-leaf flag          */
+
+L_asm_handle_exception_no_leaf_stack:
 	mov     FrameSize(itmp3),itmp2      /* get frame size                     */
-	add     itmp2,sp                    /* unwind stack                       */
-	mov     sp,itmp2                    /* pointer to save area               */
+	add     sp,itmp2                    /* pointer to save area               */
 
-	mov     IntSave(itmp3),%ebx         /* %ecx = saved int register count    */
-	test    %ebx,%ebx
+	push    xptr                        /* we are out of registers            */
+
+	mov     IntSave(itmp3),itmp1        /* itmp1 = saved int register count   */
+	test    itmp1,itmp1
 	je      noint
 
-	cmp     $1,%ebx
+	cmp     $1,itmp1
 	je      int1
-	cmp     $2,%ebx
+	cmp     $2,itmp1
 	je      int2
 
-	mov     -12(itmp2),%ebp
+	mov     -3*4(itmp2),s0
 int2:	
-	mov     -8(itmp2),%esi
+	mov     -2*4(itmp2),s1
 int1:	
-	mov     -4(itmp2),%edi
+	mov     -1*4(itmp2),s2
 
-	shl     $2,%ebx                     /* multiply by 4 bytes                */
-	sub     %ebx,itmp2
+	shl     $2,itmp1                    /* multiply by 4 bytes                */
+	sub     itmp1,itmp2
 		
 noint:
-	mov     FltSave(itmp3),%ebx         /* %ecx = saved flt register count    */
-	test    %ebx,%ebx
+#if 0
+	mov     FltSave(itmp3),itmp1        /* itmp1 = saved flt register count   */
+	test    itmp1,itmp1
 	je      noflt
 
-	cmp     $1,%ebx
+	cmp     $1,itmp1
 	je      flt1
-	cmp     $2,%ebx
+	cmp     $2,itmp1
 	je      flt2
-	cmp     $3,%ebx
+	cmp     $3,itmp1
 	je      flt3
 		
-	fldl    -32(itmp2)
+	fldl    -4*8(itmp2)
 	fstp    %st(1)
 flt3:
-	fldl    -24(itmp2)
+	fldl    -3*8(itmp2)
 	fstp    %st(2)
 flt2:
-	fldl    -16(itmp2)
+	fldl    -2*8(itmp2)
 	fstp    %st(3)
 flt1:
-	fldl    -8(itmp2)
+	fldl    -1*8(itmp2)
 	fstp    %st(4)
 		
 noflt:
-	                                    /* exception pointer is still set     */
+#endif
+	pop     xptr                        /* restore exception pointer          */
+	mov     FrameSize(itmp3),itmp2      /* get frame size                     */
+	add     itmp2,sp                    /* unwind stack                       */
+
 	pop     xpc                         /* the new xpc is return address      */
 	sub     $2,xpc                      /* subtract 2-bytes for call          */
 
-#if 0
-	mov     $1,%edi                     /* set indent flag                    */
-#endif
+	xor     itmp3,itmp3                 /* prepare a3 for handle_exception    */
 
 	jmp     L_asm_handle_exception_stack_loop
 		
