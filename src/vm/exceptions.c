@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3907 2005-12-08 14:25:13Z twisti $
+   $Id: exceptions.c 3917 2005-12-08 23:07:57Z twisti $
 
 */
 
@@ -1025,16 +1025,21 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
-/*  	if (m != NULL) { */
-/*  		printf("exceptions_handle_exception: "); */
-/*  		utf_display(m->class->name); */
-/*  		printf("."); */
-/*  		utf_display(m->name); */
-/*  		utf_display(m->descriptor); */
-/*  		printf(", %d\n", exceptiontablelength); */
-/*  	} */
+#if 0
+ 	if (m != NULL) {
+ 		printf("exceptions_handle_exception(%p, %p, %p, %p): ", xptr, xpc, pv, sp);
+ 		utf_display(m->class->name);
+ 		printf(".");
+ 		utf_display(m->name);
+ 		utf_display(m->descriptor);
+ 		printf(", %d\n", exceptiontablelength);
+ 	}
+#endif
 
-	builtin_trace_exception(xptr, m, xpc, 1);
+	/* print exception trace */
+
+	if (opt_verbose || runverbose || opt_verboseexception)
+		builtin_trace_exception(xptr, m, xpc, 1);
 
 	for (i = 0; i < exceptiontablelength; i++) {
 		/* ATTENTION: keep this here, as we need to decrement the
