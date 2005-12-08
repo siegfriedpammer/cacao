@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 2777 2005-06-22 09:51:11Z christian $
+   $Id: md-abi.h 3919 2005-12-08 23:09:25Z twisti $
 
 */
 
@@ -72,14 +72,14 @@
 #define INT_ARG_CNT      6   /* number of int argument registers              */
 #define INT_TMP_CNT     11   /* number of int temp registers                  */
 #define INT_RES_CNT      7   /* number of reserved integer registers          */
-                             /* the one "missing" register is the return reg  */ 
+                             /* the one "missing" register is the return reg  */
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
 #define FLT_SAV_CNT      8   /* number of flt callee saved registers          */
 #define FLT_ARG_CNT      6   /* number of flt argument registers              */
 #define FLT_TMP_CNT     13   /* number of flt temp registers                  */
 #define FLT_RES_CNT      4   /* number of reserved float registers            */
-                             /* the one "missing" register is the return reg  */ 
+                             /* the one "missing" register is the return reg  */
 
 #define TRACE_ARGS_NUM   6
 
