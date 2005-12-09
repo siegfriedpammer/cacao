@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3927 2005-12-09 11:32:47Z twisti $
+   $Id: md-asm.h 3928 2005-12-09 14:30:12Z twisti $
 
 */
 
@@ -210,6 +210,7 @@
 #define ald     ld
 #define ast     sd
 #define ala     dla
+#define asll    dsll
 
 #define all     lld
 #define asc     scd
@@ -223,6 +224,7 @@
 #define ald     lw
 #define ast     sw
 #define ala     la
+#define asll    sll
 
 #define all     ll
 #define asc     sc
@@ -242,6 +244,7 @@
 	ld      v0,(0+(off))*8(sp)	; \
 	ldc1    fv0,(1+(off))*8(sp)	;
 
+
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	sd      a0,(0+(off))*8(sp)	; \
 	sd      a1,(1+(off))*8(sp)	; \
@@ -260,7 +263,6 @@
 	sdc1    fa5,(13+(off))*8(sp); \
 	sdc1    fa6,(14+(off))*8(sp); \
 	sdc1    fa7,(15+(off))*8(sp); 
-
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	ld      a0,(0+(off))*8(sp)	; \
@@ -306,7 +308,6 @@
 	sdc1    ft17,(19+(off))*8(sp)	; \
 	sdc1    ft18,(20+(off))*8(sp)	;
 
-
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	ld      t0,(0+(off))*8(sp)	; \
 	ld      t1,(1+(off))*8(sp)	; \
@@ -343,12 +344,12 @@
 	lw      v1,(1+(off))*4(sp)	; \
 	ldc1    fv0,(2+(off))*4(sp)	;
 
+
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	sw      a0,(0+(off))*4(sp)	; \
 	sw      a1,(1+(off))*4(sp)	; \
 	sw      a2,(2+(off))*4(sp)	; \
 	sw      a3,(3+(off))*4(sp)	;
-
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	lw      a0,(0+(off))*4(sp)	; \
@@ -366,7 +367,6 @@
 	sw      t5,(5+(off))*4(sp)	; \
 	sw      t6,(6+(off))*4(sp)	; \
 	sw      t7,(7+(off))*4(sp)	;
-
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	lw      t0,(0+(off))*4(sp)	; \
