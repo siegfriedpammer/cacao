@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3904 2005-12-07 17:44:37Z twisti $
+   $Id: cacao.c 3933 2005-12-09 15:24:03Z twisti $
 
 */
 
@@ -1419,9 +1419,6 @@ int main(int argc, char **argv)
 						if (!link_class(c)) {
 							fprintf(stderr, "Error linking: ");
 							utf_fprint_classname(stderr, c->name);
-							fprintf(stderr, ".");
-							utf_fprint(stderr, m->name);
-							utf_fprint(stderr, m->descriptor);
 							fprintf(stderr, "\n");
 
 							/* print out exception and cause */
