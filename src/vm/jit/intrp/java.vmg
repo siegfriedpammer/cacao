@@ -154,10 +154,9 @@ ACONST ( #aRef -- aRef ) opt
 
 ACONST1 ( #aRef #acrUnused -- aRef ) opt
 
-PATCHER_ACONST ( #aRef #acr -- )
+PATCHER_ACONST ( #aRef #acr ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_aconst((u1 *) (IP - 3));
@@ -832,40 +831,38 @@ LOOKUPSWITCH ( #iNpairs #addrSegment #iOffset #ainstDefault iKey -- ) 0xab
 \       stack0 ;once there is something on the stack
 \       ...
 
-IRETURN ( #vOffsetFP vValue -- vResult ) 0xac
+IRETURN ( #vOffsetFP ... vValue -- vResult ) 0xac
 {
   Inst *new_ip;
   Cell *currentsp = sp;
   new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
-  sp = fp;
+  sp = fp+1;
   fp = (Cell *)access_local_cell(vOffsetFP);
-  CLEARSTACK(currentsp-5, sp);
+  CLEARSTACK(currentsp-6, sp-1);
   vResult = vValue;
   SET_IP(new_ip);
 }
 
-LRETURN ( #vOffsetFP lValue -- lResult ) 0xad
+LRETURN ( #vOffsetFP ... lValue -- lResult ) 0xad
 {
   Inst *new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   Cell *currentsp = sp;
-  sp = fp - 1;
+  sp = fp + 1;
   fp = (Cell *)access_local_cell(vOffsetFP);
-  CLEARSTACK(currentsp-5, sp);
+  CLEARSTACK(currentsp-7, sp-2);
   lResult = lValue;
   SET_IP(new_ip);
 }
 
-RETURN ( #vOffsetFP -- ) 0xb1
+RETURN ( #vOffsetFP ... -- ) 0xb1
 {
   Inst *new_ip;
   Cell *currentsp = sp;
-  IF_spTOS(sp[0] = spTOS);
   new_ip = (Inst *)access_local_cell(vOffsetFP - SIZEOF_VOID_P);
   sp = fp+1;
   fp = (Cell *)access_local_cell(vOffsetFP);
   CLEARSTACK(currentsp-5, sp-1);
   SET_IP(new_ip);
-  IF_spTOS(spTOS = sp[0]);
 }
 
 GETSTATIC_CELL ( #addr #auf -- vResult ) opt
@@ -939,9 +936,9 @@ PUTFIELD_LONG ( #vOffset #auf aRef lValue -- ) opt
 \ methods are always called indirectly through the codeptr in the stub 
 \   (see createcompilerstub and TRANSLATE).
 
-INVOKEVIRTUAL ( #vOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
+INVOKEVIRTUAL ( #vOffset #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xd8
 {
-  java_objectheader *aRef = (java_objectheader *)(sp[iNargs + 1]); /* corrected for sp change by vmg */
+  java_objectheader *aRef = (java_objectheader *)(sp[iNargs - 1]);
   char *v;
   Inst **stub;
   Inst *target;
@@ -951,45 +948,43 @@ INVOKEVIRTUAL ( #vOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
   target = *stub;
   acelloldfp = fp;
   ainstoldip = IP;
-  fp = sp + 1 + iNargs;
-  sp = fp - MAXLOCALS(stub) - 1;
+  fp = sp - 1 + iNargs;
+  sp = fp - MAXLOCALS(stub) + 1;
   SET_IP(target);
 }
 
-INVOKESTATIC ( #aaTarget #iNargs #aum -- acelloldfp ainstoldip ) 0xb8
+INVOKESTATIC ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb8
 /* an indirect pointer to target is passed to avoid references to uncompiled code */
 {
   Inst *target = *aaTarget;
   acelloldfp = fp;
   ainstoldip = IP;
-  /* sp is already updated by the generator, so we have to compensate for that */
-  fp = sp + 1 + iNargs; /* !! scale nargs at translation time */
-  sp = fp - MAXLOCALS(aaTarget) - 1;
+  fp = sp - 1 + iNargs; /* !! scale nargs at translation time */
+  sp = fp - MAXLOCALS(aaTarget) + 1;
   SET_IP(target);
 }
 
-INVOKESPECIAL ( #aaTarget #iNargs #aum -- acelloldfp ainstoldip ) 0xb7
+INVOKESPECIAL ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb7
 /* an indirect pointer to target is passed to avoid references to uncompiled code */
 {
-  java_objectheader *aRef = (java_objectheader *)(sp[iNargs + 1]); /* corrected for sp change by vmg */
+  java_objectheader *aRef = (java_objectheader *)(sp[iNargs - 1]);
   Inst *target = *aaTarget;
   CHECK_NULL_PTR(aRef);
   acelloldfp = fp;
   ainstoldip = IP;
-  /* sp is already updated by the generator, so we have to compensate for that */
-  fp = sp + 1 + iNargs; /* !! scale nargs at translation time */
-  sp = fp - MAXLOCALS(aaTarget) - 1;
+  fp = sp - 1 + iNargs; /* !! scale nargs at translation time */
+  sp = fp - MAXLOCALS(aaTarget) + 1;
   SET_IP(target);
 }
 
-INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum -- acelloldfp ainstoldip ) 0xd8
+INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xd8
 {
   java_objectheader *aRef;
   char   *v, *t;
   Inst **stub;
   Inst *target;
   ;
-  aRef = (java_objectheader *)sp[iNargs + 1];
+  aRef = (java_objectheader *)sp[iNargs - 1];
   CHECK_NULL_PTR(aRef);
   v = (char *)(aRef->vftbl);
   t = *(char **)(v + iInterfaceOffset);
@@ -997,15 +992,18 @@ INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum -- acelloldfp ainstold
   target = *stub;
   acelloldfp = fp;
   ainstoldip = IP;
-  fp = sp + 1 + iNargs;
-  sp = fp - MAXLOCALS(stub) - 1;
+  fp = sp - 1 + iNargs;
+  sp = fp - MAXLOCALS(stub) + 1;
   SET_IP(target);
 }
 
 \ the BUILTIN functions like NEW get their parameters on the stack
 \ instead of through immediate arguments.
 
-NEW ( aClass -- aRef ) 0xbb
+\ !! do we need to synchronize the stack here?
+\ !! if so, is global_sp right?
+
+NEW ( ... aClass -- ... aRef ) 0xbb
 {
   global_sp = sp;
   aRef = builtin_new((classinfo *) aClass);
@@ -1020,7 +1018,7 @@ NEW ( aClass -- aRef ) 0xbb
 
 \ !! use a macro
 
-NEWARRAY_BOOLEAN ( iSize -- aArray )
+NEWARRAY_BOOLEAN ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_boolean(iSize);
@@ -1033,7 +1031,7 @@ NEWARRAY_BOOLEAN ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_BYTE ( iSize -- aArray )
+NEWARRAY_BYTE ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_byte(iSize);
@@ -1046,7 +1044,7 @@ NEWARRAY_BYTE ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_CHAR ( iSize -- aArray )
+NEWARRAY_CHAR ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_char(iSize);
@@ -1059,7 +1057,7 @@ NEWARRAY_CHAR ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_SHORT ( iSize -- aArray )
+NEWARRAY_SHORT ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_short(iSize);
@@ -1072,7 +1070,7 @@ NEWARRAY_SHORT ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_INT ( iSize -- aArray )
+NEWARRAY_INT ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_int(iSize);
@@ -1085,7 +1083,7 @@ NEWARRAY_INT ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_LONG ( iSize -- aArray )
+NEWARRAY_LONG ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_long(iSize);
@@ -1098,7 +1096,7 @@ NEWARRAY_LONG ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_FLOAT ( iSize -- aArray )
+NEWARRAY_FLOAT ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_float(iSize);
@@ -1111,7 +1109,7 @@ NEWARRAY_FLOAT ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY_DOUBLE ( iSize -- aArray )
+NEWARRAY_DOUBLE ( ... iSize -- ... aArray )
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray_double(iSize);
@@ -1124,7 +1122,7 @@ NEWARRAY_DOUBLE ( iSize -- aArray )
   CLEAR_global_sp;
 }
 
-NEWARRAY ( iSize avftbl -- aArray ) 0xbd
+NEWARRAY ( ... iSize avftbl -- ... aArray ) 0xbd
 {
   global_sp = sp;
   aArray = (java_arrayheader *) builtin_newarray(iSize, (vftbl_t *) avftbl);
@@ -1143,7 +1141,7 @@ ARRAYLENGTH ( aArray -- iResult ) 0xbe
   iResult = length_array(aArray);
 }
 
-ATHROW ( aRef -- aRef1 ) 0xbf
+ATHROW ( ... aRef -- ... aRef1 ) 0xbf
 {
   Cell *new_sp, *new_fp;
   Inst *new_ip;
@@ -1151,23 +1149,20 @@ ATHROW ( aRef -- aRef1 ) 0xbf
   goto athrow;
 throw:
   CLEAR_global_sp;
-  /* IF_spTOS(sp[0] = spTOS); */
   aRef = *exceptionptr;
   *exceptionptr = NULL;
 athrow:
   new_ip = asm_handle_exception(IP,aRef,fp,&new_sp,&new_fp);
   if (new_ip==NULL) {
     /* !! sp = new_sp; ? */
-    IF_spTOS(sp[0] = spTOS);  /* !! correct? even for superinstructions? */
-    global_sp = sp;
+    global_sp = sp-1;
     SUPER_END; /* ATHROW may end a basic block */
     return aRef;
   }
   SET_IP(new_ip);
   aRef1 = aRef;
-  sp=new_sp-1;
+  sp=new_sp;
   fp=new_fp;
-  /* IF_spTOS(spTOS = sp[0]); */
 }
 
 CHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
@@ -1182,10 +1177,9 @@ ARRAYCHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0
     THROW(classcastexception);
 }
 
-PATCHER_ARRAYCHECKCAST ( #avftbl #acr -- ) 0xc0
+PATCHER_ARRAYCHECKCAST ( #avftbl #acr ... -- ) 0xc0
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_builtin_arraycheckcast((u1 *) (IP - 3));
@@ -1229,14 +1223,14 @@ CHECKNULL ( aRef -- aRef ) 0xc3
   CHECK_NULL_PTR(aRef);
 }
 
-MULTIANEWARRAY ( #avftbl #iSize #acr -- aRef ) 197
+MULTIANEWARRAY ( #avftbl #iSize #acr ... -- aRef ) 197
 {
   long dims[iSize];
   int i;
   for (i = 0; i < iSize; i++) {
-    dims[i] = (sp + 1)[iSize - i - 1]; /* sp+1 to counter decrement by vmgen */
+    dims[i] = sp[iSize - i - 1];
   }
-  global_sp = sp + 1;
+  global_sp = sp;
   aRef = (java_objectheader *)builtin_multianewarray(iSize, avftbl, dims);
   if (aRef == NULL) {
     global_sp = sp;
@@ -1264,10 +1258,9 @@ IFNONNULL ( #ainstTarget aRef -- ) 0xc7
 
 \ patchers for stuff that is unknown at compile time (unloaded classes)
 
-PATCHER_GETSTATIC_INT ( #aRef #auf -- )
+PATCHER_GETSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1280,10 +1273,9 @@ IP[-3] = INST_ADDR(GETSTATIC_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_GETSTATIC_LONG ( #aRef #auf -- )
+PATCHER_GETSTATIC_LONG ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1296,10 +1288,9 @@ IP[-3] = INST_ADDR(GETSTATIC_LONG);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_GETSTATIC_CELL ( #aRef #auf -- )
+PATCHER_GETSTATIC_CELL ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1312,10 +1303,9 @@ IP[-3] = INST_ADDR(GETSTATIC_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTSTATIC_INT ( #aRef #auf -- )
+PATCHER_PUTSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1328,10 +1318,9 @@ IP[-3] = INST_ADDR(PUTSTATIC_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTSTATIC_LONG ( #aRef #auf -- )
+PATCHER_PUTSTATIC_LONG ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1344,10 +1333,9 @@ IP[-3] = INST_ADDR(PUTSTATIC_LONG);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTSTATIC_CELL ( #aRef #auf -- )
+PATCHER_PUTSTATIC_CELL ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putstatic((u1 *)(IP-3));
@@ -1360,10 +1348,9 @@ IP[-3] = INST_ADDR(PUTSTATIC_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_GETFIELD_INT ( #vOffset #auf -- )
+PATCHER_GETFIELD_INT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1376,10 +1363,9 @@ IP[-3] = INST_ADDR(GETFIELD_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_GETFIELD_LONG ( #vOffset #auf -- )
+PATCHER_GETFIELD_LONG ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1392,10 +1378,9 @@ IP[-3] = INST_ADDR(GETFIELD_LONG);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_GETFIELD_CELL ( #vOffset #auf -- )
+PATCHER_GETFIELD_CELL ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1408,10 +1393,9 @@ IP[-3] = INST_ADDR(GETFIELD_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTFIELD_INT ( #vOffset #auf -- )
+PATCHER_PUTFIELD_INT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1424,10 +1408,9 @@ IP[-3] = INST_ADDR(PUTFIELD_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTFIELD_LONG ( #vOffset #auf -- )
+PATCHER_PUTFIELD_LONG ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1440,10 +1423,9 @@ IP[-3] = INST_ADDR(PUTFIELD_LONG);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_PUTFIELD_CELL ( #vOffset #auf -- )
+PATCHER_PUTFIELD_CELL ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_get_putfield((u1 *)(IP-3));
@@ -1456,10 +1438,9 @@ IP[-3] = INST_ADDR(PUTFIELD_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr -- )
+PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr ... -- )
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_builtin_multianewarray((u1 *)(IP - 4));
@@ -1472,10 +1453,9 @@ IP[-4] = INST_ADDR(MULTIANEWARRAY);
 SET_IP(IP - 4);
 patchersuper_rewrite(IP);
 
-PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum -- ) 0xd8
+PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_invokestatic_special((u1 *)(IP-4));
@@ -1488,10 +1468,9 @@ IP[-4] = INST_ADDR(INVOKESTATIC);
 SET_IP(IP-4);
 patchersuper_rewrite(IP);
 
-PATCHER_INVOKESPECIAL ( #aaTarget #iNargs #aum -- ) 0xd8
+PATCHER_INVOKESPECIAL ( #aaTarget #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_invokestatic_special((u1 *)(IP-4));
@@ -1504,10 +1483,9 @@ IP[-4] = INST_ADDR(INVOKESPECIAL);
 SET_IP(IP-4);
 patchersuper_rewrite(IP);
 
-PATCHER_INVOKEVIRTUAL ( #vOffset #iNargs #aum -- ) 0xd8
+PATCHER_INVOKEVIRTUAL ( #vOffset #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_invokevirtual((u1 *)(IP-4));
@@ -1520,10 +1498,9 @@ IP[-4] = INST_ADDR(INVOKEVIRTUAL);
 SET_IP(IP-4);
 patchersuper_rewrite(IP);
 
-PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #vOffset #iNargs #aum -- ) 0xd8
+PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #vOffset #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_invokeinterface((u1 *)(IP-5));
@@ -1536,10 +1513,9 @@ IP[-5] = INST_ADDR(INVOKEINTERFACE);
 SET_IP(IP-5);
 patchersuper_rewrite(IP);
 
-PATCHER_CHECKCAST ( #aClass #acr -- ) 0xc
+PATCHER_CHECKCAST ( #aClass #acr ... -- ) 0xc
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_checkcast_instanceof((u1 *)(IP-3));
@@ -1552,10 +1528,9 @@ IP[-3] = INST_ADDR(CHECKCAST);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
-PATCHER_INSTANCEOF ( #aClass #acr -- ) 0xc1
+PATCHER_INSTANCEOF ( #aClass #acr ... -- ) 0xc1
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_checkcast_instanceof((u1 *)(IP-3));
@@ -1573,12 +1548,15 @@ patchersuper_rewrite(IP);
 \ first time the method is called, the code in the stub runs, which
 \ translates the bytecode, and replaces the stub with the threaded code.
 
-TRANSLATE ( #am acelloldfp ainstoldip --  acelloldfp ainstoldip )
+TRANSLATE ( #am ... --  )
 {
   Inst *codeptr;
   stackframeinfo sfi;
+  Cell *acelloldfp;
+  Inst *ainstoldip;
   ;
-  IF_spTOS(sp[0] = spTOS);
+  vm_Cell2acell(sp[1],acelloldfp);
+  vm_Cell2ainst(sp[0],ainstoldip);
   global_sp = sp;
   stacktrace_create_extern_stackframeinfo(&sfi, NULL, (u1 *)acelloldfp, (functionptr) ainstoldip, (functionptr) ainstoldip);
   codeptr = (Inst *)jit_compile(am);
@@ -1593,22 +1571,20 @@ TRANSLATE ( #am acelloldfp ainstoldip --  acelloldfp ainstoldip )
   SET_IP(codeptr);
 }
 
-NATIVECALL ( #am #af #addrcif acelloldfp ainstoldip -- )
+NATIVECALL ( #am #af #addrcif ... acelloldfp ainstoldip -- )
 sp = nativecall(af, am, sp, ainstoldip, acelloldfp, addrcif);
-IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
 if (*exceptionptr)
   THROW0;
 
 
-TRACENATIVECALL ( #am #af #addrcif acelloldfp ainstoldip -- )
+TRACENATIVECALL ( #am #af #addrcif ... acelloldfp ainstoldip -- )
 sp = nativecall(af, am, sp, ainstoldip, acelloldfp, addrcif);
-IF_spTOS(spTOS = sp[0]);
 fp = acelloldfp;
 SET_IP(ainstoldip);
 {
-Cell v = spTOS;
+Cell v = sp[0];
 functionptr fp = codegen_findmethod((functionptr)(IP-1));
 methodinfo *m = ((methodinfo **) fp)[-1];
 float f;
@@ -1618,11 +1594,10 @@ builtin_displaymethodstop(m, (s8)v, f, f);
 if (*exceptionptr)
   THROW0;
 
-PATCHER_NATIVECALL ( #am #af #addrcif -- )
+PATCHER_NATIVECALL ( #am #af #addrcif ... -- )
 #if !defined(ENABLE_STATICVM)
 stackframeinfo sfi;
 bool result;
-IF_spTOS(sp[0]=spTOS);
 global_sp = sp;
 stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
 result = patcher_resolve_native((u1 *) (IP - 4));
@@ -1670,8 +1645,7 @@ Double_Store ds;
 ds.l = l;
 builtin_displaymethodstop(m, l, ds.d, ds.d);
 
-END ( -- )
-IF_spTOS(sp[0] = spTOS);
+END ( ... -- )
 global_sp = sp;
 SUPER_END;
 vm_uncount_block(IP); /* undo the count part of SUPER_END,
