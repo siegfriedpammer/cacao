@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3879 2005-12-05 19:36:57Z twisti $
+   $Id: codegen.c 3929 2005-12-09 14:32:46Z twisti $
 
 */
 
@@ -155,8 +155,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+	mcodeptr = (s4 *) cd->mcodeptr;
+
 	MCODECHECK(128 + m->paramcount);
 
 	/* initialize the last patcher pointer */
@@ -254,12 +254,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		if (m->flags & ACC_STATIC) {
 			p = dseg_addaddress(cd, m->class);
-			M_ALD(REG_ITMP1, REG_PV, p);
-			M_AST(REG_ITMP1, REG_SP, s1 * 8);
+			M_ALD(rd->argintregs[0], REG_PV, p);
 			p = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
 			M_ALD(REG_ITMP3, REG_PV, p);
 			M_JSR(REG_RA, REG_ITMP3);
-			M_INTMOVE(REG_ITMP1, rd->argintregs[0]); /* branch delay */
+			M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
 
 		} else {
 			M_BEQZ(rd->argintregs[0], 0);
@@ -267,7 +266,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			p = dseg_addaddress(cd, BUILTIN_monitorenter);
 			M_ALD(REG_ITMP3, REG_PV, p);
 			M_JSR(REG_RA, REG_ITMP3);
-			M_AST(rd->argintregs[0], REG_SP, s1 * 8); /* br delay */
+			M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
 		}
 
 		if (runverbose) {
@@ -4117,8 +4116,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+	mcodeptr = (s4 *) cd->mcodeptr;
 
 
 	/* generate stub code */
