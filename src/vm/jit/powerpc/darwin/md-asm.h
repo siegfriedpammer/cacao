@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3709 2005-11-18 00:41:29Z twisti $
+   $Id: md-asm.h 3926 2005-12-09 01:14:29Z twisti $
 
 */
 
@@ -253,16 +253,8 @@
 /* external defines ***********************************************************/
 
 #define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
-
-#if defined(USE_THREADS)
-#define builtin_monitorexit                   _builtin_monitorexit
-#endif
-
 #define builtin_throw_exception               _builtin_throw_exception
-#define builtin_trace_exception               _builtin_trace_exception
-#define initialize_class                      _initialize_class
-#define link_class                            _link_class
-#define load_class_bootstrap                  _load_class_bootstrap
+#define exceptions_handle_exception           _exceptions_handle_exception
 #define jit_compile                           _jit_compile
 
 #define stacktrace_create_extern_stackframeinfo \
