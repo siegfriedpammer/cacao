@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3917 2005-12-08 23:07:57Z twisti $
+   $Id: exceptions.c 3931 2005-12-09 15:09:13Z twisti $
 
 */
 
@@ -1089,7 +1089,12 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	if (issync) {
 		/* get synchronization object */
 
+# if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
+		/* XXX change this if we ever want to use 4-byte stackslots */
+		o = *((java_objectheader **) (sp + issync - 8));
+# else
 		o = *((java_objectheader **) (sp + issync - SIZEOF_VOID_P));
+#endif
 
 		assert(o != NULL);
 
