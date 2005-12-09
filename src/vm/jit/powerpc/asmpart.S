@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3727 2005-11-21 22:01:57Z twisti $
+   $Id: asmpart.S 3925 2005-12-09 00:42:56Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "md-abi.h"
 #include "md-asm.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/powerpc/offsets.h"
 
@@ -99,7 +100,7 @@
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
-	.long   24                        /* frame size                           */
+	.long   0                         /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction:
@@ -165,7 +166,7 @@ asm_calljavafunction_int:
 	addi    pv,itmp1,(asm_calljavafunction-1b)@l
 #endif
 
-L_asm_calljavafunction_restore:
+L_asm_calljavafunction_return:
 #if defined(__DARWIN__)
 	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
 #endif
@@ -203,7 +204,7 @@ calljava_xhandler:
 	mr      a0,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
-	b       L_asm_calljavafunction_restore
+	b       L_asm_calljavafunction_return
 
 
 
@@ -221,7 +222,7 @@ calljava_xhandler:
 	.long   0                         /* intsave                              */
 	.long   0                         /* isleaf                               */
 	.long   0                         /* IsSync                               */
-	.long   24                        /* frame size                           */
+	.long   0                         /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
 
 asm_calljavafunction2:
@@ -345,7 +346,7 @@ L_stack_copy_done:
 	addi    pv,itmp1,(asm_calljavafunction2-1b)@l
 #endif
 
-L_asm_calljavafunction2_restore:
+L_asm_calljavafunction2_return:
 #if defined(__DARWIN__)
 	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
 #endif
@@ -383,7 +384,7 @@ calljava_xhandler2:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
-	b       L_asm_calljavafunction2_restore
+	b       L_asm_calljavafunction2_return
 
 
 jumptable_int:
@@ -626,278 +627,145 @@ asm_handle_nat_exception:
 	add     pv,pv,itmp3
 
 asm_handle_exception:
-	addi    r1,r1,-18*4
-	stw     r0,0*4(r1)
-	stw     r2,1*4(r1)
-	stw     r3,2*4(r1)
-	stw     r4,3*4(r1)
-	stw     r5,4*4(r1)
-	stw     r6,5*4(r1)
-	stw     r7,6*4(r1)
-	stw     r8,7*4(r1)
-	stw     r9,8*4(r1)
-	stw     r10,9*4(r1)
-	stw     r16,10*4(r1)
-	stw     r17,11*4(r1)
-	stw     r18,12*4(r1)
-	stw     r19,13*4(r1)
-	stw     r20,14*4(r1)
-	stw     r21,15*4(r1)
-	stw     r22,16*4(r1)
-	stw     r23,17*4(r1)
+	addi    sp,sp,-(ARG_CNT+TMP_CNT)*8  /* create maybe-leaf stackframe       */
 
-	li      r9,1
-ex_stack_loop:
-	addi    r1,r1,-4*4            /* allocate stack                           */
-	stw     xptr,0*4(r1)          /* save used register                       */
-	stw     xpc,1*4(r1)
-	mflr    xptr
-	stw     xptr,2*4(r1)
-	stw     r9,3*4(r1)
-
-	lwz     r3,0*4(r1)            /* exception pointer                        */
-	lwz     r4,MethodPointer(pv)  /* method pointer                           */
-	mr      r5,xpc                /* exception pc                             */
-/*	mr      r6,r9 */
-	li      r6,0                  /* line number                              */
-	li      r7,4                  /* set no unwind flag                       */
-
-	/* XXX no valid stack frame chaining here */
-	addi    r1,r1,-(24+5*4)       /* 24 linkage area + 5 argument * 4         */
-	bl      builtin_trace_exception
-	addi    r1,r1,(24+5*4)
-
-	lwz     xptr,2*4(r1)
-	mtlr    xptr
-	lwz     xptr,0*4(r1)          /* restore xptr                             */
-	lwz     xpc,1*4(r1)
-	lwz     r9,3*4(r1)
-	addi    r1,r1,4*4
-
-	lwz     r3,ExTableSize(pv)    /* r3 = exception table size                */
-	mr.     r3,r3                 /* if empty table skip                      */
-	beq     empty_table
-
-	addi    r4,pv,ExTableStart    /* r4 = start of exception table            */
-
-ex_table_loop:
-	lwz     r5,ExStartPC(r4)      /* r5 = exception start pc                  */
-	cmplw   r5,xpc                /* (startpc <= xpc)                         */
-	bgt     ex_table_cont
-	lwz     r5,ExEndPC(r4)        /* r5 = exception end pc                    */
-	cmplw   xpc,r5                /* (xpc < endpc)                            */
-	bge     ex_table_cont
-	lwz     r7,ExCatchType(r4)    /* r7 = exception catch type                */
-	mr.     r7,r7
-	beq     ex_handle_it
-
-	lwz     itmp3,offclassloaded(r7)
-	mr.     itmp3,itmp3
-	bne     L_class_loaded
-
-	/* XXX no valid stack frame chaining here */
-	addi    r1,r1,-16*4           /* allocate stack                           */
-	stw     r3,7*4(r1)            /* save used registers                      */
-	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
-	stw     r9,9*4(r1)
-	stw     xptr,10*4(r1)
-	stw     xpc,11*4(r1)
-	mflr    xptr
-	stw     xptr,12*4(r1)
-	stw     r7,13*4(r1)
-
-	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      load_class_bootstrap
-
-	lwz     r3,7*4(r1)
-	lwz     r4,8*4(r1)
-	lwz     r9,9*4(r1)
-	lwz     xptr,10*4(r1)
-	lwz     xpc,11*4(r1)
-	lwz     itmp3,12*4(r1)
-	mtlr    itmp3
-	lwz     r7,13*4(r1)	
-	addi    r1,r1,16*4
-
-L_class_loaded:
-	lwz     itmp3,offclasslinked(r7)
-	mr.     itmp3,itmp3
-	/* XXX no valid stack frame chaining here */
-	addi    r1,r1,-16*4           /* allocate stack                           */
-	stw     r7,13*4(r1)
-	bne     L_class_linked
-
-	stw     r3,7*4(r1)            /* save used registers                      */
-	stw     r4,8*4(r1)            /* 6*4 (linkage) + 1*4 (arg1) + 7*4 (save)  */
-	stw     r9,9*4(r1)
-	stw     xptr,10*4(r1)
-	stw     xpc,11*4(r1)
-	mflr    xptr
-	stw     xptr,12*4(r1)
-
-	mr      r3,r7                 /* arg1 = exceptionclass                    */
-	bl      link_class
-
-	lwz     r3,7*4(r1)
-	lwz     r4,8*4(r1)
-	lwz     r9,9*4(r1)
-	lwz     xptr,10*4(r1)
-	lwz     xpc,11*4(r1)
-	lwz     itmp3,12*4(r1)
-	mtlr    itmp3
-
-L_class_linked:
-_crit_restart1:
-	lwz     r7,13*4(r1)
-_crit_begin1:
-	lwz     r6,offobjvftbl(xptr)  /* r6 = vftblptr(xptr)                      */
-	lwz     r7,offclassvftbl(r7)  /* r7 = vftblptr(catchtype) class (not obj) */
-	lwz     r6,offbaseval(r6)     /* r6 = baseval(xptr)                       */
-	lwz     r8,offbaseval(r7)     /* r8 = baseval(catchtype)                  */
-	lwz     r7,offdiffval(r7)     /* r7 = diffval(catchtype)                  */
-_crit_end1:
-	subf    r6,r8,r6              /* r6 = baseval(xptr) - baseval(catchtype)  */
-	cmplw   r6,r7                 /* xptr is instanceof catchtype             */
-	addi    r1,r1,16*4
-	bgt     ex_table_cont         /* if (false) continue                      */
-
-ex_handle_it:
-	lwz     xpc,ExHandlerPC(r4)   /* xpc = exception handler pc               */
-	mr.     r9,r9
-	beq     ex_jump
-
-	lwz     r0,0*4(r1)
-	lwz     r2,1*4(r1)
-	lwz     r3,2*4(r1)
-	lwz     r4,3*4(r1)
-	lwz     r5,4*4(r1)
-	lwz     r6,5*4(r1)
-	lwz     r7,6*4(r1)
-	lwz     r8,7*4(r1)
-	lwz     r9,8*4(r1)
-	lwz     r10,9*4(r1)
-	lwz     r16,10*4(r1)
-	lwz     r17,11*4(r1)
-	lwz     r18,12*4(r1)
-	lwz     r19,13*4(r1)
-	lwz     r20,14*4(r1)
-	lwz     r21,15*4(r1)
-	lwz     r22,16*4(r1)
-	lwz     r23,17*4(r1)
-	addi    r1,r1,18*4
-
-ex_jump:
-	mtctr   xpc
-	bctr
-
-ex_table_cont:
-	addi    r4,r4,ExEntrySize     /* next exception table entry               */
-	addic.  r3,r3,-1              /* decrement entry counter                  */
-	bgt     ex_table_loop         /* if (t0 > 0) next entry                   */
-
-empty_table:
-	mr.     r9,r9                 /* if here the first time, then             */
-	beq     ex_already_cleared
-	addi    r1,r1,18*4            /* deallocate stack and                     */
-	li      r9,0                  /* clear the no unwind flag                 */
-ex_already_cleared:
-	lwz     r3,IsSync(pv)         /* t0 = SyncOffset                          */
-	mr.     r3,r3
-	beq     no_monitor_exit       /* if zero no monitorexit                   */
-
-#if defined(USE_THREADS)
-	add     r3,r1,r3
-	lwz     r6,-4(r3)
-
-	addi    r1,r1,-6*4
-	stw     r3,0*4(r1)
-	stw     r4,1*4(r1)
-	stw     r9,2*4(r1)
-	stw     xptr,3*4(r1)
-	stw     xpc,4*4(r1)
-	mflr    xptr
-	stw     xptr,5*4(r1)
-
-	mr      r3,r6
-	/* XXX no valid stack frame chaining here */
-	addi    r1,r1,-40
-	bl      builtin_monitorexit
-	addi    r1,r1,40
-
-	lwz     xptr,5*4(r1)
-	mtlr    xptr
-	lwz     r3,0*4(r1)
-	lwz     r4,1*4(r1)
-	lwz     r9,2*4(r1)
-	lwz     xptr,3*4(r1)
-	lwz     xpc,4*4(r1)
-	addi    r1,r1,6*4
+#if defined(__DARWIN__)
+#else
+	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
+	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 #endif
 
-no_monitor_exit:
-	lwz     r3,FrameSize(pv)      /* r3 = frame size                          */
-	add     r1,r1,r3              /* unwind stack                             */
-	mr      r3,r1                 /* r3 = pointer to save area                */
-	lwz     r4,IsLeaf(pv)         /* r4 = is leaf procedure                   */
-	mr.     r4,r4
-	bne     ex_no_restore         /* if (leaf) skip                           */
-	lwz     r4,LA_LR_OFFSET(r3)   /* restore ra                               */
-	mtlr    r4                    /* t0--                                     */
-ex_no_restore:
-	mflr    r4                    /* the new xpc is ra                        */
-	mr      xpc,r4
-	lwz     r4,IntSave(pv)        /* r4 = saved int register count            */
+	li      a3,(ARG_CNT+TMP_CNT)*8      /* prepare a3 for handle_exception    */
+	li      a4,1                        /* set maybe-leaf flag                */
+
+L_asm_handle_exception_stack_loop:
+	addi    sp,sp,-(LA_WORD_SIZE+4+5)*4 /* allocate stack                     */
+	stw     xptr,LA_SIZE+4*4(sp)        /* save exception pointer             */
+	stw     xpc,LA_SIZE+5*4(sp)         /* save exception pc                  */
+	stw     pv,LA_SIZE+6*4(sp)          /* save data segment pointer          */
+	mflr    r0                          /* save return address                */
+	stw     r0,LA_SIZE+5*4(sp)
+	add     a3,a3,sp                    /* calculate Java sp into a3...       */
+	addi    a3,a3,(LA_WORD_SIZE+4+5)*4
+	stw     a4,LA_SIZE+8*4(sp)          /* save maybe-leaf flag               */
+
+	mr      a0,xptr                     /* pass exception pointer             */
+	mr      a1,xpc                      /* pass exception pc                  */
+	mr      a2,pv                       /* pass data segment pointer          */
+	                                    /* a3 is still set                    */
+	bl      exceptions_handle_exception
+
+	mr.     v0,v0
+	beq     L_asm_handle_exception_not_catched
+
+	mr      xpc,v0                      /* move handlerpc into xpc            */
+	lwz     xptr,LA_SIZE+4*4(sp)        /* restore exception pointer          */
+	lwz     pv,LA_SIZE+6*4(sp)          /* restore data segment pointer       */
+	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
+	mtlr    r0
+	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
+	addi    sp,sp,(LA_WORD_SIZE+4+5)*4  /* free stack frame                   */
+
+	mr.     a4,a4
+	beq     L_asm_handle_exception_no_leaf
+
+#if defined(__DARWIN__)
+#else
+	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
+	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
+#endif
+
+	addi    sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
+
+L_asm_handle_exception_no_leaf:
+	mtctr   xpc                         /* jump to the handler                */
+	bctr
+
+L_asm_handle_exception_not_catched:
+	lwz     xptr,LA_SIZE+4*4(sp)        /* restore exception pointer          */
+	lwz     pv,LA_SIZE+6*4(sp)          /* restore data segment pointer       */
+	lwz     r0,LA_SIZE+5*4(sp)          /* restore return address             */
+	mtlr    r0
+	lwz     a4,LA_SIZE+8*4(sp)          /* get maybe-leaf flag                */
+	addi    sp,sp,(LA_WORD_SIZE+4+5)*4  /* free stack frame                   */
+
+	mr.     a4,a4
+	beq     L_asm_handle_exception_no_leaf_stack
+
+	addi    sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
+	li      a4,0                        /* clear the maybe-leaf flag          */
+
+L_asm_handle_exception_no_leaf_stack:
+	lwz     t0,FrameSize(pv)            /* get frame size                     */
+	add     t0,sp,t0                    /* pointer to save area               */
+
+	lwz     t1,IsLeaf(pv)               /* is leaf procedure                  */
+	mr.     t1,t1
+	bne     L_asm_handle_exception_no_ra_restore
+
+	lwz     r0,LA_LR_OFFSET(t0)         /* restore ra                         */
+	mtlr    r0
+
+L_asm_handle_exception_no_ra_restore:
+	mflr    xpc                         /* the new xpc is ra                  */
+	lwz     t1,IntSave(pv)              /* t1 = saved int register count      */
 	bl      ex_int1
 ex_int1:
-	mflr    r5
+	mflr    t2                          /* t2 = current pc                    */
 #if defined(__DARWIN__)
-	addi    r5,r5,lo16(ex_int2-ex_int1)
+	addi    t2,t2,lo16(ex_int2-ex_int1)
 #else
-	addi    r5,r5,(ex_int2-ex_int1)@l
+	addi    t2,t2,(ex_int2-ex_int1)@l
 #endif
-	slwi    r4,r4,2
-	subf    r5,r4,r5
-	mtctr   r5
+	slwi    t1,t1,2                     /* t1 = register count * 4            */
+	subf    t2,t1,t2                    /* t2 = IntSave - t1                  */
+	mtctr   t2
 	bctr
-	lwz     s0,-40(r3)
-	lwz     s1,-36(r3)
-	lwz     s2,-32(r3)
-	lwz     s3,-28(r3)
-	lwz     s4,-24(r3)
-	lwz     s5,-20(r3)
-	lwz     s6,-16(r3)
-	lwz     s7,-12(r3)
-	lwz     s8,-8(r3)
-	lwz     s9,-4(r3)
+
+	lwz     s0,-10*4(t0)
+	lwz     s1,-9*4(t0)
+	lwz     s2,-8*4(t0)
+	lwz     s3,-7*4(t0)
+	lwz     s4,-6*4(t0)
+	lwz     s5,-5*4(t0)
+	lwz     s6,-4*4(t0)
+	lwz     s7,-3*4(t0)
+	lwz     s8,-2*4(t0)
+	lwz     s9,-1*4(t0)
 
 ex_int2:
-	subf    r3,r4,r3
+	subf    t0,t1,t0                    /* t0 = t0 - register count * 4       */
 
-	lwz     r4,FltSave(pv)
+	lwz     t1,FltSave(pv)
 	bl      ex_flt1
 ex_flt1:
-	mflr    r5
+	mflr    t2
 #if defined(__DARWIN__)
-	addi    r5,r5,lo16(ex_flt2-ex_flt1)
+	addi    t2,t2,lo16(ex_flt2-ex_flt1)
 #else
-	addi    r5,r5,(ex_flt2-ex_flt1)@l
+	addi    t2,t2,(ex_flt2-ex_flt1)@l
 #endif
-	slwi    r4,r4,2
-	subf    r5,r4,r5
-	mtctr   r5
+	slwi    t1,t1,2                     /* t1 = register count * 4            */
+	subf    t2,t1,t2                    /* t2 = FltSave - t1                  */
+	mtctr   t2
 	bctr
-	lfd     fs0,-80(r3)
-	lfd     fs1,-72(r3)
-	lfd     fs2,-64(r3)
-	lfd     fs3,-56(r3)
-	lfd     fs4,-48(r3)
-	lfd     fs5,-40(r3)
-	lfd     fs6,-32(r3)
-	lfd     fs7,-24(r3)
-	lfd     fs8,-16(r3)
-	lfd     fs9,-8(r3)
+
+	lfd     fs0,-10*8(t0)
+	lfd     fs1,-9*8(t0)
+	lfd     fs2,-8*8(t0)
+	lfd     fs3,-7*8(t0)
+	lfd     fs4,-6*8(t0)
+	lfd     fs5,-5*8(t0)
+	lfd     fs6,-4*8(t0)
+	lfd     fs7,-3*8(t0)
+	lfd     fs8,-2*8(t0)
+	lfd     fs9,-1*8(t0)
 
 ex_flt2:
+	lwz     t0,FrameSize(pv)            /* get frame size                     */
+	add     sp,sp,t0                    /* unwind stack                       */
+	li      a3,0                        /* prepare a3 for handle_exception    */
+
 	mtlr    xpc
 	lwz     itmp3,4(xpc)
 	extsh   itmp3,itmp3
@@ -905,11 +773,12 @@ ex_flt2:
 	lwz     itmp3,8(xpc)
 	srwi    itmp3,itmp3,16
 	cmpwi   itmp3,0x3dad
-	bne     ex_stack_loop
+	bne     L_asm_handle_exception_stack_loop
 	lwz     itmp3,8(xpc)
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
-	b       ex_stack_loop
+
+	b       L_asm_handle_exception_stack_loop
 
 
 /* asm_wrapper_patcher *********************************************************
@@ -1292,12 +1161,12 @@ asm_switchstackandcall:
 
 
 asm_getclassvalues_atomic:
-_crit_restart2:
-_crit_begin2:
+_crit_restart:
+_crit_begin:
 	lwz     r6,offbaseval(r3)
 	lwz     r7,offdiffval(r3)
 	lwz     r8,offbaseval(r4)
-_crit_end2:
+_crit_end:
 	stw     r6,offcast_super_baseval(r5)
 	stw     r7,offcast_super_diffval(r5)
 	stw     r8,offcast_sub_baseval(r5)
@@ -1307,12 +1176,9 @@ _crit_end2:
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	.long   _crit_begin1
-	.long   _crit_end1
-	.long   _crit_restart1
-	.long   _crit_begin2
-	.long   _crit_end2
-	.long   _crit_restart2
+	.long   _crit_begin
+	.long   _crit_end
+	.long   _crit_restart
 #endif
 	.long 0
 
