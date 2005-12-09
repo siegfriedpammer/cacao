@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.h 2777 2005-06-22 09:51:11Z christian $
+   $Id: md-abi.h 3927 2005-12-09 11:32:47Z twisti $
 
 */
 
@@ -47,8 +47,16 @@
 
 #define REG_RESULT      2    /* to deliver method results                     */
 
+#if SIZEOF_VOID_P == 4
+#define REG_RESULT2     3    /* to deliver method results (low 32-bits)       */
+#endif
+
 #define REG_ITMP1       1    /* temporary register                            */
+#if SIZEOF_VOID_P == 8
 #define REG_ITMP2       3    /* temporary register and method pointer         */
+#else
+#define REG_ITMP2       24   /* temporary register and method pointer         */
+#endif
 #define REG_ITMP3       25   /* temporary register                            */
 
 #define REG_RA          31   /* return address                                */
@@ -58,17 +66,13 @@
 #define REG_PV          30   /* procedure vector, must be provided by caller  */
 #define REG_METHODPTR   25   /* pointer to the place from where the procedure */
                              /* vector has been fetched                       */
-#define REG_ITMP1_XPTR  1    /* exception pointer = temporary register 1      */
-#define REG_ITMP2_XPC   3    /* exception pc = temporary register 2           */
+#define REG_ITMP1_XPTR  REG_ITMP1 /* exception pointer = temporary register 1 */
+#define REG_ITMP2_XPC   REG_ITMP2 /* exception pc = temporary register 2      */
 
 
 /* floating point registers */
 
 #define REG_FRESULT     0    /* to deliver floating point method results      */
-
-#define REG_FTMP1       1    /* temporary floating point register             */
-#define REG_FTMP2       2    /* temporary floating point register             */
-#define REG_FTMP3       3    /* temporary floating point register             */
 
 #define REG_IFTMP       1    /* temporary integer and floating point register */
 
@@ -76,6 +80,10 @@
 #if SIZEOF_VOID_P == 8
 
 /* MIPS64 defines */
+
+#define REG_FTMP1       1    /* temporary floating point register             */
+#define REG_FTMP2       2    /* temporary floating point register             */
+#define REG_FTMP3       3    /* temporary floating point register             */
 
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
@@ -97,23 +105,26 @@
 
 /* MIPS32 defines */
 
+#define REG_FTMP1       2    /* temporary floating point register             */
+#define REG_FTMP2       4    /* temporary floating point register             */
+#define REG_FTMP3       6    /* temporary floating point register             */
+
 #define INT_REG_CNT     32   /* number of integer registers                   */
 #define INT_SAV_CNT     8    /* number of int callee saved registers          */
 #define INT_ARG_CNT     4    /* number of int argument registers              */
-#define INT_TMP_CNT     9    /* number of integer temporary registers         */
-#define INT_RES_CNT    10    /* number of integer reserved registers          */
+#define INT_TMP_CNT     8    /* number of integer temporary registers         */
+#define INT_RES_CNT    11    /* number of integer reserved registers          */
                              /* + 1 REG_RET totals to 32                      */
 
-#if 1
+#if !defined(ENABLE_SOFT_FLOAT)
 
 #define FLT_REG_CNT     32   /* number of float registers                     */
-#define FLT_SAV_CNT     4    /* number of flt callee saved registers          */
-#define FLT_ARG_CNT     8    /* number of flt argument registers              */
-#define FLT_TMP_CNT     16   /* number of float temporary registers           */
-#define FLT_RES_CNT     3    /* number of float reserved registers            */
-                             /* + 1 REG_RET totals to 32                      */
+#define FLT_SAV_CNT     6    /* number of flt callee saved registers          */
+#define FLT_ARG_CNT     2    /* number of flt argument registers              */
+#define FLT_TMP_CNT     4    /* number of float temporary registers           */
+#define FLT_RES_CNT     4    /* number of float reserved registers            */
 
-#else
+#else /* !defined(ENABLE_SOFT_FLOAT) */
 
 #define FLT_REG_CNT     0    /* number of float registers                     */
 #define FLT_SAV_CNT     0    /* number of flt callee saved registers          */
@@ -121,9 +132,9 @@
 #define FLT_TMP_CNT     0    /* number of float temporary registers           */
 #define FLT_RES_CNT     0    /* number of float reserved registers            */
 
-#endif
+#endif /* !defined(ENABLE_SOFT_FLOAT) */
 
-#define TRACE_ARGS_NUM  4
+#define TRACE_ARGS_NUM  2
 
 #endif /* SIZEOF_VOID_P == 8 */
 

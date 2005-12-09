@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 3509 2005-10-27 10:49:20Z twisti $
+   $Id: md-asm.h 3927 2005-12-09 11:32:47Z twisti $
 
 */
 
@@ -40,6 +40,8 @@
 
 
 /* register defines ***********************************************************/
+
+#if SIZEOF_VOID_P == 8
 
 #define zero    $0
 #define itmp1   $1
@@ -55,9 +57,9 @@
 #define	a6      $10
 #define	a7      $11
 #define	t0      $12
-#define	t1      $13
-#define	t2      $14
-#define	t3      $15
+#define t1      $13
+#define t2      $14
+#define t3      $15
 
 #define s0      $16
 #define s1      $17
@@ -69,7 +71,7 @@
 #define s7      $23
 
 #define t8      $24
-#define itmp3   $25
+#define t9      $25
 #define k0      $26
 #define k1      $27
 
@@ -79,7 +81,7 @@
 #define ra      $31
 
 #define pv      s8
-#define t9      itmp3
+#define itmp3   t9
 
 #define xptr    itmp1
 #define xpc     itmp2
@@ -97,13 +99,13 @@
 #define ft6     $f7
 
 #define ft7     $f8
-#define	ft8     $f9
-#define	ft9     $f10
-#define	ft10    $f11
-#define	fa0     $f12
-#define	fa1     $f13
-#define	fa2     $f14
-#define	fa3     $f15
+#define ft8     $f9
+#define ft9     $f10
+#define ft10    $f11
+#define fa0     $f12
+#define fa1     $f13
+#define fa2     $f14
+#define fa3     $f15
 
 #define fa4     $f16
 #define fa5     $f17
@@ -130,17 +132,84 @@
 #define fss4    $f29
 #define fss5    $f31
 
+#else /* SIZEOF_VOID_P == 8 */
+
+#define zero    $0
+#define itmp1   $1
+#define v0      $2
+#define v1      $3
+#define a0      $4
+#define a1      $5
+#define a2      $6
+#define a3      $7
+
+#define t0      $8
+#define t1      $9
+#define t2      $10
+#define t3      $11
+#define t4      $12
+#define t5      $13
+#define t6      $14
+#define t7      $15
+
+#define s0      $16
+#define s1      $17
+#define s2      $18
+#define s3      $19
+#define s4      $20
+#define s5      $21
+#define s6      $22
+#define s7      $23
+
+#define itmp2   $24
+#define itmp3   $25
+#define k0      $26
+#define k1      $27
+
+#define gp      $28
+#define sp      $29
+#define s8      $30
+#define ra      $31
+
+
+#define pv      s8
+#define xptr    itmp1
+#define xpc     itmp2
+#define mptr    itmp3
+#define mptrreg 25
+
+
+#define fv0     $f0
+#define ftmp1   $f2
+#define ftmp2   $f4
+#define ftmp3   $f6
+
+#define ft0     $f8
+#define ft1     $f10
+#define fa0     $f12
+#define fa1     $f14
+
+#define ft2     $f16
+#define ft3     $f18
+#define fs0     $f20
+#define fs1     $f22
+
+#define fs2     $f24
+#define fs3     $f26
+#define fs4     $f28
+#define fs5     $f30
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 #if SIZEOF_VOID_P == 8
 
 #define aaddu   daddu
 #define asubu   dsubu
+#define aaddi   daddi
 #define aaddiu  daddiu
 #define ald     ld
 #define ast     sd
 #define ala     dla
-#define asll    dsll
-#define ashift  3
 
 #define all     lld
 #define asc     scd
@@ -149,12 +218,11 @@
 
 #define aaddu   addu
 #define asubu   subu
+#define aaddi   addi
 #define aaddiu  addiu
 #define ald     lw
 #define ast     sw
-#define ala     dla
-#define asll    dsll
-#define ashift  3
+#define ala     la
 
 #define all     ll
 #define asc     sc
@@ -163,6 +231,8 @@
 
 
 /* save and restore macros ****************************************************/
+
+#if SIZEOF_VOID_P == 8
 
 #define SAVE_RETURN_REGISTERS(off) \
 	sd      v0,(0+(off))*8(sp)	; \
@@ -260,6 +330,55 @@
 	ldc1    ft16,(18+(off))*8(sp)	; \
 	ldc1    ft17,(19+(off))*8(sp)	; \
 	ldc1    ft18,(20+(off))*8(sp)	;
+
+#else /* SIZEOF_VOID_P == 8 */
+
+#define SAVE_RETURN_REGISTERS(off) \
+	sw      v0,(0+(off))*4(sp)	; \
+	sw      v1,(1+(off))*4(sp)	; \
+	sdc1    fv0,(2+(off))*4(sp)	;
+
+#define RESTORE_RETURN_REGISTERS(off) \
+	lw      v0,(0+(off))*4(sp)	; \
+	lw      v1,(1+(off))*4(sp)	; \
+	ldc1    fv0,(2+(off))*4(sp)	;
+
+#define SAVE_ARGUMENT_REGISTERS(off) \
+	sw      a0,(0+(off))*4(sp)	; \
+	sw      a1,(1+(off))*4(sp)	; \
+	sw      a2,(2+(off))*4(sp)	; \
+	sw      a3,(3+(off))*4(sp)	;
+
+
+#define RESTORE_ARGUMENT_REGISTERS(off) \
+	lw      a0,(0+(off))*4(sp)	; \
+	lw      a1,(1+(off))*4(sp)	; \
+	lw      a2,(2+(off))*4(sp)	; \
+	lw      a3,(3+(off))*4(sp)	;
+
+
+#define SAVE_TEMPORARY_REGISTERS(off) \
+	sw      t0,(0+(off))*4(sp)	; \
+	sw      t1,(1+(off))*4(sp)	; \
+	sw      t2,(2+(off))*4(sp)	; \
+	sw      t3,(3+(off))*4(sp)	; \
+	sw      t4,(4+(off))*4(sp)	; \
+	sw      t5,(5+(off))*4(sp)	; \
+	sw      t6,(6+(off))*4(sp)	; \
+	sw      t7,(7+(off))*4(sp)	;
+
+
+#define RESTORE_TEMPORARY_REGISTERS(off) \
+	lw      t0,(0+(off))*4(sp)	; \
+	lw      t1,(1+(off))*4(sp)	; \
+	lw      t2,(2+(off))*4(sp)	; \
+	lw      t3,(3+(off))*4(sp)	; \
+	lw      t4,(4+(off))*4(sp)	; \
+	lw      t5,(5+(off))*4(sp)	; \
+	lw      t6,(6+(off))*4(sp)	; \
+	lw      t7,(7+(off))*4(sp)	;
+
+#endif /* SIZEOF_VOID_P == 8 */
 
 #endif /* _MD_ASM_H */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.inc 2713 2005-06-15 14:10:47Z twisti $
+   $Id: md-abi.inc 3927 2005-12-09 11:32:47Z twisti $
 
 */
 
@@ -48,18 +48,26 @@
 /* MIPS64 */
 
 static int nregdescint[] = {
-	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
 	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
 	REG_END
 };
 
 static int nregdescfloat[] = {
+	/*  fv0,   ftmp1,   ftmp2,   ftmp3,     ft0,     ft1,     ft2,     ft3,   */
 	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
+
+	/*  ft4,     ft5,     ft6,     ft7,     fa0,     fa1,     fa2,     fa3,   */
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*  fa4,     fa5,     fa6,     fa7,     ft8,     ft9,    ft10,    ft11,   */
 	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*  fs0,    ft12,     fs1,    ft13,     fs2,    ft14,     fs3     ft15    */
 	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+
 	REG_END
 };
 
@@ -68,30 +76,46 @@ static int nregdescfloat[] = {
 /* MIPS32 */
 
 static int nregdescint[] = {
-	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	/* zero,   itmp1,      v0,      v1,      a0,      a1,      a2,      a3,   */
+	REG_RES, REG_RES, REG_RET, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*   t0,      t1,      t2,      t3,      t4,      t5,      t6,      t7,   */
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*   s0,      s1,      s2,      s3,      s4,      s5,      s6,      s7,   */
 	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
-	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+
+	/*itmp2,   itmp3, k0(sys), k1(sys),      gp,      sp,      pv,      ra    */
+	REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+
 	REG_END
 };
 
-#if 1
+#if !defined(ENABLE_SOFT_FLOAT)
 
 static int nregdescfloat[] = {
-	REG_RET, REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, 
-	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
-	REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+	/*  fv0,            ftmp1,            ftmp2,            ftmp3,            */
+	REG_RET, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+
+	/*  ft0,              ft1,              fa0,              fa1,            */
+	REG_TMP, REG_RES, REG_TMP, REG_RES, REG_ARG, REG_RES, REG_ARG, REG_RES,
+
+	/*  ft2,              ft3,              fs0,              fs1,            */
+	REG_TMP, REG_RES, REG_TMP, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_RES,
+
+	/*  fs2,              fs3,              fs4,              fs5             */
+	REG_SAV, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_RES, REG_SAV, REG_RES,
+
 	REG_END
 };
 
-#else
+#else /* !defined(ENABLE_SOFT_FLOAT) */
 
 static int nregdescfloat[] = {
 	REG_END
 };
 
-#endif
+#endif /* !defined(ENABLE_SOFT_FLOAT) */
 
 #endif /* SIZEOF_VOID_P == 8 */
 
