@@ -1,4 +1,4 @@
-/* src/vm/jit/mips/asmpart.S - Java-C interface functions for mips
+/* src/vm/jit/mips/asmpart.S - Java-C interface functions for MIPS
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,16 +28,18 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 3707 2005-11-18 00:11:55Z twisti $
+   $Id: asmpart.S 3930 2005-12-09 14:39:10Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include "vm/jit/mips/offsets.h"
+#include "vm/jit/mips/md-abi.h"
 #include "vm/jit/mips/md-asm.h"
+#include "vm/jit/mips/offsets.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/methodheader.h"
 
 
@@ -94,21 +96,21 @@
 
 	.align  3
 
-	.dword  0                         /* catch type all                       */
-	.dword  calljava_xhandler         /* handler pc                           */
-	.dword  calljava_xhandler         /* end pc                               */
-	.dword  asm_calljavafunction      /* start pc                             */
-	.word   1                         /* extable size                         */
-	.word   0                         /* 4-byte ALIGNMENT PADDING             */
-	.dword  0                         /* line number table start              */
-	.dword  0                         /* line number table size               */
-	.word   0                         /* 4-byte ALIGNMENT PADDING             */
-	.word   0                         /* fltsave                              */
-	.word   0                         /* intsave                              */
-	.word   0                         /* isleaf                               */
-	.word   0                         /* IsSync                               */
-	.word   10*8                      /* frame size                           */
-	.dword  0                         /* method pointer (pointer to name)     */
+	.dword  0                           /* catch type all                     */
+	.dword  calljava_xhandler           /* handler pc                         */
+	.dword  calljava_xhandler           /* end pc                             */
+	.dword  asm_calljavafunction        /* start pc                           */
+	.word   1                           /* extable size                       */
+	.word   0                           /* 4-byte ALIGNMENT PADDING           */
+	.dword  0                           /* line number table start            */
+	.dword  0                           /* line number table size             */
+	.word   0                           /* 4-byte ALIGNMENT PADDING           */
+	.word   0                           /* fltsave                            */
+	.word   0                           /* intsave                            */
+	.word   0                           /* isleaf                             */
+	.word   0                           /* IsSync                             */
+	.word   0                           /* frame size                         */
+	.dword  0                           /* method pointer (pointer to name)   */
 
 asm_calljavafunction:
 asm_calljavafunction_int:
@@ -176,21 +178,21 @@ calljava_xhandler:
 
 	.align  3
 
-	.dword  0                         /* catch type all                       */
-	.dword  calljava_xhandler2        /* handler pc                           */
-	.dword  calljava_xhandler2        /* end pc                               */
-	.dword  asm_calljavafunction2     /* start pc                             */
-	.word   1                         /* extable size                         */
-	.word   0                         /* 4-byte ALIGNMENT PADDING             */
-	.dword  0                         /* line number table start              */
-	.dword  0                         /* line number table size               */
-	.word   0                         /* 4-byte ALIGNMENT PADDING             */
-	.word   0                         /* fltsave                              */
-	.word   1                         /* intsave                              */
-	.word   0                         /* isleaf                               */
-	.word   0                         /* IsSync                               */
-	.word   12*8                      /* frame size                           */
-	.dword  0                         /* method pointer (pointer to name)     */
+	.dword  0                           /* catch type all                     */
+	.dword  calljava_xhandler2          /* handler pc                         */
+	.dword  calljava_xhandler2          /* end pc                             */
+	.dword  asm_calljavafunction2       /* start pc                           */
+	.word   1                           /* extable size                       */
+	.word   0                           /* 4-byte ALIGNMENT PADDING           */
+	.dword  0                           /* line number table start            */
+	.dword  0                           /* line number table size             */
+	.word   0                           /* 4-byte ALIGNMENT PADDING           */
+	.word   0                           /* fltsave                            */
+	.word   0                           /* intsave                            */
+	.word   0                           /* isleaf                             */
+	.word   0                           /* IsSync                             */
+	.word   0                           /* frame size                         */
+	.dword  0                           /* method pointer (pointer to name)   */
 
 asm_calljavafunction2:
 asm_calljavafunction2int:
@@ -414,255 +416,137 @@ L_asm_call_jit_compiler_exception:
 	.end    asm_call_jit_compiler
 
 
-/********************* function asm_handle_exception ***************************
-*                                                                              *
-*   This function handles an exception. It does not use the usual calling      *
-*   conventions. The exception pointer is passed in REG_ITMP1 and the          *
-*   pc from the exception raising position is passed in REG_ITMP2. It searches *
-*   the local exception table for a handler. If no one is found, it unwinds    *
-*   stacks and continues searching the callers.                                *
-*                                                                              *
-*   void asm_handle_exception (exceptionptr, exceptionpc);                     *
-*                                                                              *
+/* asm_handle_exception ********************************************************
+
+   This function handles an exception. It does not use the usual calling
+   conventions. The exception pointer is passed in REG_ITMP1 and the
+   pc from the exception raising position is passed in REG_ITMP2. It searches
+   the local exception table for a handler. If no one is found, it unwinds
+   stacks and continues searching the callers.
+
 *******************************************************************************/
 
 	.ent    asm_handle_nat_exception
 
 asm_handle_nat_exception:
-	lw      t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,t0,16
-	sra     t0,t0,16              /* isolate offset                           */
-	aaddu   pv,t0,ra              /* compute update address                   */
+L_asm_handle_exception_stack_loop:
+	aaddiu  sp,sp,-6*8                  /* allocate stack                     */
+	ast     xptr,0*8(sp)                /* save exception pointer             */
+	ast     xpc,1*8(sp)                 /* save exception pc                  */
+	ast     ra,3*8(sp)                  /* save return address                */
+	ast     zero,4*8(sp)                /* save maybe-leaf flag (cleared)     */
+
+	move    a0,ra                       /* pass return address                */
+	jal     md_codegen_findmethod       /* get PV from RA                     */
+	ast     v0,2*8(sp)                  /* save data segment pointer          */
+
+	ald     a0,0*8(sp)                  /* pass exception pointer             */
+	ald     a1,1*8(sp)                  /* pass exception pc                  */
+	move    a2,v0                       /* pass data segment pointer          */
+	aaddiu  a3,sp,6*8                   /* pass Java stack pointer            */
+
+	b       L_asm_handle_exception_continue
 
 	.aent    asm_handle_exception
 
 asm_handle_exception:
-	aaddiu  sp,sp,-14*8           /* allocate stack                           */
+	aaddiu  sp,sp,-(ARG_CNT+TMP_CNT)*8  /* create maybe-leaf stackframe       */
 
-	sd      v0,0*8(sp)            /* save possible used registers             */
-	sd      t0,1*8(sp)            /* also registers used by trace_exception   */
-	sd      t1,2*8(sp)
-	sd      t2,3*8(sp)
-	sd      t3,4*8(sp)
-	sd      t8,5*8(sp)
-	sd      a0,6*8(sp)
-	sd      a1,7*8(sp)
-	sd      a2,8*8(sp)
-	sd      a3,9*8(sp)
-	sd      a4,10*8(sp)
-	sd      a5,11*8(sp)
-	sd      a6,12*8(sp)
-	sd      a7,13*8(sp)
+	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
+	SAVE_TEMPORARY_REGISTERS(ARG_CNT)   /* case this is a leaf method         */
 
-	addu    t3,zero,1             /* set no unwind flag                       */
-ex_stack_loop:
-	aaddiu  sp,sp,-6*8            /* allocate stack                           */
-	sd      xptr,0*8(sp)          /* save used registers                      */
-	sd      xpc,1*8(sp)
-	sd      pv,2*8(sp)
-	sd      ra,3*8(sp)
-	sd      t3,4*8(sp)
+	aaddiu  sp,sp,-6*8                  /* allocate stack                     */
+	ast     xptr,0*8(sp)                /* save exception pointer             */
+	ast     xpc,1*8(sp)                 /* save exception pc                  */
+	ast     pv,2*8(sp)                  /* save data segment pointer          */
+	ast     ra,3*8(sp)                  /* save return address                */
+	addu    t0,zero,1                   /* set maybe-leaf flag                */
+	ast     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
-	move    a0,xptr
-	ald     a1,MethodPointer(pv)
-	move    a2,xpc
-/*	move    a3,t3 */
-	move    a3,zero
-	addu    a4,zero,1
-	jal     builtin_trace_exception /* trace_exception(xptr,methodptr)        */
+	move    a0,xptr                     /* pass exception pointer             */
+	move    a1,xpc                      /* pass exception pc                  */
+	move    a2,pv                       /* pass data segment pointer          */
+	aaddiu  a3,sp,(ARG_CNT+TMP_CNT+6)*8 /* pass Java stack pointer            */
+
+L_asm_handle_exception_continue:
+	jal     exceptions_handle_exception
 	
-	ld      xptr,0*8(sp)          /* restore used register                    */
-	ld      xpc,1*8(sp)
-	ld      pv,2*8(sp)
-	ld      ra,3*8(sp)
-	ld      t3,4*8(sp)
-	aaddiu  sp,sp,6*8             /* deallocate stack                         */
+	beqz    v0,L_asm_handle_exception_not_catched
+
+	move    xpc,v0                      /* move handlerpc into xpc            */
+	ald     xptr,0*8(sp)                /* restore exception pointer          */
+	ald     pv,2*8(sp)                  /* restore data segment pointer       */
+	ald     ra,3*8(sp)                  /* restore return address             */
+	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
+	aaddiu  sp,sp,6*8                   /* free stackframe                    */
 	
-	lw      t0,ExTableSize(pv)    /* t0 = exception table size                */
-	beqz    t0,empty_table        /* if empty table skip                      */
-	aaddiu  t1,pv,ExTableStart    /* t1 = start of exception table            */
+	beqz    t0,L_asm_handle_exception_no_leaf
 
-ex_table_loop:
-	ald     t2,ExStartPC(t1)      /* t2 = exception start pc                  */
-	sle     t2,t2,xpc             /* t2 = (startpc <= xpc)                    */
-	beqz    t2,ex_table_cont      /* if (false) continue                      */
-	ald     t2,ExEndPC(t1)        /* t2 = exception end pc                    */
-	slt     t2,xpc,t2             /* t2 = (xpc < endpc)                       */
-	beqz    t2,ex_table_cont      /* if (false) continue                      */
-	ald     a1,ExCatchType(t1)    /* arg1 = exception catch type              */
-	beqz    a1,ex_handle_it       /* NULL catches everything                  */
-
-	lw      itmp3,offclassloaded(a1)
-	bnez    itmp3,L_class_loaded
-
-	aaddiu  sp,sp,-8*8            /* allocate stack                           */
-	sd      t0,0*8(sp)            /* save used register                       */
-	sd      t1,1*8(sp)
-	sd      t3,2*8(sp)
-	sd      xptr,3*8(sp)
-	sd      xpc,4*8(sp)
-	sd      pv,5*8(sp)
-	sd      ra,6*8(sp)
-	sd      a1,7*8(sp)
-		
-	move    a0,a1
-	jal     load_class_bootstrap
-		
-	ld      t0,0*8(sp)            /* restore used register                    */
-	ld      t1,1*8(sp)
-	ld      t3,2*8(sp)
-	ld      xptr,3*8(sp)
-	ld      xpc,4*8(sp)
-	ld      pv,5*8(sp)
-	ld      ra,6*8(sp)
-	ld      a1,7*8(sp)
-	aaddiu  sp,sp,8*8             /* deallocate stack                         */
+	RESTORE_ARGUMENT_REGISTERS(0)       /* if this is a leaf method, we have  */
+	RESTORE_TEMPORARY_REGISTERS(ARG_CNT)/* to restore arg and temp registers  */
 	
-L_class_loaded:
-	lw      itmp3,offclasslinked(a1)
-	aaddiu  sp,sp,-8*8            /* allocate stack                           */
-	sd      a1,7*8(sp)
-	bnez    itmp3,L_class_linked
+	aaddiu  sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
 
-	sd      t0,0*8(sp)            /* save used register                       */
-	sd      t1,1*8(sp)
-	sd      t3,2*8(sp)
-	sd      xptr,3*8(sp)
-	sd      xpc,4*8(sp)
-	sd      pv,5*8(sp)
-	sd      ra,6*8(sp)
-		
-	move    a0,a1
-	jal     link_class
-		
-	ld      t0,0*8(sp)            /* restore used register                    */
-	ld      t1,1*8(sp)
-	ld      t3,2*8(sp)
-	ld      xptr,3*8(sp)
-	ld      xpc,4*8(sp)
-	ld      pv,5*8(sp)
-	ld      ra,6*8(sp)
+L_asm_handle_exception_no_leaf:
+	jr      xpc                         /* jump to the handler                */
 
-L_class_linked:
-_crit_restart1:
-	ld      a1,7*8(sp)
-_crit_begin1:
-	ald     a0,offobjvftbl(xptr)  /* a0 = vftblptr(xptr)                      */
-	ald     a1,offclassvftbl(a1)  /* a1 = vftblptr(catchtype) class (not obj) */
-	lw      a0,offbaseval(a0)     /* a0 = baseval(xptr)                       */
-	lw      v0,offbaseval(a1)     /* a2 = baseval(catchtype)                  */
-	lw      a1,offdiffval(a1)     /* a1 = diffval(catchtype)                  */
-_crit_end1:
-	subu    a0,a0,v0              /* a0 = baseval(xptr) - baseval(catchtype)  */
-	sltu    v0,a1,a0              /* v0 = xptr is instanceof catchtype        */
-	aaddiu  sp,sp,8*8             /* deallocate stack                         */
-	bnez    v0,ex_table_cont      /* if (false) continue                      */
-
-ex_handle_it:
-	ald     xpc,ExHandlerPC(t1)   /* xpc = exception handler pc               */
-
-	beqz    t3,ex_jump            /* if (!(no stack unwinding) skip           */
-
-	ld      v0,0*8(sp)            /* restore possible used registers          */
-	ld      t0,1*8(sp)            /* also registers used by trace_exception   */
-	ld      t1,2*8(sp)
-	ld      t2,3*8(sp)
-	ld      t3,4*8(sp)
-	ld      t8,5*8(sp)
-	ld      a0,6*8(sp)
-	ld      a1,7*8(sp)
-	ld      a2,8*8(sp)
-	ld      a3,9*8(sp)
-	ld      a4,10*8(sp)
-	ld      a5,11*8(sp)
-	ld      a6,12*8(sp)
-	ld      a7,13*8(sp)
+L_asm_handle_exception_not_catched:
+	ald     xptr,0*8(sp)                /* restore exception pointer          */
+	ald     pv,2*8(sp)                  /* restore data segment pointer       */
+	ald     ra,3*8(sp)                  /* restore return address             */
+	ald     t0,4*8(sp)                  /* get maybe-leaf flag                */
+	aaddiu  sp,sp,6*8                   /* free stackframe                    */
 	
-	aaddiu  sp,sp,14*8            /* deallocate stack                         */
+	beqz    t0,L_asm_handle_exception_no_leaf_stack
 
-ex_jump:
-	jr      xpc                   /* jump to the handler                      */
+	aaddiu  sp,sp,(ARG_CNT+TMP_CNT)*8   /* remove maybe-leaf stackframe       */
+	move    t0,zero                     /* clear the maybe-leaf flag          */
 
-ex_table_cont:
-	aaddiu  t1,t1,ExEntrySize     /* next exception table entry               */
-	addiu   t0,t0,-1              /* decrement entry counter                  */
-	bgtz    t0,ex_table_loop      /* if (t0 > 0) next entry                   */
+L_asm_handle_exception_no_leaf_stack:
+	lw      t1,FrameSize(pv)            /* get frame size                     */
+	aaddu   t1,sp,t1                    /* pointer to save area               */
 
-empty_table:
-	beqz    t3,ex_already_cleared /* if here the first time, then             */
-	aaddiu  sp,sp,14*8            /* deallocate stack and                     */
-	move    t3,zero               /* clear the no unwind flag                 */
-ex_already_cleared:
-	lw      t0,IsSync(pv)         /* t0 = SyncOffset                          */
-	beqz    t0,no_monitor_exit    /* if zero no monitorexit                   */
+	lw      t2,IsLeaf(pv)               /* is leaf procedure                  */
+	bnez    t2,L_asm_handle_exception_no_ra_restore
 
-#if defined(USE_THREADS)
-	aaddu   t0,sp,t0              /* add stackptr to Offset                   */
-	ald     a0,-8(t0)             /* load monitorexit pointer                 */
+	ald     ra,-1*8(t1)                 /* restore ra                         */
+	aaddiu  t1,t1,-8                    /* t1--                               */
 
-	aaddiu  sp,sp,-8*8            /* allocate stack                           */
-	sd      t0,0*8(sp)            /* save used register                       */
-	sd      t1,1*8(sp)
-	sd      t3,2*8(sp)
-	sd      xptr,3*8(sp)
-	sd      xpc,4*8(sp)
-	sd      pv,5*8(sp)
-	sd      ra,6*8(sp)
+L_asm_handle_exception_no_ra_restore:
+	move    xpc,ra                      /* the new xpc is ra                  */
+	lw      t2,IntSave(pv)              /* t1 = saved int register count      */
+	ala     t3,ex_int2                  /* t3 = current pc                    */
+	sll     t2,t2,2                     /* t2 = register count * 4            */
+	asubu   t3,t3,t2                    /* t3 = IntSave - 4 * register count  */
+	jr      t3                          /* jump to save position              */
 
-	jal     builtin_monitorexit   /* builtin_monitorexit(objectptr)           */
-	
-	ld      t0,0*8(sp)            /* restore used register                    */
-	ld      t1,1*8(sp)
-	ld      t3,2*8(sp)
-	ld      xptr,3*8(sp)
-	ld      xpc,4*8(sp)
-	ld      pv,5*8(sp)
-	ld      ra,6*8(sp)
-	aaddiu  sp,sp,8*8             /* deallocate stack                         */
-#endif
-
-no_monitor_exit:
-	lw      t0,FrameSize(pv)      /* t0 = frame size                          */
-	aaddu   sp,sp,t0              /* unwind stack                             */
-	move    t0,sp                 /* t0 = pointer to save area                */
-	lw      t1,IsLeaf(pv)         /* t1 = is leaf procedure                   */
-	bnez    t1,ex_no_restore      /* if (leaf) skip                           */
-	ld      ra,-8(t0)             /* restore ra                               */
-	aaddiu  t0,t0,-8              /* t0--                                     */
-ex_no_restore:
-	move    xpc,ra                /* the new xpc is ra                        */
-	lw      t1,IntSave(pv)        /* t1 = saved int register count            */
-	ala     t2,ex_int2            /* t2 = current pc                          */
-	sll     t1,t1,2               /* t1 = register count * 4                  */
-	asubu   t2,t2,t1              /* t2 = ex_int_sav - 4 * register count     */
-	jr      t2                    /* jump to save position                    */
-	ld      s0,-8*8(t0)
-	ld      s1,-7*8(t0)
-	ld      s2,-6*8(t0)
-	ld      s3,-5*8(t0)
-	ld      s4,-4*8(t0)
-	ld      s5,-3*8(t0)
-	ld      s6,-2*8(t0)
-	ld      s7,-1*8(t0)
+	ald     s0,-8*8(t1)
+	ald     s1,-7*8(t1)
+	ald     s2,-6*8(t1)
+	ald     s3,-5*8(t1)
+	ald     s4,-4*8(t1)
+	ald     s5,-3*8(t1)
+	ald     s6,-2*8(t1)
+	ald     s7,-1*8(t1)
 ex_int2:
-	sll     t1,t1,1               /* t1 = register count * 4 * 2              */
-	asubu   t0,t0,t1              /* t0 = t0 - 8 * register count             */
+	sll     t2,t2,1               /* t2 = register count * 4 * 2              */
+	asubu   t1,t1,t2              /* t1 = t0 - 8 * register count             */
 
-	lw      t1,FltSave(pv)        /* t1 = saved flt register count            */
-	ala     t2,ex_flt2            /* t2 = current pc                          */
-	sll     t1,t1,2               /* t1 = register count * 4                  */
-	asubu   t2,t2,t1              /* t2 = ex_int_sav - 4 * register count     */
-	jr      t2                    /* jump to save position                    */
-	ldc1    fs0,-4*8(t0)
-	ldc1    fs1,-3*8(t0)
-	ldc1    fs2,-2*8(t0)
-	ldc1    fs3,-1*8(t0)
+	lw      t2,FltSave(pv)        /* t2 = saved flt register count            */
+	ala     t3,ex_flt2            /* t3 = current pc                          */
+	sll     t2,t2,2               /* t2 = register count * 4                  */
+	asubu   t3,t3,t2              /* t3 = ex_int_sav - 4 * register count     */
+	jr      t3                          /* jump to save position              */
+
+	ldc1    fs0,-4*8(t1)
+	ldc1    fs1,-3*8(t1)
+	ldc1    fs2,-2*8(t1)
+	ldc1    fs3,-1*8(t1)
+
 ex_flt2:
-	lw      t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t0,t0,16
-	sra     t0,t0,16              /* isolate offset                           */
-	aaddu   pv,t0,ra              /* compute update address                   */
-	b       ex_stack_loop
+	lw      t1,FrameSize(pv)            /* get frame size                     */
+	aaddu   sp,sp,t1                    /* unwind stack                       */
+	b       L_asm_handle_exception_stack_loop
 
 	.end    asm_handle_nat_exception
 
@@ -870,12 +754,12 @@ asm_switchstackandcall:
 	.ent    asm_getclassvalues_atomic
 
 asm_getclassvalues_atomic:
-_crit_restart2:
-_crit_begin2:
+_crit_restart:
+_crit_begin:
 	lw      t0,offbaseval(a0)
 	lw      t1,offdiffval(a0)
 	lw      t2,offbaseval(a1)
-_crit_end2:
+_crit_end:
 	sw      t0,offcast_super_baseval(a2)
 	sw      t1,offcast_super_diffval(a2)
 	sw      t2,offcast_sub_baseval(a2)
@@ -887,12 +771,9 @@ _crit_end2:
 
 asm_criticalsections:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    .dword  _crit_begin1
-    .dword  _crit_end1
-    .dword  _crit_restart1
-    .dword  _crit_begin2
-    .dword  _crit_end2
-    .dword  _crit_restart2
+    .dword  _crit_begin
+    .dword  _crit_end
+    .dword  _crit_restart
 #endif
     .dword  0
 
