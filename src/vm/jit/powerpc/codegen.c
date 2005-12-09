@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3870 2005-12-03 16:09:21Z twisti $
+   $Id: codegen.c 3924 2005-12-09 00:41:56Z twisti $
 
 */
 
@@ -167,8 +167,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	/* initialize mcode variables */
 	
-	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+	mcodeptr = (s4 *) cd->mcodeptr;
+
 	MCODECHECK(128 + m->paramcount);
 
 	/* create stack frame (if necessary) */
@@ -317,9 +317,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		if (m->flags & ACC_STATIC) {
 			p = dseg_addaddress(cd, m->class);
-			M_ALD(REG_ITMP1, REG_PV, p);
-			M_AST(REG_ITMP1, REG_SP, s1 * 4);
-			M_MOV(REG_ITMP1, rd->argintregs[0]);
+			M_ALD(rd->argintregs[0], REG_PV, p);
+			M_AST(rd->argintregs[0], REG_SP, s1 * 4);
 			p = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
 			M_ALD(REG_ITMP3, REG_PV, p);
 			M_MTCTR(REG_ITMP3);
@@ -3864,7 +3863,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* initialize mcode variables */
 	
 	mcodeptr = (s4 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 
 	/* generate code */
