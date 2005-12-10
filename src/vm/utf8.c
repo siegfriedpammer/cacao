@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3835 2005-12-01 23:32:57Z twisti $
+   $Id: utf8.c 3935 2005-12-10 23:55:49Z twisti $
 
 */
 
@@ -476,18 +476,9 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
-	/* XXX REMOVE ME! after testing of course ;-) */
-	static int running = 0;
-	/* XXX REMOVE ME! */
-
 #if defined(USE_THREADS)
 	builtin_monitorenter(lock_hashtable_utf);
 #endif
-
-	/* XXX REMOVE ME! after testing of course ;-) */
-	assert(running == 0);
-	running = 1;
-	/* XXX REMOVE ME! */
 
 #if defined(STATISTICS)
 	if (opt_stat)
@@ -514,10 +505,6 @@ utf *utf_new(const char *text, u2 length)
 #endif
 
 			/* symbol found in hashtable */
-
-			/* XXX REMOVE ME! */
-			running = 0;
-			/* XXX REMOVE ME! */
 
 #if defined(USE_THREADS)
 			builtin_monitorexit(lock_hashtable_utf);
@@ -591,10 +578,6 @@ utf *utf_new(const char *text, u2 length)
 		MFREE(hashtable_utf.ptr, void*, hashtable_utf.size);
 		hashtable_utf = newhash;
 	}
-
-	/* XXX REMOVE ME! */
-	running = 0;
-	/* XXX REMOVE ME! */
 
 #if defined(USE_THREADS)
 	builtin_monitorexit(lock_hashtable_utf);
