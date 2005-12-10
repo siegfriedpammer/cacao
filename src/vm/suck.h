@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 3876 2005-12-05 19:03:54Z twisti $
+   $Id: suck.h 3936 2005-12-10 23:58:29Z twisti $
 
 */
 
@@ -40,7 +40,32 @@
 #include "vm/types.h"
 
 #include "vm/class.h"
+#include "vm/hashtable.h"
 #include "vm/loader.h"
+
+
+/* list_classpath_entry *******************************************************/
+
+enum {
+	CLASSPATH_PATH,
+	CLASSPATH_ARCHIVE
+};
+
+typedef struct list_classpath_entry list_classpath_entry;
+
+struct list_classpath_entry {
+#if defined(USE_THREADS)
+	/* Required for monitor locking on zip/jar files. */
+	java_objectheader  header;
+#endif				  
+	s4                 type;
+	char              *path;
+	s4                 pathlen;
+#if defined(USE_ZLIB) 
+	hashtable         *classes;
+#endif
+	listnode           linkage;
+};
 
 
 /* macros to read LE and BE types from a buffer ********************************
@@ -168,9 +193,16 @@
 #define suck_s8(a)    (s8) suck_u8((a))
 
 
+/* export variables ***********************************************************/
+
+extern list *list_classpath_entries;
+
+
 /* function prototypes ********************************************************/
 
-bool suck_init(char *classpath);
+bool suck_init(void);
+
+void suck_add(char *classpath);
 
 bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
 

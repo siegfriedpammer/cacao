@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: zip.h 3864 2005-12-03 14:39:13Z twisti $
+   $Id: zip.h 3936 2005-12-10 23:58:29Z twisti $
 
 */
 
@@ -39,12 +39,33 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/hashtable.h"
+#include "vm/loader.h"
+#include "vm/suck.h"
+#include "vm/utf8.h"
+
+
+/* hashtable_zipfile_entry ****************************************************/
+
+typedef struct hashtable_zipfile_entry hashtable_zipfile_entry;
+
+struct hashtable_zipfile_entry {
+	utf                     *filename;
+	u2                       compressionmethod;
+	u4                       compressedsize;
+	u4                       uncompressedsize;
+	u1                      *data;
+	hashtable_zipfile_entry *hashlink;
+};
 
 
 /* function prototypes ********************************************************/
 
-bool zip_open(char *filename);
+hashtable *zip_open(char *path);
+hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u);
+classbuffer *zip_get(list_classpath_entry *lce, classinfo *c);
 
 #endif /* _ZIP_H */
 

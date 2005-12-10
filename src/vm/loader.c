@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3903 2005-12-07 17:43:29Z twisti $
+   $Id: loader.c 3936 2005-12-10 23:58:29Z twisti $
 
 */
 
@@ -56,8 +56,9 @@
 #endif
 
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
 #include "vm/builtin.h"
+#include "vm/classcache.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
@@ -65,14 +66,14 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
-#include "vm/classcache.h"
 
 #if defined(USE_ZLIB)
-# include "vm/unzip.h"
+# include "vm/zip.h"
 #endif
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen.inc.h"
+
 
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */
@@ -89,14 +90,6 @@
 #endif
 
 
-/********************************************************************
-   list of classpath entries (either filesystem directories or 
-   ZIP/JAR archives
-********************************************************************/
-
-classpath_info *classpath_entries = NULL;
-
-
 /* loader_init *****************************************************************
 
    Initializes all lists and loads all classes required for the system
@@ -107,14 +100,14 @@ classpath_info *classpath_entries = NULL;
 bool loader_init(u1 *stackbottom)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	classpath_info *cpi;
+	list_classpath_entry *lce;
 
 	/* Initialize the monitor pointer for zip/jar file locking. */
 
-	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
-		if (cpi->type == CLASSPATH_ARCHIVE)
-			initObjectLock(&cpi->header);
-	}
+	for (lce = list_first(list_classpath_entries); lce != NULL;
+		 lce = list_next(list_classpath_entries, lce))
+		if (lce->type == CLASSPATH_ARCHIVE)
+			initObjectLock((java_objectheader *) lce);
 #endif
 
 	/* load some important classes */
@@ -242,27 +235,36 @@ bool loader_init(u1 *stackbottom)
 
 void loader_load_all_classes(void)
 {
-	classpath_info *cpi;
-	classinfo      *c;
+	list_classpath_entry    *lce;
+	classinfo               *c;
+	hashtable               *ht;
+	s4                       slot;
+	hashtable_zipfile_entry *htzfe;
+	utf                     *u;
 
-	for (cpi = classpath_entries; cpi != 0; cpi = cpi->next) {
+	for (lce = list_first(list_classpath_entries); lce != NULL;
+		 lce = list_next(list_classpath_entries, lce)) {
 #if defined(USE_ZLIB)
-		if (cpi->type == CLASSPATH_ARCHIVE) {
-			cacao_entry_s *ce;
-			unz_s *s;
+		if (lce->type == CLASSPATH_ARCHIVE) {
+			/* get the classes hashtable */
 
-			s = (unz_s *) cpi->uf;
-			ce = s->cacao_dir_list;
-				
-			while (ce) {
-				/* skip all entries in META-INF and .properties, .png files */
+			ht = lce->classes;
 
-				if (strncmp(ce->name->text, "META-INF", strlen("META-INF")) &&
-					!strstr(ce->name->text, ".properties") &&
-					!strstr(ce->name->text, ".png"))
-					c = load_class_bootstrap(ce->name);
+			for (slot = 0; slot < ht->size; slot++) {
+				htzfe = (hashtable_zipfile_entry *) ht->ptr[slot];
 
-				ce = ce->next;
+				for (; htzfe; htzfe = htzfe->hashlink) {
+					u = htzfe->filename;
+
+					/* skip all entries in META-INF and .properties,
+                       .png files */
+
+					if (strncmp(u->text, "META-INF", strlen("META-INF")) &&
+						!strstr(u->text, ".properties") &&
+						!strstr(u->text, ".png"))
+						c = load_class_bootstrap(u);
+
+				}
 			}
 
 		} else {

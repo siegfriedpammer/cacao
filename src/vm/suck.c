@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 3862 2005-12-03 14:32:40Z twisti $
+   $Id: suck.c 3936 2005-12-10 23:58:29Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "toolbox/list.h"
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 #include "vm/exceptions.h"
@@ -48,32 +49,51 @@
 #include "vm/zip.h"
 
 
+/* global variables ***********************************************************/
+
+list *list_classpath_entries;
+
+
 /* suck_init *******************************************************************
 
-   Called once at startup, sets the searchpath for the classfiles.
+   Initializes the suck subsystem like initializing the classpath
+   entries list.
 
 *******************************************************************************/
 
-bool suck_init(char *classpath)
+bool suck_init(void)
 {
-	char           *start;
-	char           *end;
-	char           *filename;
-	s4              filenamelen;
-	bool            is_zip;
-	classpath_info *cpi;
-	classpath_info *lastcpi;
-	char           *cwd;
-	s4              cwdlen;
+	list_classpath_entries = NEW(list);
 
-	/* search for last classpath entry (only if there already some) */
+	list_init(list_classpath_entries, OFFSET(list_classpath_entry, linkage));
 
-	if ((lastcpi = classpath_entries)) {
-		while (lastcpi->next)
-			lastcpi = lastcpi->next;
-	}
+	/* everything's ok */
 
-	for (start = classpath; (*start) != '\0';) {
+	return true;
+}
+
+
+/* suck_add ********************************************************************
+
+   Adds a classpath to the global classpath entries list.
+
+*******************************************************************************/
+
+void suck_add(char *classpath)
+{
+	list_classpath_entry *lce;
+	char                 *start;
+	char                 *end;
+	char                 *filename;
+	s4                    filenamelen;
+	bool                  is_zip;
+	char                 *cwd;
+	s4                    cwdlen;
+	hashtable            *ht;
+
+	/* parse the classpath string */
+
+	for (start = classpath; (*start) != '\0'; ) {
 
 		/* search for ':' delimiter to get the end of the current entry */
 		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
@@ -117,20 +137,19 @@ bool suck_init(char *classpath)
 				filename[filenamelen] = '\0';
 			}
 
-			cpi = NULL;
+			lce = NULL;
 
 			if (is_zip) {
 #if defined(USE_ZLIB)
-/*  				(void) zip_open(filename); */
-				unzFile uf = unzOpen(filename);
+				ht = zip_open(filename);
 
-				if (uf) {
-					cpi = NEW(classpath_info);
-					cpi->type    = CLASSPATH_ARCHIVE;
-					cpi->uf      = uf;
-					cpi->next    = NULL;
-					cpi->path    = filename;
-					cpi->pathlen = filenamelen;
+				if (ht) {
+					lce = NEW(list_classpath_entry);
+
+					lce->type    = CLASSPATH_ARCHIVE;
+					lce->classes = ht;
+					lce->path    = filename;
+					lce->pathlen = filenamelen;
 
 					/* SUN compatible -verbose:class output */
 
@@ -144,30 +163,22 @@ bool suck_init(char *classpath)
 #endif
 				
 			} else {
-				cpi = NEW(classpath_info);
-				cpi->type = CLASSPATH_PATH;
-				cpi->next = NULL;
-
-				if (filename[filenamelen - 1] != '/') {/*PERHAPS THIS SHOULD BE READ FROM A GLOBAL CONFIGURATION */
+				if (filename[filenamelen - 1] != '/') {/* XXX fixme for win32 */
 					filename[filenamelen] = '/';
 					filename[filenamelen + 1] = '\0';
 					filenamelen++;
 				}
 
-				cpi->path    = filename;
-				cpi->pathlen = filenamelen;
+				lce = NEW(list_classpath_entry);
+
+				lce->type    = CLASSPATH_PATH;
+				lce->path    = filename;
+				lce->pathlen = filenamelen;
 			}
 
-			/* attach current classpath entry */
+			/* add current classpath entry */
 
-			if (cpi) {
-				if (!classpath_entries)
-					classpath_entries = cpi;
-				else
-					lastcpi->next = cpi;
-
-				lastcpi = cpi;
-			}
+			list_addlast(list_classpath_entries, lce);
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
@@ -179,10 +190,6 @@ bool suck_init(char *classpath)
 			start = end;
 		}
 	}
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -358,26 +365,26 @@ void suck_skip_nbytes(classbuffer *cb, s4 len)
    Returns true if classbuffer is already loaded or a file for the
    specified class has succussfully been read in. All directories of
    the searchpath are used to find the classfile (<classname>.class).
-   Returns false if no classfile is found and writes an error message.
+   Returns NULL if no classfile is found and writes an error message.
 	
 *******************************************************************************/
 
 classbuffer *suck_start(classinfo *c)
 {
-	classpath_info *cpi;
-	char           *filename;
-	s4              filenamelen;
-	char           *path;
-	FILE           *classfile;
-	bool            found;
-	s4              len;
-	struct stat     buffer;
-	classbuffer    *cb;
+	list_classpath_entry *lce;
+	char                 *filename;
+	s4                    filenamelen;
+	char                 *path;
+	FILE                 *classfile;
+	s4                    len;
+	struct stat           buffer;
+	classbuffer          *cb;
 
 	/* initialize return value */
 
-	found = false;
 	cb = NULL;
+
+	/* get the classname as char string */
 
 	filenamelen = utf_strlen(c->name) + strlen(".class") + strlen("0");
 	filename = MNEW(char, filenamelen);
@@ -387,60 +394,31 @@ classbuffer *suck_start(classinfo *c)
 
 	/* walk through all classpath entries */
 
-	for (cpi = classpath_entries; cpi != NULL && cb == NULL; cpi = cpi->next) {
+	for (lce = list_first(list_classpath_entries); lce != NULL && cb == NULL;
+		 lce = list_next(list_classpath_entries, lce)) {
 #if defined(USE_ZLIB)
-		if (cpi->type == CLASSPATH_ARCHIVE) {
+		if (lce->type == CLASSPATH_ARCHIVE) {
 
 #if defined(USE_THREADS)
 			/* enter a monitor on zip/jar archives */
 
-			builtin_monitorenter((java_objectheader *) cpi);
+			builtin_monitorenter((java_objectheader *) lce);
 #endif
 
-			if (cacao_locate(cpi->uf, c->name) == UNZ_OK) {
-				unz_file_info file_info;
+			/* try to get the file in current archive */
 
-				if (unzGetCurrentFileInfo(cpi->uf, &file_info, filename,
-										  sizeof(filename), NULL, 0, NULL, 0) == UNZ_OK) {
-					if (unzOpenCurrentFile(cpi->uf) == UNZ_OK) {
-						cb = NEW(classbuffer);
-						cb->class = c;
-						cb->size  = file_info.uncompressed_size;
-						cb->data  = MNEW(u1, cb->size);
-						cb->pos   = cb->data;
-						cb->path  = cpi->path;
-
-						len = unzReadCurrentFile(cpi->uf, cb->data, cb->size);
-
-						if (len != cb->size) {
-							suck_stop(cb);
-							log_text("Error while unzipping");
-
-						} else {
-							found = true;
-						}
-
-					} else {
-						log_text("Error while opening file in archive");
-					}
-
-				} else {
-					log_text("Error while retrieving fileinfo");
-				}
-			}
-			unzCloseCurrentFile(cpi->uf);
+			cb = zip_get(lce, c);
 
 #if defined(USE_THREADS)
 			/* leave the monitor */
 
-			builtin_monitorexit((java_objectheader *) cpi);
+			builtin_monitorexit((java_objectheader *) lce);
 #endif
 
 		} else {
 #endif /* defined(USE_ZLIB) */
-			
-			path = MNEW(char, cpi->pathlen + filenamelen);
-			strcpy(path, cpi->path);
+			path = MNEW(char, lce->pathlen + filenamelen);
+			strcpy(path, lce->path);
 			strcat(path, filename);
 
 			classfile = fopen(path, "r");
@@ -452,7 +430,7 @@ classbuffer *suck_start(classinfo *c)
 					cb->size  = buffer.st_size;
 					cb->data  = MNEW(u1, cb->size);
 					cb->pos   = cb->data;
-					cb->path  = cpi->path;
+					cb->path  = lce->path;
 
 					/* read class data */
 					len = fread(cb->data, 1, cb->size, classfile);
@@ -461,21 +439,18 @@ classbuffer *suck_start(classinfo *c)
 						suck_stop(cb);
 /*  						if (ferror(classfile)) { */
 /*  						} */
-
-					} else {
-						found = true;
 					}
 				}
 			}
 
-			MFREE(path, char, cpi->pathlen + filenamelen);
+			MFREE(path, char, lce->pathlen + filenamelen);
 #if defined(USE_ZLIB)
 		}
 #endif
 	}
 
 	if (opt_verbose)
-		if (!found)
+		if (cb == NULL)
 			dolog("Warning: Can not open class file '%s'", filename);
 
 	MFREE(filename, char, filenamelen);

@@ -26,7 +26,7 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 3841 2005-12-02 15:19:04Z twisti $
+   $Id: loader.h 3936 2005-12-10 23:58:29Z twisti $
 */
 
 
@@ -42,7 +42,6 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct classbuffer classbuffer;
-typedef struct classpath_info classpath_info;
 
 
 #include "vm/class.h"
@@ -51,10 +50,6 @@ typedef struct classpath_info classpath_info;
 #include "vm/references.h"
 #include "vm/method.h"
 #include "vm/utf8.h"
-
-#if defined(USE_ZLIB)
-# include "vm/unzip.h"
-#endif
 
 
 /* constant pool entries *******************************************************
@@ -117,33 +112,11 @@ struct classbuffer {
 };
 
 
-/* classpath_info *************************************************************/
-
-#define CLASSPATH_PATH       0
-#define CLASSPATH_ARCHIVE    1
-
-struct classpath_info {
-#if defined(USE_THREADS)
-	/* Required for monitor locking on zip/jar files. */
-	java_objectheader  header;
-#endif
-	s4                 type;
-	char              *path;
-	s4                 pathlen;
-#if defined(USE_ZLIB)
-	unzFile            uf;
-#endif
-	classpath_info    *next;
-};
-
-
 /* export variables ***********************************************************/
 
 #if defined(USE_THREADS)
 extern int blockInts;
 #endif
-
-extern classpath_info *classpath_entries;
 
 
 /* function prototypes ********************************************************/
