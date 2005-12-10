@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3933 2005-12-09 15:24:03Z twisti $
+   $Id: cacao.c 3937 2005-12-10 23:59:04Z twisti $
 
 */
 
@@ -1163,8 +1163,10 @@ int main(int argc, char **argv)
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
-	if (!suck_init(bootclasspath))
+	if (!suck_init())
 		throw_main_exception_exit();
+
+	suck_add(bootclasspath);
 
 	/* initialize the memory subsystem (must be done _after_
 	   threads_preinit) */

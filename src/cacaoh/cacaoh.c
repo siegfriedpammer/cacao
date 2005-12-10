@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3827 2005-12-01 19:38:20Z twisti $
+   $Id: cacaoh.c 3937 2005-12-10 23:59:04Z twisti $
 
 */
 
@@ -295,14 +295,17 @@ int main(int argc, char **argv)
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
-	suck_init(bootclasspath);
+	suck_init();
+
+	suck_add(bootclasspath);
 
 	/* Also add the normal classpath, so the bootstrap class loader can find  */
 	/* the files.                                                             */
 
-	suck_init(classpath);
+	suck_add(classpath);
 
-	/* initialize the loader subsystems (must be done _after_ classcache_init) */
+	/* initialize the loader subsystems (must be done _after_
+       classcache_init) */
 
 	if (!loader_init((u1 *) &dummy))
 		throw_main_exception_exit();
