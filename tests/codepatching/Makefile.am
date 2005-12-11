@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3004 2005-07-12 19:36:10Z twisti $
+## $Id: Makefile.am 3941 2005-12-11 14:06:03Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -65,20 +65,10 @@ EXTRA_DIST = \
 	putstaticL.java \
 	test.java
 
-JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -nowarn
+MAINCLASS = \
+	test.class
 
-build:
-	$(JAVAC) test.java
-
-checkall: build
-	$(JAVA) test
-
-clean:
-	$(RM) *.class
-
-remove:
-	$(RM) \
+CLASSES = \
 	checkcastC.class \
 	checkcastI.class \
 	getfieldD.class \
@@ -109,6 +99,22 @@ remove:
 	putstaticI.class \
 	putstaticJ.class \
 	putstaticL.class
+
+CLEANFILES = \
+	$(MAINCLASS) \
+	$(CLASSES)
+
+JAVA = $(top_builddir)/src/cacao/cacao
+JAVAC = jikes -nowarn
+
+build:
+	$(JAVAC) test.java
+
+checkall: build
+	$(JAVA) test
+
+remove:
+	$(RM) $(CLASSES)
 
 
 ## Local variables:
