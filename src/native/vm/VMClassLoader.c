@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: VMClassLoader.c 3938 2005-12-11 00:00:10Z twisti $
 
 */
 
@@ -59,6 +59,8 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/suck.h"
+#include "vm/zip.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -302,18 +304,18 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  */
 JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	jobject           o;
-	methodinfo       *m;
-	java_lang_String *path;
-	classpath_info   *cpi;
-	utf              *utfname;
-	char             *charname;
-	char             *end;
-	char             *tmppath;
-	s4                namelen;
-	s4                pathlen;
-	struct stat       buf;
-	jboolean          ret;
+	jobject               o;
+	methodinfo           *m;
+	java_lang_String     *path;
+	list_classpath_entry *lce;
+	utf                  *utfname;
+	char                 *charname;
+	char                 *end;
+	char                 *tmppath;
+	s4                    namelen;
+	s4                    pathlen;
+	struct stat           buf;
+	jboolean              ret;
 
 	/* get the resource name as utf string */
 
@@ -352,44 +354,33 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	if (!m)
 		return NULL;
 
-	for (cpi = classpath_entries; cpi != NULL; cpi = cpi->next) {
+	for (lce = list_first(list_classpath_entries); lce != NULL;
+		 lce = list_next(list_classpath_entries, lce)) {
 		/* clear path pointer */
   		path = NULL;
 
 #if defined(USE_ZLIB)
-		if (cpi->type == CLASSPATH_ARCHIVE) {
+		if (lce->type == CLASSPATH_ARCHIVE) {
 
-#if defined(USE_THREADS)
-			/* enter a monitor on zip/jar archives */
-
-			builtin_monitorenter((java_objectheader *) cpi);
-#endif
-
-			if (cacao_locate(cpi->uf, utfname) == UNZ_OK) {
-				pathlen = strlen("jar:file://") + cpi->pathlen + strlen("!/") +
+			if (zip_find(lce, utfname)) {
+				pathlen = strlen("jar:file://") + lce->pathlen + strlen("!/") +
 					namelen + strlen("0");
 
 				tmppath = MNEW(char, pathlen);
 
-				sprintf(tmppath, "jar:file://%s!/%s", cpi->path, charname);
+				sprintf(tmppath, "jar:file://%s!/%s", lce->path, charname);
 				path = javastring_new_char(tmppath),
 
 				MFREE(tmppath, char, pathlen);
 			}
 
-#if defined(USE_THREADS)
-			/* leave the monitor */
-
-			builtin_monitorexit((java_objectheader *) cpi);
-#endif
-
 		} else {
 #endif /* defined(USE_ZLIB) */
-			pathlen = strlen("file://") + cpi->pathlen + namelen + strlen("0");
+			pathlen = strlen("file://") + lce->pathlen + namelen + strlen("0");
 
 			tmppath = MNEW(char, pathlen);
 
-			sprintf(tmppath, "file://%s%s", cpi->path, charname);
+			sprintf(tmppath, "file://%s%s", lce->path, charname);
 
 			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
 				path = javastring_new_char(tmppath),
