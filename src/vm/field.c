@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 3856 2005-12-03 12:41:44Z twisti $
+   $Id: field.c 3940 2005-12-11 01:06:16Z twisti $
 
 */
 
@@ -62,7 +62,7 @@ void field_free(fieldinfo *f)
 
 *******************************************************************************/
 
-#if defined(ENABLE_DEBUG)
+#if !defined(NDEBUG)
 void field_display(fieldinfo *f)
 {
 	printf("   ");

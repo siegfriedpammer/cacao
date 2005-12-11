@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: class.c 3940 2005-12-11 01:06:16Z twisti $
 
 */
 
@@ -1150,7 +1150,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 }
 
 
-#if defined(ENABLE_DEBUG)
+#if !defined(NDEBUG)
 void class_showconstanti(classinfo *c, int ii) 
 {
 	u4 i = ii;
@@ -1356,7 +1356,7 @@ void class_showmethods (classinfo *c)
 		}
 
 }
-#endif /* defined(ENABLE_DEBUG) */
+#endif /* !defined(NDEBUG) */
 
 
 /*

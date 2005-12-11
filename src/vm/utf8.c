@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3935 2005-12-10 23:55:49Z twisti $
+   $Id: utf8.c 3940 2005-12-11 01:06:16Z twisti $
 
 */
 
@@ -1130,7 +1130,7 @@ bool is_valid_name_utf(utf *u)
 
 *******************************************************************************/
 
-#if defined(ENABLE_DEBUG)
+#if !defined(NDEBUG)
 void utf_show(void)
 {
 
@@ -1214,7 +1214,7 @@ void utf_show(void)
 	/* avg. chainlength = sum of chainlengths / number of chains */
 	printf("avg. chainlength:%5.2f\n",(float) sum_chainlength / (hashtable_utf.size-chain_count[0]));
 }
-#endif /* defined(ENABLE_DEBUG) */
+#endif /* !defined(NDEBUG) */
 
 
 /*

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3937 2005-12-10 23:59:04Z twisti $
+   $Id: cacao.c 3940 2005-12-11 01:06:16Z twisti $
 
 */
 
@@ -1600,7 +1600,7 @@ void exit_handler(void)
 {
 	/********************* Print debug tables ************************/
 
-#if defined(ENABLE_DEBUG)
+#if !defined(NDEBUG)
 	if (showmethods)
 		class_showmethods(mainclass);
 

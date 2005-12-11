@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 3857 2005-12-03 12:43:29Z twisti $
+   $Id: field.h 3940 2005-12-11 01:06:16Z twisti $
 */
 
 
@@ -74,7 +74,7 @@ struct fieldinfo {	      /* field of a class                                 */
 
 void field_free(fieldinfo *f);
 
-#if defined(ENABLE_DEBUG)
+#if !defined(NDEBUG)
 void field_display(fieldinfo *f);
 #endif
 

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 3853 2005-12-03 12:34:42Z twisti $
+   $Id: sets.c 3940 2005-12-11 01:06:16Z twisti $
 
 */
 
@@ -385,7 +385,7 @@ int sizeOfSet(classSetNode *s) {
 }
 
 
-#if defined(ENABLE_DEBUG)  
+#if !defined(NDEBUG)  
 /*------------------------------------------------------------*/
 int printSet(classSetNode *s)
 {
@@ -516,7 +516,7 @@ int printFieldSet(fldSet *sf) {
 }
 /*------------------------------------------------------------*/
 /*void destroy_set */
-#endif /* defined(ENABLE_DEBUG) */
+#endif /* !defined(NDEBUG) */
 
 
 /*
