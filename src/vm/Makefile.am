@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3863 2005-12-03 14:34:09Z twisti $
+## $Id: Makefile.am 3939 2005-12-11 00:02:35Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@ -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@/@OS_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 SUBDIRS = jit
 
@@ -44,8 +44,8 @@ endif
 
 if USE_ZLIB
 ZLIB_OBJ = \
-	unzip.c \
-	unzip.h
+	zip.c \
+	zip.h
 endif
 
 noinst_HEADERS = \
