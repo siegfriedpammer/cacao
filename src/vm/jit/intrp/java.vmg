@@ -1152,17 +1152,17 @@ throw:
   aRef = *exceptionptr;
   *exceptionptr = NULL;
 athrow:
-  new_ip = asm_handle_exception(IP,aRef,fp,&new_sp,&new_fp);
-  if (new_ip==NULL) {
+  new_ip = intrp_asm_handle_exception(IP, aRef, fp, &new_sp, &new_fp);
+  if (new_ip == NULL) {
     /* !! sp = new_sp; ? */
-    global_sp = sp-1;
+    global_sp = sp - 1;
     SUPER_END; /* ATHROW may end a basic block */
     return aRef;
   }
   SET_IP(new_ip);
   aRef1 = aRef;
-  sp=new_sp;
-  fp=new_fp;
+  sp = new_sp;
+  fp = new_fp;
 }
 
 CHECKCAST ( #aClass #acr aRef -- aRef ) 0xc0

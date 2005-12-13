@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3902 2005-12-07 17:32:57Z anton $
+   $Id: intrp.h 3947 2005-12-13 01:39:27Z twisti $
 
 */
 
@@ -247,7 +247,7 @@ block_count *vm_block_insert(Inst *ip);
 Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif);
 u1 *createcalljavafunction(methodinfo *m);
 
-Inst *asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp);
+Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp);
 
 #endif /* _INTRP_H */
 

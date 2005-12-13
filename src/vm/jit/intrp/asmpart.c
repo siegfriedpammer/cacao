@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: asmpart.c 3947 2005-12-13 01:39:27Z twisti $
 
 */
 
@@ -244,7 +244,7 @@ double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size,
 }
 
 
-Inst *asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp)
+Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell **new_spp, Cell **new_fpp)
 {
 	classinfo      *c;
 	s4              framesize;
