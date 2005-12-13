@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3899 2005-12-07 16:08:52Z anton $
+   $Id: options.c 3944 2005-12-13 01:31:14Z twisti $
 
 */
 
@@ -114,12 +114,16 @@ bool opt_eager = false;
 bool opt_lsra = false;
 #endif
 
+
 /* interpreter options ********************************************************/
 
-bool opt_no_dynamic = false;   /* suppress dynamic superinstructions          */
+#if defined(ENABLE_INTRP)
+bool opt_no_dynamic = false;            /* suppress dynamic superinstructions */
+bool opt_no_replication = false;        /* don't use replication in intrp     */
 
-s4 opt_static_supers = 0x7fffffff;
+s4   opt_static_supers = 0x7fffffff;
 bool vm_debug = false;          /* XXX this should be called `opt_trace'      */
+#endif
 
 
 /* get_opt *********************************************************************

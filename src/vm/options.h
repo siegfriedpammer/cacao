@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3899 2005-12-07 16:08:52Z anton $
+   $Id: options.h 3944 2005-12-13 01:31:14Z twisti $
 
 */
 
@@ -37,14 +37,19 @@
 #define _OPTIONS_H
 
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 
 
 /* reserved option numbers ****************************************************/
 
+/* define these negative since the other options are an enum */
+
 #define OPT_DONE       -1
-#define OPT_ERROR       0
-#define OPT_IGNORE      1
+#define OPT_ERROR      -2
+#define OPT_IGNORE     -3
 
 
 typedef struct opt_struct opt_struct;
@@ -126,11 +131,16 @@ extern bool opt_eager;
 extern bool opt_lsra;
 #endif
 
+
 /* interpreter options ********************************************************/
 
+#if defined(ENABLE_INTRP)
 extern bool opt_no_dynamic;
+extern bool opt_no_replication;
+
 extern s4   opt_static_supers;
 extern bool vm_debug;
+#endif
 
 
 /* function prototypes ********************************************************/
