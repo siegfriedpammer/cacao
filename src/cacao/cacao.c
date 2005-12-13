@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3940 2005-12-11 01:06:16Z twisti $
+   $Id: cacao.c 3945 2005-12-13 01:32:02Z twisti $
 
 */
 
@@ -119,75 +119,84 @@ void **stackbottom = 0;
 
 /* define command line options ************************************************/
 
-#define OPT_CLASSPATH        2
-#define OPT_D                3
-#define OPT_MS               4
-#define OPT_MX               5
-#define OPT_VERBOSE1         6
-#define OPT_VERBOSE          7
-#define OPT_VERBOSESPECIFIC  8
-#define OPT_VERBOSECALL      9
-#define OPT_NOIEEE           10
-#define OPT_SOFTNULL         11
-#define OPT_TIME             12
+enum {
+	OPT_CLASSPATH,
+	OPT_D,
+	OPT_MS,
+	OPT_MX,
+	OPT_VERBOSE1,
+	OPT_VERBOSE,
+	OPT_VERBOSESPECIFIC,
+	OPT_VERBOSECALL,
+	OPT_NOIEEE,
+	OPT_SOFTNULL,
+	OPT_TIME,
 
 #if defined(STATISTICS)
-#define OPT_STAT             13
-#endif /* defined(STATISTICS) */
+	OPT_STAT,
+#endif
 
-#define OPT_LOG              14
-#define OPT_CHECK            15
-#define OPT_LOAD             16
-#define OPT_METHOD           17
-#define OPT_SIGNATURE        18
-#define OPT_SHOW             19
-#define OPT_ALL              20
-#define OPT_OLOOP            24
-#define OPT_INLINING	     25
+	OPT_LOG,
+	OPT_CHECK,
+	OPT_LOAD,
+	OPT_METHOD,
+	OPT_SIGNATURE,
+	OPT_SHOW,
+	OPT_ALL,
+	OPT_OLOOP,
+	OPT_INLINING,
 
 #define STATIC_ANALYSIS
 #if defined(STATIC_ANALYSIS)
-# define OPT_RT              26
-# define OPT_XTA             27 
-# define OPT_VTA             28
-#endif /* defined(STATIC_ANALYSIS) */
+	OPT_RT,
+	OPT_XTA,
+	OPT_VTA,
+#endif
 
-#define OPT_VERBOSETC        29
-#define OPT_NOVERIFY         30
-#define OPT_LIBERALUTF       31
-#define OPT_VERBOSEEXCEPTION 32
-#define OPT_EAGER            33
+	OPT_VERBOSETC,
+	OPT_NOVERIFY,
+	OPT_LIBERALUTF,
+	OPT_VERBOSEEXCEPTION,
+	OPT_EAGER,
 
 #if defined(LSRA)
-#define OPT_LSRA             34
-#endif /* defined(LSRA) */
+	OPT_LSRA,
+#endif
 
-#define OPT_JAR              35
-#define OPT_BOOTCLASSPATH    36
-#define OPT_BOOTCLASSPATH_A  37
-#define OPT_BOOTCLASSPATH_P  38
-#define OPT_VERSION          39
-#define OPT_SHOWVERSION      40
-#define OPT_FULLVERSION      41
+	OPT_JAR,
+	OPT_BOOTCLASSPATH,
+	OPT_BOOTCLASSPATH_A,
+	OPT_BOOTCLASSPATH_P,
+	OPT_VERSION,
+	OPT_SHOWVERSION,
+	OPT_FULLVERSION,
 
-#define OPT_HELP             100
-#define OPT_X                101
+	OPT_HELP,
+	OPT_X,
 
-#define OPT_JIT              102
-#define OPT_INTRP            103
+	OPT_JIT,
+	OPT_INTRP,
 
-#define OPT_STATIC_SUPERS    104
-#define OPT_TRACE            105
+#if defined(ENABLE_INTRP)
+	/* interpreter options */
 
-#define OPT_SS               106
+	OPT_NO_DYNAMIC,
+	OPT_NO_REPLICATION,
+	OPT_STATIC_SUPERS,
+	OPT_TRACE,
+#endif
+
+	OPT_SS,
 
 #ifdef ENABLE_JVMTI
-#define OPT_DEBUG            107
-#define OPT_AGENTLIB         108
-#define OPT_AGENTPATH        109
-#endif 
+	OPT_DEBUG,
+	OPT_AGENTLIB,
+	OPT_AGENTPATH,
+#endif
 
-#define OPT_NO_DYNAMIC       110
+	DUMMY
+};
+
 
 opt_struct opts[] = {
 	{ "classpath",         true,  OPT_CLASSPATH },
@@ -234,11 +243,14 @@ opt_struct opts[] = {
 	{ "help",              false, OPT_HELP },
 	{ "?",                 false, OPT_HELP },
 
+#if defined(ENABLE_INTRP)
 	/* interpreter options */
 
 	{ "trace",             false, OPT_TRACE },
 	{ "static-supers",     true,  OPT_STATIC_SUPERS },
 	{ "no-dynamic",        false, OPT_NO_DYNAMIC },
+	{ "no-replication",    false, OPT_NO_REPLICATION },
+#endif
 
 	/* JVMTI Agent Command Line Options */
 #ifdef ENABLE_JVMTI
@@ -1044,6 +1056,7 @@ int main(int argc, char **argv)
 #endif
 			break;
 
+#if defined(ENABLE_INTRP)
 		case OPT_STATIC_SUPERS:
 			opt_static_supers = atoi(opt_arg);
 			break;
@@ -1052,9 +1065,14 @@ int main(int argc, char **argv)
 			opt_no_dynamic = true;
 			break;
 
+		case OPT_NO_REPLICATION:
+			opt_no_replication = true;
+			break;
+
 		case OPT_TRACE:
 			vm_debug = true;
 			break;
+#endif
 
 		default:
 			printf("Unknown option: %s\n", argv[opt_ind]);
