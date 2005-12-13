@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3937 2005-12-10 23:59:04Z twisti $
+   $Id: cacaoh.c 3946 2005-12-13 01:32:35Z twisti $
 
 */
 
@@ -75,12 +75,17 @@
 
 /* define cacaoh options ******************************************************/
 
-#define OPT_HELP          2
-#define OPT_VERSION       3
-#define OPT_VERBOSE       4
-#define OPT_DIRECTORY     5
-#define OPT_CLASSPATH     6
-#define OPT_BOOTCLASSPATH 7
+enum {
+	OPT_HELP,
+	OPT_VERSION,
+	OPT_VERBOSE,
+	OPT_DIRECTORY,
+	OPT_CLASSPATH,
+	OPT_BOOTCLASSPATH,
+
+	DUMMY
+};
+
 
 opt_struct opts[] = {
 	{ "help",             false, OPT_HELP          },
