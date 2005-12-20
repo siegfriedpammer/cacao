@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3872 2005-12-05 18:12:58Z twisti $
+   $Id: codegen.c 3949 2005-12-20 20:39:09Z edwin $
 
 */
 
@@ -958,7 +958,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_COPY(src->prev,       iptr->dst->prev);
 			M_COPY(src->prev->prev, iptr->dst->prev->prev);
 			M_COPY(iptr->dst,       iptr->dst->prev->prev->prev);
-			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev);
+			M_COPY(iptr->dst->prev, iptr->dst->prev->prev->prev->prev);
 			break;
 
 		case ICMD_DUP2_X2:    /* ..., a, b, c, d ==> ..., c, d, a, b, c, d    */
