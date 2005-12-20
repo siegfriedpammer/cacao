@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3939 2005-12-11 00:02:35Z twisti $
+## $Id: Makefile.am 3963 2005-12-20 23:31:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,13 +36,13 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_sr
 
 SUBDIRS = jit
 
-if STATISTICS
+if ENABLE_STATISTICS
 STATISTICS_OBJ = \
 	statistics.c \
 	statistics.h
 endif
 
-if USE_ZLIB
+if ENABLE_ZLIB
 ZLIB_OBJ = \
 	zip.c \
 	zip.h
