@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3938 2005-12-11 00:00:10Z twisti $
+   $Id: VMClassLoader.c 3962 2005-12-20 23:28:13Z twisti $
 
 */
 
@@ -76,10 +76,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	classbuffer *cb;
 	utf         *utfname;
 
-	if ((cl == NULL) || (data == NULL)) {
+	/* check if data was passed */
+
+	if (data == NULL) {
 		*exceptionptr = new_nullpointerexception();
 		return NULL;
 	}
+
+	/* check the indexes passed */
 
 	if ((offset < 0) || (len < 0) || ((offset + len) > data->header.size)) {
 		*exceptionptr =
@@ -359,7 +363,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 		/* clear path pointer */
   		path = NULL;
 
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
 			if (zip_find(lce, utfname)) {
@@ -375,7 +379,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 			}
 
 		} else {
-#endif /* defined(USE_ZLIB) */
+#endif /* defined(ENABLE_ZLIB) */
 			pathlen = strlen("file://") + lce->pathlen + namelen + strlen("0");
 
 			tmppath = MNEW(char, pathlen);
@@ -386,7 +390,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 				path = javastring_new_char(tmppath),
 
 			MFREE(tmppath, char, pathlen);
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		}
 #endif
 
