@@ -7,8 +7,8 @@
 <attribute key="ctagslocation" value=""/>
 <attribute key="ctagfiletype" value="ctags_internal"/>
 <attribute key="ctagsindexincludes" value="false"/>
-<attribute key="ctagfilelocation" value=""/>
 <attribute key="ctagslocationtype" value="ctags_path_default"/>
+<attribute key="ctagfilelocation" value=""/>
 </extension>
 <data>
 <item id="scannerConfiguration">
@@ -58,6 +58,17 @@
 <pathentry kind="src" path=""/>
 <pathentry kind="out" path=""/>
 <pathentry kind="con" path="org.eclipse.cdt.make.core.DISCOVERED_SCANNER_INFO"/>
+</item>
+<item id="org.eclipse.cdt.make.core.buildtargets">
+<buildTargets>
+<target name="all" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<buildCommand>make</buildCommand>
+<buildArguments></buildArguments>
+<buildTarget>all</buildTarget>
+<stopOnError>false</stopOnError>
+<useDefaultCommand>true</useDefaultCommand>
+</target>
+</buildTargets>
 </item>
 </data>
 </cdtproject>
