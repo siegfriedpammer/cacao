@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3945 2005-12-13 01:32:02Z twisti $
+   $Id: cacao.c 3956 2005-12-20 23:08:15Z twisti $
 
 */
 
@@ -132,7 +132,7 @@ enum {
 	OPT_SOFTNULL,
 	OPT_TIME,
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	OPT_STAT,
 #endif
 
@@ -159,7 +159,7 @@ enum {
 	OPT_VERBOSEEXCEPTION,
 	OPT_EAGER,
 
-#if defined(LSRA)
+#if defined(ENABLE_LSRA)
 	OPT_LSRA,
 #endif
 
@@ -218,7 +218,7 @@ opt_struct opts[] = {
 #endif
 	{ "softnull",          false, OPT_SOFTNULL },
 	{ "time",              false, OPT_TIME },
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	{ "stat",              false, OPT_STAT },
 #endif
 	{ "log",               true,  OPT_LOG },
@@ -233,7 +233,7 @@ opt_struct opts[] = {
 	{ "xta",               false, OPT_XTA },
 	{ "vta",               false, OPT_VTA },
 #endif
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	{ "lsra",              false, OPT_LSRA },
 #endif
 	{ "jar",               false, OPT_JAR },
@@ -331,7 +331,7 @@ static void usage(void)
 	printf("    -liberalutf              don't warn about overlong UTF-8 sequences\n");
 	printf("    -softnull                use software nullpointer check\n");
 	printf("    -time                    measure the runtime\n");
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	printf("    -stat                    detailed compiler statistics\n");
 #endif
 	printf("    -log logfile             specify a name for the logfile\n");
@@ -361,7 +361,7 @@ static void usage(void)
 	printf("    -xta                     use x type analysis\n");
 	printf("    -vta                     use variable type analysis\n");
 #endif
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	printf("    -lsra                    use linear scan register allocation\n");
 #endif
 
@@ -888,7 +888,7 @@ int main(int argc, char **argv)
 			getloadingtime = true;
 			break;
 					
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		case OPT_STAT:
 			opt_stat = true;
 			break;
@@ -1024,7 +1024,7 @@ int main(int argc, char **argv)
 			break;
 #endif
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		case OPT_LSRA:
 			opt_lsra = true;
 			break;
@@ -1637,7 +1637,7 @@ void exit_handler(void)
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
 			print_stats();
 #ifdef TYPECHECK_STATISTICS
