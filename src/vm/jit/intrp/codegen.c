@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: codegen.c 3951 2005-12-20 21:13:10Z twisti $
 
 */
 
@@ -1121,46 +1121,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			break;
 
-		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
-		                          /* val = value (in current instruction)     */
-		                          /* op1 = type, val.a = field address (in    */
-		                          /* following NOP)                           */
-
-			{
-			fieldinfo *fi = iptr[1].val.a;
-			unresolved_field *uf = iptr[1].target;
-
-			switch (iptr->op1) {
-			case TYPE_INT:
-			case TYPE_FLT:
-				gen_ICONST(cd, iptr->val.i);
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
-				} else {
-					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
-				}
-				break;
-			case TYPE_LNG:
-			case TYPE_DBL:
-				gen_LCONST(cd, iptr->val.l);
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
-				} else {
-					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
-				}
-				break;
-			case TYPE_ADR:
-				gen_ACONST(cd, iptr->val.a);
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
-					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
-				} else {
-					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
-				}
-				break;
-			}
-			}
-			break;
-
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
@@ -1222,46 +1182,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				break;
 			case TYPE_ADR:
-				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
-				} else {
-					gen_PUTFIELD_CELL(cd, fi->offset, uf);
-				}
-				break;
-			}
-			}
-			break;
-
-		case ICMD_PUTFIELDCONST:  /* ..., objectref  ==> ...                  */
-		                          /* val = value (in current instruction)     */
-		                          /* op1 = type, val.a = field address (in    */
-		                          /* following NOP)                           */
-
-			{
-			fieldinfo *fi = iptr[1].val.a;
-			unresolved_field *uf = iptr[1].target;
-
-			switch (iptr[1].op1) {
-			case TYPE_INT:
-			case TYPE_FLT:
-				gen_ICONST(cd, iptr->val.i);
-				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
-				} else {
-					gen_PUTFIELD_INT(cd, fi->offset, uf);
-				}
-				break;
-			case TYPE_LNG:
-			case TYPE_DBL:
-				gen_LCONST(cd, iptr->val.l);
-				if (fi == NULL) {
-					gen_PATCHER_PUTFIELD_LONG(cd, 0, uf);
-				} else {
-					gen_PUTFIELD_LONG(cd, fi->offset, uf);
-				}
-				break;
-			case TYPE_ADR:
-				gen_ACONST(cd, iptr->val.a);
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
 				} else {
