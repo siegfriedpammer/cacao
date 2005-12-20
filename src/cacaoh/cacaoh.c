@@ -30,16 +30,17 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 3946 2005-12-13 01:32:35Z twisti $
+   $Id: cacaoh.c 3957 2005-12-20 23:09:36Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "cacaoh/headers.h"
@@ -353,7 +354,7 @@ int main(int argc, char **argv)
 
 	if (opt_verbose) {
 		log_text("Java - header-generator stopped");
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		mem_usagelog(true);
 #endif
 	}
