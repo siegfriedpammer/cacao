@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3936 2005-12-10 23:58:29Z twisti $
+   $Id: loader.c 3961 2005-12-20 23:26:55Z twisti $
 
 */
 
@@ -67,7 +67,7 @@
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
 
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 # include "vm/zip.h"
 #endif
 
@@ -244,11 +244,11 @@ void loader_load_all_classes(void)
 
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce)) {
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 			/* get the classes hashtable */
 
-			ht = lce->classes;
+			ht = lce->htclasses;
 
 			for (slot = 0; slot < ht->size; slot++) {
 				htzfe = (hashtable_zipfile_entry *) ht->ptr[slot];
@@ -269,7 +269,7 @@ void loader_load_all_classes(void)
 
 		} else {
 #endif
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		}
 #endif
 	}
