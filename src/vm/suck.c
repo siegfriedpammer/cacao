@@ -28,14 +28,15 @@
 
    Changes:
 
-   $Id: suck.c 3936 2005-12-10 23:58:29Z twisti $
+   $Id: suck.c 3959 2005-12-20 23:25:07Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <sys/stat.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -45,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 #include "vm/suck.h"
 #include "vm/zip.h"
 
@@ -140,16 +142,16 @@ void suck_add(char *classpath)
 			lce = NULL;
 
 			if (is_zip) {
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 				ht = zip_open(filename);
 
 				if (ht) {
 					lce = NEW(list_classpath_entry);
 
-					lce->type    = CLASSPATH_ARCHIVE;
-					lce->classes = ht;
-					lce->path    = filename;
-					lce->pathlen = filenamelen;
+					lce->type      = CLASSPATH_ARCHIVE;
+					lce->htclasses = ht;
+					lce->path      = filename;
+					lce->pathlen   = filenamelen;
 
 					/* SUN compatible -verbose:class output */
 
@@ -384,7 +386,8 @@ classbuffer *suck_start(classinfo *c)
 
 	cb = NULL;
 
-	/* get the classname as char string */
+	/* get the classname as char string (do it here for the warning at
+       the and of the function) */
 
 	filenamelen = utf_strlen(c->name) + strlen(".class") + strlen("0");
 	filename = MNEW(char, filenamelen);
@@ -396,7 +399,7 @@ classbuffer *suck_start(classinfo *c)
 
 	for (lce = list_first(list_classpath_entries); lce != NULL && cb == NULL;
 		 lce = list_next(list_classpath_entries, lce)) {
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
 #if defined(USE_THREADS)
@@ -416,7 +419,7 @@ classbuffer *suck_start(classinfo *c)
 #endif
 
 		} else {
-#endif /* defined(USE_ZLIB) */
+#endif /* defined(ENABLE_ZLIB) */
 			path = MNEW(char, lce->pathlen + filenamelen);
 			strcpy(path, lce->path);
 			strcat(path, filename);
@@ -444,7 +447,7 @@ classbuffer *suck_start(classinfo *c)
 			}
 
 			MFREE(path, char, lce->pathlen + filenamelen);
-#if defined(USE_ZLIB)
+#if defined(ENABLE_ZLIB)
 		}
 #endif
 	}

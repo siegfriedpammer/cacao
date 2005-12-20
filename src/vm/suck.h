@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 3936 2005-12-10 23:58:29Z twisti $
+   $Id: suck.h 3959 2005-12-20 23:25:07Z twisti $
 
 */
 
@@ -61,8 +61,8 @@ struct list_classpath_entry {
 	s4                 type;
 	char              *path;
 	s4                 pathlen;
-#if defined(USE_ZLIB) 
-	hashtable         *classes;
+#if defined(ENABLE_ZLIB)
+	hashtable         *htclasses;
 #endif
 	listnode           linkage;
 };
