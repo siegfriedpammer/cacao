@@ -84,7 +84,7 @@ esac
 
 
 dnl define and substitute some architecture specific variables
-AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [Architecture directory])
+AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
@@ -139,6 +139,8 @@ AC_TYPE_SIGNAL
 AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(calloc mprotect getpagesize free)
 AC_CHECK_FUNCS(getcwd gettimeofday)
+AC_CHECK_FUNCS(scandir)
+AC_CHECK_FUNCS(mmap)
 
 dnl Checks for libraries.
 
@@ -146,22 +148,23 @@ dnl Checking sizeof void *
 AC_COMPILE_CHECK_SIZEOF(void *)
 AC_C_BIGENDIAN
 
+
 dnl check which ld flags are required to export symbols
 if test x"$with_gnu_ld" = "xyes"; then
-	EXPORT_SYMBOLS_FLAGS="-Wl,--export-dynamic"
+    EXPORT_SYMBOLS_FLAGS="-Wl,--export-dynamic"
 else
-	EXPORT_SYMBOLS_FLAGS=""
+    EXPORT_SYMBOLS_FLAGS=""
 fi
 AC_SUBST(EXPORT_SYMBOLS_FLAGS)
 
 
 dnl define install prefix
 if test "x$prefix" = "xNONE"; then
-	CACAO_INSTALL_PREFIX=$ac_default_prefix
+    CACAO_INSTALL_PREFIX=$ac_default_prefix
 else
-	CACAO_INSTALL_PREFIX=$prefix
+    CACAO_INSTALL_PREFIX=$prefix
 fi
-AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [Installation prefix])
+AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [installation prefix])
 AC_SUBST(CACAO_INSTALL_PREFIX)
 
 
@@ -170,104 +173,149 @@ dnl Features
 dnl check arguments
 
 dnl check for JIT compiler
-AC_ARG_ENABLE([jit], [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=yes]])])
-
 AC_MSG_CHECKING(whether JIT compiled should be compiled)
-if test x"$enable_jit" = "xno"; then
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([ENABLE_JIT], [false])
-	ENABLE_JIT="no"
-else
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
-	AM_CONDITIONAL([ENABLE_JIT], [true])
-	ENABLE_JIT="yes"
+AC_ARG_ENABLE([jit],
+              [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_JIT=no;;
+                   *) ENABLE_JIT=yes;;
+               esac],
+              [ENABLE_JIT=yes])
+AC_MSG_RESULT(${ENABLE_JIT})
+AM_CONDITIONAL([ENABLE_JIT], test x"${ENABLE_JIT}" = "xyes")
+
+if test x"${ENABLE_JIT}" = "xyes"; then
+    AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
 fi
+
 
 dnl check for interpreter
 AC_ARG_ENABLE([intrp], [AS_HELP_STRING(--enable-intrp,enable interpreter [[default=no]])])
 
 AC_MSG_CHECKING(whether interpreter should be compiled)
 if test x"$enable_intrp" = "xyes"; then
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([ENABLE_INTRP], 1, [enable interpreter])
-	AM_CONDITIONAL([ENABLE_INTRP], [true])
-	ENABLE_INTRP="yes"
-	AC_ASM_SKIP16
+    AC_MSG_RESULT(yes)
+    AC_DEFINE([ENABLE_INTRP], 1, [enable interpreter])
+    AM_CONDITIONAL([ENABLE_INTRP], [true])
+    ENABLE_INTRP=yes
+
+    AC_ASM_SKIP16
+
+    dnl check for libffi
+    AC_ARG_WITH([ffi],
+                [AS_HELP_STRING(--with-ffi,use libffi to call native functions)],
+                [WITH_FFI=yes
+                 AC_CHECK_HEADERS([ffi.h],, [AC_MSG_ERROR(cannot find ffi.h)])
+                 AC_CHECK_LIB(ffi, ffi_call,, [AC_MSG_ERROR(cannot find libffi)])
+                 AC_DEFINE([WITH_FFI], 1, [use libffi])],
+                [WITH_FFI=no])
+
+    dnl check for libffcall (avcall)
+    AC_ARG_WITH([avcall],
+                [AS_HELP_STRING(--with-avcall,use libffcall to call native functions)],
+                [WITH_FFCALL=yes
+                 AC_CHECK_HEADERS([avcall.h],, [AC_MSG_ERROR(cannot find avcall.h)])
+                 AC_CHECK_LIB(avcall, av_call,, [AC_MSG_ERROR(cannot find libffcall)])
+                 AC_DEFINE([WITH_FFCALL], 1, [use libffcall])],
+                [WITH_FFCALL=no])
+
+    dnl check for libffi or libffcall
+    if test x"${WITH_FFI}" = "xyes" -a x"${WITH_FFCALL}" = "xyes"; then
+        AC_ERROR(Enable only libffi or libffcall.)
+    fi
+    if test x"${WITH_FFI}" = "xno" -a x"${WITH_FFCALL}" = "xno"; then
+        AC_ERROR(Enable one of libffi or libffcall.)
+    fi
+
 else
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([ENABLE_INTRP], [false])
-	ENABLE_INTRP="no"
+    AC_MSG_RESULT(no)
+    AM_CONDITIONAL([ENABLE_INTRP], [false])
+    ENABLE_INTRP="no"
 fi
 
-if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
-	AC_ERROR(You have to enable at least the JIT or the interpreter.)
-fi
 if test x"${ENABLE_JIT}" = "xyes" -a x"${ENABLE_INTRP}" = "xyes"; then
-	AC_ERROR(This is currently not supported. Please disable the JIT or the interpreter.)
+    AC_ERROR(This is currently not supported. Please disable the JIT or the interpreter.)
 fi
+if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
+    AC_ERROR(You have to enable at least the JIT or the interpreter.)
+fi
+
 
 dnl check for garbage collector usage
-AC_ARG_ENABLE([gc], [AS_HELP_STRING(--disable-gc,disable garbage collector (for debugging only!) [[default=yes]])])
+AC_MSG_CHECKING(whether GC should be disabled)
+AC_ARG_ENABLE([gc],
+              [AS_HELP_STRING(--disable-gc,disable garbage collector (for debugging only!) [[default=yes]])],
+              [case "${enableval}" in
+                   no) DISABLE_GC=yes
+                       AC_DEFINE([DISABLE_GC], 1, [disable garbage collector])
+                       ;;
+                   *) DISABLE_GC=no;;
+               esac],
+              [DISABLE_GC=no])
+AC_MSG_RESULT(${DISABLE_GC})
+AM_CONDITIONAL([DISABLE_GC], test x"${DISABLE_GC}" = "xyes")
 
-AC_MSG_CHECKING(whether GC should be used)
-if test x"$enable_gc" = "xno"; then
-	AC_MSG_RESULT(no)
-	AC_DEFINE([DISABLE_GC], 1, [disable grabage collector])
-	AM_CONDITIONAL([DISABLE_GC], [true])
-	DISABLE_GC="yes"
-else
-	AC_MSG_RESULT(yes)
-	AM_CONDITIONAL([DISABLE_GC], [false])
-	DISABLE_GC="no"
-fi
 
 dnl check for dump memory usage
-AC_ARG_ENABLE([dump], [AS_HELP_STRING(--disable-dump,disable dump memory (for debugging only!) [[default=yes]])])
+AC_MSG_CHECKING(whether dump memory should be disabled)
+AC_ARG_ENABLE([dump],
+              [AS_HELP_STRING(--disable-dump,disable dump memory (for debugging only!) [[default=yes]])],
+              [case "${enableval}" in
+                   no)
+                       DISABLE_DUMP=yes
+                       AC_DEFINE([DISABLE_DUMP], 1, [disable dump memory])
+                       ;;
+                   *) DISABLE_DUMP=no;;
+               esac],
+               [DISABLE_DUMP=no])
+AC_MSG_RESULT(${DISABLE_DUMP})
 
-AC_MSG_CHECKING(whether dump memory should be used)
-if test x"$enable_dump" = "xno"; then
-	AC_MSG_RESULT(no)
-	AC_DEFINE([DISABLE_DUMP], 1, [disable dump memory])
-else
-	AC_MSG_RESULT(yes)
-fi
 
 dnl check for debug
-AC_ARG_ENABLE([debug], [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=yes]])])
-
 AC_MSG_CHECKING(whether debug code generation should be enabled)
-if test x"$enable_debug" = "xno"; then
-	AC_MSG_RESULT(no)
-	AC_DEFINE([NDEBUG], 1, [disable debug code])
-else
-	AC_MSG_RESULT(yes)
-fi
+AC_ARG_ENABLE([debug],
+              [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=yes]])],
+              [case "${enableval}" in
+                   no) NDEBUG=yes
+                       AC_DEFINE([NDEBUG], 1, [disable debug code])
+                       ;;
+                   *) NDEBUG=no;;
+               esac],
+              [NDEBUG=no])
+AC_MSG_RESULT(${NDEBUG})
+
 
 dnl check for statistics
-AC_ARG_ENABLE([statistics], [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])])
-
 AC_MSG_CHECKING(whether statistics generation should be enabled)
+AC_ARG_ENABLE([statistics],
+              [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_STATISTICS=no;;
+                   *) ENABLE_STATISTICS=yes;;
+               esac],
+              [ENABLE_STATISTICS=yes])
+AC_MSG_RESULT(${ENABLE_STATISTICS})
+AM_CONDITIONAL([STATISTICS], test x"${ENABLE_STATISTICS}" = "xyes")
+
 if test x"$enable_statistics" = "xno"; then
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([STATISTICS], [false])
-else
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([STATISTICS], 1, [enable statistics])
-	AM_CONDITIONAL([STATISTICS], [true])
+    AC_DEFINE([ENABLE_STATISTICS], 1, [enable statistics])
 fi
 
-dnl check for JVMTI
-AC_ARG_ENABLE([jvmti], [AS_HELP_STRING(--enable-jvmti,enable JVMTI [[default=no]])])
 
+dnl check for JVMTI
 AC_MSG_CHECKING(whether to compile JVMTI support)
-if test x"$enable_jvmti" = "xyes"; then
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([ENABLE_JVMTI], 1, [use JVMTI])
-	AM_CONDITIONAL([ENABLE_JVMTI], [true])
-else
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([ENABLE_JVMTI], [false])
+AC_ARG_ENABLE([jvmti],
+              [AS_HELP_STRING(--enable-jvmti,enable JVMTI [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_JVMTI=yes;;
+                   *) ENABLE_JVMTI=no;;
+               esac],
+              [ENABLE_JVMTI=no])
+AC_MSG_RESULT(${ENABLE_JVMTI})
+AM_CONDITIONAL([ENABLE_JVMTI], test x"${ENABLE_JVMTI}" = "xyes")
+
+if test x"${ENABLE_JVMTI}" = "xyes"; then
+    AC_DEFINE([ENABLE_JVMTI], 1, [use JVMTI])
 fi
 
 
@@ -288,8 +336,6 @@ no | none | single)
 
 green | native | posix | pthreads)
 	AC_DEFINE([USE_THREADS], 1, [use threads])
-	AC_DEFINE([EXTERNAL_OVERFLOW], 1, [external overflow])
-	AC_DEFINE([DONT_FREE_FIRST], 1, [don't free first])
 
 	AM_CONDITIONAL([USE_THREADS], [true])
 
@@ -339,14 +385,18 @@ fi
 
 
 dnl check if linear scan register allocator(lsra) should be used
-AC_ARG_ENABLE([lsra], [AS_HELP_STRING(--enable-lsra,enable linear scan register allocator [[default=yes]])])
-
 AC_MSG_CHECKING(whether lsra should be supported)
-if test x"$enable_lsra" = "xno"; then
-	AC_MSG_RESULT(no)
-else
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([LSRA], 1, [use lsra])
+AC_ARG_ENABLE([lsra],
+              [AS_HELP_STRING(--enable-lsra,enable linear scan register allocator [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_LSRA=no;;
+                   *) ENABLE_LSRA=yes;;
+               esac],
+              [ENABLE_LSRA=yes])
+AC_MSG_RESULT(${ENABLE_LSRA})
+
+if test x"${ENABLE_LSRA}" = "xyes"; then
+    AC_DEFINE([ENABLE_LSRA], 1, [enable lsra])
 fi
 
 
@@ -387,68 +437,55 @@ fi
 
 
 dnl check if zlib should be used
-AC_ARG_ENABLE([zlib], [AS_HELP_STRING(--enable-zlib,enable zip archive class storage (needs zlib) [[default=yes]])])
-
 AC_MSG_CHECKING(whether zip archives should be supported)
-if test x"$enable_zlib" = "xno"; then
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([USE_ZLIB], [false])
-else
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([USE_ZLIB], 1, [use zlib])
-        AC_CHECK_HEADERS([zlib.h])
-        AC_CHECK_LIB(z, main)
-	AM_CONDITIONAL([USE_ZLIB], [true])
+AC_ARG_ENABLE([zlib],
+              [AS_HELP_STRING(--enable-zlib,enable zip archive class storage (needs zlib) [[default=yes]])],
+              [case "${enableval}" in
+                  no) ENABLE_ZLIB=yes;;
+                  *) ENABLE_ZLIB=no;;
+               esac],
+              [ENABLE_ZLIB=yes])
+AC_MSG_RESULT(${ENABLE_ZLIB})
+
+if test x"${ENABLE_ZLIB}" = "xyes"; then
+    AC_CHECK_HEADERS([zlib.h],, [AC_MSG_ERROR(cannot find zlib.h)])
+    AC_CHECK_LIB(z, inflate,, [AC_MSG_ERROR(cannot find libz)])
+    AC_DEFINE([ENABLE_ZLIB], 1, [use zlib])
 fi
+AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
 
 
 dnl check if CACAO should be linked statically
-AC_ARG_ENABLE([staticvm], [AS_HELP_STRING(--enable-staticvm, link GNU classpath's native libraries statically into CACAO [[default=no]])])
-
-AC_MSG_CHECKING(whether to link GNU classpath statically into CACAO)
-if test x"$enable_staticvm" = "xyes"; then
-	ENABLE_STATICVM="yes"
-else
-	ENABLE_STATICVM="no"
-fi
+AC_MSG_CHECKING(whether to link GNU classpath native libraries statically into CACAO)
+AC_ARG_ENABLE([staticvm],
+              [AS_HELP_STRING(--enable-staticvm, link GNU classpath native libraries statically into CACAO [[default=no]])],
+              [case "${enableval}" in
+                  yes) ENABLE_STATICVM=yes;;
+                  *) ENABLE_STATICVM=no;;
+               esac],
+              [ENABLE_STATICVM=no])
+AC_MSG_RESULT(${ENABLE_STATICVM})
 
 if test x"${ENABLE_STATICVM}" = "xyes"; then
-	AC_MSG_RESULT(yes)
-	AM_CONDITIONAL([ENABLE_STATICVM], [true])
-else
-	AC_MSG_RESULT(no)
-	AM_CONDITIONAL([ENABLE_STATICVM], [false])
+    AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
+
+    dnl check for some classpath related stuff when we link statically
+    AM_ICONV_LINK
 fi
+AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
 
 
-dnl pass configure options to classpath
-if test x"${ENABLE_STATICVM}" = "xyes"; then
-        AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
-	AM_CONDITIONAL([ENABLE_STATICVM], [true])
-
-	dnl check for some classpath related stuff when we link statically
-	AM_ICONV_LINK
-else
-	AM_CONDITIONAL([ENABLE_STATICVM], [false])
-fi
-
-
 dnl is GNU classpath installed somewhere different
-AC_ARG_WITH([classpath-install-dir], [AS_HELP_STRING(--with-classpath-install-dir=<dir>,installation directory of GNU classpath [[default=/usr/local/classpath]])])
-
 AC_MSG_CHECKING(where GNU classpath is installed)
-if test x"$with_classpath_install_dir" != "x"; then
-	if test x"$with_classpath_install_dir" = "xyes"; then
-		AC_MSG_ERROR(please specify the installation prefix)
-	fi
-	CLASSPATH_INSTALL_DIR="$with_classpath_install_dir"
-else
-	CLASSPATH_INSTALL_DIR="/usr/local/classpath"
-fi
+AC_ARG_WITH([classpath-install-dir],
+            [AS_HELP_STRING(--with-classpath-install-dir=<dir>,installation directory of GNU classpath [[default=/usr/local/classpath]])],
+            [CLASSPATH_INSTALL_DIR=${withval}],
+            [CLASSPATH_INSTALL_DIR=/usr/local/classpath])
 AC_MSG_RESULT(${CLASSPATH_INSTALL_DIR})
 AC_DEFINE_UNQUOTED([CLASSPATH_INSTALL_DIR], "${CLASSPATH_INSTALL_DIR}", [GNU classpath installation directory])
 AC_SUBST(CLASSPATH_INSTALL_DIR)
+
 
 dnl Maybe the user has Classpath installed 'flat'.
 AC_ARG_WITH([flat-classpath], [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
@@ -460,10 +497,11 @@ fi
 AC_SUBST(GLIBJZ)
 AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of the classpath zip file])
 
+
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc src/libltdl src/libffi)
+AC_CONFIG_SUBDIRS(src/boehm-gc src/libltdl)
 
 AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
