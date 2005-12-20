@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: resolve.c 3948 2005-12-20 12:59:22Z edwin $
 
 */
 
@@ -1259,21 +1259,31 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 		if (i < instancecount || paramtypes[i].type == TYPE_ADR) {
 			utf *name;
 			
-			if (i < instancecount)
-				name = container->name; /* XXX should this be declarer->name? */
-			else
+			if (i < instancecount) {
+				/* The type of the 'this' pointer is the class containing */
+				/* the method definition. Since container is the same as, */
+				/* or a subclass of declarer, we also constrain declarer  */
+				/* by transitivity of loading constraints.                */
+				name = container->name;
+			}
+			else {
 				name = paramtypes[i].classref->name;
+			}
 			
+			/* The caller (referer) and the callee (container) must agree */
+			/* on the types of the parameters.                            */
 			if (!classcache_add_constraint(referer->classloader,
-										   declarer->classloader, name))
+										   container->classloader, name))
 				return false; /* exception */
 		}
 	}
 
-	/* impose loading constraing onto return type */
+	/* impose loading constraint onto return type */
 
 	if (ref->methodref->parseddesc.md->returntype.type == TYPE_ADR) {
-		if (!classcache_add_constraint(referer->classloader,declarer->classloader,
+		/* The caller (referer) and the callee (container) must agree */
+		/* on the return type.                                        */
+		if (!classcache_add_constraint(referer->classloader,container->classloader,
 				ref->methodref->parseddesc.md->returntype.classref->name))
 			return false; /* exception */
 	}
