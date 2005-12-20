@@ -30,7 +30,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: stack.c 3848 2005-12-03 12:31:30Z twisti $
+   $Id: stack.c 3953 2005-12-20 22:14:01Z twisti $
 
 */
 
@@ -596,9 +596,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 # if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
 # endif
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+# if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.i == 0) {
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 										switch (iptr[1].opc) {
 										case ICMD_IASTORE:
 											iptr[0].opc = ICMD_IASTORECONST;
@@ -617,10 +617,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										iptr[1].opc = ICMD_NOP;
 										OPTT2_0(TYPE_INT, TYPE_ADR);
 										COUNT(count_pcmd_op);
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+# if SUPPORT_CONST_STORE_ZERO_ONLY
 									} else
 										PUSHCONST(TYPE_INT);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_INT);
@@ -629,27 +629,34 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
-#if SUPPORT_CONST_STORE_ZERO_ONLY
-								if (iptr[0].val.i == 0) {
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-									switch (iptr[1].opc) {
-									case ICMD_PUTSTATIC:
-										iptr[0].opc = ICMD_PUTSTATICCONST;
-										SETDST;
-										break;
-									case ICMD_PUTFIELD:
-										iptr[0].opc = ICMD_PUTFIELDCONST;
-										OP1_0(TYPE_ADR);
-										break;
-									}
+# if defined(ENABLE_INTRP)
+								if (!opt_intrp) {
+# endif
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									if (iptr[0].val.i == 0) {
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+										switch (iptr[1].opc) {
+										case ICMD_PUTSTATIC:
+											iptr[0].opc = ICMD_PUTSTATICCONST;
+											SETDST;
+											break;
+										case ICMD_PUTFIELD:
+											iptr[0].opc = ICMD_PUTFIELDCONST;
+											OP1_0(TYPE_ADR);
+											break;
+										}
 
-									iptr[1].opc = ICMD_NOP;
-									iptr[0].op1 = TYPE_INT;
-									COUNT(count_pcmd_op);
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+										iptr[1].opc = ICMD_NOP;
+										iptr[0].op1 = TYPE_INT;
+										COUNT(count_pcmd_op);
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									} else
+										PUSHCONST(TYPE_INT);
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_INT);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 								break;
 #endif /* SUPPORT_CONST_STORE */
 							default:
@@ -925,17 +932,17 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 # if defined(ENABLE_INTRP)
 								if (!opt_intrp) {
 # endif
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+# if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.l == 0) {
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 										iptr[0].opc = ICMD_LASTORECONST;
 										iptr[1].opc = ICMD_NOP;
 										OPTT2_0(TYPE_INT, TYPE_ADR);
 										COUNT(count_pcmd_op);
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+# if SUPPORT_CONST_STORE_ZERO_ONLY
 									} else
 										PUSHCONST(TYPE_LNG);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_LNG);
@@ -944,27 +951,34 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 							case ICMD_PUTSTATIC:
 							case ICMD_PUTFIELD:
-#if SUPPORT_CONST_STORE_ZERO_ONLY
-								if (iptr[0].val.l == 0) {
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
-									switch (iptr[1].opc) {
-									case ICMD_PUTSTATIC:
-										iptr[0].opc = ICMD_PUTSTATICCONST;
-										SETDST;
-										break;
-									case ICMD_PUTFIELD:
-										iptr[0].opc = ICMD_PUTFIELDCONST;
-										OP1_0(TYPE_ADR);
-										break;
-									}
+# if defined(ENABLE_INTRP)
+								if (!opt_intrp) {
+# endif
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									if (iptr[0].val.l == 0) {
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+										switch (iptr[1].opc) {
+										case ICMD_PUTSTATIC:
+											iptr[0].opc = ICMD_PUTSTATICCONST;
+											SETDST;
+											break;
+										case ICMD_PUTFIELD:
+											iptr[0].opc = ICMD_PUTFIELDCONST;
+											OP1_0(TYPE_ADR);
+											break;
+										}
 
-									iptr[1].opc = ICMD_NOP;
-									iptr[0].op1 = TYPE_LNG;
-									COUNT(count_pcmd_op);
-#if SUPPORT_CONST_STORE_ZERO_ONLY
+										iptr[1].opc = ICMD_NOP;
+										iptr[0].op1 = TYPE_LNG;
+										COUNT(count_pcmd_op);
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									} else
+										PUSHCONST(TYPE_LNG);
+# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# if defined(ENABLE_INTRP)
 								} else
 									PUSHCONST(TYPE_LNG);
-#endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 								break;
 #endif /* SUPPORT_CONST_STORE */
 							default:
@@ -988,45 +1002,48 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_ACONST:
 						COUNT(count_pcmd_load);
 #if SUPPORT_CONST_STORE
-						if (len > 0 && iptr->val.a == 0) {
-							switch (iptr[1].opc) {
-#if !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__I386__) && !defined(__ALPHA__) && !defined(__MIPS__)
-							case ICMD_BUILTIN:
-								if (iptr[1].val.fp != BUILTIN_aastore) {
-									PUSHCONST(TYPE_ADR);
-									break;
-								}
-								/* fall through */
-#endif
-							case ICMD_PUTSTATIC:
-							case ICMD_PUTFIELD:
+# if defined(ENABLE_INTRP)
+						if (!opt_intrp) {
+# endif
+							if ((len > 0) && (iptr->val.a == 0)) {
 								switch (iptr[1].opc) {
-								case ICMD_BUILTIN:
-									iptr[0].opc = ICMD_AASTORECONST;
-									OPTT2_0(TYPE_INT, TYPE_ADR);
-									break;
+								case ICMD_AASTORE:
 								case ICMD_PUTSTATIC:
-									iptr[0].opc = ICMD_PUTSTATICCONST;
-									iptr[0].op1 = TYPE_ADR;
-									SETDST;
-									break;
 								case ICMD_PUTFIELD:
-									iptr[0].opc = ICMD_PUTFIELDCONST;
-									iptr[0].op1 = TYPE_ADR;
-									OP1_0(TYPE_ADR);
+									switch (iptr[1].opc) {
+									case ICMD_AASTORE:
+										iptr[0].opc = ICMD_AASTORECONST;
+										OPTT2_0(TYPE_INT, TYPE_ADR);
+										break;
+									case ICMD_PUTSTATIC:
+										iptr[0].opc = ICMD_PUTSTATICCONST;
+										iptr[0].op1 = TYPE_ADR;
+										SETDST;
+										break;
+									case ICMD_PUTFIELD:
+										iptr[0].opc = ICMD_PUTFIELDCONST;
+										iptr[0].op1 = TYPE_ADR;
+										OP1_0(TYPE_ADR);
+										break;
+									}
+
+									iptr[1].opc = ICMD_NOP;
+									COUNT(count_pcmd_op);
 									break;
+
+								default:
+									PUSHCONST(TYPE_ADR);
 								}
 
-								iptr[1].opc = ICMD_NOP;
-								COUNT(count_pcmd_op);
-								break;
-
-							default:
+							} else
 								PUSHCONST(TYPE_ADR);
-							}
+# if defined(ENABLE_INTRP)
 						} else
-#endif /* SUPPORT_CONST_STORE */
 							PUSHCONST(TYPE_ADR);
+# endif
+#else /* SUPPORT_CONST_STORE */
+						PUSHCONST(TYPE_ADR);
+#endif /* SUPPORT_CONST_STORE */
 						break;
 
 						/* pop 0 push 1 load */
