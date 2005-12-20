@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: zip.c 3936 2005-12-10 23:58:29Z twisti $
+   $Id: zip.c 3960 2005-12-20 23:25:30Z twisti $
 
 */
 
@@ -344,7 +344,7 @@ hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u)
 
 	/* get classes hashtable from the classpath entry */
 
-	ht = lce->classes;
+	ht = lce->htclasses;
 
 	/* get the hashtable slot of the name searched */
 
