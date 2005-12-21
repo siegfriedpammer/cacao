@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: nogc.c 3584 2005-11-05 22:31:49Z twisti $
+   $Id: nogc.c 3970 2005-12-21 00:11:06Z twisti $
 
 */
 
@@ -49,7 +49,6 @@
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
-#include "vm/tables.h"
 
 
 /* global stuff ***************************************************************/
