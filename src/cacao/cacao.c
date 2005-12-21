@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3956 2005-12-20 23:08:15Z twisti $
+   $Id: cacao.c 3975 2005-12-21 16:16:47Z anton $
 
 */
 
@@ -182,6 +182,7 @@ enum {
 
 	OPT_NO_DYNAMIC,
 	OPT_NO_REPLICATION,
+	OPT_NO_QUICKSUPER,
 	OPT_STATIC_SUPERS,
 	OPT_TRACE,
 #endif
@@ -250,6 +251,7 @@ opt_struct opts[] = {
 	{ "static-supers",     true,  OPT_STATIC_SUPERS },
 	{ "no-dynamic",        false, OPT_NO_DYNAMIC },
 	{ "no-replication",    false, OPT_NO_REPLICATION },
+	{ "no-quicksuper",     false, OPT_NO_QUICKSUPER },
 #endif
 
 	/* JVMTI Agent Command Line Options */
@@ -1069,6 +1071,10 @@ int main(int argc, char **argv)
 			opt_no_replication = true;
 			break;
 
+		case OPT_NO_QUICKSUPER:
+			opt_no_quicksuper = true;
+			break;
+
 		case OPT_TRACE:
 			vm_debug = true;
 			break;
@@ -1643,6 +1649,7 @@ void exit_handler(void)
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
 #endif
+			print_dynamic_super_statistics();
 		}
 
 		mem_usagelog(1);
