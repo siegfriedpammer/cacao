@@ -210,12 +210,12 @@ if test x"$enable_intrp" = "xyes"; then
                  AC_DEFINE([WITH_FFI], 1, [use libffi])],
                 [WITH_FFI=no])
 
-    dnl check for libffcall (avcall)
-    AC_ARG_WITH([avcall],
-                [AS_HELP_STRING(--with-avcall,use libffcall to call native functions)],
+    dnl check for libffcall
+    AC_ARG_WITH([ffcall],
+                [AS_HELP_STRING(--with-ffcall,use libffcall to call native functions)],
                 [WITH_FFCALL=yes
                  AC_CHECK_HEADERS([avcall.h],, [AC_MSG_ERROR(cannot find avcall.h)])
-                 AC_CHECK_LIB(avcall, av_call,, [AC_MSG_ERROR(cannot find libffcall)])
+                 AC_CHECK_LIB(avcall, __builtin_avcall,, [AC_MSG_ERROR(cannot find libavcall (from libffcall))])
                  AC_DEFINE([WITH_FFCALL], 1, [use libffcall])],
                 [WITH_FFCALL=no])
 
