@@ -29,13 +29,16 @@
 
    Changes:
 
-   $Id: engine.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: engine.c 3973 2005-12-21 10:27:32Z twisti $
 */
 
-#include <assert.h>
 
 /* #define VM_DEBUG */
 #define USE_spTOS
+
+#include "config.h"
+
+#include <assert.h>
 
 #include "arch.h"
 #include "vm/jit/intrp/intrp.h"
@@ -50,14 +53,6 @@
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
-
-#define FFCALL 0
-
-#if FFCALL
-# include "ffcall/avcall/avcall.h"
-#else
-# include "libffi/include/ffi.h"
-#endif
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 # ifndef USE_MD_THREAD_STUFF
