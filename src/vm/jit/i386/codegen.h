@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 3568 2005-11-04 16:33:41Z twisti $
+   $Id: codegen.h 3968 2005-12-21 00:05:48Z twisti $
 
 */
 
@@ -37,11 +37,16 @@
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
+#include "config.h"
+
 #include <ucontext.h>
 
-#ifdef LSRA
+#include "vm/types.h"
+
+
+#if defined(ENABLE_LSRA)
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
-#define LSRA_USES_REG_RES
+# define LSRA_USES_REG_RES
 #endif
 
 /* some defines ***************************************************************/

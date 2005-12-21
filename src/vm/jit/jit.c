@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3849 2005-12-03 12:32:11Z twisti $
+   $Id: jit.c 3968 2005-12-21 00:05:48Z twisti $
 
 */
 
@@ -56,7 +56,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 # include "vm/jit/lsra.h"
 #endif
 
@@ -1584,26 +1584,28 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 			log_message_method("Allocating registers: ", m);
 
 		/* allocate registers */
-#ifdef LSRA
+# if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			lsra(m, cd, rd, id);
-#ifdef STATISTICS
-			if (opt_stat) count_methods_allocated_by_lsra++;
-#endif
+
+#  if defined(ENABLE_STATISTICS)
+			if (opt_stat)
+				count_methods_allocated_by_lsra++;
+#  endif
 		} else
-#endif /* LSRA */
+# endif /* defined(ENABLE_LSRA) */
 		{
-#ifdef STATISTICS
+# if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
-#endif		
+# endif		
 			regalloc(m, cd, rd);
 		}
 
-#ifdef STATISTICS
+# if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			reg_make_statistics(m, cd, rd);
-#endif
+# endif
 
 		if (compileverbose)
 			log_message_method("Allocating registers done: ", m);

@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3851 2005-12-03 12:33:19Z twisti $
+   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
 
 */
 
@@ -58,7 +58,7 @@
 #include "vm/jit/codegen.inc"
 #include "vm/jit/jit.h"
 
-#if defined(LSRA)
+#if defined(ENABLE_LSRA)
 # include "vm/jit/lsra.inc"
 #endif
 
@@ -388,7 +388,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->indepth;
 		MCODECHECK(512);
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			while (src != NULL) {
 				len--;
@@ -460,7 +460,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			src = src->prev;
 		}
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		}
 #endif
 		/* walk through all instructions */
@@ -2191,6 +2191,39 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 
+		case ICMD_BASTORECONST: /* ..., arrayref, index  ==> ...              */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movb_imm_memindex(cd, iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			break;
+
+		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_chararray, data[0]), s1, s2, 1);
+			break;
+
+		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_shortarray, data[0]), s1, s2, 1);
+			break;
+
 		case ICMD_IASTORECONST: /* ..., arrayref, index  ==> ...              */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
@@ -2229,39 +2262,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_bound_check;
 			}
 			x86_64_mov_imm_memindex(cd, 0, OFFSET(java_objectarray, data[0]), s1, s2, 3);
-			break;
-
-		case ICMD_BASTORECONST: /* ..., arrayref, index  ==> ...              */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			x86_64_movb_imm_memindex(cd, iptr->val.i, OFFSET(java_bytearray, data[0]), s1, s2, 0);
-			break;
-
-		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_chararray, data[0]), s1, s2, 1);
-			break;
-
-		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			x86_64_movw_imm_memindex(cd, iptr->val.i, OFFSET(java_shortarray, data[0]), s1, s2, 1);
 			break;
 
 
@@ -3749,7 +3749,7 @@ gen_method:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(512);
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	if (!opt_lsra)
 #endif
 	while (src) {
@@ -4142,7 +4142,7 @@ u1 *createcompilerstub(methodinfo *m)
 	M_MOV_IMM((ptrint) asm_call_jit_compiler, REG_ITMP3);
 	M_JMP(REG_ITMP3);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif

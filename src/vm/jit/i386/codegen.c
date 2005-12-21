@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3949 2005-12-20 20:39:09Z edwin $
+   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
 
 */
 
@@ -65,11 +65,12 @@
 
 #include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
-#ifdef LSRA
-#ifdef LSRA_USES_REG_RES
-#include "vm/jit/i386/icmd_uses_reg_res.inc"
-#endif
-#include "vm/jit/lsra.inc"
+
+#if defined(ENABLE_LSRA)
+# ifdef LSRA_USES_REG_RES
+#  include "vm/jit/i386/icmd_uses_reg_res.inc"
+# endif
+# include "vm/jit/lsra.inc"
 #endif
 
 
@@ -427,7 +428,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->indepth;
 		MCODECHECK(64+len);
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			while (src != NULL) {
 				len--;
@@ -526,7 +527,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			src = src->prev;
 		}
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		}
 #endif
 
@@ -5038,7 +5039,7 @@ gen_method:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	if (!opt_lsra)
 #endif
 	while (src) {

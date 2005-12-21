@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 3921 2005-12-08 23:12:01Z twisti $
+   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
 
 */
 
@@ -60,7 +60,7 @@
 #include "vm/jit/codegen.inc"
 #include "vm/jit/jit.h"
 
-#if defined(LSRA)
+#if defined(ENABLE_LSRA)
 # include "vm/jit/lsra.h"
 # include "vm/jit/lsra.inc"
 #endif
@@ -379,7 +379,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		src = bptr->instack;
 		len = bptr->indepth;
 		MCODECHECK(64+len);
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 		while (src != NULL) {
 			len--;
@@ -428,7 +428,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				src = src->prev;
 			}
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 		}
 #endif
 
@@ -3697,7 +3697,7 @@ gen_method:
 	src = bptr->outstack;
 	len = bptr->outdepth;
 	MCODECHECK(64+len);
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	if (!opt_lsra) 
 #endif
 	while (src) {
@@ -4155,7 +4155,7 @@ u1 *createcompilerstub(methodinfo *m)
 	s[1] = (ptrint) m;                  /* literals to be adressed            */
 	s[2] = (ptrint) asm_call_jit_compiler; /* jump directly via PV from above */
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPSTUBSIZE * 8;
 #endif
