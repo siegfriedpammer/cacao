@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3969 2005-12-21 00:07:23Z twisti $
+   $Id: options.h 3976 2005-12-21 16:17:37Z anton $
 
 */
 
@@ -137,6 +137,7 @@ extern bool opt_lsra;
 #if defined(ENABLE_INTRP)
 extern bool opt_no_dynamic;
 extern bool opt_no_replication;
+extern bool opt_no_quicksuper;
 
 extern s4   opt_static_supers;
 extern bool vm_debug;

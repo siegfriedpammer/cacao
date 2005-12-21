@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3969 2005-12-21 00:07:23Z twisti $
+   $Id: options.c 3976 2005-12-21 16:17:37Z anton $
 
 */
 
@@ -121,6 +121,8 @@ bool opt_lsra = false;
 #if defined(ENABLE_INTRP)
 bool opt_no_dynamic = false;            /* suppress dynamic superinstructions */
 bool opt_no_replication = false;        /* don't use replication in intrp     */
+bool opt_no_quicksuper = false;         /* instructions for quickening cannot be
+										   part of dynamic superinstructions */
 
 s4   opt_static_supers = 0x7fffffff;
 bool vm_debug = false;          /* XXX this should be called `opt_trace'      */
