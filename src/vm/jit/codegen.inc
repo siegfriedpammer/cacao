@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3905 2005-12-07 20:22:11Z twisti $
+   $Id: codegen.inc 3981 2005-12-21 16:43:21Z anton $
 
 */
 
@@ -891,16 +891,19 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	/* relocate native dynamic superinstruction code (if any) */
 
 	if (opt_intrp) {
+		cd->mcodebase = m->entrypoint;
 		if (ncodelen > 0) {
 			u1 *ncodebase = m->mcode + cd->dseglen + alignedmcodelen;
 			MCOPY((void *)ncodebase, cd->ncodebase, u1, ncodelen);
 
 			/* set some cd variables for dynamic_super_rerwite */
 
-			cd->mcodebase = m->entrypoint;
 			cd->ncodebase = ncodebase;
-			dynamic_super_rewrite(cd);
+		} else {
+			cd->ncodebase = NULL;
 		}
+		dynamic_super_rewrite(cd);
+			
 	}
 #endif
 
