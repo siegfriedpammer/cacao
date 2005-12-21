@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3410 2005-10-12 12:45:56Z twisti $
+   $Id: arch.h 3978 2005-12-21 16:23:54Z anton $
 
 */
 
@@ -37,9 +37,6 @@
 #define _ARCH_H
 
 /* define architecture features ***********************************************/
-
-#define __INTRP__
-#define USE_spTOS
 
 #define U8_AVAILABLE                     1
 
