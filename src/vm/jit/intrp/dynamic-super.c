@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 3902 2005-12-07 17:32:57Z anton $
+   $Id: dynamic-super.c 3979 2005-12-21 16:39:52Z anton $
 */
 
 
@@ -58,7 +58,7 @@
 #include "vm/options.h"
 #include "vm/types.h"
 #include "vm/jit/intrp/intrp.h"
-
+#include "toolbox/logging.h"
 
 s4 no_super=0;   /* option: just use replication, but no dynamic superinsts */
 
@@ -97,8 +97,10 @@ Label before_goto;
 u4 goto_len;
 
 typedef struct superstart {
-  struct superstartlist *next;
+  struct superstart *next;
   s4 patcherm;  /* offset of patcher, -1 if super has no patcher */
+  u4 length;    /* length of superinstruction */
+  u1 *oldsuper; /* reused superinstruction: NULL if there is none */
   s4 dynsuperm;
   s4 dynsupern;
   u1 *mcodebase;
@@ -112,7 +114,43 @@ static hashtable hashtable_patchersupers;
 static java_objectheader *lock_hashtable_patchersupers;
 #endif
 
+/* stuff for -no-replication */
+typedef struct superreuse {
+  struct superreuse *next;
+  u1 *code;
+  u4 length;
+} superreuse;
+
+static hashtable hashtable_superreuse;
+#define HASHTABLE_SUPERREUSE_BITS 14
+
+#if defined(USE_THREADS)
+static java_objectheader *lock_hashtable_superreuse;
+#endif
+
 # define debugp(x...) if (opt_verbose) fprintf(x)
+#define debugp1(x...)
+
+/* statistics variables */
+
+u4 count_supers        = 0; /* dynamic superinstructions, including replicas */
+u4 count_supers_unique = 0; /* dynamic superinstructions, without replicas */
+u4 count_supers_reused = 0; /* reused dynamic superinstructions */
+u4 count_patchers_exec = 0; /* executed patchers */
+u4 count_patchers_last = 0; /* executed last patchers */
+u4 count_patchers_ins  = 0; /* patchers inserted in patchersupers table */
+u4 count_patchers      = 0; /* superstarts with patcherm!=-1 */
+u4 count_supers_nopatch= 0; /* superinstructions for code without patchers */
+u4 count_supers_patch  = 0; /* superinstructions for code with patchers */
+u4 count_dispatches    = 0; /* dynamic superinstructions generated */
+u4 count_disp_nonreloc = 0; /* */
+u4 count_insts_reloc   = 0; /* relocatable insts compiled (append_prim) */
+u4 count_insts         = 0; /* compiled insts (gen_inst) */
+u4 count_native_code   = 0; /* native code bytes */
+u4 count_native_saved  = 0; /* reclaimed native code */
+
+/* determine priminfos */
+
 
 java_objectheader *engine2(Inst *ip0, Cell * sp, Cell * fp);
 
@@ -209,7 +247,7 @@ static void check_prims(Label symbols1[])
 
   /* check whether the "goto *" is relocatable */
   goto_len = after_goto-before_goto;
-  debugp(stderr, "goto * %p %p len=%ld\n",
+  debugp(stderr, "goto * %p %p len=%d\n",
 	 before_goto,before_goto2,goto_len);
   if (memcmp(before_goto, before_goto2, goto_len)!=0) { /* unequal */
     opt_no_dynamic = true;
@@ -289,13 +327,14 @@ static
 void append_prim(codegendata *cd, u4 p)
 {
   PrimInfo *pi = &priminfos[p];
-  debugp(stderr,"append_prim %p %s\n",cd->mcodeptr, prim_names[p]);
+  debugp1(stderr,"append_prim %p %s\n",cd->lastmcodeptr, prim_names[p]);
   if (cd->ncodeptr + pi->length + pi->restlength + goto_len >
       cd->ncodebase + cd->ncodesize) {
     cd->ncodeptr = codegen_ncode_increase(cd, cd->ncodeptr);
   }
   memcpy(cd->ncodeptr, pi->start, pi->length);
   cd->ncodeptr += pi->length;
+  count_insts_reloc++;
 }
 
 static void init_dynamic_super(codegendata *cd)
@@ -305,28 +344,88 @@ static void init_dynamic_super(codegendata *cd)
   cd->dynsupern = cd->ncodeptr - cd->ncodebase;
 }
 
+
+/******************* -no-replication stuff **********************/
+
+/* bugs: superinstructions are inserted into the table only after the
+   end of a method, so there may be replication within a method even
+   with -no-replication.  Moreover, there is a race condition that can
+   cause varying amounts of replication between different threads;
+   this could only be avoided by eliminating the bug above and having
+   more locking. */
+
+static u4 hash_superreuse(u1 *code, u4 length)
+{
+  u4 r=0;
+  u4 i;
+
+  for (i=0; i<length; i+=sizeof(u4)) {
+    r += *(s4 *)(code+i); /* !! align each superinstruction */
+  }
+  return (r+(r>>HASHTABLE_SUPERREUSE_BITS))&((1<<HASHTABLE_SUPERREUSE_BITS)-1);
+}
+
+static void superreuse_insert(u1 *code, u4 length)
+{
+  u4 slot = hash_superreuse(code, length);
+  superreuse **listp = (superreuse **)&hashtable_superreuse.ptr[slot];
+  superreuse *sr = NEW(superreuse);
+  sr->code = code;
+  sr->length = length;
+#if defined(USE_THREADS)
+  builtin_monitorenter(lock_hashtable_superreuse);
+#endif
+  sr->next = *listp;
+  *listp = sr;
+#if defined(USE_THREADS)
+  builtin_monitorexit(lock_hashtable_superreuse);
+#endif
+  count_supers_unique++;
+}
+
+static u1 *superreuse_lookup(u1 *code, u4 length)
+     /* returns earlier instances code address, or NULL */
+{
+  u4 slot = hash_superreuse(code, length);
+  superreuse *sr = (superreuse *)hashtable_superreuse.ptr[slot];
+  /* since there is another race condition anyway, we don't bother
+     locking here; both race conditions don't affect the correctness */
+  for (; sr != NULL; sr = sr->next)
+    if (length == sr->length && memcmp(code, sr->code, length)==0)
+      return sr->code;
+  return NULL;
+}
+
+/******************* patcher stuff *******************************/
+
 void patchersuper_rewrite(Inst *p)
      /* p is the address of a patcher; if this is the last patcher in
         a dynamic superinstruction, rewrite the threaded code to use
         the dynamic superinstruction; the data for that comes from
         hashtable_patchersupers */
 {
-  ptrint key = p;
-  u4 slot = ((key + key>>HASHTABLE_PATCHERSUPERS_BITS) & 
+  ptrint key = (ptrint)p;
+  u4 slot = ((key + (key>>HASHTABLE_PATCHERSUPERS_BITS)) & 
              ((1<<HASHTABLE_PATCHERSUPERS_BITS)-1));
   superstart **listp = (superstart **)&hashtable_patchersupers.ptr[slot];
   superstart *ss;
+  count_patchers_exec++;
 #if defined(USE_THREADS)
   builtin_monitorenter(lock_hashtable_patchersupers);
 #endif
   for (; ss=*listp,  ss!=NULL; listp = &(ss->next)) {
     if (p == ((Inst *)(ss->mcodebase + ss->patcherm))) {
-      *(Inst *)(ss->mcodebase + ss->dynsuperm) =
-        (Inst)(ss->ncodebase + ss->dynsupern);
-      debugp(stderr, "patcher rewrote %p into %p\n", 
-             ss->mcodebase + ss->dynsuperm, ss->ncodebase + ss->dynsupern);
+      Inst target;
+      if (ss->oldsuper != NULL)
+        target = (Inst)ss->oldsuper;
+      else
+        target = (Inst)(ss->ncodebase + ss->dynsupern);
+      *(Inst *)(ss->mcodebase + ss->dynsuperm) = target;
+      debugp1(stderr, "patcher rewrote %p into %p\n", 
+             ss->mcodebase + ss->dynsuperm, target);
       *listp = ss->next;
       FREE(ss, superstart);
+      count_patchers_last++;
       break;
     }
   }
@@ -335,10 +434,10 @@ void patchersuper_rewrite(Inst *p)
 #endif
 }
 
-static hashtable_patchersupers_insert(superstart *ss)
+static void hashtable_patchersupers_insert(superstart *ss)
 {
   ptrint key = (ptrint)(ss->mcodebase + ss->patcherm);
-  u4 slot = ((key + key>>HASHTABLE_PATCHERSUPERS_BITS) & 
+  u4 slot = ((key + (key>>HASHTABLE_PATCHERSUPERS_BITS)) & 
              ((1<<HASHTABLE_PATCHERSUPERS_BITS)-1));
   void **listp = &hashtable_patchersupers.ptr[slot];
 #if defined(USE_THREADS)
@@ -349,6 +448,7 @@ static hashtable_patchersupers_insert(superstart *ss)
 #if defined(USE_THREADS)
   builtin_monitorexit(lock_hashtable_patchersupers);
 #endif
+  count_patchers_ins++;
 }
 
 void dynamic_super_rewrite(codegendata *cd)
@@ -359,15 +459,21 @@ void dynamic_super_rewrite(codegendata *cd)
   superstart *ssnext;
   for (; ss != NULL; ss = ssnext) {
     ssnext = ss->next;
+    if (opt_no_replication && ss->oldsuper == NULL)
+      superreuse_insert(cd->ncodebase + ss->dynsupern, ss->length);
     if (ss->patcherm == -1) {
+      assert(ss->oldsuper == NULL);
       *(Inst *)(cd->mcodebase + ss->dynsuperm) =
         (Inst)(cd->ncodebase + ss->dynsupern);
-      debugp(stderr, "rewrote %p into %p\n", 
+      debugp1(stderr, "rewrote %p into %p\n", 
              cd->mcodebase + ss->dynsuperm, cd->ncodebase + ss->dynsupern);
+      count_supers_nopatch++;
     } else {
+      /* fprintf(stderr,"%p stage2\n", ss); */
       ss->mcodebase = cd->mcodebase;
       ss->ncodebase = cd->ncodebase;
       hashtable_patchersupers_insert(ss);
+      count_supers_patch++;
     }
   }
 }
@@ -379,20 +485,44 @@ static void new_dynamic_super(codegendata *cd)
         is a patcher). */
 {
   superstart *ss;
-  if (cd->lastpatcheroffset == -1)
+  u1 *oldsuper = NULL;
+  u1 *code = cd->ncodebase + cd->dynsupern;
+  u4 length = cd->ncodeptr - code;
+  count_supers++;
+  if (opt_no_replication) {
+    oldsuper = superreuse_lookup(code, length);
+    if (oldsuper != NULL) {
+      count_supers_reused++;
+      count_native_saved += length;
+      cd->ncodeptr = code;
+      if (cd->lastpatcheroffset == -1) {
+        *(Inst *)(cd->mcodebase + cd->dynsuperm) = (Inst)oldsuper;
+        debugp1(stderr, "rewrote %p into %p (reused)\n", 
+                cd->mcodebase + ss->dynsuperm, oldsuper);
+        return;
+      }
+    }
+  }
+  if (cd->lastpatcheroffset == -1) {
     ss = DNEW(superstart);
-  else
+  } else {
     ss = NEW(superstart);
+    count_patchers++;
+    /* fprintf(stderr,"%p stage1\n", ss); */
+  }
   ss->patcherm = cd->lastpatcheroffset;
+  ss->oldsuper = oldsuper;
+  ss->length   = length;
   ss->dynsuperm = cd->dynsuperm;
   ss->dynsupern = cd->dynsupern;
   ss->next = cd->superstarts;
   cd->superstarts = ss;
+  count_native_code += cd->ncodeptr - code;
 }
 
 void append_dispatch(codegendata *cd)
 {
-  debugp(stderr,"append_dispatch %p\n",cd->mcodeptr);
+  debugp1(stderr,"append_dispatch %p\n",cd->lastmcodeptr);
   if (cd->lastinstwithoutdispatch != ~0) {
     PrimInfo *pi = &priminfos[cd->lastinstwithoutdispatch];
     
@@ -402,6 +532,7 @@ void append_dispatch(codegendata *cd)
     cd->ncodeptr += goto_len;
     cd->lastinstwithoutdispatch = ~0;
     new_dynamic_super(cd);
+    count_dispatches++;
   }
   init_dynamic_super(cd);
 }
@@ -413,11 +544,13 @@ static void compile_prim_dyn(codegendata *cd, u4 p)
     return;
   assert(p<npriminfos);
   if (!is_relocatable(p)) {
+    if (cd->lastinstwithoutdispatch != ~0) /* only count real dispatches */
+      count_disp_nonreloc++;
     append_dispatch(cd); /* to previous dynamic superinstruction */
     return;
   }
   if (cd->dynsuperm == -1)
-    cd->dynsuperm = cd->mcodeptr - cd->mcodebase;
+    cd->dynsuperm = cd->lastmcodeptr - cd->mcodebase;
   append_prim(cd, p);
   cd->lastinstwithoutdispatch = p;
   if (priminfos[p].superend)
@@ -428,16 +561,20 @@ static void compile_prim_dyn(codegendata *cd, u4 p)
 static void replace_patcher(codegendata *cd, u4 p)
      /* compile p dynamically, and note that there is a patcher here */
 {
-  cd->lastpatcheroffset = cd->mcodeptr - cd->mcodebase;
-  compile_prim_dyn(cd, p);
+  if (opt_no_quicksuper) {
+    append_dispatch(cd);
+  } else {
+    cd->lastpatcheroffset = cd->lastmcodeptr - cd->mcodebase;
+    compile_prim_dyn(cd, p);
+  }
 }
 
-void gen_inst(codegendata *cd, u4 instr)
+void gen_inst1(codegendata *cd, u4 instr)
 {
   /* actually generate the threaded code instruction */
 
-  debugp(stderr, "gen_inst %p, %s\n", cd->mcodeptr, prim_names[instr]);
-  *((Inst *) cd->mcodeptr) = vm_prim[instr];
+  debugp1(stderr, "gen_inst %p, %s\n", cd->lastmcodeptr, prim_names[instr]);
+  *((Inst *) cd->lastmcodeptr) = vm_prim[instr];
   switch (instr) {
   case N_PATCHER_ACONST:         replace_patcher(cd, N_ACONST1); break;
   case N_PATCHER_ARRAYCHECKCAST: replace_patcher(cd, N_ARRAYCHECKCAST); break;
@@ -472,21 +609,93 @@ void gen_inst(codegendata *cd, u4 instr)
     compile_prim_dyn(cd, instr);
     break;
   }
-  cd->mcodeptr += sizeof(Inst); /* cd->mcodeptr used in compile_prim_dyn() */
+  count_insts++;
+}
+
+void finish_ss(codegendata *cd)
+     /* conclude the last static super and compile it dynamically */
+{
+#if 1
+  if (cd->lastmcodeptr != NULL) {
+    gen_inst1(cd, *(s4 *)(cd->lastmcodeptr));
+    cd->lastmcodeptr = NULL;
+  }
+#endif
+}
+
+#if 0
+void gen_inst(codegendata *cd, u4 instr)
+{
+  cd->lastmcodeptr = cd->mcodeptr;
+  gen_inst1(cd, instr);
+  cd->mcodeptr += sizeof(Inst);
+  cd->lastmcodeptr = NULL;
+}
+#else
+void gen_inst(codegendata *cd, u4 instr)
+{
+  /* vmgen-0.6.2 generates gen_... calls with Inst ** as first
+     parameter, but we need to pass in cd to make lastmcodeptr
+     thread-safe */
+  u4 *lastmcodeptr = (u4 *)cd->lastmcodeptr;
+  
+  if (lastmcodeptr != NULL) {
+    s4 combo;
+
+    assert(lastmcodeptr < cd->mcodeptr && cd->mcodeptr < lastmcodeptr+40);
+
+    combo = peephole_opt(*lastmcodeptr, instr, peeptable);
+
+    if (combo != -1) {
+      *lastmcodeptr = combo;
+      return;
+    }
+    finish_ss(cd);
+  }
+
+  /* actually generate the threaded code instruction */
+
+  *((Inst *) cd->mcodeptr) = instr;
+  cd->lastmcodeptr = cd->mcodeptr;
+  cd->mcodeptr += sizeof(Inst);
+}
+#endif
+
+void print_dynamic_super_statistics()
+{
+  dolog("count_supers        = %d", count_supers        );
+  dolog("count_supers_unique = %d", count_supers_unique );
+  dolog("count_supers_reused = %d", count_supers_reused );
+  dolog("count_patchers_exec = %d", count_patchers_exec );
+  dolog("count_patchers_last = %d", count_patchers_last );
+  dolog("count_patchers_ins  = %d", count_patchers_ins  );
+  dolog("count_patchers      = %d", count_patchers      );
+  dolog("count_supers_nopatch= %d", count_supers_nopatch);
+  dolog("count_supers_patch  = %d", count_supers_patch  );
+  dolog("count_dispatches    = %d", count_dispatches    );
+  dolog("count_disp_nonreloc = %d", count_disp_nonreloc );
+  dolog("count_insts_reloc   = %d", count_insts_reloc   );
+  dolog("count_insts         = %d", count_insts         );
+  dolog("count_native_code   = %d", count_native_code   );
+  dolog("count_native_saved  = %d", count_native_saved  );
 }
 
 void dynamic_super_init(void)
 {
   check_prims(vm_prim);
   hashtable_create(&hashtable_patchersupers, 1<<HASHTABLE_PATCHERSUPERS_BITS);
+  if (opt_no_replication)
+    hashtable_create(&hashtable_superreuse,  1<<HASHTABLE_SUPERREUSE_BITS);
 
 #if defined(USE_THREADS)
   /* create patchersupers hashtable lock object */
 
   lock_hashtable_patchersupers = NEW(java_objectheader);
+  lock_hashtable_superreuse  = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
   initObjectLock(lock_hashtable_patchersupers);
+  initObjectLock(lock_hashtable_superreuse);
 # endif
 #endif
 }

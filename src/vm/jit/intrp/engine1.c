@@ -29,10 +29,10 @@
 
    Changes:
 
-   $Id: engine1.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: engine1.c 3979 2005-12-21 16:39:52Z anton $
 
 */
 
 #define LABEL(name) H_##name: __asm__(""); I_##name:
 
-#include "src/vm/jit/intrp/engine.c"
+#include "vm/jit/intrp/engine.c"

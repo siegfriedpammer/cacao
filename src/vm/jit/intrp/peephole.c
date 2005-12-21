@@ -44,13 +44,13 @@ int use_super = 1; /* turned off by option -p */
 
 typedef struct Peeptable_entry {
   struct Peeptable_entry *next;
-  Inst prefix;
-  Inst lastprim;
-  Inst combination_prim;
+  u4 prefix;
+  u4 lastprim;
+  u4 combination_prim;
 } Peeptable_entry;
 
 #define HASH_SIZE 1024
-#define hash(_i1,_i2) (((((Cell)(_i1))^((Cell)(_i2)))>>4)&(HASH_SIZE-1))
+#define hash(_i1,_i2) (((((Cell)(_i1))+((Cell)(_i2))))&(HASH_SIZE-1))
 
 Cell peeptable;
 
@@ -67,9 +67,9 @@ Cell prepare_peephole_table(Inst insts[])
     Combination *c = &peephole_table[i];
     Peeptable_entry *p = (Peeptable_entry *)malloc(sizeof(Peeptable_entry));
     Cell h;
-    p->prefix =           insts[c->prefix];
-    p->lastprim =         insts[c->lastprim];
-    p->combination_prim = insts[c->combination_prim];
+    p->prefix =           c->prefix;
+    p->lastprim =         c->lastprim;
+    p->combination_prim = c->combination_prim;
     h = hash(p->prefix,p->lastprim);
     p->next = pt[h];
     pt[h] = p;
@@ -82,15 +82,15 @@ void init_peeptable(void)
   peeptable = prepare_peephole_table(vm_prim);
 }
 
-Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable)
+s4 peephole_opt(u4 inst1, u4 inst2, Cell peeptable)
 {
   Peeptable_entry **pt = (Peeptable_entry **)peeptable;
   Peeptable_entry *p;
 
   if (use_super == 0)
-      return 0;
+      return -1;
   for (p = pt[hash(inst1,inst2)]; p != NULL; p = p->next)
     if (inst1 == p->prefix && inst2 == p->lastprim)
       return p->combination_prim;
-  return NULL;
+  return -1;
 }

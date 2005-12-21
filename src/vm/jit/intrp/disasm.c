@@ -24,6 +24,28 @@
 #define IP (ip+1)
 #define IPTOS IP[0]
 
+#define STATIC_PROFILING 0
+
+#if STATIC_PROFILING
+#define add_inst(_b,_s) fputs(_s,vm_out)
+
+/* for purely static "profiles" for selecting static superinstructions */
+Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
+{
+#define return do {fputs(" \n             0\t",vm_out); goto _endif2_; } while (0)
+#include "java-profile.i"
+#undef return
+  /* else */
+  {
+    add_inst(b,"unknown");
+    ip++;
+  }
+ _endif_:
+  fputc(' ',vm_out);
+ _endif2_:
+  return ip;
+}
+#else
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
 {
   fprintf(vm_out,"%p: ",(void *)ip);
@@ -36,10 +58,18 @@ Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[])
   fputc('\n',vm_out);
   return ip;
 }
+#endif
+
 
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[])
 {
+#if STATIC_PROFILING
+  fputs("             0\t",vm_out);
+#endif
   while (ip<endp) {
     ip = vm_disassemble_inst(ip, vm_prim);
   }
+#if STATIC_PROFILING
+  fputc('\n',vm_out);
+#endif
 }

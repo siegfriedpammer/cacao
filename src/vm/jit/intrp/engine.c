@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 3973 2005-12-21 10:27:32Z twisti $
+   $Id: engine.c 3979 2005-12-21 16:39:52Z anton $
 */
 
 
@@ -70,9 +70,11 @@
 /* threading macros */
 #define GCC_PR15242_WORKAROUND
 #ifdef GCC_PR15242_WORKAROUND
-#define DO_GOTO goto before_goto
+#  define NEXT_P1_5
+#  define DO_GOTO goto before_goto
 #else
-#define DO_GOTO goto *ca
+#  define NEXT_P1_5
+#  define DO_GOTO goto *ip[-1]
 #endif
 
 #  define NEXT_P0
@@ -82,7 +84,6 @@
 #  define INC_IP(const_inc)	do { ip+=(const_inc);} while (0)
 #  define DEF_CA
 #  define NEXT_P1	(ip++)
-#  define NEXT_P1_5	do {ca=ip[-1];} while(0)
 #  define NEXT_P2   do {NEXT_P1_5; DO_GOTO;} while(0)
 
 #define NEXT ({DEF_CA NEXT_P1; NEXT_P2;})
@@ -95,6 +96,20 @@
 #define spTOS (sp[0])
 #endif
 
+#if defined(__I386__)
+/* works with gcc-2.95.4 20011002 (Debian prerelease) without static supers */
+#define SPREG /* __asm__("%esi") */
+#define TOSREG /* __asm__("%ecx") */
+#elif defined(__X86_64__)
+/* works with gcc-4.0.2 (Debian 4.0.2-2) */
+#define SPREG /* __asm__("%r15") */
+#define TOSREG
+#else
+#define SPREG
+#define TOSREG
+#endif
+
+
 /* conversion on fetch */
 
 #ifdef VM_PROFILING
@@ -106,10 +121,16 @@
 
 
 #define THROW0       goto throw
+#if 1
 #define THROW(_ball) do { \
                        __asm__(""); /* work around gcc PR 25285 */ \
                        goto *throw_##_ball; \
                      } while (0)
+#else
+#define THROW(_ball) do { \
+                       goto throw_##_ball##1; \
+                     } while (0)
+#endif
 
 #define THROWCODE(_ball) \
     throw_##_ball##1: \
@@ -186,11 +207,12 @@
 
 
 java_objectheader *
-engine(Inst *ip0, Cell * sp, Cell * fp)
+engine(Inst *ip0, Cell * sp0, Cell * fp)
 {
   Inst *ip;
-  Inst ca; /* code address; this is the next dispatched instruction */
-  IF_spTOS(Cell   spTOS);
+  register Cell *sp SPREG = sp0;
+  Inst ca1; /* code address; this is the next dispatched instruction */
+  IF_spTOS(register Cell spTOS TOSREG);
   static Inst   labels[] = {
 #define INST_ADDR(_inst) (&&I_##_inst)
 #include "java-labels.i"
@@ -227,7 +249,7 @@ engine(Inst *ip0, Cell * sp, Cell * fp)
 
   if (0) {
   before_goto:
-	  goto *ca;
+	  goto *ip[-1];
   after_goto:
 	  /* ensure that gcc does not constant-propagate the contents of
 		 these variables and thus undo our relocatability work */

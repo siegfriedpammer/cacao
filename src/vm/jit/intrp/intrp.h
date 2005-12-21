@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3972 2005-12-21 10:26:52Z twisti $
+   $Id: intrp.h 3979 2005-12-21 16:39:52Z anton $
 
 */
 
@@ -181,6 +181,7 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 
 
 #define gen_BBSTART (cd->lastmcodeptr = NULL, append_dispatch(cd))
+#define gen_BBEND (finish_ss(cd))
 
 
 union Cell_float {
@@ -206,11 +207,10 @@ typedef struct block_count block_count;
 
 extern Inst *vm_prim;
 extern Cell peeptable;
-extern Inst *last_compiled;
 extern FILE *vm_out;
 
 void init_peeptable(void);
-Inst peephole_opt(Inst inst1, Inst inst2, Cell peeptable);
+s4 peephole_opt(u4 inst1, u4 inst2, Cell peeptable);
 void gen_inst(codegendata *cd, u4 instr);
 
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);

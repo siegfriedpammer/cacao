@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 3947 2005-12-13 01:39:27Z twisti $
+   $Id: asmpart.c 3979 2005-12-21 16:39:52Z anton $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
+#include "vm/options.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/intrp/intrp.h"
@@ -265,7 +266,8 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
 
-	  builtin_trace_exception(o, m, ip, 1);
+	  if (opt_verbose || runverbose || opt_verboseexception)
+		  builtin_trace_exception(o, m, ip, 1);
 
 	  for (i = 0; i < exceptiontablelength; i++) {
 		  ex--;

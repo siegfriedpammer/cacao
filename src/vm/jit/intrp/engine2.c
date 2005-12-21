@@ -29,11 +29,11 @@
 
    Changes:
 
-   $Id: engine2.c 3895 2005-12-07 16:03:37Z anton $
+   $Id: engine2.c 3979 2005-12-21 16:39:52Z anton $
 
 */
 
 #define engine engine2
 #define LABEL(name) H_##name: SKIP16; I_##name:
 
-#include "src/vm/jit/intrp/engine.c"
+#include "vm/jit/intrp/engine.c"

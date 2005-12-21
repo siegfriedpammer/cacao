@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3974 2005-12-21 10:28:28Z twisti $
+   $Id: codegen.c 3979 2005-12-21 16:39:52Z anton $
 
 */
 
@@ -324,6 +324,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (runverbose)
 		gen_TRACECALL(cd);
+
+	gen_BBEND;
 
 	/* walk through all basic blocks */
 
@@ -1685,8 +1687,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	} /* switch */
 		
 	} /* for instruction */
-		
-	} /* if (bptr -> flags >= BBREACHED) */
+
+	gen_BBEND;
+
+	} /* if (bptr->flags >= BBREACHED) */
 	} /* for basic block */
 
 	codegen_createlinenumbertable(cd);
@@ -1760,6 +1764,7 @@ u1 *createcompilerstub (methodinfo *m)
 
 	gen_BBSTART;
 	gen_TRANSLATE(cd, m);
+	gen_BBEND;
 	
 #ifdef VM_PROFILING
 	vm_block_insert(cd->mcodeptr);
@@ -1847,6 +1852,8 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* prepare ffi cif structure */
 
 	cif = createnativecif(m, nmd);
+#else
+	cif = NULL;
 #endif
 
 	gen_BBSTART;
@@ -1862,6 +1869,8 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		else
 			gen_NATIVECALL(cd, m, f, (u1 *)cif);
 	}
+
+	gen_BBEND;
 
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
@@ -2097,7 +2106,9 @@ u1 *createcalljavafunction(methodinfo *m)
 	gen_BBSTART;
 	gen_INVOKESTATIC(cd, (Inst **)m->stubroutine, md->paramslots, 0);
 	gen_END(cd);
-  
+
+	gen_BBEND;
+
 	codegen_finish(tmpm, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
