@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3895 2005-12-07 16:03:37Z anton $
+## $Id: Makefile.am 3977 2005-12-21 16:22:04Z anton $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src -I$(top_builddir)/src/libffi/include
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
 
 EXTRA_DIST = \
 	java.vmg \
@@ -73,6 +73,7 @@ libintrp_la_SOURCES = \
 
 $(BUILT_SOURCES): java.vmg prims2x.fs vmgenx
 	$(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
+	#GFORTHPATH=.:/nfs/nfstmp/anton/cacao/:/usr/lib/gforth/site-forth:/usr/share/gforth/site-forth:/usr/lib/gforth/0.6.2:/usr/share/gforth/0.6.2 $(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 
 
 ## Local variables:
