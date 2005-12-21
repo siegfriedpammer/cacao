@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3947 2005-12-13 01:39:27Z twisti $
+   $Id: intrp.h 3972 2005-12-21 10:26:52Z twisti $
 
 */
 
@@ -37,13 +37,13 @@
 #ifndef _INTRP_H
 #define _INTRP_H
 
-#include <stdio.h>
-
 /* #define VM_PROFILING */
 
 #include "config.h"
-#include "vm/types.h"
 
+#include <stdio.h>
+
+#include "vm/types.h"
 #include "arch.h"
 
 #include "vm/class.h"
@@ -52,7 +52,9 @@
 #include "vm/references.h"
 #include "vm/resolve.h"
 
-#include "libffi/include/ffi.h"
+#if defined(WITH_FFI)
+# include <ffi.h>
+#endif
 
 
 typedef void *Label;
@@ -215,7 +217,11 @@ void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);
 
 java_objectheader *engine(Inst *ip0, Cell * sp, Cell * fp);
+
+#if defined(WITH_FFI)
 ffi_type *cacaotype2ffitype(s4 cacaotype);
+#endif
+
 
 /* print types for disassembler and tracer */
 void printarg_ui      (u4                 ui      );
