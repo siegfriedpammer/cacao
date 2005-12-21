@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.inc.h 3916 2005-12-08 20:31:33Z twisti $
+   $Id: codegen.inc.h 3980 2005-12-21 16:42:04Z anton $
 
 */
 
@@ -99,7 +99,7 @@ struct codegendata {
 	s4              mcodesize;      /* complete size of code area (bytes)     */
 	u1             *mcodeptr;       /* code generation pointer                */
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	u1             *lastmcodeptr;   /* last patcher position of basic block   */
 #endif
 
