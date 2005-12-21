@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3944 2005-12-13 01:31:14Z twisti $
+   $Id: options.c 3969 2005-12-21 00:07:23Z twisti $
 
 */
 
@@ -110,7 +110,8 @@ int has_ext_instr_set = 0;     /* has instruction set extensions */
 bool opt_stat = false;
 bool opt_verify = true;        /* true if classfiles should be verified      */
 bool opt_eager = false;
-#ifdef LSRA
+
+#if defined(ENABLE_LSRA)
 bool opt_lsra = false;
 #endif
 

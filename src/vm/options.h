@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3944 2005-12-13 01:31:14Z twisti $
+   $Id: options.h 3969 2005-12-21 00:07:23Z twisti $
 
 */
 
@@ -127,7 +127,7 @@ extern bool opt_stat;
 extern bool opt_verify;
 extern bool opt_eager;
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 extern bool opt_lsra;
 #endif
 

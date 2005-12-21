@@ -30,7 +30,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: stack.c 3953 2005-12-20 22:14:01Z twisti $
+   $Id: stack.c 3969 2005-12-21 00:07:23Z twisti $
 
 */
 
@@ -138,7 +138,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	unresolved_method  *um;
 	methoddesc         *md;
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
 #endif
 
@@ -2528,7 +2528,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 	printf("\n");
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 	if (!opt_lsra) {
 #endif
 #if defined(ENABLE_INTRP)
@@ -2594,7 +2594,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(ENABLE_INTRP)
 		}
 #endif
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
   	}
 #endif
 

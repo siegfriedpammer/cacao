@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 3743 2005-11-22 23:41:34Z twisti $
+   $Id: method.h 3969 2005-12-21 00:07:23Z twisti $
 */
 
 
@@ -118,9 +118,9 @@ struct methodinfo {                 /* method structure                       */
 	s4	        subRedefs;
 	s4	        subRedefsUsed;
 	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
-	/* helper for lsra */
-#ifdef LSRA
-	s4          maxlifetimes;
+
+#if defined(ENABLE_LSRA)
+	s4          maxlifetimes;	    /* helper for lsra                        */
 #endif
 };
 

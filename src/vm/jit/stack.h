@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 3736 2005-11-22 22:47:00Z christian $
+   $Id: stack.h 3969 2005-12-21 00:07:23Z twisti $
 
 */
 
@@ -36,8 +36,12 @@
 #ifndef _STACK_H
 #define _STACK_H
 
-#include "vm/global.h"
+#include "config.h"
+
+#include "vm/types.h"
+
 #include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/jit/reg.h"
 
 
@@ -51,10 +55,10 @@
 #define COUNT(cnt)
 #endif
 
-#ifdef LSRA
-#define INC_LIFETIMES(a) { m->maxlifetimes += (a); }
+#if defined(ENABLE_LSRA)
+# define INC_LIFETIMES(a) { m->maxlifetimes += (a); }
 #else
-#define INC_LIFETIMES(a)
+# define INC_LIFETIMES(a)
 #endif
 
 /* convenient abbreviations */

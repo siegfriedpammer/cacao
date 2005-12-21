@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 3617 2005-11-07 18:39:10Z twisti $
+   $Id: reg.inc 3969 2005-12-21 00:07:23Z twisti $
 
 */
 
@@ -1659,7 +1659,7 @@ void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
 		while (bptr != NULL) {
 			if (bptr->flags >= BBREACHED) {
 
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 			if (!opt_lsra) {
 #endif	
 				/* check for memory moves from interface to BB instack */
@@ -1708,7 +1708,7 @@ void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
 
 					dst = dst->prev;
 				}
-#ifdef LSRA
+#if defined(ENABLE_LSRA)
 			}
 #endif	
 
