@@ -30,16 +30,16 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3951 2005-12-20 21:13:10Z twisti $
+   $Id: codegen.c 3974 2005-12-21 10:28:28Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
-
 #include "arch.h"
 
 #include "vm/jit/intrp/codegen.h"
@@ -60,7 +60,13 @@
 
 #include "vm/jit/intrp/intrp.h"
 
-#include "libffi/include/ffi.h"
+#if defined(WITH_FFI)
+# include <ffi.h>
+#elif defined(WITH_FFCALL)
+# include <avcall.h>
+#else
+# error neither WITH_FFI nor WITH_FFCALL defined
+#endif
 
 
 #define gen_branch(_inst) { \
@@ -1784,6 +1790,7 @@ u1 *createcompilerstub (methodinfo *m)
 +---------+
 */
 
+#if defined(WITH_FFI)
 static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 {
 	methoddesc  *md = m->parseddesc; 
@@ -1813,16 +1820,16 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 
 	return pcif;
 }
+#endif
 
 
 u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 					 registerdata *rd, methoddesc *nmd)
 {
+#if defined(WITH_FFI)
 	ffi_cif *cif;
-
-#if 0
-	cd->mcodeptr = cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
+#else
+	u1      *cif;
 #endif
 
 	/* create method header */
@@ -1836,9 +1843,11 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	dseg_addlinenumbertablesize(cd);
 	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
 
+#if defined(WITH_FFI)
 	/* prepare ffi cif structure */
 
 	cif = createnativecif(m, nmd);
+#endif
 
 	gen_BBSTART;
 
@@ -1864,7 +1873,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 }
 
 
-#if !FFCALL
+#if defined(WITH_FFI)
 ffi_type *cacaotype2ffitype(s4 cacaotype)
 {
 	switch (cacaotype) {
@@ -1890,7 +1899,7 @@ ffi_type *cacaotype2ffitype(s4 cacaotype)
 /* call jni function */
 Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif)
 {
-#if FFCALL
+#if defined(WITH_FFCALL)
 	av_alist alist;
 	methoddesc *md;
 	Cell *p;
@@ -1969,18 +1978,17 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call(&s, (u1 *) m->entrypoint,
-							  (u1 *) fp,
-							  (functionptr) ra);
+	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
+							  (u1 *) fp, (u1 *) ra);
 
 	av_call(alist);
 
-	codegen_finish_native_call(&s);
+	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
 
 	CLEAR_global_sp;
 
 	return endsp;
-#else
+#elif defined(WITH_FFI)
 	methoddesc  *md = m->parseddesc; 
 	ffi_cif     *pcif;
 	void        *values[md->paramcount + 2];
@@ -2030,13 +2038,12 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call((u1 *) (((ptrint ) &s) + sizeof(s)),
-							  (u1 *) (ptrint) m->entrypoint,
+	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
 	ffi_call(pcif, FFI_FN(f), endsp, values);
 
-	codegen_finish_native_call((u1 *) (((ptrint) &s) + sizeof(s)));
+	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
 
 	CLEAR_global_sp;
 
@@ -2072,11 +2079,6 @@ u1 *createcalljavafunction(methodinfo *m)
 	codegen_setup(tmpm, cd, id);
 
 	md = m->parseddesc;
-
-#if 0
-	cd->mcodeptr = cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
-#endif
 
 	/* create method header */
 
