@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3968 2005-12-21 00:05:48Z twisti $
+   $Id: jit.c 3997 2005-12-22 14:02:21Z twisti $
 
 */
 
@@ -84,7 +84,20 @@
 #endif
 
 
+/* debug macros ***************************************************************/
 
+#if !defined(NDEBUG)
+#define DEBUG_JIT_COMPILEVERBOSE(x) \
+    do { \
+        if (compileverbose) { \
+            log_message_method(x, m); \
+        } \
+    } while (0)
+#else
+#define DEBUG_JIT_COMPILEVERBOSE(x)    /* nothing */
+#endif
+
+ 
 /* global switches ************************************************************/
 
 int stackreq[256];
@@ -1325,10 +1338,7 @@ u1 *jit_compile(methodinfo *m)
 	t_inlining_globals *id;
 	s4                  dumpsize;
 
-#if defined(STATISTICS)
-	if (opt_stat)
-		count_jit_calls++;
-#endif
+	STATISTICS(count_jit_calls++);
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the method */
@@ -1346,12 +1356,9 @@ u1 *jit_compile(methodinfo *m)
 		return m->entrypoint;
 	}
 
-#if defined(STATISTICS)
-	if (opt_stat)
-		count_methods++;
-#endif
+	STATISTICS(count_methods++);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -1420,7 +1427,7 @@ u1 *jit_compile(methodinfo *m)
 
 	dump_release(dumpsize);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -1461,14 +1468,15 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 {
 	/* print log message for compiled method */
 
-	if (compileverbose)
-		log_message_method("Compiling: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Compiling: ");
 
 	/* initialize the static function's class */
 
   	if ((m->flags & ACC_STATIC) && !(m->class->state & CLASS_INITIALIZED)) {
+#if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Initialize class ", m->class);
+#endif
 
 		if (!initialize_class(m->class))
 			return NULL;
@@ -1497,8 +1505,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	/* if there is no javacode, print error message and return empty method   */
 
 	if (!m->jcode) {
-		if (compileverbose)
-			log_message_method("No code given for: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
 		m->entrypoint = (u1 *) (ptrint) do_nothing_function;
 
@@ -1509,11 +1516,11 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	m->isleafmethod = true;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
-		count_tryblocks += m->exceptiontablelength;
+		count_tryblocks    += m->exceptiontablelength;
 		count_javacodesize += m->jcodelength + 18;
-		count_javaexcsize += m->exceptiontablelength * SIZEOF_VOID_P;
+		count_javaexcsize  += m->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
 
@@ -1523,50 +1530,41 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* call the compiler passes ***********************************************/
 
-	if (compileverbose)
-		log_message_method("Parsing: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Parsing: ");
 
 	/* call parse pass */
 
 	if (!parse(m, cd, id)) {
-		if (compileverbose)
-			log_message_method("Exception while parsing: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return NULL;
 	}
 
-	if (compileverbose) {
-		log_message_method("Parsing done: ", m);
-		log_message_method("Analysing: ", m);
-	}
+	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
+	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
 
 	/* call stack analysis pass */
 
 	if (!analyse_stack(m, cd, rd)) {
-		if (compileverbose)
-			log_message_method("Exception while analysing: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
 
 		return NULL;
 	}
 
-	if (compileverbose)
-		log_message_method("Analysing done: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
-		if (compileverbose)
-			log_message_method("Typechecking: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
 		if (!typecheck(m, cd, rd)) {
-			if (compileverbose)
-				log_message_method("Exception while typechecking: ", m);
+			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
 			return NULL;
 		}
 
-		if (compileverbose)
-			log_message_method("Typechecking done: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 	}
 #endif
 
@@ -1580,70 +1578,59 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
-		if (compileverbose)
-			log_message_method("Allocating registers: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
 		/* allocate registers */
 # if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			lsra(m, cd, rd, id);
 
-#  if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_methods_allocated_by_lsra++;
-#  endif
+			STATISTICS(count_methods_allocated_by_lsra++);
+
 		} else
 # endif /* defined(ENABLE_LSRA) */
 		{
-# if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_locals_conflicts += (cd->maxlocals-1)*(cd->maxlocals);
-# endif		
+			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
+
 			regalloc(m, cd, rd);
 		}
 
-# if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			reg_make_statistics(m, cd, rd);
-# endif
+		STATISTICS(reg_make_statistics(m, cd, rd));
 
-		if (compileverbose)
-			log_message_method("Allocating registers done: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
 # if defined(ENABLE_INTRP)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
 
-	if (compileverbose)
-		log_message_method("Generating code: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 
 	/* now generate the machine code */
 
 	if (!codegen(m, cd, rd)) {
-		if (compileverbose)
-			log_message_method("Exception while generating code: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 		return NULL;
 	}
 
-	if (compileverbose)
-		log_message_method("Generating code done: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
+#if !defined(NDEBUG)
 	/* intermediate and assembly code listings */
 		
 	if (opt_showintermediate) {
 		show_icmd_method(m, cd, rd);
 
 	} else if (opt_showdisassemble) {
-		disassemble((u1 *) (ptrint) m->entrypoint,
-					(u1 *) (ptrint) m->entrypoint + (m->mcodelength - cd->dseglen));
+		disassemble(m->entrypoint,
+					m->entrypoint + (m->mcodelength - cd->dseglen));
 	}
 
 	if (opt_showddatasegment)
 		dseg_display(m, cd);
+#endif
 
-	if (compileverbose)
-		log_message_method("Compiling done: ", m);
+	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");
 
 	/* return pointer to the methods entry point */
 
