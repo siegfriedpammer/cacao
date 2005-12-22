@@ -28,17 +28,18 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: VMSystemProperties.c 4003 2005-12-22 15:07:43Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
 #include <time.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "cacao/cacao.h"
@@ -52,59 +53,7 @@
 #include "vm/builtin.h"
 #include "vm/loader.h"
 #include "vm/options.h"
-#include "vm/stringlocal.h"
-#include "vm/jit/asmpart.h"
-
-
-/* temporary property structure */
-
-typedef struct property property;
-
-struct property {
-	char     *key;
-	char     *value;
-	property *next;
-};
-
-static property *properties = NULL;
-
-
-/* create_property *************************************************************
-
-   Create a property entry for a command line property definition.
-
-*******************************************************************************/
-
-void create_property(char *key, char *value)
-{
-	property *p;
-
-	p = NEW(property);
-	p->key = key;
-	p->value = value;
-	p->next = properties;
-	properties = p;
-}
-
-
-/* insert_property *************************************************************
-
-   Used for inserting a property into the system's properties table. Method m
-   (usually put) and the properties table must be given.
-
-*******************************************************************************/
-
-static void insert_property(methodinfo *m, java_util_Properties *p, char *key,
-							char *value)
-{
-	java_lang_String *k;
-	java_lang_String *v;
-
-	k = javastring_new_char(key);
-	v = javastring_new_char(value);
-
-	asm_calljavafunction(m, p, k, v, NULL);
-}
+#include "vm/properties.h"
 
 
 /*
@@ -114,7 +63,6 @@ static void insert_property(methodinfo *m, java_util_Properties *p, char *key,
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
 {
-	methodinfo *m;
 	char       *cwd;
 	char       *java_home;
 	char       *user;
@@ -149,44 +97,38 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	home = getenv("HOME");
 	uname(&utsnamebuf);
 
-	/* search for method to add properties */
+	/* post-initialize the properties */
 
-	m = class_resolveclassmethod(p->header.vftbl->class,
-								 utf_new_char("put"),
-								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
-								 clazz,
-								 true);
-
-	if (!m)
+	if (!properties_postinit(p))
 		return;
 
-	insert_property(m, p, "java.version", JAVA_VERSION);
-	insert_property(m, p, "java.vendor", "GNU Classpath");
-	insert_property(m, p, "java.vendor.url", "http://www.gnu.org/software/classpath/");
-	insert_property(m, p, "java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
-	insert_property(m, p, "java.vm.specification.version", "1.0");
-	insert_property(m, p, "java.vm.specification.vendor", "Sun Microsystems Inc.");
-	insert_property(m, p, "java.vm.specification.name", "Java Virtual Machine Specification");
-	insert_property(m, p, "java.vm.version", VERSION);
-	insert_property(m, p, "java.vm.vendor", "CACAO Team");
-	insert_property(m, p, "java.vm.name", "CACAO");
-	insert_property(m, p, "java.specification.version", "1.4");
-	insert_property(m, p, "java.specification.vendor", "Sun Microsystems Inc.");
-	insert_property(m, p, "java.specification.name", "Java Platform API Specification");
-	insert_property(m, p, "java.class.version", CLASS_VERSION);
-	insert_property(m, p, "java.class.path", classpath);
+	properties_system_add("java.version", JAVA_VERSION);
+	properties_system_add("java.vendor", "GNU Classpath");
+	properties_system_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
+	properties_system_add("java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
+	properties_system_add("java.vm.specification.version", "1.0");
+	properties_system_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
+	properties_system_add("java.vm.specification.name", "Java Virtual Machine Specification");
+	properties_system_add("java.vm.version", VERSION);
+	properties_system_add("java.vm.vendor", "CACAO Team");
+	properties_system_add("java.vm.name", "CACAO");
+	properties_system_add("java.specification.version", "1.4");
+	properties_system_add("java.specification.vendor", "Sun Microsystems Inc.");
+	properties_system_add("java.specification.name", "Java Platform API Specification");
+	properties_system_add("java.class.version", CLASS_VERSION);
+	properties_system_add("java.class.path", classpath);
 
-	insert_property(m, p, "java.runtime.version", VERSION);
-	insert_property(m, p, "java.runtime.name", "CACAO");
+	properties_system_add("java.runtime.version", VERSION);
+	properties_system_add("java.runtime.name", "CACAO");
 
 	/* Set bootclasspath properties. One for GNU classpath and the other for  */
 	/* compatibility with Sun (required by most applications).                */
-	insert_property(m, p, "java.boot.class.path", bootclasspath);
-	insert_property(m, p, "sun.boot.class.path", bootclasspath);
+	properties_system_add("java.boot.class.path", bootclasspath);
+	properties_system_add("sun.boot.class.path", bootclasspath);
 
 #if defined(ENABLE_STATICVM)
-	insert_property(m, p, "gnu.classpath.boot.library.path", ".");
-	insert_property(m, p, "java.library.path" , ".");
+	properties_system_add("gnu.classpath.boot.library.path", ".");
+	properties_system_add("java.library.path" , ".");
 #else /* defined(ENABLE_STATICVM) */
 	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
 
@@ -198,7 +140,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	strcat(libpath, CLASSPATH_INSTALL_DIR);
 	strcat(libpath, CLASSPATH_LIBRARY_PATH);
 
-	insert_property(m, p, "gnu.classpath.boot.library.path", libpath);
+	properties_system_add("gnu.classpath.boot.library.path", libpath);
 
 	MFREE(libpath, char, libpathlen);
 
@@ -215,31 +157,31 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		strcpy(libpath, ".:");
 		strcat(libpath, ld_library_path);
 
-		insert_property(m, p, "java.library.path", libpath);
+		properties_system_add("java.library.path", libpath);
 
 		MFREE(libpath, char, libpathlen);
 
 	} else {
-		insert_property(m, p, "java.library.path", "");
+		properties_system_add("java.library.path", "");
 	}
 #endif /* defined(ENABLE_STATICVM) */
 
-	insert_property(m, p, "java.io.tmpdir", "/tmp");
+	properties_system_add("java.io.tmpdir", "/tmp");
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp) {
 		/* XXX We don't support java.lang.Compiler */
-/*  		insert_property(m, p, "java.compiler", "cacao.intrp"); */
-		insert_property(m, p, "java.vm.info", "interpreted mode");
+/*  		properties_system_add("java.compiler", "cacao.intrp"); */
+		properties_system_add("java.vm.info", "interpreted mode");
 	} else
 #endif
 	{
 		/* XXX We don't support java.lang.Compiler */
-/*  		insert_property(m, p, "java.compiler", "cacao.jit"); */
-		insert_property(m, p, "java.vm.info", "JIT mode");
+/*  		properties_system_add("java.compiler", "cacao.jit"); */
+		properties_system_add("java.vm.info", "JIT mode");
 	}
 
-	insert_property(m, p, "java.ext.dirs", "");
+	properties_system_add("java.ext.dirs", "");
 
 #if defined(DISABLE_GC)
 	/* When we disable the GC, we mmap the whole heap to a specific
@@ -248,34 +190,34 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	   more memory may be allocated (e.g. strlen("i386")
 	   vs. strlen("powerpc"). */
 
- 	insert_property(m, p, "os.name", "unknown");
-	insert_property(m, p, "os.arch", "unknown");
-	insert_property(m, p, "os.version", "unknown");
+ 	properties_system_add("os.name", "unknown");
+	properties_system_add("os.arch", "unknown");
+	properties_system_add("os.version", "unknown");
 #else
- 	insert_property(m, p, "os.name", utsnamebuf.sysname);
-	insert_property(m, p, "os.arch", utsnamebuf.machine);
-	insert_property(m, p, "os.version", utsnamebuf.release);
+ 	properties_system_add("os.name", utsnamebuf.sysname);
+	properties_system_add("os.arch", utsnamebuf.machine);
+	properties_system_add("os.version", utsnamebuf.release);
 #endif
 
-	insert_property(m, p, "file.separator", "/");
-	/* insert_property(m, p, "file.encoding", "null"); -- this must be set properly */
-	insert_property(m, p, "path.separator", ":");
-	insert_property(m, p, "line.separator", "\n");
-	insert_property(m, p, "user.name", user ? user : "null");
-	insert_property(m, p, "user.home", home ? home : "null");
-	insert_property(m, p, "user.dir", cwd ? cwd : "null");
+	properties_system_add("file.separator", "/");
+	/* properties_system_add("file.encoding", "null"); -- this must be set properly */
+	properties_system_add("path.separator", ":");
+	properties_system_add("line.separator", "\n");
+	properties_system_add("user.name", user ? user : "null");
+	properties_system_add("user.home", home ? home : "null");
+	properties_system_add("user.dir", cwd ? cwd : "null");
 
 	/* Are we little or big endian? */
 
 	u.i = 1;
-	insert_property(m, p, "gnu.cpu.endian", u.c[0] ? "little" : "big");
+	properties_system_add("gnu.cpu.endian", u.c[0] ? "little" : "big");
 
 	/* get locales */
 
 	locale = getenv("LANG");
 	if (locale != NULL) { /* gnu classpath is going to set en as language */
 		if (strlen(locale) <= 2) {
-			insert_property(m, p, "user.language", locale);
+			properties_system_add("user.language", locale);
 		} else {
 			if ((locale[2]=='_')&&(strlen(locale)>=5)) {
 				lang = MNEW(char, 3);
@@ -284,8 +226,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 				region = MNEW(char, 3);
 				strncpy(region, (char*)&locale[3], 2);
 				region[2]='\0';
-				insert_property(m, p, "user.language", lang);
-				insert_property(m, p, "user.region", region);
+				properties_system_add("user.language", lang);
+				properties_system_add("user.region", region);
 			}
 		}
 	}
@@ -299,19 +241,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* XXX do we need this one? */
 	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
 #endif
-	insert_property(m, p, "java.protocol.handler.pkgs", "gnu.java.net.protocol");
+	properties_system_add("java.protocol.handler.pkgs", "gnu.java.net.protocol");
 
-	/* insert properties defined on commandline */
+	/* add remaining properties defined on commandline to the Java
+	   system properties */
 
-	while (properties) {
-		property *tp;
-
-		insert_property(m, p, properties->key, properties->value);
-
-		tp = properties;
-		properties = properties->next;
-		FREE(tp, property);
-	}
+	properties_system_add_all();
 
 	/* clean up */
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3963 2005-12-20 23:31:05Z twisti $
+## $Id: Makefile.am 4003 2005-12-22 15:07:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -82,6 +82,8 @@ libvmcore_la_SOURCES = \
 	method.h \
 	options.c \
 	options.h \
+	properties.c \
+	properties.h \
 	references.h \
 	resolve.c \
 	resolve.h \

@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 3975 2005-12-21 16:16:47Z anton $
+   $Id: cacao.c 4003 2005-12-22 15:07:43Z twisti $
 
 */
 
@@ -69,6 +69,7 @@
 #include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/properties.h"
 #include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
@@ -708,6 +709,12 @@ int main(int argc, char **argv)
 	heapstartsize = HEAP_STARTSIZE;
 	opt_stacksize = STACK_SIZE;
 
+	/* initialize properties before commandline handling */
+
+	if (!properties_init())
+		throw_cacao_exception_exit(string_java_lang_InternalError,
+								   "Unable to init properties");
+
 	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
 		switch (i) {
 		case OPT_IGNORE:
@@ -782,15 +789,17 @@ int main(int argc, char **argv)
 				for (j = 0; j < strlen(opt_arg); j++) {
 					if (opt_arg[j] == '=') {
 						opt_arg[j] = '\0';
-						create_property(opt_arg, opt_arg + j + 1);
+						properties_add(opt_arg, opt_arg + j + 1);
 						goto didit;
 					}
 				}
 
 				/* if no '=' is given, just create an empty property */
-				create_property(opt_arg, "");
+
+				properties_add(opt_arg, "");
 					
-			didit: ;
+			didit:
+				;
 			}	
 			break;
 

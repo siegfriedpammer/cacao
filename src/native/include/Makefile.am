@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3843 2005-12-03 12:15:45Z twisti $
+## $Id: Makefile.am 4003 2005-12-22 15:07:43Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -43,10 +43,10 @@ NO_GEN_HEADER_FILES = \
 	java_lang_Throwable.h \
 	java_lang_VMObject.h \
 	java_lang_VMThread.h \
-	java_lang_VMThrowable.h
+	java_lang_VMThrowable.h \
+	java_util_Properties.h
 
 GEN_HEADER_FILES = \
-	java_util_Properties.h \
 	java_io_InputStream.h \
 	java_io_PrintStream.h \
 	\
