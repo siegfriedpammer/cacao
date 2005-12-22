@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: emitfuncs.c 3227 2005-09-19 14:03:36Z twisti $
+   $Id: emitfuncs.c 3994 2005-12-22 14:00:06Z twisti $
 
 */
 
@@ -39,13 +39,6 @@
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/emitfuncs.h"
 #include "vm/jit/i386/codegen.h"
-
-
-#ifdef STATISTICS
-#define COUNT(a) (a)++
-#else
-#define COUNT(a)
-#endif
 
 
 void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)

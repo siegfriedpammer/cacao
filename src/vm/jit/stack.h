@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 3969 2005-12-21 00:07:23Z twisti $
+   $Id: stack.h 3994 2005-12-22 14:00:06Z twisti $
 
 */
 
@@ -42,18 +42,11 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 
 
-/**********************************************************************/
-/* Macros used internally by analyse_stack                            */
-/**********************************************************************/
-
-#ifdef STATISTICS
-#define COUNT(cnt) cnt++
-#else
-#define COUNT(cnt)
-#endif
+/* macros used internally by analyse_stack ************************************/
 
 #if defined(ENABLE_LSRA)
 # define INC_LIFETIMES(a) { m->maxlifetimes += (a); }
@@ -64,6 +57,7 @@
 /* convenient abbreviations */
 #define CURKIND    curstack->varkind
 #define CURTYPE    curstack->type
+
 
 /*--------------------------------------------------*/
 /* SIGNALING ERRORS                                 */
