@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3877 2005-12-05 19:23:25Z twisti $
+   $Id: parse.c 3986 2005-12-22 11:17:05Z twisti $
 
 */
 
@@ -412,7 +412,10 @@ METHINFO(inline_env->method,DEBUG);
 		}
 #endif /* defined(USE_INLINING) */
 
-		opcode = code_get_u1(p,inline_env->method);            /* fetch op code  */
+		/* fetch next opcode  */
+
+		opcode = code_get_u1(p, inline_env->method);
+
 	 if (DEBUG==true) 
 		{
 			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
@@ -434,10 +437,13 @@ gp,m->basicblockindex[gp],m->basicblockindex[gp]);
 fflush(stdout);
 		*/
 
-		if (blockend) {
-			block_insert(gp);               /* start new block                */
+		/* some compilers put a JAVA_NOP after a blockend instruction */
+
+		if ((opcode != JAVA_NOP) && (blockend == true)) {
+			/* start new block */
+
+			block_insert(gp);
 			blockend = false;
-			/*printf("blockend was set: new blockcount: %ld at:%ld\n",b_count,gp);*/
 		}
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
@@ -781,6 +787,7 @@ SHOWOPCODE(DEBUG4)
 			blockend = true;
 			OP1(opcode, i);
 			break;
+
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,inline_env->method);
