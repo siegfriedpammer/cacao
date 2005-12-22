@@ -36,16 +36,17 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3918 2005-12-08 23:08:47Z twisti $
+   $Id: builtin.c 3985 2005-12-22 11:06:29Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "arch.h"
@@ -519,7 +520,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 			logtextlen +=
 				utf_strlen(xptr->vftbl->class->name) +
 				strlen(": ") +
-				javastring_strlen((java_objectheader *) t->detailMessage);
+				javastring_strlen(t->detailMessage);
 
 		} else
 			logtextlen += strlen("(nil)");
@@ -580,14 +581,14 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	vftbl_t         *valuevftbl;
 	s4               base;
 	castinfo         classvalues;
-	
+
 	if (!o)
 		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
-	 *     *) a->...vftbl->arraydesc != NULL
-	 *     *) a->...vftbl->arraydesc->componentvftbl != NULL
+	 *     *) oa->...vftbl->arraydesc != NULL
+	 *     *) oa->...vftbl->arraydesc->componentvftbl != NULL
 	 *     *) o->vftbl is not an interface vftbl
 	 */
 	
@@ -598,8 +599,8 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	if ((desc->dimension - 1) == 0) {
 		s4 res;
 
-		/* {a is a one-dimensional array} */
-		/* {a is an array of references} */
+		/* {oa is a one-dimensional array} */
+		/* {oa is an array of references} */
 		
 		if (valuevftbl == componentvftbl)
 			return 1;
@@ -617,7 +618,7 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 		return res;
 	}
 
-	/* {a has dimension > 1} */
+	/* {oa has dimension > 1} */
 	/* {componentvftbl->arraydesc != NULL} */
 
 	/* check if o is an array */
@@ -1484,20 +1485,27 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 {
-	methoddesc *md;
-	char       *logtext;
-	s4          logtextlen;
-	s4          dumpsize;
-	s4          i;
-	s4          pos;
-	imm_union   imu;
+	methoddesc  	  *md;
+	char        	  *logtext;
+	s4          	   logtextlen;
+	s4          	   dumpsize;
+	s4          	   i;
+	s4                 pos;
+	java_objectheader *o;
+	java_lang_String  *s;
+	classinfo         *c;
+	s4                 len;
+	utf               *u;
+	imm_union          imu;
 
 	md = m->parseddesc;
 
 	/* calculate message length */
 
 	logtextlen =
-		6 + methodindent + strlen("finished: ") +
+		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
+		methodindent +
+		strlen("finished: ") +
 		utf_strlen(m->class->name) +
 		strlen(".") +
 		utf_strlen(m->name) +
@@ -1523,7 +1531,8 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* generate the message */
 
-	sprintf(logtext,"-%d-",methodindent);
+	sprintf(logtext, "-%d-", methodindent);
+
 	pos = strlen(logtext);
 
 	for (i = 0; i < methodindent; i++)
@@ -1550,6 +1559,63 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	case TYPE_ADR:
 		sprintf(logtext + strlen(logtext), "->%p", (void *) (ptrint) l);
+
+		/* check return argument for java.lang.Class or java.lang.String */
+
+		o = (java_objectheader *) l;
+
+		if (o != NULL) {
+			if (o->vftbl->class == class_java_lang_String) {
+				/* get java.lang.String object and the length of the
+                   string */
+
+				s= (java_lang_String *) l;
+
+				len = strlen(", String = \"") + javastring_strlen(s) +
+					strlen("\"");
+
+				/* realloc memory for string length */
+
+				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+
+				/* convert to utf8 string and strcat it to the logtext */
+
+				u = javastring_toutf(s, false);
+
+				strcat(logtext, ", String = \"");
+				utf_strcat(logtext, u);
+				strcat(logtext, "\"");
+
+			} else {
+				if (o->vftbl->class == class_java_lang_Class) {
+					/* if the object returned is a java.lang.Class
+					   cast it to classinfo structure and get the name
+					   of the class */
+
+					c = (classinfo *) l;
+
+					u = c->name;
+
+				} else {
+					/* if the object returned is not a java.lang.String or
+					   a java.lang.Class just print the name of the class */
+
+					u = o->vftbl->class->name;
+				}
+
+				len = strlen(", Class = \"") + utf_strlen(u) + strlen("\"");
+
+				/* realloc memory for string length */
+
+				DMREALLOC(logtext, char, logtextlen, logtextlen + len);
+
+				/* strcat to the logtext */
+
+				strcat(logtext, ", Class = \"");
+				utf_strcat(logtext, u);
+				strcat(logtext, "\"");
+			}
+		}
 		break;
 
 	case TYPE_FLT:
