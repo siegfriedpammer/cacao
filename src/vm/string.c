@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: string.c 3984 2005-12-22 10:56:20Z twisti $
 
 */
 
@@ -456,10 +456,8 @@ utf *javastring_toutf(java_lang_String *string, bool isclassname)
 	
 *******************************************************************************/
 
-s4 javastring_strlen(java_objectheader *so)
+s4 javastring_strlen(java_lang_String *s)
 {
-	java_lang_String *s = (java_lang_String *) so;
-	
 	if (!s)
 		return 0;
 
