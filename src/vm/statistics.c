@@ -26,14 +26,20 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.c 3514 2005-10-28 11:34:23Z twisti $
+   Changes:
+
+   $Id: statistics.c 4001 2005-12-22 14:05:38Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <string.h> 
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#include "vm/types.h"
 
 #include "toolbox/logging.h"
 #include "vm/global.h"
@@ -41,7 +47,7 @@
 #include "vm/statistics.h"
 
 
-/* global variables */
+/* global variables ***********************************************************/
 
 static s8 loadingtime = 0;              /* accumulated loading time           */
 static s8 loadingstarttime = 0;
@@ -207,24 +213,28 @@ s4 count_schedule_max_leaders = 0;
 s4 count_schedule_critical_path = 0;
 
 
-
 /* nativeinvokation ***********************************************************
 
    increments the native invokation count by one
 	
 *******************************************************************************/
-void nativeinvokation() {
-	/*do locking here */
+
+void nativeinvokation(void)
+{
+	/* XXX do locking here */
 	count_native_function_calls++;
 }
+
 
 /* compiledinvokation *********************************************************
 
    increments the compiled invokation count by one
 	
 *******************************************************************************/
-void compiledinvokation() {
-	/* do locking here*/
+
+void compiledinvokation(void)
+{
+	/* XXX do locking here */
 	count_compiled_function_calls++;
 }
 
@@ -234,18 +244,23 @@ void compiledinvokation() {
    increments the jni CallXMethod invokation count by one
 	
 *******************************************************************************/
-void jnicallXmethodnvokation() {
-	/*do locking here */
+
+void jnicallXmethodnvokation(void)
+{
+	/* XXX do locking here */
 	count_jni_callXmethod_calls++;
 }
+
 
 /* jniinvokation *************************************************************
 
    increments the jni overall  invokation count by one
 	
 *******************************************************************************/
-void jniinvokation() {
-	/*do locking here */
+
+void jniinvokation(void)
+{
+	/* XXX do locking here */
 	count_jni_calls++;
 }
 
