@@ -27,18 +27,23 @@
    Authors: Andreas Krall
             Christian Thalinger
 
+   Changes:
 
-   $Id: codegen.h 3690 2005-11-17 10:23:11Z twisti $
+   $Id: codegen.h 3989 2005-12-22 13:53:53Z twisti $
 
 */
+
 
 #ifndef _CODEGEN_H
 #define _CODEGEN_H
 
+#include "config.h"
+
 #include <ucontext.h>
 
-#include "config.h"
 #include "vm/types.h"
+
+#include "vm/jit/jit.h"
 
 
 /* some defines ***************************************************************/
@@ -258,13 +263,6 @@ typedef enum {
 
 
 /* additional functions and macros to generate code ***************************/
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
 
 #define CALCOFFSETBYTES(var, reg, val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
