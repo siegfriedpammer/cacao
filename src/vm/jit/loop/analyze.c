@@ -34,15 +34,19 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 3028 2005-07-13 11:41:53Z twisti $
+   $Id: analyze.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
@@ -183,7 +187,7 @@ void show_tree(struct LoopContainer *lc, int tabs)
 
 #endif
 
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 
 void show_loop_statistics(loopdata *ld)
 {
@@ -840,7 +844,7 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 		}
 
 	if ((count > 1) && (flag == 0)){/* if all successors part of the loop, exit */
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 		ld->c_stat_or++;
 #endif
 		return 0;
@@ -882,7 +886,7 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 
 				/* if array index variables are modified there, return 0		*/
 				if (quick_scan(m, ld, m->basicblockindex[cd->exceptiontable[i].handlerpc]) > 0) {
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 					ld->c_stat_exception++;
 #endif
 					/* printf("C_INFO: loopVar modified in exception\n");		*/
@@ -1389,7 +1393,7 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 	switch (index->type) {				/* check index type						*/
 	case TRACE_IVAR:					/* it is a variable						*/
 		if (index->neg < 0) {			/* if it's a negated var, return		*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;
@@ -1457,28 +1461,28 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 		/* return the best possible optimization								*/
 		if ((high > 0) && (low > 0)) {
 			/* printf("fully optimzed\n");										*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_full_opt++;			
 #endif
 			return OPT_FULL;
 			}
 		else if (high > 0) {
 			/* printf("upper optimzed\n");										*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_upper_opt++;			
 #endif
 			return OPT_UPPER;
 			}
 		else if (low > 0) {
 			/* printf("lower optimzed\n");										*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_lower_opt++;			
 #endif
 			return OPT_LOWER;
 			}
 		else {
 			/* printf("not optimzed\n");										*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;
@@ -1487,14 +1491,14 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 
 	case TRACE_ICONST:			/* if it is a constant, optimization is easy	*/
 		if (index->constant < 0) {
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_no_opt++;			
 #endif
 			return OPT_NONE;	/* negative index -> bad						*/
 			}
 		else {
 			add_new_constraint(m, cd, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 			ld->c_stat_full_opt++;			
 #endif
 			return OPT_FULL;	/* else just test constant against array length	*/
@@ -1504,7 +1508,7 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 	case TRACE_ALENGTH:			/* else, no optimizations possible				*/
 	case TRACE_UNKNOWN: 
 	case TRACE_AVAR:    
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 		ld->c_stat_no_opt++;			
 #endif
 		return OPT_NONE;
@@ -2593,7 +2597,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	bptr = NULL;
 
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 	/* show_loop_statistics(l); */ 
 #endif
 
@@ -3181,7 +3185,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				show_trace(t_index);
 				*/
 
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 				if (ip->op1 == OPT_UNCHECKED) {		/* found new access			*/
 				   ld->c_stat_array_accesses++;
 				   ip->op1 = OPT_NONE;
@@ -3196,7 +3200,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				switch (t_index->type) {	/* now we look at the index			*/
 				case TRACE_ICONST:			/* it is a constant value or an		*/
 				case TRACE_ALENGTH:			/* array length						*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 					switch (ip->op1) {		/* take back old optimzation		*/
 					case OPT_UNCHECKED:
 						break;
@@ -3237,7 +3241,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_FULL:
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 							ld->c_stat_full_opt++;
 #endif
 							break;
@@ -3252,7 +3256,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 					/* to set the changes back to the time, it is pushed onto	*/
 					/* the stack as an index variable.							*/
 					t = backtrack_var(m, node, t_index->nr, i-1, t_index->var, tmp[t_index->var]);
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 					switch (ip->op1) {		/* take back old optimzation		*/
 					case OPT_UNCHECKED:
 						break;
@@ -3293,7 +3297,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 								ip->op1 = OPT_FULL;
 							break;
 						case OPT_FULL:
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 							ld->c_stat_full_opt++;
 #endif
 							break;
@@ -3555,7 +3559,7 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 	/* else
 		printf("No array accesses found\n");									*/
 
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 	ld->c_stat_num_loops++;		/* increase number of loops							*/	
 
 	ld->c_stat_sum_accesses += ld->c_stat_array_accesses;
@@ -3620,7 +3624,7 @@ void optimize_loops(methodinfo *m, codegendata *cd, loopdata *ld)
 	if ((ld->c_constraints = (struct Constraint **) malloc((cd->maxlocals+1) * sizeof(struct Constraint *))) == NULL)
 		c_mem_error();
 
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 	ld->c_stat_num_loops = 0;		/* set statistic vars to zero					*/
 	ld->c_stat_array_accesses = ld->c_stat_sum_accesses = 0;		
 	ld->c_stat_full_opt = ld->c_stat_sum_full = 0;

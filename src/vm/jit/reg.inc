@@ -31,12 +31,16 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 3969 2005-12-21 00:07:23Z twisti $
+   $Id: reg.inc 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "arch.h"
+
 #include "mm/memory.h"
 #include "vm/method.h" 	 
 #include "vm/resolve.h"
@@ -1627,7 +1631,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 }
 
 
-#ifdef STATISTICS
+#if defined(ENABLE_STATISTICS)
 void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
 	int i,type;
 	s4 len;
@@ -1776,7 +1780,9 @@ void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
 		count_interface_size += size_interface; /* accummulate the size of the interface (between bb boundaries) */
 		if (in_register) count_method_in_register++;
 }
-#endif
+#endif /* defined(ENABLE_STATISTICS) */
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

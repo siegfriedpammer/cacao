@@ -26,7 +26,9 @@
 
    Authors: Dieter Thuernbeck
 
-   $Id: inline.c 3829 2005-12-01 19:47:56Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: inline.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -128,7 +130,7 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->inlining_stack = NULL;
 	inline_env->inlining_rootinfo = NULL;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (in_stats1) {
 		int ii;
 		for (ii=0; ii<512; ii++) count_in_not[ii]=0;
@@ -400,7 +402,7 @@ if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
      ((opcode != JAVA_INVOKEVIRTUAL) ||
       (opcode != JAVA_INVOKEINTERFACE)) ) &&
     (inlineexceptions || (imi->exceptiontablelength == 0)))  {
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	count_in++;
     	if (inlinevirtuals) { 
         	if   (opcode == JAVA_INVOKEVIRTUAL) {
@@ -424,7 +426,7 @@ if (!can) {
 
 if  (imi->flags & ACC_NATIVE) return can; 
 if  (imi->flags & ACC_ABSTRACT) return can; 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
   count_in_rejected++;
 #endif
 						if (opt_verbose) 
@@ -440,14 +442,14 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 
   if  (!(inlineoutsiders) && (m->class->name != imr->classref->name)) {
 	/*** if ((!mult) && (whycannot > 0)) mult = true;  *** First time not needed ***/
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	count_in_outsiders++;
 #endif
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
 	}
   if (inline_env->cummethods >= INLINING_MAXMETHODS) { 
 	if ((!mult) && (whycannot > 0)) mult = true; 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	count_in_maxDepth++;
 #endif
 	whycannot = whycannot | IN_MAXDEPTH;  
@@ -470,13 +472,13 @@ if  (imi->flags & ACC_ABSTRACT) return can;
       	if (uniqueVirt )   { 
       		/* so know why (and that) a unique virtual was rejected for another reason */ 
      		if (opcode == JAVA_INVOKEVIRTUAL) { 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			count_in_uniqueVirt_not_inlined++;
 #endif
 			whycannot = whycannot | IN_UNIQUEVIRT;  
 			}
 	 	else 	{
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			count_in_uniqueInterface_not_inlined++;
 #endif
 			whycannot = whycannot | IN_UNIQUE_INTERFACE;  
@@ -495,12 +497,12 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 
   if  (inlineoutsiders && (m->class->name != imr->classref->name)) {
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	count_in_outsiders++;
 #endif
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
   if (mult)  
   	count_in_rejected_mult++;
 #endif
@@ -508,7 +510,7 @@ if  (imi->flags & ACC_ABSTRACT) return can;
 	  log_text("Inline Whynot is too large???");
 	  assert(0);
   }
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
   count_in_not[whycannot]++; 
 #endif
   }
@@ -703,7 +705,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		if (opt_stat) { 
 		  	if ((!isnotrootlevel) && !maxdepthHit) {
 				maxdepthHit = true;
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 				count_in_maxDepth++;
 #endif
 			}

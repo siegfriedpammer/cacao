@@ -32,14 +32,15 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: linker.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -382,7 +383,7 @@ classinfo *link_class(classinfo *c)
 		return c;
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -401,7 +402,7 @@ classinfo *link_class(classinfo *c)
 	if (!r)
 		c->state &= ~CLASS_LINKING;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)
@@ -699,7 +700,7 @@ static classinfo *link_class_intern(classinfo *c)
 	}
 
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_vftbl_len +=
 			sizeof(vftbl_t) + (sizeof(methodptr) * (vftbllength - 1));
@@ -774,7 +775,7 @@ static classinfo *link_class_intern(classinfo *c)
 	
 	v->interfacevftbllength = MNEW(s4, interfacetablelength);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_vftbl_len += (4 + sizeof(s4)) * v->interfacetablelength;
 #endif
@@ -1080,7 +1081,7 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 		v->interfacevftbllength[i] = ic->methodscount;
 		v->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			count_vftbl_len += sizeof(methodptr) *
 				(ic->methodscount + (ic->methodscount == 0));

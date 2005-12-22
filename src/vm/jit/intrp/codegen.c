@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 3979 2005-12-21 16:39:52Z anton $
+   $Id: codegen.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -1770,7 +1770,7 @@ u1 *createcompilerstub (methodinfo *m)
 	vm_block_insert(cd->mcodeptr);
 #endif
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif

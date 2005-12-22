@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 3962 2005-12-20 23:28:13Z twisti $
+   $Id: VMClassLoader.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -113,7 +113,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	c = class_create_classinfo(utfname);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)
@@ -140,7 +140,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	FREE(cb, classbuffer);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)

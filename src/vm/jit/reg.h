@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: reg.h 3219 2005-09-19 13:27:01Z twisti $
+   $Id: reg.h 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -97,7 +97,7 @@ struct registerdata {
 
 	int *argadrregs;                /* argument address registers             */
 	int *tmpadrregs;                /* scratch address registers              */
-	int *savadrregs;               /* saved address registers                */
+	int *savadrregs;                /* saved address registers                */
 	int *freeargadrregs;            /* free argument address registers        */
 	int *freetmpadrregs;            /* free scratch address registers         */
 	int *freesavadrregs;            /* free saved address registers           */
@@ -108,7 +108,7 @@ struct registerdata {
 
 	int freetmpadrtop;              /* free scratch address register count    */
 	int freesavadrtop;              /* free saved address register count      */
-	int freeargadrtop;              /* free argument address register count      */
+	int freeargadrtop;              /* free argument address register count   */
 #endif
 
 #if defined(HAS_4BYTE_STACKSLOT)
@@ -127,8 +127,8 @@ struct registerdata {
 	int tmpfltreguse;               /* used scratch float register count      */
 	int savfltreguse;               /* used saved float register count        */
 
-	int freearginttop;              /* free argument integer register count      */
-	int freeargflttop;              /* free argument float register count      */
+	int freearginttop;              /* free argument integer register count   */
+	int freeargflttop;              /* free argument float register count     */
 	int freetmpinttop;              /* free scratch integer register count    */
 	int freesavinttop;              /* free saved integer register count      */
 	int freetmpflttop;              /* free scratch float register count      */
@@ -136,14 +136,15 @@ struct registerdata {
 };
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
-void reg_init();
+void reg_init(void);
 void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
 void reg_free(methodinfo *m, registerdata *rd);
-void reg_close();
+void reg_close(void);
 void regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
-#ifdef STATISTICS
+
+#if defined(ENABLE_STATISTICS)
 void reg_make_statistics( methodinfo *, codegendata *, registerdata *);
 #endif
 

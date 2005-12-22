@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: parseRT.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: parseRT.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -103,7 +103,7 @@ void addToRtaWorkList(methodinfo *meth, char *info) {
 if (meth->methodUsed == USED) return;
 
 if (!(meth->flags & ACC_ABSTRACT))  {
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
     count_methods_marked_used++;
 #endif
     METHINFOt(meth,info,RTA_DEBUGopcodes)

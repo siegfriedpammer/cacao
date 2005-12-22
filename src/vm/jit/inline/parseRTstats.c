@@ -26,7 +26,9 @@
 
    Authors: Carolyn Oates
 
-   $Id: parseRTstats.c 3829 2005-12-01 19:47:56Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: parseRTstats.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -98,7 +100,7 @@ void printCallgraph (list *rtaWorkList)
     rtaNode    *rta;
     methodinfo *rt_meth;  
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
  printf("-*-*-*-*- RTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
 #endif
 

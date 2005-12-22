@@ -29,14 +29,17 @@
 
    Changes:
 
-   $Id: schedule.c 2056 2005-03-22 11:21:32Z twisti $
+   $Id: schedule.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
+#include "vm/types.h"
+
 #include "disass.h"
 
 #include "mm/memory.h"
@@ -710,7 +713,7 @@ void schedule_do_schedule(scheduledata *sd)
 		}
 		printf("schedule end ---\n\n");
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
 			count_schedule_basic_blocks++;
 			count_schedule_nodes += sd->micount;

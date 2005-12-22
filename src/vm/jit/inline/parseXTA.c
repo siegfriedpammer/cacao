@@ -42,7 +42,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Changes: Christian Thalinger
 
-   $Id: parseXTA.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: parseXTA.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -365,7 +365,7 @@ xtainfo *xtainfoInit(methodinfo *m)
         if (m->xta != NULL)
                 return m->xta; /* already initialized */
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
     	count_methods_marked_used++;
 #endif
 
@@ -1790,7 +1790,7 @@ void XTAprintCallgraph (list *xtaWorkList, char * txt)
     methodinfo *xta_meth;
 
  printf("\n%s\n",txt);
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
  printf("-*-*-*-*- XTA Callgraph Worklist:<%i>\n",count_methods_marked_used);
 #endif
 

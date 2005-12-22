@@ -26,25 +26,34 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.inc 3732 2005-11-22 14:36:16Z christian $
+   Changes: Christian Thalinger
+
+   $Id: lsra.inc 4000 2005-12-22 14:05:01Z twisti $
 
 */
+
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
+#include "vm/types.h"
+
 #include "mm/memory.h"
 #include "vm/options.h"
+#include "vm/statistics.h"
 #include "vm/jit/lsra.h"
 #include "vm/jit/reg.h"
-#include "vm/statistics.h"
+
 
 void lsra(methodinfo *m, codegendata *cd, registerdata *rd,
 		  t_inlining_globals *id)
 {
 
 	lsradata *ls;
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	int locals_start;
 	int i,j;
 #endif	
@@ -123,7 +132,7 @@ void lsra(methodinfo *m, codegendata *cd, registerdata *rd,
 	
 	lsra_setup(m, cd, rd, ls);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* find conflicts between locals for statistics */
 	if (opt_stat) {
 		/* local Variable Lifetimes are at the end of the lifetime array and  */

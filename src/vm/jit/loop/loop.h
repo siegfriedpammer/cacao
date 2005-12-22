@@ -26,7 +26,9 @@
 
    Authors: Christopher Kruegel
 
-   $Id: loop.h 1735 2004-12-07 14:33:27Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: loop.h 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -34,7 +36,11 @@
 #ifndef _LOOP_H
 #define _LOOP_H
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
+#include "vm/method.h"
 #include "vm/jit/jit.h"
 
 
@@ -276,7 +282,7 @@ struct loopdata {
 
 
 	/* declare statistic variables													*/
-#ifdef STATISTICS
+#ifdef ENABLE_STATISTICS
 
 	int c_stat_num_loops;			/* number of loops								*/
 
@@ -311,10 +317,10 @@ struct loopdata {
 };
 
 
-/* function prototypes */
+/* function prototypes ********************************************************/
 
 void analyseGraph(methodinfo *m, loopdata *ld);
-void c_mem_error();
+void c_mem_error(void);
 
 #endif /* _LOOP_H */
 

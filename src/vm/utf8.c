@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 3940 2005-12-11 01:06:16Z twisti $
+   $Id: utf8.c 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
@@ -174,7 +174,7 @@ bool utf8_init(void)
 
 	hashtable_create(&hashtable_utf, HASHTABLE_UTF_SIZE);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_utf_len += sizeof(utf*) * hashtable_utf.size;
 #endif
@@ -480,7 +480,7 @@ utf *utf_new(const char *text, u2 length)
 	builtin_monitorenter(lock_hashtable_utf);
 #endif
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_utf_new++;
 #endif
@@ -499,7 +499,7 @@ utf *utf_new(const char *text, u2 length)
 				if (text[i] != u->text[i])
 					goto nomatch;
 			
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_utf_new_found++;
 #endif
@@ -517,7 +517,7 @@ utf *utf_new(const char *text, u2 length)
 		u = u->hashlink; /* next element in external chain */
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_utf_len += sizeof(utf) + length + 1;
 #endif
@@ -550,7 +550,7 @@ utf *utf_new(const char *text, u2 length)
 		hashtable_create(&newhash, hashtable_utf.size * 2);
 		newhash.entries = hashtable_utf.entries;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			count_utf_len += sizeof(utf*) * hashtable_utf.size;
 #endif

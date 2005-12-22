@@ -47,15 +47,16 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen.inc 3981 2005-12-21 16:43:21Z anton $
+   $Id: codegen.inc 4000 2005-12-22 14:05:01Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -848,7 +849,7 @@ static void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	extralen = 0;
 #endif
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_code_len += mcodelen;
 		count_data_len += cd->dseglen;
@@ -1055,7 +1056,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 	m->entrypoint = createnativestub(f, m, cd, rd, nmd);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_nstub_len += m->mcodelength;
 #endif
@@ -1228,19 +1229,21 @@ void removenativestub(u1 *stub)
 }
 
 
-/* reg_of_var:
-    This function determines a register, to which the result of an operation
-    should go, when it is ultimatively intended to store the result in
-    pseudoregister v.
-    If v is assigned to an actual register, this register will be returned.
-    Otherwise (when v is spilled) this function returns tempregnum.
-    If not already done, regoff and flags are set in the stack location.
-*/        
-/*  On ARM we have to check if a long/double variable is splitted
-    across reg/stack (HIGH_REG == REG_SPLIT). We return the actual register
-    of v for LOW_REG and the tempregnum for HIGH_REG in such cases.
-    (michi 2005/07/24)
-*/
+/* reg_of_var ******************************************************************
+
+   This function determines a register, to which the result of an
+   operation should go, when it is ultimatively intended to store the
+   result in pseudoregister v.  If v is assigned to an actual
+   register, this register will be returned.  Otherwise (when v is
+   spilled) this function returns tempregnum.  If not already done,
+   regoff and flags are set in the stack location.
+       
+   On ARM we have to check if a long/double variable is splitted
+   across reg/stack (HIGH_REG == REG_SPLIT). We return the actual
+   register of v for LOW_REG and the tempregnum for HIGH_REG in such
+   cases.  (michi 2005/07/24)
+
+*******************************************************************************/
 
 static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 {
@@ -1289,11 +1292,14 @@ static int reg_of_var(registerdata *rd, stackptr v, int tempregnum)
 		}
 		break;
 	}
-#ifdef STATISTICS
+
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_spills_read++;
 #endif
+
 	v->flags |= INMEMORY;
+
 	return tempregnum;
 }
 
