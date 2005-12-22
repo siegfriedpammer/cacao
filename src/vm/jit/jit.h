@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3811 2005-11-28 16:23:40Z edwin $
+   $Id: jit.h 3996 2005-12-22 14:01:34Z twisti $
 
 */
 
@@ -46,15 +46,28 @@ typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
 
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "toolbox/chain.h"
 #include "vm/global.h"
-#include "vm/references.h"
 #include "vm/method.h"
+#include "vm/references.h"
+#include "vm/statistics.h"
 #include "vm/jit/codegen.inc.h"
 #include "vm/jit/verify/typeinfo.h"
 
 
-/**************************** resolve typedef-cycles **************************/
+/* common jit/codegen macros **************************************************/
+
+#if defined(ENABLE_STATISTICS)
+# define COUNT(x)        (x)++
+# define COUNT_SPILLS    count_spills++
+#else
+# define COUNT(x)        /* nothing */
+# define COUNT_SPILLS    /* nothing */
+#endif
+
 
 /************************** stack element structure ***************************/
 
