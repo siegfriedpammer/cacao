@@ -30,10 +30,12 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: stack.c 3969 2005-12-21 00:07:23Z twisti $
+   $Id: stack.c 3995 2005-12-22 14:00:44Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -1088,7 +1090,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 0 push 0 iinc */
 
 					case ICMD_IINC:
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 						if (opt_stat) {
 							i = stackdepth;
 							if (i >= 10)
@@ -1133,7 +1135,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						if (!opt_intrp)
 #endif
 							rd->locals[iptr->op1][i].type = i;
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 					if (opt_stat) {
 						count_pcmd_store++;
 						i = new - curstack;
@@ -2182,7 +2184,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		} /* while blocks */
 	} while (repeat && !deadcode);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		if (m->basicblockcount > count_max_basic_blocks)
 			count_max_basic_blocks = m->basicblockcount;
@@ -2255,7 +2257,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		else
 			count_method_bb_distribution[8]++;
 	}
-#endif
+#endif /* defined(ENABLE_STATISTICS) */
 
 	/* just return methodinfo* to signal everything was ok */
 
@@ -2263,9 +2265,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 }
 
 
-/**********************************************************************/
-/* DEBUGGING HELPERS                                                  */
-/**********************************************************************/
+/* debugging helpers **********************************************************/
 
 void icmd_print_stack(codegendata *cd, stackptr s)
 {
@@ -2452,6 +2452,7 @@ static char *jit_type[] = {
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	basicblock     *bptr;
@@ -2636,8 +2637,16 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	builtin_monitorexit(lock_show_icmd);
 #endif
 }
+#endif /* !defined(NDEBUG) */
 
 
+/* show_icmd_block *************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 {
 	s4           i, j;
@@ -2686,8 +2695,16 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 		}
 	}
 }
+#endif /* !defined(NDEBUG) */
 
 
+/* show_icmd *******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
 void show_icmd(instruction *iptr, bool deadcode)
 {
 	int j;
@@ -3109,6 +3126,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		}
 	}
 }
+#endif /* !defined(NDEBUG) */
 
 
 /*
