@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 3968 2005-12-21 00:05:48Z twisti $
+   $Id: codegen.h 3991 2005-12-22 13:58:17Z twisti $
 
 */
 
@@ -43,6 +43,8 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/jit.h"
+
 
 #if defined(ENABLE_LSRA)
 /* let LSRA allocate reserved registers (REG_ITMP[1|2|3]) */
@@ -55,16 +57,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-#define BlockPtrOfPC(pc)  ((basicblock *) iptr->target)
-
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
 
 #define CALCOFFSETBYTES(var, reg, val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
