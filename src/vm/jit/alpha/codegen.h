@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 3120 2005-07-27 22:20:13Z twisti $
+   $Id: codegen.h 3993 2005-12-22 13:59:41Z twisti $
 
 */
 
@@ -41,15 +41,12 @@
 
 #include <ucontext.h>
 
+#include "vm/types.h"
+
+#include "vm/jit/jit.h"
+
 
 /* additional functions and macros to generate code ***************************/
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
 
 /* gen_nullptr_check(objreg) */
 

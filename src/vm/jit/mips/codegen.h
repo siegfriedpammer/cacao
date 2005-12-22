@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 3476 2005-10-21 12:03:33Z twisti $
+   $Id: codegen.h 3993 2005-12-22 13:59:41Z twisti $
 
 */
 
@@ -37,6 +37,8 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/jit/jit.h"
+
 
 /* some defines ***************************************************************/
 
@@ -44,13 +46,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-#ifdef STATISTICS
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
 
 /* gen_nullptr_check(objreg) */
 

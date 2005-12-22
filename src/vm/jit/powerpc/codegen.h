@@ -1,5 +1,5 @@
 /* src/vm/jit/powerpc/codegen.h - code generation macros and definitions for
-                              32-bit PowerPC
+                                  32-bit PowerPC
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 3799 2005-11-26 15:57:19Z twisti $
+   $Id: codegen.h 3993 2005-12-22 13:59:41Z twisti $
 
 */
 
@@ -49,14 +49,6 @@
 
 
 /* additional functions and macros to generate code ***************************/
-
-
-#if defined(STATISTICS)
-#define COUNT_SPILLS count_spills++
-#else
-#define COUNT_SPILLS
-#endif
-
 
 /* gen_nullptr_check(objreg) */
 
