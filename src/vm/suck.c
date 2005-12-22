@@ -28,13 +28,14 @@
 
    Changes:
 
-   $Id: suck.c 3959 2005-12-20 23:25:07Z twisti $
+   $Id: suck.c 4005 2005-12-22 16:10:17Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <dirent.h>
 #include <sys/stat.h>
 
 #include "vm/types.h"
@@ -46,12 +47,16 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
+#include "vm/properties.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
 #include "vm/zip.h"
 
 
 /* global variables ***********************************************************/
+
+char *bootclasspath;                    /* contains the boot classpath        */
+char *classpath;                        /* contains the classpath             */
 
 list *list_classpath_entries;
 
@@ -72,6 +77,30 @@ bool suck_init(void)
 	/* everything's ok */
 
 	return true;
+}
+
+
+/* scandir_filter **************************************************************
+
+   Filters for zip/jar files.
+
+*******************************************************************************/
+
+static int scandir_filter(const struct dirent *a)
+{
+	s4 namlen;
+
+#if defined(_DIRENT_HAVE_D_NAMLEN)
+	namlen = d_namlen;
+#else
+	namlen = strlen(a->d_name);
+#endif
+
+	if ((strncasecmp(a->d_name + namlen - 4, ".zip", 4) == 0) ||
+		(strncasecmp(a->d_name + namlen - 4, ".jar", 4) == 0))
+		return 1;
+
+	return 0;
 }
 
 
@@ -104,9 +133,9 @@ void suck_add(char *classpath)
 			is_zip = false;
 			filenamelen = end - start;
 
-			if (filenamelen > 3) {
-				if (strncasecmp(end - 3, "zip", 3) == 0 ||
-					strncasecmp(end - 3, "jar", 3) == 0) {
+			if (filenamelen > 4) {
+				if ((strncasecmp(end - 4, ".zip", 4) == 0) ||
+					(strncasecmp(end - 4, ".jar", 4) == 0)) {
 					is_zip = true;
 				}
 			}
@@ -184,6 +213,115 @@ void suck_add(char *classpath)
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
+
+		if ((*end) == ':') {
+			start = end + 1;
+
+		} else {
+			start = end;
+		}
+	}
+}
+
+
+/* suck_add_from_property ******************************************************
+
+   Adds a classpath form a property entry to the global classpath
+   entries list.
+
+*******************************************************************************/
+
+void suck_add_from_property(char *key)
+{
+	char           *value;
+	char           *start;
+	char           *end;
+	char           *path;
+	s4              pathlen;
+	struct dirent **namelist;
+	s4              n;
+	s4              i;
+	s4              namlen;
+	char           *tmpbootclasspath;
+
+	/* get the property value */
+
+	value = properties_get(key);
+
+	if (value == NULL)
+		return;
+
+	/* get the directory entries of the property */
+
+	for (start = value; (*start) != '\0'; ) {
+
+		/* search for ':' delimiter to get the end of the current entry */
+
+		for (end = start; ((*end) != '\0') && ((*end) != ':'); end++);
+
+		/* found an entry */
+
+		if (start != end) {
+			/* allocate memory for the path entry */
+
+			pathlen = end - start;
+			path = MNEW(char, pathlen + strlen("0"));
+
+			/* copy and terminate the string */
+
+			strncpy(path, start, pathlen);
+			path[pathlen] = '\0';
+
+			/* scan the directory found for zip/jar files */
+
+			n = scandir(path, &namelist, scandir_filter, alphasort);
+
+			/* on error, just return, this should be ok */
+
+			if (n < 0)
+				return;
+
+			for (i = 0; i < n; i++) {
+#if defined(_DIRENT_HAVE_D_NAMLEN)
+				namlen = namelist[i]->d_namlen;
+#else
+				namlen = strlen(namelist[i]->d_name);
+#endif
+
+				/* reallocate memory for bootclasspath */
+
+				tmpbootclasspath = MNEW(char,
+										pathlen + strlen("/") + namlen +
+										strlen(":") +
+										strlen(bootclasspath) +
+										strlen("0"));
+
+				/* prepend the file found to bootclasspath */
+
+				strcpy(tmpbootclasspath, path);
+				strcat(tmpbootclasspath, "/");
+				strcat(tmpbootclasspath, namelist[i]->d_name);
+				strcat(tmpbootclasspath, ":");
+
+				strcat(tmpbootclasspath, bootclasspath);
+
+				/* free old bootclasspath memory */
+
+				MFREE(bootclasspath, u1, strlen(bootclasspath));
+
+				/* and set the new bootclasspath */
+
+				bootclasspath = tmpbootclasspath;
+
+				/* free the memory allocated by scandir */
+
+				FREE(namelist[i], struct dirent);
+			}
+
+			FREE(namelist, struct dirent);
+		}
+
+		/* goto next entry, skip ':' delimiter */
 
 		if ((*end) == ':') {
 			start = end + 1;

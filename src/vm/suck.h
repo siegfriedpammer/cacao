@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 3959 2005-12-20 23:25:07Z twisti $
+   $Id: suck.h 4005 2005-12-22 16:10:17Z twisti $
 
 */
 
@@ -195,6 +195,9 @@ struct list_classpath_entry {
 
 /* export variables ***********************************************************/
 
+extern char *bootclasspath;
+extern char *classpath;
+
 extern list *list_classpath_entries;
 
 
@@ -203,6 +206,7 @@ extern list *list_classpath_entries;
 bool suck_init(void);
 
 void suck_add(char *classpath);
+void suck_add_from_property(char *key);
 
 bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
 
