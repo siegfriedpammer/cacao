@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: statistics.h 3514 2005-10-28 11:34:23Z twisti $
+   Changes:
+
+   $Id: statistics.h 4002 2005-12-22 14:06:10Z twisti $
 
 */
 
@@ -34,15 +36,32 @@
 #ifndef _STATISTICS_H
 #define _STATISTICS_H
 
+#include "config.h"
+#include "vm/types.h"
 
 #include "vm/global.h"
-				/* in_  inline statistics */
 
-#define IN_MAX	9
+
+/* statistic macros ***********************************************************/
+
+#if defined(ENABLE_STATISTICS)
+#define STATISTICS(x) \
+    do { \
+        if (opt_stat) { \
+            x; \
+        } \
+    } while (0)
+#else
+#define STATISTICS(x)    /* nothing */
+#endif
+
+/* in_  inline statistics */
+
+#define IN_MAX                  9
 #define IN_UNIQUEVIRT           0x0000 
 #define IN_UNIQUE_INTERFACE     0x0001
 #define IN_OUTSIDERS            0x0004
-#define IN_MAXDEPTH		0x0008
+#define IN_MAXDEPTH             0x0008
 #define IN_MAXCODE              0x0010
 #define IN_JCODELENGTH          0x0020
 #define IN_EXCEPTION            0x0040
@@ -58,7 +77,6 @@
 #define N_EXCEPTION            6 
 #define N_NOT_UNIQUE_VIRT       7 
 #define N_NOT_UNIQUE_INTERFACE  8 
-
 
 
 /* global variables ***********************************************************/
@@ -176,37 +194,24 @@ extern s4 count_schedule_critical_path;
 
 /* function prototypes ********************************************************/
 
-s8 getcputime();
+s8 getcputime(void);
 
-void loadingtime_start();
-void loadingtime_stop();
-void compilingtime_start();
-void compilingtime_stop();
+void loadingtime_start(void);
+void loadingtime_stop(void);
+void compilingtime_start(void);
+void compilingtime_stop(void);
 
-void print_times();
-void print_stats();
+void print_times(void);
+void print_stats(void);
 
 void mem_usagelog(bool givewarnings);
 
 
-void nativeinvokation();
-void compiledinvokation();
-void jnicallXmethodnvokation();
-void jniinvokation();
+void nativeinvokation(void);
+void compiledinvokation(void);
+void jnicallXmethodnvokation(void);
+void jniinvokation(void);
 
-
-#if defined(STATISTICS)
-#define STATS(x) \
-	{ \
-		if (opt_stat) \
-			x \
-	}
-#else
-#define STATS(x)
-#endif
-
-
- 
 #endif /* _STATISTICS_H */
 
 
