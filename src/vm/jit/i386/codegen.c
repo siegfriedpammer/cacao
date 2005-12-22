@@ -30,15 +30,16 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
+   $Id: codegen.c 3992 2005-12-22 13:58:55Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/i386/md-abi.h"
@@ -3452,7 +3453,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			i386_jmp_imm(cd, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
@@ -3461,7 +3462,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
   			i386_call_imm(cd, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 			
 		case ICMD_RET:          /* ... ==> ...                                */
@@ -3486,7 +3487,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
@@ -3501,7 +3502,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -3516,7 +3517,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
@@ -3531,7 +3532,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
@@ -3546,7 +3547,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_LE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
@@ -3561,7 +3562,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
@@ -3576,7 +3577,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_G, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
@@ -3591,7 +3592,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_GE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -3614,7 +3615,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -3625,7 +3626,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -3635,7 +3636,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_B, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3647,7 +3648,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -3657,7 +3658,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_BE, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3681,7 +3682,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -3692,7 +3693,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -3702,7 +3703,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_A, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3714,7 +3715,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->regoff * 4);
@@ -3724,7 +3725,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_AE, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3747,7 +3748,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
@@ -3764,7 +3765,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
@@ -3786,7 +3787,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
@@ -3803,7 +3804,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
@@ -3825,7 +3826,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
@@ -3837,7 +3838,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->prev->regoff * 4);
@@ -3848,7 +3849,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_B, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3871,7 +3872,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_G, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
@@ -3883,7 +3884,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->prev->regoff * 4);
@@ -3894,7 +3895,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3917,7 +3918,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_LE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
@@ -3929,7 +3930,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->prev->regoff * 4);
@@ -3940,7 +3941,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_BE, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -3963,7 +3964,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_GE, 0);
-			codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
@@ -3975,7 +3976,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 
 				a = 3 + 3 + 6;
 				CALCOFFSETBYTES(a, REG_SP, src->prev->regoff * 4);
@@ -3986,7 +3987,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_AE, 0);
-				codegen_addreference(cd, BlockPtrOfPC(iptr->op1), cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			}			
 			break;
 
@@ -4241,16 +4242,13 @@ nowperformreturn:
 				i386_alu_imm_reg(cd, ALU_CMP, i - 1, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
 
-                /* codegen_addreference(cd, BlockPtrOfPC(s4ptr[0]), cd->mcodeptr); */
 				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
 				/* build jump table top down and use address of lowest entry */
 
-                /* s4ptr += 3 + i; */
 				tptr += i;
 
 				while (--i >= 0) {
-					/* dseg_addtarget(cd, BlockPtrOfPC(*--s4ptr)); */
 					dseg_addtarget(cd, (basicblock *) tptr[0]); 
 					--tptr;
 				}
@@ -4287,12 +4285,10 @@ nowperformreturn:
 					val = s4ptr[0];
 					i386_alu_imm_reg(cd, ALU_CMP, val, s1);
 					i386_jcc(cd, I386_CC_E, 0);
-					/* codegen_addreference(cd, BlockPtrOfPC(s4ptr[1]), cd->mcodeptr); */
 					codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr); 
 				}
 
 				i386_jmp_imm(cd, 0);
-				/* codegen_addreference(cd, BlockPtrOfPC(l), cd->mcodeptr); */
 			
 				tptr = (void **) iptr->target;
 				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
@@ -5458,7 +5454,7 @@ u1 *createcompilerstub(methodinfo *m)
     i386_mov_imm_reg(cd, (ptrint) asm_call_jit_compiler, REG_ITMP3);
     i386_jmp_reg(cd, REG_ITMP3);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
