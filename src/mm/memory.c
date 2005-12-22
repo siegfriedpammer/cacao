@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 3610 2005-11-07 17:44:54Z twisti $
+   $Id: memory.c 3987 2005-12-22 13:08:39Z twisti $
 
 */
 
@@ -180,7 +180,7 @@ void *memory_cnew(s4 size)
 		if ((p = memory_checked_alloc(codememsize + pagesize - 1)) == NULL)
 			return NULL;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat) {
 			codememusage += codememsize + pagesize - 1;
 
@@ -224,7 +224,7 @@ void *mem_alloc(s4 size)
 	if (size == 0)
 		return NULL;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		memoryusage += size;
 
@@ -248,7 +248,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 		}
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		memoryusage = (memoryusage - len1) + len2;
 #endif
@@ -272,7 +272,7 @@ void mem_free(void *m, s4 size)
 		assert(0);
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		memoryusage -= size;
 #endif
@@ -342,7 +342,7 @@ void *dump_alloc(s4 size)
 
 		di->allocateddumpsize += newdumpblocksize;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		/* the amount of globally allocated dump memory (thread save) */
 
 		if (opt_stat)
@@ -360,7 +360,7 @@ void *dump_alloc(s4 size)
 
 	di->useddumpsize += size;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		if (di->useddumpsize > maxdumpsize)
 			maxdumpsize = di->useddumpsize;
@@ -438,7 +438,7 @@ void dump_release(s4 size)
 		di->allocateddumpsize -= tmp->size;
 		di->currentdumpblock = tmp->prev;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		/* the amount of globally allocated dump memory (thread save) */
 
 		if (opt_stat)
