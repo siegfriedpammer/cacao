@@ -29,14 +29,15 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
+   $Id: codegen.c 3990 2005-12-22 13:54:25Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "md.h"
@@ -334,11 +335,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
 			x86_64_call_reg(cd, REG_ITMP1);
 		}
-		STATS({
-			x86_64_mov_imm_reg(cd, (ptrint) compiledinvokation, REG_ITMP1);
-			x86_64_call_reg(cd, REG_ITMP1);
-		})
-		
+
+#if defined(ENABLE_STATISTICS)
+		M_MOV_IMM((ptrint) compiledinvokation, REG_ITMP1);
+		M_CALL(REG_ITMP1);
+#endif
+
 		/* restore integer argument registers */
 
 		for (p = 0; p < INT_ARG_CNT; p++)
@@ -4289,11 +4291,13 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
 	M_MOV_IMM((ptrint) codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
-	
-	STATS({
-		x86_64_mov_imm_reg(cd, (ptrint) nativeinvokation, REG_ITMP1);
-		x86_64_call_reg(cd, REG_ITMP1);
-	})
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat) {
+		M_MOV_IMM((ptrint) nativeinvokation, REG_ITMP1);
+		M_CALL(REG_ITMP1);
+	}
+#endif
 
 	/* restore integer and float argument registers */
 
