@@ -30,14 +30,16 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3940 2005-12-11 01:06:16Z twisti $
+   $Id: class.c 3999 2005-12-22 14:04:47Z twisti $
 
 */
+
+
+#include "config.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -202,7 +204,7 @@ classinfo *class_create_classinfo(utf *classname)
 {
 	classinfo *c;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_class_infos += sizeof(classinfo);
 #endif
@@ -211,8 +213,10 @@ classinfo *class_create_classinfo(utf *classname)
 	if (!classname)
 		classname = utf_not_named_yet;
 
+#if !defined(NDEBUG)
 	if (initverbose)
 		log_message_utf("Creating class: ", classname);
+#endif
 
 	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 

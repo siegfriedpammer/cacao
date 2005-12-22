@@ -32,16 +32,19 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3961 2005-12-20 23:26:55Z twisti $
+   $Id: loader.c 3999 2005-12-22 14:04:47Z twisti $
 
 */
+
+
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
+
 #include "mm/memory.h"
 #include "native/native.h"
 #include "native/include/java_lang_Throwable.h"
@@ -439,7 +442,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		return false;
 	}
 	
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_const_pool_len += (sizeof(voidptr) + 1) * cpcount;
 #endif
@@ -548,7 +551,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Integer: {
 			constant_integer *ci = NEW(constant_integer);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_const_pool_len += sizeof(constant_integer);
 #endif
@@ -567,7 +570,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Float: {
 			constant_float *cf = NEW(constant_float);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_const_pool_len += sizeof(constant_float);
 #endif
@@ -586,7 +589,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Long: {
 			constant_long *cl = NEW(constant_long);
 					
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_const_pool_len += sizeof(constant_long);
 #endif
@@ -609,7 +612,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Double: {
 			constant_double *cd = NEW(constant_double);
 				
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_const_pool_len += sizeof(constant_double);
 #endif
@@ -726,7 +729,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	while (forward_nameandtypes) {
 		constant_nameandtype *cn = NEW(constant_nameandtype);	
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			count_const_pool_len += sizeof(constant_nameandtype);
 #endif
@@ -776,7 +779,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		constant_nameandtype *nat;
 		constant_FMIref *fmi = NEW(constant_FMIref);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 		if (opt_stat)
 			count_const_pool_len += sizeof(constant_FMIref);
 #endif
@@ -1037,7 +1040,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	initObjectLock(&m->header);
 #endif
 
-#ifdef STATISTICS
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_all_methods++;
 #endif
@@ -1235,7 +1238,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 			m->exceptiontable = MNEW(exceptiontable, m->exceptiontablelength);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 			if (opt_stat) {
 				count_vmcode_len += m->jcodelength + 18;
 				count_extable_len +=
@@ -1695,7 +1698,7 @@ classinfo *load_class_bootstrap(utf *name)
 		return c;
 	}
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getcompilingtime)
@@ -1755,7 +1758,7 @@ classinfo *load_class_bootstrap(utf *name)
 
 	suck_stop(cb);
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	/* measure time */
 
 	if (getloadingtime)
@@ -1794,7 +1797,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 ma, mi;
 	s4 dumpsize;
 	descriptor_pool *descpool;
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	u4 classrefsize;
 	u4 descsize;
 #endif
@@ -1808,15 +1811,17 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (c->state & CLASS_LOADED)
 		return c;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_class_loads++;
 #endif
 
+#if !defined(NDEBUG)
 	/* output for debugging purposes */
 
 	if (loadverbose)
 		log_message_class("Loading class: ", c);
+#endif
 	
 	/* mark start of dump memory area */
 
@@ -2028,7 +2033,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	c->parseddescs =
 		descriptor_pool_get_parsed_descriptors(descpool, &(c->parseddescsize));
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		descriptor_pool_get_sizes(descpool, &classrefsize, &descsize);
 		count_classref_len += classrefsize;
@@ -2238,10 +2243,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 #endif /* ENABLE_VERIFIER */
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_class_infos += sizeof(classinfo*) * c->interfacescount;
-		count_class_infos += sizeof(fieldinfo) * c->fieldscount;
+		count_class_infos += sizeof(fieldinfo)  * c->fieldscount;
 		count_class_infos += sizeof(methodinfo) * c->methodscount;
 	}
 #endif
@@ -2279,8 +2284,10 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
 
+#if !defined(NDEBUG)
 	if (loadverbose)
 		log_message_class("Loading done class: ", c);
+#endif
 
 	return c;
 

@@ -30,14 +30,15 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: initialize.c 3999 2005-12-22 14:04:47Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -153,7 +154,7 @@ static bool initialize_class_intern(classinfo *c)
 		if (!link_class(c))
 			return false;
 
-#if defined(STATISTICS)
+#if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		count_class_inits++;
 #endif
@@ -162,11 +163,13 @@ static bool initialize_class_intern(classinfo *c)
 
 	if (c->super.cls) {
 		if (!(c->super.cls->state & CLASS_INITIALIZED)) {
+#if !defined(NDEBUG)
 			if (initverbose)
 				log_message_class_message_class("Initialize super class ",
 												c->super.cls,
 												" from ",
 												c);
+#endif
 
 			if (!initialize_class(c->super.cls))
 				return false;
@@ -178,8 +181,10 @@ static bool initialize_class_intern(classinfo *c)
 	m = class_findmethod(c, utf_clinit, utf_void__void);
 
 	if (!m) {
+#if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Class has no static class initializer: ", c);
+#endif
 
 		return true;
 	}
@@ -188,8 +193,10 @@ static bool initialize_class_intern(classinfo *c)
 /*  	if (!(m->flags & ACC_STATIC)) { */
 /*  		log_text("Class initializer is not static!"); */
 
+#if !defined(NDEBUG)
 	if (initverbose)
 		log_message_class("Starting static class initializer for class: ", c);
+#endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	b = blockInts;
@@ -231,8 +238,10 @@ static bool initialize_class_intern(classinfo *c)
 		return false;
 	}
 
+#if !defined(NDEBUG)
 	if (initverbose)
 		log_message_class("Finished static class initializer for class: ", c);
+#endif
 
 	return true;
 }
