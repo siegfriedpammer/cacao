@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4005 2005-12-22 16:10:17Z twisti $
+   $Id: suck.c 4007 2005-12-22 16:26:03Z twisti $
 
 */
 
@@ -276,49 +276,50 @@ void suck_add_from_property(char *key)
 
 			n = scandir(path, &namelist, scandir_filter, alphasort);
 
-			/* on error, just return, this should be ok */
+			/* on error, just continue, this should be ok */
 
-			if (n < 0)
-				return;
-
-			for (i = 0; i < n; i++) {
+			if (n >= 0) {
+				for (i = 0; i < n; i++) {
 #if defined(_DIRENT_HAVE_D_NAMLEN)
-				namlen = namelist[i]->d_namlen;
+					namlen = namelist[i]->d_namlen;
 #else
-				namlen = strlen(namelist[i]->d_name);
+					namlen = strlen(namelist[i]->d_name);
 #endif
 
-				/* reallocate memory for bootclasspath */
+					/* reallocate memory for bootclasspath */
 
-				tmpbootclasspath = MNEW(char,
-										pathlen + strlen("/") + namlen +
-										strlen(":") +
-										strlen(bootclasspath) +
-										strlen("0"));
+					tmpbootclasspath = MNEW(char,
+											pathlen + strlen("/") + namlen +
+											strlen(":") +
+											strlen(bootclasspath) +
+											strlen("0"));
 
-				/* prepend the file found to bootclasspath */
+					/* prepend the file found to bootclasspath */
 
-				strcpy(tmpbootclasspath, path);
-				strcat(tmpbootclasspath, "/");
-				strcat(tmpbootclasspath, namelist[i]->d_name);
-				strcat(tmpbootclasspath, ":");
+					strcpy(tmpbootclasspath, path);
+					strcat(tmpbootclasspath, "/");
+					strcat(tmpbootclasspath, namelist[i]->d_name);
+					strcat(tmpbootclasspath, ":");
 
-				strcat(tmpbootclasspath, bootclasspath);
+					strcat(tmpbootclasspath, bootclasspath);
 
-				/* free old bootclasspath memory */
+					/* free old bootclasspath memory */
 
-				MFREE(bootclasspath, u1, strlen(bootclasspath));
+					MFREE(bootclasspath, u1, strlen(bootclasspath));
 
-				/* and set the new bootclasspath */
+					/* and set the new bootclasspath */
 
-				bootclasspath = tmpbootclasspath;
+					bootclasspath = tmpbootclasspath;
 
-				/* free the memory allocated by scandir */
+					/* free the memory allocated by scandir */
 
-				FREE(namelist[i], struct dirent);
+					FREE(namelist[i], struct dirent);
+				}
+
+				FREE(namelist, struct dirent);
 			}
 
-			FREE(namelist, struct dirent);
+			MFREE(path, char, pathlen + strlen("0"));
 		}
 
 		/* goto next entry, skip ':' delimiter */
