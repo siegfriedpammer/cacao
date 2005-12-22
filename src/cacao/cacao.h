@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 3376 2005-10-06 13:12:45Z twisti $
+   $Id: cacao.h 4004 2005-12-22 16:08:57Z twisti $
 
 */
 
@@ -46,9 +46,6 @@ extern bool cacao_exiting;
 
 extern JavaVM *jvm;
 extern JNIEnv *env;
-
-extern char *bootclasspath;
-extern char *classpath;
 
 extern char *mainstring;    /* class.method with main method */
 

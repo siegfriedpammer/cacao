@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4003 2005-12-22 15:07:43Z twisti $
+   $Id: cacao.c 4004 2005-12-22 16:08:57Z twisti $
 
 */
 
@@ -106,9 +106,6 @@ JNIEnv *env;                        /* pointer to native method interface     */
  
 JDK1_1InitArgs vm_args;             /* JDK 1.1 VM initialization arguments    */
 
-
-char *bootclasspath;                    /* contains the boot classpath        */
-char *classpath;                        /* contains the classpath             */
 
 char *mainstring;
 static classinfo *mainclass;
@@ -1199,6 +1196,7 @@ int main(int argc, char **argv)
 	if (!suck_init())
 		throw_main_exception_exit();
 
+	suck_add_from_property("java.endorsed.dirs");
 	suck_add(bootclasspath);
 
 	/* initialize the memory subsystem (must be done _after_
