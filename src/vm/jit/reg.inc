@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 4000 2005-12-22 14:05:01Z twisti $
+   $Id: reg.inc 4017 2005-12-30 14:28:53Z twisti $
 
 */
 
@@ -42,7 +42,8 @@
 #include "arch.h"
 
 #include "mm/memory.h"
-#include "vm/method.h" 	 
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/jit/reg.h"
 
