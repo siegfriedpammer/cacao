@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 3997 2005-12-22 14:02:21Z twisti $
+   $Id: jit.c 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
@@ -52,8 +52,9 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 
 #if defined(ENABLE_LSRA)

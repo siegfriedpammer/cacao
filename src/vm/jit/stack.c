@@ -28,9 +28,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
-	    Christian Ullrich
+            Christian Ullrich
 
-   $Id: stack.c 3995 2005-12-22 14:00:44Z twisti $
+   $Id: stack.c 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
@@ -55,7 +55,7 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"

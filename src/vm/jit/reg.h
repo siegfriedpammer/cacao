@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: reg.h 4000 2005-12-22 14:05:01Z twisti $
+   $Id: reg.h 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
@@ -55,7 +55,7 @@ typedef struct registerdata registerdata;
 
 #include "arch.h"
 
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/inline/inline.h"
 

@@ -28,16 +28,18 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: stacktrace.c 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
+#include "vm/types.h"
 
 #include "mm/boehm.h"
 #include "native/native.h"
@@ -55,7 +57,7 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
 
 

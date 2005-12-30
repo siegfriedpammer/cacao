@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 3614 2005-11-07 18:20:48Z twisti $
+   $Id: parse.h 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
@@ -40,7 +40,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/inline/inline.h"
 
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 3996 2005-12-22 14:01:34Z twisti $
+   $Id: jit.h 4014 2005-12-30 14:20:25Z twisti $
 
 */
 
@@ -54,7 +54,7 @@ typedef struct subroutineinfo subroutineinfo;
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/statistics.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/verify/typeinfo.h"
 
 
