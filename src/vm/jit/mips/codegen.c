@@ -35,15 +35,16 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
+   $Id: codegen.c 4021 2005-12-30 20:45:12Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "md.h"
@@ -57,9 +58,11 @@
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 
 #if defined(ENABLE_LSRA)
@@ -3592,7 +3595,7 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	codegen_createlinenumbertable(cd);
+	dseg_createlinenumbertable(cd);
 
 	{
 	s4        *xcodeptr;
