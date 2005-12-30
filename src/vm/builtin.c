@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 3985 2005-12-22 11:06:29Z twisti $
+   $Id: builtin.c 4016 2005-12-30 14:28:35Z twisti $
 
 */
 
@@ -1562,14 +1562,14 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 		/* check return argument for java.lang.Class or java.lang.String */
 
-		o = (java_objectheader *) l;
+		o = (java_objectheader *) (ptrint) l;
 
 		if (o != NULL) {
 			if (o->vftbl->class == class_java_lang_String) {
 				/* get java.lang.String object and the length of the
                    string */
 
-				s= (java_lang_String *) l;
+				s= (java_lang_String *) (ptrint) l;
 
 				len = strlen(", String = \"") + javastring_strlen(s) +
 					strlen("\"");
@@ -1592,7 +1592,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 					   cast it to classinfo structure and get the name
 					   of the class */
 
-					c = (classinfo *) l;
+					c = (classinfo *) (ptrint) l;
 
 					u = c->name;
 
