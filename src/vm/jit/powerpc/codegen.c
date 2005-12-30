@@ -30,16 +30,17 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 3968 2005-12-21 00:05:48Z twisti $
+   $Id: codegen.c 4020 2005-12-30 20:38:59Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <signal.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "md-abi.h"
@@ -51,11 +52,13 @@
 #include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 
 #if defined(ENABLE_LSRA)
@@ -3345,7 +3348,7 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	codegen_createlinenumbertable(cd);
+	dseg_createlinenumbertable(cd);
 
 	{
 
