@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: linker.c 4008 2005-12-30 14:13:10Z twisti $
 
 */
 
@@ -54,7 +54,6 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/codegen.inc.h"
 
 
 /* global variables ***********************************************************/
