@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 3990 2005-12-22 13:54:25Z twisti $
+   $Id: codegen.c 4015 2005-12-30 14:21:35Z twisti $
 
 */
 
@@ -50,13 +50,15 @@
 
 #include "cacao/cacao.h"
 #include "native/native.h"
-#include "vm/global.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 
 #if defined(ENABLE_LSRA)
@@ -3794,7 +3796,7 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	codegen_createlinenumbertable(cd);
+	dseg_createlinenumbertable(cd);
 
 	{
 
