@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 3999 2005-12-22 14:04:47Z twisti $
+   $Id: loader.c 4009 2005-12-30 14:13:36Z twisti $
 
 */
 
@@ -75,7 +75,7 @@
 #endif
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc.h"
+#include "vm/jit/codegen-common.h"
 
 
 /******************************************************************************/
