@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3909 2005-12-08 14:31:19Z twisti $
+## $Id: Makefile.am 4010 2005-12-30 14:14:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -70,8 +70,6 @@ endif
 noinst_HEADERS = \
 	abi.h \
 	asmpart.h \
-	codegen.inc \
-	codegen.inc.h \
 	disass.h \
 	lsra.inc \
 	lsra.h \
@@ -83,6 +81,10 @@ noinst_HEADERS = \
 noinst_LTLIBRARIES = libjit.la
 
 libjit_la_SOURCES = \
+	codegen-common.c \
+	codegen-common.h \
+	dseg.c \
+	dseg.h \
 	jit.c \
 	jit.h \
 	parse.c \
