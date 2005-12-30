@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 3992 2005-12-22 13:58:55Z twisti $
+   $Id: codegen.c 4018 2005-12-30 14:29:49Z twisti $
 
 */
 
@@ -58,13 +58,14 @@
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 
 
-#include "vm/jit/codegen.inc"
 #include "vm/jit/reg.inc"
 
 #if defined(ENABLE_LSRA)
@@ -5091,7 +5092,7 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	codegen_createlinenumbertable(cd);
+	dseg_createlinenumbertable(cd);
 
 	{
 
