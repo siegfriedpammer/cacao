@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3964 2005-12-20 23:34:05Z twisti $
+## $Id: Makefile.am 4038 2006-01-01 19:39:06Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,6 @@ DIST_SUBDIRS = \
 	boehm-gc \
 	lib \
 	fdlibm \
-	libltdl \
 	mm \
 	toolbox \
 	vm \
@@ -58,7 +57,6 @@ SUBDIRS = \
 	$(BOEHM) \
 	lib \
 	fdlibm \
-	libltdl \
 	mm \
 	toolbox \
 	vm \
