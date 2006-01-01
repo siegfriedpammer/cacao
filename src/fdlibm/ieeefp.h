@@ -4,7 +4,7 @@
 #ifndef __IEEE_BIG_ENDIAN
 #ifndef __IEEE_LITTLE_ENDIAN
 
-#ifdef __alpha__
+#if defined(__alpha) || defined(__alpha__)
 #define __IEEE_LITTLE_ENDIAN
 #endif
 
