@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 3889 2005-12-05 22:09:59Z twisti $
+   $Id: class.h 4023 2006-01-01 16:34:53Z twisti $
 
 */
 
@@ -291,13 +291,13 @@ fieldinfo *class_findfield_by_name(classinfo *c, utf *name);
 s4 class_findfield_index_by_name(classinfo *c, utf *name);
 
 /* search class for a field */
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer, bool except);
+fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer, bool throwexception);
 
 /* search for a method with a specified name and descriptor */
 methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
-methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
-methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool except);
+methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
+methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
 /* search for a method with specified name and arguments (returntype ignored) */
 methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);

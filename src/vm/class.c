@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 3999 2005-12-22 14:04:47Z twisti $
+   $Id: class.c 4023 2006-01-01 16:34:53Z twisti $
 
 */
 
@@ -892,7 +892,7 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 *******************************************************************************/
 
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
-									 classinfo *referer, bool except)
+									 classinfo *referer, bool throwexception)
 {
 	classinfo  *cls;
 	methodinfo *m;
@@ -902,7 +902,7 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	/* XXX check access from REFERER to C */
 	
 /*  	if (c->flags & ACC_INTERFACE) { */
-/*  		if (except) */
+/*  		if (throwexception) */
 /*  			*exceptionptr = */
 /*  				new_exception(string_java_lang_IncompatibleClassChangeError); */
 /*  		return NULL; */
@@ -927,14 +927,14 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 			goto found;
 	}
 	
-	if (except)
+	if (throwexception)
 		*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
 
 	return NULL;
 
  found:
 	if ((m->flags & ACC_ABSTRACT) && !(c->flags & ACC_ABSTRACT)) {
-		if (except)
+		if (throwexception)
 			*exceptionptr = new_exception(string_java_lang_AbstractMethodError);
 
 		return NULL;
@@ -957,7 +957,7 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 *******************************************************************************/
 
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
-										 classinfo *referer, bool except)
+										 classinfo *referer, bool throwexception)
 {
 	methodinfo *mi;
 
@@ -965,7 +965,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 	/* XXX check access from REFERER to C */
 	
 	if (!(c->flags & ACC_INTERFACE)) {
-		if (except)
+		if (throwexception)
 			*exceptionptr =
 				new_exception(string_java_lang_IncompatibleClassChangeError);
 
@@ -984,7 +984,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 	if (mi)
 		return mi;
 
-	if (except)
+	if (throwexception)
 		*exceptionptr =
 			exceptions_new_nosuchmethoderror(c, name, desc);
 
@@ -1110,7 +1110,7 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 *******************************************************************************/
 
 fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
-							  classinfo *referer, bool except)
+							  classinfo *referer, bool throwexception)
 {
 	fieldinfo *fi;
 
@@ -1120,7 +1120,7 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 	fi = class_resolvefield_int(c, name, desc);
 
 	if (!fi) {
-		if (except)
+		if (throwexception)
 			*exceptionptr =
 				new_exception_utfmessage(string_java_lang_NoSuchFieldError,
 										 name);
