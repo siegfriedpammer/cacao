@@ -28,14 +28,16 @@
 
    Changes:
 
-   $Id: md.c 3758 2005-11-23 00:46:54Z twisti $
+   $Id: md.c 4029 2006-01-01 18:20:00Z twisti $
 
 */
 
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "vm/jit/codegen-common.h"
 
 
 /* md_init *********************************************************************
