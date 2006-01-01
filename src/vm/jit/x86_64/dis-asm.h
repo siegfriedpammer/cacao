@@ -32,11 +32,10 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include "bfd.h"
+#include <ansidecl.h>
+#include <bfd.h>
 
 #include "vm/types.h"
-
-#include "ansidecl.h"
 
 #define _(String) (String)
 
