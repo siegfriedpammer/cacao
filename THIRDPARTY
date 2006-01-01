@@ -72,12 +72,10 @@ again with the 'real' upstream (http://www.netlib.org/fdlibm/readme).
 
 * src/threads/green/{locks.[ch],threadio.[ch],threads.[ch]}
 
-Copyright (c) 1996 T. J. Wilkinson & Associates, London, UK.
-
-See the file "license.terms" for information on usage and redistribution
-of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-
-Written by Tim Wilkinson <tim@tjwassoc.demon.co.uk>, 1996.
+This files are taken from Kaffe.org VM available at
+http://www.kaffe.org/.  Kaffe's license.terms file is located in the
+top directory of the source code.  The current license of Kaffe is the
+same as of CACAO, GPL Version 2.
 
 
 * src/vm/jit/{i386,x86_64}/{dis-asm.h,i386-dis.c}
