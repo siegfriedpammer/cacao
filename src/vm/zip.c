@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: zip.c 3960 2005-12-20 23:25:30Z twisti $
+   $Id: zip.c 4022 2006-01-01 16:31:40Z twisti $
 
 */
 
@@ -242,7 +242,12 @@ hashtable *zip_open(char *path)
 
 	/* we better mmap the file */
 
-	if ((filep = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
+	filep = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+
+	/* some older compilers, like DEC OSF cc, don't like comparisons
+       on void* types */
+
+	if ((ptrint) filep == (ptrint) MAP_FAILED)
 		return NULL;
 
 	/* find end of central directory record */
