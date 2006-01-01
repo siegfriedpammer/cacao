@@ -29,11 +29,14 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 3275 2005-09-21 21:18:35Z twisti $
+   $Id: disass.c 4026 2006-01-01 16:39:15Z twisti $
 
 */
 
 
+#include "config.h"
+
+#include <assert.h>
 #include <stdarg.h>
 
 #include "vm/types.h"
@@ -70,6 +73,12 @@ char *regs[] = {
 };
 
 
+/* myprintf ********************************************************************
+
+   Required by i386-dis.c, prints the stuff into a buffer.
+
+*******************************************************************************/
+
 void myprintf(PTR p, const char *fmt, ...)
 {
 	va_list ap;
@@ -79,16 +88,53 @@ void myprintf(PTR p, const char *fmt, ...)
 }
 
 
+/* buffer_read_memory **********************************************************
+
+   Required by i386-dis.c, copy some stuff to another memory.
+
+*******************************************************************************/
+
 int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
 {
-	if (length == 1) {
-		*myaddr = *((u1 *) memaddr);
-
-	} else {
-		MCOPY(myaddr, (void *) memaddr, u1, length);
-	}
+	MCOPY(myaddr, (void *) memaddr, u1, length);
 
 	return 0;
+}
+
+
+/* generic_symbol_at_address ***************************************************
+
+   Required by i386-dis.c, just return 1.
+
+*******************************************************************************/
+
+int generic_symbol_at_address(bfd_vma addr, struct disassemble_info *info)
+{
+	return 1;
+}
+
+
+/* generic_print_address *******************************************************
+
+   Required by i386-dis.c, just print the address.
+
+*******************************************************************************/
+
+void generic_print_address(bfd_vma addr, struct disassemble_info *info)
+{
+	myprintf(info->stream, "0x%016lx", addr);
+}
+
+
+/* perror_memory ***************************************************************
+
+   Required by i386-dis.c, jsut assert in case.
+
+*******************************************************************************/
+
+void perror_memory(int status, bfd_vma memaddr, struct disassemble_info *info)
+{
+	assert(0);
 }
 
 
