@@ -233,9 +233,6 @@ else
     ENABLE_INTRP="no"
 fi
 
-if test x"${ENABLE_JIT}" = "xyes" -a x"${ENABLE_INTRP}" = "xyes"; then
-    AC_ERROR(This is currently not supported. Please disable the JIT or the interpreter.)
-fi
 if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
     AC_ERROR(You have to enable at least the JIT or the interpreter.)
 fi
@@ -471,6 +468,8 @@ if test x"${ENABLE_STATICVM}" = "xyes"; then
 
     dnl check for some classpath related stuff when we link statically
     AM_ICONV_LINK
+else
+    AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
 fi
 AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
@@ -501,7 +500,7 @@ AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of 
 dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
-AC_CONFIG_SUBDIRS(src/boehm-gc src/libltdl)
+AC_CONFIG_SUBDIRS(src/boehm-gc)
 
 AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
