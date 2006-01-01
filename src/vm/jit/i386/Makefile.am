@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4030 2006-01-01 18:20:33Z twisti $
+## $Id: Makefile.am 4036 2006-01-01 18:39:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,7 +68,6 @@ libarch_la_SOURCES = \
 	i386-dis.c \
 	md.c \
 	patcher.c \
-	symcat.h \
 	\
 	md-abi.c
 
