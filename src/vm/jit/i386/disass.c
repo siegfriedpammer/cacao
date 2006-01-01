@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4031 2006-01-01 18:21:30Z twisti $
+   $Id: disass.c 4033 2006-01-01 18:30:53Z twisti $
 
 */
 
@@ -113,7 +113,7 @@ int generic_symbol_at_address(bfd_vma addr, struct disassemble_info *info)
 
 void generic_print_address(bfd_vma addr, struct disassemble_info *info)
 {
-	myprintf(info->stream, "0x%016lx", addr);
+	myprintf(info->stream, "0x%08x", addr);
 }
 
 
