@@ -11,5 +11,3 @@ automake --add-missing
 autoconf
 
 cd src/boehm-gc && ./autogen.sh && cd ../..
-
-cd src/libltdl && ./autogen.sh && cd ../..
