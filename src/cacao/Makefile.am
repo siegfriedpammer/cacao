@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3955 2005-12-20 23:07:31Z twisti $
+## $Id: Makefile.am 4039 2006-01-01 19:39:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -81,8 +81,7 @@ CLASSPATH_LIBS = \
 
 else
 cacao_LDFLAGS = $(EXPORT_SYMBOLS_FLAGS)
-CLASSPATH_LIBS = \
-	$(top_builddir)/src/libltdl/libltdlc.la
+CLASSPATH_LIBS =
 endif
 
 noinst_LTLIBRARIES = libcacao.la
