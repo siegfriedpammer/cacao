@@ -28,11 +28,12 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-abi.c 3227 2005-09-19 14:03:36Z twisti $
+   $Id: md-abi.c 4064 2006-01-02 14:24:50Z twisti $
 
 */
 
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/i386/md-abi.h"
@@ -41,20 +42,37 @@
 #include "vm/global.h"
 
 
+/* register descripton - array ************************************************/
+
+s4 nregdescint[] = {
+    REG_RET, REG_RES, REG_RES, REG_TMP, REG_RES, REG_SAV, REG_SAV, REG_SAV,
+    REG_END
+};
+
+
+s4 nregdescfloat[] = {
+ /* rounding problems with callee saved registers */
+ /* REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+ /* REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, */
+    REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+    REG_END
+};
+
+
 /* md_param_alloc **************************************************************
 
-Allocate Arguments to Stackslots according the Calling Conventions
+   Allocate Arguments to Stackslots according the Calling Conventions
 
---- in
-md->paramcount:           Number of arguments for this method
-md->paramtypes[].type:    Argument types
-
---- out
-md->params[].inmemory:    Argument spilled on stack
-md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
-md->memuse:               Stackslots needed for argument spilling
-md->argintreguse:         max number of integer arguments used
-md->argfltreguse:         max number of float arguments used
+   --- in
+   md->paramcount:           Number of arguments for this method
+   md->paramtypes[].type:    Argument types
+   
+   --- out
+   md->params[].inmemory:    Argument spilled on stack
+   md->params[].regoff:      Stack offset or rd->arg[int|flt]regs index
+   md->memuse:               Stackslots needed for argument spilling
+   md->argintreguse:         max number of integer arguments used
+   md->argfltreguse:         max number of float arguments used
 
 *******************************************************************************/
 
@@ -78,15 +96,21 @@ void md_param_alloc(methoddesc *md)
 	md->argfltreguse = 0;
 }
 
+
 /* md_return_alloc *************************************************************
 
- No straight forward precoloring of the Java Stackelement containing the return
- value possible for i386, since it uses "reserved" registers for return values
+   No straight forward precoloring of the Java Stackelement containing
+   the return value possible for i386, since it uses "reserved"
+   registers for return values
 
 *******************************************************************************/
+
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot) {
+					 stackptr stackslot)
+{
+	/* nothing */
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
