@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: simplereg.c 4062 2006-01-02 14:11:32Z christian $
 
 */
 
@@ -39,7 +39,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "assert.h"
+#include <assert.h>
 
 #include "arch.h"
 #include "md-abi.h"
