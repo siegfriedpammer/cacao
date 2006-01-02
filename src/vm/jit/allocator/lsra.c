@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: lsra.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: lsra.c 4066 2006-01-02 14:26:06Z twisti $
 
 */
 
@@ -55,7 +55,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/allocator/lsra.h"
 
-#include "md-abi.inc"
 
 /* function prototypes */
 bool lsra_test(methodinfo *, codegendata *);
