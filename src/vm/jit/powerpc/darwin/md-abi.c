@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 3487 2005-10-21 13:45:45Z twisti $
+   $Id: md-abi.c 4074 2006-01-02 16:17:30Z twisti $
 
 */
 
@@ -40,6 +40,42 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+
+
+/* register descripton array **************************************************/
+
+s4 nregdescint[] = {
+	/* zero,      sp,      t0,   a0/v0,   a0/v1,      a2,      a3,      a4,   */
+	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*   a5,      a6,      a7,   itmp1,   itmp2,      pv,      s0,      s1,   */
+	REG_ARG, REG_ARG, REG_ARG, REG_RES, REG_RES, REG_RES, REG_SAV, REG_SAV,
+
+	/*itmp3,      t1,      t2,      t3,      t4,      t5,      t6,      t7,   */
+	REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*   s2,      s3,      s4,      s5,      s6,      s7,      s8,      s9,   */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+
+	REG_END
+};
+
+
+s4 nregdescfloat[] = {
+	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
+	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+
+	/*  fa7,     fa8,     fa9,    fa10,    fa11,    fa12,     fs0,     fs1,   */
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV, REG_SAV,
+
+	/*ftmp1,   ftmp2,     ft0,     ft1,     ft2,     ft3,     ft4,     ft5,   */
+	REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+
+	/*  fs2,     fs3,     fs4,     fs5,     fs6,     fs7,     fs8,     fs9    */
+	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+
+	REG_END
+};
 
 
 /* md_param_alloc **************************************************************
