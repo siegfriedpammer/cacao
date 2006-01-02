@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 3824 2005-12-01 18:21:11Z twisti $
+   $Id: native.h 4051 2006-01-02 11:34:33Z twisti $
 
 */
 
@@ -36,8 +36,10 @@
 #ifndef _NATIVE_H
 #define _NATIVE_H
 
+#include "config.h"
+
 #if !defined(ENABLE_STATICVM)
-# include "libltdl/ltdl.h"
+# include <ltdl.h>
 #endif
 
 #include "vm/class.h"

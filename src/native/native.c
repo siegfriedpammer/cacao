@@ -30,14 +30,19 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 3828 2005-12-01 19:46:05Z twisti $
+   $Id: native.c 4051 2006-01-02 11:34:33Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
+#if !defined(ENABLE_STATICVM)
+# include <ltdl.h>
+#endif
+
 #include "vm/types.h"
 
 #include "cacao/cacao.h"
@@ -56,10 +61,6 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-
-#if !defined(ENABLE_STATICVM)
-# include "libltdl/ltdl.h"
-#endif
 
 
 /* include table of native functions ******************************************/
