@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4026 2006-01-01 16:39:15Z twisti $
+   $Id: disass.c 4058 2006-01-02 14:06:13Z twisti $
 
 */
 
@@ -164,8 +164,8 @@ u1 *disassinstr(u1 *code)
 	mylen = 0;
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 
-	for (i = 0; i < seqlen; i++) {
-		printf("%02x ", *(code + i));
+	for (i = 0; i < seqlen; i++, code++) {
+		printf("%02x ", *code);
 	}
 	
 	for (; i < 10; i++) {
@@ -174,7 +174,7 @@ u1 *disassinstr(u1 *code)
 
 	printf("   %s\n", mylinebuf);
 
-	return code + seqlen;
+	return code;
 }
 
 
@@ -182,8 +182,8 @@ u1 *disassinstr(u1 *code)
 
    Outputs a disassembler listing of some machine code on `stdout'.
 
-   code: pointer to first instruction
-   len:  code size
+   start: pointer to first machine instruction
+   end:   pointer after last machine instruction
 
 *******************************************************************************/
 
