@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4067 2006-01-02 14:32:50Z christian $
+   $Id: simplereg.c 4080 2006-01-02 21:01:58Z christian $
 
 */
 
@@ -126,7 +126,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 					if (IS_ADR_TYPE(t)) {
 						if (!m->isleafmethod 
 							&&(rd->argadrreguse < ADR_ARG_CNT)) {
-							v->regoff = rd->argadrregs[rd->argadrreguset++];
+							v->regoff = rd->argadrregs[rd->argadrreguse++];
 						} else if (rd->tmpadrreguse > 0) {
 								v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
 						} else if (rd->savadrreguse > 0) {
