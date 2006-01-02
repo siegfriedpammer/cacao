@@ -467,6 +467,7 @@ if test x"${ENABLE_STATICVM}" = "xyes"; then
     dnl check for some classpath related stuff when we link statically
     AM_ICONV_LINK
 else
+    AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
     AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
 fi
 AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
