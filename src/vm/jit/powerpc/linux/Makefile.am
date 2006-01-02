@@ -28,14 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 2921 2005-07-07 09:26:30Z twisti $
+## $Id: Makefile.am 4073 2006-01-02 16:17:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 noinst_HEADERS = \
-	md-abi.inc \
 	md-asm.h
 
 noinst_LTLIBRARIES = libmd.la
