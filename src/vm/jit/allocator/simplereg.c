@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4062 2006-01-02 14:11:32Z christian $
+   $Id: simplereg.c 4067 2006-01-02 14:32:50Z christian $
 
 */
 
@@ -72,11 +72,6 @@ void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	interface_regalloc(m, cd, rd);
 	allocate_scratch_registers(m, rd);
 	local_regalloc(m, cd, rd);
-#ifdef INVOKE_NEW_DEBUG
-		if (compileverbose) {
-			printf("memuse after reg.inc: %3i\n",rd->memuse);
-		}
-#endif
 }
 
 
@@ -107,15 +102,6 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 			rd->memuse = 1;
 	}
 #endif
-#ifdef INVOKE_NEW_DEBUG
-	if (compileverbose) {
-		if (checksync && (m->flags & ACC_SYNCHRONIZED))
-			printf("ACC_SYNCHRONIZED\n");
-		printf("analyse: argintru %3i argfltru %3i memuse %3i\n",
-			   rd->argintreguse, rd->argfltreguse, rd->memuse);
-	}
-#endif
-
 
 	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: stack.c 4067 2006-01-02 14:32:50Z christian $
 
 */
 
@@ -2323,12 +2323,6 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 					printf("  V0");
 				} else /* "normal" Argvar */
 					printf(" A%02d", s->varnum);
-#ifdef INVOKE_NEW_DEBUG
-				if (s->flags & INMEMORY)
-					printf("(M%i)", s->regoff);
-				else
-					printf("(R%i)", s->regoff);
-#endif
 				break;
 			default:
 				printf(" !%02d", j);
@@ -2371,12 +2365,6 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 					printf("  v0");
 				} else /* "normal" Argvar */
 				printf(" a%02d", s->varnum);
-#ifdef INVOKE_NEW_DEBUG
-				if (s->flags & INMEMORY)
-					printf("(M%i)", s->regoff);
-				else
-					printf("(R%i)", s->regoff);
-#endif
 				break;
 			default:
 				printf(" ?%02d", j);
