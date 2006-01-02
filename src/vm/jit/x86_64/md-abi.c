@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 3748 2005-11-22 23:46:22Z twisti $
+   $Id: md-abi.c 4059 2006-01-02 14:06:38Z twisti $
 
 */
 
@@ -40,6 +40,22 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+
+
+/* register descripton array **************************************************/
+
+s4 nregdescint[] = {
+    REG_RET, REG_ARG, REG_ARG, REG_TMP, REG_RES, REG_SAV, REG_ARG, REG_ARG,
+    REG_ARG, REG_ARG, REG_RES, REG_RES, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+    REG_END
+};
+
+
+s4 nregdescfloat[] = {
+    REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
+    REG_RES, REG_RES, REG_RES, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
+    REG_END
+};
 
 
 /* md_param_alloc **************************************************************

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: reg.h 4055 2006-01-02 12:59:54Z christian $
+   $Id: reg.h 4059 2006-01-02 14:06:38Z twisti $
 
 */
 
@@ -124,6 +124,12 @@ struct registerdata {
 	int freetmpflttop;              /* free scratch float register count      */
 	int freesavflttop;              /* free saved float register count        */
 };
+
+
+/* global variables ***********************************************************/
+
+extern s4 nregdescint[];
+extern s4 nregdescfloat[];
 
 
 /* function prototypes ********************************************************/
