@@ -28,15 +28,16 @@
 
    Changes:
 
-   $Id: md-os.c 3555 2005-11-03 21:38:48Z twisti $
+   $Id: md-os.c 4076 2006-01-02 16:40:40Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <signal.h>
 #include <ucontext.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/powerpc/darwin/md-abi.h"
@@ -65,8 +66,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint              addr;
 	u1                 *pv;
 	u1                 *sp;
-	functionptr         ra;
-	functionptr         xpc;
+	u1                 *ra;
+	u1                 *xpc;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
@@ -81,10 +82,10 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	addr = gregs[reg];
 
 	if (addr == 0) {
-		pv = (u1 *) _ss->r13;
-		sp = (u1 *) _ss->r1;
-		ra = (functionptr) _ss->lr;              /* this is correct for leafs */
-		xpc = (functionptr) _ss->srr0;
+		pv  = (u1 *) _ss->r13;
+		sp  = (u1 *) _ss->r1;
+		ra  = (u1 *) _ss->lr;              /* this is correct for leafs */
+		xpc = (u1 *) _ss->srr0;
 
 		_ss->r11 = (ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
