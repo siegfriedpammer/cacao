@@ -28,17 +28,37 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 3285 2005-09-27 14:12:36Z twisti $
+   $Id: md-abi.c 4069 2006-01-02 16:03:57Z twisti $
 
 */
 
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/alpha/md-abi.h"
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+
+
+/* register descripton array **************************************************/
+
+s4 nregdescint[] = {
+	REG_RET, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
+	REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END
+};
+
+s4 nregdescfloat[] = {
+	REG_RET, REG_TMP, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV,
+	REG_SAV, REG_SAV, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, 
+	REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_TMP, REG_TMP,
+	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_RES, REG_RES, REG_RES, REG_RES,
+	REG_END
+};
 
 
 /* md_param_alloc **************************************************************
