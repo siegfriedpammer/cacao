@@ -277,7 +277,12 @@ AC_ARG_ENABLE([debug],
                    *) NDEBUG=no;;
                esac],
               [NDEBUG=no])
-AC_MSG_RESULT(${NDEBUG})
+
+if test x"${NDEBUG}" = "xno"; then
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_RESULT(no)
+fi
 
 
 dnl check for statistics
