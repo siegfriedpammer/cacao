@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4018 2005-12-30 14:29:49Z twisti $
+   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -43,7 +43,6 @@
 #include "vm/types.h"
 
 #include "vm/jit/i386/md-abi.h"
-#include "vm/jit/i386/md-abi.inc"
 
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/emitfuncs.h"
@@ -55,6 +54,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
 #include "vm/jit/asmpart.h"
@@ -65,14 +65,11 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 
-
-#include "vm/jit/reg.inc"
-
 #if defined(ENABLE_LSRA)
 # ifdef LSRA_USES_REG_RES
 #  include "vm/jit/i386/icmd_uses_reg_res.inc"
 # endif
-# include "vm/jit/lsra.inc"
+# include "vm/jit/allocator/lsra.h"
 #endif
 
 

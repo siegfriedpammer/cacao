@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4021 2005-12-30 20:45:12Z twisti $
+   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -49,7 +49,6 @@
 
 #include "md.h"
 #include "md-abi.h"
-#include "md-abi.inc"
 
 #include "vm/jit/mips/arch.h"
 #include "vm/jit/mips/codegen.h"
@@ -59,20 +58,18 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-
-#if defined(ENABLE_LSRA)
-# include "vm/jit/lsra.h"
-# include "vm/jit/lsra.inc"
-#endif
-
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/reg.inc"
+
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 
 
 /* codegen *********************************************************************

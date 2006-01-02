@@ -1,4 +1,4 @@
-/* src/vm/jit/reg.inc - register allocator
+/* src/vm/jit/allocator/simplereg.c - register allocator
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.inc 4017 2005-12-30 14:28:53Z twisti $
+   $Id: simplereg.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -39,241 +39,26 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "arch.h"
+#include "assert.h"
 
+#include "arch.h"
+#include "md-abi.h"
+
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "mm/memory.h"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/reg.h"
-
+#include "vm/jit/allocator/simplereg.h"
 
 /* function prototypes for this file */
 
 static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
 static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
 static void allocate_scratch_registers(methodinfo *m, registerdata *rd);
-
-
-/* reg_init ********************************************************************
-
-   TODO
-	
-*******************************************************************************/
-
-void reg_init()
-{
-	/* void */
-}
-
-
-/* reg_setup *******************************************************************
-
-   TODO
-
-*******************************************************************************/
-
-void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
-{
-	s4 i;
-	varinfo5 *v;
-	
-	/* setup the integer register table */
-
-#if defined(__ARM__)
-	/* On ARM longs can be split across argument regs and stack. This is
-	 * signed by setting the HIGH_REG to INT_ARG_CNT in md_param_alloc().
-	 * Here we make sure it resolves to a special dummy reg (REG_SPLIT). */
-	rd->argintregs = DMNEW(s4, INT_ARG_CNT + 1);
-	rd->argintregs[INT_ARG_CNT] = REG_SPLIT;
-#else
-	rd->argintregs = DMNEW(s4, INT_ARG_CNT);
-#endif
-	rd->tmpintregs = DMNEW(s4, INT_TMP_CNT);
-	rd->savintregs = DMNEW(s4, INT_SAV_CNT);
-	rd->freeargintregs = DMNEW(s4, INT_ARG_CNT);
-	rd->freetmpintregs = DMNEW(s4, INT_TMP_CNT);
-	rd->freesavintregs = DMNEW(s4, INT_SAV_CNT);
-
-	rd->argintreguse = 0;
-	rd->tmpintreguse = 0;
-	rd->savintreguse = 0;
-
-	for (i = 0; i < INT_REG_CNT; i++) {
-		switch (nregdescint[i]) {
-		case REG_RET:
-			rd->intreg_ret = i; 
-			break;
-		case REG_SAV:
-			rd->savintregs[rd->savintreguse++] = i;
-			break;
-		case REG_TMP:
-  			rd->tmpintregs[rd->tmpintreguse++] = i; 
-			break;
-		case REG_ARG:
-			rd->argintregs[rd->argintreguse++] = i;
-			break;
-		}
-	}
-	assert(rd->savintreguse == INT_SAV_CNT);
-	assert(rd->tmpintreguse == INT_TMP_CNT);
-	assert(rd->argintreguse == INT_ARG_CNT);
-
-#if defined(__X86_64__)
-	/* 
-	 * on x86_64 the argument registers are not in ascending order 
-	 * a00 (%rdi) <-> a03 (%rcx) and a01 (%rsi) <-> a02 (%rdx)
-	 */
-	i = rd->argintregs[3];
-	rd->argintregs[3] = rd->argintregs[0];
-	rd->argintregs[0] = i;
-
-	i = rd->argintregs[2];
-	rd->argintregs[2] = rd->argintregs[1];
-	rd->argintregs[1] = i;
-#endif
-		
-#ifdef HAS_ADDRESS_REGISTER_FILE
-	/* setup the address register table */
-
-	rd->argadrregs = DMNEW(s4, ADR_ARG_CNT);
-	rd->tmpadrregs = DMNEW(s4, ADR_TMP_CNT);
-	rd->savadrregs = DMNEW(s4, ADR_SAV_CNT);
-	rd->freeargadrregs = DMNEW(s4, ADR_ARG_CNT);
-	rd->freetmpadrregs = DMNEW(s4, ADR_TMP_CNT);
-	rd->freesavadrregs = DMNEW(s4, ADR_SAV_CNT);
-
-	rd->adrreg_argnum = 0;
-	rd->argadrreguse = 0;
-	rd->tmpadrreguse = 0;
-	rd->savadrreguse = 0;
-
-	for (i = 0; i < ADR_REG_CNT; i++) {
-		switch (nregdescadr[i]) {
-		case REG_RET:
-			rd->adrreg_ret = i; 
-			break;
-		case REG_SAV:
-			rd->savadrregs[rd->savadrreguse++] = i;
-			break;
-		case REG_TMP:
-  			rd->tmpadrregs[rd->tmpadrreguse++] = i; 
-			break;
-		case REG_ARG:
-			rd->argadrregs[rd->argadrreguse++] = i;
-			break;
-		}
-	}
-	assert(rd->savadrreguse == ADR_SAV_CNT);
-	assert(rd->tmpadrreguse == ADR_TMP_CNT);
-	assert(rd->argadrreguse == ADR_ARG_CNT);
-#endif
-		
-	/* setup the float register table */
-
-	rd->argfltregs = DMNEW(s4, FLT_ARG_CNT);
-	rd->tmpfltregs = DMNEW(s4, FLT_TMP_CNT);
-	rd->savfltregs = DMNEW(s4, FLT_SAV_CNT);
-	rd->freeargfltregs = DMNEW(s4, FLT_ARG_CNT);
-	rd->freetmpfltregs = DMNEW(s4, FLT_TMP_CNT);
-	rd->freesavfltregs = DMNEW(s4, FLT_SAV_CNT);
-
-	rd->argfltreguse = 0;
-	rd->tmpfltreguse = 0;
-	rd->savfltreguse = 0;
-
-	for (i = 0; i < FLT_REG_CNT; i++) {
-		switch (nregdescfloat[i]) {
-		case REG_RET:
-			rd->fltreg_ret = i;
-			break;
-		case REG_SAV:
-			rd->savfltregs[rd->savfltreguse++] = i;
-			break;
-		case REG_TMP:
-			rd->tmpfltregs[rd->tmpfltreguse++] = i;
-			break;
-		case REG_ARG:
-			rd->argfltregs[rd->argfltreguse++] = i;
-			break;
-		}
-	}
-	assert(rd->savfltreguse == FLT_SAV_CNT);
-	assert(rd->tmpfltreguse == FLT_TMP_CNT);
-	assert(rd->argfltreguse == FLT_ARG_CNT);
-
-
-	rd->freemem    = DMNEW(s4, id->cummaxstack);
-#if defined(HAS_4BYTE_STACKSLOT)
-	rd->freemem_2  = DMNEW(s4, id->cummaxstack);
-#endif
-	rd->locals     = DMNEW(varinfo5, id->cumlocals);
-	rd->interfaces = DMNEW(varinfo5, id->cummaxstack);
-	for (v = rd->locals, i = id->cumlocals; i > 0; v++, i--) {
-		v[0][TYPE_INT].type = -1;
-		v[0][TYPE_LNG].type = -1;
-		v[0][TYPE_FLT].type = -1;
-		v[0][TYPE_DBL].type = -1;
-		v[0][TYPE_ADR].type = -1;
-	}
-
-	for (v = rd->interfaces, i = id->cummaxstack; i > 0; v++, i--) {
-		v[0][TYPE_INT].type = -1;
-		v[0][TYPE_INT].flags = 0;
-		v[0][TYPE_LNG].type = -1;
-		v[0][TYPE_LNG].flags = 0;
-		v[0][TYPE_FLT].type = -1;
-		v[0][TYPE_FLT].flags = 0;
-		v[0][TYPE_DBL].type = -1;
-		v[0][TYPE_DBL].flags = 0;
-		v[0][TYPE_ADR].type = -1;
-		v[0][TYPE_ADR].flags = 0;
-	}
-
-#if defined(SPECIALMEMUSE)
-# if defined(__DARWIN__)
-	/* 6*4=24 byte linkage area + 8*4=32 byte minimum parameter Area */
-	rd->memuse = LA_WORD_SIZE + INT_ARG_CNT; 
-# else
-	rd->memuse = LA_WORD_SIZE;
-# endif
-#else
-	rd->memuse = 0; /* init to zero -> analyse_stack will set it to a higher  */
-	                /* value, if appropriate */
-#endif
-
-	/* Set rd->argxxxreguse to XXX_ARG_CNBT to not use unused argument        */
-	/* registers as temp registers  */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	rd->argadrreguse = 0;
-#endif /* defined(HAS_ADDRESS_REGISTER_FILE) */
-	rd->argintreguse = 0;
-	rd->argfltreguse = 0;
-}
-
-
-/* function reg_free ***********************************************************
-
-   releases all allocated space for registers
-
-*******************************************************************************/
-
-void reg_free(methodinfo *m, registerdata *rd)
-{
-	/* void */
-}
-
-
-/* reg_close *******************************************************************
-
-   TODO
-
-*******************************************************************************/
-
-void reg_close()
-{
-	/* void */
-}
 
 
 /* function interface_regalloc *************************************************

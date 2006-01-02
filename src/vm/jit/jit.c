@@ -31,7 +31,7 @@
             Christian Thalinger
 	    Christian Ullrich
 
-   $Id: jit.c 4014 2005-12-30 14:20:25Z twisti $
+   $Id: jit.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -57,13 +57,14 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 
-#if defined(ENABLE_LSRA)
-# include "vm/jit/lsra.h"
-#endif
 
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
+#include "vm/jit/allocator/simplereg.h"
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 
 #if defined(USE_INLINING)
 # include "vm/jit/inline/inline.h"

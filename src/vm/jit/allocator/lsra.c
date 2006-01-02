@@ -1,4 +1,4 @@
-/* src/vm/jit/lsra.inc - linear scan register allocator
+/* src/vm/jit/allocator/lsra.inc - linear scan register allocator
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: lsra.inc 4000 2005-12-22 14:05:01Z twisti $
+   $Id: lsra.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -39,13 +39,66 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "arch.h"
+#include "md-abi.h"
+
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include "vm/jit/lsra.h"
+#include "vm/stringlocal.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/allocator/lsra.h"
+
+#include "md-abi.inc"
+
+/* function prototypes */
+bool lsra_test(methodinfo *, codegendata *);
+void lsra_init(methodinfo *, codegendata *, t_inlining_globals *, lsradata *);
+void lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *);
+void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *);
+void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *);
+
+#ifdef LSRA_DEBUG 
+void lsra_dump_stack(stackptr );
+#endif
+#ifdef LSRA_PRINTLIFETIMES
+void print_lifetimes(registerdata *, lsradata *, int *, int);
+#endif
+#ifdef LSRA_TESTLT
+void test_lifetimes( methodinfo *, lsradata *, registerdata *);
+#endif
+
+void lsra_reg_setup(methodinfo *m ,registerdata *,struct lsra_register *,struct lsra_register * );
+
+
+void lsra_scan_registers_canditates(methodinfo *,  lsradata *, int);
+
+void lsra_join_lifetimes( methodinfo *, lsradata *, int);
+void lsra_calc_lifetime_length(methodinfo *, lsradata *, codegendata *);
+
+void _lsra_new_stack( lsradata *, stackptr , int , int, int);
+void _lsra_from_stack(lsradata *, stackptr , int , int, int);
+void lsra_add_ss(struct lifetime *, stackptr );
+void lsra_usage_local(lsradata *, s4 , int , int , int , int );
+
+void _lsra_main( methodinfo *, lsradata *, int *, int, struct lsra_register *, int *);
+void lsra_expire_old_intervalls(methodinfo *, lsradata *, struct lifetime *, struct lsra_register *);
+void spill_at_intervall(methodinfo *, lsradata *, struct lifetime *);
+void lsra_add_active(struct lifetime *, struct lifetime **, int *);
+void _lsra_expire_old_intervalls(methodinfo *, struct lifetime *, struct lsra_register *, struct lifetime **, int *);
+void _spill_at_intervall(struct lifetime *, struct lifetime **, int *);
+
+void lsra_alloc(methodinfo *, registerdata *, struct lsradata *, int *, int, int *);
+int lsra_getmem(struct lifetime *, struct freemem *, int *);
+struct freemem *lsra_getnewmem(int *);
+void lsra_align_stackslots(struct lsradata *, stackptr, stackptr);
+void lsra_setflags(int *, int);
 
 
 void lsra(methodinfo *m, codegendata *cd, registerdata *rd,

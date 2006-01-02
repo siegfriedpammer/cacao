@@ -28,20 +28,13 @@
 
    Changes: Christian Ullrich
 
-   $Id: reg.h 4014 2005-12-30 14:20:25Z twisti $
+   $Id: reg.h 4055 2006-01-02 12:59:54Z christian $
 
 */
 
 
 #ifndef _REG_H
 #define _REG_H
-
-/* #define INVOKE_NEW_DEBUG */
-
-
-/* preliminary define for testing of the new creation of ARGVAR Stackslots in stack.c */
-/* Changes affect handling of ARGVAR Stackslots in reg_of_var in codegen.inc          */
-/* and calculation of rd->ifmemuse in reg.inc                                         */
 
 /* We typedef these structures before #includes to resolve circular           */
 /* dependencies.                                                              */
@@ -54,9 +47,6 @@ typedef struct registerdata registerdata;
 #include "vm/types.h"
 
 #include "arch.h"
-
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
 #include "vm/jit/inline/inline.h"
 
 
@@ -138,15 +128,7 @@ struct registerdata {
 
 /* function prototypes ********************************************************/
 
-void reg_init(void);
 void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
-void reg_free(methodinfo *m, registerdata *rd);
-void reg_close(void);
-void regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
-
-#if defined(ENABLE_STATISTICS)
-void reg_make_statistics( methodinfo *, codegendata *, registerdata *);
-#endif
 
 #endif /* _REG_H */
 

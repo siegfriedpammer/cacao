@@ -1,4 +1,4 @@
-## src/vm/jit/loop/Makefile.am
+## src/vm/jit/allocator/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -24,7 +24,7 @@
 ##
 ## Contact: cacao@complang.tuwien.ac.at
 ##
-## Authors: Christian Thalinger
+## Authors: Christian Ullrich
 ##
 ## Changes:
 ##
@@ -32,19 +32,19 @@
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
-noinst_LTLIBRARIES = libloop.la
+noinst_LTLIBRARIES = liballocator.la
 
-libloop_la_SOURCES = \
-	analyze.c \
-	analyze.h \
-	graph.c \
-	graph.h \
-	loop.c \
-	loop.h \
-	tracing.c \
-	tracing.h
+liballocator_la_SOURCES = \
+        simplereg.c \
+        simplereg.h 
+
+if ENABLE_LSRA
+liballocator_la_SOURCES += \
+        lsra.c \
+        lsra.h
+endif		
 
 
 ## Local variables:

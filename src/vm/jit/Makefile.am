@@ -28,15 +28,16 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4010 2005-12-30 14:14:32Z twisti $
+## $Id: Makefile.am 4055 2006-01-02 12:59:54Z christian $
 
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-SUBDIRS = loop tools verify
+SUBDIRS = allocator loop tools verify
 
 DIST_SUBDIRS = \
+	allocator \
 	inline \
 	loop \
 	schedule \
@@ -71,12 +72,8 @@ noinst_HEADERS = \
 	abi.h \
 	asmpart.h \
 	disass.h \
-	lsra.inc \
-	lsra.h \
 	methodheader.h \
-	patcher.h \
-	reg.inc \
-	reg.h
+	patcher.h 
 
 noinst_LTLIBRARIES = libjit.la
 
@@ -89,12 +86,15 @@ libjit_la_SOURCES = \
 	jit.h \
 	parse.c \
 	parse.h \
+	reg.c \
+	reg.h \
 	stack.c \
 	stack.h \
 	stacktrace.c \
 	stacktrace.h
 
 libjit_la_LIBADD = \
+	allocator/liballocator.la \
 	$(INLINE_LIB) \
 	loop/libloop.la \
 	$(SCHEDULE_LIB) \

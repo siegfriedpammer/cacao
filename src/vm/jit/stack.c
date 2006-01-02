@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4014 2005-12-30 14:20:25Z twisti $
+   $Id: stack.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -60,7 +60,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
-#include "vm/jit/lsra.h"
+#include "vm/jit/allocator/lsra.h"
 
 
 /* global variables ***********************************************************/

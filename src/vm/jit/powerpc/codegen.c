@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 4020 2005-12-30 20:38:59Z twisti $
+   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -44,7 +44,6 @@
 #include "vm/types.h"
 
 #include "md-abi.h"
-#include "md-abi.inc"
 
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
@@ -55,20 +54,21 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-
-#if defined(ENABLE_LSRA)
-# include "vm/jit/lsra.inc"
-#endif
-
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/reg.inc"
+
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
+
+
 
 
 s4 *codegen_trace_args( methodinfo *m, codegendata *cd, registerdata *rd,

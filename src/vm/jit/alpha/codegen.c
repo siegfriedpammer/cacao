@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4019 2005-12-30 20:31:44Z twisti $
+   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
 
 */
 
@@ -44,7 +44,6 @@
 
 #include "md.h"
 #include "md-abi.h"
-#include "md-abi.inc"
 
 #include "vm/jit/alpha/arch.h"
 #include "vm/jit/alpha/codegen.h"
@@ -56,21 +55,19 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-
-#if defined(ENABLE_LSRA)
-# include "vm/jit/lsra.h"
-# include "vm/jit/lsra.inc"
-#endif
-
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/reg.inc"
+
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 
 
 /* codegen *********************************************************************
