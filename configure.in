@@ -171,7 +171,7 @@ dnl Features
 dnl check arguments
 
 dnl check for JIT compiler
-AC_MSG_CHECKING(whether JIT compiled should be compiled)
+AC_MSG_CHECKING(whether JIT compiler should be compiled)
 AC_ARG_ENABLE([jit],
               [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=yes]])],
               [case "${enableval}" in
