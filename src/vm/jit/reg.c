@@ -31,15 +31,16 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: reg.c 4056 2006-01-02 13:05:56Z christian $
+   $Id: reg.c 4057 2006-01-02 14:05:00Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
-#include "assert.h"
+#include <assert.h>
+
+#include "vm/types.h"
 
 #include "arch.h"
 #include "md-abi.h"
@@ -47,7 +48,6 @@
 #include "mm/memory.h"
 #include "vm/jit/reg.h"
 
-#include "md-abi.inc"
 
 /* reg_setup *******************************************************************
 
@@ -232,6 +232,7 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	rd->argintreguse = 0;
 	rd->argfltreguse = 0;
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
