@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 3830 2005-12-01 23:07:33Z twisti $
+   $Id: threads.c 4087 2006-01-03 23:46:48Z twisti $
 
 */
 
@@ -156,7 +156,7 @@ static void setPriority(pthread_t tid, int priority)
 }
 
 
-static struct avl_table *criticaltree;
+static avl_tree *criticaltree;
 threadobject *mainthreadobj;
 
 #ifndef HAVE___THREAD
@@ -188,7 +188,8 @@ void tables_unlock()
     pthread_mutex_unlock_rec(&tablelock);
 }
 
-static int criticalcompare(const void *pa, const void *pb, void *param)
+
+static s4 criticalcompare(const void *pa, const void *pb)
 {
 	const threadcritnode *na = pa;
 	const threadcritnode *nb = pb;
@@ -200,31 +201,40 @@ static int criticalcompare(const void *pa, const void *pb, void *param)
 	return 0;
 }
 
+
 static const threadcritnode *findcritical(u1 *mcodeptr)
 {
-    struct avl_node *n = criticaltree->avl_root;
-    const threadcritnode *m = NULL;
+    avl_node *n;
+    const threadcritnode *m;
+
+    n = criticaltree->root;
+	m = NULL;
+
     if (!n)
         return NULL;
-    for (;;)
-    {
-        const threadcritnode *d = n->avl_data;
+
+    for (;;) {
+        const threadcritnode *d = n->data;
+
         if (mcodeptr == d->mcodebegin)
             return d;
+
         if (mcodeptr < d->mcodebegin) {
-            if (n->avl_link[0])
-                n = n->avl_link[0];
+            if (n->childs[0])
+                n = n->childs[0];
             else
                 return m;
+
         } else {
-            if (n->avl_link[1]) {
-                m = n->avl_data;
-                n = n->avl_link[1];
+            if (n->childs[1]) {
+                m = n->data;
+                n = n->childs[1];
             } else
-                return n->avl_data;
+                return n->data;
         }
     }
 }
+
 
 void thread_registercritical(threadcritnode *n)
 {
@@ -498,17 +508,23 @@ void threads_preinit(void)
 	setthreadobject(mainthreadobj);
 	initPools();
 
-    criticaltree = avl_create(criticalcompare, NULL, NULL);
-	thread_addstaticcritical();
-	sem_init(&suspend_ack, 0, 0);
-
 	/* Every newly created object's monitorPtr points here so we save
 	   a check against NULL */
+
 	dummyLR = NEW(monitorLockRecord);
 	dummyLR->o = NULL;
 	dummyLR->ownerThread = NULL;
 	dummyLR->waiting = false;
+
+	/* we need a working dummyLR before initializing the critical
+	   section tree */
+
+    criticaltree = avl_create(&criticalcompare);
+
+	thread_addstaticcritical();
+	sem_init(&suspend_ack, 0, 0);
 }
+
 
 static pthread_attr_t threadattr;
 

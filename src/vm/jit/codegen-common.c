@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4012 2005-12-30 14:17:30Z twisti $
+   $Id: codegen-common.c 4087 2006-01-03 23:46:48Z twisti $
 
 */
 
@@ -91,9 +91,8 @@
 /* in this tree we store all method addresses *********************************/
 
 #if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
-static struct avl_table *methodtree = NULL;
-static int methodtree_comparator(const void *pc, const void *element,
-								 void *param);
+static avl_tree *methodtree = NULL;
+static s4 methodtree_comparator(const void *pc, const void *element);
 #endif
 
 
@@ -113,7 +112,7 @@ void codegen_init(void)
 		methodtree_element *mte;
 #endif
 
-		methodtree = avl_create(methodtree_comparator, NULL, NULL);
+		methodtree = avl_create(&methodtree_comparator);
 
 #if !defined(ENABLE_INTRP)
 		/* insert asm_calljavafunction */
@@ -531,7 +530,7 @@ void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 
 *******************************************************************************/
 
-static int methodtree_comparator(const void *pc, const void *element, void *param)
+static s4 methodtree_comparator(const void *pc, const void *element)
 {
 	methodtree_element *mte;
 	methodtree_element *mtepc;
@@ -568,32 +567,17 @@ void codegen_insertmethod(u1 *startpc, u1 *endpc)
 {
 	methodtree_element *mte;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_lock();
-#endif
-#endif
+	/* allocate new method entry */
 
 	mte = NEW(methodtree_element);
+
 	mte->startpc = startpc;
 	mte->endpc   = endpc;
 
-	if (avl_insert(methodtree, mte)) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		tables_unlock();
-#endif
-#endif
-		assert(0);
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "duplicate entry");
-	}
+	/* this function does not return an error, but asserts for
+	   duplicate entries */
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_unlock();
-#endif
-#endif
+	avl_insert(methodtree, mte);
 }
 
 
@@ -608,34 +592,20 @@ u1 *codegen_findmethod(u1 *pc)
 	methodtree_element  mtepc;
 	methodtree_element *mte;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_lock();
-#endif
-#endif
+	/* allocation of the search structure on the stack is much faster */
 
 	mtepc.startpc = pc;
-	mtepc.endpc = pc;
+	mtepc.endpc   = pc;
 
 	mte = avl_find(methodtree, &mtepc);
 
 	if (!mte) {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		tables_unlock();
-#endif
-#endif
 		printf("Cannot find Java function at %p\n", (void *) (ptrint) pc);
 		assert(0);
+
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Cannot find Java function at %p", pc);
 	}
-
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-	tables_unlock();
-#endif
-#endif
 
 	return mte->startpc;
 }
