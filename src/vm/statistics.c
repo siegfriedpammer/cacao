@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: statistics.c 4001 2005-12-22 14:05:38Z twisti $
+   $Id: statistics.c 4084 2006-01-03 23:44:19Z twisti $
 
 */
 
@@ -642,6 +642,13 @@ void print_stats(void)
 		   count_jni_callXmethod_calls);
 	 dolog("Overall number of jni invokations:               %ld",
 		   count_jni_calls);
+
+
+	 /* now print other statistics ********************************************/
+
+#if defined(ENABLE_INTRP)
+	 print_dynamic_super_statistics();
+#endif
 }
 
 
