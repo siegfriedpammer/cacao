@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 3988 2005-12-22 13:52:15Z twisti $
+   $Id: jni.c 4082 2006-01-03 23:08:58Z twisti $
 
 */
 
@@ -1876,7 +1876,7 @@ jboolean CallNonvirtualBooleanMethodV (JNIEnv *env, jobject obj, jclass clazz, j
 
 jboolean CallNonvirtualBooleanMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation())
+	STATISTICS(jniinvokation());
 
 	log_text("JNI-Call: CallNonvirtualBooleanMethodA: IMPLEMENT ME!");
 
