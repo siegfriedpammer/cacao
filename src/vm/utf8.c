@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: utf8.c 4083 2006-01-03 23:43:48Z twisti $
 
 */
 
@@ -42,6 +42,16 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/hashtable.h"
 #include "vm/options.h"
