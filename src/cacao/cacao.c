@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4004 2005-12-22 16:08:57Z twisti $
+   $Id: cacao.c 4085 2006-01-03 23:44:38Z twisti $
 
 */
 
@@ -1656,7 +1656,6 @@ void exit_handler(void)
 #ifdef TYPECHECK_STATISTICS
 			typecheck_print_statistics(get_logfile());
 #endif
-			print_dynamic_super_statistics();
 		}
 
 		mem_usagelog(1);
