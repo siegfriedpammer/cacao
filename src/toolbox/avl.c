@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: avl.c 4086 2006-01-03 23:46:30Z twisti $
+   $Id: avl.c 4088 2006-01-04 09:34:07Z twisti $
 
 */
 
@@ -433,10 +433,7 @@ void avl_dump(avl_node* node, s4 indent)
 	while(indent--)
 		printf("   ");
 
-	printf("%p-%p (%d)\n",
-		   ((methodtree_element *) node->data)->startpc,
-		   ((methodtree_element *) node->data)->endpc,
-		   node->balance);
+	printf("%p (%d)\n", node->data, node->balance);
 
 	if (node->childs[AVL_LEFT])
 		avl_dump(node->childs[AVL_LEFT], tmp + 1);
