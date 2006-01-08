@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 4005 2005-12-22 16:10:17Z twisti $
+   $Id: suck.h 4099 2006-01-08 22:38:03Z twisti $
 
 */
 
@@ -70,14 +70,16 @@ struct list_classpath_entry {
 
 /* macros to read LE and BE types from a buffer ********************************
 
-   BE macros are for class file loading.
+   BE macros are for Java class file loading.
    LE macros are for ZIP file loading.
 
 *******************************************************************************/
 
-#if WORDS_BIGENDIAN == 0
+/* LE macros (for ZIP files ) *************************************************/
 
-/* we can optimize the LE access on little endian machines */
+#if defined(__I386__) || defined(__X86_64__)
+
+/* we can optimize the LE access on little endian machines without alignment */
 
 #define SUCK_LE_U1(p)    *((u1 *) (p))
 #define SUCK_LE_U2(p)    *((u2 *) (p))
@@ -87,32 +89,7 @@ struct list_classpath_entry {
 #define SUCK_LE_U8(p)    *((u8 *) (p))
 #endif
 
-#define SUCK_BE_U1(p) \
-      ((u1) (p)[0])
-
-#define SUCK_BE_U2(p) \
-    ((((u2) (p)[0]) << 8) + \
-      ((u2) (p)[1]))
-
-#define SUCK_BE_U4(p) \
-    ((((u4) (p)[0]) << 24) + \
-     (((u4) (p)[1]) << 16) + \
-     (((u4) (p)[2]) << 8) + \
-      ((u4) (p)[3]))
-
-#if U8_AVAILABLE == 1
-#define SUCK_BE_U8(p) \
-    ((((u8) (p)[0]) << 56) + \
-     (((u8) (p)[1]) << 48) + \
-     (((u8) (p)[2]) << 40) + \
-     (((u8) (p)[3]) << 32) + \
-     (((u8) (p)[4]) << 24) + \
-     (((u8) (p)[5]) << 16) + \
-     (((u8) (p)[6]) << 8) + \
-      ((u8) (p)[7]))
-#endif
-
-#else /* WORDS_BIGENDIAN == 0 */
+#else /* defined(__I386__) || defined(__X86_64__) */
 
 #define SUCK_LE_U1(p) \
       ((u1) (p)[0])
@@ -139,11 +116,10 @@ struct list_classpath_entry {
       ((u8) (p)[0]))
 #endif
 
-/* we can optimize the BE access on big endian machines */
+#endif /* defined(__I386__) || defined(__X86_64__) */
 
-#if defined(__MIPS__)
 
-/* MIPS needs aligned access */
+/* BE macros (for Java class files ) ******************************************/
 
 #define SUCK_BE_U1(p) \
       ((u1) (p)[0])
@@ -169,20 +145,6 @@ struct list_classpath_entry {
      (((u8) (p)[6]) << 8) + \
       ((u8) (p)[7]))
 #endif
-
-#else /* defined(__MIPS__) */
-
-#define SUCK_BE_U1(p)    *((u1 *) (p))
-#define SUCK_BE_U2(p)    *((u2 *) (p))
-#define SUCK_BE_U4(p)    *((u4 *) (p))
-
-#if U8_AVAILABLE == 1
-#define SUCK_BE_U8(p)    *((u8 *) (p))
-#endif
-
-#endif /* defined(__MIPS__) */
-
-#endif /* WORDS_BIGENDIAN == 0 */
 
 
 /* signed suck defines ********************************************************/
