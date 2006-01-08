@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3941 2005-12-11 14:06:03Z twisti $
+## $Id: Makefile.am 4093 2006-01-08 19:13:33Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = \
+SOURCE_FILES = \
 	checkcastC.java \
 	checkcastI.java \
 	getfieldD.java \
@@ -64,6 +64,9 @@ EXTRA_DIST = \
 	putstaticJ.java \
 	putstaticL.java \
 	test.java
+
+EXTRA_DIST = \
+	$(SOURCE_FILES)
 
 MAINCLASS = \
 	test.class
@@ -105,12 +108,11 @@ CLEANFILES = \
 	$(CLASSES)
 
 JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -nowarn
 
 build:
-	$(JAVAC) test.java
+	$(JAVAC) $(SOURCE_FILES)
 
-checkall: build
+check: build
 	$(JAVA) test
 
 remove:
