@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4007 2005-12-22 16:26:03Z twisti $
+   $Id: suck.c 4095 2006-01-08 21:32:25Z twisti $
 
 */
 
@@ -207,19 +207,18 @@ void suck_add(char *classpath)
 				lce->pathlen = filenamelen;
 			}
 
-			/* add current classpath entry */
+			/* add current classpath entry, if no error */
 
-			list_addlast(list_classpath_entries, lce);
+			if (lce)
+				list_addlast(list_classpath_entries, lce);
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
 
-		if ((*end) == ':') {
+		if ((*end) == ':')
 			start = end + 1;
-
-		} else {
+		else
 			start = end;
-		}
 	}
 }
 
@@ -324,12 +323,10 @@ void suck_add_from_property(char *key)
 
 		/* goto next entry, skip ':' delimiter */
 
-		if ((*end) == ':') {
+		if ((*end) == ':')
 			start = end + 1;
-
-		} else {
+		else
 			start = end;
-		}
 	}
 }
 
