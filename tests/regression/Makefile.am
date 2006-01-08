@@ -28,13 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3791 2005-11-23 23:16:29Z twisti $
+## $Id: Makefile.am 4094 2006-01-08 19:14:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
-JAVAC     = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
 
 EXTRA_DIST = \
 	Test.sh \

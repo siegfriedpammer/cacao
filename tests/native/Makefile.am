@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3669 2005-11-15 00:18:01Z twisti $
+## $Id: Makefile.am 4094 2006-01-08 19:14:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,7 +44,6 @@ CLEANFILES = \
 	testarguments.h
 
 JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -classpath $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ) -nowarn
 JAVAH = $(top_builddir)/src/cacaoh/cacaoh
 
 checkall: test.tst checkjni.tst testarguments.tst
