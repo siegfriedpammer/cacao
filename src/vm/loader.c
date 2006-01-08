@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4009 2005-12-30 14:13:36Z twisti $
+   $Id: loader.c 4100 2006-01-08 23:00:27Z twisti $
 
 */
 
@@ -239,7 +239,6 @@ bool loader_init(u1 *stackbottom)
 void loader_load_all_classes(void)
 {
 	list_classpath_entry    *lce;
-	classinfo               *c;
 	hashtable               *ht;
 	s4                       slot;
 	hashtable_zipfile_entry *htzfe;
@@ -262,11 +261,22 @@ void loader_load_all_classes(void)
 					/* skip all entries in META-INF and .properties,
                        .png files */
 
-					if (strncmp(u->text, "META-INF", strlen("META-INF")) &&
-						!strstr(u->text, ".properties") &&
-						!strstr(u->text, ".png"))
-						c = load_class_bootstrap(u);
+					if (!strncmp(u->text, "META-INF", strlen("META-INF")) ||
+						strstr(u->text, ".properties") ||
+						strstr(u->text, ".png"))
+						continue;
 
+					/* load class from bootstrap classloader */
+
+					if (!load_class_bootstrap(u)) {
+						fprintf(stderr, "Error loading: ");
+						utf_fprint_classname(stderr, u);
+						fprintf(stderr, "\n");
+
+						/* print out exception and cause */
+
+						exceptions_print_exception(*exceptionptr);
+					}
 				}
 			}
 
