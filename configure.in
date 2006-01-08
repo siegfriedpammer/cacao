@@ -99,6 +99,7 @@ AC_PROG_RANLIB
 AC_DISABLE_SHARED
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AM_PROG_MKDIR_P
 
 dnl libtool stuff
 AC_LIBTOOL_DLOPEN
@@ -280,6 +281,16 @@ AC_ARG_ENABLE([debug],
 
 if test x"${NDEBUG}" = "xno"; then
     AC_MSG_RESULT(yes)
+
+    dnl check for binutils-dev headers on some architectures
+    case "${ARCH_DIR}" in
+        arm | i386 | powerpc | x86_64 )
+            AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
+            AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
+            AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
+            ;;
+    esac
+
 else
     AC_MSG_RESULT(no)
 fi
@@ -500,6 +511,14 @@ else
 fi
 AC_SUBST(GLIBJZ)
 AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of the classpath zip file])
+
+
+dnl check for some programs we need
+AC_PROG_JAVAC
+AC_PATH_PROG(ZIP, zip)
+if test -z "${ZIP}"; then
+    AC_MSG_ERROR([cannot find zip])
+fi
 
 
 dnl now configure subpackages
