@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3766 2005-11-23 15:04:53Z twisti $
+## $Id: Makefile.am 4092 2006-01-08 19:12:50Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -78,8 +78,9 @@ GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
 pkgdata_DATA = vm.zip
 
 vm.zip: $(JAVA_VM_FILES)
-	jikes -bootclasspath $(GLIBJ_ZIP) -d classes $(JAVA_VM_FILES)
-	cd classes && zip -r ../vm.zip .
+	$(mkdir_p) classes
+	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(JAVA_VM_FILES)
+	cd classes && $(ZIP) -r ../vm.zip .
 
 clean-local:
 	-rm -rf classes
