@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4060 2006-01-02 14:07:00Z twisti $
+## $Id: Makefile.am 4102 2006-01-09 10:35:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -52,11 +52,9 @@ libarch_la_SOURCES = \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
-	dis-asm.h \
 	disass.c \
 	emitfuncs.c \
 	emitfuncs.h \
-	i386-dis.c \
 	patcher.c \
 	\
 	md-abi.c \
