@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4055 2006-01-02 12:59:54Z christian $
+## $Id: Makefile.am 4110 2006-01-09 16:36:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,10 +68,15 @@ SUBDIRS += schedule
 SCHEDULE_LIB = schedule/libschedule.la
 endif
 
+if WITH_BINUTILS_DISASSEMBLER
+DISASS_OBJ = disass-common.c
+else
+DISASS_OBJ =
+endif
+
 noinst_HEADERS = \
 	abi.h \
 	asmpart.h \
-	disass.h \
 	methodheader.h \
 	patcher.h 
 
@@ -80,6 +85,8 @@ noinst_LTLIBRARIES = libjit.la
 libjit_la_SOURCES = \
 	codegen-common.c \
 	codegen-common.h \
+	disass.h \
+	$(DISASS_OBJ) \
 	dseg.c \
 	dseg.h \
 	jit.c \
