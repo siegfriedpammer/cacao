@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3765 2005-11-23 14:41:16Z twisti $
+## $Id: Makefile.am 4113 2006-01-09 20:15:06Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -56,13 +56,9 @@ libarch_la_SOURCES = \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
-	dis-asm.h \
 	disass.c \
 	md.c \
-	patcher.c \
-	ppc-dis.c \
-	ppc-opc.c \
-	ppc.h
+	patcher.c
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la
