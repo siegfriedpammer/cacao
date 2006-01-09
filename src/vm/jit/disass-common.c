@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass-common.c 4109 2006-01-09 16:30:12Z twisti $
+   $Id: disass-common.c 4116 2006-01-09 20:28:03Z twisti $
 
 */
 
@@ -71,10 +71,10 @@ void disass_printf(PTR p, const char *fmt, ...)
 	va_start(ap, fmt);
 
 #if defined(__I386__) || defined(__X86_64__)
+	disass_len += vsprintf(disass_buf + disass_len, fmt, ap);
+#else
 	vprintf(fmt, ap);
 	fflush(stdout);
-#else
-	disass_len += vsprintf(disass_buf + disass_len, fmt, ap);
 #endif
 
 	va_end(ap);
