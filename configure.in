@@ -289,12 +289,18 @@ if test x"${NDEBUG}" = "xno"; then
             AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
             AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from bintuils))])
             AC_CHECK_LIB(opcodes, init_disassemble_info,, [AC_MSG_ERROR(cannot find libopcodes (from bintuils))])
+            AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
+            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [true])
+            ;;
+        * )
+            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
             ;;
     esac
 
 else
     AC_MSG_RESULT(no)
 fi
+AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xno")
 
 
 dnl check for statistics
