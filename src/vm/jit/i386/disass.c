@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4033 2006-01-01 18:30:53Z twisti $
+   $Id: disass.c 4111 2006-01-09 16:37:54Z twisti $
 
 */
 
@@ -37,20 +37,13 @@
 #include "config.h"
 
 #include <assert.h>
-/* #include <dis-asm.h> */
+#include <dis-asm.h>
 #include <stdarg.h>
-#include <string.h>
 
 #include "vm/types.h"
 
-#include "vm/jit/i386/dis-asm.h"
-
 #include "mm/memory.h"
 #include "vm/jit/disass.h"
-
-
-char mylinebuf[512];
-int mylen;
 
 
 char *regs[] = {
@@ -63,70 +56,6 @@ char *regs[] = {
 	"esi",
 	"edi"
 };
-
-
-/* myprintf ********************************************************************
-
-   Required by i386-dis.c, prints the stuff into a buffer.
-
-*******************************************************************************/
-
-void myprintf(PTR p, const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	mylen += vsprintf(mylinebuf + mylen, fmt, ap);
-	va_end(ap);
-}
-
-/* buffer_read_memory **********************************************************
-
-   Required by i386-dis.c, copy some stuff to another memory.
-
-*******************************************************************************/
-
-int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
-{
-	MCOPY(myaddr, (void *) memaddr, u1, length);
-
-	return 0;
-}
-
-
-/* generic_symbol_at_address ***************************************************
-
-   Required by i386-dis.c, just return 1.
-
-*******************************************************************************/
-
-int generic_symbol_at_address(bfd_vma addr, struct disassemble_info *info)
-{
-	return 1;
-}
-
-
-/* generic_print_address *******************************************************
-
-   Required by i386-dis.c, just print the address.
-
-*******************************************************************************/
-
-void generic_print_address(bfd_vma addr, struct disassemble_info *info)
-{
-	myprintf(info->stream, "0x%08x", addr);
-}
-
-
-/* perror_memory ***************************************************************
-
-   Required by i386-dis.c, jsut assert in case.
-
-*******************************************************************************/
-
-void perror_memory(int status, bfd_vma memaddr, struct disassemble_info *info)
-{
-	assert(0);
-}
 
 
 /* disassinstr *****************************************************************
@@ -146,13 +75,15 @@ u1 *disassinstr(u1 *code)
 	s4 i;
 
 	if (!dis_initialized) {
-		INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
+		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 		info.mach = bfd_mach_i386_i386;
 		dis_initialized = 1;
 	}
 
 	printf("0x%08x:   ", (s4) code);
-	mylen = 0;
+
+	disass_len = 0;
+
 	seqlen = print_insn_i386((bfd_vma) code, &info);
 
 	for (i = 0; i < seqlen; i++, code++) {
@@ -163,7 +94,7 @@ u1 *disassinstr(u1 *code)
 		printf("   ");
 	}
 
-	printf("   %s\n", mylinebuf);
+	printf("   %s\n", disass_buf);
 
 	return code;
 }
@@ -183,7 +114,7 @@ void disassemble(u1 *start, u1 *end)
 {
 	disassemble_info info;
 
-	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
+	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 	info.mach = bfd_mach_i386_i386;
 
 	printf("  --- disassembler listing ---\n");
