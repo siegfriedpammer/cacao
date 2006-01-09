@@ -30,19 +30,20 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 3234 2005-09-21 12:11:58Z twisti $
+   $Id: disass.c 4114 2006-01-09 20:19:02Z twisti $
 
 */
 
 
-#include <stdarg.h>
-#include <string.h>
-#include <assert.h>
-
 #include "config.h"
+
+#include <dis-asm.h>
+#include <stdio.h>
+
 #include "vm/types.h"
 
-#include "vm/jit/powerpc/dis-asm.h"
+#include "vm/jit/disass.h"
+
 
 char *regs[] = {
 	"r0",
@@ -80,60 +81,6 @@ char *regs[] = {
 };
 
 
-void myprintf(PTR p, const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	fflush(stdout);
-}
-
-
-int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
-{
-	memcpy(myaddr, (void*) memaddr, length);
-	return 0;
-}
-
-
-void perror_memory(int status, bfd_vma memaddr, struct disassemble_info *info)
-{
-	assert(0);
-}
-
-
-void generic_print_address(bfd_vma addr, struct disassemble_info *info)
-{
-/*  	myprintf(NULL, "0x%x", addr - (u4) info->application_data); */
-	myprintf(NULL, "0x%08x", addr);
-}
-
-
-int generic_symbol_at_address(bfd_vma addr, struct disassemble_info *info)
-{
-	assert(0);
-}
-
-
-unsigned long bfd_getb32(void *buf)
-{
-	return *(unsigned long *) buf;
-}
-
-
-unsigned long bfd_getl32(void *buf)
-{
-	return *(unsigned long *) buf;
-}
-
-
-void sprintf_vma(char *buf, bfd_vma disp)
-{
-	sprintf(buf, "0x%x", disp);
-}
-
-
 /* disassinstr *****************************************************************
 
    Outputs a disassembler listing of one machine code instruction on
@@ -147,7 +94,7 @@ u1 *disassinstr(u1 *code)
 {
 	disassemble_info info;
 
-	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
+	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 
 	printf("0x%08x:   %08x    ", (s4) code, *((s4 *) code));
 
@@ -172,7 +119,7 @@ void disassemble(u1 *start, u1 *end)
 {
 	disassemble_info info;
 
-	INIT_DISASSEMBLE_INFO(info, NULL, myprintf);
+	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 
 	printf("  --- disassembler listing ---\n");
 	for (; start < end; )
