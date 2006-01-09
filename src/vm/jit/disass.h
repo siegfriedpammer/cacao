@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4108 2006-01-09 16:29:30Z twisti $
+   $Id: disass.h 4117 2006-01-09 20:52:21Z twisti $
 
 */
 
@@ -48,7 +48,7 @@
 extern char *regs[];
 
 #if defined(__I386__) || defined(__X86_64__)
-extern char disass_buf;
+extern char disass_buf[512];
 extern s4   disass_len;
 #endif
 
