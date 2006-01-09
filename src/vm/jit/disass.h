@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 3225 2005-09-19 13:58:44Z twisti $
+   $Id: disass.h 4108 2006-01-09 16:29:30Z twisti $
 
 */
 
@@ -36,14 +36,30 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
+#include "config.h"
+
+#if defined(WITH_BINUTILS_DISASSEMBLER)
+# include <dis-asm.h>
+#endif
+
 #include "vm/types.h"
 
 
 extern char *regs[];
 
+#if defined(__I386__) || defined(__X86_64__)
+extern char disass_buf;
+extern s4   disass_len;
+#endif
+
 
 /* function prototypes *******************************************************/
 
+#if defined(WITH_BINUTILS_DISASSEMBLER)
+void disass_printf(PTR p, const char *fmt, ...);
+#endif
+
+/* machine dependent functions */
 u1 *disassinstr(u1 *code);
 void disassemble(u1 *start, u1 *end);
 
