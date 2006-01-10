@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4100 2006-01-08 23:00:27Z twisti $
+   $Id: loader.c 4127 2006-01-10 20:56:16Z twisti $
 
 */
 
@@ -448,7 +448,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	cpinfos = c->cpinfos = MNEW(voidptr, cpcount);
 
 	if (cpcount < 1) {
-		*exceptionptr = new_classformaterror(c, "Illegal constant pool size");
+		exceptions_throw_classformaterror(c, "Illegal constant pool size");
 		return false;
 	}
 	
@@ -612,8 +612,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			cpinfos[idx] = cl;
 			idx += 2;
 			if (idx > cpcount) {
-				*exceptionptr =
-					new_classformaterror(c, "Invalid constant pool entry");
+				exceptions_throw_classformaterror(c, "Invalid constant pool entry");
 				return false;
 			}
 			break;
@@ -635,8 +634,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			cpinfos[idx] = cd;
 			idx += 2;
 			if (idx > cpcount) {
-				*exceptionptr =
-					new_classformaterror(c, "Invalid constant pool entry");
+				exceptions_throw_classformaterror(c, "Invalid constant pool entry");
 				return false;
 			}
 			break;
@@ -660,7 +658,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			if (opt_verify &&
 				!is_valid_utf((char *) cb->pos, (char *) (cb->pos + length))) 
 			{
-				*exceptionptr = new_classformaterror(c,"Invalid UTF-8 string");
+				exceptions_throw_classformaterror(c, "Invalid UTF-8 string");
 				return false;
 			}
 #endif /* ENABLE_VERIFIER */
@@ -674,8 +672,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		}
 										
 		default:
-			*exceptionptr =
-				new_classformaterror(c, "Illegal constant pool type");
+			exceptions_throw_classformaterror(c, "Illegal constant pool type");
 			return false;
 		}  /* end switch */
 	} /* end while */
@@ -691,8 +688,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 #ifdef ENABLE_VERIFIER
 		if (opt_verify && !is_valid_name_utf(name)) {
-			*exceptionptr = 
-				new_classformaterror(c, "Class reference with invalid name");
+			exceptions_throw_classformaterror(c, "Class reference with invalid name");
 			return false;
 		}
 #endif /* ENABLE_VERIFIER */
@@ -761,18 +757,16 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		if (opt_verify) {
 			/* check name */
 			if (!is_valid_name_utf(cn->name)) {
-				*exceptionptr =
-					new_classformaterror(c,
-										 "Illegal Field name \"%s\"",
-										 cn->name->text);
+				exceptions_throw_classformaterror(c,
+												  "Illegal Field name \"%s\"",
+												  cn->name->text);
 
 				return false;
 			}
 
 			/* disallow referencing <clinit> among others */
 			if (cn->name->text[0] == '<' && cn->name != utf_init) {
-				*exceptionptr =
-					new_classformaterror(c,"Illegal reference to special method");
+				exceptions_throw_classformaterror(c, "Illegal reference to special method");
 				return false;
 			}
 		}
@@ -867,7 +861,7 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	/* descriptor_pool_add accepts method descriptors, so we have to check  */
 	/* against them here before the call of descriptor_to_basic_type below. */
 	if (u->text[0] == '(') {
-		*exceptionptr = new_classformaterror(c,"Method descriptor used for field");
+		exceptions_throw_classformaterror(c, "Method descriptor used for field");
 		return false;
 	}
 
@@ -875,9 +869,9 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	if (opt_verify) {
 		/* check name */
 		if (!is_valid_name_utf(f->name) || f->name->text[0] == '<') {
-			*exceptionptr = new_classformaterror(c,
-												 "Illegal Field name \"%s\"",
-												 f->name->text);
+			exceptions_throw_classformaterror(c,
+											  "Illegal Field name \"%s\"",
+											  f->name->text);
 			return false;
 		}
 
@@ -886,10 +880,9 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 		if ((i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) ||
 			((f->flags & (ACC_FINAL | ACC_VOLATILE)) == (ACC_FINAL | ACC_VOLATILE))) {
-			*exceptionptr =
-				new_classformaterror(c,
-									 "Illegal field modifiers: 0x%X",
-									 f->flags);
+			exceptions_throw_classformaterror(c,
+											  "Illegal field modifiers: 0x%X",
+											  f->flags);
 			return false;
 		}
 
@@ -897,10 +890,9 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			if (((f->flags & (ACC_STATIC | ACC_PUBLIC | ACC_FINAL))
 				!= (ACC_STATIC | ACC_PUBLIC | ACC_FINAL)) ||
 				f->flags & ACC_TRANSIENT) {
-				*exceptionptr =
-					new_classformaterror(c,
-										 "Illegal field modifiers: 0x%X",
-										 f->flags);
+				exceptions_throw_classformaterror(c,
+												  "Illegal field modifiers: 0x%X",
+												  f->flags);
 				return false;
 			}
 		}
@@ -943,16 +935,13 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 			/* check attribute length */
 			if (suck_u4(cb) != 2) {
-				*exceptionptr =
-					new_classformaterror(c, "Wrong size for VALUE attribute");
+				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 				return false;
 			}
 			
 			/* constant value attribute */
 			if (pindex != field_load_NOVALUE) {
-				*exceptionptr =
-					new_classformaterror(c,
-										 "Multiple ConstantValue attributes");
+				exceptions_throw_classformaterror(c, "Multiple ConstantValue attributes");
 				return false;
 			}
 			
@@ -1083,13 +1072,13 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		if (!is_valid_name_utf(m->name)) {
-			*exceptionptr = new_classformaterror(c,"Method with invalid name");
+			exceptions_throw_classformaterror(c, "Method with invalid name");
 			return false;
 		}
 
 		if (m->name->text[0] == '<' &&
 			m->name != utf_init && m->name != utf_clinit) {
-			*exceptionptr = new_classformaterror(c,"Method with invalid special name");
+			exceptions_throw_classformaterror(c, "Method with invalid special name");
 			return false;
 		}
 	}
@@ -1101,8 +1090,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 #ifdef ENABLE_VERIFIER
 	if (opt_verify) {
 		if (argcount > 255) {
-			*exceptionptr =
-				new_classformaterror(c, "Too many arguments in signature");
+			exceptions_throw_classformaterror(c, "Too many arguments in signature");
 			return false;
 		}
 
@@ -1111,30 +1099,27 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
 
 			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) {
-				*exceptionptr =
-					new_classformaterror(c,
-										 "Illegal method modifiers: 0x%X",
-										 m->flags);
+				exceptions_throw_classformaterror(c,
+												  "Illegal method modifiers: 0x%X",
+												  m->flags);
 				return false;
 			}
 
 			if (m->flags & ACC_ABSTRACT) {
 				if ((m->flags & (ACC_FINAL | ACC_NATIVE | ACC_PRIVATE |
 								 ACC_STATIC | ACC_STRICT | ACC_SYNCHRONIZED))) {
-					*exceptionptr =
-						new_classformaterror(c,
-											 "Illegal method modifiers: 0x%X",
-											 m->flags);
+					exceptions_throw_classformaterror(c,
+													  "Illegal method modifiers: 0x%X",
+													  m->flags);
 					return false;
 				}
 			}
 
 			if (c->flags & ACC_INTERFACE) {
 				if ((m->flags & (ACC_ABSTRACT | ACC_PUBLIC)) != (ACC_ABSTRACT | ACC_PUBLIC)) {
-					*exceptionptr =
-						new_classformaterror(c,
-											 "Illegal method modifiers: 0x%X",
-											 m->flags);
+					exceptions_throw_classformaterror(c,
+													  "Illegal method modifiers: 0x%X",
+													  m->flags);
 					return false;
 				}
 			}
@@ -1142,8 +1127,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			if (m->name == utf_init) {
 				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
 								ACC_NATIVE | ACC_ABSTRACT)) {
-					*exceptionptr = new_classformaterror(c,
-							"Instance initialization method has invalid flags set");
+					exceptions_throw_classformaterror(c, "Instance initialization method has invalid flags set");
 					return false;
 				}
 			}
@@ -1185,17 +1169,12 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 		if (aname == utf_Code) {
 			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
-					*exceptionptr =
-						new_classformaterror(c,
-											 "Code attribute in native or abstract methods");
-
-					return false;
+				exceptions_throw_classformaterror(c, "Code attribute in native or abstract methods");
+				return false;
 			}
 			
 			if (m->jcode) {
-				*exceptionptr =
-					new_classformaterror(c, "Multiple Code attributes");
-
+				exceptions_throw_classformaterror(c, "Multiple Code attributes");
 				return false;
 			}
 
@@ -1207,9 +1186,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			m->maxlocals = suck_u2(cb);
 
 			if (m->maxlocals < argcount) {
-				*exceptionptr =
-					new_classformaterror(c, "Arguments can't fit into locals");
-
+				exceptions_throw_classformaterror(c, "Arguments can't fit into locals");
 				return false;
 			}
 			
@@ -1219,17 +1196,12 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			m->jcodelength = suck_u4(cb);
 
 			if (m->jcodelength == 0) {
-				*exceptionptr =
-					new_classformaterror(c, "Code of a method has length 0");
-
+				exceptions_throw_classformaterror(c, "Code of a method has length 0");
 				return false;
 			}
 			
 			if (m->jcodelength > 65535) {
-				*exceptionptr =
-					new_classformaterror(c,
-										 "Code of a method longer than 65535 bytes");
-
+				exceptions_throw_classformaterror(c, "Code of a method longer than 65535 bytes");
 				return false;
 			}
 
@@ -1324,8 +1296,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 			s4 j;
 
 			if (m->thrownexceptions) {
-				*exceptionptr =
-					new_classformaterror(c, "Multiple Exceptions attributes");
+				exceptions_throw_classformaterror(c, "Multiple Exceptions attributes");
 				return false;
 			}
 
@@ -1354,8 +1325,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	}
 
 	if (!m->jcode && !(m->flags & (ACC_ABSTRACT | ACC_NATIVE))) {
-		*exceptionptr = new_classformaterror(c, "Missing Code attribute");
-
+		exceptions_throw_classformaterror(c, "Missing Code attribute");
 		return false;
 	}
 
@@ -1390,8 +1360,7 @@ static bool load_attributes(classbuffer *cb, u4 num)
 		if (aname == utf_InnerClasses) {
 			/* innerclasses attribute */
 			if (c->innerclass) {
-				*exceptionptr =
-					new_classformaterror(c, "Multiple InnerClasses attributes");
+				exceptions_throw_classformaterror(c, "Multiple InnerClasses attributes");
 				return false;
 			}
 				
@@ -1433,14 +1402,12 @@ static bool load_attributes(classbuffer *cb, u4 num)
 				return false;
 
 			if (suck_u4(cb) != 2) {
-				*exceptionptr =
-					new_classformaterror(c, "Wrong size for VALUE attribute");
+				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 				return false;
 			}
 
 			if (c->sourcefile) {
-				*exceptionptr =
-					new_classformaterror(c, "Multiple SourceFile attributes");
+				exceptions_throw_classformaterror(c, "Multiple SourceFile attributes");
 				return false;
 			}
 
@@ -1847,7 +1814,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* check signature */
 
 	if (suck_u4(cb) != MAGIC) {
-		*exceptionptr = new_classformaterror(c, "Bad magic number");
+		exceptions_throw_classformaterror(c, "Bad magic number");
 
 		goto return_exception;
 	}
@@ -1896,10 +1863,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		}
 
 		if (c->flags & ACC_FINAL) {
-			*exceptionptr =
-				new_classformaterror(c,
-									 "Illegal class modifiers: 0x%X", c->flags);
-
+			exceptions_throw_classformaterror(c,
+											  "Illegal class modifiers: 0x%X",
+											  c->flags);
 			goto return_exception;
 		}
 
@@ -1909,9 +1875,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 
 	if ((c->flags & (ACC_ABSTRACT | ACC_FINAL)) == (ACC_ABSTRACT | ACC_FINAL)) {
-		*exceptionptr =
-			new_classformaterror(c, "Illegal class modifiers: 0x%X", c->flags);
-
+		exceptions_throw_classformaterror(c,
+										  "Illegal class modifiers: 0x%X",
+										  c->flags);
 		goto return_exception;
 	}
 
@@ -1985,8 +1951,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		/* This is only allowed for java.lang.Object. */
 
 		if (c->name != utf_java_lang_Object) {
-			*exceptionptr = new_classformaterror(c, "Bad superclass index");
-
+			exceptions_throw_classformaterror(c, "Bad superclass index");
 			goto return_exception;
 		}
 	}
@@ -2204,10 +2169,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				do {
 					if (c->fields[old].name == fi->name &&
 						c->fields[old].descriptor == fi->descriptor) {
-						*exceptionptr =
-							new_classformaterror(c,
-												 "Repetitive field name/signature");
-
+						exceptions_throw_classformaterror(c, "Repetitive field name/signature");
 						goto return_exception;
 					}
 				} while ((old = next[old]));
@@ -2238,10 +2200,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				do {
 					if (c->methods[old].name == mi->name &&
 						c->methods[old].descriptor == mi->descriptor) {
-						*exceptionptr =
-							new_classformaterror(c,
-												 "Repetitive method name/signature");
-
+						exceptions_throw_classformaterror(c, "Repetitive method name/signature");
 						goto return_exception;
 					}
 				} while ((old = next[old]));
@@ -2279,8 +2238,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		s4 classdata_left = ((cb->data + cb->size) - cb->pos);
 
 		if (classdata_left > 0) {
-			*exceptionptr =
-				new_classformaterror(c, "Extra bytes at the end of class file");
+			exceptions_throw_classformaterror(c, "Extra bytes at the end of class file");
 			goto return_exception;
 		}
 	}
