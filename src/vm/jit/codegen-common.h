@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen-common.h 4012 2005-12-30 14:17:30Z twisti $
+   $Id: codegen-common.h 4118 2006-01-10 10:59:20Z twisti $
 
 */
 
@@ -171,7 +171,7 @@ void codegen_close(void);
 s4 *codegen_increase(codegendata *cd, u1 *mcodeptr);
 
 #if defined(ENABLE_INTRP)
-u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
+u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 #endif
 
 void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr);
