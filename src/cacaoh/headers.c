@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: headers.c 4122 2006-01-10 20:44:14Z twisti $
 
 */
 
@@ -277,6 +277,16 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 }
 
 
+void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
+{
+	va_list ap;
+
+	va_start(ap, message);
+	(void) new_classformaterror(c, message, ap);
+	va_end(ap);
+}
+
+
 java_objectheader *new_classnotfoundexception(utf *name)
 {
 	fprintf(stderr, "java.lang.ClassNotFoundException: ");
@@ -400,6 +410,12 @@ java_objectheader *new_negativearraysizeexception(void)
 }
 
 
+void exceptions_throw_negativearraysizeexception(void)
+{
+	(void) new_negativearraysizeexception();
+}
+
+
 java_objectheader *new_nullpointerexception(void)
 {
 	fprintf(stderr, "%s", string_java_lang_NullPointerException);
@@ -409,6 +425,13 @@ java_objectheader *new_nullpointerexception(void)
 
 	return NULL;
 }
+
+
+void exceptions_throw_nullpointerexception(void)
+{
+	(void) new_nullpointerexception();
+}
+
 
 void classnotfoundexception_to_noclassdeffounderror(void)
 {
