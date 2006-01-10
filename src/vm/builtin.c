@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4129 2006-01-10 21:11:04Z twisti $
+   $Id: builtin.c 4132 2006-01-10 22:11:36Z twisti $
 
 */
 
@@ -344,7 +344,7 @@ s4 builtin_isanysubclass(classinfo *sub, classinfo *super)
 			(sub->vftbl->interfacetable[-super->index] != NULL);
 
 	} else {
-		asm_getclassvalues_atomic(super->vftbl, sub->vftbl, &classvalues);
+		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
 
 		res = (u4) (classvalues.sub_baseval - classvalues.super_baseval) <=
 			(u4) classvalues.super_diffval;
@@ -363,7 +363,7 @@ s4 builtin_isanysubclass_vftbl(vftbl_t *sub, vftbl_t *super)
 	if (sub == super)
 		return 1;
 
-	asm_getclassvalues_atomic(super, sub, &classvalues);
+	ASM_GETCLASSVALUES_ATOMIC(super, sub, &classvalues);
 
 	if ((base = classvalues.super_baseval) <= 0) {
 		/* super is an interface */
@@ -606,7 +606,7 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		asm_getclassvalues_atomic(componentvftbl, valuevftbl, &classvalues);
+		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues);
 
 		if ((base = classvalues.super_baseval) <= 0)
 			/* an array of interface references */
@@ -662,7 +662,7 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	asm_getclassvalues_atomic(elementvftbl, valuevftbl, &classvalues);
+	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
 
 	if ((base = classvalues.super_baseval) <= 0)
 		/* an array of interface references */
@@ -704,7 +704,7 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	asm_getclassvalues_atomic(elementvftbl, valuevftbl, &classvalues);
+	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
 
 	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
 		<= (unsigned) classvalues.super_diffval;
@@ -2415,25 +2415,25 @@ s4 builtin_l2i(s8 l)
 #endif
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_IFCVT)
+#if !(SUPPORT_FLOAT && SUPPORT_I2F)
 float builtin_i2f(s4 a)
 {
 	float f = (float) a;
 	return f;
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_IFCVT) */
+#endif /* !(SUPPORT_FLOAT && SUPPORT_I2F) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_IFCVT)
+#if !(SUPPORT_DOUBLE && SUPPORT_I2D)
 double builtin_i2d(s4 a)
 {
 	double d = (double) a;
 	return d;
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_IFCVT) */
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_I2D) */
 
 
-#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT)
+#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
 float builtin_l2f(s8 a)
 {
 #if U8_AVAILABLE
@@ -2443,9 +2443,10 @@ float builtin_l2f(s8 a)
 	return 0.0;
 #endif
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT) */
+#endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F) */
 
 
+#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
 double builtin_l2d(s8 a)
 {
 #if U8_AVAILABLE
@@ -2455,9 +2456,10 @@ double builtin_l2d(s8 a)
 	return 0.0;
 #endif
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_FICVT)
+#if !(SUPPORT_FLOAT && SUPPORT_F2I)
 s4 builtin_f2i(float a) 
 {
 	s4 i;
@@ -2482,32 +2484,10 @@ s4 builtin_f2i(float a)
 		return 2147483647;
 		return (-2147483648); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_FICVT) */
+#endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_FICVT)
-s4 builtin_d2i(double a) 
-{ 
-	double d;
-	
-	if (finite(a)) {
-		if (a >= 2147483647)
-			return 2147483647;
-		if (a <= (-2147483647-1))
-			return (-2147483647-1);
-		return (s4) a;
-	}
-	if (isnan(a))
-		return 0;
-	d = copysign(1.0, a);
-	if (d > 0)
-		return 2147483647;
-	return (-2147483647-1);
-}
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_FICVT) */
-
-
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT)
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -2532,10 +2512,32 @@ s8 builtin_f2l(float a)
 		return 9223372036854775807L;
 		return (-9223372036854775808L); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT) */
+#endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2I)
+s4 builtin_d2i(double a) 
+{ 
+	double d;
+	
+	if (finite(a)) {
+		if (a >= 2147483647)
+			return 2147483647;
+		if (a <= (-2147483647-1))
+			return (-2147483647-1);
+		return (s4) a;
+	}
+	if (isnan(a))
+		return 0;
+	d = copysign(1.0, a);
+	if (d > 0)
+		return 2147483647;
+	return (-2147483647-1);
+}
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) */
+
+
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
 s8 builtin_d2l(double a)
 {
 	double d;
@@ -2554,7 +2556,7 @@ s8 builtin_d2l(double a)
 		return 9223372036854775807LL;
 	return (-9223372036854775807LL-1);
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT) */
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L) */
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_DOUBLE)
