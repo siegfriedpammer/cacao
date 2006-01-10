@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 4051 2006-01-02 11:34:33Z twisti $
+   $Id: native.h 4120 2006-01-10 15:50:13Z twisti $
 
 */
 
@@ -101,8 +101,6 @@ struct nativecompref {
 };
 
 
-bool use_class_as_object(classinfo *c);
-
 /* initialize native subsystem */
 bool native_init(void);
 
@@ -138,85 +136,9 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i);
    mainly used for exceptions with cause */
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t);
 
-/* add property to temporary property list -- located in vm/VMRuntime.c */
-void create_property(char *key, char *value);
-
-void copy_vftbl(vftbl_t **dest, vftbl_t *src);
-
-utf *create_methodsig(java_objectarray* types, char *retType);
-
 java_objectarray *native_get_parametertypes(methodinfo *m);
 java_objectarray *native_get_exceptiontypes(methodinfo *m);
 classinfo *native_get_returntype(methodinfo *m);
-
-
-/*----- For Static Analysis of Natives by parseRT -----*/
-
-/*---------- global variables ---------------------------*/
-typedef struct classMeth classMeth;
-typedef struct nativeCall   nativeCall;
-typedef struct methodCall   methodCall;
-typedef struct nativeMethod nativeMethod;
-
-typedef struct nativeCompCall   nativeCompCall;
-typedef struct methodCompCall   methodCompCall;
-typedef struct nativeCompMethod nativeCompMethod;
-
-/*---------- Define Constants ---------------------------*/
-#define MAXCALLS 30 
-
-struct classMeth {
-	int i_class;
-	int j_method;
-	int methCnt;
-};
-
-struct  methodCall{
-	char *classname;
-	char *methodname;
-	char *descriptor;
-};
-
-struct  nativeMethod  {
-	char *methodname;
-	char *descriptor;
-	struct methodCall methodCalls[MAXCALLS];
-};
-
-
-struct nativeCall {
-	char *classname;
-	struct nativeMethod methods[MAXCALLS];
-	int methCnt;
-	int callCnt[MAXCALLS];
-};
-
-
-struct methodCompCall {
-	utf *classname;
-	utf *methodname;
-	utf *descriptor;
-};
-
-
-struct nativeCompMethod {
-	utf *methodname;
-	utf *descriptor;
-	struct methodCompCall methodCalls[MAXCALLS];
-};
-
-
-struct nativeCompCall {
-	utf *classname;
-	struct nativeCompMethod methods[MAXCALLS];
-	int methCnt;
-	int callCnt[MAXCALLS];
-};
-
-
-bool natcall2utf(bool);
-void printNativeCall(nativeCall);
-void markNativeMethodsRT(utf *, utf* , utf* ); 
 
 #endif /* _NATIVE_H */
 
