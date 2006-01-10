@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 3923 2005-12-08 23:17:21Z twisti $
+   $Id: builtintable.inc 4130 2006-01-10 21:58:12Z twisti $
 
 */
 
@@ -344,7 +344,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_FLOAT && SUPPORT_IFCVT)
+#if !(SUPPORT_FLOAT && SUPPORT_I2F)
 	{
 		ICMD_I2F,
 		BUILTIN_i2f,
@@ -354,7 +354,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_DOUBLE && SUPPORT_IFCVT)
+#if !(SUPPORT_DOUBLE && SUPPORT_I2D)
 	{
 		ICMD_I2D,
 		BUILTIN_i2d,
@@ -364,27 +364,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_FLOAT && SUPPORT_FICVT)
-	{
-		ICMD_F2I,
-		BUILTIN_f2i,
-		"(F)I",
-		"f2i",
-		NULL
-	},
-#endif
-
-#if !(SUPPORT_DOUBLE && SUPPORT_FICVT)
-	{
-		ICMD_D2I,
-		BUILTIN_d2i,
-		"(D)I",
-		"d2i",
-		NULL
-	},
-#endif
-
-#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT)
+#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
 	{
 		ICMD_L2F,
 		BUILTIN_l2f,
@@ -394,7 +374,7 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_LONG_FCVT)
+#if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
 	{
 		ICMD_L2D,
 		BUILTIN_l2d,
@@ -404,7 +384,17 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT)
+#if !(SUPPORT_FLOAT && SUPPORT_F2I)
+	{
+		ICMD_F2I,
+		BUILTIN_f2i,
+		"(F)I",
+		"f2i",
+		NULL
+	},
+#endif
+
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
 	{
 		ICMD_F2L,
 		BUILTIN_f2l,
@@ -414,7 +404,17 @@ static builtintable_entry builtintable_automatic[] = {
 	},
 #endif
 
-#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2I)
+	{
+		ICMD_D2I,
+		BUILTIN_d2i,
+		"(D)I",
+		"d2i",
+		NULL
+	},
+#endif
+
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
 	{
 		ICMD_D2L,
 		BUILTIN_d2l,
