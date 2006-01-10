@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3305 2005-09-29 14:12:23Z twisti $
+## $Id: Makefile.am 4134 2006-01-10 22:22:09Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -45,7 +45,8 @@ EXTRA_DIST = \
 	ChangeLog-2001 \
 	ChangeLog-2002 \
 	ChangeLog-2003 \
-	ChangeLog-2004
+	ChangeLog-2004 \
+	ChangeLog-2005
 
 ## Local variables:
 ## mode: Makefile
