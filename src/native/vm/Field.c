@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: Field.c 4124 2006-01-10 20:48:03Z twisti $
 
 */
 
@@ -126,7 +126,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 		/* obj is required for not-static fields */
 
 		if (o == NULL) {
-			*exceptionptr = new_nullpointerexception();
+			exceptions_throw_nullpointerexception();
 			return NULL;
 		}
 	
@@ -136,7 +136,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 
 	/* exception path */
 
-	*exceptionptr = new_illegalargumentexception();
+	exceptions_throw_illegalargumentexception();
 
 	return NULL;
 }
@@ -297,7 +297,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_l
 	case PRIMITIVETYPE_BOOLEAN:
 		return (s4) *((s4 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -330,7 +330,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang
 	case PRIMITIVETYPE_BYTE:
 		return (s4) *((s4 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -363,7 +363,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang
 	case PRIMITIVETYPE_CHAR:
 		return (s4) *((s4 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -397,7 +397,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lan
 	case PRIMITIVETYPE_SHORT:
 		return (s4) *((s4 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -433,7 +433,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang
 	case PRIMITIVETYPE_INT:
 		return (s4) *((s4 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -471,7 +471,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang
 	case PRIMITIVETYPE_LONG:
 		return (s8) *((s8 *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -511,7 +511,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 	case PRIMITIVETYPE_FLOAT:
 		return (float) *((float *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -553,7 +553,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 	case PRIMITIVETYPE_DOUBLE:
 		return (double) *((double *) addr);
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 }
@@ -607,7 +607,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Boolean *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -626,7 +626,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Byte *) value)->value;
 			break;
 		default:	
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -645,7 +645,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Character *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -669,7 +669,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Short *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -699,7 +699,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Integer *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -732,7 +732,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Long *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -768,7 +768,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Float *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -807,7 +807,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 			val = ((java_lang_Double *) value)->value;
 			break;
 		default:
-			*exceptionptr = new_illegalargumentexception();
+			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
@@ -828,7 +828,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 	/* raise exception */
 
-	*exceptionptr = new_illegalargumentexception();
+	exceptions_throw_illegalargumentexception();
 }
 
 
@@ -860,7 +860,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 		*((s4 *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -906,7 +906,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -951,7 +951,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -996,7 +996,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -1040,7 +1040,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -1081,7 +1081,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -1119,7 +1119,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
@@ -1154,7 +1154,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 		*((double *) addr) = value;
 		break;
 	default:
-		*exceptionptr = new_illegalargumentexception();
+		exceptions_throw_illegalargumentexception();
 	}
 
 	return;
