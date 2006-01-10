@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4051 2006-01-02 11:34:33Z twisti $
+   $Id: native.c 4119 2006-01-10 15:48:40Z twisti $
 
 */
 
@@ -226,10 +226,7 @@ static functionptr dummynativetable[] = {
 #endif /* defined(ENABLE_STATICVM) */
 
 
-/************************** tables for methods ********************************/
-
-#undef JOWENN_DEBUG
-#undef JOWENN_DEBUG1
+/* tables for methods *********************************************************/
 
 #ifdef ENABLE_STATICVM
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
@@ -240,18 +237,6 @@ static nativecompref nativecomptable[NATIVETABLESIZE];
 /* string comparsion table initialized */
 static bool nativecompdone = false;
 #endif
-
-
-/* XXX don't define this in a header file!!! */
-
-static struct nativeCall nativeCalls[] =
-{
-#include "nativecalls.inc"
-};
-
-#define NATIVECALLSSIZE    (sizeof(nativeCalls) / sizeof(struct nativeCall))
-
-struct nativeCompCall nativeCompCalls[NATIVECALLSSIZE];
 
 
 /* global variables ***********************************************************/
@@ -911,120 +896,6 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 }
 
 
-void copy_vftbl(vftbl_t **dest, vftbl_t *src)
-{
-    *dest = src;
-#if 0
-    /* XXX this kind of copying does not work (in the general
-     * case). The interface tables would have to be copied, too. I
-     * don't see why we should make a copy anyway. -Edwin
-     */
-	*dest = mem_alloc(sizeof(vftbl) + sizeof(methodptr)*(src->vftbllength-1));
-	memcpy(*dest, src, sizeof(vftbl) - sizeof(methodptr));
-	memcpy(&(*dest)->table, &src->table, src->vftbllength * sizeof(methodptr));
-#endif
-}
-
-
-/****************************************************************************************** 											   			
-
-	creates method signature (excluding return type) from array of 
-	class-objects representing the parameters of the method 
-
-*******************************************************************************************/
-
-
-utf *create_methodsig(java_objectarray* types, char *retType)
-{
-    char *buffer;       /* buffer for building the desciptor */
-    char *pos;          /* current position in buffer */
-    utf *result;        /* the method signature */
-    u4 buffer_size = 3; /* minimal size=3: room for parenthesis and returntype */
-    u4 i, j;
- 
-    if (!types) return NULL;
-
-    /* determine required buffer-size */    
-    for (i = 0; i < types->header.size; i++) {
-		classinfo *c = (classinfo *) types->data[i];
-		buffer_size  = buffer_size + c->name->blength + 2;
-    }
-
-    if (retType) buffer_size += strlen(retType);
-
-    /* allocate buffer */
-    buffer = MNEW(char, buffer_size);
-    pos    = buffer;
-    
-    /* method-desciptor starts with parenthesis */
-    *pos++ = '(';
-
-    for (i = 0; i < types->header.size; i++) {
-		char ch;	   
-
-		/* current argument */
-	    classinfo *c = (classinfo *) types->data[i];
-
-	    /* current position in utf-text */
-	    char *utf_ptr = c->name->text; 
-	    
-	    /* determine type of argument */
-	    if ((ch = utf_nextu2(&utf_ptr)) == '[') {
-	    	/* arrayclass */
-	        for (utf_ptr--; utf_ptr < UTF_END(c->name); utf_ptr++) {
-				*pos++ = *utf_ptr; /* copy text */
-			}
-
-	    } else {	   	
-			/* check for primitive types */
-			for (j = 0; j < PRIMITIVETYPE_COUNT; j++) {
-				char *utf_pos	= utf_ptr - 1;
-				char *primitive = primitivetype_table[j].wrapname;
-
-				/* compare text */
-				while (utf_pos < UTF_END(c->name)) {
-					if (*utf_pos++ != *primitive++) goto nomatch;
-				}
-
-				/* primitive type found */
-				*pos++ = primitivetype_table[j].typesig;
-				goto next_type;
-
-			nomatch:
-				;
-			}
-
-			/* no primitive type and no arrayclass, so must be object */
-			*pos++ = 'L';
-
-			/* copy text */
-			for (utf_ptr--; utf_ptr < UTF_END(c->name); utf_ptr++) {
-				*pos++ = *utf_ptr;
-			}
-
-			*pos++ = ';';
-
-		next_type:
-			;
-		}  
-    }	    
-
-    *pos++ = ')';
-
-    if (retType) {
-		for (i = 0; i < strlen(retType); i++) {
-			*pos++ = retType[i];
-		}
-    }
-
-    /* create utf-string */
-    result = utf_new(buffer, (pos - buffer));
-    MFREE(buffer, char, buffer_size);
-
-    return result;
-}
-
-
 /* native_get_parametertypes ***************************************************
 
    Use the descriptor of a method to generate a java/lang/Class array
@@ -1124,126 +995,6 @@ classinfo *native_get_returntype(methodinfo *m)
 	return c;
 }
 
-
-/*****************************************************************************/
-/*****************************************************************************/
-
-
-/*--------------------------------------------------------*/
-void printNativeCall(nativeCall nc) {
-  int i,j;
-
-  printf("\n%s's Native Methods call:\n",nc.classname); fflush(stdout);
-  for (i=0; i<nc.methCnt; i++) {  
-      printf("\tMethod=%s %s\n",nc.methods[i].methodname, nc.methods[i].descriptor);fflush(stdout);
-
-    for (j=0; j<nc.callCnt[i]; j++) {  
-        printf("\t\t<%i,%i>aCalled = %s %s %s\n",i,j,
-	nc.methods[i].methodCalls[j].classname, 
-	nc.methods[i].methodCalls[j].methodname, 
-	nc.methods[i].methodCalls[j].descriptor);fflush(stdout);
-      }
-    }
-  printf("-+++++--------------------\n");fflush(stdout);
-}
-
-/*--------------------------------------------------------*/
-void printCompNativeCall(nativeCompCall nc) {
-  int i,j;
-  printf("printCompNativeCall BEGIN\n");fflush(stdout); 
-  printf("\n%s's Native Comp Methods call:\n",nc.classname->text);fflush(stdout);
-  utf_display(nc.classname); fflush(stdout);
-  
-  for (i=0; i<nc.methCnt; i++) {  
-    printf("\tMethod=%s %s\n",nc.methods[i].methodname->text,nc.methods[i].descriptor->text);fflush(stdout);
-    utf_display(nc.methods[i].methodname); fflush(stdout);
-    utf_display(nc.methods[i].descriptor);fflush(stdout);
-    printf("\n");fflush(stdout);
-
-    for (j=0; j<nc.callCnt[i]; j++) {  
-      printf("\t\t<%i,%i>bCalled = ",i,j);fflush(stdout);
-	utf_display(nc.methods[i].methodCalls[j].classname);fflush(stdout);
-	utf_display(nc.methods[i].methodCalls[j].methodname); fflush(stdout);
-	utf_display(nc.methods[i].methodCalls[j].descriptor);fflush(stdout);
-	printf("\n");fflush(stdout);
-      }
-    }
-printf("---------------------\n");fflush(stdout);
-}
-
-
-/*--------------------------------------------------------*/
-classMeth findNativeMethodCalls(utf *c, utf *m, utf *d ) 
-{
-    int i = 0;
-    int j = 0;
-    int cnt = 0;
-    classMeth mc;
-    mc.i_class = i;
-    mc.j_method = j;
-    mc.methCnt = cnt;
-
-    return mc;
-}
-
-/*--------------------------------------------------------*/
-nativeCall* findNativeClassCalls(char *aclassname ) {
-int i;
-
-for (i=0;i<NATIVECALLSSIZE; i++) {
-   /* convert table to utf later to speed up search */ 
-   if (strcmp(nativeCalls[i].classname, aclassname) == 0) 
-	return &nativeCalls[i];
-   }
-
-return NULL;
-}
-/*--------------------------------------------------------*/
-/*--------------------------------------------------------*/
-void utfNativeCall(nativeCall nc, nativeCompCall *ncc) {
-  int i,j;
-
-
-  ncc->classname = utf_new_char(nc.classname); 
-  ncc->methCnt = nc.methCnt;
-  
-  for (i=0; i<nc.methCnt; i++) {  
-    ncc->methods[i].methodname = utf_new_char(nc.methods[i].methodname);
-    ncc->methods[i].descriptor = utf_new_char(nc.methods[i].descriptor);
-    ncc->callCnt[i] = nc.callCnt[i];
-
-    for (j=0; j<nc.callCnt[i]; j++) {  
-
-	ncc->methods[i].methodCalls[j].classname  = utf_new_char(nc.methods[i].methodCalls[j].classname);
-
-        if (strcmp("", nc.methods[i].methodCalls[j].methodname) != 0) {
-          ncc->methods[i].methodCalls[j].methodname = utf_new_char(nc.methods[i].methodCalls[j].methodname);
-          ncc->methods[i].methodCalls[j].descriptor = utf_new_char(nc.methods[i].methodCalls[j].descriptor);
-          }
-        else {
-          ncc->methods[i].methodCalls[j].methodname = NULL;
-          ncc->methods[i].methodCalls[j].descriptor = NULL;
-          }
-      }
-    }
-}
-
-
-
-/*--------------------------------------------------------*/
-
-bool natcall2utf(bool natcallcompdone) {
-int i;
-
-if (natcallcompdone) 
-	return true;
-
-for (i=0;i<NATIVECALLSSIZE; i++) {
-   utfNativeCall  (nativeCalls[i], &nativeCompCalls[i]);  
-   }
-
-return true;
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.
