@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4082 2006-01-03 23:08:58Z twisti $
+   $Id: jni.c 4123 2006-01-10 20:46:50Z twisti $
 
 */
 
@@ -472,7 +472,7 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 	return true;
 
 illegal_arg:
-	*exceptionptr = new_illegalargumentexception();
+	exceptions_throw_illegalargumentexception();
 	return false;
 }
 
@@ -3286,7 +3286,7 @@ jobjectArray NewObjectArray(JNIEnv *env, jsize length, jclass elementClass, jobj
 	STATISTICS(jniinvokation());
 
 	if (length < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3311,9 +3311,7 @@ jobject GetObjectArrayElement(JNIEnv *env, jobjectArray array, jsize index)
 	STATISTICS(jniinvokation());
 
 	if (index >= array->header.size) {
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 
@@ -3334,9 +3332,7 @@ void SetObjectArrayElement(JNIEnv *env, jobjectArray array, jsize index, jobject
 	o  = (java_objectheader *) val;
 
     if (index >= array->header.size) {
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
 
@@ -3360,7 +3356,7 @@ jbooleanArray NewBooleanArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3377,7 +3373,7 @@ jbyteArray NewByteArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3394,7 +3390,7 @@ jcharArray NewCharArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3411,7 +3407,7 @@ jshortArray NewShortArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3428,7 +3424,7 @@ jintArray NewIntArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3445,7 +3441,7 @@ jlongArray NewLongArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3462,7 +3458,7 @@ jfloatArray NewFloatArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3479,7 +3475,7 @@ jdoubleArray NewDoubleArray(JNIEnv *env, jsize len)
 	STATISTICS(jniinvokation());
 
 	if (len < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -3785,9 +3781,7 @@ void GetBooleanArrayRegion(JNIEnv *env, jbooleanArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jboolean, len);
 }
@@ -3799,9 +3793,7 @@ void GetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size) 
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jbyte, len);
 }
@@ -3813,9 +3805,7 @@ void GetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jchar, len);
 }
@@ -3827,9 +3817,7 @@ void GetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else	
 		MCOPY(buf, &array->data[start], jshort, len);
 }
@@ -3841,9 +3829,7 @@ void GetIntArrayRegion(JNIEnv *env, jintArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jint, len);
 }
@@ -3855,9 +3841,7 @@ void GetLongArrayRegion(JNIEnv *env, jlongArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jlong, len);
 }
@@ -3869,9 +3853,7 @@ void GetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jfloat, len);
 }
@@ -3883,9 +3865,7 @@ void GetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start+len>array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(buf, &array->data[start], jdouble, len);
 }
@@ -3904,9 +3884,7 @@ void SetBooleanArrayRegion(JNIEnv *env, jbooleanArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jboolean, len);
 }
@@ -3918,9 +3896,7 @@ void SetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jbyte, len);
 }
@@ -3932,12 +3908,9 @@ void SetCharArrayRegion(JNIEnv *env, jcharArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jchar, len);
-
 }
 
 
@@ -3947,9 +3920,7 @@ void SetShortArrayRegion(JNIEnv *env, jshortArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jshort, len);
 }
@@ -3961,12 +3932,9 @@ void SetIntArrayRegion(JNIEnv *env, jintArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jint, len);
-
 }
 
 
@@ -3976,12 +3944,9 @@ void SetLongArrayRegion(JNIEnv* env, jlongArray array, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jlong, len);
-
 }
 
 
@@ -3991,12 +3956,9 @@ void SetFloatArrayRegion(JNIEnv *env, jfloatArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jfloat, len);
-
 }
 
 
@@ -4006,9 +3968,7 @@ void SetDoubleArrayRegion(JNIEnv *env, jdoubleArray array, jsize start,
 	STATISTICS(jniinvokation());
 
     if (start < 0 || len < 0 || start + len > array->header.size)
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
-
+		exceptions_throw_arrayindexoutofboundsexception();
     else
 		MCOPY(&array->data[start], buf, jdouble, len);
 }
@@ -4075,7 +4035,7 @@ jint MonitorEnter(JNIEnv *env, jobject obj)
 	STATISTICS(jniinvokation());
 
 	if (!obj) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return JNI_ERR;
 	}
 
@@ -4100,8 +4060,9 @@ jint MonitorEnter(JNIEnv *env, jobject obj)
 jint MonitorExit(JNIEnv *env, jobject obj)
 {
 	STATISTICS(jniinvokation());
+
 	if (!obj) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return JNI_ERR;
 	}
 
