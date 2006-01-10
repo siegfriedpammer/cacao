@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4016 2005-12-30 14:28:35Z twisti $
+   $Id: builtin.c 4129 2006-01-10 21:11:04Z twisti $
 
 */
 
@@ -502,6 +502,7 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 
 ******************************************************************************/
 
+#if !defined(NDEBUG)
 java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 {
     java_lang_Throwable *t;
@@ -561,7 +562,7 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 	return xptr;
 }
-
+#endif /* !defined(NDEBUG) */
 
 
 /* builtin_canstore ************************************************************
@@ -789,7 +790,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 	componentsize = desc->componentsize;
 
 	if (size < 0) {
-		*exceptionptr = new_negativearraysizeexception();
+		exceptions_throw_negativearraysizeexception();
 		return NULL;
 	}
 
@@ -1069,7 +1070,7 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 #endif
 
 		if (size < 0) {
-			*exceptionptr = new_negativearraysizeexception();
+			exceptions_throw_negativearraysizeexception();
 			return NULL;
 		}
 	}
@@ -1088,6 +1089,7 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 	
 *****************************************************************************/
 
+#if !defined(NDEBUG)
 s4 methodindent = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *xptr,
@@ -1219,6 +1221,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	return xptr;
 }
+#endif /* !defined(NDEBUG) */
 
 
 /* builtin_trace_args **********************************************************
@@ -1226,6 +1229,8 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
    XXX
 
 *******************************************************************************/
+
+#if !defined(NDEBUG)
 
 #ifdef TRACE_ARGS_NUM
 void builtin_trace_args(s8 a0, s8 a1,
@@ -1475,6 +1480,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 	methodindent++;
 }
 #endif
+#endif /* !defined(NDEBUG) */
 
 
 /* builtin_displaymethodstop ***************************************************
@@ -1483,6 +1489,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 {
 	methoddesc  	  *md;
@@ -1639,6 +1646,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	dump_release(dumpsize);
 }
+#endif /* !defined(NDEBUG) */
 
 
 /****************************************************************************
@@ -1804,17 +1812,35 @@ void builtin_monitorexit(java_objectheader *o)
 
 ******************************************************************************/
 
-s4 builtin_idiv(s4 a, s4 b) { return a / b; }
-s4 builtin_irem(s4 a, s4 b) { return a % b; }
+#if !SUPPORT_DIVISION
+s4 builtin_idiv(s4 a, s4 b)
+{
+	s4 c;
+
+	c = a / b;
+
+	return c;
+}
+
+s4 builtin_irem(s4 a, s4 b)
+{
+	s4 c;
+
+	c = a % b;
+
+	return c;
+}
+#endif /* !SUPPORT_DIVISION */
 
 
-/************** Functions for long arithmetics *******************************
+/* functions for long arithmetics **********************************************
 
-	On systems where 64 bit Integers are not supported by the CPU, these
-	functions are needed.
+   On systems where 64 bit Integers are not supported by the CPU,
+   these functions are needed.
 
 ******************************************************************************/
 
+#if !(SUPPORT_LONG && SUPPORT_LONG_ADD)
 s8 builtin_ladd(s8 a, s8 b)
 {
 	s8 c;
@@ -1828,7 +1854,7 @@ s8 builtin_ladd(s8 a, s8 b)
 	return c;
 }
 
-s8 builtin_lsub(s8 a, s8 b) 
+s8 builtin_lsub(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1841,7 +1867,23 @@ s8 builtin_lsub(s8 a, s8 b)
 	return c;
 }
 
-s8 builtin_lmul(s8 a, s8 b) 
+s8 builtin_lneg(s8 a)
+{
+	s8 c;
+
+#if U8_AVAILABLE
+	c = -a;
+#else
+	c = builtin_i2l(0);
+#endif
+
+	return c;
+}
+#endif /* !(SUPPORT_LONG && SUPPORT_LONG_ADD) */
+
+
+#if !(SUPPORT_LONG && SUPPORT_LONG_MUL)
+s8 builtin_lmul(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1853,8 +1895,11 @@ s8 builtin_lmul(s8 a, s8 b)
 
 	return c;
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_LONG_MUL) */
 
-s8 builtin_ldiv(s8 a, s8 b) 
+
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
+s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1867,7 +1912,7 @@ s8 builtin_ldiv(s8 a, s8 b)
 	return c;
 }
 
-s8 builtin_lrem(s8 a, s8 b) 
+s8 builtin_lrem(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1879,8 +1924,11 @@ s8 builtin_lrem(s8 a, s8 b)
 
 	return c;
 }
+#endif /* !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV) */
 
-s8 builtin_lshl(s8 a, s4 b) 
+
+#if !(SUPPORT_LONG && SUPPORT_LONG_SHIFT)
+s8 builtin_lshl(s8 a, s4 b)
 {
 	s8 c;
 
@@ -1893,7 +1941,7 @@ s8 builtin_lshl(s8 a, s4 b)
 	return c;
 }
 
-s8 builtin_lshr(s8 a, s4 b) 
+s8 builtin_lshr(s8 a, s4 b)
 {
 	s8 c;
 
@@ -1906,7 +1954,7 @@ s8 builtin_lshr(s8 a, s4 b)
 	return c;
 }
 
-s8 builtin_lushr(s8 a, s4 b) 
+s8 builtin_lushr(s8 a, s4 b)
 {
 	s8 c;
 
@@ -1918,8 +1966,11 @@ s8 builtin_lushr(s8 a, s4 b)
 
 	return c;
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_LONG_SHIFT) */
 
-s8 builtin_land(s8 a, s8 b) 
+
+#if !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL)
+s8 builtin_land(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1932,7 +1983,7 @@ s8 builtin_land(s8 a, s8 b)
 	return c;
 }
 
-s8 builtin_lor(s8 a, s8 b) 
+s8 builtin_lor(s8 a, s8 b)
 {
 	s8 c;
 
@@ -1957,36 +2008,28 @@ s8 builtin_lxor(s8 a, s8 b)
 
 	return c;
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
 
-s8 builtin_lneg(s8 a) 
-{
-	s8 c;
 
-#if U8_AVAILABLE
-	c = -a;
-#else
-	c = builtin_i2l(0);
-#endif
-
-	return c;
-}
-
-s4 builtin_lcmp(s8 a, s8 b) 
+#if !(SUPPORT_LONG && SUPPORT_LONG_CMP)
+s4 builtin_lcmp(s8 a, s8 b)
 { 
 #if U8_AVAILABLE
-	if (a < b) return -1;
-	if (a > b) return 1;
+	if (a < b)
+		return -1;
+
+	if (a > b)
+		return 1;
+
 	return 0;
 #else
 	return 0;
 #endif
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_LONG_CMP) */
 
 
-
-
-
-/*********** Functions for floating point operations *************************/
+/* functions for unsupported floating instructions ****************************/
 
 /* used to convert FLT_xxx defines into float values */
 
@@ -2010,6 +2053,7 @@ static inline float longBitsToDouble(s8 l)
 }
 
 
+#if !SUPPORT_FLOAT
 float builtin_fadd(float a, float b)
 {
 	if (isnanf(a)) return intBitsToFloat(FLT_NAN);
@@ -2123,12 +2167,6 @@ float builtin_fdiv(float a, float b)
 }
 
 
-float builtin_frem(float a, float b)
-{
-	return fmodf(a, b);
-}
-
-
 float builtin_fneg(float a)
 {
 	if (isnanf(a)) return a;
@@ -2165,11 +2203,18 @@ s4 builtin_fcmpg(float a, float b)
 	if (a == b) return 0;
 	return -1;
 }
+#endif /* !SUPPORT_FLOAT */
 
 
+float builtin_frem(float a, float b)
+{
+	return fmodf(a, b);
+}
 
-/************************* Functions for doubles ****************************/
 
+/* functions for unsupported double instructions ******************************/
+
+#if !SUPPORT_DOUBLE
 double builtin_dadd(double a, double b)
 {
 	if (isnan(a)) return longBitsToDouble(DBL_NAN);
@@ -2278,11 +2323,6 @@ double builtin_ddiv(double a, double b)
 }
 
 
-double builtin_drem(double a, double b)
-{
-	return fmod(a, b);
-}
-
 /* builtin_dneg ****************************************************************
 
    Implemented as described in VM Spec.
@@ -2340,10 +2380,18 @@ s4 builtin_dcmpg(double a, double b)
 	if (a == b) return 0;
 	return -1;
 }
+#endif /* !SUPPORT_DOUBLE */
 
 
-/*********************** Conversion operations ****************************/
+double builtin_drem(double a, double b)
+{
+	return fmod(a, b);
+}
 
+
+/* conversion operations ******************************************************/
+
+#if 0
 s8 builtin_i2l(s4 i)
 {
 #if U8_AVAILABLE
@@ -2356,21 +2404,6 @@ s8 builtin_i2l(s4 i)
 #endif
 }
 
-
-float builtin_i2f(s4 a)
-{
-	float f = (float) a;
-	return f;
-}
-
-
-double builtin_i2d(s4 a)
-{
-	double d = (double) a;
-	return d;
-}
-
-
 s4 builtin_l2i(s8 l)
 {
 #if U8_AVAILABLE
@@ -2379,8 +2412,28 @@ s4 builtin_l2i(s8 l)
 	return l.low;
 #endif
 }
+#endif
 
 
+#if !(SUPPORT_FLOAT && SUPPORT_IFCVT)
+float builtin_i2f(s4 a)
+{
+	float f = (float) a;
+	return f;
+}
+#endif /* !(SUPPORT_FLOAT && SUPPORT_IFCVT) */
+
+
+#if !(SUPPORT_DOUBLE && SUPPORT_IFCVT)
+double builtin_i2d(s4 a)
+{
+	double d = (double) a;
+	return d;
+}
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_IFCVT) */
+
+
+#if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT)
 float builtin_l2f(s8 a)
 {
 #if U8_AVAILABLE
@@ -2390,6 +2443,7 @@ float builtin_l2f(s8 a)
 	return 0.0;
 #endif
 }
+#endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_LONG_FCVT) */
 
 
 double builtin_l2d(s8 a)
@@ -2403,6 +2457,7 @@ double builtin_l2d(s8 a)
 }
 
 
+#if !(SUPPORT_FLOAT && SUPPORT_FICVT)
 s4 builtin_f2i(float a) 
 {
 	s4 i;
@@ -2427,8 +2482,32 @@ s4 builtin_f2i(float a)
 		return 2147483647;
 		return (-2147483648); */
 }
+#endif /* !(SUPPORT_FLOAT && SUPPORT_FICVT) */
 
 
+#if !(SUPPORT_DOUBLE && SUPPORT_FICVT)
+s4 builtin_d2i(double a) 
+{ 
+	double d;
+	
+	if (finite(a)) {
+		if (a >= 2147483647)
+			return 2147483647;
+		if (a <= (-2147483647-1))
+			return (-2147483647-1);
+		return (s4) a;
+	}
+	if (isnan(a))
+		return 0;
+	d = copysign(1.0, a);
+	if (d > 0)
+		return 2147483647;
+	return (-2147483647-1);
+}
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_FICVT) */
+
+
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT)
 s8 builtin_f2l(float a)
 {
 	s8 l;
@@ -2453,40 +2532,10 @@ s8 builtin_f2l(float a)
 		return 9223372036854775807L;
 		return (-9223372036854775808L); */
 }
+#endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_LONG_ICVT) */
 
 
-double builtin_f2d(float a)
-{
-	if (finitef(a)) return (double) a;
-	else {
-		if (isnanf(a))
-			return longBitsToDouble(DBL_NAN);
-		else
-			return copysign(longBitsToDouble(DBL_POSINF), (double) copysignf(1.0, a) );
-	}
-}
-
-
-s4 builtin_d2i(double a) 
-{ 
-	double d;
-	
-	if (finite(a)) {
-		if (a >= 2147483647)
-			return 2147483647;
-		if (a <= (-2147483647-1))
-			return (-2147483647-1);
-		return (s4) a;
-	}
-	if (isnan(a))
-		return 0;
-	d = copysign(1.0, a);
-	if (d > 0)
-		return 2147483647;
-	return (-2147483647-1);
-}
-
-
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT)
 s8 builtin_d2l(double a)
 {
 	double d;
@@ -2505,7 +2554,20 @@ s8 builtin_d2l(double a)
 		return 9223372036854775807LL;
 	return (-9223372036854775807LL-1);
 }
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_LONG_ICVT) */
 
+
+#if !(SUPPORT_FLOAT && SUPPORT_DOUBLE)
+double builtin_f2d(float a)
+{
+	if (finitef(a)) return (double) a;
+	else {
+		if (isnanf(a))
+			return longBitsToDouble(DBL_NAN);
+		else
+			return copysign(longBitsToDouble(DBL_POSINF), (double) copysignf(1.0, a) );
+	}
+}
 
 float builtin_d2f(double a)
 {
@@ -2518,6 +2580,7 @@ float builtin_d2f(double a)
 			return copysignf(intBitsToFloat(FLT_POSINF), (float) copysign(1.0, a));
 	}
 }
+#endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
 
 
 /* builtin_clone_array *********************************************************
