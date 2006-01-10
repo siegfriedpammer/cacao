@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 3931 2005-12-09 15:09:13Z twisti $
+   $Id: exceptions.c 4128 2006-01-10 20:57:18Z twisti $
 
 */
 
@@ -509,6 +509,23 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 }
 
 
+/* exceptions_throw_classformaterror *******************************************
+
+   Generates a java.lang.ClassFormatError for the VM system throw it
+   in the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
+{
+	va_list ap;
+
+	va_start(ap, message);
+	*exceptionptr = new_classformaterror(c, message, ap);
+	va_end(ap);
+}
+
+
 /* new_classnotfoundexception **************************************************
 
    Generates a java.lang.ClassNotFoundException for the classloader.
@@ -844,18 +861,18 @@ java_objectheader *new_arithmeticexception(void)
 }
 
 
-/* new_arrayindexoutofboundsexception ******************************************
+/* exceptions_new_arrayindexoutofboundsexception *******************************
 
-   Generates a java.lang.ArrayIndexOutOfBoundsException for the JIT
-   compiler.
+   Generates a java.lang.ArrayIndexOutOfBoundsException for the VM
+   system.
 
 *******************************************************************************/
 
 java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 {
 	java_objectheader *e;
-	methodinfo *m;
-	java_lang_String *s;
+	methodinfo        *m;
+	java_lang_String  *s;
 
 	/* convert the index into a String, like Sun does */
 
@@ -884,6 +901,26 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_arrayindexoutofboundsexception *****************************
+
+   Generates a java.lang.ArrayIndexOutOfBoundsException for the VM
+   system.
+
+*******************************************************************************/
+
+void exceptions_throw_arrayindexoutofboundsexception(void)
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+
+	if (!e)
+		return;
+
+	*exceptionptr = e;
 }
 
 
@@ -926,7 +963,7 @@ java_objectheader *new_classcastexception(void)
 }
 
 
-/* new_illegalargumentexception ************************************************
+/* exceptions_new_illegalargumentexception *************************************
 
    Generates a java.lang.IllegalArgumentException for the VM system.
 
@@ -936,10 +973,25 @@ java_objectheader *new_illegalargumentexception(void)
 {
 	java_objectheader *e;
 
-	if (!(e = native_new_and_init(class_java_lang_IllegalArgumentException)))
+	e = native_new_and_init(class_java_lang_IllegalArgumentException);
+
+	if (!e)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_illegalargumentexception ***********************************
+
+   Generates a java.lang.IllegalArgumentException for the VM system
+   and throw it in the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_illegalargumentexception(void)
+{
+	*exceptionptr = new_illegalargumentexception();
 }
 
 
@@ -954,16 +1006,18 @@ java_objectheader *new_illegalmonitorstateexception(void)
 {
 	java_objectheader *e;
 
-	if (!(e = native_new_and_init(class_java_lang_IllegalMonitorStateException)))
+	e = native_new_and_init(class_java_lang_IllegalMonitorStateException);
+
+	if (!e)
 		return *exceptionptr;
 
 	return e;
 }
 
 
-/* new_negativearraysizeexception **********************************************
+/* exceptions_new_negativearraysizeexception ***********************************
 
-   generates a java.lang.NegativeArraySizeException for the jit compiler
+   Generates a java.lang.NegativeArraySizeException for the VM system.
 
 *******************************************************************************/
 
@@ -977,6 +1031,18 @@ java_objectheader *new_negativearraysizeexception(void)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_negativearraysizeexception *********************************
+
+   Generates a java.lang.NegativeArraySizeException for the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_negativearraysizeexception(void)
+{
+	*exceptionptr = new_negativearraysizeexception();
 }
 
 
@@ -996,6 +1062,19 @@ java_objectheader *new_nullpointerexception(void)
 		return *exceptionptr;
 
 	return e;
+}
+
+
+/* exceptions_throw_nullpointerexception ***************************************
+
+   Generates a java.lang.NullPointerException for the VM system and
+   throw it in the VM system.
+
+*******************************************************************************/
+
+void exceptions_throw_nullpointerexception(void)
+{
+	*exceptionptr = new_nullpointerexception();
 }
 
 
@@ -1115,6 +1194,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void exceptions_print_exception(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
@@ -1153,6 +1233,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 		putc('\n', stdout);
 	}
 }
+#endif /* !defined(NDEBUG) */
 
 
 /*

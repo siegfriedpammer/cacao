@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 3861 2005-12-03 13:31:29Z twisti $
+   $Id: exceptions.h 4128 2006-01-10 20:57:18Z twisti $
 
 */
 
@@ -119,6 +119,8 @@ java_objectheader *new_exception_int(const char *classname, s4 i);
 /* functions to generate compiler exceptions */
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...);
+void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
+
 java_objectheader *new_classnotfoundexception(utf *name);
 java_objectheader *new_noclassdeffounderror(utf *name);
 java_objectheader *exceptions_new_linkageerror(const char *message,classinfo *c);
@@ -130,13 +132,23 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c,
 													const char *message, ...);
 
 java_objectheader *new_arithmeticexception(void);
+
 java_objectheader *new_arrayindexoutofboundsexception(s4 index);
+void exceptions_throw_arrayindexoutofboundsexception(void);
+
 java_objectheader *new_arraystoreexception(void);
 java_objectheader *new_classcastexception(void);
+
 java_objectheader *new_illegalargumentexception(void);
+void exceptions_throw_illegalargumentexception(void);
+
 java_objectheader *new_illegalmonitorstateexception(void);
+
 java_objectheader *new_negativearraysizeexception(void);
+void exceptions_throw_negativearraysizeexception(void);
+
 java_objectheader *new_nullpointerexception(void);
+void exceptions_throw_nullpointerexception(void);
 
 void classnotfoundexception_to_noclassdeffounderror(void);
 
