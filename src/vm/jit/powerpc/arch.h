@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 3700 2005-11-17 18:53:38Z twisti $
+   $Id: arch.h 4136 2006-01-10 22:44:01Z twisti $
 
 */
 
@@ -47,9 +47,15 @@
 #define SUPPORT_FLOAT                    1
 #define SUPPORT_DOUBLE                   1
 
-#define SUPPORT_FMOD                     0
-#define SUPPORT_FICVT                    1
-#define SUPPORT_IFCVT                    0
+#define SUPPORT_I2F                      0
+#define SUPPORT_I2D                      0
+#define SUPPORT_L2F                      0
+#define SUPPORT_L2D                      0
+
+#define SUPPORT_F2I                      1
+#define SUPPORT_F2L                      0
+#define SUPPORT_D2I                      1
+#define SUPPORT_D2L                      0
 
 #define SUPPORT_LONG_ADD                 1
 #define SUPPORT_LONG_CMP                 1
@@ -58,8 +64,6 @@
 #define SUPPORT_LONG_SHIFT               0
 #define SUPPORT_LONG_MUL                 0
 #define SUPPORT_LONG_DIV                 0
-#define SUPPORT_LONG_ICVT                0
-#define SUPPORT_LONG_FCVT                0
 
 #define SUPPORT_CONST_LOGICAL            1  /* AND, OR, XOR with immediates   */
 #define SUPPORT_CONST_MUL                1  /* mutiply with immediate         */
