@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4083 2006-01-03 23:43:48Z twisti $
+   $Id: utf8.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -775,7 +775,7 @@ u4 utf_strlen(utf *u)
 	u4 len = 0;                         /* number of unicode characters       */
 
 	if (!u) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 

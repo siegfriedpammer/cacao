@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4006 2005-12-22 16:11:07Z twisti $
+   $Id: VMSystemProperties.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -85,7 +85,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #endif
 
 	if (!p) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return;
 	}
 

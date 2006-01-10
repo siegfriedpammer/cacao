@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 3888 2005-12-05 22:08:45Z twisti $
+   $Id: VMClass.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -651,7 +651,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
 	cc = (classinfo *) c;
 
 	if (cc == NULL) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 

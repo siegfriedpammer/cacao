@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4050 2006-01-02 01:34:53Z twisti $
+   $Id: VMRuntime.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -264,7 +264,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 #endif
 
 	if (!filename) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 
@@ -327,7 +327,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	java_lang_String *s;
 
 	if (!libname) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 

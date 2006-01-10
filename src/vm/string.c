@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 3984 2005-12-22 10:56:20Z twisti $
+   $Id: string.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -281,7 +281,7 @@ java_lang_String *javastring_new(utf *u)
 	s4 i;
 
 	if (!u) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
@@ -326,7 +326,7 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 	u2 ch;
 
 	if (!u) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
@@ -374,7 +374,7 @@ java_lang_String *javastring_new_char(const char *text)
 	java_chararray *a;
 
 	if (!text) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 

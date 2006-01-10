@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4008 2005-12-30 14:13:10Z twisti $
+   $Id: linker.c 4126 2006-01-10 20:55:41Z twisti $
 
 */
 
@@ -362,7 +362,7 @@ classinfo *link_class(classinfo *c)
 	classinfo *r;
 
 	if (!c) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
