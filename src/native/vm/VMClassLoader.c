@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: VMClassLoader.c 4125 2006-01-10 20:50:53Z twisti $
 
 */
 
@@ -79,15 +79,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	/* check if data was passed */
 
 	if (data == NULL) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
 	/* check the indexes passed */
 
 	if ((offset < 0) || (len < 0) || ((offset + len) > data->header.size)) {
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 
@@ -236,14 +235,14 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
 	ci = (classinfo *) c;
 
 	if (!ci) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return;
 	}
 
 	/* link the class */
 
 	if (!(ci->state & CLASS_LINKED))
-		link_class(ci);
+		(void) link_class(ci);
 
 	return;
 }
@@ -260,7 +259,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	utf *u;
 
 	if (!name) {
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 

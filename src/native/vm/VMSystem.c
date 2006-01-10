@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMSystem.c 3529 2005-11-01 21:59:33Z twisti $
+   $Id: VMSystem.c 4125 2006-01-10 20:50:53Z twisti $
 
 */
 
@@ -65,7 +65,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 	d = (java_arrayheader *) dest;
 
 	if (!s || !d) { 
-		*exceptionptr = new_nullpointerexception();
+		exceptions_throw_nullpointerexception();
 		return; 
 	}
 
@@ -82,8 +82,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 	if ((len < 0) || (sp < 0) || (dp < 0) ||
 		(sp + len < 0) || (sp + len > s->size) ||
 		(dp + len < 0) || (dp + len > d->size)) {
-		*exceptionptr =
-			new_exception(string_java_lang_ArrayIndexOutOfBoundsException);
+		exceptions_throw_arrayindexoutofboundsexception();
 		return; 
 	}
 
