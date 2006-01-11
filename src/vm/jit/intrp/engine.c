@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 3979 2005-12-21 16:39:52Z anton $
+   $Id: engine.c 4139 2006-01-11 12:16:57Z twisti $
 */
 
 
@@ -50,7 +50,6 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/options.h"
-#include "vm/jit/codegen.inc.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
 
@@ -135,7 +134,7 @@
 #define THROWCODE(_ball) \
     throw_##_ball##1: \
         global_sp = sp; \
-        *exceptionptr = (stacktrace_inline_##_ball(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP)); \
+        *exceptionptr = (stacktrace_inline_##_ball(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP)); \
         CLEAR_global_sp; \
         THROW0;
 
@@ -267,7 +266,7 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
 
   throw_arrayindexoutofboundsexception1:
 	  global_sp = sp;
-	  *exceptionptr = stacktrace_inline_arrayindexoutofboundsexception(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP, arrayindexoutofbounds_index);
+	  *exceptionptr = stacktrace_inline_arrayindexoutofboundsexception(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP, arrayindexoutofbounds_index);
 	  CLEAR_global_sp;
 	  THROW0;
   }
