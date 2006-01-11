@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: codegen.c 4138 2006-01-11 10:35:54Z twisti $
 
 */
 
@@ -1387,7 +1387,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_CVTLD(d, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
-			
+
+#if 0
+		/* XXX these do not work correctly */
+
 		case ICMD_F2I:       /* ..., (float) value  ==> ..., (int) value      */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
@@ -1427,6 +1430,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_NOP;
 			store_reg_to_var_int(iptr->dst, d);
 			break;
+#endif
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
