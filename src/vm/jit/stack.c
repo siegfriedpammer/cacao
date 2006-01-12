@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4067 2006-01-02 14:32:50Z christian $
+   $Id: stack.c 4162 2006-01-12 21:36:27Z twisti $
 
 */
 
@@ -2593,7 +2593,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen);
 
 		for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + m->basicblocks[0].mpc);)
-			u1ptr = disassinstr(u1ptr);
+			DISASSINSTR(u1ptr);
 
 		printf("\n");
 	}
@@ -2616,7 +2616,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 						m->basicblocks[m->basicblockcount].mpc);
 
 		for (; (ptrint) u1ptr < ((ptrint) m->mcode + m->mcodelength);)
-			u1ptr = disassinstr(u1ptr);
+			DISASSINSTR(u1ptr);
 
 		printf("\n");
 	}
@@ -2673,11 +2673,11 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 
 			if (bptr->next != NULL) {
 				for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + bptr->next->mpc);)
-					u1ptr = disassinstr(u1ptr);
+					DISASSINSTR(u1ptr);
 
 			} else {
 				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength);)
-					u1ptr = disassinstr(u1ptr); 
+					DISASSINSTR(u1ptr); 
 			}
 			printf("\n");
 		}
