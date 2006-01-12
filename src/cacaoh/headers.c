@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4142 2006-01-12 18:25:15Z twisti $
+   $Id: headers.c 4150 2006-01-12 21:11:00Z twisti $
 
 */
 
@@ -97,8 +97,20 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i) { return NULL; }
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t) { return NULL; }
 
 
-java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
-										void *arg3, void *arg4) { return NULL; }
+#if defined(ENABLE_JIT)
+java_objectheader *asm_calljavafunction(methodinfo *m,
+										void *arg1, void *arg2,
+										void *arg3, void *arg4)
+{ return NULL; }
+#endif
+
+#if defined(ENABLE_INTRP)
+java_objectheader *intrp_asm_calljavafunction(methodinfo *m,
+											  void *arg1, void *arg2,
+											  void *arg3, void *arg4)
+{ return NULL; }
+#endif
+
 
 /* code patching functions */
 void patcher_builtin_arraycheckcast(u1 *sp) {}
@@ -116,6 +128,10 @@ long compare_and_swap(long *p, long oldval, long newval)
 
 
 u1 *createcompilerstub(methodinfo *m) { return NULL; }
+#if defined(ENABLE_INTRP)
+u1 *intrp_createcompilerstub(methodinfo *m) { return NULL; }
+#endif
+
 u1 *codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
 
 void removecompilerstub(u1 *stub) {}
@@ -127,7 +143,15 @@ u1* asm_initialize_thread_stack(void *func, u1 *stack) { return NULL; }
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p) { return NULL; }
 
 void asm_handle_builtin_exception(classinfo *c) {}
+
+
+#if defined(ENABLE_JIT)
 void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
+#endif
+
+#if defined(ENABLE_INTRP)
+void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
+#endif
 
 
 void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this)
