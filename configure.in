@@ -44,6 +44,11 @@ powerpc )
 	CFLAGS="$CFLAGS -D__POWERPC__"
 	;;
 
+powerpc64 )
+	ARCH_DIR="powerpc64"
+	CFLAGS="$CFLAGS -D__POWERPC64__"
+	;;
+
 x86_64 )
 	ARCH_DIR="x86_64"
 	CFLAGS="$CFLAGS -D__X86_64__"
