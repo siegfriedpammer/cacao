@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4117 2006-01-09 20:52:21Z twisti $
+   $Id: disass.h 4153 2006-01-12 21:15:00Z twisti $
 
 */
 
@@ -43,6 +43,47 @@
 #endif
 
 #include "vm/types.h"
+
+
+/* some macros ****************************************************************/
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+
+#define DISASSINSTR(code) \
+    do { \
+        if (opt_intrp) \
+            (code) = intrp_disassinstr((code)); \
+        else \
+            (code) = disassinstr((code)); \
+    } while (0)
+
+#define DISASSEMBLE(start,end) \
+    do { \
+        if (opt_intrp) \
+            intrp_disassemble((start), (end)); \
+        else \
+            disassemble((start), (end)); \
+    } while (0)
+
+# else /* defined(ENABLE_INTRP) */
+
+#define DISASSINSTR(code) \
+    (code) = disassinstr((code))
+
+#define DISASSEMBLE(start,end) \
+    disassemble((start), (end))
+
+# endif /* defined(ENABLE_INTRP) */
+#else /* defined(ENABLE_JIT) */
+
+#define DISASSINSTR(code) \
+    (code) = intrp_disassinstr((code))
+
+#define DISASSEMBLE(start,end) \
+    intrp_disassemble((start), (end))
+
+#endif /* defined(ENABLE_JIT) */
 
 
 extern char *regs[];
