@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen-common.h 4118 2006-01-10 10:59:20Z twisti $
+   $Id: codegen-common.h 4160 2006-01-12 21:35:59Z twisti $
 
 */
 
@@ -201,6 +201,12 @@ u1 *createcompilerstub(methodinfo *m);
 u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 					 registerdata *rd, methoddesc *md);
 
+#if defined(ENABLE_INTRP)
+u1 *intrp_createcompilerstub(methodinfo *m);
+u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+						   registerdata *rd, methoddesc *md);
+#endif
+
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
 
@@ -215,6 +221,10 @@ void codegen_threadcritstop(codegendata *cd, int offset);
 /* machine dependent functions */
 u1 *md_codegen_findmethod(u1 *ra);
 bool codegen(methodinfo *m, codegendata *cd, registerdata *rd);
+
+#if defined(ENABLE_INTRP)
+bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd);
+#endif
 
 #endif /* _CODEGEN_COMMON_H */
 
