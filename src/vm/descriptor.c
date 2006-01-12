@@ -29,19 +29,23 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 3826 2005-12-01 18:52:50Z edwin $
+   $Id: descriptor.c 4176 2006-01-12 22:41:29Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "types.h"
+#include "vm/types.h"
+
 #include "md-abi.h"
 
 #include "mm/memory.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.h"
+#include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
@@ -969,13 +973,21 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 		}
 
 		/* fill the paramdesc */
-		/* md_param_alloc has to be called if md->paramcount == 0, too, so it */
-		/* can make the reservation for the Linkage Area, Return Register...  */
-		md_param_alloc(md);
-	}
-	else {
-		/* params will be allocated later by descriptor_params_from_paramtypes */
-		/* if necessary                                                        */
+		/* md_param_alloc has to be called if md->paramcount == 0,
+		   too, so it can make the reservation for the Linkage Area,
+		   Return Register... */
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+		if (!opt_intrp)
+# endif
+			md_param_alloc(md);
+#endif
+
+	} else {
+		/* params will be allocated later by
+		   descriptor_params_from_paramtypes if necessary */
+
 		md->params = NULL;
 	}
 
@@ -1049,16 +1061,22 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		/* allocate memory for params */
 
 		md->params = MNEW(paramdesc, md->paramcount);
-	}
-	else {
+
+	} else {
 		md->params = METHODDESC_NOPARAMS;
 	}
 
 	/* fill the paramdesc */
-	/* md_param_alloc has to be called if md->paramcount == 0, too, so     */
-	/* it can make the reservation for the Linkage Area, Return Register.. */
+	/* md_param_alloc has to be called if md->paramcount == 0, too, so
+	   it can make the reservation for the Linkage Area, Return
+	   Register.. */
 
-	md_param_alloc(md);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		md_param_alloc(md);
+#endif
 
 	return true;
 }
