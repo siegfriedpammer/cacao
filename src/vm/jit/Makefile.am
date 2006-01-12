@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4110 2006-01-09 16:36:26Z twisti $
+## $Id: Makefile.am 4156 2006-01-12 21:29:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -50,12 +50,14 @@ DIST_SUBDIRS = \
 	powerpc \
 	x86_64
 
+if ENABLE_JIT
+SUBDIRS += $(ARCH_DIR)
+ARCH_LIB = $(ARCH_DIR)/libarch.la
+endif
+
 if ENABLE_INTRP
 SUBDIRS += intrp
 INTRP_LIB = intrp/libintrp.la
-else
-SUBDIRS += $(ARCH_DIR)
-ARCH_LIB = $(ARCH_DIR)/libarch.la
 endif
 
 if USE_INLINING
