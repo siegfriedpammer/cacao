@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4163 2006-01-12 21:37:07Z twisti $
+   $Id: codegen.c 4173 2006-01-12 22:38:37Z twisti $
 
 */
 
@@ -3683,7 +3683,7 @@ gen_method:
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                         /* op1 = dimension, val.a = array descriptor */
+		                         /* op1 = dimension, val.a = class            */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
@@ -3700,10 +3700,10 @@ gen_method:
 
 			/* is a patcher function set? */
 
-			if (iptr->target) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									(functionptr) (ptrint) iptr->target,
-									iptr->val.a, 0);
+									PATCHER_builtin_multianewarray,
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
