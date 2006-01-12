@@ -29,9 +29,9 @@
 
    Changes: Edwin Steiner
             Christian Thalinger
-	    Christian Ullrich
+            Christian Ullrich
 
-   $Id: jit.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: jit.c 4154 2006-01-12 21:16:18Z twisti $
 
 */
 
@@ -1609,11 +1609,30 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* now generate the machine code */
 
-	if (!codegen(m, cd, rd)) {
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		if (!intrp_codegen(m, cd, rd)) {
+			DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
+
+			return NULL;
+		}
+	} else
+# endif
+		{
+			if (!codegen(m, cd, rd)) {
+				DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
+
+				return NULL;
+			}
+		}
+#else
+	if (!intrp_codegen(m, cd, rd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 		return NULL;
 	}
+#endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
@@ -1624,7 +1643,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		show_icmd_method(m, cd, rd);
 
 	} else if (opt_showdisassemble) {
-		disassemble(m->entrypoint,
+		DISASSEMBLE(m->entrypoint,
 					m->entrypoint + (m->mcodelength - cd->dseglen));
 	}
 
