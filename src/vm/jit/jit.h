@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 4014 2005-12-30 14:20:25Z twisti $
+   $Id: jit.h 4144 2006-01-12 21:04:23Z twisti $
 
 */
 
@@ -864,7 +864,13 @@ void jit_close(void);
 u1 *jit_compile(methodinfo *m);
 
 /* machine dependent initialization */
+#if defined(ENABLE_JIT)
 void md_init(void);
+#endif
+
+#if defined(ENABLE_INTRP)
+void intrp_md_init(void);
+#endif
 
 #endif /* _JIT_H */
 
