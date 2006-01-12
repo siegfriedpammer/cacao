@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4122 2006-01-10 20:44:14Z twisti $
+   $Id: headers.c 4142 2006-01-12 18:25:15Z twisti $
 
 */
 
@@ -445,6 +445,11 @@ void thread_restartcriticalsection(ucontext_t *uc) {}
 #endif
 
 void md_param_alloc(methoddesc *md) {}
+
+
+#if defined(ENABLE_INTRP)
+void print_dynamic_super_statistics(void) {}
+#endif
 
 
 /************************ global variables **********************/
