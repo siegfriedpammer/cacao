@@ -30,35 +30,37 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: codegen.c 4172 2006-01-12 22:37:33Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "vm/types.h"
 #include "arch.h"
 
 #include "vm/jit/intrp/codegen.h"
+#include "vm/jit/intrp/intrp.h"
 
 #include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen.inc"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
-
-#include "vm/jit/intrp/intrp.h"
 
 #if defined(WITH_FFI)
 # include <ffi.h>
@@ -230,18 +232,38 @@ struct builtin_gen builtin_gen_table[] = {
     {BUILTIN_newarray_float,          gen_NEWARRAY_FLOAT,  },    
     {BUILTIN_newarray_double,         gen_NEWARRAY_DOUBLE, },
     {BUILTIN_arrayinstanceof,         gen_ARRAYINSTANCEOF, },
+
 #if defined(USE_THREADS)
     {BUILTIN_monitorenter,            gen_MONITORENTER,    },
     {BUILTIN_monitorexit,             gen_MONITOREXIT,     },
 #endif
+
+#if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
     {BUILTIN_f2l,                     gen_F2L,             },
+#endif
+
+#if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)
     {BUILTIN_d2l,					  gen_D2L, 			   },
+#endif
+
+#if !(SUPPORT_FLOAT && SUPPORT_F2I)
     {BUILTIN_f2i,					  gen_F2I, 			   },
+#endif
+
+#if !(SUPPORT_DOUBLE && SUPPORT_D2I)
     {BUILTIN_d2i,					  gen_D2I, 			   },
+#endif
+
+#if !SUPPORT_DIVISION
     {BUILTIN_idiv,					  gen_IDIV,			   },
     {BUILTIN_irem,					  gen_IREM,			   },
+#endif
+
+#if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
     {BUILTIN_ldiv,					  gen_LDIV,			   },
     {BUILTIN_lrem,					  gen_LREM,			   },
+#endif
+
     {BUILTIN_frem,					  gen_FREM,			   },
     {BUILTIN_drem,					  gen_DREM,            },
 };
@@ -253,7 +275,7 @@ struct builtin_gen builtin_gen_table[] = {
 
 *******************************************************************************/
 
-bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4                  i, len, s1, s2, d;
 	stackptr            src;
@@ -1666,18 +1688,18 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.a: (classinfo *) superclass              */
 
 			if (iptr->val.a == NULL)
-				gen_PATCHER_INSTANCEOF(cd, 0, iptr->target);
+				gen_PATCHER_INSTANCEOF(cd, NULL, iptr->target);
 			else
 				gen_INSTANCEOF(cd, iptr->val.a, iptr->target);
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                      /* op1 = dimension, val.a = array descriptor    */
+		                      /* op1 = dimension, val.a = class               */
 
-			if (iptr->target) {
-				gen_PATCHER_MULTIANEWARRAY(cd, 0, iptr->op1, iptr->val.a);
+			if (iptr->val.a == NULL) {
+				gen_PATCHER_MULTIANEWARRAY(cd, NULL, iptr->op1, iptr->target);
 			} else {
-				gen_MULTIANEWARRAY(cd, iptr->val.a, iptr->op1, 0);
+				gen_MULTIANEWARRAY(cd, iptr->val.a, iptr->op1, NULL);
 			}
 			break;
 
@@ -1693,7 +1715,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	} /* if (bptr->flags >= BBREACHED) */
 	} /* for basic block */
 
-	codegen_createlinenumbertable(cd);
+	dseg_createlinenumbertable(cd);
 
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
@@ -1737,7 +1759,7 @@ all methods are called indirectly through methodptr
 
 #define COMPILERSTUB_SIZE 4
 
-u1 *createcompilerstub (methodinfo *m)
+u1 *intrp_createcompilerstub(methodinfo *m)
 {
 	Inst        *s;
 	codegendata *cd;
@@ -1828,8 +1850,8 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 #endif
 
 
-u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-					 registerdata *rd, methoddesc *nmd)
+u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
+						   registerdata *rd, methoddesc *nmd)
 {
 #if defined(WITH_FFI)
 	ffi_cif *cif;
