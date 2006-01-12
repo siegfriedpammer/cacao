@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4141 2006-01-12 18:09:43Z michi $
+   $Id: codegen-common.c 4159 2006-01-12 21:35:36Z twisti $
 
 */
 
@@ -59,8 +59,15 @@
 
 #include "vm/types.h"
 
-#include "codegen.h"
-#include "md-abi.h"
+#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+/* this is required for PATCHER_CALL_SIZE */
+# include "codegen.h"
+#endif
+
+#if defined(__ARM__)
+/* this is required for REG_SPLIT */
+# include "md-abi.h"
+#endif
 
 #include "mm/memory.h"
 #include "toolbox/avl.h"
@@ -109,13 +116,13 @@ void codegen_init(void)
 	/* this tree is global, not method specific */
 
 	if (!methodtree) {
-#if !defined(ENABLE_INTRP)
+#if defined(ENABLE_JIT)
 		methodtree_element *mte;
 #endif
 
 		methodtree = avl_create(&methodtree_comparator);
 
-#if !defined(ENABLE_INTRP)
+#if defined(ENABLE_JIT)
 		/* insert asm_calljavafunction */
 
 		mte = NEW(methodtree_element);
@@ -133,9 +140,9 @@ void codegen_init(void)
 		mte->endpc   = (u1 *) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
-#endif /* !defined(ENABLE_INTRP) */
+#endif /* defined(ENABLE_JIT) */
 	}
-#endif
+#endif /* defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC) */
 }
 
 
@@ -788,9 +795,14 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 	/* setup code generation stuff */
 
 	inlining_setup(m, id);
-#if !defined(ENABLE_INTRP)
-	reg_setup(m, rd, id);
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		reg_setup(m, rd, id);
 #endif
+
 	codegen_setup(m, cd, id);
 						
 	/* create new method descriptor with additional native parameters */
@@ -818,7 +830,16 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 	/* generate the code */
 
-	m->entrypoint = createnativestub(f, m, cd, rd, nmd);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		m->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+	else
+# endif
+		m->entrypoint = createnativestub(f, m, cd, rd, nmd);
+#else
+	m->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+#endif
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
