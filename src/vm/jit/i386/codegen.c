@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: codegen.c 4192 2006-01-12 23:54:55Z twisti $
 
 */
 
@@ -4953,9 +4953,9 @@ gen_method:
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                      /* op1 = dimension, val.a = array descriptor    */
+		                      /* op1 = dimension, val.a = class               */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX*/ 
+			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
@@ -4977,10 +4977,10 @@ gen_method:
 
 			/* is a patcher function set? */
 
-			if (iptr->target) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
-									(functionptr) (ptrint) iptr->target,
-									iptr->val.a, 0);
+									PATCHER_builtin_multianewarray,
+									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
