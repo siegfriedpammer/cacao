@@ -28,12 +28,15 @@
 
    Changes:
 
-   $Id: properties.c 4003 2005-12-22 15:07:43Z twisti $
+   $Id: properties.c 4145 2006-01-12 21:06:07Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdlib.h>
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -41,6 +44,7 @@
 #include "native/include/java_util_Properties.h"
 #include "toolbox/list.h"
 #include "vm/method.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
@@ -162,7 +166,7 @@ void properties_system_add(char *key, char *value)
 	k = javastring_new_char(key);
 	v = javastring_new_char(value);
 
-	asm_calljavafunction(mput, psystem, k, v, NULL);
+	ASM_CALLJAVAFUNCTION(mput, psystem, k, v, NULL);
 }
 
 

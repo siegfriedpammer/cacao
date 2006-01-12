@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 3999 2005-12-22 14:04:47Z twisti $
+   $Id: initialize.c 4145 2006-01-12 21:06:07Z twisti $
 
 */
 
@@ -205,7 +205,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* now call the initializer */
 
-	asm_calljavafunction(m, NULL, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, NULL, NULL, NULL, NULL);
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);

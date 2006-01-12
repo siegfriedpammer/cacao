@@ -28,12 +28,15 @@
 
    Changes:
 
-   $Id: finalizer.c 3692 2005-11-17 13:35:49Z twisti $
+   $Id: finalizer.c 4145 2006-01-12 21:06:07Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdlib.h>
+
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -43,6 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
@@ -189,7 +193,7 @@ void finalizer_run(void *o, void *p)
 
 	/* call the finalizer function */
 
-	asm_calljavafunction(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
 
 	/* if we had an exception in the finalizer, ignore it */
 
