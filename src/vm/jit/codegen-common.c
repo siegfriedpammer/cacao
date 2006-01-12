@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4087 2006-01-03 23:46:48Z twisti $
+   $Id: codegen-common.c 4141 2006-01-12 18:09:43Z michi $
 
 */
 
@@ -60,6 +60,7 @@
 #include "vm/types.h"
 
 #include "codegen.h"
+#include "md-abi.h"
 
 #include "mm/memory.h"
 #include "toolbox/avl.h"
