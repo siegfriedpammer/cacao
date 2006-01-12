@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4162 2006-01-12 21:36:27Z twisti $
+   $Id: stack.c 4168 2006-01-12 22:32:06Z twisti $
 
 */
 
@@ -1233,7 +1233,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_FRETURN:
 					case ICMD_DRETURN:
 					case ICMD_ARETURN:
-						md_return_alloc(m, rd, opcode - ICMD_IRETURN, curstack);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+						if (!opt_intrp)
+# endif
+							md_return_alloc(m, rd, opcode - ICMD_IRETURN,
+											curstack);
+#endif
 						COUNT(count_pcmd_return);
 						OP1_0(opcode - ICMD_IRETURN);
 						superblockend = true;
@@ -2301,13 +2307,20 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 					if (IS_2_WORD_TYPE(s->type))
 						printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
                             regs[GET_HIGH_REG(s->regoff)]);
-					else
+					else 
 #endif
-#if defined(ENABLE_INTRP)
-						printf(" %3d", s->regoff);
+						{
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+							if (opt_intrp)
+								printf(" %3d", s->regoff);
+							else
+# endif
+								printf(" %3s", regs[s->regoff]);
 #else
-						printf(" %3s", regs[s->regoff]);
+							printf(" %3d", s->regoff);
 #endif
+						}
 				}
 				break;
 			case STACKVAR:
@@ -2345,11 +2358,18 @@ void icmd_print_stack(codegendata *cd, stackptr s)
                             regs[GET_HIGH_REG(s->regoff)]);
 					else
 #endif
-#if defined(ENABLE_INTRP)
-						printf(" %3d", s->regoff);
+						{
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+							if (opt_intrp)
+								printf(" %3d", s->regoff);
+							else
+# endif
+								printf(" %3s", regs[s->regoff]);
 #else
-						printf(" %3s", regs[s->regoff]);
+							printf(" %3d", s->regoff);
 #endif
+						}
 				}
 				break;
 			case STACKVAR:
@@ -2484,35 +2504,39 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	printf("Local Table:\n");
 	for (i = 0; i < cd->maxlocals; i++) {
 		printf("   %3d: ", i);
+
+#if defined(ENABLE_JIT)
 		for (j = TYPE_INT; j <= TYPE_ADR; j++) {
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
-#endif
+# endif
 				if (rd->locals[i][j].type >= 0) {
 					printf("   (%s) ", jit_type[j]);
 					if (rd->locals[i][j].flags & INMEMORY)
 						printf("m%2d", rd->locals[i][j].regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
+# ifdef HAS_ADDRESS_REGISTER_FILE
 					else if (j == TYPE_ADR)
 						printf("r%02d", rd->locals[i][j].regoff);
-#endif
+# endif
 					else if ((j == TYPE_FLT) || (j == TYPE_DBL))
 						printf("f%02d", rd->locals[i][j].regoff);
 					else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+# if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 						if (IS_2_WORD_TYPE(j))
 							printf(" %3s/%3s",
 								   regs[GET_LOW_REG(rd->locals[i][j].regoff)],
 								   regs[GET_HIGH_REG(rd->locals[i][j].regoff)]);
 						else
-#endif
+# endif
 							printf("%3s", regs[rd->locals[i][j].regoff]);
 					}
 				}
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 			}
-#endif
+# endif
 		}
+#endif /* defined(ENABLE_JIT) */
+
 		printf("\n");
 	}
 	printf("\n");
@@ -2531,51 +2555,62 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 			(rd->interfaces[i][3].type >= 0) ||
 		    (rd->interfaces[i][4].type >= 0)) {
 			printf("   %3d: ", i);
-			for (j = TYPE_INT; j <= TYPE_ADR; j++)
-				if (rd->interfaces[i][j].type >= 0) {
-					printf("   (%s) ", jit_type[j]);
-					if (rd->interfaces[i][j].flags & SAVEDVAR) {
-						if (rd->interfaces[i][j].flags & INMEMORY)
-							printf("M%2d", rd->interfaces[i][j].regoff);
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+			if (!opt_intrp) {
+# endif
+				for (j = TYPE_INT; j <= TYPE_ADR; j++) {
+					if (rd->interfaces[i][j].type >= 0) {
+						printf("   (%s) ", jit_type[j]);
+						if (rd->interfaces[i][j].flags & SAVEDVAR) {
+							if (rd->interfaces[i][j].flags & INMEMORY)
+								printf("M%2d", rd->interfaces[i][j].regoff);
 #ifdef HAS_ADDRESS_REGISTER_FILE
-						else if (j == TYPE_ADR)
-							printf("R%02d", rd->interfaces[i][j].regoff);
+							else if (j == TYPE_ADR)
+								printf("R%02d", rd->interfaces[i][j].regoff);
 #endif
-						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("F%02d", rd->interfaces[i][j].regoff);
-						else {
+							else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+								printf("F%02d", rd->interfaces[i][j].regoff);
+							else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (IS_2_WORD_TYPE(j))
-								printf(" %3s/%3s",
-                             regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
-                             regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
-							else
+								if (IS_2_WORD_TYPE(j))
+									printf(" %3s/%3s",
+										   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+										   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
+								else
 #endif
-								printf("%3s",regs[rd->interfaces[i][j].regoff]);
+									printf("%3s",regs[rd->interfaces[i][j].regoff]);
+							}
 						}
-					}
-					else {
-						if (rd->interfaces[i][j].flags & INMEMORY)
-							printf("m%2d", rd->interfaces[i][j].regoff);
-#ifdef HAS_ADDRESS_REGISTER_FILE
-						else if (j == TYPE_ADR)
-							printf("r%02d", rd->interfaces[i][j].regoff);
-#endif
-						else if ((j == TYPE_FLT) || (j == TYPE_DBL))
-							printf("f%02d", rd->interfaces[i][j].regoff);
 						else {
-#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-							if (IS_2_WORD_TYPE(j))
-								printf(" %3s/%3s",
-                             regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
-							 regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
-							else
+							if (rd->interfaces[i][j].flags & INMEMORY)
+								printf("m%2d", rd->interfaces[i][j].regoff);
+#ifdef HAS_ADDRESS_REGISTER_FILE
+							else if (j == TYPE_ADR)
+								printf("r%02d", rd->interfaces[i][j].regoff);
 #endif
-								printf("%3s",regs[rd->interfaces[i][j].regoff]);
+							else if ((j == TYPE_FLT) || (j == TYPE_DBL))
+								printf("f%02d", rd->interfaces[i][j].regoff);
+							else {
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (IS_2_WORD_TYPE(j))
+									printf(" %3s/%3s",
+										   regs[GET_LOW_REG(rd->interfaces[i][j].regoff)],
+										   regs[GET_HIGH_REG(rd->interfaces[i][j].regoff)]);
+								else
+#endif
+									printf("%3s",regs[rd->interfaces[i][j].regoff]);
+							}
 						}
 					}
 				}
-			printf("\n");
+				printf("\n");
+# if defined(ENABLE_INTRP)
+			}
+# endif
+#endif /* defined(ENABLE_JIT) */
+
 		}
 	}
 	printf("\n");
