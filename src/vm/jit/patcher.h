@@ -28,13 +28,15 @@
 
    Changes:
 
-   $Id: patcher.h 3619 2005-11-07 18:44:32Z twisti $
+   $Id: patcher.h 4155 2006-01-12 21:17:46Z twisti $
 
 */
+
 
 #ifndef _PATCHER_H
 #define _PATCHER_H
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -162,6 +164,22 @@ bool patcher_athrow_areturn(u1 *sp);
 bool patcher_resolve_native(u1 *sp);
 #define PATCHER_resolve_native (functionptr) patcher_resolve_native
 #endif /* !defined(ENABLE_STATICVM) */
+
+
+/* stuff for the interpreter **************************************************/
+
+#if defined(ENABLE_INTRP)
+bool intrp_patcher_get_putstatic(u1 *sp);
+bool intrp_patcher_get_putfield(u1 *sp);
+bool intrp_patcher_aconst(u1 *sp);
+bool intrp_patcher_builtin_multianewarray(u1 *sp);
+bool intrp_patcher_builtin_arraycheckcast(u1 *sp);
+bool intrp_patcher_invokestatic_special(u1 *sp);
+bool intrp_patcher_invokevirtual(u1 *sp);
+bool intrp_patcher_invokeinterface(u1 *sp);
+bool intrp_patcher_checkcast_instanceof(u1 *sp);
+bool intrp_patcher_resolve_native(u1 *sp);
+#endif /* defined(ENABLE_INTRP) */
 
 #endif /* _PATCHER_H */
 
