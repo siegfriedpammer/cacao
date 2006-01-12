@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4125 2006-01-10 20:50:53Z twisti $
+   $Id: VMClassLoader.c 4151 2006-01-12 21:13:27Z twisti $
 
 */
 
@@ -396,7 +396,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 		/* if a resource was found, add it to the vector */
 
 		if (path) {
-			ret = (jboolean) asm_calljavafunction_int(m, o, path, NULL, NULL);
+			ASM_CALLJAVAFUNCTION_INT(ret, m, o, path, NULL, NULL);
 
 			if (!ret)
 				return NULL;
