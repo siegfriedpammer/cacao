@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4132 2006-01-10 22:11:36Z twisti $
+   $Id: builtin.c 4147 2006-01-12 21:07:11Z twisti $
 
 */
 
@@ -2175,8 +2175,10 @@ float builtin_fneg(float a)
 		else return copysignf(a, -copysignf(1.0, a));
 	}
 }
+#endif /* !SUPPORT_FLOAT */
 
 
+#if !SUPPORT_FLOAT || defined(ENABLE_INTRP)
 s4 builtin_fcmpl(float a, float b)
 {
 	if (isnanf(a)) return -1;
@@ -2203,7 +2205,7 @@ s4 builtin_fcmpg(float a, float b)
 	if (a == b) return 0;
 	return -1;
 }
-#endif /* !SUPPORT_FLOAT */
+#endif /* !SUPPORT_FLOAT || defined(ENABLE_INTRP) */
 
 
 float builtin_frem(float a, float b)
@@ -2352,8 +2354,10 @@ double builtin_dneg(double a)
 		}
 	}
 }
+#endif /* !SUPPORT_DOUBLE */
 
 
+#if !SUPPORT_DOUBLE || defined(ENABLE_INTRP)
 s4 builtin_dcmpl(double a, double b)
 {
 	if (isnan(a)) return -1;
@@ -2380,7 +2384,7 @@ s4 builtin_dcmpg(double a, double b)
 	if (a == b) return 0;
 	return -1;
 }
-#endif /* !SUPPORT_DOUBLE */
+#endif /* !SUPPORT_DOUBLE || defined(ENABLE_INTRP) */
 
 
 double builtin_drem(double a, double b)

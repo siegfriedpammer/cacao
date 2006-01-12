@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4128 2006-01-10 20:57:18Z twisti $
+   $Id: exceptions.c 4147 2006-01-12 21:07:11Z twisti $
 
 */
 
@@ -186,8 +186,9 @@ static void throw_exception_exit_intern(bool doexit)
 									   false);
 
 		/* print the stacktrace */
+
 		if (pss) {
-			asm_calljavafunction(pss, xptr, NULL, NULL, NULL);
+			ASM_CALLJAVAFUNCTION(pss, xptr, NULL, NULL, NULL);
 
 			/* This normally means, we are EXTREMLY out of memory or have a   */
 			/* serious problem while printStackTrace. But may be another      */
@@ -872,6 +873,7 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 {
 	java_objectheader *e;
 	methodinfo        *m;
+	java_objectheader *o;
 	java_lang_String  *s;
 
 	/* convert the index into a String, like Sun does */
@@ -885,11 +887,9 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 	if (!m)
 		return *exceptionptr;
 
-	s = (java_lang_String *) asm_calljavafunction(m,
-												  (void *) (ptrint) index,
-												  NULL,
-												  NULL,
-												  NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, m, (void *) (ptrint) index, NULL, NULL, NULL);
+
+	s = (java_lang_String *) o;
 
 	if (!s)
 		return *exceptionptr;
