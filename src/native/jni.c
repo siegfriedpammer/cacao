@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4123 2006-01-10 20:46:50Z twisti $
+   $Id: jni.c 4178 2006-01-12 23:03:57Z twisti $
 
 */
 
@@ -527,10 +527,9 @@ static jobject callObjectMethod(jobject obj, jmethodID methodID, va_list args)
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = asm_calljavafunction2(methodID,
-								argcount,
-								argcount * sizeof(jni_callblock),
-								blk);
+	ASM_CALLJAVAFUNCTION2_ADR(ret, methodID, argcount,
+							  argcount * sizeof(jni_callblock),
+							  blk);
 
 	MFREE(blk, jni_callblock, argcount);
 
@@ -582,10 +581,9 @@ static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_l
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = asm_calljavafunction2int(methodID,
-								   argcount,
-								   argcount * sizeof(jni_callblock),
-								   blk);
+	ASM_CALLJAVAFUNCTION2_INT(ret, methodID, argcount,
+							  argcount * sizeof(jni_callblock),
+							  blk);
 
 	MFREE(blk, jni_callblock, argcount);
 
@@ -631,10 +629,9 @@ static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = asm_calljavafunction2long(methodID,
-									argcount,
-									argcount * sizeof(jni_callblock),
-									blk);
+	ASM_CALLJAVAFUNCTION2_LONG(ret, methodID, argcount,
+							   argcount * sizeof(jni_callblock),
+							   blk);
 
 	MFREE(blk, jni_callblock, argcount);
 
@@ -663,17 +660,13 @@ static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int
 
 	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, retType);
 
-	/*      printf("parameter: obj: %p",blk[0].item); */
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = asm_calljavafunction2double(methodID,
-									  argcount + 1,
-									  (argcount + 1) * sizeof(jni_callblock),
-									  blk);
+	ASM_CALLJAVAFUNCTION2_DOUBLE(ret, methodID, argcount + 1,
+								 (argcount + 1) * sizeof(jni_callblock),
+								 blk);
 
 	MFREE(blk, jni_callblock, argcount + 1);
-	/*      printf("(CallObjectMethodV)-->%p\n",ret); */
 
 	return ret;
 }
@@ -712,10 +705,9 @@ static void cacao_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	(void) asm_calljavafunction2(m,
-								 paramcount,
-								 paramcount * sizeof(jni_callblock),
-								 blk);
+	ASM_CALLJAVAFUNCTION2(m, paramcount,
+						  paramcount * sizeof(jni_callblock),
+						  blk);
 
 	MFREE(blk, jni_callblock, paramcount);
 
@@ -1008,7 +1000,7 @@ void ExceptionDescribe(JNIEnv *env)
 
 		/* print the stacktrace */
 
-		asm_calljavafunction(m, e, NULL, NULL, NULL);
+		ASM_CALLJAVAFUNCTION(m, e, NULL, NULL, NULL);
 	}
 }
 
@@ -4198,6 +4190,7 @@ void DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
     
 jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 {
+	java_objectheader *o;
 	java_lang_Integer *refcount;
 	java_objectheader *newval;
 
@@ -4207,8 +4200,9 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 	builtin_monitorenter(*global_ref_table);
 #endif
 	
-	refcount = (java_lang_Integer *)
-		asm_calljavafunction(getmid, *global_ref_table, lobj, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, getmid, *global_ref_table, lobj, NULL, NULL);
+
+	refcount = (java_lang_Integer *) o;
 
 	if (refcount == NULL) {
 		newval = native_new_and_init_int(class_java_lang_Integer, 1);
@@ -4220,7 +4214,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 			return NULL;
 		}
 
-		asm_calljavafunction(putmid, *global_ref_table, lobj, newval, NULL);
+		ASM_CALLJAVAFUNCTION(putmid, *global_ref_table, lobj, newval, NULL);
 
 	} else {
 		/* we can access the object itself, as we are in a
@@ -4245,6 +4239,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 
 void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 {
+	java_objectheader *o;
 	java_lang_Integer *refcount;
 	s4                 val;
 
@@ -4254,8 +4249,10 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	builtin_monitorenter(*global_ref_table);
 #endif
 
-	refcount = (java_lang_Integer *)
-		asm_calljavafunction(getmid, *global_ref_table, globalRef, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, getmid, *global_ref_table, globalRef, NULL,
+							 NULL);
+
+	refcount = (java_lang_Integer *) o;
 
 	if (refcount == NULL) {
 		log_text("JNI-DeleteGlobalRef: unable to find global reference");
@@ -4268,7 +4265,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	val = refcount->value - 1;
 
 	if (val == 0) {
-		asm_calljavafunction(removemid, *global_ref_table, refcount, NULL,
+		ASM_CALLJAVAFUNCTION(removemid, *global_ref_table, refcount, NULL,
 							 NULL);
 
 	} else {
@@ -4322,14 +4319,6 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	log_text("JNI-NewDirectByteBuffer: called");
 
-#if 0
-	/* allocate a java.nio.DirectByteBufferImpl$ReadWrite object */
-
-	if (!(nbuf = (java_nio_DirectByteBufferImpl$ReadWrite *)
-		  builtin_new(class_java_nio_DirectByteBufferImpl_ReadWrite)))
-		return NULL;
-#endif
-
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
 #if SIZEOF_VOID_P == 8
@@ -4345,14 +4334,7 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	paddress->data = (ptrint) address;
 
-#if 0
-	/* fill java.nio.Buffer object */
-
-	nbuf->cap     = (s4) capacity;
-	nbuf->limit   = (s4) capacity;
-	nbuf->pos     = 0;
-	nbuf->address = (gnu_classpath_Pointer *) paddress;
-#endif
+	/* create a java.nio.DirectByteBufferImpl$ReadWrite object */
 
 	nbuf = (*env)->NewObject(env, class_java_nio_DirectByteBufferImpl_ReadWrite,
 							 dbbirw_init, NULL, paddress,
@@ -4383,7 +4365,7 @@ void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 	STATISTICS(jniinvokation());
 
 #if 0
-	if (!builtin_instanceof(buf, class_java_nio_DirectByteBufferImpl))
+	if (!builtin_instanceof(buf, class_java_nio_Buffer))
 		return NULL;
 #endif
 
@@ -4940,17 +4922,17 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 
 	switch (methodID->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
-		(void) asm_calljavafunction2(methodID, argcount,
-									 argcount * sizeof(jni_callblock),
-									 blk);
+		ASM_CALLJAVAFUNCTION2(methodID, argcount,
+							  argcount * sizeof(jni_callblock),
+							  blk);
 		o = NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
 		break;
 
 	case PRIMITIVETYPE_INT: {
 		s4 i;
-		i = asm_calljavafunction2int(methodID, argcount,
-									 argcount * sizeof(jni_callblock),
-									 blk);
+		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
 
 		o = native_new_and_init_int(class_java_lang_Integer, i);
 	}
@@ -4958,9 +4940,9 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 
 	case PRIMITIVETYPE_BYTE: {
 		s4 i;
-		i = asm_calljavafunction2int(methodID, argcount,
-									 argcount * sizeof(jni_callblock),
-									 blk);
+		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
 
 /*  		o = native_new_and_init_int(class_java_lang_Byte, i); */
 		o = builtin_new(class_java_lang_Byte);
@@ -4974,104 +4956,117 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 	break;
 
 	case PRIMITIVETYPE_CHAR: {
-		s4 intVal;
-		intVal = asm_calljavafunction2int(methodID,
-										  argcount,
-										  argcount * sizeof(jni_callblock),
-										  blk);
+		s4 i;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
 		o = builtin_new(class_java_lang_Character);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_char__void),
-					   intVal);
+					   i);
 	}
 	break;
 
 	case PRIMITIVETYPE_SHORT: {
-		s4 intVal;
-		intVal = asm_calljavafunction2int(methodID,
-										  argcount,
-										  argcount * sizeof(jni_callblock),
-										  blk);
+		s4 i;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
 		o = builtin_new(class_java_lang_Short);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_short__void),
-					   intVal);
+					   i);
 	}
 	break;
 
 	case PRIMITIVETYPE_BOOLEAN: {
-		s4 intVal;
-		intVal = asm_calljavafunction2int(methodID,
-										  argcount,
-										  argcount * sizeof(jni_callblock),
-										  blk);
+		s4 i;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
 		o = builtin_new(class_java_lang_Boolean);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_boolean__void),
-					   intVal);
+					   i);
 	}
 	break;
 
 	case PRIMITIVETYPE_LONG: {
-		jlong longVal;
-		longVal = asm_calljavafunction2long(methodID,
-											argcount,
-											argcount * sizeof(jni_callblock),
-											blk);
+		s8 l;
+
+		ASM_CALLJAVAFUNCTION2_LONG(l, methodID, argcount,
+								   argcount * sizeof(jni_callblock),
+								   blk);
+
 		o = builtin_new(class_java_lang_Long);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_long__void),
-					   longVal);
+					   l);
 	}
 	break;
 
 	case PRIMITIVETYPE_FLOAT: {
-		jdouble floatVal;	
-		floatVal = asm_calljavafunction2float(methodID,
-											  argcount,
-											  argcount * sizeof(jni_callblock),
-											  blk);
+		float f;
+
+		ASM_CALLJAVAFUNCTION2_FLOAT(f, methodID, argcount,
+									argcount * sizeof(jni_callblock),
+									blk);
+
 		o = builtin_new(class_java_lang_Float);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_float__void),
-					   floatVal);
+					   f);
 	}
 	break;
 
 	case PRIMITIVETYPE_DOUBLE: {
-		jdouble doubleVal;
-		doubleVal = asm_calljavafunction2double(methodID,
-												argcount,
-												argcount * sizeof(jni_callblock),
-												blk);
+		double d;
+
+		ASM_CALLJAVAFUNCTION2_DOUBLE(d, methodID, argcount,
+									 argcount * sizeof(jni_callblock),
+									 blk);
+
 		o = builtin_new(class_java_lang_Double);
+
 		CallVoidMethod(env,
 					   o,
 					   class_resolvemethod(o->vftbl->class,
 										   utf_init,
 										   utf_double__void),
-					   doubleVal);
+					   d);
 	}
 	break;
 
 	case TYPE_ADR:
-		o = asm_calljavafunction2(methodID, argcount,
-								  argcount * sizeof(jni_callblock), blk);
+		ASM_CALLJAVAFUNCTION2_ADR(o, methodID, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
 		break;
 
 	default:
@@ -5079,6 +5074,7 @@ jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
 		/* fill_callblock_from_objectarray                                    */
 
 		MFREE(blk, jni_callblock, argcount);
+
 		return (jobject *) 0;
 	}
 
