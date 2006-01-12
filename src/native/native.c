@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4119 2006-01-10 15:48:40Z twisti $
+   $Id: native.c 4152 2006-01-12 21:14:03Z twisti $
 
 */
 
@@ -790,7 +790,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* call initializer */
 
-	asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
 
 	return o;
 }
@@ -826,7 +826,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 
 	/* call initializer */
 
-	asm_calljavafunction(m, o, s, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
 
 	return o;
 }
@@ -858,7 +858,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* call initializer */
 
-	asm_calljavafunction(m, o, (void *) (ptrint) i, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, (void *) (ptrint) i, NULL, NULL);
 
 	return o;
 }
@@ -890,7 +890,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 
 	/* call initializer */
 
-	asm_calljavafunction(m, o, t, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, t, NULL, NULL);
 
 	return o;
 }

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4087 2006-01-03 23:46:48Z twisti $
+   $Id: threads.c 4152 2006-01-12 21:14:03Z twisti $
 
 */
 
@@ -612,7 +612,9 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	asm_calljavafunction(method, mainthread, mainthreadobj, threadname, (void*) 5);
+	ASM_CALLJAVAFUNCTION(method, mainthread, mainthreadobj, threadname,
+						 (void *) 5);
+
 	if (*exceptionptr)
 		return false;
 
@@ -631,7 +633,7 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	asm_calljavafunction(method, threadgroup, mainthread, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(method, threadgroup, mainthread, NULL, NULL);
 
 	if (*exceptionptr)
 		return false;
@@ -759,7 +761,7 @@ static void *threads_startup_thread(void *t)
 		if (!method)
 			throw_exception();
 
-		asm_calljavafunction(method, thread, NULL, NULL, NULL);
+		ASM_CALLJAVAFUNCTION(method, thread, NULL, NULL, NULL);
 
 	} else {
 		/* call passed function, e.g. finalizer_thread */
