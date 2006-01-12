@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: builtintable.inc 4130 2006-01-10 21:58:12Z twisti $
+   $Id: builtintable.inc 4167 2006-01-12 21:55:07Z twisti $
 
 */
 
@@ -234,17 +234,6 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 #endif
-
-
-	/* assembler code patching functions **************************************/
-
-	{
-		ICMD_CHECKCAST,
-		PATCHER_builtin_arraycheckcast,
-		"([Ljava/lang/Class;[Ljava/lang/Class;)[Ljava/lang/Object;",
-		"arraycheckcast (NOT RESOLVED)",
-		NULL
-	},
 };
 
 
