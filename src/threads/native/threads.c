@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4152 2006-01-12 21:14:03Z twisti $
+   $Id: threads.c 4177 2006-01-12 22:42:54Z twisti $
 
 */
 
@@ -249,10 +249,13 @@ u1 *thread_checkcritical(u1 *mcodeptr)
 
 static void thread_addstaticcritical()
 {
+	/* XXX TWISTI: this is just a quick hack */
+#if defined(ENABLE_JIT)
 	threadcritnode *n = &asm_criticalsections;
 
 	while (n->mcodebegin)
 		thread_registercritical(n++);
+#endif
 }
 
 static pthread_mutex_t threadlistlock;
@@ -417,7 +420,10 @@ static void sigsuspend_handler(ucontext_t *ctx)
 	int sig;
 	sigset_t sigs;
 	
+	/* XXX TWISTI: this is just a quick hack */
+#if defined(ENABLE_JIT)
 	thread_restartcriticalsection(ctx);
+#endif
 
 	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
 	   (not POSIX async-safe). */
