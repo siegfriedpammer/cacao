@@ -875,6 +875,11 @@ GETSTATIC_INT ( #addr #auf -- iResult ) opt
   iResult = *(s4 *)addr;
 }
 
+GETSTATIC_FLOAT ( #addr #auf -- fResult ) opt
+{
+  fResult = *(float *)addr;
+}
+
 GETSTATIC_LONG ( #addr #auf -- lResult ) opt
 {
   lResult = *((s8 *) addr);
@@ -888,6 +893,11 @@ PUTSTATIC_CELL ( #addr #auf vValue -- ) opt
 PUTSTATIC_INT ( #addr #auf iValue -- ) opt
 {
   *((s4 *) addr) = iValue;
+}
+
+PUTSTATIC_FLOAT ( #addr #auf fValue -- ) opt
+{
+  *((float *) addr) = fValue;
 }
 
 PUTSTATIC_LONG ( #addr #auf lValue -- ) opt
@@ -907,6 +917,12 @@ GETFIELD_INT ( #vOffset #auf aRef -- iResult ) opt
   iResult = *((s4 *) (((u1 *)aRef) + vOffset));
 }
 
+GETFIELD_FLOAT ( #vOffset #auf aRef -- fResult ) opt
+{
+  CHECK_NULL_PTR(aRef);
+  fResult = *((float *) (((u1 *) aRef) + vOffset));
+}
+
 GETFIELD_LONG ( #vOffset #auf aRef -- lResult ) opt
 {
   CHECK_NULL_PTR(aRef);
@@ -924,6 +940,12 @@ PUTFIELD_INT ( #vOffset #auf aRef iValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
   *((s4 *) (((u1 *)aRef) + vOffset)) = iValue;
+}
+
+PUTFIELD_FLOAT ( #vOffset #auf aRef fValue -- ) opt
+{
+  CHECK_NULL_PTR(aRef);
+  *((float *) (((u1 *)aRef) + vOffset)) = fValue;
 }
 
 PUTFIELD_LONG ( #vOffset #auf aRef lValue -- ) opt
@@ -1273,6 +1295,21 @@ IP[-3] = INST_ADDR(GETSTATIC_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
+PATCHER_GETSTATIC_FLOAT ( #aRef #auf ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETSTATIC_FLOAT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
 PATCHER_GETSTATIC_LONG ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
@@ -1315,6 +1352,21 @@ if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_INT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_PUTSTATIC_FLOAT ( #aRef #auf ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTSTATIC_FLOAT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
@@ -1363,6 +1415,21 @@ IP[-3] = INST_ADDR(GETFIELD_INT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
+PATCHER_GETFIELD_FLOAT ( #vOffset #auf ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETFIELD_FLOAT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
 PATCHER_GETFIELD_LONG ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
@@ -1405,6 +1472,21 @@ if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_INT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_PUTFIELD_FLOAT ( #vOffset #auf ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putfield((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTFIELD_FLOAT);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
@@ -1585,11 +1667,9 @@ fp = acelloldfp;
 SET_IP(ainstoldip);
 {
 Cell v = sp[0];
-u1 *fp = codegen_findmethod((u1 *) (IP - 1));
-methodinfo *m = ((methodinfo **) fp)[-1];
 float f;
 vm_Cell2f(v,f);
-builtin_displaymethodstop(m, (s8) v, f, f);
+builtin_displaymethodstop(am, (s8) v, f, f);
 }
 if (*exceptionptr)
   THROW0;
@@ -1613,9 +1693,7 @@ patchersuper_rewrite(IP);
 assert(false);
 #endif
 
-TRACECALL ( -- )
-u1 *f = codegen_findmethod((u1 *) (IP - 1));
-methodinfo *m = ((methodinfo **) f)[-1];
+TRACECALL ( #am -- )
 builtin_trace_args(
 	access_local_cell(0 * -SIZEOF_VOID_P),
 	access_local_cell(1 * -SIZEOF_VOID_P),
@@ -1629,21 +1707,17 @@ builtin_trace_args(
 	access_local_cell(6 * -SIZEOF_VOID_P),
 	access_local_cell(7 * -SIZEOF_VOID_P),
 #endif
-	m);
+	am);
 
-TRACERETURN ( v -- v )
-u1 *fp = codegen_findmethod((u1 *) (IP - 1));
-methodinfo *m = ((methodinfo **) fp)[-1];
+TRACERETURN ( #am v -- v )
 float f;
 vm_Cell2f(v,f);
-builtin_displaymethodstop(m, (s8) v, f, f);
+builtin_displaymethodstop(am, (s8) v, f, f);
 
-TRACELRETURN ( l -- l )
-u1 *fp = codegen_findmethod((u1 *) (IP - 1));
-methodinfo *m = ((methodinfo **) fp)[-1];
+TRACELRETURN ( #am l -- l )
 Double_Store ds;
 ds.l = l;
-builtin_displaymethodstop(m, l, ds.d, ds.d);
+builtin_displaymethodstop(am, l, ds.d, ds.d);
 
 END ( ... -- )
 global_sp = sp;
