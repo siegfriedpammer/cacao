@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4168 2006-01-12 22:32:06Z twisti $
+   $Id: stack.c 4189 2006-01-12 23:31:24Z twisti $
 
 */
 
@@ -2841,7 +2841,7 @@ void show_icmd(instruction *iptr, bool deadcode)
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
 		if (iptr->val.a) {
-			if (!(((fieldinfo *) iptr->val.a)->class->state & CLASS_INITIALIZED))
+			if (!CLASS_IS_OR_ALMOST_INITIALIZED(((fieldinfo *) iptr->val.a)->class))
 				printf(" (NOT INITIALIZED) ");
 			else
 				printf(" ");
