@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 3560 2005-11-04 16:18:27Z twisti $
+   $Id: VMAccessController.c 4180 2006-01-12 23:07:23Z twisti $
 
 */
 
@@ -39,6 +39,7 @@
 #include "native/jni.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
+#include "vm/options.h"
 #include "vm/jit/stacktrace.h"
 
 
