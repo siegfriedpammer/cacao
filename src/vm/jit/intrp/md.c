@@ -30,16 +30,17 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3902 2005-12-07 17:32:57Z anton $
+   $Id: md.c 4165 2006-01-12 21:39:00Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <signal.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/intrp/intrp.h"
@@ -48,35 +49,32 @@
 Inst *vm_prim = NULL; /* initialized by md_init() */
 FILE *vm_out = NULL;  /* debugging output for vmgenerated stuff */
 
+
 /* md_init *********************************************************************
 
    Do some machine dependent initialization.
 
 *******************************************************************************/
 
-void md_init(void)
+void intrp_md_init(void)
 {
 	vm_out = stdout;
+
     if (setvbuf(stdout,NULL, _IOLBF,0) != 0) {
 		perror("setvbuf error");
 		exit(1);
 	}
+
 	if ( vm_prim == NULL ) {
 		vm_prim = (Inst *)engine(NULL, NULL, NULL);
 	}
+
 	if (peeptable == 0) {
 		init_peeptable();
 	}
+
 	dynamic_super_init();
 }
-
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
-{
-	assert(false);
-}
-#endif
 
 
 /* md_stacktrace_get_returnaddress *********************************************
@@ -86,7 +84,7 @@ void thread_restartcriticalsection(ucontext_t *uc)
 
 *******************************************************************************/
 
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
+u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 {
 	u1 *ra;
 
@@ -96,17 +94,6 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	ra = *((u1 **) (sp - framesize - sizeof(void *)));
 
 	return ra;
-}
-
-
-/* XXX remove me!!! */
-void md_param_alloc(methoddesc *md)
-{
-}
-
-void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
-					 stackptr stackslot)
-{
 }
 
 
