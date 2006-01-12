@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4177 2006-01-12 22:42:54Z twisti $
+   $Id: threads.c 4191 2006-01-12 23:33:50Z twisti $
 
 */
 
@@ -48,6 +48,8 @@
 
 #include "config.h"
 #include "vm/types.h"
+
+#include "arch.h"
 
 #ifndef USE_MD_THREAD_STUFF
 #include "machine-instr.h"
