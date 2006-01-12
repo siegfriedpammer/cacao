@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4153 2006-01-12 21:15:00Z twisti $
+   $Id: disass.h 4181 2006-01-12 23:08:54Z twisti $
 
 */
 
@@ -101,8 +101,16 @@ void disass_printf(PTR p, const char *fmt, ...);
 #endif
 
 /* machine dependent functions */
+
+#if defined(ENABLE_JIT)
 u1 *disassinstr(u1 *code);
 void disassemble(u1 *start, u1 *end);
+#endif
+
+#if defined(ENABLE_INTRP)
+u1 *intrp_disassinstr(u1 *code);
+void intrp_disassemble(u1 *start, u1 *end);
+#endif
 
 #endif /* _DISASS_H */
 
