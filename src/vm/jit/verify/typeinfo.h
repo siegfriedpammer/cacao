@@ -26,15 +26,19 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 3811 2005-11-28 16:23:40Z edwin $
+   $Id: typeinfo.h 4179 2006-01-12 23:05:22Z twisti $
 
 */
 
 #ifndef _TYPEINFO_H
 #define _TYPEINFO_H
 
+#include "config.h"
+#include "vm/types.h"
+
 #include "vm/global.h"
 #include "vm/references.h"
+
 
 /* configuration **************************************************************/
 
