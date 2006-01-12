@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: codegen.c 4163 2006-01-12 21:37:07Z twisti $
 
 */
 
@@ -1836,7 +1836,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			a = ((s1 == REG_FTMP1) ? 0 : 5) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3);
 			x86_64_jcc(cd, X86_64_CC_NE, a);
 			M_FLTMOVE(s1, REG_FTMP1);
-			x86_64_mov_imm_reg(cd, (s8) asm_builtin_f2i, REG_ITMP2);
+			x86_64_mov_imm_reg(cd, (ptrint) asm_builtin_f2i, REG_ITMP2);
 			x86_64_call_reg(cd, REG_ITMP2);
 			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
@@ -1851,7 +1851,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			a = ((s1 == REG_FTMP1) ? 0 : 5) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3);
 			x86_64_jcc(cd, X86_64_CC_NE, a);
 			M_FLTMOVE(s1, REG_FTMP1);
-			x86_64_mov_imm_reg(cd, (s8) asm_builtin_d2i, REG_ITMP2);
+			x86_64_mov_imm_reg(cd, (ptrint) asm_builtin_d2i, REG_ITMP2);
 			x86_64_call_reg(cd, REG_ITMP2);
 			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
@@ -1867,7 +1867,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			a = ((s1 == REG_FTMP1) ? 0 : 5) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3);
 			x86_64_jcc(cd, X86_64_CC_NE, a);
 			M_FLTMOVE(s1, REG_FTMP1);
-			x86_64_mov_imm_reg(cd, (s8) asm_builtin_f2l, REG_ITMP2);
+			x86_64_mov_imm_reg(cd, (ptrint) asm_builtin_f2l, REG_ITMP2);
 			x86_64_call_reg(cd, REG_ITMP2);
 			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
@@ -1883,7 +1883,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			a = ((s1 == REG_FTMP1) ? 0 : 5) + 10 + 3 + ((REG_RESULT == d) ? 0 : 3);
 			x86_64_jcc(cd, X86_64_CC_NE, a);
 			M_FLTMOVE(s1, REG_FTMP1);
-			x86_64_mov_imm_reg(cd, (s8) asm_builtin_d2l, REG_ITMP2);
+			x86_64_mov_imm_reg(cd, (ptrint) asm_builtin_d2l, REG_ITMP2);
 			x86_64_call_reg(cd, REG_ITMP2);
 			M_INTMOVE(REG_RESULT, d);
   			store_reg_to_var_int(iptr->dst, d);
