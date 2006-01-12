@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4172 2006-01-12 22:37:33Z twisti $
+   $Id: codegen.c 4185 2006-01-12 23:23:28Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include <stdio.h>
 
 #include "vm/types.h"
+
 #include "arch.h"
 
 #include "vm/jit/intrp/codegen.h"
@@ -52,7 +53,6 @@
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
@@ -345,7 +345,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 
 	if (runverbose)
-		gen_TRACECALL(cd);
+		gen_TRACECALL(cd, m);
 
 	gen_BBEND;
 
@@ -403,7 +403,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.f = constant                    */
 			{
-				s4 fi;
+				ptrint fi;
 
 				vm_f2Cell(iptr->val.f, fi);
 				gen_ICONST(cd, fi);
@@ -1090,23 +1090,29 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-			case TYPE_FLT:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
 				} else {
 					gen_GETSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
 				}
 				break;
+			case TYPE_FLT:
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_GETSTATIC_FLOAT(cd, 0, uf);
+				} else {
+					gen_GETSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), uf);
+				}
+				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
 				} else {
 					gen_GETSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
 				} else {
 					gen_GETSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
@@ -1125,23 +1131,29 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-			case TYPE_FLT:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
 				} else {
 					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
 				}
 				break;
+			case TYPE_FLT:
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_PUTSTATIC_FLOAT(cd, 0, uf);
+				} else {
+					gen_PUTSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), uf);
+				}
+				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
 				} else {
 					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
 				}
 				break;
 			case TYPE_ADR:
-				if ((fi == NULL) || !(fi->class->state & CLASS_INITIALIZED)) {
+				if ((fi == NULL) ||	!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
 				} else {
 					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
@@ -1161,11 +1173,17 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-			case TYPE_FLT:
 				if (fi == NULL) {
 					gen_PATCHER_GETFIELD_INT(cd, 0, uf);
 				} else {
 					gen_GETFIELD_INT(cd, fi->offset, uf);
+				}
+				break;
+			case TYPE_FLT:
+				if (fi == NULL) {
+					gen_PATCHER_GETFIELD_FLOAT(cd, 0, uf);
+				} else {
+					gen_GETFIELD_FLOAT(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_LNG:
@@ -1196,11 +1214,17 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-			case TYPE_FLT:
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
 				} else {
 					gen_PUTFIELD_INT(cd, fi->offset, uf);
+				}
+				break;
+			case TYPE_FLT:
+				if (fi == NULL) {
+					gen_PATCHER_PUTFIELD_FLOAT(cd, 0, uf);
+				} else {
+					gen_PUTFIELD_FLOAT(cd, fi->offset, uf);
 				}
 				break;
 			case TYPE_LNG:
@@ -1466,7 +1490,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 #endif
 			if (runverbose)
-				gen_TRACERETURN(cd);
+				gen_TRACERETURN(cd, m);
 
 			gen_IRETURN(cd, index2offset(cd->maxlocals));
 			break;
@@ -1485,7 +1509,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 #endif
 			if (runverbose)
-				gen_TRACELRETURN(cd);
+				gen_TRACELRETURN(cd, m);
 
 			gen_LRETURN(cd, index2offset(cd->maxlocals));
 			break;
@@ -1503,7 +1527,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 #endif
 			if (runverbose)
-				gen_TRACERETURN(cd);
+				gen_TRACERETURN(cd, m);
 
 			gen_RETURN(cd, index2offset(cd->maxlocals));
 			break;
@@ -1881,7 +1905,7 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	gen_BBSTART;
 
 	if (runverbose)
-		gen_TRACECALL(cd);
+		gen_TRACECALL(cd, m);
 
 	if (f == NULL) {
 		gen_PATCHER_NATIVECALL(cd, m, f, (u1 *)cif);
@@ -1909,7 +1933,7 @@ ffi_type *cacaotype2ffitype(s4 cacaotype)
 {
 	switch (cacaotype) {
 	case TYPE_INT:
-		return &ffi_type_uint;
+		return &ffi_type_slong;
 	case TYPE_LNG:
 		return &ffi_type_sint64;
 	case TYPE_FLT:
@@ -1947,7 +1971,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	switch (md->returntype.type) {
 	case TYPE_INT:
 		endsp = sp - 1 + md->paramslots;
-		av_start_int(alist, f, endsp);
+		av_start_long(alist, f, endsp);
 		break;
 	case TYPE_LNG:
 		endsp = sp - 2 + md->paramslots;
@@ -1955,7 +1979,11 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		break;
 	case TYPE_FLT:
 		endsp = sp - 1 + md->paramslots;
+#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
+		av_start_float(alist, f, ((float *) endsp) + 1);
+#else
 		av_start_float(alist, f, endsp);
+#endif
 		break;
 	case TYPE_DBL:
 		endsp = sp - 2 + md->paramslots;
@@ -1982,7 +2010,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 			p -= 1;
-			av_int(alist, *p);
+			av_long(alist, *p);
 			break;
 		case TYPE_LNG:
 			p -= 2;
@@ -1990,7 +2018,11 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 			break;
 		case TYPE_FLT:
 			p -= 1;
-			av_float(alist, *(float *) p);
+#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
+			av_float(alist, *(((float *) p) + 1));
+#else
+			av_float(alist, *((float *) p));
+#endif
 			break;
 		case TYPE_DBL:
 			p -= 2;
@@ -2055,7 +2087,12 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		else
 			p--;
 
-		*pvalues++ = p;
+#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
+		if (md->paramtypes[i].type == TYPE_FLT)
+			*pvalues++ = (void *)(((float *)p)+1);
+		else
+#endif
+			*pvalues++ = p;
 	}
 
 	/* calculate position of return value */
@@ -2072,7 +2109,12 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
-	ffi_call(pcif, FFI_FN(f), endsp, values);
+#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
+	if (md->returntype.type == TYPE_FLT)
+		ffi_call(pcif, FFI_FN(f), ((float *) endsp) + 1, values);
+	else
+#endif
+		ffi_call(pcif, FFI_FN(f), endsp, values);
 
 	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
 
