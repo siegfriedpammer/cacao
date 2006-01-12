@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 3986 2005-12-22 11:17:05Z twisti $
+   $Id: parse.c 4169 2006-01-12 22:34:04Z twisti $
 
 */
 
@@ -747,14 +747,8 @@ SHOWOPCODE(DEBUG4)
 				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
 					return NULL;
 
-				if (c) {
-					OP2AT(opcode, v, c, NULL, currentline);
-
-				} else {
-					OP2AT(opcode, v, cr,
-						  (voidptr) (ptrint) PATCHER_builtin_multianewarray,
-						  currentline);
-				}
+				/* if unresolved c == NULL */
+				OP2AT(opcode, v, c, cr, currentline);
 			}
 			break;
 

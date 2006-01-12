@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4159 2006-01-12 21:35:36Z twisti $
+   $Id: codegen-common.c 4169 2006-01-12 22:34:04Z twisti $
 
 */
 
@@ -826,7 +826,12 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
 		  md->paramcount);
 
-	md_param_alloc(nmd);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		md_param_alloc(nmd);
+#endif
 
 	/* generate the code */
 
@@ -884,7 +889,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 	utf_fprint(stdout, m->descriptor);
 	printf("\n\nLength: %d\n\n", (s4) (end - start));
 
-	disassemble(start, end);
+	DISASSEMBLE(start, end);
 }
 
 
