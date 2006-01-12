@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4014 2005-12-30 14:20:25Z twisti $
+   $Id: stacktrace.c 4157 2006-01-12 21:30:41Z twisti $
 
 */
 
@@ -224,11 +224,12 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 			}
 	}
 
-#if defined(ENABLE_INTRP)
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
 	/* When using the interpreter, we pass RA to the function. */
 
 	if (!opt_intrp) {
-#endif
+# endif
 # if defined(__I386__) || defined(__X86_64__)
 		/* On i386 and x86_64 we always have to get the return address
 		   from the stack. */
@@ -250,8 +251,9 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 			ra = md_stacktrace_get_returnaddress(sp, framesize);
 		}
 # endif
-#if defined(ENABLE_INTRP)
+# if defined(ENABLE_INTRP)
 	}
+# endif
 #endif
 
 	/* fill new stackframe info structure */
@@ -557,7 +559,7 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 
 	/* call function */
 
-	asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
 
 	/* remove stackframeinfo */
 
@@ -956,7 +958,16 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 			/* get return address of current stack frame */
 
-			ra = md_stacktrace_get_returnaddress(sp, framesize);
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+			if (opt_intrp)
+				ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
+			else
+# endif
+				ra = md_stacktrace_get_returnaddress(sp, framesize);
+#else
+			ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
+#endif
 
 			/* get data segment and methodinfo pointer from parent method */
 
