@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 3878 2005-12-05 19:32:14Z twisti $
+   $Id: typecheck.c 4171 2006-01-12 22:35:37Z twisti $
 
 */
 
@@ -1451,7 +1451,7 @@ verify_multianewarray(verifier_state *state)
 	}
 
 	/* check array descriptor */
-	if (state->iptr[0].target == NULL) {
+	if (state->iptr[0].val.a != NULL) {
 		/* the array class reference has already been resolved */
 		arrayclass = (classinfo *) state->iptr[0].val.a;
 		if (!arrayclass)
@@ -1470,7 +1470,7 @@ verify_multianewarray(verifier_state *state)
 		
 		/* the array class reference is still unresolved */
 		/* check that the reference indicates an array class of correct dimension */
-		cr = (constant_classref *) state->iptr[0].val.a;
+		cr = (constant_classref *) state->iptr[0].target;
 		i = 0;
 		p = cr->name->text;
 		while (p[i] == '[')
@@ -1482,7 +1482,7 @@ verify_multianewarray(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].val.a)))
+		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
 			return false;
 	}
 
