@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4127 2006-01-10 20:56:16Z twisti $
+   $Id: loader.c 4146 2006-01-12 21:06:44Z twisti $
 
 */
 
@@ -1457,7 +1457,7 @@ classinfo *load_class_from_sysloader(utf *name)
 	if (!m)
 		return false;
 
-	cl = (java_objectheader *) asm_calljavafunction(m, NULL, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(cl, m, NULL, NULL, NULL, NULL);
 
 	if (!cl)
 		return false;
@@ -1484,8 +1484,9 @@ classinfo *load_class_from_sysloader(utf *name)
 
 classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 {
-	classinfo *c;
-	classinfo *tmpc;
+	java_objectheader *o;
+	classinfo         *c;
+	classinfo         *tmpc;
 
 	LOADER_ASSERT(name);
 
@@ -1580,10 +1581,13 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 		if (!lc)
 			return false; /* exception */
 
-		c = (classinfo *) asm_calljavafunction(lc,
-											   cl,
-											   javastring_new_slash_to_dot(name),
-											   NULL, NULL);
+		/* move return value into `o' and cast it afterwards to a classinfo* */
+
+		ASM_CALLJAVAFUNCTION_ADR(o, lc, cl,
+								 javastring_new_slash_to_dot(name),
+								 NULL, NULL);
+
+		c = (classinfo *) o;
 
 		if (c) {
 			/* Store this class in the loaded class cache. If another
