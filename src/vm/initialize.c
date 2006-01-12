@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 4145 2006-01-12 21:06:07Z twisti $
+   $Id: initialize.c 4188 2006-01-12 23:31:00Z twisti $
 
 */
 
@@ -82,7 +82,7 @@ bool initialize_class(classinfo *c)
 	/* maybe the class is already initalized or the current thread, which can
 	   pass the monitor, is currently initalizing this class */
 
-	if ((c->state & CLASS_INITIALIZING) || (c->state & CLASS_INITIALIZED)) {
+	if (CLASS_IS_OR_ALMOST_INITIALIZED(c)) {
 #if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
