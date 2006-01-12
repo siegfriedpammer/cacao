@@ -37,16 +37,19 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4085 2006-01-03 23:44:38Z twisti $
+   $Id: cacao.c 4149 2006-01-12 21:08:55Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
+#include "vm/types.h"
+
 #include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -478,7 +481,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
 
 	/* configure(transport,NULL) */
 	m = class_resolveclassmethod(
@@ -489,7 +492,9 @@ static void setup_debugger_process(char* transport) {
 
 
 	s = javastring_new_char(transport);
-	asm_calljavafunction(m, o, s, NULL, NULL);
+
+	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
+
 	if (!m)
 		throw_main_exception_exit();
 
@@ -503,7 +508,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
 }
 #endif
 
@@ -545,7 +550,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char(mainstring);
 
-	asm_calljavafunction(m, o, s, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
 
 	if (*exceptionptr)
 		throw_main_exception_exit();
@@ -561,7 +566,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	o = asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
 
 	if (!o) {
 		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -580,7 +585,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	o = asm_calljavafunction(m, o, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
 
 	if (!o) {
 		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -601,7 +606,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char("Main-Class");
 
-	o = asm_calljavafunction(m, o, s, NULL, NULL);
+	ASM_CALLJAVAFUNCTION_ADR(o, m, o, s, NULL, NULL);
 
 	if (!o)
 		throw_main_exception_exit();
@@ -1225,7 +1230,16 @@ int main(int argc, char **argv)
 
 	/* machine dependent initialization */
 
-	md_init();
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		intrp_md_init();
+	else
+# endif
+		md_init();
+#else
+	intrp_md_init();
+#endif
 
 	/* initialize the loader subsystems (must be done _after_
        classcache_init) */
@@ -1396,9 +1410,10 @@ int main(int argc, char **argv)
 #endif
 		/* here we go... */
 
-		asm_calljavafunction(m, a, NULL, NULL, NULL);
+		ASM_CALLJAVAFUNCTION(m, a, NULL, NULL, NULL);
 
 		/* exception occurred? */
+
 		if (*exceptionptr) {
 			throw_main_exception();
 			status = 1;
@@ -1582,7 +1597,7 @@ void cacao_exit(s4 status)
 	/*   not sure if permanant or temp restriction          */
 	if (inlinevirtuals) inlineoutsiders = false; 
 
-	asm_calljavafunction(m, (void *) (ptrint) status, NULL, NULL, NULL);
+	ASM_CALLJAVAFUNCTION(m, (void *) (ptrint) status, NULL, NULL, NULL);
 
 	/* this should never happen */
 
