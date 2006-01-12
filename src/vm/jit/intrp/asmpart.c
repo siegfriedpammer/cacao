@@ -29,14 +29,15 @@
 
    Changes:
 
-   $Id: asmpart.c 3979 2005-12-21 16:39:52Z anton $
+   $Id: asmpart.c 4164 2006-01-12 21:38:11Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "arch.h"
@@ -50,11 +51,8 @@
 #include "vm/jit/intrp/intrp.h"
 
 
-/* this is required to link cacao with intrp */
-threadcritnode asm_criticalsections = { NULL, NULL, NULL };
-
-
 /* true on success, false on exception */
+
 static bool asm_calljavafunction_intern(methodinfo *m, void *arg1, void *arg2,
 										void *arg3, void *arg4)
 {
@@ -97,20 +95,9 @@ static bool asm_calljavafunction_intern(methodinfo *m, void *arg1, void *arg2,
 }
 
 
-s4 asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
-							void *arg3, void *arg4)
-{
-	assert(m->parseddesc->returntype.type == TYPE_INT);
-
-	if (asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4))
-		return (s4)(*global_sp++);
-	else
-		return 0;
-}
-
-
-java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
-										void *arg3, void *arg4)
+java_objectheader *intrp_asm_calljavafunction(methodinfo *m,
+											  void *arg1, void *arg2,
+											  void *arg3, void *arg4)
 {
 	if (asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4)) {
 		if (m->parseddesc->returntype.type == TYPE_ADR)
@@ -121,6 +108,18 @@ java_objectheader *asm_calljavafunction(methodinfo *m, void *arg1, void *arg2,
 		}
 	} else
 		return NULL;
+}
+
+
+s4 intrp_asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
+								  void *arg3, void *arg4)
+{
+	assert(m->parseddesc->returntype.type == TYPE_INT);
+
+	if (asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4))
+		return (s4) (*global_sp++);
+	else
+		return 0;
 }
 
 
@@ -166,10 +165,11 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 }
 
 
-java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
-                                         jni_callblock *callblock)
+java_objectheader *intrp_asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
+											   jni_callblock *callblock)
 {
 	java_objectheader *retval = NULL;
+
 	if (jni_invoke_java_intern(m, count, size, callblock)) {
 		if (m->parseddesc->returntype.type == TYPE_ADR)
 			retval = (java_objectheader *)*global_sp++;
@@ -181,8 +181,8 @@ java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
 }
 
 
-s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
-                            jni_callblock *callblock)
+s4 intrp_asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
+								  jni_callblock *callblock)
 {
 	s4 retval=0;
 
@@ -197,8 +197,8 @@ s4 asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
 }
 
 
-s8 asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
-                             jni_callblock *callblock)
+s8 intrp_asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
+								   jni_callblock *callblock)
 {
 	s8 retval;
 
@@ -213,8 +213,8 @@ s8 asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
 }
 
 
-float asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
-								 jni_callblock *callblock)
+float intrp_asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
+									   jni_callblock *callblock)
 {
 	float retval;
 
@@ -229,8 +229,8 @@ float asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
 }
 
 
-double asm_calljavafunction2double(methodinfo *m, u4 count, u4 size,
-                                   jni_callblock *callblock)
+double intrp_asm_calljavafunction2double(methodinfo *m, u4 count, u4 size,
+										 jni_callblock *callblock)
 {
 	double retval;
 
@@ -300,7 +300,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 }
 
 
-void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
+void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
 {
 	s4 sbv, sdv, sv;
 
