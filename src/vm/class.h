@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4023 2006-01-01 16:34:53Z twisti $
+   $Id: class.h 4187 2006-01-12 23:30:35Z twisti $
 
 */
 
@@ -65,6 +65,12 @@ typedef struct extra_classref extra_classref;
 #define CLASS_INITIALIZING    0x0010
 #define CLASS_INITIALIZED     0x0020
 #define CLASS_ERROR           0x0040
+
+
+/* some macros ****************************************************************/
+
+#define CLASS_IS_OR_ALMOST_INITIALIZED(c) \
+    (((c)->state & CLASS_INITIALIZING) || ((c)->state & CLASS_INITIALIZED))
 
 
 /* classinfo ******************************************************************/
