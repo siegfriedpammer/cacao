@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 3873 2005-12-05 18:14:33Z twisti $
+   $Id: patcher.c 4166 2006-01-12 21:39:51Z twisti $
 
 */
 
@@ -55,7 +55,7 @@
 
 *******************************************************************************/
 
-bool patcher_get_putstatic(u1 *sp)
+bool intrp_patcher_get_putstatic(u1 *sp)
 {
 	ptrint            *ip;
 	unresolved_field  *uf;
@@ -89,7 +89,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_get_putfield(u1 *sp)
+bool intrp_patcher_get_putfield(u1 *sp)
 {
 	ptrint            *ip;
 	unresolved_field  *uf;
@@ -117,7 +117,7 @@ bool patcher_get_putfield(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_aconst(u1 *sp)
+bool intrp_patcher_aconst(u1 *sp)
 {
 	ptrint            *ip;
 	constant_classref *cr;
@@ -145,7 +145,7 @@ bool patcher_aconst(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_multianewarray(u1 *sp)
+bool intrp_patcher_builtin_multianewarray(u1 *sp)
 {
 	ptrint            *ip;
 	constant_classref *cr;
@@ -173,7 +173,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_arraycheckcast(u1 *sp)
+bool intrp_patcher_builtin_arraycheckcast(u1 *sp)
 {
 	ptrint            *ip;
 	constant_classref *cr;
@@ -201,7 +201,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 ******************************************************************************/
 
-bool patcher_invokestatic_special(u1 *sp)
+bool intrp_patcher_invokestatic_special(u1 *sp)
 {
 	ptrint            *ip;
 	unresolved_method *um;
@@ -229,7 +229,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokevirtual(u1 *sp)
+bool intrp_patcher_invokevirtual(u1 *sp)
 {
 	ptrint            *ip;
 	unresolved_method *um;
@@ -257,7 +257,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokeinterface(u1 *sp)
+bool intrp_patcher_invokeinterface(u1 *sp)
 {
 	ptrint            *ip;
 	unresolved_method *um;
@@ -290,7 +290,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof(u1 *sp)
+bool intrp_patcher_checkcast_instanceof(u1 *sp)
 {
 	ptrint            *ip;
 	constant_classref *cr;
@@ -319,7 +319,7 @@ bool patcher_checkcast_instanceof(u1 *sp)
 *******************************************************************************/
 
 #if !defined(ENABLE_STATICVM)
-bool patcher_resolve_native(u1 *sp)
+bool intrp_patcher_resolve_native(u1 *sp)
 {
 	ptrint      *ip;
 	methodinfo  *m;
