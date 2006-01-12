@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 3847 2005-12-03 12:23:34Z twisti $
+   $Id: stacktrace.h 4158 2006-01-12 21:30:55Z twisti $
 
 */
 
@@ -148,8 +148,17 @@ java_objectarray *cacao_getStackForVMAccessController(void);
 void stacktrace_dump_trace(void);
 void stacktrace_print_trace(java_objectheader *xptr);
 
+
 /* machine dependent functions (code in ARCH_DIR/md.c) */
+
+#if defined(ENABLE_JIT)
 u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+#endif
+
+#if defined(ENABLE_INTRP)
+u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+#endif
+
 
 #ifdef ENABLE_JVMTI
 typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
