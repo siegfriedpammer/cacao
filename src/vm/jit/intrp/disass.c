@@ -1,4 +1,4 @@
-/* src/vm/jit/intrp/disass.c - primitive disassembler for alpha machine code
+/* src/vm/jit/intrp/disass.c - disassembler wrapper for interpreter
 
    Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -27,60 +27,21 @@
    Authors: Andreas Krall
             Reinhard Grafl
 
-   $Id: disass.c 3180 2005-09-15 15:53:56Z twisti $
+   Changes: Christian Thalinger
+            Anton Ertl
+
+   $Id: disass.c 4174 2006-01-12 22:39:19Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
+#include "vm/types.h"
+
 #include "vm/jit/intrp/intrp.h"
-
-char *regs[] = {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-};
 
 
 /* function disassinstr ********************************************************
@@ -90,9 +51,9 @@ char *regs[] = {
 
 *******************************************************************************/
 
-u1 *disassinstr(u1 *code)
+u1 *intrp_disassinstr(u1 *code)
 {
-	return (u1 *)vm_disassemble_inst((Inst *)code, vm_prim);
+	return (u1 *) vm_disassemble_inst((Inst *) code, vm_prim);
 }
 
 
@@ -104,9 +65,9 @@ u1 *disassinstr(u1 *code)
 
 *******************************************************************************/
 
-void disassemble(u1 *start, u1 *end)
+void intrp_disassemble(u1 *start, u1 *end)
 {
-	printf ("  --- disassembler listing ---\n");
+	printf("  --- disassembler listing ---\n");
 	vm_disassemble((Inst *) start, (Inst *) end, vm_prim);
 }
 
