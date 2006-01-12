@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: intrp.h 3979 2005-12-21 16:39:52Z anton $
+   $Id: intrp.h 4184 2006-01-12 23:21:11Z twisti $
 
 */
 
@@ -210,8 +210,8 @@ extern Cell peeptable;
 extern FILE *vm_out;
 
 void init_peeptable(void);
-s4 peephole_opt(u4 inst1, u4 inst2, Cell peeptable);
-void gen_inst(codegendata *cd, u4 instr);
+ptrint peephole_opt(ptrint inst1, ptrint inst2, Cell peeptable);
+void gen_inst(codegendata *cd, ptrint instr);
 
 void vm_disassemble(Inst *ip, Inst *endp, Inst vm_prim[]);
 Inst *vm_disassemble_inst(Inst *ip, Inst vm_prim[]);

@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 3979 2005-12-21 16:39:52Z anton $
+   $Id: dynamic-super.c 4184 2006-01-12 23:21:11Z twisti $
 */
 
 
@@ -318,13 +318,13 @@ static void check_prims(Label symbols1[])
 #endif
 }
 
-static bool is_relocatable(u4 p)
+static bool is_relocatable(ptrint p)
 {
   return !opt_no_dynamic && priminfos[p].start != NULL;
 }
 
 static
-void append_prim(codegendata *cd, u4 p)
+void append_prim(codegendata *cd, ptrint p)
 {
   PrimInfo *pi = &priminfos[p];
   debugp1(stderr,"append_prim %p %s\n",cd->lastmcodeptr, prim_names[p]);
@@ -355,11 +355,12 @@ static void init_dynamic_super(codegendata *cd)
    more locking. */
 
 static u4 hash_superreuse(u1 *code, u4 length)
+     /* calculates a hash value for given code length */
 {
   u4 r=0;
   u4 i;
 
-  for (i=0; i<length; i+=sizeof(u4)) {
+  for (i=0; i<(length&(~3)); i+=sizeof(u4)) {
     r += *(s4 *)(code+i); /* !! align each superinstruction */
   }
   return (r+(r>>HASHTABLE_SUPERREUSE_BITS))&((1<<HASHTABLE_SUPERREUSE_BITS)-1);
@@ -537,7 +538,7 @@ void append_dispatch(codegendata *cd)
   init_dynamic_super(cd);
 }
 
-static void compile_prim_dyn(codegendata *cd, u4 p)
+static void compile_prim_dyn(codegendata *cd, ptrint p)
      /* compile prim #p dynamically (mod flags etc.)  */
 {
   if (opt_no_dynamic)
@@ -558,7 +559,7 @@ static void compile_prim_dyn(codegendata *cd, u4 p)
   return;
 }
 
-static void replace_patcher(codegendata *cd, u4 p)
+static void replace_patcher(codegendata *cd, ptrint p)
      /* compile p dynamically, and note that there is a patcher here */
 {
   if (opt_no_quicksuper) {
@@ -569,7 +570,7 @@ static void replace_patcher(codegendata *cd, u4 p)
   }
 }
 
-void gen_inst1(codegendata *cd, u4 instr)
+void gen_inst1(codegendata *cd, ptrint instr)
 {
   /* actually generate the threaded code instruction */
 
@@ -617,14 +618,14 @@ void finish_ss(codegendata *cd)
 {
 #if 1
   if (cd->lastmcodeptr != NULL) {
-    gen_inst1(cd, *(s4 *)(cd->lastmcodeptr));
+    gen_inst1(cd, *(ptrint *)(cd->lastmcodeptr));
     cd->lastmcodeptr = NULL;
   }
 #endif
 }
 
 #if 0
-void gen_inst(codegendata *cd, u4 instr)
+void gen_inst(codegendata *cd, ptrint instr)
 {
   cd->lastmcodeptr = cd->mcodeptr;
   gen_inst1(cd, instr);
@@ -632,15 +633,15 @@ void gen_inst(codegendata *cd, u4 instr)
   cd->lastmcodeptr = NULL;
 }
 #else
-void gen_inst(codegendata *cd, u4 instr)
+void gen_inst(codegendata *cd, ptrint instr)
 {
   /* vmgen-0.6.2 generates gen_... calls with Inst ** as first
      parameter, but we need to pass in cd to make lastmcodeptr
      thread-safe */
-  u4 *lastmcodeptr = (u4 *)cd->lastmcodeptr;
+  ptrint *lastmcodeptr = (ptrint *)cd->lastmcodeptr;
   
   if (lastmcodeptr != NULL) {
-    s4 combo;
+    ptrint combo;
 
     assert(lastmcodeptr < cd->mcodeptr && cd->mcodeptr < lastmcodeptr+40);
 
@@ -661,7 +662,7 @@ void gen_inst(codegendata *cd, u4 instr)
 }
 #endif
 
-void print_dynamic_super_statistics()
+void print_dynamic_super_statistics(void)
 {
   dolog("count_supers        = %d", count_supers        );
   dolog("count_supers_unique = %d", count_supers_unique );

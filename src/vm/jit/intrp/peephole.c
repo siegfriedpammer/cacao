@@ -82,7 +82,7 @@ void init_peeptable(void)
   peeptable = prepare_peephole_table(vm_prim);
 }
 
-s4 peephole_opt(u4 inst1, u4 inst2, Cell peeptable)
+ptrint peephole_opt(ptrint inst1, ptrint inst2, Cell peeptable)
 {
   Peeptable_entry **pt = (Peeptable_entry **)peeptable;
   Peeptable_entry *p;
