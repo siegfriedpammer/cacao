@@ -158,8 +158,8 @@ PATCHER_ACONST ( #aRef #acr ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_aconst((u1 *) (IP - 3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_aconst((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1009,7 +1009,7 @@ NEW ( ... aClass -- ... aRef ) 0xbb
   aRef = builtin_new((classinfo *) aClass);
   if (aRef == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1024,7 +1024,7 @@ NEWARRAY_BOOLEAN ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_boolean(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1037,7 +1037,7 @@ NEWARRAY_BYTE ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_byte(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1050,7 +1050,7 @@ NEWARRAY_CHAR ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_char(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1063,7 +1063,7 @@ NEWARRAY_SHORT ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_short(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1076,7 +1076,7 @@ NEWARRAY_INT ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_int(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1089,7 +1089,7 @@ NEWARRAY_LONG ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_long(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1102,7 +1102,7 @@ NEWARRAY_FLOAT ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_float(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1115,33 +1115,33 @@ NEWARRAY_DOUBLE ( ... iSize -- ... aArray )
   aArray = (java_arrayheader *) builtin_newarray_double(iSize);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
   CLEAR_global_sp;
 }
 
-NEWARRAY ( ... iSize avftbl -- ... aArray ) 0xbd
+NEWARRAY ( ... iSize aClass -- ... aArray )
 {
   global_sp = sp;
-  aArray = (java_arrayheader *) builtin_newarray(iSize, (vftbl_t *) avftbl);
+  aArray = (java_arrayheader *) builtin_newarray(iSize, aClass);
   if (aArray == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
   CLEAR_global_sp;
 }
 
-ARRAYLENGTH ( aArray -- iResult ) 0xbe
+ARRAYLENGTH ( aArray -- iResult )
 {
   CHECK_NULL_PTR(aArray);
   iResult = length_array(aArray);
 }
 
-ATHROW ( ... aRef -- ... aRef1 ) 0xbf
+ATHROW ( ... aRef -- ... aRef1 )
 {
   Cell *new_sp, *new_fp;
   Inst *new_ip;
@@ -1181,8 +1181,8 @@ PATCHER_ARRAYCHECKCAST ( #avftbl #acr ... -- ) 0xc0
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_arraycheckcast((u1 *) (IP - 3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_builtin_arraycheckcast((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1192,17 +1192,17 @@ IP[-3] = INST_ADDR(ARRAYCHECKCAST);
 SET_IP(IP - 3);
 patchersuper_rewrite(IP);
 
-INSTANCEOF ( #aClass #acr aRef  -- iResult ) 0xc1
+INSTANCEOF ( #aClass #acr aRef  -- iResult )
 {
   iResult = builtin_instanceof(aRef, aClass);
 }
 
-ARRAYINSTANCEOF ( aRef avftbl  -- iResult ) 0xc1
+ARRAYINSTANCEOF ( aRef aClass  -- iResult )
 {
-  iResult = builtin_arrayinstanceof(aRef, avftbl);
+  iResult = builtin_arrayinstanceof(aRef, aClass);
 }
 
-MONITORENTER ( aRef -- ) 0xc2
+MONITORENTER ( aRef -- )
 {
 #if defined(USE_THREADS)
   /* CHECK_NULL_PTR(aRef); is now done explicitly */
@@ -1210,7 +1210,7 @@ MONITORENTER ( aRef -- ) 0xc2
 #endif
 }
 
-MONITOREXIT ( aRef -- ) 0xc3
+MONITOREXIT ( aRef -- )
 {
 #if defined(USE_THREADS)
   /* CHECK_NULL_PTR(aRef); cannot happen */
@@ -1218,12 +1218,12 @@ MONITOREXIT ( aRef -- ) 0xc3
 #endif
 }
 
-CHECKNULL ( aRef -- aRef ) 0xc3
+CHECKNULL ( aRef -- aRef )
 {
   CHECK_NULL_PTR(aRef);
 }
 
-MULTIANEWARRAY ( #avftbl #iSize #acr ... -- aRef ) 197
+MULTIANEWARRAY ( #aClass #iSize #acr ... -- aRef )
 {
   long dims[iSize];
   int i;
@@ -1231,10 +1231,10 @@ MULTIANEWARRAY ( #avftbl #iSize #acr ... -- aRef ) 197
     dims[i] = sp[iSize - i - 1];
   }
   global_sp = sp;
-  aRef = (java_objectheader *)builtin_multianewarray(iSize, avftbl, dims);
+  aRef = (java_objectheader *) builtin_multianewarray(iSize, aClass, dims);
   if (aRef == NULL) {
     global_sp = sp;
-    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (functionptr) IP, (functionptr) IP);
+    *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
     CLEAR_global_sp;
     THROW0;
   }
@@ -1262,8 +1262,8 @@ PATCHER_GETSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1277,8 +1277,8 @@ PATCHER_GETSTATIC_LONG ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1292,8 +1292,8 @@ PATCHER_GETSTATIC_CELL ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1307,8 +1307,8 @@ PATCHER_PUTSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1322,8 +1322,8 @@ PATCHER_PUTSTATIC_LONG ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1337,8 +1337,8 @@ PATCHER_PUTSTATIC_CELL ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putstatic((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1352,8 +1352,8 @@ PATCHER_GETFIELD_INT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1367,8 +1367,8 @@ PATCHER_GETFIELD_LONG ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1382,8 +1382,8 @@ PATCHER_GETFIELD_CELL ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1397,8 +1397,8 @@ PATCHER_PUTFIELD_INT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1412,8 +1412,8 @@ PATCHER_PUTFIELD_LONG ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1427,8 +1427,8 @@ PATCHER_PUTFIELD_CELL ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_get_putfield((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putfield((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1442,8 +1442,8 @@ PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_builtin_multianewarray((u1 *)(IP - 4));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_builtin_multianewarray((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1457,8 +1457,8 @@ PATCHER_INVOKESTATIC ( #aaTarget #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_invokestatic_special((u1 *)(IP-4));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_invokestatic_special((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1472,8 +1472,8 @@ PATCHER_INVOKESPECIAL ( #aaTarget #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_invokestatic_special((u1 *)(IP-4));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_invokestatic_special((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1487,8 +1487,8 @@ PATCHER_INVOKEVIRTUAL ( #vOffset #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_invokevirtual((u1 *)(IP-4));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_invokevirtual((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1502,8 +1502,8 @@ PATCHER_INVOKEINTERFACE ( #iInterfaceoffset #vOffset #iNargs #aum ... -- ) 0xd8
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_invokeinterface((u1 *)(IP-5));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_invokeinterface((u1 *) (IP - 5));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1517,8 +1517,8 @@ PATCHER_CHECKCAST ( #aClass #acr ... -- ) 0xc
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_checkcast_instanceof((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_checkcast_instanceof((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1532,8 +1532,8 @@ PATCHER_INSTANCEOF ( #aClass #acr ... -- ) 0xc1
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_checkcast_instanceof((u1 *)(IP-3));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_checkcast_instanceof((u1 *) (IP - 3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1558,8 +1558,8 @@ TRANSLATE ( #am ... --  )
   vm_Cell2acell(sp[1],acelloldfp);
   vm_Cell2ainst(sp[0],ainstoldip);
   global_sp = sp;
-  stacktrace_create_extern_stackframeinfo(&sfi, NULL, (u1 *)acelloldfp, (functionptr) ainstoldip, (functionptr) ainstoldip);
-  codeptr = (Inst *)jit_compile(am);
+  stacktrace_create_extern_stackframeinfo(&sfi, NULL, (u1 *) acelloldfp, (u1 *) ainstoldip, (u1 *) ainstoldip);
+  codeptr = (Inst *) jit_compile(am);
   stacktrace_remove_stackframeinfo(&sfi);
   if (codeptr == NULL) {
     fp = acelloldfp;
@@ -1585,11 +1585,11 @@ fp = acelloldfp;
 SET_IP(ainstoldip);
 {
 Cell v = sp[0];
-functionptr fp = codegen_findmethod((functionptr)(IP-1));
+u1 *fp = codegen_findmethod((u1 *) (IP - 1));
 methodinfo *m = ((methodinfo **) fp)[-1];
 float f;
 vm_Cell2f(v,f);
-builtin_displaymethodstop(m, (s8)v, f, f);
+builtin_displaymethodstop(m, (s8) v, f, f);
 }
 if (*exceptionptr)
   THROW0;
@@ -1599,8 +1599,8 @@ PATCHER_NATIVECALL ( #am #af #addrcif ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
-result = patcher_resolve_native((u1 *) (IP - 4));
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_resolve_native((u1 *) (IP - 4));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
 if (!result)
@@ -1614,7 +1614,7 @@ assert(false);
 #endif
 
 TRACECALL ( -- )
-functionptr f = codegen_findmethod((functionptr)(IP-1));
+u1 *f = codegen_findmethod((u1 *) (IP - 1));
 methodinfo *m = ((methodinfo **) f)[-1];
 builtin_trace_args(
 	access_local_cell(0 * -SIZEOF_VOID_P),
@@ -1632,14 +1632,14 @@ builtin_trace_args(
 	m);
 
 TRACERETURN ( v -- v )
-functionptr fp = codegen_findmethod((functionptr)(IP-1));
+u1 *fp = codegen_findmethod((u1 *) (IP - 1));
 methodinfo *m = ((methodinfo **) fp)[-1];
 float f;
 vm_Cell2f(v,f);
-builtin_displaymethodstop(m, (s8)v, f, f);
+builtin_displaymethodstop(m, (s8) v, f, f);
 
 TRACELRETURN ( l -- l )
-functionptr fp = codegen_findmethod((functionptr)(IP-1));
+u1 *fp = codegen_findmethod((u1 *) (IP - 1));
 methodinfo *m = ((methodinfo **) fp)[-1];
 Double_Store ds;
 ds.l = l;
