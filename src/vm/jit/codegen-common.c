@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4199 2006-01-13 15:29:21Z twisti $
+   $Id: codegen-common.c 4203 2006-01-13 19:37:17Z twisti $
 
 */
 
@@ -184,7 +184,11 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->dseglen = 0;
 
 	cd->jumpreferences = NULL;
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	cd->datareferences = NULL;
+#endif
+
 	cd->xboundrefs = NULL;
 	cd->xnullrefs = NULL;
 	cd->xcastrefs = NULL;
