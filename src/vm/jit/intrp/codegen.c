@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4185 2006-01-12 23:23:28Z twisti $
+   $Id: codegen.c 4197 2006-01-13 15:27:51Z twisti $
 
 */
 
@@ -1546,10 +1546,14 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			
 			i = i - l + 1;
 
-			/* arguments: low, range, datasegment address, table offset in     */
-			/* datasegment, default target                                    */
+			/* arguments: low, range, datasegment address, table
+		       offset in datasegment, default target */
+
 			gen_TABLESWITCH(cd, l, i, NULL, 0, NULL);
-			dseg_adddata(cd, (cd->mcodeptr - 2*sizeof(Inst))); /* actually -3 cells offset*/
+
+			/* actually -3 cells offset */
+
+			dseg_adddata(cd, (cd->mcodeptr - 2 * sizeof(Inst)));
 			codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
 			/* build jump table top down and use address of lowest entry */
