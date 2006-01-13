@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4169 2006-01-12 22:34:04Z twisti $
+   $Id: codegen-common.c 4194 2006-01-13 10:11:35Z twisti $
 
 */
 
@@ -59,8 +59,8 @@
 
 #include "vm/types.h"
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
-/* this is required for PATCHER_CALL_SIZE */
+#if defined(ENABLE_JIT)
+/* this is required for gen_resolvebranch and PATCHER_CALL_SIZE */
 # include "codegen.h"
 #endif
 
@@ -519,7 +519,7 @@ void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 	pr->next      = cd->patchrefs;
 	cd->patchrefs = pr;
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__)
+#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__MIPS__) || defined(__X86_64__))
 	/* On some architectures the patcher stub call instruction might
 	   be longer than the actual instruction generated.  On this
 	   architectures we store the last patcher call position and after
