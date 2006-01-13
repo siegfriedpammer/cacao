@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen-common.h 4160 2006-01-12 21:35:59Z twisti $
+   $Id: codegen-common.h 4200 2006-01-13 15:29:40Z twisti $
 
 */
 
@@ -112,7 +112,11 @@ struct codegendata {
                                     /* data area grows from top to bottom     */
 
 	jumpref        *jumpreferences; /* list of jumptable target addresses     */
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	dataref        *datareferences; /* list of data segment references        */
+#endif
+
 	branchref      *xboundrefs;     /* list of bound check branches           */
 	branchref      *xnullrefs;      /* list of null check branches            */
 	branchref      *xcastrefs;      /* list of cast check branches            */
