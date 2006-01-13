@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4092 2006-01-08 19:12:50Z twisti $
+## $Id: Makefile.am 4202 2006-01-13 18:51:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,40 +38,12 @@ EXTRA_DIST = \
 CLEANFILES = vm.zip
 
 JAVA_VM_FILES = \
-	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMSystemProperties.java \
 	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
-	$(top_srcdir)/src/lib/vm/reference/gnu/java/nio/VMPipe.java \
-	$(top_srcdir)/src/lib/vm/reference/gnu/java/nio/VMSelector.java \
-	$(top_srcdir)/src/lib/vm/reference/java/io/VMFile.java \
-	$(top_srcdir)/src/lib/vm/reference/java/io/VMObjectStreamClass.java \
-	$(top_srcdir)/src/lib/vm/reference/java/io/VMObjectInputStream.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClass.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMCompiler.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMDouble.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMFloat.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMObject.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMProcess.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMRuntime.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/VMSystem.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThread.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThrowable.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/reflect/Constructor.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/reflect/Field.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/reflect/Method.java \
-	$(top_srcdir)/src/lib/vm/reference/java/lang/reflect/VMProxy.java \
-	$(top_srcdir)/src/lib/vm/reference/java/net/VMInetAddress.java \
-	$(top_srcdir)/src/lib/vm/reference/java/nio/channels/VMChannels.java \
-	$(top_srcdir)/src/lib/vm/reference/java/nio/VMDirectByteBuffer.java \
-	$(top_srcdir)/src/lib/vm/reference/java/security/VMAccessController.java \
-	$(top_srcdir)/src/lib/vm/reference/java/util/VMTimeZone.java
-
-# currently disabled by GNU classpath
-#	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/jdwp/VMFrame.java \
-#	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/jdwp/VMIdManager.java \
-#	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/jdwp/VMVirtualMachine.java \
-#
+	$(top_srcdir)/src/lib/vm/reference/java/security/VMAccessController.java
 
 GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
 
