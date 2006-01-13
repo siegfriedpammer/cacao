@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4138 2006-01-11 10:35:54Z twisti $
+   $Id: codegen.c 4195 2006-01-13 10:42:23Z twisti $
 
 */
 
@@ -3481,7 +3481,7 @@ gen_method:
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                      /* op1 = dimension, val.a = array descriptor    */
+		                      /* op1 = dimension, val.a = class               */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
@@ -3502,12 +3502,13 @@ gen_method:
 
 			/* is patcher function set? */
 
-			if (iptr->target) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_builtin_multianewarray,
-									iptr->val.a, disp);
+									(constant_classref *) iptr->target,
+									disp);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP;
