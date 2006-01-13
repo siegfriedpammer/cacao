@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4055 2006-01-02 12:59:54Z christian $
+   $Id: codegen.c 4193 2006-01-13 10:09:44Z twisti $
 
 */
 
@@ -3624,7 +3624,7 @@ gen_method:
 			break;
 
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
-		                      /* op1 = dimension, val.a = array descriptor    */
+		                      /* op1 = dimension, val.a = class               */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
 
@@ -3645,11 +3645,12 @@ gen_method:
 
 			/* is patcher function set? */
 
-			if (iptr->target) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, 0);
 
 				codegen_addpatchref(cd, mcodeptr,
-									(functionptr) iptr->target, iptr->val.a,
+									PATCHER_builtin_multianewarray,
+									(constant_classref *) iptr->target,
 									disp);
 
 				if (opt_showdisassemble)
@@ -3667,7 +3668,7 @@ gen_method:
 
 			M_INTMOVE(REG_SP, rd->argintregs[2]);
 
-			disp = dseg_addaddress(cd, (void *) BUILTIN_multianewarray);
+			disp = dseg_addaddress(cd, BUILTIN_multianewarray);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 			disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
