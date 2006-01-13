@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.c 4011 2005-12-30 14:16:49Z twisti $
+   $Id: dseg.c 4198 2006-01-13 15:28:34Z twisti $
 
 */
 
@@ -182,19 +182,6 @@ void dseg_addtarget(codegendata *cd, basicblock *target)
 }
 
 
-void dseg_adddata(codegendata *cd, u1 *mcodeptr)
-{
-	dataref *dr;
-
-	dr = DNEW(dataref);
-
-	dr->datapos = mcodeptr - cd->mcodebase;
-	dr->next    = cd->datareferences;
-
-	cd->datareferences = dr;
-}
-
-
 /* dseg_addlinenumbertablesize *************************************************
 
    XXX
@@ -255,6 +242,46 @@ void dseg_createlinenumbertable(codegendata *cd)
 		dseg_addaddress(cd, lr->linenumber);
 	}
 }
+
+
+/* dseg_adddata ****************************************************************
+
+   Adds a data segment reference to the codegendata.
+
+*******************************************************************************/
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+void dseg_adddata(codegendata *cd, u1 *mcodeptr)
+{
+	dataref *dr;
+
+	dr = DNEW(dataref);
+
+	dr->datapos = mcodeptr - cd->mcodebase;
+	dr->next    = cd->datareferences;
+
+	cd->datareferences = dr;
+}
+#endif
+
+
+/* dseg_resolve_datareferences *************************************************
+
+   Resolve data segment references.
+
+*******************************************************************************/
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+void dseg_resolve_datareferences(codegendata *cd, methodinfo *m)
+{
+	dataref *dr;
+
+	/* data segment references resolving */
+
+	for (dr = cd->datareferences; dr != NULL; dr = dr->next)
+		*((u1 **) (m->entrypoint + dr->datapos - SIZEOF_VOID_P)) = m->entrypoint;
+}
+#endif
 
 
 /* dseg_display ****************************************************************

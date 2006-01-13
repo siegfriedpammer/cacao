@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 4011 2005-12-30 14:16:49Z twisti $
+   $Id: dseg.h 4198 2006-01-13 15:28:34Z twisti $
 
 */
 
@@ -120,11 +120,16 @@ s4 dseg_adddouble_increase(codegendata *cd, double value);
 s4 dseg_adddouble(codegendata *cd, double value);
 
 void dseg_addtarget(codegendata *cd, basicblock *target);
-void dseg_adddata(codegendata *cd, u1 *ptr);
 
 void dseg_addlinenumbertablesize(codegendata *cd);
 void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *ptr);
+
 void dseg_createlinenumbertable(codegendata *cd);
+
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+void dseg_adddata(codegendata *cd, u1 *ptr);
+void dseg_resolve_datareferences(codegendata *cd, methodinfo *m);
+#endif
 
 #if !defined(NDEBUG)
 void dseg_display(methodinfo *m, codegendata *cd);
