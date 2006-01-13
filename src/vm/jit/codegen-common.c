@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4194 2006-01-13 10:11:35Z twisti $
+   $Id: codegen-common.c 4199 2006-01-13 15:29:21Z twisti $
 
 */
 
@@ -696,7 +696,7 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		if (ncodelen > 0) {
 			u1 *ncodebase = m->mcode + cd->dseglen + alignedmcodelen;
 			MCOPY((void *)ncodebase, cd->ncodebase, u1, ncodelen);
-
+			/* XXX cacheflush((void *)ncodebase, ncodelen); */
 			/* set some cd variables for dynamic_super_rerwite */
 
 			cd->ncodebase = ncodebase;
@@ -738,16 +738,13 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	codegen_insertmethod(m->entrypoint, m->entrypoint + mcodelen);
 #endif
 
-#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__)
-	{
-		dataref *dr;
 
-		/* data segment references resolving */
+#if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
+	/* resolve data segment references */
 
-		for (dr = cd->datareferences; dr != NULL; dr = dr->next)
-			*((u1 **) (epoint + dr->datapos - SIZEOF_VOID_P)) = epoint;
-	}
+	dseg_resolve_datareferences(cd, m);
 #endif
+
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
