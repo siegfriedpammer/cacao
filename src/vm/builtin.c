@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4147 2006-01-12 21:07:11Z twisti $
+   $Id: builtin.c 4205 2006-01-14 20:02:36Z twisti $
 
 */
 
@@ -1090,7 +1090,8 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 *****************************************************************************/
 
 #if !defined(NDEBUG)
-s4 methodindent = 0;
+static s4 methodindent = 0;
+static u4 callcount = 0;
 
 java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   methodinfo *m,
@@ -1257,7 +1258,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 	/* calculate message length */
 
 	logtextlen =
-		6 + methodindent + strlen("called: ") +
+		strlen("4294967295 ") +
+		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
+		methodindent +
+		strlen("called: ") +
 		utf_strlen(m->class->name) +
 		strlen(".") +
 		utf_strlen(m->name) +
@@ -1274,7 +1278,11 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 	logtext = DMNEW(char, logtextlen);
 
-	sprintf(logtext,"-%d-",methodindent);
+	callcount++;
+
+	sprintf(logtext, "%10d ", callcount);
+	sprintf(logtext + strlen(logtext), "-%d-", methodindent);
+
 	pos = strlen(logtext);
 
 	for (i = 0; i < methodindent; i++)
@@ -1510,6 +1518,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 	/* calculate message length */
 
 	logtextlen =
+		strlen("4294967295 ") +
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		methodindent +
 		strlen("finished: ") +
@@ -1538,7 +1547,8 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 	/* generate the message */
 
-	sprintf(logtext, "-%d-", methodindent);
+	sprintf(logtext, "           ");
+	sprintf(logtext + strlen(logtext), "-%d-", methodindent);
 
 	pos = strlen(logtext);
 
