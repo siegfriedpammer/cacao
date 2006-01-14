@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 3845 2005-12-03 12:18:12Z twisti $
+   $Id: Method.c 4204 2006-01-14 17:19:10Z edwin $
 
 */
 
@@ -141,7 +141,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 	/* check method access */
 
-	if (!(m->flags & ACC_PUBLIC)) {
+	if (!(m->flags & ACC_PUBLIC) || !(c->flags & ACC_PUBLIC)) {
 		/* check if we should bypass security checks (AccessibleObject) */
 
 		if (this->flag == false) {
@@ -158,7 +158,9 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 			callerclass = (classinfo *) oa->data[1];
 
-			if (!access_is_accessible_member(callerclass, c, m->flags)) {
+			if (!access_is_accessible_class(callerclass,c)
+				|| !access_is_accessible_member(callerclass, c, m->flags)) 
+			{
 				*exceptionptr =
 					new_exception(string_java_lang_IllegalAccessException);
 				return NULL;
