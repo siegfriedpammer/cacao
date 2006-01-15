@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 3788 2005-11-23 22:55:39Z twisti $
+## $Id: Makefile.am 4207 2006-01-15 00:37:34Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -49,7 +49,6 @@ EXTRA_DIST = \
 	param_test.java
 
 JAVA = $(top_builddir)/src/cacao/cacao
-JAVAC = jikes -nowarn
 
 checkall: x.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst
 
