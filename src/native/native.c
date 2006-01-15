@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4209 2006-01-15 12:28:30Z twisti $
+   $Id: native.c 4212 2006-01-15 14:12:05Z twisti $
 
 */
 
@@ -779,14 +779,15 @@ java_objectheader *native_new_and_init(classinfo *c)
 	if (!o)
 		return NULL;
 
-	/* find initializer */
+	/* try to find the initializer */
 
 	m = class_findmethod(c, utf_init, utf_void__void);
 	                      	                      
-	/* initializer not found */
+	/* ATTENTION: returning the object here is ok, since the class may
+       not have an initializer */
 
 	if (!m)
-		return NULL;
+		return o;
 
 	/* call initializer */
 
