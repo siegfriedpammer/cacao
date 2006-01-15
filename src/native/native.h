@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 4120 2006-01-10 15:50:13Z twisti $
+   $Id: native.h 4210 2006-01-15 12:28:57Z twisti $
 
 */
 
@@ -104,11 +104,14 @@ struct nativecompref {
 /* initialize native subsystem */
 bool native_init(void);
 
-/* find native function */
-functionptr native_findfunction(utf *cname, utf *mname, 
-								utf *desc, bool isstatic);
+#if defined(ENABLE_STATICVM)
 
-#if !defined(ENABLE_STATICVM)
+/* find native function */
+functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
+								bool isstatic);
+
+#else /* defined(ENABLE_STATICVM) */
+
 /* add a library to the library hash */
 void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 								  lt_dlhandle handle);
@@ -119,7 +122,8 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 
 /* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
-#endif /* !defined(ENABLE_STATICVM) */
+
+#endif /* defined(ENABLE_STATICVM) */
 
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);
