@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4178 2006-01-12 23:03:57Z twisti $
+   $Id: jni.c 4213 2006-01-15 23:32:36Z twisti $
 
 */
 
@@ -131,13 +131,8 @@ static methodinfo *removemid = NULL;
 
 /* direct buffer stuff ********************************************************/
 
-static utf *utf_java_nio_DirectByteBufferImpl_ReadWrite;
-#if SIZEOF_VOID_P == 8
-static utf *utf_gnu_classpath_Pointer64;
-#else
-static utf *utf_gnu_classpath_Pointer32;
-#endif
-
+static classinfo *class_java_nio_Buffer;
+static classinfo *class_java_nio_DirectByteBufferImpl;
 static classinfo *class_java_nio_DirectByteBufferImpl_ReadWrite;
 #if SIZEOF_VOID_P == 8
 static classinfo *class_gnu_classpath_Pointer64;
@@ -204,14 +199,19 @@ bool jni_init(void)
 
 	/* direct buffer stuff */
 
-	utf_java_nio_DirectByteBufferImpl_ReadWrite =
-		utf_new_char("java/nio/DirectByteBufferImpl$ReadWrite");
-
-	if (!(class_java_nio_DirectByteBufferImpl_ReadWrite =
-		  load_class_bootstrap(utf_java_nio_DirectByteBufferImpl_ReadWrite)))
+	if (!(class_java_nio_Buffer =
+		  load_class_bootstrap(utf_new_char("java/nio/Buffer"))) ||
+		!link_class(class_java_nio_Buffer))
 		return false;
 
-	if (!link_class(class_java_nio_DirectByteBufferImpl_ReadWrite))
+	if (!(class_java_nio_DirectByteBufferImpl =
+		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl"))) ||
+		!link_class(class_java_nio_DirectByteBufferImpl))
+		return false;
+
+	if (!(class_java_nio_DirectByteBufferImpl_ReadWrite =
+		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl$ReadWrite"))) ||
+		!link_class(class_java_nio_DirectByteBufferImpl_ReadWrite))
 		return false;
 
 	if (!(dbbirw_init =
@@ -221,22 +221,14 @@ bool jni_init(void)
 		return false;
 
 #if SIZEOF_VOID_P == 8
-	utf_gnu_classpath_Pointer64 = utf_new_char("gnu/classpath/Pointer64");
-
 	if (!(class_gnu_classpath_Pointer64 =
-		  load_class_bootstrap(utf_gnu_classpath_Pointer64)))
-		return false;
-
-	if (!link_class(class_gnu_classpath_Pointer64))
+		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer64"))) ||
+		!link_class(class_gnu_classpath_Pointer64))
 		return false;
 #else
-	utf_gnu_classpath_Pointer32 = utf_new_char("gnu/classpath/Pointer32");
-
 	if (!(class_gnu_classpath_Pointer32 =
-		  load_class_bootstrap(utf_gnu_classpath_Pointer32)))
-		return false;
-
-	if (!link_class(class_gnu_classpath_Pointer32))
+		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer32")) ||
+		!link_class(class_gnu_classpath_Pointer32))
 		return false;
 #endif
 
@@ -4308,7 +4300,7 @@ jboolean ExceptionCheck(JNIEnv *env)
 
 jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
-	java_objectheader *nbuf;
+	java_objectheader       *nbuf;
 #if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64 *paddress;
 #else
@@ -4316,8 +4308,6 @@ jobject NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 #endif
 
 	STATISTICS(jniinvokation());
-
-	log_text("JNI-NewDirectByteBuffer: called");
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
@@ -4364,10 +4354,8 @@ void *GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	STATISTICS(jniinvokation());
 
-#if 0
 	if (!builtin_instanceof(buf, class_java_nio_Buffer))
 		return NULL;
-#endif
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
@@ -4394,7 +4382,7 @@ jlong GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 
 	STATISTICS(jniinvokation());
 
-	if (buf == NULL)
+	if (!builtin_instanceof(buf, class_java_nio_DirectByteBufferImpl))
 		return -1;
 
 	nbuf = (java_nio_Buffer *) buf;
