@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4152 2006-01-12 21:14:03Z twisti $
+   $Id: native.c 4209 2006-01-15 12:28:30Z twisti $
 
 */
 
@@ -786,7 +786,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 	/* initializer not found */
 
 	if (!m)
-		return o;
+		return NULL;
 
 	/* call initializer */
 
