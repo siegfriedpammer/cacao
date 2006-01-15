@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4126 2006-01-10 20:55:41Z twisti $
+   $Id: VMSystemProperties.c 4206 2006-01-15 00:36:20Z twisti $
 
 */
 
@@ -69,7 +69,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char       *home;
 	char       *locale;
 	char       *lang;
-	char       *region;
+	char       *country;
 	struct utsname utsnamebuf;
 
 	/* endianess union */
@@ -132,12 +132,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 #else /* defined(ENABLE_STATICVM) */
 	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
 
-	libpathlen = strlen(CLASSPATH_INSTALL_DIR) +
-		strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
+	libpathlen = strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
 
 	libpath = MNEW(char, libpathlen);
 
-	strcat(libpath, CLASSPATH_INSTALL_DIR);
 	strcat(libpath, CLASSPATH_LIBRARY_PATH);
 
 	properties_system_add("gnu.classpath.boot.library.path", libpath);
@@ -215,33 +213,35 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* get locales */
 
 	locale = getenv("LANG");
-	if (locale != NULL) { /* gnu classpath is going to set en as language */
+
+	if (locale != NULL) {
+		/* get the local stuff from the environment */
+
 		if (strlen(locale) <= 2) {
 			properties_system_add("user.language", locale);
+
 		} else {
-			if ((locale[2]=='_')&&(strlen(locale)>=5)) {
+			if ((locale[2] == '_') && (strlen(locale) >= 5)) {
 				lang = MNEW(char, 3);
-				strncpy(lang, (char*)&locale[0], 2);
-				lang[2]='\0';
-				region = MNEW(char, 3);
-				strncpy(region, (char*)&locale[3], 2);
-				region[2]='\0';
+				strncpy(lang, (char *) &locale[0], 2);
+				lang[2] = '\0';
+
+				country = MNEW(char, 3);
+				strncpy(country, (char *) &locale[3], 2);
+				country[2] = '\0';
+
 				properties_system_add("user.language", lang);
-				properties_system_add("user.region", region);
+				properties_system_add("user.country", country);
 			}
 		}
+
+	} else {
+		/* if no default local was specified, use `en_US' */
+
+		properties_system_add("user.language", "en");
+		properties_system_add("user.country", "US");
 	}
 	
-	
-#if 0
-	/* how do we get them? */
-	{ "user.country", "US" },
-	{ "user.timezone", "Europe/Vienna" },
-
-	/* XXX do we need this one? */
-	{ "java.protocol.handler.pkgs", "gnu.java.net.protocol"}
-#endif
-	properties_system_add("java.protocol.handler.pkgs", "gnu.java.net.protocol");
 
 	/* add remaining properties defined on commandline to the Java
 	   system properties */
@@ -251,8 +251,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* clean up */
 
 	MFREE(cwd, char, 0);
-
-	return;
 }
 
 
