@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4205 2006-01-14 20:02:36Z twisti $
+   $Id: builtin.c 4208 2006-01-15 01:56:42Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
