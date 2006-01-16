@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4206 2006-01-15 00:36:20Z twisti $
+   $Id: VMSystemProperties.c 4214 2006-01-16 00:04:29Z twisti $
 
 */
 
@@ -71,12 +71,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char       *lang;
 	char       *country;
 	struct utsname utsnamebuf;
-
-	/* endianess union */
-	union {
-		u4 i;
-		u1 c[4];
-	} u;
 
 #if !defined(ENABLE_STATICVM)
 	char *ld_library_path;
@@ -121,8 +115,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("java.runtime.version", VERSION);
 	properties_system_add("java.runtime.name", "CACAO");
 
-	/* Set bootclasspath properties. One for GNU classpath and the other for  */
-	/* compatibility with Sun (required by most applications).                */
+	/* Set bootclasspath properties. One for GNU classpath and the
+	   other for compatibility with Sun (required by most
+	   applications). */
+
 	properties_system_add("java.boot.class.path", bootclasspath);
 	properties_system_add("sun.boot.class.path", bootclasspath);
 
@@ -130,7 +126,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("gnu.classpath.boot.library.path", ".");
 	properties_system_add("java.library.path" , ".");
 #else /* defined(ENABLE_STATICVM) */
-	/* fill gnu.classpath.boot.library.path with GNU classpath library path */
+	/* fill gnu.classpath.boot.library.path with GNU classpath library
+       path */
 
 	libpathlen = strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
 
@@ -186,19 +183,33 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	   address, so we can compare call traces. For this reason we have
 	   to add the same properties on different machines, otherwise
 	   more memory may be allocated (e.g. strlen("i386")
-	   vs. strlen("powerpc"). */
+	   vs. strlen("alpha"). */
 
- 	properties_system_add("os.name", "unknown");
 	properties_system_add("os.arch", "unknown");
+ 	properties_system_add("os.name", "unknown");
 	properties_system_add("os.version", "unknown");
 #else
- 	properties_system_add("os.name", utsnamebuf.sysname);
+	/* We need to set the os.arch hardcoded to be compatible with SUN. */
+
+#if defined(__I386__)
+	/* map all x86 architectures (i386, i486, i686) to i386 */
+
+	properties_system_add("os.arch", "i386");
+#elif defined(__POWERPC__)
+	properties_system_add("os.arch", "ppc");
+#elif defined(__X86_64__)
+	properties_system_add("os.arch", "amd64");
+#else
+	/* default to what uname returns */
+
 	properties_system_add("os.arch", utsnamebuf.machine);
+#endif
+
+ 	properties_system_add("os.name", utsnamebuf.sysname);
 	properties_system_add("os.version", utsnamebuf.release);
 #endif
 
 	properties_system_add("file.separator", "/");
-	/* properties_system_add("file.encoding", "null"); -- this must be set properly */
 	properties_system_add("path.separator", ":");
 	properties_system_add("line.separator", "\n");
 	properties_system_add("user.name", user ? user : "null");
@@ -207,10 +218,20 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* Are we little or big endian? */
 
-	u.i = 1;
-	properties_system_add("gnu.cpu.endian", u.c[0] ? "little" : "big");
+#if defined(ENABLE_STATICVM)
+	/* This is just for debugging purposes and can cause troubles in
+       GNU Classpath. */
 
-	/* get locales */
+	properties_system_add("gnu.cpu.endian", "unknown");
+#else
+# if WORDS_BIGENDIAN == 1
+	properties_system_add("gnu.cpu.endian", "big");
+# else
+	properties_system_add("gnu.cpu.endian", "little");
+# endif
+#endif
+
+	/* get locale */
 
 	locale = getenv("LANG");
 
@@ -236,15 +257,15 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		}
 
 	} else {
-		/* if no default local was specified, use `en_US' */
+		/* if no default locale was specified, use `en_US' */
 
 		properties_system_add("user.language", "en");
 		properties_system_add("user.country", "US");
 	}
 	
 
-	/* add remaining properties defined on commandline to the Java
-	   system properties */
+	/* Add remaining properties defined on commandline to the Java
+	   system properties. */
 
 	properties_system_add_all();
 
