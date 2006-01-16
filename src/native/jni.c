@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4213 2006-01-15 23:32:36Z twisti $
+   $Id: jni.c 4215 2006-01-16 00:07:02Z twisti $
 
 */
 
@@ -227,7 +227,7 @@ bool jni_init(void)
 		return false;
 #else
 	if (!(class_gnu_classpath_Pointer32 =
-		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer32")) ||
+		  load_class_bootstrap(utf_new_char("gnu/classpath/Pointer32"))) ||
 		!link_class(class_gnu_classpath_Pointer32))
 		return false;
 #endif
