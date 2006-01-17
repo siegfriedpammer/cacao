@@ -2,14 +2,14 @@
 # installed
 
 export LD_LIBRARY_PATH=\
-@CLASSPATH_INSTALL_DIR@/native/jawt/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/gtk-peer/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/java-io/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/java-lang/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/java-net/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/java-nio/.libs:\
-@CLASSPATH_INSTALL_DIR@/native/jni/java-util/.libs:\
+@CLASSPATH_PREFIX@/native/jawt/.libs:\
+@CLASSPATH_PREFIX@/native/jni/gtk-peer/.libs:\
+@CLASSPATH_PREFIX@/native/jni/java-io/.libs:\
+@CLASSPATH_PREFIX@/native/jni/java-lang/.libs:\
+@CLASSPATH_PREFIX@/native/jni/java-net/.libs:\
+@CLASSPATH_PREFIX@/native/jni/java-nio/.libs:\
+@CLASSPATH_PREFIX@/native/jni/java-util/.libs:\
 $LD_LIBRARY_PATH
 
-export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_INSTALL_DIR@/lib/glibj.zip
+export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_PREFIX@/lib/glibj.zip
 export PATH=$PWD/src/cacao:$PATH
