@@ -166,3 +166,12 @@ with. (In other words, unless your change moves or copies text from
 the non-data portions to the data portions.) If your modification has
 such potential, you must delete any notice of this special exception
 to the GPL from your modified version.
+
+
+* m4/as-ac-expand.m4
+
+(C) 2003, 2004, 2005 Thomas Vander Stichele <thomas at apestaart dot org>
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
