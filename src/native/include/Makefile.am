@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4003 2005-12-22 15:07:43Z twisti $
+## $Id: Makefile.am 4223 2006-01-17 18:24:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -130,7 +130,7 @@ endif
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 VM_ZIP = $(top_builddir)/src/lib/vm.zip
-GLIBJ_ZIP = $(CLASSPATH_INSTALL_DIR)/share/classpath/$(GLIBJZ)
+GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
 CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
 
