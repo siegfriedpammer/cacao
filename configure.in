@@ -165,12 +165,12 @@ AC_SUBST(EXPORT_SYMBOLS_FLAGS)
 
 dnl define install prefix
 if test "x$prefix" = "xNONE"; then
-    CACAO_INSTALL_PREFIX=$ac_default_prefix
+    CACAO_PREFIX=$ac_default_prefix
 else
-    CACAO_INSTALL_PREFIX=$prefix
+    CACAO_PREFIX=$prefix
 fi
-AC_DEFINE_UNQUOTED([CACAO_INSTALL_PREFIX], "${CACAO_INSTALL_PREFIX}", [installation prefix])
-AC_SUBST(CACAO_INSTALL_PREFIX)
+AC_DEFINE_UNQUOTED([CACAO_PREFIX], "${CACAO_PREFIX}", [installation prefix])
+AC_SUBST(CACAO_PREFIX)
 
 
 dnl Features
@@ -293,6 +293,14 @@ if test x"${NDEBUG}" = "xno"; then
     case "${ARCH_DIR}" in
         arm | i386 | powerpc | x86_64 )
             AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
+
+            case "${OS_DIR}" in
+                cygwin | darwin )
+                     AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from bintuils))])
+                     ;;
+            esac
+
+            AC_CHECK_LIB(iberty, xstrerror,, [AC_MSG_ERROR(cannot find libiberty (from bintuils))])
             AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from bintuils))])
             AC_CHECK_LIB(opcodes, init_disassemble_info,, [AC_MSG_ERROR(cannot find libopcodes (from bintuils))])
             AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
@@ -505,14 +513,28 @@ AC_SUBST(ENABLE_STATICVM)
 
 
 dnl is GNU classpath installed somewhere different
-AC_MSG_CHECKING(where GNU classpath is installed)
-AC_ARG_WITH([classpath-install-dir],
-            [AS_HELP_STRING(--with-classpath-install-dir=<dir>,installation directory of GNU classpath [[default=/usr/local/classpath]])],
-            [CLASSPATH_INSTALL_DIR=${withval}],
-            [CLASSPATH_INSTALL_DIR=/usr/local/classpath])
-AC_MSG_RESULT(${CLASSPATH_INSTALL_DIR})
-AC_DEFINE_UNQUOTED([CLASSPATH_INSTALL_DIR], "${CLASSPATH_INSTALL_DIR}", [GNU classpath installation directory])
-AC_SUBST(CLASSPATH_INSTALL_DIR)
+AC_MSG_CHECKING(where GNU Classpath is installed)
+AC_ARG_WITH([classpath-prefix],
+            [AS_HELP_STRING(--with-classpath-prefix=<dir>,installation directory of GNU Classpath [[default=/usr/local/classpath]])],
+            [CLASSPATH_PREFIX=${withval}],
+            [CLASSPATH_PREFIX=/usr/local/classpath])
+AC_MSG_RESULT(${CLASSPATH_PREFIX})
+AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [GNU Classpath installation directory])
+AC_SUBST(CLASSPATH_PREFIX)
+
+AC_MSG_CHECKING(where GNU Classpath libraries are installed)
+AC_ARG_WITH([classpath-libdir],
+            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of GNU Classpath libraries [[default=/usr/local/classpath/lib]])],
+            [CLASSPATH_LIBDIR=${withval}],
+            [CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib])
+AC_MSG_RESULT(${CLASSPATH_LIBDIR})
+
+dnl expand CLASSPATH_LIBDIR to something that is usable in C code
+AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
+AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [GNU Classpath libraries installation directory])
+
+AC_SUBST(CLASSPATH_LIBDIR)
+
 
 
 dnl Maybe the user has Classpath installed 'flat'.
