@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4214 2006-01-16 00:04:29Z twisti $
+   $Id: VMSystemProperties.c 4220 2006-01-17 16:58:13Z twisti $
 
 */
 
@@ -99,7 +99,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("java.version", JAVA_VERSION);
 	properties_system_add("java.vendor", "GNU Classpath");
 	properties_system_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
-	properties_system_add("java.home", java_home ? java_home : CACAO_INSTALL_PREFIX);
+	properties_system_add("java.home", java_home ? java_home : CACAO_PREFIX);
 	properties_system_add("java.vm.specification.version", "1.0");
 	properties_system_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_system_add("java.vm.specification.name", "Java Virtual Machine Specification");
