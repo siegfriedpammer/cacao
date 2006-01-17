@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4211 2006-01-15 13:32:57Z twisti $
+   $Id: global.h 4219 2006-01-17 16:57:20Z twisti $
 
 */
 
@@ -78,9 +78,9 @@ typedef struct java_objectarray java_objectarray;
 
 /* define some CACAO paths ****************************************************/
 
-#define CACAO_VM_ZIP_PATH           "/share/cacao/vm.zip"
-#define CLASSPATH_LIBRARY_PATH      CLASSPATH_INSTALL_DIR "/lib/classpath"
-#define CLASSPATH_GLIBJ_ZIP_PATH    CLASSPATH_INSTALL_DIR "/share/classpath/" GLIBJZ_STRING
+#define CACAO_VM_ZIP_PATH           CACAO_PREFIX "/share/cacao/vm.zip"
+#define CLASSPATH_GLIBJ_ZIP_PATH    CLASSPATH_PREFIX "/share/classpath/" GLIBJZ_STRING
+#define CLASSPATH_LIBRARY_PATH      CLASSPATH_LIBDIR "/classpath"
 
 
 /*
