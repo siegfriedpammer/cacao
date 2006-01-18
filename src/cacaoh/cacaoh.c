@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4221 2006-01-17 16:59:00Z twisti $
+   $Id: cacaoh.c 4226 2006-01-18 15:41:26Z twisti $
 
 */
 
@@ -70,8 +70,8 @@
 
 /* define heap sizes **********************************************************/
 
-#define HEAP_MAXSIZE      2 * 1024 * 1024;  /* default 2MB                    */
-#define HEAP_STARTSIZE    100 * 1024;       /* default 100kB                  */
+#define HEAP_MAXSIZE      2 * 1024 * 1024   /* default 2MB                    */
+#define HEAP_STARTSIZE    100 * 1024        /* default 100kB                  */
 
 
 /* define cacaoh options ******************************************************/
@@ -176,6 +176,10 @@ int main(int argc, char **argv)
 	if (argc < 2)
 		usage();
 
+
+#if defined(DISABLE_GC)
+	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
+#endif
 
 	/* set the bootclasspath */
 
