@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: inline.c 4302 2006-01-19 20:00:11Z twisti $
+   $Id: inline.c 4309 2006-01-19 21:27:58Z edwin $
 
 */
 
@@ -147,13 +147,6 @@ void inlining_setup(methodinfo *m, t_inlining_globals *inline_env)
 
 /*    	t_inlining_globals *inline_env = DNEW(t_inlining_globals); */
         inlining_init0(m,inline_env);
-
-/* define in options.h; Used in main.c, jit.c & inline.c */
-#ifdef INAFTERMAIN
-if ((utf_new_char("main") == m->name) && (useinliningm)) {
-  	useinlining = true;
-	}
-#endif
 
 if (useinlining)
         {
