@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4305 2006-01-19 20:28:27Z edwin $
+   $Id: parse.c 4313 2006-01-19 22:11:34Z edwin $
 
 */
 
@@ -172,47 +172,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	u2 skipBasicBlockChange;
 
-#if defined(USE_INLINING)
-if ((opt_rt) || (opt_xta)) {
-  FILE *Missed;
-
-  if (opt_rt)  Missed =  rtMissed;  
-  if (opt_xta) Missed = xtaMissed;  
-
-  if (m->methodUsed != USED) {
-    if (opt_verbose) {
-      printf(" rta/xta missed: "); fflush(stdout);
-      METHINFO(m,opt_verbose);
-      }
-    if ( (Missed = fopen("Missed", "a")) == NULL) {
-      printf("CACAO - rt/xtaMissed file: cant open file to write append \n");
-      }
-    else {
-      utf_fprint(Missed,m->class->name); 
-       fprintf(Missed," "); fflush(Missed);
-      utf_fprint(Missed,m->name);
-       fprintf(Missed," "); fflush(Missed);
-      utf_fprint(Missed,m->descriptor); 
-       fprintf(Missed,"\n"); fflush(Missed);
-      fclose(Missed);
-      }
-   } 
-}
-#endif
-
-#if defined(USE_INLINING)
-	if (useinlining) {
-		label_index = inlinfo->label_index;
-		m->maxstack = inline_env->cummaxstack;
-		/*JOWENN m->exceptiontablelength = inline_env->cumextablelength;*/
-
-		tmpinlinf = (inlining_methodinfo *) list_first(inlinfo->inlinedmethods);
-
-		if (tmpinlinf != NULL)
-			nextgp = tmpinlinf->startgp;
-	}
-#endif
-
 	/* allocate instruction array and block index table */
 	
 	/* 1 additional for end ipc * # cum inline methods*/
@@ -274,85 +233,6 @@ if ((opt_rt) || (opt_xta)) {
 				}
 			}
 		}
-
-#if defined(USE_INLINING)
-		if ((useinlining) && (gp == nextgp)) {
-			u1 *tptr;
-			bool *readonly = NULL;
-			int argBlockIdx=0;
-
-			block_insert(gp);               /* JJJJJJJJJJ */
-			blockend=false;
-			instructionstart[gp] = 1;
-			m->basicblockindex[gp] |= (ipc << 1);  /*FIXME: necessary ? */
-
-			opcode = code_get_u1(p,inline_env->method);
-			nextp = p += jcommandsize[opcode];
-			if (nextp > inline_env->method->jcodelength) {
-				*exceptionptr = new_verifyerror(inline_env->method,
-					"Unexpected end of bytecode");
-				return NULL;
-			}
-
-			tmpinlinf = list_first(inlinfo->inlinedmethods);
-			firstlocal = tmpinlinf->firstlocal;
-			label_index = tmpinlinf->label_index;
-			readonly = tmpinlinf->readonly;
-
-			for (i=0,tptr=tmpinlinf->method->paramtypes;i<tmpinlinf->method->paramcount;i++,tptr++) {
-				if ( ((*tptr)==TYPE_LNG) ||
-				  ((*tptr)==TYPE_DBL) )
-					argBlockIdx+=2;
-				else
-					argBlockIdx++;
-			}
-
-			for (i = 0, tptr = tmpinlinf->method->paramtypes + tmpinlinf->method->paramcount - 1; i < tmpinlinf->method->paramcount; i++, tptr--) {
-				int op;
-
-				if ((i == 0) && inlineparamopt) {
-					OP1(ICMD_CLEAR_ARGREN, firstlocal);
-				}
-
-				if (!inlineparamopt || !readonly[i]) {
-					op = ICMD_ISTORE;
-
-				} else {
-					op = ICMD_READONLY_ARG;
-				}
-
-				op += *tptr;
-				if ( ((*tptr)==TYPE_LNG) ||
-				  ((*tptr)==TYPE_DBL) )
-					argBlockIdx-=2;
-				else
-					argBlockIdx--;
-
-				OP1(op, firstlocal + argBlockIdx);
-				/* OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i); */
-			}
-			skipBasicBlockChange=1;
-			inlining_save_compiler_variables();
-			inlining_set_compiler_variables(tmpinlinf);
-
-                        OP1(ICMD_INLINE_START,tmpinlinf->level);
-
-			if (inlinfo->inlinedmethods == NULL) {
-				gp = -1;
-			} else {
-				tmpinlinf = list_first(inlinfo->inlinedmethods);
-				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
-			}
-			if (inline_env->method->exceptiontablelength > 0) {
-				nextex = fillextable(m, nextex, 
-						inline_env->method->exceptiontable, inline_env->method->exceptiontablelength, 
-						label_index, &b_count, inline_env);
-				if (!nextex)
-					return NULL;
-			}
-			continue;
-		}
-#endif /* defined(USE_INLINING) */
 
 		/* fetch next opcode  */
 
@@ -1542,11 +1422,6 @@ if ((opt_rt) || (opt_xta)) {
 			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
 	    }
 	}
-
-#if defined(USE_INLINING)	
-	if (useinlining)
-		inlining_cleanup(inline_env);
-#endif
 
 	/* just return methodinfo* to signal everything was ok */
 
