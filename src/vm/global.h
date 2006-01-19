@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4219 2006-01-17 16:57:20Z twisti $
+   $Id: global.h 4306 2006-01-19 20:53:39Z twisti $
 
 */
 
@@ -257,7 +257,7 @@ typedef struct java_chararray {
 	u2 data[1];
 } java_chararray;
 
-typedef struct java_floatheader {
+typedef struct java_floatarray {
 	java_arrayheader header;
 	float data[1];
 } java_floatarray;
