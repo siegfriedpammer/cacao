@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4014 2005-12-30 14:20:25Z twisti $
+   $Id: parse.h 4316 2006-01-19 23:40:46Z edwin $
 
 */
 
@@ -256,6 +256,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
 
 
