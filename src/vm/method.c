@@ -32,12 +32,15 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4008 2005-12-30 14:13:10Z twisti $
+   $Id: method.c 4301 2006-01-19 19:49:10Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdio.h>
+
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -136,49 +139,67 @@ void method_descriptor2types(methodinfo *m)
 	m->paramtypes = types;
 }
 
-/************** Function: method_display  (debugging only) **************/
 
-void method_display(methodinfo *m)
+/* method_printflags ***********************************************************
+
+   Prints the flags of a method to stdout like.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void method_printflags(methodinfo *m)
 {
-	printf("   ");
-	printflags(m->flags);
-	printf(" ");
+	if (m->flags & ACC_PUBLIC)       printf(" PUBLIC");
+	if (m->flags & ACC_PRIVATE)      printf(" PRIVATE");
+	if (m->flags & ACC_PROTECTED)    printf(" PROTECTED");
+   	if (m->flags & ACC_STATIC)       printf(" STATIC");
+   	if (m->flags & ACC_FINAL)        printf(" FINAL");
+   	if (m->flags & ACC_SYNCHRONIZED) printf(" SYNCHRONIZED");
+   	if (m->flags & ACC_VOLATILE)     printf(" VOLATILE");
+   	if (m->flags & ACC_TRANSIENT)    printf(" TRANSIENT");
+   	if (m->flags & ACC_NATIVE)       printf(" NATIVE");
+   	if (m->flags & ACC_INTERFACE)    printf(" INTERFACE");
+   	if (m->flags & ACC_ABSTRACT)     printf(" ABSTRACT");
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* method_print ****************************************************************
+
+   Prints a method to stdout like:
+
+   java.lang.Object.<init>()V
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void method_print(methodinfo *m)
+{
+	utf_display_classname(m->class->name);
+	printf(".");
 	utf_display(m->name);
-	printf(" "); 
 	utf_display(m->descriptor);
+
+	method_printflags(m);
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* method_println **************************************************************
+
+   Prints a method plus new line to stdout like:
+
+   java.lang.Object.<init>()V
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void method_println(methodinfo *m)
+{
+	method_print(m);
 	printf("\n");
 }
-
-/************** Function: method_display_w_class  (debugging only) **************/
-
-void method_display_w_class(methodinfo *m)
-{
-        printflags(m->class->flags);
-        printf(" "); fflush(stdout);
-        utf_display(m->class->name);
-        printf(".");fflush(stdout);
-
-        printf("   ");
-        printflags(m->flags);
-        printf(" "); fflush(stdout);
-        utf_display(m->name);
-        printf(" "); fflush(stdout);
-        utf_display(m->descriptor);
-        printf("\n"); fflush(stdout);
-}
-
-/************** Function: method_display_flags_last  (debugging only) **************/
-
-void method_display_flags_last(methodinfo *m)
-{
-        printf(" ");
-        utf_display(m->name);
-        printf(" ");
-        utf_display(m->descriptor);
-        printf("   ");
-        printflags(m->flags);
-        printf("\n");
-}
+#endif /* !defined(NDEBUG) */
 
 
 /*

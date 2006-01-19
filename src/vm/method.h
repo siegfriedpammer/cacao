@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 3969 2005-12-21 00:07:23Z twisti $
+   $Id: method.h 4301 2006-01-19 19:49:10Z twisti $
 */
 
 
@@ -157,10 +157,13 @@ struct lineinfo {
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
-void method_display(methodinfo *m);
-void method_display_w_class(methodinfo *m);
+#if !defined(NDEBUG)
+void method_printflags(methodinfo *m);
+void method_print(methodinfo *m);
+void method_println(methodinfo *m);
 
 void method_descriptor2types(methodinfo *m);
+#endif
 
 #endif /* _METHOD_H */
 
