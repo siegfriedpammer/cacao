@@ -42,7 +42,7 @@ Now wondering if there is a memory corruption because XTA seems to finish ok
 
    Changes: Christian Thalinger
 
-   $Id: parseXTA.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: parseXTA.c 4302 2006-01-19 20:00:11Z twisti $
 
 */
 
@@ -180,7 +180,7 @@ static classSetNode *descriptor2typesL(methodinfo *m)
 	if (debugInfo >= 1) {
 		printf("In descriptor2typesL >>>\t"); fflush(stdout);
 		utf_display(m->class->name); printf(".");
-		method_display(m);fflush(stdout);
+		method_println(m);fflush(stdout);
 	}
 
 	pcount = 0;
@@ -971,11 +971,11 @@ void xtaAddUsedInterfaceMethods(methodinfo *m, classinfo *ci) {
 				methodinfo *imi = &(ici->methods[mm]);
 					if  ( (XTA_DEBUGinf) && (imi->methodUsed != USED)) {
 						printf("Interface Method %s: ", methFlgs[imi->methodUsed]); 
-						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						utf_display(ici->name);printf(".");method_println(imi);fflush(stdout);
 					}
 				if  (imi->methodUsed == USED) {
 					    if (XTA_DEBUGinf) { 
-						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_println(imi);fflush(stdout);
 						/* Mark this method used in the (used) implementing class &its subclasses */
 						printf("rMAY ADD methods that was used by an interface\n");
 						}
@@ -1801,7 +1801,7 @@ void XTAprintCallgraph (list *xtaWorkList, char * txt)
          xta_meth = xta->method;
 
          printf("  (%i): ",i++);
-         method_display_w_class(xta_meth);
+         method_println(xta_meth);
         }
 
  printf("\n\n");

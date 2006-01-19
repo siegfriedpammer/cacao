@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: parseRT.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: parseRT.c 4302 2006-01-19 20:00:11Z twisti $
 
 */
 
@@ -165,12 +165,12 @@ void rtaAddUsedInterfaceMethods(classinfo *ci) {
 					if  (imi->methodUsed != USED) {
 						if (imi->methodUsed == NOTUSED) printf("Interface Method notused: "); 
 						if (imi->methodUsed == MARKED) printf("Interface Method marked: "); 
-						utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						utf_display(ici->name);printf(".");method_println(imi);fflush(stdout);
 					}
 				} 
 				if  (imi->methodUsed == USED) {
 					if (RTA_DEBUGinf) { 
-						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_display(imi);fflush(stdout);
+						printf("Interface Method used: "); utf_display(ici->name);printf(".");method_println(imi);fflush(stdout);
 
 						/* Mark this method used in the (used) implementing class and its subclasses */
 						printf("rMAY ADD methods that was used by an interface\n");

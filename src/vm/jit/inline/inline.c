@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: inline.c 4000 2005-12-22 14:05:01Z twisti $
+   $Id: inline.c 4302 2006-01-19 20:00:11Z twisti $
 
 */
 
@@ -84,20 +84,20 @@ Method to be inlined must:
         printf("<j%i/l%i/s%i/(p)%i>\t", \
                 (mm)->jcodelength,(mm)->maxlocals, \
 		(mm)->maxstack, (mm)->paramcount);  \
-        method_display_w_class(mm); }
+        method_println(mm); }
 
 #define METHINFOx(mm) \
     { \
         printf("<c%i/m%i/p%i>\t", \
                 (mm)->class->classUsed,(mm)->methodUsed, (mm)->monoPoly); \
-        method_display_w_class(mm); }
+        method_println(mm); }
 
 #define METHINFO(m) \
-  method_display_w_class(m); 
+  method_println(m); 
 
 #define IMETHINFO(m) \
   utf_display(m->class->name); printf("."); fflush(stdout); \
-  method_display(m); fflush(stdout); \
+  method_println(m); fflush(stdout); \
   printf("\tm->jcodelength=%i; ",m->jcodelength); fflush(stdout); \
   printf("m->jcode=%p;\n",m->jcode); fflush(stdout); \
   printf("\tm->maxlocals=%i; ",m->maxlocals); fflush(stdout); \
@@ -949,7 +949,7 @@ printf("\n\tinlining_methodinfo for:"); fflush(stdout);
 
 if (r->method != NULL) {
   utf_display(r->method->class->name); printf("."); fflush(stdout); \
-  method_display(r->method); fflush(stdout); \
+  method_println(r->method); fflush(stdout); \
   }
 else {
   printf(" NULL!!!!!\n");fflush(stdout);

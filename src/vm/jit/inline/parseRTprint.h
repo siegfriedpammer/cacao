@@ -10,13 +10,13 @@
     { \
 	printf("<c%i/m%i/p%i>\t", \
 		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
-  	method_display_w_class(mm); }
+  	method_println(mm); }
 
 #define METHINFO(mm,flg) \
 if (flg) { \
 	printf("<c%i/m%i/p%i>\t", \
 		mm->class->classUsed,mm->methodUsed, mm->monoPoly); \
-  	method_display_w_class(mm); }
+  	method_println(mm); }
 
 #define METHINFOtx(mm,TXT) \
 		 { \
@@ -67,14 +67,14 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 	  USED);  \
 	printf(" method name =");   \
         utf_display(submeth->class->name);printf("."); \
-        method_display_flags_last(submeth);fflush(stdout);}
+        method_println(submeth);fflush(stdout);}
 
 #define XTAPRINTcallgraph2  if(pWhenMarked>=1) { \
 	printf("\n XTA Added to Call Graph #%i:", \
 		methXTAlast); \
 	printf(" method name ="); fflush(stdout);\
 	utf_display(mi->class->name);printf(".");fflush(stdout); \
-	method_display_flags_last(mi);fflush(stdout); \
+	method_println(mi);fflush(stdout); \
 	}
 
 #define RTAPRINTcallgraph1  if(pWhenMarked>=1) \
@@ -86,7 +86,7 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 	  USED);  \
 	printf(" method name =");   \
         utf_display(meth->class->name);printf("."); \
-        method_display_flags_last(meth);fflush(stdout);} 
+        method_println(meth);fflush(stdout);} 
 
 
 #define RTAPRINTmarkMethod1 if (pWhenMarked >= 2) { \
@@ -94,17 +94,17 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 	submeth->methodUsed,  \
 	submeth->class->index); \
 	utf_display(submeth->class->name); \
-        method_display(submeth);        \
+        method_println(submeth);        \
         }
 
 #define RTAPRINTmarkMethod1aa if (pWhenMarked >= 2) { \
         printf("Top Method/Class Abstract --  init found\n"); \
-        method_display(submeth);        \
+        method_println(submeth);        \
         }
 
 #define RTAPRINTmarkMethod1A if (pWhenMarked >= 2) { \
         printf("Top Method/Class Abstract -- Marking Method & init - & marking class used <%i>\n",class->index); \
-        method_display(submeth);        \
+        method_println(submeth);        \
         }
 
 #define RTAPRINTmarkMethod2 if (pWhenMarked >= 2) { \
@@ -125,7 +125,7 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 		methRT,methRTlast,rt_method->class->classUsed,rt_method->methodUsed); fflush(stdout);\
         utf_display(rt_method->class->name);printf(".");fflush(stdout); \
         utf_display(rt_method->name);printf("\n\n"); fflush(stdout);\
-        method_display(rt_method); printf(">\n\n");fflush(stdout);}
+        method_println(rt_method); printf(">\n\n");fflush(stdout);}
 
 #define RTAPRINT02opcode if ((pOpcodes == 1) || (pOpcodes == 3)) \
         {printf("Parse RT p=%i<%i<   opcode=<%i> %s\n", \
@@ -200,29 +200,29 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 	methXTAlast); \
 	printf(" method name ="); \
 	utf_display(mi->class->name);printf("."); \
-	method_display(mi);fflush(stdout); \
+	method_println(mi);fflush(stdout); \
 	}
 
 
 #define RTAPRINT06invoke_spec_virt1 if ((pOpcodes == 1) ||(pOpcodes == 3)  || (pWhenMarked >= 2)) { \
         printf("INVOKE method name <%i/%i> =",mi->class->classUsed,mi->methodUsed); \
         utf_display(mi->class->name); printf("."); \
-	method_display(mi); \
+	method_println(mi); \
         fflush(stdout); }
 
 #define RTAPRINT07invoke_spec_virt2 if ((pOpcodes == 1) ||(pOpcodes == 3)  || (pWhenMarked >= 1)) { \
         utf_display(mi->class->name);printf("."); \
-	method_display(mi); }
+	method_println(mi); }
 
 #define RTAPRINT08AinvokeInterface0 if (pWhenMarked >= 2) { \
 	utf_display(mi->class->name); \
-	method_display(mi); printf("\n");} \
+	method_println(mi); printf("\n");} \
 	if (pWhenMarked >= 1) { \
 		printf("INTERFACE CLASS <");fflush(stdout); \
 		utf_display(mi->class->name); fflush(stdout); \
 		printf("> used flag=%i\n", mi->class->classUsed); \
 		fflush(stdout); \
-		method_display(mi); \
+		method_println(mi); \
 		fflush(stdout); \
 	}
 
@@ -249,14 +249,14 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 
 #define RTAPRINT11addedtoCallgraph  if (pWhenMarked >= 1){ \
 	printf("\n<Added to Call Graph #%i:",methRTlast); \
-	method_display(m); \
+	method_println(m); \
 	printf("<%i> method name =",methRTlast);utf_display(m->class->name); printf("."); \
 	utf_display(m->name);printf("\n"); \
 	}
 
 #define RTAPRINT11addedtoCallgraph2  if (pWhenMarked >= 1){ \
 	utf_display(ci->name); printf("."); \
-	method_display(m); printf("\t\t"); \
+	method_println(m); printf("\t\t"); \
 	printf("<init> W/O new -- Add marked methods...\n<"); \
 	}
 
@@ -270,7 +270,7 @@ if (flg) {printf("Parse p=%i<%i<   opcode=<%i> %s\n", \
 #define RTAPRINT12bAbstractNative if (pOpcodes == 1) { \
                   printf("\nPROCESS_abstract or native\n"); \
                   utf_display(rt_method->class->name); printf("."); \
-                  method_display(rt_method); printf("\n"); fflush(stdout); \
+                  method_println(rt_method); printf("\n"); fflush(stdout); \
                   }
 
 #define RTAPRINT12Callgraph  if (pCallgraph >= 3) { \

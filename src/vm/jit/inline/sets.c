@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 3940 2005-12-11 01:06:16Z twisti $
+   $Id: sets.c 4302 2006-01-19 20:00:11Z twisti $
 
 */
 
@@ -447,7 +447,7 @@ int printMethSet(methSetNode *s)
 			/* class.method */
 			utf_display(i->methRef->class->name);
 			printf(".");
-			method_display(i->methRef);
+			method_println(i->methRef);
 
 			/* lastptr <class> */
 			printf("\t<");
