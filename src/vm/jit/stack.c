@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4189 2006-01-12 23:31:24Z twisti $
+   $Id: stack.c 4315 2006-01-19 23:35:22Z edwin $
 
 */
 
@@ -3163,4 +3163,5 @@ void show_icmd(instruction *iptr, bool deadcode)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
