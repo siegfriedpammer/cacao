@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 3976 2005-12-21 16:17:37Z anton $
+   $Id: options.h 4312 2006-01-19 22:06:58Z edwin $
 
 */
 
@@ -101,9 +101,6 @@ extern bool opt_showintermediate;
 extern bool opt_showexceptionstubs;
 extern bool opt_shownativestub;
 
-/*#undef INAFTERMAIN*/  /*use to inline system methods before main is called*/
-#define INAFTERMAIN T /*use to turn off inlining before main called */
-extern bool useinliningm;
 extern bool useinlining;
 extern bool inlinevirtuals;
 extern bool inlineexceptions;

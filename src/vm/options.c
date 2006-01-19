@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 3976 2005-12-21 16:17:37Z anton $
+   $Id: options.c 4312 2006-01-19 22:06:58Z edwin $
 
 */
 
@@ -87,7 +87,6 @@ bool opt_showintermediate = false;      /* generate intermediate code listing */
 bool opt_showexceptionstubs = false;
 bool opt_shownativestub = false;
 
-bool useinliningm = false;      /* use method inlining                        */
 bool useinlining = false;      /* use method inlining                        */
 bool inlinevirtuals = false;   /* inline unique virtual methods              */
 bool inlineexceptions = false; /* inline methods, that contain excptions     */
