@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4170 2006-01-12 22:35:05Z twisti $
+   $Id: parse.c 4304 2006-01-19 20:13:52Z edwin $
 
 */
 
@@ -98,12 +98,6 @@ static exceptiontable* fillextable(methodinfo *m,
 	if (exceptiontablelength == 0) 
 		return extable;
 
-	/*if (m->exceptiontablelength > 0) {
-	  METHINFOx(m);
-	  printf("m->exceptiontablelength=%i\n",m->exceptiontablelength);
-	  assert(0);
-	  }*/
-
 	b_count = *block_count;
 
 	for (src = exceptiontablelength-1; src >=0; src--) {
@@ -114,8 +108,6 @@ static exceptiontable* fillextable(methodinfo *m,
 		bound_check(p);
 		block_insert(p);
 		
-/*** if (DEBUG==true){printf("---------------------block_inserted:b_count=%i m->basicblockindex[(p=%i)]=%i=%p\n",b_count,p,m->basicblockindex[(p)],m->basicblockindex[(p)]); 
-  fflush(stdout); } ***/   
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
 		if (p <= raw_extable[src].startpc) {
 			*exceptionptr = new_verifyerror(inline_env->method,
@@ -130,8 +122,6 @@ static exceptiontable* fillextable(methodinfo *m,
 		}
 
 		if (p<inline_env->method->jcodelength) insertBlock=1; else insertBlock=0;
-                /*if (label_index !=NULL) printf("%s:translating endpc:%ld to %ld, label_index:%p\n",m->name->text,p,label_index[p],label_index); else
-			printf("%s:fillextab: endpc:%ld\n",m->name->text,p);*/
 		if (label_index != NULL) p = label_index[p];
 		extable->endpc = p;
 		bound_check1(p);
@@ -233,18 +223,6 @@ if ((opt_rt) || (opt_xta)) {
 	}
 #endif
 
-/**** static analysis has to be called before inlining
-        which has to be called before reg_set
-        which has to be called before parse (or ???)
-        will check if method being parsed was analysed here
-	if (opt_xta && opt_verbose) { 
-		**RT_jit_parse(m);**
-		printf("XTA requested, not available\n");
-		}
-	if (opt_vta && opt_verbose)  
-		    printf("VTA requested, not yet implemented\n");
-	****/ 
-
 	/* allocate instruction array and block index table */
 	
 	/* 1 additional for end ipc * # cum inline methods*/
@@ -266,20 +244,6 @@ if ((opt_rt) || (opt_xta)) {
 	memset(iptr, 0, sizeof(instruction) * (inline_env->cumjcodelength + 5));
 	
 	/* compute branch targets of exception table */
-	/*
-if (m->exceptiontable == NULL) {
-  printf("m->exceptiontable=NULL\n");fflush(stdout);
-  }
-else {
-  printf("m->exceptiontable != NULL\n");fflush(stdout);
-  }
-printf("m->exceptiontablelength=%i, inline_env->method->exceptiontablelength=%i,inline_env->cumextablelength=%i\n",
-m->exceptiontablelength, inline_env->method->exceptiontablelength,inline_env->cumextablelength);
-	*/
-	/*
-if (m->exceptiontablelength > 0)
-  	m->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1); 
-	*/
 
 	nextex = fillextable(m, 
  	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, m->exceptiontablelength, 
@@ -301,7 +265,6 @@ if (m->exceptiontablelength > 0)
 
 	if (m->linenumbercount == 0) {
 		lineindex = 0;
-		/*printf("linenumber count == 0\n");*/
 	} else {
 		linepcchange = m->linenumbers[0].start_pc;
 	}
@@ -314,15 +277,12 @@ if (m->exceptiontablelength > 0)
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
 			instructionstart[gp] = 1;
-			/*log_text("new start of instruction");*/
-                        /*printf ("%s, linepcchange %d,p %d\n",inline_env->method->name->text,linepcchange,p);*/
 			if (linepcchange==p) {
 				if (inline_env->method->linenumbercount > lineindex) {
 					currentline = inline_env->method->linenumbers[lineindex].line_number;
 					lineindex++;
 					if (lineindex < inline_env->method->linenumbercount)
 						linepcchange = inline_env->method->linenumbers[lineindex].start_pc;
-					/*printf("Line number changed to: %ld\n",currentline);*/
 				}
 			}
 		}
@@ -382,7 +342,6 @@ if (m->exceptiontablelength > 0)
 
 				OP1(op, firstlocal + argBlockIdx);
 				/* OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i); */
-				/* printf("inline argument load operation for local: %ld\n",firstlocal + tmpinlinf->method->paramcount - 1 - i); */
 			}
 			skipBasicBlockChange=1;
 METHINFOt(inline_env->method,"BEFORE SAVE: ",DEBUG);
@@ -423,19 +382,9 @@ METHINFO(inline_env->method,DEBUG);
 			if (label_index)
 				printf("label_index[%d]=%d\n",p,label_index[p]);
 		}
-	 /*
-printf("basicblockindex[gp=%i]=%i=%p ipc=%i=%p shifted ipc=%i=%p\n",
-gp,m->basicblockindex[gp],m->basicblockindex[gp],ipc,ipc,(ipc<<1),(ipc<<1));
-fflush(stdout);
-	 */
 		if (!skipBasicBlockChange) {
 			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
 		} else skipBasicBlockChange=0;
-		/*
-printf("basicblockindex[gp=%i]=%i=%p \n",
-gp,m->basicblockindex[gp],m->basicblockindex[gp]);
-fflush(stdout);
-		*/
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
@@ -775,7 +724,6 @@ SHOWOPCODE(DEBUG4)
 				debug_writebranch;
 				i = label_index[i];
 			}
-			/*printf("GOTO: %d\n",i);*/
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -790,7 +738,6 @@ SHOWOPCODE(DEBUG4)
 				i = label_index[i];
 			}
 			bound_check(i);
-			/*printf("B6 JSR_W\t"); fflush(stdout);*/
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -1003,7 +950,6 @@ SHOWOPCODE(DEBUG4)
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp,inline_env->method);
 					if (useinlining) {
-						/*printf("TABLESWITCH: j before mapping=%ld\n",j);*/
 						j = label_index[j];
 					}
 					*tablep = j; /* restore for little endian */
@@ -1011,7 +957,6 @@ SHOWOPCODE(DEBUG4)
 					nextp += 4;
 					bound_check(j);
 					block_insert(j);
-					/*printf("TABLESWITCH: block_insert(%ld)\n",j);*/
 				}
 
 				break;
@@ -1490,7 +1435,6 @@ SHOWOPCODE(DEBUG4)
 #if defined(USE_INLINING)
 		/* if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { */ /* end of an inlined method */
 		if (inline_env->isinlinedmethod && (nextp >= inline_env->method->jcodelength) ) { /* end of an inlined method */
-			/*		  printf("setting gp from %d to %d\n",gp, inlinfo->stopgp); */
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
 			OP(ICMD_INLINE_END);
@@ -1504,7 +1448,6 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 				tmpinlinf = list_first(inlinfo->inlinedmethods);
 				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
 			}
-			/*		  printf("nextpgp: %d\n", nextgp); */
 			label_index=inlinfo->label_index;
 			firstlocal = inlinfo->firstlocal;
 		}
@@ -1650,4 +1593,5 @@ METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
