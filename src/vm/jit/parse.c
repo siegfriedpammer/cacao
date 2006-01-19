@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4304 2006-01-19 20:13:52Z edwin $
+   $Id: parse.c 4305 2006-01-19 20:28:27Z edwin $
 
 */
 
@@ -65,16 +65,6 @@
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/inline/parseRTprint.h"
 
-bool DEBUG = false;
-bool DEBUG2 = false;
-bool DEBUG3 = false;
-bool DEBUG4 = false;  /*opcodes for parse.c*/
-
-
-/*INLINING*/
-#define debug_writebranch if (DEBUG2==true) printf("op:: %s i: %d label_index[i]: %d label_index=0x%p\n",opcode_names[opcode], i, label_index[i], (void *)label_index);
-#define debug_writebranch1
-
 /*******************************************************************************
 
 	function 'parse' scans the JavaVM code and generates intermediate code
@@ -87,11 +77,13 @@ bool DEBUG4 = false;  /*opcodes for parse.c*/
 
 *******************************************************************************/
 
-static exceptiontable* fillextable(methodinfo *m, 
-		exceptiontable* extable, exceptiontable *raw_extable, 
-                int exceptiontablelength, 
-		int *label_index, int *block_count, 
-		t_inlining_globals *inline_env)
+static exceptiontable * fillextable(methodinfo *m, 
+									exceptiontable *extable, 
+									exceptiontable *raw_extable, 
+        							int exceptiontablelength, 
+									int *label_index, 
+									int *block_count, 
+									t_inlining_globals *inline_env)
 {
 	int b_count, p, src, insertBlock;
 	
@@ -101,7 +93,6 @@ static exceptiontable* fillextable(methodinfo *m,
 	b_count = *block_count;
 
 	for (src = exceptiontablelength-1; src >=0; src--) {
-		/* printf("Excepiont table index: %d\n",i); */
    		p = raw_extable[src].startpc;
 		if (label_index != NULL) p = label_index[p];
 		extable->startpc = p;
@@ -125,9 +116,9 @@ static exceptiontable* fillextable(methodinfo *m,
 		if (label_index != NULL) p = label_index[p];
 		extable->endpc = p;
 		bound_check1(p);
-		/*if (p < inline_env->method->jcodelength) {
-			block_insert(p); }*/
-                if (insertBlock) block_insert(p);
+		/* if (p < inline_env->method->jcodelength) block_insert(p); */
+        if (insertBlock) 
+			block_insert(p);
 
 		p = raw_extable[src].handlerpc;
 		if (label_index != NULL) p = label_index[p];
@@ -182,7 +173,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	u2 skipBasicBlockChange;
 
 #if defined(USE_INLINING)
-METHINFOt(m,"\nPARSING: ",DEBUG4);
 if ((opt_rt) || (opt_xta)) {
   FILE *Missed;
 
@@ -272,8 +262,6 @@ if ((opt_rt) || (opt_xta)) {
 	skipBasicBlockChange=0;
 	for (p = 0, gp = 0; p < inline_env->method->jcodelength; gp += (nextp - p), p = nextp) {
 	  
-		/* DEBUG */	 if (DEBUG==true) printf("----- p:%d gp:%d\n",p,gp);
-
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
 			instructionstart[gp] = 1;
@@ -344,13 +332,8 @@ if ((opt_rt) || (opt_xta)) {
 				/* OP1(op, firstlocal + tmpinlinf->method->paramcount - 1 - i); */
 			}
 			skipBasicBlockChange=1;
-METHINFOt(inline_env->method,"BEFORE SAVE: ",DEBUG);
 			inlining_save_compiler_variables();
-METHINFOt(inline_env->method,"AFTER SAVE: ",DEBUG);
 			inlining_set_compiler_variables(tmpinlinf);
-METHINFOt(inline_env->method,"AFTER SET :: ",DEBUG);
-METHINFOt(m,"\n.......Parsing (inlined): ",DEBUG);
-METHINFO(inline_env->method,DEBUG);
 
                         OP1(ICMD_INLINE_START,tmpinlinf->level);
 
@@ -375,13 +358,6 @@ METHINFO(inline_env->method,DEBUG);
 
 		opcode = code_get_u1(p, inline_env->method);
 
-	 if (DEBUG==true) 
-		{
-			printf("Parse p=%i<%i<%i<   opcode=<%i> %s\n",
-			   p, gp, inline_env->jcodelength, opcode, opcode_names[opcode]);
-			if (label_index)
-				printf("label_index[%d]=%d\n",p,label_index[p]);
-		}
 		if (!skipBasicBlockChange) {
 			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
 		} else skipBasicBlockChange=0;
@@ -404,7 +380,6 @@ METHINFO(inline_env->method,DEBUG);
 		}
 
 		s_count += stackreq[opcode];      	/* compute stack element count    */
-SHOWOPCODE(DEBUG4)
 		switch (opcode) {
 		case JAVA_NOP:
 			break;
@@ -721,7 +696,6 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_JSR:
 			i = p + code_get_s2(p + 1,inline_env->method);
 			if (useinlining) { 
-				debug_writebranch;
 				i = label_index[i];
 			}
 			bound_check(i);
@@ -734,7 +708,6 @@ SHOWOPCODE(DEBUG4)
 		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,inline_env->method);
 			if (useinlining) { 
-				debug_writebranch;
 				i = label_index[i];
 			}
 			bound_check(i);
@@ -1438,9 +1411,8 @@ SHOWOPCODE(DEBUG4)
 			gp = inlinfo->stopgp; 
 			inlining_restore_compiler_variables();
 			OP(ICMD_INLINE_END);
-/*label_index = inlinfo->label_index;*/
+			/*label_index = inlinfo->label_index;*/
 
-METHINFOt(inline_env->method,"AFTER RESTORE : ",DEBUG);
 			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
 			if (inlinfo->inlinedmethods == NULL) { /* JJJJ */
 				nextgp = -1;
