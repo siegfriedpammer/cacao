@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4154 2006-01-12 21:16:18Z twisti $
+   $Id: jit.c 4310 2006-01-19 21:31:04Z edwin $
 
 */
 
@@ -1436,11 +1436,6 @@ u1 *jit_compile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
-	/* define in options.h; Used in main.c, jit.c & inline.c */
-#ifdef INAFTERMAIN
-	if ((utf_new_char("main") == m->name) && (useinliningm))
-		useinlining = false;
-#endif
 
 #if defined(USE_THREADS)
 	/* leave the monitor */
