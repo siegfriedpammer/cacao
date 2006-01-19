@@ -28,13 +28,17 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4156 2006-01-12 21:29:04Z twisti $
+## $Id: Makefile.am 4299 2006-01-19 16:02:21Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-SUBDIRS = allocator loop tools verify
+SUBDIRS = \
+	allocator \
+	loop \
+	tools \
+	verify
 
 DIST_SUBDIRS = \
 	allocator \
