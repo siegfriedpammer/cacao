@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4297 2006-01-19 09:47:16Z twisti $
+## $Id: Makefile.am 4300 2006-01-19 17:02:22Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,7 @@ DIST_SUBDIRS = \
 
 SUBDIRS = $(OS_DIR)
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 AM_CCASFLAGS = $(AM_CPPFLAGS)
 
 BUILT_SOURCES = offsets.h
