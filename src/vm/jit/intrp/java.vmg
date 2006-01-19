@@ -192,6 +192,14 @@ IALOAD ( aArray iIndex -- vResult ) 0x2e
   vResult = access_array_int(aArray, iIndex);
 }
 
+FALOAD ( aArray iIndex -- fResult ) 0x2e
+{
+  CHECK_NULL_PTR(aArray);
+  CHECK_OUT_OF_BOUNDS(aArray, iIndex);
+  ;
+  fResult = access_array_float(aArray, iIndex);
+}
+
 LALOAD ( aArray iIndex -- lResult ) 0x2f
 {
   CHECK_NULL_PTR(aArray);
@@ -253,6 +261,14 @@ IASTORE ( aArray iIndex iValue -- ) 0x4f
   CHECK_OUT_OF_BOUNDS(aArray, iIndex);
   ;
   access_array_int(aArray, iIndex) = iValue;
+}
+
+FASTORE ( aArray iIndex fValue -- ) 0x4f
+{
+  CHECK_NULL_PTR(aArray);
+  CHECK_OUT_OF_BOUNDS(aArray, iIndex);
+  ;
+  access_array_float(aArray, iIndex) = fValue;
 }
 
 LASTORE ( aArray iIndex lValue -- ) 0x50

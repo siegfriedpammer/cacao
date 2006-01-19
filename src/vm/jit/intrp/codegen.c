@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4197 2006-01-13 15:27:51Z twisti $
+   $Id: codegen.c 4307 2006-01-19 20:56:03Z twisti $
 
 */
 
@@ -1035,9 +1035,13 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IALOAD:     /* ..., arrayref, index  ==> ..., value         */
-		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			gen_IALOAD(cd);
+			break;
+
+		case ICMD_FALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			gen_FALOAD(cd);
 			break;
 
 		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
@@ -1064,9 +1068,13 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
-		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
 			gen_IASTORE(cd);
+			break;
+
+		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			gen_FASTORE(cd);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */

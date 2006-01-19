@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 4139 2006-01-11 12:16:57Z twisti $
+   $Id: engine.c 4307 2006-01-19 20:56:03Z twisti $
 */
 
 
@@ -184,6 +184,9 @@
 
 #define access_array_addr(array, index)               \
         ((((java_objectarray*)(array))->data)[index])
+
+#define access_array_float(array, index)               \
+        ((((java_floatarray*)(array))->data)[index])
 
 #define MAXLOCALS(stub) (((Cell *)stub)[1])
 
