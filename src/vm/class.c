@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4023 2006-01-01 16:34:53Z twisti $
+   $Id: class.c 4303 2006-01-19 20:03:52Z twisti $
 
 */
 
@@ -1345,14 +1345,14 @@ void class_showmethods (classinfo *c)
 		}
 
 	printf ("methods:\n");
-	for (i=0; i < c -> methodscount; i++) {
+	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
-		if ( !(m->flags & ACC_STATIC)) 
-			printf ("vftblindex: %d   ", m->vftblindex);
 
-		method_display ( m );
+		if (!(m->flags & ACC_STATIC))
+			printf("vftblindex: %d   ", m->vftblindex);
 
-		}
+		method_println(m);
+	}
 
 	printf ("Virtual function table:\n");
 	for (i=0; i<c->vftbl->vftbllength; i++) {
