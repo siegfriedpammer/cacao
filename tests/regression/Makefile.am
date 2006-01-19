@@ -28,9 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4218 2006-01-17 16:55:21Z twisti $
+## $Id: Makefile.am 4314 2006-01-19 22:21:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+SUBDIRS = codepatching
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)

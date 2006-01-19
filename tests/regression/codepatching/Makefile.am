@@ -1,4 +1,4 @@
-## tests/codepatching/Makefile.am
+## tests/regression/codepatching/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,9 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4093 2006-01-08 19:13:33Z twisti $
+## $Id: Makefile.am 4314 2006-01-19 22:21:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
+
+JAVA      = $(top_builddir)/src/cacao/cacao
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
 SOURCE_FILES = \
 	checkcastC.java \
@@ -107,13 +110,11 @@ CLEANFILES = \
 	$(MAINCLASS) \
 	$(CLASSES)
 
-JAVA = $(top_builddir)/src/cacao/cacao
-
 build:
 	$(JAVAC) $(SOURCE_FILES)
 
 check: build
-	$(JAVA) test
+	$(JAVA) $(JAVAFLAGS) test
 
 remove:
 	$(RM) $(CLASSES)
