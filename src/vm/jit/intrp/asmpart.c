@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4164 2006-01-12 21:38:11Z twisti $
+   $Id: asmpart.c 4329 2006-01-20 13:40:25Z twisti $
 
 */
 
@@ -53,8 +53,9 @@
 
 /* true on success, false on exception */
 
-static bool asm_calljavafunction_intern(methodinfo *m, void *arg1, void *arg2,
-										void *arg3, void *arg4)
+static bool intrp_asm_calljavafunction_intern(methodinfo *m,
+											  void *arg1, void *arg2,
+											  void *arg3, void *arg4)
 {
 	java_objectheader *retval;
 	Cell *sp = global_sp;
@@ -99,7 +100,7 @@ java_objectheader *intrp_asm_calljavafunction(methodinfo *m,
 											  void *arg1, void *arg2,
 											  void *arg3, void *arg4)
 {
-	if (asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4)) {
+	if (intrp_asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4)) {
 		if (m->parseddesc->returntype.type == TYPE_ADR)
 			return (java_objectheader *)(*global_sp++);
 		else {
@@ -116,7 +117,7 @@ s4 intrp_asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
 {
 	assert(m->parseddesc->returntype.type == TYPE_INT);
 
-	if (asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4))
+	if (intrp_asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4))
 		return (s4) (*global_sp++);
 	else
 		return 0;

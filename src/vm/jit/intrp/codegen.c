@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4307 2006-01-19 20:56:03Z twisti $
+   $Id: codegen.c 4329 2006-01-20 13:40:25Z twisti $
 
 */
 
@@ -1841,6 +1841,29 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 }
 
 
+#if defined(WITH_FFI)
+static ffi_type *cacaotype2ffitype(s4 cacaotype)
+{
+	switch (cacaotype) {
+	case TYPE_INT:
+		return &ffi_type_slong;
+	case TYPE_LNG:
+		return &ffi_type_sint64;
+	case TYPE_FLT:
+		return &ffi_type_float;
+	case TYPE_DBL:
+		return &ffi_type_double;
+	case TYPE_ADR:
+		return &ffi_type_pointer;
+	case TYPE_VOID:
+		return &ffi_type_void;
+	default:
+		assert(false);
+	}
+}
+#endif
+
+
 /* native stub:
 +---------+
 |NATIVECALL|
@@ -1940,29 +1963,6 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 }
 
 
-#if defined(WITH_FFI)
-ffi_type *cacaotype2ffitype(s4 cacaotype)
-{
-	switch (cacaotype) {
-	case TYPE_INT:
-		return &ffi_type_slong;
-	case TYPE_LNG:
-		return &ffi_type_sint64;
-	case TYPE_FLT:
-		return &ffi_type_float;
-	case TYPE_DBL:
-		return &ffi_type_double;
-	case TYPE_ADR:
-		return &ffi_type_pointer;
-	case TYPE_VOID:
-		return &ffi_type_void;
-	default:
-		assert(false);
-	}
-}
-#endif
-
-
 /* call jni function */
 Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 *addrcif)
 {
@@ -1991,11 +1991,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		break;
 	case TYPE_FLT:
 		endsp = sp - 1 + md->paramslots;
-#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
-		av_start_float(alist, f, ((float *) endsp) + 1);
-#else
 		av_start_float(alist, f, endsp);
-#endif
 		break;
 	case TYPE_DBL:
 		endsp = sp - 2 + md->paramslots;
@@ -2030,11 +2026,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 			break;
 		case TYPE_FLT:
 			p -= 1;
-#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
-			av_float(alist, *(((float *) p) + 1));
-#else
 			av_float(alist, *((float *) p));
-#endif
 			break;
 		case TYPE_DBL:
 			p -= 2;
@@ -2087,9 +2079,8 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* for static methods, pass class pointer */
 
-	if (m->flags & ACC_STATIC) {
+	if (m->flags & ACC_STATIC)
 		*pvalues++ = &m->class;
-	}
 
 	/* pass parameter to native function */
 
@@ -2099,12 +2090,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		else
 			p--;
 
-#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
-		if (md->paramtypes[i].type == TYPE_FLT)
-			*pvalues++ = (void *)(((float *)p)+1);
-		else
-#endif
-			*pvalues++ = p;
+		*pvalues++ = p;
 	}
 
 	/* calculate position of return value */
@@ -2121,12 +2107,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
-#if WORDS_BIGENDIAN == 1 && SIZEOF_VOID_P == 8 && 0
-	if (md->returntype.type == TYPE_FLT)
-		ffi_call(pcif, FFI_FN(f), ((float *) endsp) + 1, values);
-	else
-#endif
-		ffi_call(pcif, FFI_FN(f), endsp, values);
+	ffi_call(pcif, FFI_FN(f), endsp, values);
 
 	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
 
