@@ -30,7 +30,7 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 4114 2006-01-09 20:19:02Z twisti $
+   $Id: disass.c 4320 2006-01-20 12:01:15Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 
 #include "vm/types.h"
 
+#include "vm/global.h"
 #include "vm/jit/disass.h"
 
 
@@ -92,9 +93,16 @@ char *regs[] = {
 
 u1 *disassinstr(u1 *code)
 {
-	disassemble_info info;
+	if (!disass_initialized) {
+		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 
-	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
+		/* setting the struct members must be done after
+		   INIT_DISASSEMBLE_INFO */
+
+		info.read_memory_func = &disass_buffer_read_memory;
+
+		disass_initialized = true;
+	}
 
 	printf("0x%08x:   %08x    ", (s4) code, *((s4 *) code));
 
@@ -103,27 +111,6 @@ u1 *disassinstr(u1 *code)
 	printf("\n");
 
 	return code + 4;
-}
-
-
-/* disassemble *****************************************************************
-
-   Outputs a disassembler listing of some machine code on `stdout'.
-
-   start: pointer to first instruction
-   end:   pointer to last instruction
-
-*******************************************************************************/
-
-void disassemble(u1 *start, u1 *end)
-{
-	disassemble_info info;
-
-	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
-
-	printf("  --- disassembler listing ---\n");
-	for (; start < end; )
-		start = disassinstr(start);
 }
 
 
