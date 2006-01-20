@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4187 2006-01-12 23:30:35Z twisti $
+   $Id: class.h 4323 2006-01-20 13:05:09Z twisti $
 
 */
 
@@ -310,6 +310,14 @@ methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
 
 bool class_issubclass(classinfo *sub, classinfo *super);
+
+/* some debugging functions */
+
+#if !defined(NDEBUG)
+void class_printflags(classinfo *c);
+void class_print(classinfo *c);
+void class_println(classinfo *c);
+#endif
 
 /* debug purposes */
 void class_showmethods(classinfo *c);

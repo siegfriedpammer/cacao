@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4303 2006-01-19 20:03:52Z twisti $
+   $Id: class.c 4323 2006-01-20 13:05:09Z twisti $
 
 */
 
@@ -1152,6 +1152,60 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 		sub = sub->super.cls;
 	}
 }
+
+
+/* class_printflags ************************************************************
+
+   Prints flags of a class.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_printflags(classinfo *c)
+{
+	if (c->flags & ACC_PUBLIC)       printf(" PUBLIC");
+	if (c->flags & ACC_PRIVATE)      printf(" PRIVATE");
+	if (c->flags & ACC_PROTECTED)    printf(" PROTECTED");
+	if (c->flags & ACC_STATIC)       printf(" STATIC");
+	if (c->flags & ACC_FINAL)        printf(" FINAL");
+	if (c->flags & ACC_SYNCHRONIZED) printf(" SYNCHRONIZED");
+	if (c->flags & ACC_VOLATILE)     printf(" VOLATILE");
+	if (c->flags & ACC_TRANSIENT)    printf(" TRANSIENT");
+	if (c->flags & ACC_NATIVE)       printf(" NATIVE");
+	if (c->flags & ACC_INTERFACE)    printf(" INTERFACE");
+	if (c->flags & ACC_ABSTRACT)     printf(" ABSTRACT");
+}
+#endif
+
+
+/* class_print *****************************************************************
+
+   Prints classname plus flags.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_print(classinfo *c)
+{
+	utf_display(c->name);
+	class_printflags(c);
+}
+#endif
+
+
+/* class_println ***************************************************************
+
+   Prints classname plus flags and new line.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_println(classinfo *c)
+{
+	class_print(c);
+	printf("\n");
+}
+#endif
 
 
 #if !defined(NDEBUG)
