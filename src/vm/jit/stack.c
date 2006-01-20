@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4315 2006-01-19 23:35:22Z edwin $
+   $Id: stack.c 4321 2006-01-20 12:57:36Z twisti $
 
 */
 
@@ -2477,12 +2477,12 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 
 	printf("\n");
-	utf_fprint_classname(stdout, m->class->name);
-	printf(".");
-	utf_fprint(stdout, m->name);
-	utf_fprint(stdout, m->descriptor);
-	printf("\n\nMax locals: %d\n", (int) cd->maxlocals);
-	printf("Max stack:  %d\n", (int) cd->maxstack);
+
+	method_println(m);
+
+	printf("\nBasic blocks: %d\n", (m->basicblockcount - 1));
+	printf("Max locals:   %d\n", cd->maxlocals);
+	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
 
 	printf("Exceptions (Number: %d):\n", cd->exceptiontablelength);
@@ -2679,23 +2679,29 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 
 	if (bptr->flags != BBDELETED) {
 		deadcode = bptr->flags <= BBREACHED;
+
 		printf("[");
+
 		if (deadcode)
 			for (j = cd->maxstack; j > 0; j--)
 				printf(" ?  ");
 		else
 			icmd_print_stack(cd, bptr->instack);
-		printf("] L%03d(%d - %d) flags=%d:\n", bptr->debug_nr, bptr->icount, bptr->pre_count,bptr->flags);
+
+		printf("] L%03d(instruction count: %d, predecessors: %d):\n",
+			   bptr->debug_nr, bptr->icount, bptr->pre_count);
+
 		iptr = bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
 			printf("[");
-			if (deadcode) {
+
+			if (deadcode)
 				for (j = cd->maxstack; j > 0; j--)
 					printf(" ?  ");
-			}
 			else
 				icmd_print_stack(cd, iptr->dst);
+
 			printf("] %5d (line: %5d)  ", i, iptr->line);
 
 			show_icmd(iptr, deadcode);
@@ -2753,7 +2759,6 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_LSHRCONST:
 	case ICMD_LUSHRCONST:
 	case ICMD_ICONST:
-	case ICMD_ELSE_ICONST:
 	case ICMD_IASTORECONST:
 	case ICMD_BASTORECONST:
 	case ICMD_CASTORECONST:
@@ -2767,7 +2772,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IFGE_ICONST:
 	case ICMD_IFGT_ICONST:
 	case ICMD_IFLE_ICONST:
-		printf("(%d) %d", iptr[1].op1, iptr->val.i);
+		printf(" %d, %d (0x%08x)", iptr[1].op1, iptr->val.i, iptr->val.i);
+		break;
+
+	case ICMD_ELSE_ICONST:
+		printf("     %d (0x%08x)", iptr->val.i, iptr->val.i);
 		break;
 
 	case ICMD_LADDCONST:
@@ -2978,12 +2987,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_MULTIANEWARRAY:
-		if (iptr->target) {
-			printf(" (NOT RESOLVED) %d ",iptr->op1);
-			utf_display(((constant_classref *) iptr->val.a)->name);
+		if (iptr->val.a == NULL) {
+			printf(" (NOT RESOLVED) %d ", iptr->op1);
+			utf_display(((constant_classref *) iptr->target)->name);
 		} else {
 			printf(" %d ",iptr->op1);
-			utf_display_classname(((vftbl_t *) iptr->val.a)->class->name);
+			utf_display_classname(((classinfo *) iptr->val.a)->name);
 		}
 		break;
 
