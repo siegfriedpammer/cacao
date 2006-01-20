@@ -28,15 +28,17 @@
 
    Changes:
 
-   $Id: signal.c 3729 2005-11-22 11:38:12Z twisti $
+   $Id: signal.c 4326 2006-01-20 13:25:24Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <signal.h>
 #include <stdlib.h>
 
-#include "config.h"
+#include "vm/types.h"
 
 #include "cacao/cacao.h"
 
@@ -50,8 +52,6 @@
 
 /* function prototypes ********************************************************/
 
-void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
-void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p);
 void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
@@ -79,7 +79,7 @@ void signal_init(void)
 		/* catch NullPointerException/StackOverFlowException */
 
 		if (!checknull) {
-			act.sa_sigaction = signal_handler_sigsegv;
+			act.sa_sigaction = md_signal_handler_sigsegv;
 			act.sa_flags = SA_NODEFER | SA_SIGINFO;
 
 #if defined(SIGSEGV)
@@ -95,7 +95,7 @@ void signal_init(void)
 		/* catch ArithmeticException */
 
 #if defined(__I386__) || defined(__X86_64__)
-		act.sa_sigaction = signal_handler_sigfpe;
+		act.sa_sigaction = md_signal_handler_sigfpe;
 		act.sa_flags = SA_NODEFER | SA_SIGINFO;
 		sigaction(SIGFPE, &act, NULL);
 #endif

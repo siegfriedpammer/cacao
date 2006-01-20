@@ -28,23 +28,24 @@
 
    Changes:
 
-   $Id: md.c 3749 2005-11-22 23:47:28Z twisti $
+   $Id: md.c 4326 2006-01-20 13:25:24Z twisti $
 
 */
 
 
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <ucontext.h>
 
-#include "config.h"
 #include "vm/jit/x86_64/md-abi.h"
 
 #include "vm/exceptions.h"
-#include "vm/options.h"
-#include "vm/stringlocal.h"
+#include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* md_init *********************************************************************
@@ -59,13 +60,14 @@ void md_init(void)
 }
 
 
-/* signal_handler_sigsegv ******************************************************
+/* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer check.
+   NullPointerException signal handler for hardware null pointer
+   check.
 
 *******************************************************************************/
 
-void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
@@ -91,13 +93,14 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-/* signal_handler_sigfpe *******************************************************
+/* md_signal_handler_sigfpe ****************************************************
 
-   ArithmeticException signal handler for hardware divide by zero check.
+   ArithmeticException signal handler for hardware divide by zero
+   check.
 
 *******************************************************************************/
 
-void signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
+void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;

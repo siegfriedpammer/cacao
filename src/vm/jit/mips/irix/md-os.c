@@ -29,24 +29,25 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 3756 2005-11-23 00:21:56Z twisti $
+   $Id: md-os.c 4326 2006-01-20 13:25:24Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <signal.h>
 #include <sys/fpu.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/boehm.h"
 #include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"

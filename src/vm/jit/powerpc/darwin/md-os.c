@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4076 2006-01-02 16:40:40Z twisti $
+   $Id: md-os.c 4326 2006-01-20 13:25:24Z twisti $
 
 */
 
@@ -44,18 +44,20 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
 
-/* signal_handler_sigsegv ******************************************************
+/* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer check.
+   NullPointerException signal handler for hardware null pointer
+   check.
 
 *******************************************************************************/
 
-void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t         *_uc;
 	mcontext_t          _mc;
@@ -87,7 +89,8 @@ void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		ra  = (u1 *) _ss->lr;              /* this is correct for leafs */
 		xpc = (u1 *) _ss->srr0;
 
-		_ss->r11 = (ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
+		_ss->r11 =
+			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
 
 		_ss->r12 = (ptrint) xpc;
 		_ss->srr0 = (ptrint) asm_handle_exception;

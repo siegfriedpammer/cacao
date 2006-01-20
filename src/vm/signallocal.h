@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signallocal.h 2794 2005-06-23 09:34:21Z twisti $
+   $Id: signallocal.h 4326 2006-01-20 13:25:24Z twisti $
 
 */
 
@@ -36,9 +36,19 @@
 #ifndef _CACAO_SIGNAL_H
 #define _CACAO_SIGNAL_H
 
+#include "config.h"
+
+#include <signal.h>
+
+
 /* function prototypes ********************************************************/
 
 void signal_init(void);
+
+/* machine dependent signal handler */
+
+void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
+void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
 
 #endif /* _CACAO_SIGNAL_H */
 
