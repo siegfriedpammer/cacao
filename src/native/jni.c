@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4215 2006-01-16 00:07:02Z twisti $
+   $Id: jni.c 4331 2006-01-20 14:49:53Z twisti $
 
 */
 
@@ -422,7 +422,7 @@ static bool fill_callblock_from_objectarray(void *obj, methoddesc *descr,
 
 			case PRIMITIVETYPE_DOUBLE:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					*((jdouble *) (&blk[i].item)) = (jdouble) ((java_lang_Float *) param)->value;
+					*((jdouble *) (&blk[i].item)) = (jdouble) ((java_lang_Double *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
 					*((jfloat *) (&blk[i].item)) = (jfloat) ((java_lang_Float *) param)->value;
 				else
@@ -486,6 +486,49 @@ static jmethodID get_nonvirtual(jclass clazz, jmethodID methodID)
 
 	/* class_resolvemethod -> classfindmethod? (JOWENN) */
 	return class_resolvemethod(clazz, methodID->name, methodID->descriptor);
+}
+
+
+/* _Jv_jni_CallVoidMethod ******************************************************
+
+   Internal function to call Java void functions.
+
+*******************************************************************************/
+
+static void _Jv_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
+{ 	
+	s4             paramcount;
+	jni_callblock *blk;
+
+	if (m == 0) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
+		return;
+	}
+
+	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
+		((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return;
+	}
+
+	if (obj && !builtin_instanceof(obj, m->class)) {
+		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
+		return;
+	}
+
+	paramcount = m->parseddesc->paramcount;
+
+	blk = MNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_VOID);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2(m, paramcount,
+						  paramcount * sizeof(jni_callblock),
+						  blk);
+
+	MFREE(blk, jni_callblock, paramcount);
 }
 
 
@@ -589,43 +632,43 @@ static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_l
 
 *******************************************************************************/
 
-static jlong callLongMethod(jobject obj, jmethodID methodID, va_list args)
+static jlong _Jv_jni_CallLongMethod(jobject obj, jmethodID m, va_list ap)
 {
-	s4             argcount;
+	s4             paramcount;
 	jni_callblock *blk;
 	jlong          ret;
 
 	STATISTICS(jniinvokation());
 
-	if (methodID == 0) {
+	if (m == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
 		return 0;
 	}
 
-	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
-		   ((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
+	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
+		   ((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
-	if (obj && !builtin_instanceof(obj, methodID->class)) {
+	if (obj && !builtin_instanceof(obj, m->class)) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
 		return 0;
 	}
 
-	argcount = methodID->parseddesc->paramcount;
+	paramcount = m->parseddesc->paramcount;
 
-	blk = MNEW(jni_callblock, argcount);
+	blk = MNEW(jni_callblock, paramcount);
 
-	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, TYPE_LNG);
+	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_LNG);
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ASM_CALLJAVAFUNCTION2_LONG(ret, methodID, argcount,
-							   argcount * sizeof(jni_callblock),
+	ASM_CALLJAVAFUNCTION2_LONG(ret, m, paramcount,
+							   paramcount * sizeof(jni_callblock),
 							   blk);
 
-	MFREE(blk, jni_callblock, argcount);
+	MFREE(blk, jni_callblock, paramcount);
 
 	return ret;
 }
@@ -664,46 +707,251 @@ static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int
 }
 
 
-static void cacao_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
-{ 	
-	s4             paramcount;
-	jni_callblock *blk;
+/* _Jv_jni_invokeNative ********************************************************
+
+*******************************************************************************/
+
+jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
+							  java_objectarray *params)
+{
+	jni_callblock     *blk;
+	java_objectheader *o;
+	s4                 argcount;
+	s4                 paramcount;
 
 	if (m == 0) {
 		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
-		return;
+		return NULL;
 	}
 
-	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
-		((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return;
-	}
+	argcount = m->parseddesc->paramcount;
+	paramcount = argcount;
 
-	if (obj && !builtin_instanceof(obj, m->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return;
-	}
+	/* if method is non-static, remove the `this' pointer */
 
-	paramcount = m->parseddesc->paramcount;
-
-/* #error XXX does not work on intrp, but on JIT */
 	if (!(m->flags & ACC_STATIC))
-		paramcount++;
+		paramcount--;
 
-	blk = MNEW(jni_callblock, paramcount);
+	/* the method is an instance method the obj has to be an instance of the 
+	   class the method belongs to. For static methods the obj parameter
+	   is ignored. */
 
-	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_VOID);
+	if (!(m->flags & ACC_STATIC) && obj &&
+		(!builtin_instanceof((java_objectheader *) obj, m->class))) {
+		*exceptionptr =
+			new_exception_message(string_java_lang_IllegalArgumentException,
+											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+		return NULL;
+	}
 
-	STATISTICS(jnicallXmethodnvokation());
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (params->header.size != paramcount))) {
+		*exceptionptr =
+			new_exception(string_java_lang_IllegalArgumentException);
+		return NULL;
+	}
 
-	ASM_CALLJAVAFUNCTION2(m, paramcount,
-						  paramcount * sizeof(jni_callblock),
-						  blk);
 
-	MFREE(blk, jni_callblock, paramcount);
+	if (!(m->flags & ACC_STATIC) && !obj)  {
+		*exceptionptr =
+			new_exception_message(string_java_lang_NullPointerException,
+								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
+		return NULL;
+	}
 
-	return;
+	if ((m->flags & ACC_STATIC) && (obj))
+		obj = NULL;
+
+	if (obj) {
+		if ((m->flags & ACC_ABSTRACT) ||
+			(m->class->flags & ACC_INTERFACE)) {
+			m = get_virtual(obj, m);
+		}
+	}
+
+	blk = MNEW(jni_callblock, argcount);
+
+	if (!fill_callblock_from_objectarray(obj, m->parseddesc, blk,
+										 params))
+		return NULL;
+
+	switch (m->parseddesc->returntype.decltype) {
+	case TYPE_VOID:
+		ASM_CALLJAVAFUNCTION2(m, argcount,
+							  argcount * sizeof(jni_callblock),
+							  blk);
+
+		o = NULL;
+		break;
+
+	case PRIMITIVETYPE_BOOLEAN: {
+		s4 i;
+		java_lang_Boolean *bo;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
+		o = builtin_new(class_java_lang_Boolean);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Boolean *) o;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_BYTE: {
+		s4 i;
+		java_lang_Byte *bo;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
+		o = builtin_new(class_java_lang_Byte);
+
+		/* setting the value of the object direct */
+
+		bo = (java_lang_Byte *) o;
+		bo->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_CHAR: {
+		s4 i;
+		java_lang_Character *co;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
+		o = builtin_new(class_java_lang_Character);
+
+		/* setting the value of the object direct */
+
+		co = (java_lang_Character *) o;
+		co->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_SHORT: {
+		s4 i;
+		java_lang_Short *so;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
+		o = builtin_new(class_java_lang_Short);
+
+		/* setting the value of the object direct */
+
+		so = (java_lang_Short *) o;
+		so->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_INT: {
+		s4 i;
+		java_lang_Integer *io;
+
+		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+
+		o = builtin_new(class_java_lang_Integer);
+
+		/* setting the value of the object direct */
+
+		io = (java_lang_Integer *) o;
+		io->value = i;
+	}
+	break;
+
+	case PRIMITIVETYPE_LONG: {
+		s8 l;
+		java_lang_Long *lo;
+
+		ASM_CALLJAVAFUNCTION2_LONG(l, m, argcount,
+								   argcount * sizeof(jni_callblock),
+								   blk);
+
+		o = builtin_new(class_java_lang_Long);
+
+		/* setting the value of the object direct */
+
+		lo = (java_lang_Long *) o;
+		lo->value = l;
+	}
+	break;
+
+	case PRIMITIVETYPE_FLOAT: {
+		float f;
+		java_lang_Float *fo;
+
+		ASM_CALLJAVAFUNCTION2_FLOAT(f, m, argcount,
+									argcount * sizeof(jni_callblock),
+									blk);
+
+		o = builtin_new(class_java_lang_Float);
+
+		/* setting the value of the object direct */
+
+		fo = (java_lang_Float *) o;
+		fo->value = f;
+	}
+	break;
+
+	case PRIMITIVETYPE_DOUBLE: {
+		double d;
+		java_lang_Double *_do;
+
+		ASM_CALLJAVAFUNCTION2_DOUBLE(d, m, argcount,
+									 argcount * sizeof(jni_callblock),
+									 blk);
+
+		o = builtin_new(class_java_lang_Double);
+
+		/* setting the value of the object direct */
+
+		_do = (java_lang_Double *) o;
+		_do->value = d;
+	}
+	break;
+
+	case TYPE_ADR:
+		ASM_CALLJAVAFUNCTION2_ADR(o, m, argcount,
+								  argcount * sizeof(jni_callblock),
+								  blk);
+		break;
+
+	default:
+		/* if this happens the exception has already been set by
+		   fill_callblock_from_objectarray */
+
+		MFREE(blk, jni_callblock, argcount);
+
+		return (jobject *) 0;
+	}
+
+	MFREE(blk, jni_callblock, argcount);
+
+	if (*exceptionptr) {
+		java_objectheader *cause;
+
+		cause = *exceptionptr;
+
+		/* clear exception pointer, we are calling JIT code again */
+
+		*exceptionptr = NULL;
+
+		*exceptionptr =
+			new_exception_throwable(string_java_lang_reflect_InvocationTargetException,
+									(java_lang_Throwable *) cause);
+	}
+
+	return (jobject *) o;
 }
 
 
@@ -1250,7 +1498,7 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/* call constructor */
 
 	va_start(ap, methodID);
-	cacao_jni_CallVoidMethod(o, methodID, ap);
+	_Jv_jni_CallVoidMethod(o, methodID, ap);
 	va_end(ap);
 
 	return NewLocalRef(env, o);
@@ -1666,7 +1914,7 @@ jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	STATISTICS(jniinvokation());
 
 	va_start(vaargs,methodID);
-	ret = callLongMethod(obj,get_virtual(obj, methodID),vaargs);
+	ret = _Jv_jni_CallLongMethod(obj, get_virtual(obj, methodID), vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -1677,7 +1925,7 @@ jlong CallLongMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args
 {
 	STATISTICS(jniinvokation());
 
-	return 	callLongMethod(obj,get_virtual(obj, methodID),args);
+	return _Jv_jni_CallLongMethod(obj, get_virtual(obj, methodID), args);
 }
 
 
@@ -2645,7 +2893,7 @@ jlong CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	STATISTICS(jniinvokation());
 
 	va_start(vaargs, methodID);
-	ret = callLongMethod(0, methodID, vaargs);
+	ret = _Jv_jni_CallLongMethod(0, methodID, vaargs);
 	va_end(vaargs);
 
 	return ret;
@@ -2657,7 +2905,7 @@ jlong CallStaticLongMethodV(JNIEnv *env, jclass clazz, jmethodID methodID,
 {
 	STATISTICS(jniinvokation());
 	
-	return callLongMethod(0, methodID, args);
+	return _Jv_jni_CallLongMethod(0, methodID, args);
 }
 
 
@@ -4841,248 +5089,6 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
 	*p_env = (JNIEnv *) env;
 
 	return 0;
-}
-
-
-jobject *jni_method_invokeNativeHelper(JNIEnv *env, methodinfo *methodID,
-									   jobject obj, java_objectarray *params)
-{
-	jni_callblock *blk;
-	jobject        o;
-	s4             argcount;
-	s4             paramcount;
-
-	if (methodID == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
-		return NULL;
-	}
-
-	argcount = methodID->parseddesc->paramcount;
-	paramcount = argcount;
-
-	/* if method is non-static, remove the `this' pointer */
-
-	if (!(methodID->flags & ACC_STATIC))
-		paramcount--;
-
-	/* the method is an instance method the obj has to be an instance of the 
-	   class the method belongs to. For static methods the obj parameter
-	   is ignored. */
-
-	if (!(methodID->flags & ACC_STATIC) && obj &&
-		(!builtin_instanceof((java_objectheader *) obj, methodID->class))) {
-		*exceptionptr =
-			new_exception_message(string_java_lang_IllegalArgumentException,
-											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
-		return NULL;
-	}
-
-	if (((params == NULL) && (paramcount != 0)) ||
-		(params && (params->header.size != paramcount))) {
-		*exceptionptr =
-			new_exception(string_java_lang_IllegalArgumentException);
-		return NULL;
-	}
-
-
-	if (!(methodID->flags & ACC_STATIC) && !obj)  {
-		*exceptionptr =
-			new_exception_message(string_java_lang_NullPointerException,
-								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
-		return NULL;
-	}
-
-	if ((methodID->flags & ACC_STATIC) && (obj))
-		obj = NULL;
-
-	if (obj) {
-		if ((methodID->flags & ACC_ABSTRACT) ||
-			(methodID->class->flags & ACC_INTERFACE)) {
-			methodID = get_virtual(obj, methodID);
-		}
-	}
-
-	blk = MNEW(jni_callblock, argcount);
-
-	if (!fill_callblock_from_objectarray(obj, methodID->parseddesc, blk,
-										 params))
-		return NULL;
-
-	switch (methodID->parseddesc->returntype.decltype) {
-	case TYPE_VOID:
-		ASM_CALLJAVAFUNCTION2(methodID, argcount,
-							  argcount * sizeof(jni_callblock),
-							  blk);
-		o = NULL; /*native_new_and_init(loader_load(utf_new_char("java/lang/Void")));*/
-		break;
-
-	case PRIMITIVETYPE_INT: {
-		s4 i;
-		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-
-		o = native_new_and_init_int(class_java_lang_Integer, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_BYTE: {
-		s4 i;
-		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-
-/*  		o = native_new_and_init_int(class_java_lang_Byte, i); */
-		o = builtin_new(class_java_lang_Byte);
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_byte__void),
-					   i);
-	}
-	break;
-
-	case PRIMITIVETYPE_CHAR: {
-		s4 i;
-
-		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-
-		o = builtin_new(class_java_lang_Character);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_char__void),
-					   i);
-	}
-	break;
-
-	case PRIMITIVETYPE_SHORT: {
-		s4 i;
-
-		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-
-		o = builtin_new(class_java_lang_Short);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_short__void),
-					   i);
-	}
-	break;
-
-	case PRIMITIVETYPE_BOOLEAN: {
-		s4 i;
-
-		ASM_CALLJAVAFUNCTION2_INT(i, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-
-		o = builtin_new(class_java_lang_Boolean);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_boolean__void),
-					   i);
-	}
-	break;
-
-	case PRIMITIVETYPE_LONG: {
-		s8 l;
-
-		ASM_CALLJAVAFUNCTION2_LONG(l, methodID, argcount,
-								   argcount * sizeof(jni_callblock),
-								   blk);
-
-		o = builtin_new(class_java_lang_Long);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_long__void),
-					   l);
-	}
-	break;
-
-	case PRIMITIVETYPE_FLOAT: {
-		float f;
-
-		ASM_CALLJAVAFUNCTION2_FLOAT(f, methodID, argcount,
-									argcount * sizeof(jni_callblock),
-									blk);
-
-		o = builtin_new(class_java_lang_Float);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_float__void),
-					   f);
-	}
-	break;
-
-	case PRIMITIVETYPE_DOUBLE: {
-		double d;
-
-		ASM_CALLJAVAFUNCTION2_DOUBLE(d, methodID, argcount,
-									 argcount * sizeof(jni_callblock),
-									 blk);
-
-		o = builtin_new(class_java_lang_Double);
-
-		CallVoidMethod(env,
-					   o,
-					   class_resolvemethod(o->vftbl->class,
-										   utf_init,
-										   utf_double__void),
-					   d);
-	}
-	break;
-
-	case TYPE_ADR:
-		ASM_CALLJAVAFUNCTION2_ADR(o, methodID, argcount,
-								  argcount * sizeof(jni_callblock),
-								  blk);
-		break;
-
-	default:
-		/* if this happens the exception has already been set by              */
-		/* fill_callblock_from_objectarray                                    */
-
-		MFREE(blk, jni_callblock, argcount);
-
-		return (jobject *) 0;
-	}
-
-	MFREE(blk, jni_callblock, argcount);
-
-	if (*exceptionptr) {
-		java_objectheader *cause;
-
-		cause = *exceptionptr;
-
-		/* clear exception pointer, we are calling JIT code again */
-
-		*exceptionptr = NULL;
-
-		*exceptionptr =
-			new_exception_throwable(string_java_lang_reflect_InvocationTargetException,
-									(java_lang_Throwable *) cause);
-	}
-
-	return (jobject *) o;
 }
 
 

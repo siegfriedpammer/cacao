@@ -29,15 +29,16 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 3829 2005-12-01 19:47:56Z twisti $
+   $Id: Constructor.c 4331 2006-01-20 14:49:53Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -46,12 +47,10 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "toolbox/logging.h"
-#include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.h"
-#include "vm/loader.h"
-#include "vm/options.h"
+#include "vm/method.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/asmpart.h"
 
 
 /*
@@ -61,8 +60,6 @@
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
 {
-	/* XXX fix me for parameters float/double and long long  parameters */
-
 	classinfo         *c;
 	methodinfo        *m;
 	java_objectheader *o;
@@ -112,7 +109,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 	/* call initializer */
 
-	(void) jni_method_invokeNativeHelper(env, m, o, args); 
+	(void) _Jv_jni_invokeNative(m, o, args);
 
 	return (java_lang_Object *) o;
 }

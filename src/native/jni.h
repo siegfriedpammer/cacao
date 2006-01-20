@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 3549 2005-11-03 20:40:52Z twisti $
+   $Id: jni.h 4331 2006-01-20 14:49:53Z twisti $
 
 */
 
@@ -644,7 +644,8 @@ extern localref_table *_no_threads_localref_table;
 /* initialize JNI subsystem */
 bool jni_init(void);
 
-jobject *jni_method_invokeNativeHelper(JNIEnv *env,struct methodinfo *mi,jobject obj, java_objectarray *params);
+jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
+							  java_objectarray *params);
 
 extern void* ptr_env;
 extern struct JNINativeInterface JNI_JNIEnvTable;

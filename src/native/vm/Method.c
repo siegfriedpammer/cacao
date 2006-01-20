@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 4204 2006-01-14 17:19:10Z edwin $
+   $Id: Method.c 4331 2006-01-20 14:49:53Z twisti $
 
 */
 
@@ -176,8 +176,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 
 	/* call the Java method via a helper function */
 
-	return (java_lang_Object *)
-		jni_method_invokeNativeHelper(env, m, (jobject) o, args);
+	return (java_lang_Object *) _Jv_jni_invokeNative(m, (jobject) o, args);
 }
 
 
