@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4111 2006-01-09 16:37:54Z twisti $
+   $Id: disass.c 4322 2006-01-20 12:58:36Z twisti $
 
 */
 
@@ -42,7 +42,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "vm/global.h"
 #include "vm/jit/disass.h"
 
 
@@ -69,15 +69,19 @@ char *regs[] = {
 
 u1 *disassinstr(u1 *code)
 {
-	static disassemble_info info;
-	static int dis_initialized;
 	s4 seqlen;
 	s4 i;
 
-	if (!dis_initialized) {
+	if (!disass_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
-		info.mach = bfd_mach_i386_i386;
-		dis_initialized = 1;
+
+		/* setting the struct members must be done after
+		   INIT_DISASSEMBLE_INFO */
+
+		info.mach             = bfd_mach_i386_i386;
+		info.read_memory_func = &disass_buffer_read_memory;
+
+		disass_initialized = 1;
 	}
 
 	printf("0x%08x:   ", (s4) code);
@@ -97,29 +101,6 @@ u1 *disassinstr(u1 *code)
 	printf("   %s\n", disass_buf);
 
 	return code;
-}
-
-
-
-/* disassemble *****************************************************************
-
-   Outputs a disassembler listing of some machine code on 'stdout'.
-
-   start: pointer to first machine instruction
-   end:   pointer after last machine instruction
-
-*******************************************************************************/
-
-void disassemble(u1 *start, u1 *end)
-{
-	disassemble_info info;
-
-	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
-	info.mach = bfd_mach_i386_i386;
-
-	printf("  --- disassembler listing ---\n");
-	for (; start < end; )
-		start = disassinstr(start);
 }
 
 
