@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 4326 2006-01-20 13:25:24Z twisti $
+   $Id: signal.c 4327 2006-01-20 13:28:36Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "vm/signallocal.h"
 #include "vm/options.h"
 #include "vm/jit/stacktrace.h"
 
