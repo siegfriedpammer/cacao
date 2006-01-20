@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass-common.c 4116 2006-01-09 20:28:03Z twisti $
+   $Id: disass-common.c 4319 2006-01-20 11:38:33Z twisti $
 
 */
 
@@ -45,6 +45,15 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "vm/jit/disass.h"
+
+
+/* global variables ***********************************************************/
+
+#if defined(WITH_BINUTILS_DISASSEMBLER)
+disassemble_info info;
+bool disass_initialized = false;
+#endif
 
 
 /* We need this on i386 and x86_64 since we don't know the byte length
@@ -53,6 +62,26 @@
 #if defined(__I386__) || defined(__X86_64__)
 char disass_buf[512];
 s4   disass_len;
+#endif
+
+
+/* disassemble *****************************************************************
+
+   Outputs a disassembler listing of some machine code on `stdout'.
+
+   start: pointer to first machine instruction
+   end:   pointer after last machine instruction
+
+*******************************************************************************/
+
+#if defined(ENABLE_JIT)
+void disassemble(u1 *start, u1 *end)
+{
+	printf("  --- disassembler listing ---\n");
+
+	for (; start < end; )
+		start = disassinstr(start);
+}
 #endif
 
 
@@ -87,7 +116,7 @@ void disass_printf(PTR p, const char *fmt, ...)
 
 *******************************************************************************/
 
-int buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
+int disass_buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
 {
 	MCOPY(myaddr, (void *) memaddr, u1, length);
 

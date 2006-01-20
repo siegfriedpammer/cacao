@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4112 2006-01-09 19:21:25Z twisti $
+   $Id: disass.c 4319 2006-01-20 11:38:33Z twisti $
 
 */
 
@@ -79,15 +79,18 @@ char *regs[] = {
 
 u1 *disassinstr(u1 *code)
 {
-	static disassemble_info info;
-	static int dis_initialized;
 	s4 seqlen;
 	s4 i;
 
-	if (!dis_initialized) {
+	if (!disass_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
-		info.mach = bfd_mach_x86_64;
-		dis_initialized = 1;
+
+		/* setting the members must be done after INIT_DISASSEMBLE_INFO */
+
+		info.mach             = bfd_mach_x86_64;
+		info.read_memory_func = &disass_buffer_read_memory;
+
+		disass_initialized = true;
 	}
 
 	printf("0x%016lx:   ", (s8) code);
@@ -107,28 +110,6 @@ u1 *disassinstr(u1 *code)
 	printf("   %s\n", disass_buf);
 
 	return code;
-}
-
-
-/* disassemble *****************************************************************
-
-   Outputs a disassembler listing of some machine code on `stdout'.
-
-   start: pointer to first machine instruction
-   end:   pointer after last machine instruction
-
-*******************************************************************************/
-
-void disassemble(u1 *start, u1 *end)
-{
-	disassemble_info info;
-
-	INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
-	info.mach = bfd_mach_x86_64;
-
-	printf("  --- disassembler listing ---\n");
-	for (; start < end; )
-		start = disassinstr(start);
 }
 
 

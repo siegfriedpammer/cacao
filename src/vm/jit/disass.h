@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4181 2006-01-12 23:08:54Z twisti $
+   $Id: disass.h 4319 2006-01-20 11:38:33Z twisti $
 
 */
 
@@ -86,6 +86,13 @@
 #endif /* defined(ENABLE_JIT) */
 
 
+/* export global variables ****************************************************/
+
+#if defined(WITH_BINUTILS_DISASSEMBLER)
+extern disassemble_info info;
+extern bool disass_initialized;
+#endif
+
 extern char *regs[];
 
 #if defined(__I386__) || defined(__X86_64__)
@@ -96,15 +103,20 @@ extern s4   disass_len;
 
 /* function prototypes *******************************************************/
 
+#if defined(ENABLE_JIT)
+void disassemble(u1 *start, u1 *end);
+#endif
+
 #if defined(WITH_BINUTILS_DISASSEMBLER)
 void disass_printf(PTR p, const char *fmt, ...);
+
+int disass_buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info);
 #endif
 
 /* machine dependent functions */
 
 #if defined(ENABLE_JIT)
 u1 *disassinstr(u1 *code);
-void disassemble(u1 *start, u1 *end);
 #endif
 
 #if defined(ENABLE_INTRP)
