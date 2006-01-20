@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 4326 2006-01-20 13:25:24Z twisti $
+   $Id: md-os.c 4328 2006-01-20 13:33:37Z twisti $
 
 */
 
@@ -78,13 +78,14 @@ void md_init(void)
 }
 
 
-/* signal_handler_sigsegv ******************************************************
+/* md_signal_handler_sigsegv ***************************************************
 
-   NullPointerException signal handler for hardware null pointer check.
+   NullPointerException signal handler for hardware null pointer
+   check.
 
 *******************************************************************************/
 
-void signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
+void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
