@@ -300,37 +300,6 @@ public class extest {
 	pln();
 
 
-	pln("---------- some asmpart exceptions --------------");
-
-        try {
-            p("NullPointerException in <clinit> (PUTSTATIC):");
-            extest_clinit_1.i = 1;
-            failed();
-        } catch (ExceptionInInitializerError e) {
-            if (e.getCause().getClass() != NullPointerException.class) {
-                failed();
-            } else {
-                ok();
-  	        pstacktrace(e);
-            }
-        }
-
-        try {
-            p("NullPointerException in <clinit> (GETSTATIC):");
-            int i = extest_clinit_2.i;
-            failed();
-        } catch (ExceptionInInitializerError e) {
-            if (e.getCause().getClass() != NullPointerException.class) {
-                failed();
-            } else {
-                ok();
-  	        pstacktrace(e);
-            }
-        }
-
-	pln();
-
-
 	pln("---------- exception related things -------------");
 
         try {
@@ -351,7 +320,7 @@ public class extest {
 
         try {
             p("NullPointerException in <clinit>:");
-            extest_clinit_3.sub();
+            extest_clinit.sub();
             failed();
         } catch (ExceptionInInitializerError e) {
             ok();
@@ -469,31 +438,4 @@ public class extest {
 	e.printStackTrace();
 	System.out.println();
     }
-}
-
-public class extest_clinit_1 {
-    static {
-        String s = null;
-        s.length();
-    }
-
-    public static int i;
-}
-
-public class extest_clinit_2 {
-    static {
-        String s = null;
-        s.length();
-    }
-
-    public static int i;
-}
-
-public class extest_clinit_3 {
-    static {
-        String s = null;
-        s.length();
-    }
-
-    public static native void sub();
 }
