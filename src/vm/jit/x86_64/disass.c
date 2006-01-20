@@ -29,18 +29,19 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4319 2006-01-20 11:38:33Z twisti $
+   $Id: disass.c 4324 2006-01-20 13:06:16Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <dis-asm.h>
 #include <stdio.h>
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "vm/global.h"
 #include "vm/jit/disass.h"
 
 
@@ -85,7 +86,8 @@ u1 *disassinstr(u1 *code)
 	if (!disass_initialized) {
 		INIT_DISASSEMBLE_INFO(info, NULL, disass_printf);
 
-		/* setting the members must be done after INIT_DISASSEMBLE_INFO */
+		/* setting the struct members must be done after
+		   INIT_DISASSEMBLE_INFO */
 
 		info.mach             = bfd_mach_x86_64;
 		info.read_memory_func = &disass_buffer_read_memory;
