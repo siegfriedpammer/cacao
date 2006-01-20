@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 3993 2005-12-22 13:59:41Z twisti $
+   $Id: codegen.h 4325 2006-01-20 13:19:13Z twisti $
 
 */
 
@@ -38,9 +38,6 @@
 #define _CODEGEN_H
 
 #include "config.h"
-
-#include <ucontext.h>
-
 #include "vm/types.h"
 
 #include "vm/jit/jit.h"
@@ -635,11 +632,6 @@
 
 #define gen_resolvebranch(ip,so,to) \
     ((s4 *) (ip))[-1] |= ((s4) (to) - (so)) >> 2 & 0x1fffff
-
-
-/* function prototypes ********************************************************/
-
-void thread_restartcriticalsection(ucontext_t*);
 
 #endif /* _CODEGEN_H */
 
