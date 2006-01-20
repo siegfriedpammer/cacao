@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4314 2006-01-19 22:21:23Z twisti $
+## $Id: Makefile.am 4330 2006-01-20 13:41:51Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -41,20 +41,22 @@ EXTRA_DIST = \
 	Test.sh \
 	HelloWorld.java \
 	jctest.java \
-	jctest.output \
 	fptest.java \
-	fptest.output \
 	fp.java \
-	fp.output\
 	extest.java \
-	extest.2output \
+	extest_clinit.java \
 	clinitexception.java \
-	clinitexception.2output \
 	LoadDisplacementOverflow.java \
-	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.java \
-	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.java \
+	\
+	jctest.output \
+	fptest.output \
+	fp.output\
+	extest.2output \
+	clinitexception.2output \
+	LoadDisplacementOverflow.output \
+	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.output
 
 CLEANFILES = \
