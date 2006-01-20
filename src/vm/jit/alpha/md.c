@@ -30,15 +30,23 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 3772 2005-11-23 21:36:35Z twisti $
+   $Id: md.c 4317 2006-01-20 10:08:01Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 #include <ucontext.h>
 
-#include "config.h"
+#if defined(__LINUX__)
+# include <asm/fpu.h>
+
+extern unsigned long ieee_get_fp_control();
+extern void ieee_set_fp_control(unsigned long fp_control);
+#endif
+
 #include "vm/types.h"
 
 #include "vm/jit/alpha/md-abi.h"
@@ -60,15 +68,10 @@ void md_init(void)
 	/* XXX TWISTI: do we really need this? fptest's seem to work fine */
 
 #if defined(__LINUX__)
-/* Linux on Digital Alpha needs an initialisation of the ieee floating point
-	control for IEEE compliant arithmetic (option -mieee of GCC). Under
-	Digital Unix this is done automatically.
-*/
-
-#include <asm/fpu.h>
-
-extern unsigned long ieee_get_fp_control();
-extern void ieee_set_fp_control(unsigned long fp_control);
+	/* Linux on Digital Alpha needs an initialisation of the ieee
+	   floating point control for IEEE compliant arithmetic (option
+	   -mieee of GCC). Under Digital Unix this is done
+	   automatically. */
 
 	/* initialize floating point control */
 
@@ -78,8 +81,6 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 /*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
 						& ~IEEE_TRAP_ENABLE_OVF);
 #endif
-
-	/* nothing to do */
 }
 
 
