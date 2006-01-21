@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4203 2006-01-13 19:37:17Z twisti $
+   $Id: codegen-common.c 4333 2006-01-21 21:46:24Z edwin $
 
 */
 
@@ -341,20 +341,23 @@ void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
-#if !defined(ENABLE_INTRP)
-	/* The interpreter uses absolute branches, so we do branch resolving */
-	/* after the code and data segment move. */
-
 	/* Check if the target basicblock has already a start pc, so the jump is  */
 	/* backward and we can resolve it immediately.                            */
 
-	if (target->mpc >= 0) {
+	/* The interpreter uses absolute branches, so we do branch resolving */
+	/* after the code and data segment move. */
+
+	if (target->mpc >= 0
+#if defined(ENABLE_INTRP)
+		&& !opt_intrp
+#endif
+	) 
+	{
 		gen_resolvebranch((u1 *) cd->mcodebase + branchpos,
 						  branchpos,
 						  target->mpc);
 
 	} else
-#endif
 	{
 		branchref *br = DNEW(branchref);
 
