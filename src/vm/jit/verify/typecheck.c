@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4171 2006-01-12 22:35:37Z twisti $
+   $Id: typecheck.c 4332 2006-01-21 20:22:16Z edwin $
 
 */
 
@@ -514,6 +514,7 @@ typestack_copy(verifier_state *state,stackptr dst,stackptr y,typevector *selecte
 	int k;
 	
 	for (;dst; dst=dst->prev, y=y->prev) {
+		/* XXX only check the following two in debug mode? */
 		if (!y) {
 			*exceptionptr = new_verifyerror(state->m,"Stack depth mismatch");
 			return false;
@@ -702,8 +703,30 @@ typestack_add(stackptr dst,stackptr y,int ky)
 	}
 }
 
-/* XXX document */
-/* 'a' and 'b' are assumed to have passed typestack_canmerge! */
+/* typestack_separable_with ****************************************************
+ 
+   This function answers the question: If variant 'kb' of typestack 'b' is
+   added to typestack 'a', will the result be separable?
+
+   A typestack is called 'separable' if it has at least one slot of type
+   returnAddress that contains at least two different return addresses.
+   (ie. a RET using the value in this slot could go to more than one target)
+   
+   IN:
+	   a................the first typestack
+	   b................the second typestack
+	   kb...............the k-index of the variant that should be selected
+	                    from typestack 'b'
+
+   OUT:
+       true.............the result would be separable
+	   false............the result would not be separable
+
+   PRE-CONDITION:
+       'a' and 'b' are assumed to have passed typestack_canmerge!
+
+*******************************************************************************/
+
 static bool
 typestack_separable_with(stackptr a,stackptr b,int kb)
 {
@@ -726,8 +749,33 @@ typestack_separable_with(stackptr a,stackptr b,int kb)
 	return false;
 }
 
-/* XXX document */
-/* 'a' and 'b' are assumed to have passed typestack_canmerge! */
+/* typestack_separable_from ****************************************************
+ 
+   This function answers the question: Is variant 'ka' of typestack 'a'
+   separable from variant 'kb' of typestack 'b'?
+
+   Two variants of typestacks are called 'separable' from each other, if there
+   is at least one slot for which the variants contain different return addresses.
+   (ie. a RET using the value in this slot would go to one target in the first
+   variant and to another target in the second variant)
+   
+   IN:
+	   a................the first typestack
+	   ka...............the k-index of the variant that should be selected
+	                    from typestack 'a'
+	   b................the second typestack
+	   kb...............the k-index of the variant that should be selected
+	                    from typestack 'b'
+
+   OUT:
+       true.............the variants are separable
+	   false............the variants are not separable
+
+   PRE-CONDITION:
+       'a' and 'b' are assumed to have passed typestack_canmerge!
+
+*******************************************************************************/
+
 static bool
 typestack_separable_from(stackptr a,int ka,stackptr b,int kb)
 {
@@ -1565,7 +1613,7 @@ verify_basic_block(verifier_state *state)
 					/* of eclipse 3.0.2                                                  */
 					if (TYPEINFO_NEWOBJECT_INSTRUCTION(state->localset->td[i].info) != NULL) {
 						/*show_icmd_method(state->m, state->cd, state->rd);*/
-						printf("Uninitialized variale: %d, block: %d\n", i, state->bptr->debug_nr);
+						printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->debug_nr);
 						TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
 					}
 				}
@@ -2211,7 +2259,9 @@ return_tail:
 				 * Instructions below...
 				 *     *) don't operate on local variables,
 				 *     *) don't operate on references,
-				 *     *) don't operate on returnAddresses.
+				 *     *) don't operate on returnAddresses,
+				 *     *) don't affect control flow (except
+				 *        by throwing exceptions).
 				 *
 				 * (These instructions are typechecked in
 				 *  analyse_stack.)
