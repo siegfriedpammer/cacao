@@ -1,9 +1,78 @@
-* About this file
-=================
+New in release 0.94 (January 22, 2006)
 
-This file lists the most important changes for each official as well as
-internal release of cacao.  See the "ChangeLog" for a more detailed list of
-all the changes in the code.
+  * support compilation of Interpreter and JIT compiler into one binary (not
+    enabled by default)
+  * bootstrap ZIP code rewrite (VM startup time improvement)
+  * fixed JNI DirectByteBuffer functions, jogl works now
+  * removed most third-party files from the repository, we link to the
+    libraries instead
+  * removed VM interface Java files which were identical to the GNU
+    Classpath upstream version
+  * added defineClassWithTransformers to java.lang.VMClassLoader, now we are
+    able to build against the generics branch
+  * Java compiler which should be used during compilation can be specified
+    via JAVAC environment variable
+  * a lot of bugfixes
+
+
+New in release 0.93 (November 23, 2005)
+
+  * Java 1.5 support
+  * JIT codegenerators for Arm and MIPS (32-bit, -o32), currently
+    closed-source
+  * integration of a vmgen-based interpreter (--enable-intrp)
+  * removal of GNU classpath, CACAO now uses upstream releases or CVS
+    head versions
+  * finalizer thread
+  * JNI local references implemented
+  * reflection fixes and access checks (mauve tests)
+  * linear scan register allocator (-lsra)
+  * lazy resolving fixes
+  * fixed instanceof instruction
+  * updated to Boehm GC 6.6
+
+
+New in release 0.92 "Tomclipse" (July 14, 2005)
+
+  * runtime lazy-loading with code patching
+  * dynamic library loading on every platform we support (using
+    libltdl)
+  * new ICMDs (PUTSTATICCONST, PUTFIELDCONST)
+  * some ICMDs inlined (IDIV/IREM, LDIV/LREM, AASTORE, ARRAYCHECKCAST)
+  * register allocator uses unused argument registers
+  * stacktraces on MIPS, PowerPC and x86_64
+  * integration of GNU classpath's system class loader
+  * internal class loading code more Java VM Spec compliant
+    (classcache, loading constraints, ...)
+  * virtual function table bugfix (abstract class implements not all
+    interface methods)
+  * initial support for thread dump on SIGQUIT (<ctrl>-\) on most
+    platforms
+  * GNU classpath 0.16
+  * Boehm GC 6.5
+
+
+New in release 0.91 (December 23, 2004)
+
+  * bug fixed in MULTIANEWARRAY
+  * field access related bug fixes
+  * native function call bug fixes
+  * smaller fixes...
+
+
+New in relaese 0.90 (December 8, 2004)
+
+  * More architectures supported: At the moment, CACAO is able to run on
+    Alpha, MIPS (64-bit), x86, x86-64 and PowerPC (32-bit) architectures.
+  * Native thread support
+  * Java 1.4 support
+  * GNU classpath 0.12
+  * Preliminary AWT support
+  * Boehm garbage collector
+  * Reentrant JIT compiler
+  * Lots of bug fixes and conformance enhancements
+  * Lots of bugs introduced and not fixed
+
 
 * Version 0.40 (released)
 =========================
@@ -71,9 +140,3 @@ A lot of bugs have been fixed.
 ==============
 
 The initial version included the old JIT and support for lang, util and io.
-
-----------------------------------------------------------------------------
-Local variables:
-mode: outline
-fill-column: 76
-End:
