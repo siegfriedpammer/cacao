@@ -307,7 +307,7 @@ public class extest {
             throw new Exception();
         } catch (UnknownError e) {
             /* this exception class MUST NOT be loaded before!!!
-               otherwise this test in useless */
+               otherwise this test is useless */
         } catch (Exception e) {
   	    ok();
 	    pstacktrace(e);
