@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4157 2006-01-12 21:30:41Z twisti $
+   $Id: stacktrace.c 4342 2006-01-22 19:57:51Z twisti $
 
 */
 
@@ -148,6 +148,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 }
 #endif /* defined(ENABLE_INTRP) */
 
+
 /* stacktrace_create_inline_stackframeinfo *************************************
 
    Creates an stackframe info structure for an inline exception stub.
@@ -202,7 +203,9 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 #if !defined(__I386__) && !defined(__X86_64__)
 	bool             isleafmethod;
 #endif
+#if defined(ENABLE_JIT)
 	s4               framesize;
+#endif
 
 	/* get current stackframe info pointer */
 
@@ -254,7 +257,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 # if defined(ENABLE_INTRP)
 	}
 # endif
-#endif
+#endif /* defined(ENABLE_JIT) */
 
 	/* fill new stackframe info structure */
 
