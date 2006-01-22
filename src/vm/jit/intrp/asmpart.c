@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4329 2006-01-20 13:40:25Z twisti $
+   $Id: asmpart.c 4340 2006-01-22 19:55:52Z twisti $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
+#include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
@@ -58,10 +59,11 @@ static bool intrp_asm_calljavafunction_intern(methodinfo *m,
 											  void *arg3, void *arg4)
 {
 	java_objectheader *retval;
-	Cell *sp = global_sp;
-	methoddesc *md;
-	functionptr entrypoint;
+	Cell              *sp;
+	methoddesc        *md;
+	u1                *entrypoint;
 
+	sp = global_sp;
 	md = m->parseddesc;
 
 	CLEAR_global_sp;
@@ -129,11 +131,13 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 								   jni_callblock *callblock)
 {
 	java_objectheader *retval;
-	Cell *sp = global_sp;
-	s4 i;
-	functionptr entrypoint;
+	Cell              *sp;
+	s4                 i;
+	u1                *entrypoint;
 
+	sp = global_sp;
 	CLEAR_global_sp;
+
 	assert(sp != NULL);
 
 	for (i = 0; i < count; i++) {
