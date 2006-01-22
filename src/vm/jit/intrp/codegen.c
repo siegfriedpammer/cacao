@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4334 2006-01-22 00:45:38Z edwin $
+   $Id: codegen.c 4337 2006-01-22 19:29:19Z edwin $
 
 */
 
@@ -2045,12 +2045,12 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
+	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
 	av_call(alist);
 
-	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
+	codegen_finish_native_call(((u1 *) &s) + sizeof(s));
 
 	CLEAR_global_sp;
 
@@ -2104,12 +2104,12 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call((u1 *) (&s + sizeof(s)), m->entrypoint,
+	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
 	ffi_call(pcif, FFI_FN(f), endsp, values);
 
-	codegen_finish_native_call((u1 *) (&s + sizeof(s)));
+	codegen_finish_native_call(((u1 *) &s) + sizeof(s));
 
 	CLEAR_global_sp;
 
