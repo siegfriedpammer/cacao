@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4329 2006-01-20 13:40:25Z twisti $
+   $Id: codegen.c 4334 2006-01-22 00:45:38Z edwin $
 
 */
 
@@ -1846,7 +1846,7 @@ static ffi_type *cacaotype2ffitype(s4 cacaotype)
 {
 	switch (cacaotype) {
 	case TYPE_INT:
-		return &ffi_type_slong;
+		return &ffi_type_sint;
 	case TYPE_LNG:
 		return &ffi_type_sint64;
 	case TYPE_FLT:
