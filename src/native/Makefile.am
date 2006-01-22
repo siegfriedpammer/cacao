@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4218 2006-01-17 16:55:21Z twisti $
+## $Id: Makefile.am 4350 2006-01-22 21:40:45Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
 SUBDIRS = include vm
 
@@ -59,12 +59,12 @@ libnative_la_SOURCES = \
 	jni.c \
 	jni.h \
 	native.c \
-	native.h \
-	nativecalls.inc
+	native.h
 
 libnative_la_LIBADD = \
 	vm/libnativevm.la \
 	$(JVMTI_LIB)
+
 
 ## Local variables:
 ## mode: Makefile
