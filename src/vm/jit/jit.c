@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4310 2006-01-19 21:31:04Z edwin $
+   $Id: jit.c 4343 2006-01-22 19:59:46Z twisti $
 
 */
 
@@ -1469,7 +1469,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* initialize the static function's class */
 
-  	if ((m->flags & ACC_STATIC) && !(m->class->state & CLASS_INITIALIZED)) {
+  	if ((m->flags & ACC_STATIC) && !CLASS_IS_OR_ALMOST_INITIALIZED(m->class)) {
 #if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Initialize class ", m->class);
