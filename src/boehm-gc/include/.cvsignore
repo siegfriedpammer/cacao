@@ -1,5 +1,6 @@
 Makefile
 Makefile.in
+TAGS
 config.h
 config.h.in
 stamp-h1

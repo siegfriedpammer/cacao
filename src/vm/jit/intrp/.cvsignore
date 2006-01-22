@@ -1,4 +1,5 @@
 *.a
+*.i
 *.o
 *.la
 *.lo
@@ -6,4 +7,4 @@
 .libs
 Makefile
 Makefile.in
-*.i
+TAGS

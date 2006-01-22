@@ -3,4 +3,5 @@
 .libs
 Makefile
 Makefile.in
+TAGS
 genoffsets

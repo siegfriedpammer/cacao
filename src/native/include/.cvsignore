@@ -1,5 +1,6 @@
 Makefile
 Makefile.in
+TAGS
 
 gnu_classpath_Pointer.h
 gnu_classpath_Pointer32.h
