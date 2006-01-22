@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4146 2006-01-12 21:06:44Z twisti $
+   $Id: loader.c 4335 2006-01-22 14:39:28Z twisti $
 
 */
 
@@ -289,38 +289,10 @@ void loader_load_all_classes(void)
 }
 
 
-/******************************************************************************/
-/******************* Some support functions ***********************************/
-/******************************************************************************/
+/* skipattributebody ***********************************************************
 
-void fprintflags (FILE *fp, u2 f)
-{
-   if ( f & ACC_PUBLIC )       fprintf (fp," PUBLIC");
-   if ( f & ACC_PRIVATE )      fprintf (fp," PRIVATE");
-   if ( f & ACC_PROTECTED )    fprintf (fp," PROTECTED");
-   if ( f & ACC_STATIC )       fprintf (fp," STATIC");
-   if ( f & ACC_FINAL )        fprintf (fp," FINAL");
-   if ( f & ACC_SYNCHRONIZED ) fprintf (fp," SYNCHRONIZED");
-   if ( f & ACC_VOLATILE )     fprintf (fp," VOLATILE");
-   if ( f & ACC_TRANSIENT )    fprintf (fp," TRANSIENT");
-   if ( f & ACC_NATIVE )       fprintf (fp," NATIVE");
-   if ( f & ACC_INTERFACE )    fprintf (fp," INTERFACE");
-   if ( f & ACC_ABSTRACT )     fprintf (fp," ABSTRACT");
-}
-
-
-/********** internal function: printflags  (only for debugging) ***************/
-
-void printflags(u2 f)
-{
-	fprintflags(stdout,f);
-}
-
-
-/********************** Function: skipattributebody ****************************
-
-	skips an attribute after the 16 bit reference to attribute_name has already
-	been read
+   Skips an attribute after the 16 bit reference to attribute_name has
+   already been read.
 	
 *******************************************************************************/
 

@@ -26,7 +26,7 @@
 
    Authors: Carolyn Oates
 
-   $Id: sets.c 4302 2006-01-19 20:00:11Z twisti $
+   $Id: sets.c 4335 2006-01-22 14:39:28Z twisti $
 
 */
 
@@ -496,7 +496,7 @@ int printFldSet(fldSetNode *s)
 		for (i=s; i != NULL; i = i->nextfldRef) {
         	printf("\t#%i: ",cnt);
 			printf("(%ir/%iw)",i->writePUT,i->readGET);
-			field_display(i->fldRef);
+			field_println(i->fldRef);
 			cnt++;
 		}
 		printf("\n");

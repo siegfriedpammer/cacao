@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 3940 2005-12-11 01:06:16Z twisti $
+   $Id: field.c 4335 2006-01-22 14:39:28Z twisti $
 
 */
 
@@ -56,22 +56,59 @@ void field_free(fieldinfo *f)
 }
 
 
-/* field_display ***************************************************************
+/* field_printflags ************************************************************
 
    (debugging only)
 
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void field_display(fieldinfo *f)
+void field_printflags(fieldinfo *f)
 {
-	printf("   ");
-	printflags(f->flags);
-	printf(" ");
+	if (f->flags & ACC_PUBLIC)       printf(" PUBLIC");
+	if (f->flags & ACC_PRIVATE)      printf(" PRIVATE");
+	if (f->flags & ACC_PROTECTED)    printf(" PROTECTED");
+	if (f->flags & ACC_STATIC)       printf(" STATIC");
+	if (f->flags & ACC_FINAL)        printf(" FINAL");
+	if (f->flags & ACC_SYNCHRONIZED) printf(" SYNCHRONIZED");
+	if (f->flags & ACC_VOLATILE)     printf(" VOLATILE");
+	if (f->flags & ACC_TRANSIENT)    printf(" TRANSIENT");
+	if (f->flags & ACC_NATIVE)       printf(" NATIVE");
+	if (f->flags & ACC_INTERFACE)    printf(" INTERFACE");
+	if (f->flags & ACC_ABSTRACT)     printf(" ABSTRACT");
+}
+#endif
+
+
+/* field_print *****************************************************************
+
+   (debugging only)
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void field_print(fieldinfo *f)
+{
 	utf_display(f->name);
 	printf(" ");
 	utf_display(f->descriptor);	
-	printf(" offset: %ld\n", (long int) (f->offset));
+
+	field_printflags(f);
+}
+#endif
+
+
+/* field_println ***************************************************************
+
+   (debugging only)
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void field_println(fieldinfo *f)
+{
+	field_print(f);
+	printf("\n");
 }
 #endif
 

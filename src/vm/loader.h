@@ -26,16 +26,19 @@
 
    Authors: Reinhard Grafl
 
-   $Id: loader.h 3936 2005-12-10 23:58:29Z twisti $
+   Changes: Christian Thalinger
+
+   $Id: loader.h 4335 2006-01-22 14:39:28Z twisti $
 */
 
 
 #ifndef _LOADER_H
 #define _LOADER_H
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 
@@ -137,13 +140,6 @@ classinfo *load_class_bootstrap(utf *name);
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
-
-/* return the primitive class inidicated by the given signature character */
-classinfo *class_primitive_from_sig(char sig);
-
-/* debug helpers */
-void fprintflags(FILE *fp, u2 f);
-void printflags(u2 f);
 
 #endif /* _LOADER_H */
 

@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4323 2006-01-20 13:05:09Z twisti $
+   $Id: class.c 4335 2006-01-22 14:39:28Z twisti $
 
 */
 
@@ -1377,28 +1377,35 @@ void class_showmethods (classinfo *c)
 {
 	s4 i;
 	
-	printf ("--------- Fields and Methods ----------------\n");
-	printf ("Flags: ");	printflags (c->flags);	printf ("\n");
+	printf("--------- Fields and Methods ----------------\n");
+	printf("Flags: ");
+	class_printflags(c);
+	printf("\n");
 
-	printf ("This: "); utf_display (c->name); printf ("\n");
+	printf("This: ");
+	utf_display(c->name);
+	printf("\n");
+
 	if (c->super.cls) {
-		printf ("Super: "); utf_display (c->super.cls->name); printf ("\n");
-		}
-	printf ("Index: %d\n", c->index);
+		printf("Super: ");
+		utf_display(c->super.cls->name);
+		printf ("\n");
+	}
+
+	printf("Index: %d\n", c->index);
 	
-	printf ("interfaces:\n");	
-	for (i=0; i < c-> interfacescount; i++) {
-		printf ("   ");
-		utf_display (c -> interfaces[i].cls -> name);
-		printf (" (%d)\n", c->interfaces[i].cls -> index);
-		}
+	printf("Interfaces:\n");	
+	for (i = 0; i < c->interfacescount; i++) {
+		printf("   ");
+		utf_display(c->interfaces[i].cls->name);
+		printf (" (%d)\n", c->interfaces[i].cls->index);
+	}
 
-	printf ("fields:\n");		
-	for (i=0; i < c -> fieldscount; i++) {
-		field_display (&(c -> fields[i]));
-		}
+	printf("Fields:\n");
+	for (i = 0; i < c->fieldscount; i++)
+		field_println(&(c->fields[i]));
 
-	printf ("methods:\n");
+	printf("Methods:\n");
 	for (i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &(c->methods[i]);
 
@@ -1409,10 +1416,8 @@ void class_showmethods (classinfo *c)
 	}
 
 	printf ("Virtual function table:\n");
-	for (i=0; i<c->vftbl->vftbllength; i++) {
-		printf ("entry: %d,  %ld\n", i, (long int) (c->vftbl->table[i]) );
-		}
-
+	for (i = 0; i < c->vftbl->vftbllength; i++)
+		printf ("entry: %d,  %ld\n", i, (long int) (c->vftbl->table[i]));
 }
 #endif /* !defined(NDEBUG) */
 
