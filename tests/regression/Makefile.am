@@ -28,27 +28,30 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4330 2006-01-20 13:41:51Z twisti $
+## $Id: Makefile.am 4348 2006-01-22 21:38:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = codepatching
+SUBDIRS = codepatching native
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
+SOURCE_FILES = \
+	$(srcdir)/HelloWorld.java \
+	$(srcdir)/jctest.java \
+	$(srcdir)/fptest.java \
+	$(srcdir)/fp.java \
+	$(srcdir)/extest.java \
+	$(srcdir)/extest_clinit.java \
+	$(srcdir)/clinitexception.java \
+	$(srcdir)/LoadDisplacementOverflow.java \
+	$(srcdir)/FieldDisplacementOverflow.java \
+	$(srcdir)/StackDisplacementOverflow.java
+
 EXTRA_DIST = \
+	$(SOURCE_FILES) \
 	Test.sh \
-	HelloWorld.java \
-	jctest.java \
-	fptest.java \
-	fp.java \
-	extest.java \
-	extest_clinit.java \
-	clinitexception.java \
-	LoadDisplacementOverflow.java \
-	FieldDisplacementOverflow.java \
-	StackDisplacementOverflow.java \
 	\
 	jctest.output \
 	fptest.output \
@@ -77,16 +80,17 @@ OUTPUT_JAVA_TESTS = \
 	FieldDisplacementOverflow \
 	StackDisplacementOverflow
 
-check: $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
+check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
+
+build:
+	@$(JAVAC) -d . $(SOURCE_FILES)
 
 $(SIMPLE_JAVA_TESTS):
-	@$(JAVAC) -d . $(srcdir)/$@.java
 	@echo -n "$@: "
 	@$(JAVA) $(JAVAFLAGS) $@
 
 
 $(OUTPUT_JAVA_TESTS):
-	@$(JAVAC) -d . $(srcdir)/$@.java
 	@$(SHELL) $(srcdir)/Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4314 2006-01-19 22:21:23Z twisti $
+## $Id: Makefile.am 4348 2006-01-22 21:38:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,37 +36,37 @@ JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
 SOURCE_FILES = \
-	checkcastC.java \
-	checkcastI.java \
-	getfieldD.java \
-	getfieldF.java \
-	getfieldI.java \
-	getfieldJ.java \
-	getfieldL.java \
-	getstaticD.java \
-	getstaticF.java \
-	getstaticI.java \
-	getstaticJ.java \
-	getstaticL.java \
-	instanceofC.java \
-	instanceofI.java \
-	invokespecial.java \
-	invokestatic.java \
-	multianewarray.java \
-	newarray.java \
-	putfieldconstIF.java \
-	putfieldconstJDL.java \
-	putfieldD.java \
-	putfieldF.java \
-	putfieldI.java \
-	putfieldJ.java \
-	putfieldL.java \
-	putstaticD.java \
-	putstaticF.java \
-	putstaticI.java \
-	putstaticJ.java \
-	putstaticL.java \
-	test.java
+	$(srcdir)/checkcastC.java \
+	$(srcdir)/checkcastI.java \
+	$(srcdir)/getfieldD.java \
+	$(srcdir)/getfieldF.java \
+	$(srcdir)/getfieldI.java \
+	$(srcdir)/getfieldJ.java \
+	$(srcdir)/getfieldL.java \
+	$(srcdir)/getstaticD.java \
+	$(srcdir)/getstaticF.java \
+	$(srcdir)/getstaticI.java \
+	$(srcdir)/getstaticJ.java \
+	$(srcdir)/getstaticL.java \
+	$(srcdir)/instanceofC.java \
+	$(srcdir)/instanceofI.java \
+	$(srcdir)/invokespecial.java \
+	$(srcdir)/invokestatic.java \
+	$(srcdir)/multianewarray.java \
+	$(srcdir)/newarray.java \
+	$(srcdir)/putfieldconstIF.java \
+	$(srcdir)/putfieldconstJDL.java \
+	$(srcdir)/putfieldD.java \
+	$(srcdir)/putfieldF.java \
+	$(srcdir)/putfieldI.java \
+	$(srcdir)/putfieldJ.java \
+	$(srcdir)/putfieldL.java \
+	$(srcdir)/putstaticD.java \
+	$(srcdir)/putstaticF.java \
+	$(srcdir)/putstaticI.java \
+	$(srcdir)/putstaticJ.java \
+	$(srcdir)/putstaticL.java \
+	$(srcdir)/test.java
 
 EXTRA_DIST = \
 	$(SOURCE_FILES)
@@ -107,14 +107,13 @@ CLASSES = \
 	putstaticL.class
 
 CLEANFILES = \
-	$(MAINCLASS) \
-	$(CLASSES)
-
-build:
-	$(JAVAC) $(SOURCE_FILES)
+	*.class
 
 check: build
-	$(JAVA) $(JAVAFLAGS) test
+	@$(JAVA) $(JAVAFLAGS) test
+
+build:
+	@$(JAVAC) -d . $(SOURCE_FILES)
 
 remove:
 	$(RM) $(CLASSES)

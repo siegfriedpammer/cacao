@@ -326,7 +326,7 @@ public class extest {
             ok();
             pstacktrace(e);
         } catch (UnsatisfiedLinkError e) {
-            /* catch this one for staticvm and say it's ok */
+            /* catch this one for ENABLE_STATICVM and say it's ok */
             ok();
             pstacktrace(e);
         }

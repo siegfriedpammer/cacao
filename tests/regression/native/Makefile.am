@@ -1,4 +1,4 @@
-## src/tests/native/Makefile.am
+## src/tests/regression/native/Makefile.am
 ##
 ## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
 ## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
@@ -28,48 +28,47 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4094 2006-01-08 19:14:17Z twisti $
+## $Id: Makefile.am 4348 2006-01-22 21:38:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)
+
+SOURCE_FILES = \
+	checkjni.java \
+	testarguments.java
+
+EXTRA_DIST = \
+	$(SOURCE_FILES) \
+	checkjni.c \
+	testarguments.c \
+	\
+	checkjni.output \
+	testarguments.output
 
 CLEANFILES = \
-	libcheckjni.so \
-	checkjni.class \
-	checkjni.h \
-	\
-	libtestarguments.so \
-	testarguments.class \
-	testarguments.h
+	*.class \
+	*.h \
+	*.so \
+	*.thisoutput \
+	*.this2output
 
-JAVA = $(top_builddir)/src/cacao/cacao
-JAVAH = $(top_builddir)/src/cacaoh/cacaoh
+TESTNAMES = \
+	checkjni \
+	testarguments
 
-checkall: test.tst checkjni.tst testarguments.tst
+JAVA      = $(top_builddir)/src/cacao/cacao
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) -Djava.library.path=.
+JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
-test:
-	$(JAVAC) test.java
-	$(JAVAH) test
-	$(CC) -shared $(INCLUDES) $(CFLAGS) test.c -o libtest.so -fPIC
+check: $(TESTNAMES)
 
-checkjni:
-	$(JAVAC) checkjni.java
-	$(JAVAH) checkjni
-	$(CC) -shared $(INCLUDES) $(CFLAGS) checkjni.c -o libcheckjni.so -fPIC
+$(TESTNAMES):
+	@$(JAVAC) -d . $(srcdir)/$@.java
+	@$(JAVAH) $@
+	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
+	@$(SHELL) $(srcdir)/../Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
-testarguments:
-	$(JAVAC) testarguments.java
-	$(JAVAH) testarguments
-	$(CC) -shared $(INCLUDES) $(CFLAGS) testarguments.c -o libtestarguments.so -fPIC
-	$(JAVAC) testgetobjectclass0.java
-	$(JAVAH) testgetobjectclass0
-	$(CC) -shared $(INCLUDES) $(CFLAGS) testgetobjectclass0.c -o libtestgetobjectclass0.so -fPIC
-
-%.tst: %
-	sh ../Test.sh $(JAVA) $*
-	rm -f $*.thisoutput
-	rm -f $*.this2output
 
 ## Local variables:
 ## mode: Makefile
