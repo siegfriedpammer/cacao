@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4297 2006-01-19 09:47:16Z twisti $
+## $Id: Makefile.am 4355 2006-01-22 23:00:31Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,8 +36,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 EXTRA_DIST = \
 	java.vmg \
+	gray.fs \
 	prims2x.fs \
-	vmgenx
+	vmgenx \
+	\
+	$(BUILT_SOURCES)
 
 noinst_HEADERS = \
 	engine.c
