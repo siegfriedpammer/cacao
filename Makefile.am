@@ -1,9 +1,9 @@
 ## Makefile.am
 ##
-## Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-## Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+## J. Wenninger, Institut f. Computersprachen - TU Wien
 ##
 ## This file is part of CACAO.
 ##
@@ -22,13 +22,13 @@
 ## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 ## 02111-1307, USA.
 ##
-## Contact: cacao@complang.tuwien.ac.at
+## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4134 2006-01-10 22:22:09Z twisti $
+## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 

@@ -1,9 +1,9 @@
 /* src/vm/jit/i386/codegen.h - code generation macros and definitions for i386
 
-   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -19,17 +19,17 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
+   Contact: cacao@cacaojvm.org
 
    Authors: Andreas Krall
             Christian Thalinger
 
    Changes:
 
-   $Id: codegen.h 3991 2005-12-22 13:58:17Z twisti $
+   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
 
 */
 

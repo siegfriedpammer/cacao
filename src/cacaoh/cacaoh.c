@@ -1,9 +1,9 @@
 /* src/cacaoh/cacaoh.c - main for header generation (cacaoh)
 
-   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -19,10 +19,10 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
+   Contact: cacao@cacaojvm.org
 
    Authors: Reinhard Grafl
 
@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4226 2006-01-18 15:41:26Z twisti $
+   $Id: cacaoh.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
 
@@ -132,10 +132,10 @@ static void usage(void)
 static void version(void)
 {
 	printf("cacaoh version "VERSION"\n");
-	printf("Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,\n");
-	printf("R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,\n");
-	printf("C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,\n");
-	printf("Institut f. Computersprachen - TU Wien\n\n");
+	printf("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,\n");
+	printf("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,\n");
+	printf("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,\n");
+	printf("J. Wenninger, Institut f. Computersprachen - TU Wien\n\n");
 
 	printf("This program is free software; you can redistribute it and/or\n");
 	printf("modify it under the terms of the GNU General Public License as\n");
