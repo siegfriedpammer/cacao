@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.h 4366 2006-01-23 16:03:50Z twisti $
 
 */
 
@@ -494,6 +494,13 @@ typedef enum {
 
 #define M_BEQ(a)                i386_jcc(cd, I386_CC_E, (a))
 #define M_BNE(a)                i386_jcc(cd, I386_CC_NE, (a))
+#define M_BLT(a)                i386_jcc(cd, I386_CC_L, (a))
+#define M_BLE(a)                i386_jcc(cd, I386_CC_LE, (a))
+#define M_BGE(a)                i386_jcc(cd, I386_CC_GE, (a))
+#define M_BGT(a)                i386_jcc(cd, I386_CC_G, (a))
+
+#define M_BBE(a)                i386_jcc(cd, I386_CC_BE, (a))
+#define M_BAE(a)                i386_jcc(cd, I386_CC_AE, (a))
 
 #define M_JMP(a)                i386_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            i386_jmp_imm(cd, (a))

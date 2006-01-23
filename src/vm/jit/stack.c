@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: stack.c 4366 2006-01-23 16:03:50Z twisti $
 
 */
 
@@ -2480,7 +2480,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	method_println(m);
 
-	printf("\nBasic blocks: %d\n", (m->basicblockcount - 1));
+	printf("\nBasic blocks: %d\n", m->basicblockcount);
 	printf("Max locals:   %d\n", cd->maxlocals);
 	printf("Max stack:    %d\n", cd->maxstack);
 	printf("Line number table length: %d\n", m->linenumbercount);
