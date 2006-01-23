@@ -1,153 +1,1872 @@
-2006-01-02 02:05  twisti
+2006-01-22 23:42  twisti
 
-	* THIRDPARTY:
-	  * unzip.[ch], libffi, libltdl: Removed.
+	* trunk/configure.ac: * configure.ac (AC_INIT): Changed version 
+	  number to 0.94.
+	  (CFLAGS): Changed optimization to -O2.
 
-2006-01-01 22:53  twisti
+2006-01-22 23:33  twisti
 
-	* autogen.sh:
-	  * Removed libltdl.
+	* trunk/COPYING, trunk/Makefile.am, trunk/contrib/Makefile.am, 
+	  trunk/doc/Makefile.am, trunk/doc/handbook/Makefile.am, 
+	  trunk/man/Makefile.am, trunk/src/Makefile.am, 
+	  trunk/src/cacao/Makefile.am, trunk/src/cacao/cacao.c, 
+	  trunk/src/cacao/cacao.h, trunk/src/cacaoh/Makefile.am, 
+	  trunk/src/cacaoh/cacaoh.c, trunk/src/cacaoh/headers.c, 
+	  trunk/src/cacaoh/headers.h, trunk/src/lib/Makefile.am, 
+	  trunk/src/mm/Makefile.am, trunk/src/mm/boehm.c, 
+	  trunk/src/mm/boehm.h, trunk/src/mm/memory.c, 
+	  trunk/src/mm/memory.h, trunk/src/mm/nogc.c, 
+	  trunk/src/native/Makefile.am, 
+	  trunk/src/native/include/Makefile.am, trunk/src/native/jni.c, 
+	  trunk/src/native/jni.h, trunk/src/native/jvmti/Makefile.am, 
+	  trunk/src/native/jvmti/VMjdwp.c, trunk/src/native/jvmti/dbg.h, 
+	  trunk/src/native/jvmti/jvmti.c, trunk/src/native/jvmti/jvmti.h, 
+	  trunk/src/native/native.c, trunk/src/native/native.h, 
+	  trunk/src/native/tools/Makefile.am, 
+	  trunk/src/native/tools/gennativetable.c, 
+	  trunk/src/native/vm/Constructor.c, trunk/src/native/vm/Field.c, 
+	  trunk/src/native/vm/Makefile.am, trunk/src/native/vm/Method.c, 
+	  trunk/src/native/vm/VMAccessController.c, 
+	  trunk/src/native/vm/VMClass.c, 
+	  trunk/src/native/vm/VMClassLoader.c, 
+	  trunk/src/native/vm/VMFrame.c, trunk/src/native/vm/VMObject.c, 
+	  trunk/src/native/vm/VMProxy.c, trunk/src/native/vm/VMRuntime.c, 
+	  trunk/src/native/vm/VMStackWalker.c, 
+	  trunk/src/native/vm/VMString.c, trunk/src/native/vm/VMSystem.c, 
+	  trunk/src/native/vm/VMSystemProperties.c, 
+	  trunk/src/native/vm/VMThread.c, 
+	  trunk/src/native/vm/VMThrowable.c, 
+	  trunk/src/native/vm/VMVirtualMachine.c, 
+	  trunk/src/scripts/Makefile.am, trunk/src/scripts/cacao.in, 
+	  trunk/src/scripts/java.in, trunk/src/scripts/javac.in, 
+	  trunk/src/scripts/rmic.in, trunk/src/scripts/rmiregistry.in, 
+	  trunk/src/threads/Makefile.am, 
+	  trunk/src/threads/green/Makefile.am, 
+	  trunk/src/threads/native/Makefile.am, 
+	  trunk/src/threads/native/generic-primitives.h, 
+	  trunk/src/threads/native/threads.c, 
+	  trunk/src/threads/native/threads.h, 
+	  trunk/src/toolbox/Makefile.am, trunk/src/toolbox/avl.c, 
+	  trunk/src/toolbox/avl.h, trunk/src/toolbox/chain.c, 
+	  trunk/src/toolbox/chain.h, trunk/src/toolbox/list.c, 
+	  trunk/src/toolbox/list.h, trunk/src/toolbox/logging.c, 
+	  trunk/src/toolbox/logging.h, trunk/src/toolbox/tree.c, 
+	  trunk/src/toolbox/tree.h, trunk/src/toolbox/util.c, 
+	  trunk/src/toolbox/util.h, trunk/src/vm/Makefile.am, 
+	  trunk/src/vm/access.c, trunk/src/vm/access.h, 
+	  trunk/src/vm/builtin.c, trunk/src/vm/builtin.h, 
+	  trunk/src/vm/builtintable.inc, trunk/src/vm/class.c, 
+	  trunk/src/vm/class.h, trunk/src/vm/classcache.c, 
+	  trunk/src/vm/classcache.h, trunk/src/vm/descriptor.c, 
+	  trunk/src/vm/descriptor.h, trunk/src/vm/exceptions.c, 
+	  trunk/src/vm/exceptions.h, trunk/src/vm/field.c, 
+	  trunk/src/vm/field.h, trunk/src/vm/finalizer.c, 
+	  trunk/src/vm/finalizer.h, trunk/src/vm/global.h, 
+	  trunk/src/vm/hashtable.c, trunk/src/vm/hashtable.h, 
+	  trunk/src/vm/initialize.c, trunk/src/vm/initialize.h, 
+	  trunk/src/vm/jit/Makefile.am, trunk/src/vm/jit/abi.h, 
+	  trunk/src/vm/jit/allocator/Makefile.am, 
+	  trunk/src/vm/jit/allocator/lsra.c, 
+	  trunk/src/vm/jit/allocator/lsra.h, 
+	  trunk/src/vm/jit/allocator/simplereg.c, 
+	  trunk/src/vm/jit/allocator/simplereg.h, 
+	  trunk/src/vm/jit/alpha/Makefile.am, 
+	  trunk/src/vm/jit/alpha/arch.h, trunk/src/vm/jit/alpha/asmpart.S, 
+	  trunk/src/vm/jit/alpha/codegen.c, 
+	  trunk/src/vm/jit/alpha/codegen.h, 
+	  trunk/src/vm/jit/alpha/disass.c, 
+	  trunk/src/vm/jit/alpha/freebsd/Makefile.am, 
+	  trunk/src/vm/jit/alpha/freebsd/md-os.c, 
+	  trunk/src/vm/jit/alpha/linux/Makefile.am, 
+	  trunk/src/vm/jit/alpha/linux/md-os.c, 
+	  trunk/src/vm/jit/alpha/md-abi.c, 
+	  trunk/src/vm/jit/alpha/md-abi.h, 
+	  trunk/src/vm/jit/alpha/md-asm.h, trunk/src/vm/jit/alpha/md.c, 
+	  trunk/src/vm/jit/alpha/md.h, trunk/src/vm/jit/alpha/patcher.c, 
+	  trunk/src/vm/jit/asmpart.h, trunk/src/vm/jit/codegen-common.c, 
+	  trunk/src/vm/jit/codegen-common.h, 
+	  trunk/src/vm/jit/disass-common.c, trunk/src/vm/jit/disass.h, 
+	  trunk/src/vm/jit/dseg.c, trunk/src/vm/jit/dseg.h, 
+	  trunk/src/vm/jit/i386/Makefile.am, trunk/src/vm/jit/i386/arch.h, 
+	  trunk/src/vm/jit/i386/asmpart.S, 
+	  trunk/src/vm/jit/i386/codegen.c, 
+	  trunk/src/vm/jit/i386/codegen.h, trunk/src/vm/jit/i386/disass.c, 
+	  trunk/src/vm/jit/i386/emitfuncs.c, 
+	  trunk/src/vm/jit/i386/emitfuncs.h, 
+	  trunk/src/vm/jit/i386/freebsd/Makefile.am, 
+	  trunk/src/vm/jit/i386/freebsd/md-os.c, 
+	  trunk/src/vm/jit/i386/icmd_uses_reg_res.inc, 
+	  trunk/src/vm/jit/i386/linux/Makefile.am, 
+	  trunk/src/vm/jit/i386/linux/md-os.c, 
+	  trunk/src/vm/jit/i386/md-abi.c, trunk/src/vm/jit/i386/md-abi.h, 
+	  trunk/src/vm/jit/i386/md-asm.h, trunk/src/vm/jit/i386/md.c, 
+	  trunk/src/vm/jit/i386/patcher.c, 
+	  trunk/src/vm/jit/inline/Makefile.am, 
+	  trunk/src/vm/jit/inline/inline.c, 
+	  trunk/src/vm/jit/inline/inline.h, 
+	  trunk/src/vm/jit/inline/parseRT.c, 
+	  trunk/src/vm/jit/inline/parseRT.h, 
+	  trunk/src/vm/jit/inline/parseRTstats.c, 
+	  trunk/src/vm/jit/inline/parseRTstats.h, 
+	  trunk/src/vm/jit/inline/parseXTA.c, 
+	  trunk/src/vm/jit/inline/parseXTA.h, 
+	  trunk/src/vm/jit/inline/sets.c, trunk/src/vm/jit/inline/sets.h, 
+	  trunk/src/vm/jit/intrp/Makefile.am, 
+	  trunk/src/vm/jit/intrp/asmpart.c, 
+	  trunk/src/vm/jit/intrp/codegen.c, 
+	  trunk/src/vm/jit/intrp/codegen.h, 
+	  trunk/src/vm/jit/intrp/disass.c, 
+	  trunk/src/vm/jit/intrp/dynamic-super.c, 
+	  trunk/src/vm/jit/intrp/engine.c, 
+	  trunk/src/vm/jit/intrp/engine1.c, 
+	  trunk/src/vm/jit/intrp/engine2.c, 
+	  trunk/src/vm/jit/intrp/intrp.h, trunk/src/vm/jit/intrp/md.c, 
+	  trunk/src/vm/jit/intrp/patcher.c, trunk/src/vm/jit/jit.c, 
+	  trunk/src/vm/jit/jit.h, trunk/src/vm/jit/loop/Makefile.am, 
+	  trunk/src/vm/jit/loop/analyze.c, 
+	  trunk/src/vm/jit/loop/analyze.h, trunk/src/vm/jit/loop/graph.c, 
+	  trunk/src/vm/jit/loop/graph.h, trunk/src/vm/jit/loop/loop.c, 
+	  trunk/src/vm/jit/loop/loop.h, trunk/src/vm/jit/loop/tracing.c, 
+	  trunk/src/vm/jit/loop/tracing.h, 
+	  trunk/src/vm/jit/methodheader.h, 
+	  trunk/src/vm/jit/mips/Makefile.am, trunk/src/vm/jit/mips/arch.h, 
+	  trunk/src/vm/jit/mips/asmpart.S, 
+	  trunk/src/vm/jit/mips/codegen.c, 
+	  trunk/src/vm/jit/mips/codegen.h, trunk/src/vm/jit/mips/disass.c, 
+	  trunk/src/vm/jit/mips/irix/Makefile.am, 
+	  trunk/src/vm/jit/mips/irix/md-os.c, 
+	  trunk/src/vm/jit/mips/linux/Makefile.am, 
+	  trunk/src/vm/jit/mips/linux/md-os.c, 
+	  trunk/src/vm/jit/mips/md-abi.c, trunk/src/vm/jit/mips/md-abi.h, 
+	  trunk/src/vm/jit/mips/md-asm.h, trunk/src/vm/jit/mips/md.c, 
+	  trunk/src/vm/jit/mips/md.h, trunk/src/vm/jit/mips/patcher.c, 
+	  trunk/src/vm/jit/parse.c, trunk/src/vm/jit/parse.h, 
+	  trunk/src/vm/jit/patcher.h, 
+	  trunk/src/vm/jit/powerpc/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/arch.h, 
+	  trunk/src/vm/jit/powerpc/asmpart.S, 
+	  trunk/src/vm/jit/powerpc/codegen.c, 
+	  trunk/src/vm/jit/powerpc/codegen.h, 
+	  trunk/src/vm/jit/powerpc/darwin/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/darwin/md-abi.c, 
+	  trunk/src/vm/jit/powerpc/darwin/md-abi.h, 
+	  trunk/src/vm/jit/powerpc/darwin/md-asm.h, 
+	  trunk/src/vm/jit/powerpc/darwin/md-os.c, 
+	  trunk/src/vm/jit/powerpc/disass.c, 
+	  trunk/src/vm/jit/powerpc/linux/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/linux/md-abi.c, 
+	  trunk/src/vm/jit/powerpc/linux/md-abi.h, 
+	  trunk/src/vm/jit/powerpc/linux/md-asm.h, 
+	  trunk/src/vm/jit/powerpc/linux/md-os.c, 
+	  trunk/src/vm/jit/powerpc/md.c, 
+	  trunk/src/vm/jit/powerpc/patcher.c, 
+	  trunk/src/vm/jit/powerpc64/arch.h, 
+	  trunk/src/vm/jit/powerpc64/linux/md-abi.h, 
+	  trunk/src/vm/jit/reg.c, trunk/src/vm/jit/reg.h, 
+	  trunk/src/vm/jit/schedule/Makefile.am, 
+	  trunk/src/vm/jit/schedule/schedule.c, 
+	  trunk/src/vm/jit/schedule/schedule.h, trunk/src/vm/jit/stack.c, 
+	  trunk/src/vm/jit/stack.h, trunk/src/vm/jit/stacktrace.c, 
+	  trunk/src/vm/jit/stacktrace.h, 
+	  trunk/src/vm/jit/tools/Makefile.am, 
+	  trunk/src/vm/jit/tools/genoffsets.c, 
+	  trunk/src/vm/jit/verify/Makefile.am, 
+	  trunk/src/vm/jit/verify/typecheck.c, 
+	  trunk/src/vm/jit/verify/typecheck.h, 
+	  trunk/src/vm/jit/verify/typeinfo.c, 
+	  trunk/src/vm/jit/verify/typeinfo.h, 
+	  trunk/src/vm/jit/x86_64/Makefile.am, 
+	  trunk/src/vm/jit/x86_64/arch.h, 
+	  trunk/src/vm/jit/x86_64/asmpart.S, 
+	  trunk/src/vm/jit/x86_64/codegen.c, 
+	  trunk/src/vm/jit/x86_64/codegen.h, 
+	  trunk/src/vm/jit/x86_64/disass.c, 
+	  trunk/src/vm/jit/x86_64/emitfuncs.c, 
+	  trunk/src/vm/jit/x86_64/emitfuncs.h, 
+	  trunk/src/vm/jit/x86_64/md-abi.c, 
+	  trunk/src/vm/jit/x86_64/md-abi.h, 
+	  trunk/src/vm/jit/x86_64/md-asm.h, trunk/src/vm/jit/x86_64/md.c, 
+	  trunk/src/vm/jit/x86_64/md.h, trunk/src/vm/jit/x86_64/patcher.c, 
+	  trunk/src/vm/linker.c, trunk/src/vm/linker.h, 
+	  trunk/src/vm/loader.c, trunk/src/vm/loader.h, 
+	  trunk/src/vm/method.c, trunk/src/vm/method.h, 
+	  trunk/src/vm/options.c, trunk/src/vm/options.h, 
+	  trunk/src/vm/properties.c, trunk/src/vm/properties.h, 
+	  trunk/src/vm/references.h, trunk/src/vm/resolve.c, 
+	  trunk/src/vm/resolve.h, trunk/src/vm/signal.c, 
+	  trunk/src/vm/signallocal.h, trunk/src/vm/statistics.c, 
+	  trunk/src/vm/statistics.h, trunk/src/vm/string.c, 
+	  trunk/src/vm/stringlocal.h, trunk/src/vm/suck.c, 
+	  trunk/src/vm/suck.h, trunk/src/vm/types.h, trunk/src/vm/utf8.c, 
+	  trunk/src/vm/utf8.h, trunk/src/vm/zip.c, trunk/src/vm/zip.h, 
+	  trunk/tests/Makefile.am, trunk/tests/regression/Makefile.am, 
+	  trunk/tests/regression/codepatching/Makefile.am, 
+	  trunk/tests/regression/fptest.java, 
+	  trunk/tests/regression/jctest.java, 
+	  trunk/tests/regression/native/Makefile.am, 
+	  trunk/tests/regression/native/checkjni.c, 
+	  trunk/tests/regression/native/checkjni.java, 
+	  trunk/tests/regression/native/test.c, 
+	  trunk/tests/regression/native/test.java, 
+	  trunk/tests/regression/native/testarguments.c, 
+	  trunk/tests/regression/native/testarguments.java, 
+	  trunk/tests/regression/native/testgetobjectclass0.c, 
+	  trunk/tests/regression/native/testgetobjectclass0.java: * 
+	  Updated header: Added 2006. Changed address of FSF. Changed email
+	  address.
 
-2006-01-01 22:32  twisti
+2006-01-22 23:16  twisti
 
-	* THIRDPARTY:
-	  * Changed text of kaffe's stuff, dalibor pointed this out.
+	* trunk, trunk/src, trunk/src/boehm-gc, 
+	  trunk/src/boehm-gc/include, trunk/src/cacao, trunk/src/cacaoh, 
+	  trunk/src/fdlibm, trunk/src/mm, trunk/src/native, 
+	  trunk/src/native/include, trunk/src/native/vm, 
+	  trunk/src/threads, trunk/src/threads/native, trunk/src/toolbox, 
+	  trunk/src/vm, trunk/src/vm/jit, trunk/src/vm/jit/allocator, 
+	  trunk/src/vm/jit/inline, trunk/src/vm/jit/intrp, 
+	  trunk/src/vm/jit/loop, trunk/src/vm/jit/tools, 
+	  trunk/src/vm/jit/verify: * Updated svn:ignore propset.
 
-2006-01-01 22:29  twisti
+2006-01-22 23:00  twisti
 
-	* configure.in:
-	  * AC_LIBLTDL_CONVENIENCE, AC_SUBST(LIBLTDL): Removed.
+	* trunk/src/vm/jit/intrp/Makefile.am: * 
+	  src/vm/jit/intrp/Makefile.am (EXTRA_DIST): Added gray.fs and
+	  BUILT_SOURCES.
+
+2006-01-22 22:46  twisti
+
+	* trunk/tests/regression/extest.java: * 
+	  tests/regression/extest.java: Typo.
+
+2006-01-22 22:36  twisti
+
+	* trunk/NEWS: * NEWS: Added releases 0.90, 0.91, 0.92, 0.93, 0.94.
+
+2006-01-22 22:34  twisti
+
+	* trunk/README: * README: Updated.
+
+2006-01-22 21:42  twisti
+
+	* trunk/src/vm/jit/intrp/codegen.c: * src/vm/jit/intrp/codegen.c 
+	  (cacaotype2ffitype): Revert edwin's
+	  bugfix, but we can't use ffi_type_slong as it's defined as 64-bit
+	  value on 32-bit machines.
+
+2006-01-22 21:40  twisti
+
+	* trunk/src/native/Makefile.am: * src/native/Makefile.am 
+	  (INCLUDES): Renamed to AM_CPPFLAGS.
+	  (libnative_la_SOURCES): Removed nativecalls.inc.
+
+2006-01-22 21:39  twisti
+
+	* trunk/tests/Makefile.am: * tests/Makefile.am (SUBDIRS): Removed 
+	  native.
+
+2006-01-22 21:38  twisti
+
+	* trunk/tests/regression/Makefile.am, 
+	  trunk/tests/regression/codepatching/Makefile.am, 
+	  trunk/tests/regression/extest.java, 
+	  trunk/tests/regression/native/Makefile.am, 
+	  trunk/tests/regression/native/testarguments.output: * 
+	  tests/regression/native/testarguments.output: Updated.
+	  * tests/regression/native/Makefile.am: Made it work with 
+	  distcheck.
+	  * tests/regression/codepatching/Makefile.am: Likewise.
+	  * tests/regression/Makefile.am: Likewise.
+	  
+	  * tests/regression/extest.java: Comment changed.
+
+2006-01-22 21:22  twisti
+
+	* trunk/configure.ac, trunk/configure.in: * configure.in: Renamed 
+	  to configure.ac.
+
+2006-01-22 21:21  twisti
+
+	* trunk/configure.in: * configure.in (AC_CONFIG_FILES): Removed 
+	  tests/native/Makefile, added
+	  tests/regression/native/Makefile.
+
+2006-01-22 20:21  twisti
+
+	* trunk/tests/native, trunk/tests/regression/native: * 
+	  tests/native: Moved to tests/regression/native.
+
+2006-01-22 20:00  twisti
+
+	* trunk/src/vm/jit/asmpart.h: * src/vm/jit/asmpart.h 
+	  (asm_handle_exception)
+	  (asm_handle_nat_exception): #ifdef ENABLE_JIT.
+
+2006-01-22 19:59  twisti
+
+	* trunk/src/vm/jit/jit.c: * src/vm/jit/jit.c (jit_compile_intern): 
+	  Use
+	  CLASS_IS_OR_ALMOST_INITIALIZED to check uninitialized.
+
+2006-01-22 19:57  twisti
+
+	* trunk/src/vm/jit/stacktrace.c: * src/vm/jit/stacktrace.c 
+	  (stacktrace_create_inline_stackframeinfo):
+	  Compiler warning fix.
+
+2006-01-22 19:56  twisti
+
+	* trunk/src/vm/jit/intrp/java.vmg: * src/vm/jit/intrp/java.vmg: 
+	  Some reformatting.
+
+2006-01-22 19:55  twisti
+
+	* trunk/src/vm/jit/intrp/asmpart.c: * src/vm/jit/intrp/asmpart.c 
+	  (vm/loader.h): Added.
+	  (intrp_asm_calljavafunction_intern): Use u1* instead of 
+	  entrypoint.
+	  (jni_invoke_java_intern): Likewise.
+
+2006-01-22 19:50  twisti
+
+	* trunk/.cvsignore, trunk/src/toolbox/.cvsignore, 
+	  trunk/src/vm/jit/allocator/.cvsignore, 
+	  trunk/src/vm/jit/inline/.cvsignore: * .cvsignore, 
+	  src/toolbox/.cvsignore, src/vm/jit/inline/.cvsignore,
+	  src/vm/jit/allocator/.cvsignore: TAGS added.
+
+2006-01-22 19:37  twisti
+
+	* trunk/src/.cvsignore, trunk/src/boehm-gc/.cvsignore, 
+	  trunk/src/boehm-gc/include/.cvsignore, 
+	  trunk/src/cacao/.cvsignore, trunk/src/cacaoh/.cvsignore, 
+	  trunk/src/fdlibm/.cvsignore, trunk/src/mm/.cvsignore, 
+	  trunk/src/native/.cvsignore, 
+	  trunk/src/native/include/.cvsignore, 
+	  trunk/src/native/vm/.cvsignore, trunk/src/threads/.cvsignore, 
+	  trunk/src/threads/native/.cvsignore, trunk/src/vm/.cvsignore, 
+	  trunk/src/vm/jit/.cvsignore, trunk/src/vm/jit/intrp/.cvsignore, 
+	  trunk/src/vm/jit/loop/.cvsignore, 
+	  trunk/src/vm/jit/tools/.cvsignore, 
+	  trunk/src/vm/jit/verify/.cvsignore: * src/boehm-gc/.cvsignore, 
+	  src/boehm-gc/include/.cvsignore,
+	  src/vm/.cvsignore, src/vm/jit/tools/.cvsignore,
+	  src/vm/jit/verify/.cvsignore, src/vm/jit/loop/.cvsignore,
+	  src/vm/jit/.cvsignore, src/vm/jit/intrp/.cvsignore,
+	  src/cacao/.cvsignore, src/native/vm/.cvsignore,
+	  src/native/include/.cvsignore, src/native/.cvsignore,
+	  src/mm/.cvsignore, src/threads/native/.cvsignore,
+	  src/threads/.cvsignore, src/fdlibm/.cvsignore, src/.cvsignore,
+	  src/cacaoh/.cvsignore: TAGS added.
+
+2006-01-22 19:29  edwin
+
+	* trunk/src/vm/jit/intrp/codegen.c: * src/vm/jit/intrp/codegen.c 
+	  (nativecall): Fixed calculation of the
+	  stackframeinfo address.
+
+2006-01-22 14:44  twisti
+
+	* trunk/src/vm/jit/codegen-common.c: * src/vm/jit/codegen-common.c 
+	  (codegen_addreference): The last fix was
+	  not correct if only the intrp is built.
+
+2006-01-22 14:39  twisti
+
+	* trunk/src/vm/class.c, trunk/src/vm/field.c, 
+	  trunk/src/vm/field.h, trunk/src/vm/jit/inline/sets.c, 
+	  trunk/src/vm/loader.c, trunk/src/vm/loader.h: * src/vm/class.c 
+	  (class_showmethods): Use class_printflags.
+	  * src/vm/loader.c, src/vm/loader.h (fprintflags): Removed.
+	  (printflags): Likewise.
+	  * src/vm/jit/inline/sets.c (printFldSet): Use field_println 
+	  instead of
+	  field_display.
+	  * src/vm/field.c, src/vm/field.h (field_display): Removed.
+	  (field_printflags): Added.
+	  (field_print): Likewise.
+	  (field_println): Likewise.
+
+2006-01-22 00:45  edwin
+
+	* trunk/src/vm/jit/intrp/codegen.c: * src/vm/jit/intrp/codegen.c 
+	  (cacaotype2ffitype): Use ffi_type_sint for
+	  values of TYPE_INT. This fixes the interpreter on i386, though 
+	  I'm not
+	  sure if it is a correct and complete solution.
+
+2006-01-21 21:46  edwin
+
+	* trunk/src/vm/jit/codegen-common.c: * src/vm/jit/codegen-common.c 
+	  (codegen_addreference): Fixed bug when
+	  both ENABLE_INTRP and ENABLE_JIT were defined.
+
+2006-01-21 20:22  edwin
+
+	* trunk/src/vm/jit/verify/typecheck.c: * 
+	  src/vm/jit/verify/typecheck.c (typestack_copy, 
+	  typestack_separable_with)
+	  (typestack_separable_from, verify_basic_block): Comment-only 
+	  changes.
+	  (verify_basic_block): Small typo fix in string.
+
+2006-01-20 14:49  twisti
+
+	* trunk/src/native/jni.c, trunk/src/native/jni.h, 
+	  trunk/src/native/vm/Constructor.c, trunk/src/native/vm/Method.c: 
+	  * src/native/jni.c (fill_callblock_from_objectarray): Fixed typo.
+	  (jni_method_invokeNativeHelper): Major code rewrite and speed
+	  improvement, renamed to _Jv_jni_invokeNative.
+	  (cacao_jni_CallVoidMethod): Fixed interpreter bug, renamed to
+	  _Jv_jni_CallVoidMethod.
+	  (callLongMethod): Renamed to _Jv_jni_CallLongMethod.
+	  * src/native/jni.h (jni_method_invokeNativeHelper): Renamed to
+	  _Jv_jni_invokeNative.
+	  * src/native/vm/Method.c 
+	  (Java_java_lang_reflect_Method_invokeNative):
+	  Renamed jni_method_invokeNativeHelper to _Jv_jni_invokeNative.
+	  * src/native/vm/Constructor.c: Updated includes.
+	  (Java_java_lang_reflect_Constructor_constructNative): Renamed
+	  jni_method_invokeNativeHelper to _Jv_jni_invokeNative.
+
+2006-01-20 13:41  twisti
+
+	* trunk/tests/regression/Makefile.am: * 
+	  tests/regression/Makefile.am (EXTRA_DIST): Made it more readable.
+
+2006-01-20 13:40  twisti
+
+	* trunk/src/vm/jit/intrp/asmpart.c, 
+	  trunk/src/vm/jit/intrp/codegen.c, 
+	  trunk/src/vm/jit/intrp/intrp.h: * src/vm/jit/intrp/intrp.h 
+	  (ffi.h): Removed, not required in this
+	  file.
+	  * src/vm/jit/intrp/codegen.c (nativecall): Removed unused 
+	  big-endian
+	  code.
+	  * src/vm/jit/intrp/asmpart.c (asm_calljavafunction_intern): 
+	  Renamed to
+	  intrp_asm_calljavafunction_intern, just to be sure.
+
+2006-01-20 13:33  twisti
+
+	* trunk/src/vm/jit/mips/irix/md-os.c: * 
+	  src/vm/jit/mips/irix/md-os.c (md_signal_handler_sigsegv): Missed 
+	  the
+	  actal rename from the previous commit.
+
+2006-01-20 13:28  twisti
+
+	* trunk/src/vm/signal.c, trunk/src/vm/signallocal.h: * 
+	  src/vm/signal.c (vm/signallocal.h): Added.
+	  * src/vm/signallocal.h (md_signal_handler_sigfpe): #ifdef for 
+	  i386 and
+	  x86_64.
+
+2006-01-20 13:25  twisti
+
+	* trunk/src/vm/jit/alpha/freebsd/md-os.c, 
+	  trunk/src/vm/jit/alpha/linux/md-os.c, 
+	  trunk/src/vm/jit/i386/freebsd/md-os.c, 
+	  trunk/src/vm/jit/i386/linux/md-os.c, 
+	  trunk/src/vm/jit/mips/irix/md-os.c, 
+	  trunk/src/vm/jit/mips/linux/md-os.c, 
+	  trunk/src/vm/jit/powerpc/darwin/md-os.c, 
+	  trunk/src/vm/jit/powerpc/linux/md-os.c, 
+	  trunk/src/vm/jit/x86_64/md.c, trunk/src/vm/signal.c, 
+	  trunk/src/vm/signallocal.h: * src/vm/jit/powerpc/linux/md-os.c, 
+	  src/vm/jit/powerpc/darwin/md-os.c,
+	  src/vm/jit/alpha/linux/md-os.c, src/vm/jit/alpha/freebsd/md-os.c,
+	  src/vm/jit/mips/linux/md-os.c, src/vm/jit/mips/irix/md-os.c
+	  (signal_handler_sigsegv): Renamed to md_signal_handler_sigsegv.
+	  * src/vm/jit/i386/linux/md-os.c, src/vm/jit/i386/freebsd/md-os.c,
+	  src/vm/jit/x86_64/md.c (signal_handler_sigsegv): Renamed to
+	  md_signal_handler_sigsegv.
+	  (signal_handler_sigfpe): Renamed to md_signal_handler_sigfpe.
+	  * src/vm/signal.c (signal_init): Renamed signal_handler_sigsegv 
+	  to
+	  md_signal_handler_sigsegv and signal_handler_sigfpe to
+	  md_signal_handler_sigfpe respectively.
+	  * src/vm/signallocal.h (md_signal_handler_sigsegv): Added.
+	  (md_signal_handler_sigfpe): Likewise.
+
+2006-01-20 13:19  twisti
+
+	* trunk/src/vm/jit/alpha/codegen.h: * src/vm/jit/alpha/codegen.h 
+	  (ucontext.h): Removed.
+	  (thread_restartcriticalsection): Removed.
+
+2006-01-20 13:06  twisti
+
+	* trunk/src/vm/jit/x86_64/disass.c: * src/vm/jit/x86_64/disass.c 
+	  (dis-asm.h): Added.
+	  (vm/global.h): Likewise.
+	  (mm/memory.h): Removed.
+
+2006-01-20 13:05  twisti
+
+	* trunk/src/vm/class.c, trunk/src/vm/class.h: * src/vm/class.c, 
+	  src/vm/class.h (class_printflags): Added.
+	  (class_print): Likewise.
+	  (class_println): Likewise.
+
+2006-01-20 12:58  twisti
+
+	* trunk/src/vm/jit/i386/disass.c: * src/vm/jit/i386/disass.c 
+	  (disassinstr): Set the read_memory_func in
+	  disassemble_info to disass_buffer_read_memory.
+	  (disassemble): Removed.
+
+2006-01-20 12:57  twisti
+
+	* trunk/src/vm/jit/stack.c: * src/vm/jit/stack.c 
+	  (show_icmd_method): Print basic blocks count and
+	  better basic block header output.
+	  ICMD_MULTIANEWARRAY: Changed iptr->target and iptr->val.a value.
+	  ICMD_IFLE_ICONST, ICMD_ELSE_ICONST: Print values better.
+
+2006-01-20 12:01  twisti
+
+	* trunk/src/vm/jit/powerpc/disass.c: * src/vm/jit/powerpc/disass.c 
+	  (disassinstr): Set the read_memory_func
+	  in disassemble_info to disass_buffer_read_memory.
+	  (disassemble): Removed.
+
+2006-01-20 11:38  twisti
+
+	* trunk/src/vm/jit/disass-common.c, trunk/src/vm/jit/disass.h, 
+	  trunk/src/vm/jit/x86_64/disass.c: * src/vm/jit/disass-common.c, 
+	  src/vm/jit/disass.h: Added
+	  disassemble_info and disass_initialized.
+	  (disassemble): Added.
+	  (buffer_read_memory): Renamed to disass_buffer_read_memory.
+	  * src/vm/jit/x86_64/disass.c (disassinstr): Set the 
+	  read_memory_func
+	  in disassemble_info to disass_buffer_read_memory.
+	  (disassemble): Removed.
+
+2006-01-20 10:15  twisti
+
+	* trunk/tests/regression/extest.2output, 
+	  trunk/tests/regression/extest.java, 
+	  trunk/tests/regression/extest_clinit.java: * 
+	  regression/extest.java: Removed asmpart exceptions as they are 
+	  now
+	  checked with codepatching.
+	  * regression/extest.2output: Regenerated.
+	  * regression/extest_clinit.java: Added.
+
+2006-01-20 10:08  twisti
+
+	* trunk/src/vm/jit/alpha/md.c: * src/vm/jit/alpha/md.c (md_init): 
+	  Moved #include and extern's to the
+	  top of the file, since this broke compilation on debian unstable.
+
+2006-01-19 23:40  edwin
+
+	* trunk/src/vm/jit/parse.h: * src/vm/jit/parse.h: Added vim 
+	  boilerplate.
+
+2006-01-19 23:35  edwin
+
+	* trunk/src/vm/jit/stack.c: * src/vm/jit/stack.c: Added vim 
+	  boilerplate.
+
+2006-01-19 22:21  twisti
+
+	* trunk/configure.in, trunk/tests/Makefile.am, 
+	  trunk/tests/regression/Makefile.am, 
+	  trunk/tests/regression/codepatching/Makefile.am: * configure.in 
+	  (AC_CONFIG_FILES): Removed tests/codepatching/Makefile
+	  and added tests/regression/codepatching/Makefile.
+	  * tests/Makefile.am (SUBDIRS): Removed codepatching.
+	  * tests/regression/Makefile.am (SUBDIRS) Added with codepatching.
+	  * tests/regression/codepatching/Makefile.am (JAVAFLAGS): Added.
+
+2006-01-19 22:11  edwin
+
+	* trunk/src/vm/jit/parse.c: * src/vm/jit/parse.c (parse): Removed 
+	  inlining code.
+
+2006-01-19 22:06  edwin
+
+	* trunk/src/vm/options.c, trunk/src/vm/options.h: * 
+	  src/vm/options.c, src/vm/options.h (useinliningm): Removed.
+
+2006-01-19 22:05  twisti
+
+	* trunk/tests/codepatching, trunk/tests/regression/codepatching: * 
+	  tests/codepatching: Moved to tests/regression/codepatching.
+
+2006-01-19 21:31  edwin
+
+	* trunk/src/vm/jit/jit.c: * src/vm/jit/jit.c (jit_compile): 
+	  Removed the INAFTERMAIN hack.
+
+2006-01-19 21:27  edwin
+
+	* trunk/src/vm/jit/inline/inline.c: * src/vm/jit/inline/inline.c 
+	  (inlining_setup): Removed INAFTERMAIN hack.
+
+2006-01-19 21:26  edwin
+
+	* trunk/src/cacao/cacao.c: * src/cacao/cacao.c (main): Disabled 
+	  useinlining and useinliningm.
+
+2006-01-19 20:56  twisti
+
+	* trunk/src/vm/jit/intrp/codegen.c, 
+	  trunk/src/vm/jit/intrp/engine.c, 
+	  trunk/src/vm/jit/intrp/java.vmg: * src/vm/jit/intrp/codegen.c, 
+	  src/vm/jit/intrp/java.vmg (FALOAD)
+	  (FASTORE): Added, required for big-endian machines.
+	  * src/vm/jit/intrp/engine.c (access_array_float): Likewise.
+
+2006-01-19 20:53  twisti
+
+	* trunk/src/vm/global.h: * src/vm/global.h (java_floatarray): Typo.
+
+2006-01-19 20:28  edwin
+
+	* trunk/src/vm/jit/parse.c: * src/vm/jit/parse.c (parse, 
+	  fillextable): Removed debugging code. 
+	  Minor cleanup.
+
+2006-01-19 20:13  edwin
+
+	* trunk/src/vm/jit/parse.c: * src/vm/jit/parse.c (parse): Removed 
+	  commented out debugging code.
+
+2006-01-19 20:03  twisti
+
+	* trunk/src/vm/class.c: * src/vm/class.c (class_showmethods): 
+	  Replaced method_display with
+	  method_println.
+
+2006-01-19 20:00  twisti
+
+	* trunk/src/vm/jit/inline/inline.c, 
+	  trunk/src/vm/jit/inline/parseRT.c, 
+	  trunk/src/vm/jit/inline/parseRTprint.h, 
+	  trunk/src/vm/jit/inline/parseRTstats.c, 
+	  trunk/src/vm/jit/inline/parseXTA.c, 
+	  trunk/src/vm/jit/inline/sets.c: * src/vm/jit/inline/inline.c, 
+	  src/vm/jit/inline/sets.c,
+	  src/vm/jit/inline/parseRTstats.c, src/vm/jit/inline/parseRT.c,
+	  src/vm/jit/inline/parseRTprint.h, src/vm/jit/inline/parseXTA.c:
+	  Replaced method_display and method_display_w_class calls with
+	  method_println.
+
+2006-01-19 19:49  twisti
+
+	* trunk/src/vm/method.c, trunk/src/vm/method.h: * src/vm/method.c, 
+	  src/vm/method.h (method_display): Removed.
+	  (method_display_w_class): Likewise.
+	  (method_printflags): Added.
+	  (method_print): Likewise.
+	  (method_println): Likewise.
+	  Removed.  --This line, and those below, will be ignored--
+	  
+	  M    method.c
+	  M    method.h
+
+2006-01-19 17:02  twisti
+
+	* trunk/src/vm/jit/powerpc/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/linux/Makefile.am: * 
+	  src/vm/jit/powerpc/linux/Makefile.am (INCLUDES): Renamed to
+	  AM_CPPFLAGS.
+	  * src/vm/jit/powerpc/Makefile.am (AM_CPPFLAGS): Added missing
+	  $(OS_DIR) include.
+
+2006-01-19 16:02  twisti
+
+	* trunk/src/vm/jit/Makefile.am: * INCLUDES: Replaced with 
+	  AM_CPPFLAGS as Tom Tromey suggested on irc,
+	    as this is more common these days.
+
+2006-01-19 11:58  edwin
+
+	* trunk/alpha, trunk/mips, trunk/nat: * alpha, mips, nat: removed 
+	  obsolete directories resurrected by svn migration
+
+2006-01-19 09:47  twisti
+
+	* trunk/src/vm/jit/alpha/Makefile.am, 
+	  trunk/src/vm/jit/i386/Makefile.am, 
+	  trunk/src/vm/jit/intrp/Makefile.am, 
+	  trunk/src/vm/jit/mips/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/Makefile.am, 
+	  trunk/src/vm/jit/x86_64/Makefile.am: * INCLUDES: Replaced with 
+	  AM_CPPFLAGS as Tom Tromey suggested on irc,
+	    as this is more common these days.
+
+2006-01-18 21:41  edwin
+
+	* trunk/tests/havoc.class: * havoc.class: fix corruption by svn 
+	  eol-style conversion
+
+2006-01-18 15:43  twisti
+
+	* trunk/configure.in: * AC_CHECK_HEADER: Added ansidecl.h, 
+	  symcat.h, bfd.h and zconf.h.
+
+2006-01-18 15:41  twisti
+
+	* trunk/src/cacaoh/cacaoh.c: * main: Call nogc_init for DISABLE_GC.
+
+2006-01-17 18:51  twisti
+
+	* trunk/src/fdlibm/fdlibm.h: * Removed extern stuff that was 
+	  removed from the lib.
+
+2006-01-17 18:37  twisti
+
+	* trunk/.externalToolBuilders/CacaoConfigure.launch: * Updated to 
+	  new classpath configure options.
+
+2006-01-17 18:24  twisti
+
+	* trunk/src/native/include/Makefile.am: * CLASSPATH_INSTALL_DIR: 
+	  Renamed to CLASSPATH_PREFIX.
+
+2006-01-17 17:06  twisti
+
+	* trunk/configure.in: * CACAO_INSTALL_PREFIX: Renamed to 
+	  CACAO_PREFIX.
+	  * NDEBUG: Check for libintl on cygwin and darwin.
+	  * --with-classpath-install-dir: Renamed to 
+	  --with-classpath-prefix.
+	  * --with-classpath-libdir: Added to support 64-bit platforms 
+	  where the
+	    libdir may be /usr/lib64.
+
+2006-01-17 16:59  twisti
+
+	* trunk/src/cacao/cacao.c, trunk/src/cacaoh/cacaoh.c: * main: 
+	  Removed CACAO_INSTALL_PREFIX and CLASSPATH_INSTALL_DIR since
+	    CACAO_VM_ZIP_PATH and CLASSPATH_GLIBJ_ZIP_PATH are now full 
+	  paths.
+
+2006-01-17 16:58  twisti
+
+	* trunk/src/native/vm/VMSystemProperties.c: * 
+	  Java_gnu_classpath_VMSystemProperties_preInit: Renamed
+	    CACAO_INSTALL_PREFIX to CACAO_PREFIX.
+
+2006-01-17 16:57  twisti
+
+	* trunk/src/vm/global.h: * CACAO_VM_ZIP_PATH: Prepend CACAO_PREFIX.
+	  * CLASSPATH_GLIBJ_ZIP_PATH: Prepend CLASSPATH_PREFIX.
+	  * CLASSPATH_LIBRARY_PATH: Prepend CLASSPATH_LIBDIR.
+
+2006-01-17 16:55  twisti
+
+	* trunk/contrib/setenvinstalled.in, trunk/contrib/setenvsource.in, 
+	  trunk/src/cacao/Makefile.am, trunk/src/lib/Makefile.am, 
+	  trunk/src/native/Makefile.am, 
+	  trunk/tests/regression/Makefile.am: * CLASSPATH_INSTALL_DIR: 
+	  Renamed to CLASSPATH_PREFIX.
+
+2006-01-17 16:53  twisti
+
+	* trunk/m4/as-ac-expand.m4: * Added.
+
+2006-01-17 16:51  twisti
+
+	* trunk/THIRDPARTY: * m4/as-ac-expand.m4: Added.
+
+2006-01-16 00:07  twisti
+
+	* trunk/src/native/jni.c: * jni_init: Fixed small typo.
+
+2006-01-16 00:04  twisti
+
+	* trunk/src/native/vm/VMSystemProperties.c: * 
+	  Java_gnu_classpath_VMSystemProperties_preInit: Use the same 
+	  os.arch
+	    property values as SUN and others do, so we are compatible 
+	  (e.g. jogl had
+	    some problems), file.encoding removed as it's set by GNU 
+	  Classpath,
+	    hardcode values for gnu.cpu.endian.
+
+2006-01-15 23:32  twisti
+
+	* trunk/src/native/jni.c: * 
+	  utf_java_nio_DirectByteBufferImpl_ReadWrite: Removed.
+	  * utf_gnu_classpath_Pointer{32,64}: Likewise.
+	  * class_java_nio_Buffer: Added, load and link this class in 
+	  jni_init().
+	  * class_java_nio_DirectByteBufferImpl: Likewise.
+	  * NewDirectByteBuffer: Removed debug output.
+	  * GetDirectBufferAddress: Added instanceof check.
+	  * GetDirectBufferCapacity: Likewise.
+
+2006-01-15 14:12  twisti
+
+	* trunk/src/native/native.c: * native_new_and_init: Ooops, 
+	  reverting last change and added an explaining
+	    comment.
+
+2006-01-15 13:32  twisti
+
+	* trunk/src/vm/global.h: * CLASSPATH_LIBRARY_PATH, 
+	  CLASSPATH_GLIBJ_ZIP_PATH: Temporary bugfix.
+
+2006-01-15 12:28  twisti
+
+	* trunk/src/native/native.h: * native_findfunction: #ifdef 
+	  ENABLE_STATICVM.
+	* trunk/src/native/native.c: * native_new_and_init: Fixed return 
+	  value.
+
+2006-01-15 01:56  twisti
+
+	* trunk/src/vm/builtin.c: * math.h: Added for isnan.
+
+2006-01-15 00:37  twisti
+
+	* trunk/tests/Makefile.am: * JAVAC: Removed.
+
+2006-01-15 00:36  twisti
+
+	* trunk/src/native/vm/VMSystemProperties.c: * 
+	  Java_gnu_classpath_VMSystemProperties_preInit: Set user.country 
+	  instead
+	    of user.region, set en_US if none is defined, 
+	  java.protocol.handler.pkgs
+	    removed.
+
+2006-01-14 20:02  twisti
+
+	* trunk/src/vm/builtin.c: * builtin_trace_args: Added callcount to 
+	  verbose call output.
+
+2006-01-14 17:19  edwin
+
+	* trunk/src/native/vm/Method.c: * src/native/vm/Method.c 
+	  (invokeNative): check class access rights
+
+2006-01-13 19:37  twisti
+
+	* trunk/src/vm/jit/codegen-common.c: * codegen_setup: #ifdef 
+	  datareferences.
+
+2006-01-13 18:51  twisti
+
+	* trunk/src/lib/Makefile.am, 
+	  trunk/src/lib/vm/reference/gnu/classpath/VMSystemProperties.java,
+	   trunk/src/lib/vm/reference/gnu/classpath/jdwp, 
+	  trunk/src/lib/vm/reference/gnu/java, 
+	  trunk/src/lib/vm/reference/java/io, 
+	  trunk/src/lib/vm/reference/java/lang/VMClass.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMCompiler.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMDouble.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMFloat.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMObject.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMProcess.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMRuntime.java, 
+	  trunk/src/lib/vm/reference/java/lang/VMSystem.java, 
+	  trunk/src/lib/vm/reference/java/lang/reflect, 
+	  trunk/src/lib/vm/reference/java/net, 
+	  trunk/src/lib/vm/reference/java/nio, 
+	  trunk/src/lib/vm/reference/java/util: * This class does not 
+	  differ from the GNU classpath upstream version.
+
+2006-01-13 18:49  twisti
+
+	* trunk/src/lib/vm/reference/java/lang/VMClassLoader.java: * 
+	  defineClassWithTransformers: Added, updated to generics version.
+
+2006-01-13 15:29  twisti
+
+	* trunk/src/vm/jit/codegen-common.h: * codegendata: #ifdef 
+	  datareferences member.
+	* trunk/src/vm/jit/codegen-common.c: * codegen_finish: Moved data 
+	  segment reference resolving into
+	    dseg_resolve_datareferences.
+
+2006-01-13 15:28  twisti
+
+	* trunk/src/vm/jit/dseg.c, trunk/src/vm/jit/dseg.h: * 
+	  dseg_resolve_datareferences: Added.
+
+2006-01-13 15:27  twisti
+
+	* trunk/src/vm/jit/intrp/codegen.c: * Small reformatting.
+
+2006-01-13 10:47  twisti
+
+	* trunk/THIRDPARTY: * 
+	  src/vm/jit/{i386,x86_64}/{dis-asm.h,i386-dis.c}: Removed.
+	  * src/vm/jit/powerpc/{ppc.h,ppc-dis.c,ppc-opc.c}: Likewise.
+	  * m4/{ac_prog_javac.m4,ac_prog_javac_works.m4}: Added.
+
+2006-01-13 10:42  twisti
+
+	* trunk/src/vm/jit/mips/codegen.c, 
+	  trunk/src/vm/jit/powerpc/codegen.c: * ICMD_MULTIANEWARRAY: Usage 
+	  of iptr->val.a and iptr->target changed.
+
+2006-01-13 10:11  twisti
+
+	* trunk/src/vm/jit/codegen-common.c: * codegen.h: Added when 
+	  ENABLE_JIT defined.
+	  * codegen_addpatchref: Set lastmcodeptr when ENABLE_JIT is 
+	  defined and the
+	    architecture requires it.
+
+2006-01-13 10:09  twisti
+
+	* trunk/src/vm/jit/alpha/codegen.c: * ICMD_MULTIANEWARRAY: Usage 
+	  of iptr->val.a and iptr->target changed.
+
+2006-01-12 23:54  twisti
+
+	* trunk/src/vm/jit/i386/codegen.c: * ICMD_MULTIANEWARRAY: Usage of 
+	  iptr->val.a and iptr->target changed.
+
+2006-01-12 23:33  twisti
+
+	* trunk/src/threads/native/threads.c: * arch.h: Added.
+	* trunk/src/boehm-gc/include/private/gc_locks.h: * 
+	  GC_test_and_set: Removed 64-bit version since the 32-bit seems 
+	  to be
+	    sufficient and works.
+
+2006-01-12 23:31  twisti
+
+	* trunk/src/vm/jit/stack.c: * show_icmd: Use 
+	  CLASS_IS_OR_ALMOST_INITIALIZED.
+	* trunk/src/vm/initialize.c: * initialize_class: Use 
+	  CLASS_IS_OR_ALMOST_INITIALIZED.
+
+2006-01-12 23:30  twisti
+
+	* trunk/src/vm/class.h: * CLASS_IS_OR_ALMOST_INITIALIZED: Added.
+
+2006-01-12 23:27  twisti
+
+	* trunk/src/vm/jit/intrp/java.vmg: * GETSTATIC_FLOAT, 
+	  PUTSTATIC_FLOAT, GETFIELD_FLOAT, PUTFIELD_FLOAT: Added.
+	  * PATCHER_GETSTATIC_FLOAT, PATCHER_PUTSTATIC_FLOAT, 
+	  PATCHER_GETFIELD_FLOAT,
+	    PATCHER_PUTFIELD_FLOAT: Likewise.
+	  * TRACENATIVECALL: Removed codegen_findmethod, use methodinfo* 
+	  from
+	    threaded code stream.
+	  * TRACECALL, TRACERETURN, TRACELRETURN: Likewise.
+
+2006-01-12 23:23  twisti
+
+	* trunk/src/vm/jit/intrp/codegen.c: * Some 64-bit big-endian 
+	  bugfixes.
+	  * Use CLASS_IS_OR_ALMOST_INITIALIZED macro.
+
+2006-01-12 23:21  twisti
+
+	* trunk/src/vm/jit/intrp/dynamic-super.c, 
+	  trunk/src/vm/jit/intrp/intrp.h, 
+	  trunk/src/vm/jit/intrp/peephole.c: * 64-bit big-endian bugfix: 
+	  replace s4 with ptrint.
+
+2006-01-12 23:10  twisti
+
+	* trunk/src/vm/jit/powerpc64, trunk/src/vm/jit/powerpc64/arch.h, 
+	  trunk/src/vm/jit/powerpc64/linux, 
+	  trunk/src/vm/jit/powerpc64/linux/md-abi.h: * Imported for the 
+	  interpreter.
+
+2006-01-12 23:09  twisti
+
+	* trunk/configure.in: * Added powerpc64 target.
+
+2006-01-12 23:08  twisti
+
+	* trunk/src/vm/jit/disass.h: * intrp_disassinstr, 
+	  intrp_disassemble: Added.
+
+2006-01-12 23:07  twisti
+
+	* trunk/src/native/vm/VMAccessController.c, 
+	  trunk/src/native/vm/VMStackWalker.c: * vm/options.h: Added.
+
+2006-01-12 23:05  twisti
+
+	* trunk/src/vm/jit/verify/typeinfo.h: * config.h, vm/types.h: 
+	  Added.
+
+2006-01-12 23:03  twisti
+
+	* trunk/src/native/jni.c: * Use ASM_CALLJAVAFUNCTION* macros.
+
+2006-01-12 22:42  twisti
+
+	* trunk/src/threads/native/threads.c: * thread_addstaticcritical: 
+	  Quick hack: #ifdef ENABLE_JIT
+	    asm_criticalsections.
+	  * sigsuspend_handler: Quick hack: #ifdef ENABLE_JIT
+	    thread_restartcriticalsection.
+
+2006-01-12 22:41  twisti
+
+	* trunk/src/vm/descriptor.c: * vm/options.h: Added.
+	  * descriptor_pool_parse_method_descriptor: #ifdef ENABLE_JIT 
+	  md_param_alloc
+	    call.
+	  * descriptor_params_from_paramtypes: Likewise.
+
+2006-01-12 22:40  twisti
+
+	* trunk/src/vm/jit/intrp/java.vmg: * Fixed a lot of compiler 
+	  warnings (functionptr -> u1*).
+
+2006-01-12 22:39  twisti
+
+	* trunk/src/vm/jit/intrp/disass.c: * regs: Removed.
+	  * disassinstr, disassemble: Prefixed with intrp_.
+
+2006-01-12 22:38  twisti
+
+	* trunk/src/vm/jit/x86_64/codegen.c: * ICMD_MULTIANEWARRAY: Usage 
+	  of iptr->val.a and iptr->target changed.
+
+2006-01-12 22:37  twisti
+
+	* trunk/src/vm/jit/intrp/codegen.c: * builtin_gen_table: #if 
+	  function according to arch.h.
+	  * codegen: Prefixed with intrp_, usage of iptr->val.a and 
+	  iptr->target
+	    changed.
+	  * codegen_createlinenumbertable: Renamed to 
+	  dseg_createlinenumbertable.
+	  * createcompilerstub: Prefixed with intrp_.
+	  * createnativestub: Likewise.
+
+2006-01-12 22:35  twisti
+
+	* trunk/src/vm/jit/verify/typecheck.c: * verify_multianewarray: 
+	  Usage iptr->val.a and iptr->target changed.
+	* trunk/src/vm/jit/parse.c: * JAVA_MULTIANEWARRAY: Pass c in 
+	  iptr->val.a and cr in iptr->target.
+
+2006-01-12 22:34  twisti
+
+	* trunk/src/vm/jit/codegen-common.c, trunk/src/vm/jit/parse.c: * 
+	  codegen_createnativestub: #ifdef ENABLE_JIT md_param_alloc call.
+	  * codegen_disassemble_nativestub: Use DISASSEMBLE macro.
+
+2006-01-12 22:32  twisti
+
+	* trunk/src/vm/jit/stack.c: * analyse_stack: #ifdef ENBALE_JIT 
+	  md_return_alloc call.
+	  * icmd_print_stack: Print regs correctly for jit.
+	  * show_icmd_method: Likewise.
+
+2006-01-12 21:55  twisti
+
+	* trunk/src/vm/builtintable.inc: * builtintable_internal: Removed 
+	  ICMD_CHECKCAST.
+
+2006-01-12 21:39  twisti
+
+	* trunk/src/vm/jit/intrp/patcher.c: * Prefixed functions with 
+	  intrp_.
+	* trunk/src/vm/jit/intrp/md.c: * md_init, 
+	  md_stacktrace_get_returnaddress: Prefixed with intrp_.
+	  * thread_restartcriticalsection, md_param_alloc, 
+	  md_return_alloc: Removed.
+
+2006-01-12 21:38  twisti
+
+	* trunk/src/vm/jit/intrp/asmpart.c: * Prefix functions with intrp_.
+
+2006-01-12 21:37  twisti
+
+	* trunk/src/vm/jit/x86_64/codegen.c: * Use ptrint instead of s8 in 
+	  some places.
+
+2006-01-12 21:36  twisti
+
+	* trunk/src/vm/jit/stack.c: * Use DISASSINSTR macro.
+
+2006-01-12 21:36  michi
+
+	* trunk/src/vm/jit/asmpart.h: * Comment updated (for 
+	  asm_cacheflush)
+
+2006-01-12 21:35  twisti
+
+	* trunk/src/vm/jit/codegen-common.h: * intrp_createcompilerstub, 
+	  intrp_createnativestub, intrp_codegen: Added.
+	* trunk/src/vm/jit/codegen-common.c: * codegen.h: Include only for 
+	  some archs.
+	  * md-abi.h: Include only for arm.
+	  * codegen_init: Changed #ifdef to ENABLE_JIT.
+	  * codegen_createnativestub: Call reg_setup only for jit, #ifdef
+	    createnativestub to support interpreter.
+
+2006-01-12 21:30  twisti
+
+	* trunk/src/vm/jit/stacktrace.h: * 
+	  intrp_md_stacktrace_get_returnaddress: Added.
+	* trunk/src/vm/jit/stacktrace.c: * 
+	  cacao_stacktrace_fillInStackTrace: #ifdef 
+	  md_stacktrace_get_returnaddress
+	    to support interpreter.
+
+2006-01-12 21:29  twisti
+
+	* trunk/src/vm/jit/Makefile.am: * Seperate ENABLE_JIT and 
+	  ENABLE_INTRP.
+
+2006-01-12 21:17  twisti
+
+	* trunk/src/vm/jit/patcher.h: * config.h: Added.
+	  * intrp_patcher_get_putstatic, intrp_patcher_get_putfield,
+	    intrp_patcher_aconst, intrp_patcher_builtin_multianewarray,
+	    intrp_patcher_builtin_arraycheckcast, 
+	  intrp_patcher_invokestatic_special,
+	    intrp_patcher_invokevirtual, intrp_patcher_invokeinterface,
+	    intrp_patcher_checkcast_instanceof, 
+	  intrp_patcher_resolve_native:
+	    Likewise.
+
+2006-01-12 21:16  twisti
+
+	* trunk/src/vm/jit/jit.c: * jit_compile_intern: #ifdef codegen 
+	  call to support interpreter, use
+	    DISASSEMBLE macro.
+
+2006-01-12 21:15  twisti
+
+	* trunk/src/vm/jit/disass.h: * DISASSINSTR, DISASSEMBLE: Added.
+
+2006-01-12 21:14  twisti
+
+	* trunk/src/native/native.c, trunk/src/threads/native/threads.c: * 
+	  Use ASM_CALLJAVAFUNCTION macro.
+
+2006-01-12 21:13  twisti
+
+	* trunk/src/native/vm/VMClassLoader.c: * Use 
+	  ASM_CALLJAVAFUNCTION_INT macro.
+
+2006-01-12 21:11  twisti
+
+	* trunk/src/cacaoh/headers.c: * intrp_asm_calljavafunction, 
+	  intrp_createcompilerstub,
+	    intrp_asm_getclassvalues_atomic: Added.
+
+2006-01-12 21:08  twisti
+
+	* trunk/src/cacao/cacao.c: * Use ASM_CALLJAVAFUNCTION macros.
+	  * main: #ifdef md_init call to support interpreter.
+	* trunk/src/vm/linker.c: * link_class_intern: #ifdef 
+	  createcompilerstub call to support interpreter.
+
+2006-01-12 21:07  twisti
+
+	* trunk/src/vm/builtin.c, trunk/src/vm/exceptions.c: * Use 
+	  ASM_CALLJAVAFUNCTION macros.
+
+2006-01-12 21:06  twisti
+
+	* trunk/src/vm/loader.c: * Use ASM_CALLJAVAFUNCTION_ADR macro.
+	* trunk/src/vm/finalizer.c, trunk/src/vm/initialize.c, 
+	  trunk/src/vm/properties.c: * Use ASM_CALLJAVAFUNCTION macro.
+
+2006-01-12 21:04  twisti
+
+	* trunk/src/vm/jit/jit.h: * intrp_md_init: Added.
+
+2006-01-12 20:57  twisti
+
+	* trunk/configure.in, trunk/src/fdlibm/fdlibm.h: * Check 
+	  explicitly for isnan.
+
+2006-01-12 18:25  twisti
+
+	* trunk/src/cacaoh/headers.c: * print_dynamic_super_statistics: 
+	  Added from intrp.
+
+2006-01-12 18:09  michi
+
+	* trunk/src/vm/jit/codegen-common.c: * Included md-abi.h (needed 
+	  for REG_SPLIT on Arm)
+
+2006-01-12 17:52  twisti
+
+	* trunk/src/vm/jit/intrp/arch.h: * We have to use a machine 
+	  dependent arch.h.
+
+2006-01-11 12:16  twisti
+
+	* trunk/src/vm/jit/intrp/engine.c: * vm/jit/codegen.inc.h: Removed.
+	  * Fixed compiler warnings.
+
+2006-01-11 10:35  twisti
+
+	* trunk/src/vm/jit/mips/codegen.c: * ICMD_F2I, ICMD_D2I, ICMD_F2L, 
+	  ICMD_D2L: #if 0.
+
+2006-01-11 10:01  twisti
+
+	* trunk/src/vm/jit/mips/arch.h: * SUPPORT_FMOD: Removed.
+	  * SUPPORT_IFCVT: Replaced with SUPPORT_I2F, SUPPORT_I2D or 
+	  SUPPORT_L2F,
+	    SUPPORT_L2D.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2L or SUPPORT_D2L.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F or SUPPORT_L2D.
+
+2006-01-10 22:44  twisti
+
+	* trunk/src/vm/jit/powerpc/arch.h: * SUPPORT_FMOD: Removed.
+	  * SUPPORT_IFCVT: Replaced with SUPPORT_I2F, SUPPORT_I2D or 
+	  SUPPORT_L2F,
+	    SUPPORT_L2D.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2L or SUPPORT_D2L.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F or SUPPORT_L2D.
+
+2006-01-10 22:38  twisti
+
+	* trunk/src/vm/jit/alpha/arch.h: * SUPPORT_FMOD: Removed.
+	  * SUPPORT_IFCVT: Replaced with SUPPORT_I2F, SUPPORT_I2D or 
+	  SUPPORT_L2F,
+	    SUPPORT_L2D.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2L or SUPPORT_D2L.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F or SUPPORT_L2D.
+
+2006-01-10 22:22  twisti
+
+	* trunk/Makefile.am: * EXTRA_DIST: Added ChangeLog-2005.
+
+2006-01-10 22:18  twisti
+
+	* trunk/src/vm/jit/i386/arch.h, trunk/src/vm/jit/x86_64/arch.h: * 
+	  SUPPORT_FMOD: Removed.
+	  * SUPPORT_IFCVT: Replaced with SUPPORT_I2F, SUPPORT_I2D or 
+	  SUPPORT_L2F,
+	    SUPPORT_L2D.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2L or SUPPORT_D2L.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F or SUPPORT_L2D.
+
+2006-01-10 22:11  twisti
+
+	* trunk/src/vm/builtin.c: * asm_getclassvalues_atomic: Replaced 
+	  with ASM_GETCLASSVALUES_ATOMIC.
+	  * SUPPORT_IFCVT: Replaced with SUPPORT_I2F or SUPPORT_I2D.
+	  * SUPPORT_FICVT: Replaced with SUPPORT_F2I.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2L or SUPPORT_D2L.
+
+2006-01-10 22:09  twisti
+
+	* trunk/src/vm/jit/asmpart.h: * ASM_CALLJAVAFUNCTION, 
+	  ASM_CALLJAVAFUNCTION_ADR, ASM_CALLJAVAFUNCTION_INT,
+	    ASM_CALLJAVAFUNCTION2, ASM_CALLJAVAFUNCTION2_ADR,
+	    ASM_CALLJAVAFUNCTION2_INT, ASM_CALLJAVAFUNCTION2_LONG,
+	    ASM_CALLJAVAFUNCTION2_FLOAT, ASM_CALLJAVAFUNCTION2_DOUBLE: 
+	  Macros added,
+	    these macros hide the selection between jit and intrp 
+	  functions.
+	  * ASM_GETCLASSVALUES_ATOMIC: Likewise.
+	  * intrp_asm_calljavafunction, intrp_asm_calljavafunction_int: 
+	  Added.
+	  * intrp_asm_calljavafunction2, intrp_asm_calljavafunction2int,
+	    intrp_asm_calljavafunction2long, 
+	  intrp_asm_calljavafunction2float,
+	    intrp_asm_calljavafunction2double: Likewise.
+	  * intrp_asm_getclassvalues_atomic: Likewise.
+
+2006-01-10 21:58  twisti
+
+	* trunk/src/vm/builtintable.inc: * SUPPORT_IFCVT: Replaced with 
+	  SUPPORT_I2F or SUPPORT_I2D.
+	  * SUPPORT_LONG_FCVT: Replaced with SUPPORT_L2F or SUPPORT_L2D.
+	  * SUPPORT_LONG_ICVT: Replaced with SUPPORT_F2I, SUPPORT_F2L or 
+	  SUPPORT_D2I,
+	    SUPPORT_D2L.
+
+2006-01-10 21:11  twisti
+
+	* trunk/src/vm/builtin.c: * 
+	  exceptions_throw_negativearraysizeexception: Use
+	  * builtin_throw_exception: #ifndef NDEBUG.
+	  * builtin_trace_exception: Likewise.
+	  * builtin_trace_args: Likewise.
+	  * builtin_displaymethodstop: Likewise.
+	  * builtin_*: #if the function regarding the defines in arch.h.
+
+2006-01-10 20:57  twisti
+
+	* trunk/src/vm/exceptions.c, trunk/src/vm/exceptions.h: * 
+	  exceptions_throw_classformaterror,
+	    exceptions_throw_arrayindexoutofboundsexception,
+	    exceptions_throw_illegalargumentexception,
+	    exceptions_throw_negativearraysizeexception,
+	    exceptions_throw_nullpointerexception: Added.
+	  * exceptions_print_exception: #ifndef NDEBUG.
+
+2006-01-10 20:56  twisti
+
+	* trunk/src/vm/loader.c: * exceptions_throw_classformaterror: Use 
+	  this function.
+
+2006-01-10 20:55  twisti
+
+	* trunk/src/native/vm/VMClass.c, trunk/src/native/vm/VMRuntime.c, 
+	  trunk/src/native/vm/VMSystemProperties.c, trunk/src/vm/linker.c, 
+	  trunk/src/vm/string.c, trunk/src/vm/utf8.c: * 
+	  exceptions_throw_nullpointerexception: Use this function.
+
+2006-01-10 20:50  twisti
+
+	* trunk/src/native/vm/VMClassLoader.c, 
+	  trunk/src/native/vm/VMSystem.c: * 
+	  exceptions_throw_nullpointerexception,
+	    exceptions_throw_arrayindexoutofboundsexception: Use these 
+	  functions.
+
+2006-01-10 20:48  twisti
+
+	* trunk/src/native/vm/Field.c: * 
+	  exceptions_throw_nullpointerexception,
+	    exceptions_throw_illegalargumentexception: Use these functions.
+
+2006-01-10 20:46  twisti
+
+	* trunk/src/native/jni.c: * 
+	  exceptions_throw_illegalargumentexception,
+	    exceptions_throw_negativearraysizeexception,
+	    exceptions_throw_arrayindexoutofboundsexception,
+	    exceptions_throw_nullpointerexception: Use these functions.
+
+2006-01-10 20:44  twisti
+
+	* trunk/src/cacaoh/headers.c: * exceptions_throw_classformaterror,
+	    exceptions_throw_negativearraysizeexception,
+	    exceptions_throw_nullpointerexception: Added.
+
+2006-01-10 15:52  twisti
+
+	* trunk/src/native/nativecalls.inc: * Not required anymore.
+
+2006-01-10 15:50  twisti
+
+	* trunk/src/native/native.h: * use_class_as_object, 
+	  create_property, copy_vftbl, create_methodsig:
+	    Removed.
+	  * classMeth, nativeCall, methodCall, nativeMethod, 
+	  nativeCompCall,
+	    methodCompCall, nativeCompMethod: Likewise.
+	  * natcall2utf, printNativeCall, markNativeMethodsRT: Likewise.
+
+2006-01-10 15:48  twisti
+
+	* trunk/src/native/native.c: * nativeCalls, nativeCompCalls: 
+	  Removed.
+	  * copy_vftbl, create_methodsig: Likewise.
+	  * printNativeCall, printCompNativeCall, findNativeMethodCalls,
+	    findNativeClassCalls, utfNativeCall, natcall2utf: Likewise.
+
+2006-01-10 10:59  twisti
+
+	* trunk/src/vm/jit/codegen-common.h: * codegen_ncode_increase: 
+	  Typo.
+
+2006-01-09 20:52  twisti
+
+	* trunk/src/vm/jit/disass.h: * disass_buf: Fixed typo.
+
+2006-01-09 20:28  twisti
+
+	* trunk/src/vm/jit/disass-common.c: * disass_printf: Ooops, #ifdef 
+	  was wrong.
+
+2006-01-09 20:19  twisti
+
+	* trunk/src/vm/jit/powerpc/dis-asm.h, 
+	  trunk/src/vm/jit/powerpc/ppc-dis.c, 
+	  trunk/src/vm/jit/powerpc/ppc-opc.c, 
+	  trunk/src/vm/jit/powerpc/ppc.h: * Removed, we now link against 
+	  libbfd and libopcodes.
+	* trunk/src/vm/jit/powerpc/disass.c: * stdarg.h, string.h, 
+	  assert.h, vm/jit/powerpc/dis-asm.h: Removed.
+	  * dis-asm.h, stdio.h, vm/jit/disass.h: Added.
+	  * myprintf, buffer_read_memory, perror_memory, 
+	  generic_print_address,
+	    generic_symbol_at_address, bfd_getb32, bfd_getl32, 
+	  sprintf_vma: Removed.
+	  * Use disass-common.c stuff.
+
+2006-01-09 20:15  twisti
+
+	* trunk/src/vm/jit/powerpc/Makefile.am: * libarch_la_SOURCES: 
+	  Removed dis-asm.h, ppc-dis.c, ppc-opc.c and ppc.h.
+
+2006-01-09 19:21  twisti
+
+	* trunk/src/vm/jit/x86_64/disass.c: * assert.h, stdarg.h, 
+	  vm/jit/x86_64/dis-asm.h: Removed.
+	  * stdio.h, vm/jit/disass.h: Added.
+	  * myprintf, buffer_read_memory, generic_symbol_at_address,
+	    generic_print_address, perror_memory: Likewise.
+	  * Use disass-common.c stuff.
+
+2006-01-09 16:37  twisti
+
+	* trunk/src/vm/jit/i386/disass.c: * string.h, 
+	  vm/jit/i386/dis-asm.h: Removed.
+	  * mylinebuf, mylen: Likewise.
+	  * myprintf, buffer_read_memory, generic_symbol_at_address,
+	    generic_print_address, perror_memory: Likewise.
+	  * Use disass-common.c stuff.
+
+2006-01-09 16:36  twisti
+
+	* trunk/src/vm/jit/Makefile.am: * WITH_BINUTILS_DISASSEMBLER: 
+	  Added, define DISASS_OBJ.
+	  * noinst_LTLIBRARIES: Added DISASS_OBJ.
+
+2006-01-09 16:30  twisti
+
+	* trunk/src/vm/jit/disass-common.c: * This file contains the 
+	  common functions required when we use the binutils
+	    disassembler.
+
+2006-01-09 16:29  twisti
+
+	* trunk/src/vm/jit/disass.h: * WITH_BINUTILS_DISASSEMBLER: Added.
+	  * disass_printf: Added.
+
+2006-01-09 16:26  twisti
+
+	* trunk/configure.in: * WITH_BINUTILS_DISASSEMBLER: Added.
+
+2006-01-09 12:12  twisti
+
+	* trunk/src/vm/jit/i386/dis-asm.h, 
+	  trunk/src/vm/jit/i386/i386-dis.c: * Removed, we now link against 
+	  libbfd and libopcodes.
+
+2006-01-09 12:10  twisti
+
+	* trunk/src/vm/jit/i386/Makefile.am: * libarch_la_SOURCES: Removed 
+	  dis-asm.h and i386-dis.c.
+
+2006-01-09 10:37  twisti
+
+	* trunk/configure.in: * AC_CHECK_HEADER checks for ansidecl.h, 
+	  bfd.h and symcat.h removed.
+	  * AC_CHECK_HEADER check for dis-asm.h added.
+	  * AC_CHECK_LIB checks for libbfd and libopcodes added.
+
+2006-01-09 10:35  twisti
+
+	* trunk/src/vm/jit/x86_64/dis-asm.h, 
+	  trunk/src/vm/jit/x86_64/i386-dis.c: * Removed, we now link 
+	  against libbfd and libopcodes.
+	* trunk/src/vm/jit/x86_64/Makefile.am: * libarch_la_SOURCES: 
+	  Removed dis-asm.h and i386-dis.c, we now link against
+	    libbfd and libopcodes.
+
+2006-01-08 23:37  twisti
+
+	* trunk/src/fdlibm/fdlibm.h: * Updated from GNU Classpath:
+	  
+	  2005-12-17  Guilhem Lavaux  <guilhem@kaffe.org>
+	  
+	           * native/fdlibm/fdlibm.h
+	           (isnan): Define explicitly isnan if it is not a macro.
+
+2006-01-08 23:00  twisti
+
+	* trunk/src/vm/loader.c: * loader_load_all_classes: Print 
+	  exception when loading failed.
+
+2006-01-08 22:38  twisti
+
+	* trunk/src/vm/suck.h: * SUCK_xx_xx: We can only optimize little 
+	  endian loads on i386 and x86_64
+	    machines.  All others have problems with alignment.
+
+2006-01-08 22:12  twisti
+
+	* trunk/tests/codepatching, trunk/tests/codepatching/.cvsignore: * 
+	  Ignore *.class files.
+
+2006-01-08 22:11  twisti
+
+	* trunk/src/fdlibm/Makefile.am, trunk/src/fdlibm/java-assert.h: * 
+	  java-assert.h: Unused, removed.
+
+2006-01-08 22:01  twisti
+
+	* trunk/src/lib/vm/reference/gnu/classpath/VMStackWalker.java: * 
+	  Added VM interface change to be consistent:
+	  
+	  2005-11-13  Archie Cobbs  <archie@dellroad.org>
+	  
+	  	* vm/reference/gnu/classpath/VMStackWalker.java 
+	  (getClassLoader()):
+	  	added to fix an infinite loop bug.
+	  	* NEWS: note VM interface change.
+
+2006-01-08 21:32  twisti
+
+	* trunk/src/vm/suck.c: * suck_add: Check for lce != NULL before 
+	  adding it to the list, since
+	    zip_open can return NULL.
+
+2006-01-08 19:14  twisti
+
+	* trunk/tests/native/Makefile.am, 
+	  trunk/tests/regression/Makefile.am: * JAVAC: Removed.
+
+2006-01-08 19:13  twisti
+
+	* trunk/tests/codepatching/Makefile.am: * SOURCE_FILES: Added.
+	  * JAVAC: Removed.
+	  * checkall: Renamed to check.
+
+2006-01-08 19:12  twisti
+
+	* trunk/src/lib/Makefile.am: * Use $(mkdir_p), $(JAVAC) and $(ZIP) 
+	  variables.
+
+2006-01-08 19:11  twisti
+
+	* trunk/configure.in: * AM_PROG_MKDIR_P: Added.
+	  * Added headers checks for ansidecl.h, bfd.h, and symcat.h if we 
+	  have
+	    debugging enabled.
+	  * AC_PROG_JAVAC: Added.
+	  * AC_PATH_PROG: Added check for zip.
+
+2006-01-08 19:09  twisti
+
+	* trunk/m4/ac_prog_javac.m4, trunk/m4/ac_prog_javac_works.m4: * 
+	  Macros to check for a Java compiler, taken from
+	    http://ac-archive.sourceforge.net/.
+
+2006-01-04 09:35  twisti
+
+	* trunk/THIRDPARTY: * Removed src/toolbox/avl.[ch] copyright.
+
+2006-01-04 09:34  twisti
+
+	* trunk/src/toolbox/avl.c: * avl_dump: Only print node->data.
+
+2006-01-03 23:46  twisti
+
+	* trunk/src/threads/native/threads.c, 
+	  trunk/src/vm/jit/codegen-common.c: * Use new avl tree code.
+	* trunk/src/toolbox/avl.c, trunk/src/toolbox/avl.h: * Rewritten.
+
+2006-01-03 23:44  twisti
+
+	* trunk/src/cacao/cacao.c: * exit_handler: Removed 
+	  print_dynamic_super_statistics.
+	* trunk/src/vm/statistics.c: * print_stats: Added 
+	  print_dynamic_super_statistics.
+
+2006-01-03 23:43  twisti
+
+	* trunk/src/vm/utf8.c: * threads.h: Added.
+	  * builtin.h: Likewise.
+
+2006-01-03 23:08  twisti
+
+	* trunk/src/native/jni.c: * CallNonvirtualBooleanMethodA: Added 
+	  missing ;.
+
+2006-01-03 23:05  twisti
+
+	* trunk/configure.in: * ENABLE_STATISTICS: Fixed typo.
+
+2006-01-02 21:01  christian
+
+	* trunk/src/vm/jit/allocator/simplereg.c: typeing error
+
+2006-01-02 17:13  twisti
+
+	* trunk/src/vm/jit/mips/md-abi.inc: * nregdescint, nregdescfloat: 
+	  Moved to md-abi.c.
+
+2006-01-02 17:12  twisti
+
+	* trunk/src/vm/jit/mips/md-abi.c: * nregdescint, nregdescfloat: 
+	  Added.
+
+2006-01-02 17:11  twisti
+
+	* trunk/src/vm/jit/mips/Makefile.am: * noinst_HEADERS: Removed 
+	  md-abi.inc.
+
+2006-01-02 16:40  twisti
+
+	* trunk/src/vm/jit/powerpc/darwin/md-os.c: * 
+	  signal_handler_sigsegv: Replaced functionptr with u1*.
+
+2006-01-02 16:18  twisti
+
+	* trunk/src/vm/jit/powerpc/darwin/md-abi.inc, 
+	  trunk/src/vm/jit/powerpc/linux/md-abi.inc: * nregdescint, 
+	  nregdescfloat: Moved to md-abi.c.
+
+2006-01-02 16:17  twisti
+
+	* trunk/src/vm/jit/powerpc/darwin/md-abi.c, 
+	  trunk/src/vm/jit/powerpc/linux/md-abi.c: * nregdescint, 
+	  nregdescfloat: Added.
+	* trunk/src/vm/jit/powerpc/darwin/Makefile.am, 
+	  trunk/src/vm/jit/powerpc/linux/Makefile.am: * noinst_HEADERS: 
+	  Removed md-abi.inc.
+
+2006-01-02 16:12  twisti
+
+	* trunk/src/vm/jit/allocator/Makefile.am: * INCLUDES: Added 
+	  OS_DIR, some archs have their md-abi.* files in the os
+	    directory.
+
+2006-01-02 16:08  christian
+
+	* trunk/src/vm/jit/allocator, 
+	  trunk/src/vm/jit/allocator/.cvsignore: *** empty log message ***
+
+2006-01-02 16:04  twisti
+
+	* trunk/src/vm/jit/alpha/md-abi.inc: * nregdescint, nregdescfloat: 
+	  Moved to md-abi.c.
+
+2006-01-02 16:03  twisti
+
+	* trunk/src/vm/jit/alpha/md-abi.c: * nregdescint, nregdescfloat: 
+	  Added.
+	* trunk/src/vm/jit/alpha/Makefile.am: * noinst_HEADERS: Removed 
+	  md-abi.inc.
+
+2006-01-02 14:32  christian
+
+	* trunk/src/vm/jit/allocator/simplereg.c, 
+	  trunk/src/vm/jit/stack.c: Removed old debug message
+
+2006-01-02 14:26  twisti
+
+	* trunk/src/vm/jit/allocator/lsra.c: * md-abi.inc: Removed.
+
+2006-01-02 14:25  twisti
+
+	* trunk/src/vm/jit/i386/md-abi.inc: * nregdescint, nregdescfloat: 
+	  Moved to md-abi.c.
+
+2006-01-02 14:24  twisti
+
+	* trunk/src/vm/jit/i386/md-abi.c: * nregdescint, nregdescfloat: 
+	  Added.
+	* trunk/src/vm/jit/i386/Makefile.am: * noinst_HEADERS: Removed 
+	  md-abi.inc.
+
+2006-01-02 14:11  christian
+
+	* trunk/src/vm/jit/allocator/simplereg.c: Corrected \"\" to \<\> 
+	  for system header include
+
+2006-01-02 14:07  twisti
+
+	* trunk/src/vm/jit/x86_64/md-abi.inc: * nregdescint, 
+	  nregdescfloat: Moved to md-abi.c.
+	* trunk/src/vm/jit/x86_64/Makefile.am: * noinst_HEADERS: Removed 
+	  md-abi.inc.
+
+2006-01-02 14:06  twisti
+
+	* trunk/src/vm/jit/reg.h, trunk/src/vm/jit/x86_64/md-abi.c: * 
+	  nregdescint, nregdescfloat: Added.
+	* trunk/src/vm/jit/x86_64/disass.c: * disassinstr: Some code 
+	  improvement.
+
+2006-01-02 14:05  twisti
+
+	* trunk/src/vm/jit/reg.c: * md-abi.inc: Removed.
+
+2006-01-02 13:05  christian
+
+	* trunk/src/vm/jit/reg.c: Changed register allocator .inc to .c 
+	  files and moved them to src/vm/jit/allocator
+
+2006-01-02 12:59  christian
+
+	* trunk/configure.in, trunk/src/vm/jit/Makefile.am, 
+	  trunk/src/vm/jit/allocator, 
+	  trunk/src/vm/jit/allocator/Makefile.am, 
+	  trunk/src/vm/jit/allocator/lsra.c, 
+	  trunk/src/vm/jit/allocator/lsra.h, 
+	  trunk/src/vm/jit/allocator/simplereg.c, 
+	  trunk/src/vm/jit/allocator/simplereg.h, 
+	  trunk/src/vm/jit/alpha/codegen.c, 
+	  trunk/src/vm/jit/i386/codegen.c, trunk/src/vm/jit/jit.c, 
+	  trunk/src/vm/jit/loop/Makefile.am, trunk/src/vm/jit/lsra.h, 
+	  trunk/src/vm/jit/lsra.inc, trunk/src/vm/jit/mips/codegen.c, 
+	  trunk/src/vm/jit/powerpc/codegen.c, trunk/src/vm/jit/reg.h, 
+	  trunk/src/vm/jit/reg.inc, trunk/src/vm/jit/stack.c, 
+	  trunk/src/vm/jit/x86_64/codegen.c: Changed register allocator 
+	  .inc to .c files and moved them to src/vm/jit/allocator
+
+2006-01-02 12:22  twisti
+
+	* trunk/configure.in: * Fixed result message for debug.
+
+2006-01-02 12:10  twisti
+
+	* trunk/configure.in: * Typo.
+
+2006-01-02 12:04  twisti
+
+	* trunk/configure.in: * Added ltdl.h check.
+
+2006-01-02 11:34  twisti
+
+	* trunk/src/native/native.c, trunk/src/native/native.h: * Fixed 
+	  ltdl.h include path.
+
+2006-01-02 01:34  twisti
+
+	* trunk/src/native/vm/VMRuntime.c: * Fixed ltdl.h include path.
+
+2006-01-02 01:15  twisti
+
+	* trunk/ARCH-CHANGES, trunk/TODO: * I don't think we really need 
+	  them, but they are still in Attic.
+
+2006-01-02 01:10  twisti
+
+	* trunk/ChangeLog, trunk/ChangeLog-2005: * Generated changelog for 
+	  2005.
+
+2006-01-02 01:05  twisti
+
+	* trunk/THIRDPARTY: * unzip.[ch], libffi, libltdl: Removed.
+
+2006-01-01 21:53  twisti
+
+	* trunk/autogen.sh: * Removed libltdl.
+
+2006-01-01 21:38  twisti
+
+	* trunk/src/libltdl: * We now use the system libltdl.
+
+2006-01-01 21:32  twisti
+
+	* trunk/THIRDPARTY: * Changed text of kaffe's stuff, dalibor 
+	  pointed this out.
+
+2006-01-01 21:29  twisti
+
+	* trunk/configure.in: * AC_LIBLTDL_CONVENIENCE, AC_SUBST(LIBLTDL): 
+	  Removed.
 	  * AC_COMPILE_CHECK_SIZEOF: Replaced with AC_CHECK_SIZEOF.
 
-2006-01-01 22:22  twisti
+2006-01-01 21:22  twisti
 
-	* THIRDPARTY:
-	  * m4 macros have a different copyright header.
+	* trunk/THIRDPARTY: * m4 macros have a different copyright header.
 
-2006-01-01 22:13  twisti
+2006-01-01 21:13  twisti
 
-	* THIRDPARTY:
-	  * Lists all third party software we use.  This list contains all
-	    stuff we used in 0.93.  Stuff that has been ripped will be deleted
-	    after that commit, this is for the records.
+	* trunk/THIRDPARTY: * Lists all third party software we use.  This 
+	  list contains all stuff we
+	    used in 0.93.  Stuff that has been ripped will be deleted 
+	  after that
+	    commit, this is for the records.
 
-2006-01-01 21:55  twisti
+2006-01-01 20:55  twisti
 
-	* m4/accross.m4:
-	  * Not required.
-
-2006-01-01 20:39  twisti
-
-	* src/cacao/Makefile.am:
-	  * Removed libltdlc.la.
-
-2006-01-01 20:39  twisti
-
-	* src/Makefile.am:
-	  * DIST_SUBDIRS: Removed libltdl.
-	  * SUBDIRS: Likewise.
-
-2006-01-01 20:38  twisti
-
-	* configure.in:
-	  * Added libltdl check.
-	  * AC_CONFIG_SUBDIRS: Removed src/libltdl.
+	* trunk/m4/accross.m4: * Not required.
 
 2006-01-01 19:39  twisti
 
-	* src/vm/jit/i386/Makefile.am:
-	  * libarch_la_SOURCES: Removed symcat.h.
+	* trunk/src/cacao/Makefile.am: * Removed libltdlc.la.
+	* trunk/src/Makefile.am: * DIST_SUBDIRS: Removed libltdl.
+	  * SUBDIRS: Likewise.
 
-2006-01-01 19:34  twisti
+2006-01-01 19:38  twisti
 
-	* src/vm/jit/x86_64/symcat.h:
-	  * Use system one.
+	* trunk/configure.in: * Added libltdl check.
+	  * AC_CONFIG_SUBDIRS: Removed src/libltdl.
 
-2006-01-01 19:33  twisti
+2006-01-01 18:39  twisti
 
-	* src/vm/jit/x86_64/Makefile.am:
-	  * libarch_la_SOURCES: Removed symcat.h.
+	* trunk/src/vm/jit/i386/Makefile.am: * libarch_la_SOURCES: Removed 
+	  symcat.h.
 
-2006-01-01 19:30  twisti
+2006-01-01 18:34  twisti
 
-	* src/vm/jit/i386/disass.c:
-	  * generic_symbol_at_address: Print only 8 bytes.
+	* trunk/src/vm/jit/x86_64/symcat.h: * Use system one.
 
-2006-01-01 19:21  twisti
+2006-01-01 18:33  twisti
 
-	* src/vm/jit/i386/: ansidecl.h, bfd.h, dis-buf.c, symcat.h:
+	* trunk/src/vm/jit/x86_64/Makefile.am: * libarch_la_SOURCES: 
+	  Removed symcat.h.
+
+2006-01-01 18:30  twisti
+
+	* trunk/src/vm/jit/i386/disass.c: * generic_symbol_at_address: 
+	  Print only 8 bytes.
+
+2006-01-01 18:21  twisti
+
+	* trunk/src/vm/jit/i386/ansidecl.h, trunk/src/vm/jit/i386/bfd.h, 
+	  trunk/src/vm/jit/i386/dis-buf.c, trunk/src/vm/jit/i386/symcat.h: 
 	  * Use system ones.
-
-2006-01-01 19:21  twisti
-
-	* src/vm/jit/i386/disass.c:
-	  * generic_symbol_at_address: Added, they were implemented in
-	    dis-buf.c which was removed.
+	* trunk/src/vm/jit/i386/disass.c: * generic_symbol_at_address: 
+	  Added, they were implemented in dis-buf.c
+	    which was removed.
 	  * generic_print_address: Likewise.
 	  * perror_memory: Likewise.
 
-2006-01-01 19:20  twisti
+2006-01-01 18:20  twisti
 
-	* src/vm/jit/i386/Makefile.am:
-	  * libarch_la_SOURCES: Removed ansidecl.h, bfd.h and dis-buf.c.
+	* trunk/src/vm/jit/i386/Makefile.am: * libarch_la_SOURCES: Removed 
+	  ansidecl.h, bfd.h and dis-buf.c.
+	* trunk/src/vm/jit/i386/md.c: * config.h, vm/jit/codegen-common.h: 
+	  Added.
 
-2006-01-01 19:20  twisti
+2006-01-01 16:40  twisti
 
-	* src/vm/jit/i386/md.c:
-	  * config.h, vm/jit/codegen-common.h: Added.
+	* trunk/src/vm/jit/x86_64/dis-asm.h: * Changed include to use 
+	  system headers.
 
-2006-01-01 19:10  twisti
+2006-01-01 16:39  twisti
 
-	* src/vm/jit/arm/codegen.c:
-	  * vm/jit/codegen.inc: Removed.
-	  * vm/exceptions.h: Added.
-	  * vm/jit/codegen-common.h: Likewise.
-	  * vm/jit/dseg.h: Likewise.
-	  * codegen: Renamed codegen_createlinenumbertable to
-	    dseg_createlinenumbertable.
-
-2006-01-01 19:10  twisti
-
-	* src/vm/jit/arm/codegen.h:
-	  * COUNT_SPILLS: Removed.
-
-2006-01-01 17:40  twisti
-
-	* src/vm/jit/x86_64/dis-asm.h:
-	  * Changed include to use system headers.
-
-2006-01-01 17:39  twisti
-
-	* src/vm/jit/x86_64/: ansidecl.h, bfd.h, dis-buf.c:
-	  * Use system ones.
-
-2006-01-01 17:39  twisti
-
-	* src/vm/jit/x86_64/disass.c:
-	  * generic_symbol_at_address: Added, they were implemented in
-	    dis-buf.c which was removed.
+	* trunk/src/vm/jit/x86_64/ansidecl.h, 
+	  trunk/src/vm/jit/x86_64/bfd.h, 
+	  trunk/src/vm/jit/x86_64/dis-buf.c: * Use system ones.
+	* trunk/src/vm/jit/x86_64/disass.c: * generic_symbol_at_address: 
+	  Added, they were implemented in dis-buf.c
+	    which was removed.
 	  * generic_print_address: Likewise.
 	  * perror_memory: Likewise.
 
-2006-01-01 17:37  twisti
+2006-01-01 16:37  twisti
 
-	* src/vm/jit/x86_64/Makefile.am:
-	  * libarch_la_SOURCES: Removed ansidecl.h, bfd.h and dis-buf.c.
+	* trunk/src/vm/jit/x86_64/Makefile.am: * libarch_la_SOURCES: 
+	  Removed ansidecl.h, bfd.h and dis-buf.c.
 
-2006-01-01 17:35  twisti
+2006-01-01 16:35  twisti
 
-	* src/fdlibm/ieeefp.h:
-	  * DEC OSF cc only defines __alpha.
+	* trunk/src/fdlibm/ieeefp.h: * DEC OSF cc only defines __alpha.
 
-2006-01-01 17:34  twisti
+2006-01-01 16:34  twisti
 
-	* src/vm/: class.c, class.h:
-	  * class_resolvefield: Renamed except to throwexception since some
-	    compilers have a builtin except macro (like DEC OSF cc).
+	* trunk/src/vm/class.c, trunk/src/vm/class.h: * 
+	  class_resolvefield: Renamed except to throwexception since some 
+	  compilers
+	    have a builtin except macro (like DEC OSF cc).
 	  * class_resolveclassmethod: Likewise.
 	  * class_resolveinterfacemethod: Likewise.
 
-2006-01-01 17:31  twisti
+2006-01-01 16:31  twisti
 
-	* src/vm/zip.c:
-	  * zip_open: Handle compiler error with DEC OSF's cc.
+	* trunk/src/vm/zip.c: * zip_open: Handle compiler error with DEC 
+	  OSF's cc.
