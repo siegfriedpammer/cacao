@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4369 2006-01-24 13:52:12Z twisti $
+   $Id: codegen.h 4372 2006-01-24 19:09:17Z twisti $
 
 */
 
@@ -206,6 +206,18 @@
 	} while (0)
 
 
+#define var_to_reg_dbl(regnr,v,tempnr) \
+	do { \
+		if ((v)->flags & INMEMORY) { \
+			COUNT_SPILLS; \
+			M_DLD(tempnr, REG_SP, (v)->regoff * 4); \
+			regnr = tempnr; \
+		} else { \
+			regnr = (v)->regoff; \
+		} \
+	} while (0)
+
+
 /* store_reg_to_var_xxx ********************************************************
 
    This function generates the code to store the result of an
@@ -288,9 +300,15 @@
                     store_reg_to_var_int(to, d); \
                 } \
             } else { \
-                var_to_reg_flt(s1, from, d); \
-                M_FLTMOVE(s1,d); \
-                store_reg_to_var_flt(to, d); \
+                if (IS_2_WORD_TYPE(from->type)) { \
+                    var_to_reg_dbl(s1, from, d); \
+                    M_FLTMOVE(s1,d); \
+                    store_reg_to_var_dbl(to, d); \
+                } else { \
+                    var_to_reg_flt(s1, from, d); \
+                    M_FLTMOVE(s1,d); \
+                    store_reg_to_var_flt(to, d); \
+                } \
             } \
         } \
     } while (0)
