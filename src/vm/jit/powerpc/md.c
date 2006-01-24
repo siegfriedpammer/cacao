@@ -28,11 +28,14 @@
 
    Changes:
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 4368 2006-01-24 10:30:42Z twisti $
 
 */
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "md-abi.h"
@@ -75,8 +78,14 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
    Machine code:
 
-   7d6802a6    mflr  r11
-   39abffe0    addi  r13,r11,-32
+   7d6802a6    mflr    r11
+   39abffe0    addi    r13,r11,-32
+
+   or
+
+   7d6802a6    mflr    r11
+   3dabffff    addis   r13,r11,-1
+   39ad68b0    addi    r13,r13,26800
 
 *******************************************************************************/
 
@@ -84,24 +93,42 @@ u1 *md_codegen_findmethod(u1 *ra)
 {
 	u1 *pv;
 	u4  mcode;
-	s2  offset;
+	s4  offset;
 
-	pv = ra;
-
-	/* get offset of first instruction (addi) */
+	/* get first instruction word after jump */
 
 	mcode = *((u4 *) (ra + 1 * 4));
-	offset = (s2) (mcode & 0x0000ffff);
-	pv += offset;
 
-	/* check for second instruction (addis) */
+	/* check if we have 2 instructions (addis, addi) */
 
-	mcode = *((u4 *) (ra + 2 * 4));
+	if ((mcode >> 16) == 0x3dab) {
+		/* get displacement of first instruction (addis) */
 
-	if ((mcode >> 16) == 0x3dad) {
-		offset = (s2) (mcode << 16);
-		pv += offset;
+		offset = (s4) (mcode << 16);
+
+		/* get displacement of second instruction (addi) */
+
+		mcode = *((u4 *) (ra + 2 * 4));
+
+		/* check for addi instruction */
+
+		assert((mcode >> 16) == 0x39ad);
+
+		offset += (s2) (mcode & 0x0000ffff);
+
+	} else {
+		/* check for addi instruction */
+
+		assert((mcode >> 16) == 0x39ab);
+
+		/* get offset of first instruction (addi) */
+
+		offset = (s2) (mcode & 0x0000ffff);
 	}
+
+	/* calculate PV via RA + offset */
+
+	pv = ra + offset;
 
 	return pv;
 }

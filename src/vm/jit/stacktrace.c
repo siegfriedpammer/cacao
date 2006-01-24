@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: stacktrace.c 4368 2006-01-24 10:30:42Z twisti $
 
 */
 
@@ -816,10 +816,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 #if PRINTMETHODS
 				printf("ra=%p sp=%p, ", ra, sp);
-				utf_display_classname(m->class->name);
-				printf(".");
-				utf_display(m->name);
-				utf_display(m->descriptor);
+				method_print(m);
 				printf(": native stub\n");
 				fflush(stdout);
 #endif
@@ -871,10 +868,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				if (m != NULL) {
 #if PRINTMETHODS
 					printf("ra=%p sp=%p, ", ra, sp);
-					utf_display_classname(m->class->name);
-					printf(".");
-					utf_display(m->name);
-					utf_display(m->descriptor);
+					method_print(m);
 					printf(": inline stub parent");
 					fflush(stdout);
 #endif
@@ -893,7 +887,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					framesize = *((u4 *) (pv + FrameSize));
 
 #if PRINTMETHODS
-					printf(", framsize=%d\n", framesize);
+					printf(", framesize=%d\n", framesize);
 					fflush(stdout);
 #endif
 
@@ -935,10 +929,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 		} else {
 #if PRINTMETHODS
 			printf("ra=%p sp=%p, ", ra, sp);
-			utf_display_classname(m->class->name);
-			printf(".");
-			utf_display(m->name);
-			utf_display(m->descriptor);
+			method_print(m);
 			printf(": JIT");
 			fflush(stdout);
 #endif
@@ -955,7 +946,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 			framesize = *((u4 *) (pv + FrameSize));
 
 #if PRINTMETHODS
-			printf(", framsize=%d\n", framesize);
+			printf(", framesize=%d\n", framesize);
 			fflush(stdout);
 #endif
 
