@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: builtin.c 4367 2006-01-24 10:28:52Z twisti $
 
 */
 
@@ -2474,7 +2474,7 @@ double builtin_l2d(s8 a)
 #endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
 
 
-#if !(SUPPORT_FLOAT && SUPPORT_F2I)
+#if !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP)
 s4 builtin_f2i(float a) 
 {
 	s4 i;
@@ -2499,7 +2499,7 @@ s4 builtin_f2i(float a)
 		return 2147483647;
 		return (-2147483648); */
 }
-#endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) */
+#endif /* !(SUPPORT_FLOAT && SUPPORT_F2I) || defined(ENABLE_INTRP) */
 
 
 #if !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L)
@@ -2530,7 +2530,7 @@ s8 builtin_f2l(float a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_LONG && SUPPORT_F2L) */
 
 
-#if !(SUPPORT_DOUBLE && SUPPORT_D2I)
+#if !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP)
 s4 builtin_d2i(double a) 
 { 
 	double d;
@@ -2549,7 +2549,7 @@ s4 builtin_d2i(double a)
 		return 2147483647;
 	return (-2147483647-1);
 }
-#endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) */
+#endif /* !(SUPPORT_DOUBLE && SUPPORT_D2I) || defined(ENABLE_INTRP) */
 
 
 #if !(SUPPORT_DOUBLE && SUPPORT_LONG && SUPPORT_D2L)

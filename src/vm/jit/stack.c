@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4366 2006-01-23 16:03:50Z twisti $
+   $Id: stack.c 4367 2006-01-24 10:28:52Z twisti $
 
 */
 
@@ -2304,11 +2304,22 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 					printf(" F%02d", s->regoff);
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					if (IS_2_WORD_TYPE(s->type))
-						printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
-                            regs[GET_HIGH_REG(s->regoff)]);
-					else 
-#endif
+					if (IS_2_WORD_TYPE(s->type)) {
+# if defined(ENABLE_JIT)
+#  if defined(ENABLE_INTRP)
+						if (opt_intrp)
+							printf(" %3d/%3d", GET_LOW_REG(s->regoff),
+								   GET_HIGH_REG(s->regoff));
+						else
+#  endif
+							printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
+								   regs[GET_HIGH_REG(s->regoff)]);
+# else
+						printf(" %3d/%3d", GET_LOW_REG(s->regoff),
+							   GET_HIGH_REG(s->regoff));
+# endif
+					} else 
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -2353,11 +2364,22 @@ void icmd_print_stack(codegendata *cd, stackptr s)
 					printf(" f%02d", s->regoff);
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-					if (IS_2_WORD_TYPE(s->type))
-						printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
-                            regs[GET_HIGH_REG(s->regoff)]);
-					else
-#endif
+					if (IS_2_WORD_TYPE(s->type)) {
+# if defined(ENABLE_JIT)
+#  if defined(ENABLE_INTRP)
+						if (opt_intrp)
+							printf(" %3d/%3d", GET_LOW_REG(s->regoff),
+								   GET_HIGH_REG(s->regoff));
+						else
+#  endif
+							printf(" %3s/%3s", regs[GET_LOW_REG(s->regoff)],
+								   regs[GET_HIGH_REG(s->regoff)]);
+# else
+						printf(" %3d/%3d", GET_LOW_REG(s->regoff),
+							   GET_HIGH_REG(s->regoff));
+# endif
+					} else
+#endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
