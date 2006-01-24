@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.h 4369 2006-01-24 13:52:12Z twisti $
 
 */
 
@@ -80,7 +80,18 @@
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(a,b) if ((a) != (b)) { M_MOV(a, b); }
+#define M_INTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) { \
+            M_MOV(a, b); \
+        } \
+    } while (0)
+
+#define M_LNGMOVE(a,b) \
+    do { \
+        M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+        M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+    } while (0)
 
 #define M_TINTMOVE(t,a,b) \
     if ((t) == TYPE_LNG) { \
@@ -99,7 +110,12 @@
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(a,b) if ((a) != (b)) { M_FMOV(a, b); }
+#define M_FLTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) { \
+            M_FMOV(a, b); \
+        } \
+    } while (0)
 
 
 /* var_to_reg_xxx:
@@ -131,6 +147,19 @@
 			regnr = (v)->regoff; \
 		} \
 	} while(0)
+
+
+#define var_to_reg_lng(regnr,v,tempnr) \
+    do { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_ILD(GET_HIGH_REG((tempnr)), REG_SP, (v)->regoff * 4); \
+            M_ILD(GET_LOW_REG((tempnr)), REG_SP, (v)->regoff * 4 + 4); \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } while (0)
 
 
 /* fetch only the low part of v, regnr hast to be a single register */
@@ -241,20 +270,30 @@
 
 
 #define M_COPY(from,to) \
-			d = reg_of_var(rd, to, REG_IFTMP); \
-			if ((from->regoff != to->regoff) || \
-			    ((from->flags ^ to->flags) & INMEMORY)) { \
-				if (IS_FLT_DBL_TYPE(from->type)) { \
-					var_to_reg_flt(s1, from, d); \
-					M_FLTMOVE(s1,d); \
-					store_reg_to_var_flt(to, d); \
-					}\
-				else { \
-					var_to_reg_int(s1, from, d); \
-					M_TINTMOVE(from->type,s1,d); \
-					store_reg_to_var_int(to, d); \
-					}\
-				}
+    do { \
+        if (from->type == TYPE_LNG) \
+            d = reg_of_var(rd, to, PACK_REGS(REG_ITMP2, REG_ITMP1)); \
+        else \
+            d = reg_of_var(rd, to, REG_IFTMP); \
+        if ((from->regoff != to->regoff) || \
+            ((from->flags ^ to->flags) & INMEMORY)) { \
+            if (IS_INT_LNG_TYPE(from->type)) { \
+                if (IS_2_WORD_TYPE(from->type)) { \
+                    var_to_reg_lng(s1, from, d); \
+                    M_LNGMOVE(s1, d); \
+                    store_reg_to_var_lng(to, d); \
+                } else { \
+                    var_to_reg_int(s1, from, d); \
+                    M_INTMOVE(s1, d); \
+                    store_reg_to_var_int(to, d); \
+                } \
+            } else { \
+                var_to_reg_flt(s1, from, d); \
+                M_FLTMOVE(s1,d); \
+                store_reg_to_var_flt(to, d); \
+            } \
+        } \
+    } while (0)
 
 
 #define ALIGNCODENOP \
