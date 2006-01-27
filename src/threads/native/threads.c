@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4376 2006-01-27 18:53:46Z stefan $
+   $Id: threads.c 4377 2006-01-27 19:05:09Z stefan $
 
 */
 
@@ -523,6 +523,7 @@ void threads_preinit(void)
 	dummyLR->o = NULL;
 	dummyLR->ownerThread = NULL;
 	dummyLR->waiting = false;
+	dummyLR->incharge = dummyLR;
 
 	/* we need a working dummyLR before initializing the critical
 	   section tree */
@@ -1103,7 +1104,7 @@ static void wakeWaiters(monitorLockRecord *lr)
 	}
 
 #define CHECK_MONITORSTATE(lr,t,mo,a) \
-    if (lr == NULL || lr->o != mo || lr->ownerThread != t) { \
+    if (lr->o != mo || lr->ownerThread != t) { \
 		*exceptionptr = new_illegalmonitorstateexception(); \
 		a; \
 	}
@@ -1264,7 +1265,7 @@ bool threadHoldsLock(threadobject *t, java_objectheader *o)
 	GRAB_LR(lr, t);
 	/* The reason why we have to check against NULL is that
 	 * dummyLR->incharge == NULL */
-	return lr && lr->o == o && lr->ownerThread == t;
+	return lr->o == o && lr->ownerThread == t;
 }
 
 void interruptThread(java_lang_VMThread *thread)
