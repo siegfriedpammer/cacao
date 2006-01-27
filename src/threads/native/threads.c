@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: threads.c 4376 2006-01-27 18:53:46Z stefan $
 
 */
 
@@ -472,7 +472,7 @@ static void setthreadobject(threadobject *thread)
 
 void *thread_getself(void)
 {
-	return pthread_getspecific(tkey_threadinfo);
+	return THREADOBJECT;
 }
 
 
