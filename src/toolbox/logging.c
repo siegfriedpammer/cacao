@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: logging.c 4375 2006-01-27 17:35:13Z twisti $
 
 */
 
@@ -71,26 +71,19 @@ void log_init(const char *fname)
 }
 
 
-/* dolog ***********************************************************************
+/* log_start *******************************************************************
 
-   Writes logtext to the protocol file (if opened) or to stdout.
+   Writes the preleading LOG: text to the protocol file (if opened) or
+   to stdout.
 
 *******************************************************************************/
 
-void dolog(const char *text, ...)
+void log_start(void)
 {
-	va_list ap;
-
 	if (logfile) {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 		fprintf(logfile, "[%p] ", (void *) THREADOBJECT);
 #endif
-
-		va_start(ap, text);
-		vfprintf(logfile, text, ap);
-		va_end(ap);
-
-		fflush(logfile);
 
 	} else {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -98,82 +91,78 @@ void dolog(const char *text, ...)
 #else
 		fputs("LOG: ", stdout);
 #endif
-
-		va_start(ap, text);
-		vfprintf(stdout, text, ap);
-		va_end(ap);
-
-		fprintf(stdout, "\n");
-
-		fflush(stdout);
 	}
 }
 
 
-/******************** Function: dolog_plain *******************************
+/* log_vprint ******************************************************************
 
-Writes logtext to the protocol file (if opened) or to stdout.
+   Writes logtext to the protocol file (if opened) or to stdout.
 
-**************************************************************************/
+*******************************************************************************/
 
-void dolog_plain(const char *txt, ...)
+static void log_vprint(const char *text, va_list ap)
 {
-	char logtext[MAXLOGTEXT];
+	if (logfile)
+		vfprintf(logfile, text, ap);
+	else
+		vfprintf(stdout, text, ap);
+}
+
+
+/* log_print *******************************************************************
+
+   Writes logtext to the protocol file (if opened) or to stdout.
+
+*******************************************************************************/
+
+void log_print(const char *text, ...)
+{
 	va_list ap;
 
-	va_start(ap, txt);
-	vsprintf(logtext, txt, ap);
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+}
+
+
+/* log_println *****************************************************************
+
+   Writes logtext to the protocol file (if opened) or to stdout with a
+   trailing newline.
+
+*******************************************************************************/
+
+void log_println(const char *text, ...)
+{
+	va_list ap;
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
 	va_end(ap);
 
+	log_finish();
+}
+
+
+/* log_finish ******************************************************************
+
+   Finishes a logtext line with trailing newline and a fflush.
+
+*******************************************************************************/
+
+void log_finish(void)
+{
 	if (logfile) {
-		fprintf(logfile, "%s", logtext);
 		fflush(logfile);
 
 	} else {
-		fprintf(stdout,"%s", logtext);
+		fputs("\n", stdout);
+
 		fflush(stdout);
 	}
-}
-
-
-/********************* Function: log_text ********************************/
-
-void log_text(const char *text)
-{
-	dolog("%s", text);
-}
-
-
-/******************** Function: log_plain *******************************/
-
-void log_plain(const char *text)
-{
-	dolog_plain("%s", text);
-}
-
-
-/****************** Function: get_logfile *******************************/
-
-FILE *get_logfile(void)
-{
-	return (logfile) ? logfile : stdout;
-}
-
-
-/****************** Function: log_flush *********************************/
-
-void log_flush(void)
-{
-	fflush(get_logfile());
-}
-
-
-/********************* Function: log_nl *********************************/
-
-void log_nl(void)
-{
-	log_plain("\n");
-	fflush(get_logfile());
 }
 
 
@@ -275,34 +264,6 @@ void log_message_method(const char *msg, methodinfo *m)
 	log_text(buf);
 
 	MFREE(buf, char, len);
-}
-
-
-/* log_utf *********************************************************************
-
-   Log utf symbol.
-
-*******************************************************************************/
-
-void log_utf(utf *u)
-{
-	char buf[MAXLOGTEXT];
-	utf_sprint(buf, u);
-	dolog("%s", buf);
-}
-
-
-/* log_plain_utf ***************************************************************
-
-   Log utf symbol (without printing "LOG: " and newline).
-
-*******************************************************************************/
-
-void log_plain_utf(utf *u)
-{
-	char buf[MAXLOGTEXT];
-	utf_sprint(buf, u);
-	dolog_plain("%s", buf);
 }
 
 

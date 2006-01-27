@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: logging.h 4375 2006-01-27 17:35:13Z twisti $
 
 */
 
@@ -36,9 +36,10 @@
 #ifndef _LOGGING_H
 #define _LOGGING_H
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/class.h"
 #include "vm/method.h"
 #include "vm/utf8.h"
@@ -53,16 +54,14 @@ instead of setting the size for all invocations that big*/
 /* function prototypes ********************************************************/
 
 void log_init(const char *fname);
-void log_text(const char *txt);
 
-/* same as log_text without "LOG: " and newline */
-void log_plain(const char *txt);
+void log_start(void);
 
-/* fflush logfile */
-void log_flush(void);
+void log_print(const char *text, ...);
+void log_println(const char *text, ...);
 
-/* newline and fflush */
-void log_nl(void);
+void log_finish(void);
+
 
 /* log message functions */
 void log_message_utf(const char *msg, utf *u);
@@ -71,16 +70,8 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 									 const char *msg2, classinfo *c2);
 void log_message_method(const char *msg, methodinfo *m);
 
-void dolog(const char *txt, ...);
-
-/* same as dolog without "LOG: " and newline*/
-void dolog_plain(const char *txt, ...);
-
-FILE *get_logfile(void);                        /* return the current logfile */
-
-/* write utf symbol to logfile/stdout */
-void log_utf(utf *u);
-void log_plain_utf(utf *u);
+#define log_text log_println
+#define dolog log_println
 
 #endif /* _LOGGING_H */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: statistics.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: statistics.c 4375 2006-01-27 17:35:13Z twisti $
 
 */
 
@@ -384,6 +384,11 @@ void print_times(void)
 
 void print_stats(void)
 {
+	s4    i;
+	float f;
+	s4    sum;
+
+
 	dolog("Number of JIT compiler calls: %6d", count_jit_calls);
 	dolog("Number of compiled methods:   %6d", count_methods);
 
@@ -466,26 +471,67 @@ void print_stats(void)
 		  count_analyse_iterations[0], count_analyse_iterations[1],
 		  count_analyse_iterations[2], count_analyse_iterations[3],
 		  count_analyse_iterations[4]);
-	dolog("Distribution of basic blocks per method");
-	dolog("   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
-	dolog("%6d%6d%6d%6d%6d%6d%6d%6d%6d",
-		  count_method_bb_distribution[0], count_method_bb_distribution[1],
-		  count_method_bb_distribution[2], count_method_bb_distribution[3],
-		  count_method_bb_distribution[4], count_method_bb_distribution[5],
-		  count_method_bb_distribution[6], count_method_bb_distribution[7],
-		  count_method_bb_distribution[8]);
-	dolog("Distribution of basic block sizes");
-	dolog("     0     1     2     3     4    5    6    7    8    9  <13  <15  <17  <19  <21  <26  <31  >30");
-	dolog("%6d%6d%6d%6d%6d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
-		  count_block_size_distribution[0], count_block_size_distribution[1],
-		  count_block_size_distribution[2], count_block_size_distribution[3],
-		  count_block_size_distribution[4], count_block_size_distribution[5],
-		  count_block_size_distribution[6], count_block_size_distribution[7],
-		  count_block_size_distribution[8], count_block_size_distribution[9],
-		  count_block_size_distribution[10], count_block_size_distribution[11],
-		  count_block_size_distribution[12], count_block_size_distribution[13],
-		  count_block_size_distribution[14], count_block_size_distribution[15],
-		  count_block_size_distribution[16], count_block_size_distribution[17]);
+
+
+	/* Distribution of basic blocks per method ********************************/
+
+	log_println("Distribution of basic blocks per method:");
+	log_println("   <=5  <=10  <=15  <=20  <=30  <=40  <=50  <=75   >75");
+
+	log_start();
+	for (i = 0; i <= 8; i++)
+		log_print("%6d", count_method_bb_distribution[i]);
+	log_finish();
+
+	/* print ratio */
+
+	f = (float) count_methods;
+
+	log_start();
+	for (i = 0; i <= 8; i++)
+		log_print("%6.2f", (float) count_method_bb_distribution[i] / f);
+	log_finish();
+
+	/* print cumulated ratio */
+
+	log_start();
+	for (i = 0, sum = 0; i <= 8; i++) {
+		sum += count_method_bb_distribution[i];
+		log_print("%6.2f", (float) sum / f);
+	}
+	log_finish();
+
+
+	/* Distribution of basic block sizes **************************************/
+
+	log_println("Distribution of basic block sizes:");
+	log_println("     0     1     2     3     4     5     6     7     8     9   <13   <15   <17   <19   <21   <26   <31   >30");
+
+	/* print block sizes */
+
+	log_start();
+	for (i = 0; i <= 17; i++)
+		log_print("%6d", count_block_size_distribution[i]);
+	log_finish();
+
+	/* print ratio */
+
+	f = (float) count_basic_blocks;
+
+	log_start();
+	for (i = 0; i <= 17; i++)
+		log_print("%6.2f", (float) count_block_size_distribution[i] / f);
+	log_finish();
+
+	/* print cumulated ratio */
+
+	log_start();
+	for (i = 0, sum = 0; i <= 17; i++) {
+		sum += count_block_size_distribution[i];
+		log_print("%6.2f", (float) sum / f);
+	}
+	log_finish();
+
 	dolog("Size of Code Area:        %10.3f kB", (float) count_code_len / 1024);
 	dolog("Size of Data Area:        %10.3f kB", (float) count_data_len / 1024);
 	dolog("Size of Class Infos:      %10.3f kB", (float) count_class_infos / 1024);
