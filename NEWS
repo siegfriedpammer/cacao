@@ -1,3 +1,8 @@
+New in release 0.95 ()
+
+  * powerpc, bugfix: (M_COPY): Handle longs and doubles properly.
+
+
 New in release 0.94 (January 22, 2006)
 
   * support compilation of Interpreter and JIT compiler into one binary (not
