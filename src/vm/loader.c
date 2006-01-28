@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: loader.c 4382 2006-01-28 14:21:09Z twisti $
 
 */
 
@@ -1017,10 +1017,9 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 #endif
 
 	m->thrownexceptionscount = 0;
-	m->linenumbercount = 0;
-	m->linenumbers = 0;
-	m->class = c;
-	m->nativelyoverloaded = false;
+	m->linenumbercount       = 0;
+	m->linenumbers           = 0;
+	m->class                 = c;
 	
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
@@ -1107,24 +1106,18 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	}
 #endif /* ENABLE_VERIFIER */
 		
-	m->jcode = NULL;
-	m->basicblockcount = 0;
-	m->basicblocks = NULL;
-	m->basicblockindex = NULL;
+	m->jcode            = NULL;
+	m->basicblockcount  = 0;
+	m->basicblocks      = NULL;
+	m->basicblockindex  = NULL;
 	m->instructioncount = 0;
-	m->instructions = NULL;
-	m->stackcount = 0;
-	m->stack = NULL;
-	m->exceptiontable = NULL;
-	m->stubroutine = NULL;
-	m->mcode = NULL;
-	m->entrypoint = NULL;
-	m->methodUsed = NOTUSED;    
-	m->monoPoly = MONO;    
-	m->subRedefs = 0;
-	m->subRedefsUsed = 0;
-
-	m->xta = NULL;
+	m->instructions     = NULL;
+	m->stackcount       = 0;
+	m->stack            = NULL;
+	m->exceptiontable   = NULL;
+	m->stubroutine      = NULL;
+	m->mcode            = NULL;
+	m->entrypoint       = NULL;
 
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
@@ -2401,14 +2394,14 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	initObjectLock(&clone->header);
 #endif
 
-	/* if you delete the ACC_NATIVE below, set clone->maxlocals=1 (interpreter 
-	   related) */
-	clone->flags = ACC_PUBLIC | ACC_NATIVE;
-	clone->name = utf_clone;
+	/* ATTENTION: if you delete the ACC_NATIVE below, set
+	   clone->maxlocals=1 (interpreter related) */
+
+	clone->flags      = ACC_PUBLIC | ACC_NATIVE;
+	clone->name       = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
-	clone->class = c;
-	clone->monoPoly = MONO;
+	clone->class      = c;
 
 	/* parse the descriptor to get the register allocation */
 
@@ -2422,11 +2415,11 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 	/* array classes are not loaded from class files */
 
-	c->state |= CLASS_LOADED;
-	c->parseddescs = (u1 *) clonedesc;
+	c->state          |= CLASS_LOADED;
+	c->parseddescs    = (u1 *) clonedesc;
 	c->parseddescsize = sizeof(methodinfo);
-	c->classrefs = classrefs;
-	c->classrefcount = 1;
+	c->classrefs      = classrefs;
+	c->classrefcount  = 1;
 
 	/* insert class into the loaded class cache */
 	/* XXX free classinfo if NULL returned? */
