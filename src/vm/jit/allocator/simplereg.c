@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: simplereg.c 4381 2006-01-28 14:18:06Z twisti $
 
 */
 
@@ -431,7 +431,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->regoff = rd->savfltregs[--rd->savfltreguse];
 						}
 						/* use unused argument registers as local registers */
-						else if ((p >= m->paramcount) &&
+						else if ((p >= md->paramcount) &&
 								 (fargcnt < FLT_ARG_CNT)) {
 							v->flags = 0;
 							v->regoff = rd->argfltregs[fargcnt];
@@ -510,7 +510,7 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							/*
 							 * use unused argument registers as local registers
 							 */
-							else if ((p >= m->paramcount) &&
+							else if ((p >= md->paramcount) &&
 									 (iargcnt < INT_ARG_CNT)) {
 								v->flags = 0;
 								v->regoff = rd->argintregs[iargcnt];

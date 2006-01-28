@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: inline.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: inline.c 4381 2006-01-28 14:18:06Z twisti $
 
 */
 
@@ -83,7 +83,7 @@ Method to be inlined must:
     { \
         printf("<j%i/l%i/s%i/(p)%i>\t", \
                 (mm)->jcodelength,(mm)->maxlocals, \
-		(mm)->maxstack, (mm)->paramcount);  \
+		(mm)->maxstack, (mm)->parseddesc->paramcount);  \
         method_println(mm); }
 
 #define METHINFOx(mm) \
@@ -549,7 +549,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		newnode->readonly = readonly = DMNEW(bool, m->maxlocals); /* FIXME only paramcount entrys necessary - ok FIXED also turned on*/
 
 		/** for (i = 0; i < m->maxlocals; readonly[i++] = true); **/
-		for (i = 0; i < m->paramcount; readonly[i++] = true);
+		for (i = 0; i < m->parseddesc->paramcount; readonly[i++] = true);
 		/***isnotrootlevel = true; This had turned -inp off **/
 
 	} else {
@@ -567,7 +567,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 	newnode->readonly = readonly;
 	newnode->label_index = label_index;
 	newnode->firstlocal = firstlocal;
-	inline_env->cumjcodelength += jcodelength + m->paramcount + 1 + 5;
+	inline_env->cumjcodelength += jcodelength + m->parseddesc->paramcount + 1 + 5;
 
 	if ((firstlocal + m->maxlocals) > inline_env->cumlocals) {
 		inline_env->cumlocals = firstlocal + m->maxlocals;
@@ -783,7 +783,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
                                                   if (mout != NULL) {
                                                         imi = mout;
                                                         uniqueVirt=true; 
-#define INVIRTDEBUG
+/* #define INVIRTDEBUG */
 #ifdef INVIRTDEBUG
 							METHINFOx(imi);
                                                         printf("WAS unique virtual(-iv)\n");fflush(stdout);
@@ -811,7 +811,6 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 
 					if (can_inline(inline_env, m, imi, imr, uniqueVirt, opcode)) {
 						inlining_methodinfo *tmp;
-						method_descriptor2types(imi);
 
 						inline_env->cummethods++;
 
@@ -834,7 +833,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
                                      			     ||   (imi->flags & ACC_FINAL  ))) )
 							   {
 							   printf("DEBUG WARNING:PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n"); fflush(stdout);
-							   METHINFOx(imi);
+/* 							   METHINFOx(imi); */
 							   log_text("PROBABLE INLINE PROBLEM flags not static, private or final for non-virtual inlined method\n See method info after DEBUG WARNING\n");
 							   }
 
@@ -919,7 +918,7 @@ for (is=list_first(s);
        is!=NULL;
        is=list_next(s,is)) {
  	 printf("\n\ti>--->inlining_stack entry: \n"); fflush(stdout);
-	 METHINFOx(is->method);
+/* 	 METHINFOx(is->method); */
 	 printf("i=%i, p=%i, nextp=%i, opcode=%i;\n",
 		is->i,is->p,is->nextp,is->opcode);fflush(stdout);
 	 print_inlining_methodinfo(is->inlinfo);

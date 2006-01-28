@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: headers.c 4381 2006-01-28 14:18:06Z twisti $
 
 */
 
@@ -478,8 +478,6 @@ void print_dynamic_super_statistics(void) {}
 
 /************************ global variables **********************/
 
-chain *nativemethod_chain;              /* chain with native methods          */
-chain *nativeclass_chain;               /* chain with processed classes       */
 chain *ident_chain;     /* chain with method and field names in current class */
 FILE *file = NULL;
 static u4 outputsize;
@@ -705,7 +703,14 @@ void printmethod(methodinfo *m)
 
 	fprintf(file, "_");
 	printID(m->name);
-	if (m->nativelyoverloaded) printOverloadPart(m->descriptor);
+
+	/* ATTENTION: We use the methodinfo's isleafmethod variable as
+	   nativelyoverloaded, so we can save some space during
+	   runtime. */
+
+	if (m->isleafmethod)
+		printOverloadPart(m->descriptor);
+
 	fprintf(file, "(JNIEnv *env");
 	
 	utf_ptr = m->descriptor->text + 1;
@@ -758,13 +763,10 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	char uclassname[1024];
 	u2 i;
 	methodinfo *m;	      		
-	u2 i2;
+	u2 j;
 	methodinfo *m2;
-	u2 nativelyoverloaded;	      		
+	bool nativelyoverloaded;	      		
 		      
-	/* store class in chain */		      
-	chain_addlast(nativeclass_chain, c);
-			    	
 	/* open headerfile for class */
 	gen_header_filename(classname, c->name);
 
@@ -817,34 +819,41 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	/* create method-prototypes */
 		      		
 	/* find overloaded methods */
-	for (i = 0; i < c->methodscount; i++) {
 
+	for (i = 0; i < c->methodscount; i++) {
 		m = &(c->methods[i]);
 
-		if (!(m->flags & ACC_NATIVE)) continue;
-		if (!m->nativelyoverloaded) {
-			nativelyoverloaded=false;
-			for (i2=i+1;i2<c->methodscount; i2++) {
-				m2 = &(c->methods[i2]);
-				if (!(m2->flags & ACC_NATIVE)) continue;
-				if (m->name==m2->name) {
-					m2->nativelyoverloaded=true;
-					nativelyoverloaded=true;
+		if (!(m->flags & ACC_NATIVE))
+			continue;
+
+		/* We use the methodinfo's isleafmethod variable as
+		   nativelyoverloaded, so we can save some space during
+		   runtime. */
+
+		if (!m->isleafmethod) {
+			nativelyoverloaded = false;
+
+			for (j = i + 1; j < c->methodscount; j++) {
+				m2 = &(c->methods[j]);
+
+				if (!(m2->flags & ACC_NATIVE))
+					continue;
+
+				if (m->name == m2->name) {
+					m2->isleafmethod = true;
+					nativelyoverloaded = true;
 				}
 			}
-			m->nativelyoverloaded=nativelyoverloaded;
 		}
 
+		m->isleafmethod = nativelyoverloaded;
 	}
 
 	for (i = 0; i < c->methodscount; i++) {
-
 		m = &(c->methods[i]);
 
-		if (m->flags & ACC_NATIVE) {
-			chain_addlast(nativemethod_chain, m);
+		if (m->flags & ACC_NATIVE)
 			printmethod(m);
-		}
 	}
 
 	chain_free(ident_chain);

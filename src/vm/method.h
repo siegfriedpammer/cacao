@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: method.h 4381 2006-01-28 14:18:06Z twisti $
 */
 
 
@@ -56,71 +56,53 @@ typedef struct lineinfo lineinfo;
 
 struct methodinfo {                 /* method structure                       */
 	java_objectheader header;       /* we need this in jit's monitorenter     */
-	s4          flags;              /* ACC flags                              */
-	utf        *name;               /* name of method                         */
-	utf        *descriptor;         /* JavaVM descriptor string of method     */
-	methoddesc *parseddesc;         /* parsed descriptor                      */
-
-	s4          returntype;         /* only temporary valid, return type      */
-	classinfo  *returnclass;        /* pointer to classinfo for the rtn type  */ /*XTA*/ 
-
-	s4          paramcount;         /* only temporary valid, parameter count  */
-	u1         *paramtypes;         /* only temporary valid, parameter types  */
-	classinfo **paramclass;         /* pointer to classinfo for a parameter   */ /*XTA*/
-
-	bool        isleafmethod;       /* does method call subroutines           */
-
-	classinfo  *class;              /* class, the method belongs to           */
-	s4          vftblindex;         /* index of method in virtual function    */
+	s4            flags;            /* ACC flags                              */
+	utf          *name;             /* name of method                         */
+	utf          *descriptor;       /* JavaVM descriptor string of method     */
+	methoddesc   *parseddesc;       /* parsed descriptor                      */
+			     
+	bool          isleafmethod;     /* does method call subroutines           */
+			     
+	classinfo    *class;            /* class, the method belongs to           */
+	s4            vftblindex;       /* index of method in virtual function    */
 	                                /* table (if it is a virtual method)      */
-	s4          maxstack;           /* maximum stack depth of method          */
-	s4          maxlocals;          /* maximum number of local variables      */
-	s4          jcodelength;        /* length of JavaVM code                  */
-	u1         *jcode;              /* pointer to JavaVM code                 */
-
-	s4          basicblockcount;    /* number of basic blocks                 */
-	basicblock *basicblocks;        /* points to basic block array            */
-	s4         *basicblockindex;    /* a table which contains for every byte  */
+	s4            maxstack;         /* maximum stack depth of method          */
+	s4            maxlocals;        /* maximum number of local variables      */
+	s4            jcodelength;      /* length of JavaVM code                  */
+	u1           *jcode;            /* pointer to JavaVM code                 */
+			     
+	s4            basicblockcount;  /* number of basic blocks                 */
+	basicblock   *basicblocks;      /* points to basic block array            */
+	s4           *basicblockindex;  /* a table which contains for every byte  */
 	                                /* of JavaVM code a basic block index if  */
 	                                /* at this byte is the start of a basic   */
 	                                /* block                                  */
 
-	s4          instructioncount;   /* number of JavaVM instructions          */
-	instruction *instructions;      /* points to intermediate code instr.     */
+	s4            instructioncount; /* number of JavaVM instructions          */
+	instruction  *instructions;     /* points to intermediate code instr.     */
 
-	s4          stackcount;         /* number of stack elements               */
+	s4            stackcount;       /* number of stack elements               */
 	stackelement *stack;            /* points to intermediate code instr.     */
 
-	s4          exceptiontablelength;/* exceptiontable length                 */
+	s4            exceptiontablelength; /* exceptiontable length              */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	u2          thrownexceptionscount;/* number of exceptions attribute       */
+	u2            thrownexceptionscount; /* number of exceptions attribute    */
 	classref_or_classinfo *thrownexceptions; /* except. a method may throw    */
 
-	u2          linenumbercount;    /* number of linenumber attributes        */
-	lineinfo   *linenumbers;        /* array of lineinfo items                */
+	u2            linenumbercount;  /* number of linenumber attributes        */
+	lineinfo     *linenumbers;      /* array of lineinfo items                */
 
 	int       c_debug_nr;           /* a counter to number all BB with an     */
 	                                /* unique value                           */
 
-	u1         *stubroutine;        /* stub for compiling or calling natives  */
-	s4          mcodelength;        /* legth of generated machine code        */
-	u1         *mcode;              /* pointer to machine code                */
-	u1         *entrypoint;         /* entry point in machine code            */
-
-	/*rtainfo   rta;*/
-	xtainfo    *xta;
-
-	bool        methodXTAparsed;    /*  true if xta parsed */
-	s4          methodUsed;         /* marked (might be used later) /not used /used */
-	s4          monoPoly;           /* call is mono or poly or unknown        */ /*RT stats */
-        /* should # method def'd and used be kept after static parse (will it be used?) */
-	s4	        subRedefs;
-	s4	        subRedefsUsed;
-	s4	        nativelyoverloaded; /* used in header.c and only valid there  */
+	u1           *stubroutine;      /* stub for compiling or calling natives  */
+	s4            mcodelength;      /* length of generated machine code       */
+	u1           *mcode;            /* pointer to machine code                */
+	u1           *entrypoint;       /* entry point in machine code            */
 
 #if defined(ENABLE_LSRA)
-	s4          maxlifetimes;	    /* helper for lsra                        */
+	s4            maxlifetimes;     /* helper for lsra                        */
 #endif
 };
 
@@ -161,8 +143,6 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old);
 void method_printflags(methodinfo *m);
 void method_print(methodinfo *m);
 void method_println(methodinfo *m);
-
-void method_descriptor2types(methodinfo *m);
 #endif
 
 #endif /* _METHOD_H */

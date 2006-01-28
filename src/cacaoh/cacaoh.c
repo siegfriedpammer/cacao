@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: cacaoh.c 4381 2006-01-28 14:18:06Z twisti $
 
 */
 
@@ -288,6 +288,12 @@ int main(int argc, char **argv)
 	initLocks();
 #endif
 
+	/* initialize the string hashtable stuff: lock (must be done
+	   _after_ threads_preinit) */
+
+	if (!string_init())
+		throw_main_exception_exit();
+
 	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
 	   (must be done _after_ threads_preinit) */
 
@@ -303,12 +309,13 @@ int main(int argc, char **argv)
 	/* initialize the loader with bootclasspath (must be done _after_
 	   thread_preinit) */
 
-	suck_init();
+	if (!suck_init())
+		throw_main_exception_exit();
 
 	suck_add(bootclasspath);
 
-	/* Also add the normal classpath, so the bootstrap class loader can find  */
-	/* the files.                                                             */
+	/* Also add the normal classpath, so the bootstrap class loader
+	   can find the files. */
 
 	suck_add(classpath);
 
@@ -321,9 +328,6 @@ int main(int argc, char **argv)
 
 	/*********************** Load JAVA classes  **************************/
    	
-	nativemethod_chain = chain_new();
-	nativeclass_chain = chain_new();
-	
 	for (a = opt_ind; a < argc; a++) {
    		cp = argv[a];
 

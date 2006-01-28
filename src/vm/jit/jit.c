@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jit.c 4381 2006-01-28 14:18:06Z twisti $
 
 */
 
@@ -1379,17 +1379,10 @@ u1 *jit_compile(methodinfo *m)
 	id = DNEW(t_inlining_globals);
 
 #if defined(USE_INLINING)
-	/* RTA static analysis must be called before inlining */
-	if (opt_rt)
-		RT_jit_parse(m); /* will be called just once */
-	                     /* return value ignored for now */
-	/* XTA static analysis must be called before inlining */
-	if (opt_xta)
-		XTA_jit_parse(m); /* will be called just once */
-	                      /* return value ignored for now */
+	/* must be called before reg_setup, because it can change
+	   maxlocals init reqd to initialize for parse even in no
+	   inlining */
 
-	/* must be called before reg_setup, because it can change maxlocals */
-	/* init reqd to initialize for parse even in no inlining */
 	inlining_setup(m, id);
 #endif
 
@@ -1398,10 +1391,12 @@ u1 *jit_compile(methodinfo *m)
 	if (!opt_intrp)
 # endif
 		/* initialize the register allocator */
+
 		reg_setup(m, rd, id);
 #endif
 
 	/* setup the codegendata memory */
+
 	codegen_setup(m, cd, id);
 
 	/* now call internal compile function */
@@ -1520,10 +1515,6 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		count_javaexcsize  += m->exceptiontablelength * SIZEOF_VOID_P;
 	}
 #endif
-
-	/* initialise parameter type descriptor */
-
-	method_descriptor2types(m);
 
 	/* call the compiler passes ***********************************************/
 
