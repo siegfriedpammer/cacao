@@ -28,27 +28,17 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4380 2006-01-28 11:26:28Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/@ARCH_DIR@
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 noinst_LTLIBRARIES = libinline.la
 
 libinline_la_SOURCES = \
 	inline.c \
-	inline.h \
-	parseRT.c \
-	parseRT.h \
-	parseRTflags.h \
-	parseRTprint.h \
-	parseRTstats.c \
-	parseRTstats.h \
-	parseXTA.c \
-	parseXTA.h \
-	sets.c \
-	sets.h
+	inline.h
 
 
 ## Local variables:
