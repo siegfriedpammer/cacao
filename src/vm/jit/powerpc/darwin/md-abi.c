@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.c 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -211,13 +211,13 @@ void md_param_alloc(methoddesc *md)
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
 					 stackptr stackslot)
 {
-	/* In Leafmethods Local Vars holding parameters are precolored to their   */
-	/* argument register -> so leafmethods with paramcount > 0 could already  */
-	/* use  R3 == a00! */
+	/* In Leafmethods Local Vars holding parameters are precolored to
+	   their argument register -> so leafmethods with paramcount > 0
+	   could already use R3 == a00! */
 
-	if (!m->isleafmethod || (m->paramcount == 0)) {
-		/* Only precolor the stackslot, if it is not a SAVEDVAR <-> has not   */
-		/* to survive method invokations */
+	if (!m->isleafmethod || (m->parseddesc->paramcount == 0)) {
+		/* Only precolor the stackslot, if it is not a SAVEDVAR <->
+		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
 			stackslot->varkind = ARGVAR;

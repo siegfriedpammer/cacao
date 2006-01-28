@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.c 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -155,13 +155,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	mcodeptr = (s4 *) cd->mcodeptr;
 
-	MCODECHECK(128 + m->paramcount);
-
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base) {
+	if (parentargs_base)
 		M_LDA(REG_SP, REG_SP, -parentargs_base * 8);
-	}
 
 	/* save return address and used callee saved registers */
 

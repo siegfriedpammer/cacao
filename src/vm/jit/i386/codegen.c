@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4366 2006-01-23 16:03:50Z twisti $
+   $Id: codegen.c 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -168,13 +168,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		dseg_addtarget(cd, ex->handler);
 		(void) dseg_addaddress(cd, ex->catchtype.cls);
 	}
-
 	
 	/* initialize mcode variables */
 	
 	cd->mcodeptr = cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
-	MCODECHECK(128 + m->paramcount);
 
 	/* initialize the last patcher pointer */
 

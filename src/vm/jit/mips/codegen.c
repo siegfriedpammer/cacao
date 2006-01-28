@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.c 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -156,8 +156,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* initialize mcode variables */
 	
 	mcodeptr = (s4 *) cd->mcodeptr;
-
-	MCODECHECK(128 + m->paramcount);
 
 	/* initialize the last patcher pointer */
 

@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: schedule.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: schedule.c 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -61,7 +61,7 @@ scheduledata *schedule_init(methodinfo *m, registerdata *rd)
 		(rd->savintregcnt - rd->maxsavintreguse) +
 		(rd->savfltregcnt - rd->maxsavfltreguse) +
 		rd->maxmemuse +
-		m->paramcount +
+		m->parseddesc->paramcount +
 		1;                           /* index 0 are all other memory accesses */
 
 	/* XXX quick hack: just use a fixed number of instructions */

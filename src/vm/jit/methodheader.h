@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: methodheader.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: methodheader.h 4384 2006-01-28 14:42:58Z twisti $
 
 */
 
@@ -62,7 +62,7 @@
 #define ExHandlerPC             -24
 #define ExCatchType             -32
 
-#else
+#else /* SIZEOF_VOID_P == 8 */
 
 #define MethodPointer           -4
 #define FrameSize               -8
@@ -81,7 +81,7 @@
 #define ExHandlerPC             -12
 #define ExCatchType             -16
 
-#endif
+#endif /* SIZEOF_VOID_P == 8 */
 
 #endif /* _METHODHEADER_H */
 
