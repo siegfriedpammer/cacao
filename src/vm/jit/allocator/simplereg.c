@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4386 2006-01-30 11:26:34Z christian $
+   $Id: simplereg.c 4387 2006-01-30 14:24:56Z christian $
 
 */
 
@@ -102,6 +102,20 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 			rd->memuse = 1;
 	}
 #endif
+
+ 	if (m->isleafmethod) {
+		/* Reserve argument register, which will be used for Locals acting */
+		/* as Parameters */
+		if (rd->argintreguse < m->parseddesc->argintreguse)
+			rd->argintreguse = m->parseddesc->argintreguse;
+		if (rd->argfltreguse < m->parseddesc->argfltreguse)
+			rd->argfltreguse = m->parseddesc->argfltreguse;
+#ifdef HAS_ADDRESS_REGISTER_FILE
+		if (rd->argadrreguse < m->parseddesc->argadrreguse)
+			rd->argadrreguse = m->parseddesc->argadrreguse;
+#endif
+
+ 	}
 
 	for (s = 0; s < cd->maxstack; s++) {
 		intalloc = -1; fltalloc = -1;
@@ -369,10 +383,10 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (m->isleafmethod) {
 		methoddesc *md = m->parseddesc;
 
-		iargcnt = md->argintreguse;
-		fargcnt = md->argfltreguse;
+		iargcnt = rd->argintreguse;
+		fargcnt = rd->argfltreguse;
 #ifdef HAS_ADDRESS_REGISTER_FILE
-		aargcnt = md->argadrreguse;
+		aargcnt = rd->argadrreguse;
 #endif
 		for (p = 0, s = 0; s < cd->maxlocals; s++, p++) {
 			intalloc = -1; fltalloc = -1;
@@ -714,16 +728,6 @@ static void reg_init_temp(methodinfo *m, registerdata *rd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	rd->freeargadrtop = 0;
 #endif
-
- 	if (m->isleafmethod) {
-		/* Don't use not used Argument Registers in Leafmethods -> they could */
-		/* already be in use for Locals passed as parameter to this Method    */
-		rd->argintreguse = INT_ARG_CNT;
-		rd->argfltreguse = FLT_ARG_CNT;
-#ifdef HAS_ADDRESS_REGISTER_FILE
-		rd->argadrreguse = ADR_ARG_CNT;
-#endif
- 	}
 }
 
 
