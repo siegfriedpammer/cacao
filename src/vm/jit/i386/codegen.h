@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4366 2006-01-23 16:03:50Z twisti $
+   $Id: codegen.h 4389 2006-01-30 16:25:20Z twisti $
 
 */
 
@@ -38,9 +38,6 @@
 #define _CODEGEN_H
 
 #include "config.h"
-
-#include <ucontext.h>
-
 #include "vm/types.h"
 
 #include "vm/jit/jit.h"
@@ -471,6 +468,8 @@ typedef enum {
 #define M_IADD_IMM32(a,b)       i386_alu_imm32_reg(cd, ALU_ADD, (a), (b))
 #define M_ISUB_IMM(a,b)         i386_alu_imm_reg(cd, ALU_SUB, (a), (b))
 
+#define M_IADD_IMM_MEMBASE(a,b,c) i386_alu_imm_membase(cd, ALU_ADD, (a), (b), (c))
+
 #define M_AADD_IMM(a,b)         M_IADD_IMM(a,b)
 #define M_AADD_IMM32(a,b)       M_IADD_IMM32(a,b)
 #define M_ASUB_IMM(a,b)         M_ISUB_IMM(a,b)
@@ -521,10 +520,6 @@ typedef enum {
 #define gen_resolvebranch(ip,so,to) \
     *((void **) ((ip) - 4)) = (void **) ((to) - (so));
 
-
-/* function prototypes */
-
-void thread_restartcriticalsection(ucontext_t *);
 
 #endif /* _CODEGEN_H */
 

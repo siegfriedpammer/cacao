@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4384 2006-01-28 14:42:58Z twisti $
+   $Id: codegen.c 4389 2006-01-30 16:25:20Z twisti $
 
 */
 
@@ -177,6 +177,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* initialize the last patcher pointer */
 
 	cd->lastmcodeptr = cd->mcodeptr;
+
+	/* generate profiling code */
+
+	if (opt_prof) {
+		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, executioncount));
+	}
 
 	/* create stack frame (if necessary) */
 
@@ -2169,17 +2176,16 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IINC:       /* ..., value  ==> ..., value + constant        */
 		                      /* op1 = variable, val.i = constant             */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
-			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
+			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL */
 
 			var = &(rd->locals[iptr->op1][TYPE_INT]);
-			if (var->flags & INMEMORY) {
-				i386_alu_imm_membase(cd, ALU_ADD, iptr->val.i, REG_SP, var->regoff * 4);
-
-			} else {
-				/* `inc reg' is slower on p4's (regarding to ia32             */
-				/* optimization reference manual and benchmarks) and as fast  */
-				/* on athlon's.                                               */
-				i386_alu_imm_reg(cd, ALU_ADD, iptr->val.i, var->regoff);
+			if (var->flags & INMEMORY)
+				M_IADD_IMM_MEMBASE(iptr->val.i, REG_SP, var->regoff * 4);
+			else {
+				/* `inc reg' is slower on p4's (regarding to ia32
+				   optimization reference manual and benchmarks) and
+				   as fast on athlon's. */
+				M_IADD_IMM(iptr->val.i, var->regoff);
 			}
 			break;
 
@@ -5519,7 +5525,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		4 * 4 +                         /* 4 arguments (start_native_call)    */
 		nmd->memuse;
 
-
 	/* create method header */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
@@ -5531,17 +5536,21 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
 
-
 	/* initialize mcode variables */
 	
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
+	/* generate profiling code */
+
+	if (opt_prof) {
+		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, executioncount));
+	}
 
 	/* calculate stackframe size for native function */
 
 	M_ASUB_IMM(stackframesize * 4, REG_SP);
-
 
 	if (runverbose) {
 		s4 p, t;
