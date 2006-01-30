@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: inline.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: inline.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -300,7 +300,7 @@ utf* desc = m->descriptor;
 int cnt = 0;  /* number of times method found in USED classes in hierarchy*/
 classinfo *subs1; 	   
 
-if ((m->class == class) && (class->classUsed == USED)) {
+if ((m->class == class)/*  && (class->classUsed == USED) */) {
 	/* found method in current class, which is used */
 	if (*mout != m) {
         	cnt++;
@@ -310,7 +310,7 @@ if ((m->class == class) && (class->classUsed == USED)) {
 
 if ( ((m->flags & ACC_FINAL)  
 ||    (class->sub == NULL))
-&& (class->classUsed == USED)) {
+/* && (class->classUsed == USED) */) {
   	/* if final search no further */
 	if (*mout != m) {
         	cnt++;
@@ -325,7 +325,7 @@ for (subs1 = class->sub;subs1 != NULL;subs1 = subs1->nextsub) {
 	classinfo *subs = subs1; 	   
         sm = class_resolveclassmethod(subs,name,desc,class,false);
         if (sm != NULL) {
-		if ((subs->classUsed == USED) && 
+		if (/* (subs->classUsed == USED) &&  */
 		    (*mout != sm)) {
   	 		*mout = sm;
 			cnt++;
@@ -350,7 +350,8 @@ utf* desc = mi->descriptor;
 	classSetNode *classImplNode;
 	int icnt = 0;
 
-	for (classImplNode  = mi->class->impldBy;
+/* 	for (classImplNode  = mi->class->impldBy; */
+	for (classImplNode  = NULL;
 	     classImplNode != NULL; 			
 	     classImplNode  = classImplNode->nextClass) {
 

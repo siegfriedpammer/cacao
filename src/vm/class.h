@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: class.h 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -118,12 +118,6 @@ struct classinfo {                /* class structure                          */
 	u2          innerclasscount;  /* number of inner classes                  */
 	innerclassinfo *innerclass;
 
-	s4          classUsed;        /* 0= not used 1 = used   CO-RT             */
-
-	classSetNode *impldBy;        /* interface class implemented by class set */
-	                              /*   Object class 's impldBy is list of all */
-	                              /*   interface classes used (RT & XTA only  */
-	                              /*     normally no list of interfaces used) */
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* classfile name containing this class     */
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */

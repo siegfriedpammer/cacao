@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: emitfuncs.h 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -159,7 +159,7 @@ void x86_64_xchg_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_nop(codegendata *cd);
 void x86_64_call_reg(codegendata *cd, s8 reg);
 void x86_64_call_imm(codegendata *cd, s8 imm);
-void x86_64_call_mem(codegendata *cd, s8 mem);
+void x86_64_call_mem(codegendata *cd, ptrint mem);
 
 
 /* floating point instructions (SSE2) */

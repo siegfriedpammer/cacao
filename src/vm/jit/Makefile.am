@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4388 2006-01-30 15:44:52Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -75,10 +75,14 @@ SCHEDULE_LIB = schedule/libschedule.la
 endif
 
 if WITH_BINUTILS_DISASSEMBLER
-DISASS_OBJ = disass-common.c
+DISASS_SOURCES = disass-common.c
 else
-DISASS_OBJ =
+DISASS_SOURCES =
 endif
+
+PROFILE_SOURCES = \
+	profile.c \
+	profile.h
 
 noinst_HEADERS = \
 	abi.h \
@@ -92,13 +96,14 @@ libjit_la_SOURCES = \
 	codegen-common.c \
 	codegen-common.h \
 	disass.h \
-	$(DISASS_OBJ) \
+	$(DISASS_SOURCES) \
 	dseg.c \
 	dseg.h \
 	jit.c \
 	jit.h \
 	parse.c \
 	parse.h \
+	$(PROFILE_SOURCES) \
 	reg.c \
 	reg.h \
 	stack.c \

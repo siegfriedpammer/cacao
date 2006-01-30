@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: emitfuncs.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -578,16 +578,13 @@ void x86_64_emit_lshiftconst(codegendata *cd, s4 shift_op, stackptr src, instruc
 
 void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
 {
-	if (src->flags & INMEMORY) {
-		x86_64_alul_imm_membase(cd, X86_64_CMP, iptr->val.i, REG_SP, src->regoff * 8);
-
-	} else {
-		if (iptr->val.i == 0) {
-			x86_64_testl_reg_reg(cd, src->regoff, src->regoff);
-
-		} else {
-			x86_64_alul_imm_reg(cd, X86_64_CMP, iptr->val.i, src->regoff);
-		}
+	if (src->flags & INMEMORY)
+		M_ICMP_IMM_MEMBASE(iptr->val.i, REG_SP, src->regoff * 8);
+	else {
+		if (iptr->val.i == 0)
+			M_ITEST(src->regoff);
+		else
+			M_ICMP_IMM(iptr->val.i, src->regoff);
 	}
 	x86_64_jcc(cd, if_op, 0);
 	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
@@ -714,16 +711,18 @@ void x86_64_mov_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 }
 
 
-void x86_64_movl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
+void x86_64_movl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg)
+{
 	x86_64_emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
 	x86_64_emit_membase((basereg),(disp),(reg));
 }
 
 
-/* Always emit a REX byte, because the instruction size can be smaller when   */
-/* all register indexes are smaller than 7.                                   */
-void x86_64_movl_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
+/* ATTENTION: Always emit a REX byte, because the instruction size can
+   be smaller when all register indexes are smaller than 7. */
+void x86_64_movl_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg)
+{
 	x86_64_emit_byte_rex((reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
 	x86_64_emit_membase32((basereg),(disp),(reg));
@@ -1555,7 +1554,8 @@ void x86_64_call_imm(codegendata *cd, s8 imm) {
 }
 
 
-void x86_64_call_mem(codegendata *cd, s8 mem) {
+void x86_64_call_mem(codegendata *cd, ptrint mem)
+{
 	*(cd->mcodeptr++) = 0xff;
 	x86_64_emit_mem(2,(mem));
 }

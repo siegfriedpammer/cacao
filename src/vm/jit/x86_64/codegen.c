@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -164,11 +164,17 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
-	MCODECHECK(512);
 
 	/* initialize the last patcher pointer */
 
 	cd->lastmcodeptr = cd->mcodeptr;
+
+	/* generate profiling code */
+
+	if (opt_prof) {
+		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_IINC_MEMBASE(REG_ITMP1, OFFSET(methodinfo, executioncount));
+	}
 
 	/* create stack frame (if necessary) */
 
@@ -262,19 +268,19 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			x86_64_mov_imm_reg(cd, (ptrint) m->class, REG_ITMP1);
-			x86_64_mov_reg_membase(cd, REG_ITMP1, REG_SP, s1 * 8);
+			M_MOV_IMM((ptrint) m->class, REG_ITMP1);
+			M_AST(REG_ITMP1, REG_SP, s1 * 8);
 			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
-			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
-			x86_64_call_reg(cd, REG_ITMP1);
+			M_MOV_IMM((ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
+			M_CALL(REG_ITMP1);
 
 		} else {
-			x86_64_test_reg_reg(cd, rd->argintregs[0], rd->argintregs[0]);
+			M_TEST(rd->argintregs[0]);
 			x86_64_jcc(cd, X86_64_CC_Z, 0);
 			codegen_addxnullrefs(cd, cd->mcodeptr);
-			x86_64_mov_reg_membase(cd, rd->argintregs[0], REG_SP, s1 * 8);
-			x86_64_mov_imm_reg(cd, (ptrint) BUILTIN_monitorenter, REG_ITMP1);
-			x86_64_call_reg(cd, REG_ITMP1);
+			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
+			M_MOV_IMM((ptrint) BUILTIN_monitorenter, REG_ITMP1);
+			M_CALL(REG_ITMP1);
 		}
 
 		if (runverbose) {
@@ -289,8 +295,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 #endif
 
-	/* Copy argument registers to stack and call trace function with pointer  */
-	/* to arguments on stack.                                                 */
+	/* Copy argument registers to stack and call trace function with
+	   pointer to arguments on stack. */
 
 	if (runverbose || opt_stat) {
 		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
@@ -371,6 +377,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* end of header generation */
 
 	/* walk through all basic blocks */
+
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
 		bptr->mpc = (u4) ((u1 *) cd->mcodeptr - cd->mcodebase);
@@ -506,11 +513,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = 0, val.i = constant                    */
 
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-			if (iptr->val.i == 0) {
+			if (iptr->val.i == 0)
 				M_XOR(d, d);
-			} else {
+			else
 				M_IMOV_IMM(iptr->val.i, d);
-			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -518,11 +524,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* op1 = 0, val.l = constant                    */
 
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-			if (iptr->val.l == 0) {
+			if (iptr->val.l == 0)
 				M_XOR(d, d);
-			} else {
+			else
 				M_MOV_IMM(iptr->val.l, d);
-			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1911,13 +1916,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
-			x86_64_mov_imm_reg(cd, 1, REG_ITMP1);
-			x86_64_mov_imm_reg(cd, -1, REG_ITMP2);
+			M_CLR(d);
+			M_MOV_IMM(1, REG_ITMP1);
+			M_MOV_IMM(-1, REG_ITMP2);
 			x86_64_ucomiss_reg_reg(cd, s1, s2);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, REG_ITMP1, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, REG_ITMP2, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, REG_ITMP2, d);    /* treat unordered as GT */
+			M_CMOVB(REG_ITMP1, d);
+			M_CMOVA(REG_ITMP2, d);
+			M_CMOVP(REG_ITMP2, d);                   /* treat unordered as GT */
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1927,13 +1932,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
-			x86_64_mov_imm_reg(cd, 1, REG_ITMP1);
-			x86_64_mov_imm_reg(cd, -1, REG_ITMP2);
+			M_CLR(d);
+			M_MOV_IMM(1, REG_ITMP1);
+			M_MOV_IMM(-1, REG_ITMP2);
 			x86_64_ucomiss_reg_reg(cd, s1, s2);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, REG_ITMP1, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, REG_ITMP2, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, REG_ITMP1, d);    /* treat unordered as LT */
+			M_CMOVB(REG_ITMP1, d);
+			M_CMOVA(REG_ITMP2, d);
+			M_CMOVP(REG_ITMP1, d);                   /* treat unordered as LT */
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1943,13 +1948,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
-			x86_64_mov_imm_reg(cd, 1, REG_ITMP1);
-			x86_64_mov_imm_reg(cd, -1, REG_ITMP2);
+			M_CLR(d);
+			M_MOV_IMM(1, REG_ITMP1);
+			M_MOV_IMM(-1, REG_ITMP2);
 			x86_64_ucomisd_reg_reg(cd, s1, s2);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, REG_ITMP1, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, REG_ITMP2, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, REG_ITMP2, d);    /* treat unordered as GT */
+			M_CMOVB(REG_ITMP1, d);
+			M_CMOVA(REG_ITMP2, d);
+			M_CMOVP(REG_ITMP2, d);                   /* treat unordered as GT */
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1959,13 +1964,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			x86_64_alu_reg_reg(cd, X86_64_XOR, d, d);
-			x86_64_mov_imm_reg(cd, 1, REG_ITMP1);
-			x86_64_mov_imm_reg(cd, -1, REG_ITMP2);
+			M_CLR(d);
+			M_MOV_IMM(1, REG_ITMP1);
+			M_MOV_IMM(-1, REG_ITMP2);
 			x86_64_ucomisd_reg_reg(cd, s1, s2);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, REG_ITMP1, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, REG_ITMP2, d);
-			x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, REG_ITMP1, d);    /* treat unordered as LT */
+			M_CMOVB(REG_ITMP1, d);
+			M_CMOVA(REG_ITMP2, d);
+			M_CMOVP(REG_ITMP1, d);                   /* treat unordered as LT */
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -1977,11 +1982,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 			gen_nullptr_check(s1);
-			x86_64_movl_membase_reg(cd, s1, OFFSET(java_arrayheader, size), d);
+			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -1990,11 +1995,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			x86_64_mov_memindex_reg(cd, OFFSET(java_objectarray, data[0]), s1, s2, 3, d);
+   			x86_64_movsbq_memindex_reg(cd, OFFSET(java_bytearray, data[0]), s1, s2, 0, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
-		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2003,7 +2008,20 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			x86_64_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), s1, s2, 3, d);
+			x86_64_movzwq_memindex_reg(cd, OFFSET(java_chararray, data[0]), s1, s2, 1, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;			
+
+		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_movswq_memindex_reg(cd, OFFSET(java_shortarray, data[0]), s1, s2, 1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2017,6 +2035,19 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_bound_check;
 			}
 			x86_64_movl_memindex_reg(cd, OFFSET(java_intarray, data[0]), s1, s2, 2, d);
+			store_reg_to_var_int(iptr->dst, d);
+			break;
+
+		case ICMD_LALOAD:     /* ..., arrayref, index  ==> ..., value         */
+
+			var_to_reg_int(s1, src->prev, REG_ITMP1);
+			var_to_reg_int(s2, src, REG_ITMP2);
+			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			x86_64_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), s1, s2, 3, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -2046,7 +2077,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
 
-		case ICMD_CALOAD:     /* ..., arrayref, index  ==> ..., value         */
+		case ICMD_AALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
@@ -2055,38 +2086,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_nullptr_check(s1);
 				gen_bound_check;
 			}
-			x86_64_movzwq_memindex_reg(cd, OFFSET(java_chararray, data[0]), s1, s2, 1, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;			
-
-		case ICMD_SALOAD:     /* ..., arrayref, index  ==> ..., value         */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			x86_64_movswq_memindex_reg(cd, OFFSET(java_shortarray, data[0]), s1, s2, 1, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
-
-			var_to_reg_int(s1, src->prev, REG_ITMP1);
-			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-   			x86_64_movsbq_memindex_reg(cd, OFFSET(java_bytearray, data[0]), s1, s2, 0, d);
+			x86_64_mov_memindex_reg(cd, OFFSET(java_objectarray, data[0]), s1, s2, 3, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
 
-		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
+		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -2095,43 +2100,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_bound_check;
 			}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			x86_64_mov_reg_memindex(cd, s3, OFFSET(java_longarray, data[0]), s1, s2, 3);
-			break;
-
-		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_int(s3, src, REG_ITMP3);
-			x86_64_movl_reg_memindex(cd, s3, OFFSET(java_intarray, data[0]), s1, s2, 2);
-			break;
-
-		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_flt(s3, src, REG_FTMP3);
-			x86_64_movss_reg_memindex(cd, s3, OFFSET(java_floatarray, data[0]), s1, s2, 2);
-			break;
-
-		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
-
-			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
-			var_to_reg_int(s2, src->prev, REG_ITMP2);
-			if (iptr->op1 == 0) {
-				gen_nullptr_check(s1);
-				gen_bound_check;
-			}
-			var_to_reg_flt(s3, src, REG_FTMP3);
-			x86_64_movsd_reg_memindex(cd, s3, OFFSET(java_doublearray, data[0]), s1, s2, 3);
+			x86_64_movb_reg_memindex(cd, s3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2158,7 +2127,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			x86_64_movw_reg_memindex(cd, s3, OFFSET(java_shortarray, data[0]), s1, s2, 1);
 			break;
 
-		case ICMD_BASTORE:    /* ..., arrayref, index, value  ==> ...         */
+		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -2167,7 +2136,43 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_bound_check;
 			}
 			var_to_reg_int(s3, src, REG_ITMP3);
-			x86_64_movb_reg_memindex(cd, s3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			x86_64_movl_reg_memindex(cd, s3, OFFSET(java_intarray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_int(s3, src, REG_ITMP3);
+			x86_64_mov_reg_memindex(cd, s3, OFFSET(java_longarray, data[0]), s1, s2, 3);
+			break;
+
+		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_flt(s3, src, REG_FTMP3);
+			x86_64_movss_reg_memindex(cd, s3, OFFSET(java_floatarray, data[0]), s1, s2, 2);
+			break;
+
+		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
+
+			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
+			var_to_reg_int(s2, src->prev, REG_ITMP2);
+			if (iptr->op1 == 0) {
+				gen_nullptr_check(s1);
+				gen_bound_check;
+			}
+			var_to_reg_flt(s3, src, REG_FTMP3);
+			x86_64_movsd_reg_memindex(cd, s3, OFFSET(java_doublearray, data[0]), s1, s2, 3);
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2250,7 +2255,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			if (IS_IMM32(iptr->val.l)) {
 				x86_64_mov_imm_memindex(cd, (u4) (iptr->val.l & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
-
 			} else {
 				x86_64_movl_imm_memindex(cd, (u4) (iptr->val.l & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
 				x86_64_movl_imm_memindex(cd, (u4) (iptr->val.l >> 32), OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
@@ -2272,7 +2276,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
@@ -2298,19 +2302,19 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 
-			/* This approach is much faster than moving the field address     */
-			/* inline into a register. */
+			/* This approach is much faster than moving the field
+			   address inline into a register. */
   			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				x86_64_movl_membase_reg(cd, REG_ITMP2, 0, d);
+				M_ILD(d, REG_ITMP2, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				x86_64_mov_membase_reg(cd, REG_ITMP2, 0, d);
+				M_LLD(d, REG_ITMP2, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
@@ -2329,7 +2333,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
@@ -2355,18 +2359,18 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 
-			/* This approach is much faster than moving the field address     */
-			/* inline into a register. */
+			/* This approach is much faster than moving the field
+			   address inline into a register. */
   			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
 			switch (iptr->op1) {
 			case TYPE_INT:
 				var_to_reg_int(s2, src, REG_ITMP1);
-				x86_64_movl_reg_membase(cd, s2, REG_ITMP2, 0);
+				M_IST(s2, REG_ITMP2, 0);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 				var_to_reg_int(s2, src, REG_ITMP1);
-				x86_64_mov_reg_membase(cd, s2, REG_ITMP2, 0);
+				M_LST(s2, REG_ITMP2, 0);
 				break;
 			case TYPE_FLT:
 				var_to_reg_flt(s2, src, REG_FTMP1);
@@ -2384,7 +2388,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
 
-			if (!iptr[1].val.a) {
+			if (iptr[1].val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
 				codegen_addpatchref(cd, cd->mcodeptr,
@@ -2410,22 +2414,22 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
   			}
 
-			/* This approach is much faster than moving the field address     */
-			/* inline into a register. */
+			/* This approach is much faster than moving the field
+			   address inline into a register. */
   			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP1);
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				x86_64_movl_imm_membase(cd, iptr->val.i, REG_ITMP1, 0);
+				M_IST_IMM(iptr->val.i, REG_ITMP1, 0);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 			case TYPE_DBL:
 				if (IS_IMM32(iptr->val.l)) {
-					x86_64_mov_imm_membase(cd, iptr->val.l, REG_ITMP1, 0);
+					M_LST_IMM32(iptr->val.l, REG_ITMP1, 0);
 				} else {
-					x86_64_movl_imm_membase(cd, iptr->val.l, REG_ITMP1, 0);
-					x86_64_movl_imm_membase(cd, iptr->val.l >> 32, REG_ITMP1, 4);
+					M_IST_IMM(iptr->val.l, REG_ITMP1, 0);
+					M_IST_IMM(iptr->val.l >> 32, REG_ITMP1, 4);
 				}
 				break;
 			}
@@ -2437,7 +2441,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2446,32 +2450,38 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
+				disp = 0;
 
 			} else {
-				a = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = ((fieldinfo *) (iptr->val.a))->offset;
 			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				x86_64_movl_membase32_reg(cd, s1, a, d);
+				if (iptr->val.a == NULL)
+					M_ILD32(d, s1, disp);
+				else
+					M_ILD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
-				x86_64_mov_membase32_reg(cd, s1, a, d);
+				if (iptr->val.a == NULL)
+					M_LLD32(d, s1, disp);
+				else
+					M_LLD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				x86_64_movss_membase32_reg(cd, s1, a, d);
+				x86_64_movss_membase32_reg(cd, s1, disp, d);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
-				x86_64_movsd_membase32_reg(cd, s1, a, d);
+				x86_64_movsd_membase32_reg(cd, s1, disp, d);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			}
@@ -2482,13 +2492,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			gen_nullptr_check(s1);
+
 			if (IS_INT_LNG_TYPE(iptr->op1)) {
 				var_to_reg_int(s2, src, REG_ITMP2);
 			} else {
 				var_to_reg_flt(s2, src, REG_FTMP2);
 			}
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2497,25 +2508,31 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
+				disp = 0;
 
 			} else {
-				a = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = ((fieldinfo *) (iptr->val.a))->offset;
 			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				x86_64_movl_reg_membase32(cd, s2, s1, a);
+				if (iptr->val.a == NULL)
+					M_IST32(s2, s1, disp);
+				else
+					M_IST(s2, s1, disp);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
-				x86_64_mov_reg_membase32(cd, s2, s1, a);
+				if (iptr->val.a == NULL)
+					M_LST32(s2, s1, disp);
+				else
+					M_LST(s2, s1, disp);
 				break;
 			case TYPE_FLT:
-				x86_64_movss_reg_membase32(cd, s2, s1, a);
+				x86_64_movss_reg_membase32(cd, s2, s1, disp);
 				break;
 			case TYPE_DBL:
-				x86_64_movsd_reg_membase32(cd, s2, s1, a);
+				x86_64_movsd_reg_membase32(cd, s2, s1, disp);
 				break;
 			}
 			break;
@@ -2528,7 +2545,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!iptr[1].val.a) {
+			if (iptr[1].val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfieldconst,
 									(unresolved_field *) iptr[1].target, 0);
@@ -2537,27 +2554,35 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
-				a = 0;
+				disp = 0;
 
 			} else {
-				a = ((fieldinfo *) (iptr[1].val.a))->offset;
+				disp = ((fieldinfo *) (iptr[1].val.a))->offset;
 			}
 
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
-				x86_64_movl_imm_membase32(cd, iptr->val.i, s1, a);
+				if (iptr[1].val.a == NULL)
+					M_IST32_IMM(iptr->val.i, s1, disp);
+				else
+					M_IST_IMM(iptr->val.i, s1, disp);
 				break;
 			case TYPE_LNG:
 			case TYPE_ADR:
 			case TYPE_DBL:
-				/* We can only optimize the move, if the class is resolved.   */
-				/* Otherwise we don't know what to patch.                     */
-				if (iptr[1].val.a && IS_IMM32(iptr->val.l)) {
-					x86_64_mov_imm_membase32(cd, iptr->val.l, s1, a);
+				/* We can only optimize the move, if the class is
+				   resolved. Otherwise we don't know what to patch. */
+				if (iptr[1].val.a == NULL) {
+					M_IST32_IMM(iptr->val.l, s1, disp);
+					M_IST32_IMM(iptr->val.l >> 32, s1, disp + 4);
 				} else {
-					x86_64_movl_imm_membase32(cd, iptr->val.l, s1, a);
-					x86_64_movl_imm_membase32(cd, iptr->val.l >> 32, s1, a + 4);
+					if (IS_IMM32(iptr->val.l)) {
+						M_LST_IMM32(iptr->val.l, s1, disp);
+					} else {
+						M_IST_IMM(iptr->val.l, s1, disp);
+						M_IST_IMM(iptr->val.l >> 32, s1, disp + 4);
+					}
 				}
 				break;
 			}
@@ -2615,26 +2640,22 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_IFNULL:       /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
 
-			if (src->flags & INMEMORY) {
-				x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-			} else {
-				x86_64_test_reg_reg(cd, src->regoff, src->regoff);
-			}
-			x86_64_jcc(cd, X86_64_CC_E, 0);
+			if (src->flags & INMEMORY)
+				M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 8);
+			else
+				M_TEST(src->regoff);
+			M_BEQ(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
 		                        /* op1 = target JavaVM pc                     */
 
-			if (src->flags & INMEMORY) {
-				x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8);
-
-			} else {
-				x86_64_test_reg_reg(cd, src->regoff, src->regoff);
-			}
-			x86_64_jcc(cd, X86_64_CC_NE, 0);
+			if (src->flags & INMEMORY)
+				M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 8);
+			else
+				M_TEST(src->regoff);
+			M_BNE(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 
@@ -2788,7 +2809,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_IFEQ_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
+		case ICMD_IFNE_ICONST:  /* val.i = constant                           */
+		case ICMD_IFLT_ICONST:
+		case ICMD_IFGE_ICONST:
+		case ICMD_IFGT_ICONST:
+		case ICMD_IFLE_ICONST:
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
@@ -2797,101 +2822,38 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_INTMOVE(s1, REG_ITMP1);
 					s1 = REG_ITMP1;
 				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
+				if (iptr[1].val.i == 0)
+					M_CLR(d);
+				else
+					M_IMOV_IMM(iptr[1].val.i, d);
 			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_E, REG_ITMP2, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
+			if (iptr->val.i == 0)
+				M_CLR(REG_ITMP2);
+			else
+				M_IMOV_IMM(iptr->val.i, REG_ITMP2);
+			M_ITEST(s1);
 
-		case ICMD_IFNE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
+			switch (iptr->opc) {
+			case ICMD_IFEQ_ICONST:
+				M_CMOVEQ(REG_ITMP2, d);
+				break;
+			case ICMD_IFNE_ICONST:
+				M_CMOVNE(REG_ITMP2, d);
+				break;
+			case ICMD_IFLT_ICONST:
+				M_CMOVLT(REG_ITMP2, d);
+				break;
+			case ICMD_IFGE_ICONST:
+				M_CMOVGE(REG_ITMP2, d);
+				break;
+			case ICMD_IFGT_ICONST:
+				M_CMOVGT(REG_ITMP2, d);
+				break;
+			case ICMD_IFLE_ICONST:
+				M_CMOVLE(REG_ITMP2, d);
+				break;
 			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_NE, REG_ITMP2, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
 
-		case ICMD_IFLT_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
-			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_L, REG_ITMP2, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_IFGE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
-			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_GE, REG_ITMP2, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_IFGT_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
-			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_G, REG_ITMP2, d);
-			store_reg_to_var_int(iptr->dst, d);
-			break;
-
-		case ICMD_IFLE_ICONST:  /* ..., value ==> ..., constant               */
-		                        /* val.i = constant                           */
-
-			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
-			if (iptr[1].opc == ICMD_ELSE_ICONST) {
-				if (s1 == d) {
-					M_INTMOVE(s1, REG_ITMP1);
-					s1 = REG_ITMP1;
-				}
-				x86_64_movl_imm_reg(cd, iptr[1].val.i, d);
-			}
-			x86_64_movl_imm_reg(cd, iptr->val.i, REG_ITMP2);
-			x86_64_testl_reg_reg(cd, s1, s1);
-			x86_64_cmovccl_reg_reg(cd, X86_64_CC_LE, REG_ITMP2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
 
@@ -4180,7 +4142,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
-
 	/* calculate stack frame size */
 
 	stackframesize =
@@ -4191,7 +4152,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	if (!(stackframesize & 0x1))                /* keep stack 16-byte aligned */
 		stackframesize++;
-
 
 	/* create method header */
 
@@ -4204,12 +4164,17 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
 
-
 	/* initialize mcode variables */
 	
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
+	/* generate profiling code */
+
+	if (opt_prof) {
+		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_IINC_MEMBASE(REG_ITMP1, OFFSET(methodinfo, executioncount));
+	}
 
 	/* generate stub code */
 

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: linker.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -300,8 +300,6 @@ static bool link_primitivetype_table(void)
 		c = class_create_classinfo(utf_new_char(primitivetype_table[i].name));
 
 		c->flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
-		c->classUsed = NOTUSED; /* not used initially CO-RT */
-		c->impldBy = NULL;
 		
 		/* prevent loader from loading primitive class */
 
@@ -322,8 +320,6 @@ static bool link_primitivetype_table(void)
 			return false;
 
 		primitivetype_table[i].class_wrap = c;
-		primitivetype_table[i].class_wrap->classUsed = NOTUSED; /* not used initially CO-RT */
-		primitivetype_table[i].class_wrap->impldBy = NULL;
 
 		/* create the primitive array class */
 
@@ -509,8 +505,6 @@ static classinfo *link_class_intern(classinfo *c)
 
 	if (c->super.any == NULL) {                     /* class java.lang.Object */
 		c->index = 0;
-        c->classUsed = USED;              /* Object class is always used CO-RT*/
-		c->impldBy = NULL;
 		c->instancesize = sizeof(java_objectheader);
 		
 		vftbllength = supervftbllength = 0;

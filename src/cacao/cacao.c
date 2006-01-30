@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: cacao.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -79,6 +79,7 @@
 #include "vm/suck.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/profile.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
 #include "vm/jit/verify/typeinfo.h"
@@ -178,6 +179,8 @@ enum {
 	OPT_JIT,
 	OPT_INTRP,
 
+	OPT_PROF,
+
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
 
@@ -274,6 +277,7 @@ opt_struct opts[] = {
 #endif 
 	{ "Xms",               true,  OPT_MS },
 	{ "Xmx",               true,  OPT_MX },
+	{ "Xprof",             false, OPT_PROF },
 	{ "Xss",               true,  OPT_SS },
 	{ "ms",                true,  OPT_MS },
 	{ "mx",                true,  OPT_MX },
@@ -391,6 +395,7 @@ static void Xusage(void)
 	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
 	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
 	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
+	printf("    -Xprof            collect and print profiling data\n");
 #if defined(ENABLE_JVMTI)
 	printf("    -Xdebug<transport> enable remote debugging\n");
 #endif 
@@ -1045,6 +1050,10 @@ int main(int argc, char **argv)
 			Xusage();
 			break;
 
+		case OPT_PROF:
+			opt_prof = true;
+			break;
+
 		case OPT_JIT:
 #if defined(ENABLE_JIT)
 			opt_jit = true;
@@ -1649,6 +1658,9 @@ void exit_handler(void)
 
 	if (showutf)
 		utf_show();
+
+	if (opt_prof)
+		profile_printstats();
 #endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)

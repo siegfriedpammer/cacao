@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4382 2006-01-28 14:21:09Z twisti $
+   $Id: loader.c 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -1810,9 +1810,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	if (!load_constantpool(cb, descpool))
 		goto return_exception;
-
-	c->classUsed = NOTUSED; /* not used initially CO-RT */
-	c->impldBy = NULL;
 
 	/* ACC flags */
 

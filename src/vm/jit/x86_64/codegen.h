@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.h 4388 2006-01-30 15:44:52Z twisti $
 
 */
 
@@ -132,7 +132,7 @@ typedef enum {
 
 
 #define x86_64_emit_rex(size,reg,index,rm) \
-    if ((size) == 1 || (reg) > 7 || (index) > 7 || (rm) > 7) { \
+    if (((size) == 1) || ((reg) > 7) || ((index) > 7) || ((rm) > 7)) { \
         *(cd->mcodeptr++) = (0x40 | (((size) & 0x01) << 3) | ((((reg) >> 3) & 0x01) << 2) | ((((index) >> 3) & 0x01) << 1) | (((rm) >> 3) & 0x01)); \
     }
 
@@ -430,15 +430,28 @@ typedef enum {
 #define M_LLD(a,b,disp)         x86_64_mov_membase_reg(cd, (b), (disp), (a))
 #define M_DLD(a,b,disp)         x86_64_movq_membase_reg(cd, (b), (disp), (a))
 
+#define M_ILD32(a,b,disp)       x86_64_movl_membase32_reg(cd, (b), (disp), (a))
+#define M_LLD32(a,b,disp)       x86_64_mov_membase32_reg(cd, (b), (disp), (a))
+
 #define M_IST(a,b,disp)         x86_64_movl_reg_membase(cd, (a), (b), (disp))
 #define M_LST(a,b,disp)         x86_64_mov_reg_membase(cd, (a), (b), (disp))
-#define M_LST_IMM32(a,b,disp)   x86_64_mov_imm_membase(cd, (a), (b), (disp))
 #define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
+
+#define M_IST_IMM(a,b,disp)     x86_64_movl_imm_membase(cd, (a), (b), (disp))
+#define M_LST_IMM32(a,b,disp)   x86_64_mov_imm_membase(cd, (a), (b), (disp))
+
+#define M_IST32(a,b,disp)       x86_64_movl_reg_membase32(cd, (a), (b), (disp))
+#define M_LST32(a,b,disp)       x86_64_mov_reg_membase32(cd, (a), (b), (disp))
+
+#define M_IST32_IMM(a,b,disp)   x86_64_movl_imm_membase32(cd, (a), (b), (disp))
+#define M_LST32_IMM32(a,b,disp) x86_64_mov_imm_membase32(cd, (a), (b), (disp))
 
 #define M_LADD(a,b)             x86_64_alu_reg_reg(cd, X86_64_ADD, (a), (b))
 #define M_LADD_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_ADD, (a), (b))
 #define M_LSUB(a,b)             x86_64_alu_reg_reg(cd, X86_64_SUB, (a), (b))
 #define M_LSUB_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_SUB, (a), (b))
+
+#define M_IINC_MEMBASE(a,b)     x86_64_incl_membase(cd, (a), (b))
 
 #define M_ALD(a,b,c)            M_LLD(a,b,c)
 #define M_AST(a,b,c)            M_LST(a,b,c)
@@ -463,15 +476,32 @@ typedef enum {
 #define M_IXOR(a,b)             x86_64_alul_reg_reg(cd, X86_64_XOR, (a), (b))
 
 #define M_TEST(a)               x86_64_test_reg_reg(cd, (a), (a))
+#define M_ITEST(a)              x86_64_testl_reg_reg(cd, (a), (a))
 
 #define M_CMP(a,b)              x86_64_alu_reg_reg(cd, X86_64_CMP, (a), (b))
 #define M_CMP_IMM(a,b)          x86_64_alu_imm_reg(cd, X86_64_CMP, (a), (b))
+#define M_CMP_IMM_MEMBASE(a,b,c) x86_64_alu_imm_membase(cd, X86_64_CMP, (a), (b), (c))
 #define M_CMP_MEMBASE(a,b,c)    x86_64_alu_membase_reg(cd, X86_64_CMP, (a), (b), (c))
+
+#define M_ICMP(a,b)             x86_64_alul_reg_reg(cd, X86_64_CMP, (a), (b))
+#define M_ICMP_IMM(a,b)         x86_64_alul_imm_reg(cd, X86_64_CMP, (a), (b))
+#define M_ICMP_IMM_MEMBASE(a,b,c) x86_64_alul_imm_membase(cd, X86_64_CMP, (a), (b), (c))
 
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
 #define M_BNE(disp)             x86_64_jcc(cd, X86_64_CC_NE, (disp))
 #define M_BLE(disp)             x86_64_jcc(cd, X86_64_CC_LE, (disp))
 #define M_BA(disp)              x86_64_jcc(cd, X86_64_CC_A, (disp))
+
+#define M_CMOVEQ(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_E, (a), (b))
+#define M_CMOVNE(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_NE, (a), (b))
+#define M_CMOVLT(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_L, (a), (b))
+#define M_CMOVLE(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_LE, (a), (b))
+#define M_CMOVGE(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_GE, (a), (b))
+#define M_CMOVGT(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_G, (a), (b))
+
+#define M_CMOVB(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, (a), (b))
+#define M_CMOVA(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, (a), (b))
+#define M_CMOVP(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, (a), (b))
 
 #define M_PUSH(a)               x86_64_push_reg(cd, (a))
 #define M_PUSH_IMM(a)           x86_64_push_imm(cd, (a))
@@ -484,6 +514,8 @@ typedef enum {
 #define M_RET                   x86_64_ret(cd)
 
 #define M_NOP                   x86_64_nop(cd)
+
+#define M_CLR(a)                M_XOR(a,a)
 
 
 /* function gen_resolvebranch **************************************************
