@@ -1,9 +1,9 @@
 /* src/vm/jit/allocator/simplereg.c - register allocator
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
+   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
+   Institut f. Computersprachen - TU Wien
 
    This file is part of CACAO.
 
@@ -19,10 +19,10 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-   Contact: cacao@cacaojvm.org
+   Contact: cacao@complang.tuwien.ac.at
 
    Authors: Andreas Krall
 
@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: simplereg.c 4386 2006-01-30 11:26:34Z christian $
 
 */
 
@@ -153,6 +153,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								v->regoff = rd->savfltregs[--rd->savfltreguse];
 							} else {
 								v->flags |= INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+								/* Align doubles in Memory */
+								if ( (memneeded) && (rd->memuse & 1))
+									rd->memuse++;
+#endif
 								v->regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
@@ -164,11 +169,15 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							 */
 							if (IS_2_WORD_TYPE(t)) {
 								v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if (rd->memuse & 1)
+									rd->memuse++;
+#endif
 								v->regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							} else
 #endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
-/* #if !defined(HAS_4BYTE_STACKSLOT) */
 								if (intalloc >= 0) {
 		       /* Reuse memory slot(s)/register(s) for shared interface slots */
 									v->flags |= 
@@ -184,7 +193,6 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 										v->regoff = 
 										    rd->interfaces[s][intalloc].regoff;
 								} else 
-/* #endif *//* !defined(HAS_4BYTE_STACKSLOT) */
 									if (!m->isleafmethod && 
 										(rd->argintreguse 
 										 + intregsneeded < INT_ARG_CNT)) {
@@ -227,6 +235,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 									}
 									else {
 										v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+										/* Align longs in Memory */
+										if ( (memneeded) && (rd->memuse & 1))
+											rd->memuse++;
+#endif
 										v->regoff = rd->memuse;
 										rd->memuse += memneeded + 1;
 									}
@@ -259,6 +272,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								}
 								else {
 									v->flags |= INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+									/* Align doubles in Memory */
+									if ( (memneeded) && (rd->memuse & 1))
+										rd->memuse++;
+#endif
 									v->regoff = rd->memuse;
 									rd->memuse += memneeded + 1;
 								}
@@ -271,12 +289,16 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							 */
 							if (IS_2_WORD_TYPE(t)) {
 								v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if (rd->memuse & 1)
+									rd->memuse++;
+#endif
 								v->regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							} else
 #endif
 							{
-/* #if !defined(HAS_4BYTE_STACKSLOT) */
 								if (intalloc >= 0) {
 									v->flags |= 
 								   rd->interfaces[s][intalloc].flags & INMEMORY;
@@ -290,9 +312,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 										v->regoff =
 											rd->interfaces[s][intalloc].regoff;
-								} else
-/* #endif */
-								{
+								} else {
 									if (rd->savintreguse > intregsneeded) {
 										rd->savintreguse -= intregsneeded + 1;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -306,6 +326,11 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 											   rd->savintregs[rd->savintreguse];
 									} else {
 										v->flags |= INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+									/* Align longs in Memory */
+									if ( (memneeded) && (rd->memuse & 1))
+										rd->memuse++;
+#endif
 										v->regoff = rd->memuse;
 										rd->memuse += memneeded + 1;
 									}
@@ -388,19 +413,19 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						v->flags = 0;
 						v->regoff = rd->argadrregs[md->params[p].regoff];
 					}
-					if (rd->tmpadrreguse > 0) {
+					else if (rd->tmpadrreguse > 0) {
 						v->flags = 0;
 						v->regoff = rd->tmpadrregs[--rd->tmpadrreguse];
-					}
-					else if (rd->savadrreguse > 0) {
-						v->flags = 0;
-						v->regoff = rd->savadrregs[--rd->savadrreguse];
 					}
 					/* use unused argument registers as local registers */
 					else if ((p >= md->paramcount) &&
 							 (aargcnt < ADR_ARG_CNT)) {
 						v->flags = 0;
 						v->regoff = rd->argadrregs[aargcnt++];
+					}
+					else if (rd->savadrreguse > 0) {
+						v->flags = 0;
+						v->regoff = rd->savadrregs[--rd->savadrreguse];
 					}
 					else {
 						v->flags |= INMEMORY;
@@ -426,10 +451,6 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->flags = 0;
 							v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
 						}
-						else if (rd->savfltreguse > 0) {
-							v->flags = 0;
-							v->regoff = rd->savfltregs[--rd->savfltreguse];
-						}
 						/* use unused argument registers as local registers */
 						else if ((p >= md->paramcount) &&
 								 (fargcnt < FLT_ARG_CNT)) {
@@ -437,8 +458,17 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 							v->regoff = rd->argfltregs[fargcnt];
 							fargcnt++;
 						}
+						else if (rd->savfltreguse > 0) {
+							v->flags = 0;
+							v->regoff = rd->savfltregs[--rd->savfltreguse];
+						}
 						else {
 							v->flags = INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
+							/* Align doubles in Memory */
+							if ( (memneeded) && (rd->memuse & 1))
+								rd->memuse++;
+#endif
 							v->regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						}
@@ -451,6 +481,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						 */
 						if (IS_2_WORD_TYPE(t)) {
 							v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+							/* Align longs in Memory */
+							if (rd->memuse & 1)
+								rd->memuse++;
+#endif
 							v->regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						} else 
@@ -472,8 +507,6 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								v->flags = 0;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 								if (IS_2_WORD_TYPE(t))
-/* For ARM: - if GET_LOW_REG(md->params[p].regoff) == R4, prevent here that   */
-/* rd->argintregs[GET_HIGH_REG(md->...)) is used!                             */
 									v->regoff = PACK_REGS(
 							rd->argintregs[GET_LOW_REG(md->params[p].regoff)],
 							rd->argintregs[GET_HIGH_REG(md->params[p].regoff)]);
@@ -495,6 +528,22 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 									v->regoff = 
 										rd->tmpintregs[rd->tmpintreguse];
 							}
+							/*
+							 * use unused argument registers as local registers
+							 */
+							else if ((p >= m->parseddesc->paramcount) &&
+									 (iargcnt + intregsneeded < INT_ARG_CNT)) {
+								v->flags = 0;
+#if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+								if (intregsneeded) 
+									v->regoff=PACK_REGS( 
+												   rd->argintregs[iargcnt],
+												   rd->argintregs[iargcnt + 1]);
+								else
+#endif
+									v->regoff = rd->argintregs[iargcnt];
+  								iargcnt += intregsneeded + 1;
+							}
 							else if (rd->savintreguse > intregsneeded) {
 								rd->savintreguse -= intregsneeded + 1;
 								v->flags = 0;
@@ -507,17 +556,13 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 									v->regoff =rd->savintregs[rd->savintreguse];
 							}
-							/*
-							 * use unused argument registers as local registers
-							 */
-							else if ((p >= md->paramcount) &&
-									 (iargcnt < INT_ARG_CNT)) {
-								v->flags = 0;
-								v->regoff = rd->argintregs[iargcnt];
-  								iargcnt++;
-							}
 							else {
 								v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+								/* Align longs in Memory */
+								if ( (memneeded) && (rd->memuse & 1))
+									rd->memuse++;
+#endif
 								v->regoff = rd->memuse;
 								rd->memuse += memneeded + 1;
 							}
@@ -575,9 +620,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 					}
 					else {
 						v->flags = INMEMORY;
+#if defined(ALIGN_DOUBLES_IN_MEMORY)
 						/* Align doubles in Memory */
 						if ( (memneeded) && (rd->memuse & 1))
 							rd->memuse++;
+#endif
 						v->regoff = rd->memuse;
 						rd->memuse += memneeded + 1;
 					}
@@ -590,6 +637,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 					 */
 					if (IS_2_WORD_TYPE(t)) {
 						v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+						/* Align longs in Memory */
+						if (rd->memuse & 1)
+							rd->memuse++;
+#endif
 						v->regoff = rd->memuse;
 						rd->memuse += memneeded + 1;
 					} else {
@@ -619,6 +671,11 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 						}
 						else {
 							v->flags = INMEMORY;
+#if defined(ALIGN_LONGS_IN_MEMORY)
+							/* Align longs in Memory */
+							if ( (memneeded) && (rd->memuse & 1))
+								rd->memuse++;
+#endif
 							v->regoff = rd->memuse;
 							rd->memuse += memneeded + 1;
 						}
@@ -855,14 +912,14 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 			rd->freememtop--;;
 			s->regoff = rd->freemem[rd->freememtop];
 		} else {
-#if defined(HAS_4BYTE_STACKSLOT)
+#if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
 			/* align 2 Word Types */
 			if ((memneeded) && ((rd->memuse & 1) == 1)) { 
 				/* Put patched memory slot on freemem */
 				rd->freemem[rd->freememtop++] = rd->memuse;
 				rd->memuse++;
 			}
-#endif /*defined(HAS_4BYTE_STACKSLOT) */
+#endif /* defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY) */
 			s->regoff = rd->memuse;
 			rd->memuse += memneeded + 1;
 		}

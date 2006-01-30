@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: arch.h 4386 2006-01-30 11:26:34Z christian $
 
 */
 
@@ -89,6 +89,11 @@
 #define CONDITIONAL_LOADCONST            1
 	 
 #define HAS_4BYTE_STACKSLOT
+#define ALIGN_LONGS_IN_MEMORY       /* Align Longs and/or Doubles at         */
+#define ALIGN_DOUBLES_IN_MEMORY     /* 2*Stackslotsize relativ to stackframe */
+/* Memory Positions for not Interface Stackslots (allocate_scratch_registers)*/
+/* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!     */
+/* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and dbl*/
 /* define SUPPORT_COMBINE_INTEGER_REGISTERS */
 
 #endif /* _ARCH_H */
