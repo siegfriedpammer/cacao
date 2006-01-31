@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
+   $Id: codegen.c 4400 2006-01-31 23:54:31Z twisti $
 
 */
 
@@ -178,11 +178,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	cd->lastmcodeptr = cd->mcodeptr;
 
-	/* generate profiling code */
+	/* generate method profiling code */
 
 	if (opt_prof) {
+		/* count frequency */
+
 		M_MOV_IMM((ptrint) m, REG_ITMP1);
-		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, executioncount));
+		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, frequency));
 	}
 
 	/* create stack frame (if necessary) */
@@ -435,7 +437,17 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		src = bptr->instack;
 		len = bptr->indepth;
-		MCODECHECK(64+len);
+		MCODECHECK(512);
+
+		/* generate basic block profiling code */
+
+		if (opt_prof) {
+			/* count frequency */
+
+			M_MOV_IMM((ptrint) m->bbfrequency, REG_ITMP1);
+			M_IADD_IMM_MEMBASE(1, REG_ITMP1, bptr->debug_nr * 4);
+		}
+
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -551,7 +563,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				currentline = iptr->line;
 			}
 
-			MCODECHECK(100);   /* XXX are 100 bytes enough? */
+			MCODECHECK(1024);                         /* 1kB should be enough */
 
 		switch (iptr->opc) {
 		case ICMD_INLINE_START:
@@ -5541,11 +5553,13 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
-	/* generate profiling code */
+	/* generate native method profiling code */
 
 	if (opt_prof) {
+		/* count frequency */
+
 		M_MOV_IMM((ptrint) m, REG_ITMP1);
-		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, executioncount));
+		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(methodinfo, frequency));
 	}
 
 	/* calculate stackframe size for native function */
