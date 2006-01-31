@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jit.h 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -149,40 +149,42 @@ struct instruction {
 #define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
 	((unresolved_field *)((iptr)[1].target))
 
-/**************************** basic block structure ***************************/
- 
-/*                    flags                                                   */
 
-#define BBDELETED     -2
-#define BBUNDEF       -1
-#define BBREACHED     0
-#define BBFINISHED    1
+/* basicblock *****************************************************************/
+ 
+/* flags */
+
+#define BBDELETED            -2
+#define BBUNDEF              -1
+#define BBREACHED            0
+#define BBFINISHED           1
+
 #define BBTYPECHECK_UNDEF    2
 #define BBTYPECHECK_REACHED  3
 
-#define BBTYPE_STD 0            /* standard basic block type                  */
-#define BBTYPE_EXH 1            /* exception handler basic block type         */
-#define BBTYPE_SBR 2            /* subroutine basic block type                */
+#define BBTYPE_STD           0  /* standard basic block type                  */
+#define BBTYPE_EXH           1  /* exception handler basic block type         */
+#define BBTYPE_SBR           2  /* subroutine basic block type                */
 
 
 struct basicblock {
-	int          flags;         /* used during stack analysis, init with -1   */
-	int          type;          /* basic block type (std, xhandler, subroutine*/
+	s4           debug_nr;      /* basic block number                         */
+	s4           flags;         /* used during stack analysis, init with -1   */
+	s4           type;          /* basic block type (std, xhandler, subroutine*/
 	instruction *iinstr;        /* pointer to intermediate code instructions  */
-	int          icount;        /* number of intermediate code instructions   */
-	int          mpc;           /* machine code pc at start of block          */
+	s4           icount;        /* number of intermediate code instructions   */
+	s4           mpc;           /* machine code pc at start of block          */
 	stackptr     instack;       /* stack at begin of basic block              */
 	stackptr     outstack;      /* stack at end of basic block                */
-	int          indepth;       /* stack depth at begin of basic block        */
-	int          outdepth;      /* stack depth end of basic block             */
-	int          pre_count;     /* count of predecessor basic blocks          */
-	struct branchref *branchrefs; /* list of branches to be patched           */
+	s4           indepth;       /* stack depth at begin of basic block        */
+	s4           outdepth;      /* stack depth end of basic block             */
+	s4           pre_count;     /* count of predecessor basic blocks          */
+	branchref   *branchrefs;    /* list of branches to be patched             */
 
 	basicblock  *next;          /* used to build a BB list (instead of array) */
-	int          lflags;        /* used during loop copying, init with 0	  */
+	s4           lflags;        /* used during loop copying, init with 0	  */
 	basicblock  *copied_to;     /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
-	int debug_nr;
 };
 
 

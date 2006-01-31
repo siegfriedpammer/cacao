@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4392 2006-01-31 15:35:22Z twisti $
+   $Id: jit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -1431,12 +1431,21 @@ u1 *jit_compile(methodinfo *m)
 #if defined(USE_THREADS)
 	/* leave the monitor */
 
-	builtin_monitorexit((java_objectheader *) m );
+	builtin_monitorexit((java_objectheader *) m);
 #endif
 
 	if (r) {
 		if (compileverbose)
 			log_message_method("Running: ", m);
+
+	} else {
+		/* We had an exception! Finish stuff here if necessary. */
+
+		/* Release memory for basic block profiling information. */
+
+		if (opt_prof)
+			if (m->bbfrequency)
+				MFREE(m->bbfrequency, u4, m->basicblockcount);
 	}
 
 	/* return pointer to the methods entry point */
@@ -1586,6 +1595,13 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
+
+	/* Allocate memory for basic block profiling information. This
+	   _must_ be done after loop optimization and register allocation,
+	   since they can change the basic block count. */
+
+	if (opt_prof)
+		m->bbfrequency = MNEW(u4, m->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
 

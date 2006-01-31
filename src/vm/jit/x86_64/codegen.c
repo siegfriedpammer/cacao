@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: codegen.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -169,11 +169,15 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	cd->lastmcodeptr = cd->mcodeptr;
 
-	/* generate profiling code */
+	/* generate method profiling code */
 
 	if (opt_prof) {
-		M_MOV_IMM((ptrint) m, REG_ITMP1);
-		M_IINC_MEMBASE(REG_ITMP1, OFFSET(methodinfo, executioncount));
+		/* count frequency */
+
+		M_MOV_IMM((ptrint) m, REG_ITMP3);
+		M_IINC_MEMBASE(REG_ITMP3, OFFSET(methodinfo, frequency));
+
+		PROFILE_CYCLE_START;
 	}
 
 	/* create stack frame (if necessary) */
@@ -344,11 +348,6 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			x86_64_call_reg(cd, REG_ITMP1);
 		}
 
-#if defined(ENABLE_STATISTICS)
-		M_MOV_IMM((ptrint) compiledinvokation, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-#endif
-
 		/* restore integer argument registers */
 
 		for (p = 0; p < INT_ARG_CNT; p++)
@@ -399,6 +398,20 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		len = bptr->indepth;
 		MCODECHECK(512);
 
+		/* generate basicblock profiling code */
+
+		if (opt_prof_bb) {
+			/* count frequency */
+
+			M_MOV_IMM((ptrint) m->bbfrequency, REG_ITMP2);
+			M_IINC_MEMBASE(REG_ITMP2, bptr->debug_nr * 4);
+
+			/* if this is an exception handler, start profiling again */
+
+			if (bptr->type == BBTYPE_EXH)
+				PROFILE_CYCLE_START;
+		}
+
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
 			while (src != NULL) {
@@ -429,12 +442,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		} else {
 #endif
 
-	while (src != NULL) {
+		while (src != NULL) {
 			len--;
   			if ((len == 0) && (bptr->type != BBTYPE_STD)) {
 				if (bptr->type == BBTYPE_SBR) {
 					d = reg_of_var(rd, src, REG_ITMP1);
-					x86_64_pop_reg(cd, d);
+					M_POP(d);
 					store_reg_to_var_int(src, d);
 
 				} else if (bptr->type == BBTYPE_EXH) {
@@ -449,22 +462,22 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					s2 = src->type;
 					if (IS_FLT_DBL_TYPE(s2)) {
 						s1 = rd->interfaces[len][s2].regoff;
-						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
-							M_FLTMOVE(s1, d);
 
-						} else {
-							x86_64_movq_membase_reg(cd, REG_SP, s1 * 8, d);
-						}
+						if (!(rd->interfaces[len][s2].flags & INMEMORY))
+							M_FLTMOVE(s1, d);
+						else
+							M_DLD(d, REG_SP, s1 * 8);
+
 						store_reg_to_var_flt(src, d);
 
 					} else {
 						s1 = rd->interfaces[len][s2].regoff;
-						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
-							M_INTMOVE(s1, d);
 
-						} else {
-							x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, d);
-						}
+						if (!(rd->interfaces[len][s2].flags & INMEMORY))
+							M_INTMOVE(s1, d);
+						else
+							M_LLD(d, REG_SP, s1 * 8);
+
 						store_reg_to_var_int(src, d);
 					}
 				}
@@ -478,7 +491,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		
 		src = bptr->instack;
 		len = bptr->icount;
-		currentline=0;
+		currentline = 0;
 
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
@@ -497,13 +510,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				break;
 
 			case ICMD_CHECKNULL: /* ..., objectref  ==> ..., objectref        */
-				if (src->flags & INMEMORY) {
-					x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8);
 
-				} else {
-					x86_64_test_reg_reg(cd, src->regoff, src->regoff);
-				}
-				x86_64_jcc(cd, X86_64_CC_Z, 0);
+				if (src->flags & INMEMORY)
+					M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 8);
+				else
+					M_TEST(src->regoff);
+				M_BEQ(0);
 				codegen_addxnullrefs(cd, cd->mcodeptr);
 				break;
 
@@ -514,7 +526,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			if (iptr->val.i == 0)
-				M_XOR(d, d);
+				M_CLR(d);
 			else
 				M_IMOV_IMM(iptr->val.i, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -525,7 +537,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			if (iptr->val.l == 0)
-				M_XOR(d, d);
+				M_CLR(d);
 			else
 				M_MOV_IMM(iptr->val.l, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -555,6 +567,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 
 			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_aconst,
 									(unresolved_class *) iptr->target, 0);
@@ -563,14 +577,15 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
+/* 				PROFILE_CYCLE_START; */
+
 				M_MOV_IMM((ptrint) iptr->val.a, d);
 
 			} else {
-				if (iptr->val.a == 0) {
-					M_XOR(d, d);
-				} else {
+				if (iptr->val.a == 0)
+					M_CLR(d);
+				else
 					M_MOV_IMM((ptrint) iptr->val.a, d);
-				}
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2279,6 +2294,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target, disp);
@@ -2287,24 +2304,33 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
+/* 				PROFILE_CYCLE_START; */
+
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					PROFILE_CYCLE_STOP;
+
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
+
+					PROFILE_CYCLE_START;
 				}
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
+
+  			M_ALD(REG_ITMP2, RIP, -(((ptrint) cd->mcodeptr + 7) -
+									(ptrint) cd->mcodebase) + disp);
+
 			switch (iptr->op1) {
 			case TYPE_INT:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
@@ -2336,6 +2362,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr->target, disp);
@@ -2344,24 +2372,33 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
+/* 				PROFILE_CYCLE_START; */
+
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					PROFILE_CYCLE_STOP;
+
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
+
+					PROFILE_CYCLE_START;
 				}
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP2);
+
+  			M_ALD(REG_ITMP2, RIP, -(((ptrint) cd->mcodeptr + 7) -
+									(ptrint) cd->mcodebase) + disp);
+
 			switch (iptr->op1) {
 			case TYPE_INT:
 				var_to_reg_int(s2, src, REG_ITMP1);
@@ -2391,6 +2428,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			if (iptr[1].val.a == NULL) {
 				disp = dseg_addaddress(cd, NULL);
 
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
 									(unresolved_field *) iptr[1].target, disp);
@@ -2399,24 +2438,33 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
 
+/* 				PROFILE_CYCLE_START; */
+
 			} else {
 				fieldinfo *fi = iptr[1].val.a;
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					PROFILE_CYCLE_STOP;
+
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 					}
+
+					PROFILE_CYCLE_START;
 				}
   			}
 
 			/* This approach is much faster than moving the field
 			   address inline into a register. */
-  			x86_64_mov_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP1);
+
+  			M_ALD(REG_ITMP1, RIP, -(((ptrint) cd->mcodeptr + 7) -
+									(ptrint) cd->mcodebase) + disp);
+
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_FLT:
@@ -2442,6 +2490,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (iptr->val.a == NULL) {
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2449,6 +2499,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
+
+/* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
 
@@ -2500,6 +2552,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 
 			if (iptr->val.a == NULL) {
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2507,6 +2561,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
+
+/* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
 
@@ -2546,6 +2602,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_nullptr_check(s1);
 
 			if (iptr[1].val.a == NULL) {
+/* 				PROFILE_CYCLE_STOP; */
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfieldconst,
 									(unresolved_field *) iptr[1].target, 0);
@@ -2553,6 +2611,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
+
+/* 				PROFILE_CYCLE_START; */
 
 				disp = 0;
 
@@ -2595,6 +2655,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
+
+			PROFILE_CYCLE_STOP;
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
@@ -2872,6 +2934,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
+				PROFILE_CYCLE_STOP;
+
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_athrow_areturn,
 									(unresolved_class *) iptr->val.a, 0);
@@ -2879,6 +2943,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
 				}
+
+				PROFILE_CYCLE_START;
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2967,6 +3033,10 @@ nowperformreturn:
 
 			if (parentargs_base)
 				M_AADD_IMM(parentargs_base * 8, REG_SP);
+
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_STOP;
 
 			M_RET;
 			}
@@ -3104,6 +3174,10 @@ gen_method:
 				}
 			}
 
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_STOP;
+
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				a = (ptrint) bte->fp;
@@ -3219,6 +3293,10 @@ gen_method:
 				M_CALL(REG_ITMP1);
 				break;
 			}
+
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_START;
 
 			/* d contains return type */
 
@@ -4169,11 +4247,13 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	cd->mcodeptr = (u1 *) cd->mcodebase;
 	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
-	/* generate profiling code */
+	/* generate native method profiling code */
 
 	if (opt_prof) {
-		M_MOV_IMM((ptrint) m, REG_ITMP1);
-		M_IINC_MEMBASE(REG_ITMP1, OFFSET(methodinfo, executioncount));
+		/* count frequency */
+
+		M_MOV_IMM((ptrint) m, REG_ITMP2);
+		M_IINC_MEMBASE(REG_ITMP2, OFFSET(methodinfo, frequency));
 	}
 
 	/* generate stub code */
@@ -4258,13 +4338,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
 	M_MOV_IMM((ptrint) codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat) {
-		M_MOV_IMM((ptrint) nativeinvokation, REG_ITMP1);
-		M_CALL(REG_ITMP1);
-	}
-#endif
 
 	/* restore integer and float argument registers */
 

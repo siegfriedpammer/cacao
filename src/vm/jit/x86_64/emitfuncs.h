@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 4388 2006-01-30 15:44:52Z twisti $
+   $Id: emitfuncs.h 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -214,6 +214,11 @@ void x86_64_xorps_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_xorps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void x86_64_xorpd_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void x86_64_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+
+
+/* system instructions ********************************************************/
+
+void emit_rdtsc(codegendata *cd);
 
 #endif /* _EMITFUNCS_H */
 

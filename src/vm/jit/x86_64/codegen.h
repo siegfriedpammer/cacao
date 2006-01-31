@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4388 2006-01-30 15:44:52Z twisti $
+   $Id: codegen.h 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -317,9 +317,11 @@ typedef enum {
 */ 
 
 #define M_INTMOVE(reg,dreg) \
-    if ((reg) != (dreg)) { \
-        x86_64_mov_reg_reg(cd, (reg),(dreg)); \
-    }
+    do { \
+        if ((reg) != (dreg)) { \
+            M_MOV(reg, dreg); \
+        } \
+    } while (0)
 
 
 /* M_FLTMOVE:
@@ -328,9 +330,11 @@ typedef enum {
 */ 
 
 #define M_FLTMOVE(reg,dreg) \
-    if ((reg) != (dreg)) { \
-        x86_64_movq_reg_reg(cd, (reg),(dreg)); \
-    }
+    do { \
+        if ((reg) != (dreg)) { \
+            M_FMOV(reg, dreg); \
+        } \
+    } while (0)
 
 
 /* var_to_reg_xxx:
@@ -424,6 +428,8 @@ typedef enum {
 #define M_MOV(a,b)              x86_64_mov_reg_reg(cd, (a), (b))
 #define M_MOV_IMM(a,b)          x86_64_mov_imm_reg(cd, (a), (b))
 
+#define M_FMOV(a,b)             x86_64_movq_reg_reg(cd, (a), (b))
+
 #define M_IMOV_IMM(a,b)         x86_64_movl_imm_reg(cd, (a), (b))
 
 #define M_ILD(a,b,disp)         x86_64_movl_membase_reg(cd, (b), (disp), (a))
@@ -452,6 +458,11 @@ typedef enum {
 #define M_LSUB_IMM(a,b)         x86_64_alu_imm_reg(cd, X86_64_SUB, (a), (b))
 
 #define M_IINC_MEMBASE(a,b)     x86_64_incl_membase(cd, (a), (b))
+
+#define M_IADD_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_ADD, (a), (b), (c))
+#define M_IADC_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_ADC, (a), (b), (c))
+#define M_ISUB_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_SUB, (a), (b), (c))
+#define M_ISBB_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_SBB, (a), (b), (c))
 
 #define M_ALD(a,b,c)            M_LLD(a,b,c)
 #define M_AST(a,b,c)            M_LST(a,b,c)
@@ -516,6 +527,43 @@ typedef enum {
 #define M_NOP                   x86_64_nop(cd)
 
 #define M_CLR(a)                M_XOR(a,a)
+
+
+/* system instructions ********************************************************/
+
+#define M_RDTSC                 emit_rdtsc(cd)
+
+#define PROFILE_CYCLE_START \
+    do { \
+        if (opt_prof) { \
+            M_PUSH(RAX); \
+            M_PUSH(RDX); \
+            \
+            M_MOV_IMM((ptrint) m, REG_ITMP3); \
+            M_RDTSC; \
+            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(methodinfo, cycles)); \
+            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(methodinfo, cycles) + 4); \
+            \
+            M_POP(RDX); \
+            M_POP(RAX); \
+        } \
+    } while (0)
+
+#define PROFILE_CYCLE_STOP \
+    do { \
+        if (opt_prof) { \
+            M_PUSH(RAX); \
+            M_PUSH(RDX); \
+            \
+            M_MOV_IMM((ptrint) m, REG_ITMP3); \
+            M_RDTSC; \
+            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(methodinfo, cycles)); \
+            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(methodinfo, cycles) + 4); \
+            \
+            M_POP(RDX); \
+            M_POP(RAX); \
+        } \
+    } while (0)
 
 
 /* function gen_resolvebranch **************************************************

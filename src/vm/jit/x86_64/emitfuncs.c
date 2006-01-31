@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -1144,15 +1144,17 @@ void x86_64_incl_reg(codegendata *cd, s8 reg) {
 }
 
 
-void x86_64_inc_membase(codegendata *cd, s8 basereg, s8 disp) {
-	x86_64_emit_rex(1,(basereg),0,0);
+void x86_64_inc_membase(codegendata *cd, s8 basereg, s8 disp)
+{
+	x86_64_emit_rex(1,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xff;
 	x86_64_emit_membase((basereg),(disp),0);
 }
 
 
-void x86_64_incl_membase(codegendata *cd, s8 basereg, s8 disp) {
-	x86_64_emit_rex(0,(basereg),0,0);
+void x86_64_incl_membase(codegendata *cd, s8 basereg, s8 disp)
+{
+	x86_64_emit_rex(0,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xff;
 	x86_64_emit_membase((basereg),(disp),0);
 }
@@ -2016,6 +2018,15 @@ void x86_64_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x57;
 	x86_64_emit_membase((basereg),(disp),(dreg));
+}
+
+
+/* system instructions ********************************************************/
+
+void emit_rdtsc(codegendata *cd)
+{
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0x31;
 }
 
 

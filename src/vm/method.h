@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4388 2006-01-30 15:44:52Z twisti $
+   $Id: method.h 4398 2006-01-31 23:43:08Z twisti $
 */
 
 
@@ -105,7 +105,10 @@ struct methodinfo {                 /* method structure                       */
 	s4            maxlifetimes;     /* helper for lsra                        */
 #endif
 
-	u4            executioncount;   /* number of method invocations           */
+	u4            frequency;        /* number of method invocations           */
+	u4           *bbfrequency;
+
+	s8            cycles;           /* number of cpu cycles                   */
 };
 
 
