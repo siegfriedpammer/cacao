@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: list.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: list.h 4394 2006-01-31 22:27:23Z twisti $
 
 */
 
@@ -36,37 +36,7 @@
 #ifndef _LIST_H
 #define _LIST_H
 
-typedef struct listnode {           /* structure for list element */
-	struct listnode *next;
-	struct listnode *prev;
-} listnode;
-
-
-typedef struct list {               /* structure for list head */
-	listnode *first;
-	listnode *last;
-	int nodeoffset;
-} list;
-
-
-/* function prototypes */
-
-void list_init(list *l, int nodeoffset);
-
-void list_addlast(list *l, void *element);
-void list_addfirst(list *l, void *element);
-
-void list_remove(list *l, void *element);
- 
-void *list_first(list *l);
-void *list_last(list *l);
-
-void *list_next(list *l, void *element);
-void *list_prev(list *l, void *element);
-
-
-/*
----------------------- interface description -----------------------------
+/* ---------------------- interface description -----------------------------
 
 The list management with this module works like this:
 	
@@ -122,6 +92,36 @@ part of different lists (there must be one 'listnode' element for every
 distinct list).
 
 */
+
+typedef struct listnode {           /* structure for list element */
+	struct listnode *next;
+	struct listnode *prev;
+} listnode;
+
+
+typedef struct list {               /* structure for list head */
+	listnode *first;
+	listnode *last;
+	int nodeoffset;
+} list;
+
+
+/* function prototypes ********************************************************/
+
+void list_init(list *l, int nodeoffset);
+
+void list_addfirst(list *l, void *element);
+void list_addlast(list *l, void *element);
+
+void list_add_before(list *l, void *element, void *newelement);
+
+void list_remove(list *l, void *element);
+ 
+void *list_first(list *l);
+void *list_last(list *l);
+
+void *list_next(list *l, void *element);
+void *list_prev(list *l, void *element);
 
 #endif /* _LIST_H */
 

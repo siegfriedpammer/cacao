@@ -26,14 +26,17 @@
 
    Authors: Reinhard Grafl
 
-   $Id: list.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: list.c 4394 2006-01-31 22:27:23Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdlib.h>
 
-#include "config.h"
+#include "vm/types.h"
+
 #include "toolbox/list.h"
 
 
@@ -45,28 +48,9 @@ void list_init(list *l, int nodeoffset)
 }
 
 
-void list_addlast(list *l, void *element)
-{
-	listnode *n = (listnode*) (((char*) element) + l->nodeoffset);
-
-	if (l->last) {
-		n->prev = l->last;
-		n->next = NULL;
-		l->last->next = n;
-		l->last = n;
-
-	} else {
-		n->prev = NULL;
-		n->next = NULL;
-		l->last = n;
-		l->first = n;
-	}
-}
-
-
 void list_addfirst(list *l, void *element)
 {
-	listnode *n = (listnode*) (((char*) element) + l->nodeoffset);
+	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
 
 	if (l->first) {
 		n->prev = NULL;
@@ -83,23 +67,71 @@ void list_addfirst(list *l, void *element)
 }
 
 
+void list_addlast(list *l, void *element)
+{
+	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
+
+	if (l->last) {
+		n->prev = l->last;
+		n->next = NULL;
+		l->last->next = n;
+		l->last = n;
+
+	} else {
+		n->prev = NULL;
+		n->next = NULL;
+		l->last = n;
+		l->first = n;
+	}
+}
+
+
+/* list_add_before *************************************************************
+
+   Adds the element newelement to the list l before element.
+
+   [ A ] <-> [ newn ] <-> [ n ] <-> [ B ]
+
+*******************************************************************************/
+
+void list_add_before(list *l, void *element, void *newelement)
+{
+	listnode *n    = (listnode *) (((u1 *) element) + l->nodeoffset);
+	listnode *newn = (listnode *) (((u1 *) newelement) + l->nodeoffset);
+
+	/* set the new links */
+
+	newn->prev = n->prev;
+	newn->next = n;
+
+	if (newn->prev)
+		newn->prev->next = newn;
+
+	n->prev = newn;
+
+	/* set list's first and last if necessary */
+
+	if (l->first == n)
+		l->first = newn;
+
+	if (l->last == n)
+		l->last = newn;
+}
+
+
 void list_remove(list *l, void *element)
 {
-	listnode *n = (listnode*) (((char*) element) + l->nodeoffset);
+	listnode *n = (listnode *) (((u1 *) element) + l->nodeoffset);
 	
-	if (n->next) {
+	if (n->next)
 		n->next->prev = n->prev;
-
-	} else {
+	else
 		l->last = n->prev;
-	}
 
-	if (n->prev) {
+	if (n->prev)
 		n->prev->next = n->next;
-
-	} else {
+	else
 		l->first = n->next;
-	}
 
 	n->next = NULL;
 	n->prev = NULL;
@@ -111,7 +143,7 @@ void *list_first(list *l)
 	if (!l->first)
 		return NULL;
 
-	return ((char*) l->first) - l->nodeoffset;
+	return ((u1 *) l->first) - l->nodeoffset;
 }
 
 
@@ -120,7 +152,7 @@ void *list_last(list *l)
 	if (!l->last)
 		return NULL;
 
-	return ((char*) l->last) - l->nodeoffset;
+	return ((u1 *) l->last) - l->nodeoffset;
 }
 
 
@@ -128,12 +160,12 @@ void *list_next(list *l, void *element)
 {
 	listnode *n;
 
-	n = (listnode*) (((char*) element) + l->nodeoffset);
+	n = (listnode *) (((u1 *) element) + l->nodeoffset);
 
 	if (!n->next)
 		return NULL;
 
-	return ((char*) n->next) - l->nodeoffset;
+	return ((u1 *) n->next) - l->nodeoffset;
 }
 
 	
@@ -141,12 +173,12 @@ void *list_prev(list *l, void *element)
 {
 	listnode *n;
 
-	n = (listnode*) (((char*) element) + l->nodeoffset);
+	n = (listnode *) (((u1 *) element) + l->nodeoffset);
 
 	if (!n->prev)
 		return NULL;
 
-	return ((char*) n->prev) - l->nodeoffset;
+	return ((u1 *) n->prev) - l->nodeoffset;
 }
 
 
