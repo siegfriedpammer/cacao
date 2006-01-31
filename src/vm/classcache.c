@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: classcache.c 4391 2006-01-31 15:18:37Z edwin $
 
 */
 
@@ -44,6 +44,77 @@
 #include "vm/hashtable.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
+
+/*************************************************************************
+
+  Class Cache
+
+  The classcache has two functions:
+  
+  	1) caching the resolution of class references
+	2) storing and checking loading constraints
+
+  We will use the following terms in this description:
+
+  	N          a class name: a utf string
+	(N,L)      a class reference with initiating loader L and class name N
+	C          a class (object): the result of resolving a reference (N,L)
+               We will write resultion as
+			        C = *(N,L)
+	(N,L1,L2)  a loading constraint indicating that (N,L1) and (N,L2) must
+	           resolve to the same class C. So (N,L1,L2) means
+			        *(N,L1) = *(N,L2)
+
+  The functions of the classcache require:
+
+    1) a mapping (N,L) |--> C for looking up prior resolution results.
+	2) storing the current set of loading constraints { (N,L1,L2) }
+
+  These functions can be rearranged like that:
+
+    a mapping N |--> (a mapping L |--> C or NULL, 
+	                  a set of constraints {(L1,L2)})
+
+  Thus we can treat the mapping and constraints for each name N
+  separately. The implementation does this by keeping a hash table
+  mapping a name N to a `classcache_name_entry` which contains all
+  info with respect to N.
+
+  For a class name N we can define an equivalence relation ~N~ on
+  class loaders:
+
+  	L1 ~N~ L2  <==>  *(N,L1) = *(N,L2)
+
+  A loading constraint (N,L1,L2) implies L1 ~N~ L2.
+
+  Also, if two references (N,L1) and (N,L2) resolve to the same class C
+  we have L1 ~N~ L2 because class loaders are required to return
+  consistent resolutions for a name N [XXX].
+
+  A `classcache_name_entry` keeps a set of tuples { (Cx,IL,CL) },
+  where
+  		Cx...is a class C or NULL
+		IL...is the set of initiating loaders
+		CL...is the set of constraint loaders
+		
+  Such a tuple is called `classcache_class_entry` in the source code.
+
+  The following holds for each tuple (Cx,IL,CL):
+
+    .  Cx is NULL if and only if IL = {}.
+	   
+	.  If Cx is a class, IL is the set of loaders that have been
+	   recorded as initiating loaders for Cx.
+  
+    .  (IL u CL) is a subset of an equivalence class of ~N~.
+
+		 (This means that all loaders in IL and CL must resolve
+		 the name N to the same class.)
+
+  The implementation stores sets of loaders as linked lists of
+  `classcache_loader_entry`s.
+ 
+*************************************************************************/
 
 
 /* initial number of slots in the classcache hash table */
