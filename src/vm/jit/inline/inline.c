@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: inline.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: inline.c 4397 2006-01-31 23:29:59Z twisti $
 
 */
 
@@ -111,7 +111,7 @@ Method to be inlined must:
         {       printf("<c%i>\t",cls->classUsed); \
                 utf_display(cls->name); printf("\n");fflush(stdout);}
 
-static bool in_stats1 = true;
+/* static bool in_stats1 = true; */
 /*-----------------------------------------------------------*/
 /* just initialize global structure for non-inlining         */
 /*-----------------------------------------------------------*/
@@ -131,11 +131,11 @@ void inlining_init0(methodinfo *m, t_inlining_globals *inline_env)
 	inline_env->inlining_rootinfo = NULL;
 
 #if defined(ENABLE_STATISTICS)
-	if (in_stats1) {
-		int ii;
-		for (ii=0; ii<512; ii++) count_in_not[ii]=0;
-		in_stats1=false;
-		}
+/* 	if (in_stats1) { */
+/* 		int ii; */
+/* 		for (ii=0; ii<512; ii++) count_in_not[ii]=0; */
+/* 		in_stats1=false; */
+/* 		} */
 #endif
 }
 
@@ -397,13 +397,13 @@ if ((inline_env->cummethods < INLINING_MAXMETHODS) &&
       (opcode != JAVA_INVOKEINTERFACE)) ) &&
     (inlineexceptions || (imi->exceptiontablelength == 0)))  {
 #if defined(ENABLE_STATISTICS)
-	count_in++;
+/* 	count_in++; */
     	if (inlinevirtuals) { 
         	if   (opcode == JAVA_INVOKEVIRTUAL) {
-			if (uniqueVirt)  count_in_uniqVirt++; 
+/* 			if (uniqueVirt)  count_in_uniqVirt++;  */
 			}
         	if   (opcode == JAVA_INVOKEINTERFACE) { 
-			if (uniqueVirt)  count_in_uniqIntf++; 
+/* 			if (uniqueVirt)  count_in_uniqIntf++;  */
 			}
 		}
 #endif
@@ -421,7 +421,7 @@ if (!can) {
 if  (imi->flags & ACC_NATIVE) return can; 
 if  (imi->flags & ACC_ABSTRACT) return can; 
 #if defined(ENABLE_STATISTICS)
-  count_in_rejected++;
+/*   count_in_rejected++; */
 #endif
 						if (opt_verbose) 
 							{char logtext[MAXLOGTEXT];
@@ -437,14 +437,14 @@ if  (imi->flags & ACC_ABSTRACT) return can;
   if  (!(inlineoutsiders) && (m->class->name != imr->classref->name)) {
 	/*** if ((!mult) && (whycannot > 0)) mult = true;  *** First time not needed ***/
 #if defined(ENABLE_STATISTICS)
-	count_in_outsiders++;
+/* 	count_in_outsiders++; */
 #endif
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
 	}
   if (inline_env->cummethods >= INLINING_MAXMETHODS) { 
 	if ((!mult) && (whycannot > 0)) mult = true; 
 #if defined(ENABLE_STATISTICS)
-	count_in_maxDepth++;
+/* 	count_in_maxDepth++; */
 #endif
 	whycannot = whycannot | IN_MAXDEPTH;  
 	}
@@ -467,13 +467,13 @@ if  (imi->flags & ACC_ABSTRACT) return can;
       		/* so know why (and that) a unique virtual was rejected for another reason */ 
      		if (opcode == JAVA_INVOKEVIRTUAL) { 
 #if defined(ENABLE_STATISTICS)
-			count_in_uniqueVirt_not_inlined++;
+/* 			count_in_uniqueVirt_not_inlined++; */
 #endif
 			whycannot = whycannot | IN_UNIQUEVIRT;  
 			}
 	 	else 	{
 #if defined(ENABLE_STATISTICS)
-			count_in_uniqueInterface_not_inlined++;
+/* 			count_in_uniqueInterface_not_inlined++; */
 #endif
 			whycannot = whycannot | IN_UNIQUE_INTERFACE;  
 			}
@@ -492,20 +492,20 @@ if  (imi->flags & ACC_ABSTRACT) return can;
   if  (inlineoutsiders && (m->class->name != imr->classref->name)) {
 	whycannot = whycannot | IN_OUTSIDERS; /* outsider */ 
 #if defined(ENABLE_STATISTICS)
-	count_in_outsiders++;
+/* 	count_in_outsiders++; */
 #endif
 	}
 
 #if defined(ENABLE_STATISTICS)
   if (mult)  
-  	count_in_rejected_mult++;
+/*   	count_in_rejected_mult++; */
 #endif
   if (whycannot > ((1<<IN_MAX)-1)) {
 	  log_text("Inline Whynot is too large???");
 	  assert(0);
   }
 #if defined(ENABLE_STATISTICS)
-  count_in_not[whycannot]++; 
+/*   count_in_not[whycannot]++;  */
 #endif
   }
 
@@ -700,7 +700,7 @@ inlining_methodinfo *inlining_analyse_method(methodinfo *m,
 		  	if ((!isnotrootlevel) && !maxdepthHit) {
 				maxdepthHit = true;
 #if defined(ENABLE_STATISTICS)
-				count_in_maxDepth++;
+/* 				count_in_maxDepth++; */
 #endif
 			}
 			}

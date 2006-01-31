@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: statistics.c 4375 2006-01-27 17:35:13Z twisti $
+   $Id: statistics.c 4397 2006-01-31 23:29:59Z twisti $
 
 */
 
@@ -142,28 +142,10 @@ int count_cstub_len = 0;
 int count_nstub_len = 0;
 int count_max_new_stack = 0;
 int count_upper_bound_new_stack = 0;
-                                /* in_  inline statistics */
-int count_in = 0;
-int count_in_uniqVirt = 0;
-int count_in_uniqIntf = 0;
-int count_in_rejected = 0;
-int count_in_rejected_mult = 0;
-int count_in_outsiders = 0;
-int count_in_uniqueVirt_not_inlined = 0;
-int count_in_uniqueInterface_not_inlined = 0;
-int count_in_maxDepth = 0;
-int count_in_maxMethods = 0;
 
 u8 count_native_function_calls=0;
-u8 count_compiled_function_calls=0;
 u8 count_jni_callXmethod_calls=0;
 u8 count_jni_calls=0;
-
-u2 count_in_not   [512];
-/***
-int count_no_in[12] = {0,0,0,0, 0,0,0,0, 0,0,0,0};
-***/
-
 
 
 static int count_block_stack_init[11] = {
@@ -223,19 +205,6 @@ void nativeinvokation(void)
 {
 	/* XXX do locking here */
 	count_native_function_calls++;
-}
-
-
-/* compiledinvokation *********************************************************
-
-   increments the compiled invokation count by one
-	
-*******************************************************************************/
-
-void compiledinvokation(void)
-{
-	/* XXX do locking here */
-	count_compiled_function_calls++;
 }
 
 
@@ -391,9 +360,6 @@ void print_stats(void)
 
 	dolog("Number of JIT compiler calls: %6d", count_jit_calls);
 	dolog("Number of compiled methods:   %6d", count_methods);
-
-	if (opt_rt)
-		dolog("Number of Methods marked Used: %d", count_methods_marked_used);
 
 	dolog("Number of compiled basic blocks:               %6d",
 		  count_basic_blocks);
@@ -578,122 +544,34 @@ void print_stats(void)
 	dolog("Number of Methods kept in registers:         %6d\n",
 		  count_method_in_register);
 
-		
-	/****if (useinlining)  ***/
-	 {
-		u2 i;
-		char * in_not_reasons[IN_MAX] = {
-        					"unqVirt    | ",
-					        "unqIntf    | ",
-					        "outsider   | ",
-					        "maxDepth   | ",
-					        "maxcode    | ",
-					        "maxlen     | ",
-					        "exception  | ",
-					        "notUnqVirt | ",
-					        "notUnqIntf |"
-					        };
 
-		dolog("Number of Methods Inlined :                              \t%6d",
-			  count_in);
-
-		if (inlinevirtuals) {
-			dolog("Number of Unique Virtual Methods inlined:                \t%6d",
-				  count_in_uniqVirt);
-			dolog("Number of Unique Implemented Interface Methods inlined:    %6d",
-				  count_in_uniqIntf);
-		}
-
-		dolog("Number of Methods Inlines (total) rejected:              \t%6d",
-			  count_in_rejected);
-		dolog("Number of Methods Inlined rejected for multiple reasons: \t%6d",
-			  count_in_rejected_mult);
-		dolog("Number of Methods where Inline max depth hit:            \t%6d",
-			  count_in_maxDepth);
-		dolog("Number of Methods Inlined rejected for max methods       \t%6d\n",
-			  count_in_maxMethods);
-		dolog("Number of Methods calls fom Outsider Class not inlined:  \t%6d",
-			  count_in_outsiders);
-
-		dolog("Number of Unique Virtual Methods not inlined:            \t%6d",
-			  count_in_uniqueVirt_not_inlined);
-		dolog("Number of Unique Implemented Interface Methods not inlined:%6d\n",
-			  count_in_uniqueInterface_not_inlined);
-
-#define INLINEDETAILS
-#ifdef  INLINEDETAILS
-		dolog("Details about Not Inlined Reasons:");
-
-		for (i = 0; i < 512; i++) {
-			if (count_in_not[i] > 0) {
-				/* XXX Please reimplement me! I'm ugly and insecure! */
-				char logtext2[1024]="\t";
-
-				if (inlinevirtuals) {
-					if (i & IN_UNIQUEVIRT)
-						strcat(logtext2, in_not_reasons[N_UNIQUEVIRT]);
-
-					if (i & IN_UNIQUE_INTERFACE)
-						strcat(logtext2, in_not_reasons[N_UNIQUE_INTERFACE]);
-
-					if (i & IN_NOT_UNIQUE_VIRT)
-						strcat(logtext2, in_not_reasons[N_NOT_UNIQUE_VIRT]);
-
-					if (i & IN_NOT_UNIQUE_INTERFACE)
-						strcat(logtext2, in_not_reasons[N_NOT_UNIQUE_INTERFACE]);
-				}
-
-				if (i & IN_OUTSIDERS)
-					strcat(logtext2, in_not_reasons[N_OUTSIDERS]);
-
-				if (i & IN_MAXDEPTH)
-					strcat(logtext2, in_not_reasons[N_MAXDEPTH]);
-
-				if (i & IN_MAXCODE)
-					strcat(logtext2, in_not_reasons[N_MAXCODE]);
-
-				if (i & IN_JCODELENGTH)
-					strcat(logtext2, in_not_reasons[N_JCODELENGTH]);
-
-				if (i & IN_EXCEPTION)
-					strcat(logtext2, in_not_reasons[N_EXCEPTION]);
-
-				dolog("  [%X]=%6d    %s", i, count_in_not[i], logtext2);
-			}
-		}
-#endif
-	 }
-
-
-	 /* instruction scheduler statistics **************************************/
+	/* instruction scheduler statistics ***************************************/
 
 #if defined(USE_SCHEDULER)
-	 dolog("Instruction scheduler statistics:");
-	 dolog("Number of basic blocks:       %7d", count_schedule_basic_blocks);
-	 dolog("Number of nodes:              %7d", count_schedule_nodes);
-	 dolog("Number of leaders nodes:      %7d", count_schedule_leaders);
-	 dolog("Number of max. leaders nodes: %7d", count_schedule_max_leaders);
-	 dolog("Length of critical path:      %7d\n", count_schedule_critical_path);
+	dolog("Instruction scheduler statistics:");
+	dolog("Number of basic blocks:       %7d", count_schedule_basic_blocks);
+	dolog("Number of nodes:              %7d", count_schedule_nodes);
+	dolog("Number of leaders nodes:      %7d", count_schedule_leaders);
+	dolog("Number of max. leaders nodes: %7d", count_schedule_max_leaders);
+	dolog("Length of critical path:      %7d\n", count_schedule_critical_path);
 #endif
 
 
 	/* call statistics ********************************************************/
 
-	 dolog("Function call statistics:");
-	 dolog("Number of native function invokations:           %ld",
-		   count_native_function_calls);
-	 dolog("Number of compiled function invokations:         %ld",
-		   count_compiled_function_calls);
-	 dolog("Number of jni->CallXMethod function invokations: %ld",
-		   count_jni_callXmethod_calls);
-	 dolog("Overall number of jni invokations:               %ld",
-		   count_jni_calls);
+	dolog("Function call statistics:");
+	dolog("Number of native function invokations:           %ld",
+		  count_native_function_calls);
+	dolog("Number of jni->CallXMethod function invokations: %ld",
+		  count_jni_callXmethod_calls);
+	dolog("Overall number of jni invokations:               %ld",
+		  count_jni_calls);
 
 
-	 /* now print other statistics ********************************************/
+	/* now print other statistics ********************************************/
 
 #if defined(ENABLE_INTRP)
-	 print_dynamic_super_statistics();
+	print_dynamic_super_statistics();
 #endif
 }
 
