@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4389 2006-01-30 16:25:20Z twisti $
+   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
 
 */
 
@@ -3130,7 +3130,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -3198,7 +3198,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			} else {
 				fieldinfo *fi = iptr->val.a;
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -3266,7 +3266,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			} else {
 				fieldinfo *fi = iptr[1].val.a;
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 

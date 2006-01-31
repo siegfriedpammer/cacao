@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4384 2006-01-28 14:42:58Z twisti $
+   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
 
 */
 
@@ -2010,7 +2010,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 		                      /* op1 = type, val.a = field address            */
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, 0);
 
 				codegen_addpatchref(cd, mcodeptr,
@@ -2026,7 +2026,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -2068,7 +2068,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 		                      /* op1 = type, val.a = field address            */
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				disp = dseg_addaddress(cd, 0);
 
 				codegen_addpatchref(cd, mcodeptr,
@@ -2083,7 +2083,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -2122,7 +2122,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                          /* op1 = type, val.a = field address (in    */
 		                          /* following NOP)                           */
 
-			if (!iptr[1].val.a) {
+			if (iptr[1].val.a == NULL) {
 				disp = dseg_addaddress(cd, 0);
 
 				codegen_addpatchref(cd, mcodeptr,
@@ -2137,7 +2137,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	
 				disp = dseg_addaddress(cd, &(fi->value));
 
-				if (!(fi->class->state & CLASS_INITIALIZED)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, mcodeptr,
 										PATCHER_clinit, fi->class, 0);
 
@@ -2173,7 +2173,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2228,7 +2228,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				var_to_reg_flt(s2, src, REG_FTMP2);
 			}
 
-			if (!iptr->val.a) {
+			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr->target, 0);
@@ -2269,7 +2269,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (!iptr[1].val.a) {
+			if (iptr[1].val.a == NULL) {
 				codegen_addpatchref(cd, mcodeptr,
 									PATCHER_get_putfield,
 									(unresolved_field *) iptr[1].target, 0);
