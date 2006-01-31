@@ -39,9 +39,21 @@
 
 #include "vm/types.h"
 
+#include "mm/memory.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/method.h"
+#include "vm/options.h"
+
+
+/* list_method_entry **********************************************************/
+
+typedef struct list_method_entry list_method_entry;
+
+struct list_method_entry {
+	methodinfo *m;
+	listnode    linkage;
+};
 
 
 /* profile_printstats **********************************************************
@@ -53,12 +65,29 @@
 #if !defined(NDEBUG)
 void profile_printstats(void)
 {
+	list                   *l;
+	list_method_entry      *lme;
+	list_method_entry      *tlme;
 	classinfo              *c;
 	methodinfo             *m;
 	u4                      slot;
-	s4                      i;
 	classcache_name_entry  *nmen;
 	classcache_class_entry *clsen;
+	s4                      i;
+	s4                      j;
+	u4                      frequency;
+	s8                      cycles;
+
+	frequency = 0;
+	cycles    = 0;
+
+	/* create new method list */
+
+	l = NEW(list);
+
+	list_init(l, OFFSET(list_method_entry, linkage));
+
+	/* iterate through all classes and methods */
 
 	for (slot = 0; slot < hashtable_classcache.size; slot++) {
 		nmen = (classcache_name_entry *) hashtable_classcache.ptr[slot];
@@ -79,17 +108,75 @@ void profile_printstats(void)
 
 					/* was this method actually called? */
 
-					if (m->executioncount > 0) {
-						printf("%10d   ", m->executioncount);
-						method_println(m);
+					if (m->frequency > 0) {
+						/* add to overall stats */
 
-						/* XXX quick hack for multiple classinfo entries */
-						m->executioncount = 0;
+						frequency += m->frequency;
+						cycles    += m->cycles;
+
+						/* create new list entry */
+
+						lme = NEW(list_method_entry);
+						lme->m = m;
+
+						/* sort the new entry into the list */
+						
+						if ((tlme = list_first(l)) == NULL) {
+							list_addfirst(l, lme);
+
+						} else {
+							for (; tlme != NULL; tlme = list_next(l, tlme)) {
+								/* check the frequency */
+
+								if (m->frequency > tlme->m->frequency) {
+									list_add_before(l, tlme, lme);
+									break;
+								}
+							}
+
+							/* if we are at the end of the list, add
+							   it at last */
+
+							if (tlme == NULL)
+								list_addlast(l, lme);
+						}
 					}
 				}
 			}
 		}
 	}
+
+	/* print all methods sorted */
+
+	printf(" frequency     ratio         cycles     ratio   method name\n");
+	printf("----------- --------- -------------- --------- -------------\n");
+
+	/* now iterate through the list and print it */
+
+	for (lme = list_first(l); lme != NULL; lme = list_next(l, lme)) {
+		/* get method of the list element */
+
+		m = lme->m;
+
+		printf("%10d   %.5f   %12ld   %.5f   ",
+			   m->frequency,
+			   (double) m->frequency / (double) frequency,
+			   m->cycles,
+			   (double) m->cycles / (double) cycles);
+
+		method_println(m);
+
+		/* print basic block frequencies */
+
+		if (opt_prof_bb) {
+			for (j = 0; j < m->basicblockcount; j++)
+				printf("                                                    L%03d: %10d\n",
+					   j, m->bbfrequency[j]);
+		}
+	}
+
+	printf("-----------           -------------- \n");
+	printf("%10d             %12ld\n", frequency, cycles);
 }
 #endif /* !defined(NDEBUG) */
 
