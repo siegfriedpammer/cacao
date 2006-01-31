@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4385 2006-01-29 17:27:07Z twisti $
+   $Id: stack.c 4395 2006-01-31 22:31:15Z twisti $
 
 */
 
@@ -2710,8 +2710,22 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 		else
 			icmd_print_stack(cd, bptr->instack);
 
-		printf("] L%03d(instruction count: %d, predecessors: %d):\n",
-			   bptr->debug_nr, bptr->icount, bptr->pre_count);
+		printf("] L%03d(type: ", bptr->debug_nr);
+
+		switch (bptr->type) {
+		case BBTYPE_STD:
+			printf("STD");
+			break;
+		case BBTYPE_EXH:
+			printf("EXH");
+			break;
+		case BBTYPE_SBR:
+			printf("SBR");
+			break;
+		}
+
+		printf(", instruction count: %d, predecessors: %d):\n",
+			   bptr->icount, bptr->pre_count);
 
 		iptr = bptr->iinstr;
 
