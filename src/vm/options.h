@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4392 2006-01-31 15:35:22Z twisti $
+   $Id: options.h 4396 2006-01-31 23:27:41Z twisti $
 
 */
 
@@ -83,10 +83,6 @@ extern bool opt_verboseclass;
 extern bool opt_verbosegc;
 extern bool opt_verbosejni;
 
-extern bool opt_rt;
-extern bool opt_xta;
-extern bool opt_vta;
-
 extern bool opt_liberalutf;      /* Don't check overlong UTF-8 sequences */
 
 extern bool showmethods;
@@ -123,6 +119,7 @@ extern bool opt_verify;
 extern bool opt_eager;
 
 extern bool opt_prof;
+extern bool opt_prof_bb;
 
 #if defined(ENABLE_LSRA)
 extern bool opt_lsra;

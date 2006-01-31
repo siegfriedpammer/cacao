@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: cacao.c 4396 2006-01-31 23:27:41Z twisti $
 
 */
 
@@ -148,13 +148,6 @@ enum {
 	OPT_OLOOP,
 	OPT_INLINING,
 
-#define STATIC_ANALYSIS
-#if defined(STATIC_ANALYSIS)
-	OPT_RT,
-	OPT_XTA,
-	OPT_VTA,
-#endif
-
 	OPT_VERBOSETC,
 	OPT_NOVERIFY,
 	OPT_LIBERALUTF,
@@ -180,6 +173,7 @@ enum {
 	OPT_INTRP,
 
 	OPT_PROF,
+	OPT_PROF_OPTION,
 
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
@@ -233,11 +227,6 @@ opt_struct opts[] = {
 	{ "sig",               true,  OPT_SIGNATURE },
 	{ "all",               false, OPT_ALL },
 	{ "oloop",             false, OPT_OLOOP },
-#ifdef STATIC_ANALYSIS
-	{ "rt",                false, OPT_RT },
-	{ "xta",               false, OPT_XTA },
-	{ "vta",               false, OPT_VTA },
-#endif
 #if defined(ENABLE_LSRA)
 	{ "lsra",              false, OPT_LSRA },
 #endif
@@ -277,6 +266,7 @@ opt_struct opts[] = {
 #endif 
 	{ "Xms",               true,  OPT_MS },
 	{ "Xmx",               true,  OPT_MX },
+	{ "Xprof:",            true,  OPT_PROF_OPTION },
 	{ "Xprof",             false, OPT_PROF },
 	{ "Xss",               true,  OPT_SS },
 	{ "ms",                true,  OPT_MS },
@@ -363,11 +353,6 @@ static void usage(void)
 	printf("           e(exception)      inline methods with exceptions\n");
 	printf("           p(aramopt)        optimize argument renaming\n");
 	printf("           o(utsiders)       inline methods of foreign classes\n");
-#ifdef STATIC_ANALYSIS
-	printf("    -rt                      use rapid type analysis\n");
-	printf("    -xta                     use x type analysis\n");
-	printf("    -vta                     use variable type analysis\n");
-#endif
 #if defined(ENABLE_LSRA)
 	printf("    -lsra                    use linear scan register allocation\n");
 #endif
@@ -395,7 +380,7 @@ static void Xusage(void)
 	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
 	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
 	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
-	printf("    -Xprof            collect and print profiling data\n");
+	printf("    -Xprof[:bb]       collect and print profiling data\n");
 #if defined(ENABLE_JVMTI)
 	printf("    -Xdebug<transport> enable remote debugging\n");
 #endif 
@@ -631,7 +616,7 @@ void exit_handler(void);
 
 int main(int argc, char **argv)
 {
-	s4 i, j;
+	s4 i, j, k;
 	void *dummy;
 	
 	/* local variables ********************************************************/
@@ -1003,7 +988,6 @@ int main(int argc, char **argv)
 					break;
 				case 'v':
 					inlinevirtuals = true;
-					opt_rt = true;
 					break;
 				case 'e':
 					inlineexceptions = true;
@@ -1020,22 +1004,6 @@ int main(int argc, char **argv)
 			}
 			break;
 
-#ifdef STATIC_ANALYSIS
-		case OPT_RT:
-			opt_rt = true; /* default for inlining */
-			break;
-
-		case OPT_XTA:
-			opt_xta = true; /* in test currently */
-			break;
-
-		case OPT_VTA:
-			printf("\nVTA is not yet available\n");
-			opt_vta = false;
-			/***opt_vta = true; not yet **/
-			break;
-#endif
-
 #if defined(ENABLE_LSRA)
 		case OPT_LSRA:
 			opt_lsra = true;
@@ -1049,6 +1017,29 @@ int main(int argc, char **argv)
 		case OPT_X:
 			Xusage();
 			break;
+
+		case OPT_PROF_OPTION:
+			/* use <= to get the last \0 too */
+
+			for (j = 0, k = 0; j <= strlen(opt_arg); j++) {
+				if (opt_arg[j] == ',')
+					opt_arg[j] = '\0';
+
+				if (opt_arg[j] == '\0') {
+					if (strcmp("bb", opt_arg + k) == 0)
+						opt_prof_bb = true;
+
+					else {
+						printf("Unknown option: -Xprof:%s\n", opt_arg + k);
+						usage();
+					}
+
+					/* set k to next char */
+
+					k = j + 1;
+				}
+			}
+			/* fall through */
 
 		case OPT_PROF:
 			opt_prof = true;

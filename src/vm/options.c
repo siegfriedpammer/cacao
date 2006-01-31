@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4392 2006-01-31 15:35:22Z twisti $
+   $Id: options.c 4396 2006-01-31 23:27:41Z twisti $
 
 */
 
@@ -69,10 +69,6 @@ bool opt_verboseclass = false;
 bool opt_verbosegc = false;
 bool opt_verbosejni = false;
 
-bool opt_rt = false;           /* true if RTA parse should be used     RT-CO  */
-bool opt_xta = false;          /* true if XTA parse should be used    XTA-CO  */
-bool opt_vta = false;          /* true if VTA parse should be used    VTA-CO  */
-
 bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences        */
 
 bool showmethods = false;
@@ -104,11 +100,12 @@ bool makeinitializations = true;
 bool getloadingtime = false;   /* to measure the runtime                     */
 bool getcompilingtime = false; /* compute compile time                       */
 
-bool opt_stat = false;
-bool opt_verify = true;        /* true if classfiles should be verified      */
-bool opt_eager = false;
+bool opt_stat    = false;
+bool opt_verify  = true;       /* true if classfiles should be verified      */
+bool opt_eager   = false;
 
-bool opt_prof = false;
+bool opt_prof    = false;
+bool opt_prof_bb = false;
 
 #if defined(ENABLE_LSRA)
 bool opt_lsra = false;
