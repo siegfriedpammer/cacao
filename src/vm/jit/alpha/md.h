@@ -28,13 +28,21 @@
 
    Changes:
 
-   $Id: md.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.h 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
 
 #ifndef _MD_H
 #define _MD_H
+
+#include "config.h"
+#include "vm/global.h"
+
+
+/* global variables ***********************************************************/
+
+extern bool has_ext_instr_set;
 
 /* function prototypes ********************************************************/
 

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: jit.c 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -1202,10 +1202,6 @@ char *opcode_names[256] = {
 void jit_init(void)
 {
 	s4 i;
-
-#if defined(__ALPHA__)
-	has_ext_instr_set = ! has_no_x_instr_set();
-#endif
 
 	for (i = 0; i < 256; i++)
 		stackreq[i] = 1;

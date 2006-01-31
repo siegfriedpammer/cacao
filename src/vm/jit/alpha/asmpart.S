@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4357 2006-01-22 23:33:38Z twisti $
+   $Id: asmpart.S 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -52,8 +52,9 @@
 
 /********************* exported functions and variables ***********************/
 
+	.globl asm_md_init
+
 	.globl asm_sync_instruction_cache
-	.globl has_no_x_instr_set
 
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction_int
@@ -91,20 +92,24 @@ asm_sync_instruction_cache:
 
 	.end    asm_sync_instruction_cache
 
-/*********************** function has_no_x_instr_set ***************************
-*                                                                              *
-*   determines if the byte support instruction set (21164a and higher)         *
-*   is available.                                                              *
-*                                                                              *
+
+/* asm_md_init *****************************************************************
+
+   Initialize machine dependent stuff.
+
+   Determines if the byte support instruction set (21164a and higher)
+   is available.
+
 *******************************************************************************/
 
-	.ent    has_no_x_instr_set
-has_no_x_instr_set:
+	.ent    asm_md_init
 
-	.long   0x47e03c20                /* amask   1,v0                         */
-	jmp     zero,(ra)                 /* return                               */
+asm_md_init:
 
-	.end    has_no_x_instr_set
+	.long   0x47e03c20                  /* amask   1,v0                       */
+	jmp     zero,(ra)                   /* return                             */
+
+	.end    asm_md_init
 
 
 /********************* function asm_calljavafunction ***************************

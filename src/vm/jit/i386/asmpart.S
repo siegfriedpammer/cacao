@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 4357 2006-01-22 23:33:38Z twisti $
+   $Id: asmpart.S 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -49,6 +49,8 @@
 
 
 /* exported functions and variables *******************************************/
+
+	.globl asm_md_init
 
 	.globl asm_calljavafunction
 	.globl asm_calljavafunction_int
@@ -75,6 +77,33 @@
 	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
+
+
+/* asm_md_init *****************************************************************
+
+   Initialize machine dependent stuff.
+
+   See: http://www.srware.com/linux_numerics.txt
+
+   This puts the X86 FPU in 64-bit precision mode.  The default under
+   Linux is to use 80-bit mode, which produces subtle differences from
+   FreeBSD and other systems, eg, (int)(1000*atof("0.3")) is 300 in
+   64-bit mode, 299 in 80-bit mode.
+
+   Fixes: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=350729
+
+*******************************************************************************/
+
+asm_md_init:
+	sub     $4,sp                       /* allocate space for the FPU state   */
+	fnstcw  (sp)                        /* get the FPU state                  */
+	mov     (sp),%eax
+	and     $0xfcff,%ax                 /* remove the extended mode flag      */
+	or      $0x0200,%ax                 /* put the double mode flag           */
+	mov     %eax,(sp)                   /* store new FPU state                */
+	fldcw   (sp)                        /* setup new FPU state                */
+	add     $4,sp
+	ret
 
 
 /********************* function asm_calljavafunction ***************************

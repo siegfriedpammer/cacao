@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: asmpart.h 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -224,14 +224,12 @@ struct castinfo {
 };
 
 
-#if defined(__ALPHA__)
-/* 
-   determines if the byte support instruction set (21164a and higher)
-   is available.
-*/
-int has_no_x_instr_set(void);
+/* function prototypes ********************************************************/
+
+/* machine dependent initialization */
+s4 asm_md_init(void);
+
 void asm_sync_instruction_cache(void);
-#endif
 
 
 /* 

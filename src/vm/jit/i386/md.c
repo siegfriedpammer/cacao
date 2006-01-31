@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -37,6 +37,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 
 
@@ -48,7 +49,7 @@
 
 void md_init(void)
 {
-	/* nothing to do */
+	(void) asm_md_init();
 }
 
 

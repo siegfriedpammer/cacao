@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: options.c 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -103,8 +103,6 @@ bool makeinitializations = true;
 
 bool getloadingtime = false;   /* to measure the runtime                     */
 bool getcompilingtime = false; /* compute compile time                       */
-
-int has_ext_instr_set = 0;     /* has instruction set extensions */
 
 bool opt_stat = false;
 bool opt_verify = true;        /* true if classfiles should be verified      */

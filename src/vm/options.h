@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4388 2006-01-30 15:44:52Z twisti $
+   $Id: options.h 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -117,8 +117,6 @@ extern bool makeinitializations;
 
 extern bool getloadingtime;
 extern bool getcompilingtime;
-
-extern int has_ext_instr_set;
 
 extern bool opt_stat;
 extern bool opt_verify;

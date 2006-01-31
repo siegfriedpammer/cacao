@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 4392 2006-01-31 15:35:22Z twisti $
 
 */
 
@@ -57,6 +57,11 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/jit/stacktrace.h"
 
 
+/* global variables ***********************************************************/
+
+bool has_ext_instr_set = false;             /* has instruction set extensions */
+
+
 /* md_init *********************************************************************
 
    Do some machine dependent initialization.
@@ -65,7 +70,9 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 void md_init(void)
 {
-	/* XXX TWISTI: do we really need this? fptest's seem to work fine */
+	/* check for extended instruction set */
+
+	has_ext_instr_set = !asm_md_init();
 
 #if defined(__LINUX__)
 	/* Linux on Digital Alpha needs an initialisation of the ieee
