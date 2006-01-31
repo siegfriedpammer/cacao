@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: signal.c 4390 2006-01-31 14:24:43Z twisti $
 
 */
 
@@ -160,7 +160,7 @@ void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
 	/* if we are already in Runtime.exit(), just do it hardcore */
 
 	if (cacao_exiting) {
-		fprintf(stderr, "Catched SIGINT while already shutting down. Shutdown aborted...\n");
+		fprintf(stderr, "Caught SIGINT while already shutting down. Shutdown aborted...\n");
 		exit(0);
 	}
 
