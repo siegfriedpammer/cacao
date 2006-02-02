@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: loader.c 4402 2006-02-02 08:51:32Z twisti $
 
 */
 
@@ -239,10 +239,12 @@ bool loader_init(u1 *stackbottom)
 void loader_load_all_classes(void)
 {
 	list_classpath_entry    *lce;
+#if defined(ENABLE_ZLIB)
 	hashtable               *ht;
 	s4                       slot;
 	hashtable_zipfile_entry *htzfe;
 	utf                     *u;
+#endif
 
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce)) {
