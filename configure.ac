@@ -316,6 +316,7 @@ if test x"${NDEBUG}" = "xno"; then
 
 else
     AC_MSG_RESULT(no)
+    AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
 fi
 AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xno")
 
@@ -473,12 +474,12 @@ fi
 
 
 dnl check if zlib should be used
-AC_MSG_CHECKING(whether zip archives should be supported)
+AC_MSG_CHECKING(whether ZIP/JAR archives should be supported)
 AC_ARG_ENABLE([zlib],
-              [AS_HELP_STRING(--enable-zlib,enable zip archive class storage (needs zlib) [[default=yes]])],
+              [AS_HELP_STRING(--disable-zlib,disable ZIP/JAR archive support (needs zlib) [[default=yes]])],
               [case "${enableval}" in
-                  no) ENABLE_ZLIB=yes;;
-                  *) ENABLE_ZLIB=no;;
+                  no) ENABLE_ZLIB=no;;
+                  *) ENABLE_ZLIB=yes;;
                esac],
               [ENABLE_ZLIB=yes])
 AC_MSG_RESULT(${ENABLE_ZLIB})
