@@ -555,10 +555,7 @@ AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of 
 
 dnl check for some programs we need
 AC_PROG_JAVAC
-AC_PATH_PROG(ZIP, zip)
-if test -z "${ZIP}"; then
-    AC_MSG_ERROR([cannot find zip])
-fi
+AC_PROG_JAR
 
 
 dnl now configure subpackages
