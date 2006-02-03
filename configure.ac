@@ -194,6 +194,22 @@ if test x"${ENABLE_JIT}" = "xyes"; then
 fi
 
 
+dnl check if softfloat should be used
+AC_MSG_CHECKING(whether softfloat should be used)
+AC_ARG_ENABLE([softfloat],
+              [AS_HELP_STRING(--enable-softfloat,use softfloat [[default=no]])],
+              [case "${enableval}" in
+                  yes) ENABLE_SOFTFLOAT=yes;;
+                  *) ENABLE_SOFTFLOAT=no;;
+               esac],
+              [ENABLE_SOFTFLOAT=no])
+AC_MSG_RESULT(${ENABLE_SOFTFLOAT})
+
+if test x"${ENABLE_SOFTFLOAT}" = "xyes"; then
+    AC_DEFINE([ENABLE_SOFTFLOAT], 1, [enable softfloat])
+fi
+
+
 dnl check for interpreter
 AC_ARG_ENABLE([intrp], [AS_HELP_STRING(--enable-intrp,enable interpreter [[default=no]])])
 
@@ -318,7 +334,7 @@ else
     AC_MSG_RESULT(no)
     AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
 fi
-AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xno")
+AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
 
 
 dnl check for statistics
