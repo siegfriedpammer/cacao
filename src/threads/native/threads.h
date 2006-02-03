@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: threads.h 4405 2006-02-03 12:46:22Z twisti $
 
 */
 
@@ -36,11 +36,12 @@
 #ifndef _THREADS_H
 #define _THREADS_H
 
+#include "config.h"
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <ucontext.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "config.h"
@@ -64,7 +65,7 @@
 #if defined(HAVE___THREAD)
 
 #define THREADSPECIFIC    __thread
-#define THREADOBJECT      ((java_lang_VMThread*) threadobj)
+#define THREADOBJECT      threadobj
 #define THREADINFO        (&threadobj->info)
 
 extern __thread threadobject *threadobj;
@@ -72,8 +73,8 @@ extern __thread threadobject *threadobj;
 #else /* defined(HAVE___THREAD) */
 
 #define THREADSPECIFIC
-#define THREADOBJECT ((java_lang_VMThread*) pthread_getspecific(tkey_threadinfo))
-#define THREADINFO (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
+#define THREADOBJECT      pthread_getspecific(tkey_threadinfo)
+#define THREADINFO        (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
 
 extern pthread_key_t tkey_threadinfo;
 
@@ -124,7 +125,8 @@ struct nativethread {
 
 /* threadobject ****************************************************************
 
-   Every java.lang.VMThread object is actually an instance of this structure.
+   Every java.lang.VMThread object is actually an instance of this
+   structure.
 
 *******************************************************************************/
 
