@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: suck.c 4415 2006-02-03 21:58:44Z twisti $
 
 */
 
@@ -120,7 +120,9 @@ void suck_add(char *classpath)
 	bool                  is_zip;
 	char                 *cwd;
 	s4                    cwdlen;
+#if defined(ENABLE_ZLIB)
 	hashtable            *ht;
+#endif
 
 	/* parse the classpath string */
 
