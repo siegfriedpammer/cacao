@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMRuntime.c 4418 2006-02-03 22:53:45Z twisti $
 
 */
 
@@ -256,8 +256,8 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
-	utf         *name;
 #if !defined(ENABLE_STATICVM)
+	utf         *name;
 	lt_dlhandle  handle;
 	lt_ptr       onload;
 	s4           version;
