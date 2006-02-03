@@ -28,16 +28,18 @@
 
    Changes:
 
-   $Id: gennativetable.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: gennativetable.c 4410 2006-02-03 19:42:45Z twisti $
 
 */
 
 
+#include "config.h"
+
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "cacaoh/headers.h"
@@ -57,14 +59,42 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/loader.h"
-#include "vm/tables.h"
+#include "vm/options.h"
+#include "vm/suck.h"
+
+
+/* define heap sizes **********************************************************/
+
+#define HEAP_MAXSIZE      4 * 1024 * 1024   /* default 4MB                    */
+#define HEAP_STARTSIZE    100 * 1024        /* default 100kB                  */
+
+
+/* define cacaoh options ******************************************************/
+
+enum {
+	OPT_HELP,
+	OPT_VERSION,
+	OPT_VERBOSE,
+	OPT_BOOTCLASSPATH,
+
+	DUMMY
+};
+
+
+opt_struct opts[] = {
+	{ "help",             false, OPT_HELP          },
+	{ "version",          false, OPT_VERSION       },
+	{ "verbose",          false, OPT_VERBOSE       },
+	{ "bootclasspath",    true,  OPT_BOOTCLASSPATH },
+	{ NULL,               false, 0                 }
+};
 
 
 int main(int argc, char **argv)
 {
 	char *bootclasspath;
-	char *cp;
 
+	chain *nativemethod_chain;
 	classcache_name_entry *nmen;
 	classcache_class_entry *clsen;
 	classinfo *c;
@@ -75,36 +105,79 @@ int main(int argc, char **argv)
 	methodinfo *m2;
 	bool nativelyoverloaded;
 
-	u4 heapmaxsize = 4 * 1024 * 1024;
-	u4 heapstartsize = 100 * 1024;
 	void *dummy;
 
-	/* set the bootclasspath */
+#if defined(DISABLE_GC)
+	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
+#endif
 
-	cp = getenv("BOOTCLASSPATH");
-	if (cp) {
-		bootclasspath = MNEW(char, strlen(cp) + 1);
-		strcpy(bootclasspath, cp);
+	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
+		switch (i) {
+		case OPT_IGNORE:
+			break;
+
+		case OPT_HELP:
+/* 			usage(); */
+			break;
+
+		case OPT_BOOTCLASSPATH:
+			/* Forget default bootclasspath and set the argument as
+			   new boot classpath. */
+			MFREE(bootclasspath, char, strlen(bootclasspath));
+
+			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
+			strcpy(bootclasspath, opt_arg);
+			break;
+
+		case OPT_VERSION:
+/* 			version(); */
+			break;
+
+		case OPT_VERBOSE:
+			opt_verbose = true;
+			loadverbose = true;
+			linkverbose = true;
+			break;
+
+		default:
+/* 			usage(); */
+			;
+		}
 	}
 
 	/* initialize the garbage collector */
-	gc_init(heapmaxsize, heapstartsize);
 
-	tables_init();
+	gc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 
-	suck_init(bootclasspath);
-   
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
-	initThreadsEarly();
+	threads_preinit();
 #endif
 	initLocks();
 #endif
 
-	/* initialize some cacao subsystems */
+	if (!utf8_init())
+		throw_main_exception_exit();
 
-	utf8_init();
-	loader_init((u1 *) &dummy);
+	/* initialize the classcache hashtable stuff: lock, hashtable
+	   (must be done _after_ threads_preinit) */
+
+	if (!classcache_init())
+		throw_main_exception_exit();
+
+	/* initialize the loader with bootclasspath (must be done _after_
+	   thread_preinit) */
+
+	if (!suck_init())
+		throw_main_exception_exit();
+
+	suck_add(bootclasspath);
+
+	/* initialize the loader subsystems (must be done _after_
+       classcache_init) */
+
+	if (!loader_init((u1 *) &dummy))
+		throw_main_exception_exit();
 
 
 	/*********************** Load JAVA classes  **************************/
@@ -118,8 +191,8 @@ int main(int argc, char **argv)
 
 	/* link all classes */
 
-	for (slot = 0; slot < classcache_hash.size; slot++) {
-		nmen = (classcache_name_entry *) classcache_hash.ptr[slot];
+	for (slot = 0; slot < hashtable_classcache.size; slot++) {
+		nmen = (classcache_name_entry *) hashtable_classcache.ptr[slot];
 
 		for (; nmen; nmen = nmen->hashlink) {
 			/* iterate over all class entries */
@@ -132,8 +205,8 @@ int main(int argc, char **argv)
 
 				/* exceptions are catched with new_exception call */
 
-				if (!c->linked)
-					(void) link_class(c);
+				if (!link_class(c))
+					assert(0);
 
 				/* find overloaded methods */
 
@@ -143,7 +216,11 @@ int main(int argc, char **argv)
 					if (!(m->flags & ACC_NATIVE))
 						continue;
 
-					if (!m->nativelyoverloaded) {
+					/* ATTENTION: We use the methodinfo's isleafmethod
+					   variable as nativelyoverloaded, so we can save
+					   some space during runtime. */
+
+					if (!m->isleafmethod) {
 						nativelyoverloaded = false;
 				
 						for (j = i + 1; j < c->methodscount; j++) {
@@ -153,12 +230,12 @@ int main(int argc, char **argv)
 								continue;
 
 							if (m->name == m2->name) {
-								m2->nativelyoverloaded = true;
+								m2->isleafmethod = true;
 								nativelyoverloaded = true;
 							}
 						}
 
-						m->nativelyoverloaded = nativelyoverloaded;
+						m->isleafmethod = nativelyoverloaded;
 					}
 				}
 
@@ -211,7 +288,11 @@ int main(int argc, char **argv)
 		fprintf(file, "_");
 		printID(m->name);
 	 
-		if (m->nativelyoverloaded)
+		/* ATTENTION: We use the methodinfo's isleafmethod variable as
+		   nativelyoverloaded, so we can save some space during
+		   runtime. */
+
+		if (m->isleafmethod)
 			printOverloadPart(m->descriptor);
 
 		fprintf(file,"\n   },\n");
@@ -220,7 +301,6 @@ int main(int argc, char **argv)
 	}
 
 	chain_free(nativemethod_chain);
-	chain_free(ident_chain);
 
 	fprintf(file, "};\n");
 
