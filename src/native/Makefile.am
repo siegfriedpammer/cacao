@@ -28,13 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4413 2006-02-03 20:54:16Z twisti $
+## $Id: Makefile.am 4416 2006-02-03 22:03:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)/src
 
-SUBDIRS = include vm
+SUBDIRS = \
+	include \
+	vm
 
 CLEANFILES =
 
@@ -61,7 +63,12 @@ libnative_la_LIBADD = \
 	vm/libnativevm.la \
 	$(JVMTI_LIB)
 
-VM_ZIP = $(top_builddir)/src/lib/vm.zip
+if ENABLE_ZLIB
+VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_FILE)
+else
+VM_ZIP = $(top_builddir)/src/lib/classes/
+endif
+
 GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
 CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)

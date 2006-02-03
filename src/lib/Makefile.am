@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4403 2006-02-02 09:16:42Z twisti $
+## $Id: Makefile.am 4416 2006-02-03 22:03:30Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,7 +37,7 @@ EXTRA_DIST = \
 
 CLEANFILES = vm.zip
 
-JAVA_VM_FILES = \
+VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/vm/reference/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMString.java \
@@ -45,19 +45,34 @@ JAVA_VM_FILES = \
 	$(top_srcdir)/src/lib/vm/reference/java/lang/VMThrowable.java \
 	$(top_srcdir)/src/lib/vm/reference/java/security/VMAccessController.java
 
-VM_ZIP = ../vm.zip
+VM_CLASS_FILES = \
+	classes/gnu/classpath/VMStackWalker.class \
+	classes/java/lang/VMClassLoader.class \
+	classes/java/lang/VMString.class \
+	classes/java/lang/VMThread.class \
+	classes/java/lang/VMThrowable.class \
+	classes/java/security/VMAccessController.class
+
 GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
 
+$(VM_CLASS_FILES): $(VM_JAVA_FILES)
+	$(mkdir_p) classes
+	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
+
+if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 
-vm.zip: $(JAVA_VM_FILES)
-	$(mkdir_p) classes
-	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(JAVA_VM_FILES)
+VM_ZIP = ../vm.zip
+
+vm.zip: $(VM_CLASS_FILES)
 	@if test "$(JAR)" = "zip"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
 	    cd classes && $(JAR) cvf $(VM_ZIP) .; \
 	fi
+else
+pkgdata_DATA = $(VM_CLASS_FILES)
+endif
 
 clean-local:
 	-rm -rf classes
