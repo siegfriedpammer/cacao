@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4411 2006-02-03 19:44:10Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -50,7 +50,7 @@ CLEANFILES += nativetable.inc
 $(srcdir)/native.c: nativetable.inc
 
 nativetable.inc: $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) $(top_builddir)/src/native/tools/gennativetable
-	BOOTCLASSPATH=$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) $(top_builddir)/src/native/tools/gennativetable > $(top_builddir)/src/native/nativetable.inc
+	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) > $(top_builddir)/src/native/nativetable.inc
 endif
 
 noinst_LTLIBRARIES = libnative.la
