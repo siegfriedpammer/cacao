@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4409 2006-02-03 19:27:13Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 if DISABLE_GC
 if NATIVE_THREADS
@@ -59,12 +59,12 @@ cacao_LDFLAGS = \
 	$(LTLIBICONV)
 
 CLASSPATH_LIBS = \
-	$(CLASSPATH_PREFIX)/classpath/libjavaio.a \
-	$(CLASSPATH_PREFIX)/classpath/libjavanio.a \
-	$(CLASSPATH_PREFIX)/classpath/libjavanet.a \
-	$(CLASSPATH_PREFIX)/classpath/libjavautil.a \
-	$(CLASSPATH_PREFIX)/classpath/libjavalang.a \
-	$(CLASSPATH_PREFIX)/classpath/libjavalangreflect.a
+	$(CLASSPATH_LIBDIR)/classpath/libjavaio.a \
+	$(CLASSPATH_LIBDIR)/classpath/libjavanio.a \
+	$(CLASSPATH_LIBDIR)/classpath/libjavanet.a \
+	$(CLASSPATH_LIBDIR)/classpath/libjavautil.a \
+	$(CLASSPATH_LIBDIR)/classpath/libjavalang.a \
+	$(CLASSPATH_LIBDIR)/classpath/libjavalangreflect.a
 
 #if USE_GTK_PEER
 #cacao_CFLAGS = \
@@ -76,7 +76,7 @@ CLASSPATH_LIBS = \
 #	$(XML_LIBS) $(XSLT_LIBS)
 #
 #CLASSPATH_LIBS += \
-#	$(CLASSPATH_PREFIX)/classpath/libgtkpeer.a
+#	$(CLASSPATH_LIBDIR)/classpath/libgtkpeer.a
 #endif
 
 else
@@ -107,7 +107,8 @@ cacao_LDADD = \
 	$(GC_LIB) \
 	$(CLASSPATH_LIBS)
 
-cacao_DEPENDENCIES = $(cacao_LDADD)
+cacao_DEPENDENCIES = \
+	$(cacao_LDADD)
 
 
 ## Local variables:
