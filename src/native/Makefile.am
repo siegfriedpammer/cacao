@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4417 2006-02-03 22:24:55Z twisti $
+## $Id: Makefile.am 4419 2006-02-03 22:57:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -63,17 +63,13 @@ libnative_la_LIBADD = \
 	vm/libnativevm.la \
 	$(JVMTI_LIB)
 
-if ENABLE_ZLIB
-VM_ZIP = $(top_builddir)/src/lib/vm.zip
-else
-VM_ZIP = $(top_builddir)/src/lib/classes/
-endif
-
-GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
+VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_STRING)
+GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
 
 CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
 
-nativetable.inc: $(VM_ZIP) $(GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
+#nativetable.inc: $(VM_ZIP) $(GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
+nativetable.inc:
 	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
 endif
 

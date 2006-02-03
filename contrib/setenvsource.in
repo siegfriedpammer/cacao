@@ -11,5 +11,5 @@ export LD_LIBRARY_PATH=\
 @CLASSPATH_PREFIX@/native/jni/java-util/.libs:\
 $LD_LIBRARY_PATH
 
-export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_PREFIX@/lib/glibj.zip
+export BOOTCLASSPATH=$PWD/src/lib/@VM_ZIP_STRING@:@CLASSPATH_PREFIX@/lib/@GLIBJ_ZIP_STRING@
 export PATH=$PWD/src/cacao:$PATH

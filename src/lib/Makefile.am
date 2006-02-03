@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4416 2006-02-03 22:03:30Z twisti $
+## $Id: Makefile.am 4419 2006-02-03 22:57:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,7 +53,7 @@ VM_CLASS_FILES = \
 	classes/java/lang/VMThrowable.class \
 	classes/java/security/VMAccessController.class
 
-GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
+GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
 
 $(VM_CLASS_FILES): $(VM_JAVA_FILES)
 	$(mkdir_p) classes

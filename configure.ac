@@ -66,6 +66,7 @@ xdspcore )
 esac
 
 dnl host type
+echo $host_os
 case "$host_os" in
 *linux* | *Linux* )
 	OS_DIR="linux"
@@ -505,7 +506,12 @@ if test x"${ENABLE_ZLIB}" = "xyes"; then
     AC_CHECK_HEADERS([zlib.h],, [AC_MSG_ERROR(cannot find zlib.h)])
     AC_CHECK_LIB(z, inflate,, [AC_MSG_ERROR(cannot find libz)])
     AC_DEFINE([ENABLE_ZLIB], 1, [use zlib])
+    VM_ZIP_STRING=vm.zip
+else
+    VM_ZIP_STRING=classes/
 fi
+AC_DEFINE_UNQUOTED(VM_ZIP_STRING, "${VM_ZIP_STRING}", [define to the string base name of the VM zip file])
+AC_SUBST(VM_ZIP_STRING)
 AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
 
 
@@ -561,12 +567,12 @@ AC_SUBST(CLASSPATH_LIBDIR)
 dnl Maybe the user has Classpath installed 'flat'.
 AC_ARG_WITH([flat-classpath], [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
 if test x"$with_flat_classpath" = "x"; then
-	GLIBJZ=glibj.zip
+	GLIBJ_ZIP_STRING=glibj.zip
 else
-	GLIBJZ=
+	GLIBJ_ZIP_STRING=
 fi
-AC_SUBST(GLIBJZ)
-AC_DEFINE_UNQUOTED(GLIBJZ_STRING, "$GLIBJZ", [define to the string base name of the classpath zip file])
+AC_SUBST(GLIBJ_ZIP_STRING)
+AC_DEFINE_UNQUOTED(GLIBJ_ZIP_STRING, "$GLIBJ_ZIP_STRING", [define to the string base name of the classpath zip file])
 
 
 dnl check for some programs we need
