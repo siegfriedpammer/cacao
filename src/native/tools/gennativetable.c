@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 4410 2006-02-03 19:42:45Z twisti $
+   $Id: gennativetable.c 4412 2006-02-03 20:53:25Z twisti $
 
 */
 
@@ -121,10 +121,6 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_BOOTCLASSPATH:
-			/* Forget default bootclasspath and set the argument as
-			   new boot classpath. */
-			MFREE(bootclasspath, char, strlen(bootclasspath));
-
 			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(bootclasspath, opt_arg);
 			break;
@@ -155,6 +151,15 @@ int main(int argc, char **argv)
 #endif
 	initLocks();
 #endif
+
+	/* initialize the string hashtable stuff: lock (must be done
+	   _after_ threads_preinit) */
+
+	if (!string_init())
+		throw_main_exception_exit();
+
+	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
+	   (must be done _after_ threads_preinit) */
 
 	if (!utf8_init())
 		throw_main_exception_exit();
@@ -202,11 +207,6 @@ int main(int argc, char **argv)
 
 				if (!c)
 					continue;
-
-				/* exceptions are catched with new_exception call */
-
-				if (!link_class(c))
-					assert(0);
 
 				/* find overloaded methods */
 
