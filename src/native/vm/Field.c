@@ -29,14 +29,15 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: Field.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -92,7 +93,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 		if (this->flag == false) {
 			/* get the calling class */
 
-			oa = cacao_createClassContextArray();
+			oa = stacktrace_getClassContext();
 
 			/* this function is always called like this:
 
@@ -115,8 +116,9 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 	if (f->flags & ACC_STATIC) {
 		/* initialize class if required */
 
-		if (!initialize_class(c))
-			return NULL;
+		if (!(c->state & CLASS_INITIALIZED))
+			if (!initialize_class(c))
+				return NULL;
 
 		/* return value address */
 

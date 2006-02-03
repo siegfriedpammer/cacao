@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jni.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
@@ -178,7 +178,7 @@ bool jni_init(void)
 		  load_class_bootstrap(utf_new_char("java/util/IdentityHashMap"))))
 		return false;
 
-	global_ref_table = GCNEW(jobject, 1);
+	global_ref_table = GCNEW(jobject);
 
 	if (!(*global_ref_table = native_new_and_init(ihmclass)))
 		return false;
@@ -1021,19 +1021,19 @@ jclass FindClass(JNIEnv *env, const char *name)
 
 	u = utf_new_char_classname((char *) name);
 
-	/* check stacktrace for classloader, if one found use it, otherwise use */
-	/* the system classloader */
+	/* Check stacktrace for classloader, if one found use it,
+	    otherwise use the system classloader. */
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	/* these JITs support stacktraces, and so does the interpreter */
 
-	cl = cacao_currentClassLoader();
+	cl = stacktrace_getCallingClassLoader();
 #else
 # if defined(ENABLE_INTRP)
 	/* the interpreter supports stacktraces, even if the JIT does not */
 
 	if (opt_intrp)
-		cl = cacao_currentClassLoader();
+		cl = stacktrace_getCallingClassLoader();
 	else
 # endif
 		cl = NULL;

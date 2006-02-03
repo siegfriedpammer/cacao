@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: memory.h 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
@@ -171,7 +171,9 @@ struct dumpinfo {
 
 #define GCNEW_UNCOLLECTABLE(type,num) ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
 
-#define GCNEW(type,num)       heap_allocate(sizeof(type) * (num), true, NULL)
+#define GCNEW(type)           heap_allocate(sizeof(type), true, NULL)
+#define GCMNEW(type,num)      heap_allocate(sizeof(type) * (num), true, NULL)
+
 #define GCFREE(ptr)           heap_free((ptr))
 
 

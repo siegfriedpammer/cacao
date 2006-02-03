@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: stacktrace.h 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
@@ -39,8 +39,8 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct stackframeinfo stackframeinfo;
-typedef struct stackTraceBuffer stackTraceBuffer;
-typedef struct stacktraceelement stacktraceelement;
+typedef struct stacktracebuffer stacktracebuffer;
+typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
 #include "vm/types.h"
@@ -73,7 +73,9 @@ extern stackframeinfo *_no_threads_stackframeinfo;
 #endif
 
 
-struct stacktraceelement {
+/* stacktrace_entry ***********************************************************/
+
+struct stacktrace_entry {
 #if SIZEOF_VOID_P == 8
 	u8          linenumber;
 #else
@@ -83,11 +85,15 @@ struct stacktraceelement {
 };
 
 
-struct stackTraceBuffer {
-	s4                 needsFree;
-	stacktraceelement *start;
-	s4                 size;
-	s4                 full;
+/* stacktracebuffer ***********************************************************/
+
+#define STACKTRACE_CAPACITY_DEFAULT      40
+#define STACKTRACE_CAPACITY_INCREMENT    40
+
+struct stacktracebuffer {
+	s4               capacity;          /* size of the buffer                 */
+	s4               used;              /* current entries in the buffer      */
+	stacktrace_entry entries[1];        /* the actual entries                 */
 };
 
 
@@ -140,10 +146,10 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 													  u1 *xpc);
 
-bool cacao_stacktrace_NormalTrace(void **target);
-java_objectarray *cacao_createClassContextArray(void);
-java_objectheader *cacao_currentClassLoader(void);
-java_objectarray *cacao_getStackForVMAccessController(void);
+stacktracebuffer  *stacktrace_fillInStackTrace(void);
+java_objectarray  *stacktrace_getClassContext(void);
+java_objectheader *stacktrace_getCallingClassLoader(void);
+java_objectarray  *stacktrace_getStack(void);
 
 void stacktrace_dump_trace(void);
 void stacktrace_print_trace(java_objectheader *xptr);
@@ -157,17 +163,6 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
-#endif
-
-
-#ifdef ENABLE_JVMTI
-typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
-
-bool cacao_stacktrace_fillInStackTrace(void **target,
-									   CacaoStackTraceCollector coll,
-									   threadobject* thread);
-
-bool stackTraceCollector(void **target, stackTraceBuffer *buffer);
 #endif
 
 #endif /* _STACKTRACE_H */

@@ -28,18 +28,20 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMThrowable.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
+#include "native/include/gnu_classpath_Pointer.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
@@ -60,22 +62,25 @@
  */
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *par1)
 {
-	java_lang_VMThrowable *vmthrow;
+	java_lang_VMThrowable *o;
+	stacktracebuffer      *stb;
 
-	vmthrow = (java_lang_VMThrowable *)
+	o = (java_lang_VMThrowable *)
 		native_new_and_init(class_java_lang_VMThrowable);
 
-	if (!vmthrow) {
-		log_text("Needed instance of class  java.lang.VMThrowable could not be created");
-		assert(0);
-	}
+	if (o == NULL)
+		return NULL;
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	if (!cacao_stacktrace_NormalTrace((void **) &(vmthrow->vmData)))
+	stb = stacktrace_fillInStackTrace();
+
+	if (stb == NULL)
 		return NULL;
+
+	o->vmData = (gnu_classpath_Pointer *) stb;
 #endif
 
-	return vmthrow;
+	return o;
 }
 
 
@@ -87,9 +92,9 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
-	stackTraceBuffer            *buf;
-	stacktraceelement           *elem;
-	stacktraceelement           *tmpelem;
+	stacktracebuffer            *stb;
+	stacktrace_entry            *ste;
+	stacktrace_entry            *tmpste;
 	s4                           size;
 	s4                           i;
 	classinfo                   *c;
@@ -99,42 +104,41 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	methodinfo                  *m;
 	java_objectarray            *oa;
 	s4                           oalength;
-	java_lang_StackTraceElement *ste;
+	java_lang_StackTraceElement *o;
 	java_lang_String            *filename;
 	s4                           linenumber;
 	java_lang_String            *declaringclass;
 
-	buf = (stackTraceBuffer *) this->vmData;
+	/* get the stacktrace buffer from the VMThrowable object */
+
+	stb = (stacktracebuffer *) this->vmData;
+
+	/* get the class of the Throwable object */
+
 	c = t->header.vftbl->class;
 
-	if (!buf) {
-		log_text("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code");
-		assert(0);
-	}
-	
-	size = buf->full;
+	assert(stb != NULL);
 
-	if (size < 2) {
-		log_text("Invalid java.lang.VMThrowable.vmData field in java.lang.VMThrowable.getStackTrace native code (length<2)");
-		assert(0);
-	}
+	size = stb->used;
+
+	assert(size >= 2);
 
 	/* skip first 2 elements in stacktrace buffer:                            */
 	/*   0: VMThrowable.fillInStackTrace                                      */
 	/*   1: Throwable.fillInStackTrace                                        */
 
-	elem = &(buf->start[2]);
+	ste = &(stb->entries[2]);
 	size -= 2;
 
-	if (size && elem->method != 0) {
+	if ((size > 0) && (ste->method != 0)) {
 		/* not a builtin native wrapper*/
 
-		if ((elem->method->class->name == utf_java_lang_Throwable) &&
-			(elem->method->name == utf_init)) {
-			/* We assume that we are within the initializer of the exception  */
-			/* object, the exception object itself should not appear in the   */
-			/* stack trace, so we skip till we reach the first function,      */
-			/* which is not an init function.                                 */
+		if ((ste->method->class->name == utf_java_lang_Throwable) &&
+			(ste->method->name == utf_init)) {
+			/* We assume that we are within the initializer of the
+			   exception object, the exception object itself should
+			   not appear in the stack trace, so we skip till we reach
+			   the first function, which is not an init function. */
 
 			inexceptionclass = false;
 			leftexceptionclass = false;
@@ -142,21 +146,23 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 			while (size > 0) {
 				/* check if we are in the exception class */
 
-				if (elem->method->class == c)
+				if (ste->method->class == c)
 					inexceptionclass = true;
 
 				/* check if we left the exception class */
 
-				if (inexceptionclass && (elem->method->class != c))
+				if (inexceptionclass && (ste->method->class != c))
 					leftexceptionclass = true;
 
-				/* found exception start point if we left the initalizers or  */
-				/* we left the exception class                                */
+				/* Found exception start point if we left the
+				   initalizers or we left the exception class. */
 
-				if ((elem->method->name != utf_init) || leftexceptionclass)
+				if ((ste->method->name != utf_init) || leftexceptionclass)
 					break;
 
-				elem++;
+				/* go to next stacktrace element */
+
+				ste++;
 				size--;
 			}
 		}
@@ -174,8 +180,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 	/* count entries with a method name */
 
-	for (oalength = 0, i = size, tmpelem = elem; i > 0; i--, tmpelem++)
-		if (tmpelem->method)
+	for (oalength = 0, i = size, tmpste = ste; i > 0; i--, tmpste++)
+		if (tmpste->method)
 			oalength++;
 
 	/* create the stacktrace element array */
@@ -185,25 +191,27 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	if (!oa)
 		return NULL;
 
-	for (i = 0; size > 0; size--, elem++, i++) {
-		if (elem->method == NULL) {
+	for (i = 0; size > 0; size--, ste++, i++) {
+		/* skip entries without a method name */
+
+		if (ste->method == NULL) {
 			i--;
 			continue;
 		}
 
 		/* allocate a new stacktrace element */
 
-		ste = (java_lang_StackTraceElement *)
+		o = (java_lang_StackTraceElement *)
 			builtin_new(class_java_lang_StackTraceElement);
 
-		if (!ste)
+		if (!o)
 			return NULL;
 
 		/* get filename */
 
-		if (!(elem->method->flags & ACC_NATIVE)) {
-			if (elem->method->class->sourcefile)
-				filename = javastring_new(elem->method->class->sourcefile);
+		if (!(ste->method->flags & ACC_NATIVE)) {
+			if (ste->method->class->sourcefile)
+				filename = javastring_new(ste->method->class->sourcefile);
 			else
 				filename = NULL;
 
@@ -213,25 +221,25 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		/* get line number */
 
-		if (elem->method->flags & ACC_NATIVE)
+		if (ste->method->flags & ACC_NATIVE)
 			linenumber = -1;
 		else
-			linenumber = (elem->linenumber == 0) ? -1 : elem->linenumber;
+			linenumber = (ste->linenumber == 0) ? -1 : ste->linenumber;
 
 		/* get declaring class name */
 
-		declaringclass = Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) elem->method->class);
+		declaringclass = Java_java_lang_VMClass_getName(env, NULL, (java_lang_Class *) ste->method->class);
 
 
-		/* fill the stacktrace element */
+		/* fill the java.lang.StackTraceElement element */
 
-		ste->fileName       = filename;
-		ste->lineNumber     = linenumber;
-		ste->declaringClass = declaringclass;
-		ste->methodName     = javastring_new(elem->method->name);
-		ste->isNative       = (elem->method->flags & ACC_NATIVE) ? 1 : 0;
+		o->fileName       = filename;
+		o->lineNumber     = linenumber;
+		o->declaringClass = declaringclass;
+		o->methodName     = javastring_new(ste->method->name);
+		o->isNative       = (ste->method->flags & ACC_NATIVE) ? 1 : 0;
 
-		oa->data[i] = (java_objectheader *) ste;
+		oa->data[i] = (java_objectheader *) o;
 	}
 
 	return oa;

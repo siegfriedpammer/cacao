@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMAccessController.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMAccessController.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
@@ -52,14 +52,14 @@ JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getSta
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined (__X86_64__)
 	/* these JITs support stacktraces */
 
-	return cacao_getStackForVMAccessController();
+	return stacktrace_getStack();
 
 #else
 # if defined(ENABLE_INTRP)
 	/* the interpreter supports stacktraces, even if the JIT does not */
 
 	if (opt_intrp) {
-		return cacao_getStackForVMAccessController();
+		return stacktrace_getStack();
 
 	} else
 # endif

@@ -29,10 +29,12 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: Method.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 
@@ -147,7 +149,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 		if (this->flag == false) {
 			/* get the calling class */
 
-			oa = cacao_createClassContextArray();
+			oa = stacktrace_getClassContext();
 
 			/* this function is always called like this:
 

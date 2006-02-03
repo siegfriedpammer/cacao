@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4368 2006-01-24 10:30:42Z twisti $
+   $Id: stacktrace.c 4406 2006-02-03 13:19:36Z twisti $
 
 */
 
@@ -61,29 +61,26 @@
 #include "vm/jit/methodheader.h"
 
 
-/* lineNumberTableEntry *******************************************************/
+/* linenumbertable_entry ******************************************************/
 
-/* Keep the type of line the same as the pointer type, otherwise we run into  */
-/* alignment troubles (like on MIPS64).                                       */
+/* Keep the type of line the same as the pointer type, otherwise we
+   run into alignment troubles (like on MIPS64). */
 
-typedef struct lineNumberTableEntry {
+typedef struct linenumbertable_entry linenumbertable_entry;
+
+struct linenumbertable_entry {
 	ptrint  line;
 	u1     *pc;
-} lineNumberTableEntry;
+};
 
 
+#if 0
 typedef struct lineNumberTableEntryInlineBegin {
 	/* this should have the same layout and size as the lineNumberTableEntry */
 	ptrint      lineNrOuter;
 	methodinfo *method;
 } lineNumberTableEntryInlineBegin;
-
-#ifndef ENABLE_JVMTI
-typedef bool(*CacaoStackTraceCollector)(void **, stackTraceBuffer*);
 #endif
-
-#define BLOCK_INITIALSIZE 40
-#define BLOCK_SIZEINCREMENT 40
 
 
 /* global variables ***********************************************************/
@@ -138,7 +135,7 @@ void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
 	sfi->sp     = sp;
 	sfi->ra     = ra;
 
-	/* xpc is the same as ra, but is required in fillInStackTrace */
+	/* xpc is the same as ra, but is required in stacktrace_create */
 
 	sfi->xpc    = ra;
 
@@ -572,63 +569,68 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 }
 
 
-/* addEntry ********************************************************************
+/* stacktrace_add_entry ********************************************************
 
-   XXX
+   Adds a new entry to the stacktrace buffer.
 
 *******************************************************************************/
 
-static void addEntry(stackTraceBuffer *buffer, methodinfo *method, u2 line)
+static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 {
-	if (buffer->size > buffer->full) {
-		stacktraceelement *tmp = &(buffer->start[buffer->full]);
+	stacktrace_entry *ste;
 
-		tmp->method = method;
-		tmp->linenumber = line;
-		buffer->full = buffer->full + 1;
+	/* check if we already reached the buffer capacity */
 
-	} else {
-		stacktraceelement *newBuffer;
+	if (stb->used >= stb->capacity) {
+		/* reallocate new memory */
 
-		newBuffer =
-			(stacktraceelement *) malloc((buffer->size + BLOCK_SIZEINCREMENT) *
-										 sizeof(stacktraceelement));
+		ste = DMREALLOC(stb->entries, stacktrace_entry, stb->capacity,
+						stb->capacity + STACKTRACE_CAPACITY_INCREMENT);
 
-		if (newBuffer == 0) {
-			log_text("OOM during stacktrace creation");
-			assert(0);
-		}
+		/* set new buffer capacity */
 
-		memcpy(newBuffer, buffer->start, buffer->size * sizeof(stacktraceelement));
-		if (buffer->needsFree)
-			free(buffer->start);
-
-		buffer->start = newBuffer;
-		buffer->size = buffer->size + BLOCK_SIZEINCREMENT;
-		buffer->needsFree = 1;
-
-		addEntry(buffer, method, line);
+		stb->capacity = stb->capacity + STACKTRACE_CAPACITY_INCREMENT;
 	}
+
+	/* insert the current entry */
+
+	ste = &(stb->entries[stb->used]);
+
+	ste->method     = m;
+	ste->linenumber = line;
+
+	/* increase entries used count */
+
+	stb->used += 1;
 }
 
 
-/* stacktrace_fillInStackTrace_methodRecursive *********************************
+/* stacktrace_fillInStackTrace_method ******************************************
 
    XXX
 
 *******************************************************************************/
 
-static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer,
-														methodinfo *m,
-														lineNumberTableEntry *lntentry,
-														s4 lntsize,
-														u1 *pc)
+static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
+								  u1 *pc)
 {
-#if 0
-	lineNumberTableEntryInlineBegin *lntinline;
-#endif
+	ptrint                 lntsize;     /* size of line number table          */
+	u1                    *lntstart;    /* start of line number table         */
+	linenumbertable_entry *lntentry;    /* points to last entry in the table  */
 
-	/* find the line number for the specified pc (going backwards) */
+	/* get size of line number table */
+
+	lntsize  = *((ptrint *) (pv + LineNumberTableSize));
+	lntstart = *((u1 **)    (pv + LineNumberTableStart));
+
+	/* Subtract the size of the line number entry of the structure,
+	   since the line number table start points to the pc. */
+
+	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
+
+	/* Find the line number for the specified PC (going backwards
+	   in the linenumber table). The linenumber table size is zero
+	   in native stubs. */
 
 	for (; lntsize > 0; lntsize--, lntentry--) {
 		/* did we reach the current line? */
@@ -638,7 +640,7 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 
 			switch (lntentry->line) {
 #if 0
-			/* XXX TWISTI we have to think about this inline stuff again */
+				/* XXX TWISTI we have to think about this inline stuff again */
 
 			case -1: /* begin of inlined method */
 				lntinline = (lineNumberTableEntryInlineBegin *) (--lntentry);
@@ -650,7 +652,7 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 																&ent,
 																&ahead,
 																pc)) {
-					addEntry(buffer, m, ilStart->lineNrOuter);
+					stacktrace_add_entry(buffer, m, ilStart->lineNrOuter);
 
 					return true;
 				}
@@ -664,7 +666,7 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 #endif
 
 			default:
-				addEntry(buffer, m, lntentry->line);
+				stacktrace_add_entry(stb, m, lntentry->line);
 				return true;
 			}
 		}
@@ -673,77 +675,31 @@ static bool stacktrace_fillInStackTrace_methodRecursive(stackTraceBuffer *buffer
 	/* check if we are before the actual JIT code */
 
 	if ((ptrint) pc < (ptrint) m->entrypoint) {
-		dolog("Current pc before start of code: %p < %p", pc, m->entrypoint);
+		dolog("Current PC before start of code: %p < %p", pc, m->entrypoint);
 		assert(0);
 	}
 
-	/* otherwise just add line 0 */
+	/* If we get here, just add the entry with line number 0. */
 
-	addEntry(buffer, m, 0);
+	stacktrace_add_entry(stb, m, 0);
 
 	return true;
 }
 
 
-/* stacktrace_fillInStackTrace_method ******************************************
+/* stacktrace_create ***********************************************************
 
-   XXX
-
-*******************************************************************************/
-
-static void stacktrace_fillInStackTrace_method(stackTraceBuffer *buffer,
-											   methodinfo *method, u1 *pv,
-											   u1 *pc)
-{
-	ptrint                lntsize;      /* size of line number table          */
-	u1                   *lntstart;     /* start of line number table         */
-	lineNumberTableEntry *lntentry;     /* points to last entry in the table  */
-
-	/* get size of line number table */
-
-	lntsize  = *((ptrint *) (pv + LineNumberTableSize));
-	lntstart = *((u1 **)    (pv + LineNumberTableStart));
-
-	/* subtract the size of the line number entry of the structure, since the */
-	/* line number table start points to the pc */
-
-	lntentry = (lineNumberTableEntry *) (lntstart - SIZEOF_VOID_P);
-
-	if (lntsize == 0) {
-		/* this happens when an exception is thrown in the native stub */
-
-		addEntry(buffer, method, 0);
-
-	} else {
-		if (!stacktrace_fillInStackTrace_methodRecursive(buffer,
-														 method,
-														 lntentry,
-														 lntsize,
-														 pc)) {
-			log_text("Trace point not found in suspected method");
-			assert(0);
-		}
-	}
-}
-
-
-/* cacao_stacktrace_fillInStackTrace *******************************************
-
-   XXX
+   Generates a stacktrace from the thread passed into a
+   stacktracebuffer.  The stacktracebuffer is allocated on the GC
+   heap.
 
 *******************************************************************************/
-#ifdef ENABLE_JVMTI
-bool cacao_stacktrace_fillInStackTrace(void **target,
-									   CacaoStackTraceCollector coll,
-									   threadobject* thread)
-#else
-static bool cacao_stacktrace_fillInStackTrace(void **target,
-									   CacaoStackTraceCollector coll)
-#endif
 
+stacktracebuffer *stacktrace_create(threadobject* thread)
 {
-	stacktraceelement primaryBlock[BLOCK_INITIALSIZE*sizeof(stacktraceelement)];
-	stackTraceBuffer  buffer;
+	stacktracebuffer *stb;
+	stacktracebuffer *gcstb;
+	s4                dumpsize;
 	stackframeinfo   *sfi;
 	methodinfo       *m;
 	u1               *pv;
@@ -751,7 +707,10 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	u4                framesize;
 	u1               *ra;
 	u1               *xpc;
-	bool              result;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
 
 	/* prevent compiler warnings */
 
@@ -759,30 +718,19 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	sp = NULL;
 	ra = NULL;
 
-	/* In most cases this should be enough -> one malloc less. I don't think  */
-	/* temporary data should be allocated with the GC, only the result.       */
+	/* create a stacktracebuffer in dump memory */
 
-	buffer.needsFree = 0;
-	buffer.start = primaryBlock;
-	buffer.size = BLOCK_INITIALSIZE; /*  *sizeof(stacktraceelement); */
-	buffer.full = 0;
+	stb = (stacktracebuffer *) DMNEW(u1, sizeof(stacktracebuffer) +
+									 sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT);
 
-	/* the first element in the stackframe chain must always be a native      */
-	/* stackframeinfo (VMThrowable.fillInStackTrace is a native function)     */
+	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
+	stb->used     = 0;
 
-#ifdef ENABLE_JVMTI
-	if (thread == NULL) 
-		sfi = *STACKFRAMEINFO; /* invocation from Throwable */
-	else
-		sfi = thread->info._stackframeinfo; /* invocation from JVMTI */
-#else
-	sfi = *STACKFRAMEINFO;
-#endif
+	/* The first element in the stackframe chain must always be a
+	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
+	   function). */
 
-	if (!sfi) {
-		*target = NULL;
-		return true;
-	}
+	sfi = thread->info._stackframeinfo;
 
 #define PRINTMETHODS 0
 
@@ -791,15 +739,15 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 	fflush(stdout);
 #endif
 
-	/* loop while we have a method pointer (asm_calljavafunction has NULL) or */
-	/* there is a stackframeinfo in the chain                                 */
+	/* Loop while we have a method pointer (asm_calljavafunction has
+	   NULL) or there is a stackframeinfo in the chain. */
 
 	m = NULL;
 
 	while (m || sfi) {
-		/* m == NULL should only happen for the first time and inline         */
-		/* stackframe infos, like from the exception stubs or the patcher     */
-		/* wrapper                                                            */
+		/* m == NULL should only happen for the first time and inline
+		   stackframe infos, like from the exception stubs or the
+		   patcher wrapper. */
 
 		if (m == NULL) {
 			/* for native stub stackframe infos, pv is always NULL */
@@ -812,7 +760,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				ra = sfi->ra;
 
 				if (m)
-					addEntry(&buffer, m, 0);
+					stacktrace_add_entry(stb, m, 0);
 
 #if PRINTMETHODS
 				printf("ra=%p sp=%p, ", ra, sp);
@@ -820,8 +768,9 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				printf(": native stub\n");
 				fflush(stdout);
 #endif
-				/* this is an native stub stackframe info, so we can get the */
-				/* parent pv from the return address (ICMD_INVOKE*) */
+				/* This is an native stub stackframe info, so we can
+				   get the parent pv from the return address
+				   (ICMD_INVOKE*). */
 
 #if defined(ENABLE_INTRP)
 				if (opt_intrp)
@@ -839,11 +788,12 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				m = *((methodinfo **) (pv + MethodPointer));
 
 			} else {
-				/* Inline stackframe infos are special: they have a xpc of    */
-				/* the actual exception position and the return address saved */
-				/* since an inline stackframe info can also be in a leaf      */
-				/* method (no return address saved on stack!!!).              */
-				/* ATTENTION: This one is also for hardware exceptions!!!     */
+				/* Inline stackframe infos are special: they have a
+				   xpc of the actual exception position and the return
+				   address saved since an inline stackframe info can
+				   also be in a leaf method (no return address saved
+				   on stack!!!).  ATTENTION: This one is also for
+				   hardware exceptions!!! */
 
 				/* get methodinfo, sp and ra from the current stackframe info */
 
@@ -877,10 +827,9 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 					if (!opt_intrp) {
 #endif
 
-					/* add it to the stacktrace */
+					/* add the method to the stacktrace */
 
-					stacktrace_fillInStackTrace_method(&buffer, m, pv,
-													   (u1 *) ((ptrint) xpc));
+					stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) xpc));
 
 					/* get the current stack frame size */
 
@@ -934,12 +883,11 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 			fflush(stdout);
 #endif
 
-			/* JIT method found, add it to the stacktrace (we subtract 1 from */
-			/* the return address since it points the the instruction after */
-			/* call) */
+			/* JIT method found, add it to the stacktrace (we subtract
+			   1 from the return address since it points the the
+			   instruction after call). */
 
-			stacktrace_fillInStackTrace_method(&buffer, m, pv,
-											   (u1 *) ((ptrint) ra) - 1);
+			stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) ra) - 1);
 
 			/* get the current stack frame size */
 
@@ -982,7 +930,7 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 
 #if defined(ENABLE_INTRP)
 			if (opt_intrp)
-				sp = *(u1 **)(sp - framesize);
+				sp = *(u1 **) (sp - framesize);
 			else
 #endif
 				{
@@ -994,274 +942,238 @@ static bool cacao_stacktrace_fillInStackTrace(void **target,
 				}
 		}
 	}
-			
-	if (coll)
-		result = coll(target, &buffer);
 
-	if (buffer.needsFree)
-		free(buffer.start);
+	/* allocate memory from the GC heap and copy the stacktrace buffer */
 
-	return result;
+	gcstb = GCMNEW(u1, sizeof(stacktracebuffer) +
+				   sizeof(stacktrace_entry) * stb->used);
+
+	gcstb->capacity = stb->capacity;
+	gcstb->used     = stb->used;
+
+	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
+
+	/* release memory */
+
+	dump_release(dumpsize);
+
+	/* return the stacktracebuffer */
+
+	return stb;
 }
 
 
-/* stackTraceCollector *********************************************************
+/* stacktrace_fillInStackTrace *************************************************
 
-   XXX
+   Generate a stacktrace from the current thread for
+   java.lang.VMThrowable.fillInStackTrace.
 
 *******************************************************************************/
-#ifdef ENABLE_JVMTI
-bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
-#else
-static bool stackTraceCollector(void **target, stackTraceBuffer *buffer)
-#endif
+
+stacktracebuffer *stacktrace_fillInStackTrace(void)
 {
-	stackTraceBuffer *dest;
+	stacktracebuffer *stb;
 
-	dest = *target = heap_allocate(sizeof(stackTraceBuffer) + buffer->full * sizeof(stacktraceelement), true, 0);
+	/* create a stacktrace from the current thread */
 
-	if (!dest)
-		return false;
+	stb = stacktrace_create(THREADOBJECT);
 
-	memcpy(*target, buffer, sizeof(stackTraceBuffer));
-	memcpy(dest + 1, buffer->start, buffer->full * sizeof(stacktraceelement));
-
-	dest->needsFree = 0;
-	dest->size = dest->full;
-	dest->start = (stacktraceelement *) (dest + 1);
-
-	return true;
+	return stb;
 }
 
 
-bool cacao_stacktrace_NormalTrace(void **target)
+/* stacktrace_getClassContext **************************************************
+
+   Creates a Class context array.
+
+*******************************************************************************/
+
+java_objectarray *stacktrace_getClassContext(void)
 {
-#ifdef ENABLE_JVMTI
-	return cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector, NULL);
-#else
-	return cacao_stacktrace_fillInStackTrace(target, &stackTraceCollector);
-#endif
-
-}
-
-
-
-static bool classContextCollector(void **target, stackTraceBuffer *buffer)
-{
+	stacktracebuffer  *stb;
+	stacktrace_entry  *ste;
 	java_objectarray  *oa;
-	stacktraceelement *current;
-	stacktraceelement *start;
-	size_t size;
-	size_t targetSize;
-	s4 i;
+	s4                 arraysize;
+	s4                 i;
 
-	size = buffer->full;
-	targetSize = 0;
+	/* create a stacktrace for the current thread */
 
-	for (i = 0; i < size; i++)
-		if (buffer->start[i].method != 0)
-			targetSize++;
+	stb = stacktrace_create(THREADOBJECT);
 
-	start = buffer->start;
-	start++;
-	targetSize--;
+	arraysize = 0;
 
-	if (targetSize > 0) {
-		if (start->method &&
-			(start->method->class == class_java_lang_SecurityManager)) {
-			targetSize--;
-			start++;
+	/* calculate the size of the Class array */
+
+	for (i = 0; i < stb->used; i++)
+		if (stb->entries[i].method != NULL)
+			arraysize++;
+
+	ste = &(stb->entries[0]);
+	ste++;
+	arraysize--;
+
+	/* XXX document me */
+
+	if (arraysize > 0) {
+		if (ste->method &&
+			(ste->method->class == class_java_lang_SecurityManager)) {
+			arraysize--;
+			ste++;
 		}
 	}
 
-	oa = builtin_anewarray(targetSize, class_java_lang_Class);
+	/* allocate the Class array */
+
+	oa = builtin_anewarray(arraysize, class_java_lang_Class);
 
 	if (!oa)
-		return false;
+		return NULL;
 
-	for(i = 0, current = start; i < targetSize; i++, current++) {
-		if (!current->method) {
+	/* fill the Class array from the stacktracebuffer */
+
+	for(i = 0; i < arraysize; i++, ste++) {
+		if (ste->method == NULL) {
 			i--;
 			continue;
 		}
 
-		oa->data[i] = (java_objectheader *) current->method->class;
+		oa->data[i] = (java_objectheader *) ste->method->class;
 	}
 
-	*target = oa;
-
-	return true;
+	return oa;
 }
 
 
-
-java_objectarray *cacao_createClassContextArray(void)
-{
-	java_objectarray *array = NULL;
-
-#ifdef ENABLE_JVMTI
-	if (!cacao_stacktrace_fillInStackTrace((void **) &array,
-										   &classContextCollector, NULL))
-#else
-	if (!cacao_stacktrace_fillInStackTrace((void **) &array,
-										   &classContextCollector))
-#endif
-		return NULL;
-
-	return array;
-}
-
-
-/* stacktrace_classLoaderCollector *********************************************
+/* stacktrace_getCallingClassLoader ********************************************
 
    XXX
 
 *******************************************************************************/
 
-static bool stacktrace_classLoaderCollector(void **target,
-											stackTraceBuffer *buffer)
+java_objectheader *stacktrace_getCallingClassLoader(void)
 {
-	stacktraceelement *current;
-	stacktraceelement *start;
+	stacktracebuffer  *stb;
+	stacktrace_entry  *ste;
 	methodinfo        *m;
-	ptrint             size;
+	java_objectheader *cl;
 	s4                 i;
 
-	size = buffer->full;
-	start = &(buffer->start[0]);
+	cl = NULL;
 
-	for(i = 0, current = start; i < size; i++, current++) {
-		m = current->method;
+	/* create a stacktrace for the current thread */
+
+	stb = stacktrace_create(THREADOBJECT);
+
+	/* iterate over all stacktrace entries and find the first suitable
+	   classloader */
+
+	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
+		m = ste->method;
 
 		if (!m)
 			continue;
 
 		if (m->class == class_java_security_PrivilegedAction) {
-			*target = NULL;
-			return true;
+			cl = NULL;
+			break;
 		}
 
 		if (m->class->classloader) {
-			*target = (java_lang_ClassLoader *) m->class->classloader;
-			return true;
+			cl = m->class->classloader;
+			break;
 		}
 	}
 
-	*target = NULL;
+	/* return the classloader */
 
-	return true;
+	return cl;
 }
 
 
-/* cacao_currentClassLoader ****************************************************
+/* stacktrace_getStack *********************************************************
 
-   XXX
+   Create a 2-dimensional array for java.security.VMAccessControler.
 
 *******************************************************************************/
 
-java_objectheader *cacao_currentClassLoader(void)
+java_objectarray *stacktrace_getStack(void)
 {
-	java_objectheader *header = NULL;
+	stacktracebuffer *stb;
+	stacktrace_entry *ste;
+	java_objectarray *oa;
+	java_objectarray *classes;
+	java_objectarray *methodnames;
+	classinfo        *c;
+	java_lang_String *str;
+	s4                i;
 
+	/* create a stacktrace for the current thread */
 
-#ifdef ENABLE_JVMTI
-	if (!cacao_stacktrace_fillInStackTrace((void**)&header,
-										   &stacktrace_classLoaderCollector,
-										   NULL))
-#else
-	if (!cacao_stacktrace_fillInStackTrace((void**)&header,
-										   &stacktrace_classLoaderCollector))
-#endif
-		return NULL;
+	stb = stacktrace_create(THREADOBJECT);
 
-	return header;
-}
+	/* get the first stacktrace entry */
 
+	ste = &(stb->entries[0]);
 
-static bool getStackCollector(void **target, stackTraceBuffer *buffer)
-{
-	java_objectarray  *oa;
-	java_objectarray  *classes;
-	java_objectarray  *methodnames;
-	java_lang_String  *str;
-	classinfo         *c;
-	stacktraceelement *current;
-	s4                 i, size;
-
-/*  	*result = (java_objectarray **) target; */
-
-	size = buffer->full;
+	/* allocate all required arrays */
 
 	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
 
 	if (!oa)
-		return false;
+		return NULL;
 
-	classes = builtin_anewarray(size, class_java_lang_Class);
+	classes = builtin_anewarray(stb->used, class_java_lang_Class);
 
 	if (!classes)
-		return false;
+		return NULL;
 
-	methodnames = builtin_anewarray(size, class_java_lang_String);
+	methodnames = builtin_anewarray(stb->used, class_java_lang_String);
 
 	if (!methodnames)
-		return false;
+		return NULL;
+
+	/* set up the 2-dimensional array */
 
 	oa->data[0] = (java_objectheader *) classes;
 	oa->data[1] = (java_objectheader *) methodnames;
 
-	for (i = 0, current = &(buffer->start[0]); i < size; i++, current++) {
-		c = current->method->class;
+	/* iterate over all stacktrace entries */
+
+	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
+		c = ste->method->class;
 
 		classes->data[i] = (java_objectheader *) c;
-		str = javastring_new(current->method->name);
+		str = javastring_new(ste->method->name);
 
 		if (!str)
-			return false;
+			return NULL;
 
 		methodnames->data[i] = (java_objectheader *) str;
 	}
 
-	*target = oa;
+	/* return the 2-dimensional array */
 
-	return true;
-}
-
-
-java_objectarray *cacao_getStackForVMAccessController(void)
-{
-	java_objectarray *result = NULL;
-
-#ifdef ENABLE_JVMTI
-	if (!cacao_stacktrace_fillInStackTrace((void **) &result,
-										   &getStackCollector,NULL))
-#else
-	if (!cacao_stacktrace_fillInStackTrace((void **) &result,
-										   &getStackCollector))
-#endif
-		return NULL;
-
-	return result;
+	return oa;
 }
 
 
 /* stacktrace_print_trace_from_buffer ******************************************
 
-   Print the stacktrace of a given stackTraceBuffer with CACAO intern
+   Print the stacktrace of a given stacktracebuffer with CACAO intern
    methods (no Java help). This method is used by
    stacktrace_dump_trace and builtin_trace_exception.
 
 *******************************************************************************/
 
-static void stacktrace_print_trace_from_buffer(stackTraceBuffer *stb)
+static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 {
-	stacktraceelement *ste;
-	methodinfo        *m;
-	s4                 i;
+	stacktrace_entry *ste;
+	methodinfo       *m;
+	s4                i;
 
-	ste = stb->start;
+	ste = &(stb->entries[0]);
 
-	for (i = 0; i < stb->size; i++, ste++) {
+	for (i = 0; i < stb->used; i++, ste++) {
 		m = ste->method;
 
 		printf("\tat ");
@@ -1295,32 +1207,39 @@ static void stacktrace_print_trace_from_buffer(stackTraceBuffer *stb)
 
 void stacktrace_dump_trace(void)
 {
-	stackTraceBuffer      *buffer;
+	stackframeinfo   *psfi;
+	stacktracebuffer *stb;
 
 #if 0
-	/* get thread stackframeinfo */
+	/* get methodinfo pointer from data segment */
 
-	info = &THREADINFO->_stackframeinfo;
+	m = *((methodinfo **) (pv + MethodPointer));
 
-	/* fill stackframeinfo structure */
+	/* get current stackframe info pointer */
 
-	tmp.oldThreadspecificHeadValue = *info;
-	tmp.addressOfThreadspecificHead = info;
-	tmp.method = NULL;
-	tmp.sp = NULL;
-	tmp.ra = _mc->gregs[REG_RIP];
+	psfi = STACKFRAMEINFO;
 
-	*info = &tmp;
+	/* fill new stackframe info structure */
+
+	sfi->prev   = *psfi;
+	sfi->method = NULL;
+	sfi->pv     = NULL;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
+
+	/* store new stackframe info pointer */
+
+	*psfi = sfi;
 #endif
 
-	/* generate stacktrace */
+	/* create a stacktrace for the current thread */
 
-	cacao_stacktrace_NormalTrace((void **) &buffer);
+	stb = stacktrace_create(THREADOBJECT);
 
 	/* print stacktrace */
 
-	if (buffer) {
-		stacktrace_print_trace_from_buffer(buffer);
+	if (stb) {
+		stacktrace_print_trace_from_buffer(stb);
 
 	} else {
 		puts("\t<<No stacktrace available>>");
@@ -1340,14 +1259,14 @@ void stacktrace_print_trace(java_objectheader *xptr)
 {
 	java_lang_Throwable   *t;
 	java_lang_VMThrowable *vmt;
-	stackTraceBuffer      *stb;
+	stacktracebuffer      *stb;
 
 	t = (java_lang_Throwable *) xptr;
 
 	/* now print the stacktrace */
 
 	vmt = t->vmState;
-	stb = (stackTraceBuffer *) vmt->vmData;
+	stb = (stacktracebuffer *) vmt->vmData;
 
 	stacktrace_print_trace_from_buffer(stb);
 }
