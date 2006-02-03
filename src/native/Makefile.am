@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4411 2006-02-03 19:44:10Z twisti $
+## $Id: Makefile.am 4413 2006-02-03 20:54:16Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -49,10 +49,6 @@ CLEANFILES += nativetable.inc
 
 $(srcdir)/native.c: nativetable.inc
 
-nativetable.inc: $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) $(top_builddir)/src/native/tools/gennativetable
-	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) > $(top_builddir)/src/native/nativetable.inc
-endif
-
 noinst_LTLIBRARIES = libnative.la
 
 libnative_la_SOURCES = \
@@ -64,6 +60,15 @@ libnative_la_SOURCES = \
 libnative_la_LIBADD = \
 	vm/libnativevm.la \
 	$(JVMTI_LIB)
+
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
+GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ)
+
+CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
+
+nativetable.inc: $(VM_ZIP) $(GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
+	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
+endif
 
 
 ## Local variables:
