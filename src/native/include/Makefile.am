@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4416 2006-02-03 22:03:30Z twisti $
+## $Id: Makefile.am 4417 2006-02-03 22:24:55Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -130,7 +130,7 @@ endif
 CACAOH = $(top_builddir)/src/cacaoh/cacaoh
 
 if ENABLE_ZLIB
-VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_FILE)
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
 else
 VM_ZIP = $(top_builddir)/src/lib/classes/
 endif
