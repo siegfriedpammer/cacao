@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: method.c 4404 2006-02-03 12:38:03Z twisti $
 
 */
 
@@ -109,6 +109,11 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old)
 #if !defined(NDEBUG)
 void method_printflags(methodinfo *m)
 {
+	if (m == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	if (m->flags & ACC_PUBLIC)       printf(" PUBLIC");
 	if (m->flags & ACC_PRIVATE)      printf(" PRIVATE");
 	if (m->flags & ACC_PROTECTED)    printf(" PROTECTED");
@@ -135,6 +140,11 @@ void method_printflags(methodinfo *m)
 #if !defined(NDEBUG)
 void method_print(methodinfo *m)
 {
+	if (m == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	utf_display_classname(m->class->name);
 	printf(".");
 	utf_display(m->name);

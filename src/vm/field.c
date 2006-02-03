@@ -32,12 +32,15 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: field.c 4404 2006-02-03 12:38:03Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdio.h>
+
 #include "vm/types.h"
 
 #include "vm/field.h"
@@ -65,6 +68,11 @@ void field_free(fieldinfo *f)
 #if !defined(NDEBUG)
 void field_printflags(fieldinfo *f)
 {
+	if (f == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	if (f->flags & ACC_PUBLIC)       printf(" PUBLIC");
 	if (f->flags & ACC_PRIVATE)      printf(" PRIVATE");
 	if (f->flags & ACC_PROTECTED)    printf(" PROTECTED");
@@ -89,6 +97,11 @@ void field_printflags(fieldinfo *f)
 #if !defined(NDEBUG)
 void field_print(fieldinfo *f)
 {
+	if (f == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	utf_display(f->name);
 	printf(" ");
 	utf_display(f->descriptor);	

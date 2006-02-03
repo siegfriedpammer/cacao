@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: class.c 4404 2006-02-03 12:38:03Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "vm/types.h"
@@ -1163,6 +1164,11 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 #if !defined(NDEBUG)
 void class_printflags(classinfo *c)
 {
+	if (c == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	if (c->flags & ACC_PUBLIC)       printf(" PUBLIC");
 	if (c->flags & ACC_PRIVATE)      printf(" PRIVATE");
 	if (c->flags & ACC_PROTECTED)    printf(" PROTECTED");
@@ -1187,6 +1193,11 @@ void class_printflags(classinfo *c)
 #if !defined(NDEBUG)
 void class_print(classinfo *c)
 {
+	if (c == NULL) {
+		printf("NULL");
+		return;
+	}
+
 	utf_display(c->name);
 	class_printflags(c);
 }
