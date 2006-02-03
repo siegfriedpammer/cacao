@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: stacktrace.c 4407 2006-02-03 14:14:17Z twisti $
 
 */
 
@@ -953,13 +953,18 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
 
+	/* just to be sure */
+
+	stb = NULL;
+	assert(gcstb != NULL);
+
 	/* release memory */
 
 	dump_release(dumpsize);
 
 	/* return the stacktracebuffer */
 
-	return stb;
+	return gcstb;
 }
 
 
