@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: stack.h 4422 2006-02-04 00:08:10Z edwin $
 
 */
 
@@ -479,9 +479,9 @@ CACAO JVM Paper
 
 #define MARKREACHED(b,c) \
     do { \
-	    if ((b)->flags < 0) { \
+	    if ((b)->flags < BBREACHED) { \
 		    COPYCURSTACK((c)); \
-            (b)->flags = 0; \
+            (b)->flags = BBREACHED; \
             (b)->instack = (c); \
             (b)->indepth = stackdepth; \
         } else { \
@@ -529,5 +529,6 @@ void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
+ * vim:noexpandtab:sw=4:ts=4:
  * End:
  */
