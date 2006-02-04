@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4406 2006-02-03 13:19:36Z twisti $
+   $Id: stacktrace.h 4431 2006-02-04 19:08:24Z twisti $
 
 */
 
@@ -87,13 +87,13 @@ struct stacktrace_entry {
 
 /* stacktracebuffer ***********************************************************/
 
-#define STACKTRACE_CAPACITY_DEFAULT      40
-#define STACKTRACE_CAPACITY_INCREMENT    40
+#define STACKTRACE_CAPACITY_DEFAULT      80
+#define STACKTRACE_CAPACITY_INCREMENT    80
 
 struct stacktracebuffer {
-	s4               capacity;          /* size of the buffer                 */
-	s4               used;              /* current entries in the buffer      */
-	stacktrace_entry entries[1];        /* the actual entries                 */
+	s4                capacity;         /* size of the buffer                 */
+	s4                used;             /* current entries in the buffer      */
+	stacktrace_entry *entries;          /* the actual entries                 */
 };
 
 
