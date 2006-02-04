@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: jni.c 4430 2006-02-04 19:04:31Z twisti $
 
 */
 
@@ -1027,13 +1027,13 @@ jclass FindClass(JNIEnv *env, const char *name)
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	/* these JITs support stacktraces, and so does the interpreter */
 
-	cl = stacktrace_getCallingClassLoader();
+	cl = stacktrace_getCurrentClassLoader();
 #else
 # if defined(ENABLE_INTRP)
 	/* the interpreter supports stacktraces, even if the JIT does not */
 
 	if (opt_intrp)
-		cl = stacktrace_getCallingClassLoader();
+		cl = stacktrace_getCurrentClassLoader();
 	else
 # endif
 		cl = NULL;

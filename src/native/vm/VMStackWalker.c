@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: VMStackWalker.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: VMStackWalker.c 4430 2006-02-04 19:04:31Z twisti $
 
 */
 
@@ -125,19 +125,34 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
+	java_objectarray  *oa;
+	classinfo         *c;
 	java_objectheader *cl;
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__X86_64__)
 	/* these JITs support stacktraces, and so does the interpreter */
 
-	cl = stacktrace_getCallingClassLoader();
+	oa = stacktrace_getClassContext();
 
+	if (oa->header.size < 2)
+		return NULL;
+  	 
+	c = (classinfo *) oa->data[1];
+
+	cl = c->classloader;
 #else
 # if defined(ENABLE_INTRP)
 	/* the interpreter supports stacktraces, even if the JIT does not */
 
 	if (opt_intrp) {
-		cl = stacktrace_getCallingClassLoader();
+		oa = stacktrace_getClassContext();
+
+		if (oa->header.size < 2)
+			return NULL;
+  	 
+		c = (classinfo *) oa->data[1];
+
+		cl = c->classloader;
 
 	} else
 # endif

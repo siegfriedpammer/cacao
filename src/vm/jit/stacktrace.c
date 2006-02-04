@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4420 2006-02-04 00:00:01Z edwin $
+   $Id: stacktrace.c 4430 2006-02-04 19:04:31Z twisti $
 
 */
 
@@ -584,8 +584,8 @@ static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 	if (stb->used >= stb->capacity) {
 		/* reallocate new memory */
 
-		ste = DMREALLOC(stb->entries, stacktrace_entry, stb->capacity,
-						stb->capacity + STACKTRACE_CAPACITY_INCREMENT);
+		stb->entries = DMREALLOC(stb->entries, stacktrace_entry, stb->capacity,
+								 stb->capacity + STACKTRACE_CAPACITY_INCREMENT);
 
 		/* set new buffer capacity */
 
@@ -720,11 +720,11 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	/* create a stacktracebuffer in dump memory */
 
-	stb = (stacktracebuffer *) DMNEW(u1, sizeof(stacktracebuffer) +
-									 sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT);
+	stb = DNEW(stacktracebuffer);
 
 	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
 	stb->used     = 0;
+	stb->entries  = DMNEW(stacktrace_entry, STACKTRACE_CAPACITY_DEFAULT);
 
 	/* The first element in the stackframe chain must always be a
 	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
@@ -945,11 +945,12 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	/* allocate memory from the GC heap and copy the stacktrace buffer */
 
-	gcstb = GCMNEW(u1, sizeof(stacktracebuffer) +
-				   sizeof(stacktrace_entry) * stb->used);
+	gcstb = GCNEW(stacktracebuffer);
+
 
 	gcstb->capacity = stb->capacity;
 	gcstb->used     = stb->used;
+	gcstb->entries  = GCMNEW(stacktrace_entry, stb->used);
 
 	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
 
@@ -958,7 +959,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	stb = NULL;
 	assert(gcstb != NULL);
 
-	/* release memory */
+	/* release dump memory */
 
 	dump_release(dumpsize);
 
@@ -998,45 +999,43 @@ java_objectarray *stacktrace_getClassContext(void)
 	stacktracebuffer  *stb;
 	stacktrace_entry  *ste;
 	java_objectarray  *oa;
-	s4                 arraysize;
+	s4                 oalength;
 	s4                 i;
 
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 
-	arraysize = 0;
-
 	/* calculate the size of the Class array */
 
-	for (i = 0; i < stb->used; i++)
+	for (i = 0, oalength = 0; i < stb->used; i++)
 		if (stb->entries[i].method != NULL)
-			arraysize++;
+			oalength++;
 
 	ste = &(stb->entries[0]);
 	ste++;
-	arraysize--;
+	oalength--;
 
 	/* XXX document me */
 
-	if (arraysize > 0) {
+	if (oalength > 0) {
 		if (ste->method &&
 			(ste->method->class == class_java_lang_SecurityManager)) {
-			arraysize--;
 			ste++;
+			oalength--;
 		}
 	}
 
 	/* allocate the Class array */
 
-	oa = builtin_anewarray(arraysize, class_java_lang_Class);
+	oa = builtin_anewarray(oalength, class_java_lang_Class);
 
 	if (!oa)
 		return NULL;
 
 	/* fill the Class array from the stacktracebuffer */
 
-	for(i = 0; i < arraysize; i++, ste++) {
+	for(i = 0; i < oalength; i++, ste++) {
 		if (ste->method == NULL) {
 			i--;
 			continue;
@@ -1049,13 +1048,13 @@ java_objectarray *stacktrace_getClassContext(void)
 }
 
 
-/* stacktrace_getCallingClassLoader ********************************************
+/* stacktrace_getCurrentClassLoader ********************************************
 
    XXX
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_getCallingClassLoader(void)
+java_objectheader *stacktrace_getCurrentClassLoader(void)
 {
 	stacktracebuffer  *stb;
 	stacktrace_entry  *ste;
