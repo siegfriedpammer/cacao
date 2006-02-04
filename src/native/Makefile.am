@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4424 2006-02-04 00:33:39Z twisti $
+## $Id: Makefile.am 4425 2006-02-04 00:43:15Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,8 @@ SUBDIRS = \
 	include \
 	vm
 
-CLEANFILES =
+CLEANFILES = \
+	nativetable.inc
 
 if ENABLE_JVMTI
 SUBDIRS += jvmti
@@ -47,18 +48,17 @@ endif
 
 if ENABLE_STATICVM
 SUBDIRS += tools
-CLEANFILES += nativetable.inc
 
 VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_STRING)
 GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
 
 CLASSPATH = $(VM_ZIP):$(GLIBJ_ZIP)
 
+$(srcdir)/native.c: nativetable.inc
+
 nativetable.inc: $(VM_ZIP) $(GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
 	$(top_builddir)/src/native/tools/gennativetable -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
 endif
-
-$(srcdir)/native.c: nativetable.inc
 
 noinst_LTLIBRARIES = libnative.la
 
