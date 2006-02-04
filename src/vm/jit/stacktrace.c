@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4407 2006-02-03 14:14:17Z twisti $
+   $Id: stacktrace.c 4420 2006-02-04 00:00:01Z edwin $
 
 */
 
@@ -1288,4 +1288,5 @@ void stacktrace_print_trace(java_objectheader *xptr)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
