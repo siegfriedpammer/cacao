@@ -31,10 +31,10 @@ The following invariants hold at all time for the stack representation:
                           ...
             [slots produced by instruction N]
 
-		CAUTION: In this context `produced` means that a stackelement has been
-		         allocated to represent the output of the instruction. For example
-				 the SWAP instruction produces two stackelements although it does
-				 not change the stack depth.
+        CAUTION: In this context `produced` means that a stackelement has been
+                 allocated to represent the output of the instruction. For example
+                 the SWAP instruction produces two stackelements although it does
+                 not change the stack depth.
 
     5) The instack of a block (if non-NULL) is allocated at a lower address than
        the stack slots produced within the block (if any).
@@ -49,9 +49,9 @@ The following invariants hold at all time for the stack representation:
     ATTENTION: not every stack slot that is allocated may be reachable
                by following the pointer in basicblock or instruction!
 
-			   NOTE: This is a problem. As far as I know it is only the case
-			         for IINC, which produces a dummy stack slot. We should
-					 change that.
+               NOTE: This is a problem. As far as I know it is only the case
+                     for IINC, which produces a dummy stack slot. We should
+                     change that.
 
 
 Figure 1: Stack representation of a basic block:
@@ -69,5 +69,5 @@ Figure 1: Stack representation of a basic block:
 
 NOTE: The bptr->stack field will be added for inlining. It is not in CACAO SVN, yet.
 
-# vim: et sts=4 sw=4
+# vim: et sts=4 sw=4 ts=4
 
