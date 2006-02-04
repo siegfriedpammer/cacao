@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: native.c 4432 2006-02-04 19:09:16Z twisti $
 
 */
 
@@ -112,8 +112,8 @@
 
 #else /* defined(ENABLE_STATICVM) */
 
-/* Ensure that symbols for functions implemented within CACAO are used and    */
-/* exported to dlopen.                                                        */
+/* Ensure that symbols for functions implemented within CACAO are used
+   and exported to dlopen. */
 
 static functionptr dummynativetable[] = {
 	(functionptr) Java_gnu_classpath_VMStackWalker_getClassContext,
@@ -691,8 +691,8 @@ functionptr native_resolve_function(methodinfo *m)
 
 	newname = native_make_overloaded_function(name, m->descriptor);
 
-	/* check the library hash entries of the classloader of the methods's     */
-	/* class                                                                  */
+	/* check the library hash entries of the classloader of the
+	   methods's class  */
 
 	sym = NULL;
 
@@ -726,8 +726,8 @@ functionptr native_resolve_function(methodinfo *m)
 			printf("JNI ]\n");
 
 
-	/* if not found, try to find the native function symbol in the main       */
-	/* program                                                                */
+	/* If not found, try to find the native function symbol in the
+	   main program. */
 
 	if (!sym) {
 		sym = lt_dlsym(mainhandle, name);
@@ -743,10 +743,14 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* no symbol found? throw exception */
 
-	if (!sym)
+	if (!sym) {
+		if (opt_verbosejni)
+			printf("failed ]\n");
+
 		*exceptionptr =
 			new_exception_utfmessage(string_java_lang_UnsatisfiedLinkError,
 									 m->name);
+	}
 
 	/* release memory */
 
