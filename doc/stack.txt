@@ -47,7 +47,7 @@ The following invariants hold at all time for the stack representation:
                are *not* guaranteed to be adjacent (see figure below)!
 
     ATTENTION: not every stack slot that is allocated may be reachable
-               by following the pointer in basicblock or instruction!
+               by following the pointers in basicblock or the instructions!
 
                NOTE: This is a problem. As far as I know it is only the case
                      for IINC, which produces a dummy stack slot. We should
