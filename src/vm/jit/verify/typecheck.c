@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: typecheck.c 4423 2006-02-04 00:13:48Z edwin $
 
 */
 
@@ -196,6 +196,7 @@ of the typeinfo of the stack slot.
 
 #ifdef TYPECHECK_VERBOSE_OPT
 bool typecheckverbose = false;
+FILE *typecheck_logfile;
 #define DOLOG(action)  do { if (typecheckverbose) {action;} } while(0)
 #else
 #define DOLOG(action)
@@ -209,19 +210,19 @@ bool typecheckverbose = false;
 #define LOG3(str,a,b,c)    DOLOG(dolog(str,a,b,c))
 #define LOGIF(cond,str)    DOLOG(do {if (cond) log_text(str);} while(0))
 #ifdef  TYPEINFO_DEBUG
-#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(get_logfile(),(info));log_plain("\n");} while(0))
+#define LOGINFO(info)      DOLOG(do {typeinfo_print_short(typecheck_logfile,(info));log_finish();} while(0))
 #else
 #define LOGINFO(info)
 #define typevectorset_print(x,y,z)
 #endif
-#define LOGFLUSH           DOLOG(fflush(get_logfile()))
-#define LOGNL              DOLOG(log_plain("\n"))
-#define LOGSTR(str)        DOLOG(log_plain(str))
-#define LOGSTR1(str,a)     DOLOG(dolog_plain(str,a))
-#define LOGSTR2(str,a,b)   DOLOG(dolog_plain(str,a,b))
-#define LOGSTR3(str,a,b,c) DOLOG(dolog_plain(str,a,b,c))
-#define LOGSTRu(utf)       DOLOG(log_plain_utf(utf))
-#define LOGNAME(c)         DOLOG(do {log_plain_utf(IS_CLASSREF(c) ? c.ref->name : c.cls->name);} while(0))
+#define LOGFLUSH           DOLOG(fflush(typecheck_logfile))
+#define LOGNL              DOLOG(log_finish())
+#define LOGSTR(str)        DOLOG(log_print(str))
+#define LOGSTR1(str,a)     DOLOG(log_print(str,a))
+#define LOGSTR2(str,a,b)   DOLOG(log_print(str,a,b))
+#define LOGSTR3(str,a,b,c) DOLOG(log_print(str,a,b,c))
+#define LOGNAME(c)         DOLOG(log_message_utf("class: ",(IS_CLASSREF(c) ? c.ref->name : c.cls->name)))
+#define LOGMETHOD(str,m)   DOLOG(log_message_method(str,m))
 #else
 #define LOG(str)
 #define LOG1(str,a)
@@ -235,18 +236,16 @@ bool typecheckverbose = false;
 #define LOGSTR1(str,a)
 #define LOGSTR2(str,a,b)
 #define LOGSTR3(str,a,b,c)
-#define LOGSTRu(utf)
 #define LOGNAME(c)
+#define LOGMETHOD(str,m)
 #endif
 
 #ifdef TYPECHECK_VERBOSE_IMPORTANT
 #define LOGimp(str)     DOLOG(log_text(str))
-#define LOGimpSTR(str)  DOLOG(log_plain(str))
-#define LOGimpSTRu(utf) DOLOG(log_plain_utf(utf))
+#define LOGimpSTR(str)  DOLOG(log_print(str))
 #else
 #define LOGimp(str)
 #define LOGimpSTR(str)
-#define LOGimpSTRu(utf)
 #endif
 
 #if defined(TYPECHECK_VERBOSE) || defined(TYPECHECK_VERBOSE_IMPORTANT)
@@ -839,10 +838,10 @@ typestate_merge(verifier_state *state,
 	typecheck_result r;
 	
 	LOG("merge:");
-	LOGSTR("dstack: "); DOLOG(typestack_print(get_logfile(),deststack)); LOGNL;
-	LOGSTR("ystack: "); DOLOG(typestack_print(get_logfile(),ystack)); LOGNL;
-	LOGSTR("dloc  : "); DOLOG(typevectorset_print(get_logfile(),destloc,state->numlocals)); LOGNL;
-	LOGSTR("yloc  : "); DOLOG(typevectorset_print(get_logfile(),yloc,state->numlocals)); LOGNL;
+	LOGSTR("dstack: "); DOLOG(typestack_print(typecheck_logfile,deststack)); LOGNL;
+	LOGSTR("ystack: "); DOLOG(typestack_print(typecheck_logfile,ystack)); LOGNL;
+	LOGSTR("dloc  : "); DOLOG(typevectorset_print(typecheck_logfile,destloc,state->numlocals)); LOGNL;
+	LOGSTR("yloc  : "); DOLOG(typevectorset_print(typecheck_logfile,yloc,state->numlocals)); LOGNL;
 	LOGFLUSH;
 
 	/* The stack is always merged. If there are returnAddresses on
@@ -916,8 +915,8 @@ typestate_merge(verifier_state *state,
 	}
 	
 	LOG("result:");
-	LOGSTR("dstack: "); DOLOG(typestack_print(get_logfile(),deststack)); LOGNL;
-	LOGSTR("dloc  : "); DOLOG(typevectorset_print(get_logfile(),destloc,state->numlocals)); LOGNL;
+	LOGSTR("dstack: "); DOLOG(typestack_print(typecheck_logfile,deststack)); LOGNL;
+	LOGSTR("dloc  : "); DOLOG(typevectorset_print(typecheck_logfile,destloc,state->numlocals)); LOGNL;
 	LOGFLUSH;
 	
 	return changed;
@@ -1618,7 +1617,7 @@ verify_basic_block(verifier_state *state)
 					}
 				}
 	}
-	DOLOG(typestate_print(get_logfile(),state->curstack,state->localset,state->numlocals));
+	DOLOG(typestate_print(typecheck_logfile,state->curstack,state->localset,state->numlocals));
 	LOGNL; LOGFLUSH;
 
 	/* loop over the instructions */
@@ -1627,7 +1626,7 @@ verify_basic_block(verifier_state *state)
 	while (--len >= 0)  {
 		TYPECHECK_COUNT(stat_ins);
 
-		DOLOG(typestate_print(get_logfile(),state->curstack,state->localset,state->numlocals));
+		DOLOG(typestate_print(typecheck_logfile,state->curstack,state->localset,state->numlocals));
 		LOGNL; LOGFLUSH;
 
 		DOLOG(show_icmd(state->iptr,false)); LOGNL; LOGFLUSH;
@@ -2420,7 +2419,7 @@ return_tail:
 
 	LOG("instructions done");
 	LOGSTR("RESULT=> ");
-	DOLOG(typestate_print(get_logfile(),state->curstack,state->localset,state->numlocals));
+	DOLOG(typestate_print(typecheck_logfile,state->curstack,state->localset,state->numlocals));
 	LOGNL; LOGFLUSH;
 
 	/* propagate stack and variables to the following block */
@@ -2646,17 +2645,11 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 
 	/* some logging on entry */
 
+	DOLOG(typecheck_logfile = stdout);
     LOGSTR("\n==============================================================================\n");
     /*DOLOG( show_icmd_method(cdata->method,cdata,rdata));*/
     LOGSTR("\n==============================================================================\n");
-    LOGimpSTR("Entering typecheck: ");
-    LOGimpSTRu(cdata->method->name);
-    LOGimpSTR("    ");
-    LOGimpSTRu(cdata->method->descriptor);
-    LOGimpSTR("    (class ");
-    LOGimpSTRu(cdata->method->class->name);
-    LOGimpSTR(")\n");
-	LOGFLUSH;
+    LOGMETHOD("Entering typecheck: ",cdata->method);
 
 	/* initialize the verifier state */
 
