@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4431 2006-02-04 19:08:24Z twisti $
+   $Id: stacktrace.h 4433 2006-02-04 20:15:23Z twisti $
 
 */
 
@@ -148,7 +148,7 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 
 stacktracebuffer  *stacktrace_fillInStackTrace(void);
 java_objectarray  *stacktrace_getClassContext(void);
-java_objectheader *stacktrace_getCallingClassLoader(void);
+java_objectheader *stacktrace_getCurrentClassLoader(void);
 java_objectarray  *stacktrace_getStack(void);
 
 void stacktrace_dump_trace(void);

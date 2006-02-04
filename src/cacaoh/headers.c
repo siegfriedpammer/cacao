@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: headers.c 4433 2006-02-04 20:15:23Z twisti $
 
 */
 
@@ -765,8 +765,12 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	methodinfo *m;	      		
 	u2 j;
 	methodinfo *m2;
-	bool nativelyoverloaded;	      		
-		      
+	bool nativelyoverloaded;
+
+	/* prevent compiler warnings */
+
+	nativelyoverloaded = false;
+
 	/* open headerfile for class */
 	gen_header_filename(classname, c->name);
 
