@@ -28,11 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4427 2006-02-04 17:31:27Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = handbook
+
+EXTRA_DIST = stack.txt
 
 
 ## Local variables:
