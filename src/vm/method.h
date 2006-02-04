@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4398 2006-01-31 23:43:08Z twisti $
+   $Id: method.h 4421 2006-02-04 00:04:41Z edwin $
 */
 
 
@@ -82,7 +82,7 @@ struct methodinfo {                 /* method structure                       */
 	instruction  *instructions;     /* points to intermediate code instr.     */
 
 	s4            stackcount;       /* number of stack elements               */
-	stackelement *stack;            /* points to intermediate code instr.     */
+	stackelement *stack;            /* points to stack elements               */
 
 	s4            exceptiontablelength; /* exceptiontable length              */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
@@ -164,4 +164,5 @@ void method_println(methodinfo *m);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
