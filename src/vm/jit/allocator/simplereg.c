@@ -31,7 +31,7 @@
 			Christian Ullrich
             Michael Starzinger
 
-   $Id: simplereg.c 4387 2006-01-30 14:24:56Z christian $
+   $Id: simplereg.c 4434 2006-02-04 23:56:24Z twisti $
 
 */
 
@@ -1452,9 +1452,10 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					break;
 
 				default:
-					throw_cacao_exception_exit(string_java_lang_InternalError,
-											   "Unknown ICMD %d during register allocation",
-											   iptr->opc);
+					*exceptionptr =
+						new_internalerror("Unknown ICMD %d during register allocation",
+										  iptr->opc);
+					return;
 				} /* switch */
 				iptr++;
 			} /* while instructions */
