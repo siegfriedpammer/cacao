@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4430 2006-02-04 19:04:31Z twisti $
+   $Id: stacktrace.c 4435 2006-02-04 23:59:54Z twisti $
 
 */
 
@@ -42,12 +42,23 @@
 #include "vm/types.h"
 
 #include "mm/boehm.h"
+#include "mm/memory.h"
 #include "native/native.h"
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_VMThrowable.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#else
+# include "threads/none/threads.h"
+#endif
 
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
@@ -730,7 +741,11 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
 	   function). */
 
+#if defined(USE_THREADS)
 	sfi = thread->info._stackframeinfo;
+#else
+	sfi = &_no_threads_stackframeinfo;
+#endif
 
 #define PRINTMETHODS 0
 

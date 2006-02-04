@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: properties.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: properties.c 4435 2006-02-04 23:59:54Z twisti $
 
 */
 
@@ -38,6 +38,8 @@
 #include <stdlib.h>
 
 #include "vm/types.h"
+
+#include "mm/memory.h"
 
 #include "vm/global.h"
 #include "native/include/java_lang_String.h"
