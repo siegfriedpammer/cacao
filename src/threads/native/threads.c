@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.c 4377 2006-01-27 19:05:09Z stefan $
+   $Id: threads.c 4443 2006-02-05 13:39:34Z stefan $
 
 */
 
@@ -522,7 +522,7 @@ void threads_preinit(void)
 	dummyLR = NEW(monitorLockRecord);
 	dummyLR->o = NULL;
 	dummyLR->ownerThread = NULL;
-	dummyLR->waiting = false;
+	dummyLR->waiting = NULL;
 	dummyLR->incharge = dummyLR;
 
 	/* we need a working dummyLR before initializing the critical
@@ -881,7 +881,7 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	r->o = NULL;
 	r->waiter = NULL;
 	r->incharge = (monitorLockRecord *) &dummyLR;
-	r->waiting = false;
+	r->waiting = NULL;
 	sem_init(&r->queueSem, 0, 0);
 	pthread_mutex_init(&r->resolveLock, NULL);
 	pthread_cond_init(&r->resolveWait, NULL);
@@ -1014,7 +1014,7 @@ static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 
 	MEMORY_BARRIER_AFTER_ATOMIC();
 
-	while (lr->o == o)
+	if (lr->o == o)
 		sem_wait(&lr->queueSem);
 
 	atomic_add(&lr->queuers, -1);
@@ -1030,9 +1030,9 @@ static void freeLockRecord(monitorLockRecord *lr)
 		sem_post(&lr->queueSem);
 }
 
-static inline void handleWaiter(monitorLockRecord *mlr, monitorLockRecord *lr)
+static inline void handleWaiter(monitorLockRecord *mlr, monitorLockRecord *lr, java_objectheader *o)
 {
-	if (lr->waiting)
+	if (lr->waiting == o)
 		mlr->waiter = lr;
 }
 
@@ -1047,7 +1047,7 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 				MEMORY_BARRIER();
 				nlr = o->monitorPtr;
 				if (nlr == lr) {
-					handleWaiter(mlr, lr);
+					handleWaiter(mlr, lr, o);
 					return mlr;
 				}
 			} else {
@@ -1058,12 +1058,12 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 			}
 			if (nlr == lr) {
 				if (mlr == lr || lr->o != o) {
-					handleWaiter(mlr, lr);
+					handleWaiter(mlr, lr, o);
 					return mlr;
 				}
 				while (lr->o == o)
 					queueOnLockRecord(lr, o);
-				handleWaiter(mlr, lr);
+				handleWaiter(mlr, lr, o);
 				return mlr;
 			}
 			freeLockRecord(mlr);
@@ -1223,7 +1223,7 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 	
 	if (lr->waiter)
 		wakeWaiters(lr->waiter);
-	lr->waiting = true;
+	lr->waiting = o;
 	STORE_ORDER_BARRIER();
 	freeLockRecord(lr);
 	wasinterrupted = waitWithTimeout(t, lr, &wakeupTime);
@@ -1231,7 +1231,7 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 	removeFromWaiters(mlr, lr);
 	mlr->lockCount = lr->lockCount;
 	lr->lockCount = 1;
-	lr->waiting = false;
+	lr->waiting = NULL;
 	lr->waiter = NULL;
 	recycleLockRecord(t, lr);
 
@@ -1272,10 +1272,10 @@ void interruptThread(java_lang_VMThread *thread)
 {
 	threadobject *t = (threadobject*) thread;
 
-	t->interrupted = true;
 	pthread_mutex_lock(&t->waitLock);
 	if (t->isSleeping)
 		pthread_cond_signal(&t->waitCond);
+	t->interrupted = true;
 	pthread_mutex_unlock(&t->waitLock);
 }
 

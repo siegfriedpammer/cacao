@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4405 2006-02-03 12:46:22Z twisti $
+   $Id: threads.h 4443 2006-02-05 13:39:34Z stefan $
 
 */
 
@@ -160,7 +160,7 @@ struct monitorLockRecord {
 	s4                 queuers;
 	monitorLockRecord *waiter;
 	monitorLockRecord *incharge;
-	bool               waiting;
+	monitorLockRecord *waiting;
 	sem_t              queueSem;
 	pthread_mutex_t    resolveLock;
 	pthread_cond_t     resolveWait;
