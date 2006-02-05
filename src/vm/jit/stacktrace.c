@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: stacktrace.c 4435 2006-02-04 23:59:54Z twisti $
+   $Id: stacktrace.c 4439 2006-02-05 00:40:53Z twisti $
 
 */
 
@@ -744,7 +744,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 #if defined(USE_THREADS)
 	sfi = thread->info._stackframeinfo;
 #else
-	sfi = &_no_threads_stackframeinfo;
+	sfi = _no_threads_stackframeinfo;
 #endif
 
 #define PRINTMETHODS 0
@@ -1281,6 +1281,9 @@ void stacktrace_print_trace(java_objectheader *xptr)
 	stacktracebuffer      *stb;
 
 	t = (java_lang_Throwable *) xptr;
+
+	if (t == NULL)
+		return;
 
 	/* now print the stacktrace */
 

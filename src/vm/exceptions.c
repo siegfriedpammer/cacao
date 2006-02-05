@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: exceptions.c 4439 2006-02-05 00:40:53Z twisti $
 
 */
 
@@ -1094,7 +1094,9 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	s4                     i;
 	classref_or_classinfo  cr;
 	classinfo             *c;
+#if defined(USE_THREADS)
 	java_objectheader     *o;
+#endif
 
 	/* get methodinfo pointer from method header */
 
@@ -1202,6 +1204,12 @@ void exceptions_print_exception(java_objectheader *xptr)
 	utf                   *u;
 
 	t = (java_lang_Throwable *) xptr;
+
+	if (t == NULL) {
+		puts("NULL\n");
+		return;
+	}
+
 	cause = t->cause;
 
 	/* print the root exception */
