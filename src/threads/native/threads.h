@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4443 2006-02-05 13:39:34Z stefan $
+   $Id: threads.h 4444 2006-02-05 13:52:26Z stefan $
 
 */
 
@@ -160,7 +160,7 @@ struct monitorLockRecord {
 	s4                 queuers;
 	monitorLockRecord *waiter;
 	monitorLockRecord *incharge;
-	monitorLockRecord *waiting;
+	java_objectheader *waiting;
 	sem_t              queueSem;
 	pthread_mutex_t    resolveLock;
 	pthread_cond_t     resolveWait;
