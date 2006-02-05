@@ -27,8 +27,9 @@
    Authors: Christian Thalinger
 
    Changes: Christian Ullrich
+   			Edwin Steiner
 
-   $Id: reg.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: reg.h 4452 2006-02-05 23:24:34Z edwin $
 
 */
 
@@ -47,7 +48,6 @@ typedef struct registerdata registerdata;
 #include "vm/types.h"
 
 #include "arch.h"
-#include "vm/jit/inline/inline.h"
 
 
 /************************* pseudo variable structure **************************/
@@ -134,7 +134,7 @@ extern s4 nregdescfloat[];
 
 /* function prototypes ********************************************************/
 
-void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
+void reg_setup(methodinfo *m, registerdata *rd);
 
 #endif /* _REG_H */
 
@@ -150,4 +150,5 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

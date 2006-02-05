@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4450 2006-02-05 23:07:39Z edwin $
+   $Id: jit.c 4452 2006-02-05 23:24:34Z edwin $
 
 */
 
@@ -1388,7 +1388,7 @@ u1 *jit_compile(methodinfo *m)
 # endif
 		/* initialize the register allocator */
 
-		reg_setup(m, rd, id);
+		reg_setup(m, rd);
 #endif
 
 	/* setup the codegendata memory */

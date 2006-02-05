@@ -47,7 +47,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen-common.c 4452 2006-02-05 23:24:34Z edwin $
 
 */
 
@@ -806,7 +806,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		reg_setup(m, rd, id);
+		reg_setup(m, rd);
 #endif
 
 	codegen_setup(m, cd, id);

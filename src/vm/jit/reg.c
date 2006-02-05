@@ -30,8 +30,9 @@
             Christian Thalinger
 			Christian Ullrich
             Michael Starzinger
+			Edwin Steiner
 
-   $Id: reg.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: reg.c 4452 2006-02-05 23:24:34Z edwin $
 
 */
 
@@ -55,7 +56,7 @@
 
 *******************************************************************************/
 
-void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
+void reg_setup(methodinfo *m, registerdata *rd)
 {
 	s4 i;
 	varinfo5 *v;
@@ -185,21 +186,27 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 	assert(rd->argfltreguse == FLT_ARG_CNT);
 
 
-	rd->freemem    = DMNEW(s4, id->cummaxstack);
+	rd->freemem    = DMNEW(s4, m->maxstack);
 #if defined(HAS_4BYTE_STACKSLOT)
-	rd->freemem_2  = DMNEW(s4, id->cummaxstack);
+	rd->freemem_2  = DMNEW(s4, m->maxstack);
 #endif
-	rd->locals     = DMNEW(varinfo5, id->cumlocals);
-	rd->interfaces = DMNEW(varinfo5, id->cummaxstack);
-	for (v = rd->locals, i = id->cumlocals; i > 0; v++, i--) {
+	rd->locals     = DMNEW(varinfo5, m->maxlocals);
+	rd->interfaces = DMNEW(varinfo5, m->maxstack);
+	for (v = rd->locals, i = m->maxlocals; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_LNG].type = -1;
 		v[0][TYPE_FLT].type = -1;
 		v[0][TYPE_DBL].type = -1;
 		v[0][TYPE_ADR].type = -1;
+
+		v[0][TYPE_INT].regoff = 0;
+		v[0][TYPE_LNG].regoff = 0;
+		v[0][TYPE_FLT].regoff = 0;
+		v[0][TYPE_DBL].regoff = 0;
+		v[0][TYPE_ADR].regoff = 0;
 	}
 
-	for (v = rd->interfaces, i = id->cummaxstack; i > 0; v++, i--) {
+	for (v = rd->interfaces, i = m->maxstack; i > 0; v++, i--) {
 		v[0][TYPE_INT].type = -1;
 		v[0][TYPE_INT].flags = 0;
 		v[0][TYPE_LNG].type = -1;
@@ -210,6 +217,12 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
 		v[0][TYPE_DBL].flags = 0;
 		v[0][TYPE_ADR].type = -1;
 		v[0][TYPE_ADR].flags = 0;
+
+		v[0][TYPE_INT].regoff = 0;
+		v[0][TYPE_LNG].regoff = 0;
+		v[0][TYPE_FLT].regoff = 0;
+		v[0][TYPE_DBL].regoff = 0;
+		v[0][TYPE_ADR].regoff = 0;
 	}
 
 #if defined(SPECIALMEMUSE)
@@ -245,4 +258,5 @@ void reg_setup(methodinfo *m, registerdata *rd, t_inlining_globals *id)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
