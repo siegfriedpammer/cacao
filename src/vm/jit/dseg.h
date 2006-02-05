@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: dseg.h 4445 2006-02-05 15:26:34Z edwin $
 
 */
 
@@ -95,10 +95,16 @@ struct patchref {
 
 struct linenumberref {
 	s4             tablepos;    /* patching position in data segment          */
-	s4             targetmpc;   /* machine code program counter of first      */
+	s4             linenumber;  /* line number, used for inserting into the   */
+	                            /* table and for validity checking            */
+	                            /* -1......start of inlined body              */
+	                            /* -2......end of inlined body                */
+	                            /* <= -3...special entry with methodinfo *    */
+								/* (see doc/inlining_stacktrace.txt)          */
+	ptrint         targetmpc;   /* machine code program counter of first      */
 	                            /* instruction for given line                 */
-	u2             linenumber;  /* line number, used for inserting into the   */
-	                            /* table and for validty checking             */
+								/* NOTE: for linenumber <= -3 this is a the   */
+	                            /* (methodinfo *) of the inlined method       */
 	linenumberref *next;        /* next element in linenumberref list         */
 };
 
@@ -123,6 +129,8 @@ void dseg_addtarget(codegendata *cd, basicblock *target);
 
 void dseg_addlinenumbertablesize(codegendata *cd);
 void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *ptr);
+void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr, u1 *ptr);
+void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr);
 
 void dseg_createlinenumbertable(codegendata *cd);
 
@@ -149,4 +157,5 @@ void dseg_display(methodinfo *m, codegendata *cd);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

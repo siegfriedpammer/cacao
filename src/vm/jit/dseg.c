@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: dseg.c 4445 2006-02-05 15:26:34Z edwin $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "vm/types.h"
 
+#include <assert.h>
 #include "mm/memory.h"
 #include "vm/jit/codegen-common.h"
 
@@ -207,6 +208,17 @@ void dseg_addlinenumbertablesize(codegendata *cd)
 }
 
 
+/* dseg_addlinenumber **********************************************************
+
+   Add a line number reference.
+
+   IN:
+      cd.............current codegen data
+      linenumber.....number of line that starts with the given mcodeptr
+      mcodeptr.......start mcodeptr of line
+
+*******************************************************************************/
+
 void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *mcodeptr)
 {
 	linenumberref *lr;
@@ -217,6 +229,84 @@ void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *mcodeptr)
 	lr->tablepos   = 0;
 	lr->targetmpc  = mcodeptr - cd->mcodebase;
 	lr->next       = cd->linenumberreferences;
+
+	cd->linenumberreferences = lr;
+}
+
+
+/* dseg_addlinenumber_inline_start *********************************************
+
+   Add a marker to the line number table indicating the start of an inlined
+   method body. (see doc/inlining_stacktrace.txt)
+
+   IN:
+      cd.............current codegen data
+      iptr...........the ICMD_INLINE_START instruction
+      mcodeptr.......start mcodeptr of inlined body
+
+*******************************************************************************/
+
+void dseg_addlinenumber_inline_start(codegendata *cd, 
+									 instruction *iptr, 
+									 u1 *mcodeptr)
+{
+	linenumberref *lr;
+
+	lr = DNEW(linenumberref);
+
+	lr->linenumber = (-2); /* marks start of inlined method */
+	lr->tablepos   = 0;
+	lr->targetmpc  = mcodeptr - cd->mcodebase;
+	lr->next       = cd->linenumberreferences;
+
+	cd->linenumberreferences = lr;
+
+	iptr->target = mcodeptr; /* store for corresponding INLINE_END */
+}
+
+
+/* dseg_addlinenumber_inline_end ***********************************************
+
+   Add a marker to the line number table indicating the end of an inlined
+   method body. (see doc/inlining_stacktrace.txt)
+
+   IN:
+      cd.............current codegen data
+      iptr...........the ICMD_INLINE_END instruction
+
+   Note:
+      iptr->method must point to the inlined callee.
+
+*******************************************************************************/
+
+void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr)
+{
+	linenumberref *lr;
+	linenumberref *prev;
+	instruction *inlinestart;
+
+	/* get the pointer to the corresponding ICMD_INLINE_START */
+	inlinestart = (instruction *)iptr->target;
+
+	assert(inlinestart);
+	assert(iptr->method);
+
+	lr = DNEW(linenumberref);
+
+	/* special entry containing the methodinfo * */
+	lr->linenumber = (-3) - iptr->line;
+	lr->tablepos   = 0;
+	lr->targetmpc  = (ptrint) iptr->method;
+	lr->next       = cd->linenumberreferences;
+
+	prev = lr;
+	lr = DNEW(linenumberref);
+
+	/* end marker with PC of start of body */
+	lr->linenumber = (-1);
+	lr->tablepos   = 0;
+	lr->targetmpc  = (u1*)inlinestart->target - cd->mcodebase;
+	lr->next       = prev;
 
 	cd->linenumberreferences = lr;
 }
@@ -327,4 +417,5 @@ void dseg_display(methodinfo *m, codegendata *cd)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

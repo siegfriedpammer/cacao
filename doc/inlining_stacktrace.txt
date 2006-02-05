@@ -1,0 +1,58 @@
+Stacktraces with Inlined Methods
+================================
+
+Author:  Edwin Steiner
+Changes: -
+
+
+The layout of the line number table looks like this:
+
+    +----------+----------------------+
+    | ln 1     | start PC of line 1   |
+    +----------+----------------------+
+    | ln 2     | start PC of line 2   |
+    +----------+----------------------+
+    		       ...
+    +----------+----------------------+
+    | ln N     | start PC of line N   |
+    +----------+----------------------+
+
+Note: "ln 1" means the line number of the first line of the method body,
+      and so on.
+
+
+For inlined methods special entries are inserted into the table. The special
+entries have negative line numbers.  If there is an inlined method call at line
+X, the table looks like this:
+
+    +----------+----------------------+
+    | ln 1     | start PC of line 1   |
+    +----------+----------------------+
+    | ln 2     | start PC of line 1   |
+    +----------+----------------------+
+    		      ...
+    +----------+----------------------+
+    | -2       | start PC of line X   |  <-- "-2" marks start of inlined method
+    +----------+----------------------+
+    | ln 1'    | start PC of line 1'  |  \
+    +----------+----------------------+  |
+    | ln 2'    | start PC of line 1'  |  |
+    +----------+----------------------+  |--- these refer to lines within the body of
+    		      ...                    |    the inlined callee
+    +----------+----------------------+  |
+    | ln N'    | start PC of line N'  |  /
+    +----------+----------------------+
+    | -3-ln X  | methodinfo* to callee|  <-- methodinfo* instead of PC, -3 minus line number
+    +----------+----------------------+
+    | -1       | start PC of line X   |  <-- NOTE THE PC!
+    +----------+----------------------+
+    | ln X+1   | start PC of line X+1 |
+    +----------+----------------------+
+    		      ...
+    +----------+----------------------+
+    | ln N     | start PC of line N   |
+    +----------+----------------------+
+
+
+# vim: et sw=4 sts=4 ts=4
+
