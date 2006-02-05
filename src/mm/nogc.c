@@ -28,20 +28,22 @@
 
    Changes:
 
-   $Id: nogc.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: nogc.c 4437 2006-02-05 00:13:21Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <sys/mman.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "boehm-gc/include/gc.h"
 
 #include "mm/boehm.h"
+#include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/options.h"
 #include "vm/builtin.h"
@@ -71,8 +73,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+		exceptions_throw_outofmemory_exit();
 
 	MSET(m, 0, u1, size);
 
@@ -117,8 +118,7 @@ void nogc_init(u4 heapmaxsize, u4 heapstartsize)
 				   (off_t) 0);
 
 	if (mmapptr == MAP_FAILED)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Out of memory");
+		exceptions_throw_outofmemory_exit();
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
