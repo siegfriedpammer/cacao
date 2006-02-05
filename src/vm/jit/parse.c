@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4447 2006-02-05 22:22:05Z edwin $
+   $Id: parse.c 4448 2006-02-05 22:47:24Z edwin $
 
 */
 
@@ -101,22 +101,22 @@ static exceptiontable * fillextable(methodinfo *m,
 		
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
 		if (p <= raw_extable[src].startpc) {
-			*exceptionptr = new_verifyerror(inline_env->method,
+			*exceptionptr = new_verifyerror(m,
 				"Invalid exception handler range");
 			return NULL;
 		}
 
-		if (p >inline_env->method->jcodelength) {
-			*exceptionptr = new_verifyerror(inline_env->method,
+		if (p >m->jcodelength) {
+			*exceptionptr = new_verifyerror(m,
 				"Invalid exception handler end is after code end");
 			return NULL;
 		}
 
-		if (p<inline_env->method->jcodelength) insertBlock=1; else insertBlock=0;
+		if (p<m->jcodelength) insertBlock=1; else insertBlock=0;
 		if (label_index != NULL) p = label_index[p];
 		extable->endpc = p;
-		bound_check1(p);
-		/* if (p < inline_env->method->jcodelength) block_insert(p); */
+		bound_check_exclusive(p);
+		/* if (p < m->jcodelength) block_insert(p); */
         if (insertBlock) 
 			block_insert(p);
 
@@ -153,9 +153,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	int gp;                     /* global java instruction counter    */
 	                            /* inlining info for current method   */
 
-	inlining_methodinfo *inlinfo = inline_env->inlining_rootinfo;
-	inlining_methodinfo *tmpinlinf;
-	int nextgp = -1;            /* start of next method to be inlined */
 	int *label_index = NULL;    /* label redirection table            */
 	int firstlocal = 0;         /* first local variable of method     */
 	exceptiontable* nextex;     /* points next free entry in extable  */
@@ -174,23 +171,22 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	/* allocate instruction array and block index table */
 	
-	/* 1 additional for end ipc * # cum inline methods*/
-	
-	m->basicblockindex = DMNEW(s4, inline_env->cumjcodelength + inline_env->cummethods);
-	memset(m->basicblockindex, 0, sizeof(s4) * (inline_env->cumjcodelength + inline_env->cummethods));
+	/* 1 additional for end ipc  */
+	m->basicblockindex = DMNEW(s4, m->jcodelength + 1);
+	memset(m->basicblockindex, 0, sizeof(s4) * (m->jcodelength + 1));
 
-	instructionstart = DMNEW(u1, inline_env->cumjcodelength + inline_env->cummethods);
-	memset(instructionstart, 0, sizeof(u1) * (inline_env->cumjcodelength + inline_env->cummethods));
+	instructionstart = DMNEW(u1, m->jcodelength + 1);
+	memset(instructionstart, 0, sizeof(u1) * (m->jcodelength + 1));
 
 	/* 1 additional for TRACEBUILTIN and 4 for MONITORENTER/EXIT */
 	/* additional MONITOREXITS are reached by branches which are 3 bytes */
 	
-	iptr = m->instructions = DMNEW(instruction, inline_env->cumjcodelength + 5);
+	iptr = m->instructions = DMNEW(instruction, m->jcodelength + 5);
 
 	/* Zero the intermediate instructions array so we don't have any
 	 * invalid pointers in it if we cannot finish analyse_stack(). */
 
-	memset(iptr, 0, sizeof(instruction) * (inline_env->cumjcodelength + 5));
+	memset(iptr, 0, sizeof(instruction) * (m->jcodelength + 5));
 	
 	/* compute branch targets of exception table */
 
@@ -204,7 +200,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 #if defined(USE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
-		inline_env->method->isleafmethod = false;
 	}			
 #endif
 
@@ -219,24 +214,24 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	}
 
 	skipBasicBlockChange=0;
-	for (p = 0, gp = 0; p < inline_env->method->jcodelength; gp += (nextp - p), p = nextp) {
+	for (p = 0, gp = 0; p < m->jcodelength; gp += (nextp - p), p = nextp) {
 	  
 		/* mark this position as a valid instruction start */
 		if (!iswide) {
 			instructionstart[gp] = 1;
 			if (linepcchange==p) {
-				if (inline_env->method->linenumbercount > lineindex) {
-					currentline = inline_env->method->linenumbers[lineindex].line_number;
+				if (m->linenumbercount > lineindex) {
+					currentline = m->linenumbers[lineindex].line_number;
 					lineindex++;
-					if (lineindex < inline_env->method->linenumbercount)
-						linepcchange = inline_env->method->linenumbers[lineindex].start_pc;
+					if (lineindex < m->linenumbercount)
+						linepcchange = m->linenumbers[lineindex].start_pc;
 				}
 			}
 		}
 
 		/* fetch next opcode  */
 
-		opcode = code_get_u1(p, inline_env->method);
+		opcode = code_get_u1(p, m);
 
 		if (!skipBasicBlockChange) {
 			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
@@ -253,8 +248,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 
-		if (nextp > inline_env->method->jcodelength) {
-			*exceptionptr = new_verifyerror(inline_env->method,
+		if (nextp > m->jcodelength) {
+			*exceptionptr = new_verifyerror(m,
 					"Unexpected end of bytecode");
 			return NULL;
 		}
@@ -267,49 +262,49 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			/* pushing constants onto the stack p */
 
 		case JAVA_BIPUSH:
-			LOADCONST_I(code_get_s1(p+1,inline_env->method));
+			LOADCONST_I(code_get_s1(p+1,m));
 			break;
 
 		case JAVA_SIPUSH:
-			LOADCONST_I(code_get_s2(p+1,inline_env->method));
+			LOADCONST_I(code_get_s2(p+1,m));
 			break;
 
 		case JAVA_LDC1:
-			i = code_get_u1(p + 1, inline_env->method);
+			i = code_get_u1(p + 1, m);
 			goto pushconstantitem;
 
 		case JAVA_LDC2:
 		case JAVA_LDC2W:
-			i = code_get_u2(p + 1, inline_env->method);
+			i = code_get_u2(p + 1, m);
 
 		pushconstantitem:
 
-			if (i >= inline_env->method->class->cpcount) {
-				*exceptionptr = new_verifyerror(inline_env->method,
+			if (i >= m->class->cpcount) {
+				*exceptionptr = new_verifyerror(m,
 					"Attempt to access constant outside range");
 				return NULL;
 			}
 
-			switch (inline_env->method->class->cptags[i]) {
+			switch (m->class->cptags[i]) {
 			case CONSTANT_Integer:
-				LOADCONST_I(((constant_integer *) (inline_env->method->class->cpinfos[i]))->value);
+				LOADCONST_I(((constant_integer *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Long:
-				LOADCONST_L(((constant_long *) (inline_env->method->class->cpinfos[i]))->value);
+				LOADCONST_L(((constant_long *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Float:
-				LOADCONST_F(((constant_float *) (inline_env->method->class->cpinfos[i]))->value);
+				LOADCONST_F(((constant_float *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Double:
-				LOADCONST_D(((constant_double *) (inline_env->method->class->cpinfos[i]))->value);
+				LOADCONST_D(((constant_double *) (m->class->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				LOADCONST_A(literalstring_new((utf *) (inline_env->method->class->cpinfos[i])));
+				LOADCONST_A(literalstring_new((utf *) (m->class->cpinfos[i])));
 				break;
 			case CONSTANT_Class:
-				cr = (constant_classref *) (inline_env->method->class->cpinfos[i]);
+				cr = (constant_classref *) (m->class->cpinfos[i]);
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+				if (!resolve_classref(m, cr, resolveLazy, true,
 									  true, &c))
 					return NULL;
 
@@ -318,7 +313,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				LOADCONST_A_CLASS(c, cr);
 				break;
 			default:
-				*exceptionptr = new_verifyerror(inline_env->method,
+				*exceptionptr = new_verifyerror(m,
 						"Invalid constant type to push");
 				return NULL;
 			}
@@ -362,9 +357,9 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_DLOAD:
 		case JAVA_ALOAD:
 			if (!iswide) {
-				i = code_get_u1(p + 1,inline_env->method);
+				i = code_get_u1(p + 1,m);
 			} else {
-				i = code_get_u2(p + 1,inline_env->method);
+				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
 			}
@@ -414,9 +409,9 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_DSTORE:
 		case JAVA_ASTORE:
 			if (!iswide) {
-				i = code_get_u1(p + 1,inline_env->method);
+				i = code_get_u1(p + 1,m);
 			} else {
-				i = code_get_u2(p + 1,inline_env->method);
+				i = code_get_u2(p + 1,m);
 				iswide = false;
 				nextp = p + 3;
 			}
@@ -463,12 +458,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				int v;
 				
 				if (!iswide) {
-					i = code_get_u1(p + 1,inline_env->method);
-					v = code_get_s1(p + 2,inline_env->method);
+					i = code_get_u1(p + 1,m);
+					v = code_get_s1(p + 2,m);
 
 				} else {
-					i = code_get_u2(p + 1,inline_env->method);
-					v = code_get_s2(p + 3,inline_env->method);
+					i = code_get_u2(p + 1,m);
+					v = code_get_s2(p + 3,m);
 					iswide = false;
 					nextp = p + 5;
 				}
@@ -487,7 +482,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		/* managing arrays ****************************************************/
 
 		case JAVA_NEWARRAY:
-			switch (code_get_s1(p + 1, inline_env->method)) {
+			switch (code_get_s1(p + 1, m)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
 				break;
@@ -513,7 +508,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				bte = builtintable_get_internal(BUILTIN_newarray_long);
 				break;
 			default:
-				*exceptionptr = new_verifyerror(inline_env->method,
+				*exceptionptr = new_verifyerror(m,
 						"Invalid array-type to create");
 				return NULL;
 			}
@@ -521,15 +516,15 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			break;
 
 		case JAVA_ANEWARRAY:
-			i = code_get_u2(p + 1, inline_env->method);
-			compr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1, m);
+			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!compr)
 				return NULL;
 
 			if (!(cr = class_get_classref_multiarray_of(1, compr)))
 				return NULL;
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
+			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return NULL;
 
 			LOADCONST_A_BUILTIN(c, cr);
@@ -539,16 +534,16 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			inline_env->method->isleafmethod = false;
-			i = code_get_u2(p + 1, inline_env->method);
+			m->isleafmethod = false;
+			i = code_get_u2(p + 1, m);
 			{
-				s4 v = code_get_u1(p + 3, inline_env->method);
+				s4 v = code_get_u1(p + 3, m);
 
-				cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+				cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 				if (!cr)
 					return NULL;
 
-				if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
+				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 					return NULL;
 
 				/* if unresolved, c == NULL */
@@ -574,7 +569,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_IF_ACMPNE:
 		case JAVA_GOTO:
 		case JAVA_JSR:
-			i = p + code_get_s2(p + 1,inline_env->method);
+			i = p + code_get_s2(p + 1,m);
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -583,7 +578,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
-			i = p + code_get_s4(p + 1,inline_env->method);
+			i = p + code_get_s4(p + 1,m);
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -592,20 +587,14 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		case JAVA_RET:
 			if (!iswide) {
-				i = code_get_u1(p + 1,inline_env->method);
+				i = code_get_u1(p + 1,m);
 			} else {
-				i = code_get_u2(p + 1,inline_env->method);
+				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
 			}
 			blockend = true;
 				
-			/*
-			  if (inline_env->isinlinedmethod) {
-			  OP1(ICMD_GOTO, inlinfo->stopgp);
-			  break;
-			  }*/
-
 			OP1LOAD(opcode, i + firstlocal);
 			break;
 
@@ -615,24 +604,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_DRETURN:
 		case JAVA_ARETURN:
 		case JAVA_RETURN:
-			if (inline_env->isinlinedmethod) {
-				/*  					if (p==m->jcodelength-1) {*/ /* return is at end of inlined method */
-				/*  						OP(ICMD_NOP); */
-				/*  						break; */
-				/*  					} */
-				if (nextp>inline_env->method->jcodelength-1) {
-					/* OP1(ICMD_GOTO, inlinfo->stopgp);
-					   OP(ICMD_NOP);
-					   OP(ICMD_NOP);
-					*/
-					blockend=true;
-					break;
-				} /* JJJJJJJ */
-				blockend = true;
-				OP1(ICMD_GOTO, inlinfo->stopgp);
-				break;
-			}
-
 			blockend = true;
 			/* zero val.a so no patcher is inserted */
 			/* the type checker may set this later  */
@@ -660,19 +631,19 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
 
-				if (nextp + 8 > inline_env->method->jcodelength) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+				if (nextp + 8 > m->jcodelength) {
+					*exceptionptr = new_verifyerror(m,
 							"Unexpected end of bytecode");
 					return NULL;
 				}
 
-				tablep = (s4 *) (inline_env->method->jcode + nextp);
+				tablep = (s4 *) (m->jcode + nextp);
 
 				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
-				j =  p + code_get_s4(nextp, inline_env->method);
+				j =  p + code_get_s4(nextp, m);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -681,13 +652,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				/* number of pairs */
 
-				num = code_get_u4(nextp, inline_env->method);
+				num = code_get_u4(nextp, m);
 				*tablep = num;
 				tablep++;
 				nextp += 4;
 
-				if (nextp + 8 * num > inline_env->method->jcodelength) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+				if (nextp + 8 * num > m->jcodelength) {
+					*exceptionptr = new_verifyerror(m,
 						"Unexpected end of bytecode");
 					return NULL;
 				}
@@ -695,7 +666,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				for (i = 0; i < num; i++) {
 					/* value */
 
-					j = code_get_s4(nextp, inline_env->method);
+					j = code_get_s4(nextp, m);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -710,7 +681,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 					/* target */
 
-					j = p + code_get_s4(nextp,inline_env->method);
+					j = p + code_get_s4(nextp,m);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -729,19 +700,19 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 12 > inline_env->method->jcodelength) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+				if (nextp + 12 > m->jcodelength) {
+					*exceptionptr = new_verifyerror(m,
 						"Unexpected end of bytecode");
 					return NULL;
 				}
 
-				tablep = (s4 *) (inline_env->method->jcode + nextp);
+				tablep = (s4 *) (m->jcode + nextp);
 
 				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
-				j = p + code_get_s4(nextp, inline_env->method);
+				j = p + code_get_s4(nextp, m);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -750,14 +721,14 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				/* lower bound */
 
-				j = code_get_s4(nextp, inline_env->method);
+				j = code_get_s4(nextp, m);
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
 
 				/* upper bound */
 
-				num = code_get_s4(nextp, inline_env->method);
+				num = code_get_s4(nextp, m);
 				*tablep = num;   /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -765,19 +736,19 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				num -= j;  /* difference of upper - lower */
 
 				if (num < 0) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+					*exceptionptr = new_verifyerror(m,
 							"invalid TABLESWITCH: upper bound < lower bound");
 					return NULL;
 				}
 
-				if (nextp + 4 * (num + 1) > inline_env->method->jcodelength) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+				if (nextp + 4 * (num + 1) > m->jcodelength) {
+					*exceptionptr = new_verifyerror(m,
 						"Unexpected end of bytecode");
 					return NULL;
 				}
 
 				for (i = 0; i <= num; i++) {
-					j = p + code_get_s4(nextp,inline_env->method);
+					j = p + code_get_s4(nextp,m);
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -793,7 +764,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		case JAVA_AASTORE:
 			OP(opcode);
-			inline_env->method->isleafmethod = false;
+			m->isleafmethod = false;
 			break;
 
 		case JAVA_GETSTATIC:
@@ -805,16 +776,16 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				unresolved_field *uf;
 				fieldinfo        *fi;
 
-				i = code_get_u2(p + 1, inline_env->method);
-				fr = class_getconstant(inline_env->method->class, i,
+				i = code_get_u2(p + 1, m);
+				fr = class_getconstant(m->class, i,
 									   CONSTANT_Fieldref);
 				if (!fr)
 					return NULL;
 
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
-				if (!(uf = create_unresolved_field(inline_env->method->class,
-												   inline_env->method,
+				if (!(uf = create_unresolved_field(m->class,
+												   m,
 												   iptr)))
 					return NULL;
 
@@ -841,16 +812,16 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
-			i = code_get_u2(p + 1, inline_env->method);
+			i = code_get_u2(p + 1, m);
 			{
 				constant_FMIref   *mr;
 				methoddesc        *md;
 				unresolved_method *um;
 				methodinfo        *mi;
 
-				inline_env->method->isleafmethod = false;
+				m->isleafmethod = false;
 
-				mr = class_getconstant(inline_env->method->class, i,
+				mr = class_getconstant(m->class, i,
 									   CONSTANT_Methodref);
 				if (!mr)
 					return NULL;
@@ -863,8 +834,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
-				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr);
+				um = create_unresolved_method(m->class,
+											  m, iptr);
 
 				if (!um)
 					return NULL;
@@ -896,10 +867,10 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				unresolved_method *um;
 				methodinfo        *mi;
 
-				inline_env->method->isleafmethod = false;
+				m->isleafmethod = false;
 
-				i = code_get_u2(p + 1, inline_env->method);
-				mr = class_getconstant(inline_env->method->class, i,
+				i = code_get_u2(p + 1, m);
+				mr = class_getconstant(m->class, i,
 									   CONSTANT_Methodref);
 				if (!mr)
 					return NULL;
@@ -912,8 +883,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 				
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
-				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr);
+				um = create_unresolved_method(m->class,
+											  m, iptr);
 
 				if (!um)
 					return NULL;
@@ -938,16 +909,16 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			break;
 
 		case JAVA_INVOKEINTERFACE:
-			i = code_get_u2(p + 1, inline_env->method);
+			i = code_get_u2(p + 1, m);
 			{
 				constant_FMIref   *mr;
 				methoddesc        *md;
 				unresolved_method *um;
 				methodinfo        *mi;
 				
-				inline_env->method->isleafmethod = false;
+				m->isleafmethod = false;
 
-				mr = class_getconstant(inline_env->method->class, i,
+				mr = class_getconstant(m->class, i,
 									   CONSTANT_InterfaceMethodref);
 				if (!mr)
 					return NULL;
@@ -960,8 +931,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
-				um = create_unresolved_method(inline_env->method->class,
-											  inline_env->method, iptr);
+				um = create_unresolved_method(m->class,
+											  m, iptr);
 
 				if (!um)
 					return NULL;
@@ -988,12 +959,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		/* miscellaneous object operations ************************************/
 
 		case JAVA_NEW:
-			i = code_get_u2(p + 1, inline_env->method);
-			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1, m);
+			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return NULL;
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true,
+			if (!resolve_classref(m, cr, resolveLazy, true, true,
 								  &c))
 				return NULL;
 
@@ -1004,19 +975,19 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			break;
 
 		case JAVA_CHECKCAST:
-			i = code_get_u2(p + 1, inline_env->method);
-			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1, m);
+			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return NULL;
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true,
+			if (!resolve_classref(m, cr, resolveLazy, true,
 								  true, &c))
 				return NULL;
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
 				OP2AT(opcode, 0, c, cr, currentline);
-				inline_env->method->isleafmethod = false;
+				m->isleafmethod = false;
 
 			} else {
 				/* object type cast-check */
@@ -1025,12 +996,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			break;
 
 		case JAVA_INSTANCEOF:
-			i = code_get_u2(p + 1,inline_env->method);
-			cr = (constant_classref *) class_getconstant(inline_env->method->class, i, CONSTANT_Class);
+			i = code_get_u2(p + 1,m);
+			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
 				return NULL;
 
-			if (!resolve_classref(inline_env->method, cr, resolveLazy, true, true, &c))
+			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 				return NULL;
 
 			if (cr->name->text[0] == '[') {
@@ -1078,7 +1049,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_idiv);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			inline_env->method->isleafmethod = false;
+			m->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -1088,7 +1059,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_irem);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			inline_env->method->isleafmethod = false;
+			m->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -1098,7 +1069,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			inline_env->method->isleafmethod = false;
+			m->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -1108,7 +1079,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			OP2A(opcode, bte->md->paramcount, bte, currentline);
-			inline_env->method->isleafmethod = false;
+			m->isleafmethod = false;
 #else
 			OP(opcode);
 #endif
@@ -1240,7 +1211,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case 254:
 		case 255:
 			*exceptionptr =
-				new_verifyerror(inline_env->method,"Illegal opcode %d at instr %d\n",
+				new_verifyerror(m,"Illegal opcode %d at instr %d\n",
 								  opcode, ipc);
 			return NULL;
 			break;
@@ -1253,37 +1224,16 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide && opcode != JAVA_WIDE) {
-			*exceptionptr = new_verifyerror(inline_env->method,
+			*exceptionptr = new_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
 			return NULL;
 		}
 
-#if defined(USE_INLINING)
-		/* if (inline_env->isinlinedmethod && p == inline_env->method->jcodelength - 1) { */ /* end of an inlined method */
-		if (inline_env->isinlinedmethod && (nextp >= inline_env->method->jcodelength) ) { /* end of an inlined method */
-			gp = inlinfo->stopgp; 
-			inlining_restore_compiler_variables();
-			OP(ICMD_INLINE_END);
-			/*label_index = inlinfo->label_index;*/
-
-			list_remove(inlinfo->inlinedmethods, list_first(inlinfo->inlinedmethods));
-			if (inlinfo->inlinedmethods == NULL) { /* JJJJ */
-				nextgp = -1;
-			} else {
-				tmpinlinf = list_first(inlinfo->inlinedmethods);
-				nextgp = (tmpinlinf != NULL) ? tmpinlinf->startgp : -1;
-			}
-			label_index=inlinfo->label_index;
-			firstlocal = inlinfo->firstlocal;
-		}
-#endif /* defined(USE_INLINING) */
-
 	} /* end for */
-
 
 	if (p != m->jcodelength) {
 		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
-		*exceptionptr = new_verifyerror(inline_env->method,
+		*exceptionptr = new_verifyerror(m,
 				"Command-sequence crosses code-boundary");
 		return NULL;
 	}
@@ -1333,14 +1283,14 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 		/* allocate blocks */
 
-  		for (p = 0; p < inline_env->cumjcodelength; p++) { 
+  		for (p = 0; p < m->jcodelength; p++) { 
 		/* for (p = 0; p < m->jcodelength; p++) { */
 			if (m->basicblockindex[p] & 1) {
 				/* Check if this block starts at the beginning of an          */
 				/* instruction.                                               */
 
 				if (!instructionstart[p]) {
-					*exceptionptr = new_verifyerror(inline_env->method,
+					*exceptionptr = new_verifyerror(m,
 						"Branch into middle of instruction");
 					return NULL;
 				}
@@ -1389,7 +1339,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 			cd->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
 
 			p = cd->exceptiontable[i].endpc;
-			cd->exceptiontable[i].end = (p == inline_env->method->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
+			cd->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
 
 			p = cd->exceptiontable[i].handlerpc;
 			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: parse.h 4448 2006-02-05 22:47:24Z edwin $
 
 */
 
@@ -52,35 +52,35 @@
     iptr->opc    = ICMD_ICONST; \
     iptr->val.i  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define LOADCONST_L(v) \
     iptr->opc    = ICMD_LCONST; \
     iptr->val.l  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define LOADCONST_F(v) \
     iptr->opc    = ICMD_FCONST; \
     iptr->val.f  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define LOADCONST_D(v) \
     iptr->opc    = ICMD_DCONST; \
     iptr->val.d  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define LOADCONST_A(v) \
     iptr->opc    = ICMD_ACONST; \
     iptr->val.a  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define LOADCONST_A_CLASS(v,t) \
@@ -88,7 +88,7 @@
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 /* ACONST instructions generated as arguments for builtin functions
@@ -100,20 +100,20 @@
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define OP(o) \
     iptr->opc    = (o); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define OP1(o,o1) \
     iptr->opc    = (o); \
     iptr->op1    = (o1); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define OP2I(o,o1,v) \
@@ -121,7 +121,7 @@
     iptr->op1    = (o1); \
     iptr->val.i  = (v); \
     iptr->line   = currentline; \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 #define OP2A_NOINC(o,o1,v,l) \
@@ -129,7 +129,7 @@
     iptr->op1    = (o1); \
     iptr->val.a  = (v); \
     iptr->line   = (l); \
-    iptr->method = inline_env->method
+    iptr->method = m
 
 #define OP2A(o,o1,v,l) \
     OP2A_NOINC(o,o1,v,l); \
@@ -141,13 +141,13 @@
     PINC
 
 #define BUILTIN(v,o1,t,l) \
-    inline_env->method->isleafmethod = false; \
+    m->isleafmethod = false; \
     iptr->opc    = ICMD_BUILTIN; \
     iptr->op1    = (o1); \
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = (l); \
-    iptr->method = inline_env->method; \
+    iptr->method = m; \
     PINC
 
 
@@ -156,18 +156,18 @@
 
 #define INDEX_ONEWORD(num) \
     do { \
-        if ((num) < 0 || (num) >= inline_env->cumlocals) { \
+        if ((num) < 0 || (num) >= m->maxlocals) { \
             *exceptionptr = \
-                new_verifyerror(inline_env->method, "Illegal local variable number"); \
+                new_verifyerror(m, "Illegal local variable number"); \
             return NULL; \
         } \
     } while (0)
 
 #define INDEX_TWOWORD(num) \
     do { \
-        if ((num) < 0 || ((num) + 1) >= inline_env->cumlocals) { \
+        if ((num) < 0 || ((num) + 1) >= m->maxlocals) { \
             *exceptionptr = \
-                new_verifyerror(inline_env->method, "Illegal local variable number"); \
+                new_verifyerror(m, "Illegal local variable number"); \
             return NULL; \
         } \
     } while (0)
@@ -197,25 +197,21 @@
     } while (0)
 
 
-/* FIXME really use cumjcodelength for the bound_checkers ? */
-
 #define bound_check(i) \
     do { \
-        if (i < 0 || i >= inline_env->cumjcodelength) { \
-       /*  if (i < 0 || i >= m->jcodelength) { */ \
+        if (i < 0 || i >= m->jcodelength) { \
             *exceptionptr = \
-                new_verifyerror(inline_env->method, "Illegal target of jump or branch"); \
+                new_verifyerror(m, "Illegal target of jump or branch"); \
             return NULL; \
         } \
     } while (0)
 
-/* bound_check1 is used for the inclusive ends of exception handler ranges */
-#define bound_check1(i) \
+/* bound_check_exclusive is used for the exclusive ends of exception handler ranges */
+#define bound_check_exclusive(i) \
     do { \
-        if (i < 0 || i > inline_env->cumjcodelength) { \
-/*        if (i < 0 || i > m->jcodelength) { */ \
+        if (i < 0 || i > m->jcodelength) { \
             *exceptionptr = \
-                new_verifyerror(inline_env->method, "Illegal target of jump or branch"); \
+                new_verifyerror(m, "Illegal target of jump or branch"); \
             return NULL; \
         } \
     } while (0)
