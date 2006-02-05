@@ -28,7 +28,7 @@ X, the table looks like this:
     +----------+----------------------+
     | ln 1     | start PC of line 1   |
     +----------+----------------------+
-    | ln 2     | start PC of line 1   |
+    | ln 2     | start PC of line 2   |
     +----------+----------------------+
     		      ...
     +----------+----------------------+
@@ -36,7 +36,7 @@ X, the table looks like this:
     +----------+----------------------+
     | ln 1'    | start PC of line 1'  |  \
     +----------+----------------------+  |
-    | ln 2'    | start PC of line 1'  |  |
+    | ln 2'    | start PC of line 2'  |  |
     +----------+----------------------+  |--- these refer to lines within the body of
     		      ...                    |    the inlined callee
     +----------+----------------------+  |
@@ -52,6 +52,10 @@ X, the table looks like this:
     +----------+----------------------+
     | ln N     | start PC of line N   |
     +----------+----------------------+
+
+CAUTION: line numbers are stored as unsigned ptrint! You need
+         to cast them (to s4) in order to test <0, etc.
+         (The ptrint values are created by casting a s4 to ptrint.)
 
 
 # vim: et sw=4 sts=4 ts=4
