@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: parse.c 4447 2006-02-05 22:22:05Z edwin $
 
 */
 
@@ -575,9 +575,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_GOTO:
 		case JAVA_JSR:
 			i = p + code_get_s2(p + 1,inline_env->method);
-			if (useinlining) { 
-				i = label_index[i];
-			}
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -587,9 +584,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,inline_env->method);
-			if (useinlining) { 
-				i = label_index[i];
-			}
 			bound_check(i);
 			block_insert(i);
 			blockend = true;
@@ -672,21 +666,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 					return NULL;
 				}
 
-				if (!useinlining) {
-					tablep = (s4 *) (inline_env->method->jcode + nextp);
-
-				} else {
-					num = code_get_u4(nextp + 4, inline_env->method);
-					tablep = DMNEW(s4, num * 2 + 2);
-				}
+				tablep = (s4 *) (inline_env->method->jcode + nextp);
 
 				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
 				j =  p + code_get_s4(nextp, inline_env->method);
-				if (useinlining) 
-					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -725,8 +711,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 					/* target */
 
 					j = p + code_get_s4(nextp,inline_env->method);
-					if (useinlining)
-						j = label_index[j];
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
@@ -751,21 +735,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 					return NULL;
 				}
 
-				if (!useinlining) {
-					tablep = (s4 *) (inline_env->method->jcode + nextp);
-
-				} else {
-					num = code_get_u4(nextp + 8,inline_env->method) - code_get_u4(nextp + 4,inline_env->method);
-					tablep = DMNEW(s4, num + 1 + 3);
-				}
+				tablep = (s4 *) (inline_env->method->jcode + nextp);
 
 				OP2A(opcode, 0, tablep, currentline);
 
 				/* default target */
 
 				j = p + code_get_s4(nextp, inline_env->method);
-				if (useinlining)
-					j = label_index[j];
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
@@ -802,9 +778,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp,inline_env->method);
-					if (useinlining) {
-						j = label_index[j];
-					}
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
