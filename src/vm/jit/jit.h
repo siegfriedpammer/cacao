@@ -28,8 +28,9 @@
             Reinhard Grafl
 
    Changes: Christian Thalinger
+   	    Edwin Steiner
 
-   $Id: jit.h 4450 2006-02-05 23:07:39Z edwin $
+   $Id: jit.h 4451 2006-02-05 23:09:23Z edwin $
 
 */
 
