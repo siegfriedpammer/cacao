@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4448 2006-02-05 22:47:24Z edwin $
+   $Id: parse.c 4449 2006-02-05 23:02:05Z edwin $
 
 */
 
@@ -59,11 +59,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
-#include "vm/jit/inline/parseRT.h"
-#include "vm/jit/inline/parseXTA.h"
-#include "vm/jit/inline/inline.h"
 #include "vm/jit/loop/loop.h"
-#include "vm/jit/inline/parseRTprint.h"
 
 /*******************************************************************************
 
@@ -82,8 +78,7 @@ static exceptiontable * fillextable(methodinfo *m,
 									exceptiontable *raw_extable, 
         							int exceptiontablelength, 
 									int *label_index, 
-									int *block_count, 
-									t_inlining_globals *inline_env)
+									int *block_count)
 {
 	int b_count, p, src, insertBlock;
 	
@@ -138,7 +133,7 @@ static exceptiontable * fillextable(methodinfo *m,
 
 
 
-methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env)
+methodinfo *parse(methodinfo *m, codegendata *cd)
 {
 	int  p;                     /* java instruction counter           */
 	int  nextp;                 /* start of next java instruction     */
@@ -151,7 +146,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 	bool iswide = false;        /* true if last instruction was a wide*/
 	instruction *iptr;          /* current ptr into instruction array */
 	int gp;                     /* global java instruction counter    */
-	                            /* inlining info for current method   */
 
 	int *label_index = NULL;    /* label redirection table            */
 	int firstlocal = 0;         /* first local variable of method     */
@@ -192,7 +186,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env
 
 	nextex = fillextable(m, 
  	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, m->exceptiontablelength, 
-          label_index, &b_count, inline_env);
+          label_index, &b_count);
 	if (!nextex)
 		return NULL;
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */

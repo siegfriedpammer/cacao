@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4448 2006-02-05 22:47:24Z edwin $
+   $Id: parse.h 4449 2006-02-05 23:02:05Z edwin $
 
 */
 
@@ -41,7 +41,6 @@
 
 #include "vm/global.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/inline/inline.h"
 
 
 /* intermediate code generating macros ****************************************/
@@ -236,7 +235,7 @@
 /* function prototypes ********************************************************/
 
 void compiler_addinitclass(classinfo *c);
-methodinfo *parse(methodinfo *m, codegendata *cd, t_inlining_globals *inline_env);
+methodinfo *parse(methodinfo *m, codegendata *cd);
 
 #endif /* _PARSE_H */
 

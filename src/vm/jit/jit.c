@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: jit.c 4449 2006-02-05 23:02:05Z edwin $
 
 */
 
@@ -1527,7 +1527,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* call parse pass */
 
-	if (!parse(m, cd, id)) {
+	if (!parse(m, cd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return NULL;
