@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 4392 2006-01-31 15:35:22Z twisti $
+   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
 
 */
 
@@ -782,6 +782,13 @@ asm_criticalsections:
 	.long   _crit_restart2
 #endif
 	.long 0
+
+
+/* Disable exec-stacks, required for Gentoo ***********************************/
+
+#if defined(__GCC__) && defined(__ELF__)
+	.section .note.GNU-stack,"",@progbits
+#endif
 
 
 /*

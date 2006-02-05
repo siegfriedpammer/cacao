@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4357 2006-01-22 23:33:38Z twisti $
+   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
 
 */
 
@@ -794,6 +794,13 @@ compare_and_swap:
 	j       ra
 
 	.end    compare_and_swap
+
+
+/* Disable exec-stacks, required for Gentoo ***********************************/
+
+#if defined(__GCC__) && defined(__ELF__)
+	.section .note.GNU-stack,"",@progbits
+#endif
 
 
 /*
