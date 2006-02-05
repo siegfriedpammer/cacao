@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 4406 2006-02-03 13:19:36Z twisti $
+   $Id: memory.h 4438 2006-02-05 00:16:54Z twisti $
 
 */
 
@@ -36,15 +36,15 @@
 #ifndef _MEMORY_H
 #define _MEMORY_H
 
-#include <string.h>
-
 /* forward typedefs ***********************************************************/
 
 typedef struct dumpblock dumpblock;
 typedef struct dumpinfo dumpinfo;
 
-
 #include "config.h"
+
+#include <string.h>
+
 #include "vm/types.h"
 
 #include "mm/boehm.h"
@@ -126,7 +126,7 @@ struct dumpinfo {
 
 #define ALIGN(pos,size)       ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (ALIGN((pos),(size)) - (pos))
-#define OFFSET(s,el)          ((int) ((size_t) & (((s*) 0)->el)))
+#define OFFSET(s,el)          ((s4) ((ptrint) &(((s*) 0)->el)))
 
 #if !defined(DISABLE_GC)
 
@@ -141,10 +141,10 @@ struct dumpinfo {
 
 #else
 
-#define NEW(type)             GCNEW(type,1)
+#define NEW(type)             GCNEW(type)
 #define FREE(ptr,type)        GCFREE(ptr)
 
-#define MNEW(type,num)        GCNEW(type,num)
+#define MNEW(type,num)        GCMNEW(type,num)
 #define MFREE(ptr,type,num)   GCFREE(ptr)
 
 #define MREALLOC(ptr,type,num1,num2) nogc_realloc((ptr), sizeof(type) * (num1), \
