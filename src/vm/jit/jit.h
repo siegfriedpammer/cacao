@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jit.h 4398 2006-01-31 23:43:08Z twisti $
+   $Id: jit.h 4450 2006-02-05 23:07:39Z edwin $
 
 */
 
@@ -185,6 +185,7 @@ struct basicblock {
 	s4           lflags;        /* used during loop copying, init with 0	  */
 	basicblock  *copied_to;     /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
+	stackptr     stack;         /* start of stack array for this block        */
 };
 
 
@@ -823,6 +824,7 @@ extern int jcommandsize[256];
 
 #define ICMD_INLINE_START     251       /* instruction before inlined method  */
 #define ICMD_INLINE_END       252       /* instruction after inlined method   */
+#define ICMD_INLINE_GOTO      253       /* jump to caller of inlined method   */
 
 #define ICMD_BUILTIN          255       /* internal opcode                    */
 
@@ -888,4 +890,5 @@ void intrp_md_init(void);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

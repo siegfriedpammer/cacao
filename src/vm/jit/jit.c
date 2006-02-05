@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4449 2006-02-05 23:02:05Z edwin $
+   $Id: jit.c 4450 2006-02-05 23:07:39Z edwin $
 
 */
 
@@ -1668,4 +1668,5 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
