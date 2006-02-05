@@ -28,11 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4441 2006-02-05 12:20:26Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_builddir)
+
+JAVA      = $(top_builddir)/src/cacao/cacao
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/$(VM_ZIP_STRING):$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING) -Djava.library.path=.
+JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
 SOURCE_FILES = \
 	checkjni.java \
@@ -56,10 +60,6 @@ CLEANFILES = \
 TESTNAMES = \
 	checkjni \
 	testarguments
-
-JAVA      = $(top_builddir)/src/cacao/cacao
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/vm.zip:$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJZ) -Djava.library.path=.
-JAVAH     = $(top_builddir)/src/cacaoh/cacaoh
 
 check: $(TESTNAMES)
 
