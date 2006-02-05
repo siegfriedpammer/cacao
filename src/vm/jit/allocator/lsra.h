@@ -26,7 +26,9 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h 4357 2006-01-22 23:33:38Z twisti $
+   Changes: Edwin Steiner
+
+   $Id: lsra.h 4453 2006-02-05 23:34:07Z edwin $
 
 */
 
@@ -202,7 +204,7 @@ struct freemem {
 typedef struct lsradata lsradata;
 
 /* function prototypes */
-void lsra(methodinfo *, codegendata *, registerdata *,t_inlining_globals *);
+void lsra(methodinfo *, codegendata *, registerdata *);
 
 #endif /* _LSRA_H */
 
@@ -218,4 +220,5 @@ void lsra(methodinfo *, codegendata *, registerdata *,t_inlining_globals *);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

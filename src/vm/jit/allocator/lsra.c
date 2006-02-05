@@ -27,8 +27,10 @@
    Authors: Christian Ullrich
 
    Changes: Christian Thalinger
+            Edwin Steiner
 
-   $Id: lsra.c 4434 2006-02-04 23:56:24Z twisti $
+
+   $Id: lsra.c 4453 2006-02-05 23:34:07Z edwin $
 
 */
 
@@ -58,7 +60,7 @@
 
 /* function prototypes */
 bool lsra_test(methodinfo *, codegendata *);
-void lsra_init(methodinfo *, codegendata *, t_inlining_globals *, lsradata *);
+void lsra_init(methodinfo *, codegendata *, lsradata *);
 void lsra_setup(methodinfo *, codegendata *, registerdata *, lsradata *);
 void lsra_main(methodinfo *, lsradata *, registerdata *, codegendata *);
 void lsra_clean_Graph( methodinfo *, codegendata *, lsradata *);
@@ -100,8 +102,7 @@ void lsra_align_stackslots(struct lsradata *, stackptr, stackptr);
 void lsra_setflags(int *, int);
 
 
-void lsra(methodinfo *m, codegendata *cd, registerdata *rd,
-		  t_inlining_globals *id)
+void lsra(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 
 	lsradata *ls;
@@ -169,7 +170,7 @@ void lsra(methodinfo *m, codegendata *cd, registerdata *rd,
 #endif
 
 	ls=DNEW(lsradata);
-	lsra_init(m, cd, id, ls);
+	lsra_init(m, cd, ls);
 
 #if 0
 #if defined(LSRA_USES_REG_RES)
@@ -760,8 +761,7 @@ void lsra_make_cfg(methodinfo *m, lsradata *ls)
 
 
 
-void lsra_init(methodinfo *m, codegendata *cd, t_inlining_globals *id,
-			   lsradata *ls) 
+void lsra_init(methodinfo *m, codegendata *cd, lsradata *ls) 
 {
 	int i;
 
@@ -3443,4 +3443,5 @@ void test_lifetimes( methodinfo *m, lsradata *ls, registerdata *rd)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

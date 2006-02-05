@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4452 2006-02-05 23:24:34Z edwin $
+   $Id: jit.c 4453 2006-02-05 23:34:07Z edwin $
 
 */
 
@@ -1576,7 +1576,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		/* allocate registers */
 # if defined(ENABLE_LSRA)
 		if (opt_lsra) {
-			lsra(m, cd, rd, id);
+			lsra(m, cd, rd);
 
 			STATISTICS(count_methods_allocated_by_lsra++);
 
