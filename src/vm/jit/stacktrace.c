@@ -27,8 +27,9 @@
    Authors: Joseph Wenninger
 
    Changes: Christian Thalinger
+            Edwin Steiner
 
-   $Id: stacktrace.c 4439 2006-02-05 00:40:53Z twisti $
+   $Id: stacktrace.c 4457 2006-02-06 01:28:07Z edwin $
 
 */
 
@@ -80,19 +81,9 @@
 typedef struct linenumbertable_entry linenumbertable_entry;
 
 struct linenumbertable_entry {
-	ptrint  line;
-	u1     *pc;
+	ptrint  line;               /* NOTE: see doc/inlining_stacktrace.txt for  */
+	u1     *pc;                 /*       special meanings of line and pc.     */
 };
-
-
-#if 0
-typedef struct lineNumberTableEntryInlineBegin {
-	/* this should have the same layout and size as the lineNumberTableEntry */
-	ptrint      lineNrOuter;
-	methodinfo *method;
-} lineNumberTableEntryInlineBegin;
-#endif
-
 
 /* global variables ***********************************************************/
 
@@ -616,9 +607,102 @@ static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 }
 
 
-/* stacktrace_fillInStackTrace_method ******************************************
+/* stacktrace_add_method_intern ************************************************
 
-   XXX
+   This function is used by stacktrace_add_method to search the line number
+   table for the line corresponding to a given pc. The function recurses for
+   inlined methods.
+
+*******************************************************************************/
+
+static bool stacktrace_add_method_intern(stacktracebuffer *stb, 
+										 methodinfo *m, 
+										 linenumbertable_entry *lntentry,
+										 ptrint lntsize,
+										 u1 *pc)
+{
+	linenumbertable_entry *lntinline;   /* special entry for inlined method */
+
+	assert(stb);
+	assert(lntentry);
+
+	/* Find the line number for the specified PC (going backwards
+	   in the linenumber table). The linenumber table size is zero
+	   in native stubs. */
+
+	for (; lntsize > 0; lntsize--, lntentry--) {
+
+		/* did we reach the current line? */
+		/* Note: In case of inlining this may actually compare the pc against a */
+		/* methodinfo *, yielding a non-sensical result. This is no problem,    */
+		/* however, as we ignore such entries in the switch below. This way we  */
+		/* optimize for the common case (ie. a real pc in lntentry->pc).        */
+		if (pc >= lntentry->pc) {
+
+			/* check for special inline entries             */
+			/* (see doc/inlining_stacktrace.txt for details */
+			if ((s4)lntentry->line < 0) {
+				switch (lntentry->line) {
+					case -1: 
+						/* begin of inlined method (ie. INLINE_END instruction) */
+
+						lntinline = --lntentry;  /* get entry with methodinfo * */
+						lntentry--;              /* skip the special entry      */
+						lntsize -= 2;
+
+						/* search inside the inlined method */
+						if (stacktrace_add_method_intern(
+									stb, 
+									(methodinfo*) lntinline->pc,
+									lntentry,
+									lntsize,
+									pc))
+						{
+							/* the inlined method contained the pc */
+							assert(lntinline->line <= -3);
+							stacktrace_add_entry(stb, m, (-3) - lntinline->line);
+							return true;
+						}
+						/* pc was not in inlined method, continue search.     */
+						/* Entries inside the inlined method will be skipped  */
+						/* because their lntentry->pc is higher than pc.      */
+						break;
+
+					case -2: 
+						/* end of inlined method */
+						return false;
+
+					/* default: is only reached for an -3-line entry after a skipped */
+					/* -2 entry. We can safely ignore it and continue searching.     */
+				}
+			}
+			else {
+				/* found a normal entry */
+				stacktrace_add_entry(stb, m, lntentry->line);
+				return true;
+			}
+		}
+	}
+
+	/* not found */
+	return false;
+}
+
+/* stacktrace_add_method *******************************************************
+
+   Add stacktrace entries[1] for the given method to the stacktrace buffer.
+
+   IN:
+       stb.........stacktracebuffer to fill
+	   m...........method for which entries should be created
+	   pv..........pv of method
+	   pc..........position of program counter within the method's code
+
+   OUT:
+       true, if stacktrace entries were successfully created, false otherwise.
+
+   [1] In case of inlined methods there may be more than one stacktrace
+       entry for a codegen-level method. (see doc/inlining_stacktrace.txt)
 
 *******************************************************************************/
 
@@ -639,56 +723,17 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
 
-	/* Find the line number for the specified PC (going backwards
-	   in the linenumber table). The linenumber table size is zero
-	   in native stubs. */
-
-	for (; lntsize > 0; lntsize--, lntentry--) {
-		/* did we reach the current line? */
-
-		if (pc >= lntentry->pc) {
-			/* check for special inline entries */
-
-			switch (lntentry->line) {
-#if 0
-				/* XXX TWISTI we have to think about this inline stuff again */
-
-			case -1: /* begin of inlined method */
-				lntinline = (lineNumberTableEntryInlineBegin *) (--lntentry);
-				lntentry++;
-				lntsize--; lntsize--;
-				if (stacktrace_fillInStackTrace_methodRecursive(buffer,
-																ilStart->method,
-																ent,
-																&ent,
-																&ahead,
-																pc)) {
-					stacktrace_add_entry(buffer, m, ilStart->lineNrOuter);
-
-					return true;
-				}
-				break;
-
-			case -2: /* end of inlined method */
-				*entry = ent;
-				*entriesAhead = ahead;
-				return false;
-				break;
-#endif
-
-			default:
-				stacktrace_add_entry(stb, m, lntentry->line);
-				return true;
-			}
-		}
-	}
-
 	/* check if we are before the actual JIT code */
 
 	if ((ptrint) pc < (ptrint) m->entrypoint) {
 		dolog("Current PC before start of code: %p < %p", pc, m->entrypoint);
 		assert(0);
 	}
+
+	/* search the line number table */
+
+	if (stacktrace_add_method_intern(stb, m, lntentry, lntsize, pc))
+		return true;
 
 	/* If we get here, just add the entry with line number 0. */
 
@@ -1065,7 +1110,10 @@ java_objectarray *stacktrace_getClassContext(void)
 
 /* stacktrace_getCurrentClassLoader ********************************************
 
-   XXX
+   Find the current class loader by walking the stack trace. The first
+   non-NULL (ie. non-bootstrap) class loader found -- starting with the
+   innermost activation record -- is returned. If no class loader is
+   found, NULL is returned.
 
 *******************************************************************************/
 
@@ -1226,7 +1274,6 @@ static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 void stacktrace_dump_trace(void)
 {
-	stackframeinfo   *psfi;
 	stacktracebuffer *stb;
 
 #if 0
