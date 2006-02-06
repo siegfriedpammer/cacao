@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4388 2006-01-30 15:44:52Z twisti $
+## $Id: Makefile.am 4472 2006-02-06 18:49:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -44,6 +44,7 @@ DIST_SUBDIRS = \
 	allocator \
 	inline \
 	loop \
+	profile \
 	schedule \
 	tools \
 	verify \
@@ -69,6 +70,9 @@ SUBDIRS += inline
 INLINE_LIB = inline/libinline.la
 endif
 
+SUBDIRS += profile
+PROFILE_LIB = profile/libprofile.la
+
 if USE_SCHEDULER
 SUBDIRS += schedule
 SCHEDULE_LIB = schedule/libschedule.la
@@ -79,10 +83,6 @@ DISASS_SOURCES = disass-common.c
 else
 DISASS_SOURCES =
 endif
-
-PROFILE_SOURCES = \
-	profile.c \
-	profile.h
 
 noinst_HEADERS = \
 	abi.h \
@@ -103,7 +103,6 @@ libjit_la_SOURCES = \
 	jit.h \
 	parse.c \
 	parse.h \
-	$(PROFILE_SOURCES) \
 	reg.c \
 	reg.h \
 	stack.c \
@@ -113,10 +112,11 @@ libjit_la_SOURCES = \
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
-	$(INLINE_LIB) \
 	loop/libloop.la \
-	$(SCHEDULE_LIB) \
 	verify/libverify.la \
+	$(INLINE_LIB) \
+	$(PROFILE_LIB) \
+	$(SCHEDULE_LIB) \
 	$(INTRP_LIB) \
 	$(ARCH_LIB)
 
