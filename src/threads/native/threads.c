@@ -27,8 +27,9 @@
    Authors: Stefan Ring
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: threads.c 4443 2006-02-05 13:39:34Z stefan $
+   $Id: threads.c 4458 2006-02-06 04:46:39Z edwin $
 
 */
 
@@ -943,8 +944,11 @@ static lockRecordPool *allocLockRecordPool(threadobject *t, int size)
 		global_pool = pool->header.next;
 		pthread_mutex_unlock(&pool_lock);
 
-		for (i=0; i < pool->header.size; i++)
+		for (i=0; i < pool->header.size; i++) {
 			pool->lr[i].ownerThread = t;
+			pool->lr[i].nextFree = &pool->lr[i+1];
+		}
+		pool->lr[i-1].nextFree = NULL;
 		
 		return pool;
 	}
@@ -967,6 +971,8 @@ static void freeLockRecordPools(lockRecordPool *pool)
 
 static monitorLockRecord *allocLockRecordSimple(threadobject *t)
 {
+	assert(t);
+	
 	monitorLockRecord *r = t->ee.firstLR;
 
 	if (!r) {
@@ -979,17 +985,27 @@ static monitorLockRecord *allocLockRecordSimple(threadobject *t)
 	}
 	
 	t->ee.firstLR = r->nextFree;
+#ifndef NDEBUG
+	r->nextFree = NULL; /* in order to find invalid uses of nextFree */
+#endif
 	return r;
 }
 
 static inline void recycleLockRecord(threadobject *t, monitorLockRecord *r)
 {
+	assert(t);
+	assert(r);
+	assert(r->ownerThread == t);
+	assert(r->nextFree == NULL);
+	
 	r->nextFree = t->ee.firstLR;
 	t->ee.firstLR = r;
 }
 
 void initObjectLock(java_objectheader *o)
 {
+	assert(o);
+
 	o->monitorPtr = dummyLR;
 }
 
@@ -1041,39 +1057,69 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 	for (;;) {
 		monitorLockRecord *lr = o->monitorPtr;
 		if (lr->o != o) {
-			monitorLockRecord *nlr, *mlr = allocLockRecordSimple(t);
+			/* the lock record does not lock this object */
+			monitorLockRecord *nlr;
+			monitorLockRecord *mlr;
+		   
+			/* allocate a new lock record for this object */
+			mlr	= allocLockRecordSimple(t);
 			mlr->o = o;
+
+			/* check if it is the same record the object refered to earlier */
 			if (mlr == lr) {
 				MEMORY_BARRIER();
 				nlr = o->monitorPtr;
 				if (nlr == lr) {
+					/* the object still refers to the same lock record */
+					/* got it! */
 					handleWaiter(mlr, lr, o);
 					return mlr;
 				}
-			} else {
+			} 
+			else {
+				/* no, it's another lock record */
+				/* if we don't own the old record, set incharge XXX */
 				if (lr->ownerThread != t)
 					mlr->incharge = lr;
 				MEMORY_BARRIER_BEFORE_ATOMIC();
+
+				/* if the object still refers to lr, replace it by the new mlr */
 				nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
 			}
+
 			if (nlr == lr) {
+				/* we swapped the new record in successfully */
 				if (mlr == lr || lr->o != o) {
+					/* the old lock record is the same as the new one, or */
+					/* it locks another object.                           */
+					/* got it! */
 					handleWaiter(mlr, lr, o);
 					return mlr;
 				}
+				/* lr locks the object, we have to wait */
 				while (lr->o == o)
 					queueOnLockRecord(lr, o);
+
+				/* got it! */
 				handleWaiter(mlr, lr, o);
 				return mlr;
 			}
+
+			/* forget this mlr lock record, wait on nlr and try again */
 			freeLockRecord(mlr);
 			recycleLockRecord(t, mlr);
 			queueOnLockRecord(nlr, o);
-		} else {
+		} 
+		else {
+			/* the lock record is for the object we want */
+
 			if (lr->ownerThread == t) {
+				/* we own it already, just recurse */
 				lr->lockCount++;
 				return lr;
 			}
+
+			/* it's locked. we wait and then try again */
 			queueOnLockRecord(lr, o);
 		}
 	}
@@ -1114,10 +1160,14 @@ bool monitorExit(threadobject *t, java_objectheader *o)
 	monitorLockRecord *lr = o->monitorPtr;
 	GRAB_LR(lr, t);
 	CHECK_MONITORSTATE(lr, t, o, return false);
+
 	if (lr->lockCount > 1) {
+		/* we had locked this one recursively. just decrement, it will */
+		/* still be locked. */
 		lr->lockCount--;
 		return true;
 	}
+	
 	if (lr->waiter) {
 		monitorLockRecord *wlr = lr->waiter;
 		if (o->monitorPtr != lr ||
@@ -1130,6 +1180,8 @@ bool monitorExit(threadobject *t, java_objectheader *o)
 			wakeWaiters(wlr);
 		lr->waiter = NULL;
 	}
+
+	/* unlock and throw away this lock record */
 	freeLockRecord(lr);
 	recycleLockRecord(t, lr);
 	return true;
@@ -1143,7 +1195,7 @@ static void removeFromWaiters(monitorLockRecord *lr, monitorLockRecord *wlr)
 			break;
 		}
 		lr = lr->waiter;
-	} while (lr);
+	} while (lr); /* XXX need to break cycle? */
 }
 
 static inline bool timespec_less(const struct timespec *tv1, const struct timespec *tv2)
@@ -1414,4 +1466,5 @@ void threads_dump(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
