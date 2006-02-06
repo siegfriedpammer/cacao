@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4444 2006-02-05 13:52:26Z stefan $
+   $Id: threads.h 4475 2006-02-06 21:06:12Z twisti $
 
 */
 
@@ -182,9 +182,10 @@ monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
 
 bool threadHoldsLock(threadobject *t, java_objectheader *o);
-void signal_cond_for_object(java_objectheader *obj);
-void broadcast_cond_for_object(java_objectheader *obj);
-void wait_cond_for_object(java_objectheader *obj, s8 time, s4 nanos);
+
+void wait_cond_for_object(java_objectheader *o, s8 millis, s4 nanos);
+void signal_cond_for_object(java_objectheader *o);
+void broadcast_cond_for_object(java_objectheader *o);
 
 void *thread_getself(void);
 
@@ -201,7 +202,7 @@ void threads_start_thread(thread *t, functionptr function);
 
 void joinAllThreads();
 
-void sleepThread(s8 millis, s4 nanos);
+void thread_sleep(s8 millis, s4 nanos);
 void yieldThread();
 
 void setPriorityThread(thread *t, s4 priority);

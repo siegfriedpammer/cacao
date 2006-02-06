@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4463 2006-02-06 06:49:04Z edwin $
+   $Id: threads.c 4475 2006-02-06 21:06:12Z twisti $
 
 */
 
@@ -1358,16 +1358,28 @@ bool isInterruptedThread(java_lang_VMThread *thread)
 	return t->interrupted;
 }
 
-void sleepThread(s8 millis, s4 nanos)
+
+/* thread_sleep ****************************************************************
+
+   Sleep the current thread for the specified amount of time.
+
+*******************************************************************************/
+
+void thread_sleep(s8 millis, s4 nanos)
 {
-	bool wasinterrupted;
-	threadobject *t = (threadobject*) THREADOBJECT;
+	threadobject       *t;
+	struct timespec    wakeupTime;
 	monitorLockRecord *lr;
-	struct timespec wakeupTime;
+	bool               wasinterrupted;
+
+	t = (threadobject *) THREADOBJECT;
+
 	calcAbsoluteTime(&wakeupTime, millis, nanos);
 
 	lr = allocLockRecordSimple(t);
+
 	wasinterrupted = waitWithTimeout(t, lr, &wakeupTime);
+
 	recycleLockRecord(t, lr);
 
 	if (wasinterrupted)
@@ -1385,10 +1397,10 @@ void setPriorityThread(thread *t, s4 priority)
 	setPriority(info->tid, priority);
 }
 
-void wait_cond_for_object(java_objectheader *o, s8 time, s4 nanos)
+void wait_cond_for_object(java_objectheader *o, s8 millis, s4 nanos)
 {
 	threadobject *t = (threadobject*) THREADOBJECT;
-	monitorWait(t, o, time, nanos);
+	monitorWait(t, o, millis, nanos);
 }
 
 void signal_cond_for_object(java_objectheader *o)
@@ -1460,7 +1472,7 @@ void threads_dump(void)
 
 			/* sleep this thread a bit, so the signal can reach the thread */
 
-			sleepThread(10, 0);
+			thread_sleep(10, 0);
 		}
 
 		tobj = tobj->info.next;
