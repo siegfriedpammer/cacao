@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4462 2006-02-06 06:46:35Z edwin $
+   $Id: threads.c 4463 2006-02-06 06:49:04Z edwin $
 
 */
 
@@ -116,22 +116,24 @@ static void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m)
 
 static void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
 {
-	for (;;)
+	for (;;) {
 		if (!m->count)
 		{
 			pthread_mutex_lock(&m->mutex);
 			m->owner = pthread_self();
 			m->count++;
 			break;
-		} else {
-			if (m->owner != pthread_self())
+		} 
+		else {
+			if (m->owner != pthread_self()) {
 				pthread_mutex_lock(&m->mutex);
-			else
-			{
+			}
+			else {
 				m->count++;
 				break;
 			}
 		}
+	}
 }
 
 static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
@@ -223,10 +225,12 @@ static const threadcritnode *findcritical(u1 *mcodeptr)
             return d;
 
         if (mcodeptr < d->mcodebegin) {
-            if (n->childs[0])
+            if (n->childs[0]) {
                 n = n->childs[0];
-            else
+			}
+            else {
                 return m;
+			}
         } 
 		else {
             if (n->childs[1]) {
