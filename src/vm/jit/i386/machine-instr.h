@@ -10,6 +10,15 @@ atomic_add (volatile int *mem, int val)
 						: "ir" (val), "m" (*mem));
 }
 
+/* compare_and_swap ********************************************************
+
+  Atomically do the following: Check if the location still contains
+  `oldval`. If so, replace it by `newval` and return `oldval`.
+
+  Otherwise (the value has changed), return the changed value at *p.
+
+***************************************************************************/
+
 static inline long
 __attribute__ ((unused))
 compare_and_swap (volatile long *p, long oldval, long newval)
