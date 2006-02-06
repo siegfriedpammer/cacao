@@ -30,8 +30,9 @@
             Christian Thalinger
 			Christian Ullrich
             Michael Starzinger
+			Edwin Steiner
 
-   $Id: simplereg.c 4434 2006-02-04 23:56:24Z twisti $
+   $Id: simplereg.c 4454 2006-02-06 00:02:50Z edwin $
 
 */
 
@@ -1068,6 +1069,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 				case ICMD_PUTSTATICCONST:
 				case ICMD_INLINE_START:
 				case ICMD_INLINE_END:
+				case ICMD_INLINE_GOTO:
 					break;
 
 					/* pop 0 push 1 const */
@@ -1628,4 +1630,5 @@ void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
