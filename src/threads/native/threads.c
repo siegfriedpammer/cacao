@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4458 2006-02-06 04:46:39Z edwin $
+   $Id: threads.c 4462 2006-02-06 06:46:35Z edwin $
 
 */
 
@@ -227,13 +227,15 @@ static const threadcritnode *findcritical(u1 *mcodeptr)
                 n = n->childs[0];
             else
                 return m;
-
-        } else {
+        } 
+		else {
             if (n->childs[1]) {
                 m = n->data;
                 n = n->childs[1];
-            } else
+            } 
+			else {
                 return n->data;
+			}
         }
     }
 }
@@ -296,12 +298,13 @@ static int cast_sendsignals(int sig, int count)
 	threadobject *tobj = mainthreadobj;
 	nativethread *infoself = THREADINFO;
 
-	if (count == 0)
+	if (count == 0) {
 		do {
 			count++;
 			tobj = tobj->info.next;
 		} while (tobj != mainthreadobj);
-
+	}
+	
 	do {
 		nativethread *info = &tobj->info;
 		if (info != infoself)
@@ -773,7 +776,8 @@ static void *threads_startup_thread(void *t)
 
 		ASM_CALLJAVAFUNCTION(method, thread, NULL, NULL, NULL);
 
-	} else {
+	} 
+	else {
 		/* call passed function, e.g. finalizer_thread */
 
 		(function)();
@@ -1081,9 +1085,9 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 				/* if we don't own the old record, set incharge XXX */
 				if (lr->ownerThread != t)
 					mlr->incharge = lr;
-				MEMORY_BARRIER_BEFORE_ATOMIC();
 
 				/* if the object still refers to lr, replace it by the new mlr */
+				MEMORY_BARRIER_BEFORE_ATOMIC();
 				nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
 			}
 
@@ -1176,8 +1180,10 @@ bool monitorExit(threadobject *t, java_objectheader *o)
 			monitorLockRecord *nlr = o->monitorPtr;
 			nlr->waiter = wlr;
 			STORE_ORDER_BARRIER();
-		} else
+		} 
+		else {
 			wakeWaiters(wlr);
+		}
 		lr->waiter = NULL;
 	}
 
@@ -1228,12 +1234,14 @@ static bool waitWithTimeout(threadobject *t, monitorLockRecord *lr, struct times
 
 	t->isSleeping = true;
 
-	if (wakeupTime->tv_sec || wakeupTime->tv_nsec)
+	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
 		while (!t->interrupted && !t->signaled && timeIsEarlier(wakeupTime))
 			pthread_cond_timedwait(&t->waitCond, &t->waitLock, wakeupTime);
-	else
+	}
+	else {
 		while (!t->interrupted && !t->signaled)
 			pthread_cond_wait(&t->waitCond, &t->waitLock);
+	}
 
 	wasinterrupted = t->interrupted;
 	t->interrupted = false;
@@ -1257,7 +1265,8 @@ static void calcAbsoluteTime(struct timespec *tm, s8 millis, s4 nanos)
 		nsec = tv.tv_usec * 1000 + (s4) millis * 1000000 + nanos;
 		tm->tv_sec = tv.tv_sec + nsec / 1000000000;
 		tm->tv_nsec = nsec % 1000000000;
-	} else {
+	} 
+	else {
 		tm->tv_sec = 0;
 		tm->tv_nsec = 0;
 	}
