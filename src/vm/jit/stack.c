@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4395 2006-01-31 22:31:15Z twisti $
+   $Id: stack.c 4455 2006-02-06 01:02:59Z edwin $
 
 */
 
@@ -275,6 +275,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				len = bptr->icount;
 				iptr = bptr->iinstr;
 				b_index = bptr - m->basicblocks;
+
+				bptr->stack = new;
 
 				while (--len >= 0)  {
 					opcode = iptr->opc;
@@ -2710,7 +2712,8 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 		else
 			icmd_print_stack(cd, bptr->instack);
 
-		printf("] L%03d(type: ", bptr->debug_nr);
+		printf("] L%03d(flags: %d, next: %d, type: ",
+			   bptr->debug_nr, bptr->flags, (bptr->next) ? (bptr->next->debug_nr) : -1);
 
 		switch (bptr->type) {
 		case BBTYPE_STD:
@@ -3049,15 +3052,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_INLINE_START:
+	case ICMD_INLINE_END:
 		printf(" ");
 		utf_display_classname(iptr->method->class->name);
 		printf(".");
 		utf_display_classname(iptr->method->name);
 		utf_display_classname(iptr->method->descriptor);
-		printf(", depth=%i", iptr->op1);
-		break;
-
-	case ICMD_INLINE_END:
 		break;
 
 	case ICMD_BUILTIN:
@@ -3087,7 +3087,7 @@ void show_icmd(instruction *iptr, bool deadcode)
 		if (deadcode || !iptr->target)
 			printf(" %d (0x%08x) op1=%d", iptr->val.i, iptr->val.i, iptr->op1);
 		else
-			printf(" %d (0x%08x) L%03d", iptr->val.i, iptr->val.i, ((basicblock *) iptr->target)->debug_nr);
+			printf(" %d (0x%08x) L%03d (%p)", iptr->val.i, iptr->val.i, ((basicblock *) iptr->target)->debug_nr,iptr->target);
 		break;
 
 	case ICMD_IF_LEQ:
@@ -3128,10 +3128,11 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_LCMPLE:
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
+	case ICMD_INLINE_GOTO:
 		if (deadcode || !iptr->target)
 			printf(" op1=%d", iptr->op1);
 		else
-			printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
+			printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
 		break;
 
 	case ICMD_TABLESWITCH:
