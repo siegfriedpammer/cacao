@@ -26,24 +26,25 @@
 ##
 ## Authors: Christian Ullrich
 ##
-## Changes:
+## Changes: Christian Thalinger
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4465 2006-02-06 18:14:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-noinst_LTLIBRARIES = liballocator.la
+noinst_LTLIBRARIES = \
+	liballocator.la
 
 liballocator_la_SOURCES = \
-        simplereg.c \
-        simplereg.h 
+	simplereg.c \
+	simplereg.h 
 
 if ENABLE_LSRA
 liballocator_la_SOURCES += \
-        lsra.c \
-        lsra.h
+	lsra.c \
+	lsra.h
 endif		
 
 
