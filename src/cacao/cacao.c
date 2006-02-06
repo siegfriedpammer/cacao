@@ -37,7 +37,7 @@
      - Calling the class loader
      - Running the main method
 
-   $Id: cacao.c 4396 2006-01-31 23:27:41Z twisti $
+   $Id: cacao.c 4474 2006-02-06 21:01:54Z twisti $
 
 */
 
@@ -79,7 +79,7 @@
 #include "vm/suck.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/profile.h"
+#include "vm/jit/profile/profile.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
 #include "vm/jit/verify/typeinfo.h"
@@ -1271,11 +1271,21 @@ int main(int argc, char **argv)
 	if (!jni_init())
 		throw_main_exception_exit();
 
+	/* initialize profiling */
+
+	if (!profile_init())
+		throw_main_exception_exit();
+		
 #if defined(USE_THREADS)
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
 		throw_main_exception_exit();
+
+	/* start the profile sampling thread */
+
+/* 	if (!profile_start_thread()) */
+/* 		throw_main_exception_exit(); */
 #endif
 
 	cacao_initializing = false;
