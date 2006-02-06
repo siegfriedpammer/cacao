@@ -40,10 +40,24 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "native/jni.h"
+#include "native/include/java_lang_Thread.h"
+#include "native/include/java_lang_VMThread.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# else
+#  include "threads/green/threads.h"
+# endif
+#endif
+
+#include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/method.h"
 #include "vm/options.h"
+#include "vm/stringlocal.h"
 
 
 /* list_method_entry **********************************************************/
@@ -54,6 +68,103 @@ struct list_method_entry {
 	methodinfo *m;
 	listnode    linkage;
 };
+
+
+/* global variables ***********************************************************/
+
+#if defined(USE_THREADS)
+static java_lang_VMThread *profile_vmthread;
+#endif
+
+
+/* profile_init ****************************************************************
+
+   Initializes the profile global lock.
+
+*******************************************************************************/
+
+bool profile_init(void)
+{
+	/* everything's ok */
+
+	return true;
+}
+
+
+/* profile_thread **************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+#if defined(USE_THREADS)
+static void profile_thread(void)
+{
+	s4 i = 0;
+
+	while (true) {
+		/* sleep thread for 100 nanos */
+
+		thread_sleep(0, 100);
+
+#if 0
+		/* get the lock on the finalizer lock object, so we can call wait */
+
+		builtin_monitorenter(lock_profile_thread);
+
+		/* wait 1 ms */
+	
+		wait_cond_for_object(lock_profile_thread, 0, 100);
+
+		/* leave the lock */
+
+		builtin_monitorexit(lock_profile_thread);
+#endif
+
+/* 		if ((i++ % 1000) == 0) */
+/* 			printf("profile_thread: %d\n", i); */
+	}
+}
+#endif
+
+
+/* profile_start_thread ********************************************************
+
+   Starts the profile sampling thread.
+
+*******************************************************************************/
+
+#if defined(USE_THREADS)
+bool profile_start_thread(void)
+{
+	java_lang_Thread *t;
+
+	/* create the profile object */
+
+	profile_vmthread =
+		(java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	if (!profile_vmthread)
+		return false;
+
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	t->vmThread = profile_vmthread;
+	t->name     = javastring_new_char("Profiling Sampler");
+	t->daemon   = true;
+	t->priority = 5;
+
+	profile_vmthread->thread = t;
+
+	/* actually start the profile sampling thread */
+
+	threads_start_thread(t, profile_thread);
+
+	/* everything's ok */
+
+	return true;
+}
+#endif
 
 
 /* profile_printstats **********************************************************

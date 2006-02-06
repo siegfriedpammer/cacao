@@ -42,6 +42,9 @@
 
 /* function prototypes ********************************************************/
 
+bool profile_init(void);
+bool profile_start_thread(void);
+
 #if !defined(NDEBUG)
 void profile_printstats(void);
 #endif
