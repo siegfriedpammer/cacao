@@ -28,13 +28,13 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4427 2006-02-04 17:31:27Z edwin $
+## $Id: Makefile.am 4464 2006-02-06 08:22:14Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = handbook
 
-EXTRA_DIST = stack.txt
+EXTRA_DIST = inlining_stacktrace.txt native_threads.txt stack.txt
 
 
 ## Local variables:
