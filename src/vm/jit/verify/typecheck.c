@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4423 2006-02-04 00:13:48Z edwin $
+   $Id: typecheck.c 4456 2006-02-06 01:08:37Z edwin $
 
 */
 
@@ -1999,6 +1999,9 @@ fieldaccess_tail:
 				/****************************************/
 				/* BRANCH INSTRUCTIONS                  */
 
+			case ICMD_INLINE_GOTO:
+				COPYTYPE(state->curstack,dst);
+				/* FALLTHROUGH! */
 			case ICMD_GOTO:
 				superblockend = true;
 				/* FALLTHROUGH! */
@@ -2376,6 +2379,8 @@ return_tail:
 			case ICMD_FNEG:
 			case ICMD_DNEG:
 
+			case ICMD_INLINE_START:
+			case ICMD_INLINE_END:
 
 				/*XXX What shall we do with the following ?*/
 			case ICMD_AASTORECONST:
