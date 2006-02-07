@@ -27,8 +27,9 @@
    Authors: Christian Thalinger
 
    Changes: Christian Ullrich
+   			Edwin Steiner
 
-   $Id: codegen-common.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen-common.h 4478 2006-02-07 17:22:13Z edwin $
 
 */
 
@@ -52,7 +53,6 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/inline/inline.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
@@ -167,7 +167,7 @@ struct _methodtree_element {
 /* function prototypes ********************************************************/
 
 void codegen_init(void);
-void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *e);
+void codegen_setup(methodinfo *m, codegendata *cd);
 
 void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close(void);
@@ -244,4 +244,5 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -29,6 +29,7 @@
 
    Changes: Christian Thalinger
             Joseph Wenninger
+			Edwin Steiner
 
    All functions assume the following code area / data area layout:
 
@@ -47,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4452 2006-02-05 23:24:34Z edwin $
+   $Id: codegen-common.c 4478 2006-02-07 17:22:13Z edwin $
 
 */
 
@@ -152,7 +153,7 @@ void codegen_init(void)
 
 *******************************************************************************/
 
-void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
+void codegen_setup(methodinfo *m, codegendata *cd)
 {
 	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
 	cd->mcodesize = MCODEINITSIZE;
@@ -206,25 +207,13 @@ void codegen_setup(methodinfo *m, codegendata *cd, t_inlining_globals *id)
 	cd->exceptiontable = 0;
 	cd->exceptiontablelength = 0;
 
-	if (useinlining && id) {
-		if (id->cumextablelength > 0) {
-			cd->exceptiontablelength = id->cumextablelength;
-			cd->exceptiontable =
-				DMNEW(exceptiontable, id->cumextablelength + 1);
-		}
-
-	} else if (id && (id->method->exceptiontablelength > 0)) {
+	if (m->exceptiontablelength > 0) {
 		cd->exceptiontablelength = m->exceptiontablelength;
 		cd->exceptiontable = DMNEW(exceptiontable, m->exceptiontablelength + 1);
 	}
 
-	if (id) {
-		cd->maxstack = id->cummaxstack;
-		cd->maxlocals = id->cumlocals;
-	} else {
-		cd->maxstack = m->maxstack;
-		cd->maxlocals = m->maxlocals;
-	}
+	cd->maxstack = m->maxstack;
+	cd->maxlocals = m->maxlocals;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cd->threadcritcurrent.next = NULL;
@@ -728,11 +717,18 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	{
 		linenumberref *lr;
 		ptrint lrtlen = 0;
+		ptrint target;
 
 		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
 			lrtlen++;
-			*((functionptr *) ((ptrint) epoint + (ptrint) lr->tablepos)) =
-				(functionptr) ((ptrint) epoint + (ptrint) lr->targetmpc);
+			target = lr->targetmpc;
+			/* if the entry contains an mcode pointer (normal case), resolve it */
+			/* (see doc/inlining_stacktrace.txt for details)                    */
+			if (lr->linenumber >= -2) {
+			    target += (ptrint) epoint;
+			}
+			*((functionptr *) ((ptrint) epoint + (ptrint) lr->tablepos)) = 
+				(functionptr) target;
 		}
 		
 		*((functionptr *) ((ptrint) epoint + cd->linenumbertablestartpos)) =
@@ -784,7 +780,6 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 {
 	codegendata        *cd;
 	registerdata       *rd;
-	t_inlining_globals *id;
 	s4                  dumpsize;
 	methoddesc         *md;
 	methoddesc         *nmd;	
@@ -796,11 +791,8 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
-	id = DNEW(t_inlining_globals);
 
 	/* setup code generation stuff */
-
-	inlining_setup(m, id);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -809,7 +801,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 		reg_setup(m, rd);
 #endif
 
-	codegen_setup(m, cd, id);
+	codegen_setup(m, cd);
 						
 	/* create new method descriptor with additional native parameters */
 
@@ -1135,4 +1127,5 @@ void codegen_threadcritstop(codegendata *cd, int offset)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

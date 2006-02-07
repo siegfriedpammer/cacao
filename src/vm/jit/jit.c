@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4453 2006-02-05 23:34:07Z edwin $
+   $Id: jit.c 4478 2006-02-07 17:22:13Z edwin $
 
 */
 
@@ -64,12 +64,6 @@
 #include "vm/jit/allocator/simplereg.h"
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
-#endif
-
-#if defined(USE_INLINING)
-# include "vm/jit/inline/inline.h"
-# include "vm/jit/inline/parseRT.h"
-# include "vm/jit/inline/parseXTA.h"
 #endif
 
 #include "vm/jit/loop/analyze.h"
@@ -967,8 +961,9 @@ char *icmd_names[256] = {
 
 	"INLINE_START   ", /*             251 */
 	"INLINE_END     ", /*             252 */
+	"INLINE_GOTO    ", /*             253 */
 
-	"UNDEF253", "UNDEF254",
+	"UNDEF254",
 
 	"BUILTIN        "  /*             255 */
 };
@@ -1325,7 +1320,7 @@ static u1 *do_nothing_function(void)
 *******************************************************************************/
 
 static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
-							  loopdata *ld, t_inlining_globals *id);
+							  loopdata *ld);
 
 u1 *jit_compile(methodinfo *m)
 {
@@ -1333,7 +1328,6 @@ u1 *jit_compile(methodinfo *m)
 	codegendata        *cd;
 	registerdata       *rd;
 	loopdata           *ld;
-	t_inlining_globals *id;
 	s4                  dumpsize;
 
 	STATISTICS(count_jit_calls++);
@@ -1372,15 +1366,6 @@ u1 *jit_compile(methodinfo *m)
 	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
 	ld = DNEW(loopdata);
-	id = DNEW(t_inlining_globals);
-
-#if defined(USE_INLINING)
-	/* must be called before reg_setup, because it can change
-	   maxlocals init reqd to initialize for parse even in no
-	   inlining */
-
-	inlining_setup(m, id);
-#endif
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -1393,11 +1378,11 @@ u1 *jit_compile(methodinfo *m)
 
 	/* setup the codegendata memory */
 
-	codegen_setup(m, cd, id);
+	codegen_setup(m, cd);
 
 	/* now call internal compile function */
 
-	r = jit_compile_intern(m, cd, rd, ld, id);
+	r = jit_compile_intern(m, cd, rd, ld);
 
 	/* free some memory */
 
@@ -1461,7 +1446,7 @@ u1 *jit_compile(methodinfo *m)
 *******************************************************************************/
 
 static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
-							  loopdata *ld, t_inlining_globals *id)
+							  loopdata *ld)
 {
 	/* print log message for compiled method */
 
@@ -1551,7 +1536,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
-		if (!typecheck(m, cd, rd)) {
+	if (!typecheck(m, cd, rd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
 			return NULL;
