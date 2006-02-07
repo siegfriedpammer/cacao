@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4481 2006-02-07 21:27:58Z edwin $
+   $Id: stack.h 4482 2006-02-07 23:18:23Z edwin $
 
 */
 
@@ -65,27 +65,7 @@
 
 #define TYPE_VERIFYERROR(t) \
     do { \
-        char *type = NULL; \
-        switch ((t)) { \
-        case TYPE_INT: \
-			type = "integer"; \
-			break; \
-		case TYPE_LNG: \
-			type = "long"; \
-			break; \
-		case TYPE_FLT: \
-			type = "float"; \
-			break; \
-		case TYPE_DBL: \
-			type = "double"; \
-			break; \
-		case TYPE_ADR: \
-			type = "object/array"; \
-			break; \
-		} \
-        *exceptionptr = new_verifyerror(m, \
-										"Expecting to find %s on stack", \
-										type); \
+		exceptions_throw_verifyerror_for_stack(m,t); \
         return NULL; \
     } while (0)
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4439 2006-02-05 00:40:53Z twisti $
+   $Id: exceptions.c 4482 2006-02-07 23:18:23Z edwin $
 
 */
 
@@ -842,6 +842,72 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 }
 
 
+/* exceptions_throw_verifyerror_for_stack **************************************
+
+   throws a java.lang.VerifyError for an invalid stack slot type
+
+*******************************************************************************/
+
+void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
+{
+	java_objectheader *o;
+	char              *msg;
+	s4                 msglen;
+	char              *typename;
+
+	/* calculate exception message length */
+
+	msglen = 0;
+
+	if (m)
+		msglen = strlen("(class: ") + utf_strlen(m->class->name) +
+			strlen(", method: ") + utf_strlen(m->name) +
+			strlen(" signature: ") + utf_strlen(m->descriptor) +
+			strlen(") Expecting to find longest-------typename on stack") 
+			+ strlen("0");
+
+	/* allocate memory */
+
+	msg = MNEW(char, msglen);
+
+	/* generate message */
+
+	if (m) {
+		strcpy(msg, "(class: ");
+		utf_strcat(msg, m->class->name);
+		strcat(msg, ", method: ");
+		utf_strcat(msg, m->name);
+		strcat(msg, " signature: ");
+		utf_strcat(msg, m->descriptor);
+		strcat(msg, ") ");
+	}
+	else {
+		msg[0] = 0;
+	}
+
+	strcat(msg,"Expecting to find ");
+	switch (type) {
+		case TYPE_INT: typename = "integer"; break;
+		case TYPE_LNG: typename = "long"; break;
+		case TYPE_FLT: typename = "float"; break;
+		case TYPE_DBL: typename = "double"; break;
+		case TYPE_ADR: typename = "object/array"; break;
+		default: assert(0);
+	}
+	strcat(msg, typename);
+	strcat(msg, " on stack");
+
+	/* create exception object */
+
+	o = new_exception_message(string_java_lang_VerifyError, msg);
+
+	/* free memory */
+
+	MFREE(msg, char, msglen);
+
+	*exceptionptr = o;
+}
+
 /* new_arithmeticexception *****************************************************
 
    Generates a java.lang.ArithmeticException for the jit compiler.
@@ -1255,4 +1321,5 @@ void exceptions_print_exception(java_objectheader *xptr)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

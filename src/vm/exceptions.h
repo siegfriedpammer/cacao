@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: exceptions.h 4482 2006-02-07 23:18:23Z edwin $
 
 */
 
@@ -130,6 +130,7 @@ java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
 													const char *message, ...);
+void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type);
 
 java_objectheader *new_arithmeticexception(void);
 
@@ -168,4 +169,5 @@ void exceptions_print_exception(java_objectheader *xptr);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
