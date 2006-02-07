@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4422 2006-02-04 00:08:10Z edwin $
+   $Id: stack.h 4481 2006-02-07 21:27:58Z edwin $
 
 */
 
@@ -529,6 +529,6 @@ void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
- * vim:noexpandtab:sw=4:ts=4:
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
