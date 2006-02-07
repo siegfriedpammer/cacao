@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.c 4479 2006-02-07 17:28:05Z edwin $
 
 */
 
@@ -2128,7 +2128,6 @@ u1 *createcalljavafunction(methodinfo *m)
 	u1                 *entrypoint;
 	codegendata        *cd;
 	registerdata       *rd;
-	t_inlining_globals *id;
 	s4                  dumpsize;
 	methoddesc         *md;
 
@@ -2139,14 +2138,12 @@ u1 *createcalljavafunction(methodinfo *m)
 	tmpm = DNEW(methodinfo);
 	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
-	id = DNEW(t_inlining_globals);
 
 	/* setup code generation stuff */
 
 	MSET(tmpm, 0, u1, sizeof(methodinfo));
 
-	inlining_setup(tmpm, id);
-	codegen_setup(tmpm, cd, id);
+	codegen_setup(tmpm, cd);
 
 	md = m->parseddesc;
 
