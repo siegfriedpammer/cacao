@@ -1,6 +1,13 @@
-New in release 0.95 ()
+New in release 0.95 (February XX, 2006)
 
-  * powerpc, bugfix: (M_COPY): Handle longs and doubles properly.
+  * Deadlock bugfix.  This should fix the random deadlocks seen in
+    Eclipse or other applications.
+  * Search for suitable jar program during configure, can be specified
+    via JAR environment variable
+  * --enable-zlib bugfix
+  * i386 bugfix: Set FPU to 64-bit on VM startup (fixes Debian bug
+    #350729)
+  * powerpc bugfix: (M_COPY): Handle longs and doubles properly.
 
 
 New in release 0.94 (January 22, 2006)
