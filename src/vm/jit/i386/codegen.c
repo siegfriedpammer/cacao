@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4400 2006-01-31 23:54:31Z twisti $
+   $Id: codegen.c 4477 2006-02-07 16:52:17Z edwin $
 
 */
 
@@ -487,7 +487,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 			while (src != NULL) {
 				len--;
-				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
+				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 					if (!IS_2_WORD_TYPE(src->type)) {
 						if (bptr->type == BBTYPE_SBR) {
 							d = reg_of_var(rd, src, REG_ITMP1);
@@ -567,9 +567,16 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		switch (iptr->opc) {
 		case ICMD_INLINE_START:
+			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
+			/* EAX: NO ECX: NO EDX: NO */
+			dseg_addlinenumber_inline_start(cd, iptr, cd->mcodeptr);
+			break;
+
 		case ICMD_INLINE_END:
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
+			dseg_addlinenumber_inline_end(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
@@ -3481,6 +3488,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_JMP(REG_ITMP3);
 			break;
 
+		case ICMD_INLINE_GOTO:
+			M_COPY(src,iptr->dst);
+			/* FALLTHROUGH! */
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
