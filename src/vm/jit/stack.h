@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4482 2006-02-07 23:18:23Z edwin $
+   $Id: stack.h 4483 2006-02-11 21:25:45Z christian $
 
 */
 
@@ -182,15 +182,15 @@ like it is done normaly in stack.c
 DUP* and SWAP Macros
 TODO: dependences should be prevented as described in the
 CACAO JVM Paper
+Interface Stackslots (STACKVAR) are not allowed to be copied.
+ARGVAR are taken out, too.
 *******************************************************/
 #define COPY(s,d) \
     do { \
         (d)->flags = 0; \
         (d)->type = (s)->type; \
-		if ((s)->varkind == LOCALVAR) \
-			(s)->varkind = TEMPVAR; \
-        (d)->varkind = (s)->varkind; \
-        (d)->varnum = (s)->varnum; \
+        (d)->varkind = TEMPVAR; \
+        (d)->varnum = 0; \
     } while (0)
 
 
@@ -342,9 +342,7 @@ CACAO JVM Paper
 
 /* Same dependency quick fix as at COPY */
 #define DUP         {REQUIRE_1; \
-		            if (CURKIND == LOCALVAR) \
-			            CURKIND = TEMPVAR; \
-                    NEWSTACK(CURTYPE,CURKIND,curstack->varnum);SETDST; \
+                    NEWSTACK(CURTYPE,TEMPVAR,stackdepth-1);SETDST; \
                     stackdepth++; INC_LIFETIMES(1);}
 #define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
