@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: zip.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: zip.c 4489 2006-02-12 13:11:06Z twisti $
 
 */
 
@@ -290,34 +290,38 @@ hashtable *zip_open(char *path)
 		filename = (const char *) (p + CDSFH_FILENAME);
 		classext = filename + cdsfh.filenamelength - strlen(".class");
 
-		if (strncmp(classext, ".class", strlen(".class")) == 0)
-			u = utf_new(filename, cdsfh.filenamelength - strlen(".class"));
-		else
-			u = utf_new(filename, cdsfh.filenamelength);
+		/* skip directory entries */
 
-		/* insert class into hashtable */
+		if (filename[cdsfh.filenamelength - 1] != '/') {
+			if (strncmp(classext, ".class", strlen(".class")) == 0)
+				u = utf_new(filename, cdsfh.filenamelength - strlen(".class"));
+			else
+				u = utf_new(filename, cdsfh.filenamelength);
 
-		htzfe = NEW(hashtable_zipfile_entry);
+			/* insert class into hashtable */
 
-		htzfe->filename          = u;
-		htzfe->compressionmethod = cdsfh.compressionmethod;
-		htzfe->compressedsize    = cdsfh.compressedsize;
-		htzfe->uncompressedsize  = cdsfh.uncompressedsize;
-		htzfe->data              = filep + cdsfh.relativeoffset;
+			htzfe = NEW(hashtable_zipfile_entry);
 
-		/* get hashtable slot */
+			htzfe->filename          = u;
+			htzfe->compressionmethod = cdsfh.compressionmethod;
+			htzfe->compressedsize    = cdsfh.compressedsize;
+			htzfe->uncompressedsize  = cdsfh.uncompressedsize;
+			htzfe->data              = filep + cdsfh.relativeoffset;
 
-		key  = utf_hashkey(u->text, u->blength);
-		slot = key & (ht->size - 1);
+			/* get hashtable slot */
 
-		/* insert into external chain */
+			key  = utf_hashkey(u->text, u->blength);
+			slot = key & (ht->size - 1);
 
-		htzfe->hashlink = ht->ptr[slot];
+			/* insert into external chain */
 
-		/* insert hashtable zipfile entry */
+			htzfe->hashlink = ht->ptr[slot];
 
-		ht->ptr[slot] = htzfe;
-		ht->entries++;
+			/* insert hashtable zipfile entry */
+
+			ht->ptr[slot] = htzfe;
+			ht->entries++;
+		}
 
 		/* move to next central directory structure file header */
 
