@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4486 2006-02-12 02:17:10Z edwin $
+   $Id: VMClassLoader.c 4487 2006-02-12 02:18:20Z edwin $
 
 */
 
@@ -445,4 +445,5 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
