@@ -28,16 +28,17 @@
 
    Changes: 
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 4498 2006-02-12 23:43:09Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "toolbox/logging.h"
@@ -113,10 +114,7 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		mcode = *((u4 *) (ra + 1 * 4));
 
-		if ((mcode >> 16) != 0x6739) {
-			log_text("No `daddiu' instruction found on return address!");
-			assert(0);
-		}
+		assert((mcode >> 16) != 0x6739);
 
 		offset += (s2) (mcode & 0x0000ffff);
 
@@ -144,13 +142,10 @@ u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* in the normal case we check for a `ld s8,x(s8)' instruction */
 
 #if SIZEOF_VOID_P == 8
-			if ((mcode >> 16) != 0xdfde) {
+			assert((mcode >> 16) == 0xdfde);
 #else
-			if ((mcode >> 16) != 0x8fde) {
+			assert((mcode >> 16) == 0x8fde);
 #endif
-				log_text("No `ld s8,x(s8)' instruction found!");
-				assert(0);
-			}
 
 			/* and get the final data segment address */
 
@@ -196,13 +191,10 @@ u1 *md_codegen_findmethod(u1 *ra)
 		mcode = *((u4 *) (ra + 1 * 4));
 
 #if SIZEOF_VOID_P == 8
-		if ((mcode >> 16) != 0x6739) {
+		assert((mcode >> 16) == 0x6739);
 #else	
-		if ((mcode >> 16) != 0x2739) {
+		assert((mcode >> 16) == 0x2739);
 #endif
-			log_text("No `daddiu' instruction found on return address!");
-			assert(0);
-		}
 
 		offset += (s2) (mcode & 0x0000ffff);
 
@@ -212,13 +204,10 @@ u1 *md_codegen_findmethod(u1 *ra)
 		mcode = *((u4 *) ra);
 
 #if SIZEOF_VOID_P == 8
-		if ((mcode >> 16) != 0x67fe) {
+		assert((mcode >> 16) == 0x67fe);
 #else
-		if ((mcode >> 16) != 0x27fe) {
+		assert((mcode >> 16) == 0x27fe);
 #endif
-			log_text("No `daddiu s8,ra,x' instruction found on return address!");
-			assert(0);
-		}
 
 		offset = (s2) (mcode & 0x0000ffff);
 	}

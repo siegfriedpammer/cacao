@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
+   $Id: codegen.c 4498 2006-02-12 23:43:09Z twisti $
 
 */
 
@@ -4138,26 +4138,45 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE    3
+#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_CODESIZE    3 * 4
+
+#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
+
 
 u1 *createcompilerstub(methodinfo *m)
 {
-	u8 *s = CNEW(u8, COMPSTUBSIZE);     /* memory to hold the stub            */
-	s4 *mcodeptr = (s4 *) s;            /* code generation pointer            */
+	u1     *s;                          /* memory to hold the stub            */
+	ptrint *d;
+	s4     *mcodeptr;                   /* code generation pointer            */
+
+	s = CNEW(u1, COMPILERSTUB_SIZE);
+
+	/* set data pointer and code pointer */
+
+	d = (ptrint *) s;
+	s = s + COMPILERSTUB_DATASIZE;
+
+	mcodeptr = (s4 *) s;
 	
-	                                    /* code for the stub                  */
-	M_ALD(REG_PV, REG_PV, 16);          /* load pointer to the compiler       */
-	M_JMP(0, REG_PV);                   /* jump to the compiler, return address
-	                                       in reg 0 is used as method pointer */
-	s[1] = (ptrint) m;                  /* literals to be adressed            */
-	s[2] = (ptrint) asm_call_jit_compiler; /* jump directly via PV from above */
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+
+	/* code for the stub */
+
+	M_ALD(REG_ITMP1, REG_PV, -1 * 8);   /* load methodinfo pointer            */
+	M_ALD(REG_PV, REG_PV, -2 * 8);      /* load pointer to the compiler       */
+	M_JMP(REG_ZERO, REG_PV);            /* jump to the compiler               */
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_cstub_len += COMPSTUBSIZE * 8;
+		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
 
-	return (u1 *) s;
+	return s;
 }
 
 

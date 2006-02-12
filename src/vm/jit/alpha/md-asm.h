@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-asm.h 4498 2006-02-12 23:43:09Z twisti $
 
 */
 
@@ -84,7 +84,7 @@
 
 #define xptr    itmp1
 #define xpc     itmp2
-
+#define mptr    itmp2
 
 #define fv0     $f0
 #define ft0     $f1

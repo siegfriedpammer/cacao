@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
+   $Id: asmpart.S 4498 2006-02-12 23:43:09Z twisti $
 
 */
 
@@ -128,7 +128,7 @@ asm_md_init:
 
 	.ent    asm_calljavafunction
 
-	.align  2 /*3*/
+	.align  2
 
 	.quad   0                           /* catch type all                     */
 	.quad   calljava_xhandler           /* handler pc                         */
@@ -153,19 +153,18 @@ asm_calljavafunction_int:
 	stq     ra,0*8(sp)                  /* save return address                */
 	stq     gp,1*8(sp)                  /* save global pointer                */
 
-	stq     a0,2*8(sp)                  /* save method pointer for compiler   */
-	lda     v0,2*8(sp)                  /* pass pointer to method pointer     */
+	mov     a0,itmp1                    /* pass method pointer via tmp1       */
 
 	mov     a1,a0                       /* pass the remaining parameters      */
 	mov     a2,a1
 	mov     a3,a2
 	mov     a4,a3
 
-	lda     itmp2,asm_call_jit_compiler /* fake virtual function call         */
-	stq     itmp2,3*8(sp)               /* store function address             */
-	mov     sp,itmp2                    /* set method pointer                 */
+	lda     mptr,asm_call_jit_compiler  /* fake virtual function call         */
+	stq     mptr,3*8(sp)                /* store function address             */
+	mov     sp,mptr                     /* set method pointer                 */
 
-	ldq     pv,3*8(itmp2)               /* method call as in Java             */
+	ldq     pv,3*8(mptr)                /* method call as in Java             */
 	jmp     ra,(pv)                     /* call JIT compiler                  */
 calljava_jit:
 	lda     pv,(asm_calljavafunction - calljava_jit)(ra)
@@ -220,6 +219,7 @@ asm_calljavafunction2double:
 	stq     s6,3*8(sp)
 
 	stq     a0,4*8(sp)                /* save method pointer for compiler     */
+
 	mov     a3,t0                     /* pointer to arg block                 */
 	mov     a1,s6                     /* arg count                            */
 
@@ -268,13 +268,13 @@ calljava_copyloop:
 	bne     t1,calljava_copyloop
 
 calljava_nocopy:
-	lda     v0,4*8(t4)                /* pass pointer to method pointer via v0*/
+	ldq     itmp1,4*8(t4)             /* pass method pointer via itmp1        */
 
-	lda     itmp2,asm_call_jit_compiler/* fake virtual function call (2 instr)*/
-	stq     itmp2,16(t4)              /* store function address               */
-	lda     itmp2,8(t4)               /* set method pointer                   */
+	lda     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
+	stq     mptr,2*8(t4)              /* store function address               */
+	lda     mptr,1*8(t4)              /* set method pointer                   */
 
-	ldq     pv,8(itmp2)               /* method call as in Java               */
+	ldq     pv,1*8(mptr)              /* method call as in Java               */
 	jmp     ra,(pv)                   /* call JIT compiler                    */
 calljava_jit2:
 	lda     pv,(asm_calljavafunction2 - calljava_jit2)(ra)
@@ -327,31 +327,13 @@ calljava_xhandler2:
 
 asm_call_jit_compiler:
 	ldgp    gp,0(pv)
-	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
-	srl     t8,16,t8              /* shift right register number $yy          */
-	and     t8,31,t8              /* isolate register number                  */
-	subl    t8,28,t8              /* test for REG_METHODPTR                   */
-	beq     t8,noregchange       
-	ldl     t8,0(ra)              /* load instruction LDA PV,xxx(RA)          */
-	sll     t8,48,t8
-	sra     t8,48,t8              /* isolate offset                           */
-	addq    t8,ra,$28             /* compute update address                   */
-	ldl     t8,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	srl     t8,16,t8              /* isolate instruction code                 */
-	lda     t8,-0x177b(t8)        /* test for LDAH                            */
-	bne     t8,noregchange       
-	ldl     t8,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
-	sll     t8,16,t8              /* compute high offset                      */
-	addl    t8,0,t8               /* sign extend high offset                  */
-	addq    t8,$28,$28            /* compute update address                   */
-noregchange:
 	lda     sp,-(15*8+sizestackframeinfo)(sp) /* reserve stack space          */
 
 	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
 
-	stq     $28,12*8(sp)          /* save method pointer                      */
+	stq     mptr,12*8(sp)         /* save method pointer                      */
 	stq     ra,13*8(sp)           /* save return address                      */
-	stq     v0,14*8(sp)           /* save methodinfo pointer                  */
+	stq     itmp1,14*8(sp)        /* save methodinfo pointer                  */
 
 	lda     a0,15*8(sp)           /* create stackframe info                   */
 	mov     zero,a1               /* we don't have pv handy                   */
@@ -361,11 +343,17 @@ noregchange:
 	jsr     ra,stacktrace_create_extern_stackframeinfo
 	ldgp    gp,0(ra)
 
-	ldq     v0,14*8(sp)           /* restore methodinfo pointer               */
-	ldq     a0,0(v0)              /* pass methodinfo pointer                  */
+	ldq     a0,14*8(sp)           /* pass methodinfo pointer                  */
 	jsr     ra,jit_compile        /* call jit compiler                        */
 	ldgp    gp,0(ra)
 	stq     v0,14*8(sp)           /* save return value                        */
+
+	ldq     a0,13*8(sp)           /* pass return address                      */
+	lda     a1,15*8(sp)           /* pass stackframeinfo (for PV)             */
+	ldq     a2,12*8(sp)           /* pass method pointer                      */
+	jsr     ra,md_assembler_get_patch_address /* get address of patch position*/
+	ldgp    gp,0(ra)
+	stq     v0,12*8(sp)           /* store patch address for later use        */
 
 	lda     a0,15*8(sp)           /* remove stackframe info                   */
 	jsr     ra,stacktrace_remove_stackframeinfo
@@ -373,24 +361,18 @@ noregchange:
 
 	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
 
-	ldq     $28,12*8(sp)          /* load method pointer                      */
+	ldq     t0,12*8(sp)           /* load patch address                       */
 	ldq     ra,13*8(sp)           /* load return address                      */
-	ldq     v0,14*8(sp)           /* restore return value                     */
+	ldq     pv,14*8(sp)           /* restore method entry point               */
 	lda     sp,15*8+sizestackframeinfo(sp) /* deallocate stack area           */
 
-	beq     v0,L_asm_call_jit_compiler_exception
+	beq     pv,L_asm_call_jit_compiler_exception
 
-	ldl     t8,-8(ra)             /* load instruction LDQ PV,xxx($yy)         */
-	sll     t8,48,t8
-	sra     t8,48,t8              /* isolate offset                           */
-
-	addq    t8,$28,t8             /* compute update address via method pointer*/
-	stq     v0,0(t8)              /* save new method address there            */
+	stq     pv,0(t0)              /* patch method entry point                 */
 
 	call_pal PAL_imb              /* synchronise instruction cache            */
 
-	mov     v0,pv                 /* load method address into pv              */
-	jmp     zero,(pv)             /* and call method. The method returns      */
+	jmp     zero,(pv)             /* and call method, the method returns      */
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:

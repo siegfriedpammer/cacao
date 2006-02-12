@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 4392 2006-01-31 15:35:22Z twisti $
+   $Id: md.c 4498 2006-02-12 23:43:09Z twisti $
 
 */
 
@@ -110,6 +110,87 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
+/* md_assembler_get_patch_address **********************************************
+
+   Gets the patch address of the currently compiled method. The offset
+   is extracted from the load instruction(s) before the jump and added
+   to the right base address (PV or REG_METHODPTR).
+
+   Machine code:
+
+   a77bffb8    ldq     pv,-72(pv)
+   6b5b4000    jsr     (pv)
+
+   or
+
+   a77c0000    ldq     pv,0(at)
+   6b5b4000    jsr     (pv)
+
+*******************************************************************************/
+
+u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+{
+	u4  mcode;
+	s4  offset;
+	u1 *pa;                             /* patch address                      */
+
+	/* go back to the actual load instruction (2 instructions on Alpha) */
+
+	ra = ra - 2 * 4;
+
+	/* get first instruction word on current PC */
+
+	mcode = *((u4 *) ra);
+
+	/* check if we have 2 instructions (lui) */
+
+	if ((mcode >> 16) == 0x3c19) {
+		/* XXX write a regression for this */
+		assert(0);
+
+		/* get displacement of first instruction (lui) */
+
+		offset = (s4) (mcode << 16);
+
+		/* get displacement of second instruction (daddiu) */
+
+		mcode = *((u4 *) (ra + 1 * 4));
+
+		assert((mcode >> 16) == 0x6739);
+
+		offset += (s2) (mcode & 0x0000ffff);
+
+	} else {
+		/* get first instruction (ldq) */
+
+		mcode = *((u4 *) ra);
+
+		/* get the offset from the instruction */
+
+		offset = (s2) (mcode & 0x0000ffff);
+
+		/* check for call with REG_METHODPTR: ldq pv,0(at) */
+
+		if ((mcode >> 16) == 0xa77c) {
+			/* in this case we use the passed method pointer */
+
+			pa = mptr + offset;
+
+		} else {
+			/* in the normal case we check for a `ldq pv,-72(pv)' instruction */
+
+			assert((mcode >> 16) == 0xa77b);
+
+			/* and get the final data segment address */
+
+			pa = sfi->pv + offset;
+		}
+	}
+
+	return pa;
+}
+
+
 /* md_codegen_findmethod *******************************************************
 
    Machine code:
@@ -144,10 +225,7 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 		mcode = *((u4 *) (ra + 1 * 4));
 
-		if ((mcode >> 16) != 0x237b) {
-			log_text("No `lda pv,x(pv)' instruction found on return address!");
-			assert(0);
-		}
+		assert((mcode >> 16) == 0x237b);
 
 		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
@@ -155,10 +233,7 @@ u1 *md_codegen_findmethod(u1 *ra)
 	} else {
 		/* get displacement of first instruction (lda) */
 
-		if ((mcode >> 16) != 0x237a) {
-			log_text("No `lda pv,x(ra)' instruction found on return address!");
-			assert(0);
-		}
+		assert((mcode >> 16) == 0x237a);
 
 		offset = (s2) (mcode & 0x0000ffff);
 		pv += offset;
