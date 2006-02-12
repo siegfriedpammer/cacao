@@ -10,6 +10,8 @@ New in release 0.95 (February XX, 2006)
   * powerpc bugfix: (M_COPY): Handle longs and doubles properly.
   * Fixed instructions copying stackslots (like DUP_X1).
   * Fixed classcache-related problem with java.lang.reflect.Proxy.
+  * Throw correct exception when trying to load a directory
+    as a classfile (from a .zip file).
 
 
 New in release 0.94 (January 22, 2006)
