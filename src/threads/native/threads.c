@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4475 2006-02-06 21:06:12Z twisti $
+   $Id: threads.c 4494 2006-02-12 21:47:10Z edwin $
 
 */
 
@@ -979,9 +979,10 @@ static void freeLockRecordPools(lockRecordPool *pool)
 
 static monitorLockRecord *allocLockRecordSimple(threadobject *t)
 {
+	monitorLockRecord *r;
+
 	assert(t);
-	
-	monitorLockRecord *r = t->ee.firstLR;
+	r = t->ee.firstLR;
 
 	if (!r) {
 		int poolsize = t->ee.numlr ? t->ee.numlr * 2 : INITIALLOCKRECORDS;
