@@ -28,8 +28,9 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: VMClass.c 4485 2006-02-12 00:30:13Z twisti $
+   $Id: VMClass.c 4495 2006-02-12 21:57:46Z edwin $
 
 */
 
@@ -510,7 +511,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 			rm = (java_lang_reflect_Method *) o;
 
-			rm->declaringClass = m->class;
+			rm->declaringClass = (java_lang_Class *) m->class;
 			rm->name           = javastring_new(m->name);
 			rm->slot           = i;
 
@@ -754,4 +755,5 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
