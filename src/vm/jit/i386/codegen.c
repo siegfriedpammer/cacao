@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4477 2006-02-07 16:52:17Z edwin $
+   $Id: codegen.c 4493 2006-02-12 16:28:35Z twisti $
 
 */
 
@@ -5475,28 +5475,44 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_SIZE    12
+#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_CODESIZE    12
+
+#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
+
 
 u1 *createcompilerstub(methodinfo *m)
 {
-    u1          *s;                     /* memory to hold the stub            */
+	u1          *s;                     /* memory to hold the stub            */
+	ptrint      *d;
 	codegendata *cd;
 	s4           dumpsize;
 
 	s = CNEW(u1, COMPILERSTUB_SIZE);
 
+	/* set data pointer and code pointer */
+
+	d = (ptrint *) s;
+	s = s + COMPILERSTUB_DATASIZE;
+
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
-	
-	cd = DNEW(codegendata);
-    cd->mcodeptr = s;
 
-    i386_mov_imm_reg(cd, (ptrint) m, REG_ITMP1);
+	cd = DNEW(codegendata);
+	cd->mcodeptr = s;
+
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+
+	M_MOV_IMM((ptrint) m, REG_ITMP1);
 
 	/* we use REG_ITMP3 cause ECX (REG_ITMP2) is used for patching  */
-    i386_mov_imm_reg(cd, (ptrint) asm_call_jit_compiler, REG_ITMP3);
-    i386_jmp_reg(cd, REG_ITMP3);
+	M_MOV_IMM((ptrint) asm_call_jit_compiler, REG_ITMP3);
+	M_JMP(REG_ITMP3);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -5507,7 +5523,7 @@ u1 *createcompilerstub(methodinfo *m)
 
 	dump_release(dumpsize);
 	
-    return s;
+	return s;
 }
 
 
