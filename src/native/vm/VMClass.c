@@ -29,14 +29,16 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMClass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMClass.c 4485 2006-02-12 00:30:13Z twisti $
 
 */
 
 
+#include "config.h"
+
+#include <assert.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -508,7 +510,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 			rm = (java_lang_reflect_Method *) o;
 
-			rm->declaringClass = klass;
+			rm->declaringClass = m->class;
 			rm->name           = javastring_new(m->name);
 			rm->slot           = i;
 

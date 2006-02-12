@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: Method.c 4485 2006-02-12 00:30:13Z twisti $
 
 */
 
@@ -45,14 +45,12 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_reflect_Method.h"
-#include "toolbox/logging.h"
 #include "vm/access.h"
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
 #include "vm/stringlocal.h"
-#include "vm/jit/stacktrace.h"
 
 
 /*

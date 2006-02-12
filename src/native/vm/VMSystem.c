@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMSystem.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMSystem.c 4485 2006-02-12 00:30:13Z twisti $
 
 */
 
@@ -139,9 +139,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *par1)
+JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
 {
-	return ((char *) par1) - ((char *) 0);
+	return (s4) ((ptrint) o);
 }
 
 
