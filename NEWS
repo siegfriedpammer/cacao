@@ -8,6 +8,8 @@ New in release 0.95 (February XX, 2006)
   * i386 bugfix: Set FPU to 64-bit on VM startup (fixes Debian bug
     #350729)
   * powerpc bugfix: (M_COPY): Handle longs and doubles properly.
+  * Fixed instructions copying stackslots (like DUP_X1).
+  * Fixed classcache-related problem with java.lang.reflect.Proxy.
 
 
 New in release 0.94 (January 22, 2006)
