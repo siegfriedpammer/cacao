@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: md-abi.c 4488 2006-02-12 12:59:52Z christian $
 
 */
 
@@ -115,6 +115,12 @@ void md_param_alloc(methoddesc *md)
 			break;
 		}
 	}
+
+	/* Since XMM0 (==A0) is used for passing return values, this */
+	/* argument register usage has to be regarded, too           */
+	if (IS_FLT_DBL_TYPE(md->returntype.type))
+		if (farg < 1)
+			farg = 1;
 
 	/* fill register and stack usage */
 
