@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
+   $Id: codegen.c 4497 2006-02-12 23:22:36Z twisti $
 
 */
 
@@ -3788,29 +3788,46 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPSTUBSIZE 6
+#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_CODESIZE    4 * 4
+
+#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
+
 
 u1 *createcompilerstub(methodinfo *m)
 {
-	s4 *s = CNEW(s4, COMPSTUBSIZE);     /* memory to hold the stub            */
-	s4 *mcodeptr = s;                   /* code generation pointer            */
+	u1     *s;                          /* memory to hold the stub            */
+	ptrint *d;
+	s4     *mcodeptr;                   /* code generation pointer            */
 
-	M_LDA(REG_ITMP1, REG_PV, 4 * 4);
-	M_ALD_INTERN(REG_PV, REG_PV, 5 * 4);
+	s = CNEW(u1, COMPILERSTUB_SIZE);
+
+	/* set data pointer and code pointer */
+
+	d = (ptrint *) s;
+	s = s + COMPILERSTUB_DATASIZE;
+
+	mcodeptr = (s4 *) s;
+
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+
+	M_ALD_INTERN(REG_ITMP1, REG_PV, -1 * SIZEOF_VOID_P);
+	M_ALD_INTERN(REG_PV, REG_PV, -2 * SIZEOF_VOID_P);
 	M_MTCTR(REG_PV);
 	M_RTS;
 
-	s[4] = (s4) m;                      /* literals to be adressed            */
-	s[5] = (s4) asm_call_jit_compiler;  /* jump directly via PV from above    */
-
-	asm_cacheflush((void *) s, (u1 *) mcodeptr - (u1 *) s);
+	asm_cacheflush((void *) d, COMPILERSTUB_SIZE);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_cstub_len += COMPSTUBSIZE * 4;
+		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
 
-	return (u1 *) s;
+	return s;
 }
 
 

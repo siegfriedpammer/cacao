@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
+   $Id: asmpart.S 4497 2006-02-12 23:22:36Z twisti $
 
 */
 
@@ -137,8 +137,8 @@ asm_calljavafunction_int:
 	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
 #endif
 
-	stw     a0,36(r1)
-	addi    itmp1,r1,36
+	mr      itmp1,a0                  /* pass method pointer via tmp1         */
+
 	mr      a0,a1
 	mr      a1,a2
 	mr      a2,a3
@@ -151,10 +151,10 @@ asm_calljavafunction_int:
 	lis     mptr,asm_call_jit_compiler@ha
 	addi    mptr,mptr,asm_call_jit_compiler@l
 #endif
-	stw     mptr,32(r1)
-	addi    mptr,r1,28
+	stw     mptr,8*4(r1)
+	addi    mptr,r1,7*4
 
-	lwz     pv,4(mptr)
+	lwz     pv,1*4(mptr)
 	mtctr   pv
 	bctrl
 
@@ -262,7 +262,8 @@ asm_calljavafunction2double:
 	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
 #endif
 
-	stw     r3,36(r1)                 /* save method pointer for compiler     */
+	stw     a0,9*4(r1)                /* save method pointer for compiler     */
+
 	mr      itmp1,r6                  /* pointer to arg block                 */
 	mr      itmp2,r4                  /* arg count                            */
 
@@ -324,7 +325,8 @@ L_register_handle_float:
 L_register_copy_done:
 
 L_stack_copy_done:
-	addi    itmp1,r1,36
+	lwz     itmp1,9*4(sp)             /* pass method pointer via tmp1         */
+
 #if defined(__DARWIN__)
 	lis     mptr,ha16(asm_call_jit_compiler)
 	addi    mptr,mptr,lo16(asm_call_jit_compiler)
@@ -332,10 +334,10 @@ L_stack_copy_done:
 	lis     mptr,asm_call_jit_compiler@ha
 	addi    mptr,mptr,asm_call_jit_compiler@l
 #endif
-	stw     mptr,32(r1)
-	addi    mptr,r1,28
+	stw     mptr,8*4(r1)
+	addi    mptr,r1,7*4
 
-	lwz     pv,4(mptr)
+	lwz     pv,1*4(mptr)
 	mtctr   pv
 	bctrl
 1:
@@ -523,8 +525,7 @@ noregchange:
 	mr      a4,a3                       /* xpc is equal to ra                 */
 	bl      stacktrace_create_extern_stackframeinfo
 
-	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-	lwz     a0,0(itmp1)
+	lwz     a0,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
 	bl      jit_compile                 /* compile the Java method            */
 	mr      pv,r3                       /* move address to pv register        */
 
