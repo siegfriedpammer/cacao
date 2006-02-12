@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loader.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: loader.h 4490 2006-02-12 16:02:43Z edwin $
 */
 
 
@@ -154,4 +154,5 @@ classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

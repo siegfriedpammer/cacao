@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4402 2006-02-02 08:51:32Z twisti $
+   $Id: loader.c 4490 2006-02-12 16:02:43Z edwin $
 
 */
 
@@ -2450,4 +2450,5 @@ void loader_close(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
