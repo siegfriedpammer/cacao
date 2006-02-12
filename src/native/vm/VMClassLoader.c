@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMClassLoader.c 4486 2006-02-12 02:17:10Z edwin $
 
 */
 
@@ -164,12 +164,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 	/* checks whether a class of the same name has already been defined by    */
 	/* the same defining loader, and if so, replaces the newly created class  */
 	/* by the one defined earlier.                                            */
-	/* Important: The classinfo given to classcache_store_defined must be     */
+	/* Important: The classinfo given to classcache_store must be             */
 	/*            fully prepared because another thread may return this       */
 	/*            pointer after the lookup at to top of this function         */
 	/*            directly after the class cache lock has been released.      */
 
-	c = classcache_store_defined(c);
+	c = classcache_store((java_objectheader *)cl,c,true);
 
 	return (java_lang_Class *) c;
 }
