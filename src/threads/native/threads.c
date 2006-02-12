@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4494 2006-02-12 21:47:10Z edwin $
+   $Id: threads.c 4496 2006-02-12 22:08:13Z edwin $
 
 */
 
@@ -1429,7 +1429,6 @@ void threads_dump(void)
 	threadobject       *tobj;
 	java_lang_VMThread *vmt;
 	nativethread       *nt;
-	ExecEnvironment    *ee;
 	java_lang_Thread   *t;
 	utf                *name;
 
@@ -1444,7 +1443,6 @@ void threads_dump(void)
 
 		vmt = &tobj->o;
 		nt  = &tobj->info;
-		ee  = &tobj->ee;
 		t   = vmt->thread;
 
 		/* the thread may be currently in initalization, don't print it */
