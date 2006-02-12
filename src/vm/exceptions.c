@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4482 2006-02-07 23:18:23Z edwin $
+   $Id: exceptions.c 4484 2006-02-12 00:25:12Z twisti $
 
 */
 
@@ -729,6 +729,18 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 	MFREE(msg, char, msglen);
 
 	return o;
+}
+
+
+/* exceptions_throw_nosuchmethoderror ******************************************
+
+   Generates a java.lang.NoSuchMethodError with an error message.
+
+*******************************************************************************/
+
+void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
+{
+	*exceptionptr = exceptions_new_nosuchmethoderror(c, name, desc);
 }
 
 

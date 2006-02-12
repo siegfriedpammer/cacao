@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 4482 2006-02-07 23:18:23Z edwin $
+   $Id: exceptions.h 4484 2006-02-12 00:25:12Z twisti $
 
 */
 
@@ -126,6 +126,8 @@ java_objectheader *new_noclassdeffounderror(utf *name);
 java_objectheader *exceptions_new_linkageerror(const char *message,classinfo *c);
 java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 													utf *name, utf *desc);
+void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
+
 java_objectheader *new_internalerror(const char *message, ...);
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...);
 java_objectheader *new_unsupportedclassversionerror(classinfo *c,
