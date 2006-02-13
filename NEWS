@@ -12,6 +12,8 @@ New in release 0.95 (February XX, 2006)
   * Fixed classcache-related problem with java.lang.reflect.Proxy.
   * Throw correct exception when trying to load a directory
     as a classfile (from a .zip file).
+  * Fixed incorrect method resolution when calling instance methods 
+    through JNI.
 
 
 New in release 0.94 (January 22, 2006)
