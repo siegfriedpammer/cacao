@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4393 2006-01-31 15:41:22Z twisti $
+   $Id: codegen.c 4499 2006-02-13 00:12:24Z twisti $
 
 */
 
@@ -4040,18 +4040,27 @@ gen_method:
 
 u1 *createcompilerstub(methodinfo *m)
 {
-	ptrint *s;                          /* memory to hold the stub            */
+	u1     *s;                          /* memory to hold the stub            */
+	ptrint *d;
 	s4     *mcodeptr;                   /* code generation pointer            */
 
-	s = (ptrint *) CNEW(u1, COMPILERSTUB_SIZE);
+	s = CNEW(u1, COMPILERSTUB_SIZE);
 
-	s[0] = (ptrint) m;
-	s[1] = (ptrint) asm_call_jit_compiler;
+	/* set data pointer and code pointer */
 
-	mcodeptr = (s4 *) (s + 2);
+	d = (ptrint *) s;
+	s = s + COMPILERSTUB_DATASIZE;
 
-	M_ALD(REG_ITMP1, REG_PV, -2 * SIZEOF_VOID_P); /* method pointer           */
-	M_ALD(REG_PV, REG_PV, -1 * SIZEOF_VOID_P);    /* pointer to compiler      */
+	mcodeptr = (s4 *) s;
+	
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+
+	M_ALD_INTERN(REG_ITMP1, REG_PV, -1 * SIZEOF_VOID_P);    /* method pointer */
+	M_ALD_INTERN(REG_PV, REG_PV, -2 * SIZEOF_VOID_P);  /* pointer to compiler */
 	M_JMP(REG_PV);
 	M_NOP;
 
@@ -4062,7 +4071,7 @@ u1 *createcompilerstub(methodinfo *m)
 		count_cstub_len += COMPILERSTUB_SIZE;
 #endif
 
-	return (((u1 *) s) + COMPILERSTUB_DATASIZE);
+	return s;
 }
 
 
