@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: utf8.c 4500 2006-02-13 10:53:49Z twisti $
 
 */
 
@@ -837,7 +837,7 @@ void utf_display(utf *u)
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
 
-	if (!u) {
+	if (u == NULL) {
 		printf("NULL");
 		fflush(stdout);
 		return;
@@ -847,10 +847,14 @@ void utf_display(utf *u)
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
-		/* read next unicode character */                
+		/* read next unicode character */
+
 		u2 c = utf_nextu2(&utf_ptr);
-		if (c >= 32 && c <= 127) printf("%c", c);
-		else printf("?");
+
+		if ((c >= 32) && (c <= 127))
+			printf("%c", c);
+		else
+			printf("?");
 	}
 
 	fflush(stdout);
@@ -869,7 +873,7 @@ void utf_display_classname(utf *u)
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
 
-	if (!u) {
+	if (u == NULL) {
 		printf("NULL");
 		fflush(stdout);
 		return;
@@ -879,11 +883,17 @@ void utf_display_classname(utf *u)
 	utf_ptr = u->text;
 
 	while (utf_ptr < endpos) {
-		/* read next unicode character */                
+		/* read next unicode character */
+
 		u2 c = utf_nextu2(&utf_ptr);
-		if (c == '/') c = '.';
-		if (c >= 32 && c <= 127) printf("%c", c);
-		else printf("?");
+
+		if (c == '/')
+			c = '.';
+
+		if ((c >= 32) && (c <= 127))
+			printf("%c", c);
+		else
+			printf("?");
 	}
 
 	fflush(stdout);
