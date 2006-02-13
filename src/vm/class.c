@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4404 2006-02-03 12:38:03Z twisti $
+   $Id: class.c 4503 2006-02-13 23:45:27Z twisti $
 
 */
 
@@ -765,51 +765,6 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc)
 
 		if ((m->name == name) && ((desc == NULL) || (m->descriptor == desc)))
 			return m;
-	}
-
-	return NULL;
-}
-
-
-/************************* Function: class_findmethod_approx ******************
-	
-	like class_findmethod but ignores the return value when comparing the
-	descriptor.
-
-*******************************************************************************/
-
-methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc)
-{
-	s4 i;
-
-	for (i = 0; i < c->methodscount; i++) {
-		if (c->methods[i].name == name) {
-			utf *meth_descr = c->methods[i].descriptor;
-			
-			if (desc == NULL) 
-				/* ignore type */
-				return &(c->methods[i]);
-
-			if (desc->blength <= meth_descr->blength) {
-				/* current position in utf text   */
-				char *desc_utf_ptr = desc->text;      
-				char *meth_utf_ptr = meth_descr->text;					  
-				/* points behind utf strings */
-				char *desc_end = UTF_END(desc);         
-				char *meth_end = UTF_END(meth_descr);   
-				char ch;
-
-				/* compare argument types */
-				while (desc_utf_ptr < desc_end && meth_utf_ptr < meth_end) {
-
-					if ((ch = *desc_utf_ptr++) != (*meth_utf_ptr++))
-						break; /* no match */
-
-					if (ch == ')')
-						return &(c->methods[i]); /* all parameter types equal */
-				}
-			}
-		}
 	}
 
 	return NULL;

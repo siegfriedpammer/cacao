@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4388 2006-01-30 15:44:52Z twisti $
+   $Id: class.h 4503 2006-02-13 23:45:27Z twisti $
 
 */
 
@@ -298,10 +298,6 @@ methodinfo *class_findmethod(classinfo *c, utf *name, utf *desc);
 methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
-
-/* search for a method with specified name and arguments (returntype ignored) */
-methodinfo *class_findmethod_approx(classinfo *c, utf *name, utf *desc);
-methodinfo *class_resolvemethod_approx(classinfo *c, utf *name, utf *dest);
 
 bool class_issubclass(classinfo *sub, classinfo *super);
 
