@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4430 2006-02-04 19:04:31Z twisti $
+   $Id: jni.c 4501 2006-02-13 18:55:55Z twisti $
 
 */
 
@@ -249,7 +249,7 @@ static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
 
 	i = 0;
 
-	if (obj) {
+	if (obj != NULL) {
 		/* the `this' pointer */
 		blk[0].itemtype = TYPE_ADR;
 		blk[0].item = PTR_TO_ITEM(obj);
@@ -302,8 +302,8 @@ static void fill_callblock_from_vargs(void *obj, methoddesc *descr,
 		}
 	}
 
-	/* The standard doesn't say anything about return value checking, but it  */
-	/* appears to be useful.                                                  */
+	/* The standard doesn't say anything about return value checking,
+	   but it appears to be useful. */
 
 	if (rettype != descr->returntype.decltype)
 		log_text("\n====\nWarning call*Method called for function with wrong return type\n====");
@@ -469,258 +469,398 @@ illegal_arg:
 }
 
 
-static jmethodID get_virtual(jobject obj, jmethodID methodID)
-{
-	if (obj->vftbl->class == methodID->class)
-		return methodID;
+/* _Jv_jni_CallObjectMethod ****************************************************
 
-	return class_resolvemethod(obj->vftbl->class, methodID->name,
-							   methodID->descriptor);
+   Internal function to call Java Object methods.
+
+*******************************************************************************/
+
+static java_objectheader *_Jv_jni_CallObjectMethod(java_objectheader *o,
+												   vftbl_t *vftbl,
+												   methodinfo *m, va_list ap)
+{
+	methodinfo        *resm;
+	s4                 paramcount;
+	jni_callblock     *blk;
+	java_objectheader *ret;
+	s4                 dumpsize;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	paramcount = resm->parseddesc->paramcount;
+
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap, TYPE_ADR);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2_ADR(ret, resm, paramcount,
+							  paramcount * sizeof(jni_callblock),
+							  blk);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ret;
 }
 
 
-static jmethodID get_nonvirtual(jclass clazz, jmethodID methodID)
-{
-	if (clazz == methodID->class)
-		return methodID;
+/* _Jv_jni_CallIntMethod *******************************************************
 
-	/* class_resolvemethod -> classfindmethod? (JOWENN) */
-	return class_resolvemethod(clazz, methodID->name, methodID->descriptor);
+   Internal function to call Java integer class methods (boolean,
+   byte, char, short, int).
+
+*******************************************************************************/
+
+static jint _Jv_jni_CallIntMethod(java_objectheader *o, vftbl_t *vftbl,
+								  methodinfo *m, va_list ap, s4 type)
+{
+	methodinfo    *resm;
+	s4             paramcount;
+	jni_callblock *blk;
+	jint           ret;
+	s4             dumpsize;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+        
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	paramcount = resm->parseddesc->paramcount;
+
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap, type);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2_INT(ret, resm, paramcount,
+							  paramcount * sizeof(jni_callblock),
+							  blk);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ret;
+}
+
+
+/* _Jv_jni_CallLongMethod ******************************************************
+
+   Internal function to call Java long methods.
+
+*******************************************************************************/
+
+static jlong _Jv_jni_CallLongMethod(java_objectheader *o, vftbl_t *vftbl,
+									methodinfo *m, va_list ap)
+{
+	methodinfo    *resm;
+	s4             paramcount;
+	jni_callblock *blk;
+	jlong          ret;
+	s4             dumpsize;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	paramcount = resm->parseddesc->paramcount;
+
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap, PRIMITIVETYPE_LONG);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2_LONG(ret, resm, paramcount,
+							   paramcount * sizeof(jni_callblock),
+							   blk);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ret;
+}
+
+
+/* _Jv_jni_CallFloatMethod *****************************************************
+
+   Internal function to call Java float methods.
+
+*******************************************************************************/
+
+static jfloat _Jv_jni_CallFloatMethod(java_objectheader *o, vftbl_t *vftbl,
+									  methodinfo *m, va_list ap)
+{
+	methodinfo    *resm;
+	s4             paramcount;
+	jni_callblock *blk;
+	jdouble        ret;
+	s4             dumpsize;
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	paramcount = resm->parseddesc->paramcount;
+
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap,
+							  PRIMITIVETYPE_FLOAT);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2_FLOAT(ret, resm, paramcount,
+								paramcount * sizeof(jni_callblock),
+								blk);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ret;
+}
+
+
+/* _Jv_jni_CallDoubleMethod ****************************************************
+
+   Internal function to call Java double methods.
+
+*******************************************************************************/
+
+static jdouble _Jv_jni_CallDoubleMethod(java_objectheader *o, vftbl_t *vftbl,
+										methodinfo *m, va_list ap)
+{
+	methodinfo    *resm;
+	s4             paramcount;
+	jni_callblock *blk;
+	jfloat         ret;
+	s4             dumpsize;
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	paramcount = resm->parseddesc->paramcount;
+
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap,
+							  PRIMITIVETYPE_DOUBLE);
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	ASM_CALLJAVAFUNCTION2_DOUBLE(ret, resm, paramcount,
+								 paramcount * sizeof(jni_callblock),
+								 blk);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ret;
 }
 
 
 /* _Jv_jni_CallVoidMethod ******************************************************
 
-   Internal function to call Java void functions.
+   Internal function to call Java void methods.
 
 *******************************************************************************/
 
-static void _Jv_jni_CallVoidMethod(jobject obj, jmethodID m, va_list ap)
+static void _Jv_jni_CallVoidMethod(java_objectheader *o, vftbl_t *vftbl,
+								   methodinfo *m, va_list ap)
 { 	
+	methodinfo    *resm;
 	s4             paramcount;
 	jni_callblock *blk;
+	s4             dumpsize;
 
-	if (m == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
 		return;
 	}
 
-	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
-		((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return;
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	if (obj && !builtin_instanceof(obj, m->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return;
-	}
+	/* mark start of dump memory area */
 
-	paramcount = m->parseddesc->paramcount;
+	dumpsize = dump_size();
 
-	blk = MNEW(jni_callblock, paramcount);
+	paramcount = resm->parseddesc->paramcount;
 
-	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_VOID);
+	blk = DMNEW(jni_callblock, paramcount);
+
+	fill_callblock_from_vargs(o, resm->parseddesc, blk, ap, TYPE_VOID);
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ASM_CALLJAVAFUNCTION2(m, paramcount,
+	ASM_CALLJAVAFUNCTION2(resm, paramcount,
 						  paramcount * sizeof(jni_callblock),
 						  blk);
 
-	MFREE(blk, jni_callblock, paramcount);
-}
+	/* release dump area */
 
-
-static jobject callObjectMethod(jobject obj, jmethodID methodID, va_list args)
-{ 	
-	int argcount;
-	jni_callblock *blk;
-	jobject ret;
-
-	if (methodID == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
-		return 0;
-	}
-
-	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
-		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	if (obj && !builtin_instanceof(obj, methodID->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	argcount = methodID->parseddesc->paramcount;
-
-	blk = MNEW(jni_callblock, argcount);
-
-	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, TYPE_ADR);
-
-	STATISTICS(jnicallXmethodnvokation());
-
-	ASM_CALLJAVAFUNCTION2_ADR(ret, methodID, argcount,
-							  argcount * sizeof(jni_callblock),
-							  blk);
-
-	MFREE(blk, jni_callblock, argcount);
-
-	return ret;
-}
-
-
-/*
-  core function for integer class methods (bool, byte, short, integer)
-  This is basically needed for i386
-*/
-static jint callIntegerMethod(jobject obj, jmethodID methodID, int retType, va_list args)
-{
-	int argcount;
-	jni_callblock *blk;
-	jint ret;
-
-	STATISTICS(jniinvokation());
-
-        /*
-        log_text("JNI-Call: CallObjectMethodV");
-        utf_display(methodID->name);
-        utf_display(methodID->descriptor);
-        printf("\nParmaeter count: %d\n",argcount);
-        utf_display(obj->vftbl->class->name);
-        printf("\n");
-        */
-	if (methodID == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
-		return 0;
-	}
-        
-	if (!( ((methodID->flags & ACC_STATIC) && (obj == 0)) ||
-		((!(methodID->flags & ACC_STATIC)) && (obj != 0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	if (obj && !builtin_instanceof(obj, methodID->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	argcount = methodID->parseddesc->paramcount;
-
-	blk = MNEW(jni_callblock, argcount);
-
-	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, retType);
-
-	STATISTICS(jnicallXmethodnvokation());
-
-	ASM_CALLJAVAFUNCTION2_INT(ret, methodID, argcount,
-							  argcount * sizeof(jni_callblock),
-							  blk);
-
-	MFREE(blk, jni_callblock, argcount);
-
-	return ret;
-}
-
-
-/* callLongMethod **************************************************************
-
-   Core function for long class functions.
-
-*******************************************************************************/
-
-static jlong _Jv_jni_CallLongMethod(jobject obj, jmethodID m, va_list ap)
-{
-	s4             paramcount;
-	jni_callblock *blk;
-	jlong          ret;
-
-	STATISTICS(jniinvokation());
-
-	if (m == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
-		return 0;
-	}
-
-	if (!( ((m->flags & ACC_STATIC) && (obj == 0)) ||
-		   ((!(m->flags & ACC_STATIC)) && (obj != 0)) )) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	if (obj && !builtin_instanceof(obj, m->class)) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError);
-		return 0;
-	}
-
-	paramcount = m->parseddesc->paramcount;
-
-	blk = MNEW(jni_callblock, paramcount);
-
-	fill_callblock_from_vargs(obj, m->parseddesc, blk, ap, TYPE_LNG);
-
-	STATISTICS(jnicallXmethodnvokation());
-
-	ASM_CALLJAVAFUNCTION2_LONG(ret, m, paramcount,
-							   paramcount * sizeof(jni_callblock),
-							   blk);
-
-	MFREE(blk, jni_callblock, paramcount);
-
-	return ret;
-}
-
-
-/*core function for float class methods (float,double)*/
-static jdouble callFloatMethod(jobject obj, jmethodID methodID, va_list args,int retType)
-{
-	int argcount = methodID->parseddesc->paramcount;
-	jni_callblock *blk;
-	jdouble ret;
-
-	STATISTICS(jniinvokation());
-
-	assert(0);
-
-	if (argcount > 3) {
-		*exceptionptr = new_exception(string_java_lang_IllegalArgumentException);
-		log_text("Too many arguments. CallObjectMethod does not support that");
-		return 0;
-	}
-
-	blk = MNEW(jni_callblock, /*4 */ argcount+2);
-
-	fill_callblock_from_vargs(obj, methodID->parseddesc, blk, args, retType);
-
-	STATISTICS(jnicallXmethodnvokation());
-
-	ASM_CALLJAVAFUNCTION2_DOUBLE(ret, methodID, argcount + 1,
-								 (argcount + 1) * sizeof(jni_callblock),
-								 blk);
-
-	MFREE(blk, jni_callblock, argcount + 1);
-
-	return ret;
+	dump_release(dumpsize);
 }
 
 
 /* _Jv_jni_invokeNative ********************************************************
+
+   XXX
 
 *******************************************************************************/
 
 jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 							  java_objectarray *params)
 {
+	methodinfo        *resm;
 	jni_callblock     *blk;
 	java_objectheader *o;
 	s4                 argcount;
 	s4                 paramcount;
 
-	if (m == 0) {
-		*exceptionptr = new_exception(string_java_lang_NoSuchMethodError); 
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
@@ -740,7 +880,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		(!builtin_instanceof((java_objectheader *) obj, m->class))) {
 		*exceptionptr =
 			new_exception_message(string_java_lang_IllegalArgumentException,
-											  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
+								  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
 		return NULL;
 	}
 
@@ -751,33 +891,40 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		return NULL;
 	}
 
-
-	if (!(m->flags & ACC_STATIC) && !obj)  {
+	if (!(m->flags & ACC_STATIC) && (obj == NULL))  {
 		*exceptionptr =
 			new_exception_message(string_java_lang_NullPointerException,
 								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
 		return NULL;
 	}
 
-	if ((m->flags & ACC_STATIC) && (obj))
+	if ((m->flags & ACC_STATIC) && (obj != NULL))
 		obj = NULL;
 
-	if (obj) {
-		if ((m->flags & ACC_ABSTRACT) ||
-			(m->class->flags & ACC_INTERFACE)) {
-			m = get_virtual(obj, m);
-		}
+	/* For virtual calls with abstract method of interface classes we
+	   have to do a virtual function table lookup (XXX TWISTI: not
+	   sure if this is correct, took it from the old
+	   implementation). */
+
+	if ((obj != NULL) &&
+		((m->flags & ACC_ABSTRACT) || (m->class->flags & ACC_INTERFACE))) {
+		resm = method_vftbl_lookup(obj->vftbl, m);
+
+	} else {
+		/* just for convenience */
+
+		resm = m;
 	}
 
 	blk = MNEW(jni_callblock, argcount);
 
-	if (!fill_callblock_from_objectarray(obj, m->parseddesc, blk,
+	if (!fill_callblock_from_objectarray(obj, resm->parseddesc, blk,
 										 params))
 		return NULL;
 
-	switch (m->parseddesc->returntype.decltype) {
+	switch (resm->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
-		ASM_CALLJAVAFUNCTION2(m, argcount,
+		ASM_CALLJAVAFUNCTION2(resm, argcount,
 							  argcount * sizeof(jni_callblock),
 							  blk);
 
@@ -788,7 +935,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s4 i;
 		java_lang_Boolean *bo;
 
-		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+		ASM_CALLJAVAFUNCTION2_INT(i, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 
@@ -805,7 +952,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s4 i;
 		java_lang_Byte *bo;
 
-		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+		ASM_CALLJAVAFUNCTION2_INT(i, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 
@@ -822,7 +969,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s4 i;
 		java_lang_Character *co;
 
-		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+		ASM_CALLJAVAFUNCTION2_INT(i, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 
@@ -839,7 +986,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s4 i;
 		java_lang_Short *so;
 
-		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+		ASM_CALLJAVAFUNCTION2_INT(i, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 
@@ -856,7 +1003,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s4 i;
 		java_lang_Integer *io;
 
-		ASM_CALLJAVAFUNCTION2_INT(i, m, argcount,
+		ASM_CALLJAVAFUNCTION2_INT(i, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 
@@ -873,7 +1020,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		s8 l;
 		java_lang_Long *lo;
 
-		ASM_CALLJAVAFUNCTION2_LONG(l, m, argcount,
+		ASM_CALLJAVAFUNCTION2_LONG(l, resm, argcount,
 								   argcount * sizeof(jni_callblock),
 								   blk);
 
@@ -890,7 +1037,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		float f;
 		java_lang_Float *fo;
 
-		ASM_CALLJAVAFUNCTION2_FLOAT(f, m, argcount,
+		ASM_CALLJAVAFUNCTION2_FLOAT(f, resm, argcount,
 									argcount * sizeof(jni_callblock),
 									blk);
 
@@ -907,7 +1054,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 		double d;
 		java_lang_Double *_do;
 
-		ASM_CALLJAVAFUNCTION2_DOUBLE(d, m, argcount,
+		ASM_CALLJAVAFUNCTION2_DOUBLE(d, resm, argcount,
 									 argcount * sizeof(jni_callblock),
 									 blk);
 
@@ -921,7 +1068,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 	break;
 
 	case TYPE_ADR:
-		ASM_CALLJAVAFUNCTION2_ADR(o, m, argcount,
+		ASM_CALLJAVAFUNCTION2_ADR(o, resm, argcount,
 								  argcount * sizeof(jni_callblock),
 								  blk);
 		break;
@@ -1393,9 +1540,12 @@ jobject NewLocalRef(JNIEnv *env, jobject ref)
 
 	/* check if we have space for the requested reference */
 
-	if (lrt->used == lrt->capacity)
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Too many local references");
+	if (lrt->used == lrt->capacity) {
+/* 		throw_cacao_exception_exit(string_java_lang_InternalError, */
+/* 								   "Too many local references"); */
+		fprintf(stderr, "Too many local references");
+		assert(0);
+	}
 
 	/* insert the reference */
 
@@ -1498,27 +1648,41 @@ jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/* call constructor */
 
 	va_start(ap, methodID);
-	_Jv_jni_CallVoidMethod(o, methodID, ap);
+	_Jv_jni_CallVoidMethod(o, o->vftbl, methodID, ap);
 	va_end(ap);
 
 	return NewLocalRef(env, o);
 }
 
 
-/*********************************************************************************** 
+/* NewObjectV ******************************************************************
 
-       Constructs a new Java object
-       arguments that are to be passed to the constructor are placed in va_list args 
+   Programmers place all arguments that are to be passed to the
+   constructor in an args argument of type va_list that immediately
+   follows the methodID argument. NewObjectV() accepts these
+   arguments, and, in turn, passes them to the Java method that the
+   programmer wishes to invoke.
 
-***********************************************************************************/
+*******************************************************************************/
 
 jobject NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID, va_list args)
 {
+	java_objectheader *o;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: NewObjectV: IMPLEMENT ME!");
+	/* create object */
 
-	return NewLocalRef(env, NULL);
+	o = builtin_new(clazz);
+	
+	if (!o)
+		return NULL;
+
+	/* call constructor */
+
+	_Jv_jni_CallVoidMethod(o, o->vftbl, methodID, args);
+
+	return NewLocalRef(env, o);
 }
 
 
@@ -1679,8 +1843,8 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 
  	m = class_resolvemethod(clazz, uname, udesc);
 
-	if (!m || (m->flags & ACC_STATIC)) {
-		*exceptionptr = exceptions_new_nosuchmethoderror(c, uname, udesc);
+	if ((m == NULL) || (m->flags & ACC_STATIC)) {
+		exceptions_throw_nosuchmethoderror(c, uname, udesc);
 
 		return NULL;
 	}
@@ -1689,18 +1853,16 @@ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 }
 
 
-/******************** JNI-functions for calling instance methods ******************/
+/* JNI-functions for calling instance methods *********************************/
 
 jobject CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
 	java_objectheader* ret;
-	va_list            vaargs;
+	va_list            ap;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = callObjectMethod(obj, methodID, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallObjectMethod(obj, obj->vftbl, methodID, ap);
+	va_end(ap);
 
 	return NewLocalRef(env, ret);
 }
@@ -1710,9 +1872,7 @@ jobject CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list 
 {
 	java_objectheader* ret;
 
-	STATISTICS(jniinvokation());
-
-	ret = callObjectMethod(obj, methodID, args);
+	ret = _Jv_jni_CallObjectMethod(obj, obj->vftbl, methodID, args);
 
 	return NewLocalRef(env, ret);
 }
@@ -1720,79 +1880,72 @@ jobject CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list 
 
 jobject CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue * args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallObjectMethodA: IMPLEMENT ME!");
 
 	return NewLocalRef(env, NULL);
 }
 
 
+jboolean CallBooleanMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+	va_list  ap;
+	jboolean ret;
+
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, ap,
+								PRIMITIVETYPE_BOOLEAN);
+	va_end(ap);
+
+	return ret;
+}
 
 
-jboolean CallBooleanMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
+jboolean CallBooleanMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
 	jboolean ret;
-	va_list vaargs;
 
-	STATISTICS(jniinvokation());
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, args,
+								PRIMITIVETYPE_BOOLEAN);
 
-/*	log_text("JNI-Call: CallBooleanMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BOOLEAN,vaargs);
-	va_end(vaargs);
 	return ret;
-
 }
 
-jboolean CallBooleanMethodV (JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
+
+jboolean CallBooleanMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue * args)
 {
-	STATISTICS(jniinvokation());
-
-	return (jboolean)callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BOOLEAN,args);
-
-}
-
-jboolean CallBooleanMethodA (JNIEnv *env, jobject obj, jmethodID methodID, jvalue * args)
-{
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallBooleanMethodA");
 
 	return 0;
 }
 
-jbyte CallByteMethod (JNIEnv *env, jobject obj, jmethodID methodID, ...)
+
+jbyte CallByteMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jbyte ret;
-	va_list vaargs;
+	va_list ap;
+	jbyte   ret;
 
-	STATISTICS(jniinvokation());
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, ap,
+								PRIMITIVETYPE_BYTE);
+	va_end(ap);
 
-/*	log_text("JNI-Call: CallVyteMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_BYTE,vaargs);
-	va_end(vaargs);
 	return ret;
 
 }
 
-jbyte CallByteMethodV (JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
+jbyte CallByteMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-/*	log_text("JNI-Call: CallByteMethodV");*/
+	jbyte ret;
 
-	STATISTICS(jniinvokation());
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, args,
+								PRIMITIVETYPE_BYTE);
 
-	return callIntegerMethod(obj,methodID,PRIMITIVETYPE_BYTE,args);
+	return ret;
 }
 
 
 jbyte CallByteMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallByteMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1801,16 +1954,13 @@ jbyte CallByteMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args
 
 jchar CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jchar ret;
-	va_list vaargs;
+	va_list ap;
+	jchar   ret;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallCharMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_CHAR, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, ap,
+								PRIMITIVETYPE_CHAR);
+	va_end(ap);
 
 	return ret;
 }
@@ -1818,18 +1968,17 @@ jchar CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jchar CallCharMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jchar ret;
 
-/*	log_text("JNI-Call: CallCharMethodV");*/
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, args,
+								PRIMITIVETYPE_CHAR);
 
-	return callIntegerMethod(obj,get_virtual(obj,methodID),PRIMITIVETYPE_CHAR,args);
+	return ret;
 }
 
 
 jchar CallCharMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallCharMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1838,16 +1987,13 @@ jchar CallCharMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args
 
 jshort CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jshort ret;
-	va_list vaargs;
+	va_list ap;
+	jshort  ret;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallShortMethod");*/
-
-	va_start(vaargs, methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_SHORT, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, ap,
+								PRIMITIVETYPE_SHORT);
+	va_end(ap);
 
 	return ret;
 }
@@ -1855,16 +2001,17 @@ jshort CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jshort CallShortMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jshort ret;
 
-	return callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_SHORT, args);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, args,
+								PRIMITIVETYPE_SHORT);
+
+	return ret;
 }
 
 
 jshort CallShortMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallShortMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1874,14 +2021,13 @@ jshort CallShortMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *ar
 
 jint CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jint ret;
-	va_list vaargs;
+	va_list ap;
+	jint    ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_INT, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, ap,
+								PRIMITIVETYPE_INT);
+	va_end(ap);
 
 	return ret;
 }
@@ -1889,16 +2035,17 @@ jint CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jint CallIntMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jint ret;
 
-	return callIntegerMethod(obj, get_virtual(obj, methodID),PRIMITIVETYPE_INT, args);
+	ret = _Jv_jni_CallIntMethod(obj, obj->vftbl, methodID, args,
+								PRIMITIVETYPE_INT);
+
+	return ret;
 }
 
 
 jint CallIntMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallIntMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1908,14 +2055,12 @@ jint CallIntMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 
 jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jlong ret;
-	va_list vaargs;
+	va_list ap;
+	jlong   ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs,methodID);
-	ret = _Jv_jni_CallLongMethod(obj, get_virtual(obj, methodID), vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallLongMethod(obj, obj->vftbl, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -1923,16 +2068,16 @@ jlong CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jlong CallLongMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jlong ret;
 
-	return _Jv_jni_CallLongMethod(obj, get_virtual(obj, methodID), args);
+	ret = _Jv_jni_CallLongMethod(obj, obj->vftbl, methodID, args);
+
+	return ret;
 }
 
 
 jlong CallLongMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallLongMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1942,16 +2087,12 @@ jlong CallLongMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args
 
 jfloat CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	jfloat ret;
-	va_list vaargs;
+	va_list ap;
+	jfloat  ret;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallFloatMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, PRIMITIVETYPE_FLOAT);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallFloatMethod(obj, obj->vftbl, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -1959,18 +2100,16 @@ jfloat CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jfloat CallFloatMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jfloat ret;
 
-/* 	log_text("JNI-Call: CallFloatMethodV"); */
+	ret = _Jv_jni_CallFloatMethod(obj, obj->vftbl, methodID, args);
 
-	return callFloatMethod(obj, get_virtual(obj, methodID), args, PRIMITIVETYPE_FLOAT);
+	return ret;
 }
 
 
 jfloat CallFloatMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallFloatMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -1980,16 +2119,12 @@ jfloat CallFloatMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *ar
 
 jdouble CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
+	va_list ap;
 	jdouble ret;
-	va_list vaargs;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallDoubleMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj, get_virtual(obj, methodID), vaargs, PRIMITIVETYPE_DOUBLE);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallDoubleMethod(obj, obj->vftbl, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -1997,18 +2132,16 @@ jdouble CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 
 jdouble CallDoubleMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jdouble ret;
 
-/* 	log_text("JNI-Call: CallDoubleMethodV"); */
+	ret = _Jv_jni_CallDoubleMethod(obj, obj->vftbl, methodID, args);
 
-	return callFloatMethod(obj, get_virtual(obj, methodID), args, PRIMITIVETYPE_DOUBLE);
+	return ret;
 }
 
 
 jdouble CallDoubleMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallDoubleMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2018,30 +2151,22 @@ jdouble CallDoubleMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *
 
 void CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs,methodID);
-	(void) callIntegerMethod(obj, get_virtual(obj, methodID),TYPE_VOID, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	_Jv_jni_CallVoidMethod(obj, obj->vftbl, methodID, ap);
+	va_end(ap);
 }
 
 
 void CallVoidMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
-
-/* 	log_text("JNI-Call: CallVoidMethodV"); */
-
-	(void) callIntegerMethod(obj, get_virtual(obj, methodID), TYPE_VOID,args);
+	_Jv_jni_CallVoidMethod(obj, obj->vftbl, methodID, args);
 }
 
 
 void CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallVoidMethodA: IMPLEMENT ME!");
 }
 
@@ -2049,28 +2174,29 @@ void CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 
 jobject CallNonvirtualObjectMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	STATISTICS(jniinvokation());
+	java_objectheader *ret;
+	va_list            ap;
 
-	log_text("JNI-Call: CallNonvirtualObjectMethod: IMPLEMENT ME!");
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallObjectMethod(obj, clazz->vftbl, methodID, ap);
+	va_end(ap);
 
-	return NewLocalRef(env, NULL);
+	return NewLocalRef(env, ret);
 }
 
 
 jobject CallNonvirtualObjectMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	java_objectheader* ret;
 
-	log_text("JNI-Call: CallNonvirtualObjectMethodV: IMPLEMENT ME!");
+	ret = _Jv_jni_CallObjectMethod(obj, clazz->vftbl, methodID, args);
 
-	return NewLocalRef(env, NULL);
+	return NewLocalRef(env, ret);
 }
 
 
 jobject CallNonvirtualObjectMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualObjectMethodA: IMPLEMENT ME!");
 
 	return NewLocalRef(env, NULL);
@@ -2078,56 +2204,49 @@ jobject CallNonvirtualObjectMethodA(JNIEnv *env, jobject obj, jclass clazz, jmet
 
 
 
-jboolean CallNonvirtualBooleanMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jboolean CallNonvirtualBooleanMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
+	va_list  ap;
 	jboolean ret;
-	va_list vaargs;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallNonvirtualBooleanMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BOOLEAN,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, ap,
+								PRIMITIVETYPE_BOOLEAN);
+	va_end(ap);
 
 	return ret;
 
 }
 
 
-jboolean CallNonvirtualBooleanMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jboolean CallNonvirtualBooleanMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jboolean ret;
 
-/*	log_text("JNI-Call: CallNonvirtualBooleanMethodV");*/
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, args,
+								PRIMITIVETYPE_BOOLEAN);
 
-	return (jboolean)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BOOLEAN,args);
+	return ret;
 }
 
 
 jboolean CallNonvirtualBooleanMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualBooleanMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-jbyte CallNonvirtualByteMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jbyte CallNonvirtualByteMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	jbyte ret;
-	va_list vaargs;
+	va_list ap;
+	jbyte   ret;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallNonvirutalByteMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BYTE,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, ap,
+								PRIMITIVETYPE_BYTE);
+	va_end(ap);
 
 	return ret;
 }
@@ -2135,18 +2254,17 @@ jbyte CallNonvirtualByteMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodI
 
 jbyte CallNonvirtualByteMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jbyte ret;
 
-	/*log_text("JNI-Call: CallNonvirtualByteMethodV"); */
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, args,
+								PRIMITIVETYPE_BYTE);
 
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_BYTE,args);
+	return ret;
 }
 
 
 jbyte CallNonvirtualByteMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualByteMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2156,35 +2274,31 @@ jbyte CallNonvirtualByteMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodI
 
 jchar CallNonvirtualCharMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	jchar ret;
-	va_list vaargs;
+	va_list ap;
+	jchar   ret;
 
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallNonVirtualCharMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_CHAR,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, ap,
+								PRIMITIVETYPE_CHAR);
+	va_end(ap);
 
 	return ret;
 }
 
 
-jchar CallNonvirtualCharMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jchar CallNonvirtualCharMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jchar ret;
 
-	/*log_text("JNI-Call: CallNonvirtualCharMethodV");*/
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, args,
+								PRIMITIVETYPE_CHAR);
 
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_CHAR,args);
+	return ret;
 }
 
 
-jchar CallNonvirtualCharMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
+jchar CallNonvirtualCharMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualCharMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2192,37 +2306,33 @@ jchar CallNonvirtualCharMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethod
 
 
 
-jshort CallNonvirtualShortMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jshort CallNonvirtualShortMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	jshort ret;
-	va_list vaargs;
+	va_list ap;
+	jshort  ret;
 
-	STATISTICS(jniinvokation());
-
-	/*log_text("JNI-Call: CallNonvirtualShortMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_SHORT,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, ap,
+								PRIMITIVETYPE_SHORT);
+	va_end(ap);
 
 	return ret;
 }
 
 
-jshort CallNonvirtualShortMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jshort CallNonvirtualShortMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jshort ret;
 
-	/*log_text("JNI-Call: CallNonvirtualShortMethodV");*/
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, args,
+								PRIMITIVETYPE_SHORT);
 
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_SHORT,args);
+	return ret;
 }
 
 
-jshort CallNonvirtualShortMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
+jshort CallNonvirtualShortMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualShortMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2230,37 +2340,33 @@ jshort CallNonvirtualShortMethodA (JNIEnv *env, jobject obj, jclass clazz, jmeth
 
 
 
-jint CallNonvirtualIntMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jint CallNonvirtualIntMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	jint ret;
-	va_list vaargs;
+	va_list ap;
+	jint    ret;
 
-	STATISTICS(jniinvokation());
-
-	/*log_text("JNI-Call: CallNonvirtualIntMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_INT,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, ap,
+								PRIMITIVETYPE_INT);
+	va_end(ap);
 
 	return ret;
 }
 
 
-jint CallNonvirtualIntMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jint CallNonvirtualIntMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jint ret;
 
-	/*log_text("JNI-Call: CallNonvirtualIntMethodV");*/
+	ret = _Jv_jni_CallIntMethod(obj, clazz->vftbl, methodID, args,
+								PRIMITIVETYPE_INT);
 
-	return callIntegerMethod(obj,get_nonvirtual(clazz,methodID),PRIMITIVETYPE_INT,args);
+	return ret;
 }
 
 
-jint CallNonvirtualIntMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
+jint CallNonvirtualIntMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualIntMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2268,30 +2374,31 @@ jint CallNonvirtualIntMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID
 
 
 
-jlong CallNonvirtualLongMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jlong CallNonvirtualLongMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	STATISTICS(jniinvokation());
+	va_list ap;
+	jlong   ret;
 
-	log_text("JNI-Call: CallNonvirtualLongMethod: IMPLEMENT ME!");
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallLongMethod(obj, clazz->vftbl, methodID, ap);
+	va_end(ap);
+
+	return ret;
+}
+
+
+jlong CallNonvirtualLongMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+{
+	jlong ret;
+
+	ret = _Jv_jni_CallLongMethod(obj, clazz->vftbl, methodID, args);
 
 	return 0;
 }
 
 
-jlong CallNonvirtualLongMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jlong CallNonvirtualLongMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
-	log_text("JNI-Call: CallNonvirtualLongMethodV: IMPLEMENT ME!");
-
-	return 0;
-}
-
-
-jlong CallNonvirtualLongMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
-{
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualLongMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2299,34 +2406,30 @@ jlong CallNonvirtualLongMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethod
 
 
 
-jfloat CallNonvirtualFloatMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jfloat CallNonvirtualFloatMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	jfloat ret;
-	va_list vaargs;
+	va_list ap;
+	jfloat  ret;
 
-	STATISTICS(jniinvokation());
-
-	/*log_text("JNI-Call: CallNonvirtualFloatMethod");*/
-
-	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,PRIMITIVETYPE_FLOAT);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallFloatMethod(obj, clazz->vftbl, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
 
 
-jfloat CallNonvirtualFloatMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jfloat CallNonvirtualFloatMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jfloat ret;
 
-/* 	log_text("JNI-Call: CallNonvirtualFloatMethodV"); */
+	ret = _Jv_jni_CallFloatMethod(obj, clazz->vftbl, methodID, args);
 
-	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,PRIMITIVETYPE_FLOAT);
+	return ret;
 }
 
 
-jfloat CallNonvirtualFloatMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
+jfloat CallNonvirtualFloatMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
 	STATISTICS(jniinvokation());
 
@@ -2337,37 +2440,31 @@ jfloat CallNonvirtualFloatMethodA (JNIEnv *env, jobject obj, jclass clazz, jmeth
 
 
 
-jdouble CallNonvirtualDoubleMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+jdouble CallNonvirtualDoubleMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
+	va_list ap;
 	jdouble ret;
-	va_list vaargs;
 
-	STATISTICS(jniinvokation());
-
-/* 	log_text("JNI-Call: CallNonvirtualDoubleMethod"); */
-
-	va_start(vaargs,methodID);
-	ret = callFloatMethod(obj,get_nonvirtual(clazz,methodID),vaargs,PRIMITIVETYPE_DOUBLE);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallDoubleMethod(obj, clazz->vftbl, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
 
 
-jdouble CallNonvirtualDoubleMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+jdouble CallNonvirtualDoubleMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jdouble ret;
 
-/*	log_text("JNI-Call: CallNonvirtualDoubleMethodV");*/
+	ret = _Jv_jni_CallDoubleMethod(obj, clazz->vftbl, methodID, args);
 
-	return callFloatMethod(obj,get_nonvirtual(clazz,methodID),args,PRIMITIVETYPE_DOUBLE);
+	return ret;
 }
 
 
-jdouble CallNonvirtualDoubleMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
+jdouble CallNonvirtualDoubleMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualDoubleMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2375,34 +2472,24 @@ jdouble CallNonvirtualDoubleMethodA (JNIEnv *env, jobject obj, jclass clazz, jme
 
 
 
-void CallNonvirtualVoidMethod (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+void CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 
-	STATISTICS(jniinvokation());
-
-/*      log_text("JNI-Call: CallNonvirtualVoidMethod");*/
-
-	va_start(vaargs,methodID);
-	(void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),TYPE_VOID,vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	_Jv_jni_CallVoidMethod(obj, clazz->vftbl, methodID, ap);
+	va_end(ap);
 }
 
 
-void CallNonvirtualVoidMethodV (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
+void CallNonvirtualVoidMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
-
-/*	log_text("JNI-Call: CallNonvirtualVoidMethodV");*/
-
-	(void)callIntegerMethod(obj,get_nonvirtual(clazz,methodID),TYPE_VOID,args);
+	_Jv_jni_CallVoidMethod(obj, clazz->vftbl, methodID, args);
 }
 
 
-void CallNonvirtualVoidMethodA (JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue * args)
+void CallNonvirtualVoidMethodA(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, jvalue * args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallNonvirtualVoidMethodA: IMPLEMENT ME!");
 }
 
@@ -2673,8 +2760,8 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 
  	m = class_resolvemethod(c, uname, udesc);
 
-	if (!m || !(m->flags & ACC_STATIC)) {
-		*exceptionptr = exceptions_new_nosuchmethoderror(c, uname, udesc);
+	if ((m == NULL) || !(m->flags & ACC_STATIC)) {
+		exceptions_throw_nosuchmethoderror(c, uname, udesc);
 
 		return NULL;
 	}
@@ -2686,13 +2773,11 @@ jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 jobject CallStaticObjectMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_objectheader *ret;
-	va_list            vaargs;
+	va_list            ap;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = callObjectMethod(0, methodID, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallObjectMethod(NULL, NULL, methodID, ap);
+	va_end(ap);
 
 	return NewLocalRef(env, ret);
 }
@@ -2702,9 +2787,7 @@ jobject CallStaticObjectMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, v
 {
 	java_objectheader *ret;
 
-	STATISTICS(jniinvokation());
-	
-	ret = callObjectMethod(0, methodID, args);
+	ret = _Jv_jni_CallObjectMethod(NULL, NULL, methodID, args);
 
 	return NewLocalRef(env, ret);
 }
@@ -2712,8 +2795,6 @@ jobject CallStaticObjectMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, v
 
 jobject CallStaticObjectMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticObjectMethodA: IMPLEMENT ME!");
 
 	return NewLocalRef(env, NULL);
@@ -2722,14 +2803,13 @@ jobject CallStaticObjectMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, j
 
 jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list  vaargs;
+	va_list  ap;
 	jboolean ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = (jboolean) callIntegerMethod(0, methodID, PRIMITIVETYPE_BOOLEAN, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, ap,
+								PRIMITIVETYPE_BOOLEAN);
+	va_end(ap);
 
 	return ret;
 }
@@ -2737,16 +2817,17 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 
 jboolean CallStaticBooleanMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jboolean ret;
 
-	return (jboolean) callIntegerMethod(0, methodID, PRIMITIVETYPE_BOOLEAN, args);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, args,
+								PRIMITIVETYPE_BOOLEAN);
+
+	return ret;
 }
 
 
 jboolean CallStaticBooleanMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticBooleanMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2755,14 +2836,12 @@ jboolean CallStaticBooleanMethodA(JNIEnv *env, jclass clazz, jmethodID methodID,
 
 jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jbyte   ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = (jbyte) callIntegerMethod(0, methodID, PRIMITIVETYPE_BYTE, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, ap, PRIMITIVETYPE_BYTE);
+	va_end(ap);
 
 	return ret;
 }
@@ -2770,16 +2849,16 @@ jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jbyte CallStaticByteMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jbyte ret;
 
-	return (jbyte) callIntegerMethod(0, methodID, PRIMITIVETYPE_BYTE, args);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, args, PRIMITIVETYPE_BYTE);
+
+	return ret;
 }
 
 
 jbyte CallStaticByteMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticByteMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2788,14 +2867,12 @@ jbyte CallStaticByteMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 
 jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jchar   ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, ap, PRIMITIVETYPE_CHAR);
+	va_end(ap);
 
 	return ret;
 }
@@ -2803,16 +2880,16 @@ jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jchar CallStaticCharMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jchar ret;
 
-	return (jchar) callIntegerMethod(0, methodID, PRIMITIVETYPE_CHAR, args);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, args, PRIMITIVETYPE_CHAR);
+
+	return ret;
 }
 
 
 jchar CallStaticCharMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticCharMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2821,14 +2898,12 @@ jchar CallStaticCharMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 
 jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jshort  ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, ap, PRIMITIVETYPE_SHORT);
+	va_end(ap);
 
 	return ret;
 }
@@ -2836,16 +2911,17 @@ jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jshort CallStaticShortMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jshort ret;
 
-	return (jshort) callIntegerMethod(0, methodID, PRIMITIVETYPE_SHORT, args);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, args,
+								PRIMITIVETYPE_SHORT);
+
+	return ret;
 }
 
 
 jshort CallStaticShortMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticShortMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2854,14 +2930,12 @@ jshort CallStaticShortMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jva
 
 jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jint    ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, ap, PRIMITIVETYPE_INT);
+	va_end(ap);
 
 	return ret;
 }
@@ -2869,16 +2943,16 @@ jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jint CallStaticIntMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jint ret;
 
-	return callIntegerMethod(0, methodID, PRIMITIVETYPE_INT, args);
+	ret = _Jv_jni_CallIntMethod(NULL, NULL, methodID, args, PRIMITIVETYPE_INT);
+
+	return ret;
 }
 
 
 jint CallStaticIntMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticIntMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2887,14 +2961,12 @@ jint CallStaticIntMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue 
 
 jlong CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jlong   ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = _Jv_jni_CallLongMethod(0, methodID, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallLongMethod(NULL, NULL, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -2903,16 +2975,16 @@ jlong CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 jlong CallStaticLongMethodV(JNIEnv *env, jclass clazz, jmethodID methodID,
 							va_list args)
 {
-	STATISTICS(jniinvokation());
+	jlong ret;
 	
-	return _Jv_jni_CallLongMethod(0, methodID, args);
+	ret = _Jv_jni_CallLongMethod(NULL, NULL, methodID, args);
+
+	return ret;
 }
 
 
 jlong CallStaticLongMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticLongMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2922,14 +2994,12 @@ jlong CallStaticLongMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalu
 
 jfloat CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jfloat  ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_FLOAT);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallFloatMethod(NULL, NULL, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -2937,17 +3007,16 @@ jfloat CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 jfloat CallStaticFloatMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jfloat ret;
 
-	return callFloatMethod(0, methodID, args, PRIMITIVETYPE_FLOAT);
+	ret = _Jv_jni_CallFloatMethod(NULL, NULL, methodID, args);
 
+	return ret;
 }
 
 
 jfloat CallStaticFloatMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticFloatMethodA: IMPLEMENT ME!");
 
 	return 0;
@@ -2956,14 +3025,12 @@ jfloat CallStaticFloatMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jva
 
 jdouble CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 	jdouble ret;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs,methodID);
-	ret = callFloatMethod(0, methodID, vaargs, PRIMITIVETYPE_DOUBLE);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	ret = _Jv_jni_CallDoubleMethod(NULL, NULL, methodID, ap);
+	va_end(ap);
 
 	return ret;
 }
@@ -2971,46 +3038,40 @@ jdouble CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ..
 
 jdouble CallStaticDoubleMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
+	jdouble ret;
 
-	return callFloatMethod(0, methodID, args, PRIMITIVETYPE_DOUBLE);
+	ret = _Jv_jni_CallDoubleMethod(NULL, NULL, methodID, args);
+
+	return ret;
 }
 
 
 jdouble CallStaticDoubleMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticDoubleMethodA: IMPLEMENT ME!");
 
 	return 0;
 }
 
 
-void CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID methodID, ...)
+void CallStaticVoidMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
-	va_list vaargs;
+	va_list ap;
 
-	STATISTICS(jniinvokation());
-
-	va_start(vaargs, methodID);
-	(void) callIntegerMethod(0, methodID, TYPE_VOID, vaargs);
-	va_end(vaargs);
+	va_start(ap, methodID);
+	_Jv_jni_CallVoidMethod(NULL, NULL, methodID, ap);
+	va_end(ap);
 }
 
 
-void CallStaticVoidMethodV(JNIEnv *env, jclass cls, jmethodID methodID, va_list args)
+void CallStaticVoidMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list args)
 {
-	STATISTICS(jniinvokation());
-
-	(void) callIntegerMethod(0, methodID, TYPE_VOID, args);
+	_Jv_jni_CallVoidMethod(NULL, NULL, methodID, args);
 }
 
 
-void CallStaticVoidMethodA(JNIEnv *env, jclass cls, jmethodID methodID, jvalue * args)
+void CallStaticVoidMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue * args)
 {
-	STATISTICS(jniinvokation());
-
 	log_text("JNI-Call: CallStaticVoidMethodA: IMPLEMENT ME!");
 }
 

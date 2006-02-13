@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4421 2006-02-04 00:04:41Z edwin $
+   $Id: method.h 4501 2006-02-13 18:55:55Z twisti $
 */
 
 
@@ -44,10 +44,11 @@ typedef struct lineinfo lineinfo;
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/global.h"
-#include "vm/utf8.h"
-#include "vm/references.h"
 #include "vm/descriptor.h"
+#include "vm/global.h"
+#include "vm/linker.h"
+#include "vm/references.h"
+#include "vm/utf8.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/inline/parseXTA.h"
 
@@ -143,6 +144,8 @@ struct lineinfo {
 
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
+
+methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 
 #if !defined(NDEBUG)
 void method_printflags(methodinfo *m);

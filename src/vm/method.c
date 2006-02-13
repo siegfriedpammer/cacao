@@ -32,13 +32,14 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4404 2006-02-03 12:38:03Z twisti $
+   $Id: method.c 4501 2006-02-13 18:55:55Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -46,8 +47,10 @@
 #include "mm/memory.h"
 #include "vm/class.h"
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/method.h"
+#include "vm/jit/methodheader.h"
 
 
 /* method_free *****************************************************************
@@ -97,6 +100,47 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old)
 		return false;
 
 	return true;
+}
+
+
+/* method_vftbl_lookup *********************************************************
+
+   Does a method lookup in the passed virtual function table.  This
+   function does exactly the same thing as JIT, but additionally
+   relies on the fact, that the methodinfo pointer is at the first
+   data segment slot (even for compiler stubs).
+
+*******************************************************************************/
+
+methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
+{
+	methodptr   mptr;
+	methodptr  *pmptr;
+	methodinfo *resm;                   /* pointer to new resolved method     */
+
+	/* If the method is not an instance method, just return it. */
+
+	if (m->flags & ACC_STATIC)
+		return m;
+
+	assert(vftbl);
+
+	/* Get the method from the virtual function table.  Is this an
+	   interface method? */
+
+	if (m->flags & (ACC_INTERFACE | ACC_ABSTRACT)) {
+		pmptr = vftbl->interfacetable[-(m->class->index)];
+		mptr  = pmptr[(m - m->class->methods)];
+
+	} else {
+		mptr = vftbl->table[m->vftblindex];
+	}
+
+	/* and now get the methodinfo* from the first data segment slot */
+
+	resm = *((methodinfo **) (mptr + MethodPointer));
+
+	return resm;
 }
 
 
