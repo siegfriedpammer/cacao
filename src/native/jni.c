@@ -30,8 +30,9 @@
    Changes: Joseph Wenninger
             Martin Platter
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: jni.c 4521 2006-02-14 20:10:58Z edwin $
+   $Id: jni.c 4522 2006-02-14 20:27:06Z edwin $
 
 */
 
@@ -846,7 +847,12 @@ static void _Jv_jni_CallVoidMethod(java_objectheader *o, vftbl_t *vftbl,
 
 /* _Jv_jni_invokeNative ********************************************************
 
-   XXX
+   Invoke a method on the given object with the given arguments.
+
+   For instance methods OBJ must be != NULL and the method is looked up
+   in the vftbl of the object.
+
+   For static methods, OBJ is ignored.
 
 *******************************************************************************/
 
@@ -859,7 +865,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 	s4                 argcount;
 	s4                 paramcount;
 
-	if (m == NULL) {
+	if (!m) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -872,46 +878,49 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 	if (!(m->flags & ACC_STATIC))
 		paramcount--;
 
-	/* the method is an instance method the obj has to be an instance of the 
-	   class the method belongs to. For static methods the obj parameter
-	   is ignored. */
+	/* For instance methods the object has to be an instance of the      */
+	/* class the method belongs to. For static methods the obj parameter */
+	/* is ignored.                                                       */
 
 	if (!(m->flags & ACC_STATIC) && obj &&
-		(!builtin_instanceof((java_objectheader *) obj, m->class))) {
+		(!builtin_instanceof((java_objectheader *) obj, m->class))) 
+	{
 		*exceptionptr =
 			new_exception_message(string_java_lang_IllegalArgumentException,
 								  "Object parameter of wrong type in Java_java_lang_reflect_Method_invokeNative");
 		return NULL;
 	}
 
+	/* check if we got the right number of arguments */
+
 	if (((params == NULL) && (paramcount != 0)) ||
-		(params && (params->header.size != paramcount))) {
+		(params && (params->header.size != paramcount))) 
+	{
 		*exceptionptr =
 			new_exception(string_java_lang_IllegalArgumentException);
 		return NULL;
 	}
 
-	if (!(m->flags & ACC_STATIC) && (obj == NULL))  {
+	/* for instance methods we need an object */
+
+	if (!(m->flags & ACC_STATIC) && !obj) 
+	{
 		*exceptionptr =
 			new_exception_message(string_java_lang_NullPointerException,
 								  "Static mismatch in Java_java_lang_reflect_Method_invokeNative");
 		return NULL;
 	}
 
-	if ((m->flags & ACC_STATIC) && (obj != NULL))
+	/* for static methods, zero obj to make subsequent code simpler */
+	if (m->flags & ACC_STATIC)
 		obj = NULL;
 
-	/* For virtual calls with abstract method of interface classes we
-	   have to do a virtual function table lookup (XXX TWISTI: not
-	   sure if this is correct, took it from the old
-	   implementation). */
-
 	if (obj) {
+		/* for instance methods we must do a vftbl lookup */
 		resm = method_vftbl_lookup(obj->vftbl, m);
-
-	} else {
-		/* just for convenience */
-
+	} 
+	else {
+		/* for static methods, just for convenience */
 		resm = m;
 	}
 
@@ -5163,4 +5172,5 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
