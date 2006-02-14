@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: codegen.c 4508 2006-02-14 00:41:57Z twisti $
 
 */
 
@@ -4163,15 +4163,25 @@ gen_method:
 	
 *******************************************************************************/
 
-#define COMPILERSTUB_SIZE    23
+#define COMPILERSTUB_DATASIZE    2 * SIZEOF_VOID_P
+#define COMPILERSTUB_CODESIZE    7 + 7 + 3
+
+#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
+
 
 u1 *createcompilerstub(methodinfo *m)
 {
 	u1          *s;                     /* memory to hold the stub            */
+	ptrint      *d;
 	codegendata *cd;
 	s4           dumpsize;
 
 	s = CNEW(u1, COMPILERSTUB_SIZE);
+
+	/* set data pointer and code pointer */
+
+	d = (ptrint *) s;
+	s = s + COMPILERSTUB_DATASIZE;
 
 	/* mark start of dump memory area */
 
@@ -4180,10 +4190,16 @@ u1 *createcompilerstub(methodinfo *m)
 	cd = DNEW(codegendata);
 	cd->mcodeptr = s;
 
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (ptrint) asm_call_jit_compiler;
+	d[1] = (ptrint) m;
+
 	/* code for the stub */
 
-	M_MOV_IMM((ptrint) m, REG_ITMP1);   /* pass method to compiler            */
-	M_MOV_IMM((ptrint) asm_call_jit_compiler, REG_ITMP3);
+	M_ALD(REG_ITMP1, RIP, -(7 * 1 + 1 * SIZEOF_VOID_P));       /* methodinfo  */
+	M_ALD(REG_ITMP3, RIP, -(7 * 2 + 2 * SIZEOF_VOID_P));  /* compiler pointer */
 	M_JMP(REG_ITMP3);
 
 #if defined(ENABLE_STATISTICS)
