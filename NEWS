@@ -1,6 +1,6 @@
-New in release 0.95 (February XX, 2006)
+New in release 0.95 (February 13, 2006)
 
-  * Deadlock bugfix.  This should fix the random deadlocks seen in
+  * Dead-lock bugfix.  This should fix the random dead-locks seen in
     Eclipse or other applications.
   * Search for suitable jar program during configure, can be specified
     via JAR environment variable
@@ -13,7 +13,7 @@ New in release 0.95 (February XX, 2006)
   * Throw correct exception when trying to load a directory
     as a classfile (from a .zip file).
   * Fixed incorrect method resolution when calling instance methods 
-    through JNI.
+    through JNI (fixes CACAO bugs #17 and #18).
 
 
 New in release 0.94 (January 22, 2006)
