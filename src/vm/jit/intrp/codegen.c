@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4479 2006-02-07 17:28:05Z edwin $
+   $Id: codegen.c 4509 2006-02-14 01:05:41Z twisti $
 
 */
 
@@ -1776,32 +1776,54 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 }
 
 
-/* a stub consists of
+/* createcompilerstub **********************************************************
 
-+---------+
-|codeptr  |
-+---------+
-|maxlocals|
-+---------+
-|TRANSLATE|
-+---------+
-|methodinf|
-+---------+
+   Creates a stub routine which calls the compiler.
 
-codeptr points either to TRANSLATE or to the translated threaded code
+   A stub consists of:
 
-all methods are called indirectly through methodptr
-*/
+   +-------------+
+   | methodinfo* |
+   +-------------+ <-- stub
+   | codeptr     |
+   +-------------+
+   | maxlocals   |
+   +-------------+
+   | TRANSLATE   |
+   +-------------+
+   | methodinfo  |
+   +-------------+
 
-#define COMPILERSTUB_SIZE 4
+   codeptr points either to TRANSLATE or to the translated threaded code
+
+   all methods are called indirectly through methodptr
+
+*******************************************************************************/
+
+#define COMPILERSTUB_DATASIZE    1
+#define COMPILERSTUB_CODESIZE    4
+
+#define COMPILERSTUB_SIZE        COMPILERSTUB_DATASIZE + COMPILERSTUB_CODESIZE
+
 
 u1 *intrp_createcompilerstub(methodinfo *m)
 {
 	Inst        *s;
+	Inst        *d;
 	codegendata *cd;
 	s4           dumpsize;
 
 	s = CNEW(Inst, COMPILERSTUB_SIZE);
+
+	/* set data pointer and code pointer */
+
+	d = s;
+	s = s + COMPILERSTUB_DATASIZE;
+
+	/* Store the methodinfo* in the same place as in the methodheader
+	   for compiled methods. */
+
+	d[0] = (Inst *) m;
 
 	/* mark start of dump memory area */
 
