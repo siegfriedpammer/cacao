@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(cacao, 0.94+cvs, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.95, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -14,78 +14,82 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl set optimization and debugging for all architectures and systems
 if test x"$CFLAGS" = "x"; then
-	CFLAGS="-O0 -g3"
+    CFLAGS="-O2 -g3"
 fi
 
 dnl system type
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
-	ARCH_DIR="alpha"
-	CFLAGS="$CFLAGS -mieee -D__ALPHA__"
-	;;
+    ARCH_DIR="alpha"
+    CFLAGS="$CFLAGS -mieee -D__ALPHA__"
+    ;;
 
 arm | armv4tl | armv5b )
-	ARCH_DIR="arm"
-	CFLAGS="$CFLAGS -D__ARM__"
-	;;
+    ARCH_DIR="arm"
+    CFLAGS="$CFLAGS -D__ARM__"
+    ;;
 
 i386 | i486 | i586 | i686 )
-	ARCH_DIR="i386"
-	CFLAGS="$CFLAGS -D__I386__"
-	;;
+    ARCH_DIR="i386"
+    CFLAGS="$CFLAGS -D__I386__"
+    ;;
 
 mips )
-	ARCH_DIR="mips"
-	CFLAGS="$CFLAGS -D__MIPS__"
-	;;
+    ARCH_DIR="mips"
+    CFLAGS="$CFLAGS -D__MIPS__"
+    ;;
 
 powerpc )
-	ARCH_DIR="powerpc"
-	CFLAGS="$CFLAGS -D__POWERPC__"
-	;;
+    ARCH_DIR="powerpc"
+    CFLAGS="$CFLAGS -D__POWERPC__"
+    ;;
 
 powerpc64 )
-	ARCH_DIR="powerpc64"
-	CFLAGS="$CFLAGS -D__POWERPC64__"
-	;;
+    ARCH_DIR="powerpc64"
+    CFLAGS="$CFLAGS -D__POWERPC64__"
+    ;;
 
 x86_64 )
-	ARCH_DIR="x86_64"
-	CFLAGS="$CFLAGS -D__X86_64__"
-	;;
+    ARCH_DIR="x86_64"
+    CFLAGS="$CFLAGS -D__X86_64__"
+    ;;
 
 xdspcore )
-	ARCH_DIR="xdspcore"
-	ENABLE_STATICVM="yes"
-	CFLAGS="$CFLAGS -D__XDSPCORE__"
-	USE_SCHEDULER="1"
-	;;
+    ARCH_DIR="xdspcore"
+    ENABLE_STATICVM="yes"
+    CFLAGS="$CFLAGS -D__XDSPCORE__"
+    USE_SCHEDULER="1"
+    ;;
+
 * )
-	AC_MSG_ERROR($host_cpu systems are not supported at this time)
-        ;;
+    AC_MSG_ERROR($host_cpu systems are not supported at this time)
+    ;;
 esac
 
 dnl host type
-echo $host_os
 case "$host_os" in
-*linux* | *Linux* )
-	OS_DIR="linux"
-        CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-	;;
 *darwin* )
-	OS_DIR="darwin"
-        CFLAGS="$CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
-        ;;
+    OS_DIR="darwin"
+    CFLAGS="$CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    ;;
+
 *freebsd* )
-	OS_DIR="freebsd"
-	CFLAGS="$CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
-	;;
+    OS_DIR="freebsd"
+    CFLAGS="$CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    ;;
+
 *irix* )
-	OS_DIR="irix"
-        CFLAGS="$CFLAGS -D__IRIX__"
-        ;;
+    OS_DIR="irix"
+    CFLAGS="$CFLAGS -D__IRIX__"
+    ;;
+
+*linux* | *Linux* )
+    OS_DIR="linux"
+    CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ;;
+
 * )
-	;;
+    ;;
 esac
 
 
