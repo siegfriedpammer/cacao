@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: classcache.h 4519 2006-02-14 15:53:36Z edwin $
 
 */
 
@@ -136,7 +136,7 @@ classinfo * classcache_store_defined(classinfo *cls);
 bool classcache_add_constraint(classloader *a,classloader *b,utf *classname);
 
 #ifndef NDEBUG
-void classcache_debug_dump(FILE *file);
+void classcache_debug_dump(FILE *file,utf *only);
 #endif
 	
 #endif /* _CLASSCACHE_H */

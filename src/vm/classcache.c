@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4486 2006-02-12 02:17:10Z edwin $
+   $Id: classcache.c 4519 2006-02-14 15:53:36Z edwin $
 
 */
 
@@ -95,24 +95,38 @@
   where
   		Cx...is a class C or NULL
 		IL...is the set of initiating loaders
-		CL...is the set of constraint loaders
+		CL...is the set of constrained loaders
 		
   Such a tuple is called `classcache_class_entry` in the source code.
 
   The following holds for each tuple (Cx,IL,CL):
 
-    .  Cx is NULL if and only if IL = {}.
+    .  (Cx is NULL) implies IL = {}.
 	   
 	.  If Cx is a class, IL is the set of loaders that have been
-	   recorded as initiating loaders for Cx.
+	   recorded as initiating loaders for Cx. IL may be the
+	   empty set {} in case Cx has already been defined but no
+	   initiating loader has been recorded, yet.
   
     .  (IL u CL) is a subset of an equivalence class of ~N~.
 
 		 (This means that all loaders in IL and CL must resolve
 		 the name N to the same class.)
 
+  The following holds for the set of tuples { (Cx,IL,CL) }:
+
+    .  For a given class C there is at most one tuple with Cx = C
+	   in the set. (There may be an arbitrary number of tuples
+	   with Cx = NULL, however.)
+
+	.  For a given loader L there is at most one tuple with
+	   L in (IL u CL).
+
   The implementation stores sets of loaders as linked lists of
   `classcache_loader_entry`s.
+
+  Comments about manipulating the classcache can be found in the
+  individual functions below.
  
 *************************************************************************/
 
@@ -125,6 +139,68 @@
 /*============================================================================*/
 
 /*#define CLASSCACHE_VERBOSE*/
+
+/*============================================================================*/
+/* STATISTICS                                                                 */
+/*============================================================================*/
+
+/*#define CLASSCACHE_STATS*/
+
+#ifdef CLASSCACHE_STATS
+static int stat_classnames_stored = 0;
+static int stat_classes_stored = 0;
+static int stat_trivial_constraints = 0;
+static int stat_nontriv_constraints = 0;
+static int stat_nontriv_constraints_both = 0;
+static int stat_nontriv_constraints_merged = 0;
+static int stat_nontriv_constraints_one = 0;
+static int stat_nontriv_constraints_none = 0;
+static int stat_new_loader_entry = 0;
+static int stat_merge_class_entries = 0;
+static int stat_merge_loader_entries = 0;
+static int stat_lookup = 0;
+static int stat_lookup_class_entry_checked = 0;
+static int stat_lookup_loader_checked = 0;
+static int stat_lookup_name = 0;
+static int stat_lookup_name_entry = 0;
+static int stat_lookup_name_notfound = 0;
+static int stat_lookup_new_name = 0;
+static int stat_lookup_new_name_entry = 0;
+static int stat_lookup_new_name_collisions = 0;
+static int stat_rehash_names = 0;
+static int stat_rehash_names_collisions = 0;
+
+#define CLASSCACHE_COUNT(cnt)  (cnt)++
+#define CLASSCACHE_COUNTIF(cond,cnt)  do{if(cond) (cnt)++;} while(0)
+
+void classcache_print_statistics(FILE *file) {
+	fprintf(file,"classnames stored   : %8d\n",stat_classnames_stored);
+	fprintf(file,"classes stored      : %8d\n",stat_classes_stored);
+	fprintf(file,"trivial constraints : %8d\n",stat_trivial_constraints);
+	fprintf(file,"non-triv constraints: %8d\n",stat_nontriv_constraints);
+	fprintf(file,"   both loaders rec.: %8d\n",stat_nontriv_constraints_both);
+	fprintf(file,"       merged       : %8d\n",stat_nontriv_constraints_merged);
+	fprintf(file,"   one loader rec.  : %8d\n",stat_nontriv_constraints_one);
+	fprintf(file,"   no loaders rec.  : %8d\n",stat_nontriv_constraints_none);
+	fprintf(file,"new loader entries  : %8d\n",stat_new_loader_entry);
+	fprintf(file,"merge class entries : %8d\n",stat_merge_class_entries);
+	fprintf(file,"merge loader entries: %8d\n",stat_merge_loader_entries);
+	fprintf(file,"lookups             : %8d\n",stat_lookup);
+	fprintf(file,"   class entries ckd: %8d\n",stat_lookup_class_entry_checked);
+	fprintf(file,"   loader checked   : %8d\n",stat_lookup_loader_checked);
+	fprintf(file,"lookup name         : %8d\n",stat_lookup_name);
+	fprintf(file,"   entries checked  : %8d\n",stat_lookup_name_entry);
+	fprintf(file,"   not found        : %8d\n",stat_lookup_name_notfound);
+	fprintf(file,"lookup (new) name   : %8d\n",stat_lookup_new_name);
+	fprintf(file,"   entries checked  : %8d\n",stat_lookup_new_name_entry);
+	fprintf(file,"   new collisions   : %8d\n",stat_lookup_new_name_collisions);
+	fprintf(file,"names rehashed      : %8d times\n",stat_rehash_names);
+	fprintf(file,"    collisions      : %8d\n",stat_rehash_names_collisions);
+}
+#else
+#define CLASSCACHE_COUNT(cnt)
+#define CLASSCACHE_COUNTIF(cond,cnt)
+#endif
 
 /*============================================================================*/
 /* THREAD-SAFE LOCKING                                                        */
@@ -158,9 +234,19 @@ static java_objectheader *lock_hashtable_classcache;
 /*                                                                            */
 /*============================================================================*/
 
+/* prototypes */
+
+static void classcache_free_class_entry(classcache_class_entry *clsen);
+static void classcache_remove_class_entry(classcache_name_entry *en,
+										  classcache_class_entry *clsen);
+
+/* hash function to use */
+
+#define CLASSCACHE_HASH utf_full_hashkey
+
 /* classcache_init *************************************************************
  
-   Initialize the loaded class cache
+   Initialize the class cache
 
    Note: NOT synchronized!
   
@@ -210,6 +296,7 @@ static classcache_loader_entry * classcache_new_loader_entry(
 	lden = NEW(classcache_loader_entry);
 	lden->loader = loader;
 	lden->next = next;
+	CLASSCACHE_COUNT(stat_new_loader_entry);
 
 	return lden;
 }
@@ -240,6 +327,8 @@ static classcache_loader_entry * classcache_merge_loaders(
 	classcache_loader_entry *ldenB;
 	classcache_loader_entry **chain;
 
+	CLASSCACHE_COUNT(stat_merge_loader_entries);
+
 	/* XXX This is a quadratic algorithm. If this ever
 	 * becomes a problem, the loader lists should be
 	 * stored as sorted lists and merged in linear time. */
@@ -269,6 +358,65 @@ static classcache_loader_entry * classcache_merge_loaders(
 	return result;
 }
 
+/* classcache_merge_class_entries **********************************************
+ 
+   Merge two `classcache_class_entry`s into one.
+   (internally used helper function)
+  
+   IN:
+       en...............the classcache_name_entry containing both class entries
+       clsenA...........first class entry, will receive the result
+	   clsenB...........second class entry
+
+   PRE-CONDITION:
+       Either both entries must have the same classobj, or one of them has
+	   classobj == NULL.
+
+   NOTE:
+       clsenB is freed by this function!
+  
+*******************************************************************************/
+
+static void classcache_merge_class_entries(classcache_name_entry *en,
+										   classcache_class_entry *clsenA,
+										   classcache_class_entry *clsenB)
+{
+#ifdef CLASSCACHE_VERBOSE
+	char logbuffer[1024];
+#endif
+	
+	assert(en);
+	assert(clsenA);
+	assert(clsenB);
+	assert(!clsenA->classobj || !clsenB->classobj || clsenA->classobj == clsenB->classobj);
+
+#ifdef CLASSCACHE_VERBOSE
+	sprintf(logbuffer,"classcache_merge_class_entries(%p,%p->%p,%p->%p) ", 
+			(void*)en,(void*)clsenA,(void*)clsenA->classobj,(void*)clsenB,(void*)clsenB->classobj);
+	if (clsenA->classobj)
+		utf_strcat(logbuffer, clsenA->classobj->name);
+	if (clsenB->classobj)
+		utf_strcat(logbuffer, clsenB->classobj->name);
+	log_text(logbuffer);
+#endif
+
+	CLASSCACHE_COUNT(stat_merge_class_entries);
+
+	/* clsenB will be merged into clsenA */
+	clsenA->loaders = classcache_merge_loaders(clsenA->loaders, clsenB->loaders);
+	clsenB->loaders = NULL; /* these have been freed or reused */
+
+	clsenA->constraints = classcache_merge_loaders(clsenA->constraints,
+												   clsenB->constraints);
+	clsenB->constraints = NULL; /* these have been freed or reused */
+
+	if (!clsenA->classobj)
+		clsenA->classobj = clsenB->classobj;
+
+	/* remove clsenB from the list of class entries */
+	classcache_remove_class_entry(en, clsenB);
+}
+
 
 /* classcache_lookup_name ******************************************************
  
@@ -289,9 +437,10 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 	classcache_name_entry *c;           /* hash table element                 */
 	u4 key;                             /* hashkey computed from classname    */
 	u4 slot;                            /* slot in hashtable                  */
-/*  	u4 i; */
 
-	key  = utf_hashkey(name->text, (u4) name->blength);
+	CLASSCACHE_COUNT(stat_lookup_name);
+
+	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
 	slot = key & (hashtable_classcache.size - 1);
 	c    = hashtable_classcache.ptr[slot];
 
@@ -299,6 +448,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 
 	while (c) {
 		/* entry found in hashtable */
+		CLASSCACHE_COUNT(stat_lookup_name_entry);
 
 		if (c->name == name)
 			return c;
@@ -308,6 +458,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 
 	/* not found */
 
+	CLASSCACHE_COUNT(stat_lookup_name_notfound);
 	return NULL;
 }
 
@@ -333,7 +484,9 @@ static classcache_name_entry *classcache_new_name(utf *name)
 	u4 slot;					/* slot in hashtable               */
 	u4 i;
 
-	key  = utf_hashkey(name->text, (u4) name->blength);
+	CLASSCACHE_COUNT(stat_lookup_new_name);
+
+	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
 	slot = key & (hashtable_classcache.size - 1);
 	c    = hashtable_classcache.ptr[slot];
 
@@ -341,6 +494,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 	while (c) {
 		/* entry found in hashtable */
+		CLASSCACHE_COUNT(stat_lookup_new_name_entry);
 
 		if (c->name == name)
 			return c;
@@ -357,15 +511,17 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 	/* insert entry into hashtable */
 	c->hashlink = (classcache_name_entry *) hashtable_classcache.ptr[slot];
+	CLASSCACHE_COUNTIF(c->hashlink,stat_lookup_new_name_collisions);
 	hashtable_classcache.ptr[slot] = c;
 
 	/* update number of hashtable-entries */
 	hashtable_classcache.entries++;
+	CLASSCACHE_COUNT(stat_classnames_stored);
 
-	if (hashtable_classcache.entries > (hashtable_classcache.size * 2)) {
+	if ((hashtable_classcache.entries*2) > hashtable_classcache.size) {
+		CLASSCACHE_COUNT(stat_rehash_names);
 
-		/* reorganization of hashtable, average length of 
-		   the external chains is approx. 2                */
+		/* reorganization of hashtable */ 
 
 		classcache_name_entry *c2;
 		hashtable newhash;		/* the new hashtable */
@@ -382,9 +538,10 @@ static classcache_name_entry *classcache_new_name(utf *name)
 			while (c2) {
 				classcache_name_entry *nextc = c2->hashlink;
 				u4 newslot =
-					(utf_hashkey(c2->name->text, (u4) c2->name->blength)) & (newhash.size - 1);
+					(CLASSCACHE_HASH(c2->name->text, (u4) c2->name->blength)) & (newhash.size - 1);
 
 				c2->hashlink = (classcache_name_entry *) newhash.ptr[newslot];
+				CLASSCACHE_COUNTIF(c2->hashlink,stat_rehash_names_collisions);
 				newhash.ptr[newslot] = c2;
 
 				c2 = nextc;
@@ -426,15 +583,18 @@ classinfo *classcache_lookup(classloader *initloader, utf *classname)
 
 	CLASSCACHE_LOCK();
 
+	CLASSCACHE_COUNT(stat_lookup);
 	en = classcache_lookup_name(classname);
 
 	if (en) {
 		/* iterate over all class entries */
 
 		for (clsen = en->classes; clsen; clsen = clsen->next) {
+			CLASSCACHE_COUNT(stat_lookup_class_entry_checked);
 			/* check if this entry has been loaded by initloader */
 
 			for (lden = clsen->loaders; lden; lden = lden->next) {
+				CLASSCACHE_COUNT(stat_lookup_loader_checked);
 				if (lden->loader == initloader) {
 					/* found the loaded class entry */
 
@@ -570,11 +730,13 @@ classinfo *classcache_lookup_defined_or_initiated(classloader *loader,
    RETURN VALUE:
        cls..............everything ok, the class was stored in the cache,
 	   other classinfo..another class with the same (initloader,name) has been
-	                    stored earlier. CLS has been freed and the earlier
+	                    stored earlier. CLS has been freed[1] and the earlier
 						stored class is returned.
        NULL.............an exception has been thrown.
    
    Note: synchronized with global tablelock
+
+   [1]...in case MAYFREE is true
    
 *******************************************************************************/
 
@@ -583,6 +745,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
+	classcache_class_entry *clsenB;
 	classcache_loader_entry *lden;
 #ifdef CLASSCACHE_VERBOSE
 	char logbuffer[1024];
@@ -594,7 +757,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 	CLASSCACHE_LOCK();
 
 #ifdef CLASSCACHE_VERBOSE
-	sprintf(logbuffer,"classcache_store (%p,%d,", (void*)initloader,mayfree);
+	sprintf(logbuffer,"classcache_store (%p,%d,%p=", (void*)initloader,mayfree,(void*)cls);
 	utf_strcat(logbuffer, cls->name);
 	strcat(logbuffer,")");
 	log_text(logbuffer);
@@ -610,7 +773,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 		/* check if this entry has already been loaded by initloader */
 		for (lden = clsen->loaders; lden; lden = lden->next) {
 			if (lden->loader == initloader) {
-				if (clsen->classobj != cls) {
+			   if (clsen->classobj != cls) {
 					/* A class with the same (initloader,name) pair has been stored already. */
 					/* We free the given class and return the earlier one.                   */
 #ifdef CLASSCACHE_VERBOSE
@@ -620,34 +783,71 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 					if (mayfree)
 						class_free(cls);
 					cls = clsen->classobj;
-				}
-				goto return_success;
+			   }
+			   goto return_success;
 			}
 		}
+
+		/* {This entry has not been resolved with initloader} */
 
 		/* check if initloader is constrained to this entry */
 		for (lden = clsen->constraints; lden; lden = lden->next) {
 			if (lden->loader == initloader) {
-				/* we have to use this entry */
-				/* check if is has already been resolved to another class */
-				if (clsen->classobj && clsen->classobj != cls) {
-					/* a loading constraint is violated */
-					*exceptionptr = exceptions_new_linkageerror(
-										"loading constraint violated: ",cls);
-					goto return_exception;
+				/* we have to use this entry. check if it has been resolved */
+				if (clsen->classobj) {
+					/* check if is has already been resolved to another class */
+					if (clsen->classobj != cls) {
+						/* a loading constraint is violated */
+						*exceptionptr = exceptions_new_linkageerror(
+											"loading constraint violated: ",cls);
+						goto return_exception;
+					}
+
+					/* record initloader as initiating loader */
+					clsen->loaders = classcache_new_loader_entry(initloader, clsen->loaders);
+					goto return_success;
 				}
 
+				/* {this is the first resolution for this entry} */
 				/* record initloader as initiating loader */
 				clsen->loaders = classcache_new_loader_entry(initloader, clsen->loaders);
 
+				/* maybe we can merge this entry with another one */
+				for (clsenB = en->classes; clsenB; clsenB = clsenB->next) {
+					/* we dont want the entry that we have already */
+					if (clsenB->classobj == cls) {
+						/* this entry has the same classobj. let's merge them */
+						classcache_merge_class_entries(en,clsen,clsenB);
+						goto return_success;
+					}
+				}
+
 				/* record the loaded class object */
 				clsen->classobj = cls;
+				CLASSCACHE_COUNT(stat_classes_stored);
 
 				/* done */
 				goto return_success;
 			}
 		}
 
+	}
+
+	/* {There is no class entry containing initloader as initiating 
+	 *  or constrained loader.} */
+
+	/* we look for a class entry with the same classobj we want to store */
+	for (clsen = en->classes; clsen; clsen = clsen->next) {
+		if (clsen->classobj == cls) {
+			/* this entry is about the same classobj. let's use it */
+			/* check if this entry has already been loaded by initloader */
+			for (lden = clsen->loaders; lden; lden = lden->next) {
+				if (lden->loader == initloader)
+					goto return_success;
+			}
+			clsen->loaders = classcache_new_loader_entry(initloader, clsen->loaders);
+			goto return_success;
+		}
 	}
 
 	/* create a new class entry for this class object with */
@@ -660,8 +860,12 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 
 	clsen->next = en->classes;
 	en->classes = clsen;
+	CLASSCACHE_COUNT(stat_classes_stored);
 
   return_success:
+#ifdef CLASSCACHE_VERBOSE
+	classcache_debug_dump(stderr,cls->name);
+#endif
 	CLASSCACHE_UNLOCK();
 	return cls;
 
@@ -776,8 +980,12 @@ classinfo *classcache_store_defined(classinfo *cls)
 
 	clsen->next = en->classes;
 	en->classes = clsen;
+	CLASSCACHE_COUNT(stat_classes_stored);
 
 return_success:
+#ifdef CLASSCACHE_VERBOSE
+	classcache_debug_dump(stderr,cls->name);
+#endif
 	CLASSCACHE_UNLOCK();
 	return cls;
 }
@@ -974,14 +1182,17 @@ bool classcache_add_constraint(classloader * a,
 #endif
 
 	/* a constraint with a == b is trivially satisfied */
-	if (a == b)
+	if (a == b) {
+		CLASSCACHE_COUNT(stat_trivial_constraints);
 		return true;
+	}
 
 	CLASSCACHE_LOCK();
 
 	en = classcache_new_name(classname);
 
 	assert(en);
+	CLASSCACHE_COUNT(stat_nontriv_constraints);
 
 	/* find the entry loaded by / constrained to each loader */
 	clsenA = classcache_find_loader(en, a);
@@ -989,6 +1200,7 @@ bool classcache_add_constraint(classloader * a,
 
 	if (clsenA && clsenB) {
 		/* { both loaders have corresponding entries } */
+		CLASSCACHE_COUNT(stat_nontriv_constraints_both);
 
 		/* if the entries are the same, the constraint is already recorded */
 		if (clsenA == clsenB)
@@ -1004,19 +1216,8 @@ bool classcache_add_constraint(classloader * a,
 		}
 
 		/* yes, merge the entries */
-		/* clsenB will be merged into clsenA */
-		clsenA->loaders = classcache_merge_loaders(clsenA->loaders, clsenB->loaders);
-		clsenB->loaders = NULL;
-
-		clsenA->constraints = classcache_merge_loaders(clsenA->constraints,
-													   clsenB->constraints);
-		clsenB->constraints = NULL;
-
-		if (!clsenA->classobj)
-			clsenA->classobj = clsenB->classobj;
-
-		/* remove clsenB from the list of class entries */
-		classcache_remove_class_entry(en, clsenB);
+		classcache_merge_class_entries(en,clsenA,clsenB);
+		CLASSCACHE_COUNT(stat_nontriv_constraints_merged);
 	}
 	else {
 		/* { at most one of the loaders has a corresponding entry } */
@@ -1027,6 +1228,7 @@ bool classcache_add_constraint(classloader * a,
 
 		if (!clsenA) {
 			/* { no loader has a corresponding entry } */
+			CLASSCACHE_COUNT(stat_nontriv_constraints_none);
 
 			/* create a new class entry with the constraint (a,b,en->name) */
 			clsenA = NEW(classcache_class_entry);
@@ -1039,6 +1241,8 @@ bool classcache_add_constraint(classloader * a,
 			en->classes = clsenA;
 		}
 		else {
+			CLASSCACHE_COUNT(stat_nontriv_constraints_one);
+
 			/* make b the loader that has no corresponding entry */
 			if (clsenB)
 				b = a;
@@ -1067,13 +1271,16 @@ bool classcache_add_constraint(classloader * a,
   
    IN:
        file.............output stream
+	   only.............if != NULL, only print entries for this name
+	                    (Currently we print also the rest of the hash chain to
+						 get a feel for the average length of hash chains.)
   
    Note: synchronized with global tablelock
    
 *******************************************************************************/
 
 #ifndef NDEBUG
-void classcache_debug_dump(FILE * file)
+void classcache_debug_dump(FILE * file,utf *only)
 {
 	classcache_name_entry *c;
 	classcache_class_entry *clsen;
@@ -1087,9 +1294,16 @@ void classcache_debug_dump(FILE * file)
 	fprintf(file, "hash entries: %d\n", (int) hashtable_classcache.entries);
 	fprintf(file, "\n");
 
+	if (only) {
+		c = classcache_lookup_name(only);
+		slot = 0; /* avoid compiler warning */
+		goto dump_it;
+	}
+
 	for (slot = 0; slot < hashtable_classcache.size; ++slot) {
 		c = (classcache_name_entry *) hashtable_classcache.ptr[slot];
 
+dump_it:
 		for (; c; c = c->hashlink) {
 			utf_fprint_classname(file, c->name);
 			fprintf(file, "\n");
@@ -1113,6 +1327,9 @@ void classcache_debug_dump(FILE * file)
 				fprintf(file, "\n");
 			}
 		}
+
+		if (only)
+			break;
 	}
 	fprintf(file, "\n==============================================================\n\n");
 
