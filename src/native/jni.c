@@ -31,7 +31,7 @@
             Martin Platter
             Christian Thalinger
 
-   $Id: jni.c 4501 2006-02-13 18:55:55Z twisti $
+   $Id: jni.c 4521 2006-02-14 20:10:58Z edwin $
 
 */
 
@@ -906,8 +906,7 @@ jobject *_Jv_jni_invokeNative(methodinfo *m, jobject obj,
 	   sure if this is correct, took it from the old
 	   implementation). */
 
-	if ((obj != NULL) &&
-		((m->flags & ACC_ABSTRACT) || (m->class->flags & ACC_INTERFACE))) {
+	if (obj) {
 		resm = method_vftbl_lookup(obj->vftbl, m);
 
 	} else {
