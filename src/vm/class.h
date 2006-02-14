@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4503 2006-02-13 23:45:27Z twisti $
+   $Id: class.h 4505 2006-02-14 00:03:56Z twisti $
 
 */
 
@@ -51,9 +51,9 @@ typedef struct extra_classref extra_classref;
 #include "toolbox/list.h"
 #include "vm/field.h"
 #include "vm/linker.h"
+#include "vm/method.h"
 #include "vm/references.h"
 #include "vm/utf8.h"
-#include "vm/jit/inline/sets.h"
 
 
 /* class state defines ********************************************************/

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4490 2006-02-12 16:02:43Z edwin $
+   $Id: loader.c 4505 2006-02-14 00:03:56Z twisti $
 
 */
 
@@ -873,10 +873,9 @@ static bool load_field(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 	}
 #endif /* ENABLE_VERIFIER */
 		
-	f->type = jtype = descriptor_to_basic_type(f->descriptor); /* data type */
-	f->offset = 0;                           /* offset from start of object */
-	f->class = c;
-	f->xta = NULL;
+	f->type   = jtype = descriptor_to_basic_type(f->descriptor); /* data type */
+	f->offset = 0;                             /* offset from start of object */
+	f->class  = c;
 	
 	switch (f->type) {
 	case TYPE_INT:     f->value.i = 0; break;

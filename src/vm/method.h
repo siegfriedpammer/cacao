@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4501 2006-02-13 18:55:55Z twisti $
+   $Id: method.h 4505 2006-02-14 00:03:56Z twisti $
 */
 
 
@@ -50,7 +50,6 @@ typedef struct lineinfo lineinfo;
 #include "vm/references.h"
 #include "vm/utf8.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/inline/parseXTA.h"
 
 
 /* methodinfo *****************************************************************/

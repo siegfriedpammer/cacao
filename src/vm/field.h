@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: field.h 4505 2006-02-14 00:03:56Z twisti $
 */
 
 
@@ -46,7 +46,6 @@ typedef struct fieldinfo fieldinfo;
 #include "vm/utf8.h"
 #include "vm/references.h"
 #include "vm/descriptor.h"
-#include "vm/jit/inline/parseXTA.h"
 
 
 /* fieldinfo ******************************************************************/
@@ -65,8 +64,6 @@ struct fieldinfo {	      /* field of a class                                 */
 	classinfo *class;     /* needed by typechecker. Could be optimized        */
 	                      /* away by using constant_FMIref instead of         */
 	                      /* fieldinfo throughout the compiler.               */
-
-	xtafldinfo *xta;
 };
 
 
