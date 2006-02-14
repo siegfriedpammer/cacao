@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: utf8.h 4518 2006-02-14 15:34:50Z edwin $
 
 */
 
@@ -169,6 +169,7 @@ extern utf *array_packagename;
 bool utf8_init(void);
 
 u4 utf_hashkey(const char *text, u4 length);
+u4 utf_full_hashkey(const char *text, u4 length);
 
 /* determine hashkey of a unicode-symbol */
 u4 unicode_hashkey(u2 *text, u2 length);

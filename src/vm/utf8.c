@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4500 2006-02-13 10:53:49Z twisti $
+   $Id: utf8.c 4518 2006-02-14 15:34:50Z edwin $
 
 */
 
@@ -453,8 +453,36 @@ u4 utf_hashkey(const char *text, u4 length)
     }
 }
 
+/* utf_full_hashkey ************************************************************
 
-/* utf_hashkey *****************************************************************
+   This function computes a hash value using all bytes in the string.
+
+   The algorithm is the "One-at-a-time" algorithm as published
+   by Bob Jenkins on http://burtleburtle.net/bob/hash/doobs.html.
+
+*******************************************************************************/
+
+u4 utf_full_hashkey(const char *text, u4 length)
+{
+	register const unsigned char *p = (const unsigned char *) text;
+	register u4 hash;
+	register u4 i;
+
+	hash = 0;
+	for (i=length; i--;)
+	{
+	    hash += *p++;
+	    hash += (hash << 10);
+	    hash ^= (hash >> 6);
+	}
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}
+
+/* unicode_hashkey *************************************************************
 
    Compute the hashkey of a unicode string.
 
