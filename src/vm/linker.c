@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4388 2006-01-30 15:44:52Z twisti $
+   $Id: linker.c 4520 2006-02-14 20:09:53Z edwin $
 
 */
 
@@ -54,6 +54,7 @@
 #include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/access.h"
 
 
 /* global variables ***********************************************************/
@@ -583,6 +584,15 @@ static classinfo *link_class_intern(classinfo *c)
 					if (method_canoverwrite(m, &(tc->methods[j]))) {
 						if (tc->methods[j].flags & ACC_PRIVATE)
 							goto notfoundvftblindex;
+
+						/* package-private methods in other packages */
+						/* must not be overridden                    */
+						/* (see Java Language Specification 8.4.8.1) */
+						if ( !(tc->methods[j].flags & (ACC_PUBLIC | ACC_PROTECTED)) 
+							 && !SAME_PACKAGE(c,tc) ) 
+						{
+						    goto notfoundvftblindex;
+						}
 
 						if (tc->methods[j].flags & ACC_FINAL) {
 							/* class a overrides final method . */
@@ -1153,4 +1163,5 @@ static s4 class_highestinterface(classinfo *c)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
