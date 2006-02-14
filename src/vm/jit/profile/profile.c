@@ -100,7 +100,7 @@ bool profile_init(void)
 #if defined(USE_THREADS)
 static void profile_thread(void)
 {
-	s4 i = 0;
+/* 	s4 i = 0; */
 
 	while (true) {
 		/* sleep thread for 100 nanos */
