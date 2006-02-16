@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4455 2006-02-06 01:02:59Z edwin $
+   $Id: stack.c 4524 2006-02-16 19:39:36Z christian $
 
 */
 
@@ -127,7 +127,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	stackptr      curstack;
 	stackptr      new;
 	stackptr      copy;
-	int           opcode, i, len, loops;
+	int           opcode, i, j, len, loops;
 	int           superblockend, repeat, deadcode;
 	instruction  *iptr;
 	basicblock   *bptr;
@@ -135,6 +135,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	s4           *s4ptr;
 	void        **tptr;
 	s4           *argren;
+	s4           *last_store;/* instruction index of last XSTORE */
+	                         /* [ local_index * 5 + type ] */
+	s4            last_pei;  /* instruction index of last possible exception */
+	                         /* used for conflict resolution for copy        */
+                             /* elimination (XLOAD, IINC, XSTORE) */
+	s4            last_dupx;
 
 	builtintable_entry *bte;
 	unresolved_method  *um;
@@ -147,6 +153,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	argren = DMNEW(s4, cd->maxlocals);   /* table for argument renaming       */
 	for (i = 0; i < cd->maxlocals; i++)
 		argren[i] = i;
+
+	last_store = DMNEW(s4 , cd->maxlocals * 5);
 	
 	new = m->stack;
 	loops = 0;
@@ -275,6 +283,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 				len = bptr->icount;
 				iptr = bptr->iinstr;
 				b_index = bptr - m->basicblocks;
+
+				last_pei = -1;
+				last_dupx = -1;
+				for( i = 0; i < cd->maxlocals; i++)
+					for( j = 0; j < 5; j++)
+						last_store[5 * i + j] = -1;
 
 				bptr->stack = new;
 
@@ -1101,6 +1115,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								count_store_depth[i]++;
 						}
 #endif
+						last_store[5 * iptr->op1 + TYPE_INT] = bptr->icount - len - 1;
+
 						copy = curstack;
 						i = stackdepth - 1;
 						while (copy) {
@@ -1112,12 +1128,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							i--;
 							copy = copy->prev;
 						}
-
-						/* allocate a dummy stack slot to keep ISTORE from */
-						/* marking its input stack as a LOCALVAR, since we */
-						/* change the value of the local variable here.    */
-						NEWSTACK0(TYPE_INT);
-						POP(TYPE_INT);
 						
 						SETDST;
 						break;
@@ -1152,6 +1162,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							count_store_depth[i]++;
 					}
 #endif
+					/* check for conflicts as described in Figure 5.2 */
 					copy = curstack->prev;
 					i = stackdepth - 2;
 					while (copy) {
@@ -1163,10 +1174,107 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						i--;
 						copy = copy->prev;
 					}
-					if ((new - curstack) == 1) {
-						curstack->varkind = LOCALVAR;
-						curstack->varnum = iptr->op1;
-					};
+
+					/* do not change instack Stackslots */
+					/* it won't improve performance if we copy the interface */
+					/* at the BB begin or here, and lsra relies that no      */
+					/* instack stackslot is marked LOCALVAR */
+					if (curstack->varkind == STACKVAR)
+						goto _possible_conflict;
+
+					/* check for a DUPX,SWAP while the lifetime of curstack */
+					/* and as creator curstack */
+					if (last_dupx != -1) { 
+						/* we have to look at the dst stack of DUPX */
+						/* == src Stack of PEI */
+						copy = bptr->iinstr[last_dupx].dst;
+						/*
+						if (last_pei == 0)
+							copy = bptr->instack;
+						else
+							copy = bptr->iinstr[last_pei-1].dst;
+						*/
+						if ((copy != NULL) && (curstack <= copy)) {
+							/* curstack alive at or created by DUPX */
+
+							/* TODO:.... */
+							/* now look, if there is a LOCALVAR at anyone of */
+							/* the src stacklots used by DUPX */
+
+							goto _possible_conflict;
+						}
+					}
+
+					/* check for a PEI while the lifetime of curstack */
+					if (last_pei != -1) { 
+						/* && there are exception handler in this method */
+						/* when this is checked prevent ARGVAR from      */
+						/* overwriting LOCALVAR!!! */
+
+						/* we have to look at the stack _before_ the PEI! */
+						/* == src Stack of PEI */
+						if (last_pei == 0)
+							copy = bptr->instack;
+						else
+							copy = bptr->iinstr[last_pei-1].dst;
+						if ((copy != NULL) && (curstack <= copy)) {
+							/* curstack alive at PEI */
+							goto _possible_conflict;
+						}
+					}
+					
+					/* check if there is a possible conflicting XSTORE */
+					if (last_store[5 * iptr->op1 + opcode - ICMD_ISTORE] != -1) {
+						/* we have to look at the stack _before_ the XSTORE! */
+						/* == src Stack of XSTORE */
+						if (last_store[5 * iptr->op1 + opcode - ICMD_ISTORE] == 0)
+							copy = bptr->instack;
+						else
+							copy = bptr->iinstr[last_store[5 * iptr->op1 + opcode - ICMD_ISTORE] - 1].dst;
+						if ((copy != NULL) && (curstack <= copy)) {
+							/* curstack alive at Last Store */
+							goto _possible_conflict;
+						}
+					}
+
+					/* check if there is a conflict with a XLOAD */
+					/* this is done indirectly by looking if a Stackslot is */
+					/* marked LOCALVAR and is live while curstack is live   */
+					/* see figure 5.3 */
+
+					/* First check "above" stackslots of the instack */
+					copy = curstack + 1;
+					for(;(copy <= bptr->instack); copy++)
+						if ((copy->varkind == LOCALVAR) && (copy->varnum == iptr->op1)) {
+							goto _possible_conflict;
+						}
+					
+					/* "intra" Basic Block Stackslots are allocated above    */
+					/* bptr->stack (see doc/stack.txt), so if curstack + 1   */
+					/* is an instack, copy could point now to the stackslots */
+					/* of an inbetween analysed Basic Block */
+					if (copy < bptr->stack)
+						copy = bptr->stack;
+					while (copy < new) {
+						if ((copy->varkind == LOCALVAR) && (copy->varnum == iptr->op1)) {
+							goto _possible_conflict;
+						}
+						copy++;
+					}
+					/* no conflict - mark the Stackslot as LOCALVAR */
+					curstack->varkind = LOCALVAR;
+					curstack->varnum = iptr->op1;
+					
+					goto _local_join;
+				_possible_conflict:
+					if ((curstack->varkind == LOCALVAR) 
+						&& (curstack->varnum == iptr->op1)) {
+						curstack->varkind = TEMPVAR;
+						curstack->varnum = stackdepth-1;
+					}
+				_local_join:
+					last_store[5 * iptr->op1 + opcode - ICMD_ISTORE] = bptr->icount - len - 1;
+
 					STORE(opcode - ICMD_ISTORE);
 					break;
 
@@ -1510,11 +1618,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 						}
 #endif
+						last_dupx = bptr->icount - len - 1;
 						COUNT(count_dup_instruction);
 						DUP;
 						break;
 
 					case ICMD_DUP2:
+						last_dupx = bptr->icount - len - 1;
 						REQUIRE_1;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat2 */
@@ -1555,10 +1665,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 						}
 #endif
+						last_dupx = bptr->icount - len - 1;
 						DUP_X1;
 						break;
 
 					case ICMD_DUP2_X1:
+						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
@@ -1592,6 +1704,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 3 push 4 dup */
 						
 					case ICMD_DUP_X2:
+						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							/* ..., cat2, ???? */
@@ -1623,6 +1736,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						break;
 
 					case ICMD_DUP2_X2:
+						last_dupx = bptr->icount - len - 1;
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
@@ -1682,6 +1796,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 2 push 2 swap */
 						
 					case ICMD_SWAP:
+						last_dupx = bptr->icount - len - 1;
 #ifdef TYPECHECK_STACK_COMPCAT
 						if (opt_verify) {
 							REQUIRE_2;
@@ -2010,6 +2125,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 /*                              {COUNT(count_check_null);} */ 	 
 
 					_callhandling:
+
+						last_pei = bptr->icount - len - 1;
+
 						i = md->paramcount;
 
 						if (md->memuse > rd->memuse)

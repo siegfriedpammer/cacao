@@ -42,6 +42,12 @@ The following invariants hold at all time for the stack representation:
     6) References can only go to lower memory addresses. That is, for each stack slot sp:
 
             (sp->prev == NULL) or (sp->prev < sp)
+ 
+    7) If an instruction produces any stackslots, iptr->dst points to the highest-address 
+       stackslot produced
+       Corollary: if iptr->dst points to curstack or below, the instruction does
+                   not produce any stackslots
+
 
     ATTENTION: The instack of a block and the slots produced within the block
                are *not* guaranteed to be adjacent (see figure below)!

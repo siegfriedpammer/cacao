@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4476 2006-02-07 16:47:44Z edwin $
+   $Id: jit.h 4524 2006-02-16 19:39:36Z christian $
 
 */
 
@@ -94,7 +94,9 @@ typedef struct subroutineinfo subroutineinfo;
 #define SAVEDVAR   1            /* variable has to survive method invocations */
 #define INMEMORY   2            /* variable stored in memory                  */
 #define SAVEDTMP   4            /* temporary variable using a saved register  */
-#define TMPARG     8            /* temporary variable using a argument register  */
+#define TMPARG     8            /* temporary variable using a arg register    */
+#define STCOPY    16            /* there is another stackslot alive           */
+                                /* using the same register/memory location    */
 
 /* variable kinds */
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4483 2006-02-11 21:25:45Z christian $
+   $Id: stack.h 4524 2006-02-16 19:39:36Z christian $
 
 */
 
@@ -174,23 +174,18 @@
         curstack = curstack->prev; \
     } while (0)
 
-/*******************************************************
-Quick Fix to prevent dependence problems of local vars
-varnum is not set to the according position within the stack
-like it is done normaly in stack.c
--> if this shows to be a problem this can be solved in all the
-DUP* and SWAP Macros
-TODO: dependences should be prevented as described in the
-CACAO JVM Paper
-Interface Stackslots (STACKVAR) are not allowed to be copied.
-ARGVAR are taken out, too.
-*******************************************************/
+/* Do not copy Interface Stackslots over DUPx, Swaps! */
 #define COPY(s,d) \
     do { \
         (d)->flags = 0; \
         (d)->type = (s)->type; \
-        (d)->varkind = TEMPVAR; \
-        (d)->varnum = 0; \
+		if ( (s)->varkind != STACKVAR) {		\
+			(d)->varkind = (s)->varkind; \
+			(d)->varnum = (s)->varnum;	 \
+		} else { \
+			(d)->varkind = TEMPVAR; \
+			(d)->varnum = 0; \
+		} \
     } while (0)
 
 
@@ -340,10 +335,14 @@ ARGVAR are taken out, too.
         SETDST; \
     } while (0)
 
-/* Same dependency quick fix as at COPY */
+/* Do not copy Interface Stackslots over DUP! */
 #define DUP         {REQUIRE_1; \
-                    NEWSTACK(CURTYPE,TEMPVAR,stackdepth-1);SETDST; \
-                    stackdepth++; INC_LIFETIMES(1);}
+		             if (CURKIND != STACKVAR) { \
+						 NEWSTACK(CURTYPE,CURKIND,curstack->varnum); \
+					 } else { \
+						 NEWSTACK(CURTYPE, TEMPVAR, stackdepth); \
+					 } \
+					 SETDST; stackdepth++; INC_LIFETIMES(1);}
 #define SWAP        {REQUIRE_2;COPY(curstack,new);POPANY;COPY(curstack,new+1);POPANY;\
                     new[0].prev=curstack;new[1].prev=new;\
                     curstack=new+1;new+=2;SETDST;}

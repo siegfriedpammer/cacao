@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4478 2006-02-07 17:22:13Z edwin $
+   $Id: jit.c 4524 2006-02-16 19:39:36Z christian $
 
 */
 
@@ -1270,11 +1270,7 @@ void jit_init(void)
 	stackreq[JAVA_IFNONNULL]    = 0;
 	stackreq[JAVA_GOTO_W]       = 0;
 	stackreq[JAVA_BREAKPOINT]   = 0;
-
-	/* we need one dummy stack slot for IINC in order to */
-	/* avoid that the modified local variable is */
-	/* kept on the stack (see stack.c, ICMD_IINC) */
-	stackreq[JAVA_IINC]         = 1;
+	stackreq[JAVA_IINC]         = 0;
 	
 	stackreq[JAVA_SWAP] = 2;
 	stackreq[JAVA_DUP2] = 2;

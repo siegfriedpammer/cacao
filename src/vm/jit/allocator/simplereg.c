@@ -32,7 +32,7 @@
             Michael Starzinger
 			Edwin Steiner
 
-   $Id: simplereg.c 4454 2006-02-06 00:02:50Z edwin $
+   $Id: simplereg.c 4524 2006-02-16 19:39:36Z christian $
 
 */
 
@@ -70,6 +70,13 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd);
 	
 void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 {
+	/* There is a problem with the use of unused float argument registers in */
+	/* leafmethods for stackslots on c7 (3* Dual Core AMD Opteron(tm)        */
+	/* Processor 270) - runtime for the jvm98 _mtrt benchmark is heaviliy    */
+	/* increased. This could be prevented by setting rd->argfltreguse to     */
+	/* FLT_ARG_CNT before calling allocate_scratch_registers and setting it  */
+	/* back to the original value before calling local_regalloc.             */
+
 	interface_regalloc(m, cd, rd);
 	allocate_scratch_registers(m, rd);
 	local_regalloc(m, cd, rd);
@@ -159,8 +166,7 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 								v->flags |= rd->interfaces[s][fltalloc].flags
 									& INMEMORY;
 								v->regoff = rd->interfaces[s][fltalloc].regoff;
-							} else if (!m->isleafmethod 
-									   && (rd->argfltreguse < FLT_ARG_CNT)) {
+							} else if (rd->argfltreguse < FLT_ARG_CNT) {
 								v->regoff = rd->argfltregs[rd->argfltreguse++];
 							} else if (rd->tmpfltreguse > 0) {
 								v->regoff = rd->tmpfltregs[--rd->tmpfltreguse];
@@ -208,9 +214,8 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 										v->regoff = 
 										    rd->interfaces[s][intalloc].regoff;
 								} else 
-									if (!m->isleafmethod && 
-										(rd->argintreguse 
-										 + intregsneeded < INT_ARG_CNT)) {
+									if (rd->argintreguse + intregsneeded 
+										< INT_ARG_CNT) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 										if (intregsneeded) 
 											v->regoff=PACK_REGS( 
@@ -932,7 +937,10 @@ static void reg_new_temp_func(registerdata *rd, stackptr s)
 }
 
 
-#define reg_free_temp(rd,s) if (s->varkind == TEMPVAR) reg_free_temp_func(rd, s)
+#define reg_free_temp(rd,s) if ((s->varkind == TEMPVAR) && (!(s->flags & STCOPY))) reg_free_temp_func(rd, s)
+
+/* Do not free regs/memory locations used by Stackslots flagged STCOPY! There is still another Stackslot */
+/* alive using this reg/memory location */
 
 static void reg_free_temp_func(registerdata *rd, stackptr s)
 {
@@ -1021,7 +1029,30 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 	}
 }
 
-
+static bool reg_alloc_dup(stackptr src, stackptr dst) {
+	/* only copy TEMPVARS, do not mess with STACKVAR,      */
+	/* LOCALVAR, or ARGVAR        */
+	if ((src->varkind == TEMPVAR) && (dst->varkind == TEMPVAR)) {
+		/* can not allocate a REG_TMP to a REG_SAV Slot */
+		if (src->flags & INMEMORY) {
+			dst->regoff  = src->regoff;
+			dst->flags |= INMEMORY;
+			return true;
+		} else if ((src->flags & SAVEDVAR) == (dst->flags & SAVEDVAR)) {
+			dst->regoff  = src->regoff;
+			dst->flags |= src->flags & SAVEDTMP;
+			dst->flags |= src->flags & TMPARG;
+			return true;
+		} else if ((dst->flags & SAVEDVAR) == 0) {
+			/* can only use a REG_SAV as REG_TMP! */
+			dst->regoff = src->regoff;
+			dst->flags |= SAVEDTMP;
+			return true;
+		} 
+	}
+	/* no copy possible - allocate a new reg/memory location*/
+	return false;
+}
 
 static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 {
@@ -1212,73 +1243,210 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* pop 0 push 1 dup */
 					
 				case ICMD_DUP:
-					reg_new_temp(rd, dst);
+					/* src === dst->prev (identical Stackslot Element)     */
+					/* src --> dst       (copied value, take same reg/mem) */
+
+					if (!reg_alloc_dup(src, dst)) {
+						reg_new_temp(rd, dst);
+					} else {
+						dst->flags |= STCOPY;
+					}
 					break;
 
 					/* pop 0 push 2 dup */
 					
 				case ICMD_DUP2:
-					reg_new_temp(rd, dst->prev);
-					reg_new_temp(rd, dst);
+					/* src->prev === dst->prev->prev->prev (identical Stackslot Element)     */
+					/* src       === dst->prev->prev       (identical Stackslot Element)     */
+					/* src->prev --> dst->prev             (copied value, take same reg/mem) */
+					/* src       --> dst                   (copied value, take same reg/mem) */
+												
+					if (!reg_alloc_dup(src->prev, dst->prev)) {
+						reg_new_temp(rd, dst->prev);
+					} else {
+						dst->prev->flags |= STCOPY;
+					}
+					if (!reg_alloc_dup(src, dst)) {
+						reg_new_temp(rd, dst);
+					} else {
+						dst->flags |= STCOPY;
+					}
 					break;
 
 					/* pop 2 push 3 dup */
 					
 				case ICMD_DUP_X1:
-					reg_free_temp(rd, src);
-					reg_new_temp(rd, dst);
-					reg_free_temp(rd, src->prev);
-					reg_new_temp(rd, dst->prev);
-					reg_new_temp(rd, dst->prev->prev);
+					/* src->prev --> dst->prev       (copied value, take same reg/mem) */
+					/* src       --> dst             (copied value, take same reg/mem) */
+					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
+												
+					{
+						bool ret, ret1;
+						if (!(ret = reg_alloc_dup(src, dst->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src, dst))) {
+								reg_new_temp(rd, dst);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src */
+							reg_free_temp(rd, src);
+						}
+						if (ret && ret1) {
+							dst->flags |= STCOPY;
+						}
+						if (!reg_alloc_dup(src->prev, dst->prev)) {
+							reg_free_temp(rd, src->prev);
+							reg_new_temp(rd, dst->prev);
+						}
+					}
 					break;
 
 					/* pop 3 push 4 dup */
 					
 				case ICMD_DUP_X2:
-					reg_free_temp(rd, src);
-					reg_new_temp(rd, dst);
-					reg_free_temp(rd, src->prev);
-					reg_new_temp(rd, dst->prev);
-					reg_free_temp(rd, src->prev->prev);
-					reg_new_temp(rd, dst->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev);
+					/* src->prev->prev --> dst->prev->prev        */
+					/* src->prev       --> dst->prev              */
+					/* src             --> dst                    */
+					/* src             --> dst->prev->prev->prev  */
+					
+					{
+						bool ret, ret1;
+						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src, dst))) {
+								reg_new_temp(rd, dst);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src */
+							reg_free_temp(rd, src);
+						}
+						if (ret && ret1) {
+							dst->flags |= STCOPY;
+						}
+						if (!reg_alloc_dup(src->prev, dst->prev)) {
+							reg_free_temp(rd, src->prev);
+							reg_new_temp(rd, dst->prev);
+						}
+						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
+							reg_free_temp(rd, src->prev->prev);
+							reg_new_temp(rd, dst->prev->prev);
+						}
+					}
 					break;
 
 					/* pop 3 push 5 dup */
 					
 				case ICMD_DUP2_X1:
-					reg_free_temp(rd, src);
-					reg_new_temp(rd, dst);
-					reg_free_temp(rd, src->prev);
-					reg_new_temp(rd, dst->prev);
-					reg_free_temp(rd, src->prev->prev);
-					reg_new_temp(rd, dst->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev->prev);
+					/* src->prev->prev --> dst->prev->prev             */
+					/* src->prev       --> dst->prev                   */
+					/* src             --> dst                         */
+					/* src->prev       --> dst->prev->prev->prev->prev */
+					/* src             --> dst->prev->prev->prev       */
+												
+					{
+						bool ret, ret1;
+						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src, dst))) {
+								reg_new_temp(rd, dst);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src */
+							reg_free_temp(rd, src);
+						}
+						if (ret && ret1) {
+							dst->flags |= STCOPY;
+						}
+
+						if (!(ret = reg_alloc_dup(src->prev, dst->prev->prev->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src->prev, dst->prev))) {
+								reg_new_temp(rd, dst->prev);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src->prev */
+							reg_free_temp(rd, src->prev);
+						}
+						if (ret && ret1) {
+							dst->prev->flags |= STCOPY;
+						}
+
+						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
+							reg_free_temp(rd, src->prev->prev);
+							reg_new_temp(rd, dst->prev->prev);
+						}
+					}
 					break;
 
 					/* pop 4 push 6 dup */
 					
 				case ICMD_DUP2_X2:
-					reg_free_temp(rd, src);
-					reg_new_temp(rd, dst);
-					reg_free_temp(rd, src->prev);
-					reg_new_temp(rd, dst->prev);
-					reg_free_temp(rd, src->prev->prev);
-					reg_new_temp(rd, dst->prev->prev);
-					reg_free_temp(rd, src->prev->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev->prev);
-					reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
+					/* src->prev->prev->prev --> dst->prev->prev->prev             */
+					/* src->prev->prev       --> dst->prev->prev                   */
+					/* src->prev             --> dst->prev                         */
+					/* src                   --> dst                               */
+					/* src->prev             --> dst->prev->prev->prev->prev->prev */
+					/* src                   --> dst->prev->prev->prev->prev       */
+												
+					{
+						bool ret, ret1;
+						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src, dst))) {
+								reg_new_temp(rd, dst);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src */
+							reg_free_temp(rd, src);
+						}
+						if (ret && ret1) {
+							dst->flags |= STCOPY;
+						}
+
+						if (!(ret = reg_alloc_dup(src->prev, dst->prev->prev->prev->prev->prev))) {
+								reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
+						}
+						if (!(ret1 = reg_alloc_dup(src->prev, dst->prev))) {
+								reg_new_temp(rd, dst->prev);
+						}
+						if (!(ret || ret1)) {
+							/* no reallocation was possible -> free src->prev */
+							reg_free_temp(rd, src->prev);
+						}
+						if (ret && ret1) {
+							dst->prev->flags |= STCOPY;
+						}
+
+						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
+							reg_free_temp(rd, src->prev->prev);
+							reg_new_temp(rd, dst->prev->prev);
+						}
+						if (!reg_alloc_dup(src->prev->prev->prev, dst->prev->prev->prev)) {
+							reg_free_temp(rd, src->prev->prev->prev);
+							reg_new_temp(rd, dst->prev->prev->prev);
+						}
+					}
 					break;
 
 					/* pop 2 push 2 swap */
 					
 				case ICMD_SWAP:
-					reg_free_temp(rd, src);
-					reg_new_temp(rd, dst->prev);
-					reg_free_temp(rd, src->prev);
-					reg_new_temp(rd, dst);
+					/* src       --> dst->prev   (copy) */
+					/* src->prev --> dst         (copy) */
+												
+					if (!reg_alloc_dup(src, dst->prev)) {
+						reg_free_temp(rd, src);
+						reg_new_temp(rd, dst->prev);
+					}
+					if (!reg_alloc_dup(src->prev, dst->prev)) {
+						reg_free_temp(rd, src->prev);
+						reg_new_temp(rd, dst);
+					}
 					break;
 
 					/* pop 2 push 1 */
