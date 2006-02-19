@@ -32,7 +32,7 @@
             Michael Starzinger
 			Edwin Steiner
 
-   $Id: simplereg.c 4524 2006-02-16 19:39:36Z christian $
+   $Id: simplereg.c 4525 2006-02-19 22:27:25Z christian $
 
 */
 
@@ -974,23 +974,23 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	} else if (IS_ADR_TYPE(s->type)) {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
-			s->flags &= ~SAVEDTMP;
+/* 			s->flags &= ~SAVEDTMP; */
 			rd->freesavadrregs[rd->freesavadrtop++] = s->regoff;
 		} else
 			rd->freetmpadrregs[rd->freetmpadrtop++] = s->regoff;
 #endif
 	} else if (IS_FLT_DBL_TYPE(s->type)) {
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
-			s->flags &= ~SAVEDTMP;
+/* 			s->flags &= ~SAVEDTMP; */
 			rd->freesavfltregs[rd->freesavflttop++] = s->regoff;
 		} else if (s->flags & TMPARG) {
-			s->flags &= ~TMPARG;
+/* 			s->flags &= ~TMPARG; */
 			rd->freeargfltregs[rd->freeargflttop++] = s->regoff;
 		} else
 			rd->freetmpfltregs[rd->freetmpflttop++] = s->regoff;
 	} else { /* IS_INT_LNG_TYPE */
 		if (s->flags & (SAVEDVAR | SAVEDTMP)) {
-			s->flags &= ~SAVEDTMP;
+/* 			s->flags &= ~SAVEDTMP; */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freesavintregs[rd->freesavinttop] =
@@ -1003,7 +1003,7 @@ static void reg_free_temp_func(registerdata *rd, stackptr s)
 			rd->freesavinttop += intregsneeded + 1;
 
 		} else if (s->flags & TMPARG) {
-			s->flags &= ~TMPARG;
+/* 			s->flags &= ~TMPARG; */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			if (intregsneeded) {
 				rd->freeargintregs[rd->freearginttop] =
@@ -1043,15 +1043,96 @@ static bool reg_alloc_dup(stackptr src, stackptr dst) {
 			dst->flags |= src->flags & SAVEDTMP;
 			dst->flags |= src->flags & TMPARG;
 			return true;
+#if 0
 		} else if ((dst->flags & SAVEDVAR) == 0) {
 			/* can only use a REG_SAV as REG_TMP! */
 			dst->regoff = src->regoff;
+			dst->flags |= src->flags & TMPARG;
 			dst->flags |= SAVEDTMP;
 			return true;
+#endif
 		} 
 	}
 	/* no copy possible - allocate a new reg/memory location*/
 	return false;
+}
+
+/* Mark the copies (STCOPY) at the dst stack right for DUPx and SWAP */
+static void reg_mark_copy(registerdata *rd, stackptr src_top, stackptr src_bottom, stackptr dst_top, stackptr dst_bottom) {
+	s4 src_regoff[4];
+	s4 src_flags[4];
+	stackptr dst_stackslots[6];
+	int s_bottom, d_bottom, i, j;
+	bool found;
+
+	stackptr sp;
+
+	/* remember all different Registers/Memory Location of used TEMPVAR       */
+	/* instacks in src_varnum[] and src_flags[] _uniquely_. Take the STCOPY   */
+	/* flag of the last (deepest) occurence */
+	for(s_bottom = 4, sp = src_top; sp >= src_bottom; sp = sp->prev) {
+		if (sp->varkind == TEMPVAR) {
+			found = false;
+			for( i = 3; i >= s_bottom; i--) {
+				if ((src_regoff[i] == sp->regoff) && 
+					((src_flags[i] & INMEMORY) == (sp->flags & INMEMORY)) ) {
+					src_flags[i] &= (~STCOPY | (sp->flags & STCOPY));
+					found = true;
+				}
+			}
+			if (!found) {
+				s_bottom--;
+				src_regoff[s_bottom] = sp->regoff;
+				src_flags[s_bottom] = sp->flags;
+			}
+		}
+	}
+
+	/* Remember used TEMPVAR dst Stackslots in dst_stackslots[], since they   */
+	/* have to be from the "lowest" upwards, and the stackelements list is    */
+	/* linked from only top downwards */
+	
+	for(d_bottom = 6, sp =dst_top; sp >= dst_bottom; sp = sp->prev) {
+		if (sp->varkind == TEMPVAR) {
+			d_bottom--;
+			dst_stackslots[d_bottom] = sp;
+		}
+	}
+
+	/* Mark all reused reg/mem in dst stacklots with STCOPY, if the           */
+	/* corresponding src stackslot was marked STCOPY*/
+	/* if the correspondig STCOPY from the src stackslot was not set, do not  */
+	/* mark the lowest occurence at dst stackslots */
+	/* mark in src_flag reg/mem with STKEEP, if they where reused in the dst  */
+	/* stacklots, so they are not freed afterwards */
+	for(i = d_bottom; i < 6; i++) {
+		for(j = s_bottom; j < 4; j++) {
+			if ( (src_regoff[j] == dst_stackslots[i]->regoff) &&
+				 ((src_flags[j] & INMEMORY) == (dst_stackslots[i]->flags & INMEMORY)) ) {
+				if (src_flags[j] & STCOPY)
+					dst_stackslots[i]->flags |= STCOPY;
+				else {
+					src_flags[j] |= STCOPY;
+					dst_stackslots[i]->flags &= ~STCOPY;
+				}
+				/* do not free reg/mem of src Stackslot */
+				src_flags[j] |= STKEEP;
+			}
+		}
+	}
+
+	/* free all reg/mem of src stack, which where not marked with STKEEP */
+	for(j=s_bottom; j < 4; j++) {
+		if ((src_flags[j] & STKEEP)==0) {
+			/* free, if STCOPY of src stackslot is not set */
+			/* STCOPY is already checked in reg_free_temp macro! */
+			for(sp = src_top; sp >= src_bottom; sp = sp->prev)
+				if ((src_regoff[j] == sp->regoff) && 
+					((src_flags[j] & INMEMORY) == (sp->flags & INMEMORY)) ) {
+					reg_free_temp(rd, sp);
+				}
+		}
+	}
 }
 
 static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
@@ -1263,14 +1344,11 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 												
 					if (!reg_alloc_dup(src->prev, dst->prev)) {
 						reg_new_temp(rd, dst->prev);
-					} else {
-						dst->prev->flags |= STCOPY;
 					}
 					if (!reg_alloc_dup(src, dst)) {
 						reg_new_temp(rd, dst);
-					} else {
-						dst->flags |= STCOPY;
 					}
+					reg_mark_copy(rd, src, src->prev, dst, dst->prev->prev->prev);
 					break;
 
 					/* pop 2 push 3 dup */
@@ -1281,24 +1359,16 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
 												
 					{
-						bool ret, ret1;
-						if (!(ret = reg_alloc_dup(src, dst->prev->prev))) {
+						if (!reg_alloc_dup(src, dst->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src, dst))) {
+						if (!reg_alloc_dup(src, dst)) {
 								reg_new_temp(rd, dst);
 						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src */
-							reg_free_temp(rd, src);
-						}
-						if (ret && ret1) {
-							dst->flags |= STCOPY;
-						}
 						if (!reg_alloc_dup(src->prev, dst->prev)) {
-							reg_free_temp(rd, src->prev);
 							reg_new_temp(rd, dst->prev);
 						}
+						reg_mark_copy(rd, src, src->prev, dst, dst->prev->prev);
 					}
 					break;
 
@@ -1311,28 +1381,19 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src             --> dst->prev->prev->prev  */
 					
 					{
-						bool ret, ret1;
-						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev))) {
+						if (!reg_alloc_dup(src, dst->prev->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src, dst))) {
+						if (!reg_alloc_dup(src, dst)) {
 								reg_new_temp(rd, dst);
 						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src */
-							reg_free_temp(rd, src);
-						}
-						if (ret && ret1) {
-							dst->flags |= STCOPY;
-						}
 						if (!reg_alloc_dup(src->prev, dst->prev)) {
-							reg_free_temp(rd, src->prev);
 							reg_new_temp(rd, dst->prev);
 						}
 						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_free_temp(rd, src->prev->prev);
 							reg_new_temp(rd, dst->prev->prev);
 						}
+						reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev);
 					}
 					break;
 
@@ -1346,39 +1407,22 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src             --> dst->prev->prev->prev       */
 												
 					{
-						bool ret, ret1;
-						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev))) {
+						if (!reg_alloc_dup(src, dst->prev->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src, dst))) {
+						if (!reg_alloc_dup(src, dst)) {
 								reg_new_temp(rd, dst);
 						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src */
-							reg_free_temp(rd, src);
-						}
-						if (ret && ret1) {
-							dst->flags |= STCOPY;
-						}
-
-						if (!(ret = reg_alloc_dup(src->prev, dst->prev->prev->prev->prev))) {
+						if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src->prev, dst->prev))) {
+						if (!reg_alloc_dup(src->prev, dst->prev)) {
 								reg_new_temp(rd, dst->prev);
 						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src->prev */
-							reg_free_temp(rd, src->prev);
-						}
-						if (ret && ret1) {
-							dst->prev->flags |= STCOPY;
-						}
-
 						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_free_temp(rd, src->prev->prev);
 							reg_new_temp(rd, dst->prev->prev);
 						}
+						reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev->prev);
 					}
 					break;
 
@@ -1393,43 +1437,27 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src                   --> dst->prev->prev->prev->prev       */
 												
 					{
-						bool ret, ret1;
-						if (!(ret = reg_alloc_dup(src, dst->prev->prev->prev->prev))) {
+						if (!reg_alloc_dup(src, dst->prev->prev->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src, dst))) {
+						if (!reg_alloc_dup(src, dst)) {
 								reg_new_temp(rd, dst);
 						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src */
-							reg_free_temp(rd, src);
-						}
-						if (ret && ret1) {
-							dst->flags |= STCOPY;
-						}
 
-						if (!(ret = reg_alloc_dup(src->prev, dst->prev->prev->prev->prev->prev))) {
+						if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev->prev)) {
 								reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
 						}
-						if (!(ret1 = reg_alloc_dup(src->prev, dst->prev))) {
+						if (!reg_alloc_dup(src->prev, dst->prev)) {
 								reg_new_temp(rd, dst->prev);
-						}
-						if (!(ret || ret1)) {
-							/* no reallocation was possible -> free src->prev */
-							reg_free_temp(rd, src->prev);
-						}
-						if (ret && ret1) {
-							dst->prev->flags |= STCOPY;
 						}
 
 						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_free_temp(rd, src->prev->prev);
 							reg_new_temp(rd, dst->prev->prev);
 						}
 						if (!reg_alloc_dup(src->prev->prev->prev, dst->prev->prev->prev)) {
-							reg_free_temp(rd, src->prev->prev->prev);
 							reg_new_temp(rd, dst->prev->prev->prev);
 						}
+						reg_mark_copy(rd, src, src->prev->prev->prev, dst, dst->prev->prev->prev->prev->prev);
 					}
 					break;
 
@@ -1440,13 +1468,12 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src->prev --> dst         (copy) */
 												
 					if (!reg_alloc_dup(src, dst->prev)) {
-						reg_free_temp(rd, src);
 						reg_new_temp(rd, dst->prev);
 					}
 					if (!reg_alloc_dup(src->prev, dst->prev)) {
-						reg_free_temp(rd, src->prev);
 						reg_new_temp(rd, dst);
 					}
+					reg_mark_copy(rd, src, src->prev, dst, dst->prev);
 					break;
 
 					/* pop 2 push 1 */
