@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4519 2006-02-14 15:53:36Z edwin $
+   $Id: classcache.c 4526 2006-02-20 14:08:26Z twisti $
 
 */
 
@@ -519,12 +519,12 @@ static classcache_name_entry *classcache_new_name(utf *name)
 	CLASSCACHE_COUNT(stat_classnames_stored);
 
 	if ((hashtable_classcache.entries*2) > hashtable_classcache.size) {
-		CLASSCACHE_COUNT(stat_rehash_names);
-
 		/* reorganization of hashtable */ 
 
 		classcache_name_entry *c2;
 		hashtable newhash;		/* the new hashtable */
+
+		CLASSCACHE_COUNT(stat_rehash_names);
 
 		/* create new hashtable, double the size */
 
