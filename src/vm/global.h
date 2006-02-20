@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4419 2006-02-03 22:57:32Z twisti $
+   $Id: global.h 4529 2006-02-20 23:35:08Z twisti $
 
 */
 
@@ -257,21 +257,6 @@ typedef struct java_arrayheader {       /* header for all arrays              */
 
 /* structs for all kinds of arrays ********************************************/
 
-typedef struct java_chararray {
-	java_arrayheader header;
-	u2 data[1];
-} java_chararray;
-
-typedef struct java_floatarray {
-	java_arrayheader header;
-	float data[1];
-} java_floatarray;
-
-typedef struct java_doublearray {
-	java_arrayheader header;
-	double data[1];
-} java_doublearray;
-
 /*  booleanarray and bytearray need identical memory layout (access methods
     use the same machine code */
 
@@ -284,6 +269,11 @@ typedef struct java_bytearray {
 	java_arrayheader header;
 	s1 data[1];
 } java_bytearray;
+
+typedef struct java_chararray {
+	java_arrayheader header;
+	u2 data[1];
+} java_chararray;
 
 typedef struct java_shortarray {
 	java_arrayheader header;
@@ -299,6 +289,16 @@ typedef struct java_longarray {
 	java_arrayheader header;
 	s8 data[1];
 } java_longarray;
+
+typedef struct java_floatarray {
+	java_arrayheader header;
+	float data[1];
+} java_floatarray;
+
+typedef struct java_doublearray {
+	java_arrayheader header;
+	double data[1];
+} java_doublearray;
 
 /*  objectarray and arrayarray need identical memory layout (access methods
     use the same machine code */
