@@ -29,12 +29,12 @@
 
    Changes:
 
-   $Id: engine.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: engine.c 4527 2006-02-20 15:19:06Z twisti $
 */
 
 
 /* #define VM_DEBUG */
-#define USE_spTOS
+/* #define USE_spTOS */
 
 #include "config.h"
 
@@ -214,7 +214,7 @@ engine(Inst *ip0, Cell * sp0, Cell * fp)
   Inst *ip;
   register Cell *sp SPREG = sp0;
   Inst ca1; /* code address; this is the next dispatched instruction */
-  IF_spTOS(register Cell spTOS TOSREG);
+  IF_spTOS(register Cell spTOS TOSREG;)
   static Inst   labels[] = {
 #define INST_ADDR(_inst) (&&I_##_inst)
 #include "java-labels.i"
