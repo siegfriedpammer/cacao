@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4505 2006-02-14 00:03:56Z twisti $
+   $Id: loader.c 4540 2006-02-21 13:35:53Z twisti $
 
 */
 
@@ -1453,6 +1453,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 	java_objectheader *o;
 	classinfo         *c;
 	classinfo         *tmpc;
+	java_lang_String  *s;
 
 	LOADER_ASSERT(name);
 
@@ -1549,9 +1550,9 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		/* move return value into `o' and cast it afterwards to a classinfo* */
 
-		ASM_CALLJAVAFUNCTION_ADR(o, lc, cl,
-								 javastring_new_slash_to_dot(name),
-								 NULL, NULL);
+		s = javastring_new_slash_to_dot(name);
+
+		ASM_CALLJAVAFUNCTION_ADR(o, lc, cl, s, NULL, NULL);
 
 		c = (classinfo *) o;
 
@@ -1574,11 +1575,15 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 			c = tmpc;
 
 		} else {
-			/* loadClass has thrown an exception */
-			/* we must convert ClassNotFoundException into NoClassDefFoundException */
-			/* XXX maybe we should have a flag that avoids this conversion */
-			/* for calling load_class_from_classloader from Class.forName  */
-			/* Currently we do a double conversion in these cases          */
+			/* loadClass has thrown an exception.  We must convert
+			   ClassNotFoundException into
+			   NoClassDefFoundException. */
+
+			/* XXX Maybe we should have a flag that avoids this
+			   conversion for calling load_class_from_classloader from
+			   Class.forName.  Currently we do a double conversion in
+			   these cases.  */
+
 			classnotfoundexception_to_noclassdeffounderror();
 		}
 
