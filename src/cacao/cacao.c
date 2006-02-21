@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: cacao.c 4542 2006-02-21 13:39:51Z twisti $
 
 */
 
@@ -304,6 +304,7 @@ int main(int argc, char **argv)
 	/* start worker routines **************************************************/
 
 	if (opt_run == true) {
+		utf              *mainutf;
 		classinfo        *mainclass;
 		methodinfo       *m;
 		java_objectarray *oa; 
@@ -322,7 +323,9 @@ int main(int argc, char **argv)
 
 		/* load the main class */
 
-		if (!(mainclass = load_class_from_sysloader(utf_new_char(mainstring))))
+		mainutf = utf_new_char(mainstring);
+
+		if (!(mainclass = load_class_from_sysloader(mainutf)))
 			throw_main_exception_exit();
 
 		/* error loading class, clear exceptionptr for new exception */
