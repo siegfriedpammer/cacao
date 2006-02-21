@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4524 2006-02-16 19:39:36Z christian $
+   $Id: jit.c 4543 2006-02-21 13:40:31Z twisti $
 
 */
 
@@ -1465,10 +1465,10 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	if (m->flags & ACC_NATIVE) {
 		functionptr f;
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 		f = native_findfunction(m->class->name,	m->name, m->descriptor,
 								(m->flags & ACC_STATIC));
-		if (!f)
+		if (f == NULL)
 			return NULL;
 #else
 
