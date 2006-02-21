@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4508 2006-02-14 00:41:57Z twisti $
+   $Id: codegen.c 4537 2006-02-21 10:39:18Z twisti $
 
 */
 
@@ -47,7 +47,6 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
 
-#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -56,6 +55,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -4321,7 +4321,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m, 0);
 
@@ -4413,7 +4413,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* put env into first argument register */
 
-	M_MOV_IMM((ptrint) &env, rd->argintregs[0]);
+	M_MOV_IMM((ptrint) _Jv_env, rd->argintregs[0]);
 
 	/* do the native function call */
 
