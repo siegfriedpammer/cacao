@@ -28,22 +28,25 @@
 
    Changes:
 
-   $Id: options.c 4396 2006-01-31 23:27:41Z twisti $
+   $Id: options.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
+#include "mm/memory.h"
+#include "native/jni.h"
 #include "vm/options.h"
 
 
 /* command line option ********************************************************/
 
-s4   opt_ind = 1;               /* index of processed arguments               */
+s4    opt_index = 0;            /* index of processed arguments               */
 char *opt_arg;                  /* this one exports the option argument       */
 
 #if defined(ENABLE_JIT)
@@ -53,6 +56,9 @@ bool opt_intrp = false;         /* interpreter mode execution                 */
 bool opt_jit = false;           /* JIT mode execution                         */
 bool opt_intrp = true;          /* interpreter mode execution (default)       */
 #endif
+
+bool opt_jar = false;
+bool opt_run = true;
 
 s4   opt_stacksize = 0;         /* thread stack size                          */
 
@@ -74,6 +80,9 @@ bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences        */
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
+
+char *opt_method = NULL;
+char *opt_signature = NULL;
 
 bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
@@ -107,6 +116,13 @@ bool opt_eager   = false;
 bool opt_prof    = false;
 bool opt_prof_bb = false;
 
+
+/* optimization options *******************************************************/
+
+#if defined(ENABLE_IFCONV)
+bool opt_ifconv = false;
+#endif
+
 #if defined(ENABLE_LSRA)
 bool opt_lsra = false;
 #endif
@@ -125,31 +141,33 @@ bool vm_debug = false;          /* XXX this should be called `opt_trace'      */
 #endif
 
 
-/* get_opt *********************************************************************
+/* options_get *****************************************************************
 
    DOCUMENT ME!!!
 
 *******************************************************************************/
 
-int get_opt(int argc, char **argv, opt_struct *opts)
+s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 {
-	char *a;
+	char *option;
 	s4    i;
-	
-	if (opt_ind >= argc)
-		return OPT_DONE;
-	
-	a = argv[opt_ind];
 
-	if (a[0] != '-')
+	if (opt_index >= vm_args->nOptions)
+		return OPT_DONE;
+
+	/* get the current option */
+
+	option = vm_args->options[opt_index].optionString;
+
+	if ((option == NULL) || (option[0] != '-'))
 		return OPT_DONE;
 
 	for (i = 0; opts[i].name; i++) {
 		if (!opts[i].arg) {
 			/* boolean option found */
 
-			if (strcmp(a + 1, opts[i].name) == 0) {
-				opt_ind++;
+			if (strcmp(option + 1, opts[i].name) == 0) {
+				opt_index++;
 				return opts[i].value;
 			}
 
@@ -158,12 +176,12 @@ int get_opt(int argc, char **argv, opt_struct *opts)
 
 			/* with a space between */
 
-			if (strcmp(a + 1, opts[i].name) == 0) {
-				opt_ind++;
+			if (strcmp(option + 1, opts[i].name) == 0) {
+				opt_index++;
 
-				if (opt_ind < argc) {
-					opt_arg = argv[opt_ind];
-					opt_ind++;
+				if (opt_index < vm_args->nOptions) {
+					opt_arg = strdup(vm_args->options[opt_index].optionString);
+					opt_index++;
 					return opts[i].value;
 				}
 
@@ -173,18 +191,44 @@ int get_opt(int argc, char **argv, opt_struct *opts)
 				/* parameter and option have no space between */
 
 				size_t l = strlen(opts[i].name);
-				if (strlen(a + 1) > l) {
-					if (memcmp(a + 1, opts[i].name, l) == 0) {
-						opt_ind++;
-						opt_arg = a + 1 + l;
+
+				if (strlen(option + 1) > l) {
+					if (memcmp(option + 1, opts[i].name, l) == 0) {
+						opt_index++;
+						opt_arg = strdup(option + 1 + l);
 						return opts[i].value;
 					}
 				}
 			}
 		}
-	} /* end for */	
+	}
 
 	return OPT_ERROR;
+}
+
+
+/* options_prepare *************************************************************
+
+   Prepare the JavaVMInitArgs.
+
+*******************************************************************************/
+
+JavaVMInitArgs *options_prepare(int argc, char **argv)
+{
+	JavaVMInitArgs *vm_args;
+	s4              i;
+
+	vm_args = NEW(JavaVMInitArgs);
+
+	vm_args->version            = JNI_VERSION_1_2;
+	vm_args->nOptions           = argc - 1;
+	vm_args->options            = MNEW(JavaVMOption, argc);
+	vm_args->ignoreUnrecognized = JNI_FALSE;
+
+	for (i = 1; i < argc; i++)
+		vm_args->options[i - 1].optionString = argv[i];
+
+	return vm_args;
 }
 
 

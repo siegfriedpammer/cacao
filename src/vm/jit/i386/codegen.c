@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4493 2006-02-12 16:28:35Z twisti $
+   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -47,7 +47,6 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/emitfuncs.h"
 
-#include "cacao/cacao.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "vm/builtin.h"
@@ -57,6 +56,7 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -5657,7 +5657,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
 		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m, 0);
 
@@ -5728,7 +5728,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* put env into first argument */
 
-	M_AST_IMM((ptrint) &env, REG_SP, 0 * 4);
+	M_AST_IMM((ptrint) _Jv_env, REG_SP, 0 * 4);
 
 	/* call the native function */
 

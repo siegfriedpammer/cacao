@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4418 2006-02-03 22:53:45Z twisti $
+   $Id: VMRuntime.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <sys/utsname.h>
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
 #endif
 
@@ -52,7 +52,6 @@
 
 #include "vm/types.h"
 
-#include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
@@ -65,6 +64,7 @@
 #include "vm/exceptions.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 
 /* this should work on BSD */
@@ -81,19 +81,6 @@ static bool finalizeOnExit = false;
 
 /*
  * Class:     java/lang/VMRuntime
- * Method:    execInternal
- * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/io/File;)Ljava/lang/Process;
- */
-JNIEXPORT java_lang_Process* JNICALL Java_java_lang_VMRuntime_execInternal(JNIEnv *env, jclass clazz, java_objectarray *cmd, java_objectarray *shellenv, java_io_File *workingdir)
-{
-	log_text("Java_java_lang_Runtime_execInternal called");
-
-	return NULL;
-}
-
-
-/*
- * Class:     java/lang/VMRuntime
  * Method:    exitInternal
  * Signature: (I)V
  */
@@ -102,7 +89,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
 	if (finalizeOnExit)
 		gc_finalize_all();
 
-	cacao_shutdown(par1);
+	vm_shutdown(par1);
 }
 
 
@@ -114,6 +101,28 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
 JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_free_bytes();
+}
+
+
+/*
+ * Class:     java/lang/VMRuntime
+ * Method:    totalMemory
+ * Signature: ()J
+ */
+JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
+{
+	return gc_get_heap_size();
+}
+
+
+/*
+ * Class:     java_lang_VMRuntime
+ * Method:    maxMemory
+ * Signature: ()J
+ */
+JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
+{
+	return gc_get_max_heap_size();
 }
 
 
@@ -167,17 +176,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *e
 	/*gc_finalize_all();*/
 	/*gc_invoke_finalizers();*/
 	/*gc_call();*/
-}
-
-
-/*
- * Class:     java/lang/VMRuntime
- * Method:    totalMemory
- * Signature: ()J
- */
-JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
-{
-	return gc_get_heap_size();
 }
 
 
@@ -256,21 +254,21 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, j
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *filename, java_lang_ClassLoader *loader)
 {
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	utf         *name;
 	lt_dlhandle  handle;
 	lt_ptr       onload;
 	s4           version;
 #endif
 
-	if (!filename) {
+	if (filename == NULL) {
 		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 	return 1;
-#else
+#else /* defined(WITH_STATIC_CLASSPATH) */
 	name = javastring_toutf(filename, 0);
 
 	/* is the library already loaded? */
@@ -297,7 +295,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 		/* if the version is not 1.2 and not 1.4 the library cannot be loaded */
 
-		if (version != JNI_VERSION_1_2 && version != JNI_VERSION_1_4) {
+		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
 			lt_dlclose(handle);
 
 			return 0;
@@ -309,7 +307,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 	native_hashtable_library_add(name, (java_objectheader *) loader, handle);
 
 	return 1;
-#endif
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 }
 
 
@@ -350,8 +348,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	dumpsize = dump_size();
 	buffer = DMNEW(char, buffer_len);
 
-	/* generate library name, we use lt_dlopenext so we don't need an */
-	/* extension */
+	/* generate library name */
 
 	strcpy(buffer, "lib");
 	utf_strcat(buffer, u);
@@ -369,17 +366,6 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	dump_release(dumpsize);
 
 	return s;
-}
-
-
-/*
- * Class:     java_lang_VMRuntime
- * Method:    maxMemory
- * Signature: ()J
- */
-JNIEXPORT s8 JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
-{
-	return gc_get_max_heap_size();
 }
 
 

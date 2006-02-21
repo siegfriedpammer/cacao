@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4425 2006-02-04 00:43:15Z twisti $
+## $Id: Makefile.am 4530 2006-02-21 09:11:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -46,7 +46,7 @@ SUBDIRS += jvmti
 JVMTI_LIB = jvmti/libjvmti.la
 endif
 
-if ENABLE_STATICVM
+if WITH_STATIC_CLASSPATH
 SUBDIRS += tools
 
 VM_ZIP = $(top_builddir)/src/lib/$(VM_ZIP_STRING)

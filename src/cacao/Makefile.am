@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4409 2006-02-03 19:27:13Z twisti $
+## $Id: Makefile.am 4530 2006-02-21 09:11:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,6 +55,21 @@ THREAD_LIB =
 endif
 
 if ENABLE_STATICVM
+noinst_LTLIBRARIES = \
+	libcacaovm.la
+
+else
+cacao_LDFLAGS = \
+	$(EXPORT_SYMBOLS_FLAGS)
+
+lib_LTLIBRARIES = \
+	libcacaovm.la
+
+libcacaovm_la_LDFLAGS = \
+	-release $(PACKAGE_VERSION)
+endif
+
+if WITH_STATIC_CLASSPATH
 cacao_LDFLAGS = \
 	$(LTLIBICONV)
 
@@ -78,33 +93,28 @@ CLASSPATH_LIBS = \
 #CLASSPATH_LIBS += \
 #	$(CLASSPATH_LIBDIR)/classpath/libgtkpeer.a
 #endif
-
-else
-cacao_LDFLAGS = $(EXPORT_SYMBOLS_FLAGS)
-CLASSPATH_LIBS =
 endif
 
-noinst_LTLIBRARIES = libcacao.la
+libcacaovm_la_SOURCES =
 
-libcacao_la_SOURCES =
-
-libcacao_la_LIBADD = \
+libcacaovm_la_LIBADD = \
+	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(top_builddir)/src/mm/libmm.la \
 	$(top_builddir)/src/native/libnative.la \
-	$(THREAD_LIB) \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
-	$(top_builddir)/src/vm/libvm.la
+	$(top_builddir)/src/vm/libvm.la \
+	$(GC_LIB) \
+	$(THREAD_LIB)
 
-bin_PROGRAMS = cacao
+bin_PROGRAMS = \
+	cacao
 
 cacao_SOURCES = \
 	cacao.c \
 	cacao.h
 
 cacao_LDADD = \
-	libcacao.la \
-	$(top_builddir)/src/fdlibm/libfdlibm.la \
-	$(GC_LIB) \
+	libcacaovm.la \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = \

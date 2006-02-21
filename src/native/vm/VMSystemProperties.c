@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4374 2006-01-27 16:32:58Z twisti $
+   $Id: VMSystemProperties.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -72,13 +72,13 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char       *country;
 	struct utsname utsnamebuf;
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	char *ld_library_path;
 	char *libpath;
 	s4    libpathlen;
 #endif
 
-	if (!p) {
+	if (p == NULL) {
 		exceptions_throw_nullpointerexception();
 		return;
 	}
@@ -122,10 +122,10 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("java.boot.class.path", bootclasspath);
 	properties_system_add("sun.boot.class.path", bootclasspath);
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 	properties_system_add("gnu.classpath.boot.library.path", ".");
 	properties_system_add("java.library.path" , ".");
-#else /* defined(ENABLE_STATICVM) */
+#else /* defined(WITH_STATIC_CLASSPATH) */
 	/* fill gnu.classpath.boot.library.path with GNU Classpath library
        path */
 
@@ -158,7 +158,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	} else {
 		properties_system_add("java.library.path", "");
 	}
-#endif /* defined(ENABLE_STATICVM) */
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 
 	properties_system_add("java.io.tmpdir", "/tmp");
 
@@ -217,7 +217,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* Are we little or big endian? */
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 	/* This is just for debugging purposes and can cause troubles in
        GNU Classpath. */
 

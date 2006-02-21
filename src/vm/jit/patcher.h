@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: patcher.h 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -160,10 +160,10 @@ bool patcher_clinit(u1 *sp);
 bool patcher_athrow_areturn(u1 *sp);
 #define PATCHER_athrow_areturn (functionptr) patcher_athrow_areturn
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp);
 #define PATCHER_resolve_native (functionptr) patcher_resolve_native
-#endif /* !defined(ENABLE_STATICVM) */
+#endif
 
 
 /* stuff for the interpreter **************************************************/

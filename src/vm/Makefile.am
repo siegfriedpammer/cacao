@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4530 2006-02-21 09:11:53Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -100,7 +100,9 @@ libvmcore_la_SOURCES = \
 
 libvm_la_SOURCES = \
 	exceptions.c \
-	exceptions.h
+	exceptions.h \
+	vm.c \
+	vm.h
 
 libvm_la_LIBADD = \
 	libvmcore.la \

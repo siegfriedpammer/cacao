@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4381 2006-01-28 14:18:06Z twisti $
+   $Id: cacaoh.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -71,7 +71,7 @@
 /* define heap sizes **********************************************************/
 
 #define HEAP_MAXSIZE      2 * 1024 * 1024   /* default 2MB                    */
-#define HEAP_STARTSIZE    100 * 1024        /* default 100kB                  */
+#define HEAP_STARTSIZE         100 * 1024   /* default 100kB                  */
 
 
 /* define cacaoh options ******************************************************/
@@ -159,7 +159,9 @@ static void version(void)
 
 int main(int argc, char **argv)
 {
-	s4 i, a;
+	JavaVMInitArgs *vm_args;
+	s4 i, j;
+	s4 opt;
 	classinfo *c;
 	char *opt_directory;
 	void *dummy;
@@ -224,8 +226,13 @@ int main(int argc, char **argv)
 	heapmaxsize = HEAP_MAXSIZE;
 	heapstartsize = HEAP_STARTSIZE;
 
-	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
-		switch (i) {
+
+	/* parse the options ******************************************************/
+
+	vm_args = options_prepare(argc, argv);
+
+	while ((opt = options_get(opts, vm_args)) != OPT_DONE) {
+		switch (opt) {
 		case OPT_IGNORE:
 			break;
 
@@ -242,8 +249,8 @@ int main(int argc, char **argv)
 			break;
 
 		case OPT_BOOTCLASSPATH:
-			/* Forget default bootclasspath and set the argument as new boot  */
-			/* classpath.                                                     */
+			/* Forget default bootclasspath and set the argument as
+			   new boot classpath. */
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
 			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
@@ -326,18 +333,21 @@ int main(int argc, char **argv)
 		throw_main_exception_exit();
 
 
-	/*********************** Load JAVA classes  **************************/
+	/* load Java classes ******************************************************/
    	
-	for (a = opt_ind; a < argc; a++) {
-   		cp = argv[a];
+	for (i = opt_index; i < vm_args->nOptions; i++) {
+   		cp = vm_args->options[i].optionString;
 
 		/* convert classname */
 
-   		for (i = strlen(cp) - 1; i >= 0; i--) {
-			switch (cp[i]) {
-			case '.': cp[i] = '/';
+   		for (j = strlen(cp) - 1; j >= 0; j--) {
+			switch (cp[j]) {
+			case '.':
+				cp[j] = '/';
 				break;
-			case '_': cp[i] = '$';
+			case '_':
+				cp[j] = '$';
+				break;
   	 		}
 		}
 	

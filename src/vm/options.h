@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4396 2006-01-31 23:27:41Z twisti $
+   $Id: options.h 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -40,6 +40,7 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include "native/jni.h"
 #include "vm/global.h"
 
 
@@ -63,11 +64,14 @@ struct opt_struct {
 
 /* global variables ***********************************************************/
 
-extern s4    opt_ind;
+extern s4    opt_index;
 extern char *opt_arg;
 
 extern bool opt_jit;
 extern bool opt_intrp;
+
+extern bool opt_jar;
+extern bool opt_run;
 
 extern s4   opt_stacksize;
 extern bool opt_verbose;
@@ -88,6 +92,9 @@ extern bool opt_liberalutf;      /* Don't check overlong UTF-8 sequences */
 extern bool showmethods;
 extern bool showconstantpool;
 extern bool showutf;
+
+extern char *opt_method;
+extern char *opt_signature;
 
 extern bool compileverbose;
 extern bool showstack;
@@ -121,6 +128,13 @@ extern bool opt_eager;
 extern bool opt_prof;
 extern bool opt_prof_bb;
 
+
+/* optimization options *******************************************************/
+
+#if defined(ENABLE_IFCONV)
+extern bool opt_ifconv;
+#endif
+
 #if defined(ENABLE_LSRA)
 extern bool opt_lsra;
 #endif
@@ -140,8 +154,8 @@ extern bool vm_debug;
 
 /* function prototypes ********************************************************/
 
-int get_opt(int argc, char **argv, opt_struct *opts);
-
+s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
+JavaVMInitArgs *options_prepare(int argc, char **argv);
 
 #endif /* _OPTIONS_H */
 

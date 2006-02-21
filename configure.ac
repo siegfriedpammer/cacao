@@ -106,10 +106,12 @@ AM_PROG_AS
 AC_PROG_LD
 AC_PROG_LD_GNU
 AC_PROG_RANLIB
-AC_DISABLE_SHARED
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_MKDIR_P
+
+AC_ENABLE_SHARED
+AC_DISABLE_STATIC
 
 dnl libtool stuff
 AC_LIBTOOL_DLOPEN
@@ -441,10 +443,27 @@ else
 fi
 
 
+dnl check if if-conversion should be supported
+AC_MSG_CHECKING(whether if-conversion should be supported)
+AC_ARG_ENABLE([ifconv],
+              [AS_HELP_STRING(--disable-ifconv,disable if-conversion [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_IFCONV=no;;
+                   *) ENABLE_IFCONV=yes;;
+               esac],
+              [ENABLE_IFCONV=yes])
+AC_MSG_RESULT(${ENABLE_IFCONV})
+AM_CONDITIONAL([ENABLE_IFCONV], test x"${ENABLE_IFCONV}" = "xyes")
+   
+if test x"${ENABLE_IFCONV}" = "xyes"; then
+    AC_DEFINE([ENABLE_IFCONV], 1, [enable if-conversion])
+fi
+
+
 dnl check if linear scan register allocator(lsra) should be used
 AC_MSG_CHECKING(whether lsra should be supported)
 AC_ARG_ENABLE([lsra],
-              [AS_HELP_STRING(--enable-lsra,enable linear scan register allocator [[default=yes]])],
+              [AS_HELP_STRING(--disable-lsra,disable linear scan register allocator [[default=yes]])],
               [case "${enableval}" in
                    no) ENABLE_LSRA=no;;
                    *) ENABLE_LSRA=yes;;
@@ -520,9 +539,9 @@ AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
 
 
 dnl check if CACAO should be linked statically
-AC_MSG_CHECKING(whether to link GNU classpath native libraries statically into CACAO)
+AC_MSG_CHECKING(whether to link CACAO statically)
 AC_ARG_ENABLE([staticvm],
-              [AS_HELP_STRING(--enable-staticvm, link GNU classpath native libraries statically into CACAO [[default=no]])],
+              [AS_HELP_STRING(--enable-staticvm,link CACAO statically [[default=no]])],
               [case "${enableval}" in
                   yes) ENABLE_STATICVM=yes;;
                   *) ENABLE_STATICVM=no;;
@@ -532,12 +551,6 @@ AC_MSG_RESULT(${ENABLE_STATICVM})
 
 if test x"${ENABLE_STATICVM}" = "xyes"; then
     AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
-
-    dnl check for some classpath related stuff when we link statically
-    AM_ICONV_LINK
-else
-    AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
-    AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
 fi
 AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
@@ -563,9 +576,35 @@ AC_MSG_RESULT(${CLASSPATH_LIBDIR})
 dnl expand CLASSPATH_LIBDIR to something that is usable in C code
 AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
 AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [GNU Classpath libraries installation directory])
-
 AC_SUBST(CLASSPATH_LIBDIR)
 
+AC_CHECK_HEADER([${CLASSPATH_PREFIX}/include/jni.h],
+                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_PREFIX}/include/jni.h", [GNU Classpath jni.h header])],
+                [AC_MSG_ERROR(cannot find jni.h)])
+
+
+dnl check if GNU Classpath should be linked statically into CACAO
+AC_MSG_CHECKING(whether to link GNU Classpath native libraries statically into CACAO)
+AC_ARG_WITH([static-classpath],
+            [AS_HELP_STRING(--with-static-classpath,link GNU classpath native libraries statically into CACAO [[default=no]])],
+            [case "${enableval}" in
+                yes) WITH_STATIC_CLASSPATH=yes;;
+                *) WITH_STATIC_CLASSPATH=no;;
+             esac],
+            [WITH_STATIC_CLASSPATH=no])
+AC_MSG_RESULT(${WITH_STATIC_CLASSPATH})
+
+if test x"${WITH_STATIC_CLASSPATH}" = "xyes"; then
+    AC_DEFINE([WITH_STATIC_CLASSPATH], 1, [link GNU classpath native libraries statically into CACAO])
+
+    dnl check for some classpath related stuff when we link statically
+    AM_ICONV_LINK
+else
+    AC_CHECK_HEADERS([ltdl.h],, [AC_MSG_ERROR(cannot find ltdl.h)])
+    AC_CHECK_LIB(ltdl, lt_dlopen,, [AC_MSG_ERROR(cannot find libltdl)])
+fi
+AM_CONDITIONAL([WITH_STATIC_CLASSPATH], test x"${WITH_STATIC_CLASSPATH}" = "xyes")
+AC_SUBST(WITH_STATIC_CLASSPATH)
 
 
 dnl Maybe the user has Classpath installed 'flat'.
@@ -623,6 +662,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/i386/Makefile]
 		[src/vm/jit/i386/freebsd/Makefile]
 		[src/vm/jit/i386/linux/Makefile]
+		[src/vm/jit/ifconv/Makefile]
 		[src/vm/jit/intrp/Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/loop/Makefile]

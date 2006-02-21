@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
+   $Id: asmpart.S 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -50,9 +50,11 @@
 	.text
 
 
-/********************* exported functions and variables ***********************/
+/* exported functions and variables *******************************************/
 
 	.globl asm_calljavafunction
+	.type  asm_calljavafunction, @function
+
 	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
@@ -98,7 +100,7 @@
 	.quad   0                           /* catch type all                     */
 	.quad   calljava_xhandler           /* handler pc                         */
 	.quad   calljava_xhandler           /* end pc                             */
-	.quad   asm_calljavafunction        /* start pc                           */
+	.quad   L_asm_calljavafunction      /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0						    									  
 	.quad   0                           /* line number table start            */
@@ -113,6 +115,7 @@
 
 asm_calljavafunction:
 asm_calljavafunction_int:
+L_asm_calljavafunction:                 /* required for PIC code              */
 	sub     $(3*8),sp                   /* keep stack 16-byte aligned         */
 	mov     bp,0*8(sp)
 	mov     %rbx,1*8(sp)                /* %rbx is not a callee saved in CACAO*/
@@ -124,7 +127,7 @@ asm_calljavafunction_int:
 	mov     a3,a2
 	mov     a4,a3
 
-	lea     asm_call_jit_compiler,itmp3
+	lea     L_asm_call_jit_compiler(%rip),itmp3
 	call    *itmp3                      /* call JIT compiler                  */
 
 L_asm_calljavafunction_return:
@@ -135,7 +138,7 @@ L_asm_calljavafunction_return:
 
 calljava_xhandler:
 	mov     xptr,a0                     /* pass exception pointer             */
-	call    builtin_throw_exception
+	call    builtin_throw_exception@PLT
 	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_calljavafunction_return
 
@@ -159,7 +162,7 @@ calljava_xhandler:
 	.quad   0                           /* catch type all                     */
 	.quad   calljava_xhandler2          /* handler pc                         */
 	.quad   calljava_xhandler2          /* end pc                             */
-	.quad   asm_calljavafunction2       /* start pc                           */
+	.quad   L_asm_calljavafunction2     /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0						    									 
 	.quad   0                           /* line number table  start           */
@@ -177,6 +180,7 @@ asm_calljavafunction2int:
 asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
+L_asm_calljavafunction2:                /* required for PIC code              */
 	sub     $(7*8),sp                   /* keep stack 16-byte aligned         */
 	mov     %rbx,0*8(sp)                /* %rbx is not a callee saved in cacao*/
 	mov     s0,1*8(sp)
@@ -212,7 +216,7 @@ L_register_copy:
 	cmp     $INT_ARG_CNT,%r12         /* are we out of integer argument       */
 	je      L_register_copy           /* register? yes, next loop             */
 
-	lea     jumptable_integer,%rbp
+	lea     jumptable_integer(%rip),%rbp
 	mov     0(%rbp,%r12,8),%rbx
 	inc     %r12                      /* integer argument counter + 1         */
 	jmp     *%rbx
@@ -221,7 +225,7 @@ L_register_handle_float:
 	cmp     $FLT_ARG_CNT,%r13         /* are we out of float argument         */
 	je      L_register_copy           /* register? yes, next loop             */
 
-	lea     jumptable_float,%rbp
+	lea     jumptable_float(%rip),%rbp
 	mov     0(%rbp,%r13,8),%rbx
 	inc     %r13                      /* float argument counter + 1           */
 	jmp     *%rbx
@@ -262,10 +266,11 @@ L_stack_copy:
 	jmp     L_stack_copy_loop
 
 L_copy_done:
-	lea     asm_call_jit_compiler,itmp3 /* %rax still contains method pointer */
-	call    *itmp3                    /* call JIT compiler                    */
+	                                    /* itmp1 still contains method pointer*/
+	lea     L_asm_call_jit_compiler(%rip),itmp3
+	call    *itmp3                      /* call JIT compiler                  */
 
-	add     bp,sp                     /* remove argument stack frame if any   */
+	add     bp,sp                       /* remove argument stack frame if any */
 
 L_asm_calljavafunction2_return:
 	mov     0*8(sp),%rbx                /* restore callee saved registers     */
@@ -279,7 +284,7 @@ L_asm_calljavafunction2_return:
 		
 calljava_xhandler2:
 	mov     xptr,a0                     /* pass exception pointer             */
-	call    builtin_throw_exception
+	call    builtin_throw_exception@PLT
 	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_calljavafunction2_return
 
@@ -376,6 +381,7 @@ handle_fa7:
 *******************************************************************************/
 
 asm_call_jit_compiler:
+L_asm_call_jit_compiler:                /* required for PIC code              */
 	                                    /* keep stack 16-byte aligned         */
 	sub     $((3+ARG_CNT)*8+sizestackframeinfo),sp
 
@@ -416,15 +422,15 @@ L_call_jit_compile:
 	                                    /* pass ra to java function           */
 	mov     ((3+ARG_CNT)*8+sizestackframeinfo)(sp),a3
 	mov     a3,a4                       /* xpc is equal to ra                 */
-	call    stacktrace_create_extern_stackframeinfo
+	call    stacktrace_create_extern_stackframeinfo@PLT
 
 	mov     1*8(sp),a0                  /* pass method pointer                */
-	call	jit_compile
+	call	jit_compile@PLT
 	mov     v0,1*8(sp)                  /* save return value                  */
 
 	mov     sp,a0                       /* remove stackframe info             */
 	add     $((3+ARG_CNT)*8),a0         /* pass sfi                           */
-	call    stacktrace_remove_stackframeinfo
+	call    stacktrace_remove_stackframeinfo@PLT
 
 	mov     0*8(sp),itmp3               /* restore address for method pointer */
 	mov     1*8(sp),v0                  /* restore return value               */
@@ -446,7 +452,7 @@ L_call_method:
 
 L_asm_call_jit_compiler_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	call    builtin_asm_get_exceptionptrptr
+	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
 	lea     _no_threads_exceptionptr,itmp2
@@ -456,7 +462,7 @@ L_asm_call_jit_compiler_exception:
 
 	pop     xpc                         /* delete return address              */
 	sub     $5,xpc                      /* faulting address is ra - 5         */
-	jmp     asm_handle_exception
+	jmp     L_asm_handle_exception
 
 
 /* asm_handle_exception ********************************************************
@@ -473,6 +479,7 @@ asm_handle_nat_exception:
 	add     $8,sp                       /* clear return address of native stub*/
 		
 asm_handle_exception:
+L_asm_handle_exception:                 /* required for PIC code              */
 	sub     $((ARG_CNT+TMP_CNT)*8),sp   /* create maybe-leaf stackframe       */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
@@ -491,14 +498,14 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,a0                      /* exception pc                       */
-	call    codegen_findmethod
+	call    codegen_findmethod@PLT
 	mov     v0,2*8(sp)                  /* save data segment pointer          */
         
 	mov     0*8(sp),a0                  /* pass exception pointer             */
 	mov     1*8(sp),a1                  /* pass exception pc                  */
 	mov     v0,a2                       /* pass data segment pointer          */
 	mov     3*8(sp),a3                  /* pass Java stack pointer            */
-	call    exceptions_handle_exception
+	call    exceptions_handle_exception@PLT
 
 	test    v0,v0
 	jz      L_asm_handle_exception_not_catched
@@ -635,7 +642,7 @@ asm_wrapper_patcher:
 	add     $((6+1)*8),a2
 	mov     ((5+1)*8)(bp),a3            /* pass ra to java function           */
 	mov     a3,a4                       /* xpc is equal to ra                 */
-	call    stacktrace_create_extern_stackframeinfo
+	call    stacktrace_create_extern_stackframeinfo@PLT
 
 	mov     bp,a0                       /* pass stack pointer                 */
 	add     $((1+1)*8),a0               /* skip function pointer              */
@@ -645,7 +652,7 @@ asm_wrapper_patcher:
 
 	mov     sp,a0                       /* remove stackframe info             */
 	add     $((3+ARG_CNT+TMP_CNT)*8),a0
-	call    stacktrace_remove_stackframeinfo
+	call    stacktrace_remove_stackframeinfo@PLT
 
 	RESTORE_ARGUMENT_REGISTERS(3)
 	RESTORE_TEMPORARY_REGISTERS(3+ARG_CNT)
@@ -664,7 +671,7 @@ asm_wrapper_patcher:
 
 L_asm_wrapper_patcher_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	call    builtin_asm_get_exceptionptrptr
+	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
 	lea     _no_threads_exceptionptr,itmp2
@@ -673,7 +680,7 @@ L_asm_wrapper_patcher_exception:
 	movl    $0,(itmp2)                  /* clear exception pointer            */
 
 	pop     xpc                         /* get and remove return address      */
-	jmp     asm_handle_exception
+	jmp     L_asm_handle_exception
 
 
 /* asm_builtin_x2x *************************************************************
@@ -688,7 +695,7 @@ asm_builtin_f2i:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_f2i
+	call    builtin_f2i@PLT
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -702,7 +709,7 @@ asm_builtin_f2l:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_f2l
+	call    builtin_f2l@PLT
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -716,7 +723,7 @@ asm_builtin_d2i:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_d2i
+	call    builtin_d2i@PLT
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
@@ -730,7 +737,7 @@ asm_builtin_d2l:
 	SAVE_ARGUMENT_REGISTERS(0)
 	
 	movq    ftmp1,fa0
-	call    builtin_d2l
+	call    builtin_d2l@PLT
 	
 	RESTORE_ARGUMENT_REGISTERS(0)
 	

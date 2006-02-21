@@ -29,10 +29,12 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4496 2006-02-12 22:08:13Z edwin $
+   $Id: threads.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +49,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "arch.h"
@@ -58,7 +59,6 @@
 #include "threads/native/generic-primitives.h"
 #endif
 
-#include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/native.h"

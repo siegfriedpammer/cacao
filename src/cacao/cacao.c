@@ -31,13 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   This module does the following tasks:
-     - Command line option handling
-     - Calling initialization routines
-     - Calling the class loader
-     - Running the main method
-
-   $Id: cacao.c 4474 2006-02-06 21:01:54Z twisti $
+   $Id: cacao.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -50,11 +44,10 @@
 
 #include "vm/types.h"
 
-#include "cacao/cacao.h"
 #include "mm/boehm.h"
 #include "mm/memory.h"
 #include "native/jni.h"
-#include "native/native.h"
+#include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/jvmti.h"
@@ -67,373 +60,19 @@
 #include "toolbox/logging.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.h"
-#include "vm/finalizer.h"
 #include "vm/global.h"
-#include "vm/initialize.h"
 #include "vm/loader.h"
 #include "vm/options.h"
-#include "vm/properties.h"
-#include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/profile/profile.h"
 
 #ifdef TYPEINFO_DEBUG_TEST
 #include "vm/jit/verify/typeinfo.h"
 #endif
-
-
-/* define heap sizes **********************************************************/
-
-#define HEAP_MAXSIZE      64 * 1024 * 1024  /* default 64MB                   */
-#define HEAP_STARTSIZE    2 * 1024 * 1024   /* default 2MB                    */
-#define STACK_SIZE        128 * 1024        /* default 128kB                  */
-
-#if defined(ENABLE_INTRP)
-u1 *intrp_main_stack;
-#endif
-
-
-/* CACAO related stuff ********************************************************/
-
-bool cacao_initializing;
-bool cacao_exiting;
-
-
-/* Invocation API variables ***************************************************/
-
-JavaVM *jvm;                        /* denotes a Java VM                      */
-JNIEnv *env;                        /* pointer to native method interface     */
- 
-JDK1_1InitArgs vm_args;             /* JDK 1.1 VM initialization arguments    */
-
-
-char *mainstring;
-static classinfo *mainclass;
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-void **stackbottom = 0;
-#endif
-
-
-/* define command line options ************************************************/
-
-enum {
-	OPT_CLASSPATH,
-	OPT_D,
-	OPT_MS,
-	OPT_MX,
-	OPT_VERBOSE1,
-	OPT_VERBOSE,
-	OPT_VERBOSESPECIFIC,
-	OPT_VERBOSECALL,
-	OPT_NOIEEE,
-	OPT_SOFTNULL,
-	OPT_TIME,
-
-#if defined(ENABLE_STATISTICS)
-	OPT_STAT,
-#endif
-
-	OPT_LOG,
-	OPT_CHECK,
-	OPT_LOAD,
-	OPT_METHOD,
-	OPT_SIGNATURE,
-	OPT_SHOW,
-	OPT_ALL,
-	OPT_OLOOP,
-	OPT_INLINING,
-
-	OPT_VERBOSETC,
-	OPT_NOVERIFY,
-	OPT_LIBERALUTF,
-	OPT_VERBOSEEXCEPTION,
-	OPT_EAGER,
-
-#if defined(ENABLE_LSRA)
-	OPT_LSRA,
-#endif
-
-	OPT_JAR,
-	OPT_BOOTCLASSPATH,
-	OPT_BOOTCLASSPATH_A,
-	OPT_BOOTCLASSPATH_P,
-	OPT_VERSION,
-	OPT_SHOWVERSION,
-	OPT_FULLVERSION,
-
-	OPT_HELP,
-	OPT_X,
-
-	OPT_JIT,
-	OPT_INTRP,
-
-	OPT_PROF,
-	OPT_PROF_OPTION,
-
-#if defined(ENABLE_INTRP)
-	/* interpreter options */
-
-	OPT_NO_DYNAMIC,
-	OPT_NO_REPLICATION,
-	OPT_NO_QUICKSUPER,
-	OPT_STATIC_SUPERS,
-	OPT_TRACE,
-#endif
-
-	OPT_SS,
-
-#ifdef ENABLE_JVMTI
-	OPT_DEBUG,
-	OPT_AGENTLIB,
-	OPT_AGENTPATH,
-#endif
-
-	DUMMY
-};
-
-
-opt_struct opts[] = {
-	{ "classpath",         true,  OPT_CLASSPATH },
-	{ "cp",                true,  OPT_CLASSPATH },
-	{ "D",                 true,  OPT_D },
-	{ "noasyncgc",         false, OPT_IGNORE },
-	{ "noverify",          false, OPT_NOVERIFY },
-	{ "liberalutf",        false, OPT_LIBERALUTF },
-	{ "v",                 false, OPT_VERBOSE1 },
-	{ "verbose",           false, OPT_VERBOSE },
-	{ "verbose:",          true,  OPT_VERBOSESPECIFIC },
-	{ "verbosecall",       false, OPT_VERBOSECALL },
-	{ "verboseexception",  false, OPT_VERBOSEEXCEPTION },
-#ifdef TYPECHECK_VERBOSE
-	{ "verbosetc",         false, OPT_VERBOSETC },
-#endif
-#if defined(__ALPHA__)
-	{ "noieee",            false, OPT_NOIEEE },
-#endif
-	{ "softnull",          false, OPT_SOFTNULL },
-	{ "time",              false, OPT_TIME },
-#if defined(ENABLE_STATISTICS)
-	{ "stat",              false, OPT_STAT },
-#endif
-	{ "log",               true,  OPT_LOG },
-	{ "c",                 true,  OPT_CHECK },
-	{ "l",                 false, OPT_LOAD },
-	{ "eager",             false, OPT_EAGER },
-	{ "sig",               true,  OPT_SIGNATURE },
-	{ "all",               false, OPT_ALL },
-	{ "oloop",             false, OPT_OLOOP },
-#if defined(ENABLE_LSRA)
-	{ "lsra",              false, OPT_LSRA },
-#endif
-	{ "jar",               false, OPT_JAR },
-	{ "version",           false, OPT_VERSION },
-	{ "showversion",       false, OPT_SHOWVERSION },
-	{ "fullversion",       false, OPT_FULLVERSION },
-	{ "help",              false, OPT_HELP },
-	{ "?",                 false, OPT_HELP },
-
-#if defined(ENABLE_INTRP)
-	/* interpreter options */
-
-	{ "trace",             false, OPT_TRACE },
-	{ "static-supers",     true,  OPT_STATIC_SUPERS },
-	{ "no-dynamic",        false, OPT_NO_DYNAMIC },
-	{ "no-replication",    false, OPT_NO_REPLICATION },
-	{ "no-quicksuper",     false, OPT_NO_QUICKSUPER },
-#endif
-
-	/* JVMTI Agent Command Line Options */
-#ifdef ENABLE_JVMTI
-	{ "agentlib:",         true,  OPT_AGENTLIB },
-	{ "agentpath:",        true,  OPT_AGENTPATH },
-#endif
-
-	/* X options */
-
-	{ "X",                 false, OPT_X },
-	{ "Xjit",              false, OPT_JIT },
-	{ "Xint",              false, OPT_INTRP },
-	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
-	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
-	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
-#ifdef ENABLE_JVMTI
-	{ "Xdebug",            false, OPT_DEBUG },
-#endif 
-	{ "Xms",               true,  OPT_MS },
-	{ "Xmx",               true,  OPT_MX },
-	{ "Xprof:",            true,  OPT_PROF_OPTION },
-	{ "Xprof",             false, OPT_PROF },
-	{ "Xss",               true,  OPT_SS },
-	{ "ms",                true,  OPT_MS },
-	{ "mx",                true,  OPT_MX },
-	{ "ss",                true,  OPT_SS },
-
-	/* keep these at the end of the list */
-
-	{ "i",                 true,  OPT_INLINING },
-	{ "m",                 true,  OPT_METHOD },
-	{ "s",                 true,  OPT_SHOW },
-
-	{ NULL,                false, 0 }
-};
-
-
-/* usage ***********************************************************************
-
-   Prints the correct usage syntax to stdout.
-
-*******************************************************************************/
-
-static void usage(void)
-{
-	printf("Usage: cacao [-options] classname [arguments]\n");
-	printf("               (to run a class file)\n");
-	printf("       cacao [-options] -jar jarfile [arguments]\n");
-	printf("               (to run a standalone jar file)\n\n");
-
-	printf("Java options:\n");
-	printf("    -cp <path>               specify a path to look for classes\n");
-	printf("    -classpath <path>        specify a path to look for classes\n");
-	printf("    -D<name>=<value>         add an entry to the property list\n");
-	printf("    -verbose[:class|gc|jni]  enable specific verbose output\n");
-	printf("    -version                 print product version and exit\n");
-	printf("    -fullversion             print jpackage-compatible product version and exit\n");
-	printf("    -showversion             print product version and continue\n");
-	printf("    -help, -?                print this help message\n");
-	printf("    -X                       print help on non-standard Java options\n\n");
-
-#ifdef ENABLE_JVMTI
-	printf("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent\n");
-	printf("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent\n");
-#endif
-
-	printf("CACAO options:\n");
-	printf("    -v                       write state-information\n");
-	printf("    -verbose                 write more information\n");
-	printf("    -verbosegc               write message for each GC\n");
-	printf("    -verbosecall             write message for each call\n");
-	printf("    -verboseexception        write message for each step of stack unwinding\n");
-#ifdef TYPECHECK_VERBOSE
-	printf("    -verbosetc               write debug messages while typechecking\n");
-#endif
-#if defined(__ALPHA__)
-	printf("    -noieee                  don't use ieee compliant arithmetic\n");
-#endif
-	printf("    -noverify                don't verify classfiles\n");
-	printf("    -liberalutf              don't warn about overlong UTF-8 sequences\n");
-	printf("    -softnull                use software nullpointer check\n");
-	printf("    -time                    measure the runtime\n");
-#if defined(ENABLE_STATISTICS)
-	printf("    -stat                    detailed compiler statistics\n");
-#endif
-	printf("    -log logfile             specify a name for the logfile\n");
-	printf("    -c(heck)b(ounds)         don't check array bounds\n");
-	printf("            s(ync)           don't check for synchronization\n");
-	printf("    -oloop                   optimize array accesses in loops\n"); 
-	printf("    -l                       don't start the class after loading\n");
-	printf("    -eager                   perform eager class loading and linking\n");
-	printf("    -all                     compile all methods, no execution\n");
-	printf("    -m                       compile only a specific method\n");
-	printf("    -sig                     specify signature for a specific method\n");
-	printf("    -s(how)a(ssembler)       show disassembled listing\n");
-	printf("           c(onstants)       show the constant pool\n");
-	printf("           d(atasegment)     show data segment listing\n");
-	printf("           e(xceptionstubs)  show disassembled exception stubs (only with -sa)\n");
-	printf("           i(ntermediate)    show intermediate representation\n");
-	printf("           m(ethods)         show class fields and methods\n");
-	printf("           n(ative)          show disassembled native stubs\n");
-	printf("           u(tf)             show the utf - hash\n");
-	printf("    -i     n(line)           activate inlining\n");
-	printf("           v(irtual)         inline virtual methods (uses/turns rt option on)\n");
-	printf("           e(exception)      inline methods with exceptions\n");
-	printf("           p(aramopt)        optimize argument renaming\n");
-	printf("           o(utsiders)       inline methods of foreign classes\n");
-#if defined(ENABLE_LSRA)
-	printf("    -lsra                    use linear scan register allocation\n");
-#endif
-
-	/* exit with error code */
-
-	exit(1);
-}   
-
-
-static void Xusage(void)
-{
-#if defined(ENABLE_JIT)
-	printf("    -Xjit             JIT mode execution (default)\n");
-#endif
-#if defined(ENABLE_INTRP)
-	printf("    -Xint             interpreter mode execution\n");
-#endif
-	printf("    -Xbootclasspath:<zip/jar files and directories separated by :>\n");
-    printf("                      value is set as bootstrap class path\n");
-	printf("    -Xbootclasspath/a:<zip/jar files and directories separated by :>\n");
-	printf("                      value is appended to the bootstrap class path\n");
-	printf("    -Xbootclasspath/p:<zip/jar files and directories separated by :>\n");
-	printf("                      value is prepended to the bootstrap class path\n");
-	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
-	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
-	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
-	printf("    -Xprof[:bb]       collect and print profiling data\n");
-#if defined(ENABLE_JVMTI)
-	printf("    -Xdebug<transport> enable remote debugging\n");
-#endif 
-
-	/* exit with error code */
-
-	exit(1);
-}   
-
-
-/* version *********************************************************************
-
-   Only prints cacao version information.
-
-*******************************************************************************/
-
-static void version(void)
-{
-	printf("java version \""JAVA_VERSION"\"\n");
-	printf("CACAO version "VERSION"\n");
-
-	printf("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,\n");
-	printf("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,\n");
-	printf("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,\n");
-	printf("J. Wenninger, Institut f. Computersprachen - TU Wien\n\n");
-
-	printf("This program is free software; you can redistribute it and/or\n");
-	printf("modify it under the terms of the GNU General Public License as\n");
-	printf("published by the Free Software Foundation; either version 2, or (at\n");
-	printf("your option) any later version.\n\n");
-
-	printf("This program is distributed in the hope that it will be useful, but\n");
-	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
-	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
-	printf("General Public License for more details.\n");
-}
-
-
-/* fullversion *****************************************************************
-
-   Prints a Sun compatible version information (required e.g. by
-   jpackage, www.jpackage.org).
-
-*******************************************************************************/
-
-static void fullversion(void)
-{
-	printf("java full version \"cacao-"JAVA_VERSION"\"\n");
-
-	/* exit normally */
-
-	exit(0);
-}
 
 
 #ifdef TYPECHECK_STATISTICS
@@ -558,9 +197,9 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
 
-	if (!o) {
+	if (o == NULL) {
 		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
-		cacao_exit(1);
+		vm_exit(1);
 	}
 
 
@@ -577,9 +216,9 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
 
-	if (!o) {
+	if (o == NULL) {
 		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
-		cacao_exit(1);
+		vm_exit(1);
 	}
 
 
@@ -616,694 +255,67 @@ void exit_handler(void);
 
 int main(int argc, char **argv)
 {
-	s4 i, j, k;
 	void *dummy;
+	s4 i;
 	
 	/* local variables ********************************************************/
-   
-	char logfilename[200] = "";
-	u4 heapmaxsize;
-	u4 heapstartsize;
-	char *cp;
-	s4    cplen;
-	bool startit = true;
-	char *specificmethodname = NULL;
-	char *specificsignature = NULL;
-	bool jar = false;
+
+	JavaVMInitArgs *vm_args;
+	JavaVM         *jvm;                /* denotes a Java VM                  */
+
 #if defined(ENABLE_JVMTI)
 	bool dbg = false;
 	char *transport;
 	int waitval;
 #endif
 
-
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
 #endif
 	
-	if (atexit(exit_handler))
+	if (atexit(vm_exit_handler))
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Unable to register exit_handler");
 
-	/* initialize global variables */
-
-	cacao_exiting = false;
-
-
-	/************ Collect info from the environment ************************/
-
-#if defined(DISABLE_GC)
-	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
-#endif
-
-	/* set the bootclasspath */
-
-	cp = getenv("BOOTCLASSPATH");
-
-	if (cp) {
-		bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
-		strcpy(bootclasspath, cp);
-
-	} else {
-		cplen = strlen(CACAO_VM_ZIP_PATH) +
-			strlen(":") +
-			strlen(CLASSPATH_GLIBJ_ZIP_PATH) +
-			strlen("0");
-
-		bootclasspath = MNEW(char, cplen);
-		strcat(bootclasspath, CACAO_VM_ZIP_PATH);
-		strcat(bootclasspath, ":");
-		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
-	}
-
-
-	/* set the classpath */
-
-	cp = getenv("CLASSPATH");
-
-	if (cp) {
-		classpath = MNEW(char, strlen(cp) + strlen("0"));
-		strcat(classpath, cp);
-
-	} else {
-		classpath = MNEW(char, strlen(".") + strlen("0"));
-		strcpy(classpath, ".");
-	}
-
-
-	/***************** Interpret the command line *****************/
-   
-	checknull = false;
-	opt_noieee = false;
-
-	heapmaxsize = HEAP_MAXSIZE;
-	heapstartsize = HEAP_STARTSIZE;
-	opt_stacksize = STACK_SIZE;
-
-	/* initialize properties before commandline handling */
-
-	if (!properties_init())
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Unable to init properties");
-
-	while ((i = get_opt(argc, argv, opts)) != OPT_DONE) {
-		switch (i) {
-		case OPT_IGNORE:
-			break;
-			
-		case OPT_BOOTCLASSPATH:
-			/* Forget default bootclasspath and set the argument as new boot  */
-			/* classpath.                                                     */
-			MFREE(bootclasspath, char, strlen(bootclasspath));
-
-			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(bootclasspath, opt_arg);
-			break;
-
-		case OPT_BOOTCLASSPATH_A:
-			/* append to end of bootclasspath */
-			cplen = strlen(bootclasspath);
-
-			bootclasspath = MREALLOC(bootclasspath,
-									 char,
-									 cplen,
-									 cplen + strlen(":") +
-									 strlen(opt_arg) + strlen("0"));
-
-			strcat(bootclasspath, ":");
-			strcat(bootclasspath, opt_arg);
-			break;
-
-		case OPT_BOOTCLASSPATH_P:
-			/* prepend in front of bootclasspath */
-			cp = bootclasspath;
-			cplen = strlen(cp);
-
-			bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
-								 cplen + strlen("0"));
-
-			strcpy(bootclasspath, opt_arg);
-			strcat(bootclasspath, ":");
-			strcat(bootclasspath, cp);
-
-			MFREE(cp, char, cplen);
-			break;
-
-		case OPT_CLASSPATH:
-			/* forget old classpath and set the argument as new classpath */
-			MFREE(classpath, char, strlen(classpath));
-
-			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(classpath, opt_arg);
-			break;
-
-		case OPT_JAR:
-			jar = true;
-			break;
-
-#if defined(ENABLE_JVMTI)
-		case OPT_DEBUG:
-			dbg = true;
-			transport = opt_arg;
-			break;
-
-		case OPT_AGENTPATH:
-		case OPT_AGENTLIB:
-			set_jvmti_phase(JVMTI_PHASE_ONLOAD);
-			agentload(opt_arg);
-			set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
-			break;
-#endif
-			
-		case OPT_D:
-			{
-				for (j = 0; j < strlen(opt_arg); j++) {
-					if (opt_arg[j] == '=') {
-						opt_arg[j] = '\0';
-						properties_add(opt_arg, opt_arg + j + 1);
-						goto didit;
-					}
-				}
-
-				/* if no '=' is given, just create an empty property */
-
-				properties_add(opt_arg, "");
-					
-			didit:
-				;
-			}	
-			break;
-
-		case OPT_MX:
-		case OPT_MS:
-		case OPT_SS:
-			{
-				char c;
-				c = opt_arg[strlen(opt_arg) - 1];
-
-				if (c == 'k' || c == 'K') {
-					j = 1024 * atoi(opt_arg);
-
-				} else if (c == 'm' || c == 'M') {
-					j = 1024 * 1024 * atoi(opt_arg);
-
-				} else
-					j = atoi(opt_arg);
-
-				if (i == OPT_MX)
-					heapmaxsize = j;
-				else if (i == OPT_MS)
-					heapstartsize = j;
-				else
-					opt_stacksize = j;
-			}
-			break;
-
-		case OPT_VERBOSE1:
-			opt_verbose = true;
-			break;
-
-		case OPT_VERBOSE:
-			opt_verbose = true;
-			loadverbose = true;
-			linkverbose = true;
-			initverbose = true;
-			compileverbose = true;
-			break;
-
-		case OPT_VERBOSESPECIFIC:
-			if (strcmp("class", opt_arg) == 0)
-				opt_verboseclass = true;
-
-			else if (strcmp("gc", opt_arg) == 0)
-				opt_verbosegc = true;
-
-			else if (strcmp("jni", opt_arg) == 0)
-				opt_verbosejni = true;
-			break;
-
-		case OPT_VERBOSEEXCEPTION:
-			opt_verboseexception = true;
-			break;
-
-#ifdef TYPECHECK_VERBOSE
-		case OPT_VERBOSETC:
-			typecheckverbose = true;
-			break;
-#endif
-				
-		case OPT_VERBOSECALL:
-			runverbose = true;
-			break;
-
-		case OPT_VERSION:
-			version();
-			exit(0);
-			break;
-
-		case OPT_FULLVERSION:
-			fullversion();
-			break;
-
-		case OPT_SHOWVERSION:
-			version();
-			break;
-
-		case OPT_NOIEEE:
-			opt_noieee = true;
-			break;
-
-		case OPT_NOVERIFY:
-			opt_verify = false;
-			break;
-
-		case OPT_LIBERALUTF:
-			opt_liberalutf = true;
-			break;
-
-		case OPT_SOFTNULL:
-			checknull = true;
-			break;
-
-		case OPT_TIME:
-			getcompilingtime = true;
-			getloadingtime = true;
-			break;
-					
-#if defined(ENABLE_STATISTICS)
-		case OPT_STAT:
-			opt_stat = true;
-			break;
-#endif
-					
-		case OPT_LOG:
-			strcpy(logfilename, opt_arg);
-			break;
-			
-		case OPT_CHECK:
-			for (j = 0; j < strlen(opt_arg); j++) {
-				switch (opt_arg[j]) {
-				case 'b':
-					checkbounds = false;
-					break;
-				case 's':
-					checksync = false;
-					break;
-				default:
-					usage();
-				}
-			}
-			break;
-			
-		case OPT_LOAD:
-			startit = false;
-			makeinitializations = false;
-			break;
-
-		case OPT_EAGER:
-			opt_eager = true;
-			break;
-
-		case OPT_METHOD:
-			startit = false;
-			specificmethodname = opt_arg;
-			makeinitializations = false;
-			break;
-         		
-		case OPT_SIGNATURE:
-			specificsignature = opt_arg;
-			break;
-         		
-		case OPT_ALL:
-			compileall = true;
-			startit = false;
-			makeinitializations = false;
-			break;
-         		
-		case OPT_SHOW:       /* Display options */
-			for (j = 0; j < strlen(opt_arg); j++) {		
-				switch (opt_arg[j]) {
-				case 'a':
-					opt_showdisassemble = true;
-					compileverbose = true;
-					break;
-				case 'c':
-					showconstantpool = true;
-					break;
-				case 'd':
-					opt_showddatasegment = true;
-					break;
-				case 'e':
-					opt_showexceptionstubs = true;
-					break;
-				case 'i':
-					opt_showintermediate = true;
-					compileverbose = true;
-					break;
-				case 'm':
-					showmethods = true;
-					break;
-				case 'n':
-					opt_shownativestub = true;
-					break;
-				case 'u':
-					showutf = true;
-					break;
-				default:
-					usage();
-				}
-			}
-			break;
-			
-		case OPT_OLOOP:
-			opt_loops = true;
-			break;
-
-		case OPT_INLINING:
-			for (j = 0; j < strlen(opt_arg); j++) {		
-				switch (opt_arg[j]) {
-				case 'n':
-				     /* define in options.h; Used in main.c, jit.c & inline.c */
-				    	/* inlining is currently deactivated */
-					break;
-				case 'v':
-					inlinevirtuals = true;
-					break;
-				case 'e':
-					inlineexceptions = true;
-					break;
-				case 'p':
-					inlineparamopt = true;
-					break;
-				case 'o':
-					inlineoutsiders = true;
-					break;
-				default:
-					usage();
-				}
-			}
-			break;
-
-#if defined(ENABLE_LSRA)
-		case OPT_LSRA:
-			opt_lsra = true;
-			break;
-#endif
-
-		case OPT_HELP:
-			usage();
-			break;
-
-		case OPT_X:
-			Xusage();
-			break;
-
-		case OPT_PROF_OPTION:
-			/* use <= to get the last \0 too */
-
-			for (j = 0, k = 0; j <= strlen(opt_arg); j++) {
-				if (opt_arg[j] == ',')
-					opt_arg[j] = '\0';
-
-				if (opt_arg[j] == '\0') {
-					if (strcmp("bb", opt_arg + k) == 0)
-						opt_prof_bb = true;
-
-					else {
-						printf("Unknown option: -Xprof:%s\n", opt_arg + k);
-						usage();
-					}
-
-					/* set k to next char */
-
-					k = j + 1;
-				}
-			}
-			/* fall through */
-
-		case OPT_PROF:
-			opt_prof = true;
-			break;
-
-		case OPT_JIT:
-#if defined(ENABLE_JIT)
-			opt_jit = true;
-#else
-			printf("-Xjit option not enabled.\n");
-			exit(1);
-#endif
-			break;
-
-		case OPT_INTRP:
-#if defined(ENABLE_INTRP)
-			opt_intrp = true;
-#else
-			printf("-Xint option not enabled.\n");
-			exit(1);
-#endif
-			break;
-
-#if defined(ENABLE_INTRP)
-		case OPT_STATIC_SUPERS:
-			opt_static_supers = atoi(opt_arg);
-			break;
-
-		case OPT_NO_DYNAMIC:
-			opt_no_dynamic = true;
-			break;
-
-		case OPT_NO_REPLICATION:
-			opt_no_replication = true;
-			break;
-
-		case OPT_NO_QUICKSUPER:
-			opt_no_quicksuper = true;
-			break;
-
-		case OPT_TRACE:
-			vm_debug = true;
-			break;
-#endif
-
-		default:
-			printf("Unknown option: %s\n", argv[opt_ind]);
-			usage();
-		}
-	}
-
-	if (opt_ind >= argc)
-   		usage();
-
-
-	/* transform dots into slashes in the class name */
-
-   	mainstring = argv[opt_ind++];
-
-	if (!jar) { 
-        /* do not mangle jar filename */
-
-		for (i = strlen(mainstring) - 1; i >= 0; i--) {
-			if (mainstring[i] == '.') mainstring[i] = '/';
-		}
-
-	} else {
-		/* put jarfile in classpath */
-
-		cp = classpath;
-
-		classpath = MNEW(char, strlen(mainstring) + strlen(":") +
-						 strlen(classpath) + strlen("0"));
-
-		strcpy(classpath, mainstring);
-		strcat(classpath, ":");
-		strcat(classpath, cp);
-		
-		MFREE(cp, char, strlen(cp));
-	}
 
 	/**************************** Program start *****************************/
-
-	log_init(logfilename);
 
 	if (opt_verbose)
 		log_text("CACAO started -------------------------------------------------------");
 
-	/* initialize JavaVM */
+	/* prepare the options */
 
-	vm_args.version = 0x00010001; /* New in 1.1.2: VM version */
-
-	/* Get the default initialization arguments and set the class path */
-
-	JNI_GetDefaultJavaVMInitArgs(&vm_args);
-
-	vm_args.minHeapSize = heapstartsize;
-	vm_args.maxHeapSize = heapmaxsize;
-
-	vm_args.classpath = classpath;
- 
+	vm_args = options_prepare(argc, argv);
+	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
-	JNI_CreateJavaVM(&jvm, &env, &vm_args);
+	JNI_CreateJavaVM(&jvm, (void **) &_Jv_env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 	set_jvmti_phase(JVMTI_PHASE_START);
 #endif
 
-	/* initialize the garbage collector */
+	/* do we have a main class? */
 
-	gc_init(heapmaxsize, heapstartsize);
-
-#if defined(ENABLE_INTRP)
-	/* allocate main thread stack */
-
-	if (opt_intrp) {
-		intrp_main_stack = (u1 *) alloca(opt_stacksize);
-		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-	}
-#endif
-
-	cacao_initializing = true;
-
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-  	threads_preinit();
-#endif
-	initLocks();
-#endif
-
-	/* initialize the string hashtable stuff: lock (must be done
-	   _after_ threads_preinit) */
-
-	if (!string_init())
-		throw_main_exception_exit();
-
-	/* initialize the utf8 hashtable stuff: lock, often used utf8
-	   strings (must be done _after_ threads_preinit) */
-
-	if (!utf8_init())
-		throw_main_exception_exit();
-
-	/* initialize the classcache hashtable stuff: lock, hashtable
-	   (must be done _after_ threads_preinit) */
-
-	if (!classcache_init())
-		throw_main_exception_exit();
-
-	/* initialize the loader with bootclasspath (must be done _after_
-	   thread_preinit) */
-
-	if (!suck_init())
-		throw_main_exception_exit();
-
-	suck_add_from_property("java.endorsed.dirs");
-	suck_add(bootclasspath);
-
-	/* initialize the memory subsystem (must be done _after_
-	   threads_preinit) */
-
-	if (!memory_init())
-		throw_main_exception_exit();
-
-	/* initialize the finalizer stuff: lock, linked list (must be done
-	   _after_ threads_preinit) */
-
-	if (!finalizer_init())
-		throw_main_exception_exit();
-
-	/* install architecture dependent signal handler used for exceptions */
-
-	signal_init();
-
-	/* initialize the codegen subsystems */
-
-	codegen_init();
-
-	/* initializes jit compiler */
-
-	jit_init();
-
-	/* machine dependent initialization */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		intrp_md_init();
-	else
-# endif
-		md_init();
-#else
-	intrp_md_init();
-#endif
-
-	/* initialize the loader subsystems (must be done _after_
-       classcache_init) */
-
-	if (!loader_init((u1 *) &dummy))
-		throw_main_exception_exit();
-
-	if (!linker_init())
-		throw_main_exception_exit();
-
-	if (!native_init())
-		throw_main_exception_exit();
-
-	if (!exceptions_init())
-		throw_main_exception_exit();
-
-	if (!builtin_init())
-		throw_main_exception_exit();
-
-#if defined(USE_THREADS)
-  	if (!threads_init((u1 *) &dummy))
-		throw_main_exception_exit();
-#endif
-
-	/* That's important, otherwise we get into trouble, if the Runtime
-	   static initializer is called before (circular dependency. This
-	   is with classpath 0.09. Another important thing is, that this
-	   has to happen after initThreads!!! */
-
-	if (!initialize_class(class_java_lang_System))
-		throw_main_exception_exit();
-
-	/* JNI init creates a Java object (this means running Java code) */
-
-	if (!jni_init())
-		throw_main_exception_exit();
-
-	/* initialize profiling */
-
-	if (!profile_init())
-		throw_main_exception_exit();
-		
-#if defined(USE_THREADS)
-	/* finally, start the finalizer thread */
-
-	if (!finalizer_start_thread())
-		throw_main_exception_exit();
-
-	/* start the profile sampling thread */
-
-/* 	if (!profile_start_thread()) */
-/* 		throw_main_exception_exit(); */
-#endif
-
-	cacao_initializing = false;
+	if (mainstring == NULL)
+		usage();
 
 
 	/* start worker routines **************************************************/
 
-	if (startit) {
-		classinfo        *mainclass;    /* java/lang/Class                    */
+	if (opt_run == true) {
+		classinfo        *mainclass;
 		methodinfo       *m;
-		java_objectarray *a; 
+		java_objectarray *oa; 
+		s4                oalength;
+		java_lang_String *s;
 		s4                status;
 
 		/* set return value to OK */
 
 		status = 0;
 
-		if (jar) {
+		if (opt_jar == true) {
 			/* open jar file with java.util.jar.JarFile */
 			mainstring = getmainclassnamefromjar(mainstring);
 		}
@@ -1352,10 +364,13 @@ int main(int argc, char **argv)
 
 		/* build argument array */
 
-		a = builtin_anewarray(argc - opt_ind, class_java_lang_String);
-		for (i = opt_ind; i < argc; i++) {
-			a->data[i - opt_ind] = 
-				(java_objectheader *) javastring_new(utf_new_char(argv[i]));
+		oalength = vm_args->nOptions - opt_index;
+
+		oa = builtin_anewarray(oalength, class_java_lang_String);
+
+		for (i = 0; i < oalength; i++) {
+			s = javastring_new(utf_new_char(vm_args->options[opt_index + i].optionString));
+			oa->data[i] = (java_objectheader *) s;
 		}
 
 #ifdef TYPEINFO_DEBUG_TEST
@@ -1414,7 +429,7 @@ int main(int argc, char **argv)
 #endif
 		/* here we go... */
 
-		ASM_CALLJAVAFUNCTION(m, a, NULL, NULL, NULL);
+		ASM_CALLJAVAFUNCTION(m, oa, NULL, NULL, NULL);
 
 		/* exception occurred? */
 
@@ -1423,19 +438,13 @@ int main(int argc, char **argv)
 			status = 1;
 		}
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
-		joinAllThreads();
-#else
-  		killThread(currentThread);
-#endif
-#endif
+		/* unload the JavaVM */
 
-		/* now exit the JavaVM */
+		vm_destroy(jvm);
 
-/*  		(*jvm)->DestroyJavaVM(jvm); */
+		/* and exit */
 
-		cacao_exit(status);
+		vm_exit(status);
 	}
 
 	/************* If requested, compile all methods ********************/
@@ -1511,7 +520,7 @@ int main(int argc, char **argv)
 
 	/******** If requested, compile a specific method ***************/
 
-	if (specificmethodname) {
+	if (opt_method != NULL) {
 		methodinfo *m;
 
 		/* create, load and link the main class */
@@ -1522,15 +531,15 @@ int main(int argc, char **argv)
 		if (!link_class(mainclass))
 			throw_main_exception_exit();
 
-		if (specificsignature) {
+		if (opt_signature != NULL) {
 			m = class_resolveclassmethod(mainclass,
-										 utf_new_char(specificmethodname),
-										 utf_new_char(specificsignature),
+										 utf_new_char(opt_method),
+										 utf_new_char(opt_signature),
 										 mainclass,
 										 false);
 		} else {
 			m = class_resolveclassmethod(mainclass,
-										 utf_new_char(specificmethodname),
+										 utf_new_char(opt_method),
 										 NULL,
 										 mainclass,
 										 false);
@@ -1538,8 +547,8 @@ int main(int argc, char **argv)
 
 		if (!m) {
 			char message[MAXLOGTEXT];
-			sprintf(message, "%s%s", specificmethodname,
-					specificsignature ? specificsignature : "");
+			sprintf(message, "%s%s", opt_method,
+					opt_signature ? opt_signature : "");
 
 			*exceptionptr =
 				new_exception_message(string_java_lang_NoSuchMethodException,
@@ -1551,142 +560,11 @@ int main(int argc, char **argv)
 		jit_compile(m);
 	}
 
-	cacao_shutdown(0);
+	vm_shutdown(0);
 
 	/* keep compiler happy */
 
 	return 0;
-}
-
-
-/* cacao_exit ******************************************************************
-
-   Calls java.lang.System.exit(I)V to exit the JavaVM correctly.
-
-*******************************************************************************/
-
-void cacao_exit(s4 status)
-{
-	methodinfo *m;
-
-	assert(class_java_lang_System);
-	assert(class_java_lang_System->state & CLASS_LOADED);
-
-#if defined(ENABLE_JVMTI)
-	set_jvmti_phase(JVMTI_PHASE_DEAD);
-	agentunload();
-#endif
-
-	if (!link_class(class_java_lang_System))
-		throw_main_exception_exit();
-
-	/* signal that we are exiting */
-
-	cacao_exiting = true;
-
-	/* call java.lang.System.exit(I)V */
-
-	m = class_resolveclassmethod(class_java_lang_System,
-								 utf_new_char("exit"),
-								 utf_int__void,
-								 class_java_lang_Object,
-								 true);
-	
-	if (!m)
-		throw_main_exception_exit();
-
-	/* call the exit function with passed exit status */
-
-	/* both inlinevirtual and outsiders not allowed on exit */
-	/*   not sure if permanant or temp restriction          */
-	if (inlinevirtuals) inlineoutsiders = false; 
-
-	ASM_CALLJAVAFUNCTION(m, (void *) (ptrint) status, NULL, NULL, NULL);
-
-	/* this should never happen */
-
-	if (*exceptionptr)
-		throw_exception_exit();
-
-	throw_cacao_exception_exit(string_java_lang_InternalError,
-							   "System.exit(I)V returned without exception");
-}
-
-
-/*************************** Shutdown function *********************************
-
-	Terminates the system immediately without freeing memory explicitly (to be
-	used only for abnormal termination)
-	
-*******************************************************************************/
-
-void cacao_shutdown(s4 status)
-{
-
-#if defined(ENABLE_JVMTI)
-	agentunload();
-#endif
-
-	if (opt_verbose || getcompilingtime || opt_stat) {
-		log_text("CACAO terminated by shutdown");
-		dolog("Exit status: %d\n", (s4) status);
-	}
-
-	exit(status);
-}
-
-
-/* exit_handler ****************************************************************
-
-   The exit_handler function is called upon program termination.
-
-   ATTENTION: Don't free system resources here! Some threads may still
-   be running as this is called from VMRuntime.exit(). The OS does the
-   cleanup for us.
-
-*******************************************************************************/
-
-void exit_handler(void)
-{
-	/********************* Print debug tables ************************/
-
-#if !defined(NDEBUG)
-	if (showmethods)
-		class_showmethods(mainclass);
-
-	if (showconstantpool)
-		class_showconstantpool(mainclass);
-
-	if (showutf)
-		utf_show();
-
-	if (opt_prof)
-		profile_printstats();
-#endif
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	clear_thread_flags();		/* restores standard file descriptor
-	                               flags */
-#endif
-
-	if (opt_verbose || getcompilingtime || opt_stat) {
-		log_text("CACAO terminated");
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat) {
-			print_stats();
-#ifdef TYPECHECK_STATISTICS
-			typecheck_print_statistics(get_logfile());
-#endif
-		}
-
-		mem_usagelog(1);
-
-		if (getcompilingtime)
-			print_times();
-#endif
-	}
-	/* vm_print_profile(stderr);*/
 }
 
 

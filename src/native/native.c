@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4432 2006-02-04 19:09:16Z twisti $
+   $Id: native.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -39,13 +39,12 @@
 
 #include <assert.h>
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
 #endif
 
 #include "vm/types.h"
 
-#include "cacao/cacao.h"
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
@@ -88,7 +87,7 @@
 #include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 
 /* these are required to prevent compiler warnings */
 
@@ -110,7 +109,7 @@
 
 #include "native/nativetable.inc"
 
-#else /* defined(ENABLE_STATICVM) */
+#else /* defined(WITH_STATIC_CLASSPATH) */
 
 /* Ensure that symbols for functions implemented within CACAO are used
    and exported to dlopen. */
@@ -223,12 +222,12 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_security_VMAccessController_getStack,
 };
 
-#endif /* defined(ENABLE_STATICVM) */
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 
 
 /* tables for methods *********************************************************/
 
-#ifdef ENABLE_STATICVM
+#ifdef WITH_STATIC_CLASSPATH
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
 
 /* table for fast string comparison */
@@ -241,7 +240,7 @@ static bool nativecompdone = false;
 
 /* global variables ***********************************************************/
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 static hashtable hashtable_library;
 static lt_dlhandle mainhandle;
 #endif
@@ -255,7 +254,7 @@ static lt_dlhandle mainhandle;
 
 bool native_init(void)
 {
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	void *p;
 
 	/* We need to access the dummy native table, not only to remove a warning */
@@ -281,7 +280,6 @@ bool native_init(void)
 	/* initialize library hashtable, 10 entries should be enough */
 
 	hashtable_create(&hashtable_library, 10);
-
 #endif
 
 	/* everything's ok */
@@ -296,7 +294,7 @@ bool native_init(void)
 
 *******************************************************************************/
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 								  lt_dlhandle handle)
 {
@@ -363,7 +361,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 }
-#endif /* !defined(ENABLE_STATICVM) */
+#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /* native_hashtable_library_find ***********************************************
@@ -372,7 +370,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 *******************************************************************************/
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 															java_objectheader *loader)
 {
@@ -416,7 +414,7 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 
 	return ne;
 }
-#endif /* !defined(ENABLE_STATICVM) */
+#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /* native_findfunction *********************************************************
@@ -430,7 +428,7 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 
 *******************************************************************************/
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 								bool isstatic)
 {
@@ -475,7 +473,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 	return NULL;
 }
-#endif /* defined(ENABLE_STATICVM) */
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 
 
 /* native_make_overloaded_function *********************************************
@@ -484,7 +482,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 *******************************************************************************/
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 static char *native_make_overloaded_function(char *name, utf *desc)
 {
 	char *newname;
@@ -704,15 +702,15 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* iterate through loaders in this hash slot */
 
-	while (le && !sym) {
+	while ((le != NULL) && (sym == NULL)) {
 		/* iterate through names in this loader */
 
 		ne = le->namelink;
 			
-		while (ne && !sym) {
+		while ((ne != NULL) && (sym == NULL)) {
 			sym = lt_dlsym(ne->handle, name);
 
-			if (!sym)
+			if (sym == NULL)
 				sym = lt_dlsym(ne->handle, newname);
 
 			ne = ne->hashlink;
@@ -721,7 +719,7 @@ functionptr native_resolve_function(methodinfo *m)
 		le = le->hashlink;
 	}
 
-	if (sym)
+	if (sym != NULL)
 		if (opt_verbosejni)
 			printf("JNI ]\n");
 
@@ -729,13 +727,13 @@ functionptr native_resolve_function(methodinfo *m)
 	/* If not found, try to find the native function symbol in the
 	   main program. */
 
-	if (!sym) {
+	if (sym == NULL) {
 		sym = lt_dlsym(mainhandle, name);
 
-		if (!sym)
+		if (sym == NULL)
 			sym = lt_dlsym(mainhandle, newname);
 
-		if (sym)
+		if (sym != NULL)
 			if (opt_verbosejni)
 				printf("internal ]\n");
 	}
@@ -743,7 +741,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	/* no symbol found? throw exception */
 
-	if (!sym) {
+	if (sym == NULL) {
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
@@ -758,7 +756,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	return (functionptr) (ptrint) sym;
 }
-#endif /* !defined(ENABLE_STATICVM) */
+#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /* native_new_and_init *********************************************************

@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4499 2006-02-13 00:12:24Z twisti $
+   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -53,13 +53,13 @@
 #include "vm/jit/mips/arch.h"
 #include "vm/jit/mips/codegen.h"
 
-#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
 #include "vm/exceptions.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -4196,7 +4196,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	funcdisp = dseg_addaddress(cd, f);
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
 		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m, funcdisp);
 
@@ -4309,7 +4309,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* put env into first argument register */
 
-	disp = dseg_addaddress(cd, &env);
+	disp = dseg_addaddress(cd, _Jv_env);
 	M_ALD(rd->argintregs[0], REG_PV, disp);
 
 	/* do the native function call */

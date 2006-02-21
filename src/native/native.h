@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: native.h 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 # include <ltdl.h>
 #endif
 
@@ -58,7 +58,7 @@ typedef struct nativeref nativeref;
 typedef struct nativecompref nativecompref;
 
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry hashtable_library_name_entry;
 
@@ -104,13 +104,13 @@ struct nativecompref {
 /* initialize native subsystem */
 bool native_init(void);
 
-#if defined(ENABLE_STATICVM)
+#if defined(WITH_STATIC_CLASSPATH)
 
 /* find native function */
 functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 								bool isstatic);
 
-#else /* defined(ENABLE_STATICVM) */
+#else /* defined(WITH_STATIC_CLASSPATH) */
 
 /* add a library to the library hash */
 void native_hashtable_library_add(utf *filename, java_objectheader *loader,
@@ -123,7 +123,7 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 /* resolve native function */
 functionptr native_resolve_function(methodinfo *m);
 
-#endif /* defined(ENABLE_STATICVM) */
+#endif /* defined(WITH_STATIC_CLASSPATH) */
 
 /* create new object on the heap and call the initializer */
 java_objectheader *native_new_and_init(classinfo *c);

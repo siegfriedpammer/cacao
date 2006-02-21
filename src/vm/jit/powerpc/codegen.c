@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 4497 2006-02-12 23:22:36Z twisti $
+   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
@@ -48,7 +48,6 @@
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
 
-#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -56,6 +55,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -3901,7 +3901,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	funcdisp = dseg_addaddress(cd, f);
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
 		codegen_addpatchref(cd, mcodeptr, PATCHER_resolve_native, m, funcdisp);
 
@@ -4052,7 +4052,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* put env into first argument register */
 
-	disp = dseg_addaddress(cd, &env);
+	disp = dseg_addaddress(cd, _Jv_env);
 	M_ALD(rd->argintregs[0], REG_PV, disp);
 
 	/* generate the actual native call */

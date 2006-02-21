@@ -1,4 +1,4 @@
-/* cacao/cacao.h - main header, contains global variables
+/* src/vm/vm.h - basic JVM functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,37 +26,50 @@
 
    Authors: Christian Thalinger
 
-   $Id: cacao.h 4357 2006-01-22 23:33:38Z twisti $
+   Changes:
+
+   $Id: finalizer.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
 
 
-#ifndef _CACAO_H
-#define _CACAO_H
+#ifndef _VM_H
+#define _VM_H
+
+#include "config.h"
+#include "vm/types.h"
 
 #include "native/jni.h"
 #include "vm/global.h"
 
 
-/* global variables ***********************************************************/
+/* export global variables ****************************************************/
+
+extern _Jv_JNIEnv *_Jv_env;
+
+extern bool vm_initializing;
+extern bool vm_exiting;
 
 extern u1 *intrp_main_stack;
 
-extern bool cacao_exiting;
+extern void **stackbottom;
 
-extern JavaVM *jvm;
-extern JNIEnv *env;
-
-extern char *mainstring;    /* class.method with main method */
+extern char *mainstring;
+extern classinfo *mainclass;
 
 
 /* function prototypes ********************************************************/
 
-void cacao_exit(s4 status);
-void cacao_shutdown(s4 status);
+void usage(void);
 
-#endif /* _CACAO_H */
+bool vm_create(JavaVMInitArgs *vm_args);
+s4   vm_destroy(JavaVM *vm);
+void vm_exit(s4 status);
+void vm_shutdown(s4 status);
 
+void vm_exit_handler(void);
+
+#endif /* _VM_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

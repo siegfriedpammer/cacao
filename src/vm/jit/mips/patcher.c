@@ -28,14 +28,15 @@
 
    Changes:
 
-   $Id: patcher.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: patcher.c 4530 2006-02-21 09:11:53Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <sys/cachectl.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -1070,7 +1071,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 *******************************************************************************/
 
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp)
 {
 	u1                *ra;
@@ -1140,7 +1141,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	return true;
 }
-#endif /* !defined(ENABLE_STATICVM) */
+#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /*
