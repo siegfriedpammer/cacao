@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4457 2006-02-06 01:28:07Z edwin $
+   $Id: stacktrace.c 4533 2006-02-21 09:25:16Z twisti $
 
 */
 
@@ -1108,52 +1108,53 @@ java_objectarray *stacktrace_getClassContext(void)
 }
 
 
-/* stacktrace_getCurrentClassLoader ********************************************
+/* stacktrace_getCurrentClass **************************************************
 
-   Find the current class loader by walking the stack trace. The first
-   non-NULL (ie. non-bootstrap) class loader found -- starting with the
-   innermost activation record -- is returned. If no class loader is
-   found, NULL is returned.
+   Find the current class by walking the stack trace.
+
+   Quote from the JNI documentation:
+	 
+   In the Java 2 Platform, FindClass locates the class loader
+   associated with the current native method.  If the native code
+   belongs to a system class, no class loader will be
+   involved. Otherwise, the proper class loader will be invoked to
+   load and link the named class. When FindClass is called through the
+   Invocation Interface, there is no current native method or its
+   associated class loader. In that case, the result of
+   ClassLoader.getBaseClassLoader is used."
 
 *******************************************************************************/
 
-java_objectheader *stacktrace_getCurrentClassLoader(void)
+classinfo *stacktrace_getCurrentClass(void)
 {
 	stacktracebuffer  *stb;
 	stacktrace_entry  *ste;
 	methodinfo        *m;
-	java_objectheader *cl;
 	s4                 i;
-
-	cl = NULL;
 
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 
 	/* iterate over all stacktrace entries and find the first suitable
-	   classloader */
+	   class */
 
 	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
 		m = ste->method;
 
-		if (!m)
+		if (m == NULL)
 			continue;
 
-		if (m->class == class_java_security_PrivilegedAction) {
-			cl = NULL;
-			break;
-		}
+		if (m->class == class_java_security_PrivilegedAction)
+			return NULL;
 
-		if (m->class->classloader) {
-			cl = m->class->classloader;
-			break;
-		}
+		if (m->class != NULL)
+			return m->class;
 	}
 
-	/* return the classloader */
+	/* no Java method found on the stack */
 
-	return cl;
+	return NULL;
 }
 
 
