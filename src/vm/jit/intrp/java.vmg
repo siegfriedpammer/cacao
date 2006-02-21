@@ -1264,13 +1264,19 @@ CHECKNULL ( aRef -- aRef )
 
 MULTIANEWARRAY ( #aClass #iSize #acr ... -- aRef )
 {
-  long dims[iSize];
+  long *dims;
   int i;
+
+  dims = MNEW(long, iSize);
+
   for (i = 0; i < iSize; i++) {
     dims[i] = sp[iSize - i - 1];
   }
   global_sp = sp;
   aRef = (java_objectheader *) builtin_multianewarray(iSize, aClass, dims);
+
+  MFREE(dims, long, iSize);
+
   if (aRef == NULL) {
     global_sp = sp;
     *exceptionptr = stacktrace_inline_fillInStackTrace(NULL, (u1 *) fp, (u1 *) IP, (u1 *) IP);
