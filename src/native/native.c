@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: native.c 4541 2006-02-21 13:37:48Z twisti $
 
 */
 
@@ -86,6 +86,7 @@
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
+
 
 #if defined(WITH_STATIC_CLASSPATH)
 
@@ -227,7 +228,7 @@ static functionptr dummynativetable[] = {
 
 /* tables for methods *********************************************************/
 
-#ifdef WITH_STATIC_CLASSPATH
+#if defined(WITH_STATIC_CLASSPATH)
 #define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
 
 /* table for fast string comparison */
@@ -257,9 +258,9 @@ bool native_init(void)
 #if !defined(WITH_STATIC_CLASSPATH)
 	void *p;
 
-	/* We need to access the dummy native table, not only to remove a warning */
-	/* but to be sure that the table is not optimized away (gcc does this     */
-	/* since 3.4).                                                            */
+	/* We need to access the dummy native table, not only to remove a
+	   warning but to be sure that the table is not optimized away
+	   (gcc does this since 3.4). */
 
 	p = &dummynativetable;
 
