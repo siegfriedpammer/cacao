@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4498 2006-02-12 23:43:09Z twisti $
+   $Id: asmpart.S 4538 2006-02-21 10:47:20Z twisti $
 
 */
 
@@ -389,7 +389,7 @@ L_asm_call_jit_compiler_exception:
 	stq     zero,0(v0)            /* clear the exception pointer              */
 
 	subq    ra,4,xpc
-	br      asm_handle_nat_exception
+	br      L_asm_handle_nat_exception
 
 	.end    asm_call_jit_compiler
 
@@ -409,6 +409,7 @@ L_asm_call_jit_compiler_exception:
 	.ent    asm_handle_nat_exception
 
 asm_handle_nat_exception:
+L_asm_handle_nat_exception:       /* required for PIC code                    */
 	ldl     t0,0(ra)              /* load instruction LDA PV,xxx(RA)          */
 	sll     t0,48,t0
 	sra     t0,48,t0              /* isolate offset                           */
@@ -416,7 +417,7 @@ asm_handle_nat_exception:
 	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
 	srl     t0,16,t0              /* isolate instruction code                 */
 	lda     t0,-0x177b(t0)        /* test for LDAH                            */
-	bne     t0,asm_handle_exception
+	bne     t0,L_asm_handle_exception
 	ldl     t0,4(ra)              /* load instruction LDAH PV,xxx(PV)         */
 	sll     t0,16,t0              /* compute high offset                      */
 	addl    t0,0,t0               /* sign extend high offset                  */
@@ -425,6 +426,7 @@ asm_handle_nat_exception:
 	.aent    asm_handle_exception
 
 asm_handle_exception:
+L_asm_handle_exception:                 /* required for PIC code              */
 	lda     sp,-(ARG_CNT+TMP_CNT)*8(sp) /* create maybe-leaf stackframe       */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
@@ -649,7 +651,7 @@ L_asm_wrapper_patcher_exception_load_gp:
 #endif
 	ldq     xptr,0(v0)            /* get the exception pointer                */
 	stq     zero,0(v0)            /* clear the exception pointer              */
-	br      asm_handle_exception  /* we have the pv of the calling java func. */
+	br      L_asm_handle_exception/* we have the pv of the calling java func. */
 
 	.end	asm_wrapper_patcher
 
