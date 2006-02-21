@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 4527 2006-02-20 15:19:06Z twisti $
+   $Id: engine.c 4532 2006-02-21 09:18:41Z twisti $
 */
 
 
@@ -45,7 +45,6 @@
 
 #include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
 
-#include "cacao/cacao.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
