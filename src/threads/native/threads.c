@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: threads.c 4534 2006-02-21 09:31:25Z twisti $
 
 */
 
@@ -76,6 +76,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 
 #if !defined(__DARWIN__)
@@ -717,6 +718,8 @@ static void *threads_startup_thread(void *t)
 	if (opt_intrp) {
 		intrp_thread_stack = (u1 *) alloca(opt_stacksize);
 		MSET(intrp_thread_stack, 0, u1, opt_stacksize);
+	} else {
+		intrp_thread_stack = NULL;
 	}
 #endif
 
