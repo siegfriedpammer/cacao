@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4497 2006-02-12 23:22:36Z twisti $
+   $Id: asmpart.S 4539 2006-02-21 12:41:30Z twisti $
 
 */
 
@@ -49,7 +49,12 @@
 
 	.align 2
 
+
+/* exported functions and variables *******************************************/
+
 	.globl asm_calljavafunction
+	.type  asm_calljavafunction, @function
+
 	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
@@ -92,7 +97,7 @@
 	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler         /* handler pc                           */
 	.long   calljava_xhandler         /* end pc                               */
-	.long   asm_calljavafunction      /* start pc                             */
+	.long   L_asm_calljavafunction    /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
@@ -105,6 +110,7 @@
 
 asm_calljavafunction:
 asm_calljavafunction_int:
+L_asm_calljavafunction:               /* required for PIC code                */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
@@ -145,11 +151,11 @@ asm_calljavafunction_int:
 	mr      a3,a4
 
 #if defined(__DARWIN__)
-	lis     mptr,ha16(asm_call_jit_compiler)
-	addi    mptr,mptr,lo16(asm_call_jit_compiler)
+	lis     mptr,ha16(L_asm_call_jit_compiler)
+	addi    mptr,mptr,lo16(L_asm_call_jit_compiler)
 #else
-	lis     mptr,asm_call_jit_compiler@ha
-	addi    mptr,mptr,asm_call_jit_compiler@l
+	lis     mptr,L_asm_call_jit_compiler@ha
+	addi    mptr,mptr,L_asm_call_jit_compiler@l
 #endif
 	stw     mptr,8*4(r1)
 	addi    mptr,r1,7*4
@@ -161,9 +167,9 @@ asm_calljavafunction_int:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(asm_calljavafunction-1b)
+	addi    pv,itmp1,lo16(L_asm_calljavafunction-1b)
 #else
-	addi    pv,itmp1,(asm_calljavafunction-1b)@l
+	addi    pv,itmp1,(L_asm_calljavafunction-1b)@l
 #endif
 
 L_asm_calljavafunction_return:
@@ -214,7 +220,7 @@ calljava_xhandler:
 	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler2        /* handler pc                           */
 	.long   calljava_xhandler2        /* end pc                               */
-	.long   asm_calljavafunction2     /* start pc                             */
+	.long   L_asm_calljavafunction2   /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
@@ -230,6 +236,7 @@ asm_calljavafunction2int:
 asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
+L_asm_calljavafunction2:              /* required for PIC code                */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
@@ -328,11 +335,11 @@ L_stack_copy_done:
 	lwz     itmp1,9*4(sp)             /* pass method pointer via tmp1         */
 
 #if defined(__DARWIN__)
-	lis     mptr,ha16(asm_call_jit_compiler)
-	addi    mptr,mptr,lo16(asm_call_jit_compiler)
+	lis     mptr,ha16(L_asm_call_jit_compiler)
+	addi    mptr,mptr,lo16(L_asm_call_jit_compiler)
 #else
-	lis     mptr,asm_call_jit_compiler@ha
-	addi    mptr,mptr,asm_call_jit_compiler@l
+	lis     mptr,L_asm_call_jit_compiler@ha
+	addi    mptr,mptr,L_asm_call_jit_compiler@l
 #endif
 	stw     mptr,8*4(r1)
 	addi    mptr,r1,7*4
@@ -343,9 +350,9 @@ L_stack_copy_done:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(asm_calljavafunction2-1b)
+	addi    pv,itmp1,lo16(L_asm_calljavafunction2-1b)
 #else
-	addi    pv,itmp1,(asm_calljavafunction2-1b)@l
+	addi    pv,itmp1,(L_asm_calljavafunction2-1b)@l
 #endif
 
 L_asm_calljavafunction2_return:
@@ -466,6 +473,7 @@ L_handle_a6_a7:
 *******************************************************************************/
 
 asm_call_jit_compiler:
+L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)         /* save return address                */
 	stwu    r1,-((LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo)(r1)
@@ -599,7 +607,7 @@ L_asm_call_jit_compiler_exception:
 
 	mflr    xpc
 	addi    xpc,xpc,-4
-	b       asm_handle_nat_exception
+	b       L_asm_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************
@@ -615,6 +623,7 @@ L_asm_call_jit_compiler_exception:
 *******************************************************************************/
 		
 asm_handle_nat_exception:
+L_asm_handle_nat_exception:             /* required for PIC code              */
 	mflr    r9
 	lwz     itmp3,4(r9)
 	extsh   itmp3,itmp3
@@ -622,12 +631,13 @@ asm_handle_nat_exception:
 	lwz     itmp3,8(r9)
 	srwi    itmp3,itmp3,16
 	cmpwi   itmp3,0x3dad
-	bne     asm_handle_exception
+	bne     L_asm_handle_exception
 	lwz     itmp3,8(r9)
 	slwi    itmp3,itmp3,16
 	add     pv,pv,itmp3
 
 asm_handle_exception:
+L_asm_handle_exception:                 /* required for PIC code              */
 	addi    sp,sp,-(ARG_CNT+TMP_CNT)*8  /* create maybe-leaf stackframe       */
 
 #if defined(__DARWIN__)
@@ -958,7 +968,7 @@ L_asm_wrapper_patcher_exception:
 	lwz     xptr,0(v0)            /* get the exception pointer                */
 	li      itmp3,0
 	stw     itmp3,0(v0)           /* clear the exception pointer              */
-	b       asm_handle_exception
+	b       L_asm_handle_exception
 
 
 asm_cacheflush:
