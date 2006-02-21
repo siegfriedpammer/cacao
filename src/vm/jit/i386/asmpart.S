@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
+   $Id: asmpart.S 4535 2006-02-21 09:34:01Z twisti $
 
 */
 
@@ -52,7 +52,9 @@
 
 	.globl asm_md_init
 
-	.globl asm_calljavafunction
+	.globl asm_calljavafunction	
+	.type  asm_calljavafunction, @function
+
 	.globl asm_calljavafunction_int
 
 	.globl asm_calljavafunction2
@@ -125,7 +127,7 @@ asm_md_init:
 	.long   0                           /* catch type all                     */
 	.long   calljava_xhandler           /* handler pc                         */
 	.long   calljava_xhandler           /* end pc                             */
-	.long   asm_calljavafunction        /* start pc                           */
+	.long   L_asm_calljavafunction      /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* line number table start            */
 	.long   0                           /* line number table size             */
@@ -138,6 +140,7 @@ asm_md_init:
 
 asm_calljavafunction:
 asm_calljavafunction_int:
+L_asm_calljavafunction:                 /* required for PIC code              */
 	push    bp                          /* allocate stack space               */
 	mov     sp,bp
 
@@ -160,7 +163,7 @@ asm_calljavafunction_int:
 		
 	mov     2*4(bp),itmp1               /* move function pointer to %eax      */
 
-	lea     asm_call_jit_compiler,itmp3
+	lea     L_asm_call_jit_compiler,itmp3
 	call    *itmp3                      /* call JIT compiler                  */
 
 L_asm_calljavafunction_return:
@@ -198,7 +201,7 @@ calljava_xhandler:
 	.long   0                           /* catch type all                     */
 	.long   calljava_xhandler2          /* handler pc                         */
 	.long   calljava_xhandler2          /* end pc                             */
-	.long   asm_calljavafunction2       /* start pc                           */
+	.long   L_asm_calljavafunction2     /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* line number table start            */
 	.long   0                           /* line number table size             */
@@ -214,6 +217,7 @@ asm_calljavafunction2int:
 asm_calljavafunction2long:
 asm_calljavafunction2float:
 asm_calljavafunction2double:
+L_asm_calljavafunction2:                /* required for PIC code              */
 	push    %ebp
 	mov     %esp,%ebp                 /* save stackptr                        */
 
@@ -274,7 +278,7 @@ calljava_copynext:
 calljava_copydone:
 	mov     8(%ebp),%eax              /* move function pointer to %eax        */
 
-	lea     asm_call_jit_compiler,itmp3
+	lea     L_asm_call_jit_compiler,itmp3
 	call    *itmp3                      /* call JIT compiler                  */
 
 L_asm_calljavafunction2_return:
@@ -293,34 +297,35 @@ calljava_xhandler2:
 	jmp     L_asm_calljavafunction2_return
 
 
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   invokes the compiler for untranslated JavaVM methods.                      *
-*                                                                              *
-*   Register R0 contains a pointer to the method info structure (prepared      *
-*   by createcompilerstub). Using the return address in R26 and the            *
-*   offset in the LDA instruction or using the value in methodptr R28 the      *
-*   patching address for storing the method address can be computed:           *
-*                                                                              *
-*   method address was either loaded using                                     *
-*                                                                              *
-*   i386_mov_imm_reg(a, REG_ITMP2)                ; invokestatic/special       *
-*   i386_call_reg(REG_ITMP2)                                                   *
-*                                                                              *
-*   or                                                                         *
-*                                                                              *
-*   i386_mov_membase_reg(REG_SP, 0, REG_ITMP1)    ; invokevirtual/interface    *
-*   i386_mov_membase_reg(REG_ITMP1, OFFSET(, vftbl), REG_ITMP2)                *
-*   i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + \                *
-*       sizeof(methodptr) * m->vftblindex, REG_ITMP1)                          *
-*   i386_call_reg(REG_ITMP1)                                                   *
-*                                                                              *
-*   in the static case the method pointer can be computed using the            *
-*   return address and the lda function following the jmp instruction          *
-*                                                                              *
+/* asm_call_jit_compiler *******************************************************
+
+   Invokes the compiler for untranslated JavaVM methods.
+
+   Register R0 contains a pointer to the method info structure (prepared
+   by createcompilerstub). Using the return address in R26 and the
+   offset in the LDA instruction or using the value in methodptr R28 the
+   patching address for storing the method address can be computed:
+
+   Method address was either loaded using
+
+   i386_mov_imm_reg(a, REG_ITMP2)                ; invokestatic/special
+   i386_call_reg(REG_ITMP2)
+
+   or
+
+   i386_mov_membase_reg(REG_SP, 0, REG_ITMP1)    ; invokevirtual/interface
+   i386_mov_membase_reg(REG_ITMP1, OFFSET(, vftbl), REG_ITMP2)
+   i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + \
+       sizeof(methodptr) * m->vftblindex, REG_ITMP1)
+   i386_call_reg(REG_ITMP1)
+
+   In the static case the method pointer can be computed using the
+   return address and the lda function following the jmp instruction.
+
 *******************************************************************************/
 
 asm_call_jit_compiler:
+L_asm_call_jit_compiler:                /* required for PIC code              */
 	sub     $((4+2)*4+sizestackframeinfo),sp /* create stack frame            */
 	mov     itmp1,(4+0)*4(sp)           /* save method pointer                */
 			
@@ -396,7 +401,7 @@ L_asm_call_jit_compiler_exception:
 
 	pop     xpc                         /* get return address                 */
 	sub     $2,xpc                      /* faulting address is ra - 2         */
-	jmp     asm_handle_exception
+	jmp     L_asm_handle_exception
 
 
 /* asm_handle_exception ********************************************************
@@ -413,6 +418,7 @@ asm_handle_nat_exception:
 	add     $4,sp                       /* clear return address of native stub*/
 		
 asm_handle_exception:
+L_asm_handle_exception:                 /* required for PIC code              */
 	sub     $((ARG_CNT+TMP_CNT)*4),sp   /* create maybe-leaf stackframe       */
 
 	SAVE_ARGUMENT_REGISTERS(0)          /* we save arg and temp registers in  */
@@ -563,9 +569,9 @@ asm_wrapper_patcher:
 	movl    $0,1*4(sp)                  /* if pv is NULL, use findmethod      */
 	mov     sp,itmp2
 	add     $((6+2+4)*4+sizestackframeinfo),itmp2
-	mov     itmp2,2*4(sp)
+	mov     itmp2,2*4(sp)               /* pass Java sp                       */
 	mov     ((5+2+4)*4+sizestackframeinfo)(sp),itmp3
-	mov     itmp3,3*4(sp)
+	mov     itmp3,3*4(sp)               /* pass ra to java function           */
 	call    stacktrace_create_inline_stackframeinfo
 
 	mov     sp,itmp1                    /* pass stack pointer                 */
@@ -600,7 +606,7 @@ L_asm_wrapper_patcher_exception:
 	movl    $0,(itmp2)                  /* clear the exception pointer        */
 
 	pop     xpc                         /* get and remove return address      */
-	jmp     asm_handle_exception
+	jmp     L_asm_handle_exception
 
 
 /************************ function asm_builtin_x2x *****************************
