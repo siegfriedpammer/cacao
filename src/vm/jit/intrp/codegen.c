@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4509 2006-02-14 01:05:41Z twisti $
+   $Id: codegen.c 4544 2006-02-21 13:43:27Z twisti $
 
 */
 
@@ -47,7 +47,6 @@
 #include "vm/jit/intrp/codegen.h"
 #include "vm/jit/intrp/intrp.h"
 
-#include "cacao/cacao.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/class.h"
@@ -55,6 +54,7 @@
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -2035,7 +2035,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		assert(false);
 	}
 
-	av_ptr(alist, JNIEnv *, &env);
+	av_ptr(alist, _Jv_JNIEnv *, _Jv_env);
 
 	if (m->flags & ACC_STATIC)
 		av_ptr(alist, classinfo *, m->class);
@@ -2089,7 +2089,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	Cell        *p;
 	Cell        *endsp;
 	s4           i;
-	JNIEnv      *penv;
+	_Jv_JNIEnv  *penv;
 
 	struct {
 		stackframeinfo sfi;
@@ -2100,7 +2100,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* pass env pointer */
 
-	penv = (JNIEnv *) &env;
+	penv = (_Jv_JNIEnv *) _Jv_env;
 	*pvalues++ = &penv;
 
 	/* for static methods, pass class pointer */

@@ -41,6 +41,7 @@
 #include "vm/types.h"
 
 #include "mm/boehm.h"
+#include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
 
@@ -956,10 +957,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	gc_init(heapmaxsize, heapstartsize);
 
 #if defined(ENABLE_INTRP)
-	/* allocate main thread stack */
+	/* Allocate main thread stack on the Java heap. */
 
 	if (opt_intrp) {
-		intrp_main_stack = (u1 *) alloca(opt_stacksize);
+		intrp_main_stack = GCMNEW(u1, opt_stacksize);
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
 	}
 #endif

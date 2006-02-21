@@ -1692,7 +1692,7 @@ if (*exceptionptr)
   THROW0;
 
 PATCHER_NATIVECALL ( #am #af #addrcif ... -- )
-#if !defined(ENABLE_STATICVM)
+#if !defined(WITH_STATIC_CLASSPATH)
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
