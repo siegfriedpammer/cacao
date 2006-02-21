@@ -411,7 +411,12 @@ static void version(void)
 	printf("This program is distributed in the hope that it will be useful, but\n");
 	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
 	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
-	printf("General Public License for more details.\n");
+	printf("General Public License for more details.\n\n");
+
+	printf("Configure/Build options:\n");
+	printf("  ./configure: "VERSION_CONFIGURE_ARGS"\n");
+	printf("  CC         : "VERSION_CC" ("__VERSION__")\n");
+	printf("  CFLAGS     : "VERSION_CFLAGS"\n");
 }
 
 

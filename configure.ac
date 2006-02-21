@@ -93,6 +93,12 @@ case "$host_os" in
 esac
 
 
+dnl define some stuff required for --fullversion
+AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
+AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
+AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$CFLAGS", [CFLAGS used])
+
+
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_SUBST(ARCH_DIR)
@@ -627,6 +633,7 @@ dnl now configure subpackages
 dnl the export is not my favorite (is there another way?)
 export CFLAGS
 AC_CONFIG_SUBDIRS(src/boehm-gc)
+
 
 AC_CONFIG_FILES([Makefile]
 		[contrib/Makefile]
