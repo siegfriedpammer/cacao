@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4547 2006-02-22 13:34:45Z twisti $
+   $Id: codegen.c 4548 2006-02-22 14:03:30Z twisti $
 
 */
 
@@ -5795,7 +5795,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 /* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
 	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
 #else
-	M_MOV_IMM((ptrint) &_exceptionptr, REG_RESULT);
+	M_MOV_IMM((ptrint) &_no_threads_exceptionptr, REG_RESULT);
 #endif
 	/* we can't use REG_ITMP3 == REG_RESULT2 */
 	M_ALD(REG_ITMP2, REG_RESULT, 0);
