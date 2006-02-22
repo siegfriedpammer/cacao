@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: codegen.c 4547 2006-02-22 13:34:45Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/emitfuncs.h"
 
+#include "mm/memory.h"
 #include "native/jni.h"
 #include "native/native.h"
 #include "vm/builtin.h"
