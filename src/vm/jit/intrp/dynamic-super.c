@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: dynamic-super.c 4549 2006-02-23 14:08:23Z twisti $
 */
 
 
@@ -681,9 +681,27 @@ void print_dynamic_super_statistics(void)
   dolog("count_native_saved  = %d", count_native_saved  );
 }
 
+void disassemble_prim(int n)
+{
+  PrimInfo *p = &(priminfos[n]);
+  u1 *start = vm_prim[n];
+
+#if defined(ENABLE_JIT)
+  printf("%s (len=%d, restlen=%d):\n",prim_names[n],p->length, p->restlength);
+  disassemble(start, start + p->length + p->restlength);
+#endif
+}
+
 void dynamic_super_init(void)
 {
   check_prims(vm_prim);
+
+  if (opt_verbose) {
+    disassemble_prim(N_IADD);
+    disassemble_prim(N_ILOAD);
+    disassemble_prim(N_GETFIELD_INT);
+  }
+
   hashtable_create(&hashtable_patchersupers, 1<<HASHTABLE_PATCHERSUPERS_BITS);
   if (opt_no_replication)
     hashtable_create(&hashtable_superreuse,  1<<HASHTABLE_SUPERREUSE_BITS);
