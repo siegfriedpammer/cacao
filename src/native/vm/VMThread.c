@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMThread.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -126,9 +126,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lan
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
-	if (runverbose)
-		log_text("java_lang_VMThread_suspend called");
-
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	suspendThread((thread *) this->thread);
 #endif
@@ -142,9 +139,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
-	if (runverbose)
-		log_text("java_lang_VMThread_resume0 called");
-
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	resumeThread((thread *) this->thread);
 #endif
@@ -158,9 +152,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, s4 priority)
 {
-    if (runverbose) 
-		log_text("java_lang_VMThread_nativeSetPriority called");
-
 #if defined(USE_THREADS)
 	setPriorityThread((thread *) this->thread, priority);
 #endif
@@ -174,9 +165,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {
-	if (runverbose)
-		log_text ("java_lang_VMThread_nativeStop called");
-
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	if (currentThread == (thread *) this->thread) {
 		log_text("killing");
@@ -240,9 +228,6 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 {
-	if (runverbose)
-		log_text("java_lang_VMThread_yield called");
-
 #if defined(USE_THREADS)
 	yieldThread();
 #endif

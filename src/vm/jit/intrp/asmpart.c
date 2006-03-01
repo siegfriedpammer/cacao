@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: asmpart.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -271,7 +271,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 	  ex = (exceptionentry *) (((u1 *) f) + ExTableStart);
 	  exceptiontablelength = *((s4 *) (((u1 *) f) + ExTableSize));
 
-	  if (opt_verbose || runverbose || opt_verboseexception)
+	  if (opt_verbose || opt_verbosecall || opt_verboseexception)
 		  builtin_trace_exception(o, m, ip, 1);
 
 	  for (i = 0; i < exceptiontablelength; i++) {

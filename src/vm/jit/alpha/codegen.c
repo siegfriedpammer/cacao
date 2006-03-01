@@ -32,14 +32,15 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "md.h"
@@ -234,7 +235,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		s1 = rd->memuse;
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
@@ -269,7 +270,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_LDA(REG_PV, REG_RA, disp);
 		}
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LLD(rd->argintregs[p], REG_SP, p * 8);
 
@@ -283,7 +284,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* call trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
@@ -2915,7 +2916,7 @@ nowperformreturn:
 			
 			/* call trace function */
 
-			if (runverbose) {
+			if (opt_verbosecall) {
 				M_LDA(REG_SP, REG_SP, -3 * 8);
 				M_AST(REG_RA, REG_SP, 0 * 8);
 				M_LST(REG_RESULT, REG_SP, 1 * 8);
@@ -4240,7 +4241,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* call trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		/* save integer argument registers */
 
 		for (i = 0, j = 1; i < md->paramcount && i < INT_ARG_CNT; i++) {
@@ -4444,7 +4445,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* call finished trace */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		/* just restore the value we need, don't care about the other */
 
 		if (IS_INT_LNG_TYPE(md->returntype.type))

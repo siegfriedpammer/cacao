@@ -36,7 +36,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4367 2006-01-24 10:28:52Z twisti $
+   $Id: builtin.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -1103,7 +1103,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	s4    logtextlen;
 	s4    dumpsize;
 
-	if (runverbose && indent)
+	if (opt_verbosecall && indent)
 		methodindent--;
 
 	/* calculate message length */
@@ -1213,13 +1213,6 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	/* release memory */
 
 	dump_release(dumpsize);
-
-	/* print stacktrace for exception */
-
-	if (opt_verboseexception) {
-		exceptions_print_exception(xptr);
-		stacktrace_print_trace(xptr);
-	}
 
 	return xptr;
 }

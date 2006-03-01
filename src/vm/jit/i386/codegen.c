@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Ullrich
 
-   $Id: codegen.c 4548 2006-02-22 14:03:30Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -345,7 +345,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	   to arguments on stack.
 	*/
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		stack_off = 0;
 		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + parentargs_base * 4;
 
@@ -4162,7 +4162,7 @@ nowperformreturn:
   			p = parentargs_base;
 			
 			/* call trace function */
-			if (runverbose) {
+			if (opt_verbosecall) {
 				i386_alu_imm_reg(cd, ALU_SUB, 4 + 8 + 8 + 4, REG_SP);
 
 				i386_mov_imm_membase(cd, (s4) m, REG_SP, 0);
@@ -5593,7 +5593,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_ASUB_IMM(stackframesize * 4, REG_SP);
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		s4 p, t;
 
 		disp = stackframesize * 4;
@@ -5758,7 +5758,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MOV_IMM((ptrint) codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-    if (runverbose) {
+    if (opt_verbosecall) {
 		/* restore return value */
 
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {

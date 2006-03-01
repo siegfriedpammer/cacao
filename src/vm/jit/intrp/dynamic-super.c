@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4549 2006-02-23 14:08:23Z twisti $
+   $Id: dynamic-super.c 4550 2006-03-01 17:00:33Z twisti $
 */
 
 
@@ -599,7 +599,7 @@ void gen_inst1(codegendata *cd, ptrint instr)
   case N_PATCHER_CHECKCAST:      replace_patcher(cd, N_CHECKCAST); break;
   case N_PATCHER_INSTANCEOF:     replace_patcher(cd, N_INSTANCEOF); break;
   case N_PATCHER_NATIVECALL:     
-    if (runverbose)
+    if (opt_verbosecall)
       replace_patcher(cd, N_TRACENATIVECALL);
     else
       replace_patcher(cd, N_NATIVECALL);

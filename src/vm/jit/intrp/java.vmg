@@ -1709,7 +1709,7 @@ CLEAR_global_sp;
 if (!result)
   THROW0;
 STORE_ORDER_BARRIER();
-IP[-4] = runverbose ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
+IP[-4] = opt_verbosecall ? INST_ADDR(TRACENATIVECALL) : INST_ADDR(NATIVECALL);
 SET_IP(IP - 4);
 patchersuper_rewrite(IP);
 #else

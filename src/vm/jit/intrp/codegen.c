@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: codegen.c 4544 2006-02-21 13:43:27Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -344,7 +344,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}			
 #endif
 
-	if (runverbose)
+	if (opt_verbosecall)
 		gen_TRACECALL(cd, m);
 
 	gen_BBEND;
@@ -1497,7 +1497,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_MONITOREXIT(cd);
 			}
 #endif
-			if (runverbose)
+			if (opt_verbosecall)
 				gen_TRACERETURN(cd, m);
 
 			gen_IRETURN(cd, index2offset(cd->maxlocals));
@@ -1516,7 +1516,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_MONITOREXIT(cd);
 			}
 #endif
-			if (runverbose)
+			if (opt_verbosecall)
 				gen_TRACELRETURN(cd, m);
 
 			gen_LRETURN(cd, index2offset(cd->maxlocals));
@@ -1534,7 +1534,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				gen_MONITOREXIT(cd);
 			}
 #endif
-			if (runverbose)
+			if (opt_verbosecall)
 				gen_TRACERETURN(cd, m);
 
 			gen_RETURN(cd, index2offset(cd->maxlocals));
@@ -1965,13 +1965,13 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	gen_BBSTART;
 
-	if (runverbose)
+	if (opt_verbosecall)
 		gen_TRACECALL(cd, m);
 
 	if (f == NULL) {
 		gen_PATCHER_NATIVECALL(cd, m, f, (u1 *)cif);
 	} else {
-		if (runverbose)
+		if (opt_verbosecall)
 			gen_TRACENATIVECALL(cd, m, f, (u1 *)cif);
 		else
 			gen_NATIVECALL(cd, m, f, (u1 *)cif);

@@ -106,14 +106,43 @@ bool startit = true;
 /* define command line options ************************************************/
 
 enum {
+	/* Java options */
+
+	OPT_JAR,
+
+	OPT_D32,
+	OPT_D64,
+
 	OPT_CLASSPATH,
 	OPT_D,
+
+	OPT_VERBOSE,
+
+	OPT_VERSION,
+	OPT_SHOWVERSION,
+	OPT_FULLVERSION,
+
+	OPT_HELP,
+	OPT_X,
+
+	/* Java non-standard options */
+
+	OPT_JIT,
+	OPT_INTRP,
+
+	OPT_BOOTCLASSPATH,
+	OPT_BOOTCLASSPATH_A,
+	OPT_BOOTCLASSPATH_P,
+
+	OPT_PROF,
+	OPT_PROF_OPTION,
+
 	OPT_MS,
 	OPT_MX,
+
+	/* CACAO options */
+
 	OPT_VERBOSE1,
-	OPT_VERBOSE,
-	OPT_VERBOSESPECIFIC,
-	OPT_VERBOSECALL,
 	OPT_NOIEEE,
 	OPT_SOFTNULL,
 	OPT_TIME,
@@ -135,7 +164,6 @@ enum {
 	OPT_VERBOSETC,
 	OPT_NOVERIFY,
 	OPT_LIBERALUTF,
-	OPT_VERBOSEEXCEPTION,
 	OPT_EAGER,
 
 	/* optimization options */
@@ -147,23 +175,6 @@ enum {
 #if defined(ENABLE_LSRA)
 	OPT_LSRA,
 #endif
-
-	OPT_JAR,
-	OPT_BOOTCLASSPATH,
-	OPT_BOOTCLASSPATH_A,
-	OPT_BOOTCLASSPATH_P,
-	OPT_VERSION,
-	OPT_SHOWVERSION,
-	OPT_FULLVERSION,
-
-	OPT_HELP,
-	OPT_X,
-
-	OPT_JIT,
-	OPT_INTRP,
-
-	OPT_PROF,
-	OPT_PROF_OPTION,
 
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
@@ -188,17 +199,32 @@ enum {
 
 
 opt_struct opts[] = {
+	/* Java options */
+
+	{ "jar",               false, OPT_JAR },
+
+	{ "d32",               false, OPT_D32 },
+	{ "d64",               false, OPT_D64 },
+	{ "client",            false, OPT_IGNORE },
+	{ "server",            false, OPT_IGNORE },
+	{ "hotspot",           false, OPT_IGNORE },
+
 	{ "classpath",         true,  OPT_CLASSPATH },
 	{ "cp",                true,  OPT_CLASSPATH },
 	{ "D",                 true,  OPT_D },
+	{ "version",           false, OPT_VERSION },
+	{ "showversion",       false, OPT_SHOWVERSION },
+	{ "fullversion",       false, OPT_FULLVERSION },
+	{ "help",              false, OPT_HELP },
+	{ "?",                 false, OPT_HELP },
+	{ "X",                 false, OPT_X },
+
 	{ "noasyncgc",         false, OPT_IGNORE },
 	{ "noverify",          false, OPT_NOVERIFY },
 	{ "liberalutf",        false, OPT_LIBERALUTF },
 	{ "v",                 false, OPT_VERBOSE1 },
-	{ "verbose",           false, OPT_VERBOSE },
-	{ "verbose:",          true,  OPT_VERBOSESPECIFIC },
-	{ "verbosecall",       false, OPT_VERBOSECALL },
-	{ "verboseexception",  false, OPT_VERBOSEEXCEPTION },
+	{ "verbose:",          true,  OPT_VERBOSE },
+
 #ifdef TYPECHECK_VERBOSE
 	{ "verbosetc",         false, OPT_VERBOSETC },
 #endif
@@ -223,12 +249,6 @@ opt_struct opts[] = {
 #if defined(ENABLE_LSRA)
 	{ "lsra",              false, OPT_LSRA },
 #endif
-	{ "jar",               false, OPT_JAR },
-	{ "version",           false, OPT_VERSION },
-	{ "showversion",       false, OPT_SHOWVERSION },
-	{ "fullversion",       false, OPT_FULLVERSION },
-	{ "help",              false, OPT_HELP },
-	{ "?",                 false, OPT_HELP },
 
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
@@ -246,9 +266,8 @@ opt_struct opts[] = {
 	{ "agentpath:",        true,  OPT_AGENTPATH },
 #endif
 
-	/* X options */
+	/* Java non-standard options */
 
-	{ "X",                 false, OPT_X },
 	{ "Xjit",              false, OPT_JIT },
 	{ "Xint",              false, OPT_INTRP },
 	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
@@ -258,13 +277,13 @@ opt_struct opts[] = {
 	{ "Xdebug",            false, OPT_DEBUG },
 #endif 
 	{ "Xms",               true,  OPT_MS },
+	{ "ms",                true,  OPT_MS },
 	{ "Xmx",               true,  OPT_MX },
+	{ "mx",                true,  OPT_MX },
+	{ "Xss",               true,  OPT_SS },
+	{ "ss",                true,  OPT_SS },
 	{ "Xprof:",            true,  OPT_PROF_OPTION },
 	{ "Xprof",             false, OPT_PROF },
-	{ "Xss",               true,  OPT_SS },
-	{ "ms",                true,  OPT_MS },
-	{ "mx",                true,  OPT_MX },
-	{ "ss",                true,  OPT_SS },
 
 	/* keep these at the end of the list */
 
@@ -284,73 +303,76 @@ opt_struct opts[] = {
 
 void usage(void)
 {
-	printf("Usage: cacao [-options] classname [arguments]\n");
-	printf("               (to run a class file)\n");
-	printf("       cacao [-options] -jar jarfile [arguments]\n");
-	printf("               (to run a standalone jar file)\n\n");
+	puts("Usage: cacao [-options] classname [arguments]");
+	puts("               (to run a class file)");
+	puts("       cacao [-options] -jar jarfile [arguments]");
+	puts("               (to run a standalone jar file)\n");
 
-	printf("Java options:\n");
-	printf("    -cp <path>               specify a path to look for classes\n");
-	printf("    -classpath <path>        specify a path to look for classes\n");
-	printf("    -D<name>=<value>         add an entry to the property list\n");
-	printf("    -verbose[:class|gc|jni]  enable specific verbose output\n");
-	printf("    -version                 print product version and exit\n");
-	printf("    -fullversion             print jpackage-compatible product version and exit\n");
-	printf("    -showversion             print product version and continue\n");
-	printf("    -help, -?                print this help message\n");
-	printf("    -X                       print help on non-standard Java options\n\n");
+	puts("Java options:");
+	puts("    -d32                     use 32-bit data model if available");
+	puts("    -d64                     use 64-bit data model if available");
+	puts("    -client                  compatibility (currently ignored)");
+	puts("    -server                  compatibility (currently ignored)");
+	puts("    -hotspot                 compatibility (currently ignored)\n");
+
+	puts("    -cp <path>               specify a path to look for classes");
+	puts("    -classpath <path>        specify a path to look for classes");
+	puts("    -D<name>=<value>         add an entry to the property list");
+	puts("    -verbose[:class|gc|jni]  enable specific verbose output");
+	puts("    -version                 print product version and exit");
+	puts("    -fullversion             print jpackage-compatible product version and exit");
+	puts("    -showversion             print product version and continue");
+	puts("    -help, -?                print this help message");
+	puts("    -X                       print help on non-standard Java options\n");
 
 #ifdef ENABLE_JVMTI
-	printf("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent\n");
-	printf("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent\n");
+	puts("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent");
+	puts("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent");
 #endif
 
-	printf("CACAO options:\n");
-	printf("    -v                       write state-information\n");
-	printf("    -verbose                 write more information\n");
-	printf("    -verbosegc               write message for each GC\n");
-	printf("    -verbosecall             write message for each call\n");
-	printf("    -verboseexception        write message for each step of stack unwinding\n");
+	puts("CACAO options:\n");
+	puts("    -v                       write state-information");
+	puts("    -verbose[:call|exception]enable specific verbose output");
 #ifdef TYPECHECK_VERBOSE
-	printf("    -verbosetc               write debug messages while typechecking\n");
+	puts("    -verbosetc               write debug messages while typechecking");
 #endif
 #if defined(__ALPHA__)
-	printf("    -noieee                  don't use ieee compliant arithmetic\n");
+	puts("    -noieee                  don't use ieee compliant arithmetic");
 #endif
-	printf("    -noverify                don't verify classfiles\n");
-	printf("    -liberalutf              don't warn about overlong UTF-8 sequences\n");
-	printf("    -softnull                use software nullpointer check\n");
-	printf("    -time                    measure the runtime\n");
+	puts("    -noverify                don't verify classfiles");
+	puts("    -liberalutf              don't warn about overlong UTF-8 sequences");
+	puts("    -softnull                use software nullpointer check");
+	puts("    -time                    measure the runtime");
 #if defined(ENABLE_STATISTICS)
-	printf("    -stat                    detailed compiler statistics\n");
+	puts("    -stat                    detailed compiler statistics");
 #endif
-	printf("    -log logfile             specify a name for the logfile\n");
-	printf("    -c(heck)b(ounds)         don't check array bounds\n");
-	printf("            s(ync)           don't check for synchronization\n");
-	printf("    -oloop                   optimize array accesses in loops\n"); 
-	printf("    -l                       don't start the class after loading\n");
-	printf("    -eager                   perform eager class loading and linking\n");
-	printf("    -all                     compile all methods, no execution\n");
-	printf("    -m                       compile only a specific method\n");
-	printf("    -sig                     specify signature for a specific method\n");
-	printf("    -s(how)a(ssembler)       show disassembled listing\n");
-	printf("           c(onstants)       show the constant pool\n");
-	printf("           d(atasegment)     show data segment listing\n");
-	printf("           e(xceptionstubs)  show disassembled exception stubs (only with -sa)\n");
-	printf("           i(ntermediate)    show intermediate representation\n");
-	printf("           m(ethods)         show class fields and methods\n");
-	printf("           n(ative)          show disassembled native stubs\n");
-	printf("           u(tf)             show the utf - hash\n");
-	printf("    -i     n(line)           activate inlining\n");
-	printf("           v(irtual)         inline virtual methods (uses/turns rt option on)\n");
-	printf("           e(exception)      inline methods with exceptions\n");
-	printf("           p(aramopt)        optimize argument renaming\n");
-	printf("           o(utsiders)       inline methods of foreign classes\n");
+	puts("    -log logfile             specify a name for the logfile");
+	puts("    -c(heck)b(ounds)         don't check array bounds");
+	puts("            s(ync)           don't check for synchronization");
+	puts("    -oloop                   optimize array accesses in loops"); 
+	puts("    -l                       don't start the class after loading");
+	puts("    -eager                   perform eager class loading and linking");
+	puts("    -all                     compile all methods, no execution");
+	puts("    -m                       compile only a specific method");
+	puts("    -sig                     specify signature for a specific method");
+	puts("    -s(how)a(ssembler)       show disassembled listing");
+	puts("           c(onstants)       show the constant pool");
+	puts("           d(atasegment)     show data segment listing");
+	puts("           e(xceptionstubs)  show disassembled exception stubs (only with -sa)");
+	puts("           i(ntermediate)    show intermediate representation");
+	puts("           m(ethods)         show class fields and methods");
+	puts("           n(ative)          show disassembled native stubs");
+	puts("           u(tf)             show the utf - hash");
+	puts("    -i     n(line)           activate inlining");
+	puts("           v(irtual)         inline virtual methods (uses/turns rt option on)");
+	puts("           e(exception)      inline methods with exceptions");
+	puts("           p(aramopt)        optimize argument renaming");
+	puts("           o(utsiders)       inline methods of foreign classes");
 #if defined(ENABLE_IFCONV)
-	printf("    -ifconv                  use if-conversion\n");
+	puts("    -ifconv                  use if-conversion");
 #endif
 #if defined(ENABLE_LSRA)
-	printf("    -lsra                    use linear scan register allocation\n");
+	puts("    -lsra                    use linear scan register allocation");
 #endif
 
 	/* exit with error code */
@@ -362,23 +384,23 @@ void usage(void)
 static void Xusage(void)
 {
 #if defined(ENABLE_JIT)
-	printf("    -Xjit             JIT mode execution (default)\n");
+	puts("    -Xjit                    JIT mode execution (default)");
 #endif
 #if defined(ENABLE_INTRP)
-	printf("    -Xint             interpreter mode execution\n");
+	puts("    -Xint                    interpreter mode execution");
 #endif
-	printf("    -Xbootclasspath:<zip/jar files and directories separated by :>\n");
-    printf("                      value is set as bootstrap class path\n");
-	printf("    -Xbootclasspath/a:<zip/jar files and directories separated by :>\n");
-	printf("                      value is appended to the bootstrap class path\n");
-	printf("    -Xbootclasspath/p:<zip/jar files and directories separated by :>\n");
-	printf("                      value is prepended to the bootstrap class path\n");
-	printf("    -Xms<size>        set the initial size of the heap (default: 2MB)\n");
-	printf("    -Xmx<size>        set the maximum size of the heap (default: 64MB)\n");
-	printf("    -Xss<size>        set the thread stack size (default: 128kB)\n");
-	printf("    -Xprof[:bb]       collect and print profiling data\n");
+	puts("    -Xbootclasspath:<zip/jar files and directories separated by :>");
+    puts("                             value is set as bootstrap class path");
+	puts("    -Xbootclasspath/a:<zip/jar files and directories separated by :>");
+	puts("                             value is appended to the bootstrap class path");
+	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
+	puts("                             value is prepended to the bootstrap class path");
+	puts("    -Xms<size>               set the initial size of the heap (default: 2MB)");
+	puts("    -Xmx<size>               set the maximum size of the heap (default: 64MB)");
+	puts("    -Xss<size>               set the thread stack size (default: 128kB)");
+	puts("    -Xprof[:bb]              collect and print profiling data");
 #if defined(ENABLE_JVMTI)
-	printf("    -Xdebug<transport> enable remote debugging\n");
+	puts("    -Xdebug<transport>       enable remote debugging");
 #endif 
 
 	/* exit with error code */
@@ -395,28 +417,28 @@ static void Xusage(void)
 
 static void version(void)
 {
-	printf("java version \""JAVA_VERSION"\"\n");
-	printf("CACAO version "VERSION"\n");
+	puts("java version \""JAVA_VERSION"\"");
+	puts("CACAO version "VERSION"");
 
-	printf("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,\n");
-	printf("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,\n");
-	printf("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,\n");
-	printf("J. Wenninger, Institut f. Computersprachen - TU Wien\n\n");
+	puts("Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,");
+	puts("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,");
+	puts("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,");
+	puts("J. Wenninger, Institut f. Computersprachen - TU Wien\n");
 
-	printf("This program is free software; you can redistribute it and/or\n");
-	printf("modify it under the terms of the GNU General Public License as\n");
-	printf("published by the Free Software Foundation; either version 2, or (at\n");
-	printf("your option) any later version.\n\n");
+	puts("This program is free software; you can redistribute it and/or");
+	puts("modify it under the terms of the GNU General Public License as");
+	puts("published by the Free Software Foundation; either version 2, or (at");
+	puts("your option) any later version.\n");
 
-	printf("This program is distributed in the hope that it will be useful, but\n");
-	printf("WITHOUT ANY WARRANTY; without even the implied warranty of\n");
-	printf("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n");
-	printf("General Public License for more details.\n\n");
+	puts("This program is distributed in the hope that it will be useful, but");
+	puts("WITHOUT ANY WARRANTY; without even the implied warranty of");
+	puts("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU");
+	puts("General Public License for more details.\n");
 
-	printf("Configure/Build options:\n");
-	printf("  ./configure: "VERSION_CONFIGURE_ARGS"\n");
-	printf("  CC         : "VERSION_CC" ("__VERSION__")\n");
-	printf("  CFLAGS     : "VERSION_CFLAGS"\n");
+	puts("Configure/Build options:\n");
+	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+	puts("  CC         : "VERSION_CC" ("__VERSION__")");
+	puts("  CFLAGS     : "VERSION_CFLAGS"");
 }
 
 
@@ -429,7 +451,7 @@ static void version(void)
 
 static void fullversion(void)
 {
-	printf("java full version \"cacao-"JAVA_VERSION"\"\n");
+	puts("java full version \"cacao-"JAVA_VERSION"\"");
 
 	/* exit normally */
 
@@ -533,6 +555,48 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_IGNORE:
 			break;
 			
+		case OPT_JAR:
+			opt_jar = true;
+			break;
+
+		case OPT_D32:
+#if SIZEOF_VOID_P == 8
+			puts("Running a 32-bit JVM is not supported on this platform.");
+			exit(1);
+#endif
+			break;
+
+		case OPT_D64:
+#if SIZEOF_VOID_P == 4
+			puts("Running a 64-bit JVM is not supported on this platform.");
+			exit(1);
+#endif
+			break;
+
+		case OPT_CLASSPATH:
+			/* forget old classpath and set the argument as new classpath */
+			MFREE(classpath, char, strlen(classpath));
+
+			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
+			strcpy(classpath, opt_arg);
+			break;
+
+		case OPT_D:
+			for (j = 0; j < strlen(opt_arg); j++) {
+				if (opt_arg[j] == '=') {
+					opt_arg[j] = '\0';
+					properties_add(opt_arg, opt_arg + j + 1);
+					goto didit;
+				}
+			}
+
+			/* if no '=' is given, just create an empty property */
+
+			properties_add(opt_arg, "");
+					
+		didit:
+			break;
+
 		case OPT_BOOTCLASSPATH:
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
@@ -571,18 +635,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			MFREE(cp, char, cplen);
 			break;
 
-		case OPT_CLASSPATH:
-			/* forget old classpath and set the argument as new classpath */
-			MFREE(classpath, char, strlen(classpath));
-
-			classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(classpath, opt_arg);
-			break;
-
-		case OPT_JAR:
-			opt_jar = true;
-			break;
-
 #if defined(ENABLE_JVMTI)
 		case OPT_DEBUG:
 			dbg = true;
@@ -597,22 +649,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 			
-		case OPT_D:
-			for (j = 0; j < strlen(opt_arg); j++) {
-				if (opt_arg[j] == '=') {
-					opt_arg[j] = '\0';
-					properties_add(opt_arg, opt_arg + j + 1);
-					goto didit;
-				}
-			}
-
-			/* if no '=' is given, just create an empty property */
-
-			properties_add(opt_arg, "");
-					
-		didit:
-			break;
-
 		case OPT_MX:
 		case OPT_MS:
 		case OPT_SS:
@@ -643,14 +679,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_VERBOSE:
-			opt_verbose = true;
-			loadverbose = true;
-			linkverbose = true;
-			initverbose = true;
-			compileverbose = true;
-			break;
-
-		case OPT_VERBOSESPECIFIC:
 			if (strcmp("class", opt_arg) == 0)
 				opt_verboseclass = true;
 
@@ -659,10 +687,19 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			else if (strcmp("jni", opt_arg) == 0)
 				opt_verbosejni = true;
-			break;
 
-		case OPT_VERBOSEEXCEPTION:
-			opt_verboseexception = true;
+			else if (strcmp("call", opt_arg) == 0)
+				opt_verbosecall = true;
+
+			else if (strcmp("jit", opt_arg) == 0) {
+				opt_verbose = true;
+				loadverbose = true;
+				linkverbose = true;
+				initverbose = true;
+				compileverbose = true;
+			}
+			else if (strcmp("exception", opt_arg) == 0)
+				opt_verboseexception = true;
 			break;
 
 #ifdef TYPECHECK_VERBOSE
@@ -671,10 +708,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 				
-		case OPT_VERBOSECALL:
-			runverbose = true;
-			break;
-
 		case OPT_VERSION:
 			version();
 			exit(0);

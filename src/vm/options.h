@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4530 2006-02-21 09:11:53Z twisti $
+   $Id: options.h 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -76,8 +76,6 @@ extern bool opt_run;
 extern s4   opt_stacksize;
 extern bool opt_verbose;
 extern bool compileall;
-extern bool runverbose;
-extern bool opt_verboseexception;
 
 extern bool loadverbose;         /* Print debug messages during loading */
 extern bool linkverbose;
@@ -86,6 +84,8 @@ extern bool initverbose;         /* Log class initialization */
 extern bool opt_verboseclass;
 extern bool opt_verbosegc;
 extern bool opt_verbosejni;
+extern bool opt_verbosecall;
+extern bool opt_verboseexception;
 
 extern bool opt_liberalutf;      /* Don't check overlong UTF-8 sequences */
 

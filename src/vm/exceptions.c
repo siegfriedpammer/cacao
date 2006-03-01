@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4484 2006-02-12 00:25:12Z twisti $
+   $Id: exceptions.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -1184,20 +1184,9 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
-#if 0
- 	if (m != NULL) {
- 		printf("exceptions_handle_exception(%p, %p, %p, %p): ", xptr, xpc, pv, sp);
- 		utf_display(m->class->name);
- 		printf(".");
- 		utf_display(m->name);
- 		utf_display(m->descriptor);
- 		printf(", %d\n", exceptiontablelength);
- 	}
-#endif
-
 	/* print exception trace */
 
-	if (opt_verbose || runverbose || opt_verboseexception)
+	if (opt_verbose || opt_verbosecall || opt_verboseexception)
 		builtin_trace_exception(xptr, m, xpc, 1);
 
 	for (i = 0; i < exceptiontablelength; i++) {
@@ -1208,13 +1197,23 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 		/* is the xpc is the current catch range */
 
-		if (ex->startpc <= xpc && xpc < ex->endpc) {
+		if ((ex->startpc <= xpc) && (xpc < ex->endpc)) {
 			cr = ex->catchtype;
 
 			/* NULL catches everything */
 
-			if (cr.any == NULL)
+			if (cr.any == NULL) {
+#if !defined(NDEBUG)
+				/* Print stacktrace of exception when caught. */
+
+				if (opt_verboseexception) {
+					exceptions_print_exception(xptr);
+					stacktrace_print_trace(xptr);
+				}
+#endif
+
 				return ex->handlerpc;
+			}
 
 			/* resolve or load/link the exception class */
 
@@ -1237,8 +1236,18 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 			/* is the thrown exception an instance of the catch class? */
 
-			if (builtin_instanceof(xptr, c))
+			if (builtin_instanceof(xptr, c)) {
+#if !defined(NDEBUG)
+				/* Print stacktrace of exception when caught. */
+
+				if (opt_verboseexception) {
+					exceptions_print_exception(xptr);
+					stacktrace_print_trace(xptr);
+				}
+#endif
+
 				return ex->handlerpc;
+			}
 		}
 	}
 

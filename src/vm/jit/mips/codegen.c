@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -236,7 +236,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		s1 = rd->memuse;
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
@@ -267,7 +267,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_AST(rd->argintregs[0], REG_SP, s1 * 8);         /* branch delay */
 		}
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LLD(rd->argintregs[p], REG_SP, p * 8);
 
@@ -282,7 +282,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* copy argument registers to stack and call trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		M_LDA(REG_SP, REG_SP, -(2 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT) * 8);
 		M_AST(REG_RA, REG_SP, 1 * 8);
 
@@ -2743,7 +2743,7 @@ nowperformreturn:
 			
 			/* call trace function */
 
-			if (runverbose) {
+			if (opt_verbosecall) {
 				M_LDA(REG_SP, REG_SP, -3 * 8);
 				M_LST(REG_RA, REG_SP, 0 * 8);
 				M_LST(REG_RESULT, REG_SP, 1 * 8);
@@ -4139,7 +4139,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* call trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		M_LDA(REG_SP, REG_SP, -(1 + INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
 		/* save integer argument registers */
@@ -4335,7 +4335,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* call finished trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		if (IS_INT_LNG_TYPE(md->returntype.type))
 			M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		else

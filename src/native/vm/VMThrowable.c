@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: VMThrowable.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: VMThrowable.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -60,7 +60,7 @@
  * Method:    fillInStackTrace
  * Signature: (Ljava/lang/Throwable;)Ljava/lang/VMThrowable;
  */
-JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *par1)
+JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
 	java_lang_VMThrowable *o;
 	stacktracebuffer      *stb;

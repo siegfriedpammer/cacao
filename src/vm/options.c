@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: options.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -49,6 +49,8 @@
 s4    opt_index = 0;            /* index of processed arguments               */
 char *opt_arg;                  /* this one exports the option argument       */
 
+bool opt_jar = false;
+
 #if defined(ENABLE_JIT)
 bool opt_jit = true;            /* JIT mode execution (default)               */
 bool opt_intrp = false;         /* interpreter mode execution                 */
@@ -57,23 +59,22 @@ bool opt_jit = false;           /* JIT mode execution                         */
 bool opt_intrp = true;          /* interpreter mode execution (default)       */
 #endif
 
-bool opt_jar = false;
 bool opt_run = true;
 
 s4   opt_stacksize = 0;         /* thread stack size                          */
 
 bool opt_verbose = false;
 bool compileall = false;
-bool runverbose = false;        /* trace all method invocation                */
-bool opt_verboseexception = false;
 
 bool loadverbose = false;
 bool linkverbose = false;
 bool initverbose = false;
 
-bool opt_verboseclass = false;
-bool opt_verbosegc = false;
-bool opt_verbosejni = false;
+bool opt_verboseclass     = false;
+bool opt_verbosegc        = false;
+bool opt_verbosejni       = false;
+bool opt_verbosecall      = false;      /* trace all method invocation        */
+bool opt_verboseexception = false;
 
 bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences        */
 

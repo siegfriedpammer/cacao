@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMObject.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -144,9 +144,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-	if (runverbose)
-		log_text("java_lang_Object_notify called");
-
 #if defined(USE_THREADS)
 	signal_cond_for_object(&this->header);
 #endif
@@ -160,9 +157,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-	if (runverbose)
-		log_text("java_lang_Object_notifyAll called");
-
 #if defined(USE_THREADS)
 	broadcast_cond_for_object(&this->header);
 #endif
@@ -176,9 +170,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
 {
-	if (runverbose)
-		log_text("java_lang_VMObject_wait called");
-
 #if defined(USE_THREADS)
 	wait_cond_for_object(&o->header, ms, ns);
 #endif

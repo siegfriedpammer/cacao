@@ -29,7 +29,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: codegen.c 4537 2006-02-21 10:39:18Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -122,7 +122,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
     /* Keep stack of non-leaf functions 16-byte aligned for calls into native */
 	/* code e.g. libc or jni (alignment problems with movaps).                */
 
-	if (!m->isleafmethod || runverbose)
+	if (!m->isleafmethod || opt_verbosecall)
 		parentargs_base |= 0x1;
 
 	/* create method header */
@@ -257,7 +257,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		s1 = rd->memuse;
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
 
 			for (p = 0; p < INT_ARG_CNT; p++)
@@ -287,7 +287,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_CALL(REG_ITMP1);
 		}
 
-		if (runverbose) {
+		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LLD(rd->argintregs[p], REG_SP, p * 8);
 
@@ -302,7 +302,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* Copy argument registers to stack and call trace function with
 	   pointer to arguments on stack. */
 
-	if (runverbose || opt_stat) {
+	if (opt_verbosecall) {
 		M_LSUB_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
 
 		/* save integer argument registers */
@@ -325,28 +325,26 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				M_DST(rd->tmpfltregs[p], REG_SP, (1 + INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + p) * 8);
 		}
 
-		if (runverbose) {
-			/* show integer hex code for float arguments */
+		/* show integer hex code for float arguments */
 
-			for (p = 0, l = 0; p < md->paramcount && p < INT_ARG_CNT; p++) {
-				/* if the paramtype is a float, we have to right shift all    */
-				/* following integer registers                                */
+		for (p = 0, l = 0; p < md->paramcount && p < INT_ARG_CNT; p++) {
+			/* If the paramtype is a float, we have to right shift all
+			   following integer registers. */
 	
-				if (IS_FLT_DBL_TYPE(md->paramtypes[p].type)) {
-					for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
-						M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
-					}
-
-					x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
-					l++;
+			if (IS_FLT_DBL_TYPE(md->paramtypes[p].type)) {
+				for (s1 = INT_ARG_CNT - 2; s1 >= p; s1--) {
+					M_MOV(rd->argintregs[s1], rd->argintregs[s1 + 1]);
 				}
-			}
 
-			x86_64_mov_imm_reg(cd, (ptrint) m, REG_ITMP2);
-			x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, 0 * 8);
-			x86_64_mov_imm_reg(cd, (ptrint) builtin_trace_args, REG_ITMP1);
-			x86_64_call_reg(cd, REG_ITMP1);
+				x86_64_movd_freg_reg(cd, rd->argfltregs[l], rd->argintregs[p]);
+				l++;
+			}
 		}
+
+		M_MOV_IMM((ptrint) m, REG_ITMP2);
+		M_AST(REG_ITMP2, REG_SP, 0 * 8);
+		M_MOV_IMM((ptrint) builtin_trace_args, REG_ITMP1);
+		M_CALL(REG_ITMP1);
 
 		/* restore integer argument registers */
 
@@ -2965,7 +2963,7 @@ nowperformreturn:
   			p = parentargs_base;
 			
 			/* call trace function */
-			if (runverbose) {
+			if (opt_verbosecall) {
 				x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
 
 				x86_64_mov_reg_membase(cd, REG_RESULT, REG_SP, 0 * 8);
@@ -4276,7 +4274,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_ASUB_IMM(stackframesize * 8, REG_SP);
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		/* save integer and float argument registers */
 
 		for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++)
@@ -4436,7 +4434,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* generate call trace */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		/* just restore the value we need, don't care about the other */
 
 		if (md->returntype.type != TYPE_VOID) {

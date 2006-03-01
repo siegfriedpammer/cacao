@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
 
 */
 
@@ -300,7 +300,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		s1 = rd->memuse;
 
 #if 0
-		if (runverbose) {
+		if (opt_verbosecall) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT * 4 + FLT_ARG_CNT * 8));
 
 			for (p = 0; p < INT_ARG_CNT; p++)
@@ -336,7 +336,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		}
 
 #if 0
-		if (runverbose) {
+		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_ILD(rd->argintregs[p], REG_SP, p * 4);
 
@@ -352,10 +352,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* call trace function */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, parentargs_base, false);
 
-	} /* if (runverbose) */
+	}
 	}
 
 	/* end of header generation */
@@ -2461,7 +2461,7 @@ nowperformreturn:
 
 			/* call trace function */
 
-			if (runverbose) {
+			if (opt_verbosecall) {
 				M_MFLR(REG_ZERO);
 				M_LDA(REG_SP, REG_SP, -10 * 8);
 				M_DST(REG_FRESULT, REG_SP, 48+0);
@@ -3890,7 +3890,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_STWU(REG_SP, REG_SP, -(stackframesize * 4));
 
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		/* parent_argbase == stackframesize * 4 */
 		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, stackframesize * 4 , 
 									  true);
@@ -4086,7 +4086,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	/* print call trace */
 
-	if (runverbose) {
+	if (opt_verbosecall) {
 		 /* just restore the value we need, don't care about the other */
 
 		if (md->returntype.type != TYPE_VOID) {
