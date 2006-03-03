@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMClass.c 4495 2006-02-12 21:57:46Z edwin $
+   $Id: VMClass.c 4551 2006-03-03 00:00:39Z twisti $
 
 */
 
@@ -489,7 +489,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 		m = &c->methods[i];
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
-			((m->name != utf_init) && (m->name != utf_clinit)))
+			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			!(m->flags & ACC_MIRANDA))
 			public_methods++;
 	}
 
@@ -502,7 +503,8 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 		m = &c->methods[i];
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
-			((m->name != utf_init) && (m->name != utf_clinit))) {
+			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			!(m->flags & ACC_MIRANDA)) {
 
 			if (!(o = native_new_and_init(class_java_lang_reflect_Method)))
 				return NULL;

@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4529 2006-02-20 23:35:08Z twisti $
+   $Id: global.h 4551 2006-03-03 00:00:39Z twisti $
 
 */
 
@@ -197,6 +197,7 @@ typedef struct java_objectarray java_objectarray;
 #define ACC_SYNTHETIC       0x1000
 #define ACC_ANNOTATION      0x2000
 #define ACC_ENUM            0x4000
+#define ACC_MIRANDA         0x8000
 
 
 /* data structure for calls from c code to java methods */

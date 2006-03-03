@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4528 2006-02-20 23:31:39Z twisti $
+   $Id: linker.c 4551 2006-03-03 00:00:39Z twisti $
 
 */
 
@@ -617,7 +617,10 @@ static classinfo *link_class_intern(classinfo *c)
 	}	
 
 
-	/* check interfaces of ABSTRACT class for unimplemented methods */
+	/* Check all interfaces of an abtract class (maybe be an interface
+	   too) for unimplemented methods.  Such methods are called
+	   miranda-methods and are marked with the ACC_MIRANDA flag.
+	   VMClass.getDeclaredMethods does not return such methods. */
 
 	if (c->flags & ACC_ABSTRACT) {
 		classinfo  *ic;
@@ -628,6 +631,8 @@ static classinfo *link_class_intern(classinfo *c)
 
 		abstractmethodscount = 0;
 
+		/* check all interfaces of the abtract class */
+
 		for (i = 0; i < c->interfacescount; i++) {
 			ic = c->interfaces[i].cls;
 
@@ -636,18 +641,14 @@ static classinfo *link_class_intern(classinfo *c)
 
 				/* skip `<clinit>' and `<init>' */
 
-				if (im->name == utf_clinit || im->name == utf_init)
+				if ((im->name == utf_clinit) || (im->name == utf_init))
 					continue;
 
-				tc = c;
-
-				while (tc) {
+				for (tc = c; tc != NULL; tc = tc->super.cls) {
 					for (k = 0; k < tc->methodscount; k++) {
 						if (method_canoverwrite(im, &(tc->methods[k])))
 							goto noabstractmethod;
 					}
-
-					tc = tc->super.cls;
 				}
 
 				abstractmethodscount++;
@@ -673,27 +674,27 @@ static classinfo *link_class_intern(classinfo *c)
 
 					/* skip `<clinit>' and `<init>' */
 
-					if (im->name == utf_clinit || im->name == utf_init)
+					if ((im->name == utf_clinit) || (im->name == utf_init))
 						continue;
 
-					tc = c;
-
-					while (tc) {
+					for (tc = c; tc != NULL; tc = tc->super.cls) {
 						for (k = 0; k < tc->methodscount; k++) {
 							if (method_canoverwrite(im, &(tc->methods[k])))
 								goto noabstractmethod2;
 						}
-
-						tc = tc->super.cls;
 					}
+
+					/* Copy the method found into the new c->methods
+					   array and tag it as miranda-method. */
 
 					am = &(c->methods[c->methodscount]);
 					c->methodscount++;
 
 					MCOPY(am, im, methodinfo, 1);
 
-					am->vftblindex = (vftbllength++);
-					am->class = c;
+					am->vftblindex  = (vftbllength++);
+					am->class       = c;
+					am->flags      |= ACC_MIRANDA;
 
 				noabstractmethod2:
 					;
