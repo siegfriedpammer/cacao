@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: properties.c 4435 2006-02-04 23:59:54Z twisti $
+   $Id: properties.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -48,6 +48,7 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -168,7 +169,7 @@ void properties_system_add(char *key, char *value)
 	k = javastring_new_char(key);
 	v = javastring_new_char(value);
 
-	ASM_CALLJAVAFUNCTION(mput, psystem, k, v, NULL);
+	(void) vm_call_method_intern(mput, psystem, k, v, NULL);
 }
 
 

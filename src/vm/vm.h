@@ -58,6 +58,21 @@ extern char *mainstring;
 extern classinfo *mainclass;
 
 
+/* vm_arg **********************************************************************
+
+   Datastructure for arguments to call Java methods via vm_call_method
+   functions.
+
+*******************************************************************************/
+
+typedef struct vm_arg vm_arg;
+
+struct vm_arg {
+	u8 type;
+	u8 data;
+};
+
+
 /* function prototypes ********************************************************/
 
 void usage(void);
@@ -68,6 +83,19 @@ void vm_exit(s4 status);
 void vm_shutdown(s4 status);
 
 void vm_exit_handler(void);
+
+/* Java method calling functions */
+java_objectheader *vm_call_method_intern(methodinfo *m, void *a0, void *a1,
+										 void *a2, void *a3);
+
+s4 vm_call_method_intern_int(methodinfo *m, void *a0, void *a1, void *a2,
+							 void *a3);
+
+java_objectheader *vm_call_method(methodinfo *m, u4 count, vm_arg *vmargs);
+s4     vm_call_method_int(methodinfo *m, u4 count, vm_arg *vmargs);
+s8     vm_call_method_long(methodinfo *m, u4 count, vm_arg *vmargs);
+float  vm_call_method_float(methodinfo *m, u4 count, vm_arg *vmargs);
+double vm_call_method_double(methodinfo *m, u4 count, vm_arg *vmargs);
 
 #endif /* _VM_H */
 

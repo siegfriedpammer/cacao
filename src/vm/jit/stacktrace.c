@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4533 2006-02-21 09:25:16Z twisti $
+   $Id: stacktrace.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -68,6 +68,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
@@ -561,7 +562,7 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 
 	/* call function */
 
-	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
 
 	/* remove stackframeinfo */
 

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: exceptions.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -54,6 +54,7 @@
 #include "vm/loader.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
@@ -188,7 +189,7 @@ static void throw_exception_exit_intern(bool doexit)
 		/* print the stacktrace */
 
 		if (pss) {
-			ASM_CALLJAVAFUNCTION(pss, xptr, NULL, NULL, NULL);
+			(void) vm_call_method_intern(pss, xptr, NULL, NULL, NULL);
 
 			/* This normally means, we are EXTREMLY out of memory or have a   */
 			/* serious problem while printStackTrace. But may be another      */
@@ -962,20 +963,20 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 								 class_java_lang_Object,
 								 true);
 
-	if (!m)
+	if (m == NULL)
 		return *exceptionptr;
 
-	ASM_CALLJAVAFUNCTION_ADR(o, m, (void *) (ptrint) index, NULL, NULL, NULL);
+	o = vm_call_method_intern(m, (void *) (ptrint) index, NULL, NULL, NULL);
 
 	s = (java_lang_String *) o;
 
-	if (!s)
+	if (s == NULL)
 		return *exceptionptr;
 
 	e = new_exception_javastring(string_java_lang_ArrayIndexOutOfBoundsException,
 								 s);
 
-	if (!e)
+	if (e == NULL)
 		return *exceptionptr;
 
 	return e;

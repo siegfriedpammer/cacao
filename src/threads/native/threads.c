@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4534 2006-02-21 09:31:25Z twisti $
+   $Id: threads.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -630,8 +630,8 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	ASM_CALLJAVAFUNCTION(method, mainthread, mainthreadobj, threadname,
-						 (void *) 5);
+	(void) vm_call_method_intern(method, mainthread, mainthreadobj, threadname,
+								 (void *) 5);
 
 	if (*exceptionptr)
 		return false;
@@ -651,7 +651,7 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	ASM_CALLJAVAFUNCTION(method, threadgroup, mainthread, NULL, NULL);
+	(void) vm_call_method_intern(method, threadgroup, mainthread, NULL, NULL);
 
 	if (*exceptionptr)
 		return false;
@@ -781,7 +781,7 @@ static void *threads_startup_thread(void *t)
 		if (!method)
 			throw_exception();
 
-		ASM_CALLJAVAFUNCTION(method, thread, NULL, NULL, NULL);
+		(void) vm_call_method_intern(method, thread, NULL, NULL, NULL);
 
 	} 
 	else {

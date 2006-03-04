@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4541 2006-02-21 13:37:48Z twisti $
+   $Id: native.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
@@ -794,7 +795,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* call initializer */
 
-	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
 
 	return o;
 }
@@ -830,7 +831,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 
 	/* call initializer */
 
-	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
+	(void) vm_call_method_intern(m, o, s, NULL, NULL);
 
 	return o;
 }
@@ -862,7 +863,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* call initializer */
 
-	ASM_CALLJAVAFUNCTION(m, o, (void *) (ptrint) i, NULL, NULL);
+	(void) vm_call_method_intern(m, o, (void *) (ptrint) i, NULL, NULL);
 
 	return o;
 }
@@ -894,7 +895,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 
 	/* call initializer */
 
-	ASM_CALLJAVAFUNCTION(m, o, t, NULL, NULL);
+	(void) vm_call_method_intern(m, o, t, NULL, NULL);
 
 	return o;
 }

@@ -30,14 +30,15 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4487 2006-02-12 02:18:20Z edwin $
+   $Id: VMClassLoader.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <sys/stat.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -60,6 +61,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 #include "vm/zip.h"
 #include "vm/jit/asmpart.h"
 
@@ -396,9 +398,9 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 		/* if a resource was found, add it to the vector */
 
 		if (path) {
-			ASM_CALLJAVAFUNCTION_INT(ret, m, o, path, NULL, NULL);
+			ret = vm_call_method_intern_int(m, o, path, NULL, NULL);
 
-			if (!ret)
+			if (ret == 0)
 				return NULL;
 		}
 	}

@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4542 2006-02-21 13:39:51Z twisti $
+   $Id: cacao.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -110,7 +110,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
 
 	/* configure(transport,NULL) */
 	m = class_resolveclassmethod(
@@ -122,7 +122,7 @@ static void setup_debugger_process(char* transport) {
 
 	s = javastring_new_char(transport);
 
-	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
+	(void) vm_call_method_intern(m, o, s, NULL, NULL);
 
 	if (!m)
 		throw_main_exception_exit();
@@ -137,7 +137,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	ASM_CALLJAVAFUNCTION(m, o, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
 }
 #endif
 
@@ -179,7 +179,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char(mainstring);
 
-	ASM_CALLJAVAFUNCTION(m, o, s, NULL, NULL);
+	(void) vm_call_method_intern(m, o, s, NULL, NULL);
 
 	if (*exceptionptr)
 		throw_main_exception_exit();
@@ -195,7 +195,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
+	o = vm_call_method_intern(m, o, NULL, NULL, NULL);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -214,7 +214,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	ASM_CALLJAVAFUNCTION_ADR(o, m, o, NULL, NULL, NULL);
+	o = vm_call_method_intern(m, o, NULL, NULL, NULL);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -235,7 +235,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char("Main-Class");
 
-	ASM_CALLJAVAFUNCTION_ADR(o, m, o, s, NULL, NULL);
+	o = vm_call_method_intern(m, o, s, NULL, NULL);
 
 	if (!o)
 		throw_main_exception_exit();
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 										  &jvmti_jdwp_EventCallbacks,
 										  sizeof(jvmti_jdwp_EventCallbacks))){
 						log_text("unable to setup event callbacks");
-						cacao_exit(1);						
+						vm_exit(1);
 					}
 
 					/* setup listening process (JDWP) */
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
 #endif
 		/* here we go... */
 
-		ASM_CALLJAVAFUNCTION(m, oa, NULL, NULL, NULL);
+		(void) vm_call_method_intern(m, oa, NULL, NULL, NULL);
 
 		/* exception occurred? */
 

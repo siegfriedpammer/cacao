@@ -28,20 +28,23 @@
 
    Changes:
 
-   $Id: genoffsets.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: genoffsets.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdio.h>
 
 #include "vm/types.h"
 
-#include "vm/global.h"
 #include "mm/memory.h"
+#include "vm/class.h"
+#include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/method.h"
-#include "vm/class.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
@@ -52,7 +55,7 @@ int main(int argc, char **argv)
 
     printf("/* define some sizeof()'s */\n\n");
 
-	printf("#define sizejniblock               %3d\n", (s4) sizeof(jni_callblock));
+	printf("#define sizevmarg                  %3d\n", (s4) sizeof(vm_arg));
 	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
 
     printf("\n\n/* define some offsets */\n\n");
@@ -69,8 +72,8 @@ int main(int argc, char **argv)
 	printf("#define offclassvftbl              %3d\n", (s4) OFFSET(classinfo, vftbl));
 	printf("\n\n");
 
-	printf("#define offjniitemtype             %3d\n", (s4) OFFSET(jni_callblock, itemtype));
-	printf("#define offjniitem                 %3d\n", (s4) OFFSET(jni_callblock, item));
+	printf("#define offvmargtype               %3d\n", (s4) OFFSET(vm_arg, type));
+	printf("#define offvmargdata               %3d\n", (s4) OFFSET(vm_arg, data));
 	printf("\n\n");
 
 	printf("#define offcast_super_baseval      %3d\n", (s4) OFFSET(castinfo, super_baseval));

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4540 2006-02-21 13:35:53Z twisti $
+   $Id: loader.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -69,6 +69,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 
 #if defined(ENABLE_ZLIB)
 # include "vm/zip.h"
@@ -1423,7 +1424,7 @@ classinfo *load_class_from_sysloader(utf *name)
 	if (!m)
 		return false;
 
-	ASM_CALLJAVAFUNCTION_ADR(cl, m, NULL, NULL, NULL, NULL);
+	cl = vm_call_method_intern(m, NULL, NULL, NULL, NULL);
 
 	if (!cl)
 		return false;
@@ -1552,7 +1553,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		s = javastring_new_slash_to_dot(name);
 
-		ASM_CALLJAVAFUNCTION_ADR(o, lc, cl, s, NULL, NULL);
+		o = vm_call_method_intern(lc, cl, s, NULL, NULL);
 
 		c = (classinfo *) o;
 

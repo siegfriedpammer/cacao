@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4551 2006-03-03 00:00:39Z twisti $
+   $Id: global.h 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -198,16 +198,6 @@ typedef struct java_objectarray java_objectarray;
 #define ACC_ANNOTATION      0x2000
 #define ACC_ENUM            0x4000
 #define ACC_MIRANDA         0x8000
-
-
-/* data structure for calls from c code to java methods */
-
-struct jni_callblock {
-	u8 itemtype;
-	u8 item;
-};
-
-typedef struct jni_callblock jni_callblock;
 
 
 /* data structures of the runtime system **************************************/

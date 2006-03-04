@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 4530 2006-02-21 09:11:53Z twisti $
+   $Id: asmpart.S 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -196,25 +196,25 @@ L_asm_calljavafunction2:                /* required for PIC code              */
 	jle     L_copy_done
 
 	mov     a1,itmp3                    /* arg count                          */
-	mov     a3,itmp2                    /* pointer to arg block               */
+	mov     a2,itmp2                    /* pointer to arg block               */
 
 	mov     itmp2,%r14                  /* save argument block pointer        */
 	mov     itmp3,%r15                  /* save argument count                */
 
-	sub     $sizejniblock,itmp2         /* initialize pointer (smaller code)  */
+	sub     $sizevmarg,itmp2            /* initialize pointer (smaller code)  */
 	add     $1,itmp3                    /* initialize argument count          */
 	xor     %r12,%r12                   /* initialize integer argument counter*/
 	xor     %r13,%r13                   /* initialize float argument counter  */
 
 L_register_copy:
-	add     $sizejniblock,itmp2       /* goto next argument block             */
-	dec     itmp3                     /* argument count - 1                   */
+	add     $sizevmarg,itmp2            /* goto next argument block           */
+	dec     itmp3                       /* argument count - 1                 */
 	jz      L_register_copy_done
-	andb    $0x02,offjniitemtype(itmp2) /* is this a float/double type?       */
-	jnz     L_register_handle_float   /* yes, handle it                       */
+	andb    $0x02,offvmargtype(itmp2)   /* is this a float/double type?       */
+	jnz     L_register_handle_float     /* yes, handle it                     */
 
-	cmp     $INT_ARG_CNT,%r12         /* are we out of integer argument       */
-	je      L_register_copy           /* register? yes, next loop             */
+	cmp     $INT_ARG_CNT,%r12           /* are we out of integer argument     */
+	je      L_register_copy             /* register? yes, next loop           */
 
 	lea     jumptable_integer(%rip),%rbp
 	mov     0(%rbp,%r12,8),%rbx
@@ -238,31 +238,31 @@ L_register_copy_done:
 
 	and     $0xfffffffffffffffe,%rbp  /* keep stack 16-byte aligned           */
 	shl     $3,%rbp                   /* calculate stack size                 */
-	sub     %rbp,sp                 /* stack frame for arguments            */
-	mov     sp,%rbx                 /* use %rbx as temp sp                  */
+	sub     %rbp,sp                   /* stack frame for arguments            */
+	mov     sp,%rbx                   /* use %rbx as temp sp                  */
 
-	sub     $sizejniblock,%r14        /* initialize pointer (smaller code)    */
+	sub     $sizevmarg,%r14           /* initialize pointer (smaller code)    */
 	add     $1,%r15                   /* initialize argument count            */
 		
 L_stack_copy_loop:
-	add     $sizejniblock,%r14        /* goto next argument block             */
+	add     $sizevmarg,%r14           /* goto next argument block             */
 	dec     %r15                      /* are there any arguments left?        */
 	jz      L_copy_done               /* no test needed after dec             */
 
-	andb    $0x02,offjniitemtype(%r14) /* is this a float/double type?        */
+	andb    $0x02,offvmargtype(%r14)    /* is this a float/double type?       */
 	jnz     L_stack_handle_float
-	dec     %r12                      /* arguments assigned to registers      */
+	dec     %r12                        /* arguments assigned to registers    */
 	jge     L_stack_copy_loop
 	jmp     L_stack_copy
 
 L_stack_handle_float:
-	dec     %r13                      /* arguments assigned to registers      */
+	dec     %r13                        /* arguments assigned to registers    */
 	jge     L_stack_copy_loop
 
 L_stack_copy:
-    mov     offjniitem(%r14),itmp3    /* copy s8 argument onto stack          */
-    mov     itmp3,0(%rbx)
-    add     $8,%rbx                   /* increase sp to next argument         */
+	mov     offvmargdata(%r14),itmp3    /* copy s8 argument onto stack        */
+	mov     itmp3,0(%rbx)
+	add     $8,%rbx                     /* increase sp to next argument       */
 	jmp     L_stack_copy_loop
 
 L_copy_done:
@@ -298,22 +298,22 @@ jumptable_integer:
 	.quad   handle_a5
 
 handle_a0:
-	mov     offjniitem(itmp2),a0
+	mov     offvmargdata(itmp2),a0
 	jmp     L_register_copy
 handle_a1:
-	mov     offjniitem(itmp2),a1
+	mov     offvmargdata(itmp2),a1
 	jmp     L_register_copy
 handle_a2:
-	mov     offjniitem(itmp2),a2
+	mov     offvmargdata(itmp2),a2
 	jmp     L_register_copy
 handle_a3:
-	mov     offjniitem(itmp2),a3
+	mov     offvmargdata(itmp2),a3
 	jmp     L_register_copy
 handle_a4:
-	mov     offjniitem(itmp2),a4
+	mov     offvmargdata(itmp2),a4
 	jmp     L_register_copy
 handle_a5:
-	mov     offjniitem(itmp2),a5
+	mov     offvmargdata(itmp2),a5
 	jmp     L_register_copy
 
 
@@ -328,28 +328,28 @@ jumptable_float:
 	.quad   handle_fa7
 
 handle_fa0:
-	movq    offjniitem(itmp2),fa0
+	movq    offvmargdata(itmp2),fa0
 	jmp     L_register_copy
 handle_fa1:
-	movq    offjniitem(itmp2),fa1
+	movq    offvmargdata(itmp2),fa1
 	jmp     L_register_copy
 handle_fa2:
-	movq    offjniitem(itmp2),fa2
+	movq    offvmargdata(itmp2),fa2
 	jmp     L_register_copy
 handle_fa3:
-	movq    offjniitem(itmp2),fa3
+	movq    offvmargdata(itmp2),fa3
 	jmp     L_register_copy
 handle_fa4:
-	movq    offjniitem(itmp2),fa4
+	movq    offvmargdata(itmp2),fa4
 	jmp     L_register_copy
 handle_fa5:
-	movq    offjniitem(itmp2),fa5
+	movq    offvmargdata(itmp2),fa5
 	jmp     L_register_copy
 handle_fa6:
-	movq    offjniitem(itmp2),fa6
+	movq    offvmargdata(itmp2),fa6
 	jmp     L_register_copy
 handle_fa7:
-	movq    offjniitem(itmp2),fa7
+	movq    offvmargdata(itmp2),fa7
 	jmp     L_register_copy
 
 
@@ -455,7 +455,7 @@ L_asm_call_jit_compiler_exception:
 	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
-	lea     _no_threads_exceptionptr,itmp2
+	lea     _no_threads_exceptionptr(%rip),itmp2
 #endif
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear exception pointer            */
@@ -674,7 +674,7 @@ L_asm_wrapper_patcher_exception:
 	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
-	lea     _no_threads_exceptionptr,itmp2
+	mov     _no_threads_exceptionptr,itmp2
 #endif
 	mov     (itmp2),xptr                /* get the exception pointer          */
 	movl    $0,(itmp2)                  /* clear exception pointer            */

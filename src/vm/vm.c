@@ -64,6 +64,7 @@
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/profile/profile.h"
 
@@ -1201,7 +1202,7 @@ void vm_exit(s4 status)
 
 	/* call the exit function with passed exit status */
 
-	ASM_CALLJAVAFUNCTION(m, (void *) (ptrint) status, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, (void *) (ptrint) status, NULL, NULL, NULL);
 
 	/* this should never happen */
 
@@ -1284,6 +1285,190 @@ void vm_exit_handler(void)
 #endif
 	}
 	/* vm_print_profile(stderr);*/
+}
+
+
+/* vm_call_method_intern *******************************************************
+
+   Calls a Java method with a fixed number of arguments (namely 4) and
+   returns an address.
+
+*******************************************************************************/
+
+java_objectheader *vm_call_method_intern(methodinfo *m, void *a0, void *a1,
+										 void *a2, void *a3)
+{
+	java_objectheader *o;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		o = intrp_asm_calljavafunction(m, a0, a1, a2, a3);
+	else
+# endif
+		o = asm_calljavafunction(m, a0, a1, a2, a3);
+#else
+	o = intrp_asm_calljavafunction(m, a0, a1, a2, a3);
+#endif
+
+	return o;
+}
+
+
+/* vm_call_method_intern_int ***************************************************
+
+   Calls a Java method with a fixed number of arguments (namely 4) and
+   returns an integer (s4).
+
+*******************************************************************************/
+
+s4 vm_call_method_intern_int(methodinfo *m, void *a0, void *a1, void *a2,
+							 void *a3)
+{
+	s4 i;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		i = intrp_asm_calljavafunction_int(m, a0, a1, a2, a3);
+	else
+# endif
+		i = asm_calljavafunction_int(m, a0, a1, a2, a3);
+#else
+	i = intrp_asm_calljavafunction_int(m, a0, a1, a2, a3);
+#endif
+
+	return i;
+}
+
+
+/* vm_call_method **************************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   an address.
+
+*******************************************************************************/
+
+java_objectheader *vm_call_method(methodinfo *m, u4 count, vm_arg *vmargs)
+{
+	java_objectheader *o;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		o = intrp_asm_calljavafunction2(m, count, vmargs);
+	else
+# endif
+		o = asm_calljavafunction2(m, count, vmargs);
+#else
+	o = intrp_asm_calljavafunction(m, count, vmargs);
+#endif
+
+	return o;
+}
+
+
+/* vm_call_method_int **********************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   an integer (s4).
+
+*******************************************************************************/
+
+s4 vm_call_method_int(methodinfo *m, u4 count, vm_arg *vmargs)
+{
+	s4 i;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		i = intrp_asm_calljavafunction2int(m, count, vmargs);
+	else
+# endif
+		i = asm_calljavafunction2int(m, count, vmargs);
+#else
+	i = intrp_asm_calljavafunction2int(m, count, vmargs);
+#endif
+
+	return i;
+}
+
+
+/* vm_call_method_long *********************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   a long (s8).
+
+*******************************************************************************/
+
+s8 vm_call_method_long(methodinfo *m, u4 count, vm_arg *vmargs)
+{
+	s8 l;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		l = intrp_asm_calljavafunction2long(m, count, vmargs);
+	else
+# endif
+		l = asm_calljavafunction2long(m, count, vmargs);
+#else
+	l = intrp_asm_calljavafunction2long(m, count, vmargs);
+#endif
+
+	return l;
+}
+
+
+/* vm_call_method_float ********************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   an float.
+
+*******************************************************************************/
+
+float vm_call_method_float(methodinfo *m, u4 count, vm_arg *vmargs)
+{
+	float f;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		f = intrp_asm_calljavafunction2float(m, count, vmargs);
+	else
+# endif
+		f = asm_calljavafunction2float(m, count, vmargs);
+#else
+	f = intrp_asm_calljavafunction2float(m, count, vmargs);
+#endif
+
+	return f;
+}
+
+
+/* vm_call_method_double *******************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   a double.
+
+*******************************************************************************/
+
+double vm_call_method_double(methodinfo *m, u4 count, vm_arg *vmargs)
+{
+	double d;
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		d = intrp_asm_calljavafunction2double(m, count, vmargs);
+	else
+# endif
+		d = asm_calljavafunction2double(m, count, vmargs);
+#else
+	d = intrp_asm_calljavafunction2double(m, count, vmargs);
+#endif
+
+	return d;
 }
 
 

@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: initialize.c 4552 2006-03-04 17:15:44Z twisti $
 
 */
 
@@ -50,6 +50,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -205,7 +206,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* now call the initializer */
 
-	ASM_CALLJAVAFUNCTION(m, NULL, NULL, NULL, NULL);
+	(void) vm_call_method_intern(m, NULL, NULL, NULL, NULL);
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);
