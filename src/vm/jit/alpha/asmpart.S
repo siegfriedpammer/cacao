@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4538 2006-02-21 10:47:20Z twisti $
+   $Id: asmpart.S 4555 2006-03-04 18:35:31Z twisti $
 
 */
 
@@ -220,38 +220,38 @@ asm_calljavafunction2double:
 
 	stq     a0,4*8(sp)                /* save method pointer for compiler     */
 
-	mov     a3,t0                     /* pointer to arg block                 */
+	mov     a2,t0                     /* pointer to arg block                 */
 	mov     a1,s6                     /* arg count                            */
 
 	ble     s6,calljava_argsloaded
 	lda     s6,-1(s6)
-	ldq     a0,offjniitem(t0)
-	ldt     $f16,offjniitem(t0)
+	ldq     a0,offvmargdata(t0)
+	ldt     $f16,offvmargdata(t0)
 	ble     s6,calljava_argsloaded
 
 	lda     s6,-1(s6)
-	ldq     a1,offjniitem+sizejniblock*1(t0)
-	ldt     $f17,offjniitem+sizejniblock*1(t0)
+	ldq     a1,offvmargdata+sizevmarg*1(t0)
+	ldt     $f17,offvmargdata+sizevmarg*1(t0)
 	ble     s6,calljava_argsloaded
 
 	lda     s6,-1(s6)
-	ldq     a2,offjniitem+sizejniblock*2(t0)
-	ldt     $f18,offjniitem+sizejniblock*2(t0)
+	ldq     a2,offvmargdata+sizevmarg*2(t0)
+	ldt     $f18,offvmargdata+sizevmarg*2(t0)
 	ble     s6,calljava_argsloaded
 
 	lda     s6,-1(s6)
-	ldq     a3,offjniitem+sizejniblock*3(t0)
-	ldt     $f19,offjniitem+sizejniblock*3(t0)
+	ldq     a3,offvmargdata+sizevmarg*3(t0)
+	ldt     $f19,offvmargdata+sizevmarg*3(t0)
 	ble     s6,calljava_argsloaded
 
 	lda     s6,-1(s6)
-	ldq     a4,offjniitem+sizejniblock*4(t0)
-	ldt     $f20,offjniitem+sizejniblock*4(t0)
+	ldq     a4,offvmargdata+sizevmarg*4(t0)
+	ldt     $f20,offvmargdata+sizevmarg*4(t0)
 	ble     s6,calljava_argsloaded
 
 	lda     s6,-1(s6)
-	ldq     a5,offjniitem+sizejniblock*5(t0)
-	ldt     $f21,offjniitem+sizejniblock*5(t0)
+	ldq     a5,offvmargdata+sizevmarg*5(t0)
+	ldt     $f21,offvmargdata+sizevmarg*5(t0)
 calljava_argsloaded:
 	mov     sp,t4
 	ble     s6,calljava_nocopy
@@ -260,10 +260,10 @@ calljava_argsloaded:
 	s8addq  t1,t4,t2
 
 calljava_copyloop:
-	ldq     t3,offjniitem+sizejniblock*6(t0)
+	ldq     t3,offvmargdata+sizevmarg*6(t0)
 	stq     t3,0(t2)
 	lda     t1,1(t1)
-	lda     t0,sizejniblock(t0)
+	lda     t0,sizevmarg(t0)
 	lda     t2,8(t2)
 	bne     t1,calljava_copyloop
 
