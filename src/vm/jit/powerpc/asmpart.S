@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4539 2006-02-21 12:41:30Z twisti $
+   $Id: asmpart.S 4554 2006-03-04 18:01:53Z twisti $
 
 */
 
@@ -271,21 +271,25 @@ L_asm_calljavafunction2:              /* required for PIC code                */
 
 	stw     a0,9*4(r1)                /* save method pointer for compiler     */
 
-	mr      itmp1,r6                  /* pointer to arg block                 */
+	mr      itmp1,r5                  /* pointer to arg block                 */
 	mr      itmp2,r4                  /* arg count                            */
 
-	addi    itmp1,itmp1,-sizejniblock /* initialize pointer (smaller code)    */
+	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
 	addi    itmp2,itmp2,1             /* initialize argument count            */
 	li      r17,0                     /* initialize integer argument counter  */
 	li      r18,0                     /* initialize float argument counter    */
 
 L_register_copy:
-	addi    itmp1,itmp1,sizejniblock  /* goto next argument block             */
+	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
 	addi    itmp2,itmp2,-1            /* argument count - 1                   */
 	mr.     itmp2,itmp2
 	beq     L_register_copy_done
 
-	lwz     itmp3,offjniitemtype+4(itmp1)
+#if WORDS_BIGENDIAN == 1
+	lwz     itmp3,offvmargtype+4(itmp1)
+#else
+#error XXX
+#endif
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_register_handle_float
 
@@ -407,28 +411,28 @@ jumptable_int:
 	.long   L_handle_a7
 
 L_handle_a0:
-	lwz     a0,offjniitem+4(itmp1)
+	lwz     a0,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a1:
-	lwz     a1,offjniitem+4(itmp1)
+	lwz     a1,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a2:
-	lwz     a2,offjniitem+4(itmp1)
+	lwz     a2,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a3:
-	lwz     a3,offjniitem+4(itmp1)
+	lwz     a3,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a4:
-	lwz     a4,offjniitem+4(itmp1)
+	lwz     a4,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a5:
-	lwz     a5,offjniitem+4(itmp1)
+	lwz     a5,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a6:
-	lwz     a6,offjniitem+4(itmp1)
+	lwz     a6,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a7:
-	lwz     a7,offjniitem+4(itmp1)
+	lwz     a7,offvmargdata+4(itmp1)
 	b       L_register_copy
 
 
@@ -449,20 +453,20 @@ jumptable_long:
 #endif
 
 L_handle_a0_a1:
-	lwz     a0,offjniitem+0(itmp1)
-	lwz     a1,offjniitem+4(itmp1)
+	lwz     a0,offvmargdata+0(itmp1)
+	lwz     a1,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a2_a3:
-	lwz     a2,offjniitem+0(itmp1)
-	lwz     a3,offjniitem+4(itmp1)
+	lwz     a2,offvmargdata+0(itmp1)
+	lwz     a3,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a4_a5:
-	lwz     a4,offjniitem+0(itmp1)
-	lwz     a5,offjniitem+4(itmp1)
+	lwz     a4,offvmargdata+0(itmp1)
+	lwz     a5,offvmargdata+4(itmp1)
 	b       L_register_copy
 L_handle_a6_a7:
-	lwz     a6,offjniitem+0(itmp1)
-	lwz     a7,offjniitem+4(itmp1)
+	lwz     a6,offvmargdata+0(itmp1)
+	lwz     a7,offvmargdata+4(itmp1)
 	b       L_register_copy
 
 
