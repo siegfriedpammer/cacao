@@ -1202,7 +1202,7 @@ void vm_exit(s4 status)
 
 	/* call the exit function with passed exit status */
 
-	(void) vm_call_method_intern(m, (void *) (ptrint) status, NULL, NULL, NULL);
+	(void) vm_call_method(m, NULL, (void *) (ptrint) status);
 
 	/* this should never happen */
 
@@ -1288,57 +1288,142 @@ void vm_exit_handler(void)
 }
 
 
-/* vm_call_method_intern *******************************************************
+/* vm_vmargs_from_valist *******************************************************
 
-   Calls a Java method with a fixed number of arguments (namely 4) and
-   returns an address.
+   XXX
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method_intern(methodinfo *m, void *a0, void *a1,
-										 void *a2, void *a3)
+static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
+								  vm_arg *vmargs, va_list ap)
 {
-	java_objectheader *o;
+	typedesc *paramtypes;
+	s4        i;
 
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		o = intrp_asm_calljavafunction(m, a0, a1, a2, a3);
-	else
-# endif
-		o = asm_calljavafunction(m, a0, a1, a2, a3);
+	paramtypes = m->parseddesc->paramtypes;
+
+	/* if method is non-static fill first block and skip `this' pointer */
+
+	i = 0;
+
+	if (o != NULL) {
+		/* the `this' pointer */
+		vmargs[0].type = TYPE_ADR;
+		vmargs[0].data = (u8) (ptrint) o;
+
+		paramtypes++;
+		i++;
+	} 
+
+	for (; i < m->parseddesc->paramcount; i++, paramtypes++) {
+		switch (paramtypes->decltype) {
+		/* primitive types */
+		case PRIMITIVETYPE_BOOLEAN: 
+		case PRIMITIVETYPE_BYTE:
+		case PRIMITIVETYPE_CHAR:
+		case PRIMITIVETYPE_SHORT: 
+		case PRIMITIVETYPE_INT:
+			vmargs[i].type = TYPE_INT;
+			vmargs[i].data = (s8) va_arg(ap, s4);
+			break;
+
+		case PRIMITIVETYPE_LONG:
+			vmargs[i].type = TYPE_LNG;
+			vmargs[i].data = (s8) va_arg(ap, s8);
+			break;
+
+		case PRIMITIVETYPE_FLOAT:
+			vmargs[i].type = TYPE_FLT;
+#if defined(__ALPHA__)
+			/* this keeps the assembler function much simpler */
+
+			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
 #else
-	o = intrp_asm_calljavafunction(m, a0, a1, a2, a3);
+			*((jfloat *) (&vmargs[i].data)) = (jfloat) va_arg(ap, jdouble);
 #endif
+			break;
 
-	return o;
+		case PRIMITIVETYPE_DOUBLE:
+			vmargs[i].type = TYPE_DBL;
+			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
+			break;
+
+		case TYPE_ADR: 
+			vmargs[i].type = TYPE_ADR;
+			vmargs[i].data = (u8) (ptrint) va_arg(ap, void*);
+			break;
+		}
+	}
 }
 
 
-/* vm_call_method_intern_int ***************************************************
+/* vm_vmargs_from_jvalue *******************************************************
 
-   Calls a Java method with a fixed number of arguments (namely 4) and
-   returns an integer (s4).
+   XXX
 
 *******************************************************************************/
 
-s4 vm_call_method_intern_int(methodinfo *m, void *a0, void *a1, void *a2,
-							 void *a3)
+static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
+								  vm_arg *vmargs, jvalue *args)
 {
-	s4 i;
+	typedesc *paramtypes;
+	s4        i;
+	s4        j;
 
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		i = intrp_asm_calljavafunction_int(m, a0, a1, a2, a3);
-	else
-# endif
-		i = asm_calljavafunction_int(m, a0, a1, a2, a3);
+	paramtypes = m->parseddesc->paramtypes;
+
+	/* if method is non-static fill first block and skip `this' pointer */
+
+	i = 0;
+
+	if (o != NULL) {
+		/* the `this' pointer */
+		vmargs[0].type = TYPE_ADR;
+		vmargs[0].data = (u8) (ptrint) o;
+
+		paramtypes++;
+		i++;
+	} 
+
+	for (j = 0; i < m->parseddesc->paramcount; i++, j++, paramtypes++) {
+		switch (paramtypes->decltype) {
+		/* primitive types */
+		case PRIMITIVETYPE_BOOLEAN: 
+		case PRIMITIVETYPE_BYTE:
+		case PRIMITIVETYPE_CHAR:
+		case PRIMITIVETYPE_SHORT: 
+		case PRIMITIVETYPE_INT:
+			vmargs[i].type = TYPE_INT;
+			vmargs[i].data = (s8) args[j].i;
+			break;
+
+		case PRIMITIVETYPE_LONG:
+			vmargs[i].type = TYPE_LNG;
+			vmargs[i].data = (s8) args[j].j;
+			break;
+
+		case PRIMITIVETYPE_FLOAT:
+			vmargs[i].type = TYPE_FLT;
+#if defined(__ALPHA__)
+			/* this keeps the assembler function much simpler */
+
+			*((jdouble *) (&vmargs[i].data)) = (jdouble) args[j].f;
 #else
-	i = intrp_asm_calljavafunction_int(m, a0, a1, a2, a3);
+			*((jfloat *) (&vmargs[i].data)) = args[j].f;
 #endif
+			break;
 
-	return i;
+		case PRIMITIVETYPE_DOUBLE:
+			vmargs[i].type = TYPE_DBL;
+			*((jdouble *) (&vmargs[i].data)) = args[j].d;
+			break;
+
+		case TYPE_ADR: 
+			vmargs[i].type = TYPE_ADR;
+			vmargs[i].data = (u8) (ptrint) args[j].l;
+			break;
+		}
+	}
 }
 
 
@@ -1349,19 +1434,126 @@ s4 vm_call_method_intern_int(methodinfo *m, void *a0, void *a1, void *a2,
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method(methodinfo *m, u4 count, vm_arg *vmargs)
+java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
+{
+	va_list            ap;
+	java_objectheader *ro;
+
+	va_start(ap, o);
+	ro = vm_call_method_valist(m, o, ap);
+	va_end(ap);
+
+	return ro;
+}
+
+
+/* vm_call_method_valist *******************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a va_list, and returns an address.
+
+*******************************************************************************/
+
+java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
+										 va_list ap)
+{
+	s4                 vmargscount;
+	vm_arg            *vmargs;
+	java_objectheader *ro;
+	s4                 dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_valist(m, o, vmargs, ap);
+
+	/* call the Java method */
+
+	ro = vm_call_method_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ro;
+}
+
+
+/* vm_call_method_jvalue *******************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a jvalue array, and returns an address.
+
+*******************************************************************************/
+
+java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
+										 jvalue *args)
+{
+	s4                 vmargscount;
+	vm_arg            *vmargs;
+	java_objectheader *ro;
+	s4                 dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_jvalue(m, o, vmargs, args);
+
+	/* call the Java method */
+
+	ro = vm_call_method_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return ro;
+}
+
+
+/* vm_call_method_vmarg ********************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a vm_arg array, and returns an address.
+
+*******************************************************************************/
+
+java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
+										vm_arg *vmargs)
 {
 	java_objectheader *o;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		o = intrp_asm_calljavafunction2(m, count, vmargs);
+		o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
 	else
 # endif
-		o = asm_calljavafunction2(m, count, vmargs);
+		o = asm_vm_call_method(m, vmargscount, vmargs);
 #else
-	o = intrp_asm_calljavafunction(m, count, vmargs);
+	o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
 #endif
 
 	return o;
@@ -1375,19 +1567,123 @@ java_objectheader *vm_call_method(methodinfo *m, u4 count, vm_arg *vmargs)
 
 *******************************************************************************/
 
-s4 vm_call_method_int(methodinfo *m, u4 count, vm_arg *vmargs)
+s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...)
+{
+	va_list ap;
+	s4      i;
+
+	va_start(ap, o);
+	i = vm_call_method_int_valist(m, o, ap);
+	va_end(ap);
+
+	return i;
+}
+
+
+/* vm_call_method_int_valist ***************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a va_list, and returns an integer (s4).
+
+*******************************************************************************/
+
+s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	s4      i;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_valist(m, o, vmargs, ap);
+
+	/* call the Java method */
+
+	i = vm_call_method_int_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return i;
+}
+
+
+/* vm_call_method_int_jvalue ***************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a jvalue array, and returns an integer (s4).
+
+*******************************************************************************/
+
+s4 vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	s4      i;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_jvalue(m, o, vmargs, args);
+
+	/* call the Java method */
+
+	i = vm_call_method_int_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return i;
+}
+
+
+/* vm_call_method_int_vmarg ****************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a vm_arg array, and returns an integer (s4).
+
+*******************************************************************************/
+
+s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s4 i;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		i = intrp_asm_calljavafunction2int(m, count, vmargs);
+		i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
 	else
 # endif
-		i = asm_calljavafunction2int(m, count, vmargs);
+		i = asm_vm_call_method_int(m, vmargscount, vmargs);
 #else
-	i = intrp_asm_calljavafunction2int(m, count, vmargs);
+	i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
 #endif
 
 	return i;
@@ -1401,19 +1697,123 @@ s4 vm_call_method_int(methodinfo *m, u4 count, vm_arg *vmargs)
 
 *******************************************************************************/
 
-s8 vm_call_method_long(methodinfo *m, u4 count, vm_arg *vmargs)
+s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...)
+{
+	va_list ap;
+	s8      l;
+
+	va_start(ap, o);
+	l = vm_call_method_long_valist(m, o, ap);
+	va_end(ap);
+
+	return l;
+}
+
+
+/* vm_call_method_long_valist **************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a va_list, and returns a long (s8).
+
+*******************************************************************************/
+
+s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	s8      l;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_valist(m, o, vmargs, ap);
+
+	/* call the Java method */
+
+	l = vm_call_method_long_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return l;
+}
+
+
+/* vm_call_method_long_jvalue **************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a jvalue array, and returns a long (s8).
+
+*******************************************************************************/
+
+s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	s8      l;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_jvalue(m, o, vmargs, args);
+
+	/* call the Java method */
+
+	l = vm_call_method_long_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return l;
+}
+
+
+/* vm_call_method_long_vmarg ***************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a vm_arg array, and returns a long (s8).
+
+*******************************************************************************/
+
+s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 l;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		l = intrp_asm_calljavafunction2long(m, count, vmargs);
+		l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
 	else
 # endif
-		l = asm_calljavafunction2long(m, count, vmargs);
+		l = asm_vm_call_method_long(m, vmargscount, vmargs);
 #else
-	l = intrp_asm_calljavafunction2long(m, count, vmargs);
+	l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
 #endif
 
 	return l;
@@ -1427,19 +1827,125 @@ s8 vm_call_method_long(methodinfo *m, u4 count, vm_arg *vmargs)
 
 *******************************************************************************/
 
-float vm_call_method_float(methodinfo *m, u4 count, vm_arg *vmargs)
+float vm_call_method_float(methodinfo *m, java_objectheader *o, ...)
+{
+	va_list ap;
+	float   f;
+
+	va_start(ap, o);
+	f = vm_call_method_float_valist(m, o, ap);
+	va_end(ap);
+
+	return f;
+}
+
+
+/* vm_call_method_float_valist *************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a va_list, and returns a float.
+
+*******************************************************************************/
+
+float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
+								  va_list ap)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	float   f;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_valist(m, o, vmargs, ap);
+
+	/* call the Java method */
+
+	f = vm_call_method_float_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return f;
+}
+
+
+/* vm_call_method_float_jvalue *************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a jvalue array, and returns a float.
+
+*******************************************************************************/
+
+float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
+								  jvalue *args)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	float   f;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_jvalue(m, o, vmargs, args);
+
+	/* call the Java method */
+
+	f = vm_call_method_float_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return f;
+}
+
+
+/* vm_call_method_float_vmarg **************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   an float.
+
+*******************************************************************************/
+
+float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	float f;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		f = intrp_asm_calljavafunction2float(m, count, vmargs);
+		f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
 	else
 # endif
-		f = asm_calljavafunction2float(m, count, vmargs);
+		f = asm_vm_call_method_float(m, vmargscount, vmargs);
 #else
-	f = intrp_asm_calljavafunction2float(m, count, vmargs);
+	f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
 #endif
 
 	return f;
@@ -1453,19 +1959,126 @@ float vm_call_method_float(methodinfo *m, u4 count, vm_arg *vmargs)
 
 *******************************************************************************/
 
-double vm_call_method_double(methodinfo *m, u4 count, vm_arg *vmargs)
+double vm_call_method_double(methodinfo *m, java_objectheader *o, ...)
+{
+	va_list ap;
+	double  d;
+
+	va_start(ap, o);
+	d = vm_call_method_double_valist(m, o, ap);
+	va_end(ap);
+
+	return d;
+}
+
+
+/* vm_call_method_double_valist ************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a va_list, and returns a double.
+
+*******************************************************************************/
+
+double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
+									va_list ap)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	double  d;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_valist(m, o, vmargs, ap);
+
+	/* call the Java method */
+
+	d = vm_call_method_double_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return d;
+}
+
+
+/* vm_call_method_double_jvalue ************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   a jvalue array, and returns a double.
+
+*******************************************************************************/
+
+double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
+									jvalue *args)
+{
+	s4      vmargscount;
+	vm_arg *vmargs;
+	double  d;
+	s4      dumpsize;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* get number of Java method arguments */
+
+	vmargscount = m->parseddesc->paramcount;
+
+	/* allocate vm_arg array */
+
+	vmargs = DMNEW(vm_arg, vmargscount);
+
+	/* fill the vm_arg array from a va_list */
+
+	vm_vmargs_from_jvalue(m, o, vmargs, args);
+
+	/* call the Java method */
+
+	d = vm_call_method_double_vmarg(m, vmargscount, vmargs);
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	return d;
+}
+
+
+/* vm_call_method_double_vmarg *************************************************
+
+   Calls a Java method with a variable number of arguments and returns
+   a double.
+
+*******************************************************************************/
+
+double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
+								   vm_arg *vmargs)
 {
 	double d;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		d = intrp_asm_calljavafunction2double(m, count, vmargs);
+		d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
 	else
 # endif
-		d = asm_calljavafunction2double(m, count, vmargs);
+		d = asm_vm_call_method_double(m, vmargscount, vmargs);
 #else
-	d = intrp_asm_calljavafunction2double(m, count, vmargs);
+	d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
 #endif
 
 	return d;

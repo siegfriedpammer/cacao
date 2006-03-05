@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: threads.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -630,15 +630,13 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	(void) vm_call_method_intern(method, mainthread, mainthreadobj, threadname,
-								 (void *) 5);
+	(void) vm_call_method(method, (java_objectheader *) mainthread,
+						  mainthreadobj, threadname, 5, false);
 
 	if (*exceptionptr)
 		return false;
 
 	mainthread->group = threadgroup;
-	/* XXX This is a hack because the fourth argument was omitted */
-	mainthread->daemon = false;
 
 	/* add mainthread to ThreadGroup */
 
@@ -651,7 +649,8 @@ bool threads_init(u1 *stackbottom)
 	if (!method)
 		return false;
 
-	(void) vm_call_method_intern(method, threadgroup, mainthread, NULL, NULL);
+	(void) vm_call_method(method, (java_objectheader *) threadgroup,
+						  mainthread);
 
 	if (*exceptionptr)
 		return false;
@@ -781,7 +780,7 @@ static void *threads_startup_thread(void *t)
 		if (!method)
 			throw_exception();
 
-		(void) vm_call_method_intern(method, thread, NULL, NULL, NULL);
+		(void) vm_call_method(method, (java_objectheader *) thread);
 
 	} 
 	else {

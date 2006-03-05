@@ -85,17 +85,38 @@ void vm_shutdown(s4 status);
 void vm_exit_handler(void);
 
 /* Java method calling functions */
-java_objectheader *vm_call_method_intern(methodinfo *m, void *a0, void *a1,
-										 void *a2, void *a3);
+java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
+java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
+										 va_list ap);
+java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
+										 jvalue *args);
+java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
+										vm_arg *vmargs);
 
-s4 vm_call_method_intern_int(methodinfo *m, void *a0, void *a1, void *a2,
-							 void *a3);
+s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...);
+s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap);
+s4 vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o, jvalue *args);
+s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 
-java_objectheader *vm_call_method(methodinfo *m, u4 count, vm_arg *vmargs);
-s4     vm_call_method_int(methodinfo *m, u4 count, vm_arg *vmargs);
-s8     vm_call_method_long(methodinfo *m, u4 count, vm_arg *vmargs);
-float  vm_call_method_float(methodinfo *m, u4 count, vm_arg *vmargs);
-double vm_call_method_double(methodinfo *m, u4 count, vm_arg *vmargs);
+s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...);
+s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap);
+s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, jvalue *args);
+s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+
+float vm_call_method_float(methodinfo *m, java_objectheader *o, ...);
+float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
+								  va_list ap);
+float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
+								  jvalue *args);
+float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+
+double vm_call_method_double(methodinfo *m, java_objectheader *o, ...);
+double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
+									va_list ap);
+double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
+									jvalue *args);
+double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
+								   vm_arg *vmargs);
 
 #endif /* _VM_H */
 

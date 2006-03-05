@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: initialize.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -206,7 +206,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* now call the initializer */
 
-	(void) vm_call_method_intern(m, NULL, NULL, NULL, NULL);
+	(void) vm_call_method(m, NULL);
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	assert(blockInts == 0);

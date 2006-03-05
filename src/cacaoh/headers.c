@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: headers.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -97,8 +97,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i) { return NULL; }
 java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwable *t) { return NULL; }
 
 
-java_objectheader *vm_call_method_intern(methodinfo *m, void *a0, void *a1,
-										 void *a2, void *a3)
+java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
 { return NULL; }
 
 

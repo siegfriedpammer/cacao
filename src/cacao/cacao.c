@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: cacao.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -110,7 +110,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
+	(void) vm_call_method(m, o);
 
 	/* configure(transport,NULL) */
 	m = class_resolveclassmethod(
@@ -122,7 +122,7 @@ static void setup_debugger_process(char* transport) {
 
 	s = javastring_new_char(transport);
 
-	(void) vm_call_method_intern(m, o, s, NULL, NULL);
+	(void) vm_call_method(m, o, s);
 
 	if (!m)
 		throw_main_exception_exit();
@@ -137,7 +137,7 @@ static void setup_debugger_process(char* transport) {
 	if (!m)
 		throw_main_exception_exit();
 
-	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
+	(void) vm_call_method(m, o);
 }
 #endif
 
@@ -179,7 +179,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char(mainstring);
 
-	(void) vm_call_method_intern(m, o, s, NULL, NULL);
+	(void) vm_call_method(m, o, s);
 
 	if (*exceptionptr)
 		throw_main_exception_exit();
@@ -195,7 +195,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	o = vm_call_method_intern(m, o, NULL, NULL, NULL);
+	o = vm_call_method(m, o);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -214,7 +214,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	o = vm_call_method_intern(m, o, NULL, NULL, NULL);
+	o = vm_call_method(m, o);
 
 	if (o == NULL) {
 		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
@@ -235,7 +235,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 
 	s = javastring_new_char("Main-Class");
 
-	o = vm_call_method_intern(m, o, s, NULL, NULL);
+	o = vm_call_method(m, o, s);
 
 	if (!o)
 		throw_main_exception_exit();
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
 #endif
 		/* here we go... */
 
-		(void) vm_call_method_intern(m, oa, NULL, NULL, NULL);
+		(void) vm_call_method(m, NULL, oa);
 
 		/* exception occurred? */
 

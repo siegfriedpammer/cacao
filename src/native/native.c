@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: native.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -795,7 +795,7 @@ java_objectheader *native_new_and_init(classinfo *c)
 
 	/* call initializer */
 
-	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
+	(void) vm_call_method(m, o);
 
 	return o;
 }
@@ -831,7 +831,7 @@ java_objectheader *native_new_and_init_string(classinfo *c, java_lang_String *s)
 
 	/* call initializer */
 
-	(void) vm_call_method_intern(m, o, s, NULL, NULL);
+	(void) vm_call_method(m, o, s);
 
 	return o;
 }
@@ -863,7 +863,7 @@ java_objectheader *native_new_and_init_int(classinfo *c, s4 i)
 
 	/* call initializer */
 
-	(void) vm_call_method_intern(m, o, (void *) (ptrint) i, NULL, NULL);
+	(void) vm_call_method(m, o, i);
 
 	return o;
 }
@@ -895,7 +895,7 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 
 	/* call initializer */
 
-	(void) vm_call_method_intern(m, o, t, NULL, NULL);
+	(void) vm_call_method(m, o, t);
 
 	return o;
 }

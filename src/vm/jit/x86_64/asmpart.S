@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: asmpart.S 4552 2006-03-04 17:15:44Z twisti $
+   $Id: asmpart.S 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -52,16 +52,11 @@
 
 /* exported functions and variables *******************************************/
 
-	.globl asm_calljavafunction
-	.type  asm_calljavafunction, @function
-
-	.globl asm_calljavafunction_int
-
-	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2int
-	.globl asm_calljavafunction2long
-	.globl asm_calljavafunction2float
-	.globl asm_calljavafunction2double
+	.globl asm_vm_call_method
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -98,71 +93,9 @@
 	.align	8
 
 	.quad   0                           /* catch type all                     */
-	.quad   calljava_xhandler           /* handler pc                         */
-	.quad   calljava_xhandler           /* end pc                             */
-	.quad   L_asm_calljavafunction      /* start pc                           */
-	.long   1                           /* extable size                       */
-	.long   0						    									  
-	.quad   0                           /* line number table start            */
-	.quad   0                           /* line number table size             */
-	.long   0						    									  
-	.long   0                           /* fltsave                            */
-	.long   0                           /* intsave                            */
-	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
-	.long   8                           /* frame size                         */
-	.quad   0                           /* method pointer (pointer to name)   */
-
-asm_calljavafunction:
-asm_calljavafunction_int:
-L_asm_calljavafunction:                 /* required for PIC code              */
-	sub     $(3*8),sp                   /* keep stack 16-byte aligned         */
-	mov     bp,0*8(sp)
-	mov     %rbx,1*8(sp)                /* %rbx is not a callee saved in CACAO*/
-	mov     a0,itmp1                    /* move function pointer to itmp1     */
-	 								    /* compilerstub uses this             */
-
-	mov     a1,a0                       /* pass remaining parameters          */
-	mov     a2,a1															
-	mov     a3,a2
-	mov     a4,a3
-
-	lea     L_asm_call_jit_compiler(%rip),itmp3
-	call    *itmp3                      /* call JIT compiler                  */
-
-L_asm_calljavafunction_return:
-	mov     0*8(sp),bp
-	mov		1*8(sp),%rbx                /* %rbx is not a callee saved in CACAO*/
-	add     $(3*8),sp                   /* free stack space                   */
-	ret
-
-calljava_xhandler:
-	mov     xptr,a0                     /* pass exception pointer             */
-	call    builtin_throw_exception@PLT
-	xor     v0,v0                       /* return NULL                        */
-	jmp     L_asm_calljavafunction_return
-
-
-/********************* function asm_calljavafunction ***************************
-*                                                                              *
-*   This function calls a Java-method (which possibly needs compilation)       *
-*   with up to 4 address parameters.                                           *
-*                                                                              *
-*   This functions calls the JIT-compiler which eventually translates the      *
-*   method into machine code.                                                  *
-*                                                                              *
-*   C-prototype:                                                               *
-*    javaobject_header *asm_calljavamethod (methodinfo *m,                     *
-*         void *arg1, void *arg2, void *arg3, void *arg4);                     *
-*                                                                              *
-*******************************************************************************/
-
-	.align	8
-
-	.quad   0                           /* catch type all                     */
 	.quad   calljava_xhandler2          /* handler pc                         */
 	.quad   calljava_xhandler2          /* end pc                             */
-	.quad   L_asm_calljavafunction2     /* start pc                           */
+	.quad   L_asm_vm_call_method        /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0						    									 
 	.quad   0                           /* line number table  start           */
@@ -175,12 +108,12 @@ calljava_xhandler:
 	.long   24                          /* frame size                         */
 	.quad   0                           /* method pointer (pointer to name)   */
 
-asm_calljavafunction2:
-asm_calljavafunction2int:
-asm_calljavafunction2long:
-asm_calljavafunction2float:
-asm_calljavafunction2double:
-L_asm_calljavafunction2:                /* required for PIC code              */
+asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
+L_asm_vm_call_method:                   /* required for PIC code              */
 	sub     $(7*8),sp                   /* keep stack 16-byte aligned         */
 	mov     %rbx,0*8(sp)                /* %rbx is not a callee saved in cacao*/
 	mov     s0,1*8(sp)
@@ -272,7 +205,7 @@ L_copy_done:
 
 	add     bp,sp                       /* remove argument stack frame if any */
 
-L_asm_calljavafunction2_return:
+L_asm_vm_call_method_return:
 	mov     0*8(sp),%rbx                /* restore callee saved registers     */
 	mov     1*8(sp),s0
 	mov     2*8(sp),s1
@@ -286,7 +219,7 @@ calljava_xhandler2:
 	mov     xptr,a0                     /* pass exception pointer             */
 	call    builtin_throw_exception@PLT
 	xor     v0,v0                       /* return NULL                        */
-	jmp     L_asm_calljavafunction2_return
+	jmp     L_asm_vm_call_method_return
 
 
 jumptable_integer:

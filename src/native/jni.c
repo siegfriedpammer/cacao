@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: jni.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -231,75 +231,6 @@ bool jni_init(void)
 }
 
 
-/* _Jv_jni_fill_vmargs_from_vargs **********************************************
-
-   XXX
-
-*******************************************************************************/
-
-static void _Jv_jni_vmargs_from_vargs(java_objectheader *o, methoddesc *descr,
-									  vm_arg *vmargs, va_list ap)
-{
-	typedesc *paramtypes;
-	s4        i;
-
-	paramtypes = descr->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* the `this' pointer */
-		vmargs[0].type = TYPE_ADR;
-		vmargs[0].data = (u8) (ptrint) o;
-
-		paramtypes++;
-		i++;
-	} 
-
-	for (; i < descr->paramcount; i++, paramtypes++) {
-		switch (paramtypes->decltype) {
-		/* primitive types */
-		case PRIMITIVETYPE_BYTE:
-		case PRIMITIVETYPE_CHAR:
-		case PRIMITIVETYPE_SHORT: 
-		case PRIMITIVETYPE_BOOLEAN: 
-		case PRIMITIVETYPE_INT:
-			vmargs[i].type = TYPE_INT;
-			vmargs[i].data = (s8) va_arg(ap, s4);
-			break;
-
-		case PRIMITIVETYPE_LONG:
-			vmargs[i].type = TYPE_LNG;
-			vmargs[i].data = (s8) va_arg(ap, s8);
-			break;
-
-		case PRIMITIVETYPE_FLOAT:
-			vmargs[i].type = TYPE_FLT;
-#if defined(__ALPHA__)
-			/* this keeps the assembler function much simpler */
-
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
-#else
-			*((jfloat *) (&vmargs[i].data)) = (jfloat) va_arg(ap, jdouble);
-#endif
-			break;
-
-		case PRIMITIVETYPE_DOUBLE:
-			vmargs[i].type = TYPE_DBL;
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
-			break;
-
-		case TYPE_ADR: 
-			vmargs[i].type = TYPE_ADR;
-			vmargs[i].data = (u8) (ptrint) va_arg(ap, void*);
-			break;
-		}
-	}
-}
-
-
 /* _Jv_jni_vmargs_from_objectarray *********************************************
 
    XXX
@@ -464,76 +395,6 @@ illegal_arg:
 }
 
 
-/* _Jv_jni_vmargs_from_objectarray *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-static void _Jv_jni_vmargs_from_args(java_objectheader *o, methoddesc *descr,
-									 vm_arg *vmargs, jvalue *args)
-{
-	typedesc *paramtypes;
-	s4        i;
-	s4        j;
-
-	paramtypes = descr->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* the `this' pointer */
-		vmargs[0].type = TYPE_ADR;
-		vmargs[0].data = (u8) (ptrint) o;
-
-		paramtypes++;
-		i++;
-	} 
-
-	for (j = 0; i < descr->paramcount; i++, j++, paramtypes++) {
-		switch (paramtypes->decltype) {
-		/* primitive types */
-		case PRIMITIVETYPE_BOOLEAN: 
-		case PRIMITIVETYPE_BYTE:
-		case PRIMITIVETYPE_CHAR:
-		case PRIMITIVETYPE_SHORT: 
-		case PRIMITIVETYPE_INT:
-			vmargs[i].type = TYPE_INT;
-			vmargs[i].data = (s8) args[j].i;
-			break;
-
-		case PRIMITIVETYPE_LONG:
-			vmargs[i].type = TYPE_LNG;
-			vmargs[i].data = (s8) args[j].j;
-			break;
-
-		case PRIMITIVETYPE_FLOAT:
-			vmargs[i].type = TYPE_FLT;
-#if defined(__ALPHA__)
-			/* this keeps the assembler function much simpler */
-
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) args[j].f;
-#else
-			*((jfloat *) (&vmargs[i].data)) = args[j].f;
-#endif
-			break;
-
-		case PRIMITIVETYPE_DOUBLE:
-			vmargs[i].type = TYPE_DBL;
-			*((jdouble *) (&vmargs[i].data)) = args[j].d;
-			break;
-
-		case TYPE_ADR: 
-			vmargs[i].type = TYPE_ADR;
-			vmargs[i].data = (u8) (ptrint) args[j].l;
-			break;
-		}
-	}
-}
-
-
 /* _Jv_jni_CallObjectMethod ****************************************************
 
    Internal function to call Java Object methods.
@@ -545,10 +406,7 @@ static java_objectheader *_Jv_jni_CallObjectMethod(java_objectheader *o,
 												   methodinfo *m, va_list ap)
 {
 	methodinfo        *resm;
-	s4                 paramcount;
-	vm_arg            *vmargs;
-	java_objectheader *ret;
-	s4                 dumpsize;
+	java_objectheader *ro;
 
 	STATISTICS(jniinvokation());
 
@@ -576,25 +434,58 @@ static java_objectheader *_Jv_jni_CallObjectMethod(java_objectheader *o,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
+	STATISTICS(jnicallXmethodnvokation());
 
-	dumpsize = dump_size();
+	ro = vm_call_method_valist(resm, o, ap);
 
-	paramcount = resm->parseddesc->paramcount;
+	return ro;
+}
 
-	vmargs = DMNEW(vm_arg, paramcount);
 
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
+/* _Jv_jni_CallObjectMethodA ***************************************************
+
+   Internal function to call Java Object methods.
+
+*******************************************************************************/
+
+static java_objectheader *_Jv_jni_CallObjectMethodA(java_objectheader *o,
+													vftbl_t *vftbl,
+													methodinfo *m, jvalue *args)
+{
+	methodinfo        *resm;
+	java_objectheader *ro;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
 
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = vm_call_method(resm, paramcount, vmargs);
+	ro = vm_call_method_jvalue(resm, o, args);
 
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ret;
+	return ro;
 }
 
 
@@ -606,13 +497,10 @@ static java_objectheader *_Jv_jni_CallObjectMethod(java_objectheader *o,
 *******************************************************************************/
 
 static jint _Jv_jni_CallIntMethod(java_objectheader *o, vftbl_t *vftbl,
-								  methodinfo *m, va_list ap, s4 type)
+								  methodinfo *m, va_list ap)
 {
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	jint        ret;
-	s4          dumpsize;
+	jint        i;
 
 	STATISTICS(jniinvokation());
 
@@ -640,25 +528,11 @@ static jint _Jv_jni_CallIntMethod(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = vm_call_method_int(resm, paramcount, vmargs);
+	i = vm_call_method_int_valist(resm, o, ap);
 
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ret;
+	return i;
 }
 
 
@@ -672,10 +546,7 @@ static jlong _Jv_jni_CallLongMethod(java_objectheader *o, vftbl_t *vftbl,
 									methodinfo *m, va_list ap)
 {
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	jlong       ret;
-	s4          dumpsize;
+	jlong       l;
 
 	STATISTICS(jniinvokation());
 
@@ -703,25 +574,11 @@ static jlong _Jv_jni_CallLongMethod(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = vm_call_method_long(resm, paramcount, vmargs);
+	l = vm_call_method_long_valist(resm, o, ap);
 
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ret;
+	return l;
 }
 
 
@@ -735,10 +592,7 @@ static jfloat _Jv_jni_CallFloatMethod(java_objectheader *o, vftbl_t *vftbl,
 									  methodinfo *m, va_list ap)
 {
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	jdouble     ret;
-	s4          dumpsize;
+	jfloat      f;
 
 	/* Class initialization is done by the JIT compiler.  This is ok
 	   since a static method always belongs to the declaring class. */
@@ -759,25 +613,11 @@ static jfloat _Jv_jni_CallFloatMethod(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	ret = vm_call_method_float(resm, paramcount, vmargs);
+	f = vm_call_method_float_valist(resm, o, ap);
 
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ret;
+	return f;
 }
 
 
@@ -791,10 +631,7 @@ static jdouble _Jv_jni_CallDoubleMethod(java_objectheader *o, vftbl_t *vftbl,
 										methodinfo *m, va_list ap)
 {
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	jfloat      ret;
-	s4          dumpsize;
+	jdouble     d;
 
 	/* Class initialization is done by the JIT compiler.  This is ok
 	   since a static method always belongs to the declaring class. */
@@ -815,25 +652,9 @@ static jdouble _Jv_jni_CallDoubleMethod(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
+	d = vm_call_method_double_valist(resm, o, ap);
 
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
-
-	STATISTICS(jnicallXmethodnvokation());
-
-	ret = vm_call_method_double(resm, paramcount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ret;
+	return d;
 }
 
 
@@ -847,9 +668,6 @@ static void _Jv_jni_CallVoidMethod(java_objectheader *o, vftbl_t *vftbl,
 								   methodinfo *m, va_list ap)
 { 	
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	s4          dumpsize;
 
 	if (m == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -875,23 +693,9 @@ static void _Jv_jni_CallVoidMethod(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_vargs(o, resm->parseddesc, vmargs, ap);
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	(void) vm_call_method(resm, paramcount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
+	(void) vm_call_method_valist(resm, o, ap);
 }
 
 
@@ -905,9 +709,6 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 									methodinfo *m, jvalue *args)
 { 	
 	methodinfo *resm;
-	s4          paramcount;
-	vm_arg     *vmargs;
-	s4          dumpsize;
 
 	if (m == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -933,23 +734,9 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 		resm = method_vftbl_lookup(vftbl, m);
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	paramcount = resm->parseddesc->paramcount;
-
-	vmargs = DMNEW(vm_arg, paramcount);
-
-	_Jv_jni_vmargs_from_args(o, resm->parseddesc, vmargs, args);
-
 	STATISTICS(jnicallXmethodnvokation());
 
-	(void) vm_call_method(resm, paramcount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
+	(void) vm_call_method_jvalue(resm, o, args);
 }
 
 
@@ -1036,7 +823,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	switch (resm->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
-		(void) vm_call_method(resm, argcount, vmargs);
+		(void) vm_call_method_vmarg(resm, argcount, vmargs);
 
 		ro = NULL;
 		break;
@@ -1045,7 +832,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s4 i;
 		java_lang_Boolean *bo;
 
-		i = vm_call_method_int(resm, argcount, vmargs);
+		i = vm_call_method_int_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Boolean);
 
@@ -1060,7 +847,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s4 i;
 		java_lang_Byte *bo;
 
-		i = vm_call_method_int(resm, argcount, vmargs);
+		i = vm_call_method_int_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Byte);
 
@@ -1075,7 +862,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s4 i;
 		java_lang_Character *co;
 
-		i = vm_call_method_int(resm, argcount, vmargs);
+		i = vm_call_method_int_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Character);
 
@@ -1090,7 +877,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s4 i;
 		java_lang_Short *so;
 
-		i = vm_call_method_int(resm, argcount, vmargs);
+		i = vm_call_method_int_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Short);
 
@@ -1105,7 +892,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s4 i;
 		java_lang_Integer *io;
 
-		i = vm_call_method_int(resm, argcount, vmargs);
+		i = vm_call_method_int_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Integer);
 
@@ -1120,7 +907,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		s8 l;
 		java_lang_Long *lo;
 
-		l = vm_call_method_long(resm, argcount, vmargs);
+		l = vm_call_method_long_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Long);
 
@@ -1135,7 +922,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		float f;
 		java_lang_Float *fo;
 
-		f = vm_call_method_float(resm, argcount, vmargs);
+		f = vm_call_method_float_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Float);
 
@@ -1150,7 +937,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		double d;
 		java_lang_Double *_do;
 
-		d = vm_call_method_double(resm, argcount, vmargs);
+		d = vm_call_method_double_vmarg(resm, argcount, vmargs);
 
 		ro = builtin_new(class_java_lang_Double);
 
@@ -1162,7 +949,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	break;
 
 	case TYPE_ADR:
-		ro = vm_call_method(resm, argcount, vmargs);
+		ro = vm_call_method_vmarg(resm, argcount, vmargs);
 		break;
 
 	default:
@@ -1449,7 +1236,7 @@ void ExceptionDescribe(JNIEnv *env)
 
 		/* print the stacktrace */
 
-		(void) vm_call_method_intern(m, e, NULL, NULL, NULL);
+		(void) vm_call_method(m, e);
 	}
 }
 
@@ -2022,11 +1809,18 @@ jobject CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list 
 }
 
 
-jobject CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue * args)
+jobject CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallObjectMethodA: IMPLEMENT ME!");
+	java_objectheader *o;
+	methodinfo        *m;
+	java_objectheader *ret;
 
-	return NewLocalRef(env, NULL);
+	o = (java_objectheader *) obj;
+	m = (methodinfo *) methodID;
+
+	ret = _Jv_jni_CallObjectMethodA(o, o->vftbl, m, args);
+
+	return NewLocalRef(env, ret);
 }
 
 
@@ -2041,7 +1835,7 @@ jboolean CallBooleanMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
 	return b;
@@ -2057,7 +1851,7 @@ jboolean CallBooleanMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_lis
 	o = (java_objectheader *) obj;
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, args, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, args);
 
 	return b;
 }
@@ -2082,7 +1876,7 @@ jbyte CallByteMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
 	return b;
@@ -2098,7 +1892,7 @@ jbyte CallByteMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args
 	o = (java_objectheader *) obj;
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, args, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(o, o->vftbl, m, args);
 
 	return b;
 }
@@ -2123,7 +1917,7 @@ jchar CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	c = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap, PRIMITIVETYPE_CHAR);
+	c = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
 	return c;
@@ -2139,7 +1933,7 @@ jchar CallCharMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args
 	o = (java_objectheader *) obj;
 	m = (methodinfo *) methodID;
 
-	c = _Jv_jni_CallIntMethod(o, o->vftbl, m, args, PRIMITIVETYPE_CHAR);
+	c = _Jv_jni_CallIntMethod(o, o->vftbl, m, args);
 
 	return c;
 }
@@ -2164,7 +1958,7 @@ jshort CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	s = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
 	return s;
@@ -2180,7 +1974,7 @@ jshort CallShortMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list ar
 	o = (java_objectheader *) obj;
 	m = (methodinfo *) methodID;
 
-	s = _Jv_jni_CallIntMethod(o, o->vftbl, m, args, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(o, o->vftbl, m, args);
 
 	return s;
 }
@@ -2206,7 +2000,7 @@ jint CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	i = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(o, o->vftbl, m, ap);
 	va_end(ap);
 
 	return i;
@@ -2222,7 +2016,7 @@ jint CallIntMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_list args)
 	o = (java_objectheader *) obj;
 	m = (methodinfo *) methodID;
 
-	i = _Jv_jni_CallIntMethod(o, o->vftbl, m, args, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(o, o->vftbl, m, args);
 
 	return i;
 }
@@ -2462,7 +2256,7 @@ jboolean CallNonvirtualBooleanMethod(JNIEnv *env, jobject obj, jclass clazz, jme
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
 	return b;
@@ -2480,7 +2274,7 @@ jboolean CallNonvirtualBooleanMethodV(JNIEnv *env, jobject obj, jclass clazz, jm
 	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, args, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);
 
 	return b;
 }
@@ -2507,7 +2301,7 @@ jbyte CallNonvirtualByteMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
 	return b;
@@ -2525,7 +2319,7 @@ jbyte CallNonvirtualByteMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodI
 	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, args, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);
 
 	return b;
 }
@@ -2553,7 +2347,7 @@ jchar CallNonvirtualCharMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	ch = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap, PRIMITIVETYPE_CHAR);
+	ch = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
 	return ch;
@@ -2571,7 +2365,7 @@ jchar CallNonvirtualCharMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodI
 	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
-	ch = _Jv_jni_CallIntMethod(o, c->vftbl, m, args, PRIMITIVETYPE_CHAR);
+	ch = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);
 
 	return ch;
 }
@@ -2599,7 +2393,7 @@ jshort CallNonvirtualShortMethod(JNIEnv *env, jobject obj, jclass clazz, jmethod
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	s = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
 	return s;
@@ -2617,7 +2411,7 @@ jshort CallNonvirtualShortMethodV(JNIEnv *env, jobject obj, jclass clazz, jmetho
 	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
-	s = _Jv_jni_CallIntMethod(o, c->vftbl, m, args, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);
 
 	return s;
 }
@@ -2645,7 +2439,7 @@ jint CallNonvirtualIntMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID m
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	i = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(o, c->vftbl, m, ap);
 	va_end(ap);
 
 	return i;
@@ -2663,7 +2457,7 @@ jint CallNonvirtualIntMethodV(JNIEnv *env, jobject obj, jclass clazz, jmethodID 
 	c = (classinfo *) clazz;
 	m = (methodinfo *) methodID;
 
-	i = _Jv_jni_CallIntMethod(o, c->vftbl, m, args, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);
 
 	return i;
 }
@@ -3188,7 +2982,7 @@ jboolean CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, 
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(NULL, NULL, m, ap, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
 	return b;
@@ -3202,7 +2996,7 @@ jboolean CallStaticBooleanMethodV(JNIEnv *env, jclass clazz, jmethodID methodID,
 
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(NULL, NULL, m, args, PRIMITIVETYPE_BOOLEAN);
+	b = _Jv_jni_CallIntMethod(NULL, NULL, m, args);
 
 	return b;
 }
@@ -3225,7 +3019,7 @@ jbyte CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	b = _Jv_jni_CallIntMethod(NULL, NULL, m, ap, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
 	return b;
@@ -3239,7 +3033,7 @@ jbyte CallStaticByteMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_li
 
 	m = (methodinfo *) methodID;
 
-	b = _Jv_jni_CallIntMethod(NULL, NULL, m, args, PRIMITIVETYPE_BYTE);
+	b = _Jv_jni_CallIntMethod(NULL, NULL, m, args);
 
 	return b;
 }
@@ -3262,7 +3056,7 @@ jchar CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	c = _Jv_jni_CallIntMethod(NULL, NULL, m, ap, PRIMITIVETYPE_CHAR);
+	c = _Jv_jni_CallIntMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
 	return c;
@@ -3276,7 +3070,7 @@ jchar CallStaticCharMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_li
 
 	m = (methodinfo *) methodID;
 
-	c = _Jv_jni_CallIntMethod(NULL, NULL, m, args, PRIMITIVETYPE_CHAR);
+	c = _Jv_jni_CallIntMethod(NULL, NULL, m, args);
 
 	return c;
 }
@@ -3299,7 +3093,7 @@ jshort CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	s = _Jv_jni_CallIntMethod(NULL, NULL, m, ap, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
 	return s;
@@ -3313,7 +3107,7 @@ jshort CallStaticShortMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_
 
 	m = (methodinfo *) methodID;
 
-	s = _Jv_jni_CallIntMethod(NULL, NULL, m, args, PRIMITIVETYPE_SHORT);
+	s = _Jv_jni_CallIntMethod(NULL, NULL, m, args);
 
 	return s;
 }
@@ -3336,7 +3130,7 @@ jint CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	i = _Jv_jni_CallIntMethod(NULL, NULL, m, ap, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(NULL, NULL, m, ap);
 	va_end(ap);
 
 	return i;
@@ -3350,7 +3144,7 @@ jint CallStaticIntMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, va_list
 
 	m = (methodinfo *) methodID;
 
-	i = _Jv_jni_CallIntMethod(NULL, NULL, m, args, PRIMITIVETYPE_INT);
+	i = _Jv_jni_CallIntMethod(NULL, NULL, m, args);
 
 	return i;
 }
@@ -5184,7 +4978,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 	builtin_monitorenter(*global_ref_table);
 #endif
 	
-	o = vm_call_method_intern(getmid, *global_ref_table, lobj, NULL, NULL);
+	o = vm_call_method(getmid, *global_ref_table, lobj);
 
 	refcount = (java_lang_Integer *) o;
 
@@ -5198,8 +4992,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 			return NULL;
 		}
 
-		(void) vm_call_method_intern(putmid, *global_ref_table, lobj, newval,
-									 NULL);
+		(void) vm_call_method(putmid, *global_ref_table, lobj, newval);
 
 	} else {
 		/* we can access the object itself, as we are in a
@@ -5234,7 +5027,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	builtin_monitorenter(*global_ref_table);
 #endif
 
-	o = vm_call_method_intern(getmid, *global_ref_table, globalRef, NULL, NULL);
+	o = vm_call_method(getmid, *global_ref_table, globalRef);
 
 	refcount = (java_lang_Integer *) o;
 
@@ -5249,8 +5042,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	val = refcount->value - 1;
 
 	if (val == 0) {
-		(void) vm_call_method_intern(removemid, *global_ref_table, refcount,
-									 NULL, NULL);
+		(void) vm_call_method(removemid, *global_ref_table, refcount);
 
 	} else {
 		/* we do not create a new object, but set the new value into

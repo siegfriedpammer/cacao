@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: loader.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -1424,7 +1424,7 @@ classinfo *load_class_from_sysloader(utf *name)
 	if (!m)
 		return false;
 
-	cl = vm_call_method_intern(m, NULL, NULL, NULL, NULL);
+	cl = vm_call_method(m, NULL);
 
 	if (!cl)
 		return false;
@@ -1553,7 +1553,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		s = javastring_new_slash_to_dot(name);
 
-		o = vm_call_method_intern(lc, cl, s, NULL, NULL);
+		o = vm_call_method(lc, cl, s);
 
 		c = (classinfo *) o;
 

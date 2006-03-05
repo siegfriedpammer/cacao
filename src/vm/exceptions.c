@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: exceptions.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -189,7 +189,7 @@ static void throw_exception_exit_intern(bool doexit)
 		/* print the stacktrace */
 
 		if (pss) {
-			(void) vm_call_method_intern(pss, xptr, NULL, NULL, NULL);
+			(void) vm_call_method(pss, xptr);
 
 			/* This normally means, we are EXTREMLY out of memory or have a   */
 			/* serious problem while printStackTrace. But may be another      */
@@ -966,7 +966,7 @@ java_objectheader *new_arrayindexoutofboundsexception(s4 index)
 	if (m == NULL)
 		return *exceptionptr;
 
-	o = vm_call_method_intern(m, (void *) (ptrint) index, NULL, NULL, NULL);
+	o = vm_call_method(m, NULL, index);
 
 	s = (java_lang_String *) o;
 

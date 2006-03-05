@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: asmpart.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -52,83 +52,8 @@
 #include "vm/jit/intrp/intrp.h"
 
 
-/* true on success, false on exception */
-
-static bool intrp_asm_calljavafunction_intern(methodinfo *m,
-											  void *arg1, void *arg2,
-											  void *arg3, void *arg4)
-{
-	java_objectheader *retval;
-	Cell              *sp;
-	methoddesc        *md;
-	u1                *entrypoint;
-
-	sp = global_sp;
-	md = m->parseddesc;
-
-	CLEAR_global_sp;
-	assert(sp != NULL);
-
-	/* XXX ugly hack: thread's run() needs 5 arguments */
-	assert(md->paramcount < 6);
-
-	if (md->paramcount > 0)
-		*--sp=(Cell)arg1;
-	if (md->paramcount > 1)
-		*--sp=(Cell)arg2;
-	if (md->paramcount > 2)
-		*--sp=(Cell)arg3;
-	if (md->paramcount > 3)
-		*--sp=(Cell)arg4;
-	if (md->paramcount > 4)
-		*--sp=(Cell) 0;
-
-	entrypoint = createcalljavafunction(m);
-
-	retval = engine((Inst *) entrypoint, sp, NULL);
-
-	/* XXX remove the method from the method table */
-
-	if (retval != NULL) {
-		(void) builtin_throw_exception(retval);
-		return false;
-	}
-	else 
-		return true;
-}
-
-
-java_objectheader *intrp_asm_calljavafunction(methodinfo *m,
-											  void *arg1, void *arg2,
-											  void *arg3, void *arg4)
-{
-	if (intrp_asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4)) {
-		if (m->parseddesc->returntype.type == TYPE_ADR)
-			return (java_objectheader *)(*global_sp++);
-		else {
-			assert(m->parseddesc->returntype.type == TYPE_VOID);
-			return NULL;
-		}
-	} else
-		return NULL;
-}
-
-
-s4 intrp_asm_calljavafunction_int(methodinfo *m, void *arg1, void *arg2,
-								  void *arg3, void *arg4)
-{
-	assert(m->parseddesc->returntype.type == TYPE_INT);
-
-	if (intrp_asm_calljavafunction_intern(m, arg1, arg2, arg3, arg4))
-		return (s4) (*global_sp++);
-	else
-		return 0;
-}
-
-
-/* true on success, false on exception */
-static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
-								   jni_callblock *callblock)
+static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,
+											vm_arg *vmargs)
 {
 	java_objectheader *retval;
 	Cell              *sp;
@@ -140,17 +65,17 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 
 	assert(sp != NULL);
 
-	for (i = 0; i < count; i++) {
-		switch (callblock[i].itemtype) {
+	for (i = 0; i < vmargscount; i++) {
+		switch (vmargs[i].type) {
 		case TYPE_INT:
 		case TYPE_FLT:
 		case TYPE_ADR:
-			*(--sp) = callblock[i].item;
+			*(--sp) = vmargs[i].data;
 			break;
 		case TYPE_LNG:
 		case TYPE_DBL:
 			sp -= 2;
-			*((u8 *) sp) = callblock[i].item;
+			*((u8 *) sp) = vmargs[i].data;
 			break;
 		}
 	}
@@ -170,12 +95,12 @@ static bool jni_invoke_java_intern(methodinfo *m, u4 count, u4 size,
 }
 
 
-java_objectheader *intrp_asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
-											   jni_callblock *callblock)
+java_objectheader *intrp_asm_vm_call_method(methodinfo *m, s4 vmargscount,
+											vm_arg *vmargs)
 {
 	java_objectheader *retval = NULL;
 
-	if (jni_invoke_java_intern(m, count, size, callblock)) {
+	if (intrp_asm_vm_call_method_intern(m, vmargscount, vmargs)) {
 		if (m->parseddesc->returntype.type == TYPE_ADR)
 			retval = (java_objectheader *)*global_sp++;
 		else
@@ -186,12 +111,11 @@ java_objectheader *intrp_asm_calljavafunction2(methodinfo *m, u4 count, u4 size,
 }
 
 
-s4 intrp_asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
-								  jni_callblock *callblock)
+s4 intrp_asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
-	s4 retval=0;
+	s4 retval = 0;
 
-	if (jni_invoke_java_intern(m, count, size, callblock)) {
+	if (intrp_asm_vm_call_method_intern(m, vmargscount, vmargs)) {
 		if (m->parseddesc->returntype.type == TYPE_INT)
 			retval = *global_sp++;
 		else
@@ -202,14 +126,13 @@ s4 intrp_asm_calljavafunction2int(methodinfo *m, u4 count, u4 size,
 }
 
 
-s8 intrp_asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
-								   jni_callblock *callblock)
+s8 intrp_asm_vm_call_method_long(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
 {
 	s8 retval;
 
 	assert(m->parseddesc->returntype.type == TYPE_LNG);
 
-	if (jni_invoke_java_intern(m, count, size, callblock)) {
+	if (intrp_asm_vm_call_method_intern(m, vmargscount, vmargs)) {
 		retval = *(s8 *)global_sp;
 		global_sp += 2;
 		return retval;
@@ -218,14 +141,14 @@ s8 intrp_asm_calljavafunction2long(methodinfo *m, u4 count, u4 size,
 }
 
 
-float intrp_asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
-									   jni_callblock *callblock)
+float intrp_asm_vm_call_method_float(methodinfo *m, s4 vmargscount,
+									 vm_arg *vmargs)
 {
 	float retval;
 
 	assert(m->parseddesc->returntype.type == TYPE_FLT);
 
-	if (jni_invoke_java_intern(m, count, size, callblock)) {
+	if (intrp_asm_vm_call_method_intern(m, vmargscount, vmargs)) {
 		retval = *(float *)global_sp;
 		global_sp += 1;
 		return retval;
@@ -234,14 +157,14 @@ float intrp_asm_calljavafunction2float(methodinfo *m, u4 count, u4 size,
 }
 
 
-double intrp_asm_calljavafunction2double(methodinfo *m, u4 count, u4 size,
-										 jni_callblock *callblock)
+double intrp_asm_vm_call_method_double(methodinfo *m, s4 vmargscount,
+									   vm_arg *vmargs)
 {
 	double retval;
 
 	assert(m->parseddesc->returntype.type == TYPE_DBL);
 
-	if (jni_invoke_java_intern(m, count, size, callblock)) {
+	if (intrp_asm_vm_call_method_intern(m, vmargscount, vmargs)) {
 		retval = *(double *)global_sp;
 		global_sp += 2;
 		return retval;

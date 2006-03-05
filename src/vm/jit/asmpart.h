@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.h 4553 2006-03-04 17:19:03Z twisti $
+   $Id: asmpart.h 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -109,65 +109,34 @@ void asm_sync_instruction_cache(void);
 void asm_call_jit_compiler(void);
 
 
-/* 
-   This function calls a Java-method (which possibly needs compilation)
-   with up to 4 parameters. This function calls a Java-method (which
-   possibly needs compilation) with up to 4 parameters.
-*/
-
 #if defined(ENABLE_JIT)
-java_objectheader *asm_calljavafunction(methodinfo *m,
-										void *arg1, void *arg2,
-										void *arg3, void *arg4);
+java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
+									  vm_arg *vmargs);
 
-s4 asm_calljavafunction_int(methodinfo *m,
-							void *arg1, void *arg2,
-							void *arg3, void *arg4);
+s4     asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+s8     asm_vm_call_method_long(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 #endif
 
 #if defined(ENABLE_INTRP)
-java_objectheader *intrp_asm_calljavafunction(methodinfo *m,
-											  void *arg1, void *arg2,
-											  void *arg3, void *arg4);
+java_objectheader *intrp_asm_vm_call_method(methodinfo *m, s4 vmargscount,
+											vm_arg *vmargs);
 
-s4 intrp_asm_calljavafunction_int(methodinfo *m,
-								  void *arg1, void *arg2,
-								  void *arg3, void *arg4);
-#endif
-
-
-/* 
-   This function calls a Java-method (which possibly needs compilation)
-   with up to 4 parameters. This function calls a Java-method (which
-   possibly needs compilation) with up to 4 parameters. 
-   also supports a return value
-*/
-
-#if defined(ENABLE_JIT)
-java_objectheader *asm_calljavafunction2(methodinfo *m, u4 count,
-										 vm_arg *vmargs);
-
-s4     asm_calljavafunction2int(methodinfo *m, u4 count, vm_arg *vmargs);
-s8     asm_calljavafunction2long(methodinfo *m, u4 count, vm_arg *vmargs);
-float  asm_calljavafunction2float(methodinfo *m, u4 count, vm_arg *vmargs);
-double asm_calljavafunction2double(methodinfo *m, u4 count, vm_arg *vmargs);
-#endif
-
-#if defined(ENABLE_INTRP)
-java_objectheader *intrp_asm_calljavafunction2(methodinfo *m, u4 count,
-											   vm_arg *vmargs);
-
-s4     intrp_asm_calljavafunction2int(methodinfo *m, u4 count, vm_arg *vmargs);
-s8     intrp_asm_calljavafunction2long(methodinfo *m, u4 count, vm_arg *vmargs);
-float  intrp_asm_calljavafunction2float(methodinfo *m, u4 count, vm_arg *vmargs);
-double intrp_asm_calljavafunction2double(methodinfo *m, u4 count, vm_arg *vmargs);
+s4     intrp_asm_vm_call_method_int(methodinfo *m, s4 vmargscount,
+									vm_arg *vmargs);
+s8     intrp_asm_vm_call_method_long(methodinfo *m, s4 vmargscount,
+									 vm_arg *vmargs);
+float  intrp_asm_vm_call_method_float(methodinfo *m, s4 vmargscount,
+									  vm_arg *vmargs);
+double intrp_asm_vm_call_method_double(methodinfo *m, s4 vmargscount,
+									   vm_arg *vmargs);
 #endif
 
 
 /* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
    into the methodtable */
 #if defined(__I386__) || defined(__X86_64__)
-void calljava_xhandler(void);
 void calljava_xhandler2(void);
 #endif
 

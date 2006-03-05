@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: finalizer.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -190,11 +190,13 @@ void finalizer_notify(void)
 
 void finalizer_run(void *o, void *p)
 {
-	java_objectheader *ob = (java_objectheader *) o;
+	java_objectheader *ob;
+
+	ob = (java_objectheader *) o;
 
 	/* call the finalizer function */
 
-	vm_call_method_intern(ob->vftbl->class->finalizer, ob, NULL, NULL, NULL);
+	(void) vm_call_method(ob->vftbl->class->finalizer, ob);
 
 	/* if we had an exception in the finalizer, ignore it */
 

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: stacktrace.c 4559 2006-03-05 23:24:50Z twisti $
 
 */
 
@@ -562,7 +562,7 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 
 	/* call function */
 
-	(void) vm_call_method_intern(m, o, NULL, NULL, NULL);
+	(void) vm_call_method(m, o);
 
 	/* remove stackframeinfo */
 
