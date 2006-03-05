@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4555 2006-03-04 18:35:31Z twisti $
+   $Id: asmpart.S 4561 2006-03-05 23:53:19Z twisti $
 
 */
 
@@ -56,14 +56,11 @@
 
 	.globl asm_sync_instruction_cache
 
-	.globl asm_calljavafunction
-	.globl asm_calljavafunction_int
-
-	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2int
-	.globl asm_calljavafunction2long
-	.globl asm_calljavafunction2float
-	.globl asm_calljavafunction2double
+	.globl asm_vm_call_method
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -112,7 +109,7 @@ asm_md_init:
 	.end    asm_md_init
 
 
-/********************* function asm_calljavafunction ***************************
+/* asm_vm_call_method **********************************************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
 *   with up to 4 address parameters.                                           *
@@ -126,75 +123,14 @@ asm_md_init:
 *                                                                              *
 *******************************************************************************/
 
-	.ent    asm_calljavafunction
-
-	.align  2
-
-	.quad   0                           /* catch type all                     */
-	.quad   calljava_xhandler           /* handler pc                         */
-	.quad   calljava_xhandler           /* end pc                             */
-	.quad   asm_calljavafunction        /* start pc                           */
-	.long   1                           /* extable size                       */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.quad   0                           /* line number table start            */
-	.quad   0                           /* line number table size             */
-	.long   0                           /* ALIGNMENT PADDING                  */
-	.long   0                           /* fltsave                            */
-	.long   0                           /* intsave                            */
-	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
-	.long   0                           /* frame size                         */
-	.quad   0                           /* method pointer (pointer to name)   */
-
-asm_calljavafunction:
-asm_calljavafunction_int:
-	ldgp    gp,0(pv)
-	lda     sp,-4*8(sp)                 /* allocate stack space               */
-	stq     ra,0*8(sp)                  /* save return address                */
-	stq     gp,1*8(sp)                  /* save global pointer                */
-
-	mov     a0,itmp1                    /* pass method pointer via tmp1       */
-
-	mov     a1,a0                       /* pass the remaining parameters      */
-	mov     a2,a1
-	mov     a3,a2
-	mov     a4,a3
-
-	lda     mptr,asm_call_jit_compiler  /* fake virtual function call         */
-	stq     mptr,3*8(sp)                /* store function address             */
-	mov     sp,mptr                     /* set method pointer                 */
-
-	ldq     pv,3*8(mptr)                /* method call as in Java             */
-	jmp     ra,(pv)                     /* call JIT compiler                  */
-calljava_jit:
-	lda     pv,(asm_calljavafunction - calljava_jit)(ra)
-
-L_asm_calljavafunction_return:
-	ldq     ra,0*8(sp)                  /* restore return address             */
-	ldq     gp,1*8(sp)                  /* restore global pointer             */
-	lda     sp,4*8(sp)                  /* free stack space                   */
-	jmp     zero,(ra)
-
-calljava_xhandler:
-	ldq     gp,1*8(sp)                  /* restore global pointer             */
-	mov     xptr,a0
-	jsr     ra,builtin_throw_exception
-	mov     zero,v0                     /* return NULL                        */
-	br      L_asm_calljavafunction_return
-
-	.end    asm_calljavafunction
-
-
-
-
-	.ent    asm_calljavafunction2
+	.ent    asm_vm_call_method
 
 	.align  3
 
 	.quad   0                           /* catch type all                     */
 	.quad   calljava_xhandler2          /* handler pc                         */
 	.quad   calljava_xhandler2          /* end pc                             */
-	.quad   asm_calljavafunction2       /* start pc                           */
+	.quad   asm_vm_call_method          /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* ALIGNMENT PADDING                  */
 	.quad   0                           /* line number table start            */
@@ -207,11 +143,11 @@ calljava_xhandler:
 	.long   0                           /* frame size                         */
 	.quad   0                           /* method pointer (pointer to name)   */
 
-asm_calljavafunction2:
-asm_calljavafunction2int:
-asm_calljavafunction2long:
-asm_calljavafunction2float:
-asm_calljavafunction2double:
+asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
 	ldgp    gp,0(pv)
 	lda     sp,-5*8(sp)               /* allocate stack space                 */
 	stq     ra,0*8(sp)                /* save return address                  */
@@ -277,7 +213,7 @@ calljava_nocopy:
 	ldq     pv,1*8(mptr)              /* method call as in Java               */
 	jmp     ra,(pv)                   /* call JIT compiler                    */
 calljava_jit2:
-	lda     pv,(asm_calljavafunction2 - calljava_jit2)(ra)
+	lda     pv,(asm_vm_call_method - calljava_jit2)(ra)
 
 	s8addq  s6,sp,sp
 calljava_return2:
@@ -300,7 +236,7 @@ calljava_xhandler2:
 	mov     zero,v0                   /* return NULL                          */
 	jmp     zero,(ra)
 
-	.end    asm_calljavafunction2
+	.end    asm_vm_call_method
 
 
 /****************** function asm_call_jit_compiler *****************************
