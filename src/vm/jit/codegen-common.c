@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4478 2006-02-07 17:22:13Z edwin $
+   $Id: codegen-common.c 4560 2006-03-05 23:35:25Z twisti $
 
 */
 
@@ -124,20 +124,11 @@ void codegen_init(void)
 		methodtree = avl_create(&methodtree_comparator);
 
 #if defined(ENABLE_JIT)
-		/* insert asm_calljavafunction */
+		/* insert asm_vm_call_method */
 
 		mte = NEW(methodtree_element);
 
-		mte->startpc = (u1 *) (ptrint) asm_calljavafunction;
-		mte->endpc   = (u1 *) ((ptrint) asm_calljavafunction2 - 1);
-
-		avl_insert(methodtree, mte);
-
-		/* insert asm_calljavafunction2 */
-
-		mte = NEW(methodtree_element);
-
-		mte->startpc = (u1 *) (ptrint) asm_calljavafunction2;
+		mte->startpc = (u1 *) (ptrint) asm_vm_call_method;
 		mte->endpc   = (u1 *) ((ptrint) asm_call_jit_compiler - 1);
 
 		avl_insert(methodtree, mte);
