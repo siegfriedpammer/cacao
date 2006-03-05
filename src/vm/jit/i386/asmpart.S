@@ -30,7 +30,7 @@
 
    Changes: Joseph Wenninger
 
-   $Id: asmpart.S 4535 2006-02-21 09:34:01Z twisti $
+   $Id: asmpart.S 4556 2006-03-05 15:51:41Z twisti $
 
 */
 
@@ -219,14 +219,14 @@ asm_calljavafunction2float:
 asm_calljavafunction2double:
 L_asm_calljavafunction2:                /* required for PIC code              */
 	push    %ebp
-	mov     %esp,%ebp                 /* save stackptr                        */
+	mov     %esp,%ebp                   /* save stackptr                      */
 
-	push    %ebx                      /* save registers                       */
+	push    %ebx                        /* save registers                     */
 	push    %esi
 	push    %edi
 
-	mov     20(%ebp),%eax             /* pointer to arg block (4(push)+4(return)+4+4+4)*/
-	mov     12(%ebp),%ecx             /* arg count            (4(push)+4(return)+4     */
+	mov     4*4(%ebp),%eax              /* pointer to arg block (4(push)+4(return)+4+4)*/
+	mov     3*4(%ebp),%ecx              /* arg count            (4(push)+4(return)+4 */
 
 	xor     %esi,%esi                 /* clear stackframe size (MUST be       */
 	                                  /* before args check, may be zero!!!)   */
@@ -237,7 +237,7 @@ L_asm_calljavafunction2:                /* required for PIC code              */
 	mov     %eax,%edi                 /* save pointer to arg block            */
 
 calljava_calcstacksize:
-	mov     offjniitemtype(%eax),%ebx
+	mov     offvmargtype(%eax),%ebx
 	test    $1,%ebx                   /* two word type?                       */
 	jz      calljava_onewordtype
 	add     $4,%esi                   /* add 1 slot to stackframe size        */
@@ -247,7 +247,7 @@ calljava_onewordtype:
 	sub     $1,%edx
 	test	%edx,%edx                 /* any args left?                       */
 	jz      calljava_setstack
-	add     $sizejniblock,%eax        /* goto next argument block             */
+	add     $sizevmarg,%eax             /* goto next argument block           */
 	jmp     calljava_calcstacksize
 		
 calljava_setstack:				
@@ -256,27 +256,27 @@ calljava_setstack:
 	mov     %esp,%edi                 /* move stackpointer into temp variable */
 
 calljava_copyloop:
-	mov     offjniitem(%eax),%edx     /* copy 4 Byte of Argument              */
+	mov     offvmargdata(%eax),%edx     /* copy 4 Byte of Argument            */
 	mov     %edx,(%edi)
-	add     $4,%edi                   /* increase sp to next argument         */
-	mov     offjniitemtype(%eax),%ebx /* type -> ebx                          */
-	test    $1,%ebx                   /* Two Word Type?                       */
+	add     $4,%edi                     /* increase sp to next argument       */
+	mov     offvmargtype(%eax),%ebx     /* type -> ebx                        */
+	test    $1,%ebx                     /* two word type?                     */
 	jz      calljava_copynext
 
-	mov     offjniitem+4(%eax),%edx   /* copy upper 4 Byte of 2 Word Type     */
+	mov     offvmargdata+4(%eax),%edx   /* copy upper 4 byte of 2 word type   */
 	mov     %edx,(%edi)			
-	add     $4,%edi                   /* increase sp to next argument         */
+	add     $4,%edi                     /* increase sp to next argument       */
 
 calljava_copynext:		
-	sub     $1,%ecx                   /* are there any args left?             */
+	sub     $1,%ecx                     /* are there any args left?           */
 	test    %ecx,%ecx
 	jle     calljava_copydone
 
-	add     $sizejniblock,%eax        /* goto next argument block             */
+	add     $sizevmarg,%eax             /* goto next argument block           */
 	jmp     calljava_copyloop
 
 calljava_copydone:
-	mov     8(%ebp),%eax              /* move function pointer to %eax        */
+	mov     2*4(%ebp),itmp1             /* move function pointer to itmp1     */
 
 	lea     L_asm_call_jit_compiler,itmp3
 	call    *itmp3                      /* call JIT compiler                  */
