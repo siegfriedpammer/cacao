@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: testarguments.c 4558 2006-03-05 23:05:07Z twisti $
 
 */
 
@@ -59,11 +59,7 @@ JNIEXPORT void JNICALL Java_testarguments_nlsub(JNIEnv *env, jclass clazz, jlong
 {
     jmethodID mid;
 
-#if SIZEOF_VOID_P == 4
     printf("java-native: 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx 0x%llx\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
-#else
-    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
-#endif
     fflush(stdout);
 
     mid = (*env)->GetStaticMethodID(env, clazz, "jlsub", "(JJJJJJJJJJJJJJJ)V");
@@ -127,7 +123,6 @@ JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdoub
 
     printf("java-native:");
 
-#if SIZEOF_VOID_P == 4
     x.d = a; printf(" 0x%llx", x.l);
     x.d = b; printf(" 0x%llx", x.l);
     x.d = c; printf(" 0x%llx", x.l);
@@ -143,23 +138,6 @@ JNIEXPORT void JNICALL Java_testarguments_ndsub(JNIEnv *env, jclass clazz, jdoub
     x.d = m; printf(" 0x%llx", x.l);
     x.d = n; printf(" 0x%llx", x.l);
     x.d = o; printf(" 0x%llx", x.l);
-#else
-    x.d = a; printf(" 0x%lx", x.l);
-    x.d = b; printf(" 0x%lx", x.l);
-    x.d = c; printf(" 0x%lx", x.l);
-    x.d = d; printf(" 0x%lx", x.l);
-    x.d = e; printf(" 0x%lx", x.l);
-    x.d = f; printf(" 0x%lx", x.l);
-    x.d = g; printf(" 0x%lx", x.l);
-    x.d = h; printf(" 0x%lx", x.l);
-    x.d = i; printf(" 0x%lx", x.l);
-    x.d = j; printf(" 0x%lx", x.l);
-    x.d = k; printf(" 0x%lx", x.l);
-    x.d = l; printf(" 0x%lx", x.l);
-    x.d = m; printf(" 0x%lx", x.l);
-    x.d = n; printf(" 0x%lx", x.l);
-    x.d = o; printf(" 0x%lx", x.l);
-#endif
 
     printf("\n");
     fflush(stdout);
