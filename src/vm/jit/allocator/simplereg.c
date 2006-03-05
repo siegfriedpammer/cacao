@@ -32,7 +32,7 @@
             Michael Starzinger
 			Edwin Steiner
 
-   $Id: simplereg.c 4525 2006-02-19 22:27:25Z christian $
+   $Id: simplereg.c 4557 2006-03-05 21:54:31Z christian $
 
 */
 
@@ -1342,12 +1342,10 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src->prev --> dst->prev             (copied value, take same reg/mem) */
 					/* src       --> dst                   (copied value, take same reg/mem) */
 												
-					if (!reg_alloc_dup(src->prev, dst->prev)) {
+					if (!reg_alloc_dup(src->prev, dst->prev))
 						reg_new_temp(rd, dst->prev);
-					}
-					if (!reg_alloc_dup(src, dst)) {
+					if (!reg_alloc_dup(src, dst))
 						reg_new_temp(rd, dst);
-					}
 					reg_mark_copy(rd, src, src->prev, dst, dst->prev->prev->prev);
 					break;
 
@@ -1358,18 +1356,13 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src       --> dst             (copied value, take same reg/mem) */
 					/* src       --> dst->prev->prev (copied value, take same reg/mem) */
 												
-					{
-						if (!reg_alloc_dup(src, dst->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev);
-						}
-						if (!reg_alloc_dup(src, dst)) {
-								reg_new_temp(rd, dst);
-						}
-						if (!reg_alloc_dup(src->prev, dst->prev)) {
-							reg_new_temp(rd, dst->prev);
-						}
-						reg_mark_copy(rd, src, src->prev, dst, dst->prev->prev);
-					}
+					if (!reg_alloc_dup(src, dst->prev->prev))
+						reg_new_temp(rd, dst->prev->prev);
+					if (!reg_alloc_dup(src, dst))
+						reg_new_temp(rd, dst);
+					if (!reg_alloc_dup(src->prev, dst->prev))
+						reg_new_temp(rd, dst->prev);
+					reg_mark_copy(rd, src, src->prev, dst, dst->prev->prev);
 					break;
 
 					/* pop 3 push 4 dup */
@@ -1380,21 +1373,15 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src             --> dst                    */
 					/* src             --> dst->prev->prev->prev  */
 					
-					{
-						if (!reg_alloc_dup(src, dst->prev->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev->prev);
-						}
-						if (!reg_alloc_dup(src, dst)) {
-								reg_new_temp(rd, dst);
-						}
-						if (!reg_alloc_dup(src->prev, dst->prev)) {
-							reg_new_temp(rd, dst->prev);
-						}
-						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_new_temp(rd, dst->prev->prev);
-						}
-						reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev);
-					}
+					if (!reg_alloc_dup(src, dst->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev);
+					if (!reg_alloc_dup(src, dst))
+						reg_new_temp(rd, dst);
+					if (!reg_alloc_dup(src->prev, dst->prev))
+						reg_new_temp(rd, dst->prev);
+					if (!reg_alloc_dup(src->prev->prev, dst->prev->prev))
+						reg_new_temp(rd, dst->prev->prev);
+					reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev);
 					break;
 
 					/* pop 3 push 5 dup */
@@ -1406,24 +1393,17 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src->prev       --> dst->prev->prev->prev->prev */
 					/* src             --> dst->prev->prev->prev       */
 												
-					{
-						if (!reg_alloc_dup(src, dst->prev->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev->prev);
-						}
-						if (!reg_alloc_dup(src, dst)) {
-								reg_new_temp(rd, dst);
-						}
-						if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev->prev->prev);
-						}
-						if (!reg_alloc_dup(src->prev, dst->prev)) {
-								reg_new_temp(rd, dst->prev);
-						}
-						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_new_temp(rd, dst->prev->prev);
-						}
-						reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev->prev);
-					}
+					if (!reg_alloc_dup(src, dst->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev);
+					if (!reg_alloc_dup(src, dst))
+						reg_new_temp(rd, dst);
+					if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev->prev);
+					if (!reg_alloc_dup(src->prev, dst->prev))
+						reg_new_temp(rd, dst->prev);
+					if (!reg_alloc_dup(src->prev->prev, dst->prev->prev))
+						reg_new_temp(rd, dst->prev->prev);
+					reg_mark_copy(rd, src, src->prev->prev, dst, dst->prev->prev->prev->prev);
 					break;
 
 					/* pop 4 push 6 dup */
@@ -1436,29 +1416,19 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src->prev             --> dst->prev->prev->prev->prev->prev */
 					/* src                   --> dst->prev->prev->prev->prev       */
 												
-					{
-						if (!reg_alloc_dup(src, dst->prev->prev->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev->prev->prev);
-						}
-						if (!reg_alloc_dup(src, dst)) {
-								reg_new_temp(rd, dst);
-						}
-
-						if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev->prev)) {
-								reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
-						}
-						if (!reg_alloc_dup(src->prev, dst->prev)) {
-								reg_new_temp(rd, dst->prev);
-						}
-
-						if (!reg_alloc_dup(src->prev->prev, dst->prev->prev)) {
-							reg_new_temp(rd, dst->prev->prev);
-						}
-						if (!reg_alloc_dup(src->prev->prev->prev, dst->prev->prev->prev)) {
-							reg_new_temp(rd, dst->prev->prev->prev);
-						}
-						reg_mark_copy(rd, src, src->prev->prev->prev, dst, dst->prev->prev->prev->prev->prev);
-					}
+					if (!reg_alloc_dup(src, dst->prev->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev->prev);
+					if (!reg_alloc_dup(src, dst))
+						reg_new_temp(rd, dst);
+					if (!reg_alloc_dup(src->prev, dst->prev->prev->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev->prev->prev);
+					if (!reg_alloc_dup(src->prev, dst->prev))
+						reg_new_temp(rd, dst->prev);
+					if (!reg_alloc_dup(src->prev->prev, dst->prev->prev))
+						reg_new_temp(rd, dst->prev->prev);
+					if (!reg_alloc_dup(src->prev->prev->prev, dst->prev->prev->prev))
+						reg_new_temp(rd, dst->prev->prev->prev);
+					reg_mark_copy(rd, src, src->prev->prev->prev, dst, dst->prev->prev->prev->prev->prev);
 					break;
 
 					/* pop 2 push 2 swap */
@@ -1467,12 +1437,10 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 					/* src       --> dst->prev   (copy) */
 					/* src->prev --> dst         (copy) */
 												
-					if (!reg_alloc_dup(src, dst->prev)) {
+					if (!reg_alloc_dup(src, dst->prev))
 						reg_new_temp(rd, dst->prev);
-					}
-					if (!reg_alloc_dup(src->prev, dst->prev)) {
+					if (!reg_alloc_dup(src->prev, dst))
 						reg_new_temp(rd, dst);
-					}
 					reg_mark_copy(rd, src, src->prev, dst, dst->prev);
 					break;
 
