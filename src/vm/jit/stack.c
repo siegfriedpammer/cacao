@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4524 2006-02-16 19:39:36Z christian $
+   $Id: stack.c 4564 2006-03-06 18:45:13Z christian $
 
 */
 
@@ -1261,6 +1261,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						}
 						copy++;
 					}
+					/* If Stackslot is already marked as LOCALVAR, do not    */
+					/* change it! Conflict resolution works only, if xLOAD   */
+					/* has priority! */
+					if (curstack->varkind == LOCALVAR)
+						goto _possible_conflict;
 					/* no conflict - mark the Stackslot as LOCALVAR */
 					curstack->varkind = LOCALVAR;
 					curstack->varnum = iptr->op1;
