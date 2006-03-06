@@ -28,11 +28,13 @@
 ##
 ## Changes: Christian Thalinger
 ##
-## $Id: Makefile.am 4465 2006-02-06 18:14:56Z twisti $
+## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+
+LIBS =
 
 noinst_LTLIBRARIES = \
 	liballocator.la

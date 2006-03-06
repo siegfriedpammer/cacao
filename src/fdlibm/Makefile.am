@@ -1,5 +1,7 @@
 INCLUDES = -I$(top_builddir)
 
+LIBS =
+
 noinst_LTLIBRARIES = libfdlibm.la 
 
 libfdlibm_la_SOURCES =  \

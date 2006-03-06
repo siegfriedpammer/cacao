@@ -28,17 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 
 if DISABLE_GC
 if NATIVE_THREADS
 GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-else
-GC_LIB =
 endif
 else
 GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
@@ -50,8 +48,6 @@ THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
 else
 THREAD_LIB = $(top_builddir)/src/threads/green/libthreads.la
 endif
-else
-THREAD_LIB =
 endif
 
 noinst_LTLIBRARIES = libcacaoh.la
@@ -76,7 +72,8 @@ cacaoh_LDADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(GC_LIB)
 
-cacaoh_DEPENDENCIES = $(cacaoh_LDADD)
+cacaoh_DEPENDENCIES = \
+	$(cacaoh_LDADD)
 
 
 ## Local variables:

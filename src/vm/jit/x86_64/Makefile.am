@@ -28,12 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
 AM_CCASFLAGS = $(AM_CPPFLAGS)
+
+LIBS =
 
 BUILT_SOURCES = offsets.h
 
