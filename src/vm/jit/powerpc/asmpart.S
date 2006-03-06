@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4554 2006-03-04 18:01:53Z twisti $
+   $Id: asmpart.S 4562 2006-03-06 00:30:36Z twisti $
 
 */
 
@@ -52,16 +52,11 @@
 
 /* exported functions and variables *******************************************/
 
-	.globl asm_calljavafunction
-	.type  asm_calljavafunction, @function
-
-	.globl asm_calljavafunction_int
-
-	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2int
-	.globl asm_calljavafunction2long
-	.globl asm_calljavafunction2float
-	.globl asm_calljavafunction2double
+	.globl asm_vm_call_method
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 
 	.globl asm_call_jit_compiler
 
@@ -78,7 +73,7 @@
 	.globl asm_getclassvalues_atomic
 
 
-/********************* function asm_calljavafunction ***************************
+/* asm_vm_call_method **********************************************************
 *                                                                              *
 *   This function calls a Java-method (which possibly needs compilation)       *
 *   with up to 4 address parameters.                                           *
@@ -95,132 +90,9 @@
 	.align 2
 
 	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler         /* handler pc                           */
-	.long   calljava_xhandler         /* end pc                               */
-	.long   L_asm_calljavafunction    /* start pc                             */
-	.long   1                         /* extable size                         */
-	.long   0                         /* line number table start              */
-	.long   0                         /* line number table size               */
-	.long   0                         /* fltsave                              */
-	.long   0                         /* intsave                              */
-	.long   0                         /* isleaf                               */
-	.long   0                         /* IsSync                               */
-	.long   0                         /* frame size                           */
-	.long   0                         /* method pointer (pointer to name)     */
-
-asm_calljavafunction:
-asm_calljavafunction_int:
-L_asm_calljavafunction:               /* required for PIC code                */
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(r1)
-	stwu    r1,-40*4(r1)
-
-#if defined(__DARWIN__)
-	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
-#endif
-	stw     pv,11*4(sp)               /* save PV register                     */
-
-	stw     itmp3,12*4(sp)            /* registers r14-r31 are callee saved   */
-	stfd	ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
-	stfd	ftmp2,16*4(sp)
-
-#if defined(__DARWIN__)
-	stw     t1,18*4(r1)
-	stw     t2,19*4(r1)
-	stw     t3,20*4(r1)
-	stw     t4,21*4(r1)
-	stw     t5,22*4(r1)
-	stw     t6,23*4(r1)
-	stw     t7,24*4(r1)
-
-	stfd	ft0,26*4(r1)
-	stfd	ft1,28*4(r1)
-	stfd	ft2,30*4(r1)
-	stfd	ft3,32*4(r1)
-	stfd	ft4,34*4(r1)
-	stfd	ft5,36*4(r1)
-#else
-	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
-#endif
-
-	mr      itmp1,a0                  /* pass method pointer via tmp1         */
-
-	mr      a0,a1
-	mr      a1,a2
-	mr      a2,a3
-	mr      a3,a4
-
-#if defined(__DARWIN__)
-	lis     mptr,ha16(L_asm_call_jit_compiler)
-	addi    mptr,mptr,lo16(L_asm_call_jit_compiler)
-#else
-	lis     mptr,L_asm_call_jit_compiler@ha
-	addi    mptr,mptr,L_asm_call_jit_compiler@l
-#endif
-	stw     mptr,8*4(r1)
-	addi    mptr,r1,7*4
-
-	lwz     pv,1*4(mptr)
-	mtctr   pv
-	bctrl
-
-1:
-	mflr    itmp1
-#if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(L_asm_calljavafunction-1b)
-#else
-	addi    pv,itmp1,(L_asm_calljavafunction-1b)@l
-#endif
-
-L_asm_calljavafunction_return:
-#if defined(__DARWIN__)
-	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
-#endif
-	lwz     pv,11*4(sp)               /* save PV register                     */
-
-	lwz     itmp3,12*4(sp)
-	lfd     ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
-	lfd     ftmp2,16*4(sp)
-
-#if defined(__DARWIN__)
-	lwz     t1,18*4(r1)
-	lwz     t2,19*4(r1)
-	lwz     t3,20*4(r1)
-	lwz     t4,21*4(r1)
-	lwz     t5,22*4(r1)
-	lwz     t6,23*4(r1)
-	lwz     t7,24*4(r1)
-
-	lfd     ft0,26*4(r1)
-	lfd     ft1,28*4(r1)
-	lfd     ft2,30*4(r1)
-	lfd     ft3,32*4(r1)
-	lfd     ft4,34*4(r1)
-	lfd     ft5,36*4(r1)
-#else
-	RESTORE_TEMPORARY_REGISTERS(18)   /* the offset has to be even            */
-#endif
-
-	lwz     r0,40*4+LA_LR_OFFSET(r1)
-	mtlr    r0
-	addi    r1,r1,40*4
-	blr
-
-calljava_xhandler:
-	mr      a0,itmp1
-	bl      builtin_throw_exception
-	li      v0,0                      /* return NULL                          */
-	b       L_asm_calljavafunction_return
-
-
-
-
-	.align 2
-
-	.long   0                         /* catch type all                       */
 	.long   calljava_xhandler2        /* handler pc                           */
 	.long   calljava_xhandler2        /* end pc                               */
-	.long   L_asm_calljavafunction2   /* start pc                             */
+	.long   L_asm_vm_call_method      /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
@@ -231,12 +103,12 @@ calljava_xhandler:
 	.long   0                         /* frame size                           */
 	.long   0                         /* method pointer (pointer to name)     */
 
-asm_calljavafunction2:
-asm_calljavafunction2int:
-asm_calljavafunction2long:
-asm_calljavafunction2float:
-asm_calljavafunction2double:
-L_asm_calljavafunction2:              /* required for PIC code                */
+asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
+L_asm_vm_call_method:                 /* required for PIC code                */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
@@ -354,12 +226,12 @@ L_stack_copy_done:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(L_asm_calljavafunction2-1b)
+	addi    pv,itmp1,lo16(L_asm_vm_call_method-1b)
 #else
-	addi    pv,itmp1,(L_asm_calljavafunction2-1b)@l
+	addi    pv,itmp1,(L_asm_vm_call_method-1b)@l
 #endif
 
-L_asm_calljavafunction2_return:
+L_asm_vm_call_method_return:
 #if defined(__DARWIN__)
 	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
 #endif
@@ -397,7 +269,7 @@ calljava_xhandler2:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
 	li      v0,0                      /* return NULL                          */
-	b       L_asm_calljavafunction2_return
+	b       L_asm_vm_call_method_return
 
 
 jumptable_int:
