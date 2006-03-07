@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: VMSystemProperties.c 4571 2006-03-07 19:32:08Z twisti $
 
 */
 
@@ -67,6 +67,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	char       *java_home;
 	char       *user;
 	char       *home;
+	char       *extdirs;
+	s4          extdirslen;
 	char       *locale;
 	char       *lang;
 	char       *country;
@@ -96,10 +98,15 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	if (!properties_postinit(p))
 		return;
 
+	/* set JAVA_HOME to default prefix if not defined */
+
+	if (java_home == NULL)
+		java_home = CACAO_PREFIX;
+
 	properties_system_add("java.version", JAVA_VERSION);
 	properties_system_add("java.vendor", "GNU Classpath");
 	properties_system_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
-	properties_system_add("java.home", java_home ? java_home : CACAO_PREFIX);
+	properties_system_add("java.home", java_home);
 	properties_system_add("java.vm.specification.version", "1.0");
 	properties_system_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_system_add("java.vm.specification.name", "Java Virtual Machine Specification");
@@ -175,7 +182,19 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		properties_system_add("java.vm.info", "JIT mode");
 	}
 
-	properties_system_add("java.ext.dirs", "");
+	/* set the java.ext.dirs property */
+
+	extdirslen = strlen(java_home) + strlen("/jre/lib/ext") + strlen("0");
+
+	extdirs = MNEW(char, extdirslen);
+
+	strcpy(extdirs, java_home);
+	strcat(extdirs, "/jre/lib/ext");
+
+	properties_system_add("java.ext.dirs", extdirs);
+
+	MFREE(extdirs, char, extdirslen);
+
 
 #if defined(DISABLE_GC)
 	/* When we disable the GC, we mmap the whole heap to a specific
@@ -214,8 +233,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("user.name", user ? user : "null");
 	properties_system_add("user.home", home ? home : "null");
 	properties_system_add("user.dir", cwd ? cwd : "null");
-
-	/* Are we little or big endian? */
 
 #if defined(WITH_STATIC_CLASSPATH)
 	/* This is just for debugging purposes and can cause troubles in

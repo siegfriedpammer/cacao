@@ -306,7 +306,7 @@ void usage(void)
 {
 	puts("Usage: cacao [-options] classname [arguments]");
 	puts("               (to run a class file)");
-	puts("       cacao [-options] -jar jarfile [arguments]");
+	puts("   or  cacao [-options] -jar jarfile [arguments]");
 	puts("               (to run a standalone jar file)\n");
 
 	puts("Java options:");
