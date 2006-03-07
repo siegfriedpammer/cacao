@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: headers.c 4570 2006-03-07 18:18:44Z twisti $
 
 */
 
@@ -70,7 +70,7 @@
 #if defined(ENABLE_INTRP)
 /* dummy interpreter stack to keep the compiler happy */
 
-u1 intrp_main_stack[1];
+u1 *intrp_main_stack;
 #endif
 
 
