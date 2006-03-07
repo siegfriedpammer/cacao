@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4566 2006-03-07 10:36:42Z twisti $
+   $Id: jni.c 4567 2006-03-07 10:48:24Z twisti $
 
 */
 
@@ -525,6 +525,53 @@ static jint _Jv_jni_CallIntMethod(java_objectheader *o, vftbl_t *vftbl,
 	STATISTICS(jnicallXmethodnvokation());
 
 	i = vm_call_method_int_valist(resm, o, ap);
+
+	return i;
+}
+
+
+/* _Jv_jni_CallIntMethodA ******************************************************
+
+   Internal function to call Java integer class methods (boolean,
+   byte, char, short, int).
+
+*******************************************************************************/
+
+static jint _Jv_jni_CallIntMethodA(java_objectheader *o, vftbl_t *vftbl,
+								   methodinfo *m, jvalue *args)
+{
+	methodinfo *resm;
+	jint        i;
+
+	STATISTICS(jniinvokation());
+
+	if (m == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+        
+	/* Class initialization is done by the JIT compiler.  This is ok
+	   since a static method always belongs to the declaring class. */
+
+	if (m->flags & ACC_STATIC) {
+		/* For static methods we reset the object. */
+
+		if (o != NULL)
+			o = NULL;
+
+		/* for convenience */
+
+		resm = m;
+
+	} else {
+		/* For instance methods we make a virtual function table lookup. */
+
+		resm = method_vftbl_lookup(vftbl, m);
+	}
+
+	STATISTICS(jnicallXmethodnvokation());
+
+	i = vm_call_method_int_jvalue(resm, o, args);
 
 	return i;
 }
@@ -1851,11 +1898,18 @@ jboolean CallBooleanMethodV(JNIEnv *env, jobject obj, jmethodID methodID, va_lis
 }
 
 
-jboolean CallBooleanMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue * args)
+jboolean CallBooleanMethodA(JNIEnv *env, jobject obj, jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallBooleanMethodA");
+	java_objectheader *o;
+	methodinfo        *m;
+	jboolean           b;
 
-	return 0;
+	o = (java_objectheader *) obj;
+	m = (methodinfo *) methodID;
+
+	b = _Jv_jni_CallIntMethodA(o, o->vftbl, m, args);
+
+	return b;
 }
 
 
