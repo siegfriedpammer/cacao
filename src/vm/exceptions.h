@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 4484 2006-02-12 00:25:12Z twisti $
+   $Id: exceptions.h 4566 2006-03-07 10:36:42Z twisti $
 
 */
 
@@ -152,6 +152,9 @@ void exceptions_throw_negativearraysizeexception(void);
 
 java_objectheader *new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
+
+java_objectheader *exceptions_new_stringindexoutofboundsexception(void);
+void exceptions_throw_stringindexoutofboundsexception(void);
 
 void classnotfoundexception_to_noclassdeffounderror(void);
 

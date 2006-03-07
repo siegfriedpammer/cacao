@@ -30,14 +30,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: string.c 4566 2006-03-07 10:36:42Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -130,6 +131,9 @@ const char *string_java_lang_NoSuchMethodException =
 
 const char *string_java_lang_NullPointerException =
     "java/lang/NullPointerException";
+
+const char *string_java_lang_StringIndexOutOfBoundsException =
+    "java/lang/StringIndexOutOfBoundsException";
 
 const char *string_java_lang_reflect_InvocationTargetException =
     "java/lang/reflect/InvocationTargetException";

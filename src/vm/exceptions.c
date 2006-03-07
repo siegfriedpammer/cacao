@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: exceptions.c 4566 2006-03-07 10:36:42Z twisti $
 
 */
 
@@ -1154,6 +1154,39 @@ java_objectheader *new_nullpointerexception(void)
 void exceptions_throw_nullpointerexception(void)
 {
 	*exceptionptr = new_nullpointerexception();
+}
+
+
+/* exceptions_new_stringindexoutofboundsexception ******************************
+
+   Generates a java.lang.StringIndexOutOfBoundsException for the VM
+   system.
+
+*******************************************************************************/
+
+java_objectheader *exceptions_new_stringindexoutofboundsexception(void)
+{
+	java_objectheader *e;
+
+	e = new_exception(string_java_lang_StringIndexOutOfBoundsException);
+
+	if (e == NULL)
+		return *exceptionptr;
+
+	return e;
+}
+
+
+/* exceptions_throw_stringindexoutofboundsexception ****************************
+
+   Throws a java.lang.StringIndexOutOfBoundsException for the VM
+   system.
+
+*******************************************************************************/
+
+void exceptions_throw_stringindexoutofboundsexception(void)
+{
+	*exceptionptr = exceptions_new_stringindexoutofboundsexception();
 }
 
 

@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4565 2006-03-07 09:40:37Z twisti $
+   $Id: jni.c 4566 2006-03-07 10:36:42Z twisti $
 
 */
 
@@ -4863,11 +4863,32 @@ jint GetJavaVM(JNIEnv *env, JavaVM **vm)
 }
 
 
+/* GetStringRegion *************************************************************
+
+   Copies len number of Unicode characters beginning at offset start
+   to the given buffer buf.
+
+   Throws StringIndexOutOfBoundsException on index overflow.
+
+*******************************************************************************/
+
 void GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len, jchar *buf)
 {
+	java_lang_String *s;
+	java_chararray   *ca;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: GetStringRegion: IMPLEMENT ME!");
+	s  = (java_lang_String *) str;
+	ca = s->value;
+
+	if ((start < 0) || (len < 0) || (start > s->count) ||
+		(start + len > s->count)) {
+		exceptions_throw_stringindexoutofboundsexception();
+		return;
+	}
+
+	MCOPY(buf, &ca->data[start], u2, len);
 }
 
 
