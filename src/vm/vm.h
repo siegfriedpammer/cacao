@@ -45,6 +45,7 @@
 
 /* export global variables ****************************************************/
 
+extern _Jv_JavaVM *_Jv_jvm;
 extern _Jv_JNIEnv *_Jv_env;
 
 extern bool vm_initializing;

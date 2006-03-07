@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4530 2006-02-21 09:11:53Z twisti $
+   $Id: jni.h 4565 2006-03-07 09:40:37Z twisti $
 
 */
 
@@ -44,7 +44,7 @@
 #include "vm/method.h"
 
 
-/* include the JNI header from GNU Classpath */
+/* Include the JNI header from GNU Classpath **********************************/
 
 #include CLASSPATH_JNI_H
 
@@ -54,14 +54,23 @@
 typedef struct _Jv_JNIEnv _Jv_JNIEnv;
 
 struct _Jv_JNIEnv {
-	const struct JNINativeInterface *env;       /* This must be first for JNI */
+	const struct JNINativeInterface *env;     /* This MUST be the first entry */
+};
+
+
+/* _Jv_JavaVM *****************************************************************/
+
+typedef struct _Jv_JavaVM _Jv_JavaVM;
+
+struct _Jv_JavaVM {
+	const struct JNIInvokeInterface *functions;/* This MUST be the first entry*/
 };
 
 
 /* CACAO related stuff ********************************************************/
 
-extern const struct JNIInvokeInterface JNI_JavaVMTable;
-extern struct JNINativeInterface JNI_JNIEnvTable;
+extern const struct JNIInvokeInterface _Jv_JNIInvokeInterface;
+extern struct JNINativeInterface _Jv_JNINativeInterface;
 
 
 /* local reference table ******************************************************/

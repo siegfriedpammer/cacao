@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: jni.c 4565 2006-03-07 09:40:37Z twisti $
 
 */
 
@@ -103,12 +103,6 @@
 #include "vm/jit/jit.h"
 #include "vm/statistics.h"
 #include "vm/vm.h"
-
-
-/* pointers to VM and the environment needed by GetJavaVM and GetEnv */
-
-static JavaVM ptr_jvm = (JavaVM) &JNI_JavaVMTable;
-void *ptr_env = (void*) &JNI_JNIEnvTable;
 
 
 /* global variables ***********************************************************/
@@ -2967,9 +2961,14 @@ jobject CallStaticObjectMethodV(JNIEnv *env, jclass clazz, jmethodID methodID, v
 
 jobject CallStaticObjectMethodA(JNIEnv *env, jclass clazz, jmethodID methodID, jvalue *args)
 {
-	log_text("JNI-Call: CallStaticObjectMethodA: IMPLEMENT ME!");
+	methodinfo        *m;
+	java_objectheader *o;
 
-	return NewLocalRef(env, NULL);
+	m = (methodinfo *) methodID;
+
+	o = _Jv_jni_CallObjectMethodA(NULL, NULL, m, args);
+
+	return NewLocalRef(env, o);
 }
 
 
@@ -4858,7 +4857,7 @@ jint GetJavaVM(JNIEnv *env, JavaVM **vm)
 {
 	STATISTICS(jniinvokation());
 
-    *vm = &ptr_jvm;
+    *vm = (JavaVM *) _Jv_jvm;
 
 	return 0;
 }
@@ -5221,7 +5220,7 @@ jint AttachCurrentThread(JavaVM *vm, void **env, void *thr_args)
 	#error "No idea how to implement that. Perhaps Stefan knows"
 #endif
 
-	*env = &ptr_env;
+	*env = _Jv_env;
 
 	return 0;
 }
@@ -5260,7 +5259,7 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 
 	if ((version == JNI_VERSION_1_1) || (version == JNI_VERSION_1_2) ||
 		(version == JNI_VERSION_1_4)) {
-		*env = &ptr_env;
+		*env = _Jv_env;
 
 		return JNI_OK;
 	}
@@ -5293,7 +5292,7 @@ jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **par1, void *par2)
 
 /* JNI invocation table *******************************************************/
 
-const struct JNIInvokeInterface JNI_JavaVMTable = {
+const struct JNIInvokeInterface _Jv_JNIInvokeInterface = {
 	NULL,
 	NULL,
 	NULL,
@@ -5308,7 +5307,7 @@ const struct JNIInvokeInterface JNI_JavaVMTable = {
 
 /* JNI function table *********************************************************/
 
-struct JNINativeInterface JNI_JNIEnvTable = {
+struct JNINativeInterface _Jv_JNINativeInterface = {
 	NULL,
 	NULL,
 	NULL,
@@ -5643,6 +5642,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 {
 	JavaVMInitArgs *_vm_args;
 	_Jv_JNIEnv     *env;
+	_Jv_JavaVM     *jvm;
 	localref_table *lrt;
 
 	/* get the arguments for the new JVM */
@@ -5652,13 +5652,9 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 	/* get the VM and Env tables (must be set before vm_create) */
 
 	env = NEW(_Jv_JNIEnv);
+	env->env = &_Jv_JNINativeInterface;
 
-	env->env = &JNI_JNIEnvTable;
-
-	*p_vm  = (JavaVM *) &JNI_JavaVMTable;
-	*p_env = (void *) env;
-
-	/* XXX Set the global env variable.  Maybe we should do that differently. */
+	/* XXX Set the global variable.  Maybe we should do that differently. */
 
 	_Jv_env = env;
 
@@ -5666,6 +5662,15 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	if (!vm_create(_vm_args))
 		return -1;
+
+	/* create and fill a JavaVM structure */
+
+	jvm = NEW(_Jv_JavaVM);
+	jvm->functions = &_Jv_JNIInvokeInterface;
+
+	/* XXX Set the global variable.  Maybe we should do that differently. */
+
+	_Jv_jvm = jvm;
 
 	/* setup the local ref table (must be created after vm_create) */
 
@@ -5681,6 +5686,11 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
 
 	LOCALREFTABLE = lrt;
+
+	/* now return the values */
+
+	*p_vm  = (JavaVM *) jvm;
+	*p_env = (void *) env;
 
 	return 0;
 }

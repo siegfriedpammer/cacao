@@ -71,7 +71,7 @@
 
 /* Invocation API variables ***************************************************/
 
-JavaVM     *_Jv_jvm;                    /* denotes a Java VM                  */
+_Jv_JavaVM *_Jv_jvm;                    /* denotes a Java VM                  */
 _Jv_JNIEnv *_Jv_env;                    /* pointer to native method interface */
 
 

@@ -30,7 +30,7 @@
    Changes:             
 
    
-   $Id: jvmti.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jvmti.c 4565 2006-03-07 09:40:37Z twisti $
 
 */
 
@@ -82,7 +82,7 @@
 typedef struct _environment environment;
 environment *envs=NULL;
 
-extern const struct JNIInvokeInterface JNI_JavaVMTable;
+extern const struct JNIInvokeInterface _Jv_JNIInvokeInterface;
 
 static jvmtiPhase phase; 
 typedef struct _jvmtiEventModeLL jvmtiEventModeLL;
@@ -3430,7 +3430,7 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     if (!mid) throw_main_exception_exit();
 
     *count_ptr = 
-        JNI_JNIEnvTable.CallIntMethod(NULL, sysprop, mid);
+        _Jv_JNINativeInterface.CallIntMethod(NULL, sysprop, mid);
     *property_ptr = heap_allocate(sizeof(char*) * (*count_ptr) ,true,NULL);
 
     mid = class_resolvemethod(propclass, 
@@ -3438,7 +3438,7 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
                               utf_new_char("()Ljava/util/Enumeration;"));
     if (!mid) throw_main_exception_exit();
 
-    keys = JNI_JNIEnvTable.CallObjectMethod(NULL, sysprop, mid);
+    keys = _Jv_JNINativeInterface.CallObjectMethod(NULL, sysprop, mid);
     enumclass = keys->vftbl->class;
         
     moremid = class_resolvemethod(enumclass, 
@@ -3452,8 +3452,8 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     if (!mid) throw_main_exception_exit();
 
     i = 0;
-    while (JNI_JNIEnvTable.CallBooleanMethod(NULL,keys,(jmethodID)moremid)) {
-        obj = JNI_JNIEnvTable.CallObjectMethod(NULL, keys, mid);
+    while (_Jv_JNINativeInterface.CallBooleanMethod(NULL,keys,(jmethodID)moremid)) {
+        obj = _Jv_JNINativeInterface.CallObjectMethod(NULL, keys, mid);
         ch = javastring_tochar(obj);
         *property_ptr[i] = heap_allocate(sizeof(char*) * strlen (ch),true,NULL);
         memcpy(*property_ptr[i], ch, strlen (ch));
@@ -3495,7 +3495,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
                               utf_new_char("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
-    sysprop = JNI_JNIEnvTable.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
+    sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
 
     propclass = sysprop->vftbl->class;
 
@@ -3504,7 +3504,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
                               utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"));
     if (!mid) throw_main_exception_exit();
 
-    obj = (java_objectheader*)JNI_JNIEnvTable.CallObjectMethod(
+    obj = (java_objectheader*)_Jv_JNINativeInterface.CallObjectMethod(
         NULL, sysprop, mid, javastring_new_char(property));
     if (!obj) return JVMTI_ERROR_NOT_AVAILABLE;
 
@@ -3545,7 +3545,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
                               utf_new_char("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
-    sysprop = JNI_JNIEnvTable.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
+    sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, (jclass)sysclass, mid);
 
     propclass = sysprop->vftbl->class;
 
@@ -3554,7 +3554,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
                               utf_new_char("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
 
-    JNI_JNIEnvTable.CallObjectMethod(
+    _Jv_JNINativeInterface.CallObjectMethod(
         NULL, sysprop, mid, javastring_new_char(property),javastring_new_char(value));
     
     return JVMTI_ERROR_NONE;
@@ -3685,7 +3685,7 @@ GetTime (jvmtiEnv * env, jlong * nanos_ptr)
     if (nanos_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
     if (gettimeofday (&tp, NULL) == -1)
-        JNI_JNIEnvTable.FatalError (NULL, "gettimeofday call failed.");
+        _Jv_JNINativeInterface.FatalError (NULL, "gettimeofday call failed.");
     
     *nanos_ptr = (jlong) tp.tv_sec;
     *nanos_ptr *= 1000;
@@ -4280,7 +4280,7 @@ void agentload(char* opt_arg) {
 
 	retval = 
 		((JNIEXPORT jint JNICALL (*) (JavaVM *vm, char *options, void *reserved))
-		 onload) ((JavaVM*) &JNI_JavaVMTable, arg, NULL);
+		 onload) ((JavaVM*) &_Jv_JNIInvokeInterface, arg, NULL);
 	
 	MFREE(libname,char,i);
 	MFREE(arg,char,len-i);
@@ -4293,7 +4293,7 @@ void agentload(char* opt_arg) {
 void agentunload() {
 	if (unload != NULL) {
 		((JNIEXPORT void JNICALL (*) (JavaVM *vm)) unload) 
-			((JavaVM*) &JNI_JavaVMTable);
+			((JavaVM*) &_Jv_JNIInvokeInterface);
 	}
 }
 
