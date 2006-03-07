@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: VMClassLoader.c 4572 2006-03-07 20:44:54Z twisti $
 
 */
 
@@ -387,8 +387,11 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 			sprintf(tmppath, "file://%s%s", lce->path, charname);
 
+			/* Does this file exist? */
+
 			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
-				path = javastring_new_char(tmppath),
+				if (!S_ISDIR(buf.st_mode))
+					path = javastring_new_char(tmppath);
 
 			MFREE(tmppath, char, pathlen);
 #if defined(ENABLE_ZLIB)
