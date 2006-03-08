@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4567 2006-03-07 10:48:24Z twisti $
+   $Id: jni.c 4573 2006-03-08 09:44:22Z twisti $
 
 */
 
@@ -151,6 +151,7 @@ localref_table *_no_threads_localref_table;
 /* some forward declarations **************************************************/
 
 jobject NewLocalRef(JNIEnv *env, jobject ref);
+jint EnsureLocalCapacity(JNIEnv* env, jint capacity);
 
 
 /* jni_init ********************************************************************
@@ -1321,14 +1322,47 @@ void FatalError(JNIEnv *env, const char *msg)
 
 jint PushLocalFrame(JNIEnv* env, jint capacity)
 {
+	s4              additionalrefs;
+	localref_table *lrt;
+	localref_table *nlrt;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: PushLocalFrame: IMPLEMENT ME!");
+	if (capacity <= 0)
+		return -1;
 
-	assert(0);
+	/* Allocate new local reference table on Java heap.  Calculate the
+	   additional memory we have to allocate. */
+
+	if (capacity > LOCALREFTABLE_CAPACITY)
+		additionalrefs = capacity - LOCALREFTABLE_CAPACITY;
+	else
+		additionalrefs = 0;
+
+	nlrt = GCMNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+
+	if (nlrt == NULL)
+		return -1;
+
+	/* get current local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	/* Set up the new local reference table and add it to the local
+	   frames chain. */
+
+	nlrt->capacity    = capacity;
+	nlrt->used        = 0;
+	nlrt->localframes = lrt->localframes + 1;
+	nlrt->prev        = lrt;
+
+	/* store new local reference table in thread */
+
+	LOCALREFTABLE = nlrt;
 
 	return 0;
 }
+
 
 /* PopLocalFrame ***************************************************************
 
@@ -1340,15 +1374,50 @@ jint PushLocalFrame(JNIEnv* env, jint capacity)
 
 jobject PopLocalFrame(JNIEnv* env, jobject result)
 {
+	localref_table *lrt;
+	localref_table *plrt;
+	s4              localframes;
+
 	STATISTICS(jniinvokation());
 
-	log_text("JNI-Call: PopLocalFrame: IMPLEMENT ME!");
+	/* get current local reference table from thread */
 
-	assert(0);
+	lrt = LOCALREFTABLE;
+
+	localframes = lrt->localframes;
+
+	/* Don't delete the top local frame, as this one is allocated in
+	   the native stub on the stack and is freed automagically on
+	   return. */
+
+	if (localframes == 1)
+		return NewLocalRef(env, result);
+
+	/* release all current local frames */
+
+	for (; localframes >= 1; localframes--) {
+		/* get previous frame */
+
+		plrt = lrt->prev;
+
+		/* clear all reference entries */
+
+		MSET(&lrt->refs[0], 0, java_objectheader*, lrt->capacity);
+
+		lrt->prev = NULL;
+
+		/* set new local references table */
+
+		lrt = plrt;
+	}
+
+	/* store new local reference table in thread */
+
+	LOCALREFTABLE = lrt;
 
 	/* add local reference and return the value */
 
-	return NewLocalRef(env, NULL);
+	return NewLocalRef(env, result);
 }
 
 
@@ -1372,14 +1441,19 @@ void DeleteLocalRef(JNIEnv *env, jobject localRef)
 
 	lrt = LOCALREFTABLE;
 
-	/* remove the reference */
+	/* go through all local frames */
 
-	for (i = 0; i < lrt->capacity; i++) {
-		if (lrt->refs[i] == o) {
-			lrt->refs[i] = NULL;
-			lrt->used--;
+	for (; lrt != NULL; lrt = lrt->prev) {
 
-			return;
+		/* and try to remove the reference */
+
+		for (i = 0; i < lrt->capacity; i++) {
+			if (lrt->refs[i] == o) {
+				lrt->refs[i] = NULL;
+				lrt->used--;
+
+				return;
+			}
 		}
 	}
 
@@ -1387,7 +1461,7 @@ void DeleteLocalRef(JNIEnv *env, jobject localRef)
 
 /*  	if (opt_checkjni) */
 /*  	FatalError(env, "Bad global or local ref passed to JNI"); */
-	log_text("JNI-DeleteLocalRef: Bad global or local ref passed to JNI");
+	log_text("JNI-DeleteLocalRef: Local ref passed to JNI not found");
 }
 
 
@@ -1428,13 +1502,17 @@ jobject NewLocalRef(JNIEnv *env, jobject ref)
 
 	lrt = LOCALREFTABLE;
 
-	/* check if we have space for the requested reference */
+	/* Check if we have space for the requested reference?  No,
+	   allocate a new frame.  This is actually not what the spec says,
+	   but for compatibility reasons... */
 
 	if (lrt->used == lrt->capacity) {
-/* 		throw_cacao_exception_exit(string_java_lang_InternalError, */
-/* 								   "Too many local references"); */
-		fprintf(stderr, "Too many local references");
-		assert(0);
+		if (EnsureLocalCapacity(env, 16) != 0)
+			return NULL;
+
+		/* get the new local reference table */
+
+		lrt = LOCALREFTABLE;
 	}
 
 	/* insert the reference */
@@ -1469,6 +1547,8 @@ jint EnsureLocalCapacity(JNIEnv* env, jint capacity)
 {
 	localref_table *lrt;
 
+	log_text("JNI-Call: EnsureLocalCapacity");
+
 	STATISTICS(jniinvokation());
 
 	/* get local reference table (thread specific) */
@@ -1477,10 +1557,8 @@ jint EnsureLocalCapacity(JNIEnv* env, jint capacity)
 
 	/* check if capacity elements are available in the local references table */
 
-	if ((lrt->used + capacity) > lrt->capacity) {
-		*exceptionptr = new_exception(string_java_lang_OutOfMemoryError);
-		return -1;
-	}
+	if ((lrt->used + capacity) > lrt->capacity)
+		return PushLocalFrame(env, capacity);
 
 	return 0;
 }

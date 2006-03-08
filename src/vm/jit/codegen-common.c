@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4560 2006-03-05 23:35:25Z twisti $
+   $Id: codegen-common.c 4573 2006-03-08 09:44:22Z twisti $
 
 */
 
@@ -950,6 +950,7 @@ void codegen_finish_native_call(u1 *datasp)
 	stackframeinfo  *sfi;
 	stackframeinfo **psfi;
 	localref_table  *lrt;
+	localref_table  *plrt;
 	s4               localframes;
 
 	/* get data structures from stack */
@@ -968,10 +969,24 @@ void codegen_finish_native_call(u1 *datasp)
 
 	lrt = LOCALREFTABLE;
 
-	/* got through all current local frames */
+	/* release all current local frames */
 
 	for (localframes = lrt->localframes; localframes >= 1; localframes--) {
-		lrt = lrt->prev;
+		/* get previous frame */
+
+		plrt = lrt->prev;
+
+		/* Clear all reference entries (only for tables allocated on
+		   the Java heap). */
+
+		if (localframes > 1)
+			MSET(&lrt->refs[0], 0, java_objectheader*, lrt->capacity);
+
+		lrt->prev = NULL;
+
+		/* set new local references table */
+
+		lrt = plrt;
 	}
 
 	/* now store the previous local frames in the thread structure */
