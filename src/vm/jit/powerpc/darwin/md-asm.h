@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-asm.h 4576 2006-03-09 13:51:36Z twisti $
 
 */
 
@@ -223,14 +223,11 @@
 
 /* internal defines ***********************************************************/
 
-#define asm_calljavafunction                  _asm_calljavafunction
-#define asm_calljavafunction_int              _asm_calljavafunction_int
-
-#define asm_calljavafunction2                 _asm_calljavafunction2
-#define asm_calljavafunction2int              _asm_calljavafunction2int
-#define asm_calljavafunction2long             _asm_calljavafunction2long
-#define asm_calljavafunction2float            _asm_calljavafunction2float
-#define asm_calljavafunction2double           _asm_calljavafunction2double
+#define asm_vm_call_method                    _asm_vm_call_method
+#define asm_vm_call_method_int                _asm_vm_call_method_int
+#define asm_vm_call_method_long               _asm_vm_call_method_long
+#define asm_vm_call_method_float              _asm_vm_call_method_float
+#define asm_vm_call_method_double             _asm_vm_call_method_double
 
 #define jumptable_int                         _jumptable_int
 #define jumptable_long                        _jumptable_long
@@ -265,14 +262,8 @@
 	_stacktrace_extern_fillInStackTrace
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
-#if 0
-#define _exceptionptr                         __exceptionptr
+#define _no_threads_exceptionptr              __no_threads_exceptionptr
 #endif
-
-_exceptionptr:
-	.globl		__exceptionptr
-#endif
-
 
 #endif /* _MD_ASM_H */
 
