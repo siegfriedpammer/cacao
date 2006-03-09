@@ -100,7 +100,7 @@ fi
 
 HAVE_AUTOCONF=false
 
-for AUTOCONF in autoheader autoheader259; do
+for AUTOCONF in autoconf autoconf259; do
     if ${AUTOCONF} --version > /dev/null 2>&1; then
         AUTOCONF_VERSION=`${AUTOCONF} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${AUTOCONF_VERSION}
