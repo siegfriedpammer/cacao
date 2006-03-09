@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: patcher.c 4575 2006-03-09 13:46:36Z twisti $
 
 */
 
@@ -162,11 +162,27 @@ bool patcher_get_putfield(u1 *sp)
 	/* patch the field's offset */
 
 	if (fi->type == TYPE_LNG) {
-		/* if the field has type long, we have to patch two instructions */
+		s2 disp;
 
-		*((u4 *) ra) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-		*((u4 *) (ra + 4)) |= (s2) (fi->offset & 0x0000ffff);
+		/* If the field has type long, we have to patch two
+		   instructions.  But we have to check which instruction is
+		   first.  We do that with the offset of the first
+		   instruction. */
 
+		disp = *((u4 *) (ra + 0));
+
+#if WORDS_BIGENDIAN == 1
+		if (disp == 4) {
+			*((u4 *) (ra + 0)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+
+		} else {
+			*((u4 *) (ra + 0)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (ra + 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+		}
+#else
+#error Fix me for LE
+#endif
 	} else {
 		*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
 	}
