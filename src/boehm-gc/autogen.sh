@@ -1,11 +1,17 @@
 #!/bin/sh
 
-libtoolize --automake
+LIBTOOLIZE=${CACAO_LIBTOOLIZE}
+ACLOCAL=${CACAO_ACLOCAL}
+AUTOHEADER=${CACAO_AUTOHEADER}
+AUTOMAKE=${CACAO_AUTOMAKE}
+AUTOCONF=${CACAO_AUTOCONF}
+
+${LIBTOOLIZE} --automake
 if test `uname` = 'FreeBSD'; then
-    aclocal  -I . -I /usr/local/share/aclocal -I /usr/local/share/aclocal19
+    ${ACLOCAL} -I . -I /usr/local/share/aclocal -I /usr/local/share/aclocal19
 else
-    aclocal
+    ${ACLOCAL}
 fi
-autoheader
-automake --add-missing
-autoconf
+${AUTOHEADER}
+${AUTOMAKE} --add-missing
+${AUTOCONF}
