@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: VMRuntime.c 4578 2006-03-10 22:22:06Z twisti $
 
 */
 
@@ -63,6 +63,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -278,8 +279,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass cla
 
 	/* try to open the library */
 
-	if (!(handle = lt_dlopen(name->text)))
+	if (!(handle = lt_dlopen(name->text))) {
+		if (opt_verbose) {
+			log_start();
+			log_print("Java_java_lang_VMRuntime_nativeLoad: ");
+			log_print(lt_dlerror());
+			log_finish();
+		}
+
 		return 0;
+	}
 
 	/* resolve JNI_OnLoad function */
 
