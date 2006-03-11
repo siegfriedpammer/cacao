@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: resolve.c 4586 2006-03-11 21:34:20Z edwin $
 
 */
 
@@ -384,8 +384,9 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	fprintf(stderr,",%i,%i)\n",(int)checkaccess,(int)link);
 #endif
 
-	if (d->classref) {
+	if (d->type == TYPE_ADR) {
 		/* a reference type */
+		assert(d->classref);
 		if (!resolve_classref_or_classinfo(NULL,CLASSREF_OR_CLASSINFO(d->classref),
 										   resolveEager,checkaccess,link,&cls))
 			return false; /* exception */
