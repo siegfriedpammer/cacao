@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4543 2006-02-21 13:40:31Z twisti $
+   $Id: jit.c 4581 2006-03-11 16:06:20Z edwin $
 
 */
 
@@ -1458,6 +1458,10 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 		if (!initialize_class(m->class))
 			return NULL;
+
+		/* check if the method has been compiled during initialization */
+		if (m->entrypoint)
+			return m->entrypoint;
 	}
 
 	/* handle native methods and create a native stub */
