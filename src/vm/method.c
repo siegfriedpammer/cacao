@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4579 2006-03-11 15:01:35Z edwin $
+   $Id: method.c 4580 2006-03-11 15:03:49Z edwin $
 
 */
 
@@ -227,4 +227,5 @@ void method_println(methodinfo *m)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
