@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 4583 2006-03-11 20:32:53Z edwin $
+   $Id: references.h 4584 2006-03-11 20:34:21Z edwin $
 
 */
 
@@ -112,6 +112,7 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 #define IS_CLASSREF(reforinfo)  \
 	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
 
+/* the same as IS_CLASSREF, but also check against NULL */
 #define IS_XCLASSREF(reforinfo)  \
 	((reforinfo).any && IS_CLASSREF(reforinfo))
 
