@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4501 2006-02-13 18:55:55Z twisti $
+   $Id: method.c 4579 2006-03-11 15:01:35Z edwin $
 
 */
 
@@ -128,7 +128,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	/* Get the method from the virtual function table.  Is this an
 	   interface method? */
 
-	if (m->flags & (ACC_INTERFACE | ACC_ABSTRACT)) {
+	if (m->class->flags & ACC_INTERFACE) {
 		pmptr = vftbl->interfacetable[-(m->class->index)];
 		mptr  = pmptr[(m - m->class->methods)];
 
