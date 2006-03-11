@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4503 2006-02-13 23:45:27Z twisti $
+   $Id: class.c 4582 2006-03-11 20:30:48Z edwin $
 
 */
 
@@ -1159,6 +1159,31 @@ void class_print(classinfo *c)
 #endif
 
 
+/* class_classref_print ********************************************************
+
+   Prints classname plus referer class.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_classref_print(constant_classref *cr)
+{
+	if (cr == NULL) {
+		printf("NULL");
+		return;
+	}
+
+	utf_display(cr->name);
+	printf("(ref.by ");
+	if (cr->referer)
+		class_print(cr->referer);
+	else
+		printf("NULL");
+	printf(")");
+}
+#endif
+
+
 /* class_println ***************************************************************
 
    Prints classname plus flags and new line.
@@ -1169,6 +1194,21 @@ void class_print(classinfo *c)
 void class_println(classinfo *c)
 {
 	class_print(c);
+	printf("\n");
+}
+#endif
+
+
+/* class_classref_println ******************************************************
+
+   Prints classname plus referer class and new line.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void class_classref_println(constant_classref *cr)
+{
+	class_classref_print(cr);
 	printf("\n");
 }
 #endif

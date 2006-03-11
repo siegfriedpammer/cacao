@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: class.h 4505 2006-02-14 00:03:56Z twisti $
+   $Id: class.h 4582 2006-03-11 20:30:48Z edwin $
 
 */
 
@@ -307,6 +307,8 @@ bool class_issubclass(classinfo *sub, classinfo *super);
 void class_printflags(classinfo *c);
 void class_print(classinfo *c);
 void class_println(classinfo *c);
+void class_classref_print(constant_classref *cr);
+void class_classref_println(constant_classref *cr);
 #endif
 
 /* debug purposes */
