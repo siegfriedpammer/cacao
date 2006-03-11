@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4573 2006-03-08 09:44:22Z twisti $
+   $Id: codegen-common.c 4585 2006-03-11 20:41:45Z edwin $
 
 */
 
@@ -674,6 +674,9 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	MCOPY((void *) m->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
 	MCOPY((void *) (m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
 
+	/* set the entrypoint of the method */
+	
+	assert(m->entrypoint == NULL);
 	m->entrypoint = epoint = (m->mcode + cd->dseglen);
 
 #if defined(ENABLE_INTRP)
