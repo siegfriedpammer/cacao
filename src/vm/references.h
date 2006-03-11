@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: references.h 4583 2006-03-11 20:32:53Z edwin $
 
 */
 
@@ -112,9 +112,16 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 #define IS_CLASSREF(reforinfo)  \
 	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
 
+#define IS_XCLASSREF(reforinfo)  \
+	((reforinfo).any && IS_CLASSREF(reforinfo))
+
 /* macro for casting a classref/classinfo * to a classref_or_classinfo        */
 #define CLASSREF_OR_CLASSINFO(value) \
 	(*((classref_or_classinfo *)(&(value))))
+
+/* macro for accessing the name of a classref/classinfo                       */
+#define CLASSREF_OR_CLASSINFO_NAME(value) \
+	(IS_CLASSREF(value) ? (value).ref->name : (value).cls->name)
 
 /* initialize a constant_classref with referer `ref` and name `classname`     */
 
