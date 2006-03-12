@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4415 2006-02-03 21:58:44Z twisti $
+   $Id: suck.c 4587 2006-03-12 23:23:52Z twisti $
 
 */
 
@@ -574,6 +574,7 @@ classbuffer *suck_start(classinfo *c)
 					cb->path  = lce->path;
 
 					/* read class data */
+
 					len = fread(cb->data, 1, cb->size, classfile);
 
 					if (len != buffer.st_size) {
@@ -581,6 +582,10 @@ classbuffer *suck_start(classinfo *c)
 /*  						if (ferror(classfile)) { */
 /*  						} */
 					}
+
+					/* close the class file */
+
+					fclose(classfile);
 				}
 			}
 
