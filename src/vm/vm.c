@@ -958,31 +958,25 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (opt_index < vm_args->nOptions) {
 		mainstring = vm_args->options[opt_index++].optionString;
 
+		/* Put the jar file into the classpath (if any). */
+
 		if (opt_jar == true) {
+			/* free old classpath */
 
-			/* prepend the jar file to the classpath (if any) */
+			MFREE(classpath, char, strlen(classpath));
 
-			if (opt_jar == true) {
-				/* put jarfile in classpath */
+			/* put jarfile into classpath */
 
-				cp = classpath;
+			classpath = MNEW(char, strlen(mainstring) + strlen("0"));
 
-				classpath = MNEW(char, strlen(mainstring) + strlen(":") +
-								 strlen(classpath) + strlen("0"));
-
-				strcpy(classpath, mainstring);
-				strcat(classpath, ":");
-				strcat(classpath, cp);
+			strcpy(classpath, mainstring);
 		
-				MFREE(cp, char, strlen(cp));
+		} else {
+			/* replace .'s with /'s in classname */
 
-			} else {
-				/* replace .'s with /'s in classname */
-
-				for (i = strlen(mainstring) - 1; i >= 0; i--)
-					if (mainstring[i] == '.')
-						mainstring[i] = '/';
-			}
+			for (i = strlen(mainstring) - 1; i >= 0; i--)
+				if (mainstring[i] == '.')
+					mainstring[i] = '/';
 		}
 	}
 
