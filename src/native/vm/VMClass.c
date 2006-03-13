@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMClass.c 4588 2006-03-13 07:06:46Z edwin $
+   $Id: VMClass.c 4589 2006-03-13 08:02:58Z edwin $
 
 */
 
@@ -158,6 +158,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 	arraydescriptor *desc;
 	
 	c = (classinfo *) klass;
+	
+	/* XXX maybe we could find a way to do this without linking. */
+	/* This way should be safe and easy, however.                */
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
 	desc = c->vftbl->arraydesc;
 	
 	if (desc == NULL)
