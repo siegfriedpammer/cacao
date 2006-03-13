@@ -30,7 +30,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: VMClass.c 4551 2006-03-03 00:00:39Z twisti $
+   $Id: VMClass.c 4588 2006-03-13 07:06:46Z edwin $
 
 */
 
@@ -613,13 +613,26 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
 	classinfo *sc;
 
 	c = (classinfo *) klass;
-	sc = c->super.cls;
 
+	/* for java.lang.Object, primitive and Void classes we return NULL */
+	if (!c->super.any)
+		return NULL;
+
+	/* for interfaces we also return NULL */
 	if (c->flags & ACC_INTERFACE)
 		return NULL;
 
-	if (!sc)
+	/* we may have to resolve the super class reference */
+	if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, 
+									   true, /* check access */
+									   false,  /* don't link */
+									   &sc))
+	{
 		return NULL;
+	}
+
+	/* store the resolution */
+	c->super.cls = sc;
 
 	return (java_lang_Class *) sc;
 }
