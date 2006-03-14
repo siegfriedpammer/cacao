@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4525 2006-02-19 22:27:25Z christian $
+   $Id: jit.h 4601 2006-03-14 23:16:43Z edwin $
 
 */
 
@@ -191,6 +191,7 @@ struct basicblock {
 	basicblock  *copied_to;     /* points to the copy of this basic block	  */
                                 /* when loop nodes are copied                 */
 	stackptr     stack;         /* start of stack array for this block        */
+	                            /* (see doc/stack.txt)                        */
 };
 
 
