@@ -27,10 +27,10 @@
 
    Author: Martin Platter
 
-   Changes:             
+   Changes: Edwin Steiner
 
    
-   $Id: jvmti.c 4565 2006-03-07 09:40:37Z twisti $
+   $Id: jvmti.c 4599 2006-03-14 22:30:58Z edwin $
 
 */
 
@@ -2338,8 +2338,17 @@ GetMethodLocation (jvmtiEnv * env, jmethodID method,
     if ((method == NULL) || (start_location_ptr == NULL) || 
         (end_location_ptr == NULL)) return JVMTI_ERROR_NULL_POINTER;
     
-    *start_location_ptr = (jlocation)m->mcode;
-    *end_location_ptr = (jlocation)(m->mcode)+m->mcodelength;
+	/* XXX we return the location of the most recent code. Don't know
+	 * if there is a way to teach jvmti that a method can have more
+	 * than one location. -Edwin */
+
+	/* XXX Don't know if that's the right way to deal with not-yet-
+	 * compiled methods. -Edwin */
+	if (!m->code)
+		return JVMTI_ERROR_NULL_POINTER;
+	
+    *start_location_ptr = (jlocation)m->code->mcode;
+    *end_location_ptr = (jlocation)(m->code->mcode)+m->code->mcodelength;
     return JVMTI_ERROR_NONE;
 }
 
@@ -4308,4 +4317,5 @@ void agentunload() {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
