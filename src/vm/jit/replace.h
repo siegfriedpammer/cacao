@@ -33,14 +33,14 @@
 */
 
 
-/* An `rplpoint` represents a replacement point in a compiled method  */
-
 #ifndef _REPLACE_H
 #define _REPLACE_H
 
 #include "config.h"
 #include "vm/types.h"
 #include "vm/method.h"
+
+/* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {
 	void     *pc;           /* machine code PC of this point  */

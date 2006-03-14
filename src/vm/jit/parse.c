@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4449 2006-02-05 23:02:05Z edwin $
+   $Id: parse.c 4600 2006-03-14 23:00:44Z edwin $
 
 */
 
@@ -77,7 +77,6 @@ static exceptiontable * fillextable(methodinfo *m,
 									exceptiontable *extable, 
 									exceptiontable *raw_extable, 
         							int exceptiontablelength, 
-									int *label_index, 
 									int *block_count)
 {
 	int b_count, p, src, insertBlock;
@@ -89,7 +88,6 @@ static exceptiontable * fillextable(methodinfo *m,
 
 	for (src = exceptiontablelength-1; src >=0; src--) {
    		p = raw_extable[src].startpc;
-		if (label_index != NULL) p = label_index[p];
 		extable->startpc = p;
 		bound_check(p);
 		block_insert(p);
@@ -108,7 +106,6 @@ static exceptiontable * fillextable(methodinfo *m,
 		}
 
 		if (p<m->jcodelength) insertBlock=1; else insertBlock=0;
-		if (label_index != NULL) p = label_index[p];
 		extable->endpc = p;
 		bound_check_exclusive(p);
 		/* if (p < m->jcodelength) block_insert(p); */
@@ -116,7 +113,6 @@ static exceptiontable * fillextable(methodinfo *m,
 			block_insert(p);
 
 		p = raw_extable[src].handlerpc;
-		if (label_index != NULL) p = label_index[p];
 		extable->handlerpc = p;
 		bound_check(p);
 		block_insert(p);
@@ -147,7 +143,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	instruction *iptr;          /* current ptr into instruction array */
 	int gp;                     /* global java instruction counter    */
 
-	int *label_index = NULL;    /* label redirection table            */
 	int firstlocal = 0;         /* first local variable of method     */
 	exceptiontable* nextex;     /* points next free entry in extable  */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
@@ -185,8 +180,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	/* compute branch targets of exception table */
 
 	nextex = fillextable(m, 
- 	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, m->exceptiontablelength, 
-          label_index, &b_count);
+ 	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, 
+	  	m->exceptiontablelength, &b_count);
 	if (!nextex)
 		return NULL;
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
