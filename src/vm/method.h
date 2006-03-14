@@ -27,8 +27,9 @@
    Authors: Reinhard Grafl
 
    Changes: Christian Thalinger
+            Edwin Steiner
 
-   $Id: method.h 4595 2006-03-14 20:51:12Z edwin $
+   $Id: method.h 4598 2006-03-14 22:16:47Z edwin $
 */
 
 
@@ -101,7 +102,6 @@ struct methodinfo {                 /* method structure                       */
 	                                /* unique value                           */
 
 	u1           *stubroutine;      /* stub for compiling or calling natives  */
-	u1           *entrypoint;       /* current entry point into machine code  */
 	codeinfo     *code;             /* current code of this method            */
 
 #if defined(ENABLE_LSRA)

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4593 2006-03-14 16:30:21Z twisti $
+   $Id: stacktrace.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -713,6 +713,7 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 	ptrint                 lntsize;     /* size of line number table          */
 	u1                    *lntstart;    /* start of line number table         */
 	linenumbertable_entry *lntentry;    /* points to last entry in the table  */
+	codeinfo              *code;        /* compiled realization of method     */
 
 	/* get size of line number table */
 
@@ -724,11 +725,29 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	lntentry = (linenumbertable_entry *) (lntstart - SIZEOF_VOID_P);
 
-	/* check if we are before the actual JIT code */
+	/* find the realization of the method the pc is in    */
+	/* XXX Note: This is preliminary. It would be cleaner */
+	/* to get the codeinfo * from the PV                  */
 
-	if ((ptrint) pc < (ptrint) m->entrypoint) {
-		dolog("Current PC before start of code: %p < %p", pc, m->entrypoint);
-		assert(0);
+	code = m->code;
+	while (1) {
+		if (!code) {
+#ifndef NDEBUG
+			method_println(m);
+			dolog("Could not find codeinfo for Current PC: %p",(void*)pc);
+#endif
+			abort();
+		}
+
+		if (((ptrint)pc >= (ptrint)code->entrypoint)
+				&&
+			( (pc - (u1*)code->entrypoint) < code->mcodelength ))
+		{
+			/* found */
+			break;
+		}
+
+		code = code->prev;
 	}
 
 	/* search the line number table */

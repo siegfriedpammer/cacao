@@ -29,8 +29,9 @@
 
    Changes: Christian Thalinger
             Christian Ullrich
+			Edwin Steiner
 
-   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -3774,7 +3775,7 @@ gen_method:
 
 	codegen_finish(m, cd, (ptrint) ((u1 *) mcodeptr - cd->mcodebase));
 
-	asm_cacheflush((void *) (ptrint) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
+	asm_cacheflush((void *) (ptrint) cd->code->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 
 	/* everything's ok */
 
@@ -4276,9 +4277,9 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
-	asm_cacheflush((void *) (ptrint) m->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
+	asm_cacheflush((void *) (ptrint) cd->code->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 
-	return m->entrypoint;
+	return cd->code->entrypoint;
 }
 
 
@@ -4490,4 +4491,5 @@ s4 *codegen_trace_args(methodinfo *m, codegendata *cd, registerdata *rd,
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

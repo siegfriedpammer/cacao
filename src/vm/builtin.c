@@ -29,6 +29,7 @@
             Mark Probst
 
    Changes: Christian Thalinger
+            Edwin Steiner
 
    Contains C functions for JavaVM Instructions that cannot be
    translated to machine language directly. Consequently, the
@@ -36,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: builtin.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -1102,6 +1103,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	char *logtext;
 	s4    logtextlen;
 	s4    dumpsize;
+	codeinfo *code;
 
 	if (opt_verbosecall && indent)
 		methodindent--;
@@ -1176,25 +1178,32 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		if (m->flags & ACC_NATIVE) {
 			strcat(logtext, ",NATIVE");
 
+			code = m->code;
+
 #if SIZEOF_VOID_P == 8
 			sprintf(logtext + strlen(logtext),
 					")(0x%016lx) at position 0x%016lx",
-					(ptrint) m->entrypoint, (ptrint) pos);
+					(ptrint) code->entrypoint, (ptrint) pos);
 #else
 			sprintf(logtext + strlen(logtext),
 					")(0x%08x) at position 0x%08x",
-					(ptrint) m->entrypoint, (ptrint) pos);
+					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
 
 		} else {
+
+			/* XXX preliminary: This should get the actual codeinfo */
+			/* in which the exception happened.                     */
+			code = m->code;
+			
 #if SIZEOF_VOID_P == 8
 			sprintf(logtext + strlen(logtext),
 					")(0x%016lx) at position 0x%016lx (",
-					(ptrint) m->entrypoint, (ptrint) pos);
+					(ptrint) code->entrypoint, (ptrint) pos);
 #else
 			sprintf(logtext + strlen(logtext),
 					")(0x%08x) at position 0x%08x (",
-					(ptrint) m->entrypoint, (ptrint) pos);
+					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
 
 			if (m->class->sourcefile == NULL)
@@ -2637,4 +2646,5 @@ java_objectheader **builtin_asm_get_exceptionptrptr(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -31,14 +31,15 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: jit.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
 
 #include "config.h"
-
 #include "vm/types.h"
+
+#include <assert.h>
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -1336,12 +1337,13 @@ u1 *jit_compile(methodinfo *m)
 
 	/* if method has been already compiled return immediately */
 
-	if (m->entrypoint) {
+	if (m->code) {
 #if defined(USE_THREADS)
 		builtin_monitorexit((java_objectheader *) m);
 #endif
 
-		return m->entrypoint;
+		assert(m->code->entrypoint);
+		return m->code->entrypoint;
 	}
 
 	STATISTICS(count_methods++);
@@ -1444,6 +1446,8 @@ u1 *jit_compile(methodinfo *m)
 static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 							  loopdata *ld)
 {
+	codeinfo *code;
+
 	/* print log message for compiled method */
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling: ");
@@ -1460,8 +1464,10 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 			return NULL;
 
 		/* check if the method has been compiled during initialization */
-		if (m->entrypoint)
-			return m->entrypoint;
+		if (m->code) {
+			assert(m->code->entrypoint);
+			return m->code->entrypoint;
+		}
 	}
 
 	/* handle native methods and create a native stub */
@@ -1479,9 +1485,12 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		f = NULL;
 #endif
 
-		m->entrypoint = codegen_createnativestub(f, m);
+		code = codegen_createnativestub(f, m);
 
-		return m->entrypoint;
+		assert(!m->code); /* native methods are never recompiled */
+		m->code = code;
+		
+		return code->entrypoint;
 	}
 
 	/* if there is no javacode, print error message and return empty method   */
@@ -1489,9 +1498,11 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	if (!m->jcode) {
 		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
-		m->entrypoint = (u1 *) (ptrint) do_nothing_function;
+		code = code_codeinfo_new(m);
+		code->entrypoint = (u1 *) (ptrint) do_nothing_function;
+		m->code = code;
 
-		return m->entrypoint;           /* return empty method                */
+		return code->entrypoint;        /* return empty method                */
 	}
 
 	/* initialisation of variables and subsystems */
@@ -1626,8 +1637,8 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		show_icmd_method(m, cd, rd);
 
 	} else if (opt_showdisassemble) {
-		DISASSEMBLE(m->entrypoint,
-					m->entrypoint + (cd->code->mcodelength - cd->dseglen));
+		DISASSEMBLE(cd->code->entrypoint,
+					cd->code->entrypoint + (cd->code->mcodelength - cd->dseglen));
 	}
 
 	if (opt_showddatasegment)
@@ -1636,14 +1647,19 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");
 
-	/* switch to the generated code */
+	/* switch to the newly generated code */
 
-	cd->code->prev = m->code;
-	m->code = cd->code;
+	code = cd->code;
+	
+	assert(code);
+	assert(code->entrypoint);
+	
+	code->prev = m->code;
+	m->code = code;
 
 	/* return pointer to the methods entry point */
 
-	return m->entrypoint;
+	return code->entrypoint;
 } 
 
 

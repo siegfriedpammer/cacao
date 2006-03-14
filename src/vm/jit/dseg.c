@@ -29,8 +29,9 @@
 
    Changes: Christian Thalinger
             Joseph Wenninger
+			Edwin Steiner
 
-   $Id: dseg.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: dseg.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -369,7 +370,7 @@ void dseg_resolve_datareferences(codegendata *cd, methodinfo *m)
 	/* data segment references resolving */
 
 	for (dr = cd->datareferences; dr != NULL; dr = dr->next)
-		*((u1 **) (m->entrypoint + dr->datapos - SIZEOF_VOID_P)) = m->entrypoint;
+		*((u1 **) (cd->code->entrypoint + dr->datapos - SIZEOF_VOID_P)) = cd->code->entrypoint;
 }
 #endif
 

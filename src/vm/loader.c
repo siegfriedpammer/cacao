@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: loader.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -1119,7 +1119,6 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	m->exceptiontable   = NULL;
 	m->stubroutine      = NULL;
 	m->code             = NULL;
-	m->entrypoint       = NULL;
 
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
@@ -2412,7 +2411,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
 		return false;
 
-	clone->entrypoint =
+	clone->code =
 		codegen_createnativestub((functionptr) &builtin_clone_array, clone);
 
 	/* XXX: field: length? */

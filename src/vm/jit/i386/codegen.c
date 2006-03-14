@@ -29,8 +29,9 @@
 
    Changes: Joseph Wenninger
             Christian Ullrich
+			Edwin Steiner
 
-   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -5893,7 +5894,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	codegen_finish(m, cd, (s4) ((u1 *) cd->mcodeptr - cd->mcodebase));
 
-	return m->entrypoint;
+	return cd->code->entrypoint;
 }
 
 
@@ -5908,4 +5909,5 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

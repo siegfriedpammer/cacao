@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: codegen-common.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -680,14 +680,14 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 	/* set the entrypoint of the method */
 	
-	assert(m->entrypoint == NULL);
-	m->entrypoint = epoint = (code->mcode + cd->dseglen);
+	assert(code->entrypoint == NULL);
+	code->entrypoint = epoint = (code->mcode + cd->dseglen);
 
 #if defined(ENABLE_INTRP)
 	/* relocate native dynamic superinstruction code (if any) */
 
 	if (opt_intrp) {
-		cd->mcodebase = m->entrypoint;
+		cd->mcodebase = code->entrypoint;
 
 		if (ncodelen > 0) {
 			u1 *ncodebase = code->mcode + cd->dseglen + alignedmcodelen;
@@ -738,7 +738,7 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 	/* add method into methodtree to find the entrypoint */
 
-	codegen_insertmethod(m->entrypoint, m->entrypoint + mcodelen);
+	codegen_insertmethod(code->entrypoint, code->entrypoint + mcodelen);
 #endif
 
 
@@ -772,9 +772,12 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
    Wrapper for createnativestub.
 
+   Returns:
+       the codeinfo representing the stub code.
+
 *******************************************************************************/
 
-u1 *codegen_createnativestub(functionptr f, methodinfo *m)
+codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 {
 	codegendata        *cd;
 	registerdata       *rd;
@@ -837,12 +840,12 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		m->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+		code->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
 	else
 # endif
-		m->entrypoint = createnativestub(f, m, cd, rd, nmd);
+		code->entrypoint = createnativestub(f, m, cd, rd, nmd);
 #else
-	m->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+	code->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -854,8 +857,8 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 	if (opt_shownativestub) {
 		codegen_disassemble_nativestub(m,
-									   (u1 *) (ptrint) m->entrypoint,
-									   (u1 *) (ptrint) m->entrypoint + (code->mcodelength - cd->dseglen));
+									   (u1 *) (ptrint) code->entrypoint,
+									   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - cd->dseglen));
 
 		/* show data segment */
 
@@ -867,9 +870,9 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 	dump_release(dumpsize);
 
-	/* return native stub entry point */
+	/* return native stub code */
 
-	return m->entrypoint;
+	return code;
 }
 
 

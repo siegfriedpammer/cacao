@@ -29,8 +29,9 @@
    Changes: Mark Probst
             Philipp Tomsich
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: headers.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: headers.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -121,7 +122,7 @@ u1 *createcompilerstub(methodinfo *m) { return NULL; }
 u1 *intrp_createcompilerstub(methodinfo *m) { return NULL; }
 #endif
 
-u1 *codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
+codeinfo *codegen_createnativestub(functionptr f, methodinfo *m) { return NULL; }
 
 void removecompilerstub(u1 *stub) {}
 void removenativestub(u1 *stub) {}
@@ -888,4 +889,5 @@ void print_classname(classinfo *clazz)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

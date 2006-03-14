@@ -29,8 +29,9 @@
 
    Changes: Christian Thalinger
             Anton Ertl
+			Edwin Steiner
 
-   $Id: codegen.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
 
 */
 
@@ -1756,7 +1757,7 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(m->mcode + m->mcodelength);
+	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
 #endif
 
 	/* branch resolving (walk through all basic blocks) */
@@ -1765,8 +1766,8 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		branchref *brefs;
 
 		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolveanybranch(((u1*) m->entrypoint) + brefs->branchpos,
-			                     ((u1 *)m->entrypoint) + bptr->mpc);
+			gen_resolveanybranch(((u1*) cd->code->entrypoint) + brefs->branchpos,
+			                     ((u1 *)cd->code->entrypoint) + bptr->mpc);
 		}
 	}
 
@@ -1982,10 +1983,10 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(m->mcode + m->mcodelength);
+	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
 #endif
 
-	return m->entrypoint;
+	return cd->code->entrypoint;
 }
 
 
@@ -2071,7 +2072,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->entrypoint,
+	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->code->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
 	av_call(alist);
@@ -2130,7 +2131,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* create stackframe info structure */
 
-	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->entrypoint,
+	codegen_start_native_call(((u1 *) &s) + sizeof(s), m->code->entrypoint,
 							  (u1 *) fp, (u1 *) ra);
 
 	ffi_call(pcif, FFI_FN(f), endsp, values);
@@ -2192,9 +2193,9 @@ u1 *createcalljavafunction(methodinfo *m)
 	codegen_finish(tmpm, cd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(tmpm->mcode + tmpm->mcodelength);
+	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
 #endif
-	entrypoint = tmpm->entrypoint;
+	entrypoint = cd->code->entrypoint;
 
 	/* release memory */
 
@@ -2215,4 +2216,5 @@ u1 *createcalljavafunction(methodinfo *m)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
