@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4424 2006-02-04 00:33:39Z twisti $
+## $Id: Makefile.am 4594 2006-03-14 16:40:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -122,7 +122,7 @@ DO_HEADER_FILES += \
 	$(GEN_JVMTI_HEADER_FILES)
 endif
 
-if ENABLE_STATICVM
+if WITH_STATIC_CLASSPATH
 DO_HEADER_FILES += \
 	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 endif

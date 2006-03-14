@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4530 2006-02-21 09:11:53Z twisti $
+## $Id: Makefile.am 4594 2006-03-14 16:40:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -58,19 +58,21 @@ if ENABLE_STATICVM
 noinst_LTLIBRARIES = \
 	libcacaovm.la
 
-else
 cacao_LDFLAGS = \
 	$(EXPORT_SYMBOLS_FLAGS)
-
+else
 lib_LTLIBRARIES = \
 	libcacaovm.la
 
 libcacaovm_la_LDFLAGS = \
 	-release $(PACKAGE_VERSION)
+
+cacao_LDFLAGS = \
+	$(EXPORT_SYMBOLS_FLAGS)
 endif
 
 if WITH_STATIC_CLASSPATH
-cacao_LDFLAGS = \
+cacao_LDFLAGS += \
 	$(LTLIBICONV)
 
 CLASSPATH_LIBS = \
