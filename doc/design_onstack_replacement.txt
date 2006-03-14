@@ -26,13 +26,15 @@ On the whole, method replacement works like this:
   * fooV2 replaces fooV1 in the vftbl. From now on all threads that
   enter foo will got to fooV2.
 
-  * If not already done, the compiler creates a chunk of
-  "replacement-out code" for each replacement point of fooV1. If there
-  is pre-generated replacement-out code it may have fields that are set
-  now.
+  IF (per-replacement-point replacement-out code is needed)
+      * If not already done, the compiler creates a chunk of
+      "replacement-out code" for each replacement point of fooV1. If
+      there is pre-generated replacement-out code it may have fields
+      that are set now.
+  ENDIF
 
-  * each replacement point in fooV1 is patched with a jump to its chunk
-  of replacement-out code.
+  * each replacement point in fooV1 is patched with a jump (or bsr)
+    to the replacement-out code.
 
   * eventually threads will reach replacement points in fooV1 and be
   "beamed" to fooV2.
@@ -150,9 +152,10 @@ advantages.
 
 Phases:
 
-	1) done by generated replacement-out code. (Possibly
+	1) done by generated replacement-out code (possibly
 	   a replacement-point specific part and a method
-	   specific part).
+	   specific part) or by a general replacement-out
+	   function written in assembler.
 
 	2-3) implemented in C. Some parts are architecture
 	   specific, however, as they depend on the structure
@@ -168,6 +171,8 @@ probably be invaluable when implementing this stuff.
 
 Replacement-Out Code
 --------------------
+
+OPTION ROC-1: per-replacement-point code
 
 Replacement-out code could look like this:
 
@@ -193,7 +198,24 @@ stack frame, so we do not have to explicitely pass that
 info. Information on the new code (fooV2) will be
 in the methodinfo.
 
+OPTION ROC-2: general replacement-out function
 
+This option uses a single platform-specific function for
+all replacement points. This requires that the replacement
+points are patched with a _bsr_ instead of a jump, so the
+PC of the replacement point can be found without special
+per-replacement-point code.
+
+per-replacement-point data is stored in a hash indexed
+by the PC of the replacement point.
+
+   PC --indexto--> rplpointinfo
+                      \--ptrto-> codeinfo
+                                    \--ptrto-> methodinfo
+
+The replacement point PC is a safe index because old code
+will never be freed anyway.
+				    
 Splitting methodinfo and codeinfo
 ---------------------------------
 
