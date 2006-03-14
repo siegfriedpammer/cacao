@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4600 2006-03-14 23:00:44Z edwin $
+   $Id: parse.c 4602 2006-03-14 23:49:34Z edwin $
 
 */
 
@@ -1258,22 +1258,19 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		/* additional block if target 0 is not first intermediate instruction */
 
 		if (!m->basicblockindex[0] || (m->basicblockindex[0] > 1)) {
+			BASICBLOCK_INIT(bptr,m);
+
 			bptr->iinstr = m->instructions;
-			bptr->mpc = -1;
-			bptr->flags = -1;
-			bptr->type = BBTYPE_STD;
-			bptr->branchrefs = NULL;
-			bptr->pre_count = 0;
-			bptr->debug_nr = m->c_debug_nr++;
+			/* bptr->icount is set when the next block is allocated */
+
 			bptr++;
 			b_count++;
-			(bptr - 1)->next = bptr;
+			bptr[-1].next = bptr;
 		}
 
 		/* allocate blocks */
 
   		for (p = 0; p < m->jcodelength; p++) { 
-		/* for (p = 0; p < m->jcodelength; p++) { */
 			if (m->basicblockindex[p] & 1) {
 				/* Check if this block starts at the beginning of an          */
 				/* instruction.                                               */
@@ -1285,39 +1282,40 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				}
 
 				/* allocate the block */
+
+				BASICBLOCK_INIT(bptr,m);
+
 				bptr->iinstr = m->instructions + (m->basicblockindex[p] >> 1);
-				bptr->debug_nr = m->c_debug_nr++;
-				if (b_count != 0)
-					(bptr - 1)->icount = bptr->iinstr - (bptr - 1)->iinstr;
-				bptr->mpc = -1;
-				bptr->flags = -1;
-				bptr->lflags = 0;
-				bptr->type = BBTYPE_STD;
-				bptr->branchrefs = NULL;
+				if (b_count) {
+					bptr[-1].icount = bptr->iinstr - bptr[-1].iinstr;
+				}
+				/* bptr->icount is set when the next block is allocated */
+
 				m->basicblockindex[p] = b_count;
-				bptr->pre_count = 0;
+
 				bptr++;
 				b_count++;
-				(bptr - 1)->next = bptr;
+				bptr[-1].next = bptr;
 			}
+		}
+
+		/* set instruction count of last real block */
+
+		if (b_count) {
+			bptr[-1].icount = (m->instructions + m->instructioncount) - bptr[-1].iinstr;
 		}
 
 		/* allocate additional block at end */
 
+		BASICBLOCK_INIT(bptr,m);
+		
 		bptr->instack = bptr->outstack = NULL;
 		bptr->indepth = bptr->outdepth = 0;
 		bptr->iinstr = NULL;
-		(bptr - 1)->icount = (m->instructions + m->instructioncount) - (bptr - 1)->iinstr;
 		bptr->icount = 0;
-		bptr->mpc = -1;
-		bptr->flags = -1;
-		bptr->lflags = 0;
-		bptr->type = BBTYPE_STD;
-		bptr->branchrefs = NULL;
-		bptr->pre_count = 0;
-		bptr->debug_nr = m->c_debug_nr++;
-		(bptr - 1)->next = bptr;
 		bptr->next = NULL;
+
+		/* set basicblock pointers in exception table */
 
 		if (cd->exceptiontablelength > 0) {
 			cd->exceptiontable[cd->exceptiontablelength - 1].down = NULL;

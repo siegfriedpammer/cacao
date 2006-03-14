@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4601 2006-03-14 23:16:43Z edwin $
+   $Id: jit.h 4602 2006-03-14 23:49:34Z edwin $
 
 */
 
@@ -171,10 +171,17 @@ struct instruction {
 #define BBTYPE_EXH           1  /* exception handler basic block type         */
 #define BBTYPE_SBR           2  /* subroutine basic block type                */
 
+#define BBFLAG_REPLACEMENT   0x01  /* put a replacement point at the start    */
+
+/* XXX basicblock wastes quite a lot of memory by having four flag fields     */
+/* (flags, bitflags, type and lflags). Probably the last three could be       */
+/* combined without loss of efficiency. The first one could be combined with  */
+/* the others by using bitfields.                                             */
 
 struct basicblock {
 	s4           debug_nr;      /* basic block number                         */
 	s4           flags;         /* used during stack analysis, init with -1   */
+	s4           bitflags;      /* OR of BBFLAG_... constants, init with 0    */
 	s4           type;          /* basic block type (std, xhandler, subroutine*/
 	instruction *iinstr;        /* pointer to intermediate code instructions  */
 	s4           icount;        /* number of intermediate code instructions   */
@@ -194,7 +201,20 @@ struct basicblock {
 	                            /* (see doc/stack.txt)                        */
 };
 
+/* macro for initializing newly allocated basicblock:s                        */
 
+#define BASICBLOCK_INIT(bptr,m)                            \
+		do {                                               \
+			bptr->mpc = -1;                                \
+			bptr->flags = -1;                              \
+			bptr->bitflags = 0;                            \
+			bptr->lflags = 0;                              \
+			bptr->type = BBTYPE_STD;                       \
+			bptr->branchrefs = NULL;                       \
+			bptr->pre_count = 0;                           \
+			bptr->debug_nr = m->c_debug_nr++;              \
+		} while (0)
+			
 /********** op1 values for ACONST instructions ********************************/
 
 #define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
