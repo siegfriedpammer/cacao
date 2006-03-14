@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: stacktrace.c 4593 2006-03-14 16:30:21Z twisti $
 
 */
 
@@ -1008,17 +1008,23 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 
 	gcstb = GCNEW(stacktracebuffer);
 
+	if (gcstb == NULL) {
+		dump_release(dumpsize);
+
+		return NULL;
+	}
 
 	gcstb->capacity = stb->capacity;
 	gcstb->used     = stb->used;
 	gcstb->entries  = GCMNEW(stacktrace_entry, stb->used);
 
+	if (gcstb->entries == NULL) {
+		dump_release(dumpsize);
+
+		return NULL;
+	}
+
 	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
-
-	/* just to be sure */
-
-	stb = NULL;
-	assert(gcstb != NULL);
 
 	/* release dump memory */
 
