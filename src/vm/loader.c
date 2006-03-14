@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: loader.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -1118,7 +1118,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	m->stack            = NULL;
 	m->exceptiontable   = NULL;
 	m->stubroutine      = NULL;
-	m->mcode            = NULL;
+	m->code             = NULL;
 	m->entrypoint       = NULL;
 
 	if (!suck_check_classbuffer_size(cb, 2))

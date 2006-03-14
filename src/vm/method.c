@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4580 2006-03-11 15:03:49Z edwin $
+   $Id: method.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -67,8 +67,7 @@ void method_free(methodinfo *m)
 	if (m->exceptiontable)
 		MFREE(m->exceptiontable, exceptiontable, m->exceptiontablelength);
 
-	if (m->mcode)
-		CFREE((void *) (ptrint) m->mcode, m->mcodelength);
+	code_free_code_of_method(m);
 
 	if (m->stubroutine) {
 		if (m->flags & ACC_NATIVE) {

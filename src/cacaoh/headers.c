@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: headers.c 4570 2006-03-07 18:18:44Z twisti $
+   $Id: headers.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -166,6 +166,8 @@ void typeinfo_print(FILE *file,typeinfo *info,int indent) {}
 
 void exceptions_print_exception(java_objectheader *xptr) {}
 void stacktrace_print_trace(java_objectheader *xptr) {}
+
+void code_free_code_of_method(methodinfo *m) {}
 
 
 /* exception functions ********************************************************/

@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.c 4445 2006-02-05 15:26:34Z edwin $
+   $Id: dseg.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -386,7 +386,7 @@ void dseg_display(methodinfo *m, codegendata *cd)
 	s4 *s4ptr;
 	s4 i;
 	
-	s4ptr = (s4 *) (ptrint) m->mcode;
+	s4ptr = (s4 *) (ptrint) cd->code->mcode;
 
 	printf("  --- dump of datasegment\n");
 

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4581 2006-03-11 16:06:20Z edwin $
+   $Id: jit.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -1627,7 +1627,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	} else if (opt_showdisassemble) {
 		DISASSEMBLE(m->entrypoint,
-					m->entrypoint + (m->mcodelength - cd->dseglen));
+					m->entrypoint + (cd->code->mcodelength - cd->dseglen));
 	}
 
 	if (opt_showddatasegment)
@@ -1635,6 +1635,11 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");
+
+	/* switch to the generated code */
+
+	cd->code->prev = m->code;
+	m->code = cd->code;
 
 	/* return pointer to the methods entry point */
 

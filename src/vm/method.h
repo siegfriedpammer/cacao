@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: method.h 4505 2006-02-14 00:03:56Z twisti $
+   $Id: method.h 4595 2006-03-14 20:51:12Z edwin $
 */
 
 
@@ -40,6 +40,10 @@
 typedef struct methodinfo methodinfo; 
 typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
+typedef struct codeinfo codeinfo;
+typedef struct rplpoint rplpoint;
+typedef struct executionsstate executionsstate;
+typedef struct sourcestate sourcestate;
 
 #include "config.h"
 #include "vm/types.h"
@@ -61,7 +65,7 @@ struct methodinfo {                 /* method structure                       */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
 			     
-	bool          isleafmethod;     /* does method call subroutines           */
+	bool          isleafmethod;     /* does method call subroutines           */ /* XXX */
 			     
 	classinfo    *class;            /* class, the method belongs to           */
 	s4            vftblindex;       /* index of method in virtual function    */
@@ -97,18 +101,17 @@ struct methodinfo {                 /* method structure                       */
 	                                /* unique value                           */
 
 	u1           *stubroutine;      /* stub for compiling or calling natives  */
-	s4            mcodelength;      /* length of generated machine code       */
-	u1           *mcode;            /* pointer to machine code                */
-	u1           *entrypoint;       /* entry point in machine code            */
+	u1           *entrypoint;       /* current entry point into machine code  */
+	codeinfo     *code;             /* current code of this method            */
 
 #if defined(ENABLE_LSRA)
 	s4            maxlifetimes;     /* helper for lsra                        */
 #endif
 
-	u4            frequency;        /* number of method invocations           */
-	u4           *bbfrequency;
+	u4            frequency;        /* number of method invocations           */ /* XXX */
+	u4           *bbfrequency; /* XXX */
 
-	s8            cycles;           /* number of cpu cycles                   */
+	s8            cycles;           /* number of cpu cycles                   */ /* XXX */
 };
 
 

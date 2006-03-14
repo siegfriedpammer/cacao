@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4585 2006-03-11 20:41:45Z edwin $
+   $Id: codegen-common.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -195,6 +195,7 @@ void codegen_setup(methodinfo *m, codegendata *cd)
 	cd->linenumbertab = 0;
 	
 	cd->method = m;
+	cd->code = code_codeinfo_new(m); /* XXX check allocation */
 	cd->exceptiontable = 0;
 	cd->exceptiontablelength = 0;
 
@@ -630,6 +631,9 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	u1      *epoint;
 	s4       extralen;
 	s4       alignedlen;
+	codeinfo *code;
+
+	code = cd->code;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen = sizeof(threadcritnode) * cd->threadcritcount;
@@ -666,18 +670,18 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 	/* allocate new memory */
 
-	m->mcodelength = mcodelen + cd->dseglen;
-	m->mcode = CNEW(u1, alignedlen + extralen);
+	code->mcodelength = mcodelen + cd->dseglen;
+	code->mcode = CNEW(u1, alignedlen + extralen);
 
 	/* copy data and code to their new location */
 
-	MCOPY((void *) m->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
-	MCOPY((void *) (m->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
+	MCOPY((void *) code->mcode, cd->dsegtop - cd->dseglen, u1, cd->dseglen);
+	MCOPY((void *) (code->mcode + cd->dseglen), cd->mcodebase, u1, mcodelen);
 
 	/* set the entrypoint of the method */
 	
 	assert(m->entrypoint == NULL);
-	m->entrypoint = epoint = (m->mcode + cd->dseglen);
+	m->entrypoint = epoint = (code->mcode + cd->dseglen);
 
 #if defined(ENABLE_INTRP)
 	/* relocate native dynamic superinstruction code (if any) */
@@ -686,7 +690,7 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		cd->mcodebase = m->entrypoint;
 
 		if (ncodelen > 0) {
-			u1 *ncodebase = m->mcode + cd->dseglen + alignedmcodelen;
+			u1 *ncodebase = code->mcode + cd->dseglen + alignedmcodelen;
 			MCOPY((void *)ncodebase, cd->ncodebase, u1, ncodelen);
 			/* XXX cacheflush((void *)ncodebase, ncodelen); */
 			/* set some cd variables for dynamic_super_rerwite */
@@ -747,14 +751,14 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode *) ((ptrint) m->mcode + alignedlen);
+		threadcritnode *n = (threadcritnode *) ((ptrint) code->mcode + alignedlen);
 		s4 i;
 		threadcritnodetemp *nt = cd->threadcrit;
 
 		for (i = 0; i < cd->threadcritcount; i++) {
-			n->mcodebegin = (u1 *) (ptrint) m->mcode + nt->mcodebegin;
-			n->mcodeend = (u1 *) (ptrint) m->mcode + nt->mcodeend;
-			n->mcoderestart = (u1 *) (ptrint) m->mcode + nt->mcoderestart;
+			n->mcodebegin = (u1 *) (ptrint) code->mcode + nt->mcodebegin;
+			n->mcodeend = (u1 *) (ptrint) code->mcode + nt->mcodeend;
+			n->mcoderestart = (u1 *) (ptrint) code->mcode + nt->mcoderestart;
 			thread_registercritical(n);
 			n++;
 			nt = nt->next;
@@ -778,6 +782,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 	methoddesc         *md;
 	methoddesc         *nmd;	
 	s4                  nativeparams;
+	codeinfo           *code;
 
 	/* mark dump memory */
 
@@ -796,6 +801,8 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 #endif
 
 	codegen_setup(m, cd);
+
+	code = cd->code;
 						
 	/* create new method descriptor with additional native parameters */
 
@@ -840,7 +847,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_nstub_len += m->mcodelength;
+		count_nstub_len += code->mcodelength;
 #endif
 
 	/* disassemble native stub */
@@ -848,7 +855,7 @@ u1 *codegen_createnativestub(functionptr f, methodinfo *m)
 	if (opt_shownativestub) {
 		codegen_disassemble_nativestub(m,
 									   (u1 *) (ptrint) m->entrypoint,
-									   (u1 *) (ptrint) m->entrypoint + (m->mcodelength - cd->dseglen));
+									   (u1 *) (ptrint) m->entrypoint + (code->mcodelength - cd->dseglen));
 
 		/* show data segment */
 

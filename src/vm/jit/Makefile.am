@@ -26,9 +26,9 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
+## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 4595 2006-03-14 20:51:12Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -95,6 +95,8 @@ noinst_HEADERS = \
 noinst_LTLIBRARIES = libjit.la
 
 libjit_la_SOURCES = \
+	code.c \
+	code.h \
 	codegen-common.c \
 	codegen-common.h \
 	disass.h \
@@ -107,6 +109,8 @@ libjit_la_SOURCES = \
 	parse.h \
 	reg.c \
 	reg.h \
+	replace.c \
+	replace.h \
 	stack.c \
 	stack.h \
 	stacktrace.c \

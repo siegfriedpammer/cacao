@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4564 2006-03-06 18:45:13Z christian $
+   $Id: stack.c 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -2614,6 +2614,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	exceptiontable *ex;
 	s4              i, j;
 	u1             *u1ptr;
+	codeinfo       *code;
 
 #if defined(USE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
@@ -2622,6 +2623,8 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	builtin_monitorenter(lock_show_icmd);
 #endif
+
+	code = cd->code;
 
 	printf("\n");
 
@@ -2772,9 +2775,9 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* show code before first basic block */
 
 	if (opt_showdisassemble) {
-		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen);
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen);
 
-		for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + m->basicblocks[0].mpc);)
+		for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + m->basicblocks[0].mpc);)
 			DISASSINSTR(u1ptr);
 
 		printf("\n");
@@ -2790,14 +2793,14 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (opt_showdisassemble && opt_showexceptionstubs) {
 		printf("\nException stubs code:\n");
-		printf("Length: %d\n\n", (s4) (m->mcodelength -
+		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen +
 										m->basicblocks[m->basicblockcount].mpc)));
 
-		u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen +
+		u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen +
 						m->basicblocks[m->basicblockcount].mpc);
 
-		for (; (ptrint) u1ptr < ((ptrint) m->mcode + m->mcodelength);)
+		for (; (ptrint) u1ptr < ((ptrint) code->mcode + code->mcodelength);)
 			DISASSINSTR(u1ptr);
 
 		printf("\n");
@@ -2872,14 +2875,14 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 
 		if (opt_showdisassemble && (!deadcode)) {
 			printf("\n");
-			u1ptr = (u1 *) ((ptrint) m->mcode + cd->dseglen + bptr->mpc);
+			u1ptr = (u1 *) ((ptrint) cd->code->mcode + cd->dseglen + bptr->mpc);
 
 			if (bptr->next != NULL) {
-				for (; u1ptr < (u1 *) ((ptrint) m->mcode + cd->dseglen + bptr->next->mpc);)
+				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->dseglen + bptr->next->mpc);)
 					DISASSINSTR(u1ptr);
 
 			} else {
-				for (; u1ptr < (u1 *) ((ptrint) m->mcode + m->mcodelength);)
+				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->code->mcodelength);)
 					DISASSINSTR(u1ptr); 
 			}
 			printf("\n");

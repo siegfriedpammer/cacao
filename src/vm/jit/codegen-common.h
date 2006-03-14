@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: codegen-common.h 4478 2006-02-07 17:22:13Z edwin $
+   $Id: codegen-common.h 4595 2006-03-14 20:51:12Z edwin $
 
 */
 
@@ -53,6 +53,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/code.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */
@@ -133,6 +134,7 @@ struct codegendata {
 	s4              linenumbertab;
 
 	methodinfo     *method;
+	codeinfo       *code;
 	s4              exceptiontablelength; /* exceptiontable length            */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
