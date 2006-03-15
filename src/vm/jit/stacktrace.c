@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: stacktrace.c 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -472,6 +472,50 @@ java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
 }
 
 
+/* stacktrace_inline_fillInStackTrace ******************************************
+
+   Fills in the correct stacktrace into an existing exception object
+   (this one is for inline exception stubs).
+
+*******************************************************************************/
+
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
+													  u1 *xpc)
+{
+	stackframeinfo     sfi;
+	java_objectheader *o;
+	methodinfo        *m;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* get exception */
+
+	o = *exceptionptr;
+
+	/* clear exception */
+
+	*exceptionptr = NULL;
+
+	/* resolve methodinfo pointer from exception object */
+
+	m = class_resolvemethod(o->vftbl->class,
+							utf_fillInStackTrace,
+							utf_void__java_lang_Throwable);
+
+	/* call function */
+
+	(void) vm_call_method(m, o);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return o;
+}
+
+
 /* stacktrace_hardware_arithmeticexception *************************************
 
    Creates an ArithemticException for inline stub.
@@ -519,50 +563,6 @@ java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 	/* create exception */
 
 	o = new_nullpointerexception();
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	return o;
-}
-
-
-/* stacktrace_inline_fillInStackTrace ******************************************
-
-   Fills in the correct stacktrace into an existing exception object
-   (this one is for inline exception stubs).
-
-*******************************************************************************/
-
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
-													  u1 *xpc)
-{
-	stackframeinfo     sfi;
-	java_objectheader *o;
-	methodinfo        *m;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_inline_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
-	/* get exception */
-
-	o = *exceptionptr;
-
-	/* clear exception */
-
-	*exceptionptr = NULL;
-
-	/* resolve methodinfo pointer from exception object */
-
-	m = class_resolvemethod(o->vftbl->class,
-							utf_fillInStackTrace,
-							utf_void__java_lang_Throwable);
-
-	/* call function */
-
-	(void) vm_call_method(m, o);
 
 	/* remove stackframeinfo */
 

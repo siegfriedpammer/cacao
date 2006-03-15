@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4398 2006-01-31 23:43:08Z twisti $
+   $Id: codegen.h 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -279,29 +279,29 @@ typedef enum {
 
 #define gen_nullptr_check(objreg) \
 	if (checknull) { \
-        x86_64_test_reg_reg(cd, (objreg), (objreg)); \
-        x86_64_jcc(cd, X86_64_CC_E, 0); \
- 	    codegen_addxnullrefs(cd, cd->mcodeptr); \
+        M_TEST(objreg); \
+        M_BEQ(0); \
+ 	    codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
 	}
 
 
 #define gen_bound_check \
     if (checkbounds) { \
-        x86_64_alul_membase_reg(cd, X86_64_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-        x86_64_jcc(cd, X86_64_CC_AE, 0); \
-        codegen_addxboundrefs(cd, cd->mcodeptr, s2); \
+        M_CMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
+        M_BAE(0); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
     }
 
 
 #define gen_div_check(v) \
     if (checknull) { \
         if ((v)->flags & INMEMORY) { \
-            x86_64_alu_imm_membase(cd, X86_64_CMP, 0, REG_SP, src->regoff * 8); \
+            M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 8); \
         } else { \
-            x86_64_test_reg_reg(cd, src->regoff, src->regoff); \
+            M_TEST(src->regoff); \
         } \
-        x86_64_jcc(cd, X86_64_CC_E, 0); \
-        codegen_addxdivrefs(cd, cd->mcodeptr); \
+        M_BEQ(0); \
+        codegen_add_arithmeticexception_ref(cd, cd->mcodeptr); \
     }
 
 
@@ -426,11 +426,11 @@ typedef enum {
 /* macros to create code ******************************************************/
 
 #define M_MOV(a,b)              x86_64_mov_reg_reg(cd, (a), (b))
-#define M_MOV_IMM(a,b)          x86_64_mov_imm_reg(cd, (a), (b))
+#define M_MOV_IMM(a,b)          x86_64_mov_imm_reg(cd, (u8) (a), (b))
 
 #define M_FMOV(a,b)             x86_64_movq_reg_reg(cd, (a), (b))
 
-#define M_IMOV_IMM(a,b)         x86_64_movl_imm_reg(cd, (a), (b))
+#define M_IMOV_IMM(a,b)         x86_64_movl_imm_reg(cd, (u4) (a), (b))
 
 #define M_ILD(a,b,disp)         x86_64_movl_membase_reg(cd, (b), (disp), (a))
 #define M_LLD(a,b,disp)         x86_64_mov_membase_reg(cd, (b), (disp), (a))
@@ -501,6 +501,7 @@ typedef enum {
 #define M_BEQ(disp)             x86_64_jcc(cd, X86_64_CC_E, (disp))
 #define M_BNE(disp)             x86_64_jcc(cd, X86_64_CC_NE, (disp))
 #define M_BLE(disp)             x86_64_jcc(cd, X86_64_CC_LE, (disp))
+#define M_BAE(disp)             x86_64_jcc(cd, X86_64_CC_AE, (disp))
 #define M_BA(disp)              x86_64_jcc(cd, X86_64_CC_A, (disp))
 
 #define M_CMOVEQ(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_E, (a), (b))

@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: codegen-common.h 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen-common.h 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -40,7 +40,6 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct codegendata codegendata;
-typedef struct branchref branchref;
 typedef struct threadcritnodetemp threadcritnodetemp;
 
 
@@ -118,12 +117,7 @@ struct codegendata {
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-	branchref      *xboundrefs;     /* list of bound check branches           */
-	branchref      *xnullrefs;      /* list of null check branches            */
-	branchref      *xcastrefs;      /* list of cast check branches            */
-	branchref      *xstorerefs;     /* list of array store check branches     */
-	branchref      *xdivrefs;       /* list of divide by zero branches        */
-	branchref      *xexceptionrefs; /* list of exception branches             */
+	exceptionref   *exceptionrefs;  /* list of exception branches             */
 	patchref       *patchrefs;
 
 	linenumberref  *linenumberreferences; /* list of line numbers and the     */
@@ -144,15 +138,6 @@ struct codegendata {
 
 	s4              maxstack;
 	s4              maxlocals;
-};
-
-
-/***************** forward references in branch instructions ******************/
-
-struct branchref {
-	s4         branchpos;       /* patching position in code segment          */
-	s4         reg;             /* used for ArrayIndexOutOfBounds index reg   */
-	branchref *next;            /* next element in branchref list             */
 };
 
 
@@ -182,12 +167,14 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 
 void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr);
 
-void codegen_addxboundrefs(codegendata *cd, void *branchptr, s4 reg);
-void codegen_addxcastrefs(codegendata *cd, void *branchptr);
-void codegen_addxdivrefs(codegendata *cd, void *branchptr);
-void codegen_addxstorerefs(codegendata *cd, void *branchptr);
-void codegen_addxnullrefs(codegendata *cd, void *branchptr);
-void codegen_addxexceptionrefs(codegendata *cd, void *branchptr);
+void codegen_add_arithmeticexception_ref(codegendata *cd, void *branchptr);
+void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd,
+													void *branchptr, s4 reg);
+void codegen_add_arraystoreexception_ref(codegendata *cd, void *branchptr);
+void codegen_add_classcastexception_ref(codegendata *cd, void *branchptr);
+void codegen_add_nullpointerexception_ref(codegendata *cd, void *branchptr);
+void codegen_add_fillinstacktrace_ref(codegendata *cd, void *branchptr);
+
 
 void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 						 functionptr patcher, voidptr ref, s4 disp);

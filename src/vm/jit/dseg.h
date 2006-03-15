@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 4445 2006-02-05 15:26:34Z edwin $
+   $Id: dseg.h 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 
 typedef struct jumpref jumpref;
 typedef struct dataref dataref;
+typedef struct exceptionref exceptionref;
 typedef struct patchref patchref;
 typedef struct linenumberref linenumberref;
 
@@ -77,6 +78,16 @@ struct jumpref {
 struct dataref {
 	s4       datapos;           /* patching position in generated code        */
 	dataref *next;              /* next element in dataref list               */
+};
+
+
+/* exceptionref ***************************************************************/
+
+struct exceptionref {
+	s4            branchpos;    /* patching position in code segment          */
+	s4            reg;          /* used for ArrayIndexOutOfBounds index reg   */
+	functionptr   function;     /* function pointer to generate exception     */
+	exceptionref *next;         /* next element in exceptionref list          */
 };
 
 

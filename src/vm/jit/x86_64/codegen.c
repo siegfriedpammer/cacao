@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen.c 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -175,7 +175,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	if (opt_prof) {
 		/* count frequency */
 
-		M_MOV_IMM((ptrint) m, REG_ITMP3);
+		M_MOV_IMM(m, REG_ITMP3);
 		M_IINC_MEMBASE(REG_ITMP3, OFFSET(methodinfo, frequency));
 
 		PROFILE_CYCLE_START;
@@ -273,18 +273,18 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM((ptrint) m->class, REG_ITMP1);
+			M_MOV_IMM(m->class, REG_ITMP1);
 			M_AST(REG_ITMP1, REG_SP, s1 * 8);
 			M_INTMOVE(REG_ITMP1, rd->argintregs[0]);
-			M_MOV_IMM((ptrint) BUILTIN_staticmonitorenter, REG_ITMP1);
+			M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 
 		} else {
 			M_TEST(rd->argintregs[0]);
-			x86_64_jcc(cd, X86_64_CC_Z, 0);
-			codegen_addxnullrefs(cd, cd->mcodeptr);
+			M_BEQ(0);
+			codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
 			M_AST(rd->argintregs[0], REG_SP, s1 * 8);
-			M_MOV_IMM((ptrint) BUILTIN_monitorenter, REG_ITMP1);
+			M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 		}
 
@@ -342,9 +342,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			}
 		}
 
-		M_MOV_IMM((ptrint) m, REG_ITMP2);
+		M_MOV_IMM(m, REG_ITMP2);
 		M_AST(REG_ITMP2, REG_SP, 0 * 8);
-		M_MOV_IMM((ptrint) builtin_trace_args, REG_ITMP1);
+		M_MOV_IMM(builtin_trace_args, REG_ITMP1);
 		M_CALL(REG_ITMP1);
 
 		/* restore integer argument registers */
@@ -402,7 +402,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		if (opt_prof_bb) {
 			/* count frequency */
 
-			M_MOV_IMM((ptrint) m->bbfrequency, REG_ITMP2);
+			M_MOV_IMM(m->bbfrequency, REG_ITMP2);
 			M_IINC_MEMBASE(REG_ITMP2, bptr->debug_nr * 4);
 
 			/* if this is an exception handler, start profiling again */
@@ -515,7 +515,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				else
 					M_TEST(src->regoff);
 				M_BEQ(0);
-				codegen_addxnullrefs(cd, cd->mcodeptr);
+				codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
 				break;
 
 		/* constant operations ************************************************/
@@ -578,13 +578,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 /* 				PROFILE_CYCLE_START; */
 
-				M_MOV_IMM((ptrint) iptr->val.a, d);
+				M_MOV_IMM(iptr->val.a, d);
 
 			} else {
 				if (iptr->val.a == 0)
 					M_CLR(d);
 				else
-					M_MOV_IMM((ptrint) iptr->val.a, d);
+					M_MOV_IMM(iptr->val.a, d);
 			}
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -2201,11 +2201,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			M_MOV(s1, rd->argintregs[0]);
 			M_MOV(s3, rd->argintregs[1]);
-			M_MOV_IMM((ptrint) BUILTIN_canstore, REG_ITMP1);
+			M_MOV_IMM(BUILTIN_canstore, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
-			codegen_addxstorerefs(cd, cd->mcodeptr);
+			codegen_add_arraystoreexception_ref(cd, cd->mcodeptr);
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -2672,7 +2672,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_CALL_IMM(0);                            /* passing exception pc */
 			M_POP(REG_ITMP2_XPC);
 
-  			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
+  			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
   			M_JMP(REG_ITMP3);
 			break;
 
@@ -3001,7 +3001,7 @@ nowperformreturn:
 					break;
 				}
 
-				M_MOV_IMM((ptrint) builtin_monitorexit, REG_ITMP1);
+				M_MOV_IMM(builtin_monitorexit, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 
 				/* and now restore the proper return value */
@@ -3190,14 +3190,14 @@ gen_method:
 				if (iptr->op1 == true) {
 					M_TEST(REG_RESULT);
 					M_BEQ(0);
-					codegen_addxexceptionrefs(cd, cd->mcodeptr);
+					codegen_add_fillinstacktrace_ref(cd, cd->mcodeptr);
 				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
 				M_TEST(rd->argintregs[0]);
 				M_BEQ(0);
-				codegen_addxnullrefs(cd, cd->mcodeptr);
+				codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
 
 				/* first argument contains pointer */
 /*  				gen_nullptr_check(rd->argintregs[0]); */
@@ -3439,14 +3439,14 @@ gen_method:
 					M_LSUB_IMM32(superindex, REG_ITMP3);
 					M_TEST(REG_ITMP3);
 					M_BLE(0);
-					codegen_addxcastrefs(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 					x86_64_mov_membase32_reg(cd, REG_ITMP2,
 											 OFFSET(vftbl_t, interfacetable[0]) -
 											 superindex * sizeof(methodptr*),
 											 REG_ITMP3);
 					M_TEST(REG_ITMP3);
 					M_BEQ(0);
-					codegen_addxcastrefs(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 
 					if (!super)
 						M_JMP_IMM(s3);
@@ -3473,7 +3473,7 @@ gen_method:
 						}
 					}
 
-					M_MOV_IMM((ptrint) supervftbl, REG_ITMP3);
+					M_MOV_IMM(supervftbl, REG_ITMP3);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
@@ -3497,7 +3497,7 @@ gen_method:
 											  OFFSET(vftbl_t, baseval),
 											  REG_ITMP3);
 					M_LSUB(REG_ITMP3, REG_ITMP2);
-					M_MOV_IMM((ptrint) supervftbl, REG_ITMP3);
+					M_MOV_IMM(supervftbl, REG_ITMP3);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 					/*  					} */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -3505,7 +3505,7 @@ gen_method:
 #endif
 					M_CMP(REG_ITMP3, REG_ITMP2);
 					M_BA(0);         /* (u) REG_ITMP1 > (u) REG_ITMP2 -> jump */
-					codegen_addxcastrefs(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 				}
 				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
 
@@ -3525,12 +3525,12 @@ gen_method:
 					}
 				}
 
-				M_MOV_IMM((ptrint) iptr->val.a, rd->argintregs[1]);
-				M_MOV_IMM((ptrint) BUILTIN_arraycheckcast, REG_ITMP1);
+				M_MOV_IMM(iptr->val.a, rd->argintregs[1]);
+				M_MOV_IMM(BUILTIN_arraycheckcast, REG_ITMP1);
 				M_CALL(REG_ITMP1);
 				M_TEST(REG_RESULT);
 				M_BEQ(0);
-				codegen_addxcastrefs(cd, cd->mcodeptr);
+				codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 
 				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, REG_ITMP1);
@@ -3760,20 +3760,20 @@ gen_method:
 
 			/* a1 = arrayvftbl */
 
-			M_MOV_IMM((ptrint) iptr->val.a, rd->argintregs[1]);
+			M_MOV_IMM(iptr->val.a, rd->argintregs[1]);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
 			M_MOV(REG_SP, rd->argintregs[2]);
 
-			M_MOV_IMM((ptrint) BUILTIN_multianewarray, REG_ITMP1);
+			M_MOV_IMM(BUILTIN_multianewarray, REG_ITMP1);
 			M_CALL(REG_ITMP1);
 
 			/* check for exception before result assignment */
 
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
-			codegen_addxexceptionrefs(cd, cd->mcodeptr);
+			codegen_add_fillinstacktrace_ref(cd, cd->mcodeptr);
 
 			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
@@ -3837,284 +3837,91 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
-	{
 
-	u1        *xcodeptr;
-	branchref *bref;
-
-	/* generate ArithmeticException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-		
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_arithmeticexception,
-					  REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate ArrayIndexOutOfBoundsException stubs */
-
-	xcodeptr = NULL;
-
-	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		/* move index register into REG_ITMP1 */
-
-		M_MOV(bref->reg, REG_ITMP1);                              /* 3 bytes  */
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			M_MOV(REG_ITMP1, rd->argintregs[4]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_arrayindexoutofboundsexception,
-					  REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate ArrayStoreException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xstorerefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_arraystoreexception,
-					  REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate ClassCastException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-		
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_classcastexception, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate NullpointerException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-		
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_nullpointerexception,
-					  REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate exception check stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch(cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  cd->mcodeptr - cd->mcodebase);
-
-		MCODECHECK(512);
-
-		M_MOV_IMM(0, REG_ITMP2_XPC);                              /* 10 bytes */
-		dseg_adddata(cd, cd->mcodeptr);
-		M_AADD_IMM32(bref->branchpos - 6, REG_ITMP2_XPC);         /* 7 bytes  */
-
-		if (xcodeptr != NULL) {
-			M_JMP_IMM(xcodeptr - cd->mcodeptr - 5);
-		
-		} else {
-			xcodeptr = cd->mcodeptr;
-
-			x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_ASUB_IMM(2 * 8, REG_SP);
-			M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
-
-			M_MOV_IMM((ptrint) stacktrace_inline_fillInStackTrace, REG_ITMP3);
-			M_CALL(REG_ITMP3);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
-			M_AADD_IMM(2 * 8, REG_SP);
-
-			M_MOV_IMM((ptrint) asm_handle_exception, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-	}
-
-	/* generate code patching stub call code */
+	/* generate exception and patcher stubs */
 
 	{
-		patchref    *pref;
-		codegendata *tmpcd;
-		ptrint       mcode;
+		exceptionref *eref;
+		patchref     *pref;
+		ptrint        mcode;
+		u1           *savedmcodeptr;
+		u1           *tmpmcodeptr;
 
-		tmpcd = DNEW(codegendata);
+		savedmcodeptr = NULL;
+
+		/* generate exception stubs */
+	
+		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
+			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
+							  eref->branchpos,
+							  cd->mcodeptr - cd->mcodebase);
+
+			MCODECHECK(512);
+
+			/* Check if the exception is an
+			   ArrayIndexOutOfBoundsException.  If so, move index register
+			   into REG_ITMP1. */
+
+			if (eref->reg != -1)
+				M_MOV(eref->reg, REG_ITMP1);
+
+			/* calcuate exception address */
+
+			M_MOV_IMM(0, REG_ITMP2_XPC);
+			dseg_adddata(cd, cd->mcodeptr);
+			M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
+
+			/* move function to call into REG_ITMP3 */
+
+			M_MOV_IMM(eref->function, REG_ITMP3);
+
+			if (savedmcodeptr != NULL) {
+				M_JMP_IMM(savedmcodeptr - cd->mcodeptr - 5);
+		
+			} else {
+				savedmcodeptr = cd->mcodeptr;
+
+				x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
+				M_MOV(REG_SP, rd->argintregs[1]);
+				M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
+				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+				M_MOV(REG_ITMP1, rd->argintregs[4]);            /* for AIOOBE */
+
+				M_ASUB_IMM(2 * 8, REG_SP);
+				M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+				M_CALL(REG_ITMP3);
+
+				M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+				M_AADD_IMM(2 * 8, REG_SP);
+
+				M_MOV_IMM(asm_handle_exception, REG_ITMP3);
+				M_JMP(REG_ITMP3);
+			}
+		}
+
+
+		/* generate code patching stub call code */
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check size of code segment */
 
 			MCODECHECK(512);
 
-			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+			/* Get machine code which is patched back in later. A
+			   `call rel32' is 5 bytes long (but read 8 bytes). */
 
-			xcodeptr = cd->mcodebase + pref->branchpos;
-			mcode = *((ptrint *) xcodeptr);
+			savedmcodeptr = cd->mcodebase + pref->branchpos;
+			mcode = *((ptrint *) savedmcodeptr);
 
-			/* patch in `call rel32' to call the following code               */
+			/* patch in `call rel32' to call the following code */
 
-			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
-			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
+			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+
+			M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
+
+			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -4132,20 +3939,19 @@ gen_method:
 
 			/* move machine code bytes and classinfo pointer into registers */
 
-			M_MOV_IMM((ptrint) mcode, REG_ITMP3);
+			M_MOV_IMM(mcode, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
-			M_MOV_IMM((ptrint) pref->ref, REG_ITMP3);
+			M_MOV_IMM(pref->ref, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
-			M_MOV_IMM((ptrint) pref->disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM((ptrint) pref->patcher, REG_ITMP3);
+			M_MOV_IMM(pref->disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 
-			M_MOV_IMM((ptrint) asm_wrapper_patcher, REG_ITMP3);
+			M_MOV_IMM(pref->patcher, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+
+			M_MOV_IMM(asm_wrapper_patcher, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
-	}
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) cd->mcodeptr - cd->mcodebase));
@@ -4267,7 +4073,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	if (opt_prof) {
 		/* count frequency */
 
-		M_MOV_IMM((ptrint) m, REG_ITMP2);
+		M_MOV_IMM(m, REG_ITMP2);
 		M_IINC_MEMBASE(REG_ITMP2, OFFSET(methodinfo, frequency));
 	}
 
@@ -4301,9 +4107,9 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			}
 		}
 
-		M_MOV_IMM((ptrint) m, REG_ITMP1);
+		M_MOV_IMM(m, REG_ITMP1);
 		M_AST(REG_ITMP1, REG_SP, 0 * 8);
-		M_MOV_IMM((ptrint) builtin_trace_args, REG_ITMP1);
+		M_MOV_IMM(builtin_trace_args, REG_ITMP1);
 		M_CALL(REG_ITMP1);
 
 		/* restore integer and float argument registers */
@@ -4330,7 +4136,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 #endif
 
-	M_MOV_IMM((ptrint) f, REG_ITMP3);
+	M_MOV_IMM(f, REG_ITMP3);
 
 
 	/* save integer and float argument registers */
@@ -4351,7 +4157,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[1]);
 	M_ALEA(REG_SP, stackframesize * 8 + SIZEOF_VOID_P, rd->argintregs[2]);
 	M_ALD(rd->argintregs[3], REG_SP, stackframesize * 8);
-	M_MOV_IMM((ptrint) codegen_start_native_call, REG_ITMP1);
+	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* restore integer and float argument registers */
@@ -4408,11 +4214,11 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC)
-		M_MOV_IMM((ptrint) m->class, rd->argintregs[1]);
+		M_MOV_IMM(m->class, rd->argintregs[1]);
 
 	/* put env into first argument register */
 
-	M_MOV_IMM((ptrint) _Jv_env, rd->argintregs[0]);
+	M_MOV_IMM(_Jv_env, rd->argintregs[0]);
 
 	/* do the native function call */
 
@@ -4430,7 +4236,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* remove native stackframe info */
 
 	M_ALEA(REG_SP, stackframesize * 8, rd->argintregs[0]);
-	M_MOV_IMM((ptrint) codegen_finish_native_call, REG_ITMP1);
+	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* generate call trace */
@@ -4445,22 +4251,22 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 				M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 		}
 
-  		M_MOV_IMM((ptrint) m, rd->argintregs[0]);
+  		M_MOV_IMM(m, rd->argintregs[0]);
   		M_MOV(REG_RESULT, rd->argintregs[1]);
 		M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
   		M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
 
-		M_MOV_IMM((ptrint) builtin_displaymethodstop, REG_ITMP1);
+		M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
 		M_CALL(REG_ITMP1);
 	}
 
 	/* check for exception */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	M_MOV_IMM((ptrint) builtin_get_exceptionptrptr, REG_ITMP3);
+	M_MOV_IMM(builtin_get_exceptionptrptr, REG_ITMP3);
 	M_CALL(REG_ITMP3);
 #else
-	M_MOV_IMM((ptrint) &_no_threads_exceptionptr, REG_RESULT);
+	M_MOV_IMM(&_no_threads_exceptionptr, REG_RESULT);
 #endif
 	M_ALD(REG_ITMP2, REG_RESULT, 0);
 
@@ -4488,13 +4294,13 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	M_LST(REG_ITMP2, REG_SP, 0 * 8);
-	M_MOV_IMM((ptrint) builtin_get_exceptionptrptr, REG_ITMP3);
+	M_MOV_IMM(builtin_get_exceptionptrptr, REG_ITMP3);
 	M_CALL(REG_ITMP3);
 	M_AST_IMM32(0, REG_RESULT, 0);                 /* clear exception pointer */
 	M_LLD(REG_ITMP1_XPTR, REG_SP, 0 * 8);
 #else
 	M_MOV(REG_ITMP3, REG_ITMP1_XPTR);
-	M_MOV_IMM((ptrint) &_no_threads_exceptionptr, REG_ITMP3);
+	M_MOV_IMM(&_no_threads_exceptionptr, REG_ITMP3);
 	M_AST_IMM32(0, REG_ITMP3, 0);                  /* clear exception pointer */
 #endif
 
@@ -4505,34 +4311,36 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_LLD(REG_ITMP2_XPC, REG_SP, 0 * 8);     /* get return address from stack */
 	M_ASUB_IMM(3, REG_ITMP2_XPC);                                    /* callq */
 
-	M_MOV_IMM((ptrint) asm_handle_nat_exception, REG_ITMP3);
+	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
 
 
 	/* process patcher calls **************************************************/
 
 	{
-		u1          *xcodeptr;
-		patchref    *pref;
-		codegendata *tmpcd;
-		ptrint       mcode;
+		patchref *pref;
+		ptrint    mcode;
+		u1       *savedmcodeptr;
+		u1       *tmpmcodeptr;
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		s4           disp;
+		s4        disp;
 #endif
 
-		tmpcd = DNEW(codegendata);
-
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long (but read 8 bytes).               */
+			/* Get machine code which is patched back in later. A
+			   `call rel32' is 5 bytes long (but read 8 bytes). */
 
-			xcodeptr = cd->mcodebase + pref->branchpos;
-			mcode = *((ptrint *) xcodeptr);
+			savedmcodeptr = cd->mcodebase + pref->branchpos;
+			mcode = *((ptrint *) savedmcodeptr);
 
 			/* patch in `call rel32' to call the following code               */
 
-			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
-			x86_64_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
+			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+
+			M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
+
+			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -4550,17 +4358,17 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 			/* move machine code bytes and classinfo pointer into registers */
 
-			M_MOV_IMM((ptrint) mcode, REG_ITMP3);
+			M_MOV_IMM(mcode, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
-			M_MOV_IMM((ptrint) pref->ref, REG_ITMP3);
+			M_MOV_IMM(pref->ref, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
-			M_MOV_IMM((ptrint) pref->disp, REG_ITMP3);
-			M_PUSH(REG_ITMP3);
-
-			M_MOV_IMM((ptrint) pref->patcher, REG_ITMP3);
+			M_MOV_IMM(pref->disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 
-			M_MOV_IMM((ptrint) asm_wrapper_patcher, REG_ITMP3);
+			M_MOV_IMM(pref->patcher, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+
+			M_MOV_IMM(asm_wrapper_patcher, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 		}
 	}

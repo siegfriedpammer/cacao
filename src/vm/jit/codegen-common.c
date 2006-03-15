@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4609 2006-03-15 05:13:21Z edwin $
+   $Id: codegen-common.c 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -182,13 +182,8 @@ void codegen_setup(methodinfo *m, codegendata *cd)
 	cd->datareferences = NULL;
 #endif
 
-	cd->xboundrefs = NULL;
-	cd->xnullrefs = NULL;
-	cd->xcastrefs = NULL;
-	cd->xstorerefs = NULL;
-	cd->xdivrefs = NULL;
-	cd->xexceptionrefs = NULL;
-	cd->patchrefs = NULL;
+	cd->exceptionrefs  = NULL;
+	cd->patchrefs      = NULL;
 
 	cd->linenumberreferences = NULL;
 	cd->linenumbertablesizepos = 0;
@@ -353,136 +348,107 @@ void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
 }
 
 
-/* codegen_addxboundrefs *******************************************************
+/* codegen_add_exception_ref ***************************************************
 
-   Adds an ArrayIndexOutOfBoundsException branch to the list.
-
-*******************************************************************************/
-
-void codegen_addxboundrefs(codegendata *cd, void *branchptr, s4 reg)
-{
-	s4 branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-
-	br->branchpos = branchpos;
-	br->reg       = reg;
-	br->next      = cd->xboundrefs;
-
-	cd->xboundrefs = br;
-}
-
-
-/* codegen_addxcastrefs ********************************************************
-
-   Adds an ClassCastException branch to the list.
+   Adds an exception branch to the list.
 
 *******************************************************************************/
 
-void codegen_addxcastrefs(codegendata *cd, void *branchptr)
+static void codegen_add_exception_ref(codegendata *cd, void *branchptr, s4 reg,
+									  functionptr function)
 {
-	s4         branchpos;
-	branchref *br;
+	s4            branchpos;
+	exceptionref *eref;
 
 	branchpos = (u1 *) branchptr - cd->mcodebase;
 
-	br = DNEW(branchref);
+	eref = DNEW(exceptionref);
 
-	br->branchpos = branchpos;
-	br->next      = cd->xcastrefs;
+	eref->branchpos = branchpos;
+	eref->reg       = reg;
+	eref->function  = function;
+	eref->next      = cd->exceptionrefs;
 
-	cd->xcastrefs = br;
+	cd->exceptionrefs = eref;
 }
 
 
-/* codegen_addxdivrefs *********************************************************
+/* codegen_add_arithmeticexception_ref *****************************************
 
    Adds an ArithmeticException branch to the list.
 
 *******************************************************************************/
 
-void codegen_addxdivrefs(codegendata *cd, void *branchptr)
+void codegen_add_arithmeticexception_ref(codegendata *cd, void *branchptr)
 {
-	s4         branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-
-	br->branchpos = branchpos;
-	br->next      = cd->xdivrefs;
-
-	cd->xdivrefs = br;
+	codegen_add_exception_ref(cd, branchptr, -1,
+							  STACKTRACE_inline_arithmeticexception);
 }
 
 
-/* codegen_addxstorerefs *******************************************************
+/* codegen_add_arrayindexoutofboundsexception_ref ******************************
+
+   Adds an ArrayIndexOutOfBoundsException branch to the list.
+
+*******************************************************************************/
+
+void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd,
+													void *branchptr, s4 reg)
+{
+	codegen_add_exception_ref(cd, branchptr, reg,
+							  STACKTRACE_inline_arrayindexoutofboundsexception);
+}
+
+
+/* codegen_add_arraystoreexception_ref *****************************************
 
    Adds an ArrayStoreException branch to the list.
 
 *******************************************************************************/
 
-void codegen_addxstorerefs(codegendata *cd, void *branchptr)
+void codegen_add_arraystoreexception_ref(codegendata *cd, void *branchptr)
 {
-	s4         branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-
-	br->branchpos = branchpos;
-	br->next      = cd->xstorerefs;
-
-	cd->xstorerefs = br;
+	codegen_add_exception_ref(cd, branchptr, -1,
+							  STACKTRACE_inline_arraystoreexception);
 }
 
 
-/* codegen_addxnullrefs ********************************************************
+/* codegen_add_classcastexception_ref ******************************************
+
+   Adds an ClassCastException branch to the list.
+
+*******************************************************************************/
+
+void codegen_add_classcastexception_ref(codegendata *cd, void *branchptr)
+{
+	codegen_add_exception_ref(cd, branchptr, -1,
+							  STACKTRACE_inline_classcastexception);
+}
+
+
+/* codegen_add_nullpointerexception_ref ****************************************
 
    Adds an NullPointerException branch to the list.
 
 *******************************************************************************/
 
-void codegen_addxnullrefs(codegendata *cd, void *branchptr)
+void codegen_add_nullpointerexception_ref(codegendata *cd, void *branchptr)
 {
-	s4         branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-
-	br->branchpos = branchpos;
-	br->next      = cd->xnullrefs;
-
-	cd->xnullrefs = br;
+	codegen_add_exception_ref(cd, branchptr, -1,
+							  STACKTRACE_inline_nullpointerexception);
 }
 
 
-/* codegen_addxexceptionsrefs **************************************************
+/* codegen_add_fillinstacktrace_ref ********************************************
 
-   Adds an common exception branch to the list.
+   Adds a fillInStackTrace branch to the list.
 
 *******************************************************************************/
 
-void codegen_addxexceptionrefs(codegendata *cd, void *branchptr)
+void codegen_add_fillinstacktrace_ref(codegendata *cd, void *branchptr)
 {
-	s4 branchpos;
-	branchref *br;
-
-	branchpos = (u1 *) branchptr - cd->mcodebase;
-
-	br = DNEW(branchref);
-
-	br->branchpos = branchpos;
-	br->next      = cd->xexceptionrefs;
-
-	cd->xexceptionrefs = br;
+	codegen_add_exception_ref(cd, branchptr, -1,
+							  STACKTRACE_inline_fillInStackTrace);
 }
 
 

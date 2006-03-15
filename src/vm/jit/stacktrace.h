@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4533 2006-02-21 09:25:16Z twisti $
+   $Id: stacktrace.h 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -118,21 +118,38 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 /* inline exception creating functions */
 java_objectheader *stacktrace_inline_arithmeticexception(u1 *pv, u1 *sp, u1 *ra,
 														 u1 *xpc);
+#define STACKTRACE_inline_arithmeticexception \
+    (functionptr) stacktrace_inline_arithmeticexception
+												
 
 java_objectheader *stacktrace_inline_arrayindexoutofboundsexception(u1 *pv,
 																	u1 *sp,
 																	u1 *ra,
 																	u1 *xpc,
 																	s4 index);
+#define STACKTRACE_inline_arrayindexoutofboundsexception \
+    (functionptr) stacktrace_inline_arrayindexoutofboundsexception
 
 java_objectheader *stacktrace_inline_arraystoreexception(u1 *pv, u1 *sp, u1 *ra,
 														 u1 *xpc);
+#define STACKTRACE_inline_arraystoreexception \
+    (functionptr) stacktrace_inline_arraystoreexception
 
 java_objectheader *stacktrace_inline_classcastexception(u1 *pv, u1 *sp, u1 *ra,
 														u1 *xpc);
+#define STACKTRACE_inline_classcastexception \
+    (functionptr) stacktrace_inline_classcastexception
 
 java_objectheader *stacktrace_inline_nullpointerexception(u1 *pv, u1 *sp,
 														  u1 *ra, u1 *xpc);
+#define STACKTRACE_inline_nullpointerexception \
+    (functionptr) stacktrace_inline_nullpointerexception
+
+/* refill the stacktrace of an existing exception */
+java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
+													  u1 *xpc);
+#define STACKTRACE_inline_fillInStackTrace \
+    (functionptr) stacktrace_inline_fillInStackTrace
 
 
 /* hardware exception creating functions */
@@ -142,9 +159,6 @@ java_objectheader *stacktrace_hardware_arithmeticexception(u1 *pv, u1 *sp,
 java_objectheader *stacktrace_hardware_nullpointerexception(u1 *pv, u1 *sp,
 															u1 *ra, u1 *xpc);
 
-/* refill the stacktrace of an existing exception */
-java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
-													  u1 *xpc);
 
 stacktracebuffer  *stacktrace_fillInStackTrace(void);
 java_objectarray  *stacktrace_getClassContext(void);

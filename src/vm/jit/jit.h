@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4602 2006-03-14 23:49:34Z edwin $
+   $Id: jit.h 4615 2006-03-15 16:36:43Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 typedef struct stackelement stackelement;
 typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
+typedef struct branchref branchref;
 typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
 
@@ -215,6 +216,15 @@ struct basicblock {
 			bptr->debug_nr = m->c_debug_nr++;              \
 		} while (0)
 			
+
+/* branchref *****************************************************************/
+
+struct branchref {
+	s4         branchpos;       /* patching position in code segment          */
+	branchref *next;            /* next element in branchref list             */
+};
+
+
 /********** op1 values for ACONST instructions ********************************/
 
 #define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
