@@ -1,0 +1,29 @@
+STACK FRAME FORMAT
+=====================
+Author: Edwin Steiner
+
+
+Overview
+--------
+
+For the sake of efficiency CACAO uses its own stack frame layout that does
+not comply with the usual frame layout on the native ABI. This document
+tries to collect the stack frame layouts used on the various architectures.
+
+
+i386 stack frames
+-----------------
+
+>>>> sp in method (after initial sub) <<<<
+
+u4[]  arguments for calling methods
+u4[]  local variable slots allocated on stack
+u4[]  callee-saved registers
+
+>>>> sp on method entry <<<<
+
+u4    return address
+u4[]  arguments on stack
+
+
+

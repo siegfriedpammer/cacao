@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4611 2006-03-15 11:18:30Z twisti $
+   $Id: asmpart.S 4613 2006-03-15 12:04:05Z edwin $
 
 */
 
@@ -540,11 +540,11 @@ L_asm_wrapper_patcher_exception:
 /* asm_replacement_out *********************************************************
 
    This code is jumped to from the replacement-out stubs that are executed
-   when a thread reaches a activated replacement point.
+   when a thread reaches an activated replacement point.
 
    The purpose of asm_replacement_out is to read out the parts of the
    execution state that cannot be accessed from C code, store this state,
-   and call the C function replace_me.
+   and then call the C function replace_me.
 
    Stack layout:
       0   rplpoint *    info on the replacement point that was reached
@@ -562,7 +562,7 @@ asm_replacement_out:
 	movl    $0,(4+2*8+offes_regs)(sp)
 
 	mov     sizeexecutionstate(sp),itmp1   /* rplpoint *                         */
-    push    sp /* XXX */                /* arg1: execution state              */
+    push    sp                          /* arg1: execution state              */
     push    itmp1                       /* arg0: replacement point            */
     call    replace_me                  /* call C function replace_me         */
     call    abort                       /* NEVER REACHED                      */

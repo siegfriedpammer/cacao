@@ -50,15 +50,15 @@ struct codeinfo {
 	codeinfo     *prev;             /* previous codeinfo of this method*/
 	
 	/* machine code */
-	s4            mcodelength;      /* length of generated machine code*/
 	u1           *mcode;            /* pointer to machine code         */
 	u1           *entrypoint;       /* machine code entry point        */
+	s4            mcodelength;      /* length of generated machine code*/
 	bool          isleafmethod;     /* does method call subroutines    */
 
 	/* replacement */
 	rplpoint     *rplpoints;        /* replacement points              */
-	s4            rplpointcount;    /* number of replacement points    */
 	s2           *regalloc;         /* register allocation info        */
+	s4            rplpointcount;    /* number of replacement points    */
 	s4            globalcount;      /* number of global allocations    */
 	s4            regalloccount;    /* number of total allocations     */
 

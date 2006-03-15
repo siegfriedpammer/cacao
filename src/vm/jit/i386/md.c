@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4612 2006-03-15 11:38:02Z edwin $
+   $Id: md.c 4613 2006-03-15 12:04:05Z edwin $
 
 */
 
@@ -127,7 +127,7 @@ void md_patch_replacement_point(rplpoint *rp)
 		fflush(stdout);
 	}
 			
-    /* XXX if required asm_cacheflush(rp->pc,4); */
+    /* XXX if required asm_cacheflush(rp->pc,8); */
 }
 
 /*

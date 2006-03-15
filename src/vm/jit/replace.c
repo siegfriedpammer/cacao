@@ -269,7 +269,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
   
    IN:
        rp...............replacement point that has been reached
-	   es...............executions state read by asm_replacement_out
+	   es...............execution state read by asm_replacement_out
   
 *******************************************************************************/
 
