@@ -304,6 +304,20 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 #endif
 }
 
+/* replace_read_executionstate *************************************************
+
+   Read the given executions state and translate it to a source state.
+   
+   IN:
+       rp...............replacement point at which `es` was taken
+	   es...............execution state
+	   ss...............where to put the source state
+
+   OUT:
+       *ss..............the source state derived from the execution state
+  
+*******************************************************************************/
+
 static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 									 sourcestate *ss)
 {
@@ -404,6 +418,21 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #endif
 }
 
+/* replace_write_executionstate ************************************************
+
+   Translate the given source state into an execution state.
+   
+   IN:
+       rp...............replacement point for which execution state should be
+	                    creates
+	   es...............where to put the execution state
+	   ss...............the given source state
+
+   OUT:
+       *es..............the execution state derived from the source state
+  
+*******************************************************************************/
+
 static void replace_write_executionstate(rplpoint *rp,executionstate *es,sourcestate *ss)
 {
 	methodinfo *m;
@@ -500,6 +529,10 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 		basesp -= 2;
 		*(u8*)basesp = ss->savedfltregs[i];
 	}
+
+	/* set new pc */
+
+	es->pc = rp->pc;
 }
 
 /* replace_me ******************************************************************
@@ -548,7 +581,6 @@ void replace_me(rplpoint *rp,executionstate *es)
 	/* write execution state of new code */
 
 	replace_write_executionstate(target,es,&ss);
-	es->pc = rp->target->pc;
 
 #ifndef NDEBUG
 	replace_executionstate_println(es,target->code);
