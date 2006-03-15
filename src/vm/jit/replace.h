@@ -97,7 +97,7 @@ void replace_executionstate_println(executionstate *es);
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 
 #if defined(ENABLE_JIT)
-u1 *md_patch_replacement_point(rplpoint *rp);
+void md_patch_replacement_point(rplpoint *rp);
 #endif
 
 #endif

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4606 2006-03-15 04:43:25Z edwin $
+   $Id: md.c 4608 2006-03-15 05:08:57Z edwin $
 
 */
 
@@ -101,7 +101,7 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 *******************************************************************************/
 
-u1 *md_patch_replacement_point(rplpoint *rp)
+void md_patch_replacement_point(rplpoint *rp)
 {
     u4 mcode;
 	u1 mcode5;

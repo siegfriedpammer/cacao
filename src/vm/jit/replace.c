@@ -208,7 +208,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 {
 	rp->target = target;
 	
-#ifdef __I386__
+#if defined(__I386__) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
