@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4606 2006-03-15 04:43:25Z edwin $
+   $Id: codegen-common.c 4609 2006-03-15 05:13:21Z edwin $
 
 */
 
@@ -657,6 +657,9 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #if defined(ENABLE_INTRP)
 	if (opt_intrp) {
 		ncodelen = cd->ncodeptr - cd->ncodebase;
+	}
+	else {
+		ncodelen = 0; /* avoid compiler warning */
 	}
 #endif
 
