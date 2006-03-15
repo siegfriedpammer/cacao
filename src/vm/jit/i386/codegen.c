@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4611 2006-03-15 11:18:30Z twisti $
+   $Id: codegen.c 4612 2006-03-15 11:38:02Z edwin $
 
 */
 
@@ -5478,6 +5478,7 @@ gen_method:
 
 	{
 		int i;
+		s4 displacement;
 
 		replacementpoint = cd->code->rplpoints;
 		for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
@@ -5488,6 +5489,11 @@ gen_method:
 			/* note start of stub code */
 
 			replacementpoint->outcode = (u1*) (ptrint)(cd->mcodeptr - cd->mcodebase);
+
+			/* make machine code for patching */
+
+			displacement = (ptrint)(replacementpoint->outcode - replacementpoint->pc) - 5;
+			replacementpoint->mcode = 0xe9 | ((u8)displacement << 8);
 
 			/* push address of `rplpoint` struct */
 			

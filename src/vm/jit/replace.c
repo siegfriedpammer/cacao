@@ -216,7 +216,43 @@ void replace_free_replacement_points(codeinfo *code)
 
 void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 {
+	assert(rp->target == NULL);
+	
+#ifndef NDEBUG
+	printf("activate replacement point: ");
+	replace_replacement_point_println(rp);
+	fflush(stdout);
+#endif
+	
 	rp->target = target;
+	
+#if defined(__I386__) && defined(ENABLE_JIT)
+	md_patch_replacement_point(rp);
+#endif
+}
+
+/* replace_deactivate_replacement_point ****************************************
+ 
+   Deactivate a replacement point. When this function returns, the
+   replacement point is "un-armed", that is a each thread reaching this point
+   will just continue normally.
+   
+   IN:
+       rp...............replacement point to deactivate
+  
+*******************************************************************************/
+
+void replace_deactivate_replacement_point(rplpoint *rp)
+{
+	assert(rp->target);
+	
+#ifndef NDEBUG
+	printf("deactivate replacement point: ");
+	replace_replacement_point_println(rp);
+	fflush(stdout);
+#endif
+	
+	rp->target = NULL;
 	
 #if defined(__I386__) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
@@ -243,11 +279,12 @@ void replace_me(rplpoint *rp,executionstate *es)
 	
 	target = rp->target;
 	
+#ifndef NDEBUG
 	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
 	fflush(stdout);
-
 	replace_replacement_point_println(rp);
 	replace_executionstate_println(es);
+#endif
 
 	es->pc = rp->target->pc;
 }
@@ -271,9 +308,9 @@ void replace_replacement_point_println(rplpoint *rp)
 		return;
 	}
 
-	printf("rplpoint %p pc:%p out:%p target:%p allocs:%d = [",
+	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx allocs:%d = [",
 			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
-			rp->regalloccount);
+			rp->mcode,rp->regalloccount);
 
 	for (j=0; j<rp->regalloccount; ++j)
 		printf(" %02d",rp->regalloc[j]);

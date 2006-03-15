@@ -48,6 +48,7 @@ struct rplpoint {
 	rplpoint *hashlink;     /* chain to next rplpoint in hash */ /* XXX needed? */
 	codeinfo *code;         /* codeinfo this point belongs to */
 	rplpoint *target;       /* target of the replacement      */
+	u8        mcode;        /* saved maching code for patching*/
 	s2       *regalloc;     /* pointer to register index table*/
 	s2        regalloccount;/* number of local allocations    */
 };
@@ -84,6 +85,7 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd);
 void replace_free_replacement_points(codeinfo *code);
 
 void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
+void replace_deactivate_replacement_point(rplpoint *rp);
 void replace_activate(codeinfo *code,codeinfo *target);
 
 void replace_me(rplpoint *rp,executionstate *es);

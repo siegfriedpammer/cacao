@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4608 2006-03-15 05:08:57Z edwin $
+   $Id: md.c 4612 2006-03-15 11:38:02Z edwin $
 
 */
 
@@ -96,30 +96,30 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 /* md_patch_replacement_point **************************************************
 
-   Patch the given replacement point so threads that reach it will jump to
-   the replacement-out stub.
+   Patch the given replacement point.
 
 *******************************************************************************/
 
 void md_patch_replacement_point(rplpoint *rp)
 {
-    u4 mcode;
-	u1 mcode5;
-    s4 displacement;
+    u8 mcode;
 
-    displacement = (ptrint)(rp->outcode - rp->pc) - 5;
+	/* XXX this is probably unsafe! */
+
+	/* save the current machine code */
+	mcode = *(u8*)rp->pc;
 
 	/* write spinning instruction */
 	*(u2*)(rp->pc) = 0xebfe;
 
-    mcode = 0xe9 | ((displacement & 0x00ffffff) << 8);
-	mcode5 = (displacement >> 24);
-
 	/* write 5th byte */
-	rp->pc[4] = mcode5;
+	rp->pc[4] = (rp->mcode >> 32);
 
 	/* write first word */
-    *(u4*)(rp->pc) = mcode;
+    *(u4*)(rp->pc) = (u4) rp->mcode;
+
+	/* store saved mcode */
+	rp->mcode = mcode;
 	
 	{
 		u1* u1ptr = rp->pc;
