@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: genoffsets.c 4552 2006-03-04 17:15:44Z twisti $
+   $Id: genoffsets.c 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -47,6 +47,7 @@
 #include "vm/vm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/replace.h"
 
 
 int main(int argc, char **argv)
@@ -57,6 +58,7 @@ int main(int argc, char **argv)
 
 	printf("#define sizevmarg                  %3d\n", (s4) sizeof(vm_arg));
 	printf("#define sizestackframeinfo         %3d\n", (s4) sizeof(stackframeinfo));
+	printf("#define sizeexecutionstate         %3d\n", (s4) sizeof(executionstate));
 
     printf("\n\n/* define some offsets */\n\n");
 
@@ -80,6 +82,8 @@ int main(int argc, char **argv)
 	printf("#define offcast_super_diffval      %3d\n", (s4) OFFSET(castinfo, super_diffval));
 	printf("#define offcast_sub_baseval        %3d\n", (s4) OFFSET(castinfo, sub_baseval));
 
+	printf("#define offes_regs                 %3d\n", (s4) OFFSET(executionstate, regs));
+
 	/* everything is ok */
 
 	return 0;
@@ -97,6 +101,7 @@ int main(int argc, char **argv)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
 
   

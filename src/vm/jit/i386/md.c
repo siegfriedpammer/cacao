@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: md.c 4392 2006-01-31 15:35:22Z twisti $
+   $Id: md.c 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -36,9 +36,13 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include <assert.h>
+
 #include "vm/global.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
 
 
 /* md_init *********************************************************************
@@ -90,6 +94,41 @@ u1 *md_codegen_findmethod(u1 *ra)
 	return pv;
 }
 
+/* md_patch_replacement_point **************************************************
+
+   Patch the given replacement point so threads that reach it will jump to
+   the replacement-out stub.
+
+*******************************************************************************/
+
+u1 *md_patch_replacement_point(rplpoint *rp)
+{
+    u4 mcode;
+	u1 mcode5;
+    s4 displacement;
+
+    displacement = (ptrint)(rp->outcode - rp->pc) - 5;
+
+	/* write spinning instruction */
+	*(u2*)(rp->pc) = 0xebfe;
+
+    mcode = 0xe9 | ((displacement & 0x00ffffff) << 8);
+	mcode5 = (displacement >> 24);
+
+	/* write 5th byte */
+	rp->pc[4] = mcode5;
+
+	/* write first word */
+    *(u4*)(rp->pc) = mcode;
+	
+	{
+		u1* u1ptr = rp->pc;
+		DISASSINSTR(u1ptr);
+		fflush(stdout);
+	}
+			
+    /* XXX if required asm_cacheflush(rp->pc,4); */
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -102,4 +141,5 @@ u1 *md_codegen_findmethod(u1 *ra)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

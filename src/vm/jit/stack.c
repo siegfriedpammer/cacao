@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4605 2006-03-15 01:50:12Z edwin $
+   $Id: stack.c 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -2783,7 +2783,7 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 
 	if (code->rplpoints) {
-		printf("Replacement points:\n");
+		printf("Replacement Points:\n");
 		replace_show_replacement_points(code);
 		printf("\n");
 	}

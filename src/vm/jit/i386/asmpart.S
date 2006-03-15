@@ -29,8 +29,9 @@
             Christian Thalinger
 
    Changes: Joseph Wenninger
+            Edwin Steiner
 
-   $Id: asmpart.S 4560 2006-03-05 23:35:25Z twisti $
+   $Id: asmpart.S 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -63,6 +64,7 @@
 	.globl asm_handle_exception
 
 	.globl asm_wrapper_patcher
+	.globl asm_replacement_out
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -530,6 +532,36 @@ L_asm_wrapper_patcher_exception:
 	jmp     L_asm_handle_exception
 
 
+/* asm_replacement_out *********************************************************
+
+   This code is jumped to from the replacement-out stubs that are executed
+   when a thread reaches a activated replacement point.
+
+   The purpose of asm_replacement_out is to read out the parts of the
+   execution state that cannot be accessed from C code, store this state,
+   and call the C function replace_me.
+
+   Stack layout:
+      0   rplpoint *    info on the replacement point that was reached
+
+*******************************************************************************/
+
+asm_replacement_out:
+	sub     $(sizeexecutionstate),sp    /* create stack frame                 */
+
+	mov     itmp1,(0*8+offes_regs)(sp)
+	movl    $0,(4+0*8+offes_regs)(sp)
+	mov     itmp2,(1*8+offes_regs)(sp)
+	movl    $0,(4+1*8+offes_regs)(sp)
+	mov     itmp3,(2*8+offes_regs)(sp)
+	movl    $0,(4+2*8+offes_regs)(sp)
+
+	mov     sizeexecutionstate(sp),itmp1   /* rplpoint *                         */
+    push    sp /* XXX */                /* arg1: execution state              */
+    push    itmp1                       /* arg0: replacement point            */
+    call    replace_me                  /* call C function replace_me         */
+    call    abort                       /* NEVER REACHED                      */
+
 /************************ function asm_builtin_x2x *****************************
 *                                                                              *
 *   Wrapper functions for corner cases                                         *
@@ -729,4 +761,5 @@ asm_criticalsections:
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 4598 2006-03-14 22:16:47Z edwin $
+   $Id: method.h 4606 2006-03-15 04:43:25Z edwin $
 */
 
 
@@ -43,7 +43,7 @@ typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
 typedef struct codeinfo codeinfo;
 typedef struct rplpoint rplpoint;
-typedef struct executionsstate executionsstate;
+typedef struct executionstate executionstate;
 typedef struct sourcestate sourcestate;
 
 #include "config.h"

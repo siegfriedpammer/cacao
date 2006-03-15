@@ -192,12 +192,93 @@ void replace_free_replacement_points(codeinfo *code)
 	code->globalcount = 0;
 }
 
+/* replace_activate_replacement_point ******************************************
+ 
+   Activate a replacement point. When this function returns, the
+   replacement point is "armed", that is each thread reaching this point
+   will be replace to `target`.
+   
+   IN:
+       rp...............replacement point to activate
+	   target...........target of replacement
+  
+*******************************************************************************/
+
+void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
+{
+	rp->target = target;
+	
+	md_patch_replacement_point(rp);
+}
+
+/* replace_me ******************************************************************
+ 
+   This function is called by asm_replacement_out when a thread reaches
+   a replacement point. `replace_me` must map the execution state to the
+   target replacement point and let execution continue there.
+
+   This function never returns!
+  
+   IN:
+       rp...............replacement point that has been reached
+	   es...............executions state read by asm_replacement_out
+  
+*******************************************************************************/
+
+void replace_me(rplpoint *rp,executionstate *es)
+{
+	rplpoint *target;
+	
+	target = rp->target;
+	
+	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
+	fflush(stdout);
+
+	replace_replacement_point_println(rp);
+	replace_executionstate_println(es);
+
+	es->pc = rp->target->pc;
+}
+
+/* replace_replacement_point_println *******************************************
+ 
+   Print replacement point info.
+  
+   IN:
+       rp...............the replacement point to print
+  
+*******************************************************************************/
+
+#ifndef NDEBUG
+void replace_replacement_point_println(rplpoint *rp)
+{
+	int j;
+
+ 	if (!rp) {
+		printf("(rplpoint *)NULL\n");
+		return;
+	}
+
+	printf("rplpoint %p pc:%p out:%p target:%p allocs:%d = [",
+			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
+			rp->regalloccount);
+
+	for (j=0; j<rp->regalloccount; ++j)
+		printf(" %02d",rp->regalloc[j]);
+
+	printf("] method:");
+	method_print(rp->code->m);
+
+	printf("\n");
+}
+#endif
+
 /* replace_show_replacement_points *********************************************
  
    Print replacement point info.
   
    IN:
-       code.............codeinfo whose replacement points should be freed.
+       code.............codeinfo whose replacement points should be printed.
   
 *******************************************************************************/
 
@@ -205,7 +286,6 @@ void replace_free_replacement_points(codeinfo *code)
 void replace_show_replacement_points(codeinfo *code)
 {
 	int i;
-	int j;
 	rplpoint *rp;
 	
 	if (!code) {
@@ -223,15 +303,37 @@ void replace_show_replacement_points(codeinfo *code)
 
 		assert(rp->code == code);
 		
-		printf("\trplpoint %p pc:%p out:%p target:%p allocs:%d =",
-				(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
-				rp->regalloccount);
-
-		for (j=0; j<rp->regalloccount; ++j)
-			printf(" %02d",rp->regalloc[j]);
-
-		printf("\n");
+		replace_replacement_point_println(rp);
 	}
+}
+#endif
+
+/* replace_executionstate_println **********************************************
+ 
+   Print execution state
+  
+   IN:
+       es...............the execution state to print
+  
+*******************************************************************************/
+
+#ifndef NDEBUG
+void replace_executionstate_println(executionstate *es)
+{
+	int i;
+
+ 	if (!es) {
+		printf("(executionstate *)NULL\n");
+		return;
+	}
+
+	printf("executionstate %p:\n",(void*)es);
+	printf("\tpc = %p\n",(void*)es->pc);
+	for (i=0; i<3; ++i) {
+		printf("\tregs[%2d] = %016llx\n",i,(u8)es->regs[i]);
+	}
+
+	printf("\n");
 }
 #endif
 

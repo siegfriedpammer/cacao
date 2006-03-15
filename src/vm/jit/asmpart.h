@@ -28,8 +28,9 @@
             Andreas Krall
 
    Changes: Christian Thalinger
+            Edwin Steiner
 
-   $Id: asmpart.h 4559 2006-03-05 23:24:50Z twisti $
+   $Id: asmpart.h 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -150,6 +151,9 @@ void asm_handle_nat_exception(void);
 /* wrapper for code patching functions */
 void asm_wrapper_patcher(void);
 
+/* function for on-stack replacement */
+void asm_replacement_out(void);
+
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
@@ -188,4 +192,5 @@ void asm_cacheflush(void *p, s4 size);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

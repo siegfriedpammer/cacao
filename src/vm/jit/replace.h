@@ -81,11 +81,23 @@ struct sourcestate {
 /*** prototypes ********************************************************/
 
 bool replace_create_replacement_points(codeinfo *code,registerdata *rd);
-
 void replace_free_replacement_points(codeinfo *code);
+
+void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);
+void replace_activate(codeinfo *code,codeinfo *target);
+
+void replace_me(rplpoint *rp,executionstate *es);
 
 #ifndef NDEBUG
 void replace_show_replacement_points(codeinfo *code);
+void replace_replacement_point_println(rplpoint *rp);
+void replace_executionstate_println(executionstate *es);
+#endif
+
+/* machine dependent functions (code in ARCH_DIR/md.c) */
+
+#if defined(ENABLE_JIT)
+u1 *md_patch_replacement_point(rplpoint *rp);
 #endif
 
 #endif

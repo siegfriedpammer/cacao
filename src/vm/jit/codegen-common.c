@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen-common.c 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -95,6 +95,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/replace.h"
 
 
 /* in this tree we store all method addresses *********************************/
@@ -733,6 +734,18 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 			(functionptr) ((ptrint) epoint + cd->linenumbertab);
 
 		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
+	}
+
+	/* replacement point resolving */
+	{
+		int i;
+		rplpoint *rp;
+
+		rp = code->rplpoints;
+		for (i=0; i<code->rplpointcount; ++i, ++rp) {
+			rp->pc = (u1*) ((ptrint) epoint + (ptrint) rp->pc);
+			rp->outcode = (u1*) ((ptrint) epoint + (ptrint) rp->outcode);
+		}
 	}
 
 #if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)

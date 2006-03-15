@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen.c 4606 2006-03-15 04:43:25Z edwin $
 
 */
 
@@ -66,6 +66,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/replace.h"
 
 #if defined(ENABLE_LSRA)
 # ifdef LSRA_USES_REG_RES
@@ -95,6 +96,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	s4                  fpu_st_offset = 0;
+	rplpoint           *replacementpoint;
 
 	/* prevent compiler warnings */
 
@@ -102,6 +104,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	currentline = 0;
 	lm = NULL;
 	bte = NULL;
+	s2 = 0;
 
 	{
 	s4 i, p, t, l;
@@ -419,6 +422,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
+	replacementpoint = cd->code->rplpoints;
+
 	/* walk through all basic blocks */
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
@@ -433,6 +438,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			gen_resolvebranch(cd->mcodebase + brefs->branchpos, 
 			                  brefs->branchpos,
 							  bptr->mpc);
+		}
+
+		/* handle replacement points */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
+			
+			replacementpoint++;
 		}
 
 		/* copy interface registers to their destination */
@@ -5459,6 +5472,32 @@ gen_method:
 
 			M_MOV_IMM((ptrint) asm_wrapper_patcher, REG_ITMP3);
 			M_JMP(REG_ITMP3);
+		}
+	}
+
+	/* generate replacement-out stubs */
+
+	{
+		int i;
+
+		replacementpoint = cd->code->rplpoints;
+		for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+			/* check code segment size */
+
+			MCODECHECK(512);
+
+			/* note start of stub code */
+
+			replacementpoint->outcode = (u1*) (ptrint)(cd->mcodeptr - cd->mcodebase);
+
+			/* push address of `rplpoint` struct */
+			
+			M_PUSH_IMM((ptrint) replacementpoint);
+
+			/* jump to replacement function */
+
+			M_PUSH_IMM((ptrint) asm_replacement_out);
+			M_RET;
 		}
 	}
 	}
