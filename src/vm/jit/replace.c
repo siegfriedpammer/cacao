@@ -38,6 +38,7 @@
 #include <assert.h>
 
 #include "mm/memory.h"
+#include "vm/options.h"
 #include "vm/jit/replace.h"
 
 /* replace_create_replacement_points *******************************************
@@ -123,7 +124,16 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd)
 	/* store global register allocations */
 
 	for (i=0; i<m->maxlocals; ++i) {
+#if defined(ENABLE_INTRP)
+		if (!opt_intrp) {
+#endif
 		*ra++ = rd->locals[i][0].regoff; /* XXX */
+#if defined(ENABLE_INTRP)
+		}
+		else {
+			*ra++ = 0;
+		}
+#endif
 	}
 
 	/* initialize replacement point structs */
