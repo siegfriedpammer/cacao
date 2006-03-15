@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4611 2006-03-15 11:18:30Z twisti $
+   $Id: codegen.h 4616 2006-03-15 17:17:35Z twisti $
 
 */
 
@@ -69,28 +69,27 @@
 /* gen_nullptr_check(objreg) */
 
 #define gen_nullptr_check(objreg) \
-	if (checknull) { \
-        i386_test_reg_reg(cd, (objreg), (objreg)); \
-        i386_jcc(cd, I386_CC_E, 0); \
- 	    codegen_addxnullrefs(cd, cd->mcodeptr); \
-	}
+    if (checknull) { \
+        M_TEST(objreg); \
+        M_BEQ(0); \
+ 	    codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
+    }
 
 #define gen_bound_check \
     if (checkbounds) { \
-        i386_alu_membase_reg(cd, ALU_CMP, s1, OFFSET(java_arrayheader, size), s2); \
-        i386_jcc(cd, I386_CC_AE, 0); \
-        codegen_addxboundrefs(cd, cd->mcodeptr, s2); \
+        M_CMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
+        M_BAE(0); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
     }
 
 #define gen_div_check(v) \
     if (checknull) { \
-        if ((v)->flags & INMEMORY) { \
-            i386_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, src->regoff * 4); \
-        } else { \
-            i386_test_reg_reg(cd, src->regoff, src->regoff); \
-        } \
-        i386_jcc(cd, I386_CC_E, 0); \
-        codegen_addxdivrefs(cd, cd->mcodeptr); \
+        if ((v)->flags & INMEMORY) \
+            M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 4); \
+        else \
+            M_TEST(src->regoff); \
+        M_BEQ(0); \
+        codegen_add_arithmeticexception_ref(cd, cd->mcodeptr); \
     }
 
 
@@ -492,12 +491,12 @@ typedef enum {
     } while (0)
 
 #define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
-#define M_IST_IMM(a,b,disp)     i386_mov_imm_membase(cd, (a), (b), (disp))
+#define M_IST_IMM(a,b,disp)     i386_mov_imm_membase(cd, (u4) (a), (b), (disp))
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AST_IMM(a,b,disp)     M_IST_IMM(a,b,disp)
 
 #define M_IST32(a,b,disp)       i386_mov_reg_membase32(cd, (a), (b), (disp))
-#define M_IST32_IMM(a,b,disp)   i386_mov_imm_membase32(cd, (a), (b), (disp))
+#define M_IST32_IMM(a,b,disp)   i386_mov_imm_membase32(cd, (u4) (a), (b), (disp))
 
 #define M_LST(a,b,disp) \
     do { \
@@ -538,13 +537,18 @@ typedef enum {
 #define M_CLR(a)                M_XOR(a,a)
 
 #define M_PUSH(a)               i386_push_reg(cd, (a))
-#define M_PUSH_IMM(a)           i386_push_imm(cd, (a))
+#define M_PUSH_IMM(a)           i386_push_imm(cd, (s4) (a))
 #define M_POP(a)                i386_pop_reg(cd, (a))
 
 #define M_MOV(a,b)              i386_mov_reg_reg(cd, (a), (b))
-#define M_MOV_IMM(a,b)          i386_mov_imm_reg(cd, (a), (b))
+#define M_MOV_IMM(a,b)          i386_mov_imm_reg(cd, (u4) (a), (b))
 
 #define M_TEST(a)               i386_test_reg_reg(cd, (a), (a))
+
+#define M_CMP(a,b)              i386_alu_reg_reg(cd, ALU_CMP, (a), (b))
+#define M_CMP_MEMBASE(a,b,c)    i386_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
+
+#define M_CMP_IMM_MEMBASE(a,b,c) i386_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
 
 #define M_CALL(a)               i386_call_reg(cd, (a))
 #define M_CALL_IMM(a)           i386_call_imm(cd, (a))
