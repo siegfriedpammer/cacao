@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4613 2006-03-15 12:04:05Z edwin $
+   $Id: asmpart.S 4618 2006-03-15 20:40:57Z edwin $
 
 */
 
@@ -42,6 +42,7 @@
 #include "vm/jit/i386/md-abi.h"
 #include "vm/jit/i386/md-asm.h"
 #include "vm/jit/i386/offsets.h"
+#include "vm/jit/i386/arch.h"
 
 #include "vm/jit/methodheader.h"
 
@@ -65,6 +66,7 @@
 
 	.globl asm_wrapper_patcher
 	.globl asm_replacement_out
+	.globl asm_replacement_in
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -547,25 +549,87 @@ L_asm_wrapper_patcher_exception:
    and then call the C function replace_me.
 
    Stack layout:
+      4                 start of stack inside method to replace
       0   rplpoint *    info on the replacement point that was reached
 
 *******************************************************************************/
 
+/* some room to accomodate changes of the stack frame size during replacement */
+	/* XXX we should find a cleaner solution here */
+#define REPLACEMENT_ROOM  512
+
 asm_replacement_out:
-	sub     $(sizeexecutionstate),sp    /* create stack frame                 */
+    /* create stack frame */
+	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
 
-	mov     itmp1,(0*8+offes_regs)(sp)
+	/* save registers in execution state */
+	mov     %eax,(EAX*8+offes_regs)(sp)
+	mov     %ebx,(EBX*8+offes_regs)(sp)
+	mov     %ecx,(ECX*8+offes_regs)(sp)
+	mov     %edx,(EDX*8+offes_regs)(sp)
+	mov     %esi,(ESI*8+offes_regs)(sp)
+	mov     %edi,(EDI*8+offes_regs)(sp)
+	mov     %ebp,(EBP*8+offes_regs)(sp)
+	movl    $0  ,(ESP*8+offes_regs)(sp) /* XXX */
+
+#ifndef NDEBUG
+	/* clear high 32bit */
 	movl    $0,(4+0*8+offes_regs)(sp)
-	mov     itmp2,(1*8+offes_regs)(sp)
 	movl    $0,(4+1*8+offes_regs)(sp)
-	mov     itmp3,(2*8+offes_regs)(sp)
 	movl    $0,(4+2*8+offes_regs)(sp)
+	movl    $0,(4+3*8+offes_regs)(sp)
+	movl    $0,(4+4*8+offes_regs)(sp)
+	movl    $0,(4+5*8+offes_regs)(sp)
+	movl    $0,(4+6*8+offes_regs)(sp)
+	movl    $0,(4+7*8+offes_regs)(sp)
+#endif
 
-	mov     sizeexecutionstate(sp),itmp1   /* rplpoint *                         */
+	/* calculate sp of method */
+	mov     sp,itmp1
+	add     $(sizeexecutionstate + REPLACEMENT_ROOM + 4),itmp1
+	mov     itmp1,(offes_sp)(sp)
+
+	/* call replace_me */
+	mov     -4(itmp1),itmp1             /* rplpoint *                         */
     push    sp                          /* arg1: execution state              */
     push    itmp1                       /* arg0: replacement point            */
     call    replace_me                  /* call C function replace_me         */
     call    abort                       /* NEVER REACHED                      */
+
+/* asm_replacement_in **********************************************************
+
+   This code writes the given execution state and jumps to the replacement
+   code.
+
+   This function never returns!
+
+   C prototype:
+      void asm_replacement_in(executionstate *es);
+
+*******************************************************************************/
+
+asm_replacement_in:
+	mov     %esp,%ebp                   /* save stackptr                      */
+
+	mov     (4+0)(%ebp),%ebp            /* executionstate *es                 */
+
+	/* set new sp */
+	mov     (offes_sp)(%ebp),%esp
+	
+	/* store address of new code */
+	push    (offes_pc)(%ebp)
+	
+	/* copy registers from execution state */
+	mov     (EAX*8+offes_regs)(%ebp),%eax
+	mov     (EBX*8+offes_regs)(%ebp),%ebx
+	mov     (ECX*8+offes_regs)(%ebp),%ecx
+	mov     (EDX*8+offes_regs)(%ebp),%edx
+	mov     (ESI*8+offes_regs)(%ebp),%esi
+	mov     (EDI*8+offes_regs)(%ebp),%edi
+	mov     (EBP*8+offes_regs)(%ebp),%ebp
+
+	/* jump to new code */
+	ret
 
 /************************ function asm_builtin_x2x *****************************
 *                                                                              *
