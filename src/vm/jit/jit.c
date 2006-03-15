@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: jit.c 4604 2006-03-15 01:39:32Z edwin $
 
 */
 
@@ -1498,7 +1498,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	if (!m->jcode) {
 		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
-		code = code_codeinfo_new(m);
+		code = cd->code;
 		code->entrypoint = (u1 *) (ptrint) do_nothing_function;
 		m->code = code;
 
@@ -1600,6 +1600,12 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		m->bbfrequency = MNEW(u4, m->basicblockcount);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");
+
+	/* create the replacement points */
+
+	code = cd->code;
+	if (!replace_create_replacement_points(code,rd))
+		return NULL;
 
 	/* now generate the machine code */
 

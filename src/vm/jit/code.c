@@ -57,6 +57,8 @@ void code_codeinfo_free(codeinfo *code)
 	if (code->mcode)
 		CFREE((void *) (ptrint) code->mcode, code->mcodelength);
 
+	replace_free_replacement_points(code);
+
 	FREE(code,codeinfo);
 }
 

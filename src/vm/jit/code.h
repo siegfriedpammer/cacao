@@ -57,11 +57,10 @@ struct codeinfo {
 
 	/* replacement */
 	rplpoint     *rplpoints;        /* replacement points              */
-	int           rplpointcount;    /* number of replacement points    */
-
-	/* register allocation */
-	u1           *regalloc;         /* register index for each local   */
-	                                /* variable                        */
+	s4            rplpointcount;    /* number of replacement points    */
+	s2           *regalloc;         /* register allocation info        */
+	s4            globalcount;      /* number of global allocations    */
+	s4            regalloccount;    /* number of total allocations     */
 
 	/* profiling */
 	u4            frequency;        /* number of method invocations    */

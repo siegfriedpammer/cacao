@@ -43,12 +43,13 @@
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {
-	void     *pc;           /* machine code PC of this point  */
-	rplpoint *hashlink;     /* chain to next rplpoint in hash */
+	u1       *pc;           /* machine code PC of this point  */
+	u1       *outcode;      /* pointer to replacement-out code*/
+	rplpoint *hashlink;     /* chain to next rplpoint in hash */ /* XXX needed? */
 	codeinfo *code;         /* codeinfo this point belongs to */
 	rplpoint *target;       /* target of the replacement      */
-
-	u1        regalloc[1];  /* VARIABLE LENGTH!               */
+	s2       *regalloc;     /* pointer to register index table*/
+	s2        regalloccount;/* number of local allocations    */
 };
 
 /* An `executionsstate` represents the state of a thread as it reached */
@@ -76,6 +77,16 @@ struct sourcestate {
 	u8            javalocals;
 	s4            javalocalscount;
 };
+
+/*** prototypes ********************************************************/
+
+bool replace_create_replacement_points(codeinfo *code,registerdata *rd);
+
+void replace_free_replacement_points(codeinfo *code);
+
+#ifndef NDEBUG
+void replace_replacement_info_print(codeinfo *code);
+#endif
 
 #endif
 
