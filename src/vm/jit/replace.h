@@ -39,6 +39,23 @@
 #include "config.h"
 #include "vm/types.h"
 #include "vm/method.h"
+#include "arch.h"
+#include "md-abi.h"
+
+typedef struct rplalloc rplalloc;
+
+/* `rplalloc` is a compact struct for register allocation info        */
+
+struct rplalloc {
+	unsigned int index:16;  /* register index / stack slot offset     */
+	unsigned int flags:4;   /* OR of (INMEMORY,...)                   */
+	int          type:4;    /* TYPE_... constant                      */
+	unsigned int next:1;    /* if true, switch to next local          */
+};
+
+#if INMEMORY > 0x08
+#error value of INMEMORY is too big to fit in rplalloc.flags
+#endif
 
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
@@ -49,24 +66,22 @@ struct rplpoint {
 	codeinfo *code;         /* codeinfo this point belongs to */
 	rplpoint *target;       /* target of the replacement      */
 	u8        mcode;        /* saved maching code for patching*/
-	s2       *regalloc;     /* pointer to register index table*/
-	s2        regalloccount;/* number of local allocations    */
+	rplalloc *regalloc;     /* pointer to register index table*/
+	s4        regalloccount;/* number of local allocations    */
 };
 
 /* An `executionsstate` represents the state of a thread as it reached */
 /* an replacement point or is about to enter one.                      */
 
-#define MD_EXCSTATE_NREGS  32
-#define MD_EXCSTATE_NCALLEESAVED  8
+#define MD_EXCSTATE_NREGS         (8)
+#define MD_EXCSTATE_INT_NSAVED     3
+#define MD_EXCSTATE_FLT_NSAVED     0
 
 struct executionstate {
-	u1           *pc;
-	u8            regs[MD_EXCSTATE_NREGS];
-	u8            savedregs[MD_EXCSTATE_NCALLEESAVED]; /* or read from frame */
+	u1           *pc;                               /* program counter */
+	u1           *sp;                   /* stack pointer within method */
 
-	u1           *frame;
-	
-    java_objectheader *locked; /* XXX maybe just leave it in frame? */
+	u8            regs[MD_EXCSTATE_NREGS];          /* register values */
 };
 
 /* `sourcestate` will probably only be used for debugging              */
@@ -75,8 +90,11 @@ struct sourcestate {
 	u8           *javastack;
 	s4            javastackdepth;
 
-	u8            javalocals;
-	s4            javalocalscount;
+	u8           *javalocals;      /* indexed by (i*5 + type) */
+	s4            javalocalcount;
+
+	u8            savedintregs[INT_SAV_CNT + 1]; /* XXX */
+	u8            savedfltregs[FLT_SAV_CNT + 1]; /* XXX */
 };
 
 /*** prototypes ********************************************************/
@@ -93,7 +111,8 @@ void replace_me(rplpoint *rp,executionstate *es);
 #ifndef NDEBUG
 void replace_show_replacement_points(codeinfo *code);
 void replace_replacement_point_println(rplpoint *rp);
-void replace_executionstate_println(executionstate *es);
+void replace_executionstate_println(executionstate *es,codeinfo *code);
+void replace_sourcestate_println(sourcestate *ss);
 #endif
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */

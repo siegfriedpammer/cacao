@@ -57,10 +57,13 @@ struct codeinfo {
 
 	/* replacement */
 	rplpoint     *rplpoints;        /* replacement points              */
-	s2           *regalloc;         /* register allocation info        */
+	rplalloc     *regalloc;         /* register allocation info        */
 	s4            rplpointcount;    /* number of replacement points    */
 	s4            globalcount;      /* number of global allocations    */
 	s4            regalloccount;    /* number of total allocations     */
+	s4            memuse;           /* number of arg + local slots     */
+	u1            savedintcount;    /* number of callee saved int regs */
+	u1            savedfltcount;    /* number of callee saved flt regs */
 
 	/* profiling */
 	u4            frequency;        /* number of method invocations    */
@@ -70,6 +73,8 @@ struct codeinfo {
 
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
+
+int code_get_stack_frame_size(codeinfo *code);
 
 void code_free_code_of_method(methodinfo *m);
 

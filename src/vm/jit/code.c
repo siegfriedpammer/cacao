@@ -33,8 +33,14 @@
 */
 
 
+#include "config.h"
+#include "vm/types.h"
+
+#include <assert.h>
+
 #include "vm/jit/code.h"
 #include "mm/memory.h"
+#include "vm/options.h"
 
 codeinfo *code_codeinfo_new(methodinfo *m)
 {
@@ -47,6 +53,22 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	code->m = m;
 	
 	return code;
+}
+
+int code_get_stack_frame_size(codeinfo *code)
+{
+	int count;
+	
+	assert(code);
+
+	/* XXX adapt for 4/8 byte stackslots */
+
+	count = code->memuse + code->savedintcount + 2*code->savedfltcount;
+
+	if (checksync && (code->m->flags & ACC_SYNCHRONIZED))
+		count += (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type)) ? 2 : 1;
+
+	return count;
 }
 
 void code_codeinfo_free(codeinfo *code)
