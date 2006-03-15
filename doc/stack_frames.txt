@@ -16,9 +16,13 @@ i386 stack frames
 
 >>>> sp in method (after initial sub) <<<<
 
-u4[]  arguments for calling methods
-u4[]  local variable slots allocated on stack
-u4[]  callee-saved registers
+u4[]     arguments for calling methods              \__ rd->memuse slots
+u4[]     local variable slots allocated on stack    /
+
+u4[1..2] synchronized object / saved return value       (only for synched methods)
+
+u8[]     callee-saved float registers
+u4[]     callee-saved integer registers
 
 >>>> sp on method entry <<<<
 
