@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: stack.c 4603 2006-03-15 00:06:03Z edwin $
 
 */
 
@@ -2398,7 +2398,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 /* debugging helpers **********************************************************/
 
-void icmd_print_stack(codegendata *cd, stackptr s)
+/* stack_print *****************************************************************
+
+   Print the stack representation starting with the given top stackptr.
+
+   NOTE: Currently this function may only be called after register allocation!
+
+*******************************************************************************/
+
+void stack_print(codegendata *cd, stackptr s)
 {
 	int i, j;
 	stackptr t;
@@ -2603,7 +2611,9 @@ static char *jit_type[] = {
 
 /* show_icmd_method ************************************************************
 
-   XXX
+   Print the intermediate representation of a method.
+
+   NOTE: Currently this function may only be called after register allocation!
 
 *******************************************************************************/
 
@@ -2815,7 +2825,9 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 /* show_icmd_block *************************************************************
 
-   XXX
+   Print the intermediate representation of a basic block.
+
+   NOTE: Currently this function may only be called after register allocation!
 
 *******************************************************************************/
 
@@ -2836,10 +2848,12 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			for (j = cd->maxstack; j > 0; j--)
 				printf(" ?  ");
 		else
-			icmd_print_stack(cd, bptr->instack);
+			stack_print(cd, bptr->instack);
 
-		printf("] L%03d(flags: %d, next: %d, type: ",
-			   bptr->debug_nr, bptr->flags, (bptr->next) ? (bptr->next->debug_nr) : -1);
+		printf("] %sL%03d(flags: %d, bitflags: %01x, next: %d, type: ",
+				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
+			   bptr->debug_nr, bptr->flags, bptr->bitflags, 
+			   (bptr->next) ? (bptr->next->debug_nr) : -1);
 
 		switch (bptr->type) {
 		case BBTYPE_STD:
@@ -2865,7 +2879,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 				for (j = cd->maxstack; j > 0; j--)
 					printf(" ?  ");
 			else
-				icmd_print_stack(cd, iptr->dst);
+				stack_print(cd, iptr->dst);
 
 			printf("] %5d (line: %5d)  ", i, iptr->line);
 
@@ -2894,7 +2908,9 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 
 /* show_icmd *******************************************************************
 
-   XXX
+   Print the intermediate representation of an instruction.
+
+   NOTE: Currently this function may only be called after register allocation!
 
 *******************************************************************************/
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4524 2006-02-16 19:39:36Z christian $
+   $Id: stack.h 4603 2006-03-15 00:06:03Z edwin $
 
 */
 
@@ -456,6 +456,8 @@
 
 #define MARKREACHED(b,c) \
     do { \
+		if ((b) <= (bptr)) \
+			(b)->bitflags |= BBFLAG_REPLACEMENT; \
 	    if ((b)->flags < BBREACHED) { \
 		    COPYCURSTACK((c)); \
             (b)->flags = BBREACHED; \
@@ -484,7 +486,7 @@ bool stack_init(void);
 
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
-void icmd_print_stack(codegendata *cd, stackptr s);
+void stack_print(codegendata *cd, stackptr s);
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
 void show_icmd(instruction *iptr, bool deadcode);
