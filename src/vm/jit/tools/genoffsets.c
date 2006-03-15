@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: genoffsets.c 4606 2006-03-15 04:43:25Z edwin $
+   $Id: genoffsets.c 4617 2006-03-15 20:38:30Z edwin $
 
 */
 
@@ -82,6 +82,8 @@ int main(int argc, char **argv)
 	printf("#define offcast_super_diffval      %3d\n", (s4) OFFSET(castinfo, super_diffval));
 	printf("#define offcast_sub_baseval        %3d\n", (s4) OFFSET(castinfo, sub_baseval));
 
+	printf("#define offes_pc                   %3d\n", (s4) OFFSET(executionstate, pc));
+	printf("#define offes_sp                   %3d\n", (s4) OFFSET(executionstate, sp));
 	printf("#define offes_regs                 %3d\n", (s4) OFFSET(executionstate, regs));
 
 	/* everything is ok */
