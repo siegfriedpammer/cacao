@@ -192,7 +192,7 @@ void replace_free_replacement_points(codeinfo *code)
 	code->globalcount = 0;
 }
 
-/* replace_replacement_info_print **********************************************
+/* replace_show_replacement_points *********************************************
  
    Print replacement point info.
   
@@ -202,7 +202,7 @@ void replace_free_replacement_points(codeinfo *code)
 *******************************************************************************/
 
 #ifndef NDEBUG
-void replace_replacement_info_print(codeinfo *code)
+void replace_show_replacement_points(codeinfo *code)
 {
 	int i;
 	int j;

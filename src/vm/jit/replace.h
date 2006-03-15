@@ -85,7 +85,7 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd);
 void replace_free_replacement_points(codeinfo *code);
 
 #ifndef NDEBUG
-void replace_replacement_info_print(codeinfo *code);
+void replace_show_replacement_points(codeinfo *code);
 #endif
 
 #endif
