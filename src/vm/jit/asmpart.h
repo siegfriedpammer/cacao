@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4606 2006-03-15 04:43:25Z edwin $
+   $Id: asmpart.h 4619 2006-03-15 20:42:00Z edwin $
 
 */
 
@@ -55,6 +55,7 @@
 #include "vm/resolve.h"
 #include "vm/vm.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/replace.h"
 
 
 /* some macros ****************************************************************/
@@ -151,8 +152,9 @@ void asm_handle_nat_exception(void);
 /* wrapper for code patching functions */
 void asm_wrapper_patcher(void);
 
-/* function for on-stack replacement */
+/* functions for on-stack replacement */
 void asm_replacement_out(void);
+void asm_replacement_in(executionstate *es);
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
