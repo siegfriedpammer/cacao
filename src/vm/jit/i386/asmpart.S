@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4606 2006-03-15 04:43:25Z edwin $
+   $Id: asmpart.S 4611 2006-03-15 11:18:30Z twisti $
 
 */
 
@@ -471,7 +471,8 @@ noflt:
    XXX
 
    Stack layout:
-     20   return address
+     24   return address
+     20   REG_ITMP3
      16   pointer to virtual java_objectheader
      12   last byte of machine code (xmcode)
       8   machine code (which is patched back later)
@@ -491,9 +492,9 @@ asm_wrapper_patcher:
 	mov     itmp1,0*4(sp)               /* stackframeinfo pointer             */
 	movl    $0,1*4(sp)                  /* if pv is NULL, use findmethod      */
 	mov     sp,itmp2
-	add     $((6+2+4)*4+sizestackframeinfo),itmp2
+	add     $((7+2+4)*4+sizestackframeinfo),itmp2
 	mov     itmp2,2*4(sp)               /* pass Java sp                       */
-	mov     ((5+2+4)*4+sizestackframeinfo)(sp),itmp3
+	mov     ((6+2+4)*4+sizestackframeinfo)(sp),itmp3
 	mov     itmp3,3*4(sp)               /* pass ra to java function           */
 	call    stacktrace_create_inline_stackframeinfo
 
@@ -509,16 +510,20 @@ asm_wrapper_patcher:
 	mov     itmp1,0*4(sp)               /* stackframeinfo pointer             */
 	call    stacktrace_remove_stackframeinfo
 
-	mov     (0+4)*4(sp),itmp1           /* restore itmp1 and itmp2            */
-	mov     (1+4)*4(sp),itmp2           /* may be used by some instructions   */
 	mov     1*4(sp),itmp3               /* restore return value               */
-
-	add     $((5+2+4)*4+sizestackframeinfo),sp /* remove stack frame, keep ra */
 	test    itmp3,itmp3                 /* exception thrown?                  */
 	jz      L_asm_wrapper_patcher_exception
+
+	mov     (0+4)*4(sp),itmp1           /* restore itmp1 and itmp2            */
+	mov     (1+4)*4(sp),itmp2           /* may be used by some instructions   */
+	mov     ((5+2+4)*4+sizestackframeinfo)(sp),itmp3
+	add     $((6+2+4)*4+sizestackframeinfo),sp /* remove stack frame, keep ra */
+
 	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
+	add     $((6+2+4)*4+sizestackframeinfo),sp /* remove stack frame, keep ra */
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2

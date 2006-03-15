@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4389 2006-01-30 16:25:20Z twisti $
+   $Id: codegen.h 4611 2006-03-15 11:18:30Z twisti $
 
 */
 
@@ -149,15 +149,26 @@
 */
 
 #define var_to_reg_int(regnr,v,tempnr) \
-    if ((v)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        i386_mov_membase_reg(cd, REG_SP, (v)->regoff * 4, tempnr); \
-        regnr = tempnr; \
-    } else { \
-        regnr = (v)->regoff; \
-    }
+    do { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_ILD(tempnr, REG_SP, (v)->regoff * 4); \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } while (0)
 
-
+#define var_to_reg_lng(regnr,v,tempnr) \
+    do { \
+        if ((v)->flags & INMEMORY) { \
+            COUNT_SPILLS; \
+            M_LLD(tempnr, REG_SP, (v)->regoff * 4); \
+            regnr = tempnr; \
+        } else { \
+            regnr = (v)->regoff; \
+        } \
+    } while (0)
 
 #define var_to_reg_flt(regnr,v,tempnr) \
     if ((v)->type == TYPE_FLT) { \
@@ -220,7 +231,14 @@
 #define store_reg_to_var_int(sptr, tempregnum) \
     if ((sptr)->flags & INMEMORY) { \
         COUNT_SPILLS; \
-        i386_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 4); \
+        M_IST(tempregnum, REG_SP, (sptr)->regoff * 4); \
+    }
+
+
+#define store_reg_to_var_lng(sptr, tempregnum) \
+    if ((sptr)->flags & INMEMORY) { \
+        COUNT_SPILLS; \
+        M_LST(tempregnum, REG_SP, (sptr)->regoff * 4); \
     }
 
 
@@ -459,10 +477,51 @@ typedef enum {
 #define M_ILD(a,b,disp)         i386_mov_membase_reg(cd, (b), (disp), (a))
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
 
+#define M_ILD32(a,b,disp)       i386_mov_membase32_reg(cd, (b), (disp), (a))
+
+#define M_LLD(a,b,disp) \
+    do { \
+        M_ILD(GET_LOW_REG(a),b,disp); \
+        M_ILD(GET_HIGH_REG(a),b,disp + 4); \
+    } while (0)
+
+#define M_LLD32(a,b,disp) \
+    do { \
+        M_ILD32(GET_LOW_REG(a),b,disp); \
+        M_ILD32(GET_HIGH_REG(a),b,disp + 4); \
+    } while (0)
+
 #define M_IST(a,b,disp)         i386_mov_reg_membase(cd, (a), (b), (disp))
 #define M_IST_IMM(a,b,disp)     i386_mov_imm_membase(cd, (a), (b), (disp))
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AST_IMM(a,b,disp)     M_IST_IMM(a,b,disp)
+
+#define M_IST32(a,b,disp)       i386_mov_reg_membase32(cd, (a), (b), (disp))
+#define M_IST32_IMM(a,b,disp)   i386_mov_imm_membase32(cd, (a), (b), (disp))
+
+#define M_LST(a,b,disp) \
+    do { \
+        M_IST(GET_LOW_REG(a),b,disp); \
+        M_IST(GET_HIGH_REG(a),b,disp + 4); \
+    } while (0)
+
+#define M_LST32(a,b,disp) \
+    do { \
+        M_IST32(GET_LOW_REG(a),b,disp); \
+        M_IST32(GET_HIGH_REG(a),b,disp + 4); \
+    } while (0)
+
+#define M_LST_IMM(a,b,disp) \
+    do { \
+        M_IST_IMM(a,b,disp); \
+        M_IST_IMM(a >> 32,b,disp + 4); \
+    } while (0)
+
+#define M_LST32_IMM(a,b,disp) \
+    do { \
+        M_IST32_IMM(a,b,disp); \
+        M_IST32_IMM(a >> 32,b,disp + 4); \
+    } while (0)
 
 #define M_IADD_IMM(a,b)         i386_alu_imm_reg(cd, ALU_ADD, (a), (b))
 #define M_IADD_IMM32(a,b)       i386_alu_imm32_reg(cd, ALU_ADD, (a), (b))

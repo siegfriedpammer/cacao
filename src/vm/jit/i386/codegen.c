@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4606 2006-03-15 04:43:25Z edwin $
+   $Id: codegen.c 4611 2006-03-15 11:18:30Z twisti $
 
 */
 
@@ -3354,15 +3354,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_ADR:
 				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
-				i386_mov_membase32_reg(cd, s1, disp, d);
+				M_ILD32(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, REG_NULL);
-				i386_mov_membase32_reg(cd, s1, disp, REG_ITMP2);
-				i386_mov_membase32_reg(cd, s1, disp + 4, REG_ITMP3);
-				i386_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst->regoff * 4);
-				i386_mov_reg_membase(cd, REG_ITMP3, REG_SP, iptr->dst->regoff * 4 + 4);
+				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+				M_LLD32(d, s1, disp);
+				store_reg_to_var_lng(iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
@@ -3387,11 +3385,15 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if ((iptr->op1 == TYPE_INT) || IS_ADR_TYPE(iptr->op1)) {
-				var_to_reg_int(s2, src, REG_ITMP2);
-			} else if (IS_FLT_DBL_TYPE(iptr->op1)) {
+			/* must be done here because of code patching */
+
+			if (!IS_FLT_DBL_TYPE(iptr->op1)) {
+				if (IS_2_WORD_TYPE(iptr->op1))
+					var_to_reg_lng(s2, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
+				else
+					var_to_reg_int(s2, src, REG_ITMP2);
+			} else
 				var_to_reg_flt(s2, src, REG_FTMP2);
-			}
 
 			if (iptr->val.a == NULL) {
 				codegen_addpatchref(cd, cd->mcodeptr,
@@ -3411,18 +3413,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				i386_mov_reg_membase32(cd, s2, s1, disp);
+				M_IST32(s2, s1, disp);
 				break;
 			case TYPE_LNG:
-				if (src->flags & INMEMORY) {
-					i386_mov_membase32_reg(cd, REG_SP, src->regoff * 4, REG_ITMP2);
-					i386_mov_membase32_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP3);
-					i386_mov_reg_membase32(cd, REG_ITMP2, s1, disp);
-					i386_mov_reg_membase32(cd, REG_ITMP3, s1, disp + 4);
-				} else {
-					log_text("PUTFIELD: longs have to be in memory");
-					assert(0);
-				}
+				M_LST32(s2, s1, disp);
 				break;
 			case TYPE_FLT:
 				i386_fstps_membase32(cd, s1, disp);
@@ -3464,12 +3458,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			case TYPE_INT:
 			case TYPE_FLT:
 			case TYPE_ADR:
-				i386_mov_imm_membase32(cd, iptr->val.i, s1, disp);
+				M_IST32_IMM(iptr->val.i, s1, disp);
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				i386_mov_imm_membase32(cd, iptr->val.l, s1, disp);
-				i386_mov_imm_membase32(cd, iptr->val.l >> 32, s1, disp + 4);
+				M_LST32_IMM(iptr->val.l, s1, disp);
 				break;
 			}
 			break;
@@ -3520,7 +3513,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-  			i386_call_imm(cd, 0);
+  			M_CALL_IMM(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
 			break;
 			
@@ -5427,27 +5420,33 @@ gen_method:
 	/* generate code patching stub call code */
 
 	{
-		patchref    *pref;
-		codegendata *tmpcd;
-		u8           mcode;
-
-		tmpcd = DNEW(codegendata);
+		patchref *pref;
+		u8        mcode;
+		u1       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
 			MCODECHECK(512);
 
-			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long.                                  */
+			/* Get machine code which is patched back in later. A
+			   `call rel32' is 5 bytes long. */
 
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode = *((u8 *) xcodeptr);
 
-			/* patch in `call rel32' to call the following code               */
+			/* patch in `call rel32' to call the following code */
 
-			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
-			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
+			cd->mcodeptr = xcodeptr;        /* set mcodeptr to patch position */
+
+			M_CALL_IMM(tmpmcodeptr - (xcodeptr + PATCHER_CALL_SIZE));
+
+			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+
+			/* save REG_ITMP3 */
+
+			M_PUSH(REG_ITMP3);
 
 			/* move pointer to java_objectheader onto stack */
 
@@ -5884,24 +5883,30 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	/* process patcher calls **************************************************/
 
 	{
-		u1          *xcodeptr;
-		patchref    *pref;
-		codegendata *tmpcd;
-		u8           mcode;
-
-		tmpcd = DNEW(codegendata);
+		u1       *xcodeptr;
+		patchref *pref;
+		u8        mcode;
+		u1       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. A             */
-			/* `call rel32' is 5 bytes long.                                  */
+			/* Get machine code which is patched back in later. A
+			   `call rel32' is 5 bytes long. */
 
 			xcodeptr = cd->mcodebase + pref->branchpos;
 			mcode =  *((u8 *) xcodeptr);
 
-			/* patch in `call rel32' to call the following code               */
+			/* patch in `call rel32' to call the following code */
 
-			tmpcd->mcodeptr = xcodeptr;     /* set dummy mcode pointer        */
-			i386_call_imm(tmpcd, cd->mcodeptr - (xcodeptr + 5));
+			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
+			cd->mcodeptr = xcodeptr;        /* set mcodeptr to patch position */
+
+			M_CALL_IMM(tmpmcodeptr - (xcodeptr + PATCHER_CALL_SIZE));
+
+			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+
+			/* save REG_ITMP3 */
+
+			M_PUSH(REG_ITMP3);
 
 			/* move pointer to java_objectheader onto stack */
 
