@@ -14,20 +14,25 @@ tries to collect the stack frame layouts used on the various architectures.
 i386 stack frames
 -----------------
 
->>>> sp in method (after initial sub) <<<<
-
-u4[]     arguments for calling methods              \__ rd->memuse slots
-u4[]     local variable slots allocated on stack    /
-
-u4[1..2] synchronized object / saved return value       (only for synched methods)
-
-u8[]     callee-saved float registers
-u4[]     callee-saved integer registers
-
->>>> sp on method entry <<<<
-
-u4    return address
-u4[]  arguments on stack
-
-
+,--memory address rising
+|
+|   >>>> sp in method (after initial sub) <<<<
+|         v
+|   u4[]  v  arguments for calling methods              \__ rd->memuse slots
+V   u4[]  v  local variable slots allocated on stack    /
+|
+|   u4[1..2] synchronized object / saved return value       (only for synched methods)
+|
+|   u8[]  ^  callee-saved float registers
+V   u4[]  ^  callee-saved integer registers
+|         ^
+|   >>>> sp on method entry <<<<
+|
+|   u4       return address
+V   u4[]     arguments on stack
+|
+|
+|
+|
+V
 
