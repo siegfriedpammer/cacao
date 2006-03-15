@@ -208,7 +208,9 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 {
 	rp->target = target;
 	
+#ifdef __I386__
 	md_patch_replacement_point(rp);
+#endif
 }
 
 /* replace_me ******************************************************************
