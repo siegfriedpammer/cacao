@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.h 4640 2006-03-16 17:24:18Z twisti $
 
 */
 
@@ -47,12 +47,10 @@
 
 /* additional functions and macros to generate code ***************************/
 
-/* gen_nullptr_check(objreg) */
-
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
-        M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(cd, mcodeptr); \
+        M_BEQZ(objreg, 0); \
+        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
         M_NOP; \
     }
 
@@ -61,14 +59,16 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
         M_BEQZ(REG_ITMP3, 0); \
-        codegen_addxboundrefs(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
         M_NOP; \
     }
 
 #define gen_div_check(r) \
-    M_BEQZ((r), 0); \
-    codegen_addxdivrefs(cd, mcodeptr); \
-    M_NOP;
+    do { \
+        M_BEQZ((r), 0); \
+        codegen_add_arithmeticexception_ref(cd, mcodeptr); \
+        M_NOP; \
+    } while (0)
 
 
 /* MCODECHECK(icnt) */

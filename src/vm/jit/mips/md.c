@@ -28,7 +28,7 @@
 
    Changes: 
 
-   $Id: md.c 4498 2006-02-12 23:43:09Z twisti $
+   $Id: md.c 4640 2006-03-16 17:24:18Z twisti $
 
 */
 
@@ -36,8 +36,9 @@
 #include "config.h"
 
 #include <assert.h>
-#include <sys/mman.h>
 #include <unistd.h>
+#include <sys/cachectl.h>
+#include <sys/mman.h>
 
 #include "vm/types.h"
 
@@ -217,6 +218,43 @@ u1 *md_codegen_findmethod(u1 *ra)
 	pv = ra + offset;
 
 	return pv;
+}
+
+
+/* md_cacheflush ***************************************************************
+
+   Calls the system's function to flush the instruction and data
+   cache.
+
+*******************************************************************************/
+
+void md_cacheflush(u1 *addr, s4 nbytes)
+{
+	cacheflush(addr, nbytes, BCACHE);
+}
+
+
+/* md_icacheflush **************************************************************
+
+   Calls the system's function to flush the instruction cache.
+
+*******************************************************************************/
+
+void md_icacheflush(u1 *addr, s4 nbytes)
+{
+	cacheflush(addr, nbytes, ICACHE);
+}
+
+
+/* md_dcacheflush **************************************************************
+
+   Calls the system's function to flush the data cache.
+
+*******************************************************************************/
+
+void md_dcacheflush(u1 *addr, s4 nbytes)
+{
+	cacheflush(addr, nbytes, DCACHE);
 }
 
 

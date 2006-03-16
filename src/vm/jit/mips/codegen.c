@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen.c 4640 2006-03-16 17:24:18Z twisti $
 
 */
 
@@ -260,7 +260,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		} else {
 			M_BEQZ(rd->argintregs[0], 0);
-			codegen_addxnullrefs(cd, mcodeptr);
+			codegen_add_nullpointerexception_ref(cd, mcodeptr);
 			p = dseg_addaddress(cd, BUILTIN_monitorenter);
 			M_ALD(REG_ITMP3, REG_PV, p);
 			M_JSR(REG_RA, REG_ITMP3);
@@ -472,7 +472,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_BEQZ(s1, 0);
-			codegen_addxnullrefs(cd, mcodeptr);
+			codegen_add_nullpointerexception_ref(cd, mcodeptr);
 			M_NOP;
 			break;
 
@@ -1745,7 +1745,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_NOP;
 
 			M_BEQZ(REG_RESULT, 0);
-			codegen_addxstorerefs(cd, mcodeptr);
+			codegen_add_arraystoreexception_ref(cd, mcodeptr);
 			M_NOP;
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
@@ -3008,14 +3008,14 @@ gen_method:
 
 				if (iptr->op1 == true) {
 					M_BEQZ(REG_RESULT, 0);
-					codegen_addxexceptionrefs(cd, mcodeptr);
+					codegen_add_fillinstacktrace_ref(cd, mcodeptr);
 					M_NOP;
 				}
 				break;
 
 			case ICMD_INVOKESPECIAL:
 				M_BEQZ(rd->argintregs[0], 0);
-				codegen_addxnullrefs(cd, mcodeptr);
+				codegen_add_nullpointerexception_ref(cd, mcodeptr);
 				M_NOP;
 				/* fall through */
 
@@ -3227,13 +3227,13 @@ gen_method:
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
 					M_BLEZ(REG_ITMP3, 0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 					M_NOP;
 					M_ALD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetable[0]) -
 						  superindex * sizeof(methodptr*));
 					M_BEQZ(REG_ITMP3, 0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 					M_NOP;
 
 					if (!super) {
@@ -3286,7 +3286,7 @@ gen_method:
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
 					M_BNEZ(REG_ITMP3, 0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 					M_NOP;
 				}
 				d = reg_of_var(rd, iptr->dst, s1);
@@ -3315,7 +3315,7 @@ gen_method:
 				M_NOP;
 
 				M_BEQZ(REG_RESULT, 0);
-				codegen_addxcastrefs(cd, mcodeptr);
+				codegen_add_classcastexception_ref(cd, mcodeptr);
 				M_NOP;
 
 				var_to_reg_int(s1, src, REG_ITMP1);
@@ -3532,7 +3532,7 @@ gen_method:
 			/* check for exception before result assignment */
 
 			M_BEQZ(REG_RESULT, 0);
-			codegen_addxexceptionrefs(cd, mcodeptr);
+			codegen_add_fillinstacktrace_ref(cd, mcodeptr);
 			M_NOP;
 
 			d = reg_of_var(rd, iptr->dst, REG_RESULT);
@@ -3597,6 +3597,7 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
+#if 0
 	{
 	s4        *xcodeptr;
 	branchref *bref;
@@ -3918,36 +3919,112 @@ gen_method:
 			M_NOP;
 		}
 	}
+#endif
 
-	/* generate patcher stub call code */
+
+	/* generate exception and patcher stubs */
 
 	{
-		patchref *pref;
-		u8        mcode;
-		s4       *tmpmcodeptr;
+		exceptionref *eref;
+		patchref     *pref;
+		u8            mcode;
+		s4           *savedmcodeptr;
+		s4           *tmpmcodeptr;
+
+		savedmcodeptr = NULL;
+
+		/* generate exception stubs */
+
+		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
+			gen_resolvebranch((u1 *) cd->mcodebase + eref->branchpos, 
+							  eref->branchpos,
+							  (u1 *) mcodeptr - cd->mcodebase);
+
+			MCODECHECK(100);
+
+			/* Check if the exception is an
+			   ArrayIndexOutOfBoundsException.  If so, move index register
+			   into REG_ITMP1. */
+
+			if (eref->reg != -1)
+				M_MOV(eref->reg, REG_ITMP1);
+
+			/* calcuate exception address */
+
+			M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+
+			/* move function to call into REG_ITMP3 */
+
+			disp = dseg_addaddress(cd, eref->function);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+
+			if (savedmcodeptr != NULL) {
+				M_BR(savedmcodeptr - mcodeptr);
+				M_NOP;
+
+			} else {
+				savedmcodeptr = mcodeptr;
+
+				M_MOV(REG_PV, rd->argintregs[0]);
+				M_MOV(REG_SP, rd->argintregs[1]);
+
+				if (m->isleafmethod)
+					M_MOV(REG_RA, rd->argintregs[2]);
+				else
+					M_ALD(rd->argintregs[2],
+						  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
+
+				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+				M_MOV(REG_ITMP1, rd->argintregs[4]);
+
+				M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
+				M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+
+				if (m->isleafmethod)
+					M_AST(REG_RA, REG_SP, 1 * 8);
+
+				M_JSR(REG_RA, REG_ITMP3);
+				M_NOP;
+				M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+				if (m->isleafmethod)
+					M_ALD(REG_RA, REG_SP, 1 * 8);
+
+				M_ALD(REG_ITMP2_XPC, REG_SP, 0 * 8);
+				M_AADD_IMM(REG_SP, 2 * 8, REG_SP);
+
+				a = dseg_addaddress(cd, asm_handle_exception);
+				M_ALD(REG_ITMP3, REG_PV, a);
+				M_JMP(REG_ITMP3);
+				M_NOP;
+			}
+		}
+
+
+		/* generate code patching stub call code */
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
 			MCODECHECK(100);
 
-			/* Get machine code which is patched back in later. The call is   */
-			/* 2 instruction words long.                                      */
+			/* Get machine code which is patched back in later. The
+			   call is 2 instruction words long. */
 
-			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
+			tmpmcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 
-			/* We need to split this, because an unaligned 8 byte read causes */
-			/* a SIGSEGV.                                                     */
+			/* We need to split this, because an unaligned 8 byte read
+			   causes a SIGSEGV. */
 
-			mcode = ((u8) xcodeptr[1] << 32) + (u4) xcodeptr[0];
+			mcode = ((u8) tmpmcodeptr[1] << 32) + (u4) tmpmcodeptr[0];
 
-			/* patch in the call to call the following code (done at compile  */
-			/* time)                                                          */
+			/* Patch in the call to call the following code (done at
+			   compile time). */
 
-			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
-			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+			savedmcodeptr = mcodeptr;       /* save current mcodeptr          */
+			mcodeptr      = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			disp = (s4) (tmpmcodeptr - (xcodeptr + 1));
+			disp = (s4) (savedmcodeptr - (tmpmcodeptr + 1));
 
 			if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
 				*exceptionptr =
@@ -3959,7 +4036,7 @@ gen_method:
 			M_BR(disp);
 			M_NOP;
 
-			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+			mcodeptr = savedmcodeptr;       /* restore the current mcodeptr   */
 
 			/* create stack frame */
 
@@ -4013,7 +4090,6 @@ gen_method:
 			M_JMP(REG_ITMP3);
 			M_NOP;
 		}
-	}
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
@@ -4398,31 +4474,31 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	{
 		patchref *pref;
-		s4       *xcodeptr;
-		s8        mcode;
+		u8        mcode;
+		s4       *savedmcodeptr;
 		s4       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. The call is   */
-			/* 2 instruction words long.                                      */
+			/* Get machine code which is patched back in later. The
+			   call is 2 instruction words long. */
 
-			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
+			tmpmcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
 
-			/* We need to split this, because an unaligned 8 byte read causes */
-			/* a SIGSEGV.                                                     */
+			/* We need to split this, because an unaligned 8 byte read
+			   causes a SIGSEGV. */
 
-			mcode = ((u8) xcodeptr[1] << 32) + (u4) xcodeptr[0];
+			mcode = ((u8) tmpmcodeptr[1] << 32) + (u4) tmpmcodeptr[0];
 
-			/* patch in the call to call the following code (done at compile  */
-			/* time)                                                          */
+			/* Patch in the call to call the following code (done at
+			   compile time). */
 
-			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
-			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+			savedmcodeptr = mcodeptr;       /* save current mcodeptr          */
+			mcodeptr      = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BRS(tmpmcodeptr - (xcodeptr + 1));
+			M_BRS(savedmcodeptr - (tmpmcodeptr + 1));
 			M_NOP;                          /* branch delay slot              */
 
-			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
+			mcodeptr = savedmcodeptr;       /* restore the current mcodeptr   */
 
 			/* create stack frame                                             */
 

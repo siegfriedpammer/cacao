@@ -28,15 +28,12 @@
 
    Changes:
 
-   $Id: patcher.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: patcher.c 4640 2006-03-16 17:24:18Z twisti $
 
 */
 
 
 #include "config.h"
-
-#include <sys/cachectl.h>
-
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -122,7 +119,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch the field value's address */
 
@@ -130,7 +127,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -216,12 +213,12 @@ bool patcher_get_putfield(u1 *sp)
 	if (opt_showdisassemble) {
 #if SIZEOF_VOID_P == 4
 		if (fi->type == TYPE_LNG) {
-			cacheflush(ra - 2 * 4, 4 * 4, ICACHE);
+			md_icacheflush(ra - 2 * 4, 4 * 4);
 		} else
 #endif
-			cacheflush(ra - 2 * 4, 3 * 4, ICACHE);
+			md_icacheflush(ra - 2 * 4, 3 * 4);
 	} else {
-		cacheflush(ra, 2 * 4, ICACHE);
+		md_icacheflush(ra, 2 * 4);
 	}
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
@@ -289,7 +286,7 @@ bool patcher_aconst(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -297,7 +294,7 @@ bool patcher_aconst(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P * 1, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -368,7 +365,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -376,7 +373,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -446,7 +443,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch the classinfo pointer */
 
@@ -454,7 +451,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P * 1, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -523,7 +520,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch stubroutine */
 
@@ -531,7 +528,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -608,9 +605,9 @@ bool patcher_invokevirtual(u1 *sp)
 	/* synchronize instruction cache */
 
 	if (opt_showdisassemble)
-		cacheflush(ra - 2 * 4, 4 * 4, ICACHE);
+		md_icacheflush(ra - 2 * 4, 4 * 4);
 	else
-		cacheflush(ra, 2 * 4, ICACHE);
+		md_icacheflush(ra, 2 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -693,9 +690,9 @@ bool patcher_invokeinterface(u1 *sp)
 	/* synchronize instruction cache */
 
 	if (opt_showdisassemble)
-		cacheflush(ra - 2 * 4, 5 * 4, ICACHE);
+		md_icacheflush(ra - 2 * 4, 5 * 4);
 	else
-		cacheflush(ra, 3 * 4, ICACHE);
+		md_icacheflush(ra, 3 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -765,7 +762,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch class flags */
 
@@ -773,7 +770,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, sizeof(s4), DCACHE);
+	md_dcacheflush(pv + disp, sizeof(s4));
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -854,9 +851,9 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	/* synchronize instruction cache */
 
 	if (opt_showdisassemble)
-		cacheflush(ra - 2 * 4, 8 * 4, ICACHE);
+		md_icacheflush(ra - 2 * 4, 8 * 4);
 	else
-		cacheflush(ra, 6 * 4, ICACHE);
+		md_icacheflush(ra, 6 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -924,7 +921,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch super class' vftbl */
 
@@ -932,7 +929,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -993,7 +990,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1056,7 +1053,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -1127,7 +1124,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	cacheflush(ra, 2 * 4, ICACHE);
+	md_icacheflush(ra, 2 * 4);
 
 	/* patch native function pointer */
 
@@ -1135,7 +1132,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* synchronize data cache */
 
-	cacheflush(pv + disp, SIZEOF_VOID_P, DCACHE);
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 

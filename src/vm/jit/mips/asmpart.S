@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: asmpart.S 4440 2006-02-05 12:03:43Z twisti $
+   $Id: asmpart.S 4640 2006-03-16 17:24:18Z twisti $
 
 */
 
@@ -47,16 +47,13 @@
 	.set    noat
 
 
-/* exported functions and variables *******************************************/
+/* export functions ***********************************************************/
 
-	.globl asm_calljavafunction
-	.globl asm_calljavafunction_int
-
-	.globl asm_calljavafunction2
-	.globl asm_calljavafunction2int
-	.globl asm_calljavafunction2long
-	.globl asm_calljavafunction2float
-	.globl asm_calljavafunction2double
+	.globl asm_vm_call_method
+	.globl asm_vm_call_method_int
+	.globl asm_vm_call_method_long
+	.globl asm_vm_call_method_float
+	.globl asm_vm_call_method_double
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -92,96 +89,14 @@
 *                                                                              *
 *******************************************************************************/
 
-	.ent    asm_calljavafunction
-
-	.align  3
-
-	.dword  0                           /* catch type all                     */
-	.dword  calljava_xhandler           /* handler pc                         */
-	.dword  calljava_xhandler           /* end pc                             */
-	.dword  asm_calljavafunction        /* start pc                           */
-	.word   1                           /* extable size                       */
-	.word   0                           /* 4-byte ALIGNMENT PADDING           */
-	.dword  0                           /* line number table start            */
-	.dword  0                           /* line number table size             */
-	.word   0                           /* 4-byte ALIGNMENT PADDING           */
-	.word   0                           /* fltsave                            */
-	.word   0                           /* intsave                            */
-	.word   0                           /* isleaf                             */
-	.word   0                           /* IsSync                             */
-	.word   0                           /* frame size                         */
-	.dword  0                           /* method pointer (pointer to name)   */
-
-asm_calljavafunction:
-asm_calljavafunction_int:
-	.set    noreorder                 /* XXX we need to recompute pv          */
-
-	aaddiu  sp,sp,-10*8               /* allocate stack space                 */
-	ast     ra,0(sp)                  /* save return address                  */
-
-	bal     call_java_pc
-	ast     pv,3*8(sp)                /* procedure vector (delay slot)        */
-call_java_pc:
-	aaddiu  pv,ra,-4*4
-
-	sdc1    fss0,4*8(sp)              /* save non JavaABI saved flt registers */
-	sdc1    fss1,5*8(sp)
-	sdc1    fss2,6*8(sp)
-	sdc1    fss3,7*8(sp)
-	sdc1    fss4,8*8(sp)
-	sdc1    fss5,9*8(sp)
-
-	move    itmp1,a0                  /* pass method pointer via tmp1         */
-
-	move    a0,a1                     /* pass the remaining parameters        */
-	move    a1,a2
-	move    a2,a3
-	move    a3,a4
-
-	ala     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	ast     mptr,1*8(sp)              /* store function address               */
-	move    mptr,sp                   /* set method pointer                   */
-
-	ald     pv,1*8(mptr)              /* method call as in Java               */
-	jalr    pv                        /* call JIT compiler                    */
-	nop
-L_asm_calljavafunction_recompute:
-/*	aaddiu  pv,ra,(asm_calljavafunction - L_asm_calljavafunction_recompute)*/
-	aaddiu  pv,ra,-22*4
-
-	.set    reorder                   /* XXX we need to recompute pv          */
-
-calljava_return:
-	ald     ra,0(sp)                  /* restore return address               */
-	ald     pv,3*8(sp)                /* restore procedure vector             */
-
-	ldc1    fss0,4*8(sp)              /* restore non JavaABI saved flt regs   */
-	ldc1    fss1,5*8(sp)
-	ldc1    fss2,6*8(sp)
-	ldc1    fss3,7*8(sp)
-	ldc1    fss4,8*8(sp)
-	ldc1    fss5,9*8(sp)
-
-	aaddiu  sp,sp,10*8                /* free stack space                     */
-	j       ra                        /* return                               */
-
-calljava_xhandler:
-	move    a0,itmp1                  
-	jal     builtin_throw_exception
-	move    v0,zero                   /* clear return value for exception     */
-	b       calljava_return
-
-	.end    asm_calljavafunction
-
-
-	.ent    asm_calljavafunction2
+	.ent    asm_vm_call_method
 
 	.align  3
 
 	.dword  0                           /* catch type all                     */
 	.dword  calljava_xhandler2          /* handler pc                         */
 	.dword  calljava_xhandler2          /* end pc                             */
-	.dword  asm_calljavafunction2       /* start pc                           */
+	.dword  asm_vm_call_method          /* start pc                           */
 	.word   1                           /* extable size                       */
 	.word   0                           /* 4-byte ALIGNMENT PADDING           */
 	.dword  0                           /* line number table start            */
@@ -194,19 +109,19 @@ calljava_xhandler:
 	.word   0                           /* frame size                         */
 	.dword  0                           /* method pointer (pointer to name)   */
 
-asm_calljavafunction2:
-asm_calljavafunction2int:
-asm_calljavafunction2long:
-asm_calljavafunction2float:
-asm_calljavafunction2double:
+asm_vm_call_method:
+asm_vm_call_method_int:
+asm_vm_call_method_long:
+asm_vm_call_method_float:
+asm_vm_call_method_double:
 	.set    noreorder                 /* XXX we need to recompute pv          */
 
 	aaddiu  sp,sp,-12*8               /* allocate stack space (only 11 needed)*/
 	ast     ra,0(sp)                  /* save return address                  */
 
-	bal     call_java_pc2
+	bal     L_asm_vm_call_method_compute_pv
 	ast     pv,1*8(sp)                /* procedure vector                     */
-call_java_pc2:
+L_asm_vm_call_method_compute_pv:
 	aaddiu  pv,ra,-4*4
 	ast     s7,3*8(sp)
 
@@ -219,55 +134,55 @@ call_java_pc2:
 
 	ast     a0,4*8(sp)                /* save method pointer for compiler     */
 
-	move    t0,a3
+	move    t0,a2
 	move    s7,a1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a0,offjniitem(t0)
-	ldc1    fa0,offjniitem(t0)
+	ald     a0,offvmargdata(t0)
+	ldc1    fa0,offvmargdata(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a1,offjniitem+sizejniblock*1(t0)
-	ldc1    fa1,offjniitem+sizejniblock*1(t0)
+	ald     a1,offvmargdata+sizevmarg*1(t0)
+	ldc1    fa1,offvmargdata+sizevmarg*1(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a2,offjniitem+sizejniblock*2(t0)
-	ldc1    fa2,offjniitem+sizejniblock*2(t0)
+	ald     a2,offvmargdata+sizevmarg*2(t0)
+	ldc1    fa2,offvmargdata+sizevmarg*2(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a3,offjniitem+sizejniblock*3(t0)
-	ldc1    fa3,offjniitem+sizejniblock*3(t0)
+	ald     a3,offvmargdata+sizevmarg*3(t0)
+	ldc1    fa3,offvmargdata+sizevmarg*3(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a4,offjniitem+sizejniblock*4(t0)
-	ldc1    fa4,offjniitem+sizejniblock*4(t0)
+	ald     a4,offvmargdata+sizevmarg*4(t0)
+	ldc1    fa4,offvmargdata+sizevmarg*4(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a5,offjniitem+sizejniblock*5(t0)
-	ldc1    fa5,offjniitem+sizejniblock*5(t0)
+	ald     a5,offvmargdata+sizevmarg*5(t0)
+	ldc1    fa5,offvmargdata+sizevmarg*5(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a6,offjniitem+sizejniblock*6(t0)
-	ldc1    fa6,offjniitem+sizejniblock*6(t0)
+	ald     a6,offvmargdata+sizevmarg*6(t0)
+	ldc1    fa6,offvmargdata+sizevmarg*6(t0)
 	daddi   s7,s7,-1
 	blez    s7,calljava_argsloaded
 	nop
 
-	ald     a7,offjniitem+sizejniblock*7(t0)
-	ldc1    fa7,offjniitem+sizejniblock*7(t0)
+	ald     a7,offvmargdata+sizevmarg*7(t0)
+	ldc1    fa7,offvmargdata+sizevmarg*7(t0)
 	daddi   s7,s7,-1
 		
 calljava_argsloaded:
@@ -280,10 +195,10 @@ calljava_argsloaded:
 	aaddu   t2,t2,t8
 
 calljava_copyloop:
-    ald     t3,offjniitem+sizejniblock*8(t0)
+    ald     t3,offvmargdata+sizevmarg*8(t0)
 	ast     t3,0(t2)
 	ala     t1,1(t1)
-	ala     t0,sizejniblock(t0)
+	ala     t0,sizevmarg(t0)
 	ala     t2,8(t2)
 	bnez    t1,calljava_copyloop
 	nop
@@ -298,8 +213,8 @@ calljava_nocopy:
 	ald     pv,1*8(mptr)              /* method call as in Java               */
 	jalr    pv                        /* call JIT compiler                    */
 	nop
-L_asm_calljavafunction2_recompute:
-/*	aaddiu  pv,ra,(asm_calljavafunction2 - L_asm_calljavafunction2_recompute)*/
+L_asm_vm_call_method_recompute_pv:
+/*	aaddiu  pv,ra,(asm_vm_call_method - L_asm_vm_call_method_recompute_pv)*/
 	aaddiu  pv,ra,-76*4               /* recompute procedure vector           */
 
 	.set    reorder                   /* XXX we need to recompute pv          */
@@ -326,7 +241,7 @@ calljava_xhandler2:
 	jal     builtin_throw_exception
 	b       calljava_return2
 
-	.end    asm_calljavafunction2
+	.end    asm_vm_call_method
 
 
 /****************** function asm_call_jit_compiler *****************************
