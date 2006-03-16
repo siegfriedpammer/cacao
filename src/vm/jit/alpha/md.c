@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 4634 2006-03-16 15:16:16Z twisti $
+   $Id: md.c 4650 2006-03-16 21:11:50Z edwin $
 
 */
 
@@ -55,6 +55,8 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
 
 
 /* global variables ***********************************************************/
@@ -268,6 +270,35 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 }
 
 
+/* md_patch_replacement_point **************************************************
+
+   Patch the given replacement point.
+
+*******************************************************************************/
+
+void md_patch_replacement_point(rplpoint *rp)
+{
+    u8 mcode;
+
+	/* save the current machine code */
+	mcode = *(u4*)rp->pc;
+
+	/* write the new machine code */
+    *(u4*)(rp->pc) = (u4) rp->mcode;
+
+	/* store saved mcode */
+	rp->mcode = mcode;
+	
+	{
+		u1* u1ptr = rp->pc;
+		DISASSINSTR(u1ptr);
+		fflush(stdout);
+	}
+			
+	/* flush instruction cache */
+    md_icacheflush(rp->pc,4);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -279,4 +310,5 @@ void md_icacheflush(u1 *addr, s4 nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

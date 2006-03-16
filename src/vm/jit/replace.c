@@ -283,7 +283,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 	
 	rp->target = target;
 	
-#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -311,7 +311,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 	
 	rp->target = NULL;
 	
-#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -797,7 +797,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 
 	/* enter new code */
 
-#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
 	abort();
