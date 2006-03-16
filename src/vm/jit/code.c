@@ -89,6 +89,7 @@ int code_get_sync_slot_count(codeinfo *code)
 {
 	assert(code);
 
+#ifdef USE_THREADS
 	if (!checksync)
 		return 0;
 
@@ -101,12 +102,22 @@ int code_get_sync_slot_count(codeinfo *code)
 #else
 	return 1;
 #endif
+#else /* !USE_THREADS */
+	return 0;
+#endif /* USE_THREADS */
 }
 
 /* code_get_stack_frame_size ***************************************************
 
    Return the number of stack slots that the stack frame of the given code
    comprises.
+
+   IMPORTANT: The return value does *not* include the saved return address 
+              slot, although it is part of non-leaf stack frames on RISC
+			  architectures. The rationale behind this is that the saved
+			  return address is never moved or changed by replacement, and
+			  this way CISC and RISC architectures can be treated the same.
+			  (See also doc/stack_frames.txt.)
    
    IN:
        code.............the codeinfo of the code in question
@@ -131,6 +142,12 @@ int code_get_stack_frame_size(codeinfo *code)
 #endif
 
 	count += code_get_sync_slot_count(code);
+
+#if defined(__X86_64__)
+	/* keep stack 16-byte aligned */
+	if (!code->isleafmethod || opt_verbosecall)
+		count |= 1;
+#endif
 
 	return count;
 }
