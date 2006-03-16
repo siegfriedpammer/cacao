@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: codegen.h 4626 2006-03-16 12:03:47Z twisti $
 
 */
 
@@ -50,7 +50,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ((objreg), 0); \
-        codegen_addxnullrefs(cd, mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
     }
 
 #define gen_bound_check \
@@ -58,7 +58,7 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
         M_BEQZ(REG_ITMP3, 0);\
-        codegen_addxboundrefs(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
     }
 
 
