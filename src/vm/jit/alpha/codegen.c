@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4648 2006-03-16 19:55:02Z edwin $
+   $Id: codegen.c 4649 2006-03-16 20:31:54Z edwin $
 
 */
 
@@ -377,7 +377,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* handle replacement points */
 
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
+			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 		}
@@ -3896,52 +3896,52 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ZERO, REG_ITMP3);
 		}
-	}
 
-	/* generate replacement-out stubs */
+		/* generate replacement-out stubs */
 
-	{
-		int i;
-		s4 displacement;
+		{
+			int i;
+			s4 displacement;
 
-		replacementpoint = cd->code->rplpoints;
-		for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
-			/* check code segment size */
+			replacementpoint = cd->code->rplpoints;
+			for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+				/* check code segment size */
 
-			MCODECHECK(100);
+				MCODECHECK(100);
 
-			/* note start of stub code */
+				/* note start of stub code */
 
-			replacementpoint->outcode = (u1*) (ptrint)((u1*)mcodeptr - cd->mcodebase);
+				replacementpoint->outcode = (u1*) (ptrint)((u1*)mcodeptr - cd->mcodebase);
 
-			/* make machine code for patching */
+				/* make machine code for patching */
 
-			tmpmcodeptr = mcodeptr;
-			mcodeptr = &(replacementpoint->mcode);
-			
-			displacement = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
-			M_BR(displacement);
-			
-			mcodeptr = tmpmcodeptr;
+				tmpmcodeptr = mcodeptr;
+				mcodeptr = (s4*) &(replacementpoint->mcode);
 
-			/* create stack frame */
+				displacement = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
+				M_BR(displacement);
 
-			M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+				mcodeptr = tmpmcodeptr;
 
-			/* push address of `rplpoint` struct */
-			
-			disp = dseg_addaddress(cd, replacementpoint);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_AST(REG_ITMP3, REG_SP, 0 * 8);
+				/* create stack frame */
 
-			/* jump to replacement function */
+				M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
 
-			disp = dseg_addaddress(cd, asm_replacement_out);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_JMP(REG_ZERO, REG_ITMP3);
+				/* push address of `rplpoint` struct */
+
+				disp = dseg_addaddress(cd, replacementpoint);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_AST(REG_ITMP3, REG_SP, 0 * 8);
+
+				/* jump to replacement function */
+
+				disp = dseg_addaddress(cd, asm_replacement_out);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_JMP(REG_ZERO, REG_ITMP3);
+			}
 		}
 	}
-	
+
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
 	/* everything's ok */
