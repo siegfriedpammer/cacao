@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4619 2006-03-15 20:42:00Z edwin $
+   $Id: asmpart.h 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -98,10 +98,7 @@ struct castinfo {
 /* function prototypes ********************************************************/
 
 /* machine dependent initialization */
-s4 asm_md_init(void);
-
-void asm_sync_instruction_cache(void);
-
+s4   asm_md_init(void);
 
 /* 
    invokes the compiler for untranslated JavaVM methods.
@@ -177,8 +174,8 @@ void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
 u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
 
-/* may be required on some architectures (at least for PowerPC and ARM) */
-void asm_cacheflush(void *p, s4 size);
+/* cache flush function */
+void asm_cacheflush(u1 *addr, s4 nbytes);
 
 #endif /* _ASMPART_H */
 

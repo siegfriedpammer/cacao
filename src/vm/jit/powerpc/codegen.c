@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: codegen.c 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -328,7 +328,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		} else {
 			M_TST(rd->argintregs[0]);
 			M_BEQ(0);
-			codegen_addxnullrefs(cd, mcodeptr);
+			codegen_add_nullpointerexception_ref(cd, mcodeptr);
 			M_AST(rd->argintregs[0], REG_SP, s1 * 4);
 			p = dseg_addaddress(cd, BUILTIN_monitorenter);
 			M_ALD(REG_ITMP3, REG_PV, p);
@@ -489,7 +489,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			M_TST(s1);
 			M_BEQ(0);
-			codegen_addxnullrefs(cd, mcodeptr);
+			codegen_add_nullpointerexception_ref(cd, mcodeptr);
 			break;
 
 		/* constant operations ************************************************/
@@ -913,7 +913,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
 			M_TST(s2);
 			M_BEQ(0);
-			codegen_addxdivrefs(cd, mcodeptr);
+			codegen_add_arithmeticexception_ref(cd, mcodeptr);
 			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
 			M_CMP(REG_ITMP3, s1);
 			M_BNE(3 + (s1 != d));
@@ -932,7 +932,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
 			M_TST(s2);
 			M_BEQ(0);
-			codegen_addxdivrefs(cd, mcodeptr);
+			codegen_add_arithmeticexception_ref(cd, mcodeptr);
 			M_LDAH(REG_ITMP3, REG_ZERO, 0x8000);
 			M_CMP(REG_ITMP3, s1);
 			M_BNE(4);
@@ -955,7 +955,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			var_to_reg_int(s2, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			M_OR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
 			M_BEQ(0);
-			codegen_addxdivrefs(cd, mcodeptr);
+			codegen_add_arithmeticexception_ref(cd, mcodeptr);
 
 			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
@@ -1753,7 +1753,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_JSR;
 			M_TST(REG_RESULT);
 			M_BEQ(0);
-			codegen_addxstorerefs(cd, mcodeptr);
+			codegen_add_arraystoreexception_ref(cd, mcodeptr);
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -2761,7 +2761,7 @@ gen_method:
 				if (iptr->op1 == true) {
 					M_CMPI(REG_RESULT, 0);
 					M_BEQ(0);
-					codegen_addxexceptionrefs(cd, mcodeptr);
+					codegen_add_fillinstacktrace_ref(cd, mcodeptr);
 				}
 				break;
 
@@ -2985,13 +2985,13 @@ gen_method:
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
 					M_BLE(0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 					M_ALD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetable[0]) -
 						  superindex * sizeof(methodptr*));
 					M_TST(REG_ITMP3);
 					M_BEQ(0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 
 					if (!super)
 						M_BR(s3);
@@ -3040,7 +3040,7 @@ gen_method:
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
 					M_BGT(0);
-					codegen_addxcastrefs(cd, mcodeptr);
+					codegen_add_classcastexception_ref(cd, mcodeptr);
 				}
 				d = reg_of_var(rd, iptr->dst, s1);
 
@@ -3069,7 +3069,7 @@ gen_method:
 				M_JSR;
 				M_TST(REG_RESULT);
 				M_BEQ(0);
-				codegen_addxcastrefs(cd, mcodeptr);
+				codegen_add_classcastexception_ref(cd, mcodeptr);
 
 				var_to_reg_int(s1, src, REG_ITMP1);
 				d = reg_of_var(rd, iptr->dst, s1);
@@ -3288,7 +3288,7 @@ gen_method:
 
 			M_CMPI(REG_RESULT, 0);
 			M_BEQ(0);
-			codegen_addxexceptionrefs(cd, mcodeptr);
+			codegen_add_fillinstacktrace_ref(cd, mcodeptr);
 
 			d = reg_of_var(rd, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, d);
@@ -3349,371 +3349,110 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
-	{
 
-	s4        *xcodeptr;
-	branchref *bref;
-
-	/* generate ArithemticException check stubs */
-
-	xcodeptr = NULL;
-
-	for (bref = cd->xdivrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			if (m->isleafmethod) {
-				M_MFLR(REG_ZERO);
-				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-
-			if (m->isleafmethod)
-				M_MOV(REG_ZERO, rd->argintregs[2]);
-			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_arithmeticexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
-			}
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate ArrayIndexOutOfBoundsException stubs */
-
-	xcodeptr = NULL;
-
-	for (bref = cd->xboundrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		/* move index register into REG_ITMP1 */
-
-		M_MOV(bref->reg, REG_ITMP1);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			if (m->isleafmethod) {
-				M_MFLR(REG_ZERO);
-				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-
-			if (m->isleafmethod)
-				M_MOV(REG_ZERO, rd->argintregs[2]);
-			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-			M_MOV(REG_ITMP1, rd->argintregs[4]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_arrayindexoutofboundsexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
-			}
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate ArrayStoreException check stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xstorerefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2],
-				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_arraystoreexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate ClassCastException stubs */
-
-	xcodeptr = NULL;
-	
-	for (bref = cd->xcastrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			if (m->isleafmethod) {
-				M_MFLR(REG_ZERO);
-				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-
-			if (m->isleafmethod)
-				M_MOV(REG_ZERO, rd->argintregs[2]);
-			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_classcastexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
-			}
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate NullPointerException stubs */
-
-	xcodeptr = NULL;
-
-	for (bref = cd->xnullrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			if (m->isleafmethod) {
-				M_MFLR(REG_ZERO);
-				M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			}
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-
-			if (m->isleafmethod)
-				M_MOV(REG_ZERO, rd->argintregs[2]);
-			else
-				M_ALD(rd->argintregs[2],
-					  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_nullpointerexception);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			if (m->isleafmethod) {
-				M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
-			}
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate exception check stubs */
-
-	xcodeptr = NULL;
-
-	for (bref = cd->xexceptionrefs; bref != NULL; bref = bref->next) {
-		gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
-		                  bref->branchpos,
-						  (u1 *) mcodeptr - cd->mcodebase);
-
-		MCODECHECK(100);
-
-		M_LDA(REG_ITMP2_XPC, REG_PV, bref->branchpos - 4);
-
-		if (xcodeptr != NULL) {
-			disp = xcodeptr - mcodeptr - 1;
-			M_BR(disp);
-
-		} else {
-			xcodeptr = mcodeptr;
-
-			M_MOV(REG_PV, rd->argintregs[0]);
-			M_MOV(REG_SP, rd->argintregs[1]);
-			M_ALD(rd->argintregs[2],
-				  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
-			M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-
-			M_STWU(REG_SP, REG_SP, -(LA_SIZE + 5 * 4));
-			M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-
-			disp = dseg_addaddress(cd, stacktrace_inline_fillInStackTrace);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
-			M_JSR;
-			M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-			M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 4 * 4);
-			M_IADD_IMM(REG_SP, LA_SIZE + 5 * 4, REG_SP);
-
-			disp = dseg_addaddress(cd, asm_handle_exception);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-	}
-
-	/* generate patcher stub call code */
+	/* generate exception and patcher stubs */
 
 	{
-		patchref *pref;
-		u4        mcode;
-		s4       *tmpmcodeptr;
+		exceptionref *eref;
+		patchref     *pref;
+		u4            mcode;
+		s4           *savedmcodeptr;
+		s4           *tmpmcodeptr;
+
+		savedmcodeptr = NULL;
+
+		/* generate exception stubs */
+
+		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
+			gen_resolvebranch((u1 *) cd->mcodebase + eref->branchpos, 
+							  eref->branchpos,
+							  (u1 *) mcodeptr - cd->mcodebase);
+
+			MCODECHECK(100);
+
+			/* Check if the exception is an
+			   ArrayIndexOutOfBoundsException.  If so, move index register
+			   into REG_ITMP1. */
+
+			if (eref->reg != -1)
+				M_MOV(eref->reg, REG_ITMP1);
+
+			/* calcuate exception address */
+
+			M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+
+			/* move function to call into REG_ITMP3 */
+
+			disp = dseg_addaddress(cd, eref->function);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+
+			if (savedmcodeptr != NULL) {
+				disp = savedmcodeptr - mcodeptr - 1;
+				M_BR(disp);
+
+			} else {
+				savedmcodeptr = mcodeptr;
+
+				if (m->isleafmethod) {
+					M_MFLR(REG_ZERO);
+					M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+				}
+
+				M_MOV(REG_PV, rd->argintregs[0]);
+				M_MOV(REG_SP, rd->argintregs[1]);
+
+				if (m->isleafmethod)
+					M_MOV(REG_ZERO, rd->argintregs[2]);
+				else
+					M_ALD(rd->argintregs[2],
+						  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+
+				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
+				M_MOV(REG_ITMP1, rd->argintregs[4]);
+
+				M_STWU(REG_SP, REG_SP, -(LA_SIZE + 6 * 4));
+				M_AST(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
+
+				M_MTCTR(REG_ITMP3);
+				M_JSR;
+				M_MOV(REG_RESULT, REG_ITMP1_XPTR);
+
+				M_ALD(REG_ITMP2_XPC, REG_SP, LA_SIZE + 5 * 4);
+				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
+
+				if (m->isleafmethod) {
+					M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+					M_MTLR(REG_ZERO);
+				}
+
+				disp = dseg_addaddress(cd, asm_handle_exception);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_MTCTR(REG_ITMP3);
+				M_RTS;
+			}
+		}
+
+
+		/* generate code patching stub call code */
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* check code segment size */
 
 			MCODECHECK(16);
 
-			/* Get machine code which is patched back in later. The call is   */
-			/* 1 instruction word long.                                       */
+			/* Get machine code which is patched back in later. The
+			   call is 1 instruction word long. */
 
-			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
-			mcode = *xcodeptr;
+			savedmcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
+			mcode = *savedmcodeptr;
 
-			/* patch in the call to call the following code (done at compile  */
-			/* time)                                                          */
+			/* Patch in the call to call the following code (done at
+			   compile time). */
 
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
-			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+			mcodeptr    = savedmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BR(tmpmcodeptr - (xcodeptr + 1));
+			M_BR(tmpmcodeptr - (savedmcodeptr + 1));
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
@@ -3771,11 +3510,7 @@ gen_method:
 		}
 	}
 
-	}
-
 	codegen_finish(m, cd, (ptrint) ((u1 *) mcodeptr - cd->mcodebase));
-
-	asm_cacheflush((void *) (ptrint) cd->code->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 
 	/* everything's ok */
 
@@ -3821,7 +3556,7 @@ u1 *createcompilerstub(methodinfo *m)
 	M_MTCTR(REG_PV);
 	M_RTS;
 
-	asm_cacheflush((void *) d, COMPILERSTUB_SIZE);
+	md_cacheflush((u1 *) d, COMPILERSTUB_SIZE);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -4200,24 +3935,24 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	{
 		patchref *pref;
-		s4       *xcodeptr;
+		s4       *savedmcodeptr;
 		s4        mcode;
 		s4       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-			/* Get machine code which is patched back in later. The call is   */
-			/* 1 instruction word long.                                       */
+			/* Get machine code which is patched back in later. The
+			   call is 1 instruction word long. */
 
-			xcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
-			mcode = (u4) *xcodeptr;
+			savedmcodeptr = (s4 *) (cd->mcodebase + pref->branchpos);
+			mcode = (u4) *savedmcodeptr;
 
-			/* patch in the call to call the following code (done at compile  */
-			/* time)                                                          */
+			/* Patch in the call to call the following code (done at
+			   compile time). */
 
 			tmpmcodeptr = mcodeptr;         /* save current mcodeptr          */
-			mcodeptr = xcodeptr;            /* set mcodeptr to patch position */
+			mcodeptr    = savedmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BL(tmpmcodeptr - (xcodeptr + 1));
+			M_BL(tmpmcodeptr - (savedmcodeptr + 1));
 
 			mcodeptr = tmpmcodeptr;         /* restore the current mcodeptr   */
 
@@ -4276,8 +4011,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	}
 
 	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
-
-	asm_cacheflush((void *) (ptrint) cd->code->entrypoint, ((u1 *) mcodeptr - cd->mcodebase));
 
 	return cd->code->entrypoint;
 }

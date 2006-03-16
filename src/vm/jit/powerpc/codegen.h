@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4372 2006-01-24 19:09:17Z twisti $
+   $Id: codegen.h 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -56,7 +56,7 @@
     if (checknull) { \
         M_TST((objreg)); \
         M_BEQ(0); \
-        codegen_addxnullrefs(cd, mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
     }
 
 #define gen_bound_check \
@@ -64,7 +64,7 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPU(s2, REG_ITMP3);\
         M_BGE(0);\
-        codegen_addxboundrefs(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
     }
 
 

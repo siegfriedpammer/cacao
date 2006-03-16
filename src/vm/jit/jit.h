@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4615 2006-03-15 16:36:43Z twisti $
+   $Id: jit.h 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -903,9 +903,13 @@ void jit_close(void);
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 
-/* machine dependent initialization */
+/* machine dependent functions */
 #if defined(ENABLE_JIT)
 void md_init(void);
+
+void md_cacheflush(u1 *addr, s4 nbytes);
+void md_icacheflush(u1 *addr, s4 nbytes);
+void md_dcacheflush(u1 *addr, s4 nbytes);
 #endif
 
 #if defined(ENABLE_INTRP)

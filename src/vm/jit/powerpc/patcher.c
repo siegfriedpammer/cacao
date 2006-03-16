@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 4575 2006-03-09 13:46:36Z twisti $
+   $Id: patcher.c 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -104,11 +104,15 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch the field value's address */
 
 	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -189,7 +193,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 8);
+	md_icacheflush(ra, 8);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -244,11 +248,15 @@ bool patcher_aconst(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -304,11 +312,15 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -363,11 +375,15 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -421,11 +437,15 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch stubroutine */
 
 	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -486,7 +506,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 2 * 4);
+	md_icacheflush(ra, 2 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -553,7 +573,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 3 * 4);
+	md_icacheflush(ra, 3 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -605,11 +625,15 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch class flags */
 
 	*((s4 *) (pv + disp)) = (s4) c->flags;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -673,7 +697,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 5 * 4);
+	md_icacheflush(ra, 5 * 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -727,11 +751,15 @@ bool patcher_checkcast_class(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch super class' vftbl */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -784,11 +812,15 @@ bool patcher_instanceof_class(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch super class' vftbl */
 
 	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -834,7 +866,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -882,7 +914,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -938,11 +970,15 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_cacheflush(ra, 4);
+	md_icacheflush(ra, 4);
 
 	/* patch native function pointer */
 
 	*((ptrint *) (pv + disp)) = (ptrint) f;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(pv + disp, SIZEOF_VOID_P);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 

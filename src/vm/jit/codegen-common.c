@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4615 2006-03-15 16:36:43Z twisti $
+   $Id: codegen-common.c 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -602,6 +602,12 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 	code = cd->code;
 
+	/* prevent compiler warning */
+
+#if defined(ENABLE_INTRP)
+	ncodelen = 0;
+#endif
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen = sizeof(threadcritnode) * cd->threadcritcount;
 #else
@@ -621,9 +627,8 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 	alignedmcodelen = ALIGN(mcodelen, MAX_ALIGN);
 
 #if defined(ENABLE_INTRP)
-	if (opt_intrp) {
+	if (opt_intrp)
 		ncodelen = cd->ncodeptr - cd->ncodebase;
-	}
 	else {
 		ncodelen = 0; /* avoid compiler warning */
 	}
@@ -661,8 +666,13 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 		if (ncodelen > 0) {
 			u1 *ncodebase = code->mcode + cd->dseglen + alignedmcodelen;
-			MCOPY((void *)ncodebase, cd->ncodebase, u1, ncodelen);
-			/* XXX cacheflush((void *)ncodebase, ncodelen); */
+
+			MCOPY((void *) ncodebase, cd->ncodebase, u1, ncodelen);
+
+			/* flush the instruction and data caches */
+
+			md_cacheflush(ncodebase, ncodelen);
+
 			/* set some cd variables for dynamic_super_rerwite */
 
 			cd->ncodebase = ncodebase;
@@ -747,6 +757,10 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 		}
 	}
 #endif
+
+	/* flush the instruction and data caches */
+
+	md_cacheflush(code->mcode, code->mcodelength);
 }
 
 

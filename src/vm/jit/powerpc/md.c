@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md.c 4368 2006-01-24 10:30:42Z twisti $
+   $Id: md.c 4631 2006-03-16 14:19:52Z twisti $
 
 */
 
@@ -41,6 +41,7 @@
 #include "md-abi.h"
 
 #include "vm/global.h"
+#include "vm/jit/asmpart.h"
 
 
 /* md_init *********************************************************************
@@ -131,6 +132,43 @@ u1 *md_codegen_findmethod(u1 *ra)
 	pv = ra + offset;
 
 	return pv;
+}
+
+
+/* md_cacheflush ***************************************************************
+
+   Calls the system's function to flush the instruction and data
+   cache.
+
+*******************************************************************************/
+
+void md_cacheflush(u1 *addr, s4 nbytes)
+{
+	asm_cacheflush(addr, nbytes);
+}
+
+
+/* md_icacheflush **************************************************************
+
+   Calls the system's function to flush the instruction cache.
+
+*******************************************************************************/
+
+void md_icacheflush(u1 *addr, s4 nbytes)
+{
+	asm_cacheflush(addr, nbytes);
+}
+
+
+/* md_dcacheflush **************************************************************
+
+   Calls the system's function to flush the data cache.
+
+*******************************************************************************/
+
+void md_dcacheflush(u1 *addr, s4 nbytes)
+{
+	asm_cacheflush(addr, nbytes);
 }
 
 
