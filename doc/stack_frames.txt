@@ -16,23 +16,44 @@ i386 stack frames
 
 ,--memory address rising
 |
-|   >>>> sp in method (after initial sub) <<<<
-|         v
+V   >>>> sp in method (after initial sub) <<<<
+|          
 |   u4[]  v  arguments for calling methods              \__ rd->memuse slots
 V   u4[]  v  local variable slots allocated on stack    /
 |
 |   u4[1..2] synchronized object / saved return value       (only for synched methods)
-|
+V
 |   u8[]  ^  callee-saved float registers
-V   u4[]  ^  callee-saved integer registers
-|         ^
+|   u4[]  ^  callee-saved integer registers
+V          
 |   >>>> sp on method entry <<<<
 |
-|   u4       return address
-V   u4[]     arguments on stack
-|
-|
-|
+V   u4       return address
+|   u4[]     arguments on stack
 |
 V
+
+
+alpha stack frames
+------------------
+
+,--memory address rising
+|
+V   >>>> sp in method (after initial sub) <<<<
+|          
+|   u8[]  v  arguments for calling methods              \__ rd->memuse slots
+V   u8[]  v  local variable slots allocated on stack    /
+|
+|   u8       synchronized object / saved return value       (only for synched methods)
+V
+|   u8[]  ^  callee-saved float registers
+|   u8[]  ^  callee-saved integer registers
+V   u8    ^  saved return address                           (only for non-leaf methods)
+|
+|   >>>> sp on method entry <<<<
+V
+|   u8[]     arguments on stack
+|
+V
+
 
