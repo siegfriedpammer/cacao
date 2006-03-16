@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: patcher.c 4634 2006-03-16 15:16:16Z twisti $
 
 */
 
@@ -109,7 +109,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch the field value's address */
 
@@ -173,7 +173,7 @@ bool patcher_get_putfield(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -230,7 +230,7 @@ bool patcher_aconst(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch the classinfo pointer */
 
@@ -294,7 +294,7 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch the classinfo pointer */
 
@@ -357,7 +357,7 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch the classinfo pointer */
 
@@ -419,7 +419,7 @@ bool patcher_invokestatic_special(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch stubroutine */
 
@@ -488,7 +488,7 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -559,7 +559,7 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -615,7 +615,7 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch class flags */
 
@@ -688,7 +688,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -746,7 +746,7 @@ bool patcher_checkcast_instanceof_class(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch super class' vftbl */
 
@@ -801,7 +801,7 @@ bool patcher_clinit(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -854,7 +854,7 @@ bool patcher_athrow_areturn(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	PATCHER_MARK_PATCHED_MONITOREXIT;
 
@@ -910,7 +910,7 @@ bool patcher_resolve_native(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	asm_sync_instruction_cache();
+	md_icacheflush(NULL, 0);
 
 	/* patch native function pointer */
 

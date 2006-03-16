@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: asmpart.S 4561 2006-03-05 23:53:19Z twisti $
+   $Id: asmpart.S 4634 2006-03-16 15:16:16Z twisti $
 
 */
 
@@ -50,11 +50,7 @@
 	.set    noreorder
 
 
-/********************* exported functions and variables ***********************/
-
-	.globl asm_md_init
-
-	.globl asm_sync_instruction_cache
+/* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
 	.globl asm_vm_call_method_int
@@ -74,39 +70,8 @@
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
-
-/* asm_sync_instruction_cache **************************************************
-
-   XXX
-
-*******************************************************************************/
-
-	.ent    asm_sync_instruction_cache
-
-asm_sync_instruction_cache:
-	call_pal PAL_imb              /* synchronize instruction cache            */
-	jmp     zero,(ra)
-
-	.end    asm_sync_instruction_cache
-
-
-/* asm_md_init *****************************************************************
-
-   Initialize machine dependent stuff.
-
-   Determines if the byte support instruction set (21164a and higher)
-   is available.
-
-*******************************************************************************/
-
-	.ent    asm_md_init
-
-asm_md_init:
-
-	.long   0x47e03c20                  /* amask   1,v0                       */
-	jmp     zero,(ra)                   /* return                             */
-
-	.end    asm_md_init
+	.globl asm_md_init
+	.globl asm_cacheflush
 
 
 /* asm_vm_call_method **********************************************************
@@ -739,6 +704,39 @@ asm_criticalsections:
     .quad   _crit_restart
 #endif
     .quad   0
+
+
+/* asm_md_init *****************************************************************
+
+   Initialize machine dependent stuff.
+
+   Determines if the byte support instruction set (21164a and higher)
+   is available.
+
+*******************************************************************************/
+
+	.ent    asm_md_init
+
+asm_md_init:
+	.long   0x47e03c20                  /* amask   1,v0                       */
+	jmp     zero,(ra)                   /* return                             */
+
+	.end    asm_md_init
+
+
+/* asm_cacheflush **************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+	.ent    asm_cacheflush
+
+asm_cacheflush:
+	call_pal PAL_imb              /* synchronize instruction cache            */
+	jmp     zero,(ra)
+
+	.end    asm_cacheflush
 
 
 /* Disable exec-stacks, required for Gentoo ***********************************/

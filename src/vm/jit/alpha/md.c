@@ -30,7 +30,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 4498 2006-02-12 23:43:09Z twisti $
+   $Id: md.c 4634 2006-03-16 15:16:16Z twisti $
 
 */
 
@@ -240,6 +240,31 @@ u1 *md_codegen_findmethod(u1 *ra)
 	}
 
 	return pv;
+}
+
+
+/* md_cacheflush ***************************************************************
+
+   Calls the system's function to flush the instruction and data
+   cache.
+
+*******************************************************************************/
+
+void md_cacheflush(u1 *addr, s4 nbytes)
+{
+	asm_cacheflush(addr, nbytes);
+}
+
+
+/* md_icacheflush **************************************************************
+
+   Calls the system's function to flush the instruction cache.
+
+*******************************************************************************/
+
+void md_icacheflush(u1 *addr, s4 nbytes)
+{
+	asm_cacheflush(addr, nbytes);
 }
 
 
