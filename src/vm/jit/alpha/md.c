@@ -29,8 +29,9 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: md.c 4650 2006-03-16 21:11:50Z edwin $
+   $Id: md.c 4651 2006-03-16 21:12:33Z edwin $
 
 */
 
