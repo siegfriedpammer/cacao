@@ -79,6 +79,8 @@ struct rplpoint {
 struct executionstate {
 	u1           *pc;                               /* program counter */
 	u1           *sp;                   /* stack pointer within method */
+	u1           *pv;                   /* procedure value. NULL means */
+	                                    /* search the AVL tree         */
 
 	u8            intregs[INT_REG_CNT];             /* register values */
 	u8            fltregs[FLT_REG_CNT];             /* register values */
@@ -98,6 +100,8 @@ struct sourcestate {
 
 	u8           *syncslots;
 	s4            syncslotcount;
+
+	u1           *stackbase;
 };
 
 /*** prototypes ********************************************************/

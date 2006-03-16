@@ -26,7 +26,7 @@ V
 |   u8[]  ^  callee-saved float registers
 |   u4[]  ^  callee-saved integer registers
 V          
-|   >>>> sp on method entry <<<<
+|   >>>> sp on method entry, stack base for replacement <<<<
 |
 V   u4       return address
 |   u4[]     arguments on stack
@@ -44,13 +44,13 @@ V   >>>> sp in method (after initial sub) <<<<
 |   u8[]  v  arguments for calling methods              \__ rd->memuse slots
 V   u8[]  v  local variable slots allocated on stack    /
 |
-|   u8       synchronized object / saved return value       (only for synched methods)
-V   u8       alignment dummy slot                           (in non-leaf methods to ensure
+|   u8    v  synchronized object / saved return value       (only for synched methods)
+V   u8[0..1] alignment dummy slot                           (in non-leaf methods to ensure
 |                                                            16-byte alignment of stack)
 |   u8[]  ^  callee-saved float registers
 V   u8[]  ^  callee-saved integer registers
 |          
-|   >>>> sp on method entry <<<<
+|   >>>> sp on method entry, stack base for replacement  <<<<
 V
 |   u8       return address
 |   u8[]     arguments on stack
@@ -72,6 +72,9 @@ V   u8[]  v  local variable slots allocated on stack    /
 V
 |   u8[]  ^  callee-saved float registers
 |   u8[]  ^  callee-saved integer registers
+V
+|     >>>> !!!replacement code regards this point as stack base!!! <<<<
+|		  
 V   u8    ^  saved return address                           (only for non-leaf methods)
 |
 |   >>>> sp on method entry <<<<
@@ -79,5 +82,4 @@ V
 |   u8[]     arguments on stack
 |
 V
-
 

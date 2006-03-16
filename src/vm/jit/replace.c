@@ -47,6 +47,12 @@
 #include "vm/jit/disass.h"
 #include "arch.h"
 
+/*** constants used internally ************************************************/
+
+#define TOP_IS_NORMAL    0
+#define TOP_IS_ON_STACK  1
+#define TOP_IS_IN_ITMP1  2
+
 /* replace_create_replacement_points *******************************************
  
    Create the replacement points for the given code.
@@ -334,6 +340,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	int allocs;
 	rplalloc *ra;
 	methoddesc *md;
+	int topslot;
 #ifdef HAS_4BYTE_STACKSLOT
 	u4 *sp;
 	u4 *basesp;
@@ -345,8 +352,9 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	code = rp->code;
 	m = code->m;
 	md = m->parseddesc;
+	topslot = TOP_IS_NORMAL;
 
-	/* calculate stack pointers */
+	/* stack pointers */
 
 #ifdef HAS_4BYTE_STACKSLOT
 	sp = (u4*) es->sp;
@@ -354,11 +362,31 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	sp = (u8*) es->sp;
 #endif
 
-	/* XXX only on i386? */
-	if (rp->type == BBTYPE_SBR)
+	/* on some architectures the returnAddress is passed on the stack by JSR */
+
+#if defined(__I386__) || defined(__X86_64__)
+	if (rp->type == BBTYPE_SBR) {
 		sp++;
+		topslot = TOP_IS_ON_STACK;
+	}
+#endif
+
+	/* in some cases the top stack slot is passed in REG_ITMP1 */
+
+	if (  (rp->type == BBTYPE_EXH)
+#if defined(__ALPHA__)
+	   || (rp->type == BBTYPE_SBR)
+#endif
+	   )
+	{
+		topslot = TOP_IS_IN_ITMP1;
+	}
+
+	/* calculate base stack pointer */
 	
 	basesp = sp + code_get_stack_frame_size(code);
+
+	ss->stackbase = (u1*) basesp;
 
 	/* read local variables */
 
@@ -370,7 +398,14 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	/* mark values as undefined */
 	for (i=0; i<count*5; ++i)
 		ss->javalocals[i] = (u8) 0x00dead0000dead00ULL;
+
+	/* some entries in the intregs array are not meaningful */
+	es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;
+	es->intregs[REG_SP   ] = (u8) 0x11dead1111dead11ULL;
+#ifdef REG_PV
+	es->intregs[REG_PV   ] = (u8) 0x11dead1111dead11ULL;
 #endif
+#endif /* NDEBUG */
 	
 	ra = code->regalloc;
 
@@ -411,12 +446,18 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	ss->javastackdepth = count;
 	ss->javastack = DMNEW(u8,count);
 
+#ifndef NDEBUG
+	/* mark values as undefined */
+	for (i=0; i<count; ++i)
+		ss->javastack[i] = (u8) 0x00dead0000dead00ULL;
+#endif
+	
 	i = 0;
 	ra = rp->regalloc;
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
-	if (rp->type == BBTYPE_SBR) {
+	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 		
 		ss->javastack[i] = sp[-1];
@@ -424,14 +465,16 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		i++;
 		ra++;
 	}
-	else if (rp->type == BBTYPE_EXH) {
+	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
-		ss->javastack[i] = es->intregs[REG_ITMP1]; /* XXX all platforms? */
+		ss->javastack[i] = es->intregs[REG_ITMP1];
 		count--;
 		i++;
 		ra++;
 	}
+	
+	/* read remaining stack slots */
 	
 	for (; count--; ra++, i++) {
 		assert(ra->next);
@@ -459,6 +502,15 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		ss->savedintregs[i] = *--basesp;
 	}
 
+	/* read unused callee saved flt regs */
+	
+	count = FLT_SAV_CNT;
+	for (i=0; count > code->savedfltcount; ++i) {
+		assert(i < FLT_REG_CNT);
+		if (nregdescfloat[i] == REG_SAV)
+			ss->savedfltregs[--count] = es->fltregs[i];
+	}
+
 	/* read saved flt regs */
 
 	for (i=0; i<code->savedfltcount; ++i) {
@@ -468,15 +520,6 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		basesp--;
 #endif
 		ss->savedfltregs[i] = *(u8*)basesp;
-	}
-
-	/* read unused callee saved flt regs */
-	
-	count = FLT_SAV_CNT;
-	for (i=0; count > code->savedfltcount; ++i) {
-		assert(i < FLT_REG_CNT);
-		if (nregdescfloat[i] == REG_SAV)
-			ss->savedfltregs[--count] = es->fltregs[i];
 	}
 
 	/* read slots used for synchronization */
@@ -504,7 +547,8 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
   
 *******************************************************************************/
 
-static void replace_write_executionstate(rplpoint *rp,executionstate *es,sourcestate *ss)
+static void replace_write_executionstate(rplpoint *rp,executionstate *es,
+										 sourcestate *ss)
 {
 	methodinfo *m;
 	codeinfo *code;
@@ -514,6 +558,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 	int allocs;
 	rplalloc *ra;
 	methoddesc *md;
+	int topslot;
 #ifdef HAS_4BYTE_STACKSLOT
 	u4 *sp;
 	u4 *basesp;
@@ -526,18 +571,34 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 	m = code->m;
 	md = m->parseddesc;
 	
-	/* calculate stack pointers */
-
-#ifdef HAS_4BYTE_STACKSLOT
-	sp = (u4*) es->sp;
-#else
-	sp = (u8*) es->sp;
-#endif
-
-	if (rp->type == BBTYPE_SBR)
-		sp++;
+	/* calculate stack pointer */
 	
-	basesp = sp + code_get_stack_frame_size(code);
+#ifdef HAS_4BYTE_STACKSLOT
+	basesp = (u4*) ss->stackbase;
+#else
+	basesp = (u8*) ss->stackbase;
+#endif
+	
+	sp = basesp - code_get_stack_frame_size(code);
+
+	/* on some architectures the returnAddress is passed on the stack by JSR */
+
+#if defined(__I386__) || defined(__X86_64__)
+	if (rp->type == BBTYPE_SBR) {
+		topslot = TOP_IS_ON_STACK;
+	}
+#endif
+	
+	/* in some cases the top stack slot is passed in REG_ITMP1 */
+
+	if (  (rp->type == BBTYPE_EXH)
+#if defined(__ALPHA__)
+	   || (rp->type == BBTYPE_SBR) 
+#endif
+	   )
+	{
+		topslot = TOP_IS_IN_ITMP1;
+	}
 
 	/* in debug mode, invalidate stack frame first */
 
@@ -596,7 +657,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 
 	/* the first stack slot is special in SBR and EXH blocks */
 
-	if (rp->type == BBTYPE_SBR) {
+	if (topslot == TOP_IS_ON_STACK) {
 		assert(count);
 		
 		sp[-1] = ss->javastack[i];
@@ -604,14 +665,16 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 		i++;
 		ra++;
 	}
-	else if (rp->type == BBTYPE_EXH) {
+	else if (topslot == TOP_IS_IN_ITMP1) {
 		assert(count);
 
-		es->intregs[REG_ITMP1] = ss->javastack[i]; /* XXX all platforms? */
+		es->intregs[REG_ITMP1] = ss->javastack[i];
 		count--;
 		i++;
 		ra++;
 	}
+
+	/* write remaining stack slots */
 	
 	for (; count--; ra++, i++) {
 		assert(ra->next);
@@ -859,6 +922,7 @@ void replace_executionstate_println(executionstate *es,codeinfo *code)
 	printf("executionstate %p:\n",(void*)es);
 	printf("\tpc = %p\n",(void*)es->pc);
 	printf("\tsp = %p\n",(void*)es->sp);
+	printf("\tpv = %p\n",(void*)es->pv);
 	for (i=0; i<INT_REG_CNT; ++i) {
 		printf("\t%-3s = %016llx\n",regs[i],(unsigned long long)es->intregs[i]);
 	}
@@ -911,7 +975,7 @@ void replace_sourcestate_println(sourcestate *ss)
 		return;
 	}
 
-	printf("sourcestate %p:\n",(void*)ss);
+	printf("sourcestate %p: stackbase=%p\n",(void*)ss,(void*)ss->stackbase);
 
 	printf("\tlocals (%d):\n",ss->javalocalcount);
 	for (i=0; i<ss->javalocalcount; ++i) {

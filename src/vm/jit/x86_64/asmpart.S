@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4623 2006-03-16 00:05:18Z edwin $
+   $Id: asmpart.S 4643 2006-03-16 18:38:42Z edwin $
 
 */
 
@@ -681,6 +681,9 @@ asm_replacement_out:
 	mov     sp,itmp1
 	add     $(sizeexecutionstate + REPLACEMENT_ROOM + 8),itmp1
 	mov     itmp1,(offes_sp)(sp)
+
+	/* pv must be looked up via AVL tree */
+	movq    $0,(offes_pv)(sp)
 
 	/* call replace_me */
 	mov     -8(itmp1),a0                /* rplpoint *                         */
