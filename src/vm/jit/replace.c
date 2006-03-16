@@ -529,7 +529,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	ss->syncslotcount = count;
 	ss->syncslots = DMNEW(u8,count);
 	for (i=0; i<count; ++i) {
-		ss->syncslots[i] = *--basesp;
+		ss->syncslots[i] = sp[code->memuse + i];
 	}
 }
 
@@ -728,7 +728,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	count = code_get_sync_slot_count(code);
 	assert(count == ss->syncslotcount);
 	for (i=0; i<count; ++i) {
-		*--basesp = ss->syncslots[i];
+		sp[code->memuse + i] = ss->syncslots[i];
 	}
 
 	/* set new pc */
