@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4615 2006-03-15 16:36:43Z twisti $
+   $Id: codegen.c 4623 2006-03-16 00:05:18Z edwin $
 
 */
 
@@ -65,6 +65,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/replace.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -93,6 +94,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+	rplpoint           *replacementpoint;
 
 	/* prevent compiler warnings */
 
@@ -374,6 +376,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
+	replacementpoint = cd->code->rplpoints;
+
 	/* walk through all basic blocks */
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
@@ -390,6 +394,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 								  bref->branchpos,
 								  bptr->mpc);
 			}
+
+		/* handle replacement points */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
+			
+			replacementpoint++;
+		}
 
 		/* copy interface registers to their destination */
 
@@ -3954,6 +3966,39 @@ gen_method:
 		}
 	}
 
+	/* generate replacement-out stubs */
+
+	{
+		int i;
+		s4 displacement;
+
+		replacementpoint = cd->code->rplpoints;
+		for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+			/* check code segment size */
+
+			MCODECHECK(512);
+
+			/* note start of stub code */
+
+			replacementpoint->outcode = (u1*) (ptrint)(cd->mcodeptr - cd->mcodebase);
+
+			/* make machine code for patching */
+
+			displacement = (ptrint)(replacementpoint->outcode - replacementpoint->pc) - 5;
+			replacementpoint->mcode = 0xe9 | ((u8)displacement << 8);
+
+			/* push address of `rplpoint` struct */
+			
+			M_MOV_IMM(replacementpoint, REG_ITMP3);
+			M_PUSH(REG_ITMP3);
+
+			/* jump to replacement function */
+
+			M_MOV_IMM(asm_replacement_out, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+		}
+	}
+	
 	codegen_finish(m, cd, (s4) ((u1 *) cd->mcodeptr - cd->mcodebase));
 
 	/* everything's ok */

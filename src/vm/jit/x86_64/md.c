@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: md.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md.c 4623 2006-03-16 00:05:18Z edwin $
 
 */
 
@@ -46,6 +46,8 @@
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
 
 
 /* md_init *********************************************************************
@@ -177,6 +179,42 @@ u1 *md_codegen_findmethod(u1 *ra)
 }
 
 
+/* md_patch_replacement_point **************************************************
+
+   Patch the given replacement point.
+
+*******************************************************************************/
+
+void md_patch_replacement_point(rplpoint *rp)
+{
+    u8 mcode;
+
+	/* XXX this is probably unsafe! */
+
+	/* save the current machine code */
+	mcode = *(u8*)rp->pc;
+
+	/* write spinning instruction */
+	*(u2*)(rp->pc) = 0xebfe;
+
+	/* write 5th byte */
+	rp->pc[4] = (rp->mcode >> 32);
+
+	/* write first word */
+    *(u4*)(rp->pc) = (u4) rp->mcode;
+
+	/* store saved mcode */
+	rp->mcode = mcode;
+	
+	{
+		u1* u1ptr = rp->pc;
+		DISASSINSTR(u1ptr);
+		fflush(stdout);
+	}
+			
+    /* XXX if required asm_cacheflush(rp->pc,8); */
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -188,4 +226,5 @@ u1 *md_codegen_findmethod(u1 *ra)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: genoffsets.c 4617 2006-03-15 20:38:30Z edwin $
+   $Id: genoffsets.c 4623 2006-03-16 00:05:18Z edwin $
 
 */
 
@@ -84,7 +84,8 @@ int main(int argc, char **argv)
 
 	printf("#define offes_pc                   %3d\n", (s4) OFFSET(executionstate, pc));
 	printf("#define offes_sp                   %3d\n", (s4) OFFSET(executionstate, sp));
-	printf("#define offes_regs                 %3d\n", (s4) OFFSET(executionstate, regs));
+	printf("#define offes_intregs              %3d\n", (s4) OFFSET(executionstate, intregs));
+	printf("#define offes_fltregs              %3d\n", (s4) OFFSET(executionstate, fltregs));
 
 	/* everything is ok */
 

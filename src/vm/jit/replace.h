@@ -73,15 +73,12 @@ struct rplpoint {
 /* An `executionsstate` represents the state of a thread as it reached */
 /* an replacement point or is about to enter one.                      */
 
-#define MD_EXCSTATE_NREGS         (8)
-#define MD_EXCSTATE_INT_NSAVED     3
-#define MD_EXCSTATE_FLT_NSAVED     0
-
 struct executionstate {
 	u1           *pc;                               /* program counter */
 	u1           *sp;                   /* stack pointer within method */
 
-	u8            regs[MD_EXCSTATE_NREGS];          /* register values */
+	u8            intregs[INT_REG_CNT];             /* register values */
+	u8            fltregs[FLT_REG_CNT];             /* register values */
 };
 
 /* `sourcestate` will probably only be used for debugging              */

@@ -41,6 +41,7 @@
 #include "vm/jit/code.h"
 #include "mm/memory.h"
 #include "vm/options.h"
+#include "arch.h"
 
 codeinfo *code_codeinfo_new(methodinfo *m)
 {
@@ -61,12 +62,20 @@ int code_get_stack_frame_size(codeinfo *code)
 	
 	assert(code);
 
-	/* XXX adapt for 4/8 byte stackslots */
-
+	/* XXX generalize to all archs */
+#ifdef HAS_4BYTE_STACKSLOT
 	count = code->memuse + code->savedintcount + 2*code->savedfltcount;
+#else
+	count = code->memuse + code->savedintcount + code->savedfltcount;
+#endif
 
+	/* XXX generalize to all archs */
 	if (checksync && (code->m->flags & ACC_SYNCHRONIZED))
+#ifdef HAS_4BYTE_STACKSLOT
 		count += (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type)) ? 2 : 1;
+#else
+		count++;
+#endif
 
 	return count;
 }

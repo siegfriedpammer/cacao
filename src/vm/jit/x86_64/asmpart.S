@@ -28,9 +28,9 @@
             Reinhard Grafl
             Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: asmpart.S 4559 2006-03-05 23:24:50Z twisti $
+   $Id: asmpart.S 4623 2006-03-16 00:05:18Z edwin $
 
 */
 
@@ -63,6 +63,9 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
+
+	.globl asm_replacement_out
+	.globl asm_replacement_in
 
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
@@ -616,6 +619,134 @@ L_asm_wrapper_patcher_exception:
 	jmp     L_asm_handle_exception
 
 
+/* asm_replacement_out *********************************************************
+
+   This code is jumped to from the replacement-out stubs that are executed
+   when a thread reaches an activated replacement point.
+
+   The purpose of asm_replacement_out is to read out the parts of the
+   execution state that cannot be accessed from C code, store this state,
+   and then call the C function replace_me.
+
+   Stack layout:
+      8                 start of stack inside method to replace
+      0   rplpoint *    info on the replacement point that was reached
+
+*******************************************************************************/
+
+/* some room to accomodate changes of the stack frame size during replacement */
+	/* XXX we should find a cleaner solution here */
+#define REPLACEMENT_ROOM  512
+
+asm_replacement_out:
+    /* create stack frame */
+	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
+
+	/* save registers in execution state */
+	mov     %rax,(RAX*8+offes_intregs)(sp)
+	mov     %rbx,(RBX*8+offes_intregs)(sp)
+	mov     %rcx,(RCX*8+offes_intregs)(sp)
+	mov     %rdx,(RDX*8+offes_intregs)(sp)
+	mov     %rsi,(RSI*8+offes_intregs)(sp)
+	mov     %rdi,(RDI*8+offes_intregs)(sp)
+	mov     %rbp,(RBP*8+offes_intregs)(sp)
+	movq    $0  ,(RSP*8+offes_intregs)(sp) /* not used */
+	mov     %r8 ,(R8 *8+offes_intregs)(sp)
+	mov     %r9 ,(R9 *8+offes_intregs)(sp)
+	mov     %r10,(R10*8+offes_intregs)(sp)
+	mov     %r11,(R11*8+offes_intregs)(sp)
+	mov     %r12,(R12*8+offes_intregs)(sp)
+	mov     %r13,(R13*8+offes_intregs)(sp)
+	mov     %r14,(R14*8+offes_intregs)(sp)
+	mov     %r15,(R15*8+offes_intregs)(sp)
+
+	movq    %xmm0 ,(XMM0 *8+offes_fltregs)(sp)
+	movq    %xmm1 ,(XMM1 *8+offes_fltregs)(sp)
+	movq    %xmm2 ,(XMM2 *8+offes_fltregs)(sp)
+	movq    %xmm3 ,(XMM3 *8+offes_fltregs)(sp)
+	movq    %xmm4 ,(XMM4 *8+offes_fltregs)(sp)
+	movq    %xmm5 ,(XMM5 *8+offes_fltregs)(sp)
+	movq    %xmm6 ,(XMM6 *8+offes_fltregs)(sp)
+	movq    %xmm7 ,(XMM7 *8+offes_fltregs)(sp)
+	movq    %xmm8 ,(XMM8 *8+offes_fltregs)(sp)
+	movq    %xmm9 ,(XMM9 *8+offes_fltregs)(sp)
+	movq    %xmm10,(XMM10*8+offes_fltregs)(sp)
+	movq    %xmm11,(XMM11*8+offes_fltregs)(sp)
+	movq    %xmm12,(XMM12*8+offes_fltregs)(sp)
+	movq    %xmm13,(XMM13*8+offes_fltregs)(sp)
+	movq    %xmm14,(XMM14*8+offes_fltregs)(sp)
+	movq    %xmm15,(XMM15*8+offes_fltregs)(sp)
+
+	/* calculate sp of method */
+	mov     sp,itmp1
+	add     $(sizeexecutionstate + REPLACEMENT_ROOM + 8),itmp1
+	mov     itmp1,(offes_sp)(sp)
+
+	/* call replace_me */
+	mov     -8(itmp1),a0                /* rplpoint *                         */
+    mov     sp,a1                       /* arg1: execution state              */
+    call    replace_me@PLT              /* call C function replace_me         */
+    call    abort@PLT                   /* NEVER REACHED                      */
+
+/* asm_replacement_in **********************************************************
+
+   This code writes the given execution state and jumps to the replacement
+   code.
+
+   This function never returns!
+
+   C prototype:
+      void asm_replacement_in(executionstate *es);
+
+*******************************************************************************/
+
+asm_replacement_in:
+	mov     a0,%rbp                     /* executionstate *es                 */
+
+	/* set new sp */
+	mov     (offes_sp)(%rbp),%rsp
+	
+	/* store address of new code */
+	push    (offes_pc)(%rbp)
+	
+	/* copy registers from execution state */
+	movq    (XMM0 *8+offes_fltregs)(%rbp),%xmm0
+	movq    (XMM1 *8+offes_fltregs)(%rbp),%xmm1
+	movq    (XMM2 *8+offes_fltregs)(%rbp),%xmm2
+	movq    (XMM3 *8+offes_fltregs)(%rbp),%xmm3
+	movq    (XMM4 *8+offes_fltregs)(%rbp),%xmm4
+	movq    (XMM5 *8+offes_fltregs)(%rbp),%xmm5
+	movq    (XMM6 *8+offes_fltregs)(%rbp),%xmm6
+	movq    (XMM7 *8+offes_fltregs)(%rbp),%xmm7
+	movq    (XMM8 *8+offes_fltregs)(%rbp),%xmm8
+	movq    (XMM9 *8+offes_fltregs)(%rbp),%xmm9
+	movq    (XMM10*8+offes_fltregs)(%rbp),%xmm10
+	movq    (XMM11*8+offes_fltregs)(%rbp),%xmm11
+	movq    (XMM12*8+offes_fltregs)(%rbp),%xmm12
+	movq    (XMM13*8+offes_fltregs)(%rbp),%xmm13
+	movq    (XMM14*8+offes_fltregs)(%rbp),%xmm14
+	movq    (XMM15*8+offes_fltregs)(%rbp),%xmm15
+
+	mov     (RAX*8+offes_intregs)(%rbp),%rax
+	mov     (RBX*8+offes_intregs)(%rbp),%rbx
+	mov     (RCX*8+offes_intregs)(%rbp),%rcx
+	mov     (RDX*8+offes_intregs)(%rbp),%rdx
+	mov     (RSI*8+offes_intregs)(%rbp),%rsi
+	mov     (RDI*8+offes_intregs)(%rbp),%rdi
+	mov     (R8 *8+offes_intregs)(%rbp),%r8
+	mov     (R9 *8+offes_intregs)(%rbp),%r9
+	mov     (R10*8+offes_intregs)(%rbp),%r10
+	mov     (R11*8+offes_intregs)(%rbp),%r11
+	mov     (R12*8+offes_intregs)(%rbp),%r12
+	mov     (R13*8+offes_intregs)(%rbp),%r13
+	mov     (R14*8+offes_intregs)(%rbp),%r14
+	mov     (R15*8+offes_intregs)(%rbp),%r15
+
+	mov     (RBP*8+offes_intregs)(%rbp),%rbp
+
+	/* jump to new code */
+	ret
+
 /* asm_builtin_x2x *************************************************************
 *                                                                              *
 *   Wrapper functions for float to int corner cases                            *
@@ -815,4 +946,5 @@ asm_criticalsections:
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4618 2006-03-15 20:40:57Z edwin $
+   $Id: asmpart.S 4623 2006-03-16 00:05:18Z edwin $
 
 */
 
@@ -65,6 +65,7 @@
 	.globl asm_handle_exception
 
 	.globl asm_wrapper_patcher
+
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 
@@ -563,25 +564,25 @@ asm_replacement_out:
 	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
 
 	/* save registers in execution state */
-	mov     %eax,(EAX*8+offes_regs)(sp)
-	mov     %ebx,(EBX*8+offes_regs)(sp)
-	mov     %ecx,(ECX*8+offes_regs)(sp)
-	mov     %edx,(EDX*8+offes_regs)(sp)
-	mov     %esi,(ESI*8+offes_regs)(sp)
-	mov     %edi,(EDI*8+offes_regs)(sp)
-	mov     %ebp,(EBP*8+offes_regs)(sp)
-	movl    $0  ,(ESP*8+offes_regs)(sp) /* XXX */
+	mov     %eax,(EAX*8+offes_intregs)(sp)
+	mov     %ebx,(EBX*8+offes_intregs)(sp)
+	mov     %ecx,(ECX*8+offes_intregs)(sp)
+	mov     %edx,(EDX*8+offes_intregs)(sp)
+	mov     %esi,(ESI*8+offes_intregs)(sp)
+	mov     %edi,(EDI*8+offes_intregs)(sp)
+	mov     %ebp,(EBP*8+offes_intregs)(sp)
+	movl    $0  ,(ESP*8+offes_intregs)(sp) /* not used */
 
 #ifndef NDEBUG
 	/* clear high 32bit */
-	movl    $0,(4+0*8+offes_regs)(sp)
-	movl    $0,(4+1*8+offes_regs)(sp)
-	movl    $0,(4+2*8+offes_regs)(sp)
-	movl    $0,(4+3*8+offes_regs)(sp)
-	movl    $0,(4+4*8+offes_regs)(sp)
-	movl    $0,(4+5*8+offes_regs)(sp)
-	movl    $0,(4+6*8+offes_regs)(sp)
-	movl    $0,(4+7*8+offes_regs)(sp)
+	movl    $0,(4+0*8+offes_intregs)(sp)
+	movl    $0,(4+1*8+offes_intregs)(sp)
+	movl    $0,(4+2*8+offes_intregs)(sp)
+	movl    $0,(4+3*8+offes_intregs)(sp)
+	movl    $0,(4+4*8+offes_intregs)(sp)
+	movl    $0,(4+5*8+offes_intregs)(sp)
+	movl    $0,(4+6*8+offes_intregs)(sp)
+	movl    $0,(4+7*8+offes_intregs)(sp)
 #endif
 
 	/* calculate sp of method */
@@ -609,9 +610,7 @@ asm_replacement_out:
 *******************************************************************************/
 
 asm_replacement_in:
-	mov     %esp,%ebp                   /* save stackptr                      */
-
-	mov     (4+0)(%ebp),%ebp            /* executionstate *es                 */
+	mov     4(sp),%ebp                  /* executionstate *es                 */
 
 	/* set new sp */
 	mov     (offes_sp)(%ebp),%esp
@@ -620,13 +619,14 @@ asm_replacement_in:
 	push    (offes_pc)(%ebp)
 	
 	/* copy registers from execution state */
-	mov     (EAX*8+offes_regs)(%ebp),%eax
-	mov     (EBX*8+offes_regs)(%ebp),%ebx
-	mov     (ECX*8+offes_regs)(%ebp),%ecx
-	mov     (EDX*8+offes_regs)(%ebp),%edx
-	mov     (ESI*8+offes_regs)(%ebp),%esi
-	mov     (EDI*8+offes_regs)(%ebp),%edi
-	mov     (EBP*8+offes_regs)(%ebp),%ebp
+	mov     (EAX*8+offes_intregs)(%ebp),%eax
+	mov     (EBX*8+offes_intregs)(%ebp),%ebx
+	mov     (ECX*8+offes_intregs)(%ebp),%ecx
+	mov     (EDX*8+offes_intregs)(%ebp),%edx
+	mov     (ESI*8+offes_intregs)(%ebp),%esi
+	mov     (EDI*8+offes_intregs)(%ebp),%edi
+
+	mov     (EBP*8+offes_intregs)(%ebp),%ebp
 
 	/* jump to new code */
 	ret

@@ -42,6 +42,8 @@
 #include "vm/options.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
+#include "arch.h"
 
 /* replace_create_replacement_points *******************************************
  
@@ -271,7 +273,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 	
 	rp->target = target;
 	
-#if defined(__I386__) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -299,7 +301,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 	
 	rp->target = NULL;
 	
-#if defined(__I386__) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -328,9 +330,14 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	int t;
 	int allocs;
 	rplalloc *ra;
-	u4 *sp; /* XXX configure stack slot size */
-	u4 *basesp;
 	methoddesc *md;
+#ifdef HAS_4BYTE_STACKSLOT
+	u4 *sp;
+	u4 *basesp;
+#else
+	u8 *sp;
+	u8 *basesp;
+#endif
 
 	code = rp->code;
 	m = code->m;
@@ -338,7 +345,11 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 	/* calculate stack pointers */
 
+#ifdef HAS_4BYTE_STACKSLOT
 	sp = (u4*) es->sp;
+#else
+	sp = (u8*) es->sp;
+#endif
 	basesp = sp + code_get_stack_frame_size(code);
 
 	/* read local variables */
@@ -367,7 +378,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 			ss->javalocals[i*5+t] = sp[ra->index];
 		}
 		else {
-			ss->javalocals[i*5+t] = es->regs[ra->index];
+			ss->javalocals[i*5+t] = es->intregs[ra->index];
 		}
 	}
 
@@ -386,7 +397,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 			ss->javastack[i] = sp[ra->index];
 		}
 		else {
-			ss->javastack[i] = es->regs[ra->index];
+			ss->javastack[i] = es->intregs[ra->index];
 		}
 	}
 
@@ -396,7 +407,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	for (i=0; count > code->savedintcount; ++i) {
 		assert(i < INT_REG_CNT);
 		if (nregdescint[i] == REG_SAV)
-			ss->savedintregs[--count] = es->regs[i];
+			ss->savedintregs[--count] = es->intregs[i];
 	}
 
 	/* read saved int regs */
@@ -408,14 +419,22 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	/* read saved flt regs */
 
 	for (i=0; i<code->savedfltcount; ++i) {
+#ifdef HAS_4BYTE_STACKSLOT
 		basesp -= 2;
+#else
+		basesp--;
+#endif
 		ss->savedfltregs[i] = *(u8*)basesp;
 	}
-#ifndef NDEBUG
-	/* XXX */
-	for (; i<FLT_SAV_CNT; ++i)
-		ss->savedfltregs[i] = (u8) 0x00dead0000dead00ULL;
-#endif
+
+	/* read unused callee saved flt regs */
+	
+	count = FLT_SAV_CNT;
+	for (i=0; count > code->savedfltcount; ++i) {
+		assert(i < FLT_REG_CNT);
+		if (nregdescfloat[i] == REG_SAV)
+			ss->savedfltregs[--count] = es->fltregs[i];
+	}
 }
 
 /* replace_write_executionstate ************************************************
@@ -442,9 +461,14 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 	int t;
 	int allocs;
 	rplalloc *ra;
-	u4 *sp; /* XXX configure stack slot size */
-	u4 *basesp; /* XXX configure stack slot size */
 	methoddesc *md;
+#ifdef HAS_4BYTE_STACKSLOT
+	u4 *sp;
+	u4 *basesp;
+#else
+	u8 *sp;
+	u8 *basesp;
+#endif
 
 	code = rp->code;
 	m = code->m;
@@ -452,11 +476,12 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 	
 	/* calculate stack pointers */
 
+#ifdef HAS_4BYTE_STACKSLOT
 	sp = (u4*) es->sp;
+#else
+	sp = (u8*) es->sp;
+#endif
 	basesp = sp + code_get_stack_frame_size(code);
-
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		basesp += (IS_2_WORD_TYPE(md->returntype.type)) ? 2 : 1;
 
 	/* in debug mode, invalidate stack frame first */
 
@@ -487,7 +512,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 			sp[ra->index] = ss->javalocals[i*5+t];
 		}
 		else {
-			es->regs[ra->index] = ss->javalocals[i*5+t];
+			es->intregs[ra->index] = ss->javalocals[i*5+t];
 		}
 	}
 
@@ -504,7 +529,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 			sp[ra->index] = ss->javastack[i];
 		}
 		else {
-			es->regs[ra->index] = ss->javastack[i];
+			es->intregs[ra->index] = ss->javastack[i];
 		}
 	}
 	
@@ -514,7 +539,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 	for (i=0; count > code->savedintcount; ++i) {
 		assert(i < INT_REG_CNT);
 		if (nregdescint[i] == REG_SAV)
-			es->regs[i] = ss->savedintregs[--count];
+			es->intregs[i] = ss->savedintregs[--count];
 	}
 
 	/* write saved int regs */
@@ -523,10 +548,23 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 		*--basesp = ss->savedintregs[i];
 	}
 
+	/* write unused callee saved flt regs */
+	
+	count = FLT_SAV_CNT;
+	for (i=0; count > code->savedfltcount; ++i) {
+		assert(i < FLT_REG_CNT);
+		if (nregdescfloat[i] == REG_SAV)
+			es->fltregs[i] = ss->savedfltregs[--count];
+	}
+
 	/* write saved flt regs */
 
 	for (i=0; i<code->savedfltcount; ++i) {
+#ifdef HAS_4BYTE_STACKSLOT
 		basesp -= 2;
+#else
+		basesp--;
+#endif
 		*(u8*)basesp = ss->savedfltregs[i];
 	}
 
@@ -592,7 +630,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 
 	/* enter new code */
 
-#if defined(__I386__) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
 	abort();
@@ -703,8 +741,12 @@ void replace_show_replacement_points(codeinfo *code)
 void replace_executionstate_println(executionstate *es,codeinfo *code)
 {
 	int i;
-	u4 *slotptr; /* XXX configure stack slot size */
 	int slots;
+#ifdef HAS_4BYTE_STACKSLOT
+	u4 *sp;
+#else
+	u8 *sp;
+#endif
 
  	if (!es) {
 		printf("(executionstate *)NULL\n");
@@ -714,11 +756,18 @@ void replace_executionstate_println(executionstate *es,codeinfo *code)
 	printf("executionstate %p:\n",(void*)es);
 	printf("\tpc = %p\n",(void*)es->pc);
 	printf("\tsp = %p\n",(void*)es->sp);
-	for (i=0; i<MD_EXCSTATE_NREGS; ++i) {
-		printf("\tregs[%2d] = %016llx\n",i,(unsigned long long)es->regs[i]);
+	for (i=0; i<INT_REG_CNT; ++i) {
+		printf("\t%-3s = %016llx\n",regs[i],(unsigned long long)es->intregs[i]);
+	}
+	for (i=0; i<FLT_REG_CNT; ++i) {
+		printf("\tfltregs[%2d] = %016llx\n",i,(unsigned long long)es->fltregs[i]);
 	}
 
-	slotptr = (u4*) es->sp;
+#ifdef HAS_4BYTE_STACKSLOT
+	sp = (u4*) es->sp;
+#else
+	sp = (u8*) es->sp;
+#endif
 
 	if (code)
 		slots = code_get_stack_frame_size(code);
@@ -727,7 +776,11 @@ void replace_executionstate_println(executionstate *es,codeinfo *code)
 
 	printf("\tstack slots at sp:\n");
 	for (i=0; i<slots; ++i) {
-		printf("\t\t%08lx\n",(unsigned long)*slotptr++);
+#ifdef HAS_4BYTE_STACKSLOT
+		printf("\t\t%08lx\n",(unsigned long)*sp++);
+#else
+		printf("\t\t%016llx\n",(unsigned long long)*sp++);
+#endif
 	}
 
 	printf("\n");
@@ -748,6 +801,7 @@ void replace_sourcestate_println(sourcestate *ss)
 {
 	int i;
 	int t;
+	int reg;
 
  	if (!ss) {
 		printf("(sourcestate *)NULL\n");
@@ -777,9 +831,12 @@ void replace_sourcestate_println(sourcestate *ss)
 	printf("\n");
 
 	printf("\tsaved int registers (%d):\n",INT_SAV_CNT);
+	reg = INT_REG_CNT;
 	for (i=0; i<INT_SAV_CNT; ++i) {
+		while (nregdescint[--reg] != REG_SAV)
+			;
 		if (ss->savedintregs[i] != 0x00dead0000dead00ULL) {
-			printf("\tsavedintreg[%2d] = ",i);
+			printf("\t%-3s = ",regs[reg]);
 			printf("%016llx\n",(unsigned long long) ss->savedintregs[i]);
 		}
 	}
