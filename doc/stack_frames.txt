@@ -34,6 +34,30 @@ V   u4       return address
 V
 
 
+x86_64 stack frames
+-----------------
+
+,--memory address rising
+|
+V   >>>> sp in method (after initial sub) <<<<
+|          
+|   u8[]  v  arguments for calling methods              \__ rd->memuse slots
+V   u8[]  v  local variable slots allocated on stack    /
+|
+|   u8       synchronized object / saved return value       (only for synched methods)
+V   u8       alignment dummy slot                           (in non-leaf methods to ensure
+|                                                            16-byte alignment of stack)
+|   u8[]  ^  callee-saved float registers
+V   u8[]  ^  callee-saved integer registers
+|          
+|   >>>> sp on method entry <<<<
+V
+|   u8       return address
+|   u8[]     arguments on stack
+V
+
+
+
 alpha stack frames
 ------------------
 
