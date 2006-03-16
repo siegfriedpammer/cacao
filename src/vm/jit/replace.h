@@ -42,10 +42,6 @@
 #include "arch.h"
 #include "md-abi.h"
 
-/*** constants *******************************************************/
-
-#define RPLPOINT_SBR        0x01           /* local subroutine entry */
-
 /*** structs *********************************************************/
 
 typedef struct rplalloc rplalloc;
