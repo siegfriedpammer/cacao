@@ -438,7 +438,11 @@ static void version(void)
 
 	puts("Configure/Build options:\n");
 	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+#if defined(__VERSION__)
 	puts("  CC         : "VERSION_CC" ("__VERSION__")");
+#else
+	puts("  CC         : "VERSION_CC"");
+#endif
 	puts("  CFLAGS     : "VERSION_CFLAGS"");
 }
 
