@@ -28,11 +28,11 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4594 2006-03-14 16:40:32Z twisti $
+## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 if DISABLE_GC
 if NATIVE_THREADS
