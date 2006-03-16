@@ -74,6 +74,7 @@ struct codeinfo {
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
 
+int code_get_sync_slot_count(codeinfo *code);
 int code_get_stack_frame_size(codeinfo *code);
 
 void code_free_code_of_method(methodinfo *m);

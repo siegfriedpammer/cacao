@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4616 2006-03-15 17:17:35Z twisti $
+   $Id: codegen.c 4624 2006-03-16 04:17:08Z edwin $
 
 */
 
@@ -446,6 +446,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
+
+			assert(cd->lastmcodeptr <= cd->mcodeptr);
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
 		}
 
 		/* copy interface registers to their destination */

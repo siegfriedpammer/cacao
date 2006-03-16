@@ -42,6 +42,12 @@
 #include "arch.h"
 #include "md-abi.h"
 
+/*** constants *******************************************************/
+
+#define RPLPOINT_SBR        0x01           /* local subroutine entry */
+
+/*** structs *********************************************************/
+
 typedef struct rplalloc rplalloc;
 
 /* `rplalloc` is a compact struct for register allocation info        */
@@ -60,14 +66,15 @@ struct rplalloc {
 /* An `rplpoint` represents a replacement point in a compiled method  */
 
 struct rplpoint {
-	u1       *pc;           /* machine code PC of this point  */
-	u1       *outcode;      /* pointer to replacement-out code*/
-	rplpoint *hashlink;     /* chain to next rplpoint in hash */ /* XXX needed? */
-	codeinfo *code;         /* codeinfo this point belongs to */
-	rplpoint *target;       /* target of the replacement      */
-	u8        mcode;        /* saved maching code for patching*/
-	rplalloc *regalloc;     /* pointer to register index table*/
-	s4        regalloccount;/* number of local allocations    */
+	u1          *pc;           /* machine code PC of this point       */
+	u1          *outcode;      /* pointer to replacement-out code     */
+	codeinfo    *code;         /* codeinfo this point belongs to      */
+	rplpoint    *target;       /* target of the replacement           */
+	u8           mcode;        /* saved maching code for patching     */
+	rplalloc    *regalloc;     /* pointer to register index table     */
+	unsigned int regalloccount:24; /* number of local allocations     */
+	unsigned int type:4;           /* BBTYPE_... constant             */
+	unsigned int flags:8;          /* OR of RPLPOINT_... constants    */
 };
 
 /* An `executionsstate` represents the state of a thread as it reached */
@@ -92,6 +99,9 @@ struct sourcestate {
 
 	u8            savedintregs[INT_SAV_CNT + 1]; /* XXX */
 	u8            savedfltregs[FLT_SAV_CNT + 1]; /* XXX */
+
+	u8           *syncslots;
+	s4            syncslotcount;
 };
 
 /*** prototypes ********************************************************/

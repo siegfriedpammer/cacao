@@ -43,6 +43,21 @@
 #include "vm/options.h"
 #include "arch.h"
 
+/* code_codeinfo_new ***********************************************************
+
+   Create a new codeinfo for the given method.
+   
+   IN:
+       m................method to create a new codeinfo for
+
+   Note: codeinfo.m is set to m, all other fields are zeroed.
+
+   RETURN VALUE:
+       a new, initialized codeinfo, or
+	   NULL if an exception occurred.
+  
+*******************************************************************************/
+
 codeinfo *code_codeinfo_new(methodinfo *m)
 {
 	codeinfo *code;
@@ -55,6 +70,52 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	
 	return code;
 }
+
+/* code_get_sync_slot_count ****************************************************
+
+   Return the number of stack slots used for storing the synchronized object
+   (and the return value around monitorExit calls) by the given code.
+   
+   IN:
+       code.............the codeinfo of the code in question
+	                    (must be != NULL)
+
+   RETURN VALUE:
+       the number of stack slots used for synchronization
+  
+*******************************************************************************/
+
+int code_get_sync_slot_count(codeinfo *code)
+{
+	assert(code);
+
+	if (!checksync)
+		return 0;
+
+	if (!(code->m->flags & ACC_SYNCHRONIZED))
+		return 0;
+
+	/* XXX generalize to all archs */
+#ifdef HAS_4BYTE_STACKSLOT
+	return (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type)) ? 2 : 1;
+#else
+	return 1;
+#endif
+}
+
+/* code_get_stack_frame_size ***************************************************
+
+   Return the number of stack slots that the stack frame of the given code
+   comprises.
+   
+   IN:
+       code.............the codeinfo of the code in question
+	                    (must be != NULL)
+
+   RETURN VALUE:
+       the number of stack slots
+  
+*******************************************************************************/
 
 int code_get_stack_frame_size(codeinfo *code)
 {
@@ -69,16 +130,19 @@ int code_get_stack_frame_size(codeinfo *code)
 	count = code->memuse + code->savedintcount + code->savedfltcount;
 #endif
 
-	/* XXX generalize to all archs */
-	if (checksync && (code->m->flags & ACC_SYNCHRONIZED))
-#ifdef HAS_4BYTE_STACKSLOT
-		count += (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type)) ? 2 : 1;
-#else
-		count++;
-#endif
+	count += code_get_sync_slot_count(code);
 
 	return count;
 }
+
+/* code_codeinfo_free **********************************************************
+
+   Free the memory used by a codeinfo.
+   
+   IN:
+       code.............the codeinfo to free
+
+*******************************************************************************/
 
 void code_codeinfo_free(codeinfo *code)
 {
@@ -93,10 +157,22 @@ void code_codeinfo_free(codeinfo *code)
 	FREE(code,codeinfo);
 }
 
+/* code_free_code_of_method ****************************************************
+
+   Free all codeinfos of the given method
+   
+   IN:
+       m................the method of which the codeinfos are to be freed
+
+*******************************************************************************/
+
 void code_free_code_of_method(methodinfo *m)
 {
 	codeinfo *nextcode;
 	codeinfo *code;
+
+	if (!m)
+		return;
 	
 	nextcode = m->code;
 	while (nextcode) {
@@ -104,6 +180,8 @@ void code_free_code_of_method(methodinfo *m)
 		nextcode = code->prev;
 		code_codeinfo_free(code);
 	}
+
+	m->code = NULL;
 }
 
 /*

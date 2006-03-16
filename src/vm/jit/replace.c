@@ -39,7 +39,9 @@
 #include <stdlib.h>
 
 #include "mm/memory.h"
+#include "toolbox/logging.h"
 #include "vm/options.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
@@ -187,10 +189,11 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd)
 
 		rp->pc = NULL;        /* set by codegen */
 		rp->outcode = NULL;   /* set by codegen */
-		rp->hashlink = NULL;
 		rp->code = code;
 		rp->target = NULL;
 		rp->regalloc = ra;
+		rp->flags = 0;
+		rp->type = bptr->type;
 
 		/* store local allocation info */
 
@@ -350,6 +353,11 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 #else
 	sp = (u8*) es->sp;
 #endif
+
+	/* XXX only on i386? */
+	if (rp->type == BBTYPE_SBR)
+		sp++;
+	
 	basesp = sp + code_get_stack_frame_size(code);
 
 	/* read local variables */
@@ -374,12 +382,27 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		if (t == -1)
 			continue; /* dummy rplalloc */
 
-		if (ra->flags & INMEMORY) {
-			ss->javalocals[i*5+t] = sp[ra->index];
+#ifdef HAS_4BYTE_STACKSLOT
+		if (IS_2_WORD_TYPE(ra->type)) {
+			if (ra->flags & INMEMORY) {
+				ss->javalocals[i*5+t] = *(u8*)(sp + ra->index);
+			}
+			else {
+				dolog("XXX split 2-word types in registers are not supported");
+				assert(0);
+			}
 		}
 		else {
-			ss->javalocals[i*5+t] = es->intregs[ra->index];
+#endif
+			if (ra->flags & INMEMORY) {
+				ss->javalocals[i*5+t] = sp[ra->index];
+			}
+			else {
+				ss->javalocals[i*5+t] = es->intregs[ra->index];
+			}
+#ifdef HAS_4BYTE_STACKSLOT
 		}
+#endif
 	}
 
 	/* read stack slots */
@@ -390,6 +413,26 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 
 	i = 0;
 	ra = rp->regalloc;
+
+	/* the first stack slot is special in SBR and EXH blocks */
+
+	if (rp->type == BBTYPE_SBR) {
+		assert(count);
+		
+		ss->javastack[i] = sp[-1];
+		count--;
+		i++;
+		ra++;
+	}
+	else if (rp->type == BBTYPE_EXH) {
+		assert(count);
+
+		ss->javastack[i] = es->intregs[REG_ITMP1]; /* XXX all platforms? */
+		count--;
+		i++;
+		ra++;
+	}
+	
 	for (; count--; ra++, i++) {
 		assert(ra->next);
 
@@ -434,6 +477,15 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		assert(i < FLT_REG_CNT);
 		if (nregdescfloat[i] == REG_SAV)
 			ss->savedfltregs[--count] = es->fltregs[i];
+	}
+
+	/* read slots used for synchronization */
+
+	count = code_get_sync_slot_count(code);
+	ss->syncslotcount = count;
+	ss->syncslots = DMNEW(u8,count);
+	for (i=0; i<count; ++i) {
+		ss->syncslots[i] = *--basesp;
 	}
 }
 
@@ -481,6 +533,10 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 #else
 	sp = (u8*) es->sp;
 #endif
+
+	if (rp->type == BBTYPE_SBR)
+		sp++;
+	
 	basesp = sp + code_get_stack_frame_size(code);
 
 	/* in debug mode, invalidate stack frame first */
@@ -508,12 +564,27 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 		if (t == -1)
 			continue; /* dummy rplalloc */
 
-		if (ra->flags & INMEMORY) {
-			sp[ra->index] = ss->javalocals[i*5+t];
+#ifdef HAS_4BYTE_STACKSLOT
+		if (IS_2_WORD_TYPE(ra->type)) {
+			if (ra->flags & INMEMORY) {
+				*(u8*)(sp + ra->index) = ss->javalocals[i*5+t];
+			}
+			else {
+				dolog("XXX split 2-word types in registers are not supported");
+				assert(0);
+			}
 		}
 		else {
-			es->intregs[ra->index] = ss->javalocals[i*5+t];
+#endif
+			if (ra->flags & INMEMORY) {
+				sp[ra->index] = ss->javalocals[i*5+t];
+			}
+			else {
+				es->intregs[ra->index] = ss->javalocals[i*5+t];
+			}
+#ifdef HAS_4BYTE_STACKSLOT
 		}
+#endif
 	}
 
 	/* write stack slots */
@@ -522,6 +593,26 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 
 	i = 0;
 	ra = rp->regalloc;
+
+	/* the first stack slot is special in SBR and EXH blocks */
+
+	if (rp->type == BBTYPE_SBR) {
+		assert(count);
+		
+		sp[-1] = ss->javastack[i];
+		count--;
+		i++;
+		ra++;
+	}
+	else if (rp->type == BBTYPE_EXH) {
+		assert(count);
+
+		es->intregs[REG_ITMP1] = ss->javastack[i]; /* XXX all platforms? */
+		count--;
+		i++;
+		ra++;
+	}
+	
 	for (; count--; ra++, i++) {
 		assert(ra->next);
 
@@ -568,6 +659,14 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,sources
 		*(u8*)basesp = ss->savedfltregs[i];
 	}
 
+	/* write slots used for synchronization */
+
+	count = code_get_sync_slot_count(code);
+	assert(count == ss->syncslotcount);
+	for (i=0; i<count; ++i) {
+		*--basesp = ss->syncslots[i];
+	}
+
 	/* set new pc */
 
 	es->pc = rp->pc;
@@ -600,6 +699,10 @@ void replace_me(rplpoint *rp,executionstate *es)
 	/* fetch the target of the replacement */
 
 	target = rp->target;
+
+	/* XXX DEBUG turn of self-replacement */
+	if (target == rp)
+		replace_deactivate_replacement_point(rp);
 	
 #ifndef NDEBUG
 	printf("replace_me(%p,%p)\n",(void*)rp,(void*)es);
@@ -659,9 +762,9 @@ void replace_replacement_point_println(rplpoint *rp)
 		return;
 	}
 
-	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx allocs:%d = [",
+	printf("rplpoint %p pc:%p out:%p target:%p mcode:%016llx type:%01d flags:%01x ra:%d = [",
 			(void*)rp,rp->pc,rp->outcode,(void*)rp->target,
-			(unsigned long long)rp->mcode,rp->regalloccount);
+			(unsigned long long)rp->mcode,rp->type,rp->flags,rp->regalloccount);
 
 	for (j=0; j<rp->regalloccount; ++j)
 		printf("%c%1c%01x:%02d",
@@ -670,7 +773,7 @@ void replace_replacement_point_println(rplpoint *rp)
 				rp->regalloc[j].flags,
 				rp->regalloc[j].index);
 
-	printf("] method:");
+	printf("]\n          method: ");
 	method_print(rp->code->m);
 
 	printf("\n");
@@ -849,6 +952,18 @@ void replace_sourcestate_println(sourcestate *ss)
 			printf("\tsavedfltreg[%2d] = ",i);
 			printf("%016llx\n",(unsigned long long) ss->savedfltregs[i]);
 		}
+	}
+	
+	printf("\n");
+
+	printf("\tsynchronization slots (%d):\n",ss->syncslotcount);
+	for (i=0; i<ss->syncslotcount; ++i) {
+		printf("\tslot[%2d] = ",i);
+#ifdef HAS_4BYTE_STACKSLOT
+		printf("%08lx\n",(unsigned long) ss->syncslots[i]);
+#else
+		printf("%016llx\n",(unsigned long long) ss->syncslots[i]);
+#endif
 	}
 	
 	printf("\n");

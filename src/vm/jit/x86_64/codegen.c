@@ -30,13 +30,14 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4623 2006-03-16 00:05:18Z edwin $
+   $Id: codegen.c 4624 2006-03-16 04:17:08Z edwin $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -401,6 +402,9 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
+
+			assert(cd->lastmcodeptr <= cd->mcodeptr);
+			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
 		}
 
 		/* copy interface registers to their destination */
