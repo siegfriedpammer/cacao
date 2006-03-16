@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: cacao.c 4630 2006-03-16 14:00:48Z twisti $
 
 */
 
@@ -44,8 +44,6 @@
 
 #include "vm/types.h"
 
-#include "mm/boehm.h"
-#include "mm/memory.h"
 #include "native/jni.h"
 #include "native/include/java_lang_String.h"
 
