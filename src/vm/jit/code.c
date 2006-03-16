@@ -50,7 +50,10 @@
    IN:
        m................method to create a new codeinfo for
 
-   Note: codeinfo.m is set to m, all other fields are zeroed.
+   The following fields are set in codeinfo:
+       m
+	   isleafmethod
+   all other fields are zeroed
 
    RETURN VALUE:
        a new, initialized codeinfo, or
@@ -67,6 +70,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 	memset(code,0,sizeof(codeinfo));
 
 	code->m = m;
+	code->isleafmethod = m->isleafmethod; /* XXX will be moved to codeinfo */
 	
 	return code;
 }
