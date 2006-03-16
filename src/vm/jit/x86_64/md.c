@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4623 2006-03-16 00:05:18Z edwin $
+   $Id: md.c 4637 2006-03-16 15:36:49Z twisti $
 
 */
 
@@ -176,6 +176,19 @@ u1 *md_codegen_findmethod(u1 *ra)
 	pv = codegen_findmethod(ra);
 
 	return pv;
+}
+
+
+/* md_cacheflush ***************************************************************
+
+   Calls the system's function to flush the instruction and data
+   cache.
+
+*******************************************************************************/
+
+void md_cacheflush(u1 *addr, s4 nbytes)
+{
+	/* do nothing */
 }
 
 
