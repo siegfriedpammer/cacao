@@ -29,12 +29,11 @@
 
    Changes:
 
-   $Id: engine.c 4532 2006-02-21 09:18:41Z twisti $
+   $Id: engine.c 4629 2006-03-16 13:59:14Z twisti $
 */
 
 
 /* #define VM_DEBUG */
-/* #define USE_spTOS */
 
 #include "config.h"
 
@@ -86,6 +85,10 @@
 
 #define NEXT ({DEF_CA NEXT_P1; NEXT_P2;})
 #define IPTOS NEXT_INST
+
+#if defined(__POWERPC__) || defined(__POWERPC64__) || defined(__SPARC__)
+# define USE_spTOS
+#endif
 
 #if defined(USE_spTOS)
 #define IF_spTOS(x) x
