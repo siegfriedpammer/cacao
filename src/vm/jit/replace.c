@@ -226,6 +226,7 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd)
 	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
 	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
 	code->memuse = rd->memuse;
+	code->isleafmethod = m->isleafmethod; /* XXX will be moved to codeinfo */
 
 	/* everything alright */
 
