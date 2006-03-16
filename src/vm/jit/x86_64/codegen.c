@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4624 2006-03-16 04:17:08Z edwin $
+   $Id: codegen.c 4636 2006-03-16 15:28:24Z edwin $
 
 */
 
@@ -399,7 +399,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* handle replacement points */
 
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)bptr->mpc; /* will be resolved later */
+			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
 			
 			replacementpoint++;
 
