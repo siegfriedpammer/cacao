@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4652 2006-03-16 23:32:17Z edwin $
+   $Id: codegen.c 4653 2006-03-18 04:14:17Z edwin $
 
 */
 
@@ -355,6 +355,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 
 	/* end of header generation */
+
+	replacementpoint = cd->code->rplpoints;
 
 	/* walk through all basic blocks */
 

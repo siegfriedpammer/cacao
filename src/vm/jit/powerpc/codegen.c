@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4631 2006-03-16 14:19:52Z twisti $
+   $Id: codegen.c 4653 2006-03-18 04:14:17Z edwin $
 
 */
 
@@ -64,6 +64,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/replace.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -96,6 +97,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+	rplpoint           *replacementpoint;
 
 	/* prevent compiler warnings */
 
@@ -361,6 +363,8 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
+	replacementpoint = cd->code->rplpoints;
+
 	/* walk through all basic blocks */
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
@@ -377,6 +381,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			                  brefs->branchpos,
 							  bptr->mpc);
 			}
+		}
+
+		/* handle replacement points */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
+			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
+			
+			replacementpoint++;
 		}
 
 		/* copy interface registers to their destination */
@@ -3507,6 +3519,50 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_MTCTR(REG_ITMP3);
 			M_RTS;
+		}
+
+		/* generate replacement-out stubs */
+
+		{
+			int i;
+
+			replacementpoint = cd->code->rplpoints;
+			for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+				/* check code segment size */
+
+				MCODECHECK(100);
+
+				/* note start of stub code */
+
+				replacementpoint->outcode = (u1*) (ptrint)((u1*)mcodeptr - cd->mcodebase);
+
+				/* make machine code for patching */
+
+				tmpmcodeptr = mcodeptr;
+				mcodeptr = (s4*) &(replacementpoint->mcode) + 1 /* big-endian */;
+
+				disp = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
+				M_BR(disp);
+
+				mcodeptr = tmpmcodeptr;
+
+				/* create stack frame - keep 16-byte aligned */
+
+				M_AADD_IMM(REG_SP, -4 * 4, REG_SP);
+
+				/* push address of `rplpoint` struct */
+
+				disp = dseg_addaddress(cd, replacementpoint);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 4);
+
+				/* jump to replacement function */
+
+				disp = dseg_addaddress(cd, asm_replacement_out);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_MTCTR(REG_ITMP3);
+				M_RTS;
+			}
 		}
 	}
 

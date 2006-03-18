@@ -283,7 +283,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 	
 	rp->target = target;
 	
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -311,7 +311,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 	
 	rp->target = NULL;
 	
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -329,6 +329,72 @@ void replace_deactivate_replacement_point(rplpoint *rp)
        *ss..............the source state derived from the execution state
   
 *******************************************************************************/
+
+inline static void replace_read_value(executionstate *es,
+#ifdef HAS_4BYTE_STACKSLOT
+									  u4 *sp,
+#else
+									  u8 *sp,
+#endif
+									  rplalloc *ra,
+									  u8 *javaval)
+{
+	if (ra->flags & INMEMORY) {
+		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
+#ifdef HAS_4BYTE_STACKSLOT
+		if (IS_2_WORD_TYPE(ra->type)) {
+			*javaval = *(u8*)(sp + ra->index);
+		}
+		else {
+#endif
+			*javaval = sp[ra->index];
+#ifdef HAS_4BYTE_STACKSLOT
+		}
+#endif
+	}
+	else {
+		/* allocated register */
+		if (IS_FLT_DBL_TYPE(ra->type)) {
+			*javaval = es->fltregs[ra->index];
+		}
+		else {
+			*javaval = es->intregs[ra->index];
+		}
+	}
+}
+
+inline static void replace_write_value(executionstate *es,
+#ifdef HAS_4BYTE_STACKSLOT
+									  u4 *sp,
+#else
+									  u8 *sp,
+#endif
+									  rplalloc *ra,
+									  u8 *javaval)
+{
+	if (ra->flags & INMEMORY) {
+		/* XXX HAS_4BYTE_STACKSLOT may not be the right discriminant here */
+#ifdef HAS_4BYTE_STACKSLOT
+		if (IS_2_WORD_TYPE(ra->type)) {
+			*(u8*)(sp + ra->index) = *javaval;
+		}
+		else {
+#endif
+			sp[ra->index] = *javaval;
+#ifdef HAS_4BYTE_STACKSLOT
+		}
+#endif
+	}
+	else {
+		/* allocated register */
+		if (IS_FLT_DBL_TYPE(ra->type)) {
+			es->fltregs[ra->index] = *javaval;
+		}
+		else {
+			es->intregs[ra->index] = *javaval;
+		}
+	}
+}
 
 static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 									 sourcestate *ss)
@@ -375,7 +441,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
 	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__)
+#if defined(__ALPHA__) || defined(__POWERPC__)
 	   || (rp->type == BBTYPE_SBR)
 #endif
 	   )
@@ -401,7 +467,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		ss->javalocals[i] = (u8) 0x00dead0000dead00ULL;
 
 	/* some entries in the intregs array are not meaningful */
-	es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;
+	/*es->intregs[REG_ITMP3] = (u8) 0x11dead1111dead11ULL;*/
 	es->intregs[REG_SP   ] = (u8) 0x11dead1111dead11ULL;
 #ifdef REG_PV
 	es->intregs[REG_PV   ] = (u8) 0x11dead1111dead11ULL;
@@ -418,27 +484,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 		if (t == -1)
 			continue; /* dummy rplalloc */
 
-#ifdef HAS_4BYTE_STACKSLOT
-		if (IS_2_WORD_TYPE(ra->type)) {
-			if (ra->flags & INMEMORY) {
-				ss->javalocals[i*5+t] = *(u8*)(sp + ra->index);
-			}
-			else {
-				dolog("XXX split 2-word types in registers are not supported");
-				assert(0);
-			}
-		}
-		else {
-#endif
-			if (ra->flags & INMEMORY) {
-				ss->javalocals[i*5+t] = sp[ra->index];
-			}
-			else {
-				ss->javalocals[i*5+t] = es->intregs[ra->index];
-			}
-#ifdef HAS_4BYTE_STACKSLOT
-		}
-#endif
+		replace_read_value(es,sp,ra,ss->javalocals + (5*i+t));
 	}
 
 	/* read stack slots */
@@ -480,12 +526,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	for (; count--; ra++, i++) {
 		assert(ra->next);
 
-		if (ra->flags & INMEMORY) {
-			ss->javastack[i] = sp[ra->index];
-		}
-		else {
-			ss->javastack[i] = es->intregs[ra->index];
-		}
+		replace_read_value(es,sp,ra,ss->javastack + i);
 	}
 
 	/* read unused callee saved int regs */
@@ -571,6 +612,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	code = rp->code;
 	m = code->m;
 	md = m->parseddesc;
+	topslot = TOP_IS_NORMAL;
 	
 	/* calculate stack pointer */
 	
@@ -593,7 +635,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
 	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__)
+#if defined(__ALPHA__) || defined(__POWERPC__)
 	   || (rp->type == BBTYPE_SBR) 
 #endif
 	   )
@@ -626,27 +668,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 		if (t == -1)
 			continue; /* dummy rplalloc */
 
-#ifdef HAS_4BYTE_STACKSLOT
-		if (IS_2_WORD_TYPE(ra->type)) {
-			if (ra->flags & INMEMORY) {
-				*(u8*)(sp + ra->index) = ss->javalocals[i*5+t];
-			}
-			else {
-				dolog("XXX split 2-word types in registers are not supported");
-				assert(0);
-			}
-		}
-		else {
-#endif
-			if (ra->flags & INMEMORY) {
-				sp[ra->index] = ss->javalocals[i*5+t];
-			}
-			else {
-				es->intregs[ra->index] = ss->javalocals[i*5+t];
-			}
-#ifdef HAS_4BYTE_STACKSLOT
-		}
-#endif
+		replace_write_value(es,sp,ra,ss->javalocals + (5*i+t));
 	}
 
 	/* write stack slots */
@@ -680,12 +702,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	for (; count--; ra++, i++) {
 		assert(ra->next);
 
-		if (ra->flags & INMEMORY) {
-			sp[ra->index] = ss->javastack[i];
-		}
-		else {
-			es->intregs[ra->index] = ss->javastack[i];
-		}
+		replace_write_value(es,sp,ra,ss->javastack + i);
 	}
 	
 	/* write unused callee saved int regs */
@@ -797,7 +814,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 
 	/* enter new code */
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
 	abort();

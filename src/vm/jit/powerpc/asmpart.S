@@ -29,8 +29,9 @@
             Stefan Ring
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: asmpart.S 4562 2006-03-06 00:30:36Z twisti $
+   $Id: asmpart.S 4653 2006-03-18 04:14:17Z edwin $
 
 */
 
@@ -64,6 +65,9 @@
 	.globl asm_handle_exception
 
 	.globl asm_wrapper_patcher
+
+	.globl asm_replacement_out
+	.globl asm_replacement_in
 
 	.globl asm_cacheflush
 	.globl asm_initialize_thread_stack
@@ -847,6 +851,221 @@ L_asm_wrapper_patcher_exception:
 	b       L_asm_handle_exception
 
 
+/* asm_replacement_out *********************************************************
+
+   This code is jumped to from the replacement-out stubs that are executed
+   when a thread reaches an activated replacement point.
+
+   The purpose of asm_replacement_out is to read out the parts of the
+   execution state that cannot be accessed from C code, store this state,
+   and then call the C function replace_me.
+
+   Stack layout:
+      8                 start of stack inside method to replace
+      0   rplpoint *    info on the replacement point that was reached
+
+   NOTE: itmp3 has been clobbered by the replacement-out stub!
+
+*******************************************************************************/
+
+/* some room to accomodate changes of the stack frame size during replacement */
+	/* XXX we should find a cleaner solution here */
+#define REPLACEMENT_ROOM  512
+
+asm_replacement_out:
+    /* create stack frame */
+	addi    sp,sp,-(sizeexecutionstate + REPLACEMENT_ROOM) /* XXX align */
+
+	/* save link register */
+	mflr    r16
+
+	/* save registers in execution state */
+	stw     r0 ,( 0*8+offes_intregs)(sp)
+	stw     r1 ,( 1*8+offes_intregs)(sp)
+	stw     r2 ,( 2*8+offes_intregs)(sp)
+	stw     r3 ,( 3*8+offes_intregs)(sp)
+	stw     r4 ,( 4*8+offes_intregs)(sp)
+	stw     r5 ,( 5*8+offes_intregs)(sp)
+	stw     r6 ,( 6*8+offes_intregs)(sp)
+	stw     r7 ,( 7*8+offes_intregs)(sp)
+	stw     r8 ,( 8*8+offes_intregs)(sp)
+	stw     r9 ,( 9*8+offes_intregs)(sp)
+	stw     r10,(10*8+offes_intregs)(sp)
+	stw     r11,(11*8+offes_intregs)(sp)
+	stw     r12,(12*8+offes_intregs)(sp)
+	stw     r13,(13*8+offes_intregs)(sp)
+	stw     r14,(14*8+offes_intregs)(sp)
+	stw     r15,(15*8+offes_intregs)(sp)
+	stw     r16,(16*8+offes_intregs)(sp) /* link register */
+	stw     r17,(17*8+offes_intregs)(sp)
+	stw     r18,(18*8+offes_intregs)(sp)
+	stw     r19,(19*8+offes_intregs)(sp)
+	stw     r20,(20*8+offes_intregs)(sp)
+	stw     r21,(21*8+offes_intregs)(sp)
+	stw     r22,(22*8+offes_intregs)(sp)
+	stw     r23,(23*8+offes_intregs)(sp)
+	stw     r24,(24*8+offes_intregs)(sp)
+	stw     r25,(25*8+offes_intregs)(sp)
+	stw     r26,(26*8+offes_intregs)(sp)
+	stw     r27,(27*8+offes_intregs)(sp)
+	stw     r28,(28*8+offes_intregs)(sp)
+	stw     r29,(29*8+offes_intregs)(sp)
+	stw     r30,(30*8+offes_intregs)(sp)
+	stw     r31,(31*8+offes_intregs)(sp)
+	
+	stfd    fr0 ,( 0*8+offes_fltregs)(sp)
+	stfd    fr1 ,( 1*8+offes_fltregs)(sp)
+	stfd    fr2 ,( 2*8+offes_fltregs)(sp)
+	stfd    fr3 ,( 3*8+offes_fltregs)(sp)
+	stfd    fr4 ,( 4*8+offes_fltregs)(sp)
+	stfd    fr5 ,( 5*8+offes_fltregs)(sp)
+	stfd    fr6 ,( 6*8+offes_fltregs)(sp)
+	stfd    fr7 ,( 7*8+offes_fltregs)(sp)
+	stfd    fr8 ,( 8*8+offes_fltregs)(sp)
+	stfd    fr9 ,( 9*8+offes_fltregs)(sp)
+	stfd    fr10,(10*8+offes_fltregs)(sp)
+	stfd    fr11,(11*8+offes_fltregs)(sp)
+	stfd    fr12,(12*8+offes_fltregs)(sp)
+	stfd    fr13,(13*8+offes_fltregs)(sp)
+	stfd    fr14,(14*8+offes_fltregs)(sp)
+	stfd    fr15,(15*8+offes_fltregs)(sp)
+	stfd    fr16,(16*8+offes_fltregs)(sp)
+	stfd    fr17,(17*8+offes_fltregs)(sp)
+	stfd    fr18,(18*8+offes_fltregs)(sp)
+	stfd    fr19,(19*8+offes_fltregs)(sp)
+	stfd    fr20,(20*8+offes_fltregs)(sp)
+	stfd    fr21,(21*8+offes_fltregs)(sp)
+	stfd    fr22,(22*8+offes_fltregs)(sp)
+	stfd    fr23,(23*8+offes_fltregs)(sp)
+	stfd    fr24,(24*8+offes_fltregs)(sp)
+	stfd    fr25,(25*8+offes_fltregs)(sp)
+	stfd    fr26,(26*8+offes_fltregs)(sp)
+	stfd    fr27,(27*8+offes_fltregs)(sp)
+	stfd    fr28,(28*8+offes_fltregs)(sp)
+	stfd    fr29,(29*8+offes_fltregs)(sp)
+	stfd    fr30,(30*8+offes_fltregs)(sp)
+	stfd    fr31,(31*8+offes_fltregs)(sp)
+	
+	/* calculate sp of method */
+	addi    itmp1,sp,(sizeexecutionstate + REPLACEMENT_ROOM + 4*4)
+	stw     itmp1,(offes_sp)(sp)
+
+	/* store pv */
+	stw     pv,(offes_pv)(sp)
+
+	/* call replace_me */
+	lwz     a0,-(4*4)(itmp1)            /* arg0: rplpoint *                   */
+    mr      a1,sp                       /* arg1: execution state              */
+	addi    sp,sp,-(LA_SIZE_ALIGNED)
+    b       replace_me                  /* call C function replace_me         */
+
+/* asm_replacement_in **********************************************************
+
+   This code writes the given execution state and jumps to the replacement
+   code.
+
+   This function never returns!
+
+   NOTE: itmp3 is not restored!
+
+   C prototype:
+      void asm_replacement_in(executionstate *es);
+
+*******************************************************************************/
+
+asm_replacement_in:
+	/* a0 == executionstate *es */
+
+	/* set new sp and pv */
+	lwz     sp,(offes_sp)(a0)
+	lwz     pv,(offes_pv)(a0)
+	
+	/* copy registers from execution state */
+	lwz     r0 ,( 0*8+offes_intregs)(a0)
+	/* r1 is sp                       */
+	/* r2 is reserved                 */
+	/* a0 is loaded below             */
+	lwz     r4 ,( 4*8+offes_intregs)(a0)
+	lwz     r5 ,( 5*8+offes_intregs)(a0)
+	lwz     r6 ,( 6*8+offes_intregs)(a0)
+	lwz     r7 ,( 7*8+offes_intregs)(a0)
+	lwz     r8 ,( 8*8+offes_intregs)(a0)
+	lwz     r9 ,( 9*8+offes_intregs)(a0)
+	lwz     r10,(10*8+offes_intregs)(a0)
+	lwz     r11,(11*8+offes_intregs)(a0)
+	lwz     r12,(12*8+offes_intregs)(a0)
+	/* r13 is pv                      */
+	lwz     r14,(14*8+offes_intregs)(a0)
+	lwz     r15,(15*8+offes_intregs)(a0)
+	lwz     r16,(16*8+offes_intregs)(a0) /* link register */
+	lwz     r17,(17*8+offes_intregs)(a0)
+	lwz     r18,(18*8+offes_intregs)(a0)
+	lwz     r19,(19*8+offes_intregs)(a0)
+	lwz     r20,(20*8+offes_intregs)(a0)
+	lwz     r21,(21*8+offes_intregs)(a0)
+	lwz     r22,(22*8+offes_intregs)(a0)
+	lwz     r23,(23*8+offes_intregs)(a0)
+	lwz     r24,(24*8+offes_intregs)(a0)
+	lwz     r25,(25*8+offes_intregs)(a0)
+	lwz     r26,(26*8+offes_intregs)(a0)
+	lwz     r27,(27*8+offes_intregs)(a0)
+	lwz     r28,(28*8+offes_intregs)(a0)
+	lwz     r29,(29*8+offes_intregs)(a0)
+	lwz     r30,(30*8+offes_intregs)(a0)
+	lwz     r31,(31*8+offes_intregs)(a0)
+	
+	lfd     fr0 ,( 0*8+offes_fltregs)(a0)
+	lfd     fr1 ,( 1*8+offes_fltregs)(a0)
+	lfd     fr2 ,( 2*8+offes_fltregs)(a0)
+	lfd     fr3 ,( 3*8+offes_fltregs)(a0)
+	lfd     fr4 ,( 4*8+offes_fltregs)(a0)
+	lfd     fr5 ,( 5*8+offes_fltregs)(a0)
+	lfd     fr6 ,( 6*8+offes_fltregs)(a0)
+	lfd     fr7 ,( 7*8+offes_fltregs)(a0)
+	lfd     fr8 ,( 8*8+offes_fltregs)(a0)
+	lfd     fr9 ,( 9*8+offes_fltregs)(a0)
+	lfd     fr10,(10*8+offes_fltregs)(a0)
+	lfd     fr11,(11*8+offes_fltregs)(a0)
+	lfd     fr12,(12*8+offes_fltregs)(a0)
+	lfd     fr13,(13*8+offes_fltregs)(a0)
+	lfd     fr14,(14*8+offes_fltregs)(a0)
+	lfd     fr15,(15*8+offes_fltregs)(a0)
+	lfd     fr16,(16*8+offes_fltregs)(a0)
+	lfd     fr17,(17*8+offes_fltregs)(a0)
+	lfd     fr18,(18*8+offes_fltregs)(a0)
+	lfd     fr19,(19*8+offes_fltregs)(a0)
+	lfd     fr20,(20*8+offes_fltregs)(a0)
+	lfd     fr21,(21*8+offes_fltregs)(a0)
+	lfd     fr22,(22*8+offes_fltregs)(a0)
+	lfd     fr23,(23*8+offes_fltregs)(a0)
+	lfd     fr24,(24*8+offes_fltregs)(a0)
+	lfd     fr25,(25*8+offes_fltregs)(a0)
+	lfd     fr26,(26*8+offes_fltregs)(a0)
+	lfd     fr27,(27*8+offes_fltregs)(a0)
+	lfd     fr28,(28*8+offes_fltregs)(a0)
+	lfd     fr29,(29*8+offes_fltregs)(a0)
+	lfd     fr30,(30*8+offes_fltregs)(a0)
+	lfd     fr31,(31*8+offes_fltregs)(a0)
+
+	/* restore link register */
+
+	mtlr    r16
+	
+	/* load new pc */
+
+	lwz     itmp3,offes_pc(a0)
+
+	/* load a0 */
+	
+	lwz     a0,(3*8+offes_intregs)(a0)
+
+	/* jump to new code */
+
+	mtctr   itmp3
+	bctr
+
+/*********************************************************************/
+
 asm_cacheflush:
 	add     r4,r3,r4
 	rlwinm  r3,r3,0,0,26
@@ -1088,4 +1307,5 @@ asm_criticalsections:
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -91,23 +91,36 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 int code_get_sync_slot_count(codeinfo *code)
 {
+#ifdef USE_THREADS
+	int count;
+	
 	assert(code);
 
-#ifdef USE_THREADS
 	if (!checksync)
 		return 0;
 
 	if (!(code->m->flags & ACC_SYNCHRONIZED))
 		return 0;
 
-	/* XXX generalize to all archs */
+	count = 1;
+
 #ifdef HAS_4BYTE_STACKSLOT
-	return (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type)) ? 2 : 1;
-#else
-	return 1;
+	/* long and double need 2 4-byte slots */
+	if (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type))
+		count++;
 #endif
+
+#if defined(__POWERPC__)
+	/* powerpc needs an extra slot */
+	count++;
+#endif
+
+	return count;
+
 #else /* !USE_THREADS */
+	
 	return 0;
+
 #endif /* USE_THREADS */
 }
 
@@ -138,19 +151,24 @@ int code_get_stack_frame_size(codeinfo *code)
 	
 	assert(code);
 
-	/* XXX generalize to all archs */
 #ifdef HAS_4BYTE_STACKSLOT
 	count = code->memuse + code->savedintcount + 2*code->savedfltcount;
 #else
 	count = code->memuse + code->savedintcount + code->savedfltcount;
 #endif
 
+	/* add slots needed in synchronized methods */
 	count += code_get_sync_slot_count(code);
 
 #if defined(__X86_64__)
 	/* keep stack 16-byte aligned */
 	if (!code->isleafmethod || opt_verbosecall)
-		count |= 1;
+		count |= 1; /* even when return address is added */
+#endif
+
+#if defined(__POWERPC__)
+	/* keep stack 16-byte aligned */
+	count = (count + 3) & ~3;
 #endif
 
 	return count;

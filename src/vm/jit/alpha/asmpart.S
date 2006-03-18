@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4649 2006-03-16 20:31:54Z edwin $
+   $Id: asmpart.S 4653 2006-03-18 04:14:17Z edwin $
 
 */
 
@@ -658,6 +658,9 @@ asm_replacement_out:
 	/* calculate sp of method */
 	lda     itmp1,(sizeexecutionstate + REPLACEMENT_ROOM + 8)(sp)
 	stq     itmp1,(offes_sp)(sp)
+
+	/* store pv */
+	stq     pv,(offes_pv)(sp)
 
 	/* call replace_me */
 	ldq     a0,-8(itmp1)                /* arg0: rplpoint *                   */

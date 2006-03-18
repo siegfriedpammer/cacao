@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: md.c 4631 2006-03-16 14:19:52Z twisti $
+   $Id: md.c 4653 2006-03-18 04:14:17Z edwin $
 
 */
 
@@ -42,6 +42,8 @@
 
 #include "vm/global.h"
 #include "vm/jit/asmpart.h"
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
 
 
 /* md_init *********************************************************************
@@ -172,6 +174,35 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 }
 
 
+/* md_patch_replacement_point **************************************************
+
+   Patch the given replacement point.
+
+*******************************************************************************/
+
+void md_patch_replacement_point(rplpoint *rp)
+{
+    u8 mcode;
+
+	/* save the current machine code */
+	mcode = *(u4*)rp->pc;
+
+	/* write the new machine code */
+    *(u4*)(rp->pc) = (u4) rp->mcode;
+
+	/* store saved mcode */
+	rp->mcode = mcode;
+	
+	{
+		u1* u1ptr = rp->pc;
+		DISASSINSTR(u1ptr);
+		fflush(stdout);
+	}
+			
+	/* flush instruction cache */
+    md_icacheflush(rp->pc,4);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -183,4 +214,5 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
