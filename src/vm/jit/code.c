@@ -151,6 +151,8 @@ int code_get_stack_frame_size(codeinfo *code)
 	
 	assert(code);
 
+	/* slots allocated by register allocator plus saved registers */
+
 #ifdef HAS_4BYTE_STACKSLOT
 	count = code->memuse + code->savedintcount + 2*code->savedfltcount;
 #else
@@ -158,11 +160,22 @@ int code_get_stack_frame_size(codeinfo *code)
 #endif
 
 	/* add slots needed in synchronized methods */
+
 	count += code_get_sync_slot_count(code);
 
+	/* keep stack aligned */
+
 #if defined(__X86_64__)
-	/* keep stack 16-byte aligned */
+	/* the x86_64 codegen only aligns the stack in non-leaf methods */
 	if (!code->isleafmethod || opt_verbosecall)
+		count |= 1; /* even when return address is added */
+#endif
+
+	/* XXX align stack on alpha */
+#if defined(__MIPS__)
+	if (code->isleafmethod)
+		count = (count + 1) & ~1;
+	else
 		count |= 1; /* even when return address is added */
 #endif
 

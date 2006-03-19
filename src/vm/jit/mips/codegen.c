@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4640 2006-03-16 17:24:18Z twisti $
+   $Id: codegen.c 4654 2006-03-19 19:46:11Z edwin $
 
 */
 
@@ -66,6 +66,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/replace.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -93,6 +94,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
 	methoddesc         *md;
+	rplpoint           *replacementpoint;
 
 	{
 	s4 i, p, t, l;
@@ -371,9 +373,29 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
+	replacementpoint = cd->code->rplpoints;
+
 	/* walk through all basic blocks */
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
+
+		/* handle replacement points */
+
+		if (bptr->bitflags & BBFLAG_REPLACEMENT && bptr->flags >= BBREACHED) {
+
+			/* 8-byte align pc */
+			if ((ptrint)mcodeptr & 4) {
+				M_NOP;
+			}
+			
+			replacementpoint->pc = (u1*)(ptrint)((u1*)mcodeptr - cd->mcodebase);
+			replacementpoint++;
+
+			assert(cd->lastmcodeptr <= (u1*)mcodeptr);
+			cd->lastmcodeptr = (u1*)cd->mcodeptr + 2*4; /* br + delay slot */
+		}
+
+		/* store relative start of block */
 
 		bptr->mpc = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 
@@ -4089,6 +4111,57 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_ITMP3);
 			M_NOP;
+		}
+
+		/* generate replacement-out stubs */
+
+		{
+			int i;
+
+			replacementpoint = cd->code->rplpoints;
+			for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+				/* check code segment size */
+
+				MCODECHECK(100);
+
+				/* note start of stub code */
+
+				replacementpoint->outcode = (u1*) (ptrint)((u1*)mcodeptr - cd->mcodebase);
+
+				/* make machine code for patching */
+
+				tmpmcodeptr = mcodeptr;
+				mcodeptr = (s4*) &(replacementpoint->mcode);
+
+				disp = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
+				if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
+					*exceptionptr =
+						new_internalerror("Jump offset is out of range: %d > +/-%d",
+								disp, 0x00007fff);
+					return false;
+				}
+				M_BR(disp);
+				M_NOP; /* delay slot */
+
+				mcodeptr = tmpmcodeptr;
+
+				/* create stack frame - 16-byte aligned */
+
+				M_ASUB_IMM(REG_SP, 2 * 8, REG_SP);
+
+				/* push address of `rplpoint` struct */
+
+				disp = dseg_addaddress(cd, replacementpoint);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_AST(REG_ITMP3, REG_SP, 0 * 8);
+
+				/* jump to replacement function */
+
+				disp = dseg_addaddress(cd, asm_replacement_out);
+				M_ALD(REG_ITMP3, REG_PV, disp);
+				M_JMP(REG_ITMP3);
+				M_NOP; /* delay slot */
+			}
 		}
 	}
 

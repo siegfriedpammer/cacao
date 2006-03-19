@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes: 
+   Changes: Edwin Steiner
 
-   $Id: md.c 4640 2006-03-16 17:24:18Z twisti $
+   $Id: md.c 4654 2006-03-19 19:46:11Z edwin $
 
 */
 
@@ -45,6 +45,8 @@
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/options.h" /* XXX debug */
+#include "vm/jit/disass.h" /* XXX debug */
 
 
 void docacheflush(u1 *p, long bytelen)
@@ -193,7 +195,7 @@ u1 *md_codegen_findmethod(u1 *ra)
 
 #if SIZEOF_VOID_P == 8
 		assert((mcode >> 16) == 0x6739);
-#else	
+#else
 		assert((mcode >> 16) == 0x2739);
 #endif
 
@@ -258,6 +260,36 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 }
 
 
+/* md_patch_replacement_point **************************************************
+
+   Patch the given replacement point.
+
+*******************************************************************************/
+
+void md_patch_replacement_point(rplpoint *rp)
+{
+    u8 mcode;
+
+	/* save the current machine code */
+	mcode = *(u8*)rp->pc;
+
+	/* write the new machine code */
+    *(u8*)(rp->pc) = rp->mcode;
+
+	/* store saved mcode */
+	rp->mcode = mcode;
+
+	{
+		u1* u1ptr = rp->pc;
+		DISASSINSTR(u1ptr);
+		DISASSINSTR(u1ptr);
+		fflush(stdout);
+	}
+
+	/* flush instruction cache */
+    md_icacheflush(rp->pc,2*4);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
@@ -269,4 +301,5 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

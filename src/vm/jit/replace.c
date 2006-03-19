@@ -283,7 +283,7 @@ void replace_activate_replacement_point(rplpoint *rp,rplpoint *target)
 	
 	rp->target = target;
 	
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -311,7 +311,7 @@ void replace_deactivate_replacement_point(rplpoint *rp)
 	
 	rp->target = NULL;
 	
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	md_patch_replacement_point(rp);
 #endif
 }
@@ -441,7 +441,7 @@ static void replace_read_executionstate(rplpoint *rp,executionstate *es,
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
 	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__) || defined(__POWERPC__)
+#if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
 	   || (rp->type == BBTYPE_SBR)
 #endif
 	   )
@@ -635,7 +635,7 @@ static void replace_write_executionstate(rplpoint *rp,executionstate *es,
 	/* in some cases the top stack slot is passed in REG_ITMP1 */
 
 	if (  (rp->type == BBTYPE_EXH)
-#if defined(__ALPHA__) || defined(__POWERPC__)
+#if defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)
 	   || (rp->type == BBTYPE_SBR) 
 #endif
 	   )
@@ -814,7 +814,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 
 	/* enter new code */
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
 	asm_replacement_in(es);
 #endif
 	abort();

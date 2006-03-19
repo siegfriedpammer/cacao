@@ -27,8 +27,9 @@
    Authors: Andreas Krall
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: asmpart.S 4640 2006-03-16 17:24:18Z twisti $
+   $Id: asmpart.S 4654 2006-03-19 19:46:11Z edwin $
 
 */
 
@@ -60,6 +61,9 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_wrapper_patcher
+
+	.globl asm_replacement_out
+	.globl asm_replacement_in
 
 	.globl asm_perform_threadswitch
 	.globl asm_initialize_thread_stack
@@ -552,6 +556,221 @@ L_asm_wrapper_patcher_exception:
 	.end	asm_wrapper_patcher
 
 		
+/* asm_replacement_out *********************************************************
+
+   This code is jumped to from the replacement-out stubs that are executed
+   when a thread reaches an activated replacement point.
+
+   The purpose of asm_replacement_out is to read out the parts of the
+   execution state that cannot be accessed from C code, store this state,
+   and then call the C function replace_me.
+
+   Stack layout:
+     16                 start of stack inside method to replace
+      0   rplpoint *    info on the replacement point that was reached
+
+   NOTE: itmp3 has been clobbered by the replacement-out stub!
+
+*******************************************************************************/
+
+/* some room to accomodate changes of the stack frame size during replacement */
+	/* XXX we should find a cleaner solution here */
+#define REPLACEMENT_ROOM  512
+
+#define REPLACEMENT_STACK_OFFSET ((sizeexecutionstate + REPLACEMENT_ROOM + 0xf) & ~0xf)
+
+	.ent asm_replacement_out
+
+asm_replacement_out:
+    /* create stack frame */
+	daddiu  sp,sp,-REPLACEMENT_STACK_OFFSET
+
+	/* save registers in execution state */
+	sd      $0 ,( 0*8+offes_intregs)(sp)
+	sd      $1 ,( 1*8+offes_intregs)(sp)
+	sd      $2 ,( 2*8+offes_intregs)(sp)
+	sd      $3 ,( 3*8+offes_intregs)(sp)
+	sd      $4 ,( 4*8+offes_intregs)(sp)
+	sd      $5 ,( 5*8+offes_intregs)(sp)
+	sd      $6 ,( 6*8+offes_intregs)(sp)
+	sd      $7 ,( 7*8+offes_intregs)(sp)
+	sd      $8 ,( 8*8+offes_intregs)(sp)
+	sd      $9 ,( 9*8+offes_intregs)(sp)
+	sd      $10,(10*8+offes_intregs)(sp)
+	sd      $11,(11*8+offes_intregs)(sp)
+	sd      $12,(12*8+offes_intregs)(sp)
+	sd      $13,(13*8+offes_intregs)(sp)
+	sd      $14,(14*8+offes_intregs)(sp)
+	sd      $15,(15*8+offes_intregs)(sp)
+	sd      $16,(16*8+offes_intregs)(sp)
+	sd      $17,(17*8+offes_intregs)(sp)
+	sd      $18,(18*8+offes_intregs)(sp)
+	sd      $19,(19*8+offes_intregs)(sp)
+	sd      $20,(20*8+offes_intregs)(sp)
+	sd      $21,(21*8+offes_intregs)(sp)
+	sd      $22,(22*8+offes_intregs)(sp)
+	sd      $23,(23*8+offes_intregs)(sp)
+	sd      $24,(24*8+offes_intregs)(sp)
+	sd      $25,(25*8+offes_intregs)(sp)
+	sd      $26,(26*8+offes_intregs)(sp)
+	sd      $27,(27*8+offes_intregs)(sp)
+	sd      $28,(28*8+offes_intregs)(sp)
+	sd      $29,(29*8+offes_intregs)(sp)
+	sd      $30,(30*8+offes_intregs)(sp)
+	sd      $31,(31*8+offes_intregs)(sp)
+	
+	sdc1    $f0 ,( 0*8+offes_fltregs)(sp)
+	sdc1    $f1 ,( 1*8+offes_fltregs)(sp)
+	sdc1    $f2 ,( 2*8+offes_fltregs)(sp)
+	sdc1    $f3 ,( 3*8+offes_fltregs)(sp)
+	sdc1    $f4 ,( 4*8+offes_fltregs)(sp)
+	sdc1    $f5 ,( 5*8+offes_fltregs)(sp)
+	sdc1    $f6 ,( 6*8+offes_fltregs)(sp)
+	sdc1    $f7 ,( 7*8+offes_fltregs)(sp)
+	sdc1    $f8 ,( 8*8+offes_fltregs)(sp)
+	sdc1    $f9 ,( 9*8+offes_fltregs)(sp)
+	sdc1    $f10,(10*8+offes_fltregs)(sp)
+	sdc1    $f11,(11*8+offes_fltregs)(sp)
+	sdc1    $f12,(12*8+offes_fltregs)(sp)
+	sdc1    $f13,(13*8+offes_fltregs)(sp)
+	sdc1    $f14,(14*8+offes_fltregs)(sp)
+	sdc1    $f15,(15*8+offes_fltregs)(sp)
+	sdc1    $f16,(16*8+offes_fltregs)(sp)
+	sdc1    $f17,(17*8+offes_fltregs)(sp)
+	sdc1    $f18,(18*8+offes_fltregs)(sp)
+	sdc1    $f19,(19*8+offes_fltregs)(sp)
+	sdc1    $f20,(20*8+offes_fltregs)(sp)
+	sdc1    $f21,(21*8+offes_fltregs)(sp)
+	sdc1    $f22,(22*8+offes_fltregs)(sp)
+	sdc1    $f23,(23*8+offes_fltregs)(sp)
+	sdc1    $f24,(24*8+offes_fltregs)(sp)
+	sdc1    $f25,(25*8+offes_fltregs)(sp)
+	sdc1    $f26,(26*8+offes_fltregs)(sp)
+	sdc1    $f27,(27*8+offes_fltregs)(sp)
+	sdc1    $f28,(28*8+offes_fltregs)(sp)
+	sdc1    $f29,(29*8+offes_fltregs)(sp)
+	sdc1    $f30,(30*8+offes_fltregs)(sp)
+	sdc1    $f31,(31*8+offes_fltregs)(sp)
+	
+	/* calculate sp of method */
+	daddiu  itmp1,sp,(REPLACEMENT_STACK_OFFSET + 2*8)
+	sd      itmp1,(offes_sp)(sp)
+
+	/* store pv */
+	sd      pv,(offes_pv)(sp)
+
+	/* call replace_me */
+	ld      a0,-(2*8)(itmp1)            /* arg0: rplpoint *                   */
+    move    a1,sp                       /* arg1: execution state              */
+    jal     replace_me                  /* call C function replace_me         */
+	jal     abort                       /* NEVER REACHED                      */
+
+	.end asm_replacement_out
+
+/* asm_replacement_in **********************************************************
+
+   This code writes the given execution state and jumps to the replacement
+   code.
+
+   This function never returns!
+
+   NOTE: itmp3 is not restored!
+
+   C prototype:
+      void asm_replacement_in(executionstate *es);
+
+*******************************************************************************/
+
+	.ent asm_replacement_in
+	
+asm_replacement_in:
+	/* a0 == executionstate *es */
+
+	/* set new sp and pv */
+	ld      sp,(offes_sp)(a0)
+	ld      pv,(offes_pv)(a0)
+	
+	/* copy registers from execution state */
+	/* $0 is zero                     */
+	ld      $1 ,( 1*8+offes_intregs)(a0)
+	ld      $2 ,( 2*8+offes_intregs)(a0)
+	ld      $3 ,( 2*8+offes_intregs)(a0)
+	/* a0 is loaded below             */
+	ld      $5 ,( 5*8+offes_intregs)(a0)
+	ld      $6 ,( 6*8+offes_intregs)(a0)
+	ld      $7 ,( 7*8+offes_intregs)(a0)
+	ld      $8 ,( 8*8+offes_intregs)(a0)
+	ld      $9 ,( 9*8+offes_intregs)(a0)
+	ld      $10,(10*8+offes_intregs)(a0)
+	ld      $11,(11*8+offes_intregs)(a0)
+	ld      $12,(12*8+offes_intregs)(a0)
+	ld      $13,(13*8+offes_intregs)(a0)
+	ld      $14,(14*8+offes_intregs)(a0)
+	ld      $15,(15*8+offes_intregs)(a0)
+	ld      $16,(16*8+offes_intregs)(a0)
+	ld      $17,(17*8+offes_intregs)(a0)
+	ld      $18,(18*8+offes_intregs)(a0)
+	ld      $19,(19*8+offes_intregs)(a0)
+	ld      $20,(20*8+offes_intregs)(a0)
+	ld      $21,(21*8+offes_intregs)(a0)
+	ld      $22,(22*8+offes_intregs)(a0)
+	ld      $23,(23*8+offes_intregs)(a0)
+	ld      $24,(24*8+offes_intregs)(a0)
+	ld      $25,(25*8+offes_intregs)(a0)
+	ld      $26,(26*8+offes_intregs)(a0)
+	ld      $27,(27*8+offes_intregs)(a0)
+	ld      $28,(28*8+offes_intregs)(a0)
+	/* $29 is sp                      */
+	/* $30 is pv                      */
+	ld      $31,(31*8+offes_intregs)(a0)
+	
+	ldc1    $f0 ,( 0*8+offes_fltregs)(a0)
+	ldc1    $f1 ,( 1*8+offes_fltregs)(a0)
+	ldc1    $f2 ,( 2*8+offes_fltregs)(a0)
+	ldc1    $f3 ,( 3*8+offes_fltregs)(a0)
+	ldc1    $f4 ,( 4*8+offes_fltregs)(a0)
+	ldc1    $f5 ,( 5*8+offes_fltregs)(a0)
+	ldc1    $f6 ,( 6*8+offes_fltregs)(a0)
+	ldc1    $f7 ,( 7*8+offes_fltregs)(a0)
+	ldc1    $f8 ,( 8*8+offes_fltregs)(a0)
+	ldc1    $f9 ,( 9*8+offes_fltregs)(a0)
+	ldc1    $f10,(10*8+offes_fltregs)(a0)
+	ldc1    $f11,(11*8+offes_fltregs)(a0)
+	ldc1    $f12,(12*8+offes_fltregs)(a0)
+	ldc1    $f13,(13*8+offes_fltregs)(a0)
+	ldc1    $f14,(14*8+offes_fltregs)(a0)
+	ldc1    $f15,(15*8+offes_fltregs)(a0)
+	ldc1    $f16,(16*8+offes_fltregs)(a0)
+	ldc1    $f17,(17*8+offes_fltregs)(a0)
+	ldc1    $f18,(18*8+offes_fltregs)(a0)
+	ldc1    $f19,(19*8+offes_fltregs)(a0)
+	ldc1    $f20,(20*8+offes_fltregs)(a0)
+	ldc1    $f21,(21*8+offes_fltregs)(a0)
+	ldc1    $f22,(22*8+offes_fltregs)(a0)
+	ldc1    $f23,(23*8+offes_fltregs)(a0)
+	ldc1    $f24,(24*8+offes_fltregs)(a0)
+	ldc1    $f25,(25*8+offes_fltregs)(a0)
+	ldc1    $f26,(26*8+offes_fltregs)(a0)
+	ldc1    $f27,(27*8+offes_fltregs)(a0)
+	ldc1    $f28,(28*8+offes_fltregs)(a0)
+	ldc1    $f29,(29*8+offes_fltregs)(a0)
+	ldc1    $f30,(30*8+offes_fltregs)(a0)
+	ldc1    $f31,(31*8+offes_fltregs)(a0)
+
+	/* load new pc */
+
+	ld      itmp3,offes_pc(a0)
+
+	/* load a0 */
+	
+	ld      a0,(4*8+offes_intregs)(a0)
+
+	/* jump to new code */
+
+	jr      itmp3
+
+	.end asm_replacement_in
+
 /******************* function asm_initialize_thread_stack **********************
 *                                                                              *
 *   u1* asm_initialize_thread_stack (void *func, u1 *stack);                   *
@@ -729,4 +948,5 @@ compare_and_swap:
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

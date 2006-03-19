@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: asmpart.S 4653 2006-03-18 04:14:17Z edwin $
+   $Id: asmpart.S 4654 2006-03-19 19:46:11Z edwin $
 
 */
 
@@ -861,7 +861,7 @@ L_asm_wrapper_patcher_exception:
    and then call the C function replace_me.
 
    Stack layout:
-      8                 start of stack inside method to replace
+      16                start of stack inside method to replace
       0   rplpoint *    info on the replacement point that was reached
 
    NOTE: itmp3 has been clobbered by the replacement-out stub!
