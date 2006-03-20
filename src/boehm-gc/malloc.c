@@ -17,6 +17,8 @@
 #include "config.h"
  
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include "private/gc_priv.h"
 
 extern ptr_t GC_clear_stack();	/* in misc.c, behaves like identity */
@@ -273,6 +275,26 @@ DCL_LOCK_STATE;
    }
 }
 
+/* provide a version of strdup() that uses the collector to allocate the
+   copy of the string */
+# ifdef __STDC__
+    char *GC_strdup(const char *s)
+# else
+    char *GC_strdup(s)
+    char *s;
+#endif
+{
+  char *copy;
+
+  if (s == NULL) return NULL;
+  if ((copy = GC_malloc_atomic(strlen(s) + 1)) == NULL) {
+    errno = ENOMEM;
+    return NULL;
+  }
+  strcpy(copy, s);
+  return copy;
+}
+
 /* Allocate lb bytes of composite (pointerful) data */
 # ifdef __STDC__
     GC_PTR GC_malloc(size_t lb)
@@ -372,6 +394,10 @@ DCL_LOCK_STATE;
   {
     size_t len = strlen(s) + 1;
     char * result = ((char *)REDIRECT_MALLOC(len+1));
+    if (result == 0) {
+      errno = ENOMEM;
+      return 0;
+    }
     BCOPY(s, result, len+1);
     return result;
   }

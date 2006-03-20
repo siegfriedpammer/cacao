@@ -219,14 +219,17 @@
 #    ifdef ARM32
         inline static int GC_test_and_set(volatile unsigned int *addr) {
           int oldval;
-          /* SWP on ARM is very similar to XCHG on x86.  Doesn't lock the
-           * bus because there are no SMP ARM machines.  If/when there are,
-           * this code will likely need to be updated. */
-          /* See linuxthreads/sysdeps/arm/pt-machine.h in glibc-2.1 */
-          __asm__ __volatile__("swp %0, %1, [%2]"
-      		  	     : "=r"(oldval)
-      			     : "r"(1), "r"(addr)
-			     : "memory");
+          /* SWP on ARM is very similar to XCHG on x86. 		*/
+	  /* The first operand is the result, the second the value	*/
+	  /* to be stored.  Both registers must be different from addr.	*/
+	  /* Make the address operand an early clobber output so it     */
+	  /* doesn't overlap with the other operands.  The early clobber*/
+	  /* on oldval is neccessary to prevent the compiler allocating */
+	  /* them to the same register if they are both unused.  	*/
+          __asm__ __volatile__("swp %0, %2, [%3]"
+                             : "=&r"(oldval), "=&r"(addr)
+                             : "r"(1), "1"(addr)
+                             : "memory");
           return oldval;
         }
 #       define GC_TEST_AND_SET_DEFINED

@@ -17,12 +17,12 @@ dnl Process this file with autoconf to produce configure.
 # Initialization
 # ==============
 
-AC_INIT(gc,6.6,Hans.Boehm@hp.com) 
+AC_INIT(gc,6.7,Hans.Boehm@hp.com) 
     ## version must conform to [0-9]+[.][0-9]+(alpha[0-9]+)?
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 AC_CANONICAL_TARGET 
 AC_PREREQ(2.53)
-AC_REVISION($Revision: 3439 $)
+AC_REVISION($Revision: 4655 $)
 GC_SET_VERSION
 AM_INIT_AUTOMAKE
 
@@ -115,6 +115,13 @@ case "$THREADS" in
 	INCLUDES="$INCLUDES -pthread"
 	THREADDLLIBS=-pthread
       	;;
+     *-*-netbsd*)
+	AC_MSG_WARN("Only on NetBSD 2.0 or later.")
+	AC_DEFINE([GC_NETBSD_THREADS], 1, [GC NetBSD threads])
+	AC_DEFINE([_REENTRANT], 1, [reentrant])
+	AC_DEFINE([_PTHREADS], 1, [pthreads])
+	THREADDLLIBS="-lpthread -lrt"
+	;;
      *-*-solaris*)
 	AC_DEFINE([GC_SOLARIS_THREADS], 1, [gc solaris threads])
 	AC_DEFINE([GC_SOLARIS_PTHREADS], 1, [gc solaris pthreads])
