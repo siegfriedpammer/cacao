@@ -50,9 +50,12 @@ V   u8[0..1] alignment dummy slot                           (in non-leaf methods
 |   u8[]  ^  callee-saved float registers
 V   u8[]  ^  callee-saved integer registers
 |          
-|   >>>> sp on method entry, stack base for replacement  (16-byte aligned) <<<<
+|   >>>> sp on method entry, stack base for replacement  (8-byte odd) <<<<
 V
 |   u8       return address
+|
+V                                                 >>>>> (16-byte aligned) <<<<
+|
 |   u8[]     arguments on stack
 V
 
@@ -60,8 +63,6 @@ V
 
 alpha stack frames
 ------------------
-
-XXX currently the stack on alpha is not 16-byte aligned!
 
 ,--memory address rising
 |
@@ -71,6 +72,7 @@ V   >>>> sp in method (after initial sub) <<<<
 V   u8[]  v  local variable slots allocated on stack    /
 |
 |   u8       synchronized object / saved return value       (only for synched methods)
+|   u8[0..1] alignment dummy slot
 V
 |   u8[]  ^  callee-saved float registers
 |   u8[]  ^  callee-saved integer registers
@@ -97,7 +99,7 @@ V   >>>> sp in method (after initial sub) (16-byte aligned) <<<<
 V   u8[]  v  local variable slots allocated on stack    /
 |
 |   u8       synchronized object / saved return value       (only for synched methods)
-|   u8[0..1] alignment dummy-slot                           (to ensure 16-byte alignment of sp)
+|   u8[0..1] alignment dummy slot                           (to ensure 16-byte alignment of sp)
 V
 |   u8[]  ^  callee-saved float registers
 |   u8[]  ^  callee-saved integer registers
@@ -111,4 +113,28 @@ V
 |   u8[]     arguments on stack
 |
 V
+
+
+powerpc stack frames
+--------------------
+
+,--memory address rising
+|
+V   >>>> sp in method (after initial sub) (16-byte aligned) <<<<
+|          
+|   u4[]  v  arguments for calling methods (incl. LA)   \__ rd->memuse slots
+V   u4[]  v  local variable slots allocated on stack    /
+|
+|   u4[2..3] synchronized object / saved return value       (only for synched methods)
+|   u4[0..3] alignment slots
+V
+|   u8[]  ^  callee-saved float registers
+|   u4[]  ^  callee-saved integer registers
+V          
+|   >>>> sp on method entry, stack base for replacement (16-byte aligned) <<<<
+|
+|   u4[]     arguments on stack (inludes LA == linkage area)
+|
+V
+
 
