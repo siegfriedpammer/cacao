@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4657 2006-03-20 15:12:16Z twisti $
+   $Id: asmpart.S 4659 2006-03-20 15:41:23Z edwin $
 
 */
 
@@ -580,13 +580,15 @@ L_asm_wrapper_patcher_exception_load_gp:
 
 /* some room to accomodate changes of the stack frame size during replacement */
 	/* XXX we should find a cleaner solution here */
-#define REPLACEMENT_ROOM  512
+#define REPLACEMEOOM  512
+
+#define REPLACEMENT_STACK_OFFSET ((sizeexecutionstate + REPLACEMENT_ROOM + 0xf) & ~0xf)
 
 	.ent asm_replacement_out
 
 asm_replacement_out:
     /* create stack frame */
-	lda     sp,-(sizeexecutionstate + REPLACEMENT_ROOM)(sp)
+	lda     sp,-(REPLACEMENT_STACK_OFFSET)(sp)
 
 	/* save registers in execution state */
 	stq     $0 ,( 0*8+offes_intregs)(sp)
@@ -656,7 +658,7 @@ asm_replacement_out:
 	stt     $f31,(31*8+offes_fltregs)(sp)
 	
 	/* calculate sp of method */
-	lda     itmp1,(sizeexecutionstate + REPLACEMENT_ROOM + 8)(sp)
+	lda     itmp1,(REPLACEMENT_STACK_OFFSET + 2*8)(sp)
 	stq     itmp1,(offes_sp)(sp)
 
 	br      ra,L_asm_replacement_out_load_gp
@@ -667,7 +669,7 @@ L_asm_replacement_out_load_gp:
 	stq     pv,(offes_pv)(sp)
 
 	/* call replace_me */
-	ldq     a0,-8(itmp1)                /* arg0: rplpoint *                   */
+	ldq     a0,-(2*8)(itmp1)            /* arg0: rplpoint *                   */
     mov     sp,a1                       /* arg1: execution state              */
     jmp     zero,replace_me             /* call C function replace_me         */
     jmp     zero,abort                  /* NEVER REACHED                      */
