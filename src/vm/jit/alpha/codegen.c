@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4653 2006-03-18 04:14:17Z edwin $
+   $Id: codegen.c 4657 2006-03-20 15:12:16Z twisti $
 
 */
 
@@ -3926,7 +3926,7 @@ gen_method:
 
 				/* create stack frame */
 
-				M_LSUB_IMM(REG_SP, 1 * 8, REG_SP);
+				M_LSUB_IMM(REG_SP, 2 * 8, REG_SP);
 
 				/* push address of `rplpoint` struct */
 
