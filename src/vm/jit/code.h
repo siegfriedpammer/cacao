@@ -65,7 +65,7 @@ struct codeinfo {
 	u1            savedintcount;    /* number of callee saved int regs */
 	u1            savedfltcount;    /* number of callee saved flt regs */
 
-	/* profiling */
+	/* profiling XXX will be removed */
 	u4            frequency;        /* number of method invocations    */
 	u4           *bbfrequency;
 	s8            cycles;           /* number of cpu cycles            */
