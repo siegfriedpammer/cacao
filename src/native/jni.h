@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4565 2006-03-07 09:40:37Z twisti $
+   $Id: jni.h 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -109,9 +109,6 @@ bool jni_init(void);
 
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params);
-
-extern void* ptr_env;
-extern struct JNINativeInterface JNI_JNIEnvTable;
 
 #endif /* _JNI_H */
 

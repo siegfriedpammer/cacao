@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: 
 
 
-$Id: VMVirtualMachine.c 4357 2006-01-22 23:33:38Z twisti $
+$Id: VMVirtualMachine.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -43,6 +43,8 @@ $Id: VMVirtualMachine.c 4357 2006-01-22 23:33:38Z twisti $
 #include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
 #include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
 #include "native/jvmti/jvmti.h"
+#include "native/jvmti/cacaodbg.h"
+#include <string.h>
 
 
 /*
@@ -52,7 +54,7 @@ $Id: VMVirtualMachine.c 4357 2006-01-22 23:33:38Z twisti $
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    remotedbgjvmtienv->SuspendThread(remotedbgjvmtienv, (jthread) par1);
+    (*remotedbgjvmtienv)->SuspendThread(remotedbgjvmtienv, (jthread) par1);
 }
 
 /*
@@ -62,7 +64,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JN
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    remotedbgjvmtienv->ResumeThread(remotedbgjvmtienv, (jthread) par1);
+    (*remotedbgjvmtienv)->ResumeThread(remotedbgjvmtienv, (jthread) par1);
 }
 
 
@@ -72,8 +74,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNI
  * Signature: (Ljava/lang/Thread;)I
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+    log_text ("VMVirtualMachine_getSuspendCount: not supported");
+	return 1;
 }
 
 /*
@@ -85,8 +87,58 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasse
     jint count;
     jclass* classes;
 
-    remotedbgjvmtienv->GetLoadedClasses(remotedbgjvmtienv, &count, &classes);
+    (*remotedbgjvmtienv)->GetLoadedClasses(remotedbgjvmtienv, &count, &classes);
     return count;
+}
+
+/*
+ * Class:     gnu_classpath_jdwp_VMVirtualMachine
+ * Method:    getAllLoadedClasses
+ * Signature: ()Ljava/util/Iterator
+ */
+JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasses(JNIEnv *env, jclass clazz) {
+	jclass *classes, *cl;
+	jint classcount;
+	jobjectArray joa;
+/*	jthrowable e;*/
+	jmethodID m;
+	jobject *ol,*oi;
+	int i;
+	jvmtiError err;
+	char* errdesc;
+
+	if (JVMTI_ERROR_NONE != (err= (*remotedbgjvmtienv)->
+		GetLoadedClasses(remotedbgjvmtienv, &classcount, &classes))) {
+		(*remotedbgjvmtienv)->GetErrorName(remotedbgjvmtienv,err, &errdesc);
+		fprintf(stderr,"jvmti error: %s\n",errdesc);
+		fflush(stderr);
+/*		env->ThrowNew(env,ec,"jvmti error occoured");*/
+	}
+	
+	cl = (*env)->FindClass(env,"java.lang.Class");
+
+	/* Arrays.asList(Object[] classes)->List.Iterator()->Iterator */
+	joa = (*env)->NewObjectArray(env, (jsize)classcount, cl , NULL);
+
+	for (i = 0; i < classcount; i++) 
+		(*env)->SetObjectArrayElement(env,joa,(jsize)i, (jobject)classes[i]);
+	
+	cl = (*env)->FindClass(env,"java.util.Arrays");
+	if (!cl) return NULL;
+
+	m = (*env)->GetStaticMethodID(env, cl, "asList", "([Ljava/lang/Object;)Ljava/util/List;");
+	if (!m) return NULL;
+
+	ol = (*env)->CallStaticObjectMethod(env,(jclass)cl,m,joa);
+	if (!ol) return NULL;
+
+	cl = (*env)->FindClass(env,"java.util.List");
+	if (!cl) return NULL;
+	m = (*env)->GetMethodID(env,cl,"Iterator","()Ljava/util/Iterator;");
+
+	oi = (*env)->CallObjectMethod(env,*ol,m);
+		
+	return (struct java_util_Iterator*)oi;
 }
 
 /* Class:     gnu/classpath/jdwp/VMVirtualMachine
@@ -94,8 +146,28 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasse
  * Signature: (Ljava/lang/Class;)I
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+	jint status;
+	(*remotedbgjvmtienv)->GetClassStatus(remotedbgjvmtienv, (jclass) par1, &status);
+	return status;
+}
+
+/*
+ * Class:     gnu/classpath/jdwp/VMVirtualMachine
+ * Method:    getAllClassMethods
+ * Signature: (Ljava/lang/Class;)[Lgnu/classpath/jdwp/VMMethod;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllClassMethods(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
+    log_text ("VMVirtualMachine_getAllClassMethods: IMPLEMENT ME !!!");
+}
+
+
+/*
+ * Class:     gnu/classpath/jdwp/VMVirtualMachine
+ * Method:    getClassMethod
+ * Signature: (Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;
+ */
+JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassMethod(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s8 par2) {
+    log_text ("VMVirtualMachine_getAllClassMethod: IMPLEMENT ME !!!");
 }
 
 
@@ -105,7 +177,10 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNI
  * Signature: (Ljava/lang/Thread;II)Ljava/util/ArrayList;
  */
 JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1, s4 par2, s4 par3) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+    log_text ("VMVirtualMachine_getFrames - IMPLEMENT ME!!!");
+/*	jclass ec = (*env)->FindClass(env,"gnu/classpath/jdwp/JdwpInternalErrorException");
+	if (JVMTI_ERROR_NONE != (*remotedbgjvmtienv)->GetClassStatus(remotedbgjvmtienv, par1, &status))
+	env->ThrowNew(env,ec,"jvmti error occoured");*/
 	return 0;
 }
 
@@ -116,7 +191,7 @@ JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualM
  * Signature: (Ljava/lang/Thread;Ljava/nio/ByteBuffer;)Lgnu/classpath/jdwp/VMFrame;
  */
 JNIEXPORT struct gnu_classpath_jdwp_VMFrame* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrame(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1, struct java_nio_ByteBuffer* par2) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+    log_text ("VMVirtualMachine_getFrame - IMPLEMENT ME!!!");
 	return 0;
 }
 
@@ -127,8 +202,9 @@ JNIEXPORT struct gnu_classpath_jdwp_VMFrame* JNICALL Java_gnu_classpath_jdwp_VMV
  * Signature: (Ljava/lang/Thread;)I
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+	jint count;
+	(*remotedbgjvmtienv)->GetFrameCount(remotedbgjvmtienv, (jthread)par1, &count);
+	return count;
 }
 
 
@@ -138,8 +214,23 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIE
  * Signature: (Ljava/lang/Thread;)I
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+	jint status;
+	if (JVMTI_ERROR_NONE != (*remotedbgjvmtienv)->GetThreadState(remotedbgjvmtienv, (jthread)par1, &status))
+		return 0;
+	if (status && JVMTI_THREAD_STATE_ALIVE) {
+		if (status && JVMTI_THREAD_STATE_WAITING) {		
+			return 4; /* WAIT - see JdwpConstants */
+		}
+		if (status && JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER) { 
+			return 3; /* MONITOR - see JdwpConstants */
+		}
+		if (status && JVMTI_THREAD_STATE_SLEEPING) { 
+			return 2; /* SLEEPING - see JdwpConstants */
+		}
+		return 1; /* RUNNING - see JdwpConstants */
+	} else 
+		return 0; /* ZOMBIE - see JdwpConstants */
+	return -1; /* some error */
 }
 
 
@@ -149,7 +240,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JN
  * Signature: (Ljava/lang/ClassLoader;)Ljava/util/ArrayList;
  */
 JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getLoadRequests(JNIEnv *env, jclass clazz, struct java_lang_ClassLoader* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+    log_text ("VMVirtualMachine_getLoadRequests(");
 	return 0;
 }
 
@@ -160,29 +251,7 @@ JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualM
  * Signature: (Ljava/lang/Object;Ljava/lang/Thread;Ljava/lang/Class;Ljava/lang/reflect/Method;[Ljava/lang/Object;Z)Lgnu/classpath/jdwp/util/MethodResult;
  */
 JNIEXPORT struct gnu_classpath_jdwp_util_MethodResult* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_executeMethod(JNIEnv *env, jclass clazz, struct java_lang_Object* par1, struct java_lang_Thread* par2, struct java_lang_Class* par3, struct java_lang_reflect_Method* par4, java_objectarray* par5, s4 par6) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
-}
-
-
-/*
- * Class:     gnu/classpath/jdwp/VMVirtualMachine
- * Method:    getVarTable
- * Signature: (Ljava/lang/Class;Ljava/lang/reflect/Method;)Lgnu/classpath/jdwp/util/VariableTable;
- */
-JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getVarTable(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, struct java_lang_reflect_Method* par2) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
-}
-
-
-/*
- * Class:     gnu/classpath/jdwp/VMVirtualMachine
- * Method:    getLineTable
- * Signature: (Ljava/lang/Class;Ljava/lang/reflect/Method;)Lgnu/classpath/jdwp/util/LineTable;
- */
-JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getLineTable(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, struct java_lang_reflect_Method* par2) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+    log_text ("VMVirtualMachine_executeMethod");
 	return 0;
 }
 
@@ -193,10 +262,40 @@ JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_j
  * Signature: (Ljava/lang/Class;)Ljava/lang/String;
  */
 JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSourceFile(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+	char* srcname;
+	jstring str;
+
+    (*remotedbgjvmtienv)->
+		GetSourceFileName(remotedbgjvmtienv, (jclass)par1, &srcname);
+	str = (*env)->NewString(env,(jchar*)srcname,(jsize)strlen(srcname));
+
+	return (struct java_lang_String*)str;
 }
 
+/* match JdwpConstants.EventKind to jvmtiEvent constants */
+static jvmtiEvent EventKind2jvmtiEvent(jbyte kind){
+	switch (kind) {
+	case /* SINGLE_STEP */ 1: return JVMTI_EVENT_SINGLE_STEP;
+	case /* BREAKPOINT */ 2: return JVMTI_EVENT_BREAKPOINT;
+    case /*  FRAME_POP */ 3: return JVMTI_EVENT_FRAME_POP;
+    case /*  EXCEPTION */ 4: return JVMTI_EVENT_EXCEPTION;
+    case /*  USER_DEFINED */ 5: return -1; /* can this be matched ? */
+    case /*  THREAD_START */ 6: return JVMTI_EVENT_THREAD_START;
+    case /*  THREAD_END */ 7: return JVMTI_EVENT_THREAD_END;
+    case /*  CLASS_PREPARE */ 8: return JVMTI_EVENT_CLASS_PREPARE;
+    case /*  CLASS_UNLOAD */ 9: return -1; /* can this be matched ? */
+    case /*  CLASS_LOAD */ 10: return JVMTI_EVENT_CLASS_LOAD;
+    case /*  FIELD_ACCESS */ 20: return JVMTI_EVENT_FIELD_ACCESS;
+    case /*  FIELD_MODIFICATION */ 21: return JVMTI_EVENT_FIELD_MODIFICATION;
+    case /*  EXCEPTION_CATCH */ 30: return JVMTI_EVENT_EXCEPTION_CATCH;
+    case /*  METHOD_ENTRY */ 40: return JVMTI_EVENT_METHOD_ENTRY;
+    case /*  METHOD_EXIT */ 41: return JVMTI_EVENT_METHOD_EXIT;
+    case /*  VM_INIT */ 90: return JVMTI_EVENT_VM_INIT;
+    case /*  VM_DEATH */ 99: return JVMTI_EVENT_VM_DEATH;    
+    case /*  VM_DISCONNECTED */ 100: return -1; /* can this be matched ? */
+	default: return -1;
+	}
+}
 
 /*
  * Class:     gnu/classpath/jdwp/VMVirtualMachine
@@ -204,7 +303,20 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMVirtualMach
  * Signature: (Lgnu/classpath/jdwp/event/EventRequest;)V
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JNIEnv *env, jclass clazz, struct gnu_classpath_jdwp_event_EventRequest* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+	jbyte kind;
+	jfieldID kindid;
+	jclass erc;
+
+	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
+	
+	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
+	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
+
+	(*remotedbgjvmtienv)->
+		SetEventNotificationMode(remotedbgjvmtienv, JVMTI_ENABLE, 
+								 EventKind2jvmtiEvent(kind), NULL);
+
+	/* todo: error handling, suspend policy */
 }
 
 
@@ -214,7 +326,20 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JN
  * Signature: (Lgnu/classpath/jdwp/event/EventRequest;)V
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(JNIEnv *env, jclass clazz, struct gnu_classpath_jdwp_event_EventRequest* par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+	jbyte kind;
+	jfieldID kindid;
+	jclass erc;
+
+	erc = (*env)->FindClass(env,"gnu.classpath.jdwp.event.EventRequest");
+	
+	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
+	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
+
+	(*remotedbgjvmtienv)->
+		SetEventNotificationMode(remotedbgjvmtienv, JVMTI_DISABLE, 
+								 EventKind2jvmtiEvent(kind), NULL);
+
+	/* todo: error handling, suspend policy */
 }
 
 
@@ -224,7 +349,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
  * Signature: (B)V
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents(JNIEnv *env, jclass clazz, s4 par1) {
-    log_text ("JVMTI-Call: IMPLEMENT ME!!!");
+	/* jvmti events are not saved */
+    log_text ("VMVirtualMachine_clearEvents IMPLEMENT ME!!!");
 }
 
 

@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 4661 2006-03-21 00:04:59Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -58,7 +58,8 @@ libnativevm_la_SOURCES = \
 if ENABLE_JVMTI
 libnativevm_la_SOURCES += \
 	VMFrame.c \
-	VMVirtualMachine.c
+	VMVirtualMachine.c \
+	VMMethod.c
 endif
 
 

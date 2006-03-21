@@ -68,6 +68,9 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/profile/profile.h"
 
+#if defined(ENABLE_JVMTI)
+#include "native/jvmti/cacaodbg.h"
+#endif
 
 /* Invocation API variables ***************************************************/
 
@@ -191,6 +194,8 @@ enum {
 
 #ifdef ENABLE_JVMTI
 	OPT_DEBUG,
+	OPT_XRUNJDWP,
+	OPT_NOAGENT,
 	OPT_AGENTLIB,
 	OPT_AGENTPATH,
 #endif
@@ -276,6 +281,8 @@ opt_struct opts[] = {
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
 #ifdef ENABLE_JVMTI
 	{ "Xdebug",            false, OPT_DEBUG },
+	{ "Xnoagent",          false, OPT_NOAGENT },
+	{ "Xrunjdwp",          true,  OPT_XRUNJDWP },
 #endif 
 	{ "Xms",               true,  OPT_MS },
 	{ "ms",                true,  OPT_MS },
@@ -401,7 +408,11 @@ static void Xusage(void)
 	puts("    -Xss<size>               set the thread stack size (default: 128kB)");
 	puts("    -Xprof[:bb]              collect and print profiling data");
 #if defined(ENABLE_JVMTI)
-	puts("    -Xdebug<transport>       enable remote debugging");
+    /* -Xdebug option depend on gnu classpath JDWP options. options: 
+	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
+	puts("    -Xdebug           enable remote debugging\n");
+	puts("    -Xrunjdwp transport=[dt_socket|...],address=<hostname:port>,server=[y|n],suspend=[y|n]\n");
+	puts("                      enable remote debugging\n");
 #endif 
 
 	/* exit with error code */
@@ -503,6 +514,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
 
+
 	/* set the bootclasspath */
 
 	cp = getenv("BOOTCLASSPATH");
@@ -546,6 +558,15 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	heapmaxsize   = HEAP_MAXSIZE;
 	heapstartsize = HEAP_STARTSIZE;
 	opt_stacksize = STACK_SIZE;
+
+
+#if defined(ENABLE_JVMTI)
+	/* initialize JVMTI related  **********************************************/
+	jvmtibrkpt.brk=NULL;
+	jvmtibrkpt.num=0;
+	jvmtibrkpt.size=0;
+	jdwp = jvmti = dbgprocess = false;
+#endif
 
 	/* initialize properties before commandline handling */
 
@@ -642,15 +663,39 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 		case OPT_DEBUG:
-			dbg = true;
-			transport = opt_arg;
+			jdwp=true;
 			break;
-
+		case OPT_NOAGENT:
+			/* I don't know yet what Xnoagent should do. This is only for 
+			   compatiblity with eclipse - motse */
+			break;
+		case OPT_XRUNJDWP:
+			transport = opt_arg;
+			j=0;
+			while (transport[j]!='=') j++;
+			j++;
+			while (j<strlen(transport)) {
+				if (strncmp("suspend=",&transport[j],8)==0) {
+					if ((j+8)>=strlen(transport) || 
+						(transport[j+8]!= 'y' && transport[j+8]!= 'n')) {
+						printf("bad Xrunjdwp option: -Xrunjdwp%s\n",transport);
+						usage();
+						break;
+					}
+					else {
+						suspend = transport[j+8] == 'y';
+						break;
+					}
+				}
+				while (transport[j]!=',') j++;
+				j++;
+			}
+			
+			break;
 		case OPT_AGENTPATH:
 		case OPT_AGENTLIB:
-			set_jvmti_phase(JVMTI_PHASE_ONLOAD);
-			agentload(opt_arg);
-			set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
+			jvmti=true;
+			agentarg = opt_arg;
 			break;
 #endif
 			
@@ -984,6 +1029,21 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		}
 	}
 
+#if defined(ENABLE_JVMTI)
+	/* The fork has to occure before threads a created because threads  are 
+	   not forked correctly (see man pthread_atfork). Varibale dbgprocess 
+	   stores information whether this is the debugger or debuggee process. */
+	if (jvmti || jdwp) {
+		set_jvmti_phase(JVMTI_PHASE_ONLOAD);
+		dbgprocess = cacaodbgfork();
+	}
+
+	if (dbgprocess && jvmti) { /* is this the parent/debugger process ? */
+		agentload(agentarg);
+		set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
+	}
+#endif
+
 
 	/* initialize this JVM ****************************************************/
 
@@ -1180,8 +1240,10 @@ void vm_exit(s4 status)
 	assert(class_java_lang_System->state & CLASS_LOADED);
 
 #if defined(ENABLE_JVMTI)
-	set_jvmti_phase(JVMTI_PHASE_DEAD);
-	agentunload();
+	if (dbgprocess) {
+		set_jvmti_phase(JVMTI_PHASE_DEAD);
+		if (jvmti) agentunload();
+	}
 #endif
 
 	if (!link_class(class_java_lang_System))
@@ -1222,9 +1284,12 @@ void vm_exit(s4 status)
 void vm_shutdown(s4 status)
 {
 #if defined(ENABLE_JVMTI)
-	agentunload();
+	if (dbgprocess) {
+		set_jvmti_phase(JVMTI_PHASE_DEAD);
+		if (jvmti) agentunload();
+		ipcrm();
+	}
 #endif
-
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);
@@ -1246,6 +1311,12 @@ void vm_shutdown(s4 status)
 
 void vm_exit_handler(void)
 {
+#if defined(ENABLE_JVMTI)
+	if (jvmti && jdwp) set_jvmti_phase(JVMTI_PHASE_DEAD);
+	if (jvmti) agentunload();
+	ipcrm();
+#endif
+
 #if !defined(NDEBUG)
 	if (showmethods)
 		class_showmethods(mainclass);

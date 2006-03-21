@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4630 2006-03-16 14:00:48Z twisti $
+   $Id: cacao.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -49,10 +49,10 @@
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/jvmti.h"
-#include "native/jvmti/dbg.h"
-#include <sys/types.h>
-#include <signal.h>
-#include <sys/wait.h>
+#include "native/jvmti/cacaodbg.h"
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#include <pthread.h>
+#endif
 #endif
 
 #include "toolbox/logging.h"
@@ -72,73 +72,9 @@
 #include "vm/jit/verify/typeinfo.h"
 #endif
 
-
 #ifdef TYPECHECK_STATISTICS
 void typecheck_print_statistics(FILE *file);
 #endif
-
-/* setup_debugger_process *****************************************************
-
-   Helper function to start JDWP threads
-
-*******************************************************************************/
-#if defined(ENABLE_JVMTI)
-
-static void setup_debugger_process(char* transport) {
-	java_objectheader *o;
-	methodinfo *m;
-	java_lang_String  *s;
-
-	/* new gnu.classpath.jdwp.Jdwp() */
-	mainclass = 
-		load_class_from_sysloader(utf_new_char("gnu.classpath.jdwp.Jdwp"));
-	if (!mainclass)
-		throw_main_exception_exit();
-
-	o = builtin_new(mainclass);
-
-	if (!o)
-		throw_main_exception_exit();
-	
-	m = class_resolveclassmethod(mainclass,
-								 utf_init, 
-								 utf_java_lang_String__void,
-								 class_java_lang_Object,
-								 true);
-	if (!m)
-		throw_main_exception_exit();
-
-	(void) vm_call_method(m, o);
-
-	/* configure(transport,NULL) */
-	m = class_resolveclassmethod(
-		mainclass, utf_new_char("configure"), 
-		utf_new_char("(Ljava/lang/String;Ljava/lang/Thread;)V"),
-		class_java_lang_Object,
-		false);
-
-
-	s = javastring_new_char(transport);
-
-	(void) vm_call_method(m, o, s);
-
-	if (!m)
-		throw_main_exception_exit();
-
-	/* _doInitialization */
-	m = class_resolveclassmethod(mainclass,
-								 utf_new_char("_doInitialization"), 
-								 utf_new_char("()V"),
-								 mainclass,
-								 false);
-	
-	if (!m)
-		throw_main_exception_exit();
-
-	(void) vm_call_method(m, o);
-}
-#endif
-
 
 /* getmainclassfromjar *********************************************************
 
@@ -241,7 +177,6 @@ static char *getmainclassnamefromjar(char *mainstring)
 	return javastring_tochar(o);
 }
 
-
 void exit_handler(void);
 
 
@@ -253,7 +188,9 @@ void exit_handler(void);
 
 int main(int argc, char **argv)
 {
+#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	void *dummy;
+#endif
 	s4 i;
 	
 	/* local variables ********************************************************/
@@ -261,10 +198,11 @@ int main(int argc, char **argv)
 	JavaVMInitArgs *vm_args;
 	JavaVM         *jvm;                /* denotes a Java VM                  */
 
-#if defined(ENABLE_JVMTI)
-	bool dbg = false;
-	char *transport;
-	int waitval;
+
+#if defined(NDEBUG)
+	/* motse: for jdwp/jvmti debugging*/
+	for (i=0; i<argc; i++)
+		fprintf(stderr,"argument string[%d]: %s\n",i,argv[i]);
 #endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
@@ -290,7 +228,8 @@ int main(int argc, char **argv)
 	JNI_CreateJavaVM(&jvm, (void **) &_Jv_env, vm_args);
 
 #if defined(ENABLE_JVMTI)
-	set_jvmti_phase(JVMTI_PHASE_START);
+	if (dbgprocess && jvmti && jdwp) /* is this the parent/debugger process ? */
+		set_jvmti_phase(JVMTI_PHASE_START);
 #endif
 
 	/* do we have a main class? */
@@ -380,56 +319,24 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
-#if defined(ENABLE_JVMTI) && defined(NATIVE_THREADS)
-		if(dbg) {
-			debuggee = fork();
-			if (debuggee == (-1)) {
-				log_text("fork error");
-				exit(1);
-			} else {
-				if (debuggee == 0) {
-					/* child: allow helper process to trace us  */
-					if (TRACEME != 0)  exit(0);
-					
-					/* give parent/helper debugger process control */
-					kill(0, SIGTRAP);  /* do we need this at this stage ? */
 
-					/* continue with normal startup */	
 
-				} else {
-
-					/* parent/helper debugger process */
-					wait(&waitval);
-
-					remotedbgjvmtienv = new_jvmtienv();
-					/* set eventcallbacks */
-					if (JVMTI_ERROR_NONE == 
-						remotedbgjvmtienv->
-						SetEventCallbacks(remotedbgjvmtienv,
-										  &jvmti_jdwp_EventCallbacks,
-										  sizeof(jvmti_jdwp_EventCallbacks))){
-						log_text("unable to setup event callbacks");
-						vm_exit(1);
-					}
-
-					/* setup listening process (JDWP) */
-					setup_debugger_process(transport);
-
-					/* start to be debugged program */
-					CONT(debuggee);
-
-                    /* exit debugger process - todo: cleanup */
-					joinAllThreads();
-					cacao_exit(0);
-				}
-			}
+#if defined(ENABLE_JVMTI)
+		/* if this is the parent process than start the jdwp listening */
+		if (jvmti || jdwp) {
+			fprintf(stderr, "jdwp/debugger set herewego brkpt %p\n",&&herewego);
+			setsysbrkpt(HEREWEGOBRK,&&herewego);
+			if (dbgprocess && jdwp) cacaodbglisten(transport); 
 		}
-		else 
-			debuggee= -1;
+
 		
+		if (!dbgprocess) {
+			fprintf(stderr,"debuggee: herewe go\n");
+			fflush(stderr);
+		}
 #endif
 		/* here we go... */
-
+	herewego:
 		(void) vm_call_method(m, NULL, oa);
 
 		/* exception occurred? */

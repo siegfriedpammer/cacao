@@ -29,38 +29,56 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: VMjdwp.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
-#include "jvmti.h"
+#include "native/jvmti/jvmti.h"
+#include "native/jvmti/cacaodbg.h"
 #include "vm/loader.h"
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
 
-static jmethodID notifymid = NULL;
-static jclass Jdwpclass = NULL;
+#include <stdlib.h>
 
-void notify (jobject event){
-	methodinfo *m;
+
+static methodinfo *notifymid = NULL;
+static classinfo *Jdwpclass = NULL;
+
+
+#define FINDCLASS(jni_env,class,classname) \
+  class = load_class_from_sysloader(utf_new_char(classname)); \
+  if (!class) throw_main_exception_exit();
+ 
+
+#define GETJNIMETHOD(jni_env,class,classname,method,methodname,methodsig) \
+  FINDCLASS(jni_env,class,classname) \
+  method = class_resolveclassmethod (class,utf_new_char(methodname), \
+									 utf_new_char(methodsig),        \
+									 class_java_lang_Object,true);   \
+  if (!method) throw_main_exception_exit();
+ 
+#define GETJNISTATICMETHOD(jni_env,class,classname,method,methodname,methodsig) \
+  FINDCLASS(jni_env,class,classname) \
+  method = class_resolveclassmethod (class,utf_new_char(methodname), \
+									 utf_new_char(methodsig),        \
+									 class_java_lang_Object,true);   \
+  if (!method) throw_main_exception_exit();  
+
+
+static void notify (JNIEnv* env, jobject event){
+	log_text("VMjdwp notfiy called");
+
     if (notifymid == NULL) {
-        Jdwpclass = 
-            load_class_from_sysloader(utf_new_char("gnu.classpath.jdwp.Jdwp"));
-        if (!Jdwpclass)
-            throw_main_exception_exit();
-        
-        notifymid = class_resolveclassmethod(
-            Jdwpclass,
-            utf_new_char("notify"), 
-            utf_new_char("(Lgnu.classpath.jdwp.event.Event;)V"),
-            class_java_lang_Object,
-            true);
-
-        if (!notifymid)
-            throw_main_exception_exit();
+		GETJNISTATICMETHOD(env,Jdwpclass,"gnu/classpath/jdwp/Jdwp",notifymid,
+						   "notify","(Lgnu/classpath/jdwp/event/Event;)V");
+		
     }
     
-    asm_calljavafunction(m, Jdwpclass, event, NULL, NULL);
+	vm_call_method(notifymid, NULL ,event);
+	if (*exceptionptr)
+		throw_main_exception_exit();
+
 }
 
 
@@ -161,7 +179,24 @@ static void ExceptionCatch (jvmtiEnv *jvmti_env,
 static void ThreadStart (jvmtiEnv *jvmti_env,
                          JNIEnv* jni_env,
                          jthread thread){
-  log_text ("JVMTI-Event: IMPLEMENT ME!!!");
+	jclass cl;
+	jmethodID cc;
+	jobject obj;
+
+	GETJNIMETHOD(jni_env,cl,"gnu/classpath/jdwp/event/ThreadStartEvent",cc,"<init>","(Ljava/lang/Thread;)V"); 
+
+	obj = builtin_new(cl);
+	if (!obj) throw_main_exception_exit();
+
+	fprintf(stderr,"VMjdwp:ThreadStart: thread %p\n",thread);
+	fflush(stderr);
+
+	vm_call_method((methodinfo*)cc, obj, thread);
+
+	if (*exceptionptr)
+		throw_main_exception_exit();
+
+	notify (jni_env,obj);
 }
 
 static void ThreadEnd (jvmtiEnv *jvmti_env,
@@ -199,13 +234,35 @@ static void ClassFileLoadHook (jvmtiEnv *jvmti_env,
 
 static void VMStart (jvmtiEnv *jvmti_env,
                      JNIEnv* jni_env) {
-  log_text ("JVMTI-Event: IMPLEMENT ME!!!");
+  log_text ("JVMTI-Event:VMStart IMPLEMENT ME!!!");
 }
 
 static void VMInit (jvmtiEnv *jvmti_env, 
                     JNIEnv* jni_env,
                     jthread thread) {
-  log_text ("JVMTI-Event: IMPLEMENT ME!!!");
+	classinfo* cl;
+	methodinfo* cc;
+	java_objectheader* obj;
+
+	log_text ("JVMTI-Event:VMInit");
+
+	GETJNIMETHOD(jni_env,cl,"gnu/classpath/jdwp/event/VmInitEvent",cc,"<init>",
+				 "(Ljava/lang/Thread;)V"); 
+
+	fprintf(stderr,"VMjdwp:VMInit: 1\n");
+
+	obj = builtin_new(cl);
+	if (!obj) throw_main_exception_exit();
+
+	fprintf(stderr,"VMjdwp:VMInit: thread %p\n",thread);
+	fflush(stderr);
+
+	vm_call_method((methodinfo*)cc, obj, thread);
+
+	if (*exceptionptr)
+		throw_main_exception_exit();
+
+	notify (jni_env,obj);
 }
 
 static void VMDeath (jvmtiEnv *jvmti_env,
@@ -294,7 +351,49 @@ static void GarbageCollectionFinish (jvmtiEnv *jvmti_env){
 }
 
 
-jvmtiEventCallbacks jvmti_jdwp_EventCallbacks = {
+bool VMjdwpInit(jvmtiEnv* env) {
+	int end, i=0;
+	jvmtiCapabilities cap;
+	jvmtiError e;
+
+
+	/* set eventcallbacks */
+	if (JVMTI_ERROR_NONE != 
+		(*env)->SetEventCallbacks(env,
+							   &jvmti_jdwp_EventCallbacks,
+							   sizeof(jvmti_jdwp_EventCallbacks))){
+		log_text("unable to setup event callbacks");
+		return false;
+	}
+	
+	e = (*env)->GetPotentialCapabilities(env, &cap);
+	if (e == JVMTI_ERROR_NONE) {
+		e = (*env)->AddCapabilities(env, &cap);
+	}
+	if (e != JVMTI_ERROR_NONE) {
+		log_text("error adding jvmti capabilities");
+		exit(1);
+	}
+
+	end = sizeof(jvmti_jdwp_EventCallbacks) / sizeof(void*);
+	for (i = 0; i < end; i++) {
+		/* enable standard VM callbacks  */
+		if (((void**)&jvmti_jdwp_EventCallbacks)[i] != NULL) {
+			e = (*env)->SetEventNotificationMode(env,
+												JVMTI_ENABLE,
+												JVMTI_EVENT_START_ENUM+i,
+												NULL);
+
+			if (JVMTI_ERROR_NONE != e) {
+				log_text("unable to setup event notification mode");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+	
+	jvmtiEventCallbacks jvmti_jdwp_EventCallbacks = {
     &VMInit,
     &VMDeath,
     &ThreadStart,
@@ -302,7 +401,7 @@ jvmtiEventCallbacks jvmti_jdwp_EventCallbacks = {
     &ClassFileLoadHook,
     &ClassLoad,
     &ClassPrepare,
-    &VMStart,
+    NULL, /* &VMStart */
     &Exception,
     &ExceptionCatch,
     &SingleStep,

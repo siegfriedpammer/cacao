@@ -1,4 +1,4 @@
-/* src/native/jvmti/linux-i386.h - jvmti os/architecture support
+/* src/native/jvmti/dbg.c - jvmti os/architecture support
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -19,45 +19,55 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
 
-   Contact: cacao@cacaojvm.org
+   Contact: cacao@complang.tuwien.ac.at
 
-   Author: Martin Platter
+   Authors: Martin Platter
 
-   Changes:             
+   Changes: 
 
-   
-   $Id: dbg.h 4661 2006-03-21 00:04:59Z motse $
+
+   $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
 
 */
 
 /* at the moment linux/i386 is the only plattform available */
 #if defined(__LINUX__)  && defined (__I386__)
 
-#ifndef _DBG_H
-#define _DBG_H
-
-#include <sys/types.h>
+#include "dbg.h"
 #include <sys/ptrace.h>
+#include <linux/user.h>
 
-#define TRACEME ptrace(PTRACE_TRACEME, 0, 0, 0)
-#define DETACH(pid,sig)  ptrace(PTRACE_DETACH, pid, 0, sig)
-#define TRAPINS 0xcc /* opcode for brk */
-#define TRAP asm("int3")
-#define GETMEM(pid, addr) ptrace(PTRACE_PEEKDATA, pid, addr, 0)
-#define CONT(pid,sig) if(ptrace(PTRACE_CONT, pid, 0, sig)==-1) \
-                         perror("continue failed: ");
-#define DISABLEBRK(pid,ins,addr) ptrace(PTRACE_POKEDATA, pid, (caddr_t) addr, ins)
-#define GETREGS(pid,regs) ptrace(PTRACE_GETREGS, pid, 0, &regs)
+#include <stdio.h>
 
-void* getip(pid_t pid);
-void setip(pid_t pid, void* ip);
+void* getip(pid_t pid) {
+    struct user_regs_struct regs;
 
-void setbrk(pid_t pid, void* addr,long* orig);
+    GETREGS(pid,regs);
+    return (void*)regs.eip;
+}
 
-#endif
+void setip(pid_t pid, void* ip) {
+    struct user_regs_struct regs;
+
+    GETREGS(pid,regs);
+    regs.eip=(long)ip; 
+    ptrace(PTRACE_SETREGS, pid, 0, &regs); 
+}
+
+void setbrk(pid_t pid, void* addr, long* orig) {
+    long ins;
+	*orig = GETMEM(pid,addr);
+
+	ins = (*orig & ~0x000000FF) | TRAPINS; 
+
+	fprintf (stderr,"pid %d set brk at %p orig: %X new: %X\n",getpid(),addr,*orig,ins);
+	if (ptrace(PTRACE_POKEDATA, pid, (caddr_t) addr, ins)==-1) 
+		perror("setbrk error ");
+}
+
 #endif
 
 /*

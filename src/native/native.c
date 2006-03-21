@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: native.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -87,7 +87,13 @@
 #include "native/include/java_lang_reflect_Method.h"
 #include "native/include/java_lang_reflect_VMProxy.h"
 #include "native/include/java_security_VMAccessController.h"
-
+#if defined(ENABLE_JVMTI)
+#include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
+#include "native/include/java_nio_ByteBuffer.h"
+#include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
+#include "native/include/gnu_classpath_jdwp_VMFrame.h"
+#include "native/include/gnu_classpath_jdwp_VMMethod.h"
+#endif
 
 #if defined(WITH_STATIC_CLASSPATH)
 
@@ -222,6 +228,34 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_VMProxy_generateProxyClass,
 
 	(functionptr) Java_java_security_VMAccessController_getStack,
+#if defined(ENABLE_JVMTI)
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClassesCount,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllClassMethods,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getClassMethod,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrame,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getLoadRequests,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_executeMethod,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getSourceFile,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents,
+	(functionptr) Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasses,
+	(functionptr) Java_gnu_classpath_jdwp_VMFrame_setValue,
+	(functionptr) Java_gnu_classpath_jdwp_VMFrame_getValue,
+	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getName,
+	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getSignature,
+	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getModifiers,
+	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getLineTable,
+	(functionptr) Java_gnu_classpath_jdwp_VMMethod_getVariableTable
+#endif
+
 };
 
 #endif /* defined(WITH_STATIC_CLASSPATH) */

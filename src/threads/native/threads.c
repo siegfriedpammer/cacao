@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: threads.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -463,7 +463,11 @@ int cacao_suspendhandler(ucontext_t *ctx)
 }
 #endif
 
+#if !defined(ENABLE_JVMTI)
 static void setthreadobject(threadobject *thread)
+#else
+void setthreadobject(threadobject *thread)
+#endif
 {
 #if !defined(HAVE___THREAD)
 	pthread_setspecific(tkey_threadinfo, thread);

@@ -30,11 +30,11 @@
    Changes:             
 
    
-   $Id: jvmti.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: jvmti.h 4661 2006-03-21 00:04:59Z motse $
 
 */
-#ifndef JVMTI_H
-#define JVMTI_H
+#ifndef _JVMTI_H
+#define _JVMTI_H
 
 #include "native/jni.h"
 #include "native/include/java_lang_String.h"
@@ -47,7 +47,7 @@ typedef jobject jthreadGroup;
 typedef jlong jlocation;
 struct _jrawMonitorID;
 typedef struct _jrawMonitorID *jrawMonitorID;
-typedef struct jvmtiEnv_struct jvmtiEnv;
+typedef struct jvmtiEnv_struct *jvmtiEnv;
 
 typedef enum {
     JVMTI_ERROR_NONE = 0, /* No error has occurred. This is the error code that is 
@@ -1177,48 +1177,6 @@ struct jvmtiEnv_struct {
 #define JVMTI_CLASS_STATUS_ARRAY  16  
 #define JVMTI_CLASS_STATUS_PRIMITIVE  32 
 
-/* cacao specific */
-
-typedef struct {
-	jvmtiEnv *jvmti_env;
-	jthread thread;
-	jmethodID method;
-	jlocation location;
-	jclass klass;
-	jobject object;
-	jfieldID field;
-	char signature_type;
-	jvalue value;
-	jboolean b;
-	void* address;
-	void** new_address_ptr;
-	jmethodID catch_method;
-	jlocation catch_location;
-	char* name;
-	jobject protection_domain;
-	jint jint1;
-	jint jint2;
-	unsigned char* class_data;
-	jint* new_class_data_len;
-	unsigned char** new_class_data;
-	jvmtiAddrLocationMap* map;
-	void* compile_info;
-	jlong jlong;
-} genericEventData;
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-struct _jrawMonitorID {
-	java_lang_String *name;
-};
-#endif
-
-jvmtiEnv* new_jvmtienv();
-void set_jvmti_phase(jvmtiPhase p);
-pid_t debuggee;
-jvmtiEnv* remotedbgjvmtienv;
-jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
-void agentload(char* opt_arg);
-void agentunload();
 #endif
 
 

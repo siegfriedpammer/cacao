@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4475 2006-02-06 21:06:12Z twisti $
+   $Id: threads.h 4661 2006-03-21 00:04:59Z motse $
 
 */
 
@@ -210,6 +210,11 @@ void setPriorityThread(thread *t, s4 priority);
 void interruptThread(java_lang_VMThread *);
 bool interruptedThread();
 bool isInterruptedThread(java_lang_VMThread *);
+
+#if defined(ENABLE_JVMTI)
+void setthreadobject(threadobject *thread);
+#endif
+
 
 /* This must not be changed, it is used in asm_criticalsections */
 typedef struct {

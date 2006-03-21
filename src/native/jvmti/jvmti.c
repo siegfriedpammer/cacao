@@ -1,5 +1,5 @@
-/* src/native/jvmti/jvmti.c - implementation of the Java Virtual Machine Tool 
-                              Interface functions
+/* src/native/jvmti/jvmti.c - implementation of the Java Virtual Machine 
+                              Tool Interface functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -30,23 +30,25 @@
    Changes: Edwin Steiner
 
    
-   $Id: jvmti.c 4599 2006-03-14 22:30:58Z edwin $
+   $Id: jvmti.c 4661 2006-03-21 00:04:59Z motse $
 
 */
 
 #include <assert.h>
 
 #include "native/jni.h"
+#include "native/native.h"
+#include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
+#include "vm/class.h"
 #include "vm/classcache.h"
 #include "mm/boehm.h"
 #include "toolbox/logging.h"
 #include "vm/options.h"
-#include "cacao/cacao.h"
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
 #include "threads/native/threads.h"
@@ -59,7 +61,8 @@
 #include "native/include/java_lang_VMObject.h"
 #include "native/include/java_lang_VMSystem.h"
 #include "native/include/java_lang_VMClass.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/suck.h"
+#include  "boehm-gc/include/gc.h"
 
 #include <string.h>
 #include <linux/unistd.h>
@@ -68,6 +71,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/user.h>
 #include <signal.h>
 #include <ltdl.h>
 
@@ -111,8 +115,7 @@ struct _environment {
 	environment *next;
 };
 
-
-static jvmtiEnv JVMTI_EnvTable;
+static struct jvmtiEnv_struct JVMTI_EnvTable;
 static jvmtiCapabilities JVMTI_Capabilities;
 static lt_ptr unload;
 
@@ -121,14 +124,40 @@ static lt_ptr unload;
 #define CHECK_PHASE_END  )) return JVMTI_ERROR_WRONG_PHASE
 #define CHECK_CAPABILITY(env,CAP) if(((environment*)env)->capabilities.CAP == 0) \
                                      return JVMTI_ERROR_MUST_POSSESS_CAPABILITY;
-#define CHECK_THREAD_IS_ALIVE(t) if((((java_lang_Thread*)t)->vmThread==NULL)&& \
-                                    (((java_lang_Thread*)t)->group==NULL)) \
+#define CHECK_THREAD_IS_ALIVE(t) if(check_thread_is_alive(t)== \
+                                  JVMTI_ERROR_THREAD_NOT_ALIVE) \
                                   	return JVMTI_ERROR_THREAD_NOT_ALIVE;
 
 
 
+
+/* check_thread_is_alive *******************************************************
+
+   checks if the given thread is alive
+
+*******************************************************************************/
+static jvmtiError check_thread_is_alive(jthread t) {
+	char* data;
+	java_lang_Thread* th;
+	if(t==NULL) 
+		return JVMTI_ERROR_THREAD_NOT_ALIVE;
+	getchildproc(&data, t, sizeof(java_lang_Thread));
+	th = (java_lang_Thread*)data;
+	if(th->vmThread==NULL) 
+		return JVMTI_ERROR_THREAD_NOT_ALIVE;
+	return JVMTI_ERROR_NONE;
+}
+
+/* execcallback ***************************************************************
+
+   executes the registerd callbacks for the given jvmti event with parameter
+   in the data structure.
+
+*******************************************************************************/
 static void execcallback(jvmtiEvent e, functionptr ec, genericEventData* data) {
-	JNIEnv* jni_env = ptr_env;
+	JNIEnv* jni_env = (JNIEnv*)&_Jv_JNINativeInterface;
+
+	fprintf(stderr,"execcallback called (event: %d)\n",e);
 
 	switch (e) {
 	case JVMTI_EVENT_VM_INIT:
@@ -160,7 +189,7 @@ static void execcallback(jvmtiEvent e, functionptr ec, genericEventData* data) {
 
     case JVMTI_EVENT_VM_DEATH:
     case JVMTI_EVENT_VM_START: 
-		((jvmtiEventThreadStart)ec) (data->jvmti_env, jni_env, data->thread);
+		((jvmtiEventVMStart)ec) (data->jvmti_env, jni_env);
 		break;
 
     case JVMTI_EVENT_EXCEPTION:
@@ -309,27 +338,19 @@ static void execcallback(jvmtiEvent e, functionptr ec, genericEventData* data) {
 	}
 }
 
-/* fireEvent **************************************************************
 
-   fire event callback with data arguments.
+/* dofireEvent ******************************************************************
+
+   sends event if it is enabled either globally or for some threads
 
 *******************************************************************************/
-
-void fireEvent(jvmtiEvent e, genericEventData* data) {
+static void dofireEvent(jvmtiEvent e, genericEventData* data) {
 	environment* env;
 	jvmtiEventModeLL *evm;
-	jthread thread;
-
 	functionptr ec;
-    /* todo : respect event order JVMTI-Spec:Multiple Co-located Events */
-
-	thread = (jthread)THREADOBJECT;
-
-	data->thread = thread;
 
 	env = envs;
 	while (env!=NULL) {
-
 		if (env->events[e-JVMTI_EVENT_START_ENUM].mode == JVMTI_DISABLE) {
 			evm = env->events[e-JVMTI_EVENT_START_ENUM].next;
             /* test if the event is enable for some threads */
@@ -342,7 +363,7 @@ void fireEvent(jvmtiEvent e, genericEventData* data) {
 				evm=evm->next;
 			}
 		} else { /* event enabled globally */
-			data->jvmti_env=&env->env;
+ 			data->jvmti_env=&env->env;
 			ec = ((functionptr*)(&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
 			execcallback(e, ec, data);
 		}
@@ -352,21 +373,30 @@ void fireEvent(jvmtiEvent e, genericEventData* data) {
 }
 
 
+/* fireEvent ******************************************************************
 
-/* getchildproc ***************************************************************
-
-   Get data from child process
+   fire event callback with data arguments. This function mainly fills the
+   missing EventData.
 
 *******************************************************************************/
-static long getchildproc (void *ptr) {
-	if (debuggee > 0) {
-        /* get data from child process */
-		return GETMEM(debuggee,ptr);
-	} else {
-		return *((long*)ptr);
-	}
-}
+void fireEvent(genericEventData* d) {
+	jthread thread;
+    /* todo : respect event order JVMTI-Spec:Multiple Co-located Events */
 
+	if (d->ev != JVMTI_EVENT_VM_START)
+		thread = (jthread)getcurrentthread();
+	else
+		thread = NULL;
+
+	fprintf (stderr,"debugger: fireEvent: %d\n",d->ev);
+	d->thread = thread;
+	dofireEvent(d->ev,d);
+
+	fprintf (stderr,"debugger: fireEvent 2\n");
+	/* if we need to send a VM_INIT event then also send a THREAD_START event */
+	if (d->ev == JVMTI_EVENT_VM_INIT) 
+		dofireEvent(JVMTI_EVENT_THREAD_START,d);
+}
 
 
 /* SetEventNotificationMode ****************************************************
@@ -387,11 +417,11 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 
-	if((event_thread != NULL)&&
-	   (!builtin_instanceof(event_thread,class_java_lang_Thread))) 
-		return JVMTI_ERROR_INVALID_THREAD;
-
-	CHECK_THREAD_IS_ALIVE(event_thread);
+	if(event_thread != NULL) {
+		if (!builtin_instanceof(event_thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
+		CHECK_THREAD_IS_ALIVE(event_thread);
+	}
 	
 	cacao_env = (environment*) env;    
 	if ((mode != JVMTI_ENABLE) && (mode != JVMTI_DISABLE))
@@ -486,7 +516,6 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
     return JVMTI_ERROR_NONE;
 }
 
-
 /* GetAllThreads ***************************************************************
 
    Get all live threads
@@ -497,8 +526,11 @@ jvmtiError
 GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
 	       jthread ** threads_ptr)
 {
-    int i = 0; 
-    threadobject* thread;
+	threadobject* threads;
+	int i;
+	jvmtiError retval;
+	
+	log_text ("GetAllThreads called");
 
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -507,27 +539,15 @@ GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
     if ((threads_count_ptr == NULL) || (threads_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-    thread = mainthreadobj;
-    do {
-        if((thread->o.thread->vmThread==NULL)&& (thread->o.thread->group==NULL)) 
-		   i++; /* count only live threads */
-		   thread = thread->info.prev;
-	} while (thread != mainthreadobj);
-    
-    *threads_count_ptr = i;
-	
-    *threads_ptr = (jthread*) heap_allocate(sizeof(jthread) * i,true,NULL);
-    i=0;
-    do {
-        memcpy(*threads_ptr[i],thread,sizeof(jthread));
-        thread = thread->info.prev;
-        i++;
-    } while (thread != mainthreadobj);
-#else
-	return JVMTI_ERROR_NOT_AVAILABLE;
-#endif
+	retval=allthreads(threads_count_ptr,&threads);
+	if (retval != JVMTI_ERROR_NONE) return retval;
 
+	*threads_ptr = 
+		heap_allocate(sizeof(jthread*)* (*threads_count_ptr),true,NULL);
+
+	for (i=0; i<*threads_count_ptr; i++) 
+		(*threads_ptr)[i] = threadobject2jthread(&threads[i]);
+ 
     return JVMTI_ERROR_NONE;
 }
 
@@ -546,9 +566,15 @@ SuspendThread (jvmtiEnv * env, jthread thread)
 	CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend)
     
+/*    
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	suspendThread((thread *) thread->thread);
+	suspend_thread((thread *) thread->thread);
 #endif
+
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	suspend_thread((threadobject*) thread);
+#endif
+*/
 
     return JVMTI_ERROR_NONE;
 }
@@ -567,10 +593,15 @@ ResumeThread (jvmtiEnv * env, jthread thread)
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend)
 
+/*
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	resumeThread((thread *) this->thread);
+	resume_thread((thread *) this->thread);
 #endif
 
+#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+	resume_thread((threadobject*) thread);
+#endif
+*/
     return JVMTI_ERROR_NONE;
 }
 
@@ -613,7 +644,7 @@ InterruptThread (jvmtiEnv * env, jthread thread)
 	CHECK_THREAD_IS_ALIVE(thread);        
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	interruptThread((java_lang_VMThread*)thread);
+/*	interruptThread((java_lang_VMThread*)thread);*/
 #else
 	return JVMTI_ERROR_NOT_AVAILABLE;
 #endif
@@ -631,22 +662,27 @@ InterruptThread (jvmtiEnv * env, jthread thread)
 jvmtiError
 GetThreadInfo (jvmtiEnv * env, jthread th, jvmtiThreadInfo * info_ptr)
 {
-	java_lang_Thread* t = (java_lang_Thread*)th;
 	int size;
-	char* name;
+	char* data;
+	struct java_lang_Thread *t;
+
+	log_text("GetThreadInfo called");
 
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-	
-	name = javastring_tochar((java_objectheader*)t->name);
-	size = strlen(name);
-	info_ptr->name=heap_allocate(size*sizeof(char),true,NULL);
-	strncpy(info_ptr->name,name,size);
+
+	getchildproc(&data,th,sizeof(struct java_lang_Thread));
+	t = (java_lang_Thread*)data;
 	info_ptr->priority=(jint)t->priority;
 	info_ptr->is_daemon=(jboolean)t->daemon;
 	info_ptr->thread_group=(jthreadGroup)t->group;
 	info_ptr->context_class_loader=(jobject)t->contextClassLoader;
+	getchildproc(&data,t->name,sizeof(struct java_lang_String));
+	size = ((struct java_lang_String*)data)->count;
+	getchildproc(&(info_ptr->name),((struct java_lang_String*)data)->value,size);
+	info_ptr->name[size]='\0';
+
 
     return JVMTI_ERROR_NONE;
 }
@@ -663,8 +699,11 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 		     jobject ** owned_monitors_ptr)
 {
 	int i,j,size=20;
-	jobject* om;
+	java_objectheader **om;
 	lockRecordPool* lrp;
+	char *data;
+
+	log_text("GetOwnedMonitorInfo called");
 
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -683,9 +722,12 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	om=MNEW(java_objectheader*,size);
 
-	pthread_mutex_lock(&pool_lock);
+	stopdebuggee();
 
-	lrp=global_pool;
+	/* global_pool is in the same place in the child process memory because the
+	   the child is a copy of this process */
+	getchildproc(&data, &global_pool,sizeof(lockRecordPool*));
+	lrp=(lockRecordPool*)data;
 
 	while (lrp != NULL) {
 		for (j=0; j<lrp->header.size; j++) {
@@ -779,7 +821,7 @@ typedef struct {
 
 static void *threadstartup(void *t) {
 	runagentparam *rap = (runagentparam*)t;
-	rap->sf(rap->jvmti_env,ptr_env,rap->arg);
+	rap->sf(rap->jvmti_env,&_Jv_JNINativeInterface,rap->arg);
 	return NULL;
 }
 
@@ -805,7 +847,8 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 	if((thread != NULL)&&(!builtin_instanceof(thread,class_java_lang_Thread))) 
 		return JVMTI_ERROR_INVALID_THREAD;
 	if (proc == NULL) return JVMTI_ERROR_NULL_POINTER;
-	if ((priority < JVMTI_THREAD_MIN_PRIORITY) || (priority > JVMTI_THREAD_MAX_PRIORITY)) 
+	if ((priority < JVMTI_THREAD_MIN_PRIORITY) || 
+		(priority > JVMTI_THREAD_MAX_PRIORITY)) 
 		return JVMTI_ERROR_INVALID_PRIORITY;
 
 	rap.sf = proc;
@@ -822,7 +865,8 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 		sp.__sched_priority = sched_get_priority_min(SCHED_FIFO);
 	}
 	pthread_attr_setschedparam(&threadattr,&sp);
-	if (pthread_create(&((threadobject*) thread)->info.tid, &threadattr, &threadstartup, &rap)) {
+	if (pthread_create(&((threadobject*) 
+						 thread)->info.tid, &threadattr, &threadstartup, &rap)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
@@ -986,16 +1030,12 @@ GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
    Has to take care of suspend/resume issuses
 
 *******************************************************************************/
+static jvmtiError getcacaostacktrace(char** trace, jthread thread) {
 
-static jvmtiError getcacaostacktrace(stackTraceBuffer** trace, jthread thread) {
+	log_text("getcacaostacktrace");
 
-	/* todo: suspend specified thread */
-/*	
-	if (!cacao_stacktrace_fillInStackTrace((void**)trace,&stackTraceCollector, (threadobject*)thread)) 
-		return JVMTI_ERROR_INTERNAL;
-*/
-	/* todo: resume specified thread */
-	log_text("todo: stacktraces");
+	
+
     return JVMTI_ERROR_NONE;
 }
 
@@ -1009,7 +1049,7 @@ static jvmtiError getcacaostacktrace(stackTraceBuffer** trace, jthread thread) {
 jvmtiError
 GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 {
-	stackTraceBuffer* trace;
+	char* trace;
 	jvmtiError er;
 
 	CHECK_PHASE_START
@@ -1026,7 +1066,7 @@ GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 	er = getcacaostacktrace(&trace, thread);
 	if (er==JVMTI_ERROR_NONE) return er;
 
-	*count_ptr = trace->size;
+/*	todo: *count_ptr = trace->size;*/
 
     return JVMTI_ERROR_NONE;
 }
@@ -1042,6 +1082,8 @@ jvmtiError
 GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 {
 	java_lang_Thread* th = (java_lang_Thread*)thread;
+	threadobject* t = (threadobject*)th->vmThread;
+
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
@@ -1060,8 +1102,18 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 	} else {
 		/* alive */
 		*thread_state_ptr = JVMTI_THREAD_STATE_ALIVE;
-		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_SUSPENDED; /* todo */
+		if (t->interrupted) *thread_state_ptr |= JVMTI_THREAD_STATE_INTERRUPTED;
 		/* todo */
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_SUSPENDED;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_IN_NATIVE;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_RUNNABLE;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER;
+		if (false /* t->ee.waiting ? */) *thread_state_ptr |= JVMTI_THREAD_STATE_WAITING;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_WAITING_INDEFINITELY;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_IN_OBJECT_WAIT;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_PARKED;
+		if (t->isSleeping) *thread_state_ptr |= JVMTI_THREAD_STATE_SLEEPING;
 	}
 #else
 	return JVMTI_ERROR_INTERNAL;
@@ -1535,6 +1587,7 @@ SetBreakpoint (jvmtiEnv * env, jmethodID method, jlocation location)
     CHECK_PHASE_END;
 	CHECK_CAPABILITY(env,can_generate_breakpoint_events)
         
+		/* addbrkpt */
   log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
     return JVMTI_ERROR_NONE;
 }
@@ -1736,12 +1789,13 @@ GetClassStatus (jvmtiEnv * env, jclass klass, jint * status_ptr)
 	*status_ptr = 0;	
 
 /* 	if (c) *status_ptr = *status_ptr | JVMTI_CLASS_STATUS_VERIFIED; ? */
-/*	if () *status_ptr = *status_ptr | JVMTI_CLASS_STATUS_PREPARED;  ? */
+	if (c->state&=CLASS_LINKED) 
+		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_PREPARED;
 
-	if (c->initialized) 
+	if (c->state&=CLASS_INITIALIZED) 
 		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_INITIALIZED;
 
-	if (c->erroneous_state) 
+	if (c->state&=CLASS_ERROR) 
 		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_ERROR;
 
 	if (c->vftbl->arraydesc != NULL) 
@@ -1774,11 +1828,12 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
     if ((klass == NULL)||(source_name_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
     
-    size = (((classinfo*)klass)->sourcefile->blength);
+    size = (((classinfo*)klass)->sourcefile->blength)+1;
 
     *source_name_ptr = (char*) heap_allocate(sizeof(char)* size,true,NULL);
     
     memcpy(*source_name_ptr,((classinfo*)klass)->sourcefile->text, size);
+	(*source_name_ptr)[size]='\0';
 
     return JVMTI_ERROR_NONE;
 }
@@ -2268,7 +2323,7 @@ GetArgumentsSize (jvmtiEnv * env, jmethodID method, jint * size_ptr)
     if (((methodinfo*)method)->flags & ACC_NATIVE)  
         return JVMTI_ERROR_NATIVE_METHOD;
 
-    *size_ptr = (jint)((methodinfo*)method)->paramcount;
+/* todo    *size_ptr = (jint)((methodinfo*)method)->paramcount;*/
     return JVMTI_ERROR_NONE;
 }
 
@@ -2306,7 +2361,7 @@ GetLineNumberTable (jvmtiEnv * env, jmethodID method,
 
     for (i=0; i < *entry_count_ptr; i++) {
         (*table_ptr[i]).start_location = 
-            (jlocation) method->linenumbers[i].start_pc;
+            (jlocation) ((methodinfo*)method)->linenumbers[i].start_pc;
         (*table_ptr[i]).line_number = 
             (jint) ((methodinfo*)method)->linenumbers[i].line_number;
     }
@@ -2461,12 +2516,16 @@ IsMethodSynthetic (jvmtiEnv * env, jmethodID method,
 *******************************************************************************/
 
 jvmtiError
-GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr,
-		  jclass ** classes_ptr)
+GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 {
 	int i,j;
+	char* data;
+	hashtable* ht;
 	classcache_name_entry *cne;
 	classcache_class_entry *cce;
+
+	log_text ("GetLoadedClasses called");
+
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
@@ -2474,19 +2533,38 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr,
     if (class_count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
     if (classes_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
-	tables_lock();
+	log_text ("GetLoadedClasses1");
 
-	*classes_ptr = heap_allocate(sizeof(jclass*)*classcache_hash.entries,true,NULL);
-	*class_count_ptr = classcache_hash.entries;
+	stopdebuggee();
+	log_text ("GetLoadedClasses2");
+	/* hashtable_classcache is in the same place in the child process memory 
+	   because the child is a copy of this process */
+	getchildproc(&data, &hashtable_classcache, sizeof(hashtable));
+	ht = (hashtable*) &data;
+
+	log_text ("GetLoadedClasses got ht pointer");
+	*classes_ptr = 
+		heap_allocate(sizeof(jclass*) * (ht->entries),true,NULL);
+	fprintf (stderr,"hashtable_classcache.entries = %d\n",ht->entries);
+	fflush(stderr);
+
+	*class_count_ptr = ht->entries;
 	j=0;
     /* look in every slot of the hashtable */
-	for (i=0; i<classcache_hash.size; i++) { 
-		cne =(classcache_name_entry*) classcache_hash.ptr[i];
+	for (i=0; i<ht->size; i++) { 
+		cne = ht->ptr[i];
+
 		while (cne != NULL) { /* iterate over hashlink */
+			getchildproc(&data, cne, sizeof(classcache_name_entry));
+			cne =(classcache_name_entry*) &data;
+
 			cce = cne->classes;
 			while (cce != NULL){ /* iterate over classes with same name */
+				getchildproc(&data, cce, sizeof(classcache_class_entry));
+				cce =(classcache_class_entry*) &data;
+				
 				if (cce->classobj != NULL) { /* get only loaded classes */
-					assert(j<classcache_hash.entries);
+					assert(j<ht->entries);
 					*classes_ptr[j]=cce->classobj;
 					j++;
 				}
@@ -2496,7 +2574,11 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr,
 		}
 	}
 
-	tables_unlock();
+	log_text ("GetLoadedClasses continue");
+
+	contdebuggee(0);
+
+	log_text ("GetLoadedClasses finished");
 
     return JVMTI_ERROR_NONE;
 }
@@ -2513,6 +2595,8 @@ jvmtiError
 GetClassLoaderClasses (jvmtiEnv * env, jobject initiating_loader,
 		       jint * class_count_ptr, jclass ** classes_ptr)
 {
+	log_text("GetClassLoaderClasses called");
+
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
@@ -2696,9 +2780,9 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	       jint max_frame_count, jvmtiFrameInfo * frame_buffer,
 	       jint * count_ptr)
 {
-	stackTraceBuffer* trace;
+	char* trace;
 	jvmtiError er;
-	int i,j;
+/*	int i,j;*/
 
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -2717,14 +2801,14 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	er = getcacaostacktrace(&trace, thread);
 	if (er==JVMTI_ERROR_NONE) return er;
 
-	if ((trace->size >= start_depth) || ((trace->size * -1) > start_depth)) 
-		return JVMTI_ERROR_ILLEGAL_ARGUMENT;
+/*	todo: if ((trace->size >= start_depth) || ((trace->size * -1) > start_depth)) 
+	return JVMTI_ERROR_ILLEGAL_ARGUMENT; */
 	
-	for (i=start_depth, j=0;i<trace->size;i++,j++) {
+/*	for (i=start_depth, j=0;i<trace->size;i++,j++) {
 		frame_buffer[j].method = (jmethodID)trace[i].start->method;
-        /* todo: location MachinePC not avilable - Linenumber not expected */
+         todo: location MachinePC not avilable - Linenumber not expected 
 		frame_buffer[j].location = 0;
-	}
+		}*/
 	
     return JVMTI_ERROR_NONE;
 }
@@ -3084,8 +3168,8 @@ SetJNIFunctionTable (jvmtiEnv * env,
     CHECK_PHASE_END;;
     
     if (function_table == NULL) return JVMTI_ERROR_NULL_POINTER;
-    ptr_env = (void*)heap_allocate(sizeof(jniNativeInterface),true,NULL);
-    memcpy(ptr_env, function_table, sizeof(jniNativeInterface));
+    _Jv_env->env = (void*)heap_allocate(sizeof(jniNativeInterface),true,NULL);
+    memcpy(_Jv_env->env, function_table, sizeof(jniNativeInterface));
     return JVMTI_ERROR_NONE;
 }
 
@@ -3108,7 +3192,7 @@ GetJNIFunctionTable (jvmtiEnv * env, jniNativeInterface ** function_table)
     if (function_table == NULL) return JVMTI_ERROR_NULL_POINTER;
     *function_table = (jniNativeInterface*)
         heap_allocate(sizeof(jniNativeInterface),true,NULL);
-    memcpy(*function_table, ptr_env, sizeof(jniNativeInterface));
+    memcpy(*function_table, _Jv_env->env, sizeof(jniNativeInterface));
     return JVMTI_ERROR_NONE;
 }
 
@@ -3131,8 +3215,8 @@ SetEventCallbacks (jvmtiEnv * env,
     CHECK_PHASE_END;
 
     if (size_of_callbacks < 0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
-    
-    if (callbacks == NULL) { /* remove the existing callbacks */
+
+	if (callbacks == NULL) { /* remove the existing callbacks */
         memset(&(((environment* )env)->callbacks), 0, 
 			   sizeof(jvmtiEventCallbacks));
     }
@@ -3402,8 +3486,7 @@ GetJLocationFormat (jvmtiEnv * env, jvmtiJlocationFormat * format_ptr)
 jvmtiError
 GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
 {
-    jmethodID mid;
-    jmethodID moremid;
+	jmethodID mid, moremid;
     classinfo *sysclass, *propclass, *enumclass;
     java_objectheader *sysprop, *keys, *obj;
     char* ch;
@@ -3422,18 +3505,18 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
 
     if (!sysclass) throw_main_exception_exit();
 
-    mid = class_resolvemethod(sysclass, 
+    mid = (jmethodID)class_resolvemethod(sysclass, 
                               utf_new_char("getProperties"),
                               utf_new_char("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
 
 
-    sysprop = asm_calljavafunction(mid, sysclass, NULL, NULL, NULL);
+    sysprop = _Jv_JNINativeInterface.CallStaticObjectMethod(NULL, sysclass, mid);
     if (!sysprop) throw_main_exception_exit();
 
     propclass = sysprop->vftbl->class;
 
-    mid = class_resolvemethod(propclass, 
+    mid = (jmethodID)class_resolvemethod(propclass, 
                               utf_new_char("size"),
                               utf_new_char("()I"));
     if (!mid) throw_main_exception_exit();
@@ -3442,7 +3525,7 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
         _Jv_JNINativeInterface.CallIntMethod(NULL, sysprop, mid);
     *property_ptr = heap_allocate(sizeof(char*) * (*count_ptr) ,true,NULL);
 
-    mid = class_resolvemethod(propclass, 
+    mid = (jmethodID)class_resolvemethod(propclass, 
                               utf_new_char("keys"),
                               utf_new_char("()Ljava/util/Enumeration;"));
     if (!mid) throw_main_exception_exit();
@@ -3450,12 +3533,12 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
     keys = _Jv_JNINativeInterface.CallObjectMethod(NULL, sysprop, mid);
     enumclass = keys->vftbl->class;
         
-    moremid = class_resolvemethod(enumclass, 
+    moremid = (jmethodID)class_resolvemethod(enumclass, 
                                   utf_new_char("hasMoreElements"),
                                   utf_new_char("()Z"));
     if (!moremid) throw_main_exception_exit();
 
-    mid = class_resolvemethod(propclass, 
+    mid = (jmethodID)class_resolvemethod(propclass, 
                               utf_new_char("nextElement"),
                               utf_new_char("()Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
@@ -3499,7 +3582,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     sysclass = load_class_from_sysloader(utf_new_char("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
-    mid = class_resolvemethod(sysclass, 
+    mid = (jmethodID)class_resolvemethod(sysclass, 
                               utf_new_char("getProperties"),
                               utf_new_char("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
@@ -3508,7 +3591,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
 
     propclass = sysprop->vftbl->class;
 
-    mid = class_resolvemethod(propclass, 
+    mid = (jmethodID)class_resolvemethod(propclass, 
                               utf_new_char("getProperty"),
                               utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"));
     if (!mid) throw_main_exception_exit();
@@ -3549,7 +3632,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     sysclass = load_class_from_sysloader(utf_new_char("java/lang/System"));
     if (!sysclass) throw_main_exception_exit();
 
-    mid = class_resolvemethod(sysclass, 
+    mid = (jmethodID)class_resolvemethod(sysclass, 
                               utf_new_char("getProperties"),
                               utf_new_char("()Ljava/util/Properties;"));
     if (!mid) throw_main_exception_exit();
@@ -3558,7 +3641,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
 
     propclass = sysprop->vftbl->class;
 
-    mid = class_resolvemethod(propclass, 
+    mid = (jmethodID)class_resolvemethod(propclass, 
                               utf_new_char("setProperty"),
                               utf_new_char("(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;"));
     if (!mid) throw_main_exception_exit();
@@ -3954,7 +4037,9 @@ SetVerboseFlag (jvmtiEnv * env, jvmtiVerboseFlag flag, jboolean value)
 {
     switch (flag) {
     case JVMTI_VERBOSE_OTHER: 
-        runverbose = value;
+		/* where is this defined ? 
+		   runverbose = value;
+		*/
         break;
     case JVMTI_VERBOSE_GC: 
         opt_verbosegc = value;
@@ -4019,7 +4104,8 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_pop_frame */
   0,				/* can_redefine_classes */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-  1,				/* can_signal_thread */
+  /* current implementation does not work if called from another process */
+  0,				/* can_signal_thread */
 #else
   0,				/* can_signal_thread */
 #endif
@@ -4033,7 +4119,8 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_generate_frame_pop_events */
   0,				/* can_generate_breakpoint_events */
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-  1,				/* can_suspend */
+  /* current implementation does not work if called from another process */
+  0,				/* can_suspend */
 #else
   0,				/* can_suspend */
 #endif
@@ -4051,7 +4138,7 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_generate_object_free_events */
 };
 
-static jvmtiEnv JVMTI_EnvTable = {
+static struct jvmtiEnv_struct JVMTI_EnvTable = {
     NULL,
     &SetEventNotificationMode,
     NULL,
@@ -4208,42 +4295,59 @@ static jvmtiEnv JVMTI_EnvTable = {
     &GetObjectSize
 };
 
+
 void set_jvmti_phase(jvmtiPhase p) {
 	genericEventData d;
-	jvmtiEvent e;
 
-    phase = p;
+	fprintf (stderr,"set JVMTI pid %d phase %d\n",getpid(),p);
+	fflush(stderr);
+
     switch (p) {
     case JVMTI_PHASE_ONLOAD:
-        /* nothing to be done */
+		phase = p;
         return;
     case JVMTI_PHASE_PRIMORDIAL:
-        /* nothing to be done */
+		phase = p;
         return;
     case JVMTI_PHASE_START: 
-		e = JVMTI_EVENT_VM_START;
+		phase = p;
+		d.ev = JVMTI_EVENT_VM_START;
+		/* this event is sent during start or live phase */
+		log_text("debugger process - set brk in setthreadobj");
+		setsysbrkpt(SETTHREADOBJECTBRK,(void*)&setthreadobject);
         break;
     case JVMTI_PHASE_LIVE: 
-		e = JVMTI_EVENT_VM_INIT;
-        break;
+		phase = p; 
+		d.ev = JVMTI_EVENT_VM_INIT;
+		break;
     case JVMTI_PHASE_DEAD:
-		e = JVMTI_EVENT_VM_DEATH;
+		phase = p;
+		d.ev = JVMTI_EVENT_VM_DEATH;
         break;
+	default:
+		log_text("wrong jvmti phase to be set");
+		exit(1);
     }
 
-	fireEvent(e,&d);
+	fireEvent(&d);
 }
 
 jvmtiEnv* new_jvmtienv() {
     environment* env;
 
-	env = envs;
-	if (env != NULL) 
-		while (env->next!=NULL) {
-			env=env->next;
-		}
-	env = heap_allocate(sizeof(environment),true,NULL);
-    memcpy(&(env->env),&JVMTI_EnvTable,sizeof(jvmtiEnv));
+	if (envs == NULL) {
+		envs = heap_allocate(sizeof(environment),true,NULL);
+		env = envs;
+	} else {
+		env = envs;
+		if (env != NULL) 
+			while (env->next!=NULL) {
+				env=env->next;
+			}
+			env = heap_allocate(sizeof(environment),true,NULL);
+	}
+	env->env = heap_allocate(sizeof(struct jvmtiEnv_struct),true,NULL);
+    memcpy(env->env,&JVMTI_EnvTable,sizeof(struct jvmtiEnv_struct));
 	memset(&(env->events),JVMTI_DISABLE,(JVMTI_EVENT_END_ENUM - JVMTI_EVENT_START_ENUM)*
 		   sizeof(jvmtiEventModeLL));
     /* To possess a capability, the agent must add the capability.*/
@@ -4251,7 +4355,8 @@ jvmtiEnv* new_jvmtienv() {
     RelinquishCapabilities(&(env->env),&(env->capabilities));
     env->EnvironmentLocalStorage = NULL;
 	env->tls = NULL;
-	return &(env->env);
+
+	return (jvmtiEnv*)env;
 }
 
 void agentload(char* opt_arg) {
@@ -4260,6 +4365,7 @@ void agentload(char* opt_arg) {
 	char *libname, *arg;
 	int i=0,len;
 	jint retval;
+	classinfo* ci;
 	
 	len = strlen(opt_arg);
 	
@@ -4287,6 +4393,10 @@ void agentload(char* opt_arg) {
 	/* resolve Agent_UnLoad function */
 	unload = lt_dlsym(handle, "Agent_Unload");
 
+	/* add library to native library hashtable */
+	ci = load_class_from_sysloader(utf_new_char("java.lang.Object"));
+	native_hashtable_library_add(utf_new_char(libname), ci->classloader, handle);
+
 	retval = 
 		((JNIEXPORT jint JNICALL (*) (JavaVM *vm, char *options, void *reserved))
 		 onload) ((JavaVM*) &_Jv_JNIInvokeInterface, arg, NULL);
@@ -4295,8 +4405,6 @@ void agentload(char* opt_arg) {
 	MFREE(arg,char,len-i);
 	
 	if (retval != 0) exit (retval);
-
-	/* todo: native_library_hash_add(name, (java_objectheader *) loader, handle); */
 }
 
 void agentunload() {
