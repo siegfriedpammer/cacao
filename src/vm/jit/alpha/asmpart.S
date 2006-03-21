@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4659 2006-03-20 15:41:23Z edwin $
+   $Id: asmpart.S 4665 2006-03-21 07:42:34Z edwin $
 
 */
 
@@ -580,7 +580,7 @@ L_asm_wrapper_patcher_exception_load_gp:
 
 /* some room to accomodate changes of the stack frame size during replacement */
 	/* XXX we should find a cleaner solution here */
-#define REPLACEMEOOM  512
+#define REPLACEMENT_ROOM  512
 
 #define REPLACEMENT_STACK_OFFSET ((sizeexecutionstate + REPLACEMENT_ROOM + 0xf) & ~0xf)
 
