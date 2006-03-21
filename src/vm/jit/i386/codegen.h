@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4616 2006-03-15 17:17:35Z twisti $
+   $Id: codegen.h 4669 2006-03-21 14:07:34Z twisti $
 
 */
 
@@ -64,6 +64,13 @@
 #define CALCIMMEDIATEBYTES(var, val) \
     if ((s4) (val) < -128 || (s4) (val) > 127) (var) += 4; \
     else (var) += 1;
+
+
+#define ALIGNCODENOP \
+    do { \
+        for (s1 = 0; s1 < (s4) (((ptrint) cd->mcodeptr) & 7); s1++) \
+            M_NOP; \
+    } while (0)
 
 
 /* gen_nullptr_check(objreg) */

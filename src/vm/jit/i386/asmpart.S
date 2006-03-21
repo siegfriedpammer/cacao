@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4643 2006-03-16 18:38:42Z edwin $
+   $Id: asmpart.S 4669 2006-03-21 14:07:34Z twisti $
 
 */
 
@@ -144,74 +144,81 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 L_asm_vm_call_method:                   /* required for PIC code              */
-	push    %ebp
-	mov     %esp,%ebp                   /* save stackptr                      */
+	push    bp
+	mov     sp,bp                       /* save stackptr                      */
+	sub     $(4*4),sp                   /* create stackframe                  */
+	and     $0xfffffff0,sp              /* align stack to 16-byte             */
 
-	push    %ebx                        /* save registers                     */
-	push    %esi
-	push    %edi
+	mov     t0,0*4(sp)                  /* save registers                     */
+	mov     s1,1*4(sp)
+	mov     s2,2*4(sp)
 
-	mov     4*4(%ebp),%eax              /* pointer to arg block (4(push)+4(return)+4+4)*/
-	mov     3*4(%ebp),%ecx              /* arg count            (4(push)+4(return)+4 */
+	mov     4*4(bp),itmp1               /* pointer to arg block (4(push)+4(return)+4+4)*/
+	mov     3*4(bp),itmp2               /* arg count            (4(push)+4(return)+4 */
 
-	xor     %esi,%esi                 /* clear stackframe size (MUST be       */
-	                                  /* before args check, may be zero!!!)   */
-	test    %ecx,%ecx                 /* maybe we have no args                */
+	mov     sp,s1                       /* set temp stackpointer              */
+
+	test    itmp2,itmp2                 /* maybe we have no args              */
 	jle     calljava_copydone
 
-	mov     %ecx,%edx                 /* calculate stack size                 */
-	mov     %eax,%edi                 /* save pointer to arg block            */
+	mov     itmp2,itmp3                 /* calculate stack size               */
+	mov     itmp1,%edi                  /* save pointer to arg block          */
 
 calljava_calcstacksize:
-	mov     offvmargtype(%eax),%ebx
-	test    $1,%ebx                   /* two word type?                       */
+	mov     offvmargtype(itmp1),t0
+	test    $1,t0                       /* two word type?                     */
 	jz      calljava_onewordtype
-	add     $4,%esi                   /* add 1 slot to stackframe size        */
+
+	sub     $4,s1                       /* add 1 slot to stackframe size      */
 
 calljava_onewordtype:
-	add     $4,%esi                   /* add 1 slot to stackframe size        */
-	sub     $1,%edx
-	test	%edx,%edx                 /* any args left?                       */
+	sub     $4,s1                       /* add 1 slot to stackframe size      */
+	sub     $1,itmp3
+	test	itmp3,itmp3                 /* any args left?                     */
 	jz      calljava_setstack
-	add     $sizevmarg,%eax             /* goto next argument block           */
+
+	add     $sizevmarg,itmp1            /* goto next argument block           */
 	jmp     calljava_calcstacksize
 		
 calljava_setstack:				
-	mov     %edi,%eax                 /* restore pointer to arg block         */
-	sub     %esi,%esp                 /* create stackframe for arguments      */
-	mov     %esp,%edi                 /* move stackpointer into temp variable */
+	mov     %edi,itmp1                  /* restore pointer to arg block       */
+	and     $0xfffffff0,s1              /* align stack to 16-byte             */
+	mov     s1,sp                       /* create stackframe for arguments    */
+	mov     s1,itmp3                    /* and into temp register             */
 
 calljava_copyloop:
-	mov     offvmargdata(%eax),%edx     /* copy 4 Byte of Argument            */
-	mov     %edx,(%edi)
-	add     $4,%edi                     /* increase sp to next argument       */
-	mov     offvmargtype(%eax),%ebx     /* type -> ebx                        */
-	test    $1,%ebx                     /* two word type?                     */
+	mov     offvmargdata(itmp1),t0      /* get 4-bytes of argument            */
+	mov     t0,(itmp3)                  /* and store them on the stack        */
+	add     $4,itmp3                    /* increase sp to next argument       */
+	mov     offvmargtype(itmp1),t0      /* get the argument type              */
+	test    $1,t0                       /* two word type?                     */
 	jz      calljava_copynext
 
-	mov     offvmargdata+4(%eax),%edx   /* copy upper 4 byte of 2 word type   */
-	mov     %edx,(%edi)			
-	add     $4,%edi                     /* increase sp to next argument       */
+	mov     offvmargdata+4(itmp1),t0    /* get upper 4-bytes of 2 word type   */
+	mov     t0,(itmp3)			
+	add     $4,itmp3                    /* increase sp to next argument       */
 
 calljava_copynext:		
-	sub     $1,%ecx                     /* are there any args left?           */
-	test    %ecx,%ecx
+	sub     $1,itmp2                    /* are there any args left?           */
+	test    itmp2,itmp2
 	jle     calljava_copydone
 
-	add     $sizevmarg,%eax             /* goto next argument block           */
+	add     $sizevmarg,itmp1            /* goto next argument block           */
 	jmp     calljava_copyloop
 
 calljava_copydone:
-	mov     2*4(%ebp),itmp1             /* move function pointer to itmp1     */
+	mov     2*4(bp),itmp1               /* move function pointer to itmp1     */
 
 	lea     L_asm_call_jit_compiler,itmp3
 	call    *itmp3                      /* call JIT compiler                  */
 
 L_asm_vm_call_method_return:
-	add     %esi,%esp                   /* remove arg stack frame             */
-	pop     %edi                        /* restore registers                  */
-	pop     %esi
-	pop     %ebx
+	mov     s1,sp                       /* restore stackpointer               */
+
+	mov     t0,0*4(sp)                  /* restore registers                  */
+	mov     s1,1*4(sp)
+	mov     s2,2*4(sp)
+
 	leave
 	ret
 

@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
+   $Id: codegen.c 4669 2006-03-21 14:07:34Z twisti $
 
 */
 
@@ -85,7 +85,7 @@
 bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 {
 	s4                  len, s1, s2, s3, d, off, disp;
-	s4                  parentargs_base;
+	s4                  stackframesize;
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
@@ -118,7 +118,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* float register are saved on 2 4-byte stackslots */
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
 
-	parentargs_base = rd->memuse + savedregs_num;
+	stackframesize = rd->memuse + savedregs_num;
 
 	   
 #if defined(USE_THREADS)
@@ -128,16 +128,21 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		/* reserve 2 slots for long/double return values for monitorexit */
 
 		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			parentargs_base += 2;
+			stackframesize += 2;
 		else
-			parentargs_base++;
+			stackframesize++;
 	}
 #endif
 
-/* create method header */
+	/* create method header */
+
+    /* Keep stack of non-leaf functions 16-byte aligned. */
+
+	if (!m->isleafmethod)
+		stackframesize |= 0x3;
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, parentargs_base * 4);             /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
 
 #if defined(USE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -194,12 +199,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base)
-		M_ASUB_IMM(parentargs_base * 4, REG_SP);
+	if (stackframesize)
+		M_ASUB_IMM(stackframesize * 4, REG_SP);
 
 	/* save return address and used callee saved registers */
 
-  	p = parentargs_base;
+  	p = stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; M_AST(rd->savintregs[i], REG_SP, p * 4);
 	}
@@ -233,36 +238,36 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			} else {                                 /* stack arguments       */
 				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					i386_mov_membase_reg(           /* + 4 for return address */
-					   cd, REG_SP, (parentargs_base + s1) * 4 + 4, var->regoff);
+					   cd, REG_SP, (stackframesize + s1) * 4 + 4, var->regoff);
 					                                /* + 4 for return address */
 				} else {                             /* stack arg -> spilled  */
 					if (!IS_2_WORD_TYPE(t)) {
 #if 0
 						i386_mov_membase_reg(       /* + 4 for return address */
-					         cd, REG_SP, (parentargs_base + s1) * 4 + 4,
+					         cd, REG_SP, (stackframesize + s1) * 4 + 4,
 							 REG_ITMP1);    
 						i386_mov_reg_membase(
 						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
 #else
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = parentargs_base + s1 + 1;
+						var->regoff = stackframesize + s1 + 1;
 #endif
 
 					} else {
 #if 0
 						i386_mov_membase_reg(       /* + 4 for return address */
-						    cd, REG_SP, (parentargs_base + s1) * 4 + 4,
+						    cd, REG_SP, (stackframesize + s1) * 4 + 4,
 							REG_ITMP1);
 						i386_mov_reg_membase(
 						    cd, REG_ITMP1, REG_SP, var->regoff * 4);
 						i386_mov_membase_reg(       /* + 4 for return address */
-                            cd, REG_SP, (parentargs_base + s1) * 4 + 4 + 4,
+                            cd, REG_SP, (stackframesize + s1) * 4 + 4 + 4,
                             REG_ITMP1);             
 						i386_mov_reg_membase(
 					        cd, REG_ITMP1, REG_SP, var->regoff * 4 + 4);
 #else
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = parentargs_base + s1 + 1;
+						var->regoff = stackframesize + s1 + 1;
 #endif
 					}
 				}
@@ -282,14 +287,14 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						i386_flds_membase(
-                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
 						fpu_st_offset++;
 						i386_fstp_reg(cd, var->regoff + fpu_st_offset);
 						fpu_st_offset--;
 
 					} else {
 						i386_fldl_membase(
-                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
 						fpu_st_offset++;
 						i386_fstp_reg(cd, var->regoff + fpu_st_offset);
 						fpu_st_offset--;
@@ -298,21 +303,21 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				} else {                             /* stack-arg -> spilled  */
 #if 0
 					i386_mov_membase_reg(
-                        cd, REG_SP, (parentargs_base + s1) * 4 + 4, REG_ITMP1);
+                        cd, REG_SP, (stackframesize + s1) * 4 + 4, REG_ITMP1);
 					i386_mov_reg_membase(
 					    cd, REG_ITMP1, REG_SP, var->regoff * 4);
 					if (t == TYPE_FLT) {
 						i386_flds_membase(
-						    cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+						    cd, REG_SP, (stackframesize + s1) * 4 + 4);
 						i386_fstps_membase(cd, REG_SP, var->regoff * 4);
 					} else {
 						i386_fldl_membase(
-                            cd, REG_SP, (parentargs_base + s1) * 4 + 4);
+                            cd, REG_SP, (stackframesize + s1) * 4 + 4);
 						i386_fstpl_membase(cd, REG_SP, var->regoff * 4);
 					}
 #else
 						                  /* reuse Stackslotand avoid copying */
-						var->regoff = parentargs_base + s1 + 1;
+						var->regoff = stackframesize + s1 + 1;
 #endif
 				}
 			}
@@ -333,7 +338,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_CALL(REG_ITMP1);
 
 		} else {
-			M_ALD(REG_ITMP1, REG_SP, parentargs_base * 4 + 4);
+			M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + 4);
 			M_TEST(REG_ITMP1);
 			M_BEQ(0);
 			codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
@@ -351,7 +356,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	if (opt_verbosecall) {
 		stack_off = 0;
-		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + parentargs_base * 4;
+		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + stackframesize * 4;
 
 		M_ISUB_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
 
@@ -3499,15 +3504,18 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			break;
 
 		case ICMD_INLINE_GOTO:
+
 			M_COPY(src,iptr->dst);
 			/* FALLTHROUGH! */
+
 		case ICMD_GOTO:         /* ... ==> ...                                */
 		                        /* op1 = target JavaVM pc                     */
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			i386_jmp_imm(cd, 0);
+			M_JMP_IMM(0);
 			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			ALIGNCODENOP;
 			break;
 
 		case ICMD_JSR:          /* ... ==> ...                                */
@@ -4168,7 +4176,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-  			p = parentargs_base;
+  			p = stackframesize;
 			
 			/* call trace function */
 			if (opt_verbosecall) {
@@ -4263,8 +4271,8 @@ nowperformreturn:
 
 			/* deallocate stack */
 
-			if (parentargs_base)
-				M_AADD_IMM(parentargs_base * 4, REG_SP);
+			if (stackframesize)
+				M_AADD_IMM(stackframesize * 4, REG_SP);
 
 			i386_ret(cd);
 			}
@@ -5202,7 +5210,7 @@ gen_method:
 				M_MOV(REG_SP, REG_ITMP1);
 				M_AADD_IMM(5 * 4, REG_ITMP1);
 				M_AST(REG_ITMP1, REG_SP, 1 * 4);
-				M_ALD(REG_ITMP1, REG_SP, (5 + parentargs_base) * 4);
+				M_ALD(REG_ITMP1, REG_SP, (5 + stackframesize) * 4);
 				M_AST(REG_ITMP1, REG_SP, 2 * 4);
 				M_AST(REG_ITMP2_XPC, REG_SP, 3 * 4);
 
