@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4602 2006-03-14 23:49:34Z edwin $
+   $Id: parse.c 4662 2006-03-21 00:13:45Z edwin $
 
 */
 
@@ -1331,6 +1331,21 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			p = cd->exceptiontable[i].handlerpc;
 			cd->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
 	    }
+
+		/* XXX activate this if you want to try inlining */
+#if 0
+		for (i = 0; i < m->exceptiontablelength; ++i) {
+			p = m->exceptiontable[i].startpc;
+			m->exceptiontable[i].start = m->basicblocks + m->basicblockindex[p];
+
+			p = m->exceptiontable[i].endpc;
+			m->exceptiontable[i].end = (p == m->jcodelength) ? (m->basicblocks + m->basicblockcount /*+ 1*/) : (m->basicblocks + m->basicblockindex[p]);
+
+			p = m->exceptiontable[i].handlerpc;
+			m->exceptiontable[i].handler = m->basicblocks + m->basicblockindex[p];
+	    }
+#endif
+
 	}
 
 	/* just return methodinfo* to signal everything was ok */
