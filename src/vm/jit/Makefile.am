@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4667 2006-03-21 11:50:32Z twisti $
+## $Id: Makefile.am 4668 2006-03-21 11:58:50Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,7 +38,6 @@ LIBS =
 
 DIST_SUBDIRS = \
 	allocator \
-	ifconv \
 	inline \
 	loop \
 	profile \
@@ -70,8 +69,8 @@ INTRP_LIB = intrp/libintrp.la
 endif
 
 if ENABLE_IFCONV
-SUBDIRS += ifconv
-IFCONV_LIB = ifconv/libifconv.la
+#SUBDIRS += ifconv
+#IFCONV_LIB = ifconv/libifconv.la
 endif
 
 if ENABLE_INLINING
