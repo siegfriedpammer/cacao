@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4657 2006-03-20 15:12:16Z twisti $
+   $Id: codegen.c 4666 2006-03-21 07:57:11Z edwin $
 
 */
 
@@ -3924,7 +3924,7 @@ gen_method:
 
 				mcodeptr = tmpmcodeptr;
 
-				/* create stack frame */
+				/* create stack frame - 16-byte aligned */
 
 				M_LSUB_IMM(REG_SP, 2 * 8, REG_SP);
 
