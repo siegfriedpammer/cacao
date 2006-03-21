@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(cacao, 0.95+cvs, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.95+svn, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -484,17 +484,20 @@ fi
 
 
 dnl check for inlining
-dnl AC_ARG_ENABLE([inlining], [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])])
+AC_MSG_CHECKING(whether method inlining should be supported)
+AC_ARG_ENABLE([inlining],
+              [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_INLINING=no;;
+                   *) ENABLE_INLINING=yes;;
+               esac],
+              [ENABLE_INLINING=yes])
+AC_MSG_RESULT(${ENABLE_INLINING})
+AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
 
-dnl AC_MSG_CHECKING(whether method inlining should be disabled)
-dnl if test x"$enable_inlining" = "xno"; then
-dnl	AC_MSG_RESULT(yes)
-dnl	AM_CONDITIONAL([USE_INLINING], [false])
-dnl else
-dnl	AC_MSG_RESULT(no)
-	AC_DEFINE([USE_INLINING], 1, [use method inlining])
-	AM_CONDITIONAL([USE_INLINING], [true])
-dnl fi
+if test x"$enable_inlining" = "xno"; then
+    AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
+fi
 
 
 dnl check for instruction scheduler

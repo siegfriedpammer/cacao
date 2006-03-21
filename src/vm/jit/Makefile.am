@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4595 2006-03-14 20:51:12Z edwin $
+## $Id: Makefile.am 4667 2006-03-21 11:50:32Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,26 +36,28 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-SUBDIRS = \
-	allocator \
-	loop \
-	tools \
-	verify
-
 DIST_SUBDIRS = \
 	allocator \
+	ifconv \
 	inline \
 	loop \
 	profile \
 	schedule \
 	tools \
 	verify \
+	\
 	intrp \
 	alpha \
 	i386 \
 	mips \
 	powerpc \
 	x86_64
+
+SUBDIRS = \
+	allocator \
+	loop \
+	tools \
+	verify
 
 if ENABLE_JIT
 SUBDIRS += $(ARCH_DIR)
@@ -67,7 +69,12 @@ SUBDIRS += intrp
 INTRP_LIB = intrp/libintrp.la
 endif
 
-if USE_INLINING
+if ENABLE_IFCONV
+SUBDIRS += ifconv
+IFCONV_LIB = ifconv/libifconv.la
+endif
+
+if ENABLE_INLINING
 SUBDIRS += inline
 INLINE_LIB = inline/libinline.la
 endif
@@ -120,6 +127,7 @@ libjit_la_LIBADD = \
 	allocator/liballocator.la \
 	loop/libloop.la \
 	verify/libverify.la \
+	$(IFCONV_LIB) \
 	$(INLINE_LIB) \
 	$(PROFILE_LIB) \
 	$(SCHEDULE_LIB) \
