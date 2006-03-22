@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4662 2006-03-21 00:13:45Z edwin $
+   $Id: inline.c 4670 2006-03-22 01:22:11Z edwin $
 
 */
 
@@ -342,7 +342,7 @@ static stackptr relocate_stack_ptr_intern(inline_node *iln,stackptr o_link,ptrin
 		else {
 			/* this stack slot it in the most recent chunk */
 			assert(curreloc);
-			DOLOG( printf("\t\t\toffset %d\n",curreloc) );
+			DOLOG( printf("\t\t\toffset %d\n",(int)curreloc) );
 			return (stackptr) ((u1*)o_link + curreloc);
 		}
 	}
@@ -740,6 +740,7 @@ static void rewrite_method(inline_node *iln)
 
 	assert(iln);
 
+	n_bptr = NULL;
 	nextcall = iln->children;
 
 	/* set memory cursors */
@@ -753,10 +754,10 @@ static void rewrite_method(inline_node *iln)
 
 		if (o_bptr->flags < BBREACHED) {
 			DOLOG(
-			printf("skipping old L%03d (flags=%d,type=%d,os=%p,oid=%d,ois=%p,cursor=%d,curreloc=%d,callerstack=%d) of ",
+			printf("skipping old L%03d (flags=%d,type=%d,os=%p,oid=%d,ois=%p,cursor=%d,callerstack=%d) of ",
 					o_bptr->debug_nr,o_bptr->flags,o_bptr->type,
 					(void*)o_bptr->stack,o_bptr->indepth,(void*)o_bptr->instack,
-					DEBUG_SLOT(iln->n_inlined_stack_cursor),curreloc,
+					DEBUG_SLOT(iln->n_inlined_stack_cursor),
 					DEBUG_SLOT(iln->n_callerstack));
 			method_println(iln->m);
 			);
@@ -777,10 +778,10 @@ static void rewrite_method(inline_node *iln)
 		o_iptr = o_bptr->iinstr;
 
 		DOLOG(
-		printf("rewriting old L%03d (flags=%d,type=%d,os=%p,oid=%d,ois=%p,cursor=%d,curreloc=%d,callerstack=%d) of ",
+		printf("rewriting old L%03d (flags=%d,type=%d,os=%p,oid=%d,ois=%p,cursor=%d,callerstack=%d) of ",
 				o_bptr->debug_nr,o_bptr->flags,o_bptr->type,
 				(void*)o_bptr->stack,o_bptr->indepth,(void*)o_bptr->instack,
-				DEBUG_SLOT(iln->n_inlined_stack_cursor),curreloc,
+				DEBUG_SLOT(iln->n_inlined_stack_cursor),
 				DEBUG_SLOT(iln->n_callerstack));
 		method_println(iln->m);
 		printf("o_instack: ");debug_dump_stack(o_bptr->instack);printf("\n");
@@ -813,7 +814,7 @@ static void rewrite_method(inline_node *iln)
 
 		/* calculate the stack element relocation */
 		curreloc = (u1*)iln->n_inlined_stack_cursor - (u1*)o_bptr->stack;
-		DOLOG( printf("curreloc <- %d = %p - %p\n",curreloc,(void*)iln->n_inlined_stack_cursor,(void*)(u1*)o_bptr->stack) );
+		DOLOG( printf("curreloc <- %d = %p - %p\n",(int)curreloc,(void*)iln->n_inlined_stack_cursor,(void*)(u1*)o_bptr->stack) );
 
 		o_nexttorewrite = o_bptr->stack;
 		o_lasttorewrite = o_bptr->stack-1;
@@ -923,7 +924,7 @@ static void rewrite_method(inline_node *iln)
 				printf("resuming old L%03d (flags=%d,type=%d,os=%p,oid=%d,ois=%p,cursor=%d,curreloc=%d,callerstack=%d) of ",
 						o_bptr->debug_nr,o_bptr->flags,o_bptr->type,
 						(void*)o_bptr->stack,o_bptr->indepth,(void*)o_bptr->instack,
-						DEBUG_SLOT(iln->n_inlined_stack_cursor),curreloc,
+						DEBUG_SLOT(iln->n_inlined_stack_cursor),(int)curreloc,
 						DEBUG_SLOT(iln->n_callerstack));
 				method_println(iln->m);
 				);
@@ -972,7 +973,7 @@ static void rewrite_method(inline_node *iln)
 	}
 
 	/* end of basic blocks */
-	if (!iln->depth) {
+	if (!iln->depth && n_bptr) {
 		n_bptr->next = NULL;
 	}
 

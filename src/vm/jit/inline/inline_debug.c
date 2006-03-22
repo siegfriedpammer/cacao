@@ -1,6 +1,6 @@
 #include <ctype.h>
 
-#define DEBUG_SLOT(slot)  ((slot) ? ((slot) - iln->ctx->n_debug_stackbase) : (-1))
+#define DEBUG_SLOT(slot)  ((int)((slot) ? ((slot) - iln->ctx->n_debug_stackbase) : (-1)))
 
 #if 0
 		printf("linenumbertable_entry %p: pc=%p line=%08x, lntsize=%d, looking for pc=%p\n",
@@ -82,7 +82,7 @@ static void dump_inline_tree(inline_node *iln)
 		else {
 			printf("%s[%d] L%03d %d-%d (ins %d,st %d) (sd=%d,cs=%p,lofs=%d) cum(ins %d,st %d,bb %d) ",
 					indent,iln->depth,iln->callerblock->debug_nr,
-					iln->callerpc,iln->callerblock->iinstr - iln->parent->m->basicblocks->iinstr,
+					iln->callerpc,(int)(iln->callerblock->iinstr - iln->parent->m->basicblocks->iinstr),
 					iln->instructioncount,iln->stackcount,iln->n_callerstackdepth,
 					(void*)iln->n_callerstack,
 					iln->localsoffset,
