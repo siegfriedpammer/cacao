@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4676 2006-03-22 18:32:47Z edwin $
+   $Id: stack.h 4678 2006-03-22 23:17:27Z edwin $
 
 */
 
@@ -60,15 +60,22 @@
 
 
 /*--------------------------------------------------*/
-/* SIGNALING ERRORS                                 */
+/* BASIC TYPE CHECKING                              */
 /*--------------------------------------------------*/
 
-#define TYPE_VERIFYERROR(t) \
-    do { \
-		exceptions_throw_verifyerror_for_stack(m,t); \
-        return NULL; \
-    } while (0)
+/* XXX would be nice if we did not have to pass the expected type */
 
+#if defined(ENABLE_VERIFIER)
+#define CHECK_BASIC_TYPE(expected,actual) \
+	do { \
+		if ((actual) != (expected)) { \
+			expectedtype = (expected); \
+			goto throw_stack_type_error; \
+		} \
+	} while (0)
+#else /* !ENABLE_VERIFIER */
+#define CHECK_BASIC_TYPE(expected,actual)
+#endif /* ENABLE_VERIFIER */
 
 /*--------------------------------------------------*/
 /* STACK UNDERFLOW/OVERFLOW CHECKS                  */
@@ -161,9 +168,7 @@
 
 #define POP(s) \
     do { \
-        if ((s) != curstack->type) { \
-            TYPE_VERIFYERROR((s)); \
-        } \
+		CHECK_BASIC_TYPE((s),curstack->type); \
         if (curstack->varkind == UNDEFVAR) \
             curstack->varkind = TEMPVAR; \
         curstack = curstack->prev; \
@@ -473,8 +478,7 @@
                 return NULL; \
             } \
 		    while (s) { \
-                if (s->type != t->type) \
-				    TYPE_VERIFYERROR(t->type); \
+				CHECK_BASIC_TYPE(s->type,t->type); \
 			    s = s->prev; \
                 t = t->prev; \
 			} \

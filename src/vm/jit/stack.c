@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4676 2006-03-22 18:32:47Z edwin $
+   $Id: stack.c 4678 2006-03-22 23:17:27Z edwin $
 
 */
 
@@ -141,6 +141,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	                         /* used for conflict resolution for copy        */
                              /* elimination (XLOAD, IINC, XSTORE) */
 	s4            last_dupx;
+#if defined(ENABLE_VERIFIER)
+	int           expectedtype; /* used by CHECK_BASIC_TYPE */
+#endif
 
 	builtintable_entry *bte;
 	unresolved_method  *um;
@@ -2402,6 +2405,10 @@ throw_stack_underflow:
 
 throw_stack_overflow:
 	*exceptionptr = new_verifyerror(m, "Stack size too large");
+	return NULL;
+
+throw_stack_type_error:
+	exceptions_throw_verifyerror_for_stack(m, expectedtype);
 	return NULL;
 #endif
 }
