@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4675 2006-03-22 17:25:36Z edwin $
+   $Id: stack.c 4676 2006-03-22 18:32:47Z edwin $
 
 */
 
@@ -2394,10 +2394,14 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	return m;
 
-#ifdef ENABLE_VERIFIER
+#if defined(ENABLE_VERIFIER)
 throw_stack_underflow:
 	*exceptionptr =
 		new_verifyerror(m, "Unable to pop operand off an empty stack");
+	return NULL;
+
+throw_stack_overflow:
+	*exceptionptr = new_verifyerror(m, "Stack size too large");
 	return NULL;
 #endif
 }

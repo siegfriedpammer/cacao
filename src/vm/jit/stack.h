@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4675 2006-03-22 17:25:36Z edwin $
+   $Id: stack.h 4676 2006-03-22 18:32:47Z edwin $
 
 */
 
@@ -76,7 +76,7 @@
 
 /* underflow checks */
 
-#ifdef ENABLE_VERIFIER
+#if defined(ENABLE_VERIFIER)
 #define REQUIRE(num) \
     do { \
         if (stackdepth < (num)) \
@@ -98,16 +98,17 @@
  * against maximum stack depth only at block boundaries?
  */
 
+/* XXX we should find a way to remove the opc/op1 check */
+#if defined(ENABLE_VERIFIER)
 #define CHECKOVERFLOW \
 	do { \
-		if (stackdepth > m->maxstack) { \
-			if (iptr[0].opc != ICMD_ACONST || iptr[0].op1 == 0) { \
-                *exceptionptr = new_verifyerror(m, "Stack size too large"); \
-                return NULL; \
-            } \
-		} \
+		if (stackdepth > m->maxstack) \
+			if (iptr[0].opc != ICMD_ACONST || iptr[0].op1 == 0) \
+				goto throw_stack_overflow; \
 	} while(0)
-
+#else /* !ENABLE_VERIFIER */
+#define CHECKOVERFLOW
+#endif /* ENABLE_VERIFIER */
 
 /*--------------------------------------------------*/
 /* ALLOCATING STACK SLOTS                           */
