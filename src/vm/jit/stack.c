@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4680 2006-03-22 23:29:18Z edwin $
+   $Id: stack.c 4681 2006-03-22 23:51:09Z edwin $
 
 */
 
@@ -69,6 +69,13 @@
 static java_objectheader *lock_show_icmd;
 #endif
 
+/* macro for saving #ifdefs ***************************************************/
+
+#if defined(ENABLE_INTRP)
+#define IF_NO_INTRP(x) if (!opt_intrp) { x }
+#else
+#define IF_NO_INTRP(x) { x }
+#endif
 
 /* stack_init ******************************************************************
 
@@ -2277,9 +2284,40 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					iptr++;
 				} /* while instructions */
 
+				/* set out-stack of block */
+
 				bptr->outstack = curstack;
 				bptr->outdepth = stackdepth;
-				BBEND(curstack, i);
+
+				/* stack slots at basic block end become interfaces */
+
+				i = stackdepth - 1;
+				for (copy = curstack; copy; i--, copy = copy->prev) {
+					if ((copy->varkind == STACKVAR) && (copy->varnum > i))
+						copy->varkind = TEMPVAR;
+					else {
+						copy->varkind = STACKVAR;
+						copy->varnum = i;
+					}
+					IF_NO_INTRP(
+							rd->interfaces[i][copy->type].type = copy->type;
+							rd->interfaces[i][copy->type].flags |= copy->flags;
+					);
+				}
+
+				/* check if interface slots at basic block begin must be saved */
+
+				IF_NO_INTRP(
+					i = bptr->indepth - 1;
+					for (copy = bptr->instack; copy; i--, copy = copy->prev) {
+						rd->interfaces[i][copy->type].type = copy->type;
+						if (copy->varkind == STACKVAR) {
+							if (copy->flags & SAVEDVAR)
+								rd->interfaces[i][copy->type].flags |= SAVEDVAR;
+						}
+					}
+				);
+
 			} /* if */
 			else
 				superblockend = true;

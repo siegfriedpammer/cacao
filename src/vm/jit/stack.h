@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4678 2006-03-22 23:17:27Z edwin $
+   $Id: stack.h 4681 2006-03-22 23:51:09Z edwin $
 
 */
 
@@ -411,46 +411,6 @@
 	else\
 		copy=NULL;\
 }
-
-/* BBEND is called at the end of each basic block (after the last
- * instruction of the block has been processed).
- */
-
-
-#if defined(ENABLE_INTRP)
-#define IF_NO_INTRP(x) if (!opt_intrp) { x }
-#else
-#define IF_NO_INTRP(x) { x }
-#endif
-
-#define BBEND(s,i) { \
-	(i) = stackdepth - 1; \
-	copy = (s); \
-	while (copy) { \
-		if ((copy->varkind == STACKVAR) && (copy->varnum > (i))) \
-			copy->varkind = TEMPVAR; \
-		else { \
-			copy->varkind = STACKVAR; \
-			copy->varnum = (i);\
-		} \
-        IF_NO_INTRP(rd->interfaces[(i)][copy->type].type = copy->type; \
-                    rd->interfaces[(i)][copy->type].flags |= copy->flags;) \
-		(i)--; copy = copy->prev; \
-	} \
-	(i) = bptr->indepth - 1; \
-	copy = bptr->instack; \
-	while (copy) { \
-        IF_NO_INTRP( \
-            rd->interfaces[(i)][copy->type].type = copy->type; \
-            if (copy->varkind == STACKVAR) { \
-                if (copy->flags & SAVEDVAR) \
-                    rd->interfaces[(i)][copy->type].flags |= SAVEDVAR; \
-            } \
-        ) \
-		(i)--; copy = copy->prev; \
-	} \
-}
-
 
 /* MARKREACHED marks the destination block <b> as reached. If this
  * block has been reached before we check if stack depth and types
