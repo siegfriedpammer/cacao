@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4679 2006-03-22 23:27:12Z edwin $
+   $Id: stack.c 4680 2006-03-22 23:29:18Z edwin $
 
 */
 
@@ -1136,7 +1136,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_FSTORE:
 					case ICMD_DSTORE:
 					case ICMD_ASTORE:
-					icmd_store:
 						REQUIRE_1;
 
 					i = opcode - ICMD_ISTORE;
