@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4669 2006-03-21 14:07:34Z twisti $
+   $Id: asmpart.S 4677 2006-03-22 20:59:49Z edwin $
 
 */
 
@@ -156,7 +156,7 @@ L_asm_vm_call_method:                   /* required for PIC code              */
 	mov     4*4(bp),itmp1               /* pointer to arg block (4(push)+4(return)+4+4)*/
 	mov     3*4(bp),itmp2               /* arg count            (4(push)+4(return)+4 */
 
-	mov     sp,s1                       /* set temp stackpointer              */
+	mov     sp,s1                       /* save the stackpointer              */
 
 	test    itmp2,itmp2                 /* maybe we have no args              */
 	jle     calljava_copydone
@@ -169,10 +169,10 @@ calljava_calcstacksize:
 	test    $1,t0                       /* two word type?                     */
 	jz      calljava_onewordtype
 
-	sub     $4,s1                       /* add 1 slot to stackframe size      */
+	sub     $4,sp                       /* add 1 slot to stackframe size      */
 
 calljava_onewordtype:
-	sub     $4,s1                       /* add 1 slot to stackframe size      */
+	sub     $4,sp                       /* add 1 slot to stackframe size      */
 	sub     $1,itmp3
 	test	itmp3,itmp3                 /* any args left?                     */
 	jz      calljava_setstack
@@ -182,9 +182,8 @@ calljava_onewordtype:
 		
 calljava_setstack:				
 	mov     %edi,itmp1                  /* restore pointer to arg block       */
-	and     $0xfffffff0,s1              /* align stack to 16-byte             */
-	mov     s1,sp                       /* create stackframe for arguments    */
-	mov     s1,itmp3                    /* and into temp register             */
+	and     $0xfffffff0,sp              /* align stack to 16-byte             */
+	mov     sp,itmp3                    /* initialize pointer for copying     */
 
 calljava_copyloop:
 	mov     offvmargdata(itmp1),t0      /* get 4-bytes of argument            */
@@ -215,9 +214,9 @@ calljava_copydone:
 L_asm_vm_call_method_return:
 	mov     s1,sp                       /* restore stackpointer               */
 
-	mov     t0,0*4(sp)                  /* restore registers                  */
-	mov     s1,1*4(sp)
-	mov     s2,2*4(sp)
+	mov     0*4(sp),t0                  /* restore registers                  */
+	mov     1*4(sp),s1
+	mov     2*4(sp),s2
 
 	leave
 	ret
