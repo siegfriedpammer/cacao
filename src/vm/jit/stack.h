@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4674 2006-03-22 17:14:07Z edwin $
+   $Id: stack.h 4675 2006-03-22 17:25:36Z edwin $
 
 */
 
@@ -76,11 +76,15 @@
 
 /* underflow checks */
 
+#ifdef ENABLE_VERIFIER
 #define REQUIRE(num) \
     do { \
         if (stackdepth < (num)) \
 			goto throw_stack_underflow; \
 	} while (0)
+#else /* !ENABLE_VERIFIER */
+#define REQUIRE(num)
+#endif /* ENABLE_VERIFIER */
 	   
 #define REQUIRE_1     REQUIRE(1)
 #define REQUIRE_2     REQUIRE(2)

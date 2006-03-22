@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4674 2006-03-22 17:14:07Z edwin $
+   $Id: stack.c 4675 2006-03-22 17:25:36Z edwin $
 
 */
 
@@ -2394,10 +2394,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	return m;
 
+#ifdef ENABLE_VERIFIER
 throw_stack_underflow:
 	*exceptionptr =
 		new_verifyerror(m, "Unable to pop operand off an empty stack");
 	return NULL;
+#endif
 }
 
 
@@ -2605,6 +2607,7 @@ static void print_reg(stackptr s) {
 #endif
 
 
+#if !defined(NDEBUG)
 static char *jit_type[] = {
 	"int",
 	"lng",
@@ -2612,6 +2615,7 @@ static char *jit_type[] = {
 	"dbl",
 	"adr"
 };
+#endif
 
 
 /* show_icmd_method ************************************************************
