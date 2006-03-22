@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4606 2006-03-15 04:43:25Z edwin $
+   $Id: stack.c 4674 2006-03-22 17:14:07Z edwin $
 
 */
 
@@ -2393,6 +2393,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* just return methodinfo* to signal everything was ok */
 
 	return m;
+
+throw_stack_underflow:
+	*exceptionptr =
+		new_verifyerror(m, "Unable to pop operand off an empty stack");
+	return NULL;
 }
 
 

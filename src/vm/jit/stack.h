@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4603 2006-03-15 00:06:03Z edwin $
+   $Id: stack.h 4674 2006-03-22 17:14:07Z edwin $
 
 */
 
@@ -78,13 +78,10 @@
 
 #define REQUIRE(num) \
     do { \
-        if (stackdepth < (num)) { \
-            *exceptionptr = \
-                new_verifyerror(m, "Unable to pop operand off an empty stack"); \
-            return NULL; \
-        } \
-    } while(0)
-
+        if (stackdepth < (num)) \
+			goto throw_stack_underflow; \
+	} while (0)
+	   
 #define REQUIRE_1     REQUIRE(1)
 #define REQUIRE_2     REQUIRE(2)
 #define REQUIRE_3     REQUIRE(3)
