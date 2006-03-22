@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4678 2006-03-22 23:17:27Z edwin $
+   $Id: stack.c 4679 2006-03-22 23:27:12Z edwin $
 
 */
 
@@ -134,7 +134,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	basicblock   *tbptr;
 	s4           *s4ptr;
 	void        **tptr;
-	s4           *argren;
 	s4           *last_store;/* instruction index of last XSTORE */
 	                         /* [ local_index * 5 + type ] */
 	s4            last_pei;  /* instruction index of last possible exception */
@@ -152,10 +151,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
 #endif
-
-	argren = DMNEW(s4, cd->maxlocals);   /* table for argument renaming       */
-	for (i = 0; i < cd->maxlocals; i++)
-		argren[i] = i;
 
 	last_store = DMNEW(s4 , cd->maxlocals * 5);
 	
@@ -1076,7 +1071,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_ALOAD:
 						COUNT(count_load_instruction);
 						i = opcode - ICMD_ILOAD;
-						iptr->op1 = argren[iptr->op1];
 #if defined(ENABLE_INTRP)
 						if (!opt_intrp)
 #endif
@@ -2272,30 +2266,6 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						i = iptr->op1;
 						POPMANY(i);
 						OP0_1(TYPE_ADR);
-						break;
-
-					case ICMD_CLEAR_ARGREN:
-						for (i = iptr->op1; i < cd->maxlocals; i++)
-							argren[i] = i;
-						iptr->opc = opcode = ICMD_NOP;
-						SETDST;
-						break;
-						
-					case ICMD_READONLY_ARG:
-					case ICMD_READONLY_ARG+1:
-					case ICMD_READONLY_ARG+2:
-					case ICMD_READONLY_ARG+3:
-					case ICMD_READONLY_ARG+4:
-
-						REQUIRE_1;
-						if (curstack->varkind == LOCALVAR) {
-							i = curstack->varnum;
-							argren[iptr->op1] = i;
-							iptr->op1 = i;
-						}
-						opcode = iptr->opc = opcode - ICMD_READONLY_ARG + ICMD_ISTORE;
-						goto icmd_store;
-
 						break;
 
 					default:

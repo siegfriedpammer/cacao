@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4456 2006-02-06 01:08:37Z edwin $
+   $Id: typecheck.c 4679 2006-03-22 23:27:12Z edwin $
 
 */
 
@@ -2243,13 +2243,6 @@ return_tail:
 			case ICMD_MONITOREXIT:
 				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
 				LOG("Should have been converted to builtin function call.");
-				TYPECHECK_ASSERT(false);
-				break;
-
-			case ICMD_READONLY_ARG:
-			case ICMD_CLEAR_ARGREN:
-				LOG2("ICMD %d at %d\n", state->iptr->opc, (int)(state->iptr-state->bptr->iinstr));
-				LOG("Should have been replaced in stack.c.");
 				TYPECHECK_ASSERT(false);
 				break;
 #endif

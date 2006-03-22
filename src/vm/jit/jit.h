@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4631 2006-03-16 14:19:52Z twisti $
+   $Id: jit.h 4679 2006-03-22 23:27:12Z edwin $
 
 */
 
@@ -863,10 +863,6 @@ extern int jcommandsize[256];
 #define ICMD_INLINE_GOTO      253       /* jump to caller of inlined method   */
 
 #define ICMD_BUILTIN          255       /* internal opcode                    */
-
-#define ICMD_READONLY_ARG     1024      /* used for inlining, opcodes 1024-1028 are used */
-#define ICMD_CLEAR_ARGREN     1029      /* indicates the start of a new inlined method argument renaming must be reset */
-
 
 /******************* description of JavaVM instructions ***********************/
 
