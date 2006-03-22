@@ -56,7 +56,7 @@ static void debug_dump_stack(stackptr sp)
 		printf("%p (%d) (%01d:%02d:%01x) -> ",(void*)sp,sp->type,sp->varkind,sp->varnum,sp->flags);
 		sp = sp->prev;
 	}
-	printf("%p",NULL);
+	printf("%p",(void*)NULL);
 }
 
 static void dump_inline_tree(inline_node *iln)
