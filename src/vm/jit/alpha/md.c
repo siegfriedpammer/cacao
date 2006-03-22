@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: md.c 4651 2006-03-16 21:12:33Z edwin $
+   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
 
 */
 
@@ -56,8 +56,11 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
+#endif
 
 
 /* global variables ***********************************************************/
@@ -290,11 +293,13 @@ void md_patch_replacement_point(rplpoint *rp)
 	/* store saved mcode */
 	rp->mcode = mcode;
 	
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
 	}
+#endif
 			
 	/* flush instruction cache */
     md_icacheflush(rp->pc,4);

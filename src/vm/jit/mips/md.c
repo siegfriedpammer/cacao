@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4654 2006-03-19 19:46:11Z edwin $
+   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
 
 */
 
@@ -45,8 +45,11 @@
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/jit/stacktrace.h"
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
+#endif
 
 
 void docacheflush(u1 *p, long bytelen)
@@ -279,12 +282,14 @@ void md_patch_replacement_point(rplpoint *rp)
 	/* store saved mcode */
 	rp->mcode = mcode;
 
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
 	}
+#endif
 
 	/* flush instruction cache */
     md_icacheflush(rp->pc,2*4);

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4637 2006-03-16 15:36:49Z twisti $
+   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
 
 */
 
@@ -46,8 +46,11 @@
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
+#endif
 
 
 /* md_init *********************************************************************
@@ -219,11 +222,13 @@ void md_patch_replacement_point(rplpoint *rp)
 	/* store saved mcode */
 	rp->mcode = mcode;
 	
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{
 		u1* u1ptr = rp->pc;
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
 	}
+#endif
 			
     /* XXX if required asm_cacheflush(rp->pc,8); */
 }
