@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4670 2006-03-22 01:22:11Z edwin $
+   $Id: inline.c 4672 2006-03-22 12:35:15Z edwin $
 
 */
 
@@ -69,7 +69,7 @@
 # endif
 #endif
 
-#if 1
+#ifndef NDEBUG
 bool inline_debug_log = 0;
 bool inline_debug_log_names = 0;
 int inline_debug_start_counter = 0;
@@ -166,12 +166,24 @@ struct inline_context {
 	inline_stack_translation stacktranslation[1];
 };
 
+static int stack_depth(stackptr sp)
+{
+	int depth = 0;
+	while (sp) {
+		depth++;
+		sp = sp->prev;
+	}
+	return depth;
+}
+
+#ifndef NDEBUG
 #include "inline_debug.c"
 
 void inline_print_stats()
 {
 	printf("inlined callers: %d\n",inline_count_methods);
 }
+#endif
 
 static bool inline_jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 							  loopdata *ld)
@@ -1307,7 +1319,9 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	registerdata *n_rd;
 
 	static int debug_verify_inlined_code = 1;
+#ifndef NDEBUG
 	static int debug_compile_inlined_code_counter = 0;
+#endif
 
 	assert(iln && cd && rd && resultmethod && resultcd && resultrd);
 
@@ -1393,6 +1407,7 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 		debug_verify_inlined_code = 1;
 	}
 
+#ifndef NDEBUG
 #if 1
 	if (n_method->instructioncount >= inline_debug_min_size && n_method->instructioncount <= inline_debug_max_size) {
 	   if (debug_compile_inlined_code_counter >= inline_debug_start_counter 
@@ -1410,10 +1425,13 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	
 	{
 #endif
+#endif /* NDEBUG */
 	   {
 			*resultmethod = n_method;
 			*resultcd = n_cd;
 			*resultrd = n_rd;
+
+#ifndef NDEBUG
 			inline_count_methods++;
 			if (inline_debug_log_names)
 				method_println(n_method);
@@ -1428,10 +1446,13 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 			printf("-------- DONE -----------------------------------------------------------\n");
 			fflush(stdout);
 			);
+#endif
 	   }
 
+#ifndef NDEBUG
 		debug_compile_inlined_code_counter++;
 	}
+#endif
 	return true;
 }
 

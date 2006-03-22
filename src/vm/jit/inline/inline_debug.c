@@ -108,16 +108,6 @@ static void dump_inline_tree(inline_node *iln)
 
 
 
-static int stack_depth(stackptr sp)
-{
-	int depth = 0;
-	while (sp) {
-		depth++;
-		sp = sp->prev;
-	}
-	return depth;
-}
-
 static stackptr first_stackslot_of_block(basicblock *block)
 {
 	int len;
