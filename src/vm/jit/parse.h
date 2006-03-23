@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4449 2006-02-05 23:02:05Z edwin $
+   $Id: parse.h 4687 2006-03-23 12:48:43Z edwin $
 
 */
 
@@ -196,25 +196,28 @@
     } while (0)
 
 
-#define bound_check(i) \
+#if defined(ENABLE_VERIFIER)
+
+#define CHECK_BYTECODE_INDEX(i) \
     do { \
-        if (i < 0 || i >= m->jcodelength) { \
-            *exceptionptr = \
-                new_verifyerror(m, "Illegal target of jump or branch"); \
-            return NULL; \
-        } \
+        if ((i) < 0 || (i) >= m->jcodelength) \
+			goto throw_invalid_bytecode_index; \
     } while (0)
 
-/* bound_check_exclusive is used for the exclusive ends of exception handler ranges */
-#define bound_check_exclusive(i) \
+/* CHECK_BYTECODE_INDEX_EXCLUSIVE is used for the exclusive ends */ 
+/* of exception handler ranges                                   */
+#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i) \
     do { \
-        if (i < 0 || i > m->jcodelength) { \
-            *exceptionptr = \
-                new_verifyerror(m, "Illegal target of jump or branch"); \
-            return NULL; \
-        } \
+        if ((i) < 0 || (i) > m->jcodelength) \
+			goto throw_invalid_bytecode_index; \
     } while (0)
 
+#else /* !ENABLE_VERIFIER */
+
+#define CHECK_BYTECODE_INDEX(i)
+#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i)
+
+#endif
 
 /* macros for byte code fetching ***********************************************
 

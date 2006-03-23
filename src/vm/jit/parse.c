@@ -31,17 +31,18 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4686 2006-03-23 11:22:04Z edwin $
+   $Id: parse.c 4687 2006-03-23 12:48:43Z edwin $
 
 */
 
 
-#include <assert.h>
-#include <string.h>
-
 #include "config.h"
 
 #include "vm/types.h"
+#include "vm/global.h"
+
+#include <assert.h>
+#include <string.h>
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -79,7 +80,7 @@ static exceptiontable * fillextable(methodinfo *m,
         							int exceptiontablelength, 
 									int *block_count)
 {
-	int b_count, p, src, insertBlock;
+	int b_count, p, src;
 	
 	if (exceptiontablelength == 0) 
 		return extable;
@@ -87,44 +88,53 @@ static exceptiontable * fillextable(methodinfo *m,
 	b_count = *block_count;
 
 	for (src = exceptiontablelength-1; src >=0; src--) {
+		/* the start of the handled region becomes a basic block start */
    		p = raw_extable[src].startpc;
+		CHECK_BYTECODE_INDEX(p);
 		extable->startpc = p;
-		bound_check(p);
 		block_insert(p);
 		
 		p = raw_extable[src].endpc; /* see JVM Spec 4.7.3 */
+		CHECK_BYTECODE_INDEX_EXCLUSIVE(p);
+
+#if defined(ENABLE_VERIFIER)
 		if (p <= raw_extable[src].startpc) {
 			*exceptionptr = new_verifyerror(m,
 				"Invalid exception handler range");
 			return NULL;
 		}
-
-		if (p >m->jcodelength) {
-			*exceptionptr = new_verifyerror(m,
-				"Invalid exception handler end is after code end");
-			return NULL;
-		}
-
-		if (p<m->jcodelength) insertBlock=1; else insertBlock=0;
+#endif
 		extable->endpc = p;
-		bound_check_exclusive(p);
-		/* if (p < m->jcodelength) block_insert(p); */
-        if (insertBlock) 
+		
+		/* end of handled region becomes a basic block boundary  */
+		/* (If it is the bytecode end, we'll use the special     */
+		/* end block that is created anyway.)                    */
+		if (p < m->jcodelength) 
 			block_insert(p);
 
+		/* the start of the handler becomes a basic block start  */
 		p = raw_extable[src].handlerpc;
+		CHECK_BYTECODE_INDEX(p);
 		extable->handlerpc = p;
-		bound_check(p);
 		block_insert(p);
 
-		extable->catchtype  = raw_extable[src].catchtype;
+		extable->catchtype = raw_extable[src].catchtype;
 		extable->next = NULL;
 		extable->down = &extable[1];
 		extable--;
 	}
 
 	*block_count = b_count;
-	return extable; /*&extable[i];*/  /* return the next free xtable* */
+	
+	/* everything ok */
+	return extable;
+
+#if defined(ENABLE_VERIFIER)
+throw_invalid_bytecode_index:
+	*exceptionptr =
+		new_verifyerror(m, "Illegal bytecode index in exception table");
+	return NULL;
+#endif
 }
 
 /*** macro for checking the length of the bytecode ***/
@@ -154,7 +164,6 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	int gp;                     /* global java instruction counter    */
 
 	int firstlocal = 0;         /* first local variable of method     */
-	exceptiontable* nextex;     /* points next free entry in extable  */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
 	constant_classref  *cr;
@@ -189,11 +198,15 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	
 	/* compute branch targets of exception table */
 
-	nextex = fillextable(m, 
- 	  &(cd->exceptiontable[cd->exceptiontablelength-1]), m->exceptiontable, 
-	  	m->exceptiontablelength, &b_count);
-	if (!nextex)
+	if (!fillextable(m, 
+ 	  		&(cd->exceptiontable[cd->exceptiontablelength-1]), 
+	  		m->exceptiontable, 
+	  		m->exceptiontablelength, 
+			&b_count))
+	{
 		return NULL;
+	}
+
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
 #if defined(USE_THREADS)
@@ -571,7 +584,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_GOTO:
 		case JAVA_JSR:
 			i = p + code_get_s2(p + 1,m);
-			bound_check(i);
+			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -580,7 +593,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_GOTO_W:
 		case JAVA_JSR_W:
 			i = p + code_get_s4(p + 1,m);
-			bound_check(i);
+			CHECK_BYTECODE_INDEX(i);
 			block_insert(i);
 			blockend = true;
 			OP1(opcode, i);
@@ -628,7 +641,9 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			{
 				s4 num, j;
 				s4 *tablep;
-				s4 prevvalue=0;
+#if defined(ENABLE_VERIFIER)
+				s4 prevvalue = 0;
+#endif
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
@@ -645,7 +660,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
-				bound_check(j);
+				CHECK_BYTECODE_INDEX(j);
 				block_insert(j);
 
 				/* number of pairs */
@@ -665,6 +680,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					tablep++;
 					nextp += 4;
 
+#if defined(ENABLE_VERIFIER)
 					/* check if the lookup table is sorted correctly */
 					
 					if (i && (j <= prevvalue)) {
@@ -672,6 +688,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 						return NULL;
 					}
 					prevvalue = j;
+#endif
 
 					/* target */
 
@@ -679,7 +696,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
-					bound_check(j);
+					CHECK_BYTECODE_INDEX(j);
 					block_insert(j);
 				}
 
@@ -707,7 +724,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				*tablep = j;     /* restore for little endian */
 				tablep++;
 				nextp += 4;
-				bound_check(j);
+				CHECK_BYTECODE_INDEX(j);
 				block_insert(j);
 
 				/* lower bound */
@@ -726,11 +743,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				num -= j;  /* difference of upper - lower */
 
+#if defined(ENABLE_VERIFIER)
 				if (num < 0) {
 					*exceptionptr = new_verifyerror(m,
 							"invalid TABLESWITCH: upper bound < lower bound");
 					return NULL;
 				}
+#endif
 
 				CHECK_END_OF_BYTECODE(nextp + 4 * (num + 1));
 
@@ -739,7 +758,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					*tablep = j; /* restore for little endian */
 					tablep++;
 					nextp += 4;
-					bound_check(j);
+					CHECK_BYTECODE_INDEX(j);
 					block_insert(j);
 				}
 
@@ -1362,6 +1381,11 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 #if defined(ENABLE_VERIFIER)
 throw_unexpected_end_of_bytecode:
 	*exceptionptr = new_verifyerror(m, "Unexpected end of bytecode");
+	return NULL;
+
+throw_invalid_bytecode_index:
+	*exceptionptr =
+		new_verifyerror(m, "Illegal target of branch instruction");
 	return NULL;
 #endif /* ENABLE_VERIFIER */
 }
