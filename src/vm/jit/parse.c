@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4662 2006-03-21 00:13:45Z edwin $
+   $Id: parse.c 4685 2006-03-23 02:06:50Z edwin $
 
 */
 
@@ -198,7 +198,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 	if (m->linenumbercount == 0) {
 		lineindex = 0;
-	} else {
+	} 
+	else {
 		linepcchange = m->linenumbers[0].start_pc;
 	}
 
@@ -224,7 +225,9 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 		if (!skipBasicBlockChange) {
 			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
-		} else skipBasicBlockChange=0;
+		} 
+		else 
+			skipBasicBlockChange = 0;
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
@@ -347,7 +350,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_ALOAD:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} else {
+			} 
+			else {
 				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
@@ -399,7 +403,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_ASTORE:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} else {
+			} 
+			else {
 				i = code_get_u2(p + 1,m);
 				iswide = false;
 				nextp = p + 3;
@@ -450,7 +455,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					i = code_get_u1(p + 1,m);
 					v = code_get_s1(p + 2,m);
 
-				} else {
+				} 
+				else {
 					i = code_get_u2(p + 1,m);
 					v = code_get_s2(p + 3,m);
 					iswide = false;
@@ -577,7 +583,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_RET:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
-			} else {
+			} 
+			else {
 				i = code_get_u2(p + 1,m);
 				nextp = p + 3;
 				iswide = false;
@@ -790,7 +797,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 					iptr->val.a = fi;
 
-				} else {
+				} 
+				else {
 					iptr->val.a = NULL;
 				}
 				PINC;
@@ -978,7 +986,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				OP2AT(opcode, 0, c, cr, currentline);
 				m->isleafmethod = false;
 
-			} else {
+			} 
+			else {
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
 			}
@@ -1000,7 +1009,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				BUILTIN(bte, false, NULL, currentline);
 				s_count++;
 
-			} else {
+			} 
+			else {
 				/* object type cast-check */
 				OP2AT(opcode, 1, c, cr, currentline);
 			}
@@ -1012,7 +1022,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				OP(ICMD_CHECKNULL);
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
 				BUILTIN(bte, false, NULL, currentline);
-			} else
+			} 
+			else
 #endif
 				{
 					OP(ICMD_CHECKNULL);
@@ -1025,7 +1036,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (checksync) {
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
 				BUILTIN(bte, false, NULL, currentline);
-			} else
+			} 
+			else
 #endif
 				{
 					OP(ICMD_POP);
@@ -1097,7 +1109,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2i);
 				BUILTIN(bte, false, NULL, currentline);
-			} else
+			} 
+			else
 #endif
 				{
 					OP(opcode);
@@ -1109,7 +1122,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2l);
 				BUILTIN(bte, false, NULL, currentline);
-			} else 
+			} 
+			else 
 #endif
 				{
 					OP(opcode);
@@ -1121,7 +1135,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2i);
 				BUILTIN(bte, false, NULL, currentline);
-			} else
+			} 
+			else
 #endif
 				{
 					OP(opcode);
@@ -1133,7 +1148,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2l);
 				BUILTIN(bte, false, NULL, currentline);
-			} else
+			} 
+			else
 #endif
 				{
 					OP(opcode);
