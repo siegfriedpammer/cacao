@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4685 2006-03-23 02:06:50Z edwin $
+   $Id: parse.c 4686 2006-03-23 11:22:04Z edwin $
 
 */
 
@@ -127,7 +127,17 @@ static exceptiontable * fillextable(methodinfo *m,
 	return extable; /*&extable[i];*/  /* return the next free xtable* */
 }
 
+/*** macro for checking the length of the bytecode ***/
 
+#if defined(ENABLE_VERIFIER)
+#define CHECK_END_OF_BYTECODE(neededlength) \
+	do { \
+		if ((neededlength) > m->jcodelength) \
+			goto throw_unexpected_end_of_bytecode; \
+	} while (0)
+#else /* !ENABLE_VERIFIER */
+#define CHECK_END_OF_BYTECODE(neededlength)
+#endif /* ENABLE_VERIFIER */
 
 methodinfo *parse(methodinfo *m, codegendata *cd)
 {
@@ -240,11 +250,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 		nextp = p + jcommandsize[opcode];   /* compute next instruction start */
 
-		if (nextp > m->jcodelength) {
-			*exceptionptr = new_verifyerror(m,
-					"Unexpected end of bytecode");
-			return NULL;
-		}
+		CHECK_END_OF_BYTECODE(nextp);
 
 		s_count += stackreq[opcode];      	/* compute stack element count    */
 		switch (opcode) {
@@ -627,11 +633,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
 
-				if (nextp + 8 > m->jcodelength) {
-					*exceptionptr = new_verifyerror(m,
-							"Unexpected end of bytecode");
-					return NULL;
-				}
+				CHECK_END_OF_BYTECODE(nextp + 8);
 
 				tablep = (s4 *) (m->jcode + nextp);
 
@@ -653,11 +655,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				tablep++;
 				nextp += 4;
 
-				if (nextp + 8 * num > m->jcodelength) {
-					*exceptionptr = new_verifyerror(m,
-						"Unexpected end of bytecode");
-					return NULL;
-				}
+				CHECK_END_OF_BYTECODE(nextp + 8 * num);
 
 				for (i = 0; i < num; i++) {
 					/* value */
@@ -696,11 +694,8 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				blockend = true;
 				nextp = ALIGN((p + 1), 4);
-				if (nextp + 12 > m->jcodelength) {
-					*exceptionptr = new_verifyerror(m,
-						"Unexpected end of bytecode");
-					return NULL;
-				}
+
+				CHECK_END_OF_BYTECODE(nextp + 12);
 
 				tablep = (s4 *) (m->jcode + nextp);
 
@@ -737,11 +732,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					return NULL;
 				}
 
-				if (nextp + 4 * (num + 1) > m->jcodelength) {
-					*exceptionptr = new_verifyerror(m,
-						"Unexpected end of bytecode");
-					return NULL;
-				}
+				CHECK_END_OF_BYTECODE(nextp + 4 * (num + 1));
 
 				for (i = 0; i <= num; i++) {
 					j = p + code_get_s4(nextp,m);
@@ -1367,6 +1358,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	/* just return methodinfo* to signal everything was ok */
 
 	return m;
+
+#if defined(ENABLE_VERIFIER)
+throw_unexpected_end_of_bytecode:
+	*exceptionptr = new_verifyerror(m, "Unexpected end of bytecode");
+	return NULL;
+#endif /* ENABLE_VERIFIER */
 }
 
 
