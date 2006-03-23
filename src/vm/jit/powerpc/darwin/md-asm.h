@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4576 2006-03-09 13:51:36Z twisti $
+   $Id: md-asm.h 4684 2006-03-23 00:56:21Z edwin $
 
 */
 
@@ -238,6 +238,8 @@
 #define asm_handle_exception                  _asm_handle_exception
 #define asm_handle_nullptr_exception          _asm_handle_nullptr_exception
 #define asm_wrapper_patcher                   _asm_wrapper_patcher
+#define asm_replacement_out                   _asm_replacement_out
+#define asm_replacement_in                    _asm_replacement_in
 
 #define asm_cacheflush                        _asm_cacheflush
 #define asm_initialize_thread_stack           _asm_initialize_thread_stack
@@ -253,6 +255,7 @@
 #define builtin_throw_exception               _builtin_throw_exception
 #define exceptions_handle_exception           _exceptions_handle_exception
 #define jit_compile                           _jit_compile
+#define replace_me                            _replace_me
 
 #define stacktrace_create_extern_stackframeinfo \
 	_stacktrace_create_extern_stackframeinfo
