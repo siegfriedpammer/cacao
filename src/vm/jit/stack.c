@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4682 2006-03-23 00:08:28Z edwin $
+   $Id: stack.c 4683 2006-03-23 00:30:30Z edwin $
 
 */
 
@@ -260,25 +260,21 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 		while (--b_count >= 0) {
 			if (bptr->flags == BBDELETED) {
 				/* do nothing */
-
-			} else if (superblockend && (bptr->flags < BBREACHED)) {
+			} 
+			else if (superblockend && (bptr->flags < BBREACHED)) {
 				repeat = true;
-
-			} else if (bptr->flags <= BBREACHED) {
+			} 
+			else if (bptr->flags <= BBREACHED) {
 				if (superblockend) {
 					stackdepth = bptr->indepth;
-
-				} else if (bptr->flags < BBREACHED) {
+				} 
+				else if (bptr->flags < BBREACHED) {
 					COPYCURSTACK(copy);
 					bptr->instack = copy;
 					bptr->indepth = stackdepth;
-
-				} else if (bptr->indepth != stackdepth) {
-					/*show_icmd_method(m, cd, rd);
-					printf("Block: %d, required depth: %d, current depth: %d\n",
-					bptr->debug_nr, bptr->indepth, stackdepth);*/
-					*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
-					return NULL;
+				} 
+				else {
+					CHECK_STACK_DEPTH(bptr->indepth, stackdepth);
 				}
 
 				curstack = bptr->instack;
@@ -641,11 +637,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										OPTT2_0(TYPE_INT, TYPE_ADR);
 										COUNT(count_pcmd_op);
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									} else
+									} 
+									else
 										PUSHCONST(TYPE_INT);
 # endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
-								} else
+								} 
+								else
 									PUSHCONST(TYPE_INT);
 # endif
 								break;
@@ -673,11 +671,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										iptr[0].op1 = TYPE_INT;
 										COUNT(count_pcmd_op);
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									} else
+									} 
+									else
 										PUSHCONST(TYPE_INT);
 # endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
-								} else
+								} 
+								else
 									PUSHCONST(TYPE_INT);
 # endif
 								break;
@@ -963,11 +963,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										OPTT2_0(TYPE_INT, TYPE_ADR);
 										COUNT(count_pcmd_op);
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									} else
+									} 
+									else
 										PUSHCONST(TYPE_LNG);
 # endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
-								} else
+								} 
+								else
 									PUSHCONST(TYPE_LNG);
 # endif
 								break;
@@ -995,11 +997,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										iptr[0].op1 = TYPE_LNG;
 										COUNT(count_pcmd_op);
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									} else
+									} 
+									else
 										PUSHCONST(TYPE_LNG);
 # endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 # if defined(ENABLE_INTRP)
-								} else
+								} 
+								else
 									PUSHCONST(TYPE_LNG);
 # endif
 								break;
@@ -1058,10 +1062,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									PUSHCONST(TYPE_ADR);
 								}
 
-							} else
+							} 
+							else
 								PUSHCONST(TYPE_ADR);
 # if defined(ENABLE_INTRP)
-						} else
+						} 
+						else
 							PUSHCONST(TYPE_ADR);
 # endif
 #else /* SUPPORT_CONST_STORE */
@@ -2143,7 +2149,8 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									if (md->params[i].inmemory) {
 										copy->flags = INMEMORY;
 										copy->regoff = md->params[i].regoff;
-									} else {
+									} 
+									else {
 										copy->flags = 0;
 										if (IS_FLT_DBL_TYPE(copy->type))
 #if defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
@@ -2388,6 +2395,10 @@ throw_stack_overflow:
 	*exceptionptr = new_verifyerror(m, "Stack size too large");
 	return NULL;
 
+throw_stack_depth_error:
+	*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
+	return NULL;
+
 throw_stack_type_error:
 	exceptions_throw_verifyerror_for_stack(m, expectedtype);
 	return NULL;
@@ -2454,7 +2465,8 @@ void stack_print(codegendata *cd, stackptr s)
 						printf(" %3d/%3d", GET_LOW_REG(s->regoff),
 							   GET_HIGH_REG(s->regoff));
 # endif
-					} else 
+					} 
+					else 
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
 #if defined(ENABLE_JIT)
@@ -2481,7 +2493,8 @@ void stack_print(codegendata *cd, stackptr s)
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
 					printf("  V0");
-				} else /* "normal" Argvar */
+				} 
+				else /* "normal" Argvar */
 					printf(" A%02d", s->varnum);
 				break;
 			default:
@@ -2514,7 +2527,8 @@ void stack_print(codegendata *cd, stackptr s)
 						printf(" %3d/%3d", GET_LOW_REG(s->regoff),
 							   GET_HIGH_REG(s->regoff));
 # endif
-					} else
+					} 
+					else
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
 #if defined(ENABLE_JIT)
@@ -2541,7 +2555,8 @@ void stack_print(codegendata *cd, stackptr s)
 					/* Return Value                                  */
 					/* varkind ARGVAR "misused for this special case */
 					printf("  v0");
-				} else /* "normal" Argvar */
+				} 
+				else /* "normal" Argvar */
 				printf(" a%02d", s->varnum);
 				break;
 			default:
@@ -2906,7 +2921,8 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->dseglen + bptr->next->mpc);)
 					DISASSINSTR(u1ptr);
 
-			} else {
+			} 
+			else {
 				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->code->mcodelength);)
 					DISASSINSTR(u1ptr); 
 			}
@@ -3015,7 +3031,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 			utf_display(((constant_classref *) iptr->target)->name);
 			printf("\"");
 
-		} else {
+		} 
+		else {
 			printf(" %p", iptr->val.a);
 			if (iptr->val.a) {
 				printf(", String = \"");
@@ -3046,7 +3063,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 				printf(" (NOT INITIALIZED) ");
 			else
 				printf(" ");
-		} else
+		} 
+		else
 			printf(" (NOT RESOLVED) ");
 		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
 		printf(".");
@@ -3182,7 +3200,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 		if (iptr->val.a == NULL) {
 			printf(" (NOT RESOLVED) %d ", iptr->op1);
 			utf_display(((constant_classref *) iptr->target)->name);
-		} else {
+		} 
+		else {
 			printf(" %d ",iptr->op1);
 			utf_display_classname(((classinfo *) iptr->val.a)->name);
 		}
@@ -3197,7 +3216,8 @@ void show_icmd(instruction *iptr, bool deadcode)
 					printf(" (INTERFACE) ");
 				else
 					printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			} else {
+			} 
+			else {
 				printf(" (NOT RESOLVED) ");
 			}
 			utf_display_classname(((constant_classref *) iptr->target)->name);

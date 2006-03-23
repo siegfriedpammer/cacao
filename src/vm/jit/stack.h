@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4681 2006-03-22 23:51:09Z edwin $
+   $Id: stack.h 4683 2006-03-23 00:30:30Z edwin $
 
 */
 
@@ -58,6 +58,20 @@
 #define CURKIND    curstack->varkind
 #define CURTYPE    curstack->type
 
+
+/*--------------------------------------------------*/
+/* STACK DEPTH CHECKING                             */
+/*--------------------------------------------------*/
+
+#if defined(ENABLE_VERIFIER)
+#define CHECK_STACK_DEPTH(depthA,depthB) \
+	do { \
+		if ((depthA) != (depthB)) \
+			goto throw_stack_depth_error; \
+	} while (0)
+#else /* !ENABLE_VERIFIER */
+#define CHECK_STACK_DEPTH(depthA,depthB)
+#endif /* ENABLE_VERIFIER */
 
 /*--------------------------------------------------*/
 /* BASIC TYPE CHECKING                              */
@@ -92,7 +106,7 @@
 #else /* !ENABLE_VERIFIER */
 #define REQUIRE(num)
 #endif /* ENABLE_VERIFIER */
-	   
+
 #define REQUIRE_1     REQUIRE(1)
 #define REQUIRE_2     REQUIRE(2)
 #define REQUIRE_3     REQUIRE(3)
@@ -133,8 +147,8 @@
     } while (0)
 
 
-/* Initialize regoff, so -sia can show regnames even before reg.inc */ 
-/* regs[rd->intregargnum has to be set for this */ 
+/* Initialize regoff, so -sia can show regnames even before reg.inc */
+/* regs[rd->intregargnum has to be set for this */
 /* new->regoff = (IS_FLT_DBL_TYPE(s))?-1:rd->intreg_argnum; }*/
 
 #define NEWSTACK(s,v,n) { NEWSTACK_(s,v,n); INC_LIFETIMES(1); }
@@ -208,7 +222,7 @@
  *
  * These macros do *not* check for stack overflows!
  */
-   
+
 #define PUSHCONST(s){NEWSTACKn(s,stackdepth);SETDST;stackdepth++;}
 #define LOAD(s,v,n) {NEWSTACK(s,v,n);SETDST;stackdepth++;}
 #define STORE(s)    {REQUIRE_1;POP(s);SETDST;stackdepth--;}
@@ -433,10 +447,7 @@
         } else { \
             stackptr s = curstack; \
             stackptr t = (b)->instack; \
-		    if ((b)->indepth != stackdepth) { \
-                *exceptionptr = new_verifyerror(m,"Stack depth mismatch"); \
-                return NULL; \
-            } \
+			CHECK_STACK_DEPTH((b)->indepth, stackdepth); \
 		    while (s) { \
 				CHECK_BASIC_TYPE(s->type,t->type); \
 			    s = s->prev; \
