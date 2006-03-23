@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4552 2006-03-04 17:15:44Z twisti $
+   $Id: global.h 4682 2006-03-23 00:08:28Z edwin $
 
 */
 
@@ -92,13 +92,6 @@ typedef struct java_objectarray java_objectarray;
  * ENABLE_VERIFIER activates bytecode verification and other checks
  */
 #define ENABLE_VERIFIER
-
-/*
- * TYPECHECK_STACK_COMPCAT activates full checking of computational
- * categories for stack manipulations (POP,POP2,SWAP,DUP,DUP2,DUP_X1,
- * DUP2_X1,DUP_X2,DUP2_X2).
- */
-#define TYPECHECK_STACK_COMPCAT
 
 /* if we have threads disabled this one is not defined ************************/
 

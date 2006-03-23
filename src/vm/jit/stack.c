@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4681 2006-03-22 23:51:09Z edwin $
+   $Id: stack.c 4682 2006-03-23 00:08:28Z edwin $
 
 */
 
@@ -1334,13 +1334,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 1 push 0 */
 
 					case ICMD_POP:
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 						if (opt_verify) {
 							REQUIRE_1;
-							if (IS_2_WORD_TYPE(curstack->type)) {
-								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-								return NULL;
-							}
+							if (IS_2_WORD_TYPE(curstack->type))
+								goto throw_stack_category_error;
 						}
 #endif
 						OP1_0ANY;
@@ -1598,13 +1596,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						REQUIRE_1;
 						if (!IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., cat1 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								REQUIRE_2;
-								if (IS_2_WORD_TYPE(curstack->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+									goto throw_stack_category_error;
 							}
 #endif
 							OP1_0ANY;                /* second pop */
@@ -1617,13 +1613,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 0 push 1 dup */
 						
 					case ICMD_DUP:
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 						if (opt_verify) {
 							REQUIRE_1;
-							if (IS_2_WORD_TYPE(curstack->type)) {
-								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-								return NULL;
-							}
+							if (IS_2_WORD_TYPE(curstack->type))
+						   		goto throw_stack_category_error;
 						}
 #endif
 						last_dupx = bptr->icount - len - 1;
@@ -1642,12 +1636,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						else {
 							REQUIRE_2;
 							/* ..., ????, cat1 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+							   		goto throw_stack_category_error;
 							}
 #endif
 							copy = curstack;
@@ -1663,14 +1655,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						/* pop 2 push 3 dup */
 						
 					case ICMD_DUP_X1:
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 						if (opt_verify) {
 							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->type) ||
-								IS_2_WORD_TYPE(curstack->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-							}
+								IS_2_WORD_TYPE(curstack->prev->type))
+						   			goto throw_stack_category_error;
 						}
 #endif
 						last_dupx = bptr->icount - len - 1;
@@ -1682,12 +1672,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->type)) {
 							/* ..., ????, cat2 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+								if (IS_2_WORD_TYPE(curstack->prev->type))
+							   		goto throw_stack_category_error;
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -1695,14 +1683,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						}
 						else {
 							/* ..., ????, cat1 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								REQUIRE_3;
 								if (IS_2_WORD_TYPE(curstack->prev->type)
-									|| IS_2_WORD_TYPE(curstack->prev->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
+							   			goto throw_stack_category_error;
 							}
 #endif
 							DUP2_X1;
@@ -1716,12 +1702,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						REQUIRE_2;
 						if (IS_2_WORD_TYPE(curstack->prev->type)) {
 							/* ..., cat2, ???? */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
-								if (IS_2_WORD_TYPE(curstack->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+								if (IS_2_WORD_TYPE(curstack->type))
+							   		goto throw_stack_category_error;
 							}
 #endif
 							iptr->opc = ICMD_DUP_X1;
@@ -1729,14 +1713,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						}
 						else {
 							/* ..., cat1, ???? */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 							if (opt_verify) {
 								REQUIRE_3;
 								if (IS_2_WORD_TYPE(curstack->type)
-									|| IS_2_WORD_TYPE(curstack->prev->prev->type)) {
-									*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-									return NULL;
-								}
+									|| IS_2_WORD_TYPE(curstack->prev->prev->type))
+							   				goto throw_stack_category_error;
 							}
 #endif
 							DUP_X2;
@@ -1755,13 +1737,11 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 							else {
 								/* ..., cat1, cat2 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 								if (opt_verify) {
 									REQUIRE_3;
-									if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
-										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-										return NULL;
-									}
+									if (IS_2_WORD_TYPE(curstack->prev->prev->type))
+								   			goto throw_stack_category_error;
 								}
 #endif
 								iptr->opc = ICMD_DUP_X2;
@@ -1773,12 +1753,10 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							/* ..., ????, ????, cat1 */
 							if (IS_2_WORD_TYPE(curstack->prev->prev->type)) {
 								/* ..., cat2, ????, cat1 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 								if (opt_verify) {
-									if (IS_2_WORD_TYPE(curstack->prev->type)) {
-										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-										return NULL;
-									}
+									if (IS_2_WORD_TYPE(curstack->prev->type))
+								   		goto throw_stack_category_error;
 								}
 #endif
 								iptr->opc = ICMD_DUP2_X1;
@@ -1786,14 +1764,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							}
 							else {
 								/* ..., cat1, ????, cat1 */
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 								if (opt_verify) {
 									REQUIRE_4;
 									if (IS_2_WORD_TYPE(curstack->prev->type)
-										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type)) {
-										*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-										return NULL;
-									}
+										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
+								   				goto throw_stack_category_error;
 								}
 #endif
 								DUP2_X2;
@@ -1805,14 +1781,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 						
 					case ICMD_SWAP:
 						last_dupx = bptr->icount - len - 1;
-#ifdef TYPECHECK_STACK_COMPCAT
+#ifdef ENABLE_VERIFIER
 						if (opt_verify) {
 							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->type)
-								|| IS_2_WORD_TYPE(curstack->prev->type)) {
-								*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-								return NULL;
-							}
+								|| IS_2_WORD_TYPE(curstack->prev->type))
+						   				goto throw_stack_category_error;
 						}
 #endif
 						SWAP;
@@ -2416,6 +2390,10 @@ throw_stack_overflow:
 
 throw_stack_type_error:
 	exceptions_throw_verifyerror_for_stack(m, expectedtype);
+	return NULL;
+
+throw_stack_category_error:
+	*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
 	return NULL;
 #endif
 }
