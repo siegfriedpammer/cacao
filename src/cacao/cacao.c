@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4661 2006-03-21 00:04:59Z motse $
+   $Id: cacao.c 4688 2006-03-24 11:50:00Z motse $
 
 */
 
@@ -198,12 +198,6 @@ int main(int argc, char **argv)
 	JavaVMInitArgs *vm_args;
 	JavaVM         *jvm;                /* denotes a Java VM                  */
 
-
-#if defined(NDEBUG)
-	/* motse: for jdwp/jvmti debugging*/
-	for (i=0; i<argc; i++)
-		fprintf(stderr,"argument string[%d]: %s\n",i,argv[i]);
-#endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
