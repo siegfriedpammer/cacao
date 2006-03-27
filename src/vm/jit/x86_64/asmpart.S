@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4643 2006-03-16 18:38:42Z edwin $
+   $Id: asmpart.S 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -219,8 +219,10 @@ L_asm_vm_call_method_return:
 	ret
 		
 calljava_xhandler2:
+#if !defined(NDEBUG)
 	mov     xptr,a0                     /* pass exception pointer             */
 	call    builtin_throw_exception@PLT
+#endif
 	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_vm_call_method_return
 

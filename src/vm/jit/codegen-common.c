@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4631 2006-03-16 14:19:52Z twisti $
+   $Id: codegen-common.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -849,6 +849,7 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 		count_nstub_len += code->mcodelength;
 #endif
 
+#if !defined(NDEBUG)
 	/* disassemble native stub */
 
 	if (opt_shownativestub) {
@@ -861,6 +862,7 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 		if (opt_showddatasegment)
 			dseg_display(m, cd);
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* release memory */
 
@@ -878,6 +880,7 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 {
 	printf("Native stub: ");
@@ -889,6 +892,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 
 	DISASSEMBLE(start, end);
 }
+#endif
 
 
 /* codegen_start_native_call ***************************************************

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4604 2006-03-15 01:39:32Z edwin $
+   $Id: jit.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -1418,8 +1418,7 @@ u1 *jit_compile(methodinfo *m)
 #endif
 
 	if (r) {
-		if (compileverbose)
-			log_message_method("Running: ", m);
+		DEBUG_JIT_COMPILEVERBOSE("Running: ");
 
 	} else {
 		/* We had an exception! Finish stuff here if necessary. */
@@ -1557,11 +1556,13 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	}
 #endif
 
+#if defined(ENABLE_LOOP)
 	if (opt_loops) {
 		depthFirst(m, ld);
 		analyseGraph(m, ld);
 		optimize_loops(m, cd, ld);
 	}
+#endif
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)

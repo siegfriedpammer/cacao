@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4505 2006-02-14 00:03:56Z twisti $
+## $Id: Makefile.am 4690 2006-03-27 11:37:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,23 +55,25 @@ VM_CLASS_FILES = \
 
 GLIBJ_ZIP = $(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
 
-$(VM_CLASS_FILES): $(VM_JAVA_FILES)
-	$(mkdir_p) classes
-	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
-
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 
 VM_ZIP = ../vm.zip
 
-vm.zip: $(VM_CLASS_FILES)
+vm.zip: $(VM_JAVA_FILES)
+	$(mkdir_p) classes
+	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
 	@if test "$(JAR)" = "zip"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
 	    cd classes && $(JAR) cvf $(VM_ZIP) .; \
 	fi
 else
-pkgdata_DATA = $(VM_CLASS_FILES)
+pkgdata_DATA = nozip
+
+nozip: $(VM_JAVA_FILES)
+	$(mkdir_p) classes
+	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
 endif
 
 clean-local:

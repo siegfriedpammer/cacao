@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: builtin.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -748,8 +748,10 @@ java_objectheader *builtin_new(classinfo *c)
 			return NULL;
 
 	if (!(c->state & CLASS_INITIALIZED)) {
+#if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Initialize class (from builtin_new): ", c);
+#endif
 
 		if (!initialize_class(c))
 			return NULL;

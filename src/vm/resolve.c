@@ -28,10 +28,12 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4586 2006-03-11 21:34:20Z edwin $
+   $Id: resolve.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 
@@ -41,6 +43,7 @@
 #include "vm/classcache.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/stringlocal.h"

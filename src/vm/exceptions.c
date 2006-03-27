@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4566 2006-03-07 10:36:42Z twisti $
+   $Id: exceptions.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -796,7 +796,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 /* new_verifyerror *************************************************************
 
-   generates a java.lang.VerifyError for the jit compiler
+   Generates a java.lang.VerifyError for the JIT compiler.
 
 *******************************************************************************/
 
@@ -1218,10 +1218,12 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	ex                   =   (exceptionentry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)             (pv + ExTableSize));
 
+#if !defined(NDEBUG)
 	/* print exception trace */
 
 	if (opt_verbose || opt_verbosecall || opt_verboseexception)
 		builtin_trace_exception(xptr, m, xpc, 1);
+#endif
 
 	for (i = 0; i < exceptiontablelength; i++) {
 		/* ATTENTION: keep this here, as we need to decrement the

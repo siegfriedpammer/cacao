@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4668 2006-03-21 11:58:50Z twisti $
+## $Id: Makefile.am 4690 2006-03-27 11:37:46Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,6 @@ DIST_SUBDIRS = \
 
 SUBDIRS = \
 	allocator \
-	loop \
 	tools \
 	verify
 
@@ -78,8 +77,15 @@ SUBDIRS += inline
 INLINE_LIB = inline/libinline.la
 endif
 
+if ENABLE_LOOP
+SUBDIRS += loop
+LOOP_LIB = loop/libloop.la
+endif
+
+if ENABLE_PROFILING
 SUBDIRS += profile
 PROFILE_LIB = profile/libprofile.la
+endif
 
 if USE_SCHEDULER
 SUBDIRS += schedule
@@ -124,10 +130,10 @@ libjit_la_SOURCES = \
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
-	loop/libloop.la \
 	verify/libverify.la \
 	$(IFCONV_LIB) \
 	$(INLINE_LIB) \
+	$(LOOP_LIB) \
 	$(PROFILE_LIB) \
 	$(SCHEDULE_LIB) \
 	$(INTRP_LIB) \

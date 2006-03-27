@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4688 2006-03-24 11:50:00Z motse $
+   $Id: cacao.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -198,7 +198,6 @@ int main(int argc, char **argv)
 	JavaVMInitArgs *vm_args;
 	JavaVM         *jvm;                /* denotes a Java VM                  */
 
-
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
 #endif
@@ -349,8 +348,10 @@ int main(int argc, char **argv)
 		vm_exit(status);
 	}
 
-	/************* If requested, compile all methods ********************/
 
+	/* If requested, compile all methods. *************************************/
+
+#if !defined(NDEBUG)
 	if (compileall) {
 		classinfo *c;
 		methodinfo *m;
@@ -418,10 +419,12 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+#endif /* !defined(NDEBUG) */
 
 
-	/******** If requested, compile a specific method ***************/
+	/* If requested, compile a specific method. *******************************/
 
+#if !defined(NDEBUG)
 	if (opt_method != NULL) {
 		methodinfo *m;
 
@@ -463,6 +466,7 @@ int main(int argc, char **argv)
 	}
 
 	vm_shutdown(0);
+#endif /* !defined(NDEBUG) */
 
 	/* keep compiler happy */
 

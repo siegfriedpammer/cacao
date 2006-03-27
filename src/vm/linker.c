@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4551 2006-03-03 00:00:39Z twisti $
+   $Id: linker.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -442,8 +442,10 @@ static classinfo *link_class_intern(classinfo *c)
 	if (c->state & CLASS_LINKED)
 		return c;
 
+#if !defined(NDEBUG)
 	if (linkverbose)
 		log_message_class("Linking class: ", c);
+#endif
 
 	/* the class must be loaded */
 
@@ -841,8 +843,10 @@ static classinfo *link_class_intern(classinfo *c)
 
 	c->state = (c->state & ~CLASS_LINKING) | CLASS_LINKED;
 
+#if !defined(NDEBUG)
 	if (linkverbose)
 		log_message_class("Linking done class: ", c);
+#endif
 
 	/* just return c to show that we didn't had a problem */
 

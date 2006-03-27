@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4683 2006-03-23 00:30:30Z edwin $
+   $Id: stack.h 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -463,10 +463,12 @@ bool stack_init(void);
 
 methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
 
+#if !defined(NDEBUG)
 void stack_print(codegendata *cd, stackptr s);
 void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
 void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
 void show_icmd(instruction *iptr, bool deadcode);
+#endif
 
 /* machine dependent return value handling function */
 void md_return_alloc(methodinfo *m, registerdata *rd, s4 return_type,

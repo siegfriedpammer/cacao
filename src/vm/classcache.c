@@ -28,14 +28,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4526 2006-02-20 14:08:26Z twisti $
+   $Id: classcache.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <assert.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -44,6 +45,7 @@
 #include "vm/hashtable.h"
 #include "vm/stringlocal.h"
 #include "vm/utf8.h"
+
 
 /*************************************************************************
 

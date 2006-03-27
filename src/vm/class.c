@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: class.c 4582 2006-03-11 20:30:48Z edwin $
+   $Id: class.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -92,67 +92,67 @@ list unlinkedclasses;                   /* this is only used for eager class  */
 
 /* important system classes */
 
-classinfo *class_java_lang_Object = NULL;
-classinfo *class_java_lang_Class = NULL;
-classinfo *class_java_lang_ClassLoader = NULL;
-classinfo *class_java_lang_Cloneable = NULL;
-classinfo *class_java_lang_SecurityManager = NULL;
-classinfo *class_java_lang_String = NULL;
-classinfo *class_java_lang_System = NULL;
-classinfo *class_java_lang_Thread = NULL;
-classinfo *class_java_lang_ThreadGroup = NULL;
-classinfo *class_java_lang_VMThread = NULL;
-classinfo *class_java_io_Serializable = NULL;
+classinfo *class_java_lang_Object;
+classinfo *class_java_lang_Class;
+classinfo *class_java_lang_ClassLoader;
+classinfo *class_java_lang_Cloneable;
+classinfo *class_java_lang_SecurityManager;
+classinfo *class_java_lang_String;
+classinfo *class_java_lang_System;
+classinfo *class_java_lang_Thread;
+classinfo *class_java_lang_ThreadGroup;
+classinfo *class_java_lang_VMThread;
+classinfo *class_java_io_Serializable;
 
 
 /* system exception classes required in cacao */
 
-classinfo *class_java_lang_Throwable = NULL;
-classinfo *class_java_lang_VMThrowable = NULL;
-classinfo *class_java_lang_Error = NULL;
-classinfo *class_java_lang_NoClassDefFoundError = NULL;
-classinfo *class_java_lang_LinkageError = NULL;
-classinfo *class_java_lang_NoSuchMethodError = NULL;
-classinfo *class_java_lang_OutOfMemoryError = NULL;
+classinfo *class_java_lang_Throwable;
+classinfo *class_java_lang_VMThrowable;
+classinfo *class_java_lang_Error;
+classinfo *class_java_lang_NoClassDefFoundError;
+classinfo *class_java_lang_LinkageError;
+classinfo *class_java_lang_NoSuchMethodError;
+classinfo *class_java_lang_OutOfMemoryError;
 
-classinfo *class_java_lang_Exception = NULL;
-classinfo *class_java_lang_ClassNotFoundException = NULL;
-classinfo *class_java_lang_IllegalArgumentException = NULL;
-classinfo *class_java_lang_IllegalMonitorStateException = NULL;
+classinfo *class_java_lang_Exception;
+classinfo *class_java_lang_ClassNotFoundException;
+classinfo *class_java_lang_IllegalArgumentException;
+classinfo *class_java_lang_IllegalMonitorStateException;
 
-classinfo *class_java_lang_Void = NULL;
-classinfo *class_java_lang_Boolean = NULL;
-classinfo *class_java_lang_Byte = NULL;
-classinfo *class_java_lang_Character = NULL;
-classinfo *class_java_lang_Short = NULL;
-classinfo *class_java_lang_Integer = NULL;
-classinfo *class_java_lang_Long = NULL;
-classinfo *class_java_lang_Float = NULL;
-classinfo *class_java_lang_Double = NULL;
+classinfo *class_java_lang_Void;
+classinfo *class_java_lang_Boolean;
+classinfo *class_java_lang_Byte;
+classinfo *class_java_lang_Character;
+classinfo *class_java_lang_Short;
+classinfo *class_java_lang_Integer;
+classinfo *class_java_lang_Long;
+classinfo *class_java_lang_Float;
+classinfo *class_java_lang_Double;
 
 
 /* some runtime exception */
 
-classinfo *class_java_lang_NullPointerException = NULL;
+classinfo *class_java_lang_NullPointerException;
 
 
 /* some classes which may be used more often */
 
-classinfo *class_java_lang_StackTraceElement = NULL;
-classinfo *class_java_lang_reflect_Constructor = NULL;
-classinfo *class_java_lang_reflect_Field = NULL;
-classinfo *class_java_lang_reflect_Method = NULL;
-classinfo *class_java_security_PrivilegedAction = NULL;
-classinfo *class_java_util_Vector = NULL;
+classinfo *class_java_lang_StackTraceElement;
+classinfo *class_java_lang_reflect_Constructor;
+classinfo *class_java_lang_reflect_Field;
+classinfo *class_java_lang_reflect_Method;
+classinfo *class_java_security_PrivilegedAction;
+classinfo *class_java_util_Vector;
 
-classinfo *arrayclass_java_lang_Object = NULL;
+classinfo *arrayclass_java_lang_Object;
 
 
 /* pseudo classes for the typechecker */
 
-classinfo *pseudo_class_Arraystub = NULL;
-classinfo *pseudo_class_Null = NULL;
-classinfo *pseudo_class_New = NULL;
+classinfo *pseudo_class_Arraystub;
+classinfo *pseudo_class_Null;
+classinfo *pseudo_class_New;
 
 
 /* class_set_packagename *******************************************************

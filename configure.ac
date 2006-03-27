@@ -116,13 +116,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_MKDIR_P
 
-AC_ENABLE_SHARED
-AC_DISABLE_STATIC
-
-dnl libtool stuff
-AC_LIBTOOL_DLOPEN
-AC_PROG_LIBTOOL
-
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -165,15 +158,6 @@ dnl Checks for libraries.
 dnl Checking sizeof void *
 AC_CHECK_SIZEOF(void *)
 AC_C_BIGENDIAN
-
-
-dnl check which ld flags are required to export symbols
-if test x"$with_gnu_ld" = "xyes"; then
-    EXPORT_SYMBOLS_FLAGS="-Wl,--export-dynamic"
-else
-    EXPORT_SYMBOLS_FLAGS=""
-fi
-AC_SUBST(EXPORT_SYMBOLS_FLAGS)
 
 
 dnl define install prefix
@@ -316,6 +300,26 @@ AC_ARG_ENABLE([debug],
 
 if test x"${NDEBUG}" = "xno"; then
     AC_MSG_RESULT(yes)
+else
+    AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
+
+
+dnl check for disassembler support
+AC_MSG_CHECKING(whether disassembler should be enabled)
+AC_ARG_ENABLE([disassembler],
+              [AS_HELP_STRING(--disable-disassembler,disable disassembler [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_DISASSEMBLER=no;;
+                   *) ENABLE_DISASSEMBLER=yes;;
+               esac],
+              [ENABLE_DISASSEMBLER=yes])
+AC_MSG_RESULT(${ENABLE_DISASSEMBLER})
+AM_CONDITIONAL([ENABLE_DISASSEMBLER], test x"${ENABLE_DISASSEMBLER}" = "xyes")
+
+if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
+    AC_DEFINE([ENABLE_DISASSEMBLER], 1, [enable disassembler])
 
     dnl check for binutils headers and libraries on some architectures for the
     dnl disassembler
@@ -342,12 +346,9 @@ if test x"${NDEBUG}" = "xno"; then
             AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
             ;;
     esac
-
 else
-    AC_MSG_RESULT(no)
     AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
 fi
-AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
 
 
 dnl check for statistics
@@ -466,6 +467,40 @@ if test x"${ENABLE_IFCONV}" = "xyes"; then
 fi
 
 
+dnl check for inlining
+AC_MSG_CHECKING(whether method inlining should be supported)
+AC_ARG_ENABLE([inlining],
+              [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_INLINING=no;;
+                   *) ENABLE_INLINING=yes;;
+               esac],
+              [ENABLE_INLINING=yes])
+AC_MSG_RESULT(${ENABLE_INLINING})
+AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
+
+if test x"${ENABLE_INLINING}" = "xyes"; then
+    AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
+fi
+
+
+dnl check for loop optimization
+AC_MSG_CHECKING(whether loop optimization should be supported)
+AC_ARG_ENABLE([loop],
+              [AS_HELP_STRING(--disable-loop,disable loop optimization [[default=yes]])],
+              [case "${enableval}" in
+                   no) ENABLE_LOOP=no;;
+                   *) ENABLE_LOOP=yes;;
+               esac],
+              [ENABLE_LOOP=yes])
+AC_MSG_RESULT(${ENABLE_LOOP})
+AM_CONDITIONAL([ENABLE_LOOP], test x"${ENABLE_LOOP}" = "xyes")
+
+if test x"${ENABLE_LOOP}" = "xyes"; then
+    AC_DEFINE([ENABLE_LOOP], 1, [use loop optimization])
+fi
+
+
 dnl check if linear scan register allocator(lsra) should be used
 AC_MSG_CHECKING(whether lsra should be supported)
 AC_ARG_ENABLE([lsra],
@@ -483,20 +518,20 @@ if test x"${ENABLE_LSRA}" = "xyes"; then
 fi
 
 
-dnl check for inlining
-AC_MSG_CHECKING(whether method inlining should be supported)
-AC_ARG_ENABLE([inlining],
-              [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])],
+dnl check if profiling should be supported
+AC_MSG_CHECKING(whether profiling should be supported)
+AC_ARG_ENABLE([profiling],
+              [AS_HELP_STRING(--disable-profiling,disable profiling [[default=yes]])],
               [case "${enableval}" in
-                   no) ENABLE_INLINING=no;;
-                   *) ENABLE_INLINING=yes;;
+                   no) ENABLE_PROFILING=no;;
+                   *) ENABLE_PROFILING=yes;;
                esac],
-              [ENABLE_INLINING=yes])
-AC_MSG_RESULT(${ENABLE_INLINING})
-AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
-
-if test x"$enable_inlining" = "xno"; then
-    AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
+              [ENABLE_PROFILING=yes])
+AC_MSG_RESULT(${ENABLE_PROFILING})
+AM_CONDITIONAL([ENABLE_PROFILING], test x"${ENABLE_PROFILING}" = "xyes")
+   
+if test x"${ENABLE_PROFILING}" = "xyes"; then
+    AC_DEFINE([ENABLE_PROFILING], 1, [enable profiling])
 fi
 
 
@@ -547,20 +582,47 @@ AC_SUBST(VM_ZIP_STRING)
 AM_CONDITIONAL([ENABLE_ZLIB], test x"${ENABLE_ZLIB}" = "xyes")
 
 
+dnl check if a libjvm.so should be built
+AC_MSG_CHECKING(whether to build a libjvm.so)
+AC_ARG_ENABLE([libjvm],
+              [AS_HELP_STRING(--disable-libjvm,build a libjvm.so [[default=yes]])],
+              [case "${enableval}" in
+                  no) ENABLE_LIBJVM=no;;
+                  *) ENABLE_LIBJVM=yes;;
+               esac],
+              [ENABLE_LIBJVM=yes])
+AC_MSG_RESULT(${ENABLE_LIBJVM})
+AM_CONDITIONAL([ENABLE_LIBJVM], test x"${ENABLE_LIBJVM}" = "xyes")
+AC_SUBST(ENABLE_LIBJVM)
+
+if test x"${ENABLE_LIBJVM}" = "xyes"; then
+    AC_DEFINE([ENABLE_LIBJVM], 1, [enable libjvm.so])
+
+    dnl set AC_ENABLE_SHARED and AC_DISABLE_STATIC properly
+    enable_shared=yes
+    enable_static=no
+else
+    enable_shared=no
+    enable_static=yes
+fi
+
+dnl libtool stuff
+AC_LIBTOOL_DLOPEN
+AC_PROG_LIBTOOL
+
+
 dnl check if CACAO should be linked statically
 AC_MSG_CHECKING(whether to link CACAO statically)
 AC_ARG_ENABLE([staticvm],
               [AS_HELP_STRING(--enable-staticvm,link CACAO statically [[default=no]])],
               [case "${enableval}" in
-                  yes) ENABLE_STATICVM=yes;;
+                  yes) ENABLE_STATICVM=yes
+                       AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
+                       ;;
                   *) ENABLE_STATICVM=no;;
                esac],
               [ENABLE_STATICVM=no])
 AC_MSG_RESULT(${ENABLE_STATICVM})
-
-if test x"${ENABLE_STATICVM}" = "xyes"; then
-    AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
-fi
 AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
 
@@ -617,11 +679,13 @@ AC_SUBST(WITH_STATIC_CLASSPATH)
 
 
 dnl Maybe the user has Classpath installed 'flat'.
-AC_ARG_WITH([flat-classpath], [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
+AC_ARG_WITH([flat-classpath],
+            [AS_HELP_STRING(--with-flat-classpath, GNU Classpath is not zipped in the install directory)])
+
 if test x"$with_flat_classpath" = "x"; then
-	GLIBJ_ZIP_STRING=glibj.zip
+    GLIBJ_ZIP_STRING=glibj.zip
 else
-	GLIBJ_ZIP_STRING=
+    GLIBJ_ZIP_STRING=
 fi
 AC_SUBST(GLIBJ_ZIP_STRING)
 AC_DEFINE_UNQUOTED(GLIBJ_ZIP_STRING, "$GLIBJ_ZIP_STRING", [define to the string base name of the classpath zip file])

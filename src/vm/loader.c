@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: loader.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -276,9 +276,11 @@ void loader_load_all_classes(void)
 						utf_fprint_classname(stderr, u);
 						fprintf(stderr, "\n");
 
+#if !defined(NDEBUG)
 						/* print out exception and cause */
 
 						exceptions_print_exception(*exceptionptr);
+#endif
 					}
 				}
 			}

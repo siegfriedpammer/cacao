@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
+   $Id: codegen.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -303,6 +303,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 #endif
 
+#if !defined(NDEBUG)
 	/* Copy argument registers to stack and call trace function with
 	   pointer to arguments on stack. */
 
@@ -372,6 +373,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 		M_LADD_IMM((INT_ARG_CNT + FLT_ARG_CNT + INT_TMP_CNT + FLT_TMP_CNT + 1 + 1) * 8, REG_SP);
 	}
+#endif /* !defined(NDEBUG) */
 
 	}
 
@@ -2976,10 +2978,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 nowperformreturn:
 			{
 			s4 i, p;
-			
+
   			p = parentargs_base;
-			
-			/* call trace function */
+
+#if !defined(NDEBUG)
+			/* generate call trace */
+
 			if (opt_verbosecall) {
 				x86_64_alu_imm_reg(cd, X86_64_SUB, 2 * 8, REG_SP);
 
@@ -2991,14 +2995,15 @@ nowperformreturn:
 				M_FLTMOVE(REG_FRESULT, rd->argfltregs[0]);
  				M_FLTMOVE(REG_FRESULT, rd->argfltregs[1]);
 
-  				x86_64_mov_imm_reg(cd, (u8) builtin_displaymethodstop, REG_ITMP1);
-				x86_64_call_reg(cd, REG_ITMP1);
+  				M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
+				M_CALL(REG_ITMP1);
 
 				x86_64_mov_membase_reg(cd, REG_SP, 0 * 8, REG_RESULT);
 				x86_64_movq_membase_reg(cd, REG_SP, 1 * 8, REG_FRESULT);
 
 				x86_64_alu_imm_reg(cd, X86_64_ADD, 2 * 8, REG_SP);
 			}
+#endif /* !defined(NDEBUG) */
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -4129,6 +4134,9 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	M_ASUB_IMM(stackframesize * 8, REG_SP);
 
+#if !defined(NDEBUG)
+	/* generate call trace */
+
 	if (opt_verbosecall) {
 		/* save integer and float argument registers */
 
@@ -4170,7 +4178,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 			if (IS_FLT_DBL_TYPE(md->paramtypes[i].type))
 				M_DLD(rd->argfltregs[j++], REG_SP, (1 + INT_ARG_CNT + i) * 8);
 	}
-
+#endif /* !defined(NDEBUG) */
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -4287,6 +4295,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+#if !defined(NDEBUG)
 	/* generate call trace */
 
 	if (opt_verbosecall) {
@@ -4307,6 +4316,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		M_MOV_IMM(builtin_displaymethodstop, REG_ITMP1);
 		M_CALL(REG_ITMP1);
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* check for exception */
 

@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4683 2006-03-23 00:30:30Z edwin $
+   $Id: stack.c 4690 2006-03-27 11:37:46Z twisti $
 
 */
 
@@ -2420,6 +2420,7 @@ throw_stack_category_error:
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void stack_print(codegendata *cd, stackptr s)
 {
 	int i, j;
@@ -2565,6 +2566,7 @@ void stack_print(codegendata *cd, stackptr s)
 		s = s->prev;
 	}
 }
+#endif /* !defined(NDEBUG) */
 
 
 #if 0

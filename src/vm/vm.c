@@ -1169,11 +1169,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!jni_init())
 		throw_main_exception_exit();
 
+#if defined(ENABLE_PROFILING)
 	/* initialize profiling */
 
 	if (!profile_init())
 		throw_main_exception_exit();
-		
+#endif
+
 #if defined(USE_THREADS)
 	/* finally, start the finalizer thread */
 
@@ -1327,8 +1329,10 @@ void vm_exit_handler(void)
 	if (showutf)
 		utf_show();
 
+# if defined(ENABLE_PROFILING)
 	if (opt_prof)
 		profile_printstats();
+# endif
 #endif
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
