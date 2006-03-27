@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4518 2006-02-14 15:34:50Z edwin $
+   $Id: utf8.c 4689 2006-03-27 11:15:44Z twisti $
 
 */
 
@@ -74,7 +74,7 @@ static java_objectheader *lock_hashtable_utf;
 
 /* utf-symbols for pointer comparison of frequently used strings **************/
 
-utf *utf_java_lang_Object;              /* java/lang/Object                   */
+utf *utf_java_lang_Object;
 
 utf *utf_java_lang_Class;
 utf *utf_java_lang_ClassLoader;
