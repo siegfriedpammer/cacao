@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: reg.h 4452 2006-02-05 23:24:34Z edwin $
+   $Id: reg.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -37,8 +37,7 @@
 #ifndef _REG_H
 #define _REG_H
 
-/* We typedef these structures before #includes to resolve circular           */
-/* dependencies.                                                              */
+/* forward typedefs ***********************************************************/
 
 typedef struct varinfo varinfo;
 typedef struct registerdata registerdata;
@@ -48,6 +47,8 @@ typedef struct registerdata registerdata;
 #include "vm/types.h"
 
 #include "arch.h"
+
+#include "vm/jit/jit.h"
 
 
 /************************* pseudo variable structure **************************/
@@ -134,7 +135,7 @@ extern s4 nregdescfloat[];
 
 /* function prototypes ********************************************************/
 
-void reg_setup(methodinfo *m, registerdata *rd);
+void reg_setup(jitdata *jd);
 
 #endif /* _REG_H */
 

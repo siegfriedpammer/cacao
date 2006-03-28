@@ -1,4 +1,4 @@
-/* vm/jit/loop/analyze.h - bound check removal header
+/* src/vm/jit/loop/analyze.h - bound check removal header
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: analyze.h 4357 2006-01-22 23:33:38Z twisti $
+   Changes:
+
+   $Id: analyze.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -34,11 +36,14 @@
 #ifndef _ANALYZE_H
 #define _ANALYZE_H
 
-#include "vm/global.h"
-#include "vm/jit/loop/loop.h"
+#include "config.h"
+
+#include "vm/jit/jit.h"
 
 
-void optimize_loops(methodinfo *m, codegendata *cd, loopdata *ld);
+/* function prototypes ********************************************************/
+
+void optimize_loops(jitdata *jd);
 
 #endif /* _ANALYZE_H */
 

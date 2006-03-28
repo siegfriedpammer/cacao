@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: lsra.h 4453 2006-02-05 23:34:07Z edwin $
+   $Id: lsra.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -203,8 +203,10 @@ struct freemem {
 
 typedef struct lsradata lsradata;
 
-/* function prototypes */
-void lsra(methodinfo *, codegendata *, registerdata *);
+
+/* function prototypes ********************************************************/
+
+bool lsra(jitdata *jd);
 
 #endif /* _LSRA_H */
 

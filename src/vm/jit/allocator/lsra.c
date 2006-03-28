@@ -29,8 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-
-   $Id: lsra.c 4453 2006-02-05 23:34:07Z edwin $
+   $Id: lsra.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -102,9 +101,11 @@ void lsra_align_stackslots(struct lsradata *, stackptr, stackptr);
 void lsra_setflags(int *, int);
 
 
-void lsra(methodinfo *m, codegendata *cd, registerdata *rd)
+bool lsra(jitdata *jd)
 {
-
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
 	lsradata *ls;
 #if defined(ENABLE_STATISTICS)
 	int locals_start;
@@ -169,6 +170,12 @@ void lsra(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 #endif
 
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
 	ls=DNEW(lsradata);
 	lsra_init(m, cd, ls);
 
@@ -204,6 +211,10 @@ void lsra(methodinfo *m, codegendata *cd, registerdata *rd)
 #endif
 	/* Run LSRA */
 	lsra_main(m, ls, rd, cd);
+
+	/* everything's ok */
+
+	return true;
 }
 
 /* sort Basic Blocks using Depth First Search in reverse post order in */

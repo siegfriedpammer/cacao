@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   $Id: typecheck.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: typecheck.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -34,14 +34,15 @@
 #ifndef _TYPECHECK_H
 #define _TYPECHECK_H
 
-#include "vm/method.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/reg.h"
+#include "config.h"
+
+#include "vm/global.h"
+#include "vm/jit/jit.h"
 
 
 /* function prototypes ********************************************************/
 
-methodinfo *typecheck(methodinfo *m, codegendata *cd, registerdata *rd);
+bool typecheck(jitdata *jd);
 
 #endif /* _TYPECHECK_H */
 

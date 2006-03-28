@@ -31,16 +31,17 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: dseg.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
+
 #include "vm/types.h"
 
-#include <assert.h>
 #include "mm/memory.h"
 #include "vm/jit/codegen-common.h"
 
@@ -363,14 +364,21 @@ void dseg_adddata(codegendata *cd, u1 *mcodeptr)
 *******************************************************************************/
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
-void dseg_resolve_datareferences(codegendata *cd, methodinfo *m)
+void dseg_resolve_datareferences(jitdata *jd)
 {
-	dataref *dr;
+	codeinfo    *code;
+	codegendata *cd;
+	dataref     *dr;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
 
 	/* data segment references resolving */
 
 	for (dr = cd->datareferences; dr != NULL; dr = dr->next)
-		*((u1 **) (cd->code->entrypoint + dr->datapos - SIZEOF_VOID_P)) = cd->code->entrypoint;
+		*((u1 **) (code->entrypoint + dr->datapos - SIZEOF_VOID_P)) = code->entrypoint;
 }
 #endif
 
@@ -382,12 +390,19 @@ void dseg_resolve_datareferences(codegendata *cd, methodinfo *m)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void dseg_display(methodinfo *m, codegendata *cd)
+void dseg_display(jitdata *jd)
 {
-	s4 *s4ptr;
-	s4 i;
+	codeinfo    *code;
+	codegendata *cd;
+	s4          *s4ptr;
+	s4           i;
 	
-	s4ptr = (s4 *) (ptrint) cd->code->mcode;
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
+
+	s4ptr = (s4 *) (ptrint) code->mcode;
 
 	printf("  --- dump of datasegment\n");
 

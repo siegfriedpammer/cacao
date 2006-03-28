@@ -31,7 +31,7 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: graph.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -75,9 +75,16 @@ void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)
    variable c_dTable 
 */
 
-void depthFirst(methodinfo *m, loopdata *ld)
+void depthFirst(jitdata *jd)
 {
+	methodinfo *m;
+	loopdata   *ld;
 	int i;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	ld = jd->ld;
 
 /*	allocate memory and init gobal variables needed by function dF(m, int, int)	*/
   

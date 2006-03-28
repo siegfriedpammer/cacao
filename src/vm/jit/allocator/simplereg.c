@@ -28,11 +28,11 @@
 
    Changes: Stefan Ring
             Christian Thalinger
-			Christian Ullrich
+            Christian Ullrich
             Michael Starzinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: simplereg.c 4557 2006-03-05 21:54:31Z christian $
+   $Id: simplereg.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -55,42 +55,52 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/allocator/simplereg.h"
 
-/* function prototypes for this file */
 
-static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
-static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd);
-static void allocate_scratch_registers(methodinfo *m, registerdata *rd);
+/* function prototypes for this file ******************************************/
+
+static void interface_regalloc(jitdata *jd);
+static void local_regalloc(jitdata *jd);
+static void allocate_scratch_registers(jitdata *jd);
 
 
-/* function interface_regalloc *************************************************
+/* regalloc ********************************************************************
 
-	allocates registers for all interface variables
+   Does a simple register allocation.
 	
 *******************************************************************************/
 	
-void regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
+bool regalloc(jitdata *jd)
 {
-	/* There is a problem with the use of unused float argument registers in */
-	/* leafmethods for stackslots on c7 (3* Dual Core AMD Opteron(tm)        */
-	/* Processor 270) - runtime for the jvm98 _mtrt benchmark is heaviliy    */
-	/* increased. This could be prevented by setting rd->argfltreguse to     */
-	/* FLT_ARG_CNT before calling allocate_scratch_registers and setting it  */
-	/* back to the original value before calling local_regalloc.             */
+	/* There is a problem with the use of unused float argument
+	   registers in leafmethods for stackslots on c7 (2 * Dual Core
+	   AMD Opteron(tm) Processor 270) - runtime for the jvm98 _mtrt
+	   benchmark is heaviliy increased. This could be prevented by
+	   setting rd->argfltreguse to FLT_ARG_CNT before calling
+	   allocate_scratch_registers and setting it back to the original
+	   value before calling local_regalloc.  */
 
-	interface_regalloc(m, cd, rd);
-	allocate_scratch_registers(m, rd);
-	local_regalloc(m, cd, rd);
+	interface_regalloc(jd);
+	allocate_scratch_registers(jd);
+	local_regalloc(jd);
+
+	/* everthing's ok */
+
+	return true;
 }
 
 
-/* function interface_regalloc *************************************************
+/* interface_regalloc **********************************************************
 
-	allocates registers for all interface variables
+   Allocates registers for all interface variables.
 	
 *******************************************************************************/
 	
-static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
+static void interface_regalloc(jitdata *jd)
 {
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+
 	int     s, t, tt, saved;
 	int     intalloc, fltalloc; /* Remember allocated Register/Memory offset */
 	              /* in case a more vars are packed into this interface slot */
@@ -101,8 +111,15 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 	/* on HAS_4BYTE_STACKSLOT architectures */
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 
-	/* rd->memuse was already set in stack.c to allocate stack space for */
-	/* passing arguments to called methods                               */
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* rd->memuse was already set in stack.c to allocate stack space
+	   for passing arguments to called methods. */
+
 #if defined(__I386__)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* reserve 0(%esp) for Monitorenter/exit Argument on i386 */
@@ -366,15 +383,18 @@ static void interface_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 }
 
 
+/* local_regalloc **************************************************************
 
-/* function local_regalloc *****************************************************
-
-	allocates registers for all local variables
+   Allocates registers for all local variables.
 	
 *******************************************************************************/
 	
-static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
+static void local_regalloc(jitdata *jd)
 {
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+
 	int     p, s, t, tt;
 	int     intalloc, fltalloc;
 	varinfo *v;
@@ -385,6 +405,12 @@ static void local_regalloc(methodinfo *m, codegendata *cd, registerdata *rd)
 #ifdef HAS_ADDRESS_REGISTER_FILE
 	int     aargcnt;
 #endif
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	if (m->isleafmethod) {
 		methoddesc *md = m->parseddesc;
@@ -1135,8 +1161,17 @@ static void reg_mark_copy(registerdata *rd, stackptr src_top, stackptr src_botto
 	}
 }
 
-static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
+
+/* allocate_scratch_registers **************************************************
+
+   XXX
+
+*******************************************************************************/
+
+static void allocate_scratch_registers(jitdata *jd)
 {
+	methodinfo         *m;
+	registerdata       *rd;
 	s4                  opcode;
 	s4                  i;
 	s4                  len;
@@ -1147,6 +1182,11 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 	methodinfo         *lm;
 	builtintable_entry *bte;
 	methoddesc         *md;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	rd = jd->rd;
 
 	/* initialize temp registers */
 	reg_init_temp(m, rd);
@@ -1164,7 +1204,7 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 			while (--len >= 0)  {
 				src = dst;
 				dst = iptr->dst;
-				opcode = iptr->opc;
+				opcode = iptr->opc & ICMD_OPCODE_MASK;
 
 				switch (opcode) {
 
@@ -1631,7 +1671,11 @@ static void allocate_scratch_registers(methodinfo *m, registerdata *rd)
 
 
 #if defined(ENABLE_STATISTICS)
-void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
+void reg_make_statistics(jitdata *jd)
+{
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
 	int i,type;
 	s4 len;
 	stackptr    src, src_old;
@@ -1640,6 +1684,12 @@ void reg_make_statistics( methodinfo *m, codegendata *cd, registerdata *rd) {
 	basicblock  *bptr;
 	int size_interface; /* == maximum size of in/out stack at basic block boundaries */
 	bool in_register;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	in_register = true;
 

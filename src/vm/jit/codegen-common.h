@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: codegen-common.h 4690 2006-03-27 11:37:46Z twisti $
+   $Id: codegen-common.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -128,7 +128,6 @@ struct codegendata {
 	s4              linenumbertab;
 
 	methodinfo     *method;
-	codeinfo       *code;
 	s4              exceptiontablelength; /* exceptiontable length            */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
@@ -154,9 +153,8 @@ struct _methodtree_element {
 /* function prototypes ********************************************************/
 
 void codegen_init(void);
-void codegen_setup(methodinfo *m, codegendata *cd);
+void codegen_setup(jitdata *jd);
 
-void codegen_free(methodinfo *m, codegendata *cd);
 void codegen_close(void);
 
 s4 *codegen_increase(codegendata *cd, u1 *mcodeptr);
@@ -182,7 +180,7 @@ void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_findmethod(u1 *pc);
 
-void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen);
+void codegen_finish(jitdata *jd, s4 mcodelen);
 
 codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
 #if !defined(NDEBUG)
@@ -193,8 +191,7 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
 void codegen_finish_native_call(u1 *datasp);
 
 u1 *createcompilerstub(methodinfo *m);
-u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-					 registerdata *rd, methoddesc *md);
+u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_createcompilerstub(methodinfo *m);
@@ -205,7 +202,7 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
 
-s4 reg_of_var(registerdata *rd, stackptr v, s4 tempregnum);
+s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 void codegen_threadcritrestart(codegendata *cd, int offset);
@@ -215,10 +212,11 @@ void codegen_threadcritstop(codegendata *cd, int offset);
 
 /* machine dependent functions */
 u1 *md_codegen_findmethod(u1 *ra);
-bool codegen(methodinfo *m, codegendata *cd, registerdata *rd);
+
+bool codegen(jitdata *jd);
 
 #if defined(ENABLE_INTRP)
-bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd);
+bool intrp_codegen(jitdata *jd);
 #endif
 
 #endif /* _CODEGEN_COMMON_H */

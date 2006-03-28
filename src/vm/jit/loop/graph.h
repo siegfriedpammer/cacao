@@ -1,4 +1,4 @@
-/* jit/loop/graph.h - control flow graph header
+/* src/vm/jit/loop/graph.h - control flow graph header
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,7 +26,9 @@
 
    Authors: Christian Thalinger
 
-   $Id: graph.h 4357 2006-01-22 23:33:38Z twisti $
+   Changes:
+
+   $Id: graph.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -34,11 +36,17 @@
 #ifndef _GRAPH_H
 #define _GRAPH_H
 
-#include "loop.h"
+#include "config.h"
+#include "vm/types.h"
 
+#include "vm/method.h"
+#include "vm/jit/loop/loop.h"
+
+
+/* function prototypes ********************************************************/
 
 void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
-void depthFirst(methodinfo *m, loopdata *ld);
+void depthFirst(jitdata *jd);
 void dF(methodinfo *m, loopdata *ld, int from, int blockIndex);
 void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex);
 

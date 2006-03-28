@@ -31,18 +31,17 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4687 2006-03-23 12:48:43Z edwin $
+   $Id: parse.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include "vm/types.h"
-#include "vm/global.h"
-
 #include <assert.h>
 #include <string.h>
+
+#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -149,8 +148,10 @@ throw_invalid_bytecode_index:
 #define CHECK_END_OF_BYTECODE(neededlength)
 #endif /* ENABLE_VERIFIER */
 
-methodinfo *parse(methodinfo *m, codegendata *cd)
+bool parse(jitdata *jd)
 {
+	methodinfo  *m;
+	codegendata *cd;
 	int  p;                     /* java instruction counter           */
 	int  nextp;                 /* start of next java instruction     */
 	int  opcode;                /* java opcode                        */
@@ -176,6 +177,11 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	u2 linepcchange = 0;
 
 	u2 skipBasicBlockChange;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
 
 	/* allocate instruction array and block index table */
 	
@@ -204,7 +210,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 	  		m->exceptiontablelength, 
 			&b_count))
 	{
-		return NULL;
+		return false;
 	}
 
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
@@ -293,7 +299,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			if (i >= m->class->cpcount) {
 				*exceptionptr = new_verifyerror(m,
 					"Attempt to access constant outside range");
-				return NULL;
+				return false;
 			}
 
 			switch (m->class->cptags[i]) {
@@ -317,7 +323,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				if (!resolve_classref(m, cr, resolveLazy, true,
 									  true, &c))
-					return NULL;
+					return false;
 
 				/* if not resolved, c == NULL */
 
@@ -326,7 +332,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			default:
 				*exceptionptr = new_verifyerror(m,
 						"Invalid constant type to push");
-				return NULL;
+				return false;
 			}
 			break;
 
@@ -524,7 +530,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			default:
 				*exceptionptr = new_verifyerror(m,
 						"Invalid array-type to create");
-				return NULL;
+				return false;
 			}
 			BUILTIN(bte, true, NULL, currentline);
 			break;
@@ -533,13 +539,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			i = code_get_u2(p + 1, m);
 			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!compr)
-				return NULL;
+				return false;
 
 			if (!(cr = class_get_classref_multiarray_of(1, compr)))
-				return NULL;
+				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
-				return NULL;
+				return false;
 
 			LOADCONST_A_BUILTIN(c, cr);
 			bte = builtintable_get_internal(BUILTIN_newarray);
@@ -555,10 +561,10 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 				if (!cr)
-					return NULL;
+					return false;
 
 				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
-					return NULL;
+					return false;
 
 				/* if unresolved, c == NULL */
 				OP2AT(opcode, v, c, cr, currentline);
@@ -685,7 +691,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 					
 					if (i && (j <= prevvalue)) {
 						*exceptionptr = new_verifyerror(m, "Unsorted lookup switch");
-						return NULL;
+						return false;
 					}
 					prevvalue = j;
 #endif
@@ -747,7 +753,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				if (num < 0) {
 					*exceptionptr = new_verifyerror(m,
 							"invalid TABLESWITCH: upper bound < lower bound");
-					return NULL;
+					return false;
 				}
 #endif
 
@@ -786,14 +792,14 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				fr = class_getconstant(m->class, i,
 									   CONSTANT_Fieldref);
 				if (!fr)
-					return NULL;
+					return false;
 
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
 				if (!(uf = create_unresolved_field(m->class,
 												   m,
 												   iptr)))
-					return NULL;
+					return false;
 
 				/* store unresolved_field pointer */
 
@@ -803,7 +809,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				if (!opt_verify) {
 					if (!resolve_field(uf, resolveLazy, &fi))
-						return NULL;
+						return false;
 
 					iptr->val.a = fi;
 
@@ -831,13 +837,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				mr = class_getconstant(m->class, i,
 									   CONSTANT_Methodref);
 				if (!mr)
-					return NULL;
+					return false;
 
 				md = mr->parseddesc.md;
 
 				if (!md->params)
 					if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
-						return NULL;
+						return false;
 
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
@@ -845,7 +851,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 											  m, iptr);
 
 				if (!um)
-					return NULL;
+					return false;
 
 				/* store the unresolved_method pointer */
 
@@ -855,7 +861,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				if (!opt_verify) {
 					if (!resolve_method(um, resolveLazy, &mi))
-						return NULL;
+						return false;
 
 					iptr->val.a = mi;
 				}
@@ -880,13 +886,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				mr = class_getconstant(m->class, i,
 									   CONSTANT_Methodref);
 				if (!mr)
-					return NULL;
+					return false;
 
 				md = mr->parseddesc.md;
 
 				if (!md->params)
 					if (!descriptor_params_from_paramtypes(md, 0))
-						return NULL;
+						return false;
 				
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
@@ -894,7 +900,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 											  m, iptr);
 
 				if (!um)
-					return NULL;
+					return false;
 
 				/* store the unresolved_method* */
 
@@ -904,7 +910,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				if (!opt_verify) {
 					if (!resolve_method(um, resolveLazy, &mi))
-						return NULL;
+						return false;
 
 					iptr->val.a = mi;
 				}
@@ -928,13 +934,13 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				mr = class_getconstant(m->class, i,
 									   CONSTANT_InterfaceMethodref);
 				if (!mr)
-					return NULL;
+					return false;
 
 				md = mr->parseddesc.md;
 
 				if (!md->params)
 					if (!descriptor_params_from_paramtypes(md, 0))
-						return NULL;
+						return false;
 
 				OP2A_NOINC(opcode, 0, mr, currentline);
 
@@ -942,7 +948,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 											  m, iptr);
 
 				if (!um)
-					return NULL;
+					return false;
 
 				/* store the unresolved_method* */
 
@@ -952,7 +958,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 				if (!opt_verify) {
 					if (!resolve_method(um, resolveLazy, &mi))
-						return NULL;
+						return false;
 
 					iptr->val.a = mi;
 				}
@@ -969,11 +975,11 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			i = code_get_u2(p + 1, m);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
-				return NULL;
+				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true,
 								  &c))
-				return NULL;
+				return false;
 
 			LOADCONST_A_BUILTIN(c, cr);
 			bte = builtintable_get_internal(BUILTIN_new);
@@ -985,11 +991,11 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			i = code_get_u2(p + 1, m);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
-				return NULL;
+				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true,
 								  true, &c))
-				return NULL;
+				return false;
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
@@ -1007,10 +1013,10 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			i = code_get_u2(p + 1,m);
 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (!cr)
-				return NULL;
+				return false;
 
 			if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
-				return NULL;
+				return false;
 
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
@@ -1169,7 +1175,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		case JAVA_BREAKPOINT:
 			*exceptionptr =
 				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
-			return NULL;
+			return false;
 
 		case 186: /* unused opcode */
 		case 203:
@@ -1228,7 +1234,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 			*exceptionptr =
 				new_verifyerror(m,"Illegal opcode %d at instr %d\n",
 								  opcode, ipc);
-			return NULL;
+			return false;
 			break;
 
 		default:
@@ -1241,7 +1247,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		if (iswide && opcode != JAVA_WIDE) {
 			*exceptionptr = new_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
-			return NULL;
+			return false;
 		}
 
 	} /* end for */
@@ -1250,12 +1256,12 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
 		*exceptionptr = new_verifyerror(m,
 				"Command-sequence crosses code-boundary");
-		return NULL;
+		return false;
 	}
 
 	if (!blockend) {
 		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
-		return NULL;
+		return false;
 	}
 
 	/* adjust block count if target 0 is not first intermediate instruction */
@@ -1304,7 +1310,7 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 				if (!instructionstart[p]) {
 					*exceptionptr = new_verifyerror(m,
 						"Branch into middle of instruction");
-					return NULL;
+					return false;
 				}
 
 				/* allocate the block */
@@ -1374,19 +1380,26 @@ methodinfo *parse(methodinfo *m, codegendata *cd)
 
 	}
 
-	/* just return methodinfo* to signal everything was ok */
+	/* everything's ok */
 
-	return m;
+	return true;
 
 #if defined(ENABLE_VERIFIER)
+
 throw_unexpected_end_of_bytecode:
 	*exceptionptr = new_verifyerror(m, "Unexpected end of bytecode");
-	return NULL;
+	return false;
 
 throw_invalid_bytecode_index:
 	*exceptionptr =
 		new_verifyerror(m, "Illegal target of branch instruction");
-	return NULL;
+	return false;
+
+throw_illegal_local_variable_number:
+	*exceptionptr =
+		new_verifyerror(m, "Illegal local variable number");
+	return false;
+		
 #endif /* ENABLE_VERIFIER */
 }
 

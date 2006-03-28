@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loop.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: loop.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -319,7 +319,7 @@ struct loopdata {
 
 /* function prototypes ********************************************************/
 
-void analyseGraph(methodinfo *m, loopdata *ld);
+void analyseGraph(jitdata *jd);
 void c_mem_error(void);
 
 #endif /* _LOOP_H */

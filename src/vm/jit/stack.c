@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: stack.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -66,7 +66,7 @@
 /* global variables ***********************************************************/
 
 #if defined(USE_THREADS)
-static java_objectheader *lock_show_icmd;
+static java_objectheader *lock_stack_show_icmd;
 #endif
 
 /* macro for saving #ifdefs ***************************************************/
@@ -88,10 +88,10 @@ bool stack_init(void)
 #if defined(USE_THREADS)
 	/* initialize the show lock */
 
-	lock_show_icmd = NEW(java_objectheader);
+	lock_stack_show_icmd = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_show_icmd);
+	initObjectLock(lock_stack_show_icmd);
 # endif
 #endif
 
@@ -101,33 +101,35 @@ bool stack_init(void)
 }
 
 
-/**********************************************************************/
-/* analyse_stack                                                      */
-/**********************************************************************/
+/* stack_analyse ***************************************************************
 
-/* analyse_stack uses the intermediate code created by parse.c to
- * build a model of the JVM operand stack for the current method.
- *
- * The following checks are performed:
- *   - check for operand stack underflow (before each instruction)
- *   - check for operand stack overflow (after[1] each instruction)
- *   - check for matching stack depth at merging points
- *   - check for matching basic types[2] at merging points
- *   - check basic types for instruction input (except for BUILTIN*
- *         opcodes, INVOKE* opcodes and MULTIANEWARRAY)
- *
- * [1]) Checking this after the instruction should be ok. parse.c
- * counts the number of required stack slots in such a way that it is
- * only vital that we don't exceed `maxstack` at basic block
- * boundaries.
- *
- * [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
- * DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
- * types are not discerned.
- */
+   Analyse_stack uses the intermediate code created by parse.c to
+   build a model of the JVM operand stack for the current method.
+   
+   The following checks are performed:
+     - check for operand stack underflow (before each instruction)
+     - check for operand stack overflow (after[1] each instruction)
+     - check for matching stack depth at merging points
+     - check for matching basic types[2] at merging points
+     - check basic types for instruction input (except for BUILTIN*
+           opcodes, INVOKE* opcodes and MULTIANEWARRAY)
+   
+   [1]) Checking this after the instruction should be ok. parse.c
+   counts the number of required stack slots in such a way that it is
+   only vital that we don't exceed `maxstack` at basic block
+   boundaries.
+   
+   [2]) 'basic types' means the distinction between INT, LONG, FLOAT,
+   DOUBLE and ADDRESS types. Subtypes of INT and different ADDRESS
+   types are not discerned.
 
-methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
+*******************************************************************************/
+
+bool stack_analyse(jitdata *jd)
 {
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
 	int           b_count;
 	int           b_index;
 	int           stackdepth;
@@ -154,6 +156,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	builtintable_entry *bte;
 	unresolved_method  *um;
 	methoddesc         *md;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 #if defined(ENABLE_LSRA)
 	m->maxlifetimes = 0;
@@ -313,7 +321,9 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					}
 # endif
 #endif /* defined(USEBUILTINTABLE) */
-					
+
+					/* this is the main switch */
+
 					switch (opcode) {
 
 						/* pop 0 push 0 */
@@ -574,37 +584,41 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								goto icmd_lconst_tail;
 #endif /* SUPPORT_LONG_SHIFT */
 							case ICMD_IF_ICMPEQ:
-								iptr[0].opc = ICMD_IFEQ;
+								iptr[1].opc = ICMD_IFEQ;
 							icmd_if_icmp_tail:
-								iptr[0].op1 = iptr[1].op1;
-								/* IF_ICMPxx is the last instruction in the   */
-								/* basic block, just remove it                */
-								/* iptr[1].opc = ICMD_NOP; */
-								bptr->icount--;
-								len--;
-
+/* 								iptr[0].op1 = iptr[1].op1; */
+								/* IF_ICMPxx is the last instruction in the  
+								   basic block, just remove it. */
+								iptr[0].opc = ICMD_NOP;
+								iptr[1].val.i = iptr[0].val.i;
+								SETDST;
+/* 								bptr->icount--; */
+/* 								len--; */
+#if 0
 								OP1_0(TYPE_INT);
-								tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[1].op1];
 
-								iptr[0].target = (void *) tbptr;
+								iptr[1].target = (void *) tbptr;
 
 								MARKREACHED(tbptr, copy);
 								COUNT(count_pcmd_bra);
+#endif
 								break;
 							case ICMD_IF_ICMPLT:
-								iptr[0].opc = ICMD_IFLT;
+								iptr[1].opc = ICMD_IFLT;
 								goto icmd_if_icmp_tail;
 							case ICMD_IF_ICMPLE:
-								iptr[0].opc = ICMD_IFLE;
+								iptr[1].opc = ICMD_IFLE;
 								goto icmd_if_icmp_tail;
 							case ICMD_IF_ICMPNE:
-								iptr[0].opc = ICMD_IFNE;
+								iptr[1].opc = ICMD_IFNE;
 								goto icmd_if_icmp_tail;
 							case ICMD_IF_ICMPGT:
-								iptr[0].opc = ICMD_IFGT;
+								iptr[1].opc = ICMD_IFGT;
 								goto icmd_if_icmp_tail;
 							case ICMD_IF_ICMPGE:
-								iptr[0].opc = ICMD_IFGE;
+								iptr[1].opc = ICMD_IFGE;
 								goto icmd_if_icmp_tail;
 
 #if SUPPORT_CONST_STORE
@@ -913,12 +927,15 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 										iptr[0].opc = ICMD_IF_LEQ;
 									icmd_lconst_lcmp_tail:
 										iptr[0].op1 = iptr[2].op1;
-										bptr->icount -= 2;
-										len -= 2;
-										/* iptr[1].opc = ICMD_NOP;
-										   iptr[2].opc = ICMD_NOP; */
+										iptr[1].opc = ICMD_NOP;
+										iptr[2].opc = ICMD_NOP;
+
+/* 										bptr->icount -= 2; */
+/* 										len -= 2; */
+
 										OP1_0(TYPE_LNG);
-										tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
+										tbptr = m->basicblocks +
+											m->basicblockindex[iptr[0].op1];
 
 										iptr[0].target = (void *) tbptr;
 
@@ -1400,11 +1417,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					case ICMD_IFGT:
 					case ICMD_IFLE:
 						COUNT(count_pcmd_bra);
-#if CONDITIONAL_LOADCONST
+#if CONDITIONAL_LOADCONST && 0
 # if defined(ENABLE_INTRP)
 						if (!opt_intrp) {
 # endif
 							tbptr = m->basicblocks + b_index;
+
 							if ((b_count >= 3) &&
 								((b_index + 2) == m->basicblockindex[iptr[0].op1]) &&
 								(tbptr[1].pre_count == 1) &&
@@ -1476,8 +1494,12 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 
 #endif /* CONDITIONAL_LOADCONST */
 
+						/* iptr->val.i is set implicitly in parse by
+						   clearing the memory or from IF_ICMPxx
+						   optimization. */
+
 						OP1_0(TYPE_INT);
-						iptr->val.i = 0;
+/* 						iptr->val.i = 0; */
 						tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
 
 						iptr[0].target = (void *) tbptr;
@@ -1775,7 +1797,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 									REQUIRE_4;
 									if (IS_2_WORD_TYPE(curstack->prev->type)
 										|| IS_2_WORD_TYPE(curstack->prev->prev->prev->type))
-								   				goto throw_stack_category_error;
+										goto throw_stack_category_error;
 								}
 #endif
 								DUP2_X2;
@@ -1792,7 +1814,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 							REQUIRE_2;
 							if (IS_2_WORD_TYPE(curstack->type)
 								|| IS_2_WORD_TYPE(curstack->prev->type))
-						   				goto throw_stack_category_error;
+								goto throw_stack_category_error;
 						}
 #endif
 						SWAP;
@@ -1905,11 +1927,13 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 								iptr[0].opc = ICMD_IF_LCMPEQ;
 							icmd_lcmp_if_tail:
 								iptr[0].op1 = iptr[1].op1;
-								len--;
-								bptr->icount--;
-								/* iptr[1].opc = ICMD_NOP; */
+								iptr[1].opc = ICMD_NOP;
+/* 								len--; */
+/* 								bptr->icount--; */
+
 								OP2_0(TYPE_LNG);
-								tbptr = m->basicblocks + m->basicblockindex[iptr->op1];
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[0].op1];
 			
 								iptr[0].target = (void *) tbptr;
 
@@ -2258,7 +2282,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 					default:
 						*exceptionptr =
 							new_internalerror("Unknown ICMD %d", opcode);
-						return NULL;
+						return false;
 					} /* switch */
 
 					CHECKOVERFLOW;
@@ -2302,6 +2326,7 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 			} /* if */
 			else
 				superblockend = true;
+
 			bptr++;
 		} /* while blocks */
 	} while (repeat && !deadcode);
@@ -2381,38 +2406,41 @@ methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 #endif /* defined(ENABLE_STATISTICS) */
 
-	/* just return methodinfo* to signal everything was ok */
+	/* everything's ok */
 
-	return m;
+	return true;
 
 #if defined(ENABLE_VERIFIER)
+
 throw_stack_underflow:
 	*exceptionptr =
 		new_verifyerror(m, "Unable to pop operand off an empty stack");
-	return NULL;
+	return false;
 
 throw_stack_overflow:
 	*exceptionptr = new_verifyerror(m, "Stack size too large");
-	return NULL;
+	return false;
 
 throw_stack_depth_error:
 	*exceptionptr = new_verifyerror(m,"Stack depth mismatch");
-	return NULL;
+	return false;
 
 throw_stack_type_error:
 	exceptions_throw_verifyerror_for_stack(m, expectedtype);
-	return NULL;
+	return false;
 
 throw_stack_category_error:
-	*exceptionptr = new_verifyerror(m, "Attempt to split long or double on the stack");
-	return NULL;
+	*exceptionptr =
+		new_verifyerror(m, "Attempt to split long or double on the stack");
+	return false;
+
 #endif
 }
 
 
 /* debugging helpers **********************************************************/
 
-/* stack_print *****************************************************************
+/* stack_print_stack ***********************************************************
 
    Print the stack representation starting with the given top stackptr.
 
@@ -2421,7 +2449,7 @@ throw_stack_category_error:
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void stack_print(codegendata *cd, stackptr s)
+static void stack_print_stack(codegendata *cd, stackptr s)
 {
 	int i, j;
 	stackptr t;
@@ -2631,7 +2659,7 @@ static char *jit_type[] = {
 #endif
 
 
-/* show_icmd_method ************************************************************
+/* stack_show_method ***********************************************************
 
    Print the intermediate representation of a method.
 
@@ -2640,23 +2668,31 @@ static char *jit_type[] = {
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
+void stack_show_method(jitdata *jd)
 {
+	methodinfo     *m;
+	codeinfo       *code;
+	codegendata    *cd;
+	registerdata   *rd;
 	basicblock     *bptr;
 	exceptiontable *ex;
 	s4              i, j;
 	u1             *u1ptr;
-	codeinfo       *code;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 #if defined(USE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
 
-	builtin_monitorenter(lock_show_icmd);
+	builtin_monitorenter(lock_stack_show_icmd);
 #endif
-
-	code = cd->code;
 
 	printf("\n");
 
@@ -2823,9 +2859,8 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* show code of all basic blocks */
 
-	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
-		show_icmd_block(m, cd, bptr);
-	}
+	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next)
+		stack_show_basicblock(jd, bptr);
 
 	/* show stubs code */
 
@@ -2845,13 +2880,17 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 	}
 
 #if defined(USE_THREADS)
-	builtin_monitorexit(lock_show_icmd);
+	builtin_monitorexit(lock_stack_show_icmd);
 #endif
+
+	/* finally flush the output */
+
+	fflush(stdout);
 }
 #endif /* !defined(NDEBUG) */
 
 
-/* show_icmd_block *************************************************************
+/* stack_show_basicblock *******************************************************
 
    Print the intermediate representation of a basic block.
 
@@ -2860,12 +2899,21 @@ void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
+void stack_show_basicblock(jitdata *jd, basicblock *bptr)
 {
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
 	s4           i, j;
 	bool         deadcode;
 	instruction *iptr;
 	u1          *u1ptr;
+
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
 
 	if (bptr->flags != BBDELETED) {
 		deadcode = bptr->flags <= BBREACHED;
@@ -2876,7 +2924,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 			for (j = cd->maxstack; j > 0; j--)
 				printf(" ?  ");
 		else
-			stack_print(cd, bptr->instack);
+			stack_print_stack(cd, bptr->instack);
 
 		printf("] %sL%03d(flags: %d, bitflags: %01x, next: %d, type: ",
 				(bptr->bitflags & BBFLAG_REPLACEMENT) ? "<REPLACE> " : "",
@@ -2907,25 +2955,25 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 				for (j = cd->maxstack; j > 0; j--)
 					printf(" ?  ");
 			else
-				stack_print(cd, iptr->dst);
+				stack_print_stack(cd, iptr->dst);
 
 			printf("] %5d (line: %5d)  ", i, iptr->line);
 
-			show_icmd(iptr, deadcode);
+			stack_show_icmd(iptr, deadcode);
 			printf("\n");
 		}
 
 		if (opt_showdisassemble && (!deadcode)) {
 			printf("\n");
-			u1ptr = (u1 *) ((ptrint) cd->code->mcode + cd->dseglen + bptr->mpc);
+			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
 
 			if (bptr->next != NULL) {
-				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->dseglen + bptr->next->mpc);)
+				for (; u1ptr < (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->next->mpc);)
 					DISASSINSTR(u1ptr);
 
 			} 
 			else {
-				for (; u1ptr < (u1 *) ((ptrint) cd->code->mcode + cd->code->mcodelength);)
+				for (; u1ptr < (u1 *) ((ptrint) code->mcode + code->mcodelength);)
 					DISASSINSTR(u1ptr); 
 			}
 			printf("\n");
@@ -2935,7 +2983,7 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 #endif /* !defined(NDEBUG) */
 
 
-/* show_icmd *******************************************************************
+/* stack_show_icmd *************************************************************
 
    Print the intermediate representation of an instruction.
 
@@ -2944,15 +2992,32 @@ void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-void show_icmd(instruction *iptr, bool deadcode)
+void stack_show_icmd(instruction *iptr, bool deadcode)
 {
+	u2                 opcode;
+	u2                 condition;
 	int j;
 	s4  *s4ptr;
 	void **tptr = NULL;
-	
-	printf("%s", icmd_names[iptr->opc]);
+	classinfo         *c;
+	fieldinfo         *f;
+	constant_classref *cr;
+	unresolved_method *um;
+	unresolved_field  *uf;
 
-	switch (iptr->opc) {
+	/* get the opcode and the condition */
+
+	opcode    =  iptr->opc & ICMD_OPCODE_MASK;
+	condition = (iptr->opc & ICMD_CONDITION_MASK) >> 8;
+
+	printf("%s", icmd_names[opcode]);
+
+	/* Print the condition for conditional instructions. */
+
+	if (condition != 0)
+		printf(" (condition: %s)", icmd_names[condition]);
+
+	switch (opcode) {
 	case ICMD_IADDCONST:
 	case ICMD_ISUBCONST:
 	case ICMD_IMULCONST:
@@ -3023,19 +3088,22 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_AASTORECONST:
 		/* check if this is a constant string or a class reference */
 
-		if (iptr->target) {
+		cr = iptr->target;
+
+		if (cr != NULL) {
 			if (iptr->val.a)
 				printf(" %p", iptr->val.a);
 			else
 				printf(" (NOT RESOLVED)");
 
 			printf(", Class = \"");
-			utf_display(((constant_classref *) iptr->target)->name);
+			utf_display(cr->name);
 			printf("\"");
 
 		} 
 		else {
 			printf(" %p", iptr->val.a);
+
 			if (iptr->val.a) {
 				printf(", String = \"");
 				utf_display(javastring_toutf(iptr->val.a, false));
@@ -3046,38 +3114,49 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-		if (iptr->val.a) 	 
-			printf(" %d, ", ((fieldinfo *) iptr->val.a)->offset);
-		else 	 
+		uf = iptr->target;
+		f  = iptr->val.a;
+
+		if (f == NULL) 	 
 			printf(" (NOT RESOLVED), ");
-		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
+		else 	 
+			printf(" %d, ", f->offset);
+
+		utf_display_classname(uf->fieldref->classref->name);
 		printf(".");
-		utf_display(((unresolved_field *) iptr->target)->fieldref->name);
+		utf_display(uf->fieldref->name);
 		printf(" (type ");
-		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
+		utf_display(uf->fieldref->descriptor);
 		printf(")"); 
 		break;
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
+		uf = (unresolved_field *) iptr->target;
+		f  = (fieldinfo *) iptr->val.a;
+
 		if (iptr->val.a) {
-			if (!CLASS_IS_OR_ALMOST_INITIALIZED(((fieldinfo *) iptr->val.a)->class))
+			if (!CLASS_IS_OR_ALMOST_INITIALIZED(f->class))
 				printf(" (NOT INITIALIZED) ");
 			else
 				printf(" ");
 		} 
 		else
 			printf(" (NOT RESOLVED) ");
-		utf_display_classname(((unresolved_field *) iptr->target)->fieldref->classref->name);
+
+		utf_display_classname(uf->fieldref->classref->name);
 		printf(".");
-		utf_display(((unresolved_field *) iptr->target)->fieldref->name);
+		utf_display(uf->fieldref->name);
 		printf(" (type ");
-		utf_display(((unresolved_field *) iptr->target)->fieldref->descriptor);
+		utf_display(uf->fieldref->descriptor);
 		printf(")");
 		break;
 
 	case ICMD_PUTSTATICCONST:
 	case ICMD_PUTFIELDCONST:
+		uf = (unresolved_field *) iptr[1].target;
+		f  = (fieldinfo *) iptr[1].val.a;
+
 		switch (iptr[1].op1) {
 		case TYPE_INT:
 			printf(" %d (0x%08x),", iptr->val.i, iptr->val.i);
@@ -3103,19 +3182,22 @@ void show_icmd(instruction *iptr, bool deadcode)
 #endif
 			break;
 		}
-		if (iptr->opc == ICMD_PUTFIELDCONST) {
-			if (iptr[1].val.a)
-				printf(" %d,", ((fieldinfo *) iptr[1].val.a)->offset);
+		if (f == NULL)
+			printf(" (NOT RESOLVED),");
+		else {
+			if ((iptr->opc == ICMD_PUTSTATICCONST) &&
+				!CLASS_IS_OR_ALMOST_INITIALIZED(f->class))
+				printf(" (NOT INITIALIZED),");
 			else
-				printf(" (NOT RESOLVED),");
+				printf(" %d,", f->offset);
 		}
-		printf(" "); 	 
-		utf_display_classname(((unresolved_field *) iptr[1].target)->fieldref->classref->name); 	 
-		printf("."); 	 
-		utf_display(((unresolved_field *) iptr[1].target)->fieldref->name); 	 
-		printf(" (type "); 	 
-		utf_display(((unresolved_field *) iptr[1].target)->fieldref->descriptor); 	 
-		printf(")"); 	 
+		printf(" ");
+		utf_display_classname(uf->fieldref->classref->name);
+		printf(".");
+		utf_display(uf->fieldref->name);
+		printf(" (type ");
+		utf_display(uf->fieldref->descriptor);
+		printf(")");
 		break;
 
 	case ICMD_IINC:
@@ -3158,8 +3240,9 @@ void show_icmd(instruction *iptr, bool deadcode)
 		break;
 
 	case ICMD_NEW:
+		c = iptr->val.a;
 		printf(" ");
-		utf_display_classname(((classinfo *) iptr->val.a)->name);
+		utf_display_classname(c->name);
 		break;
 
 	case ICMD_NEWARRAY:
@@ -3193,46 +3276,45 @@ void show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_ANEWARRAY:
 		if (iptr->op1) {
+			c = iptr->val.a;
 			printf(" ");
-			utf_display_classname(((classinfo *) iptr->val.a)->name);
+			utf_display_classname(c->name);
 		}
 		break;
 
 	case ICMD_MULTIANEWARRAY:
-		if (iptr->val.a == NULL) {
+		c  = iptr->val.a;
+		cr = iptr->target;
+
+		if (c == NULL) {
 			printf(" (NOT RESOLVED) %d ", iptr->op1);
-			utf_display(((constant_classref *) iptr->target)->name);
+			utf_display(cr->name);
 		} 
 		else {
-			printf(" %d ",iptr->op1);
-			utf_display_classname(((classinfo *) iptr->val.a)->name);
+			printf(" %d ", iptr->op1);
+			utf_display_classname(c->name);
 		}
 		break;
 
 	case ICMD_CHECKCAST:
 	case ICMD_INSTANCEOF:
-		{
-			classinfo *c = iptr->val.a;
-			if (c) {
-				if (c->flags & ACC_INTERFACE)
-					printf(" (INTERFACE) ");
-				else
-					printf(" (CLASS,%3d) ", c->vftbl->diffval);
-			} 
-			else {
-				printf(" (NOT RESOLVED) ");
-			}
-			utf_display_classname(((constant_classref *) iptr->target)->name);
-		}
+		c  = iptr->val.a;
+		cr = iptr->target;
+
+		if (c) {
+			if (c->flags & ACC_INTERFACE)
+				printf(" (INTERFACE) ");
+			else
+				printf(" (CLASS,%3d) ", c->vftbl->diffval);
+		} else
+			printf(" (NOT RESOLVED) ");
+		utf_display_classname(cr->name);
 		break;
 
 	case ICMD_INLINE_START:
 	case ICMD_INLINE_END:
 		printf(" ");
-		utf_display_classname(iptr->method->class->name);
-		printf(".");
-		utf_display_classname(iptr->method->name);
-		utf_display_classname(iptr->method->descriptor);
+		method_print(iptr->method);
 		break;
 
 	case ICMD_BUILTIN:
@@ -3243,14 +3325,17 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
+		um = iptr->target;
+
 		if (!iptr->val.a)
 			printf(" (NOT RESOLVED) ");
 		else
 			printf(" ");
-		utf_display_classname(((unresolved_method *) iptr->target)->methodref->classref->name);
+
+		utf_display_classname(um->methodref->classref->name);
 		printf(".");
-		utf_display(((unresolved_method *) iptr->target)->methodref->name);
-		utf_display(((unresolved_method *) iptr->target)->methodref->descriptor);
+		utf_display(um->methodref->name);
+		utf_display(um->methodref->descriptor);
 		break;
 
 	case ICMD_IFEQ:
@@ -3259,10 +3344,14 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IFGE:
 	case ICMD_IFGT:
 	case ICMD_IFLE:
-		if (deadcode || !iptr->target)
-			printf(" %d (0x%08x) op1=%d", iptr->val.i, iptr->val.i, iptr->op1);
-		else
-			printf(" %d (0x%08x) L%03d (%p)", iptr->val.i, iptr->val.i, ((basicblock *) iptr->target)->debug_nr,iptr->target);
+		printf(" %d (0x%08x)", iptr->val.i, iptr->val.i);
+
+		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+			if (deadcode || !iptr->target)
+				printf(" op1=%d", iptr->op1);
+			else
+				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr, iptr->target);
+		}
 		break;
 
 	case ICMD_IF_LEQ:
@@ -3271,22 +3360,29 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_LGE:
 	case ICMD_IF_LGT:
 	case ICMD_IF_LLE:
-		if (deadcode || !iptr->target)
 #if SIZEOF_VOID_P == 4
-			printf("(%lld) op1=%d", iptr->val.l, iptr->op1);
+		printf(" %lld (%016llx)", iptr->val.l, iptr->val.l);
 #else
-			printf("(%ld) op1=%d", iptr->val.l, iptr->op1);
+		printf(" %ld (%016lx)", iptr->val.l, iptr->val.l);
 #endif
-		else
-#if SIZEOF_VOID_P == 4
-			printf("(%lld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
-#else
-			printf("(%ld) L%03d", iptr->val.l, ((basicblock *) iptr->target)->debug_nr);
-#endif
+
+		if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+			if (deadcode || !iptr->target)
+				printf(" op1=%d", iptr->op1);
+			else
+				printf(" L%03d", ((basicblock *) iptr->target)->debug_nr);
+		}
 		break;
 
 	case ICMD_JSR:
 	case ICMD_GOTO:
+	case ICMD_INLINE_GOTO:
+		if (deadcode || !iptr->target)
+			printf(" op1=%d", iptr->op1);
+		else
+			printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
+		break;
+
 	case ICMD_IFNULL:
 	case ICMD_IFNONNULL:
 	case ICMD_IF_ICMPEQ:
@@ -3303,11 +3399,12 @@ void show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_LCMPLE:
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
-	case ICMD_INLINE_GOTO:
-		if (deadcode || !iptr->target)
-			printf(" op1=%d", iptr->op1);
-		else
-			printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
+		if (!(iptr->opc & ICMD_CONDITION_MASK)) {
+			if (deadcode || !iptr->target)
+				printf(" op1=%d", iptr->op1);
+			else
+				printf(" L%03d (%p)", ((basicblock *) iptr->target)->debug_nr,iptr->target);
+		}
 		break;
 
 	case ICMD_TABLESWITCH:

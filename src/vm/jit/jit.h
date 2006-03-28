@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4679 2006-03-22 23:27:12Z edwin $
+   $Id: jit.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -38,8 +38,9 @@
 #ifndef _JIT_H
 #define _JIT_H
 
-/* resolve typedef cycles *****************************************************/
+/* forward typedefs ***********************************************************/
 
+typedef struct jitdata jitdata;
 typedef struct stackelement stackelement;
 typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
@@ -57,6 +58,16 @@ typedef struct subroutineinfo subroutineinfo;
 #include "vm/references.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/reg.h"
+
+#if defined(ENABLE_INLINING)
+# include "vm/jit/inline/inline.h"
+#endif
+
+#if defined(ENABLE_LOOP)
+# include "vm/jit/loop/loop.h"
+#endif
+
 #include "vm/jit/verify/typeinfo.h"
 
 
@@ -69,6 +80,22 @@ typedef struct subroutineinfo subroutineinfo;
 # define COUNT(x)        /* nothing */
 # define COUNT_SPILLS    /* nothing */
 #endif
+
+
+/* jitdata ********************************************************************/
+
+#define JITDATA_FLAG_IFCONV    0x00000001
+
+struct jitdata {
+	methodinfo   *m;                    /* methodinfo of the method compiled  */
+	codeinfo     *code;
+	codegendata  *cd;
+	registerdata *rd;
+#if defined(ENABLE_LOOP)
+	loopdata     *ld;
+#endif
+	u4            flags;                /* contains JIT compiler flags        */
+};
 
 
 /************************** stack element structure ***************************/
@@ -229,6 +256,7 @@ struct branchref {
 
 #define ACONST_LOAD     0  /* ACONST_NULL or LDC instruction                  */
 #define ACONST_BUILTIN  1  /* constant argument for a builtin function call   */
+
 
 /********** JavaVM operation codes (sorted) and instruction lengths ***********/
 
@@ -863,6 +891,12 @@ extern int jcommandsize[256];
 #define ICMD_INLINE_GOTO      253       /* jump to caller of inlined method   */
 
 #define ICMD_BUILTIN          255       /* internal opcode                    */
+
+/* define some ICMD masks *****************************************************/
+
+#define ICMD_OPCODE_MASK      0x00ff    /* mask to get the opcode             */
+#define ICMD_CONDITION_MASK   0xff00    /* mask to get the condition          */
+
 
 /******************* description of JavaVM instructions ***********************/
 

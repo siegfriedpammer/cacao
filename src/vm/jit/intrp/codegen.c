@@ -24,14 +24,13 @@
 
    Contact: cacao@cacaojvm.org
 
-   Authors: Andreas Krall
-            Reinhard Grafl
-
-   Changes: Christian Thalinger
+   Authors: Christian Thalinger
             Anton Ertl
 			Edwin Steiner
 
-   $Id: codegen.c 4598 2006-03-14 22:16:47Z edwin $
+   Changes:
+
+   $Id: codegen.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -40,6 +39,14 @@
 
 #include <assert.h>
 #include <stdio.h>
+
+#if defined(WITH_FFI)
+# include <ffi.h>
+#elif defined(WITH_FFCALL)
+# include <avcall.h>
+#else
+# error neither WITH_FFI nor WITH_FFCALL defined
+#endif
 
 #include "vm/types.h"
 
@@ -62,14 +69,6 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
-
-#if defined(WITH_FFI)
-# include <ffi.h>
-#elif defined(WITH_FFCALL)
-# include <avcall.h>
-#else
-# error neither WITH_FFI nor WITH_FFCALL defined
-#endif
 
 
 #define gen_branch(_inst) { \
@@ -276,8 +275,11 @@ struct builtin_gen builtin_gen_table[] = {
 
 *******************************************************************************/
 
-bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool intrp_codegen(jitdata *jd)
 {
+	methodinfo         *m;
+	codegendata        *cd;
+	registerdata       *rd;
 	s4                  i, len, s1, s2, d;
 	stackptr            src;
 	basicblock         *bptr;
@@ -288,6 +290,12 @@ bool intrp_codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* prevent compiler warnings */
 

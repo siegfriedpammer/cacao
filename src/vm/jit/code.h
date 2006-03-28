@@ -36,11 +36,16 @@
 #ifndef _CODE_H
 #define _CODE_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct codeinfo codeinfo;
+
 #include "config.h"
 #include "vm/types.h"
 
 #include "vm/method.h"
 #include "vm/jit/replace.h"
+
 
 /* A `codeinfo` represents a particular realization of a method in     */
 /* machine code.                                                       */

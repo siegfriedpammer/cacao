@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4687 2006-03-23 12:48:43Z edwin $
+   $Id: parse.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -155,35 +155,33 @@
 
 #define INDEX_ONEWORD(num) \
     do { \
-        if ((num) < 0 || (num) >= m->maxlocals) { \
-            *exceptionptr = \
-                new_verifyerror(m, "Illegal local variable number"); \
-            return NULL; \
-        } \
+        if (((num) < 0) || ((num) >= m->maxlocals)) \
+            goto throw_illegal_local_variable_number; \
     } while (0)
 
 #define INDEX_TWOWORD(num) \
     do { \
-        if ((num) < 0 || ((num) + 1) >= m->maxlocals) { \
-            *exceptionptr = \
-                new_verifyerror(m, "Illegal local variable number"); \
-            return NULL; \
-        } \
+        if (((num) < 0) || (((num) + 1) >= m->maxlocals)) \
+            goto throw_illegal_local_variable_number; \
     } while (0)
 
-#define OP1LOAD(o,o1)							\
-	do {if (o == ICMD_LLOAD || o == ICMD_DLOAD)	\
-			INDEX_TWOWORD(o1);					\
-		else									\
-			INDEX_ONEWORD(o1);					\
-		OP1(o,o1);} while(0)
+#define OP1LOAD(o,o1) \
+    do { \
+        if (((o) == ICMD_LLOAD) || ((o) == ICMD_DLOAD)) \
+            INDEX_TWOWORD(o1); \
+        else \
+            INDEX_ONEWORD(o1); \
+        OP1(o,o1); \
+    } while (0)
 
-#define OP1STORE(o,o1)								\
-	do {if (o == ICMD_LSTORE || o == ICMD_DSTORE)	\
-			INDEX_TWOWORD(o1);						\
-		else										\
-			INDEX_ONEWORD(o1);						\
-		OP1(o,o1);} while(0)
+#define OP1STORE(o,o1) \
+    do { \
+        if (((o) == ICMD_LSTORE) || ((o) == ICMD_DSTORE)) \
+            INDEX_TWOWORD(o1); \
+        else \
+            INDEX_ONEWORD(o1); \
+        OP1(o,o1); \
+    } while (0)
 
 /* block generating and checking macros */
 
@@ -200,7 +198,7 @@
 
 #define CHECK_BYTECODE_INDEX(i) \
     do { \
-        if ((i) < 0 || (i) >= m->jcodelength) \
+        if (((i) < 0) || ((i) >= m->jcodelength)) \
 			goto throw_invalid_bytecode_index; \
     } while (0)
 
@@ -237,8 +235,7 @@
 
 /* function prototypes ********************************************************/
 
-void compiler_addinitclass(classinfo *c);
-methodinfo *parse(methodinfo *m, codegendata *cd);
+bool parse(jitdata *jd);
 
 #endif /* _PARSE_H */
 

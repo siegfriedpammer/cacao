@@ -34,7 +34,7 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: analyze.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -3581,12 +3581,27 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 }
 
 
-/*	This function preforms necessary setup work, before the recursive function
-	optimize_single loop can be called.
-*/
-void optimize_loops(methodinfo *m, codegendata *cd, loopdata *ld)
+/* optimize_loops **************************************************************
+
+   This function preforms necessary setup work, before the recursive
+   function optimize_single loop can be called.
+
+*******************************************************************************/
+
+void optimize_loops(jitdata *jd)
 {
-	LoopContainer *lc = ld->c_allLoops;
+	methodinfo    *m;
+	codegendata   *cd;
+	loopdata      *ld;
+	LoopContainer *lc;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	ld = jd->ld;
+
+	lc = ld->c_allLoops;
 
 	/* first, merge loops with same header node - all loops with the same		*/
 	/* header node are optimizied in one pass, because they all depend on the	*/

@@ -32,7 +32,7 @@
             Michael Starzinger
 			Edwin Steiner
 
-   $Id: reg.c 4452 2006-02-05 23:24:34Z edwin $
+   $Id: reg.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -56,11 +56,18 @@
 
 *******************************************************************************/
 
-void reg_setup(methodinfo *m, registerdata *rd)
+void reg_setup(jitdata *jd)
 {
-	s4 i;
-	varinfo5 *v;
-	
+	methodinfo   *m;
+	registerdata *rd;
+	s4            i;
+	varinfo5     *v;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	rd = jd->rd;
+
 	/* setup the integer register table */
 
 #if defined(__ARM__)

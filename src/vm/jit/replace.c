@@ -77,8 +77,10 @@
    
 *******************************************************************************/
 
-bool replace_create_replacement_points(codeinfo *code,registerdata *rd)
+bool replace_create_replacement_points(jitdata *jd)
 {
+	codeinfo     *code;
+	registerdata *rd;
 	basicblock *bptr;
 	int count;
 	methodinfo *m;
@@ -92,6 +94,11 @@ bool replace_create_replacement_points(codeinfo *code,registerdata *rd)
 	int t;
 	stackptr sp;
 	bool indexused;
+
+	/* get required compiler data */
+
+	code = jd->code;
+	rd   = jd->rd;
 
 	/* assert that we wont overwrite already allocated data */
 	

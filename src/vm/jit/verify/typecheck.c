@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4679 2006-03-22 23:27:12Z edwin $
+   $Id: typecheck.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -2615,8 +2615,8 @@ typecheck_reset_flags(verifier_state *state)
 /*    rdata............registerdata for the method                          */
 /*                                                                          */
 /* RETURN VALUE:                                                            */
-/*     m................successful verification                             */
-/*     NULL.............an exception has been thrown                        */
+/*     true.............successful verification                             */
+/*     false............an exception has been thrown                        */
 /*                                                                          */
 /* XXX TODO:                                                                */
 /*     Bytecode verification has not been tested with inlining and          */
@@ -2625,9 +2625,12 @@ typecheck_reset_flags(verifier_state *state)
 
 #define MAXPARAMS 255
 
-methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
+bool typecheck(jitdata *jd)
 {
-	verifier_state state;             /* current state of the verifier */
+	methodinfo     *meth;
+	codegendata    *cd;
+	registerdata   *rd;
+	verifier_state  state;             /* current state of the verifier */
     int i;                                        /* temporary counter */
 
 	/* collect statistics */
@@ -2640,6 +2643,12 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	TYPECHECK_COUNTIF(cdata->method->exceptiontablelength != 0,stat_methods_with_handlers);
 	state.stat_maythrow = false;
 #endif
+
+	/* get required compiler data */
+
+	meth = jd->m;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* some logging on entry */
 
@@ -2655,8 +2664,8 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	state.savedstack = NULL;
 	state.jsrencountered = false;
 	state.m = meth;
-	state.cd = cdata;
-	state.rd = rdata;
+	state.cd = cd;
+	state.rd = rd;
 
 	/* check if this method is an instance initializer method */
 
@@ -2690,7 +2699,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 	/* initialized local variables of first block */
 
 	if (!verify_init_locals(&state))
-		return NULL;
+		return false;
 
     /* initialize the input stack of exception handlers */
 	
@@ -2718,7 +2727,7 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 		    /* verify reached block */	
             if (state.bptr->flags == BBTYPECHECK_REACHED) {
                 if (!verify_basic_block(&state))
-					return NULL;
+					return false;
             }
             state.bptr++;
         } /* while blocks */
@@ -2739,9 +2748,10 @@ methodinfo *typecheck(methodinfo *meth, codegendata *cdata, registerdata *rdata)
 
 	typecheck_reset_flags(&state);
 
-	/* just return methodinfo* to indicate everything was ok */
+	/* everything's ok */
+
     LOGimp("exiting typecheck");
-	return state.m;
+	return true;
 }
 
 #endif /* ENABLE_VERIFIER */

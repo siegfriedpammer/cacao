@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: codegen-common.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -139,14 +139,22 @@ void codegen_init(void)
 }
 
 
-/* codegen_setup **************************************************************
+/* codegen_setup ***************************************************************
 
-   allocates and initialises code area, data area and references
+   Allocates and initialises code area, data area and references.
 
 *******************************************************************************/
 
-void codegen_setup(methodinfo *m, codegendata *cd)
+void codegen_setup(jitdata *jd)
 {
+	methodinfo  *m;
+	codegendata *cd;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+
 	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
 	cd->mcodesize = MCODEINITSIZE;
 
@@ -191,7 +199,6 @@ void codegen_setup(methodinfo *m, codegendata *cd)
 	cd->linenumbertab = 0;
 	
 	cd->method = m;
-	cd->code = code_codeinfo_new(m); /* XXX check allocation */
 	cd->exceptiontable = 0;
 	cd->exceptiontablelength = 0;
 
@@ -206,30 +213,6 @@ void codegen_setup(methodinfo *m, codegendata *cd)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	cd->threadcritcurrent.next = NULL;
 	cd->threadcritcount = 0;
-#endif
-}
-
-
-/* codegen_free ****************************************************************
-
-   Releases temporary code and data area.
-
-*******************************************************************************/
-
-void codegen_free(methodinfo *m, codegendata *cd)
-{
-#if 0
-	if (cd) {
-		if (cd->mcodebase) {
-			MFREE(cd->mcodebase, u1, cd->mcodesize);
-			cd->mcodebase = NULL;
-		}
-
-		if (cd->dsegtop) {
-			MFREE(cd->dsegtop - cd->dsegsize, u1, cd->dsegsize);
-			cd->dsegtop = NULL;
-		}
-	}
 #endif
 }
 
@@ -585,22 +568,29 @@ u1 *codegen_findmethod(u1 *pc)
 
 *******************************************************************************/
 
-void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
+void codegen_finish(jitdata *jd, s4 mcodelen)
 {
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
 #if 0
-	s4       mcodelen;
+	s4           mcodelen;
 #endif
 #if defined(ENABLE_INTRP)
-	s4       ncodelen;
+	s4           ncodelen;
 #endif
-	s4       alignedmcodelen;
-	jumpref *jr;
-	u1      *epoint;
-	s4       extralen;
-	s4       alignedlen;
-	codeinfo *code;
+	s4           alignedmcodelen;
+	jumpref     *jr;
+	u1          *epoint;
+	s4           extralen;
+	s4           alignedlen;
 
-	code = cd->code;
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+
 
 	/* prevent compiler warning */
 
@@ -737,7 +727,7 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */
 
-	dseg_resolve_datareferences(cd, m);
+	dseg_resolve_datareferences(jd);
 #endif
 
 
@@ -775,20 +765,32 @@ void codegen_finish(methodinfo *m, codegendata *cd, s4 mcodelen)
 
 codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 {
-	codegendata        *cd;
-	registerdata       *rd;
-	s4                  dumpsize;
-	methoddesc         *md;
-	methoddesc         *nmd;	
-	s4                  nativeparams;
-	codeinfo           *code;
+	jitdata     *jd;
+	codeinfo    *code;
+	codegendata *cd;
+	s4           dumpsize;
+	methoddesc  *md;
+	methoddesc  *nmd;	
+	s4           nativeparams;
 
 	/* mark dump memory */
 
 	dumpsize = dump_size();
 
-	cd = DNEW(codegendata);
-	rd = DNEW(registerdata);
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = DNEW(registerdata);
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+
+	/* get required compiler data */
+
+	code = jd->code;
+	cd   = jd->cd;
 
 	/* setup code generation stuff */
 
@@ -796,13 +798,11 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		reg_setup(m, rd);
+		reg_setup(jd);
 #endif
 
-	codegen_setup(m, cd);
+	codegen_setup(jd);
 
-	code = cd->code;
-						
 	/* create new method descriptor with additional native parameters */
 
 	md = m->parseddesc;
@@ -836,12 +836,12 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		code->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+		code->entrypoint = intrp_createnativestub(f, jd, nmd);
 	else
 # endif
-		code->entrypoint = createnativestub(f, m, cd, rd, nmd);
+		code->entrypoint = createnativestub(f, jd, nmd);
 #else
-	code->entrypoint = intrp_createnativestub(f, m, cd, rd, nmd);
+	code->entrypoint = intrp_createnativestub(f, jd, nmd);
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -855,12 +855,12 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 	if (opt_shownativestub) {
 		codegen_disassemble_nativestub(m,
 									   (u1 *) (ptrint) code->entrypoint,
-									   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - cd->dseglen));
+									   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
 
 		/* show data segment */
 
 		if (opt_showddatasegment)
-			dseg_display(m, cd);
+			dseg_display(jd);
 	}
 #endif /* !defined(NDEBUG) */
 
@@ -1036,7 +1036,7 @@ void removenativestub(u1 *stub)
 }
 
 
-/* reg_of_var ******************************************************************
+/* codegen_reg_of_var **********************************************************
 
    This function determines a register, to which the result of an
    operation should go, when it is ultimatively intended to store the
@@ -1052,9 +1052,16 @@ void removenativestub(u1 *stub)
 
 *******************************************************************************/
 
-s4 reg_of_var(registerdata *rd, stackptr v, s4 tempregnum)
+s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 {
 	varinfo *var;
+
+	/* Do we have to generate a conditional move?  Yes, then always
+	   return the temporary register.  The real register is identified
+	   during the store. */
+
+	if (opcode & ICMD_CONDITION_MASK)
+		return tempregnum;
 
 	switch (v->varkind) {
 	case TEMPVAR:

@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: stack.h 4690 2006-03-27 11:37:46Z twisti $
+   $Id: stack.h 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -72,6 +72,7 @@
 #else /* !ENABLE_VERIFIER */
 #define CHECK_STACK_DEPTH(depthA,depthB)
 #endif /* ENABLE_VERIFIER */
+
 
 /*--------------------------------------------------*/
 /* BASIC TYPE CHECKING                              */
@@ -124,7 +125,7 @@
 #define CHECKOVERFLOW \
 	do { \
 		if (stackdepth > m->maxstack) \
-			if (iptr[0].opc != ICMD_ACONST || iptr[0].op1 == 0) \
+			if ((iptr[0].opc != ICMD_ACONST) || (iptr[0].op1 == 0)) \
 				goto throw_stack_overflow; \
 	} while(0)
 #else /* !ENABLE_VERIFIER */
@@ -461,13 +462,12 @@
 
 bool stack_init(void);
 
-methodinfo *analyse_stack(methodinfo *m, codegendata *cd, registerdata *rd);
+bool stack_analyse(jitdata *jd);
 
 #if !defined(NDEBUG)
-void stack_print(codegendata *cd, stackptr s);
-void show_icmd_method(methodinfo *m, codegendata *cd, registerdata *rd);
-void show_icmd_block(methodinfo *m, codegendata *cd, basicblock *bptr);
-void show_icmd(instruction *iptr, bool deadcode);
+void stack_show_method(jitdata *jd);
+void stack_show_basicblock(jitdata *jd, basicblock *bptr);
+void stack_show_icmd(instruction *iptr, bool deadcode);
 #endif
 
 /* machine dependent return value handling function */

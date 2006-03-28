@@ -36,11 +36,21 @@
 #ifndef _REPLACE_H
 #define _REPLACE_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct rplpoint rplpoint;
+typedef struct executionstate executionstate;
+typedef struct sourcestate sourcestate;
+
 #include "config.h"
 #include "vm/types.h"
-#include "vm/method.h"
+
 #include "arch.h"
 #include "md-abi.h"
+
+#include "vm/method.h"
+#include "vm/jit/reg.h"
+
 
 /*** structs *********************************************************/
 
@@ -106,7 +116,7 @@ struct sourcestate {
 
 /*** prototypes ********************************************************/
 
-bool replace_create_replacement_points(codeinfo *code,registerdata *rd);
+bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
 void replace_activate_replacement_point(rplpoint *rp,rplpoint *target);

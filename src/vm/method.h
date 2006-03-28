@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 4606 2006-03-15 04:43:25Z edwin $
+   $Id: method.h 4699 2006-03-28 14:52:32Z twisti $
 */
 
 
@@ -41,10 +41,6 @@
 typedef struct methodinfo methodinfo; 
 typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
-typedef struct codeinfo codeinfo;
-typedef struct rplpoint rplpoint;
-typedef struct executionstate executionstate;
-typedef struct sourcestate sourcestate;
 
 #include "config.h"
 #include "vm/types.h"
@@ -54,6 +50,7 @@ typedef struct sourcestate sourcestate;
 #include "vm/linker.h"
 #include "vm/references.h"
 #include "vm/utf8.h"
+#include "vm/jit/code.h"
 #include "vm/jit/jit.h"
 
 

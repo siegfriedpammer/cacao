@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: jit.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -62,9 +62,14 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
+
 #include "vm/jit/allocator/simplereg.h"
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
+#endif
+
+#if defined(ENABLE_IFCONV)
+# include "vm/jit/ifconv/ifconv.h"
 #endif
 
 #include "vm/jit/loop/analyze.h"
@@ -1312,22 +1317,40 @@ static u1 *do_nothing_function(void)
 
 /* jit_compile *****************************************************************
 
-   jit_compile, new version of compiler, translates one method to machine code
+   Translates one method to machine code.
 
 *******************************************************************************/
 
-static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
-							  loopdata *ld);
+static u1 *jit_compile_intern(jitdata *jd);
 
 u1 *jit_compile(methodinfo *m)
 {
-	u1                 *r;
-	codegendata        *cd;
-	registerdata       *rd;
-	loopdata           *ld;
-	s4                  dumpsize;
+	u1      *r;
+	jitdata *jd;
+	s4       dumpsize;
 
 	STATISTICS(count_jit_calls++);
+
+	/* Initialize the static function's class. */
+
+	/* ATTENTION: This MUST be done before the method lock is aquired,
+	   otherwise we could run into a deadlock with <clinit>'s that
+	   call static methods of it's own class. */
+
+  	if ((m->flags & ACC_STATIC) && !(m->class->state & CLASS_INITIALIZED)) {
+#if !defined(NDEBUG)
+		if (initverbose)
+			log_message_class("Initialize class ", m->class);
+#endif
+
+		if (!initialize_class(m->class))
+			return NULL;
+
+		/* check if the method has been compiled during initialization */
+
+		if ((m->code != NULL) && (m->code->entrypoint != NULL))
+			return m->code->entrypoint;
+	}
 
 #if defined(USE_THREADS)
 	/* enter a monitor on the method */
@@ -1359,11 +1382,24 @@ u1 *jit_compile(methodinfo *m)
 
 	dumpsize = dump_size();
 
-	/* allocate memory */
+	/* allocate jitdata structure and fill it */
 
-	cd = DNEW(codegendata);
-	rd = DNEW(registerdata);
-	ld = DNEW(loopdata);
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = DNEW(registerdata);
+	jd->ld    = DNEW(loopdata);
+	jd->flags = 0;
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+
+	/* set the flags for the current JIT run */
+
+	if (opt_ifconv)
+		jd->flags |= JITDATA_FLAG_IFCONV;
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -1371,33 +1407,23 @@ u1 *jit_compile(methodinfo *m)
 # endif
 		/* initialize the register allocator */
 
-		reg_setup(m, rd);
+		reg_setup(jd);
 #endif
 
 	/* setup the codegendata memory */
 
-	codegen_setup(m, cd);
+	codegen_setup(jd);
 
 	/* now call internal compile function */
 
-	r = jit_compile_intern(m, cd, rd, ld);
-
-	/* free some memory */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (!opt_intrp)
-# endif
-		codegen_free(m, cd);
-#endif
+	r = jit_compile_intern(jd);
 
 	/* clear pointers to dump memory area */
 
-	m->basicblocks = NULL;
+	m->basicblocks     = NULL;
 	m->basicblockindex = NULL;
-	m->instructions = NULL;
-	m->stack = NULL;
-	/* NO !!! m->exceptiontable = NULL; */
+	m->instructions    = NULL;
+	m->stack           = NULL;
 
 	/* release dump area */
 
@@ -1442,32 +1468,21 @@ u1 *jit_compile(methodinfo *m)
 
 *******************************************************************************/
 
-static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
-							  loopdata *ld)
+static u1 *jit_compile_intern(jitdata *jd)
 {
-	codeinfo *code;
+	methodinfo  *m;
+	codegendata *cd;
+	codeinfo    *code;
 
+	/* get required compiler data */
+
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	
 	/* print log message for compiled method */
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling: ");
-
-	/* initialize the static function's class */
-
-  	if ((m->flags & ACC_STATIC) && !CLASS_IS_OR_ALMOST_INITIALIZED(m->class)) {
-#if !defined(NDEBUG)
-		if (initverbose)
-			log_message_class("Initialize class ", m->class);
-#endif
-
-		if (!initialize_class(m->class))
-			return NULL;
-
-		/* check if the method has been compiled during initialization */
-		if (m->code) {
-			assert(m->code->entrypoint);
-			return m->code->entrypoint;
-		}
-	}
 
 	/* handle native methods and create a native stub */
 
@@ -1497,7 +1512,6 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	if (!m->jcode) {
 		DEBUG_JIT_COMPILEVERBOSE("No code given for: ");
 
-		code = cd->code;
 		code->entrypoint = (u1 *) (ptrint) do_nothing_function;
 		m->code = code;
 
@@ -1522,7 +1536,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* call parse pass */
 
-	if (!parse(m, cd)) {
+	if (!parse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while parsing: ");
 
 		return NULL;
@@ -1533,7 +1547,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* call stack analysis pass */
 
-	if (!analyse_stack(m, cd, rd)) {
+	if (!stack_analyse(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while analysing: ");
 
 		return NULL;
@@ -1546,7 +1560,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
 
 		/* call typecheck pass */
-	if (!typecheck(m, cd, rd)) {
+		if (!typecheck(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while typechecking: ");
 
 			return NULL;
@@ -1558,10 +1572,16 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 #if defined(ENABLE_LOOP)
 	if (opt_loops) {
-		depthFirst(m, ld);
-		analyseGraph(m, ld);
-		optimize_loops(m, cd, ld);
+		depthFirst(jd);
+		analyseGraph(jd);
+		optimize_loops(jd);
 	}
+#endif
+
+#if defined(ENABLE_IFCONV)
+	if (jd->flags & JITDATA_FLAG_IFCONV)
+		if (!ifconv_static(jd))
+			return NULL;
 #endif
 
 #if defined(ENABLE_JIT)
@@ -1573,7 +1593,8 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		/* allocate registers */
 # if defined(ENABLE_LSRA)
 		if (opt_lsra) {
-			lsra(m, cd, rd);
+			if (!lsra(jd))
+				return NULL;
 
 			STATISTICS(count_methods_allocated_by_lsra++);
 
@@ -1582,10 +1603,10 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 		{
 			STATISTICS(count_locals_conflicts += (cd->maxlocals - 1) * (cd->maxlocals));
 
-			regalloc(m, cd, rd);
+			regalloc(jd);
 		}
 
-		STATISTICS(reg_make_statistics(m, cd, rd));
+		STATISTICS(reg_make_statistics(jd));
 
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers done: ");
 # if defined(ENABLE_INTRP)
@@ -1604,8 +1625,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 
 	/* create the replacement points */
 
-	code = cd->code;
-	if (!replace_create_replacement_points(code,rd))
+	if (!replace_create_replacement_points(jd))
 		return NULL;
 
 	/* now generate the machine code */
@@ -1613,7 +1633,7 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp) {
-		if (!intrp_codegen(m, cd, rd)) {
+		if (!intrp_codegen(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 			return NULL;
@@ -1621,14 +1641,14 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	} else
 # endif
 		{
-			if (!codegen(m, cd, rd)) {
+			if (!codegen(jd)) {
 				DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 				return NULL;
 			}
 		}
 #else
-	if (!intrp_codegen(m, cd, rd)) {
+	if (!intrp_codegen(jd)) {
 		DEBUG_JIT_COMPILEVERBOSE("Exception while generating code: ");
 
 		return NULL;
@@ -1641,26 +1661,26 @@ static u1 *jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
 	/* intermediate and assembly code listings */
 		
 	if (opt_showintermediate) {
-		show_icmd_method(m, cd, rd);
+		stack_show_method(jd);
 
 	} else if (opt_showdisassemble) {
-		DISASSEMBLE(cd->code->entrypoint,
-					cd->code->entrypoint + (cd->code->mcodelength - cd->dseglen));
+		DISASSEMBLE(code->entrypoint,
+					code->entrypoint + (code->mcodelength - cd->dseglen));
 	}
 
 	if (opt_showddatasegment)
-		dseg_display(m, cd);
+		dseg_display(jd);
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");
 
 	/* switch to the newly generated code */
 
-	code = cd->code;
-	
 	assert(code);
 	assert(code->entrypoint);
-	
+
+	/* add the current compile version to the methodinfo */
+
 	code->prev = m->code;
 	m->code = code;
 

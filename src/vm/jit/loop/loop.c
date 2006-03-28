@@ -32,7 +32,7 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: loop.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 
@@ -292,11 +292,19 @@ void detectLoops(methodinfo *m, loopdata *ld)
    detection and set up the c_allLoops list.
 */
 
-void analyseGraph(methodinfo *m, loopdata *ld)
+void analyseGraph(jitdata *jd)
 {
-  setup(m, ld);
-  dominators(ld);
-  detectLoops(m, ld);
+	methodinfo *m;
+	loopdata   *ld;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	ld = jd->ld;
+
+	setup(m, ld);
+	dominators(ld);
+	detectLoops(m, ld);
 }
 
 
