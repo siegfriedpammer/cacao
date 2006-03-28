@@ -488,58 +488,58 @@ public class test extends Thread {
         }
     }
 
-    private void ok() {
+    private static final void ok() {
         pln("OK");
     }
 
-    private void failed() {
+    private static final void failed() {
         pln("FAILED");
     }
 
-    private void failed(Throwable t) {
+    private static final void failed(Throwable t) {
         pln("FAILED: " + t);
     }
 
-    private void check(int a, int b) {
+    private static final void check(int a, int b) {
+        if (a == b)
+            ok();
+        else
+            pln("FAILED: " + a + " != " + b + " (0x" + Integer.toHexString(a) + " != 0x" + Integer.toHexString(b) + ")");
+    }
+
+    private static final void check(long a, long b) {
+        if (a == b)
+            ok();
+        else
+            pln("FAILED: " + a + " != " + b + " (0x" + Long.toHexString(a) + " != 0x" + Long.toHexString(b) + ")");
+    }
+
+    private static final void check(float a, float b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    private void check(long a, long b) {
+    private static final void check(double a, double b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    private void check(float a, float b) {
+    private static final void check(Object a, Object b) {
         if (a == b)
             ok();
         else
             pln("FAILED: " + a + " != " + b);
     }
 
-    private void check(double a, double b) {
-        if (a == b)
-            ok();
-        else
-            pln("FAILED: " + a + " != " + b);
-    }
-
-    private void check(Object a, Object b) {
-        if (a == b)
-            ok();
-        else
-            pln("FAILED: " + a + " != " + b);
-    }
-
-    private final void p(String s) {
+    private static final void p(String s) {
         System.out.print(s);
     }
 
-    private final void pln(String s) {
+    private static final void pln(String s) {
         System.out.println(s);
     }
 }
