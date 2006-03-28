@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
+   $Id: md.c 4698 2006-03-28 14:31:53Z twisti $
 
 */
 
@@ -83,8 +83,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
-	/* different to the ones in <ucontext.h>                                  */
+	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
+	   different to the ones in <ucontext.h>. */
 
 	sp  = (u1 *) _mc->gregs[REG_RSP];
 	xpc = (u1 *) _mc->gregs[REG_RIP];
@@ -116,8 +116,8 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
 
-	/* ATTENTION: don't use CACAO internal REG_* defines as they are          */
-	/* different to the ones in <ucontext.h>                                  */
+	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
+	   different to the ones in <ucontext.h>. */
 
 	sp  = (u1 *) _mc->gregs[REG_RSP];
 	xpc = (u1 *) _mc->gregs[REG_RIP];
