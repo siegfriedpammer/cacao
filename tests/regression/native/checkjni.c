@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: checkjni.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: checkjni.c 4695 2006-03-28 14:21:14Z twisti $
 
 */
 
@@ -47,4 +47,9 @@ JNIEXPORT jboolean JNICALL Java_checkjni_IsAssignableFrom(JNIEnv *env, jclass cl
 JNIEXPORT jboolean JNICALL Java_checkjni_IsInstanceOf(JNIEnv *env, jclass clazz, jobject obj, jclass c)
 {
   return (*env)->IsInstanceOf(env, obj, c);
+}
+
+JNIEXPORT jint     JNICALL Java_checkjni_PushLocalFrame(JNIEnv *env, jclass clazz, jint capacity)
+{
+  return (*env)->PushLocalFrame(env, capacity);
 }

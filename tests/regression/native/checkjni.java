@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: checkjni.java 4357 2006-01-22 23:33:38Z twisti $
+   $Id: checkjni.java 4695 2006-03-28 14:21:14Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 public class checkjni {
     public native boolean IsAssignableFrom(Class sub, Class sup);
     public native boolean IsInstanceOf(Object obj, Class clazz);
+    public native int     PushLocalFrame(int capacity);
 
     public static void main(String[] argv) {
         System.loadLibrary("checkjni");
@@ -46,6 +47,7 @@ public class checkjni {
     public checkjni() {
         checkIsAssignableFrom();
         checkIsInstanceOf();
+        checkPushLocalFrame();
     }
 
     void checkIsAssignableFrom() {
@@ -72,7 +74,20 @@ public class checkjni {
         equal(IsInstanceOf(obj, clazz2), false);
     }
 
+    void checkPushLocalFrame() {
+        p("PushLocalFrame:");
+
+        equal(PushLocalFrame(100), 0);
+    }
+
     void equal(boolean a, boolean b) {
+        if (a == b)
+            p("PASS");
+        else
+            p("FAILED");
+    }
+
+    void equal(int a, int b) {
         if (a == b)
             p("PASS");
         else

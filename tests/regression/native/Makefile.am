@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4628 2006-03-16 13:56:34Z twisti $
+## $Id: Makefile.am 4695 2006-03-28 14:21:14Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -57,13 +57,16 @@ CLEANFILES = \
 	*.thisoutput \
 	*.this2output
 
+NOTESTNAMES = \
+	test
+
 TESTNAMES = \
 	checkjni \
 	testarguments
 
 check: $(TESTNAMES)
 
-$(TESTNAMES):
+$(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVAC) -d . $(srcdir)/$@.java
 	@$(JAVAH) $@
 	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
