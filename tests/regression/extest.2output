@@ -127,7 +127,7 @@ java.lang.UnsatisfiedLinkError: nsub
 NullPointerException (native):                OK
 java.lang.NullPointerException
    at java.lang.VMSystem.arraycopy (Native Method)
-   at java.lang.System.arraycopy (System.java:234)
+   at java.lang.System.arraycopy (System.java:251)
    at extest.main (extest.java:345)
 
 

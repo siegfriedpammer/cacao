@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: codegen.c 4694 2006-03-28 11:54:41Z twisti $
 
 */
 
@@ -86,7 +86,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	s4                  len, s1, s2, s3, d, disp;
 	u2                  currentline;
 	ptrint              a;
-	s4                  parentargs_base;
+	s4                  stackframesize;
 	stackptr            src;
 	varinfo            *var;
 	basicblock         *bptr;
@@ -114,25 +114,25 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->memuse + savedregs_num;
+	stackframesize = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)
 	/* space to save argument of monitor_enter */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		parentargs_base++;
+		stackframesize++;
 #endif
 
     /* Keep stack of non-leaf functions 16-byte aligned for calls into native */
 	/* code e.g. libc or jni (alignment problems with movaps).                */
 
 	if (!m->isleafmethod || opt_verbosecall)
-		parentargs_base |= 0x1;
+		stackframesize |= 0x1;
 
 	/* create method header */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, parentargs_base * 8);             /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
 
 #if defined(USE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -186,12 +186,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base)
-		M_ASUB_IMM(parentargs_base * 8, REG_SP);
+	if (stackframesize)
+		M_ASUB_IMM(stackframesize * 8, REG_SP);
 
 	/* save used callee saved registers */
 
-  	p = parentargs_base;
+  	p = stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
  		p--; M_LST(rd->savintregs[i], REG_SP, p * 8);
 	}
@@ -225,10 +225,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					/* + 8 for return address */
- 					M_LLD(var->regoff, REG_SP, (parentargs_base + s1) * 8 + 8);
+ 					M_LLD(var->regoff, REG_SP, (stackframesize + s1) * 8 + 8);
 
 				} else {                             /* stack arg -> spilled  */
-					var->regoff = parentargs_base + s1 + 1;
+					var->regoff = stackframesize + s1 + 1;
 				}
 			}
 
@@ -244,10 +244,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
-					M_DLD(var->regoff, REG_SP, (parentargs_base + s1) * 8 + 8);
+					M_DLD(var->regoff, REG_SP, (stackframesize + s1) * 8 + 8);
 
 				} else {
-					var->regoff = parentargs_base + s1 + 1;
+					var->regoff = stackframesize + s1 + 1;
 				}
 			}
 		}
@@ -2979,7 +2979,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 
-  			p = parentargs_base;
+  			p = stackframesize;
 
 #if !defined(NDEBUG)
 			/* generate call trace */
@@ -3051,8 +3051,8 @@ nowperformreturn:
 
 			/* deallocate stack */
 
-			if (parentargs_base)
-				M_AADD_IMM(parentargs_base * 8, REG_SP);
+			if (stackframesize)
+				M_AADD_IMM(stackframesize * 8, REG_SP);
 
 			/* generate method profiling code */
 
@@ -3904,7 +3904,7 @@ gen_method:
 
 				x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
-				M_ALD(rd->argintregs[2], REG_SP, parentargs_base * 8);
+				M_ALD(rd->argintregs[2], REG_SP, stackframesize * 8);
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);            /* for AIOOBE */
 
