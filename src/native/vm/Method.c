@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 4485 2006-02-12 00:30:13Z twisti $
+   $Id: Method.c 4691 2006-03-28 09:41:33Z twisti $
 
 */
 
@@ -55,10 +55,10 @@
 
 /*
  * Class:     java/lang/reflect/Method
- * Method:    getModifiers
+ * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, java_lang_reflect_Method *this)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiersInternal(JNIEnv *env, java_lang_reflect_Method *this)
 {
 	classinfo  *c;
 	methodinfo *m;
@@ -66,10 +66,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_reflect_Method_getModifiers(JNIEnv *env, jav
 	c = (classinfo *) this->declaringClass;
 	m = &(c->methods[this->slot]);
 
-	return (m->flags &
-			(ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_ABSTRACT |
-			 ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_NATIVE |
-			 ACC_STRICT));
+	return m->flags;
 }
 
 

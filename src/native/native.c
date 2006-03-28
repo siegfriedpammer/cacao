@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4661 2006-03-21 00:04:59Z motse $
+   $Id: native.c 4691 2006-03-28 09:41:33Z twisti $
 
 */
 
@@ -193,10 +193,10 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_VMThrowable_fillInStackTrace,
 	(functionptr) Java_java_lang_VMThrowable_getStackTrace,
 
-	(functionptr) Java_java_lang_reflect_Constructor_getModifiers,
+	(functionptr) Java_java_lang_reflect_Constructor_getModifiersInternal,
 	(functionptr) Java_java_lang_reflect_Constructor_constructNative,
 
-	(functionptr) Java_java_lang_reflect_Field_getModifiers,
+	(functionptr) Java_java_lang_reflect_Field_getModifiersInternal,
 	(functionptr) Java_java_lang_reflect_Field_getType,
 	(functionptr) Java_java_lang_reflect_Field_get,
 	(functionptr) Java_java_lang_reflect_Field_getBoolean,
@@ -217,7 +217,7 @@ static functionptr dummynativetable[] = {
 	(functionptr) Java_java_lang_reflect_Field_setFloat,
 	(functionptr) Java_java_lang_reflect_Field_setDouble,
 
-	(functionptr) Java_java_lang_reflect_Method_getModifiers,
+	(functionptr) Java_java_lang_reflect_Method_getModifiersInternal,
 	(functionptr) Java_java_lang_reflect_Method_getReturnType,
 	(functionptr) Java_java_lang_reflect_Method_getParameterTypes,
 	(functionptr) Java_java_lang_reflect_Method_getExceptionTypes,

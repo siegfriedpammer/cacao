@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Constructor.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: Constructor.c 4691 2006-03-28 09:41:33Z twisti $
 
 */
 
@@ -117,24 +117,18 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    getModifiers
+ * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
 
 	c = (classinfo *) (this->clazz);
-
-	if ((this->slot < 0) || (this->slot >= c->methodscount)) {
-		log_text("error illegal slot for constructor in class");
-		assert(0);
-	}
-
 	m = &(c->methods[this->slot]);
 
-	return (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+	return m->flags;
 }
 
 

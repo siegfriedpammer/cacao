@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 4406 2006-02-03 13:19:36Z twisti $
+   $Id: Field.c 4691 2006-03-28 09:41:33Z twisti $
 
 */
 
@@ -1188,17 +1188,19 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 
 
 /*
- * Class:     java_lang_reflect_Field
- * Method:    getModifiers
+ * Class:     java/lang/reflect/Field
+ * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiers(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT s4 JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
 {
 	classinfo *c;
+	fieldinfo *f;
 
 	c = (classinfo *) this->declaringClass;
+	f = &(c->fields[this->slot]);
 
-	return c->fields[this->slot].flags;
+	return f->flags;
 }
 
 
