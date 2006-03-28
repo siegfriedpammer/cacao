@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4572 2006-03-07 20:44:54Z twisti $
+   $Id: VMClassLoader.c 4692 2006-03-28 10:21:40Z twisti $
 
 */
 
@@ -260,7 +260,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 	classinfo *c;
 	utf *u;
 
-	if (!name) {
+	if (name == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -275,11 +275,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 		goto exception;
 
 	/* resolve class -- if requested */
-	/* XXX TWISTI: we do not support REAL (at runtime) lazy linking */
-/*  	if (resolve) { */
+
+/*  	if (resolve) */
 		if (!link_class(c))
 			goto exception;
-/*  	} */
 
 	return (java_lang_Class *) c;
 
