@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4669 2006-03-21 14:07:34Z twisti $
+   $Id: codegen.c 4697 2006-03-28 14:30:49Z twisti $
 
 */
 
@@ -5677,7 +5677,7 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	i386_pop_reg(cd, REG_ITMP1_XPTR);
 #else
 	M_MOV(REG_ITMP2, REG_ITMP1_XPTR);
-	M_MOV_IMM(&_exceptionptr, REG_ITMP2);
+	M_MOV_IMM(&_no_threads_exceptionptr, REG_ITMP2);
 	i386_mov_imm_membase(cd, 0, REG_ITMP2, 0);
 #endif
 	M_ALD(REG_ITMP2_XPC, REG_SP, 0);
