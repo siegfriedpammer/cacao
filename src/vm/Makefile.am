@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 4693 2006-03-28 10:42:04Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,9 @@ noinst_HEADERS = \
 	global.h \
 	types.h
 
-noinst_LTLIBRARIES = libvmcore.la libvm.la
+noinst_LTLIBRARIES = \
+	libvmcore.la \
+	libvm.la
 
 libvmcore_la_SOURCES = \
 	access.c \
