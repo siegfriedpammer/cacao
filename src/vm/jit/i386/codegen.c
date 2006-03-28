@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4697 2006-03-28 14:30:49Z twisti $
+   $Id: codegen.c 4702 2006-03-28 15:41:58Z twisti $
 
 */
 
@@ -82,8 +82,11 @@
 
 *******************************************************************************/
 
-bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool codegen(jitdata *jd)
 {
+	methodinfo         *m;
+	codegendata        *cd;
+	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, off, disp;
 	s4                  stackframesize;
 	stackptr            src;
@@ -97,6 +100,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	methoddesc         *md;
 	s4                  fpu_st_offset = 0;
 	rplpoint           *replacementpoint;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* prevent compiler warnings */
 
@@ -427,7 +436,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
-	replacementpoint = cd->code->rplpoints;
+	replacementpoint = jd->code->rplpoints;
 
 	/* walk through all basic blocks */
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
@@ -513,11 +522,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
 					if (!IS_2_WORD_TYPE(src->type)) {
 						if (bptr->type == BBTYPE_SBR) {
-							d = reg_of_var(rd, src, REG_ITMP1);
+							d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 							i386_pop_reg(cd, d);
 							store_reg_to_var_int(src, d);
 					} else if (bptr->type == BBTYPE_EXH) {
-						d = reg_of_var(rd, src, REG_ITMP1);
+						d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 						M_INTMOVE(REG_ITMP1, d);
 						store_reg_to_var_int(src, d);
 					}
@@ -528,7 +537,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 
 			} else {
-				d = reg_of_var(rd, src, REG_ITMP1);
+				d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 				if ((src->varkind != STACKVAR)) {
 					s2 = src->type;
 					if (IS_FLT_DBL_TYPE(s2)) {
@@ -627,7 +636,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				M_IST_IMM(iptr->val.i, REG_SP, iptr->dst->regoff * 4);
 
@@ -647,7 +656,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->dst->flags & INMEMORY) {
 				M_IST_IMM(iptr->val.l, REG_SP, iptr->dst->regoff * 4);
 				M_IST_IMM(iptr->val.l >> 32, REG_SP, iptr->dst->regoff * 4 + 4);
@@ -664,7 +673,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if (iptr->val.f == 0.0) {
 				i386_fldz(cd);
 				fpu_st_offset++;
@@ -700,7 +709,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if (iptr->val.d == 0.0) {
 				i386_fldz(cd);
 				fpu_st_offset++;
@@ -736,7 +745,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 
 			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
@@ -772,7 +781,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1)) {
 				break;
@@ -802,7 +811,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
 			/* EAX: NO ECX: NO EDX: NO */
   
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1)) {
 				break;
@@ -828,7 +837,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
   			if ((iptr->dst->varkind == LOCALVAR) &&
   			    (iptr->dst->varnum == iptr->op1)) {
     				break;
@@ -849,7 +858,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
   			if ((iptr->dst->varkind == LOCALVAR) &&
   			    (iptr->dst->varnum == iptr->op1)) {
     				break;
@@ -1039,7 +1048,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1072,7 +1081,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1097,7 +1106,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: YES */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, EAX);
@@ -1118,7 +1127,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
@@ -1136,7 +1145,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
@@ -1168,7 +1177,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1201,7 +1210,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
@@ -1234,7 +1243,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialu(cd, ALU_ADD, src, iptr);
 			break;
 
@@ -1243,7 +1252,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(cd, ALU_ADD, src, iptr);
 			break;
 
@@ -1251,7 +1260,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1285,7 +1294,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO */
 			/* else path can never happen? longs stay in memory! */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1308,7 +1317,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -1382,7 +1391,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(cd, ALU_SUB, src, iptr);
 			break;
 
@@ -1390,7 +1399,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					if (src->prev->regoff == iptr->dst->regoff) {
@@ -1417,7 +1426,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO */
 			/* else path can never happen? longs stay in memory! */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					if (src->regoff == iptr->dst->regoff) {
@@ -1441,7 +1450,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: EAX*/ /* EDX really not destroyed by IMUL? */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
@@ -1494,7 +1503,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: EAX*/ /* EDX really not destroyed by IMUL? */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_imul_imm_membase_reg(cd, iptr->val.i, REG_SP, src->regoff * 4, REG_ITMP1);
@@ -1519,7 +1528,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 					i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, EAX);             /* mem -> EAX             */
@@ -1547,7 +1556,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					i386_mov_imm_reg(cd, iptr->val.l, EAX);                                   /* imm -> EAX             */
@@ -1571,7 +1580,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EAX */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			var_to_reg_int(s1, src, REG_ITMP2);
   			gen_div_check(src);
 	        if (src->prev->flags & INMEMORY) {
@@ -1604,7 +1613,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EDX */
 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			var_to_reg_int(s1, src, REG_ITMP2);
   			gen_div_check(src);
 			if (src->prev->flags & INMEMORY) {
@@ -1640,7 +1649,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			/* TODO: optimize for `/ 2' */
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 
 			M_INTMOVE(s1, d);
 			i386_test_reg_reg(cd, d, d);
@@ -1659,7 +1668,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_INTMOVE(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -1701,7 +1710,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LDIV:       /* ..., val1, val2  ==> ..., val1 / val2        */
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			M_ILD(REG_ITMP2, REG_SP, src->regoff * 4);
 			M_OR_MEMBASE(REG_SP, src->regoff * 4 + 4, REG_ITMP2);
 			M_TEST(REG_ITMP2);
@@ -1733,7 +1742,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					disp = 2;
@@ -1760,7 +1769,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL */
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY) {
 				if (src->flags & INMEMORY) {
 					/* Intel algorithm -- does not work, because constant is wrong */
@@ -1838,7 +1847,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SHL, src, iptr);
 			break;
 
@@ -1847,7 +1856,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(cd, I386_SHL, src, iptr);
 			break;
 
@@ -1855,7 +1864,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SAR, src, iptr);
 			break;
 
@@ -1864,7 +1873,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(cd, I386_SAR, src, iptr);
 			break;
 
@@ -1872,7 +1881,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: D|S|YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishift(cd, I386_SHR, src, iptr);
 			break;
 
@@ -1881,7 +1890,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ishiftconst(cd, I386_SHR, src, iptr);
 			break;
 
@@ -1889,7 +1898,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -1938,7 +1947,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
@@ -1962,7 +1971,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES S|EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -2015,7 +2024,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
@@ -2039,7 +2048,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ){
 				if (src->prev->flags & INMEMORY) {
 /*  					if (src->prev->regoff == iptr->dst->regoff) { */
@@ -2092,7 +2101,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			if (iptr->dst->flags & INMEMORY ) {
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_mov_membase_reg(cd, REG_SP, src->regoff * 4 + 4, REG_ITMP2);
@@ -2116,7 +2125,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialu(cd, ALU_AND, src, iptr);
 			break;
 
@@ -2125,7 +2134,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(cd, ALU_AND, src, iptr);
 			break;
 
@@ -2133,7 +2142,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_lalu(cd, ALU_AND, src, iptr);
 			break;
 
@@ -2142,7 +2151,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_laluconst(cd, ALU_AND, src, iptr);
 			break;
 
@@ -2150,7 +2159,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialu(cd, ALU_OR, src, iptr);
 			break;
 
@@ -2159,7 +2168,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(cd, ALU_OR, src, iptr);
 			break;
 
@@ -2167,7 +2176,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_lalu(cd, ALU_OR, src, iptr);
 			break;
 
@@ -2176,7 +2185,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_laluconst(cd, ALU_OR, src, iptr);
 			break;
 
@@ -2184,7 +2193,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialu(cd, ALU_XOR, src, iptr);
 			break;
 
@@ -2193,7 +2202,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ialuconst(cd, ALU_XOR, src, iptr);
 			break;
 
@@ -2201,7 +2210,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_lalu(cd, ALU_XOR, src, iptr);
 			break;
 
@@ -2210,7 +2219,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_laluconst(cd, ALU_XOR, src, iptr);
 			break;
 
@@ -2264,7 +2273,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			FPU_SET_24BIT_MODE;
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			i386_fchs(cd);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2275,7 +2284,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			FPU_SET_53BIT_MODE;
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			i386_fchs(cd);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2285,7 +2294,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_faddp(cd);
@@ -2298,7 +2307,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_faddp(cd);
@@ -2311,7 +2320,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fsubp(cd);
@@ -2324,7 +2333,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fsubp(cd);
@@ -2337,7 +2346,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fmulp(cd);
@@ -2351,7 +2360,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
 /*  			i386_fldt_mem(cd, subnormal_bias1); */
@@ -2373,7 +2382,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_24BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			i386_fdivp(cd);
@@ -2387,7 +2396,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			FPU_SET_53BIT_MODE;
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 
 /*  			i386_fldt_mem(cd, subnormal_bias1); */
@@ -2412,7 +2421,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 /*  			i386_fxch(cd); */
 			i386_fprem(cd);
 			i386_wait(cd);
@@ -2433,7 +2442,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src, REG_FTMP2);
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 /*  			i386_fxch(cd); */
 			i386_fprem(cd);
 			i386_wait(cd);
@@ -2451,7 +2460,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if (src->flags & INMEMORY) {
 				i386_fildl_membase(cd, REG_SP, src->regoff * 4);
 				fpu_st_offset++;
@@ -2472,7 +2481,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if (src->flags & INMEMORY) {
 				i386_fildll_membase(cd, REG_SP, src->regoff * 4);
 				fpu_st_offset++;
@@ -2489,7 +2498,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: D|YES ECX: NO EDX: NO OUTPUT: EAX*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd, cd->mcodeptr);
@@ -2550,7 +2559,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: D|YES ECX: NO EDX: NO OUTPUT: EAX*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd, cd->mcodeptr);
@@ -2610,7 +2619,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd, cd->mcodeptr);
@@ -2668,7 +2677,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: YES OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd, cd->mcodeptr);
@@ -2726,7 +2735,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			/* nothing to do */
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2736,7 +2745,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: NO ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			/* nothing to do */
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -2749,7 +2758,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src->prev, REG_FTMP1);
 			var_to_reg_flt(s1, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 /*    			i386_fxch(cd); */
 			i386_fucompp(cd);
 			fpu_st_offset -= 2;
@@ -2775,7 +2784,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* exchanged to skip fxch */
 			var_to_reg_flt(s2, src->prev, REG_FTMP1);
 			var_to_reg_flt(s1, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 /*    			i386_fxch(cd); */
 			i386_fucompp(cd);
 			fpu_st_offset -= 2;
@@ -2801,7 +2810,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* EAX: YES ECX: NO EDX: NO OUTPUT: REG_NULL*/ 
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			gen_nullptr_check(s1);
 			i386_mov_membase_reg(cd, s1, OFFSET(java_arrayheader, size), d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -2813,7 +2822,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2828,7 +2837,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2848,7 +2857,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2863,7 +2872,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2879,7 +2888,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2895,7 +2904,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2910,7 +2919,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2925,7 +2934,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -3187,12 +3196,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, REG_NULL);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 				if (iptr->dst->flags & INMEMORY) {
 					/* Using both REG_ITMP2 and REG_ITMP3 is faster
 					   than only using REG_ITMP2 alternating. */
@@ -3206,13 +3215,13 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 				}
 				break;
 			case TYPE_FLT:
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				i386_flds_membase(cd, REG_ITMP1, 0);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				i386_fldl_membase(cd, REG_ITMP1, 0);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
@@ -3360,23 +3369,23 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			switch (iptr->op1) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD32(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP3));
 				M_LLD32(d, s1, disp);
 				store_reg_to_var_lng(iptr->dst, d);
 				break;
 			case TYPE_FLT:
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				i386_flds_membase32(cd, s1, disp);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				i386_fldl_membase32(cd, s1, disp);
 				fpu_st_offset++;
 				store_reg_to_var_flt(iptr->dst, d);
@@ -4065,7 +4074,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_NE, src, iptr);
 			break;
 
@@ -4074,7 +4083,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_E, src, iptr);
 			break;
 
@@ -4083,7 +4092,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_GE, src, iptr);
 			break;
 
@@ -4092,7 +4101,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_L, src, iptr);
 			break;
 
@@ -4101,7 +4110,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_LE, src, iptr);
 			break;
 
@@ -4110,7 +4119,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
-			d = reg_of_var(rd, iptr->dst, REG_NULL);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 			i386_emit_ifcc_iconst(cd, I386_CC_G, src, iptr);
 			break;
 
@@ -4555,7 +4564,7 @@ gen_method:
 			/* d contains return type */
 
 			if (d != TYPE_VOID) {
-				d = reg_of_var(rd, iptr->dst, REG_NULL);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
@@ -4789,7 +4798,7 @@ gen_method:
 					i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
 					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 				}
-				d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 
 			} else {
 				/* array type cast-check */
@@ -4815,7 +4824,7 @@ gen_method:
 				codegen_add_classcastexception_ref(cd, cd->mcodeptr);
 
 				var_to_reg_int(s1, src, REG_ITMP1);
-				d = reg_of_var(rd, iptr->dst, s1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -4863,7 +4872,7 @@ gen_method:
 #endif
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_INTMOVE(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -5079,7 +5088,7 @@ gen_method:
 			M_BEQ(0);
 			codegen_add_fillinstacktrace_ref(cd, cd->mcodeptr);
 
-			s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
+			s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
 			store_reg_to_var_int(iptr->dst, s1);
 			break;
@@ -5282,8 +5291,9 @@ gen_method:
 	{
 		int i;
 
-		replacementpoint = cd->code->rplpoints;
-		for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+		replacementpoint = jd->code->rplpoints;
+
+		for (i = 0; i < jd->code->rplpointcount; ++i, ++replacementpoint) {
 			/* check code segment size */
 
 			MCODECHECK(512);
@@ -5308,7 +5318,7 @@ gen_method:
 		}
 	}
 	
-	codegen_finish(m, cd, (ptrint) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 	/* everything's ok */
 
@@ -5386,15 +5396,23 @@ u1 *createcompilerstub(methodinfo *m)
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
 #endif
 
-u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-					 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
-	methoddesc *md;
-	s4          nativeparams;
-	s4          stackframesize;
-	s4          i, j;                   /* count variables                    */
-	s4          t;
-	s4          s1, s2, disp;
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	methoddesc   *md;
+	s4            stackframesize;
+	s4            nativeparams;
+	s4            i, j;                 /* count variables                    */
+	s4            t;
+	s4            s1, s2, disp;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* set some variables */
 
@@ -5743,9 +5761,9 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	codegen_finish(m, cd, (s4) ((u1 *) cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
 
-	return cd->code->entrypoint;
+	return jd->code->entrypoint;
 }
 
 

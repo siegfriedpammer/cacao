@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4669 2006-03-21 14:07:34Z twisti $
+   $Id: codegen.h 4702 2006-03-28 15:41:58Z twisti $
 
 */
 
@@ -273,7 +273,7 @@
 
 
 #define M_COPY(from,to) \
-    d = reg_of_var(rd, to, REG_ITMP1); \
+    d = codegen_reg_of_var(rd, iptr->opc, (to), REG_ITMP1); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
