@@ -88,6 +88,11 @@ case "$host_os" in
     CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
+*netbsd* )
+    OS_DIR="netbsd"
+    CFLAGS="$CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ;;
+
 * )
     ;;
 esac
@@ -746,6 +751,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/powerpc/Makefile]
 		[src/vm/jit/powerpc/darwin/Makefile]
 		[src/vm/jit/powerpc/linux/Makefile]
+		[src/vm/jit/powerpc/netbsd/Makefile]
 		[src/vm/jit/profile/Makefile]
 		[src/vm/jit/schedule/Makefile]
 		[src/vm/jit/tools/Makefile]
