@@ -29,9 +29,9 @@
             Stefan Ring
 
    Changes: Christian Thalinger
-   			Edwin Steiner
+            Edwin Steiner
 
-   $Id: asmpart.S 4654 2006-03-19 19:46:11Z edwin $
+   $Id: asmpart.S 4712 2006-03-30 11:59:46Z twisti $
 
 */
 
@@ -41,7 +41,7 @@
 #include "md-abi.h"
 #include "md-asm.h"
 
-#include "vm/jit/abi.h"
+#include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/powerpc/offsets.h"
 
@@ -58,6 +58,8 @@
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
+
+	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
 
@@ -90,13 +92,13 @@
 *         void *arg1, void *arg2, void *arg3, void *arg4);                     *
 *                                                                              *
 *******************************************************************************/
-		
+
 	.align 2
 
 	.long   0                         /* catch type all                       */
-	.long   calljava_xhandler2        /* handler pc                           */
-	.long   calljava_xhandler2        /* end pc                               */
-	.long   L_asm_vm_call_method      /* start pc                             */
+	.long   0                         /* exception handler pc                 */
+	.long   0                         /* end pc                               */
+	.long   0                         /* start pc                             */
 	.long   1                         /* extable size                         */
 	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
@@ -112,7 +114,6 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-L_asm_vm_call_method:                 /* required for PIC code                */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)
 	stwu    r1,-40*4(r1)
@@ -152,8 +153,14 @@ L_asm_vm_call_method:                 /* required for PIC code                */
 
 	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
 	addi    itmp2,itmp2,1             /* initialize argument count            */
-	li      r17,0                     /* initialize integer argument counter  */
-	li      r18,0                     /* initialize float argument counter    */
+	li      t0,0                      /* initialize integer argument counter  */
+	li      t1,0                      /* initialize float argument counter    */
+
+	mflr    r0                        /* save link register (PIC code)        */
+	bl      L_asm_vm_call_method_get_pc
+L_asm_vm_call_method_get_pc:
+	mflr    t3                        /* t3 contains the current pc           */
+	mtlr    r0
 
 L_register_copy:
 	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
@@ -169,7 +176,7 @@ L_register_copy:
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_register_handle_float
 
-	cmpwi   r17,INT_ARG_CNT           /* are we out of integer argument       */
+	cmpwi   t0,INT_ARG_CNT            /* are we out of integer argument       */
 	beq     L_register_copy           /* registers? yes, next loop            */
 
 	andi.   r0,itmp3,0x0001           /* is this a long type?                 */
@@ -177,34 +184,34 @@ L_register_copy:
 
 L_register_handle_int:
 #if defined(__DARWIN__)
-	lis     itmp3,ha16(jumptable_int)
-	addi    itmp3,itmp3,lo16(jumptable_int)
+	addis   itmp3,t3,ha16(L_jumptable_int - L_asm_vm_call_method_get_pc)
+	la      itmp3,lo16(L_jumptable_int - L_asm_vm_call_method_get_pc)(itmp3)
 #else
-	lis     itmp3,jumptable_int@ha
-	addi    itmp3,itmp3,jumptable_int@l
+	lis     itmp3,L_jumptable_int@ha
+	addi    itmp3,itmp3,L_jumptable_int@l
 #endif
-	slwi    r19,r17,2                 /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,r19           /* calculate address of jumptable       */
+	slwi    t2,t0,2                   /* multiple of 4-bytes                  */
+	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
-	addi    r17,r17,1                 /* integer argument counter + 1         */
+	addi    t0,t0,1                   /* integer argument counter + 1         */
 	mtctr   itmp3
 	bctr
 
 L_register_handle_long:
 #if defined(__DARWIN__)
-	lis     itmp3,ha16(jumptable_long)
-	addi    itmp3,itmp3,lo16(jumptable_long)
+	addis   itmp3,t3,ha16(L_jumptable_long - L_asm_vm_call_method_get_pc)
+	la      itmp3,lo16(L_jumptable_long - L_asm_vm_call_method_get_pc)(itmp3)
 #else
-	lis     itmp3,jumptable_long@ha
-	addi    itmp3,itmp3,jumptable_long@l
+	lis     itmp3,L_jumptable_long@ha
+	addi    itmp3,itmp3,L_jumptable_long@l
 #endif
-	addi    r19,r17,1                 /* align to even numbers                */
-	srwi    r19,r19,1
-	slwi    r19,r19,1
-	slwi    r19,r19,2                 /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,r19           /* calculate address of jumptable       */
+	addi    t2,t0,1                   /* align to even numbers                */
+	srwi    t2,t2,1
+	slwi    t2,t2,1
+	slwi    t2,t2,2                   /* multiple of 4-bytes                  */
+	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
-	addi    r17,r17,1                 /* integer argument counter + 1         */
+	addi    t0,t0,1                   /* integer argument counter + 1         */
 	mtctr   itmp3
 	bctr
 
@@ -215,8 +222,8 @@ L_stack_copy_done:
 	lwz     itmp1,9*4(sp)             /* pass method pointer via tmp1         */
 
 #if defined(__DARWIN__)
-	lis     mptr,ha16(L_asm_call_jit_compiler)
-	addi    mptr,mptr,lo16(L_asm_call_jit_compiler)
+	addis   mptr,t3,ha16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)
+	la      mptr,lo16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)(mptr)
 #else
 	lis     mptr,L_asm_call_jit_compiler@ha
 	addi    mptr,mptr,L_asm_call_jit_compiler@l
@@ -230,9 +237,9 @@ L_stack_copy_done:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(L_asm_vm_call_method-1b)
+	addi    pv,itmp1,lo16(asm_vm_call_method-1b)
 #else
-	addi    pv,itmp1,(L_asm_vm_call_method-1b)@l
+	addi    pv,itmp1,(asm_vm_call_method-1b)@l
 #endif
 
 L_asm_vm_call_method_return:
@@ -269,14 +276,19 @@ L_asm_vm_call_method_return:
 	addi    r1,r1,40*4
 	blr
 
-calljava_xhandler2:
+asm_vm_call_method_exception_handler:
+#if !defined(NDEBUG)
 	mr      r3,itmp1
-	bl      builtin_throw_exception
+	bl      L_builtin_throw_exception$stub
+#endif
 	li      v0,0                      /* return NULL                          */
 	b       L_asm_vm_call_method_return
 
 
-jumptable_int:
+	.data
+	.align  2
+
+L_jumptable_int:
 	.long   L_handle_a0
 	.long   L_handle_a1
 	.long   L_handle_a2
@@ -285,6 +297,9 @@ jumptable_int:
 	.long   L_handle_a5
 	.long   L_handle_a6
 	.long   L_handle_a7
+
+	.text
+	.align  2
 
 L_handle_a0:
 	lwz     a0,offvmargdata+4(itmp1)
@@ -312,7 +327,10 @@ L_handle_a7:
 	b       L_register_copy
 
 
-jumptable_long:
+	.data
+	.align  2
+
+L_jumptable_long:
 #if defined(__DARWIN__)
 #else
 	/* we have two entries here, so we get the even argument register
@@ -327,6 +345,9 @@ jumptable_long:
 	.long   L_handle_a6_a7
 	.long   0
 #endif
+
+	.text
+	.align  2
 
 L_handle_a0_a1:
 	lwz     a0,offvmargdata+0(itmp1)
@@ -411,14 +432,14 @@ noregchange:
 	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo
 	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo+LA_LR_OFFSET(sp)
 	mr      a4,a3                       /* xpc is equal to ra                 */
-	bl      stacktrace_create_extern_stackframeinfo
+	bl      L_stacktrace_create_extern_stackframeinfo$stub
 
 	lwz     a0,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-	bl      jit_compile                 /* compile the Java method            */
+	bl      L_jit_compile$stub          /* compile the Java method            */
 	mr      pv,r3                       /* move address to pv register        */
 
 	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
-	bl      stacktrace_remove_stackframeinfo
+	bl      L_stacktrace_remove_stackframeinfo$stub
 
 #if defined(__DARWIN__)
 	lwz     a0,(LA_WORD_SIZE+5+0)*4(r1)
@@ -469,13 +490,14 @@ L_asm_call_jit_compiler_exception:
 	mflr	r0
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	bl      builtin_asm_get_exceptionptrptr
+	bl      L_builtin_asm_get_exceptionptrptr$stub
 	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
 	mtlr    r0	
 	addi    sp,sp,LA_SIZE_ALIGNED
 #else
 # if defined(__DARWIN__)
-	lwz     v0,lo16(_no_threads_exceptionptr-0b)(pv)
+	lis     v0,ha16(_no_threads_exceptionptr)
+	addi    v0,v0,lo16(_no_threads_exceptionptr)
 # else
 	lis     v0,_no_threads_exceptionptr@ha
 	addi    v0,v0,_no_threads_exceptionptr@l
@@ -544,7 +566,7 @@ L_asm_handle_exception_stack_loop:
 	mr      a1,xpc                      /* pass exception pc                  */
 	mr      a2,pv                       /* pass data segment pointer          */
 	                                    /* a3 is still set                    */
-	bl      exceptions_handle_exception
+	bl      L_exceptions_handle_exception$stub
 
 	mr.     v0,v0
 	beq     L_asm_handle_exception_not_catched
@@ -745,7 +767,7 @@ asm_wrapper_patcher:
 	addi    a2,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 	mr      a3,r0                       /* this is correct for leafs          */
 	lwz     a4,((5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo)(sp) /* pass xpc   */
-	bl      stacktrace_create_extern_stackframeinfo
+	bl      L_stacktrace_create_extern_stackframeinfo$stub
 
 	addi    a0,sp,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo  /* pass sp      */
 	lwz     pv,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* get function */
@@ -756,7 +778,7 @@ asm_wrapper_patcher:
 	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
 
 	addi    a0,sp,LA_SIZE+(5+58)*4
-	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
+	bl      L_stacktrace_remove_stackframeinfo$stub /* remove stackframe info */
 
 #if defined(__DARWIN__)
 	lwz     a0,LA_SIZE+(5+0)*4(r1)
@@ -831,14 +853,15 @@ L_asm_wrapper_patcher_exception:
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-(LA_SIZE+1*4)(sp) /* preserve linkage area                    */
 	stw     xpc,LA_SIZE+0*4(sp)
-	bl      builtin_asm_get_exceptionptrptr
+	bl      L_builtin_asm_get_exceptionptrptr$stub
 	lwz     xpc,LA_SIZE+0*4(sp)
 	lwz     r0,LA_SIZE+1*4+LA_LR_OFFSET(sp)
 	mtlr    r0
 	addi    sp,sp,LA_SIZE+1*4
 #else
 # if defined(__DARWIN__)
-	lwz     v0,lo16(_no_threads_exceptionptr-0b)(pv)
+	lis     v0,ha16(_no_threads_exceptionptr)
+	addi    v0,v0,lo16(_no_threads_exceptionptr)
 # else
 	lis     v0,_no_threads_exceptionptr@ha
 	addi    v0,v0,_no_threads_exceptionptr@l
@@ -955,9 +978,9 @@ asm_replacement_out:
 
 	/* call replace_me */
 	lwz     a0,-(4*4)(itmp1)            /* arg0: rplpoint *                   */
-    mr      a1,sp                       /* arg1: execution state              */
+	mr      a1,sp                       /* arg1: execution state              */
 	addi    sp,sp,-(LA_SIZE_ALIGNED)
-    b       replace_me                  /* call C function replace_me         */
+	b       L_replace_me$stub           /* call C function replace_me         */
 
 /* asm_replacement_in **********************************************************
 
@@ -1287,6 +1310,150 @@ asm_criticalsections:
 	.long   _crit_restart
 #endif
 	.long 0
+
+
+#if defined(__DARWIN__)
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_builtin_throw_exception$stub:
+	.indirect_symbol _builtin_throw_exception
+	mflr r0
+	bcl 20,31,L00$_builtin_throw_exception
+L00$_builtin_throw_exception:
+	mflr r11
+	addis r11,r11,ha16(L_builtin_throw_exception$lazy_ptr - L00$_builtin_throw_exception)
+	mtlr r0
+	lwzu r12,lo16(L_builtin_throw_exception$lazy_ptr - L00$_builtin_throw_exception)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_builtin_throw_exception$lazy_ptr:
+	.indirect_symbol _builtin_throw_exception
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_exceptions_handle_exception$stub:
+	.indirect_symbol _exceptions_handle_exception
+	mflr r0
+	bcl 20,31,L00$_exceptions_handle_exception
+L00$_exceptions_handle_exception:
+	mflr r11
+	addis r11,r11,ha16(L_exceptions_handle_exception$lazy_ptr - L00$_exceptions_handle_exception)
+	mtlr r0
+	lwzu r12,lo16(L_exceptions_handle_exception$lazy_ptr - L00$_exceptions_handle_exception)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_exceptions_handle_exception$lazy_ptr:
+	.indirect_symbol _exceptions_handle_exception
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_stacktrace_create_extern_stackframeinfo$stub:
+	.indirect_symbol _stacktrace_create_extern_stackframeinfo
+	mflr r0
+	bcl 20,31,L00$_stacktrace_create_extern_stackframeinfo
+L00$_stacktrace_create_extern_stackframeinfo:
+	mflr r11
+	addis r11,r11,ha16(L_stacktrace_create_extern_stackframeinfo$lazy_ptr - L00$_stacktrace_create_extern_stackframeinfo)
+	mtlr r0
+	lwzu r12,lo16(L_stacktrace_create_extern_stackframeinfo$lazy_ptr - L00$_stacktrace_create_extern_stackframeinfo)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_stacktrace_create_extern_stackframeinfo$lazy_ptr:
+	.indirect_symbol _stacktrace_create_extern_stackframeinfo
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_jit_compile$stub:
+	.indirect_symbol _jit_compile
+	mflr r0
+	bcl 20,31,L00$_jit_compile
+L00$_jit_compile:
+	mflr r11
+	addis r11,r11,ha16(L_jit_compile$lazy_ptr - L00$_jit_compile)
+	mtlr r0
+	lwzu r12,lo16(L_jit_compile$lazy_ptr - L00$_jit_compile)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_jit_compile$lazy_ptr:
+	.indirect_symbol _jit_compile
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_stacktrace_remove_stackframeinfo$stub:
+	.indirect_symbol _stacktrace_remove_stackframeinfo
+	mflr r0
+	bcl 20,31,L00$_stacktrace_remove_stackframeinfo
+L00$_stacktrace_remove_stackframeinfo:
+	mflr r11
+	addis r11,r11,ha16(L_stacktrace_remove_stackframeinfo$lazy_ptr - L00$_stacktrace_remove_stackframeinfo)
+	mtlr r0
+	lwzu r12,lo16(L_stacktrace_remove_stackframeinfo$lazy_ptr - L00$_stacktrace_remove_stackframeinfo)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_stacktrace_remove_stackframeinfo$lazy_ptr:
+	.indirect_symbol _stacktrace_remove_stackframeinfo
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_builtin_asm_get_exceptionptrptr$stub:
+	.indirect_symbol _builtin_asm_get_exceptionptrptr
+	mflr r0
+	bcl 20,31,L00$_builtin_asm_get_exceptionptrptr
+L00$_builtin_asm_get_exceptionptrptr:
+	mflr r11
+	addis r11,r11,ha16(L_builtin_asm_get_exceptionptrptr$lazy_ptr - L00$_builtin_asm_get_exceptionptrptr)
+	mtlr r0
+	lwzu r12,lo16(L_builtin_asm_get_exceptionptrptr$lazy_ptr - L00$_builtin_asm_get_exceptionptrptr)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_builtin_asm_get_exceptionptrptr$lazy_ptr:
+	.indirect_symbol _builtin_asm_get_exceptionptrptr
+	.long dyld_stub_binding_helper
+
+
+.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.align 2
+L_replace_me$stub:
+	.indirect_symbol _replace_me
+	mflr r0
+	bcl 20,31,L00$_replace_me
+L00$_replace_me:
+	mflr r11
+	addis r11,r11,ha16(L_replace_me$lazy_ptr - L00$_replace_me)
+	mtlr r0
+	lwzu r12,lo16(L_replace_me$lazy_ptr - L00$_replace_me)(r11)
+	mtctr r12
+	bctr
+.data
+.lazy_symbol_pointer
+L_replace_me$lazy_ptr:
+	.indirect_symbol _replace_me
+	.long dyld_stub_binding_helper
+
+#endif /* defined(__DARWIN__) */
 
 
 /* Disable exec-stacks, required for Gentoo ***********************************/

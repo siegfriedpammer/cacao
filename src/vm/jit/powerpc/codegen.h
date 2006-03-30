@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4631 2006-03-16 14:19:52Z twisti $
+   $Id: codegen.h 4712 2006-03-30 11:59:46Z twisti $
 
 */
 
@@ -71,7 +71,7 @@
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > cd->mcodeend) \
+    if ((mcodeptr + (icnt)) > cd->mcodeend) \
         mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
 
 
@@ -284,9 +284,9 @@
 #define M_COPY(from,to) \
     do { \
         if (from->type == TYPE_LNG) \
-            d = reg_of_var(rd, to, PACK_REGS(REG_ITMP2, REG_ITMP1)); \
+            d = codegen_reg_of_var(rd, iptr->opc, (to), PACK_REGS(REG_ITMP2, REG_ITMP1)); \
         else \
-            d = reg_of_var(rd, to, REG_IFTMP); \
+            d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
         if ((from->regoff != to->regoff) || \
             ((from->flags ^ to->flags) & INMEMORY)) { \
             if (IS_INT_LNG_TYPE(from->type)) { \
