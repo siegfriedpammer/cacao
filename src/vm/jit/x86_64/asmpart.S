@@ -30,20 +30,19 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4707 2006-03-30 09:52:49Z twisti $
+   $Id: asmpart.S 4713 2006-03-30 12:01:50Z twisti $
 
 */
 
 
 #include "config.h"
 
-#include "md-abi.h"
-#include "md-asm.h"
-
-#include "vm/jit/abi.h"
 #include "vm/jit/x86_64/arch.h"
+#include "vm/jit/x86_64/md-abi.h"
+#include "vm/jit/x86_64/md-asm.h"
 #include "vm/jit/x86_64/offsets.h"
 
+#include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
 
 
