@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4677 2006-03-22 20:59:49Z edwin $
+   $Id: asmpart.S 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -50,7 +50,7 @@
 	.text
 
 
-/* exported functions and variables *******************************************/
+/* export functions ***********************************************************/
 
 	.globl asm_md_init
 
@@ -59,6 +59,7 @@
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
+	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_nat_exception
@@ -125,9 +126,9 @@ asm_md_init:
 	.align	8
 
 	.long   0                           /* catch type all                     */
-	.long   calljava_xhandler2          /* handler pc                         */
-	.long   calljava_xhandler2          /* end pc                             */
-	.long   L_asm_vm_call_method        /* start pc                           */
+	.long   0                           /* handler pc                         */
+	.long   0                           /* end pc                             */
+	.long   0                           /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* line number table start            */
 	.long   0                           /* line number table size             */
@@ -143,7 +144,6 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-L_asm_vm_call_method:                   /* required for PIC code              */
 	push    bp
 	mov     sp,bp                       /* save stackptr                      */
 	sub     $(4*4),sp                   /* create stackframe                  */
@@ -221,10 +221,12 @@ L_asm_vm_call_method_return:
 	leave
 	ret
 
-calljava_xhandler2:
+asm_vm_call_method_exception_handler:
+#if !defined(NDEBUG)
 	push    xptr                        /* pass exception pointer             */
 	call    builtin_throw_exception
 	add     $4,sp
+#endif
 	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_vm_call_method_return
 

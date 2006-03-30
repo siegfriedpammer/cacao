@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: exceptions.c 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -1230,6 +1230,11 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
            pointer before the loop executes! */
 
 		ex--;
+
+		/* If the start and end PC is NULL, this means we have the special case of asm_vm_call_method.  So, just return the proper exception handler. */
+
+		if ((ex->startpc == NULL) && (ex->endpc == NULL))
+			return (u1 *) &asm_vm_call_method_exception_handler;
 
 		/* is the xpc is the current catch range */
 

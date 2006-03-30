@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4690 2006-03-27 11:37:46Z twisti $
+   $Id: asmpart.S 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -50,13 +50,14 @@
 	.text
 
 
-/* exported functions and variables *******************************************/
+/* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
 	.globl asm_vm_call_method_int
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
+	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -96,9 +97,9 @@
 	.align	8
 
 	.quad   0                           /* catch type all                     */
-	.quad   calljava_xhandler2          /* handler pc                         */
-	.quad   calljava_xhandler2          /* end pc                             */
-	.quad   L_asm_vm_call_method        /* start pc                           */
+	.quad   0                           /* handler pc                         */
+	.quad   0                           /* end pc                             */
+	.quad   0                           /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0						    									 
 	.quad   0                           /* line number table  start           */
@@ -108,7 +109,7 @@
 	.long   0                           /* intsave                            */
 	.long   0                           /* isleaf                             */
 	.long   0                           /* IsSync                             */
-	.long   24                          /* frame size                         */
+	.long   0                           /* frame size                         */
 	.quad   0                           /* method pointer (pointer to name)   */
 
 asm_vm_call_method:
@@ -116,7 +117,6 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
-L_asm_vm_call_method:                   /* required for PIC code              */
 	sub     $(7*8),sp                   /* keep stack 16-byte aligned         */
 	mov     %rbx,0*8(sp)                /* %rbx is not a callee saved in cacao*/
 	mov     s0,1*8(sp)
@@ -218,7 +218,7 @@ L_asm_vm_call_method_return:
 	add     $(7*8),sp                   /* free stack space                   */
 	ret
 		
-calljava_xhandler2:
+asm_vm_call_method_exception_handler:
 #if !defined(NDEBUG)
 	mov     xptr,a0                     /* pass exception pointer             */
 	call    builtin_throw_exception@PLT

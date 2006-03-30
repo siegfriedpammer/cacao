@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4631 2006-03-16 14:19:52Z twisti $
+   $Id: asmpart.h 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -54,8 +54,8 @@
 #include "vm/linker.h"
 #include "vm/resolve.h"
 #include "vm/vm.h"
-#include "vm/jit/stacktrace.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
 
 
 /* some macros ****************************************************************/
@@ -116,6 +116,8 @@ s4     asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 s8     asm_vm_call_method_long(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
 double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+
+void   asm_vm_call_method_exception_handler(void);
 #endif
 
 #if defined(ENABLE_INTRP)

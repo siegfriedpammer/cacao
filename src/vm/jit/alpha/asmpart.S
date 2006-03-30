@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4666 2006-03-21 07:57:11Z edwin $
+   $Id: asmpart.S 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -58,6 +58,7 @@
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
+	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -97,9 +98,9 @@
 	.align  3
 
 	.quad   0                           /* catch type all                     */
-	.quad   calljava_xhandler2          /* handler pc                         */
-	.quad   calljava_xhandler2          /* end pc                             */
-	.quad   asm_vm_call_method          /* start pc                           */
+	.quad   0                           /* handler pc                         */
+	.quad   0                           /* end pc                             */
+	.quad   0                           /* start pc                           */
 	.long   1                           /* extable size                       */
 	.long   0                           /* ALIGNMENT PADDING                  */
 	.quad   0                           /* line number table start            */
@@ -194,11 +195,13 @@ calljava_return2:
 calljava_ret2:
 	jmp     zero,(ra)
 
-calljava_xhandler2:
+asm_vm_call_method_exception_handler:
 	s8addq  s6,sp,sp
 	ldq     gp,1*8(sp)                /* restore global pointer               */
+#if !defined(NDEBUG)
 	mov     itmp1,a0
 	jsr     ra,builtin_throw_exception
+#endif
 	ldq     ra,0*8(sp)                /* restore return address               */
 	ldq     s6,3*8(sp)
 	lda     sp,5*8(sp)                /* free stack space                     */

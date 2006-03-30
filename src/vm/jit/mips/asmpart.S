@@ -27,9 +27,9 @@
    Authors: Andreas Krall
 
    Changes: Christian Thalinger
-   			Edwin Steiner
+            Edwin Steiner
 
-   $Id: asmpart.S 4706 2006-03-30 09:20:42Z twisti $
+   $Id: asmpart.S 4707 2006-03-30 09:52:49Z twisti $
 
 */
 
@@ -55,6 +55,7 @@
 	.globl asm_vm_call_method_long
 	.globl asm_vm_call_method_float
 	.globl asm_vm_call_method_double
+	.globl asm_vm_call_method_exception_handler
 
 	.globl asm_call_jit_compiler
 	.globl asm_handle_exception
@@ -98,9 +99,9 @@
 	.align  3
 
 	.dword  0                           /* catch type all                     */
-	.dword  calljava_xhandler2          /* handler pc                         */
-	.dword  calljava_xhandler2          /* end pc                             */
-	.dword  asm_vm_call_method          /* start pc                           */
+	.dword  0                           /* handler pc                         */
+	.dword  0                           /* end pc                             */
+	.dword  0                           /* start pc                           */
 	.word   1                           /* extable size                       */
 	.word   0                           /* 4-byte ALIGNMENT PADDING           */
 	.dword  0                           /* line number table start            */
@@ -238,11 +239,13 @@ calljava_return2:
 	aaddiu  sp,sp,12*8                /* free stack space                     */
 	j       ra                        /* return                               */
 
-calljava_xhandler2:
+asm_vm_call_method_exception_handler:
 	asll    s7,s7,3
 	aaddu   sp,s7,sp
+#if !defined(NDEBUG)
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
+#endif
 	move    v0,zero                   /* clear return value for exception     */
 	b       calljava_return2
 
