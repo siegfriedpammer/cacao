@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 4631 2006-03-16 14:19:52Z twisti $
+   $Id: patcher.c 4708 2006-03-30 10:10:07Z twisti $
 
 */
 
@@ -472,6 +472,7 @@ bool patcher_invokevirtual(u1 *sp)
 	u4                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
+	s4                 disp;
 
 	/* get stuff from the stack */
 
@@ -501,8 +502,9 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch vftbl index */
 
-	*((s4 *) (ra + 4)) |= (s4) ((OFFSET(vftbl_t, table[0]) +
-								 sizeof(methodptr) * m->vftblindex) & 0x0000ffff);
+	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
+
+	*((s4 *) (ra + 4)) |= (disp & 0x0000ffff);
 
 	/* synchronize instruction cache */
 
@@ -534,6 +536,7 @@ bool patcher_invokeinterface(u1 *sp)
 	u4                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
+	s4                 disp;
 
 	/* get stuff from the stack */
 
@@ -563,13 +566,15 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch interfacetable index */
 
-	*((s4 *) (ra + 1 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-								 sizeof(methodptr*) * m->class->index) & 0x0000ffff);
+	disp = (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->class->index);
+
+	*((s4 *) (ra + 1 * 4)) |= (disp & 0x0000ffff);
 
 	/* patch method offset */
 
-	*((s4 *) (ra + 2 * 4)) |=
-		(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x0000ffff);
+	disp = (sizeof(methodptr) * (m - m->class->methods));
+
+	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
 	/* synchronize instruction cache */
 
@@ -661,6 +666,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 	u4                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
+	s4                 disp;
 
 	/* get stuff from the stack */
 
@@ -690,10 +696,13 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch super class index */
 
-	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
+	disp = -(c->index);
 
-	*((s4 *) (ra + 4 * 4)) |= (s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-									 c->index * sizeof(methodptr*)) & 0x0000ffff);
+	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
+
+	disp = (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+
+	*((s4 *) (ra + 4 * 4)) |= (disp & 0x0000ffff);
 
 	/* synchronize instruction cache */
 
