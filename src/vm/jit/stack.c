@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: stack.c 4709 2006-03-30 10:14:22Z twisti $
 
 */
 
@@ -56,11 +56,18 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/disass.h"
+#include "vm/jit/abi.h"
+
+#if defined(ENABLE_DISASSEMBLER)
+# include "vm/jit/disass.h"
+#endif
+
 #include "vm/jit/jit.h"
-#include "vm/jit/reg.h"
 #include "vm/jit/stack.h"
-#include "vm/jit/allocator/lsra.h"
+
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 
 
 /* global variables ***********************************************************/
@@ -2846,6 +2853,7 @@ void stack_show_method(jitdata *jd)
 		printf("\n");
 	}
 
+#if defined(ENABLE_DISASSEMBLER)
 	/* show code before first basic block */
 
 	if (opt_showdisassemble) {
@@ -2856,12 +2864,14 @@ void stack_show_method(jitdata *jd)
 
 		printf("\n");
 	}
+#endif
 
 	/* show code of all basic blocks */
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next)
 		stack_show_basicblock(jd, bptr);
 
+#if defined(ENABLE_DISASSEMBLER)
 	/* show stubs code */
 
 	if (opt_showdisassemble && opt_showexceptionstubs) {
@@ -2878,6 +2888,7 @@ void stack_show_method(jitdata *jd)
 
 		printf("\n");
 	}
+#endif
 
 #if defined(USE_THREADS)
 	builtin_monitorexit(lock_stack_show_icmd);
@@ -2963,6 +2974,7 @@ void stack_show_basicblock(jitdata *jd, basicblock *bptr)
 			printf("\n");
 		}
 
+#if defined(ENABLE_DISASSEMBLER)
 		if (opt_showdisassemble && (!deadcode)) {
 			printf("\n");
 			u1ptr = (u1 *) ((ptrint) code->mcode + cd->dseglen + bptr->mpc);
@@ -2978,6 +2990,7 @@ void stack_show_basicblock(jitdata *jd, basicblock *bptr)
 			}
 			printf("\n");
 		}
+#endif
 	}
 }
 #endif /* !defined(NDEBUG) */

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.h 4709 2006-03-30 10:14:22Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 
 #include "vm/types.h"
 
+#if defined(ENABLE_DISASSEMBLER)
 
 /* some macros ****************************************************************/
 
@@ -123,6 +124,8 @@ u1 *disassinstr(u1 *code);
 u1 *intrp_disassinstr(u1 *code);
 void intrp_disassemble(u1 *start, u1 *end);
 #endif
+
+#endif /* defined(ENABLE_DISASSEMBLER) */
 
 #endif /* _DISASS_H */
 

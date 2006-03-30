@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: jit.c 4709 2006-03-30 10:14:22Z twisti $
 
 */
 
@@ -1389,7 +1389,9 @@ u1 *jit_compile(methodinfo *m)
 	jd->m     = m;
 	jd->cd    = DNEW(codegendata);
 	jd->rd    = DNEW(registerdata);
+#if defined(ENABLE_LOOP)
 	jd->ld    = DNEW(loopdata);
+#endif
 	jd->flags = 0;
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
@@ -1664,8 +1666,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 		stack_show_method(jd);
 
 	} else if (opt_showdisassemble) {
+# if defined(ENABLE_DISASSEMBLER)
 		DISASSEMBLE(code->entrypoint,
 					code->entrypoint + (code->mcodelength - cd->dseglen));
+# endif
 	}
 
 	if (opt_showddatasegment)

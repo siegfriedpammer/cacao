@@ -27,9 +27,9 @@
    Authors: Christian Thalinger
 
    Changes: Christian Ullrich
-   			Edwin Steiner
+            Edwin Steiner
 
-   $Id: codegen-common.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: codegen-common.h 4709 2006-03-30 10:14:22Z twisti $
 
 */
 
@@ -183,7 +183,7 @@ u1 *codegen_findmethod(u1 *pc);
 void codegen_finish(jitdata *jd, s4 mcodelen);
 
 codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
-#if !defined(NDEBUG)
+#if defined(ENABLE_DISASSEMBLER)
 void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 #endif
 
