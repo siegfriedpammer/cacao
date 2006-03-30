@@ -27,9 +27,9 @@
    Authors: Christian Thalinger
 
    Changes: Christian Ullrich
-   			Edwin Steiner
+            Edwin Steiner
 
-   $Id: reg.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: reg.h 4710 2006-03-30 10:23:11Z twisti $
 
 */
 
@@ -125,12 +125,6 @@ struct registerdata {
 	int freetmpflttop;              /* free scratch float register count      */
 	int freesavflttop;              /* free saved float register count        */
 };
-
-
-/* global variables ***********************************************************/
-
-extern s4 nregdescint[];
-extern s4 nregdescfloat[];
 
 
 /* function prototypes ********************************************************/

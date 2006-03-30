@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: lsra.c 4710 2006-03-30 10:23:11Z twisti $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/allocator/lsra.h"
 

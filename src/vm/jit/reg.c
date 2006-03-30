@@ -28,11 +28,11 @@
 
    Changes: Stefan Ring
             Christian Thalinger
-			Christian Ullrich
+            Christian Ullrich
             Michael Starzinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: reg.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: reg.c 4710 2006-03-30 10:23:11Z twisti $
 
 */
 
@@ -47,6 +47,7 @@
 #include "md-abi.h"
 
 #include "mm/memory.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
 
 

@@ -1,4 +1,4 @@
-/* src/vm/jit/abi.h - common ABI defines
+/* src/vm/jit/abi-asm.h - common assembler ABI defines
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,27 +28,23 @@
 
    Changes:
 
-   $Id: abi.h 4710 2006-03-30 10:23:11Z twisti $
+   $Id: abi.h 4357 2006-01-22 23:33:38Z twisti $
 
 */
 
 
-#ifndef _ABI_H
-#define _ABI_H
+#ifndef _ABI_ASM_H
+#define _ABI_ASM_H
 
-#include "config.h"
-#include "vm/types.h"
+/* ATTENTION: Don't add C stuff in here, as this file is included in asmpart.S */
 
-#include "vm/jit/abi-asm.h"
+/* some count defines for asmpart.S *******************************************/
 
+#define SAV_CNT    (INT_SAV_CNT + FLT_SAV_CNT)
+#define ARG_CNT    (INT_ARG_CNT + FLT_ARG_CNT)
+#define TMP_CNT    (INT_TMP_CNT + FLT_TMP_CNT)
 
-/* ABI externs ****************************************************************/
-
-extern s4 nregdescint[];
-extern char *regs[];
-extern s4 nregdescfloat[];
-
-#endif /* _ABI_H */
+#endif /* _ABI_ASM_H */
 
 
 /*

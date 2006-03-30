@@ -28,7 +28,7 @@
 ##
 ## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4700 2006-03-28 15:10:43Z twisti $
+## $Id: Makefile.am 4710 2006-03-30 10:23:11Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -101,6 +101,7 @@ endif
 
 noinst_HEADERS = \
 	abi.h \
+	abi-asm.h \
 	asmpart.h \
 	methodheader.h \
 	patcher.h 

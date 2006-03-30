@@ -38,14 +38,17 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "arch.h"
+
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/options.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
-#include "arch.h"
+
 
 /*** constants used internally ************************************************/
 

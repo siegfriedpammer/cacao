@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4684 2006-03-23 00:56:21Z edwin $
+   $Id: md-asm.h 4710 2006-03-30 10:23:11Z twisti $
 
 */
 
@@ -228,6 +228,8 @@
 #define asm_vm_call_method_long               _asm_vm_call_method_long
 #define asm_vm_call_method_float              _asm_vm_call_method_float
 #define asm_vm_call_method_double             _asm_vm_call_method_double
+
+#define asm_vm_call_method_exception_handler  _asm_vm_call_method_exception_handler
 
 #define jumptable_int                         _jumptable_int
 #define jumptable_long                        _jumptable_long
