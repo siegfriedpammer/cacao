@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4672 2006-03-22 12:35:15Z edwin $
+   $Id: inline.c 4716 2006-03-31 12:38:33Z edwin $
 
 */
 
@@ -185,16 +185,15 @@ void inline_print_stats()
 }
 #endif
 
-static bool inline_jit_compile_intern(methodinfo *m, codegendata *cd, registerdata *rd,
-							  loopdata *ld)
+static bool inline_jit_compile_intern(jitdata *jd)
 {
-	assert(m);
-	assert(cd);
-	assert(rd);
-	assert(ld);
+	methodinfo *m;
+	
+	assert(jd);
 	
 	/* XXX initialize the static function's class */
 
+	m = jd->m;
 	m->isleafmethod = true;
 
 	/* call the compiler passes ***********************************************/
@@ -202,13 +201,13 @@ static bool inline_jit_compile_intern(methodinfo *m, codegendata *cd, registerda
 	/* call parse pass */
 
 	DOLOG( log_message_class("Parsing ", m->class) );
-	if (!parse(m, cd)) {
+	if (!parse(jd)) {
 		return false;
 	}
 
 	/* call stack analysis pass */
 
-	if (!analyse_stack(m, cd, rd)) {
+	if (!stack_analyse(jd)) {
 		return false;
 	}
 
@@ -219,9 +218,7 @@ static bool inline_jit_compile(inline_node *iln)
 {
 	bool                r;
 	methodinfo         *m;
-	codegendata        *cd;
-	registerdata       *rd;
-	loopdata           *ld;
+	jitdata            *jd;
 	s4 i;
 
 	assert(iln);
@@ -241,29 +238,40 @@ static bool inline_jit_compile(inline_node *iln)
 		}
 	}
 
-	/* allocate memory */
-	cd = DNEW(codegendata);
-	rd = DNEW(registerdata);
-	ld = DNEW(loopdata);
+	/* allocate jitdata structure and fill it */
+
+	jd = DNEW(jitdata);
+
+	jd->m     = m;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = DNEW(registerdata);
+#if defined(ENABLE_LOOP)
+	jd->ld    = DNEW(loopdata);
+#endif
+	jd->flags = 0;
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
 		/* initialize the register allocator */
-		reg_setup(m, rd);
+		reg_setup(jd);
 #endif
 
 	/* setup the codegendata memory */
 
-	codegen_setup(m, cd);
+	codegen_setup(jd);
 
 	/* now call internal compile function */
 
-	r = inline_jit_compile_intern(m, cd, rd, ld);
+	r = inline_jit_compile_intern(jd);
 
 	if (r) {
-		iln->regdata = rd;
+		iln->regdata = jd->rd;
 	}
 
 	/* free some memory */
@@ -274,7 +282,7 @@ static bool inline_jit_compile(inline_node *iln)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		codegen_free(m, cd);
+		codegen_free(jd);
 #endif
 
 #endif
@@ -837,7 +845,7 @@ static void rewrite_method(inline_node *iln)
 		while (--len >= 0) {
 			o_dst = o_iptr->dst;
 
-			DOLOG( printf("o_curstack = "); debug_dump_stack(o_curstack); show_icmd(o_iptr,false); printf(", dst = "); debug_dump_stack(o_dst); printf("\n") );
+			DOLOG( printf("o_curstack = "); debug_dump_stack(o_curstack); stack_show_icmd(o_iptr,false); printf(", dst = "); debug_dump_stack(o_dst); printf("\n") );
 
 			if (nextcall && o_iptr == nextcall->callerins) {
 
@@ -876,9 +884,9 @@ static void rewrite_method(inline_node *iln)
 				nextcall->inlined_basicblocks = iln->inlined_basicblocks_cursor;
 				
 				/* recurse */
-				DOLOG( printf("entering inline "); show_icmd(o_iptr,false); printf("\n") );
+				DOLOG( printf("entering inline "); stack_show_icmd(o_iptr,false); printf("\n") );
 				rewrite_method(nextcall);
-				DOLOG( printf("leaving inline "); show_icmd(o_iptr,false); printf("\n") );
+				DOLOG( printf("leaving inline "); stack_show_icmd(o_iptr,false); printf("\n") );
 
 				/* skip stack slots used by the inlined callee */
 				curreloc += (u1*)nextcall->n_inlined_stack_cursor - (u1*)iln->n_inlined_stack_cursor;
@@ -1169,7 +1177,7 @@ static void inline_stack_interfaces(inline_node *iln,registerdata *rd)
 	}
 }
 
-static bool inline_inline_intern(methodinfo *m, codegendata *cd, registerdata *rd, inline_node *iln)
+static bool inline_inline_intern(methodinfo *m,jitdata *jd, inline_node *iln)
 {
 	basicblock *bptr;
 	s4 len;
@@ -1183,7 +1191,7 @@ static bool inline_inline_intern(methodinfo *m, codegendata *cd, registerdata *r
 	stackptr sp;
 	int i;
 
-	assert(m);
+	assert(jd);
 	assert(iln);
 
 	iln->cumul_maxstack = iln->n_callerstackdepth + m->maxstack + 1 /* XXX builtins */;
@@ -1276,7 +1284,7 @@ static bool inline_inline_intern(methodinfo *m, codegendata *cd, registerdata *r
 
 								insert_inline_node(iln,calleenode);
 
-								if (!inline_inline_intern(callee,cd,rd,calleenode))
+								if (!inline_inline_intern(callee,jd,calleenode))
 									return false;
 
 								iln->cumul_instructioncount += calleenode->prolog_instructioncount;
@@ -1306,8 +1314,8 @@ dont_inline:
 	return true;
 }
 
-static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
-		methodinfo **resultmethod, codegendata **resultcd, registerdata **resultrd)
+static bool test_inlining(inline_node *iln,jitdata *jd,
+		methodinfo **resultmethod, jitdata **resultjd)
 {
 	instruction *n_ins;
 	stackptr n_stack;
@@ -1317,17 +1325,18 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	exceptiontable *prevext;
 	codegendata *n_cd;
 	registerdata *n_rd;
+	jitdata *n_jd;
+	
 
 	static int debug_verify_inlined_code = 1;
 #ifndef NDEBUG
 	static int debug_compile_inlined_code_counter = 0;
 #endif
 
-	assert(iln && cd && rd && resultmethod && resultcd && resultrd);
+	assert(iln && jd && resultmethod && resultjd);
 
 	*resultmethod = iln->m;
-	*resultcd = cd;
-	*resultrd = rd;
+	*resultjd = jd;
 
 #if 0
 	if (debug_compile_inlined_code_counter >5)
@@ -1377,8 +1386,13 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	n_method->exceptiontable = n_ext;
 	n_method->linenumbercount = 0;
 
+	n_jd = DNEW(jitdata);
+	n_jd->flags = 0;
+	n_jd->m = n_method;
+
 	n_cd = DNEW(codegendata);
-	memcpy(n_cd,cd,sizeof(codegendata));
+	n_jd->cd = n_cd;
+	memcpy(n_cd,jd->cd,sizeof(codegendata));
 	n_cd->method = n_method;
 	n_cd->maxstack = n_method->maxstack;
 	n_cd->maxlocals = n_method->maxlocals;
@@ -1386,9 +1400,10 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	n_cd->exceptiontable = n_method->exceptiontable;
 
 	n_rd = DNEW(registerdata);
-	reg_setup(n_method, n_rd);
+	n_jd->rd = n_rd;
+	reg_setup(n_jd);
 
-	iln->regdata = rd;
+	iln->regdata = jd->rd;
 	inline_locals(iln,n_rd);
 	DOLOG( printf("INLINING STACK INTERFACES FOR "); method_println(iln->m) );
 	inline_stack_interfaces(iln,n_rd);
@@ -1396,7 +1411,7 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	if (debug_verify_inlined_code) {
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n") );
-		if (!typecheck(n_method,n_cd,n_rd)) {
+		if (!typecheck(n_jd)) {
 			*exceptionptr = NULL;
 			DOLOG( printf("XXX INLINED RESULT DID NOT PASS VERIFIER XXX\n") );
 			return false;
@@ -1428,8 +1443,7 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 #endif /* NDEBUG */
 	   {
 			*resultmethod = n_method;
-			*resultcd = n_cd;
-			*resultrd = n_rd;
+			*resultjd = n_jd;
 
 #ifndef NDEBUG
 			inline_count_methods++;
@@ -1439,9 +1453,9 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 			DOLOG(
 			printf("==== %d.INLINE ==================================================================\n",debug_compile_inlined_code_counter);
 			method_println(n_method);
-			show_icmd_method(iln->m,cd,rd);
+			stack_show_method(jd);
 			dump_inline_tree(iln);
-			show_icmd_method(n_method,n_cd,n_rd);
+			stack_show_method(n_jd);
 			debug_dump_inlined_code(iln,n_method,n_cd,n_rd);
 			printf("-------- DONE -----------------------------------------------------------\n");
 			fflush(stdout);
@@ -1456,16 +1470,19 @@ static bool test_inlining(inline_node *iln,codegendata *cd,registerdata *rd,
 	return true;
 }
 
-bool inline_inline(methodinfo *m, codegendata *cd, registerdata *rd,
-				methodinfo **resultmethod, codegendata **resultcd, registerdata **resultrd)
+bool inline_inline(jitdata *jd, methodinfo **resultmethod, 
+				   jitdata **resultjd)
 {
 	inline_node *iln;
+	methodinfo *m;
+
+	m = jd->m;
 
 #if 0
 	printf("==== INLINE ==================================================================\n");
 	method_println(m);
 #endif
-
+	
 	iln = DNEW(inline_node);
 	memset(iln,0,sizeof(inline_node));
 
@@ -1482,7 +1499,7 @@ bool inline_inline(methodinfo *m, codegendata *cd, registerdata *rd,
 	iln->stackcount = m->stackcount;
 	iln->cumul_stackcount = m->stackcount;
 
-	if (inline_inline_intern(m,cd,rd,iln)) {
+	if (inline_inline_intern(m,jd,iln)) {
 	
 #if 0
 		printf("==== TEST INLINE =============================================================\n");
@@ -1490,7 +1507,7 @@ bool inline_inline(methodinfo *m, codegendata *cd, registerdata *rd,
 #endif
 
 		if (iln->children)
-			test_inlining(iln,cd,rd,resultmethod,resultcd,resultrd);
+			test_inlining(iln,jd,resultmethod,resultjd);
 	}
 
 #if 0
