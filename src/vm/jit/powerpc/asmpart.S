@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4712 2006-03-30 11:59:46Z twisti $
+   $Id: asmpart.S 4715 2006-03-31 07:50:19Z twisti $
 
 */
 
@@ -237,9 +237,9 @@ L_stack_copy_done:
 1:
 	mflr    itmp1
 #if defined(__DARWIN__)
-	addi    pv,itmp1,lo16(asm_vm_call_method-1b)
+	addi    pv,itmp1,lo16(asm_vm_call_method - 1b)
 #else
-	addi    pv,itmp1,(asm_vm_call_method-1b)@l
+	addi    pv,itmp1,(asm_vm_call_method - 1b)@l
 #endif
 
 L_asm_vm_call_method_return:
@@ -279,7 +279,7 @@ L_asm_vm_call_method_return:
 asm_vm_call_method_exception_handler:
 #if !defined(NDEBUG)
 	mr      r3,itmp1
-	bl      L_builtin_throw_exception$stub
+	bl      builtin_throw_exception
 #endif
 	li      v0,0                      /* return NULL                          */
 	b       L_asm_vm_call_method_return
@@ -432,14 +432,14 @@ noregchange:
 	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo
 	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo+LA_LR_OFFSET(sp)
 	mr      a4,a3                       /* xpc is equal to ra                 */
-	bl      L_stacktrace_create_extern_stackframeinfo$stub
+	bl      stacktrace_create_extern_stackframeinfo
 
 	lwz     a0,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-	bl      L_jit_compile$stub          /* compile the Java method            */
+	bl      jit_compile                 /* compile the Java method            */
 	mr      pv,r3                       /* move address to pv register        */
 
 	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
-	bl      L_stacktrace_remove_stackframeinfo$stub
+	bl      stacktrace_remove_stackframeinfo
 
 #if defined(__DARWIN__)
 	lwz     a0,(LA_WORD_SIZE+5+0)*4(r1)
@@ -490,7 +490,7 @@ L_asm_call_jit_compiler_exception:
 	mflr	r0
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	bl      L_builtin_asm_get_exceptionptrptr$stub
+	bl      builtin_asm_get_exceptionptrptr
 	lwz     r0,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
 	mtlr    r0	
 	addi    sp,sp,LA_SIZE_ALIGNED
@@ -566,7 +566,7 @@ L_asm_handle_exception_stack_loop:
 	mr      a1,xpc                      /* pass exception pc                  */
 	mr      a2,pv                       /* pass data segment pointer          */
 	                                    /* a3 is still set                    */
-	bl      L_exceptions_handle_exception$stub
+	bl      exceptions_handle_exception
 
 	mr.     v0,v0
 	beq     L_asm_handle_exception_not_catched
@@ -767,7 +767,7 @@ asm_wrapper_patcher:
 	addi    a2,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 	mr      a3,r0                       /* this is correct for leafs          */
 	lwz     a4,((5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo)(sp) /* pass xpc   */
-	bl      L_stacktrace_create_extern_stackframeinfo$stub
+	bl      stacktrace_create_extern_stackframeinfo
 
 	addi    a0,sp,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo  /* pass sp      */
 	lwz     pv,(0+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp) /* get function */
@@ -778,7 +778,7 @@ asm_wrapper_patcher:
 	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
 
 	addi    a0,sp,LA_SIZE+(5+58)*4
-	bl      L_stacktrace_remove_stackframeinfo$stub /* remove stackframe info */
+	bl      stacktrace_remove_stackframeinfo /* remove stackframe info        */
 
 #if defined(__DARWIN__)
 	lwz     a0,LA_SIZE+(5+0)*4(r1)
@@ -853,7 +853,7 @@ L_asm_wrapper_patcher_exception:
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-(LA_SIZE+1*4)(sp) /* preserve linkage area                    */
 	stw     xpc,LA_SIZE+0*4(sp)
-	bl      L_builtin_asm_get_exceptionptrptr$stub
+	bl      builtin_asm_get_exceptionptrptr
 	lwz     xpc,LA_SIZE+0*4(sp)
 	lwz     r0,LA_SIZE+1*4+LA_LR_OFFSET(sp)
 	mtlr    r0
@@ -980,7 +980,7 @@ asm_replacement_out:
 	lwz     a0,-(4*4)(itmp1)            /* arg0: rplpoint *                   */
 	mr      a1,sp                       /* arg1: execution state              */
 	addi    sp,sp,-(LA_SIZE_ALIGNED)
-	b       L_replace_me$stub           /* call C function replace_me         */
+	b       replace_me                  /* call C function replace_me         */
 
 /* asm_replacement_in **********************************************************
 

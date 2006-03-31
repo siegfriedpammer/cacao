@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4710 2006-03-30 10:23:11Z twisti $
+   $Id: md-asm.h 4715 2006-03-31 07:50:19Z twisti $
 
 */
 
@@ -253,18 +253,19 @@
 
 /* external defines ***********************************************************/
 
-#define builtin_asm_get_exceptionptrptr       _builtin_asm_get_exceptionptrptr
-#define builtin_throw_exception               _builtin_throw_exception
-#define exceptions_handle_exception           _exceptions_handle_exception
-#define jit_compile                           _jit_compile
-#define replace_me                            _replace_me
+#define builtin_asm_get_exceptionptrptr \
+    L_builtin_asm_get_exceptionptrptr$stub
+
+#define builtin_throw_exception               L_builtin_throw_exception$stub
+#define exceptions_handle_exception           L_exceptions_handle_exception$stub
+#define jit_compile                           L_jit_compile$stub
+#define replace_me                            L_replace_me$stub
 
 #define stacktrace_create_extern_stackframeinfo \
-	_stacktrace_create_extern_stackframeinfo
+    L_stacktrace_create_extern_stackframeinfo$stub
 
-#define stacktrace_remove_stackframeinfo      _stacktrace_remove_stackframeinfo
-#define stacktrace_extern_fillInStackTrace \
-	_stacktrace_extern_fillInStackTrace
+#define stacktrace_remove_stackframeinfo \
+    L_stacktrace_remove_stackframeinfo$stub
 
 #if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
 #define _no_threads_exceptionptr              __no_threads_exceptionptr
