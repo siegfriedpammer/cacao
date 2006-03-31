@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 4708 2006-03-30 10:10:07Z twisti $
+   $Id: patcher.c 4714 2006-03-31 07:14:10Z twisti $
 
 */
 
@@ -700,7 +700,7 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
-	disp = (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+	disp = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
 
 	*((s4 *) (ra + 4 * 4)) |= (disp & 0x0000ffff);
 
