@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: codegen.c 4717 2006-04-01 21:00:28Z edwin $
+   $Id: codegen.c 4718 2006-04-01 21:03:40Z edwin $
 
 */
 
@@ -2190,7 +2190,7 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code = code_codeinfo_new(tmpm); /* XXX check allocation */
 
 	/* setup code generation stuff */
 
