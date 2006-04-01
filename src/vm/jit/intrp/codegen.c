@@ -30,7 +30,7 @@
 
    Changes:
 
-   $Id: codegen.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: codegen.c 4717 2006-04-01 21:00:28Z edwin $
 
 */
 
@@ -1762,10 +1762,10 @@ bool intrp_codegen(jitdata *jd)
 
 	dseg_createlinenumbertable(cd);
 
-	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
+	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
 #endif
 
 	/* branch resolving (walk through all basic blocks) */
@@ -1774,8 +1774,8 @@ bool intrp_codegen(jitdata *jd)
 		branchref *brefs;
 
 		for (brefs = bptr->branchrefs; brefs != NULL; brefs = brefs->next) {
-			gen_resolveanybranch(((u1*) cd->code->entrypoint) + brefs->branchpos,
-			                     ((u1 *)cd->code->entrypoint) + bptr->mpc);
+			gen_resolveanybranch(((u1*) jd->code->entrypoint) + brefs->branchpos,
+			                     ((u1 *)jd->code->entrypoint) + bptr->mpc);
 		}
 	}
 
@@ -1944,14 +1944,22 @@ static ffi_cif *createnativecif(methodinfo *m, methoddesc *nmd)
 #endif
 
 
-u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-						   registerdata *rd, methoddesc *nmd)
+u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
 #if defined(WITH_FFI)
 	ffi_cif *cif;
 #else
 	u1      *cif;
 #endif
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* create method header */
 
@@ -1988,13 +1996,13 @@ u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 
 	gen_BBEND;
 
-	codegen_finish(m, cd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
+	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
 #endif
 
-	return cd->code->entrypoint;
+	return jd->code->entrypoint;
 }
 
 
@@ -2157,6 +2165,7 @@ u1 *createcalljavafunction(methodinfo *m)
 {
 	methodinfo         *tmpm;
 	u1                 *entrypoint;
+	jitdata            *jd;
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  dumpsize;
@@ -2166,15 +2175,28 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	dumpsize = dump_size();
 
+	/* allocate memory */
+
+	jd = DNEW(jitdata);
+
 	tmpm = DNEW(methodinfo);
 	cd = DNEW(codegendata);
 	rd = DNEW(registerdata);
+
+	jd->m = tmpm;
+	jd->flags = 0;
+	jd->cd = cd;
+	jd->rd = rd;
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code = code_codeinfo_new(m); /* XXX check allocation */
 
 	/* setup code generation stuff */
 
 	MSET(tmpm, 0, u1, sizeof(methodinfo));
 
-	codegen_setup(tmpm, cd);
+	codegen_setup(jd);
 
 	md = m->parseddesc;
 
@@ -2198,12 +2220,12 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	gen_BBEND;
 
-	codegen_finish(tmpm, cd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
-	vm_block_insert(cd->code->mcode + cd->code->mcodelength);
+	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
 #endif
-	entrypoint = cd->code->entrypoint;
+	entrypoint = jd->code->entrypoint;
 
 	/* release memory */
 

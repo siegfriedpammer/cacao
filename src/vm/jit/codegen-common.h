@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4709 2006-03-30 10:14:22Z twisti $
+   $Id: codegen-common.h 4717 2006-04-01 21:00:28Z edwin $
 
 */
 
@@ -195,8 +195,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_createcompilerstub(methodinfo *m);
-u1 *intrp_createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-						   registerdata *rd, methoddesc *md);
+u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
 #endif
 
 void removecompilerstub(u1 *stub);
