@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4702 2006-03-28 15:41:58Z twisti $
+   $Id: codegen.c 4720 2006-04-02 16:17:57Z edwin $
 
 */
 
@@ -599,16 +599,64 @@ bool codegen(jitdata *jd)
 
 		switch (iptr->opc) {
 		case ICMD_INLINE_START:
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: NO ECX: NO EDX: NO */
+#if defined(USE_THREADS)
+			if (iptr->op1) {
+				/* add monitor enter code */
+				if (iptr->method->flags & ACC_STATIC) {
+					M_MOV_IMM(iptr->method->class, REG_ITMP1);
+					M_AST(REG_ITMP1, REG_SP, 0 * 4);
+					M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
+					M_CALL(REG_ITMP1);
+				} 
+				else {
+					/* nullpointer check must have been performed before */
+					/* (XXX not done, yet) */
+					var = &(rd->locals[iptr->val.i][TYPE_ADR]); /* XXX */
+					if (var->flags & INMEMORY) {
+						i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
+						M_AST(REG_ITMP1, REG_SP, 0 * 4);
+					} 
+					else {
+						M_AST(var->regoff, REG_SP, 0 * 4);
+					}
+					M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
+					M_CALL(REG_ITMP1);
+				}
+			}
+#endif
 			dseg_addlinenumber_inline_start(cd, iptr, cd->mcodeptr);
 			break;
 
 		case ICMD_INLINE_END:
-			/* REG_RES Register usage: see lsra.inc icmd_uses_tmp */
-			/* EAX: NO ECX: NO EDX: NO */
 			dseg_addlinenumber_inline_end(cd, iptr);
 			dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
+
+			{
+				instruction *startins = (instruction *) iptr->target;
+				if (startins->op1) {
+#if defined(USE_THREADS)
+					/* add monitor exit code */
+					if (startins->method->flags & ACC_STATIC) {
+						M_MOV_IMM(startins->method->class, REG_ITMP1);
+						M_AST(REG_ITMP1, REG_SP, 0 * 4);
+						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
+						M_CALL(REG_ITMP1);
+					} 
+					else {
+						var = &(rd->locals[startins->val.i][TYPE_ADR]); /* XXX */
+						if (var->flags & INMEMORY) {
+							i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
+							M_AST(REG_ITMP1, REG_SP, 0 * 4);
+						} 
+						else {
+							M_AST(var->regoff, REG_SP, 0 * 4);
+						}
+						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
+						M_CALL(REG_ITMP1);
+					}
+#endif
+				}
+			}
 			break;
 
 		case ICMD_NOP:        /* ...  ==> ...                                 */
