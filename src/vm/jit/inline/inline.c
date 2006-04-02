@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4716 2006-03-31 12:38:33Z edwin $
+   $Id: inline.c 4719 2006-04-02 16:16:18Z edwin $
 
 */
 
@@ -105,12 +105,17 @@ struct inline_node {
 	stackptr n_callerstack;
 	int n_callerstackdepth;
 	stackptr o_callerstack;
+	exceptiontable **o_handlers;
 
 	/* info about the callee */
 	int localsoffset;
 	int prolog_instructioncount;
+	int epilog_instructioncount;
+	int extra_instructioncount;
 	int instructioncount;
 	int stackcount;
+	bool synchronize;
+	basicblock *handler_monitorexit;
 	
 	/* cumulative values */
 	int cumul_instructioncount;
@@ -154,16 +159,19 @@ struct inline_block_map {
 };
 
 struct inline_context {
-	int next_block_number;
+	inline_node *master;
 
+	int next_block_number;
 	inline_block_map *blockmap;
 	int blockmap_index;
+
+	bool calls_others;
 	
 	stackptr o_translationlimit; /* if a stackptr is smaller than this, look it up in the table */
 	stackptr n_debug_stackbase;
 	inline_stack_translation *stacktranslationstart;
 
-	inline_stack_translation stacktranslation[1];
+	inline_stack_translation stacktranslation[1]; /* XXX VARIABLE LENGTH! */
 };
 
 static int stack_depth(stackptr sp)
@@ -291,6 +299,10 @@ return_r:
 #if defined(USE_THREADS)
 	/* leave the monitor */
 	builtin_monitorexit((java_objectheader *) m );
+#endif
+
+#if 0
+	stack_show_method(jd);
 #endif
 
 	return r;
@@ -487,6 +499,25 @@ return_tail:
 	n_ins[0].dst = relocate_stack_ptr(iln,n_ins[0].dst,curreloc);
 }
 
+static stackptr inline_new_stackslot(inline_node *iln,stackptr n_curstack,s4 type)
+{
+	stackptr n_sp;
+
+	n_sp = iln->n_inlined_stack_cursor++;
+	assert((n_sp - iln->n_inlined_stack) < iln->cumul_stackcount);
+
+	n_sp->prev = n_curstack;
+	n_sp->type = type;
+	n_sp->varkind = TEMPVAR;
+	n_sp->varnum = stack_depth(n_curstack); /* XXX inefficient */
+	n_sp->flags = 0;
+#ifndef NDEBUG
+	n_sp->regoff = (IS_FLT_DBL_TYPE(type)) ? -1 : INT_ARG_CNT;
+#endif
+
+	return n_sp;
+}
+
 static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackptr n_curstack,instruction *o_iptr)
 {
 	methodinfo *calleem;
@@ -495,12 +526,14 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 	int localindex;
 	int depth;
 	int type;
+	bool isstatic;
 	instruction *n_ins;
 
 	assert(iln && callee && o_iptr && o_iptr->method == iln->m);
 
 	calleem = callee->m;
 	md = calleem->parseddesc;
+	isstatic = (calleem->flags & ACC_STATIC);
 
 	localindex = callee->localsoffset + md->paramslots;
 	depth = stack_depth(n_curstack) - 1; /* XXX inefficient */
@@ -520,12 +553,15 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 			   callee->regdata->locals[localindex - callee->localsoffset][type].type,callee->localsoffset);
 				method_println(callee->m); );
 
-		if (callee->regdata->locals[localindex - callee->localsoffset][type].type >= 0) {
+		if ((callee->regdata->locals[localindex - callee->localsoffset][type].type >= 0)
+				||
+			(i==0 && callee->synchronize && !isstatic)) 
+		{
 			n_ins->opc = ICMD_ISTORE + type;
 			n_ins->op1 = localindex;
 		}
 		else {
-			n_ins->opc = IS_2_WORD_TYPE(type) ? ICMD_POP2 : ICMD_POP;
+			n_ins->opc = IS_2_WORD_TYPE(type) ? ICMD_POP2 : ICMD_POP; /* XXX is POP2 correct? */
 		}
 		n_ins->method = iln->m;
 		n_ins->line = o_iptr->line;
@@ -540,6 +576,8 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 		depth--;
 	}
 
+	/* INLINE_START instruction */
+
 	n_ins = (iln->inlined_iinstr_cursor++);
 	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
@@ -547,6 +585,9 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 	n_ins->method = callee->m;
 	n_ins->dst = n_curstack;
 	n_ins->line = o_iptr->line;
+	n_ins->op1 = callee->synchronize; /* XXX find a better way? */
+	/* XXX using local 0 only works if it is read-only!! */
+	n_ins->val.i = callee->localsoffset; /* XXX find a better way */
 	n_ins->target = NULL; /* ease debugging */
 	iln->inline_start_instruction = n_ins;
 
@@ -618,6 +659,7 @@ static void rewrite_stack(inline_node *iln,stackptr o_first,stackptr o_last,ptri
 	DOLOG( printf("n_sp = "); debug_dump_stack(n_sp-1); printf("\n") );
 	
 	iln->n_inlined_stack_cursor = n_sp;
+	assert((n_sp - iln->n_inlined_stack) <= iln->cumul_stackcount);
 }
 
 static void inline_resolve_block_refs(inline_target_ref **refs,basicblock *o_bptr,basicblock *n_bptr)
@@ -661,10 +703,11 @@ static basicblock * create_block(inline_node *iln,basicblock *o_bptr,inline_targ
 	stackptr n_sp;
 	int i;
 
-	assert(iln && o_bptr && refs);
+	assert(iln);
 	
 	n_bptr = iln->inlined_basicblocks_cursor++;
 	assert(n_bptr);
+	assert((n_bptr - iln->inlined_basicblocks) < iln->cumul_basicblockcount);
 	
 	memset(n_bptr,0,sizeof(basicblock));
 	n_bptr->mpc = -1;
@@ -681,6 +724,8 @@ static basicblock * create_block(inline_node *iln,basicblock *o_bptr,inline_targ
 		n_sp = iln->n_inlined_stack_cursor - 1;
 		n_bptr->instack = n_sp;
 
+		assert((n_sp - iln->n_inlined_stack) < iln->cumul_stackcount);
+
 		/* link the stack elements */
 		for (i=indepth-1; i>=0; --i) {
 			n_sp->varkind = STACKVAR;
@@ -691,7 +736,10 @@ static basicblock * create_block(inline_node *iln,basicblock *o_bptr,inline_targ
 		}
 	}
 
-	inline_resolve_block_refs(refs,o_bptr,n_bptr);
+	if (o_bptr) {
+		assert(refs);
+		inline_resolve_block_refs(refs,o_bptr,n_bptr);
+	}
 	
 	return n_bptr;
 }
@@ -893,7 +941,8 @@ static void rewrite_method(inline_node *iln)
 				
 				/* update memory cursors */
 				assert(nextcall->inlined_iinstr_cursor == iln->inlined_iinstr_cursor + nextcall->cumul_instructioncount);
-				/*assert(nextcall->n_inlined_stack_cursor == iln->n_inlined_stack_cursor + nextcall->cumul_stackcount);*/
+				/* XXX m->stackcount seems to be a conservative estimate */
+				assert(nextcall->n_inlined_stack_cursor <= iln->n_inlined_stack_cursor + nextcall->cumul_stackcount);
 				assert(nextcall->inlined_basicblocks_cursor == iln->inlined_basicblocks_cursor + nextcall->cumul_basicblockcount);
 				iln->inlined_iinstr_cursor = nextcall->inlined_iinstr_cursor;
 				iln->n_inlined_stack_cursor = nextcall->n_inlined_stack_cursor;
@@ -992,11 +1041,6 @@ static void rewrite_method(inline_node *iln)
 		}
 	}
 
-	/* end of basic blocks */
-	if (!iln->depth && n_bptr) {
-		n_bptr->next = NULL;
-	}
-
 	bm = iln->ctx->blockmap;
 	for (i=0; i<iln->ctx->blockmap_index; ++i, ++bm) {
 		assert(bm->iln && bm->o_block && bm->n_block);
@@ -1082,6 +1126,50 @@ static exceptiontable * inline_exception_tables(inline_node *iln,exceptiontable 
 		
 		n_extable++;
 		et++;
+	}
+
+	if (iln->handler_monitorexit) {
+		exceptiontable **activehandlers;
+			
+		memset(n_extable,0,sizeof(exceptiontable));
+		n_extable->startpc = 0; /* XXX */
+		n_extable->endpc = 0; /* XXX */
+		n_extable->handlerpc = 0; /* XXX */
+		n_extable->start = iln->inlined_basicblocks;
+		n_extable->end = iln->inlined_basicblocks_cursor;
+		n_extable->handler = iln->handler_monitorexit;
+		n_extable->catchtype.any = NULL; /* finally */
+
+		if (*prevextable) {
+			(*prevextable)->down = n_extable;
+		}
+		*prevextable = n_extable;
+		
+		n_extable++;
+
+		activehandlers = iln->o_handlers;
+		while (*activehandlers) {
+
+			assert(iln->parent);
+
+			memset(n_extable,0,sizeof(exceptiontable));
+			n_extable->startpc = 0; /* XXX */
+			n_extable->endpc = 0; /* XXX */
+			n_extable->handlerpc = 0; /* XXX */
+			n_extable->start = iln->handler_monitorexit;
+			n_extable->end = iln->handler_monitorexit + 1;
+			n_extable->handler = inline_map_block(iln->parent,(*activehandlers)->handler,iln->parent);
+			n_extable->catchtype = (*activehandlers)->catchtype;
+
+			if (*prevextable) {
+				(*prevextable)->down = n_extable;
+			}
+			*prevextable = n_extable;
+
+			n_extable++;
+			activehandlers++;
+		}
+		
 	}
 
 	return n_extable;
@@ -1189,22 +1277,47 @@ static bool inline_inline_intern(methodinfo *m,jitdata *jd, inline_node *iln)
 	inline_node *calleenode;
 	inline_node *active;
 	stackptr sp;
-	int i;
+	s4 i;
+	bool isstatic;
+	exceptiontable **handlers;
+	s4 nhandlers;
 
 	assert(jd);
 	assert(iln);
 
+	/* initialize cumulative counters */
+	
 	iln->cumul_maxstack = iln->n_callerstackdepth + m->maxstack + 1 /* XXX builtins */;
 	iln->cumul_maxlocals = iln->localsoffset + m->maxlocals;
 	iln->cumul_exceptiontablelength += m->exceptiontablelength;
+
+	/* iterate over basic blocks */
 
 	bptr = m->basicblocks;
 	for (; bptr; bptr = bptr->next) {
 
 		iln->cumul_basicblockcount++;
 
+		/* extra stackslots */
+		iln->cumul_stackcount += iln->n_callerstackdepth;
+
 		if (bptr->flags < BBREACHED)
 			continue;
+
+		/* allocate the buffer of active exception handlers */
+		/* XXX this wastes some memory, but probably it does not matter */
+	
+		handlers = DMNEW(exceptiontable*, m->exceptiontablelength + 1);
+
+		/* determine the active exception handlers for this block     */
+		/* XXX maybe the handlers of a block should be part of our IR */
+		nhandlers = 0;
+		for (i = 0; i < m->exceptiontablelength; ++i) {
+			if ((m->exceptiontable[i].start <= bptr) && (m->exceptiontable[i].end > bptr)) {
+				handlers[nhandlers++] = m->exceptiontable + i;
+			}
+		}
+		handlers[nhandlers] = NULL;
 
 		assert(bptr->stack);
 		
@@ -1246,7 +1359,7 @@ static bool inline_inline_intern(methodinfo *m,jitdata *jd, inline_node *iln)
 
 					if (callee) {
 						if ((callee->flags & (ACC_STATIC | ACC_FINAL | ACC_PRIVATE) || opcode == ICMD_INVOKESPECIAL)
-						    && !(callee->flags & (ACC_NATIVE | ACC_SYNCHRONIZED))) 
+						    && !(callee->flags & (ACC_NATIVE))) 
 						{
 							if (iln->depth < 3) {
 								for (active = iln; active; active = active->parent) {
@@ -1261,17 +1374,63 @@ static bool inline_inline_intern(methodinfo *m,jitdata *jd, inline_node *iln)
 								
 								calleenode->ctx = iln->ctx;
 								calleenode->m = callee;
+								calleenode->synchronize = (callee->flags & ACC_SYNCHRONIZED);
+								isstatic = (callee->flags & ACC_STATIC);
 
 								if (!inline_jit_compile(calleenode))
 									return false;
 								
+								/* info about the call site */
 								calleenode->depth = iln->depth+1;
 								calleenode->callerblock = bptr;
 								calleenode->callerins = iptr;
 								calleenode->callerpc = iptr - m->basicblocks->iinstr;
+								calleenode->o_handlers = handlers;
 								
+								/* info about the callee */
 								calleenode->localsoffset = iln->localsoffset + m->maxlocals;
 								calleenode->prolog_instructioncount = callee->parseddesc->paramcount;
+								calleenode->epilog_instructioncount = 0;
+								calleenode->extra_instructioncount = 0;
+
+								if (calleenode->synchronize) {
+									methoddesc         *md;
+									builtintable_entry *bte;
+									
+									/* and exception handler */
+									/* ALOAD, builtin_monitorexit, ATHROW */
+									calleenode->extra_instructioncount += 3;
+									/* stack elements used in handler */
+									iln->cumul_stackcount += 2;
+
+									/* exception table entries */
+									iln->cumul_exceptiontablelength += 1 + nhandlers;
+
+									bte = builtintable_get_internal(BUILTIN_monitorenter);
+									md = bte->md;
+									if (md->memuse > calleenode->regdata->memuse)
+										calleenode->regdata->memuse = md->memuse;
+									if (md->argintreguse > calleenode->regdata->argintreguse)
+										calleenode->regdata->argintreguse = md->argintreguse;
+
+									/* XXX
+									bte = builtintable_get_internal(BUILTIN_staticmonitorenter);
+									md = bte->md;
+									if (md->memuse > calleenode->regdata->memuse)
+										calleenode->regdata->memuse = md->memuse;
+									if (md->argintreguse > calleenode->regdata->argintreguse)
+										calleenode->regdata->argintreguse = md->argintreguse;
+										*/
+
+									bte = builtintable_get_internal(BUILTIN_monitorexit);
+									md = bte->md;
+									if (md->memuse > calleenode->regdata->memuse)
+										calleenode->regdata->memuse = md->memuse;
+									if (md->argintreguse > calleenode->regdata->argintreguse)
+										calleenode->regdata->argintreguse = md->argintreguse;
+
+									iln->ctx->calls_others = true;
+								}
 
 								calleenode->stackcount = callee->stackcount;
 								calleenode->cumul_stackcount = callee->stackcount;
@@ -1287,10 +1446,22 @@ static bool inline_inline_intern(methodinfo *m,jitdata *jd, inline_node *iln)
 								if (!inline_inline_intern(callee,jd,calleenode))
 									return false;
 
+								if (calleenode->synchronize) {
+									/* add exception handler block */
+									iln->ctx->master->cumul_basicblockcount++;
+								}
+
 								iln->cumul_instructioncount += calleenode->prolog_instructioncount;
+								iln->cumul_instructioncount += calleenode->epilog_instructioncount;
+								iln->cumul_instructioncount += calleenode->extra_instructioncount;
 								iln->cumul_instructioncount += calleenode->cumul_instructioncount - 1/*invoke*/ + 2 /*INLINE_START|END*/;
 								iln->cumul_stackcount += calleenode->cumul_stackcount;
-								iln->cumul_basicblockcount += calleenode->cumul_basicblockcount + 1/*XXX*/;
+
+								/* XXX extra block after inlined call */
+								iln->cumul_stackcount += calleenode->n_callerstackdepth;
+								iln->cumul_basicblockcount += 1;
+								
+								iln->cumul_basicblockcount += calleenode->cumul_basicblockcount;
 								iln->cumul_exceptiontablelength += calleenode->cumul_exceptiontablelength;
 								if (calleenode->cumul_maxstack > iln->cumul_maxstack)
 									iln->cumul_maxstack = calleenode->cumul_maxstack;
@@ -1312,6 +1483,81 @@ dont_inline:
 	}	
 
 	return true;
+}
+
+static void inline_write_exception_handlers(inline_node *master,inline_node *iln)
+{
+	basicblock *n_bptr;
+	stackptr n_curstack;
+	instruction *n_ins;
+	inline_node *child;
+	builtintable_entry *bte;
+	
+	child = iln->children;
+	if (child) {
+		do {
+			inline_write_exception_handlers(master,child);
+			child = child->next;
+		} while (child != iln->children);
+	}
+
+	if (iln->synchronize) {
+		/* create the monitorexit handler */
+		n_bptr = create_block(master,NULL,NULL,1 /*XXX*/);
+		n_bptr->type = BBTYPE_EXH;
+		n_bptr->flags = BBFINISHED;
+
+		iln->handler_monitorexit = n_bptr;
+		
+		n_curstack = n_bptr->instack;
+
+		/* ACONST / ALOAD */
+
+		n_curstack = inline_new_stackslot(master,n_curstack,TYPE_ADR);
+		
+		n_ins = master->inlined_iinstr_cursor++;
+		if (iln->m->flags & ACC_STATIC) {
+			n_ins->opc = ICMD_ACONST;
+			n_ins->val.a = iln->m->class;
+			n_ins->target = class_get_self_classref(iln->m->class);
+		}
+		else {
+			n_ins->opc = ICMD_ALOAD;
+			n_ins->op1 = iln->localsoffset; /* XXX */
+		}
+		n_ins->dst = n_curstack;
+		n_ins->method = iln->m;
+		n_ins->line = 0;
+
+		/* MONITOREXIT */
+
+		n_curstack = n_curstack->prev;
+
+		bte = builtintable_get_internal(BUILTIN_monitorexit);
+
+		n_ins = master->inlined_iinstr_cursor++;
+		n_ins->opc = ICMD_BUILTIN;
+		n_ins->val.a = bte;
+		n_ins->dst = n_curstack;
+		n_ins->method = iln->m;
+		n_ins->line = 0;
+
+		/* ATHROW */
+		
+		n_curstack = n_curstack->prev;
+		
+		n_ins = master->inlined_iinstr_cursor++;
+		n_ins->opc = ICMD_ATHROW;
+		n_ins->dst = n_curstack;
+		n_ins->method = iln->m;
+		n_ins->line = 0;
+
+		/* close basic block */
+
+		n_bptr->outstack = n_curstack;
+		n_bptr->outdepth = stack_depth(n_curstack); /* XXX */
+		n_bptr->icount = 3;
+	}
 }
 
 static bool test_inlining(inline_node *iln,jitdata *jd,
@@ -1346,7 +1592,7 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	n_ins = DMNEW(instruction,iln->cumul_instructioncount);
 	iln->inlined_iinstr = n_ins;
 
-	n_stack = DMNEW(stackelement,iln->cumul_stackcount + 1000 /* XXX */);
+	n_stack = DMNEW(stackelement,iln->cumul_stackcount);
 	iln->n_inlined_stack = n_stack;
 	iln->ctx->n_debug_stackbase = n_stack;
 
@@ -1356,11 +1602,20 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	iln->ctx->blockmap = DMNEW(inline_block_map,iln->cumul_basicblockcount);
 
 	rewrite_method(iln);
+	inline_write_exception_handlers(iln,iln);
+
+	/* end of basic blocks */
+	if (iln->inlined_basicblocks_cursor > iln->inlined_basicblocks) {
+		iln->inlined_basicblocks_cursor[-1].next = NULL;
+	}
 
 	if (iln->cumul_exceptiontablelength) {
+		exceptiontable *tableend;
+		
 		n_ext = DMNEW(exceptiontable,iln->cumul_exceptiontablelength);
 		prevext = NULL;
-		inline_exception_tables(iln,n_ext,&prevext);
+		tableend = inline_exception_tables(iln,n_ext,&prevext);
+		assert(tableend == n_ext + iln->cumul_exceptiontablelength);
 		if (prevext)
 			prevext->down = NULL;
 	}
@@ -1379,7 +1634,7 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	n_method->basicblockindex = NULL;
 	n_method->instructioncount = iln->cumul_instructioncount;
 	n_method->instructions = iln->inlined_iinstr;
-	n_method->stackcount = iln->cumul_stackcount + 1000 /* XXX */;
+	n_method->stackcount = iln->cumul_stackcount;
 	n_method->stack = iln->n_inlined_stack;
 
 	n_method->exceptiontablelength = iln->cumul_exceptiontablelength;
@@ -1389,6 +1644,12 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	n_jd = DNEW(jitdata);
 	n_jd->flags = 0;
 	n_jd->m = n_method;
+
+	if (iln->ctx->calls_others) {
+		n_method->isleafmethod = false;
+	}
+	
+	n_jd->code = code_codeinfo_new(n_method);
 
 	n_cd = DNEW(codegendata);
 	n_jd->cd = n_cd;
@@ -1478,9 +1739,13 @@ bool inline_inline(jitdata *jd, methodinfo **resultmethod,
 
 	m = jd->m;
 
+	*resultmethod = m;
+	*resultjd = jd;
+
 #if 0
 	printf("==== INLINE ==================================================================\n");
 	method_println(m);
+	stack_show_method(jd);
 #endif
 	
 	iln = DNEW(inline_node);
@@ -1488,7 +1753,9 @@ bool inline_inline(jitdata *jd, methodinfo **resultmethod,
 
 	iln->ctx = (inline_context *) DMNEW(u1,sizeof(inline_context) + sizeof(inline_stack_translation) * 1000 /* XXX */);
 	memset(iln->ctx,0,sizeof(inline_context));
+	iln->ctx->master = iln;
 	iln->ctx->stacktranslationstart = iln->ctx->stacktranslation - 1;
+	iln->ctx->calls_others = false;
 	iln->m = m;		
 
 	/* we cannot use m->instructioncount because it may be greater than 
