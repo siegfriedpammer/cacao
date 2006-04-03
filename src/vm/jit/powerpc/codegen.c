@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4712 2006-03-30 11:59:46Z twisti $
+   $Id: codegen.c 4721 2006-04-03 13:59:29Z twisti $
 
 */
 
@@ -73,7 +73,7 @@
 
 
 s4 *codegen_trace_args( methodinfo *m, codegendata *cd, registerdata *rd,
-						s4 *mcodeptr, s4 parentargs_base, bool nativestub);
+						s4 *mcodeptr, s4 stackframesize, bool nativestub);
 
 /* codegen *********************************************************************
 
@@ -88,7 +88,7 @@ bool codegen(jitdata *jd)
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
 	ptrint              a;
-	s4                  parentargs_base;
+	s4                  stackframesize;
 	s4                 *mcodeptr;
 	stackptr            src;
 	varinfo            *var;
@@ -124,7 +124,7 @@ bool codegen(jitdata *jd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += 2 * (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->memuse + savedregs_num;
+	stackframesize = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)
 	/* space to save argument of monitor_enter and Return Values to survive */
@@ -135,19 +135,19 @@ bool codegen(jitdata *jd)
 		/* reserve 2 slots for long/double return values for monitorexit */
 
 		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			parentargs_base += 3;
+			stackframesize += 3;
 		else
-			parentargs_base += 2;
+			stackframesize += 2;
 	}
 
 #endif
 
 	/* create method header */
 
-	parentargs_base = (parentargs_base + 3) & ~3;
+	stackframesize = (stackframesize + 3) & ~3;    /* align stack to 16-bytes */
 
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, parentargs_base * 4);             /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
 
 #if defined(USE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -190,12 +190,12 @@ bool codegen(jitdata *jd)
 		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
 
-	if (parentargs_base)
-		M_STWU(REG_SP, REG_SP, -parentargs_base * 4);
+	if (stackframesize)
+		M_STWU(REG_SP, REG_SP, -stackframesize * 4);
 
 	/* save return address and used callee saved registers */
 
-	p = parentargs_base;
+	p = stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
 		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
 	}
@@ -239,24 +239,24 @@ bool codegen(jitdata *jd)
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
 					if (IS_2_WORD_TYPE(t)) {
 						M_ILD(GET_HIGH_REG(var->regoff), REG_SP,
-							  (parentargs_base + s1) * 4);
+							  (stackframesize + s1) * 4);
 						M_ILD(GET_LOW_REG(var->regoff), REG_SP,
-							  (parentargs_base + s1) * 4 + 4);
+							  (stackframesize + s1) * 4 + 4);
 					} else {
-						M_ILD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
+						M_ILD(var->regoff, REG_SP, (stackframesize + s1) * 4);
 					}
 
 				} else {                             /* stack arg -> spilled  */
 #if 1
- 					M_ILD(REG_ITMP1, REG_SP, (parentargs_base + s1) * 4);
+ 					M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4);
  					M_IST(REG_ITMP1, REG_SP, var->regoff * 4);
 					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, (parentargs_base + s1) * 4 +4);
+						M_ILD(REG_ITMP1, REG_SP, (stackframesize + s1) * 4 +4);
 						M_IST(REG_ITMP1, REG_SP, var->regoff * 4 + 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = parentargs_base + s1;
+					var->regoff = stackframesize + s1;
 #endif
 				}
 			}
@@ -277,25 +277,25 @@ bool codegen(jitdata *jd)
  			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
+						M_DLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
 
 					else
-						M_FLD(var->regoff, REG_SP, (parentargs_base + s1) * 4);
+						M_FLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
 
  				} else {                             /* stack-arg -> spilled  */
 #if 1
 					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, (parentargs_base + s1) * 4);
+						M_DLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
 						M_DST(REG_FTMP1, REG_SP, var->regoff * 4);
-						var->regoff = parentargs_base + s1;
+						var->regoff = stackframesize + s1;
 
 					} else {
-						M_FLD(REG_FTMP1, REG_SP, (parentargs_base + s1) * 4);
+						M_FLD(REG_FTMP1, REG_SP, (stackframesize + s1) * 4);
 						M_FST(REG_FTMP1, REG_SP, var->regoff * 4);
 					}
 #else
 					/* Reuse Memory Position on Caller Stack */
-					var->regoff = parentargs_base + s1;
+					var->regoff = stackframesize + s1;
 #endif
 				}
 			}
@@ -364,7 +364,7 @@ bool codegen(jitdata *jd)
 	/* call trace function */
 
 	if (opt_verbosecall) {
-		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, parentargs_base, false);
+		mcodeptr = codegen_trace_args(m, cd, rd, mcodeptr, stackframesize, false);
 
 	}
 	}
@@ -2478,7 +2478,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-			p = parentargs_base;
+			p = stackframesize;
 
 			/* call trace function */
 
@@ -2594,8 +2594,8 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 
-			if (parentargs_base)
-				M_LDA(REG_SP, REG_SP, parentargs_base * 4);
+			if (stackframesize)
+				M_LDA(REG_SP, REG_SP, stackframesize * 4);
 
 			M_RET;
 			ALIGNCODENOP;
@@ -3415,7 +3415,7 @@ gen_method:
 
 				if (m->isleafmethod) {
 					M_MFLR(REG_ZERO);
-					M_AST(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+					M_AST(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 				}
 
 				M_MOV(REG_PV, rd->argintregs[0]);
@@ -3425,7 +3425,7 @@ gen_method:
 					M_MOV(REG_ZERO, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
-						  REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+						  REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);
@@ -3441,7 +3441,7 @@ gen_method:
 				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
 				if (m->isleafmethod) {
-					M_ALD(REG_ZERO, REG_SP, parentargs_base * 4 + LA_LR_OFFSET);
+					M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 					M_MTLR(REG_ZERO);
 				}
 
@@ -4090,7 +4090,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 
 s4 *codegen_trace_args(methodinfo *m, codegendata *cd, registerdata *rd,
-					   s4 *mcodeptr, s4 parentargs_base, bool nativestub)
+					   s4 *mcodeptr, s4 stackframesize, bool nativestub)
 {
 	s4 s1, p, t, d;
 	int stack_off;
@@ -4162,7 +4162,7 @@ s4 *codegen_trace_args(methodinfo *m, codegendata *cd, registerdata *rd,
 						  , REG_SP, stack_off + 4);
 				}
 			} else { /* Param on Stack */
-				s1 = (md->params[p].regoff + parentargs_base) * 4 
+				s1 = (md->params[p].regoff + stackframesize) * 4 
 					+ stack_size;
 				if (IS_2_WORD_TYPE(t)) {
 					M_ILD(REG_ITMP2, REG_SP, s1);
