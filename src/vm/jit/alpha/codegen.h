@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4626 2006-03-16 12:03:47Z twisti $
+   $Id: codegen.h 4722 2006-04-03 15:36:00Z twisti $
 
 */
 
@@ -162,7 +162,7 @@
 
 
 #define M_COPY(from,to) \
-	d = reg_of_var(rd, to, REG_IFTMP); \
+	d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \

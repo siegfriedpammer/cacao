@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4666 2006-03-21 07:57:11Z edwin $
+   $Id: codegen.c 4722 2006-04-03 15:36:00Z twisti $
 
 */
 
@@ -79,10 +79,13 @@
 
 *******************************************************************************/
 
-bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
+bool codegen(jitdata *jd)
 {
+	methodinfo         *m;
+	codegendata        *cd;
+	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
-	s4                  parentargs_base;
+	s4                  stackframesize;
 	s4                 *mcodeptr;
 	stackptr            src;
 	varinfo            *var;
@@ -94,6 +97,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	builtintable_entry *bte;
 	methoddesc         *md;
 	rplpoint           *replacementpoint;
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* prevent compiler warnings */
 
@@ -113,17 +122,21 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
-	parentargs_base = rd->memuse + savedregs_num;
+	stackframesize = rd->memuse + savedregs_num;
 
 #if defined(USE_THREADS)           /* space to save argument of monitor_enter */
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		parentargs_base++;
+		stackframesize++;
 #endif
 
 	/* create method header */
 
+#if 0
+	stackframesize = (stackframesize + 1) & ~1;    /* align stack to 16-bytes */
+#endif
+
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
-	(void) dseg_adds4(cd, parentargs_base * 8);             /* FrameSize      */
+	(void) dseg_adds4(cd, stackframesize * 8);              /* FrameSize      */
 
 #if defined(USE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -161,12 +174,12 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* create stack frame (if necessary) */
 
-	if (parentargs_base)
-		M_LDA(REG_SP, REG_SP, -parentargs_base * 8);
+	if (stackframesize)
+		M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 
 	/* save return address and used callee saved registers */
 
-	p = parentargs_base;
+	p = stackframesize;
 	if (!m->isleafmethod) {
 		p--; M_AST(REG_RA, REG_SP, p * 8);
 	}
@@ -202,10 +215,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
- 					M_LLD(var->regoff, REG_SP, (parentargs_base + s1) * 8);
+ 					M_LLD(var->regoff, REG_SP, (stackframesize + s1) * 8);
 
  				} else {                             /* stack arg -> spilled  */
-					var->regoff = parentargs_base + s1;
+					var->regoff = stackframesize + s1;
 				}
 			}
 
@@ -221,10 +234,10 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
- 					M_DLD(var->regoff, REG_SP, (parentargs_base + s1) * 8);
+ 					M_DLD(var->regoff, REG_SP, (stackframesize + s1) * 8);
 
  				} else {                             /* stack-arg -> spilled  */
-					var->regoff = parentargs_base + s1;
+					var->regoff = stackframesize + s1;
 				}
 			}
 		}
@@ -356,7 +369,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 	/* end of header generation */
 
-	replacementpoint = cd->code->rplpoints;
+	replacementpoint = jd->code->rplpoints;
 
 	/* walk through all basic blocks */
 
@@ -409,11 +422,11 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			while (src != NULL) {
 				len--;
 				if ((len == 0) && (bptr->type != BBTYPE_STD)) {
-					d = reg_of_var(rd, src, REG_ITMP1);
+					d = codegen_reg_of_var(rd, 0, src, REG_ITMP1);
 					M_INTMOVE(REG_ITMP1, d);
 					store_reg_to_var_int(src, d);
 				} else {
-					d = reg_of_var(rd, src, REG_IFTMP);
+					d = codegen_reg_of_var(rd, 0, src, REG_IFTMP);
 					if ((src->varkind != STACKVAR)) {
 						s2 = src->type;
 						if (IS_FLT_DBL_TYPE(s2)) {
@@ -475,7 +488,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.i = constant                    */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			ICONST(d, iptr->val.i);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -483,7 +496,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.l = constant                    */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			LCONST(d, iptr->val.l);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -491,7 +504,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.f = constant                    */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			disp = dseg_addfloat(cd, iptr->val.f);
 			M_FLD(d, REG_PV, disp);
 			store_reg_to_var_flt(iptr->dst, d);
@@ -500,7 +513,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.d = constant                    */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			disp = dseg_adddouble(cd, iptr->val.d);
 			M_DLD(d, REG_PV, disp);
 			store_reg_to_var_flt(iptr->dst, d);
@@ -509,7 +522,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 
 			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
 				disp = dseg_addaddress(cd, iptr->val.a);
@@ -541,7 +554,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LLOAD:      /* op1 = local variable                         */
 		case ICMD_ALOAD:
 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1))
 				break;
@@ -557,7 +570,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_FLOAD:      /* ...  ==> ..., content of local variable      */
 		case ICMD_DLOAD:      /* op1 = local variable                         */
 
-			d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1))
 				break;
@@ -669,7 +682,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_int(s1, src, REG_ITMP1); 
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_ISUB(REG_ZERO, s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -677,7 +690,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LNEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_LSUB(REG_ZERO, s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -685,7 +698,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_I2L:        /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -693,7 +706,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_L2I:        /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_IADD(s1, REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -701,7 +714,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INT2BYTE:   /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (has_ext_instr_set) {
 				M_BSEXT(s1, d);
 			} else {
@@ -714,7 +727,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INT2CHAR:   /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
             M_CZEXT(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -722,7 +735,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_INT2SHORT:  /* ..., value  ==> ..., value                   */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (has_ext_instr_set) {
 				M_SSEXT(s1, d);
 			} else {
@@ -737,7 +750,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_IADD(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -746,7 +759,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_IADD_IMM(s1, iptr->val.i, d);
 			} else {
@@ -760,7 +773,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_LADD(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -769,7 +782,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_LADD_IMM(s1, iptr->val.l, d);
 			} else {
@@ -783,7 +796,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_ISUB(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -792,7 +805,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_ISUB_IMM(s1, iptr->val.i, d);
 			} else {
@@ -806,7 +819,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_LSUB(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -815,7 +828,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_LSUB_IMM(s1, iptr->val.l, d);
 			} else {
@@ -829,7 +842,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_IMUL(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -838,7 +851,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_IMUL_IMM(s1, iptr->val.i, d);
 			} else {
@@ -852,7 +865,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_LMUL(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -861,7 +874,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_LMUL_IMM(s1, iptr->val.l, d);
 			} else {
@@ -876,7 +889,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_RESULT);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 			M_BEQZ(s2, 0);
 			codegen_add_arithmeticexception_ref(cd, mcodeptr);
 
@@ -898,7 +911,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_RESULT);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 			M_BEQZ(s2, 0);
 			codegen_add_arithmeticexception_ref(cd, mcodeptr);
 
@@ -919,7 +932,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_LDIVPOW2:   /* val.i = constant                             */
 		                      
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->val.i <= 15) {
 				M_LDA(REG_ITMP2, s1, (1 << iptr->val.i) -1);
 				M_CMOVGE(s1, s1, REG_ITMP2);
@@ -936,7 +949,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SLL(s1, REG_ITMP3, d);
 			M_IADD(d, REG_ZERO, d);
@@ -947,7 +960,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SLL_IMM(s1, iptr->val.i & 0x1f, d);
 			M_IADD(d, REG_ZERO, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -957,7 +970,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SRA(s1, REG_ITMP3, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -967,7 +980,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SRA_IMM(s1, iptr->val.i & 0x1f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -976,7 +989,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_AND_IMM(s2, 0x1f, REG_ITMP2);
             M_IZEXT(s1, d);
 			M_SRL(d, REG_ITMP2, d);
@@ -988,7 +1001,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
             M_IZEXT(s1, d);
 			M_SRL_IMM(d, iptr->val.i & 0x1f, d);
 			M_IADD(d, REG_ZERO, d);
@@ -999,7 +1012,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SLL(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1008,7 +1021,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SLL_IMM(s1, iptr->val.i & 0x3f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1017,7 +1030,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SRA(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1026,7 +1039,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SRA_IMM(s1, iptr->val.i & 0x3f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1035,7 +1048,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SRL(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1044,7 +1057,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_SRL_IMM(s1, iptr->val.i & 0x3f, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1054,7 +1067,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_AND(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1063,7 +1076,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_AND_IMM(s1, iptr->val.i, d);
 			} else if (iptr->val.i == 0xffff) {
@@ -1081,7 +1094,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -1116,7 +1129,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_AND_IMM(s1, iptr->val.l, d);
 			} else if (iptr->val.l == 0xffffL) {
@@ -1142,7 +1155,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -1198,7 +1211,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_OR( s1,s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1207,7 +1220,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_OR_IMM(s1, iptr->val.i, d);
 			} else {
@@ -1221,7 +1234,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_OR_IMM(s1, iptr->val.l, d);
 			} else {
@@ -1236,7 +1249,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_XOR(s1, s2, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -1245,7 +1258,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.i = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.i >= 0) && (iptr->val.i <= 255)) {
 				M_XOR_IMM(s1, iptr->val.i, d);
 			} else {
@@ -1259,7 +1272,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                      /* val.l = constant                             */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if ((iptr->val.l >= 0) && (iptr->val.l <= 255)) {
 				M_XOR_IMM(s1, iptr->val.l, d);
 			} else {
@@ -1274,7 +1287,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			M_CMPLT(s1, s2, REG_ITMP3);
 			M_CMPLT(s2, s1, REG_ITMP1);
 			M_LSUB(REG_ITMP1, REG_ITMP3, d);
@@ -1309,7 +1322,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_FNEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP2);
 			M_FMOVN(s1, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1317,7 +1330,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP2);
 			M_FMOVN(s1, d);
 			store_reg_to_var_flt(iptr->dst, d);
 			break;
@@ -1326,7 +1339,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_FADD(s1, s2, d);
 			} else {
@@ -1346,7 +1359,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_DADD(s1, s2, d);
 			} else {
@@ -1366,7 +1379,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_FSUB(s1, s2, d);
 			} else {
@@ -1386,7 +1399,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_DSUB(s1, s2, d);
 			} else {
@@ -1406,7 +1419,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_FMUL(s1, s2, d);
 			} else {
@@ -1426,7 +1439,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_DMUL(s1, s2, d);
 			} else {
@@ -1446,7 +1459,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_FDIV(s1, s2, d);
 			} else {
@@ -1466,7 +1479,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_DDIV(s1, s2, d);
 			} else {
@@ -1485,7 +1498,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 		case ICMD_L2F:
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			disp = dseg_adddouble(cd, 0.0);
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
@@ -1496,7 +1509,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_I2D:       /* ..., value  ==> ..., (double) value           */
 		case ICMD_L2D:
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			disp = dseg_adddouble(cd, 0.0);
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
@@ -1507,7 +1520,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_F2I:       /* ..., value  ==> ..., (int) value              */
 		case ICMD_D2I:
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 			disp = dseg_adddouble(cd, 0.0);
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_CVTLI(REG_FTMP2, REG_FTMP3);
@@ -1519,7 +1532,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_F2L:       /* ..., value  ==> ..., (long) value             */
 		case ICMD_D2L:
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 			disp = dseg_adddouble(cd, 0.0);
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_DST(REG_FTMP2, REG_PV, disp);
@@ -1530,7 +1543,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			M_CVTFDS(s1, d);
 			M_TRAPB;
 			store_reg_to_var_flt(iptr->dst, d);
@@ -1539,7 +1552,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_D2F:       /* ..., value  ==> ..., (float) value            */
 
 			var_to_reg_flt(s1, src, REG_FTMP1);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP3);
 			if (opt_noieee) {
 				M_CVTDF(s1, d);
 			} else {
@@ -1553,7 +1566,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DCMPL:
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 			if (opt_noieee) {
 				M_LSUB_IMM(REG_ZERO, 1, d);
 				M_FCMPEQ(s1, s2, REG_FTMP3);
@@ -1580,7 +1593,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_DCMPG:
 			var_to_reg_flt(s1, src->prev, REG_FTMP1);
 			var_to_reg_flt(s2, src, REG_FTMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP3);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 			if (opt_noieee) {
 				M_LADD_IMM(REG_ZERO, 1, d);
 				M_FCMPEQ(s1, s2, REG_FTMP3);
@@ -1609,7 +1622,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			gen_nullptr_check(s1);
 			M_ILD(d, s1, OFFSET(java_arrayheader, size));
 			store_reg_to_var_int(iptr->dst, d);
@@ -1619,7 +1632,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1642,7 +1655,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1665,7 +1678,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1690,7 +1703,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1704,7 +1717,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1718,7 +1731,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1732,7 +1745,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_FTMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -1746,7 +1759,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			var_to_reg_int(s1, src->prev, REG_ITMP1);
 			var_to_reg_int(s2, src, REG_ITMP2);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (iptr->op1 == 0) {
 				gen_nullptr_check(s1);
 				gen_bound_check;
@@ -2052,27 +2065,27 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 			M_ALD(REG_ITMP1, REG_PV, disp);
 			switch (iptr->op1) {
 			case TYPE_INT:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_LLD(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ALD(d, REG_ITMP1, 0);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_FLD(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_DLD(d, REG_ITMP1, 0);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
@@ -2203,27 +2216,27 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_LNG:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_LLD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_ADR:
-				d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ALD(d, s1, disp);
 				store_reg_to_var_int(iptr->dst, d);
 				break;
 			case TYPE_FLT:
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_FLD(d, s1, disp);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
 			case TYPE_DBL:				
-				d = reg_of_var(rd, iptr->dst, REG_FTMP1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_DLD(d, s1, disp);
 				store_reg_to_var_flt(iptr->dst, d);
 				break;
@@ -2697,7 +2710,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if ((s3 == 1) && (iptr[1].val.i == 0)) {
@@ -2730,7 +2743,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if (iptr[1].opc == ICMD_ELSE_ICONST) {
 				if ((s3 == 0) && (iptr[1].val.i == 1)) {
@@ -2763,7 +2776,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
 				if ((s3 == 1) && (iptr[1].val.i == 0)) {
@@ -2795,7 +2808,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
 				if ((s3 == 1) && (iptr[1].val.i == 0)) {
@@ -2827,7 +2840,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
 				if ((s3 == 1) && (iptr[1].val.i == 0)) {
@@ -2859,7 +2872,7 @@ bool codegen(methodinfo *m, codegendata *cd, registerdata *rd)
 		                        /* val.i = constant                           */
 
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			s3 = iptr->val.i;
 			if ((iptr[1].opc == ICMD_ELSE_ICONST)) {
 				if ((s3 == 1) && (iptr[1].val.i == 0)) {
@@ -2925,7 +2938,7 @@ nowperformreturn:
 			{
 			s4 i, p;
 			
-			p = parentargs_base;
+			p = stackframesize;
 			
 			/* call trace function */
 
@@ -3006,9 +3019,8 @@ nowperformreturn:
 
 			/* deallocate stack                                               */
 
-			if (parentargs_base) {
-				M_LDA(REG_SP, REG_SP, parentargs_base * 8);
-			}
+			if (stackframesize)
+				M_LDA(REG_SP, REG_SP, stackframesize * 8);
 
 			M_RET(REG_ZERO, REG_RA);
 			ALIGNCODENOP;
@@ -3283,11 +3295,11 @@ gen_method:
 
 			if (d != TYPE_VOID) {
 				if (IS_INT_LNG_TYPE(iptr->dst->type)) {
-					s1 = reg_of_var(rd, iptr->dst, REG_RESULT);
+					s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 					M_INTMOVE(REG_RESULT, s1);
 					store_reg_to_var_int(iptr->dst, s1);
 				} else {
-					s1 = reg_of_var(rd, iptr->dst, REG_FRESULT);
+					s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FRESULT);
 					M_FLTMOVE(REG_FRESULT, s1);
 					store_reg_to_var_flt(iptr->dst, s1);
 				}
@@ -3447,7 +3459,7 @@ gen_method:
 					M_BEQZ(REG_ITMP3, 0);
 					codegen_add_classcastexception_ref(cd, mcodeptr);
 				}
-				d = reg_of_var(rd, iptr->dst, s1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 
 			} else {
 				/* array type cast-check */
@@ -3478,7 +3490,7 @@ gen_method:
 				codegen_add_classcastexception_ref(cd, mcodeptr);
 
 				var_to_reg_int(s1, src, REG_ITMP1);
-				d = reg_of_var(rd, iptr->dst, s1);
+				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
 			}
 			M_INTMOVE(s1, d);
 			store_reg_to_var_int(iptr->dst, d);
@@ -3522,7 +3534,7 @@ gen_method:
 			codegen_threadcritrestart(cd, (u1 *) mcodeptr - cd->mcodebase);
 #endif
 			var_to_reg_int(s1, src, REG_ITMP1);
-			d = reg_of_var(rd, iptr->dst, REG_ITMP2);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 			if (s1 == d) {
 				M_MOV(s1, REG_ITMP1);
 				s1 = REG_ITMP1;
@@ -3690,7 +3702,7 @@ gen_method:
 			M_BEQZ(REG_RESULT, 0);
 			codegen_add_fillinstacktrace_ref(cd, mcodeptr);
 
-			d = reg_of_var(rd, iptr->dst, REG_RESULT);
+			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, d);
 			store_reg_to_var_int(iptr->dst, d);
 			break;
@@ -3794,7 +3806,7 @@ gen_method:
 					M_MOV(REG_RA, rd->argintregs[2]);
 				else
 					M_ALD(rd->argintregs[2],
-						  REG_SP, parentargs_base * 8 - SIZEOF_VOID_P);
+						  REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
 
 				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
 				M_MOV(REG_ITMP1, rd->argintregs[4]);
@@ -3904,8 +3916,9 @@ gen_method:
 		{
 			int i;
 
-			replacementpoint = cd->code->rplpoints;
-			for (i=0; i<cd->code->rplpointcount; ++i, ++replacementpoint) {
+			replacementpoint = jd->code->rplpoints;
+
+			for (i = 0; i < jd->code->rplpointcount; ++i, ++replacementpoint) {
 				/* check code segment size */
 
 				MCODECHECK(100);
@@ -3943,7 +3956,7 @@ gen_method:
 		}
 	}
 
-	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
 	/* everything's ok */
 
@@ -4005,23 +4018,30 @@ u1 *createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
-					 registerdata *rd, methoddesc *nmd)
+u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 {
-	s4         *mcodeptr;               /* code generation pointer            */
-	s4          stackframesize;         /* size of stackframe if needed       */
-	methoddesc *md;
-	s4          nativeparams;
-	s4          i, j;                   /* count variables                    */
-	s4          t;
-	s4          s1, s2, disp;
-	s4          funcdisp;               /* displacement of the function       */
+	methodinfo   *m;
+	codegendata  *cd;
+	registerdata *rd;
+	s4           *mcodeptr;             /* code generation pointer            */
+	s4            stackframesize;       /* size of stackframe if needed       */
+	methoddesc   *md;
+	s4            nativeparams;
+	s4            i, j;                 /* count variables                    */
+	s4            t;
+	s4            s1, s2, disp;
+	s4            funcdisp;             /* displacement of the function       */
+
+	/* get required compiler data */
+
+	m  = jd->m;
+	cd = jd->cd;
+	rd = jd->rd;
 
 	/* initialize variables */
 
 	md = m->parseddesc;
 	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
-
 
 	/* calculate stack frame size */
 
@@ -4032,7 +4052,6 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		1 +                             /* methodinfo for call trace          */
 		(md->paramcount > INT_ARG_CNT ? INT_ARG_CNT : md->paramcount) +
 		nmd->memuse;
-
 
 	/* create method header */
 
@@ -4050,12 +4069,10 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 	
 	mcodeptr = (s4 *) cd->mcodeptr;
 
-
 	/* generate stub code */
 
 	M_LDA(REG_SP, REG_SP, -stackframesize * 8);
 	M_AST(REG_RA, REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
-
 
 	/* call trace function */
 
@@ -4408,9 +4425,9 @@ u1 *createnativestub(functionptr f, methodinfo *m, codegendata *cd,
 		}
 	}
 
-	codegen_finish(m, cd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) ((u1 *) mcodeptr - cd->mcodebase));
 
-	return cd->code->entrypoint;
+	return jd->code->entrypoint;
 }
 
 
