@@ -28,9 +28,9 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
-			Edwin Steiner
+            Edwin Steiner
 
-   $Id: VMClass.c 4589 2006-03-13 08:02:58Z edwin $
+   $Id: VMClass.c 4725 2006-04-04 08:45:43Z twisti $
 
 */
 
@@ -64,85 +64,192 @@
 
 
 /*
- * Class:     java/lang/VMClass
- * Method:    forName
- * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+ * Class:     java/lang/Class
+ * Method:    isInstance
+ * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Object *o)
 {
-	classinfo *c;
-	utf       *u;
-	u2        *pos;
-	s4         i;
+	classinfo         *c;
+	java_objectheader *ob;
 
-	/* illegal argument */
+	c = (classinfo *) klass;
+	ob = (java_objectheader *) o;
 
-	if (!name)
-		return NULL;
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return 0;
 
-	/* name must not contain '/' (mauve test) */
-
-	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
-		if (*pos == '/') {
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
-			return NULL;
-		}
-	}
-
-	/* create utf string in which '.' is replaced by '/' */
-
-	u = javastring_toutf(name, true);
-
-	/* try to load, ... */
-
-	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
-		classinfo *xclass;
-
-		xclass = (*exceptionptr)->vftbl->class;
-
-		/* if the exception is a NoClassDefFoundError, we replace it with a
-		   ClassNotFoundException, otherwise return the exception */
-
-		if (xclass == class_java_lang_NoClassDefFoundError) {
-			/* clear exceptionptr, because builtin_new checks for 
-			   ExceptionInInitializerError */
-			*exceptionptr = NULL;
-
-			*exceptionptr =
-				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
-		}
-
-	    return NULL;
-	}
-
-	/* link, ... */
-
-	if (!link_class(c))
-		return NULL;
-	
-	/* ...and initialize it, if required */
-
-	if (initialize)
-		if (!initialize_class(c))
-			return NULL;
-
-	return (java_lang_Class *) c;
+	return builtin_instanceof(ob, c);
 }
 
 
 /*
- * Class:     java/lang/VMClass
- * Method:    getClassLoader
- * Signature: ()Ljava/lang/ClassLoader;
+ * Class:     java/lang/Class
+ * Method:    isAssignableFrom
+ * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
+{
+	classinfo *kc;
+	classinfo *cc;
+
+	kc = (classinfo *) klass;
+	cc = (classinfo *) c;
+
+	if (cc == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	if (!(kc->state & CLASS_LINKED))
+		if (!link_class(kc))
+			return 0;
+
+	if (!(cc->state & CLASS_LINKED))
+		if (!link_class(cc))
+			return 0;
+
+	/* XXX this may be wrong for array classes */
+
+	return builtin_isanysubclass(cc, kc);
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isInterface
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
 	classinfo *c;
 
 	c = (classinfo *) klass;
 
-	return (java_lang_ClassLoader *) c->classloader;
+	if (c->flags & ACC_INTERFACE)
+		return true;
+
+	return false;
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isPrimitive
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	classinfo *c;
+	s4         i;
+
+	c = (classinfo *) klass;
+
+	/* search table of primitive classes */
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+		if (primitivetype_table[i].class_primitive == c)
+			return true;
+
+	return false;
+}
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getName
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	classinfo        *c;
+	java_lang_String *s;
+	u4                i;
+
+	c = (classinfo *) klass;
+	s = (java_lang_String *) javastring_new(c->name);
+
+	if (!s)
+		return NULL;
+
+	/* return string where '/' is replaced by '.' */
+
+	for (i = 0; i < s->value->header.size; i++) {
+		if (s->value->data[i] == '/')
+			s->value->data[i] = '.';
+	}
+
+	return s;
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    getSuperclass
+ * Signature: ()Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	classinfo *c;
+	classinfo *sc;
+
+	c = (classinfo *) klass;
+
+	/* for java.lang.Object, primitive and Void classes we return NULL */
+	if (!c->super.any)
+		return NULL;
+
+	/* for interfaces we also return NULL */
+	if (c->flags & ACC_INTERFACE)
+		return NULL;
+
+	/* we may have to resolve the super class reference */
+	if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, 
+									   true, /* check access */
+									   false,  /* don't link */
+									   &sc))
+	{
+		return NULL;
+	}
+
+	/* store the resolution */
+	c->super.cls = sc;
+
+	return (java_lang_Class *) sc;
+}
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getInterfaces
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	classinfo        *c;
+	classinfo        *ic;
+	java_objectarray *oa;
+	u4                i;
+
+	c = (classinfo *) klass;
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
+	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+
+	if (!oa)
+		return NULL;
+
+	for (i = 0; i < c->interfacescount; i++) {
+		ic = c->interfaces[i].cls;
+
+		oa->data[i] = (java_objectheader *) ic;
+	}
+
+	return oa;
 }
 
 
@@ -182,60 +289,103 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
 
 /*
  * Class:     java/lang/VMClass
- * Method:    getDeclaredConstructors
- * Signature: (Z)[Ljava/lang/reflect/Constructor;
+ * Method:    getModifiers
+ * Signature: (Z)I
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
 {
-	classinfo                     *c;
-	methodinfo                    *m; /* the current method to be represented */
-	java_objectarray              *oa;     /* result: array of Method-objects */
-	java_objectheader             *o;
-	java_lang_reflect_Constructor *rc;
-	s4 public_methods;               /* number of public methods of the class */
-	s4 pos;
-	s4 i;
+	classinfo             *c;
+	classref_or_classinfo  inner;
+	classref_or_classinfo  outer;
+	utf                   *innername;
+	s4                     i;
 
 	c = (classinfo *) klass;
 
-	/* determine number of constructors */
+	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
+		/* search for passed class as inner class */
 
-	for (i = 0, public_methods = 0; i < c->methodscount; i++) {
-		m = &c->methods[i];
+		for (i = 0; i < c->innerclasscount; i++) {
+			inner = c->innerclass[i].inner_class;
+			outer = c->innerclass[i].outer_class;
 
-		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init))
-			public_methods++;
-	}
+			/* Check if inner is a classref or a real class and get
+               the name of the structure */
 
-	oa = builtin_anewarray(public_methods, class_java_lang_reflect_Constructor);
+			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
 
-	if (!oa) 
-		return NULL;
+			/* innerclass is this class */
 
-	for (i = 0, pos = 0; i < c->methodscount; i++) {
-		m = &c->methods[i];
+			if (innername == c->name) {
+				/* has the class actually an outer class? */
 
-		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
-			(m->name == utf_init)) {
-
-			if (!(o = native_new_and_init(class_java_lang_reflect_Constructor)))
-				return NULL;
-
-			/* initialize instance fields */
-
-			rc = (java_lang_reflect_Constructor *) o;
-
-			rc->clazz = (java_lang_Class *) c;
-			rc->slot  = i;
-
-			/* store object into array */
-
-			oa->data[pos++] = o;
+				if (outer.any)
+					/* return flags got from the outer class file */
+					return c->innerclass[i].flags;
+				else
+					return c->flags;
+			}
 		}
 	}
 
-	return oa;
+	/* passed class is no inner class or it was not requested */
+
+	return c->flags;
+}
+
+
+/*
+ * Class:     java/lang/VMClass
+ * Method:    getDeclaringClass
+ * Signature: ()Ljava/lang/Class;
+ */
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	classinfo             *c;
+	classref_or_classinfo  inner;
+	utf                   *innername;
+	classinfo             *outer;
+	s4                     i;
+
+	c = (classinfo *) klass;
+
+	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
+		(c->name->text[0] != '[')) {
+
+		if (c->innerclasscount == 0)  /* no innerclasses exist */
+			return NULL;
+    
+		for (i = 0; i < c->innerclasscount; i++) {
+			inner = c->innerclass[i].inner_class;
+
+			/* check if inner_class is a classref or a real class and
+               get the class name from the structure */
+
+			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
+
+			/* innerclass is this class */
+
+			if (innername == c->name) {
+				/* maybe the outer class is not loaded yet */
+
+				if (!resolve_classref_or_classinfo(NULL,
+												   c->innerclass[i].outer_class,
+												   resolveEager, false, false,
+												   &outer))
+					return NULL;
+
+				if (!(outer->state & CLASS_LINKED))
+					if (!link_class(outer))
+						return NULL;
+
+				return (java_lang_Class *) outer;
+			}
+		}
+	}
+
+	/* return NULL for arrayclasses and primitive classes */
+
+	return NULL;
 }
 
 
@@ -318,61 +468,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
 
 /*
  * Class:     java/lang/VMClass
- * Method:    getDeclaringClass
- * Signature: ()Ljava/lang/Class;
- */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
-{
-	classinfo             *c;
-	classref_or_classinfo  inner;
-	utf                   *innername;
-	classinfo             *outer;
-	s4                     i;
-
-	c = (classinfo *) klass;
-
-	if (!Java_java_lang_VMClass_isPrimitive(env, clazz, klass) &&
-		(c->name->text[0] != '[')) {
-
-		if (c->innerclasscount == 0)  /* no innerclasses exist */
-			return NULL;
-    
-		for (i = 0; i < c->innerclasscount; i++) {
-			inner = c->innerclass[i].inner_class;
-
-			/* check if inner_class is a classref or a real class and
-               get the class name from the structure */
-
-			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
-
-			/* innerclass is this class */
-
-			if (innername == c->name) {
-				/* maybe the outer class is not loaded yet */
-
-				if (!resolve_classref_or_classinfo(NULL,
-												   c->innerclass[i].outer_class,
-												   resolveEager, false, false,
-												   &outer))
-					return NULL;
-
-				if (!(outer->state & CLASS_LINKED))
-					if (!link_class(outer))
-						return NULL;
-
-				return (java_lang_Class *) outer;
-			}
-		}
-	}
-
-	/* return NULL for arrayclasses and primitive classes */
-
-	return NULL;
-}
-
-
-/*
- * Class:     java/lang/VMClass
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */
@@ -425,39 +520,6 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
 
 			oa->data[pos++] = o;
 		}
-	}
-
-	return oa;
-}
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    getInterfaces
- * Signature: ()[Ljava/lang/Class;
- */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
-{
-	classinfo        *c;
-	classinfo        *ic;
-	java_objectarray *oa;
-	u4                i;
-
-	c = (classinfo *) klass;
-
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return NULL;
-
-	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
-
-	if (!oa)
-		return NULL;
-
-	for (i = 0; i < c->interfacescount; i++) {
-		ic = c->interfaces[i].cls;
-
-		oa->data[i] = (java_objectheader *) ic;
 	}
 
 	return oa;
@@ -537,112 +599,143 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
 
 /*
  * Class:     java/lang/VMClass
- * Method:    getModifiers
- * Signature: (Z)I
+ * Method:    getDeclaredConstructors
+ * Signature: (Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-	classinfo             *c;
-	classref_or_classinfo  inner;
-	classref_or_classinfo  outer;
-	utf                   *innername;
-	s4                     i;
+	classinfo                     *c;
+	methodinfo                    *m; /* the current method to be represented */
+	java_objectarray              *oa;     /* result: array of Method-objects */
+	java_objectheader             *o;
+	java_lang_reflect_Constructor *rc;
+	s4 public_methods;               /* number of public methods of the class */
+	s4 pos;
+	s4 i;
 
 	c = (classinfo *) klass;
 
-	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
-		/* search for passed class as inner class */
+	/* determine number of constructors */
 
-		for (i = 0; i < c->innerclasscount; i++) {
-			inner = c->innerclass[i].inner_class;
-			outer = c->innerclass[i].outer_class;
+	for (i = 0, public_methods = 0; i < c->methodscount; i++) {
+		m = &c->methods[i];
 
-			/* Check if inner is a classref or a real class and get
-               the name of the structure */
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
+			(m->name == utf_init))
+			public_methods++;
+	}
 
-			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
+	oa = builtin_anewarray(public_methods, class_java_lang_reflect_Constructor);
 
-			/* innerclass is this class */
+	if (!oa) 
+		return NULL;
 
-			if (innername == c->name) {
-				/* has the class actually an outer class? */
+	for (i = 0, pos = 0; i < c->methodscount; i++) {
+		m = &c->methods[i];
 
-				if (outer.any)
-					/* return flags got from the outer class file */
-					return c->innerclass[i].flags;
-				else
-					return c->flags;
-			}
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
+			(m->name == utf_init)) {
+
+			if (!(o = native_new_and_init(class_java_lang_reflect_Constructor)))
+				return NULL;
+
+			/* initialize instance fields */
+
+			rc = (java_lang_reflect_Constructor *) o;
+
+			rc->clazz = (java_lang_Class *) c;
+			rc->slot  = i;
+
+			/* store object into array */
+
+			oa->data[pos++] = o;
 		}
 	}
 
-	/* passed class is no inner class or it was not requested */
-
-	return c->flags;
+	return oa;
 }
 
 
 /*
  * Class:     java/lang/VMClass
- * Method:    getName
- * Signature: ()Ljava/lang/String;
+ * Method:    getClassLoader
+ * Signature: ()Ljava/lang/ClassLoader;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	classinfo        *c;
-	java_lang_String *s;
-	u4                i;
+	classinfo *c;
 
 	c = (classinfo *) klass;
-	s = (java_lang_String *) javastring_new(c->name);
 
-	if (!s)
-		return NULL;
-
-	/* return string where '/' is replaced by '.' */
-
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
-	}
-
-	return s;
+	return (java_lang_ClassLoader *) c->classloader;
 }
 
 
 /*
- * Class:     java/lang/Class
- * Method:    getSuperclass
- * Signature: ()Ljava/lang/Class;
+ * Class:     java/lang/VMClass
+ * Method:    forName
+ * Signature: (Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
 {
 	classinfo *c;
-	classinfo *sc;
+	utf       *u;
+	u2        *pos;
+	s4         i;
 
-	c = (classinfo *) klass;
+	/* illegal argument */
 
-	/* for java.lang.Object, primitive and Void classes we return NULL */
-	if (!c->super.any)
+	if (!name)
 		return NULL;
 
-	/* for interfaces we also return NULL */
-	if (c->flags & ACC_INTERFACE)
-		return NULL;
+	/* name must not contain '/' (mauve test) */
 
-	/* we may have to resolve the super class reference */
-	if (!resolve_classref_or_classinfo(NULL, c->super, resolveEager, 
-									   true, /* check access */
-									   false,  /* don't link */
-									   &sc))
-	{
-		return NULL;
+	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
+		if (*pos == '/') {
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+			return NULL;
+		}
 	}
 
-	/* store the resolution */
-	c->super.cls = sc;
+	/* create utf string in which '.' is replaced by '/' */
 
-	return (java_lang_Class *) sc;
+	u = javastring_toutf(name, true);
+
+	/* try to load, ... */
+
+	if (!(c = load_class_from_classloader(u, (java_objectheader *) loader))) {
+		classinfo *xclass;
+
+		xclass = (*exceptionptr)->vftbl->class;
+
+		/* if the exception is a NoClassDefFoundError, we replace it with a
+		   ClassNotFoundException, otherwise return the exception */
+
+		if (xclass == class_java_lang_NoClassDefFoundError) {
+			/* clear exceptionptr, because builtin_new checks for 
+			   ExceptionInInitializerError */
+			*exceptionptr = NULL;
+
+			*exceptionptr =
+				new_exception_javastring(string_java_lang_ClassNotFoundException, name);
+		}
+
+	    return NULL;
+	}
+
+	/* link, ... */
+
+	if (!link_class(c))
+		return NULL;
+	
+	/* ...and initialize it, if required */
+
+	if (initialize)
+		if (!initialize_class(c))
+			return NULL;
+
+	return (java_lang_Class *) c;
 }
 
 
@@ -660,99 +753,6 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, j
 			return 0;
 
 	return (c->vftbl->arraydesc != NULL);
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    isAssignableFrom
- * Signature: (Ljava/lang/Class;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
-{
-	classinfo *kc;
-	classinfo *cc;
-
-	kc = (classinfo *) klass;
-	cc = (classinfo *) c;
-
-	if (cc == NULL) {
-		exceptions_throw_nullpointerexception();
-		return 0;
-	}
-
-	if (!(kc->state & CLASS_LINKED))
-		if (!link_class(kc))
-			return 0;
-
-	if (!(cc->state & CLASS_LINKED))
-		if (!link_class(cc))
-			return 0;
-
-	/* XXX this may be wrong for array classes */
-
-	return builtin_isanysubclass(cc, kc);
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    isInstance
- * Signature: (Ljava/lang/Object;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Object *o)
-{
-	classinfo         *c;
-	java_objectheader *ob;
-
-	c = (classinfo *) klass;
-	ob = (java_objectheader *) o;
-
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return 0;
-
-	return builtin_instanceof(ob, c);
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    isInterface
- * Signature: ()Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *klass)
-{
-	classinfo *c;
-
-	c = (classinfo *) klass;
-
-	if (c->flags & ACC_INTERFACE)
-		return true;
-
-	return false;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    isPrimitive
- * Signature: ()Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
-{
-	classinfo *c;
-	s4         i;
-
-	c = (classinfo *) klass;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
 }
 
 
