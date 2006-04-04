@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4661 2006-03-21 00:04:59Z motse $
+   $Id: threads.c 4728 2006-04-04 09:17:05Z twisti $
 
 */
 
@@ -172,7 +172,6 @@ __thread threadobject *threadobj;
 #endif
 
 static pthread_mutex_rec_t compiler_mutex;
-static pthread_mutex_rec_t tablelock;
 
 void compiler_lock()
 {
@@ -183,17 +182,6 @@ void compiler_unlock()
 {
 	pthread_mutex_unlock_rec(&compiler_mutex);
 }
-
-void tables_lock()
-{
-    pthread_mutex_lock_rec(&tablelock);
-}
-
-void tables_unlock()
-{
-    pthread_mutex_unlock_rec(&tablelock);
-}
-
 
 static s4 criticalcompare(const void *pa, const void *pb)
 {
@@ -507,11 +495,9 @@ void threads_preinit(void)
 	pthread_mutexattr_init(&mutexattr);
 	pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&compiler_mutex, &mutexattr);
-	pthread_mutex_init(&tablelock, &mutexattr);
 	pthread_mutexattr_destroy(&mutexattr);
 #else
 	pthread_mutex_init_rec(&compiler_mutex);
-	pthread_mutex_init_rec(&tablelock);
 #endif
 
 	pthread_mutex_init(&threadlistlock, NULL);

@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4682 2006-03-23 00:08:28Z edwin $
+   $Id: global.h 4728 2006-04-04 09:17:05Z twisti $
 
 */
 
@@ -42,7 +42,7 @@
 #define _GLOBAL_H
 
 #include "config.h"
-#include "types.h"
+#include "vm/types.h"
 
 
 /* additional data types ******************************************************/
@@ -116,15 +116,15 @@ typedef struct java_objectarray java_objectarray;
 
 /* primitive data types *******************************************************/
 
-/* These values are used in parsed descriptors and in some other places       */
-/* were the different types handled internally as TYPE_INT have to be         */
-/* distinguished.                                                             */
+/* These values are used in parsed descriptors and in some other
+   places were the different types handled internally as TYPE_INT have
+   to be distinguished. */
 
 #define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
 
 /* CAUTION: Don't change the numerical values! These constants are
- * used as indices into the primitive type table.
- */
+   used as indices into the primitive type table. */
+
 #define PRIMITIVETYPE_INT     TYPE_INT
 #define PRIMITIVETYPE_LONG    TYPE_LONG
 #define PRIMITIVETYPE_FLOAT   TYPE_FLOAT
@@ -293,41 +293,11 @@ struct java_objectarray {
 };
 
 
-#define VFTBLINTERFACETABLE(v,i)       (v)->interfacetable[-i]
-
-
-/* flag variables *************************************************************/
-
-extern bool cacao_initializing;
-
-
 /* Synchronization ************************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void cast_lock();
-void cast_unlock();
 void compiler_lock();
 void compiler_unlock();
-#endif
-
-
-/**** Methods: called directly by cacao, which defines the callpath ***/
-#define MAINCLASS mainstring
-#define MAINMETH "main"
-#define MAINDESC "([Ljava/lang/String;)V"
-
-#define EXITCLASS "java/lang/System"
-#define EXITMETH  "exit"
-#define EXITDESC  "(I)V"
-
-#if defined(USE_THREADS)
- #define THREADCLASS "java/lang/Thread"
- #define THREADMETH  "<init>"
- #define THREADDESC  "(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"
-
- #define THREADGROUPCLASS "java/lang/ThreadGroup"
- #define THREADGROUPMETH  "addThread"
- #define THREADGROUPDESC  "(Ljava/lang/Thread;)V"
 #endif
 
 #endif /* _GLOBAL_H */

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: hashtable.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: hashtable.h 4728 2006-04-04 09:17:05Z twisti $
 
 */
 
@@ -110,11 +110,6 @@ struct hashtable {
 
 /* create hashtable */
 void hashtable_create(hashtable *hash, u4 size);
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void tables_lock(void);
-void tables_unlock(void);
-#endif
 
 #endif /* _HASHTABLE_H */
 
