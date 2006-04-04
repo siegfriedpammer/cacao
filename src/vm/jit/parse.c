@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: parse.c 4723 2006-04-04 08:24:25Z edwin $
 
 */
 
@@ -164,7 +164,6 @@ bool parse(jitdata *jd)
 	instruction *iptr;          /* current ptr into instruction array */
 	int gp;                     /* global java instruction counter    */
 
-	int firstlocal = 0;         /* first local variable of method     */
 	u1 *instructionstart;       /* 1 for pcs which are valid instr. starts    */
 
 	constant_classref  *cr;
@@ -381,42 +380,42 @@ bool parse(jitdata *jd)
 				nextp = p + 3;
 				iswide = false;
 			}
-			OP1LOAD(opcode, i + firstlocal);
+			OP1LOAD(opcode, i);
 			break;
 
 		case JAVA_ILOAD_0:
 		case JAVA_ILOAD_1:
 		case JAVA_ILOAD_2:
 		case JAVA_ILOAD_3:
-			OP1LOAD(ICMD_ILOAD, opcode - JAVA_ILOAD_0 + firstlocal);
+			OP1LOAD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
 			break;
 
 		case JAVA_LLOAD_0:
 		case JAVA_LLOAD_1:
 		case JAVA_LLOAD_2:
 		case JAVA_LLOAD_3:
-			OP1LOAD(ICMD_LLOAD, opcode - JAVA_LLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
 			break;
 
 		case JAVA_FLOAD_0:
 		case JAVA_FLOAD_1:
 		case JAVA_FLOAD_2:
 		case JAVA_FLOAD_3:
-			OP1LOAD(ICMD_FLOAD, opcode - JAVA_FLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
 			break;
 
 		case JAVA_DLOAD_0:
 		case JAVA_DLOAD_1:
 		case JAVA_DLOAD_2:
 		case JAVA_DLOAD_3:
-			OP1LOAD(ICMD_DLOAD, opcode - JAVA_DLOAD_0 + firstlocal);
+			OP1LOAD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
 			break;
 
 		case JAVA_ALOAD_0:
 		case JAVA_ALOAD_1:
 		case JAVA_ALOAD_2:
 		case JAVA_ALOAD_3:
-			OP1LOAD(ICMD_ALOAD, opcode - JAVA_ALOAD_0 + firstlocal);
+			OP1LOAD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
 			break;
 
 			/* storing stack values into local variables */
@@ -434,42 +433,42 @@ bool parse(jitdata *jd)
 				iswide = false;
 				nextp = p + 3;
 			}
-			OP1STORE(opcode, i + firstlocal);
+			OP1STORE(opcode, i);
 			break;
 
 		case JAVA_ISTORE_0:
 		case JAVA_ISTORE_1:
 		case JAVA_ISTORE_2:
 		case JAVA_ISTORE_3:
-			OP1STORE(ICMD_ISTORE, opcode - JAVA_ISTORE_0 + firstlocal);
+			OP1STORE(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
 			break;
 
 		case JAVA_LSTORE_0:
 		case JAVA_LSTORE_1:
 		case JAVA_LSTORE_2:
 		case JAVA_LSTORE_3:
-			OP1STORE(ICMD_LSTORE, opcode - JAVA_LSTORE_0 + firstlocal);
+			OP1STORE(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
 			break;
 
 		case JAVA_FSTORE_0:
 		case JAVA_FSTORE_1:
 		case JAVA_FSTORE_2:
 		case JAVA_FSTORE_3:
-			OP1STORE(ICMD_FSTORE, opcode - JAVA_FSTORE_0 + firstlocal);
+			OP1STORE(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
 			break;
 
 		case JAVA_DSTORE_0:
 		case JAVA_DSTORE_1:
 		case JAVA_DSTORE_2:
 		case JAVA_DSTORE_3:
-			OP1STORE(ICMD_DSTORE, opcode - JAVA_DSTORE_0 + firstlocal);
+			OP1STORE(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
 			break;
 
 		case JAVA_ASTORE_0:
 		case JAVA_ASTORE_1:
 		case JAVA_ASTORE_2:
 		case JAVA_ASTORE_3:
-			OP1STORE(ICMD_ASTORE, opcode - JAVA_ASTORE_0 + firstlocal);
+			OP1STORE(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
 			break;
 
 		case JAVA_IINC:
@@ -487,8 +486,8 @@ bool parse(jitdata *jd)
 					iswide = false;
 					nextp = p + 5;
 				}
-				INDEX_ONEWORD(i + firstlocal);
-				OP2I(opcode, i + firstlocal, v);
+				INDEX_ONEWORD(i);
+				OP2I(opcode, i, v);
 			}
 			break;
 
@@ -616,7 +615,7 @@ bool parse(jitdata *jd)
 			}
 			blockend = true;
 				
-			OP1LOAD(opcode, i + firstlocal);
+			OP1LOAD(opcode, i);
 			break;
 
 		case JAVA_IRETURN:
