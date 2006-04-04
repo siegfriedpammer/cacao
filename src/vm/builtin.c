@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: builtin.c 4732 2006-04-04 21:31:52Z edwin $
 
 */
 
@@ -504,9 +504,9 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 
 ******************************************************************************/
 
-#if !defined(NDEBUG)
 java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 {
+#if !defined(NDEBUG)
     java_lang_Throwable *t;
 	char                *logtext;
 	s4                   logtextlen;
@@ -559,12 +559,12 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 
 		dump_release(dumpsize);
 	}
+#endif /* !defined(NDEBUG) */
 
 	*exceptionptr = xptr;
 
 	return xptr;
 }
-#endif /* !defined(NDEBUG) */
 
 
 /* builtin_canstore ************************************************************
