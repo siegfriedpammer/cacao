@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4720 2006-04-02 16:17:57Z edwin $
+   $Id: codegen.c 4730 2006-04-04 18:14:01Z edwin $
 
 */
 
@@ -363,6 +363,7 @@ bool codegen(jitdata *jd)
 	   to arguments on stack.
 	*/
 
+#if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		stack_off = 0;
 		s1 = INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4 + 4 + stackframesize * 4;
@@ -431,6 +432,7 @@ bool codegen(jitdata *jd)
 
 		M_IADD_IMM(INT_TMP_CNT * 4 + TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
+#endif /* !defined(NDEBUG) */
 
 	}
 
@@ -4235,6 +4237,7 @@ nowperformreturn:
 			
   			p = stackframesize;
 			
+#if !defined(NDEBUG)
 			/* call trace function */
 			if (opt_verbosecall) {
 				i386_alu_imm_reg(cd, ALU_SUB, 4 + 8 + 8 + 4, REG_SP);
@@ -4255,6 +4258,7 @@ nowperformreturn:
 
 				i386_alu_imm_reg(cd, ALU_ADD, 4 + 8 + 8 + 4, REG_SP);
 			}
+#endif /* !defined(NDEBUG) */
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -5505,6 +5509,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_ASUB_IMM(stackframesize * 4, REG_SP);
 
+#if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		s4 p, t;
 
@@ -5567,6 +5572,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		M_AADD_IMM(TRACE_ARGS_NUM * 8 + 4, REG_SP);
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -5670,6 +5676,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+#if !defined(NDEBUG)
     if (opt_verbosecall) {
 		/* restore return value */
 
@@ -5700,6 +5707,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 		M_AADD_IMM(4 + 8 + 8 + 4, REG_SP);
     }
+#endif /* !defined(NDEBUG) */
 
 	/* check for exception */
 
