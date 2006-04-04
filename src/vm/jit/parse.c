@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4723 2006-04-04 08:24:25Z edwin $
+   $Id: parse.c 4724 2006-04-04 08:30:53Z edwin $
 
 */
 
@@ -175,8 +175,6 @@ bool parse(jitdata *jd)
 	u2 currentline = 0;
 	u2 linepcchange = 0;
 
-	u2 skipBasicBlockChange;
-
 	/* get required compiler data */
 
 	m  = jd->m;
@@ -231,7 +229,6 @@ bool parse(jitdata *jd)
 		linepcchange = m->linenumbers[0].start_pc;
 	}
 
-	skipBasicBlockChange=0;
 	for (p = 0, gp = 0; p < m->jcodelength; gp += (nextp - p), p = nextp) {
 	  
 		/* mark this position as a valid instruction start */
@@ -251,11 +248,7 @@ bool parse(jitdata *jd)
 
 		opcode = code_get_u1(p, m);
 
-		if (!skipBasicBlockChange) {
-			m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
-		} 
-		else 
-			skipBasicBlockChange = 0;
+		m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
