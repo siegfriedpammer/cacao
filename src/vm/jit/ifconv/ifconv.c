@@ -266,11 +266,13 @@ bool ifconv_static(jitdata *jd)
 
 				/* found a matching pattern */
 
+#if !defined(NDEBUG)
 				method_println(m);
 				stack_show_basicblock(jd, &bptr[0]);
 				stack_show_basicblock(jd, &bptr[1]);
 				stack_show_basicblock(jd, &bptr[2]);
 				stack_show_basicblock(jd, &bptr[3]);
+#endif
 
 				/* check the condition */
 
@@ -382,8 +384,10 @@ bool ifconv_static(jitdata *jd)
 
 				bptr->icount += icount;
 
+#if !defined(NDEBUG)
 				method_println(m);
 				stack_show_basicblock(jd, &bptr[0]);
+#endif
 
 				/* delete the 2 following basic blocks */
 
@@ -949,6 +953,7 @@ static void check(jitdata *jd, basicblock *bptr)
 
 	*/
 
+#if !defined(NDEBUG)
 	if (pattern != 0) {
 		printf("PATTERN %02d: (BB: %3d) ", pattern, m->basicblockcount - bptr->debug_nr);
 		method_println(m);
@@ -1009,6 +1014,7 @@ static void check(jitdata *jd, basicblock *bptr)
 				fflush(stdout);
 			}
 	}
+#endif /* !defined(NDEBUG) */
 }
 
 
