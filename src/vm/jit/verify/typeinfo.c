@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: typeinfo.c 4726 2006-04-04 09:13:01Z edwin $
 
 */
 
@@ -50,7 +50,7 @@
 /* check if a linked class implements the interface with the given index */
 #define CLASSINFO_IMPLEMENTS_INTERFACE(cls,index)                   \
     ( ((index) < (cls)->vftbl->interfacetablelength)            \
-      && (VFTBLINTERFACETABLE((cls)->vftbl,(index)) != NULL) )
+      && ( (cls)->vftbl->interfacetable[-(index)] != NULL ) )
 
 /******************************************************************************/
 /* DEBUG HELPERS                                                              */
