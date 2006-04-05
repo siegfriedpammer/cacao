@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4740 2006-04-05 19:44:46Z edwin $
+   $Id: parse.c 4741 2006-04-05 19:58:18Z edwin $
 
 */
 
@@ -250,7 +250,7 @@ fetch_opcode:
 
 		/* some compilers put a JAVA_NOP after a blockend instruction */
 
-		if ((opcode != JAVA_NOP) && (blockend == true)) {
+		if (blockend && (opcode != JAVA_NOP)) {
 			/* start new block */
 
 			block_insert(gp);
