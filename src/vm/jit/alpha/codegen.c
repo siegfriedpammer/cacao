@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4722 2006-04-03 15:36:00Z twisti $
+   $Id: codegen.c 4739 2006-04-05 18:48:56Z edwin $
 
 */
 
@@ -251,6 +251,7 @@ bool codegen(jitdata *jd)
 
 		s1 = rd->memuse;
 
+#if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
 
@@ -262,6 +263,7 @@ bool codegen(jitdata *jd)
 
 			s1 += INT_ARG_CNT + FLT_ARG_CNT;
 		}
+#endif /* !defined(NDEBUG) */
 
 		/* decide which monitor enter function to call */
 
@@ -286,6 +288,7 @@ bool codegen(jitdata *jd)
 			M_LDA(REG_PV, REG_RA, disp);
 		}
 
+#if !defined(NDEBUG)
 		if (opt_verbosecall) {
 			for (p = 0; p < INT_ARG_CNT; p++)
 				M_LLD(rd->argintregs[p], REG_SP, p * 8);
@@ -295,11 +298,13 @@ bool codegen(jitdata *jd)
 
 			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
 		}
+#endif /* !defined(NDEBUG) */
 	}			
 #endif
 
 	/* call trace function */
 
+#if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		M_LDA(REG_SP, REG_SP, -((INT_ARG_CNT + FLT_ARG_CNT + 2) * 8));
 		M_AST(REG_RA, REG_SP, 1 * 8);
@@ -364,6 +369,7 @@ bool codegen(jitdata *jd)
 
 		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT + 2) * 8);
 	}
+#endif /* !defined(NDEBUG) */
 
 	}
 
@@ -2942,6 +2948,7 @@ nowperformreturn:
 			
 			/* call trace function */
 
+#if !defined(NDEBUG)
 			if (opt_verbosecall) {
 				M_LDA(REG_SP, REG_SP, -3 * 8);
 				M_AST(REG_RA, REG_SP, 0 * 8);
@@ -2965,6 +2972,7 @@ nowperformreturn:
 				M_ALD(REG_RA, REG_SP, 0 * 8);
 				M_LDA(REG_SP, REG_SP, 3 * 8);
 			}
+#endif
 
 #if defined(USE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -4076,6 +4084,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* call trace function */
 
+#if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		/* save integer argument registers */
 
@@ -4132,6 +4141,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			}
 		}
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -4280,6 +4290,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* call finished trace */
 
+#if !defined(NDEBUG)
 	if (opt_verbosecall) {
 		/* just restore the value we need, don't care about the other */
 
@@ -4301,6 +4312,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		disp = (s4) ((u1 *) mcodeptr - cd->mcodebase);
 		M_LDA(REG_PV, REG_RA, -disp);
 	}
+#endif /* !defined(NDEBUG) */
 
 	/* check for exception */
 
