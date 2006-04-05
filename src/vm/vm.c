@@ -1259,20 +1259,17 @@ void vm_exit(s4 status)
 								 class_java_lang_Object,
 								 true);
 	
-	if (!m)
+	if (m == NULL)
 		throw_main_exception_exit();
 
 	/* call the exit function with passed exit status */
 
-	(void) vm_call_method(m, NULL, (void *) (ptrint) status);
+	(void) vm_call_method(m, NULL, status);
 
-	/* this should never happen */
+	/* If we had an exception, just ignore the exception and exit with
+	   the proper code. */
 
-	if (*exceptionptr)
-		throw_exception_exit();
-
-	throw_cacao_exception_exit(string_java_lang_InternalError,
-							   "System.exit(I)V returned without exception");
+	vm_shutdown(status);
 }
 
 
