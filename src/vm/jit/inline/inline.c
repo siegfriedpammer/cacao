@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4734 2006-04-05 09:57:55Z edwin $
+   $Id: inline.c 4736 2006-04-05 11:32:52Z edwin $
 
 */
 
@@ -704,6 +704,7 @@ static basicblock * create_block(inline_node *iln,basicblock *o_bptr,inline_targ
 	basicblock *n_bptr;
 	stackptr n_sp;
 	int i;
+	s4 temp;
 
 	assert(iln);
 	
@@ -711,10 +712,11 @@ static basicblock * create_block(inline_node *iln,basicblock *o_bptr,inline_targ
 	assert(n_bptr);
 	assert((n_bptr - iln->inlined_basicblocks) < iln->cumul_basicblockcount);
 	
-	memset(n_bptr,0,sizeof(basicblock));
-	n_bptr->mpc = -1;
+	/* XXX hack */
+	temp = iln->m->c_debug_nr;
+	BASICBLOCK_INIT(n_bptr,iln->m);
+	iln->m->c_debug_nr = temp;
 	
-	n_bptr->type = BBTYPE_STD; /* XXX not necessary */
 	n_bptr->iinstr = iln->inlined_iinstr_cursor;
 	n_bptr->next = n_bptr+1;
 	n_bptr->debug_nr = iln->ctx->next_block_number++;
