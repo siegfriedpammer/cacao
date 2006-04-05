@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4709 2006-03-30 10:14:22Z twisti $
+   $Id: stack.c 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -3326,8 +3326,11 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_INLINE_START:
 	case ICMD_INLINE_END:
-		printf(" ");
-		method_print(iptr->method);
+		{
+			insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
+			printf(" ");
+			method_print(insinfo->method);
+		}
 		break;
 
 	case ICMD_BUILTIN:

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4719 2006-04-02 16:16:18Z edwin $
+   $Id: inline.c 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -528,8 +528,9 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 	int type;
 	bool isstatic;
 	instruction *n_ins;
+	insinfo_inline *insinfo;
 
-	assert(iln && callee && o_iptr && o_iptr->method == iln->m);
+	assert(iln && callee && o_iptr);
 
 	calleem = callee->m;
 	md = calleem->parseddesc;
@@ -563,7 +564,6 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 		else {
 			n_ins->opc = IS_2_WORD_TYPE(type) ? ICMD_POP2 : ICMD_POP; /* XXX is POP2 correct? */
 		}
-		n_ins->method = iln->m;
 		n_ins->line = o_iptr->line;
 		assert(n_curstack);
 		if (n_curstack->varkind == ARGVAR) {
@@ -581,14 +581,17 @@ static stackptr emit_inlining_prolog(inline_node *iln,inline_node *callee,stackp
 	n_ins = (iln->inlined_iinstr_cursor++);
 	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
-	n_ins->opc = ICMD_INLINE_START;
-	n_ins->method = callee->m;
-	n_ins->dst = n_curstack;
-	n_ins->line = o_iptr->line;
-	n_ins->op1 = callee->synchronize; /* XXX find a better way? */
+	insinfo = DNEW(insinfo_inline);
+	insinfo->method = callee->m;
+	insinfo->outer = iln->m;
 	/* XXX using local 0 only works if it is read-only!! */
-	n_ins->val.i = callee->localsoffset; /* XXX find a better way */
-	n_ins->target = NULL; /* ease debugging */
+	insinfo->synclocal = callee->localsoffset;
+	insinfo->synchronize = callee->synchronize;
+
+	n_ins->opc = ICMD_INLINE_START;
+	n_ins->dst = n_curstack;
+	n_ins->target = insinfo;
+	n_ins->line = o_iptr->line;
 	iln->inline_start_instruction = n_ins;
 
 	return n_curstack;
@@ -605,10 +608,9 @@ static void emit_inlining_epilog(inline_node *iln,inline_node *callee,stackptr n
 	assert((n_ins - iln->inlined_iinstr) < iln->cumul_instructioncount);
 
 	n_ins->opc = ICMD_INLINE_END;
-	n_ins->method = callee->m;
 	n_ins->dst = n_curstack;
+	n_ins->target = iln->inline_start_instruction->target; /* insinfo_inline * */
 	n_ins->line = o_iptr->line;
-	n_ins->target = iln->inline_start_instruction; /* needed for line number table creation */
 }
 
 static void rewrite_stack(inline_node *iln,stackptr o_first,stackptr o_last,ptrint curreloc)
@@ -1526,7 +1528,6 @@ static void inline_write_exception_handlers(inline_node *master,inline_node *iln
 			n_ins->op1 = iln->localsoffset; /* XXX */
 		}
 		n_ins->dst = n_curstack;
-		n_ins->method = iln->m;
 		n_ins->line = 0;
 
 		/* MONITOREXIT */
@@ -1539,7 +1540,6 @@ static void inline_write_exception_handlers(inline_node *master,inline_node *iln
 		n_ins->opc = ICMD_BUILTIN;
 		n_ins->val.a = bte;
 		n_ins->dst = n_curstack;
-		n_ins->method = iln->m;
 		n_ins->line = 0;
 
 		/* ATHROW */
@@ -1549,7 +1549,6 @@ static void inline_write_exception_handlers(inline_node *master,inline_node *iln
 		n_ins = master->inlined_iinstr_cursor++;
 		n_ins->opc = ICMD_ATHROW;
 		n_ins->dst = n_curstack;
-		n_ins->method = iln->m;
 		n_ins->line = 0;
 
 		/* close basic block */

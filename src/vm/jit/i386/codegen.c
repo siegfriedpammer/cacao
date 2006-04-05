@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4730 2006-04-04 18:14:01Z edwin $
+   $Id: codegen.c 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -601,51 +601,55 @@ bool codegen(jitdata *jd)
 
 		switch (iptr->opc) {
 		case ICMD_INLINE_START:
+			{
+				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
 #if defined(USE_THREADS)
-			if (iptr->op1) {
-				/* add monitor enter code */
-				if (iptr->method->flags & ACC_STATIC) {
-					M_MOV_IMM(iptr->method->class, REG_ITMP1);
-					M_AST(REG_ITMP1, REG_SP, 0 * 4);
-					M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
-					M_CALL(REG_ITMP1);
-				} 
-				else {
-					/* nullpointer check must have been performed before */
-					/* (XXX not done, yet) */
-					var = &(rd->locals[iptr->val.i][TYPE_ADR]); /* XXX */
-					if (var->flags & INMEMORY) {
-						i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
+				if (insinfo->synchronize) {
+					/* add monitor enter code */
+					if (insinfo->method->flags & ACC_STATIC) {
+						M_MOV_IMM(insinfo->method->class, REG_ITMP1);
 						M_AST(REG_ITMP1, REG_SP, 0 * 4);
+						M_MOV_IMM(BUILTIN_staticmonitorenter, REG_ITMP1);
+						M_CALL(REG_ITMP1);
 					} 
 					else {
-						M_AST(var->regoff, REG_SP, 0 * 4);
+						/* nullpointer check must have been performed before */
+						/* (XXX not done, yet) */
+						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
+						if (var->flags & INMEMORY) {
+							i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
+							M_AST(REG_ITMP1, REG_SP, 0 * 4);
+						} 
+						else {
+							M_AST(var->regoff, REG_SP, 0 * 4);
+						}
+						M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
+						M_CALL(REG_ITMP1);
 					}
-					M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
-					M_CALL(REG_ITMP1);
 				}
-			}
 #endif
-			dseg_addlinenumber_inline_start(cd, iptr, cd->mcodeptr);
+				dseg_addlinenumber_inline_start(cd, iptr, cd->mcodeptr);
+			}
 			break;
 
 		case ICMD_INLINE_END:
-			dseg_addlinenumber_inline_end(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
-
 			{
-				instruction *startins = (instruction *) iptr->target;
-				if (startins->op1) {
+				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
+
+				dseg_addlinenumber_inline_end(cd, iptr);
+				dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
+
 #if defined(USE_THREADS)
+				if (insinfo->synchronize) {
 					/* add monitor exit code */
-					if (startins->method->flags & ACC_STATIC) {
-						M_MOV_IMM(startins->method->class, REG_ITMP1);
+					if (insinfo->method->flags & ACC_STATIC) {
+						M_MOV_IMM(insinfo->method->class, REG_ITMP1);
 						M_AST(REG_ITMP1, REG_SP, 0 * 4);
 						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
 						M_CALL(REG_ITMP1);
 					} 
 					else {
-						var = &(rd->locals[startins->val.i][TYPE_ADR]); /* XXX */
+						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
 						if (var->flags & INMEMORY) {
 							i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
@@ -656,8 +660,8 @@ bool codegen(jitdata *jd)
 						M_MOV_IMM(BUILTIN_monitorexit, REG_ITMP1);
 						M_CALL(REG_ITMP1);
 					}
-#endif
 				}
+#endif
 			}
 			break;
 

@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: dseg.c 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -253,17 +253,21 @@ void dseg_addlinenumber_inline_start(codegendata *cd,
 									 u1 *mcodeptr)
 {
 	linenumberref *lr;
+	insinfo_inline *insinfo;
+	ptrint mpc;
 
 	lr = DNEW(linenumberref);
 
 	lr->linenumber = (-2); /* marks start of inlined method */
 	lr->tablepos   = 0;
-	lr->targetmpc  = mcodeptr - cd->mcodebase;
+	lr->targetmpc  = (mpc = mcodeptr - cd->mcodebase);
 	lr->next       = cd->linenumberreferences;
 
 	cd->linenumberreferences = lr;
 
-	iptr->target = mcodeptr; /* store for corresponding INLINE_END */
+	insinfo = (insinfo_inline *) iptr->target;
+
+	insinfo->startmpc = mpc; /* store for corresponding INLINE_END */
 }
 
 
@@ -285,20 +289,18 @@ void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr)
 {
 	linenumberref *lr;
 	linenumberref *prev;
-	instruction *inlinestart;
+	insinfo_inline *insinfo;
 
-	/* get the pointer to the corresponding ICMD_INLINE_START */
-	inlinestart = (instruction *)iptr->target;
+	insinfo = (insinfo_inline *) iptr->target;
 
-	assert(inlinestart);
-	assert(iptr->method);
+	assert(insinfo);
 
 	lr = DNEW(linenumberref);
 
 	/* special entry containing the methodinfo * */
 	lr->linenumber = (-3) - iptr->line;
 	lr->tablepos   = 0;
-	lr->targetmpc  = (ptrint) iptr->method;
+	lr->targetmpc  = (ptrint) insinfo->method;
 	lr->next       = cd->linenumberreferences;
 
 	prev = lr;
@@ -307,7 +309,7 @@ void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr)
 	/* end marker with PC of start of body */
 	lr->linenumber = (-1);
 	lr->tablepos   = 0;
-	lr->targetmpc  = (u1*)inlinestart->target - cd->mcodebase;
+	lr->targetmpc  = insinfo->startmpc;
 	lr->next       = prev;
 
 	cd->linenumberreferences = lr;

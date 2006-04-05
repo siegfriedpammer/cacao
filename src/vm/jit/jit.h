@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: jit.h 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -47,6 +47,7 @@ typedef struct basicblock basicblock;
 typedef struct branchref branchref;
 typedef struct instruction instruction;
 typedef struct subroutineinfo subroutineinfo;
+typedef struct insinfo_inline insinfo_inline;
 
 
 #include "config.h"
@@ -161,10 +162,6 @@ struct instruction {
 	                            /* and as address for list of targets for     */
 	                            /* statements                                 */
 	u2          line;           /* line number in source file                 */
-	methodinfo *method;         /* needed for inlining. can't be done on      */
-	                            /* basic block level, since an inlined        */
-	                            /* function doesn't necessarily start         */
-	                            /* a new block                                */
 };
 
 #define INSTRUCTION_PUTCONST_TYPE(iptr) \
@@ -182,6 +179,18 @@ struct instruction {
 #define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
 	((unresolved_field *)((iptr)[1].target))
 
+
+/* additional info structs for special instructions ***************************/
+
+/* for ICMD_INLINE_START and ICMD_INLINE_END */
+
+struct insinfo_inline {
+	methodinfo *method;         /* the inlined method starting/ending here    */
+	methodinfo *outer;          /* the outer method suspended/resumed here    */
+	s4          startmpc;       /* machine code offset of start of inlining   */          
+	s4          synclocal;      /* local index used for synchronization       */
+	bool        synchronize;    /* true if synchronization is needed          */
+};
 
 /* basicblock *****************************************************************/
  
@@ -227,6 +236,7 @@ struct basicblock {
                                 /* when loop nodes are copied                 */
 	stackptr     stack;         /* start of stack array for this block        */
 	                            /* (see doc/stack.txt)                        */
+	methodinfo  *method;        /* method this block belongs to               */
 };
 
 /* macro for initializing newly allocated basicblock:s                        */
@@ -240,7 +250,8 @@ struct basicblock {
 			bptr->type = BBTYPE_STD;                       \
 			bptr->branchrefs = NULL;                       \
 			bptr->pre_count = 0;                           \
-			bptr->debug_nr = m->c_debug_nr++;              \
+			bptr->method = (m);                            \
+			bptr->debug_nr = (m)->c_debug_nr++;            \
 		} while (0)
 			
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: parse.h 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -51,35 +51,30 @@
     iptr->opc    = ICMD_ICONST; \
     iptr->val.i  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define LOADCONST_L(v) \
     iptr->opc    = ICMD_LCONST; \
     iptr->val.l  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define LOADCONST_F(v) \
     iptr->opc    = ICMD_FCONST; \
     iptr->val.f  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define LOADCONST_D(v) \
     iptr->opc    = ICMD_DCONST; \
     iptr->val.d  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define LOADCONST_A(v) \
     iptr->opc    = ICMD_ACONST; \
     iptr->val.a  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define LOADCONST_A_CLASS(v,t) \
@@ -87,7 +82,6 @@
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 /* ACONST instructions generated as arguments for builtin functions
@@ -99,20 +93,17 @@
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define OP(o) \
     iptr->opc    = (o); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define OP1(o,o1) \
     iptr->opc    = (o); \
     iptr->op1    = (o1); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define OP2I(o,o1,v) \
@@ -120,15 +111,13 @@
     iptr->op1    = (o1); \
     iptr->val.i  = (v); \
     iptr->line   = currentline; \
-    iptr->method = m; \
     PINC
 
 #define OP2A_NOINC(o,o1,v,l) \
     iptr->opc    = (o); \
     iptr->op1    = (o1); \
     iptr->val.a  = (v); \
-    iptr->line   = (l); \
-    iptr->method = m
+    iptr->line   = (l);
 
 #define OP2A(o,o1,v,l) \
     OP2A_NOINC(o,o1,v,l); \
@@ -146,7 +135,6 @@
     iptr->val.a  = (v); \
     iptr->target = (t); \
     iptr->line   = (l); \
-    iptr->method = m; \
     PINC
 
 

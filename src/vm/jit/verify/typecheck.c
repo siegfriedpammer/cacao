@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4699 2006-03-28 14:52:32Z twisti $
+   $Id: typecheck.c 4734 2006-04-05 09:57:55Z edwin $
 
 */
 
@@ -1561,7 +1561,6 @@ verify_basic_block(verifier_state *state)
     basicblock **tptr;    /* pointer into target list of switch instr. */
     classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
-    classinfo *myclass;
 	unresolved_field *uf;                        /* for field accesses */
 	fieldinfo **fieldinfop;                      /* for field accesses */
 	s4 i;
@@ -1632,7 +1631,6 @@ verify_basic_block(verifier_state *state)
 		DOLOG(show_icmd(state->iptr,false)); LOGNL; LOGFLUSH;
 
 		opcode = state->iptr->opc;
-		myclass = state->iptr->method->class;
 		dst = state->iptr->dst;
 		maythrow = false;
 
