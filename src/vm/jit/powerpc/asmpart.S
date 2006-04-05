@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4715 2006-03-31 07:50:19Z twisti $
+   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
 
 */
 
@@ -51,7 +51,7 @@
 	.align 2
 
 
-/* exported functions and variables *******************************************/
+/* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
 	.globl asm_vm_call_method_int
@@ -277,10 +277,8 @@ L_asm_vm_call_method_return:
 	blr
 
 asm_vm_call_method_exception_handler:
-#if !defined(NDEBUG)
 	mr      r3,itmp1
 	bl      builtin_throw_exception
-#endif
 	li      v0,0                      /* return NULL                          */
 	b       L_asm_vm_call_method_return
 

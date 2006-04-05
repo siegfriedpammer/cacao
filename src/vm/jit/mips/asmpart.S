@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4713 2006-03-30 12:01:50Z twisti $
+   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
 
 */
 
@@ -242,10 +242,8 @@ calljava_return2:
 asm_vm_call_method_exception_handler:
 	asll    s7,s7,3
 	aaddu   sp,s7,sp
-#if !defined(NDEBUG)
 	move    a0,itmp1                  
 	jal     builtin_throw_exception
-#endif
 	move    v0,zero                   /* clear return value for exception     */
 	b       calljava_return2
 

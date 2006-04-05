@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4713 2006-03-30 12:01:50Z twisti $
+   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
 
 */
 
@@ -198,10 +198,8 @@ calljava_ret2:
 asm_vm_call_method_exception_handler:
 	s8addq  s6,sp,sp
 	ldq     gp,1*8(sp)                /* restore global pointer               */
-#if !defined(NDEBUG)
 	mov     itmp1,a0
 	jsr     ra,builtin_throw_exception
-#endif
 	ldq     ra,0*8(sp)                /* restore return address               */
 	ldq     s6,3*8(sp)
 	lda     sp,5*8(sp)                /* free stack space                     */
