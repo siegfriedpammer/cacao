@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4738 2006-04-05 18:13:18Z edwin $
+   $Id: parse.c 4740 2006-04-05 19:44:46Z edwin $
 
 */
 
@@ -232,20 +232,18 @@ bool parse(jitdata *jd)
 	for (p = 0, gp = 0; p < m->jcodelength; gp += (nextp - p), p = nextp) {
 	  
 		/* mark this position as a valid instruction start */
-		if (!iswide) {
-			instructionstart[gp] = 1;
-			if (linepcchange==p) {
-				if (m->linenumbercount > lineindex) {
-					currentline = m->linenumbers[lineindex].line_number;
-					lineindex++;
-					if (lineindex < m->linenumbercount)
-						linepcchange = m->linenumbers[lineindex].start_pc;
-				}
+		instructionstart[gp] = 1;
+		if (linepcchange==p) {
+			if (m->linenumbercount > lineindex) {
+				currentline = m->linenumbers[lineindex].line_number;
+				lineindex++;
+				if (lineindex < m->linenumbercount)
+					linepcchange = m->linenumbers[lineindex].start_pc;
 			}
 		}
 
 		/* fetch next opcode  */
-
+fetch_opcode:
 		opcode = code_get_u1(p, m);
 
 		m->basicblockindex[gp] |= (ipc << 1); /*store intermed cnt*/
@@ -493,8 +491,9 @@ bool parse(jitdata *jd)
 
 		case JAVA_WIDE:
 			iswide = true;
-			nextp = p + 1;
-			break;
+			gp++;
+			p++;
+			goto fetch_opcode;
 
 		/* managing arrays ****************************************************/
 
@@ -1248,7 +1247,7 @@ bool parse(jitdata *jd)
 
 #if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
-		if (iswide && opcode != JAVA_WIDE) {
+		if (iswide) {
 			*exceptionptr = new_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
 			return false;
