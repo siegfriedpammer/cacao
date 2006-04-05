@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4724 2006-04-04 08:30:53Z edwin $
+   $Id: parse.c 4738 2006-04-05 18:13:18Z edwin $
 
 */
 
@@ -288,11 +288,13 @@ bool parse(jitdata *jd)
 
 		pushconstantitem:
 
+#if defined(ENABLE_VERIFIER)
 			if (i >= m->class->cpcount) {
 				*exceptionptr = new_verifyerror(m,
 					"Attempt to access constant outside range");
 				return false;
 			}
+#endif
 
 			switch (m->class->cptags[i]) {
 			case CONSTANT_Integer:
@@ -321,10 +323,13 @@ bool parse(jitdata *jd)
 
 				LOADCONST_A_CLASS(c, cr);
 				break;
+
+#if defined(ENABLE_VERIFIER)
 			default:
 				*exceptionptr = new_verifyerror(m,
 						"Invalid constant type to push");
 				return false;
+#endif
 			}
 			break;
 
@@ -519,10 +524,12 @@ bool parse(jitdata *jd)
 			case 11:
 				bte = builtintable_get_internal(BUILTIN_newarray_long);
 				break;
+#if defined(ENABLE_VERIFIER)
 			default:
 				*exceptionptr = new_verifyerror(m,
 						"Invalid array-type to create");
 				return false;
+#endif
 			}
 			BUILTIN(bte, true, NULL, currentline);
 			break;
@@ -1164,6 +1171,8 @@ bool parse(jitdata *jd)
 				}
 			break;
 
+			/* check for invalid opcodes if the verifier is enabled */
+#if defined(ENABLE_VERIFIER)
 		case JAVA_BREAKPOINT:
 			*exceptionptr =
 				new_verifyerror(m, "Quick instructions shouldn't appear yet.");
@@ -1228,24 +1237,28 @@ bool parse(jitdata *jd)
 								  opcode, ipc);
 			return false;
 			break;
+#endif /* defined(ENABLE_VERIFIER) */
 
 		default:
+			/* straight-forward translation to ICMD */
 			OP(opcode);
 			break;
 				
 		} /* end switch */
 
+#if defined(ENABLE_VERIFIER)
 		/* If WIDE was used correctly, iswide should have been reset by now. */
 		if (iswide && opcode != JAVA_WIDE) {
 			*exceptionptr = new_verifyerror(m,
 					"Illegal instruction: WIDE before incompatible opcode");
 			return false;
 		}
+#endif /* defined(ENABLE_VERIFIER) */
 
 	} /* end for */
 
+#if defined(ENABLE_VERIFIER)
 	if (p != m->jcodelength) {
-		printf("p (%d) != m->jcodelength (%d)\n",p,m->jcodelength);
 		*exceptionptr = new_verifyerror(m,
 				"Command-sequence crosses code-boundary");
 		return false;
@@ -1255,6 +1268,7 @@ bool parse(jitdata *jd)
 		*exceptionptr = new_verifyerror(m, "Falling off the end of the code");
 		return false;
 	}
+#endif /* defined(ENABLE_VERIFIER) */
 
 	/* adjust block count if target 0 is not first intermediate instruction */
 
@@ -1298,12 +1312,13 @@ bool parse(jitdata *jd)
 			if (m->basicblockindex[p] & 1) {
 				/* Check if this block starts at the beginning of an          */
 				/* instruction.                                               */
-
+#if defined(ENABLE_VERIFIER)
 				if (!instructionstart[p]) {
 					*exceptionptr = new_verifyerror(m,
 						"Branch into middle of instruction");
 					return false;
 				}
+#endif
 
 				/* allocate the block */
 
