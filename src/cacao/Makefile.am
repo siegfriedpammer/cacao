@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4690 2006-03-27 11:37:46Z twisti $
+## $Id: Makefile.am 4737 2006-04-05 12:56:43Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -102,6 +102,10 @@ CLASSPATH_LIBS = \
 #CLASSPATH_LIBS += \
 #	$(CLASSPATH_LIBDIR)/classpath/libgtkpeer.a
 #endif
+endif
+
+if ENABLE_RT_TIMING
+cacao_LDFLAGS += -lrt
 endif
 
 libcacaovm_la_SOURCES =

@@ -373,6 +373,23 @@ if test x"${ENABLE_STATISTICS}" = "xyes"; then
 fi
 
 
+dnl check for compiler timing
+AC_MSG_CHECKING(whether real-time timing should be enabled)
+AC_ARG_ENABLE([rt-timing],
+              [AS_HELP_STRING(--enable-rt-timing,enable real-time timing [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_RT_TIMING=yes;;
+                   *) ENABLE_RT_TIMING=no;;
+               esac],
+              [ENABLE_RT_TIMING=no])
+AC_MSG_RESULT(${ENABLE_RT_TIMING})
+AM_CONDITIONAL([ENABLE_RT_TIMING], test x"${ENABLE_RT_TIMING}" = "xyes")
+
+if test x"${ENABLE_RT_TIMING}" = "xyes"; then
+    AC_DEFINE([ENABLE_RT_TIMING], 1, [enable real-time timing])
+fi
+
+
 dnl check for JVMTI
 AC_MSG_CHECKING(whether to compile JVMTI support)
 AC_ARG_ENABLE([jvmti],

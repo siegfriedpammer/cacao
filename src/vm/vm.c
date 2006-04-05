@@ -65,6 +65,7 @@
 #include "vm/stringlocal.h"
 #include "vm/suck.h"
 #include "vm/vm.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/profile/profile.h"
 
@@ -1335,6 +1336,10 @@ void vm_exit_handler(void)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	clear_thread_flags();		/* restores standard file descriptor
 	                               flags */
+#endif
+
+#if defined(ENABLE_RT_TIMING)
+ 	jit_print_time_stats(stderr);
 #endif
 
 	if (opt_verbose || getcompilingtime || opt_stat) {
