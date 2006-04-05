@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4734 2006-04-05 09:57:55Z edwin $
+   $Id: parse.h 4742 2006-04-05 20:31:38Z edwin $
 
 */
 
@@ -141,6 +141,8 @@
 /* We have to check local variables indices here because they are
  * used in stack.c to index the locals array. */
 
+#if defined(ENABLE_VERIFIER)
+
 #define INDEX_ONEWORD(num) \
     do { \
         if (((num) < 0) || ((num) >= m->maxlocals)) \
@@ -153,21 +155,34 @@
             goto throw_illegal_local_variable_number; \
     } while (0)
 
-#define OP1LOAD(o,o1) \
+#else /* !define(ENABLE_VERIFIER) */
+
+#define INDEX_ONEWORD(num)
+#define INDEX_TWOWORD(num)
+
+#endif /* define(ENABLE_VERIFIER) */
+
+#define OP1LOAD_ONEWORD(o,o1) \
     do { \
-        if (((o) == ICMD_LLOAD) || ((o) == ICMD_DLOAD)) \
-            INDEX_TWOWORD(o1); \
-        else \
-            INDEX_ONEWORD(o1); \
+		INDEX_ONEWORD(o1); \
         OP1(o,o1); \
     } while (0)
 
-#define OP1STORE(o,o1) \
+#define OP1LOAD_TWOWORD(o,o1) \
     do { \
-        if (((o) == ICMD_LSTORE) || ((o) == ICMD_DSTORE)) \
-            INDEX_TWOWORD(o1); \
-        else \
-            INDEX_ONEWORD(o1); \
+		INDEX_TWOWORD(o1); \
+        OP1(o,o1); \
+    } while (0)
+
+#define OP1STORE_ONEWORD(o,o1) \
+    do { \
+		INDEX_ONEWORD(o1); \
+        OP1(o,o1); \
+    } while (0)
+
+#define OP1STORE_TWOWORD(o,o1) \
+    do { \
+		INDEX_TWOWORD(o1); \
         OP1(o,o1); \
     } while (0)
 

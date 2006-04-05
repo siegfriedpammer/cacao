@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4741 2006-04-05 19:58:18Z edwin $
+   $Id: parse.c 4742 2006-04-05 20:31:38Z edwin $
 
 */
 
@@ -364,9 +364,7 @@ fetch_opcode:
 			/* loading variables onto the stack */
 
 		case JAVA_ILOAD:
-		case JAVA_LLOAD:
 		case JAVA_FLOAD:
-		case JAVA_DLOAD:
 		case JAVA_ALOAD:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
@@ -376,50 +374,61 @@ fetch_opcode:
 				nextp = p + 3;
 				iswide = false;
 			}
-			OP1LOAD(opcode, i);
+			OP1LOAD_ONEWORD(opcode, i);
+			break;
+
+		case JAVA_LLOAD:
+		case JAVA_DLOAD:
+			if (!iswide) {
+				i = code_get_u1(p + 1,m);
+			} 
+			else {
+				i = code_get_u2(p + 1,m);
+				nextp = p + 3;
+				iswide = false;
+			}
+			OP1LOAD_TWOWORD(opcode, i);
 			break;
 
 		case JAVA_ILOAD_0:
 		case JAVA_ILOAD_1:
 		case JAVA_ILOAD_2:
 		case JAVA_ILOAD_3:
-			OP1LOAD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
+			OP1LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0);
 			break;
 
 		case JAVA_LLOAD_0:
 		case JAVA_LLOAD_1:
 		case JAVA_LLOAD_2:
 		case JAVA_LLOAD_3:
-			OP1LOAD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
+			OP1LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0);
 			break;
 
 		case JAVA_FLOAD_0:
 		case JAVA_FLOAD_1:
 		case JAVA_FLOAD_2:
 		case JAVA_FLOAD_3:
-			OP1LOAD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
+			OP1LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0);
 			break;
 
 		case JAVA_DLOAD_0:
 		case JAVA_DLOAD_1:
 		case JAVA_DLOAD_2:
 		case JAVA_DLOAD_3:
-			OP1LOAD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
+			OP1LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0);
 			break;
 
 		case JAVA_ALOAD_0:
 		case JAVA_ALOAD_1:
 		case JAVA_ALOAD_2:
 		case JAVA_ALOAD_3:
-			OP1LOAD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
+			OP1LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0);
 			break;
 
 			/* storing stack values into local variables */
 
 		case JAVA_ISTORE:
-		case JAVA_LSTORE:
 		case JAVA_FSTORE:
-		case JAVA_DSTORE:
 		case JAVA_ASTORE:
 			if (!iswide) {
 				i = code_get_u1(p + 1,m);
@@ -429,42 +438,55 @@ fetch_opcode:
 				iswide = false;
 				nextp = p + 3;
 			}
-			OP1STORE(opcode, i);
+			OP1STORE_ONEWORD(opcode, i);
+			break;
+
+		case JAVA_LSTORE:
+		case JAVA_DSTORE:
+			if (!iswide) {
+				i = code_get_u1(p + 1,m);
+			} 
+			else {
+				i = code_get_u2(p + 1,m);
+				iswide = false;
+				nextp = p + 3;
+			}
+			OP1STORE_TWOWORD(opcode, i);
 			break;
 
 		case JAVA_ISTORE_0:
 		case JAVA_ISTORE_1:
 		case JAVA_ISTORE_2:
 		case JAVA_ISTORE_3:
-			OP1STORE(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
+			OP1STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0);
 			break;
 
 		case JAVA_LSTORE_0:
 		case JAVA_LSTORE_1:
 		case JAVA_LSTORE_2:
 		case JAVA_LSTORE_3:
-			OP1STORE(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
+			OP1STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0);
 			break;
 
 		case JAVA_FSTORE_0:
 		case JAVA_FSTORE_1:
 		case JAVA_FSTORE_2:
 		case JAVA_FSTORE_3:
-			OP1STORE(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
+			OP1STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0);
 			break;
 
 		case JAVA_DSTORE_0:
 		case JAVA_DSTORE_1:
 		case JAVA_DSTORE_2:
 		case JAVA_DSTORE_3:
-			OP1STORE(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
+			OP1STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0);
 			break;
 
 		case JAVA_ASTORE_0:
 		case JAVA_ASTORE_1:
 		case JAVA_ASTORE_2:
 		case JAVA_ASTORE_3:
-			OP1STORE(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
+			OP1STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0);
 			break;
 
 		case JAVA_IINC:
@@ -614,7 +636,7 @@ fetch_opcode:
 			}
 			blockend = true;
 				
-			OP1LOAD(opcode, i);
+			OP1LOAD_ONEWORD(opcode, i);
 			break;
 
 		case JAVA_IRETURN:
