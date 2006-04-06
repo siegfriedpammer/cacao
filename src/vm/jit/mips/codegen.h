@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4640 2006-03-16 17:24:18Z twisti $
+   $Id: codegen.h 4744 2006-04-06 12:51:53Z twisti $
 
 */
 
@@ -214,7 +214,7 @@
 
 
 #define M_COPY(from,to) \
-	d = reg_of_var(rd, to, REG_IFTMP); \
+	d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \

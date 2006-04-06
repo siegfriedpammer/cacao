@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
+   $Id: md.c 4744 2006-04-06 12:51:53Z twisti $
 
 */
 
@@ -38,7 +38,6 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/cachectl.h>
-#include <sys/mman.h>
 
 #include "vm/types.h"
 
@@ -50,17 +49,6 @@
 #include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
-
-
-void docacheflush(u1 *p, long bytelen)
-{
-	u1 *e = p + bytelen;
-	long psize = sysconf(_SC_PAGESIZE);
-	p -= (long) p & (psize - 1);
-	e += psize - ((((long) e - 1) & (psize - 1)) + 1);
-	bytelen = e-p;
-	mprotect(p, bytelen, PROT_READ | PROT_WRITE | PROT_EXEC);
-}
 
 
 /* md_stacktrace_get_returnaddress *********************************************
