@@ -24,7 +24,7 @@ alpha | alphaev56 | alphapca56 )
     CFLAGS="$CFLAGS -mieee -D__ALPHA__"
     ;;
 
-arm | armv4tl | armv5b )
+arm | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
     CFLAGS="$CFLAGS -D__ARM__"
     ;;
