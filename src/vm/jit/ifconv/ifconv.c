@@ -225,6 +225,7 @@ bool ifconv_static(jitdata *jd)
 			case 2:
 				/* just skip basic blocks with length 1 */
 
+				pattern     = NULL;
 				patternsize = 0;
 				break;
 
@@ -239,6 +240,10 @@ bool ifconv_static(jitdata *jd)
 				break;
 
 			default:
+				/* keep compiler happy */
+
+				pattern     = NULL;
+
 				/* that should not happen */
 
 				assert(0);
@@ -324,6 +329,13 @@ bool ifconv_static(jitdata *jd)
 					break;
 
 				case ICMD_LCMP:
+					assert(0);
+
+				default:
+					/* keep compiler happy */
+
+					condition = 0;
+
 					assert(0);
 				}
 
