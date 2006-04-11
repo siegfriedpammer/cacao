@@ -6,3 +6,5 @@ IsInstanceOf:
 PASS
 PASS
 PASS
+PushLocalFrame:
+PASS
