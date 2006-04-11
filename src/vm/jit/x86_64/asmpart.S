@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
+   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -220,7 +220,6 @@ L_asm_vm_call_method_return:
 asm_vm_call_method_exception_handler:
 	mov     xptr,a0                     /* pass exception pointer             */
 	call    builtin_throw_exception@PLT
-	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_vm_call_method_return
 
 

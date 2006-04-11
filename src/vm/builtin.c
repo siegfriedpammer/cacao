@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4732 2006-04-04 21:31:52Z edwin $
+   $Id: builtin.c 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -500,11 +500,14 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 }
 
 
-/************************** exception functions *******************************
+/* builtin_throw_exception *****************************************************
 
-******************************************************************************/
+   Sets the exceptionptr with the thrown exception and prints some
+   debugging information.  Called from asm_vm_call_method.
 
-java_objectheader *builtin_throw_exception(java_objectheader *xptr)
+*******************************************************************************/
+
+void *builtin_throw_exception(java_objectheader *xptr)
 {
 #if !defined(NDEBUG)
     java_lang_Throwable *t;
@@ -561,9 +564,14 @@ java_objectheader *builtin_throw_exception(java_objectheader *xptr)
 	}
 #endif /* !defined(NDEBUG) */
 
+	/* actually set the exception */
+
 	*exceptionptr = xptr;
 
-	return xptr;
+	/* Return a NULL pointer.  This is required for vm_call_method to
+	   check for an exception.  This is for convenience. */
+
+	return NULL;
 }
 
 

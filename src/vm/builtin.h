@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: builtin.h 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -133,7 +133,7 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass);
 s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass);
 #define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
 
-java_objectheader *builtin_throw_exception(java_objectheader *exception);
+void *builtin_throw_exception(java_objectheader *exception);
 /* NOT AN OP */
 java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 										   methodinfo *m,

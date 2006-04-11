@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
+   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -203,7 +203,6 @@ asm_vm_call_method_exception_handler:
 	ldq     ra,0*8(sp)                /* restore return address               */
 	ldq     s6,3*8(sp)
 	lda     sp,5*8(sp)                /* free stack space                     */
-	mov     zero,v0                   /* return NULL                          */
 	jmp     zero,(ra)
 
 	.end    asm_vm_call_method

@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4735 2006-04-05 10:02:14Z twisti $
+   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -279,7 +279,6 @@ L_asm_vm_call_method_return:
 asm_vm_call_method_exception_handler:
 	mr      r3,itmp1
 	bl      builtin_throw_exception
-	li      v0,0                      /* return NULL                          */
 	b       L_asm_vm_call_method_return
 
 

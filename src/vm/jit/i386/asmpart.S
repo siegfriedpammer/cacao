@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4732 2006-04-04 21:31:52Z edwin $
+   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
 
 */
 
@@ -225,7 +225,6 @@ asm_vm_call_method_exception_handler:
 	push    xptr                        /* pass exception pointer             */
 	call    builtin_throw_exception
 	add     $4,sp
-	xor     v0,v0                       /* return NULL                        */
 	jmp     L_asm_vm_call_method_return
 
 
