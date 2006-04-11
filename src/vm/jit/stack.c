@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4734 2006-04-05 09:57:55Z edwin $
+   $Id: stack.c 4747 2006-04-11 09:00:36Z edwin $
 
 */
 
@@ -2488,7 +2488,7 @@ static void stack_print_stack(codegendata *cd, stackptr s)
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(s->type)) {
-# if defined(ENABLE_JIT)
+# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 #  if defined(ENABLE_INTRP)
 						if (opt_intrp)
 							printf(" %3d/%3d", GET_LOW_REG(s->regoff),
@@ -2505,7 +2505,7 @@ static void stack_print_stack(codegendata *cd, stackptr s)
 					else 
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
-#if defined(ENABLE_JIT)
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 # if defined(ENABLE_INTRP)
 							if (opt_intrp)
 								printf(" %3d", s->regoff);
@@ -2550,7 +2550,7 @@ static void stack_print_stack(codegendata *cd, stackptr s)
 				else {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					if (IS_2_WORD_TYPE(s->type)) {
-# if defined(ENABLE_JIT)
+# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 #  if defined(ENABLE_INTRP)
 						if (opt_intrp)
 							printf(" %3d/%3d", GET_LOW_REG(s->regoff),
@@ -2567,7 +2567,7 @@ static void stack_print_stack(codegendata *cd, stackptr s)
 					else
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 						{
-#if defined(ENABLE_JIT)
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 # if defined(ENABLE_INTRP)
 							if (opt_intrp)
 								printf(" %3d", s->regoff);
@@ -2730,7 +2730,7 @@ void stack_show_method(jitdata *jd)
 	for (i = 0; i < cd->maxlocals; i++) {
 		printf("   %3d: ", i);
 
-#if defined(ENABLE_JIT)
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 		for (j = TYPE_INT; j <= TYPE_ADR; j++) {
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
@@ -2760,7 +2760,7 @@ void stack_show_method(jitdata *jd)
 			}
 # endif
 		}
-#endif /* defined(ENABLE_JIT) */
+#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
 
 		printf("\n");
 	}
@@ -2781,7 +2781,7 @@ void stack_show_method(jitdata *jd)
 		    (rd->interfaces[i][4].type >= 0)) {
 			printf("   %3d: ", i);
 
-#if defined(ENABLE_JIT)
+#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 # endif
@@ -2834,7 +2834,7 @@ void stack_show_method(jitdata *jd)
 # if defined(ENABLE_INTRP)
 			}
 # endif
-#endif /* defined(ENABLE_JIT) */
+#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
 
 		}
 	}

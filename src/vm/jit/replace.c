@@ -951,12 +951,14 @@ void replace_executionstate_println(executionstate *es,codeinfo *code)
 	printf("\tpc = %p\n",(void*)es->pc);
 	printf("\tsp = %p\n",(void*)es->sp);
 	printf("\tpv = %p\n",(void*)es->pv);
+#if defined(ENABLE_DISASSEMBLER)
 	for (i=0; i<INT_REG_CNT; ++i) {
 		printf("\t%-3s = %016llx\n",regs[i],(unsigned long long)es->intregs[i]);
 	}
 	for (i=0; i<FLT_REG_CNT; ++i) {
 		printf("\tfltregs[%2d] = %016llx\n",i,(unsigned long long)es->fltregs[i]);
 	}
+#endif
 
 #ifdef HAS_4BYTE_STACKSLOT
 	sp = (u4*) es->sp;
@@ -1031,7 +1033,9 @@ void replace_sourcestate_println(sourcestate *ss)
 		while (nregdescint[--reg] != REG_SAV)
 			;
 		if (ss->savedintregs[i] != 0x00dead0000dead00ULL) {
+#if defined(ENABLE_DISASSEMBLER)
 			printf("\t%-3s = ",regs[reg]);
+#endif
 			printf("%016llx\n",(unsigned long long) ss->savedintregs[i]);
 		}
 	}
