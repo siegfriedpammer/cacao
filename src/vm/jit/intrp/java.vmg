@@ -1692,7 +1692,9 @@ SET_IP(ainstoldip);
 Cell v = sp[0];
 float f;
 vm_Cell2f(v,f);
+#if !defined(NDEBUG)
 builtin_displaymethodstop(am, (s8) v, f, f);
+#endif
 }
 if (*exceptionptr)
   THROW0;
@@ -1717,6 +1719,7 @@ assert(false);
 #endif
 
 TRACECALL ( #am -- )
+#if !defined(NDEBUG)
 builtin_trace_args(
 	access_local_cell(0 * -SIZEOF_VOID_P),
 	access_local_cell(1 * -SIZEOF_VOID_P),
@@ -1731,16 +1734,21 @@ builtin_trace_args(
 	access_local_cell(7 * -SIZEOF_VOID_P),
 #endif
 	am);
+#endif /* !defined(NDEBUG) */
 
 TRACERETURN ( #am v -- v )
 float f;
 vm_Cell2f(v,f);
+#if !defined(NDEBUG)
 builtin_displaymethodstop(am, (s8) v, f, f);
+#endif
 
 TRACELRETURN ( #am l -- l )
 Double_Store ds;
 ds.l = l;
+#if !defined(NDEBUG)
 builtin_displaymethodstop(am, l, ds.d, ds.d);
+#endif
 
 END ( ... -- )
 global_sp = sp;
