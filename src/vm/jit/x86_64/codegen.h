@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4615 2006-03-15 16:36:43Z twisti $
+   $Id: codegen.h 4751 2006-04-11 13:13:23Z twisti $
 
 */
 
@@ -408,7 +408,7 @@ typedef enum {
 
 
 #define M_COPY(from,to) \
-    d = reg_of_var(rd, to, REG_ITMP1); \
+    d = codegen_reg_of_var(rd, iptr->opc, (to), REG_ITMP1); \
 	if ((from->regoff != to->regoff) || \
 	    ((from->flags ^ to->flags) & INMEMORY)) { \
 		if (IS_FLT_DBL_TYPE(from->type)) { \
