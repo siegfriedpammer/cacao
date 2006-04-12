@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4739 2006-04-05 18:48:56Z edwin $
+   $Id: codegen.c 4757 2006-04-12 11:51:28Z twisti $
 
 */
 
@@ -3786,14 +3786,14 @@ gen_method:
 
 			/* Check if the exception is an
 			   ArrayIndexOutOfBoundsException.  If so, move index register
-			   into REG_ITMP1. */
+			   into a4. */
 
 			if (eref->reg != -1)
-				M_MOV(eref->reg, REG_ITMP1);
+				M_MOV(eref->reg, rd->argintregs[4]);
 
 			/* calcuate exception address */
 
-			M_LDA(REG_ITMP2_XPC, REG_PV, eref->branchpos - 4);
+			M_LDA(rd->argintregs[3], REG_PV, eref->branchpos - 4);
 
 			/* move function to call into REG_ITMP3 */
 
@@ -3816,11 +3816,8 @@ gen_method:
 					M_ALD(rd->argintregs[2],
 						  REG_SP, stackframesize * 8 - SIZEOF_VOID_P);
 
-				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-				M_MOV(REG_ITMP1, rd->argintregs[4]);
-
 				M_LDA(REG_SP, REG_SP, -2 * 8);
-				M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+				M_AST(rd->argintregs[3], REG_SP, 0 * 8);         /* store XPC */
 
 				if (m->isleafmethod)
 					M_AST(REG_RA, REG_SP, 1 * 8);
