@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4742 2006-04-05 20:31:38Z edwin $
+   $Id: parse.c 4754 2006-04-12 09:20:59Z edwin $
 
 */
 
@@ -233,12 +233,16 @@ bool parse(jitdata *jd)
 	  
 		/* mark this position as a valid instruction start */
 		instructionstart[gp] = 1;
-		if (linepcchange==p) {
+		if (linepcchange == p) {
 			if (m->linenumbercount > lineindex) {
+next_linenumber:
 				currentline = m->linenumbers[lineindex].line_number;
 				lineindex++;
-				if (lineindex < m->linenumbercount)
+				if (lineindex < m->linenumbercount) {
 					linepcchange = m->linenumbers[lineindex].start_pc;
+					if (linepcchange == p)
+						goto next_linenumber;
+				}
 			}
 		}
 
