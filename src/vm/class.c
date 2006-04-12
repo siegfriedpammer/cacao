@@ -29,8 +29,9 @@
    Changes: Mark Probst
             Andreas Krall
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: class.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: class.c 4752 2006-04-12 08:34:59Z edwin $
 
 */
 
@@ -1214,84 +1215,13 @@ void class_classref_println(constant_classref *cr)
 #endif
 
 
+/* class_showconstantpool ******************************************************
+
+   Dump the constant pool of the given class to stdout.
+
+*******************************************************************************/
+
 #if !defined(NDEBUG)
-void class_showconstanti(classinfo *c, int ii) 
-{
-	u4 i = ii;
-	voidptr e;
-		
-	e = c->cpinfos [i];
-	printf ("#%d:  ", (int) i);
-	if (e) {
-		switch (c->cptags [i]) {
-		case CONSTANT_Class:
-			printf("Classreference -> ");
-			utf_display(((constant_classref*)e)->name);
-			break;
-				
-		case CONSTANT_Fieldref:
-			printf("Fieldref -> "); goto displayFMIi;
-		case CONSTANT_Methodref:
-			printf("Methodref -> "); goto displayFMIi;
-		case CONSTANT_InterfaceMethodref:
-			printf("InterfaceMethod -> "); goto displayFMIi;
-		displayFMIi:
-			{
-				constant_FMIref *fmi = e;
-				utf_display(fmi->classref->name);
-				printf(".");
-				utf_display(fmi->name);
-				printf(" ");
-				utf_display(fmi->descriptor);
-			}
-			break;
-
-		case CONSTANT_String:
-			printf("String -> ");
-			utf_display(e);
-			break;
-		case CONSTANT_Integer:
-			printf("Integer -> %d", (int) (((constant_integer*)e)->value));
-			break;
-		case CONSTANT_Float:
-			printf("Float -> %f", ((constant_float*)e)->value);
-			break;
-		case CONSTANT_Double:
-			printf("Double -> %f", ((constant_double*)e)->value);
-			break;
-		case CONSTANT_Long:
-			{
-				u8 v = ((constant_long*)e)->value;
-#if U8_AVAILABLE
-				printf("Long -> %ld", (long int) v);
-#else
-				printf("Long -> HI: %ld, LO: %ld\n", 
-					    (long int) v.high, (long int) v.low);
-#endif 
-			}
-			break;
-		case CONSTANT_NameAndType:
-			{ 
-				constant_nameandtype *cnt = e;
-				printf("NameAndType: ");
-				utf_display(cnt->name);
-				printf(" ");
-				utf_display(cnt->descriptor);
-			}
-			break;
-		case CONSTANT_Utf8:
-			printf("Utf8 -> ");
-			utf_display(e);
-			break;
-		default: 
-			log_text("Invalid type of ConstantPool-Entry");
-			assert(0);
-		}
-	}
-	printf("\n");
-}
-
-
 void class_showconstantpool (classinfo *c) 
 {
 	u4 i;
@@ -1374,11 +1304,16 @@ void class_showconstantpool (classinfo *c)
 		printf ("\n");
 	}
 }
+#endif /* !defined(NDEBUG) */
 
 
+/* class_showmethods ***********************************************************
 
-/********** Function: class_showmethods   (debugging only) *************/
+   Dump info about the fields and methods of the given class to stdout.
 
+*******************************************************************************/
+
+#if !defined(NDEBUG)
 void class_showmethods (classinfo *c)
 {
 	s4 i;
@@ -1439,4 +1374,5 @@ void class_showmethods (classinfo *c)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
