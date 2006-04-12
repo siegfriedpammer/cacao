@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: method.h 4753 2006-04-12 08:52:14Z edwin $
 */
 
 
@@ -38,7 +38,6 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct methodinfo methodinfo; 
 typedef struct exceptiontable exceptiontable;
 typedef struct lineinfo lineinfo; 
 

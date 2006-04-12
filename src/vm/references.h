@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 4584 2006-03-11 20:34:21Z edwin $
+   $Id: references.h 4753 2006-04-12 08:52:14Z edwin $
 
 */
 
@@ -59,6 +59,8 @@
 /* forward declarations *******************************************************/
 
 typedef struct classinfo classinfo; 
+typedef struct methodinfo methodinfo; 
+typedef struct fieldinfo fieldinfo; 
 typedef struct typedesc typedesc;
 typedef struct methoddesc methoddesc;
 

@@ -28,16 +28,12 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 4505 2006-02-14 00:03:56Z twisti $
+   $Id: field.h 4753 2006-04-12 08:52:14Z edwin $
 */
 
 
 #ifndef _FIELD_H
 #define _FIELD_H
-
-/* forward typedefs ***********************************************************/
-
-typedef struct fieldinfo fieldinfo; 
 
 #include "config.h"
 #include "vm/types.h"
