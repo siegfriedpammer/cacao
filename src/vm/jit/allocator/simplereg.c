@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: simplereg.c 4761 2006-04-12 22:16:59Z edwin $
 
 */
 
@@ -1179,7 +1179,6 @@ static void allocate_scratch_registers(jitdata *jd)
 	stackptr            dst;
 	instruction        *iptr;
 	basicblock         *bptr;
-	methodinfo         *lm;
 	builtintable_entry *bte;
 	methoddesc         *md;
 
