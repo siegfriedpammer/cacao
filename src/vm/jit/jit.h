@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4758 2006-04-12 17:51:10Z edwin $
+   $Id: jit.h 4762 2006-04-12 22:20:49Z edwin $
 
 */
 
@@ -1008,10 +1008,6 @@ void md_dcacheflush(u1 *addr, s4 nbytes);
 
 #if defined(ENABLE_INTRP)
 void intrp_md_init(void);
-#endif
-
-#if defined(ENABLE_RT_TIMING)
-void jit_print_time_stats(FILE *file);
 #endif
 
 #endif /* _JIT_H */

@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4737 2006-04-05 12:56:43Z edwin $
+   $Id: jit.c 4762 2006-04-12 22:20:49Z edwin $
 
 */
 
@@ -40,11 +40,6 @@
 #include "vm/types.h"
 
 #include <assert.h>
-
-#if defined(ENABLE_RT_TIMING)
-#include <time.h>
-#include <errno.h>
-#endif
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -81,6 +76,7 @@
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/verify/typecheck.h"
+#include "vm/rt-timing.h"
 
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
@@ -1468,95 +1464,6 @@ u1 *jit_compile(methodinfo *m)
 	return r;
 }
 
-/*****************************************************************************/
-/* TIMING OF COMPILER PASSES                                                 */
-/*****************************************************************************/
-
-#if defined(ENABLE_RT_TIMING)
-
-#define JIT_GET_TIME(ts) \
-	do { if (clock_gettime(CLOCK_THREAD_CPUTIME_ID,&(ts)) != 0) { \
-		fprintf(stderr,"could not get time: %s\n",strerror(errno)); \
-		abort(); \
-	}} while (0)
-
-#define JITTIME_CHECKS     0
-#define JITTIME_PARSE      1
-#define JITTIME_STACK      2
-#define JITTIME_TYPECHECK  3
-#define JITTIME_LOOP       4
-#define JITTIME_IFCONV     5
-#define JITTIME_ALLOC      6
-#define JITTIME_RPLPOINTS  7
-#define JITTIME_CODEGEN    8
-#define JITTIME_TOTAL      9
-#define JITTIME_N          10
-
-struct jit_time_stat {
-	int index;
-	const char *name;
-};
-
-static struct jit_time_stat jit_time_stat_defs[] = {
-	{ JITTIME_CHECKS,    "checks at beginning" },
-	{ JITTIME_PARSE,     "parse" },
-	{ JITTIME_STACK,     "analyse_stack" },
-	{ JITTIME_TYPECHECK, "typecheck" },
-	{ JITTIME_LOOP,      "loop" },
-	{ JITTIME_IFCONV,    "if conversion" },
-	{ JITTIME_ALLOC,     "register allocation" },
-	{ JITTIME_RPLPOINTS, "replacement point generation" },
-	{ JITTIME_CODEGEN,   "codegen" },
-	{ JITTIME_TOTAL,     "total" },
-	{ 0,              NULL }
-};
-
-static long long jit_time_sum[JITTIME_N] = { 0 };
-
-static long jit_time_diff_usec(struct timespec *a,struct timespec *b)
-{
-	long diff;
-	time_t atime;
-
-	diff = (b->tv_nsec - a->tv_nsec) / 1000;
-	atime = a->tv_sec;
-	while (atime < b->tv_sec) {
-		atime++;
-		diff += 1000000;
-	}
-	return diff;
-}
-
-static void jit_time_diff(struct timespec *a,struct timespec *b,int index)
-{
-	long diff;
-
-	diff = jit_time_diff_usec(a,b);
-	jit_time_sum[index] += diff;
-}
-
-void jit_print_time_stats(FILE *file)
-{
-	struct jit_time_stat *stats;
-	double total;
-
-	stats = jit_time_stat_defs;
-	total = jit_time_sum[JITTIME_TOTAL];
-	while (stats->name) {
-		fprintf(file,"%12lld usec %3.0f%% %s\n",
-				jit_time_sum[stats->index],
-				(total != 0.0) ? jit_time_sum[stats->index] / total * 100.0 : 0.0,
-				stats->name);
-		stats++;
-	}
-}
-
-#else /* !defined(ENABLE_RT_TIMING) */
-
-#define JIT_GET_TIME(ts)
-
-#endif /* defined(ENABLE_RT_TIMING) */
-
 /* jit_compile_intern **********************************************************
 
    Static internal function which does the actual compilation.
@@ -1575,7 +1482,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 					time_rplpoints,time_codegen;
 #endif
 	
-	JIT_GET_TIME(time_start);
+	RT_TIMING_GET_TIME(time_start);
 
 	/* get required compiler data */
 
@@ -1633,7 +1540,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 #endif
 
-	JIT_GET_TIME(time_checks);
+	RT_TIMING_GET_TIME(time_checks);
 
 	/* call the compiler passes ***********************************************/
 
@@ -1646,7 +1553,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		return NULL;
 	}
-	JIT_GET_TIME(time_parse);
+	RT_TIMING_GET_TIME(time_parse);
 
 	DEBUG_JIT_COMPILEVERBOSE("Parsing done: ");
 	DEBUG_JIT_COMPILEVERBOSE("Analysing: ");
@@ -1658,7 +1565,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		return NULL;
 	}
-	JIT_GET_TIME(time_stack);
+	RT_TIMING_GET_TIME(time_stack);
 
 	DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
@@ -1676,7 +1583,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 	}
 #endif
-	JIT_GET_TIME(time_typecheck);
+	RT_TIMING_GET_TIME(time_typecheck);
 
 #if defined(ENABLE_LOOP)
 	if (opt_loops) {
@@ -1685,14 +1592,14 @@ static u1 *jit_compile_intern(jitdata *jd)
 		optimize_loops(jd);
 	}
 #endif
-	JIT_GET_TIME(time_loop);
+	RT_TIMING_GET_TIME(time_loop);
 
 #if defined(ENABLE_IFCONV)
 	if (jd->flags & JITDATA_FLAG_IFCONV)
 		if (!ifconv_static(jd))
 			return NULL;
 #endif
-	JIT_GET_TIME(time_ifconv);
+	RT_TIMING_GET_TIME(time_ifconv);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -1723,7 +1630,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
-	JIT_GET_TIME(time_alloc);
+	RT_TIMING_GET_TIME(time_alloc);
 
 	/* Allocate memory for basic block profiling information. This
 	   _must_ be done after loop optimization and register allocation,
@@ -1738,7 +1645,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	if (!replace_create_replacement_points(jd))
 		return NULL;
-	JIT_GET_TIME(time_rplpoints);
+	RT_TIMING_GET_TIME(time_rplpoints);
 
 	/* now generate the machine code */
 
@@ -1766,7 +1673,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		return NULL;
 	}
 #endif
-	JIT_GET_TIME(time_codegen);
+	RT_TIMING_GET_TIME(time_codegen);
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
@@ -1800,15 +1707,15 @@ static u1 *jit_compile_intern(jitdata *jd)
 	m->code = code;
 
 #if defined(ENABLE_RT_TIMING)
-	jit_time_diff(&time_start,&time_checks,JITTIME_CHECKS);
-	jit_time_diff(&time_checks,&time_parse,JITTIME_PARSE);
-	jit_time_diff(&time_parse,&time_stack,JITTIME_STACK);
-	jit_time_diff(&time_stack,&time_typecheck,JITTIME_TYPECHECK);
-	jit_time_diff(&time_typecheck,&time_loop,JITTIME_LOOP);
-	jit_time_diff(&time_loop,&time_alloc,JITTIME_ALLOC);
-	jit_time_diff(&time_alloc,&time_rplpoints,JITTIME_RPLPOINTS);
-	jit_time_diff(&time_rplpoints,&time_codegen,JITTIME_CODEGEN);
-	jit_time_diff(&time_start,&time_codegen,JITTIME_TOTAL);
+	rt_timing_time_diff(&time_start,&time_checks,RT_TIMING_JIT_CHECKS);
+	rt_timing_time_diff(&time_checks,&time_parse,RT_TIMING_JIT_PARSE);
+	rt_timing_time_diff(&time_parse,&time_stack,RT_TIMING_JIT_STACK);
+	rt_timing_time_diff(&time_stack,&time_typecheck,RT_TIMING_JIT_TYPECHECK);
+	rt_timing_time_diff(&time_typecheck,&time_loop,RT_TIMING_JIT_LOOP);
+	rt_timing_time_diff(&time_loop,&time_alloc,RT_TIMING_JIT_ALLOC);
+	rt_timing_time_diff(&time_alloc,&time_rplpoints,RT_TIMING_JIT_RPLPOINTS);
+	rt_timing_time_diff(&time_rplpoints,&time_codegen,RT_TIMING_JIT_CODEGEN);
+	rt_timing_time_diff(&time_start,&time_codegen,RT_TIMING_JIT_TOTAL);
 #endif
 
 	/* return pointer to the methods entry point */

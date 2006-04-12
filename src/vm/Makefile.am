@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4693 2006-03-28 10:42:04Z twisti $
+## $Id: Makefile.am 4762 2006-04-12 22:20:49Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -42,6 +42,11 @@ if ENABLE_STATISTICS
 STATISTICS_OBJ = \
 	statistics.c \
 	statistics.h
+endif
+
+if ENABLE_RT_TIMING
+RT_TIMING_OBJ = \
+	rt-timing.c
 endif
 
 if ENABLE_ZLIB
@@ -91,6 +96,8 @@ libvmcore_la_SOURCES = \
 	references.h \
 	resolve.c \
 	resolve.h \
+	$(RT_TIMING_OBJ) \
+	rt-timing.h \
 	$(STATISTICS_OBJ) \
 	signal.c \
 	signallocal.h \

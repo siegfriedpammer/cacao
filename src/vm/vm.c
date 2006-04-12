@@ -68,6 +68,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/profile/profile.h"
+#include "vm/rt-timing.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -1339,7 +1340,7 @@ void vm_exit_handler(void)
 #endif
 
 #if defined(ENABLE_RT_TIMING)
- 	jit_print_time_stats(stderr);
+ 	rt_timing_print_time_stats(stderr);
 #endif
 
 	if (opt_verbose || getcompilingtime || opt_stat) {
