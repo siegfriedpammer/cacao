@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: field.h 4753 2006-04-12 08:52:14Z edwin $
+   $Id: field.h 4758 2006-04-12 17:51:10Z edwin $
 */
 
 
@@ -47,6 +47,15 @@
 /* fieldinfo ******************************************************************/
 
 struct fieldinfo {	      /* field of a class                                 */
+
+	/* CAUTION: The first field must be a pointer that is never the same      */
+	/*          value as CLASSREF_PSEUDO_VFTBL! This is used to check whether */
+	/*          a constant_FMIref has been resolved.                          */
+
+	classinfo *class;     /* needed by typechecker. Could be optimized        */
+	                      /* away by using constant_FMIref instead of         */
+	                      /* fieldinfo throughout the compiler.               */
+
 	s4         flags;     /* ACC flags                                        */
 	s4         type;      /* basic data type                                  */
 	utf       *name;      /* name of field                                    */
@@ -56,10 +65,6 @@ struct fieldinfo {	      /* field of a class                                 */
 	s4         offset;    /* offset from start of object (instance variables) */
 
 	imm_union  value;     /* storage for static values (class variables)      */
-
-	classinfo *class;     /* needed by typechecker. Could be optimized        */
-	                      /* away by using constant_FMIref instead of         */
-	                      /* fieldinfo throughout the compiler.               */
 };
 
 
@@ -71,6 +76,8 @@ void field_free(fieldinfo *f);
 void field_printflags(fieldinfo *f);
 void field_print(fieldinfo *f);
 void field_println(fieldinfo *f);
+void field_fieldref_print(constant_FMIref *fr);
+void field_fieldref_println(constant_FMIref *fr);
 #endif
 
 #endif /* _FIELD_H */

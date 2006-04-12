@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4747 2006-04-11 09:00:36Z edwin $
+   $Id: stack.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -3135,7 +3135,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 		else 	 
 			printf(" %d, ", f->offset);
 
-		utf_display_classname(uf->fieldref->classref->name);
+		utf_display_classname(uf->fieldref->p.classref->name);
 		printf(".");
 		utf_display(uf->fieldref->name);
 		printf(" (type ");
@@ -3157,7 +3157,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 		else
 			printf(" (NOT RESOLVED) ");
 
-		utf_display_classname(uf->fieldref->classref->name);
+		utf_display_classname(uf->fieldref->p.classref->name);
 		printf(".");
 		utf_display(uf->fieldref->name);
 		printf(" (type ");
@@ -3205,7 +3205,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 				printf(" %d,", f->offset);
 		}
 		printf(" ");
-		utf_display_classname(uf->fieldref->classref->name);
+		utf_display_classname(uf->fieldref->p.classref->name);
 		printf(".");
 		utf_display(uf->fieldref->name);
 		printf(" (type ");
@@ -3348,7 +3348,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 		else
 			printf(" ");
 
-		utf_display_classname(um->methodref->classref->name);
+		utf_display_classname(um->methodref->p.classref->name);
 		printf(".");
 		utf_display(um->methodref->name);
 		utf_display(um->methodref->descriptor);

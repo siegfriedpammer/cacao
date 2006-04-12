@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4595 2006-03-14 20:51:12Z edwin $
+   $Id: method.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -210,6 +210,50 @@ void method_print(methodinfo *m)
 void method_println(methodinfo *m)
 {
 	method_print(m);
+	printf("\n");
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* method_methodref_print ******************************************************
+
+   Prints a method reference to stdout.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void method_methodref_print(constant_FMIref *mr)
+{
+	if (!mr) {
+		printf("(constant_FMIref *)NULL");
+		return;
+	}
+
+	if (IS_FMIREF_RESOLVED(mr)) {
+		printf("<method> ");
+		method_print(mr->p.method);
+	}
+	else {
+		printf("<methodref> ");
+		utf_display_classname(mr->p.classref->name);
+		printf(".");
+		utf_display(mr->name);
+		utf_display(mr->descriptor);
+	}
+}
+#endif /* !defined(NDEBUG) */
+
+
+/* method_methodref_println ****************************************************
+
+   Prints a method reference to stdout, followed by a newline.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void method_methodref_println(constant_FMIref *mr)
+{
+	method_methodref_print(mr);
 	printf("\n");
 }
 #endif /* !defined(NDEBUG) */

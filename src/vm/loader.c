@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: loader.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -779,7 +779,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* the classref is created later */
 
-		fmi->classref = (constant_classref *) (size_t) forward_fieldmethints->class_index;
+		fmi->p.index = forward_fieldmethints->class_index;
 		fmi->name = nat->name;
 		fmi->descriptor = nat->descriptor;
 
@@ -2068,27 +2068,27 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 													   fmi->descriptor);
 			if (!fmi->parseddesc.fd)
 				goto return_exception;
-			index = (int) (size_t) fmi->classref;
-			fmi->classref =
+			index = fmi->p.index;
+			fmi->p.classref =
 				(constant_classref *) class_getconstant(c, index,
 														CONSTANT_Class);
-			if (!fmi->classref)
+			if (!fmi->p.classref)
 				goto return_exception;
 			break;
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
 			fmi = (constant_FMIref *) c->cpinfos[i];
-			index = (int) (size_t) fmi->classref;
-			fmi->classref =
+			index = fmi->p.index;
+			fmi->p.classref =
 				(constant_classref *) class_getconstant(c, index,
 														CONSTANT_Class);
-			if (!fmi->classref)
+			if (!fmi->p.classref)
 				goto return_exception;
 			fmi->parseddesc.md =
 				descriptor_pool_parse_method_descriptor(descpool,
 														fmi->descriptor,
 														ACC_UNDEF,
-														fmi->classref);
+														fmi->p.classref);
 			if (!fmi->parseddesc.md)
 				goto return_exception;
 			break;

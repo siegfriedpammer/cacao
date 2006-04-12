@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: references.h 4753 2006-04-12 08:52:14Z edwin $
+   $Id: references.h 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -97,7 +97,12 @@ typedef union parseddesc {
 /* constant_FMIref ************************************************************/
 
 typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
-	constant_classref *classref;  /* class containing this field/meth./intfm. */
+	union {
+		s4                 index;     /* used only within the loader          */
+		constant_classref *classref;  /* class having this field/meth./intfm. */
+		fieldinfo         *field;     /* resolved field                       */
+		methodinfo        *method;    /* resolved method                      */
+	} p;
 	utf       *name;        /* field/method/interfacemethod name              */
 	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
 	parseddesc parseddesc;  /* parsed descriptor                              */
@@ -114,6 +119,11 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 #define IS_CLASSREF(reforinfo)  \
 	((reforinfo).ref->pseudo_vftbl == CLASSREF_PSEUDO_VFTBL)
 
+/* macro for testing if a constant_FMIref has been resolved                   */
+/* `fmiref` is only evaluated once                                            */
+#define IS_FMIREF_RESOLVED(fmiref)  \
+	((fmiref)->p.classref->pseudo_vftbl != CLASSREF_PSEUDO_VFTBL)
+
 /* the same as IS_CLASSREF, but also check against NULL */
 #define IS_XCLASSREF(reforinfo)  \
 	((reforinfo).any && IS_CLASSREF(reforinfo))
@@ -125,6 +135,16 @@ typedef struct {            /* Fieldref, Methodref and InterfaceMethodref     */
 /* macro for accessing the name of a classref/classinfo                       */
 #define CLASSREF_OR_CLASSINFO_NAME(value) \
 	(IS_CLASSREF(value) ? (value).ref->name : (value).cls->name)
+
+/* macro for accessing the class name of a method reference                   */
+#define METHODREF_CLASSNAME(fmiref) \
+	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.method->class->name \
+	 							: (fmiref)->p.classref->name)
+
+/* macro for accessing the class name of a method reference                   */
+#define FIELDREF_CLASSNAME(fmiref) \
+	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->class->name \
+	 							: (fmiref)->p.classref->name)
 
 /* initialize a constant_classref with referer `ref` and name `classname`     */
 

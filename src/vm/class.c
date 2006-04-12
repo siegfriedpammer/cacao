@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4752 2006-04-12 08:34:59Z edwin $
+   $Id: class.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -1240,24 +1240,18 @@ void class_showconstantpool (classinfo *c)
 				printf ("Classreference -> ");
 				utf_display ( ((constant_classref*)e) -> name );
 				break;
-				
 			case CONSTANT_Fieldref:
-				printf ("Fieldref -> "); goto displayFMI;
-			case CONSTANT_Methodref:
-				printf ("Methodref -> "); goto displayFMI;
-			case CONSTANT_InterfaceMethodref:
-				printf ("InterfaceMethod -> "); goto displayFMI;
-			displayFMI:
-				{
-					constant_FMIref *fmi = e;
-					utf_display ( fmi->classref->name );
-					printf (".");
-					utf_display ( fmi->name);
-					printf (" ");
-					utf_display ( fmi->descriptor );
-				}
+				printf ("Fieldref -> ");
+				field_fieldref_print((constant_FMIref *) e);
 				break;
-
+			case CONSTANT_Methodref:
+				printf ("Methodref -> ");
+				method_methodref_print((constant_FMIref *) e);
+				break;
+			case CONSTANT_InterfaceMethodref:
+				printf ("InterfaceMethod -> ");
+				method_methodref_print((constant_FMIref *) e);
+				break;
 			case CONSTANT_String:
 				printf ("String -> ");
 				utf_display (e);

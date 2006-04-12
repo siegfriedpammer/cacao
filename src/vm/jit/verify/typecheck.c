@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4734 2006-04-05 09:57:55Z edwin $
+   $Id: typecheck.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -1281,7 +1281,7 @@ verify_invocation(verifier_state *state)
 			/* must be <init> of current class or direct superclass                   */
 			/* the current class is linked, so must be its superclass. thus we can be */
 			/* sure that resolving will be trivial.                                   */
-			if (!resolve_classref(state->m,mref->classref,resolveLazy,false,true,&cls))
+			if (!resolve_classref(state->m,mref->p.classref,resolveLazy,false,true,&cls))
 				return false; /* exception */
 
 			/* if lazy resolving did not succeed, it's not one of the allowed classes */
@@ -1296,7 +1296,7 @@ verify_invocation(verifier_state *state)
 		}
 		else {
 			/* { we are initializing an instance created with NEW } */
-			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mref->classref->name) {
+			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mref->p.classref->name) {
 				TYPECHECK_VERIFYERROR_bool("wrong <init> called for uninitialized reference");
 			}
 		}

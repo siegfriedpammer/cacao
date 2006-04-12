@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4737 2006-04-05 12:56:43Z edwin $
+   $Id: jit.h 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -163,6 +163,59 @@ struct instruction {
 	                            /* statements                                 */
 	u2          line;           /* line number in source file                 */
 };
+
+#define INSTRUCTION_IS_RESOLVED(iptr) \
+	((iptr)->target == NULL) /* XXX target used temporarily as flag */
+
+#define INSTRUCTION_IS_UNRESOLVED(iptr) \
+	((iptr)->target != NULL) /* XXX target used temporarily as flag */
+
+#define INSTRUCTION_GET_FIELDREF(iptr,fref) \
+	do { \
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
+			fref = ((unresolved_field *) (iptr)->val.a)->fieldref; \
+		else \
+			fref = ((constant_FMIref *)(iptr)->val.a); \
+	} while (0)
+
+#define INSTRUCTION_GET_METHODREF(iptr,mref) \
+	do { \
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
+			mref = ((unresolved_method *) (iptr)->val.a)->methodref; \
+		else \
+			mref = ((constant_FMIref *)(iptr)->val.a); \
+	} while (0)
+
+#define INSTRUCTION_GET_FIELDDESC(iptr,fd) \
+	do { \
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
+			fd = ((unresolved_field *)(iptr)->val.a)->fieldref->parseddesc.fd; \
+		else \
+			fd = ((constant_FMIref *)(iptr)->val.a)->parseddesc.fd; \
+	} while (0)
+
+#define INSTRUCTION_GET_METHODDESC(iptr,md) \
+	do { \
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) \
+			md = ((unresolved_method *) (iptr)->val.a)->methodref->parseddesc.md; \
+		else \
+			md = ((constant_FMIref *)(iptr)->val.a)->parseddesc.md; \
+	} while (0)
+
+#define INSTRUCTION_UNRESOLVED_METHOD(iptr) \
+	((unresolved_method *) (iptr)->val.a)
+
+#define INSTRUCTION_UNRESOLVED_FIELD(iptr) \
+	((unresolved_field *) (iptr)->val.a)
+
+#define INSTRUCTION_RESOLVED_FMIREF(iptr) \
+    ((constant_FMIref *)(iptr)->val.a)
+
+#define INSTRUCTION_RESOLVED_FIELDINFO(iptr) \
+    (INSTRUCTION_RESOLVED_FMIREF(iptr)->p.field)
+
+#define INSTRUCTION_RESOLVED_METHODINFO(iptr) \
+    (INSTRUCTION_RESOLVED_FMIREF(iptr)->p.method)
 
 #define INSTRUCTION_PUTCONST_TYPE(iptr) \
 	((iptr)[0].op1)

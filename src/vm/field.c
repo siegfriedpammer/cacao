@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 4404 2006-02-03 12:38:03Z twisti $
+   $Id: field.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -125,6 +125,48 @@ void field_println(fieldinfo *f)
 }
 #endif
 
+/* field_fieldref_print ********************************************************
+
+   (debugging only)
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void field_fieldref_print(constant_FMIref *fr)
+{
+	if (fr == NULL) {
+		printf("(constant_FMIref *)NULL");
+		return;
+	}
+
+	if (IS_FMIREF_RESOLVED(fr)) {
+		printf("<field> ");
+		field_print(fr->p.field);
+	}
+	else {
+		printf("<fieldref> ");
+		utf_display_classname(fr->p.classref->name);
+		printf(".");
+		utf_display(fr->name);
+		printf(" ");
+		utf_display(fr->descriptor);
+	}
+}
+#endif
+
+/* field_fieldref_println ******************************************************
+
+   (debugging only)
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+void field_fieldref_println(constant_FMIref *fr)
+{
+	field_fieldref_print(fr);
+	printf("\n");
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: method.h 4753 2006-04-12 08:52:14Z edwin $
+   $Id: method.h 4758 2006-04-12 17:51:10Z edwin $
 */
 
 
@@ -149,6 +149,8 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 void method_printflags(methodinfo *m);
 void method_print(methodinfo *m);
 void method_println(methodinfo *m);
+void method_methodref_print(constant_FMIref *mr);
+void method_methodref_println(constant_FMIref *mr);
 #endif
 
 #endif /* _METHOD_H */

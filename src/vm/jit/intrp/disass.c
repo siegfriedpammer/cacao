@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Anton Ertl
 
-   $Id: disass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -195,7 +195,7 @@ void printarg_auf     (unresolved_field * auf     )
 void printarg_aum     (unresolved_method *aum     )
 {
 	if (aum) {
-		utf_fprint_classname(vm_out, aum->methodref->classref->name);
+		utf_fprint_classname(vm_out, METHODREF_CLASSNAME(aum->methodref));
 		fprintf(vm_out, ".");
 		utf_fprint(vm_out, aum->methodref->name);
 		utf_fprint(vm_out, aum->methodref->descriptor);

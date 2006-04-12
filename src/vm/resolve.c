@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: resolve.c 4758 2006-04-12 17:51:10Z edwin $
 
 */
 
@@ -816,12 +816,12 @@ bool resolve_field(unresolved_field *ref,
 
 	/* the class containing the reference */
 
-	referer = ref->fieldref->classref->referer;
+	referer = ref->fieldref->p.classref->referer;
 	assert(referer);
 
 	/* first we must resolve the class containg the field */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->fieldref->classref->name,mode,true,true,&container))
+					   ref->fieldref->p.classref->name,mode,true,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -1069,12 +1069,12 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 	*result = NULL;
 
 	/* the class containing the reference */
-	referer = ref->methodref->classref->referer;
+	referer = ref->methodref->p.classref->referer;
 	assert(referer);
 
 	/* first we must resolve the class containg the method */
 	if (!resolve_class_from_name(referer,ref->referermethod,
-					   ref->methodref->classref->name,mode,true,true,&container))
+					   ref->methodref->p.classref->name,mode,true,true,&container))
 	{
 		/* the class reference could not be resolved */
 		return false; /* exception */
@@ -1656,7 +1656,7 @@ bool constrain_unresolved_field(unresolved_field *ref,
 			insttip = &(instanceslot->typeinfo);
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),insttip,fieldref->classref))
+					&(ref->instancetypes),insttip,fieldref->p.classref))
 			return false;
 	}
 	else {
@@ -1828,7 +1828,7 @@ bool constrain_unresolved_method(unresolved_method *ref,
 			tip = &(instanceslot->typeinfo);
 		}
 		if (!unresolved_subtype_set_from_typeinfo(referer,refmethod,
-					&(ref->instancetypes),tip,methodref->classref))
+					&(ref->instancetypes),tip,methodref->p.classref))
 			return false;
 	}
 	
@@ -2026,13 +2026,13 @@ void unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 	fprintf(file,"unresolved_field(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint(file,ref->fieldref->classref->referer->name); fputc('\n',file);
+		utf_fprint(file,ref->fieldref->p.classref->referer->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
 		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
 		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
-		utf_fprint(file,ref->fieldref->classref->name); fputc('\n',file);
+		utf_fprint(file,ref->fieldref->p.classref->name); fputc('\n',file);
 		fprintf(file,"    name      : ");
 		utf_fprint(file,ref->fieldref->name); fputc('\n',file);
 		fprintf(file,"    descriptor: ");
@@ -2064,13 +2064,13 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 	fprintf(file,"unresolved_method(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint(file,ref->methodref->classref->referer->name); fputc('\n',file);
+		utf_fprint(file,ref->methodref->p.classref->referer->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
 		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
 		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
-		utf_fprint(file,ref->methodref->classref->name); fputc('\n',file);
+		utf_fprint(file,ref->methodref->p.classref->name); fputc('\n',file);
 		fprintf(file,"    name      : ");
 		utf_fprint(file,ref->methodref->name); fputc('\n',file);
 		fprintf(file,"    descriptor: ");
