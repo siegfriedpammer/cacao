@@ -1,6 +1,7 @@
 New in release 0.96 (XXX XX, 2006)
 
   * Handle Miranda-methods properly.
+  * try-catch line number problem with jikes fixed.
 
 
 New in release 0.95 (February 13, 2006)
