@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: resolve.h 4759 2006-04-12 18:07:05Z edwin $
 
 */
 
@@ -65,12 +65,16 @@ typedef enum {
 	resolveEager
 } resolve_mode_t;
 
-
 typedef enum {
 	resolveLinkageError,
 	resolveIllegalAccessError
 } resolve_err_t;
 
+typedef enum {
+	resolveFailed = false,  /* this must be a false value */
+	resolveDeferred = true, /* this must be a true value  */
+	resolveSucceeded
+} resolve_result_t;
 
 /* structs ********************************************************************/
 
@@ -173,6 +177,11 @@ void unresolved_class_free(unresolved_class *ref);
 void unresolved_field_free(unresolved_field *ref);
 void unresolved_method_free(unresolved_method *ref);
 
+resolve_result_t resolve_method_lazy(instruction *iptr,stackptr curstack,
+									 methodinfo *refmethod);
+resolve_result_t resolve_field_lazy(instruction *iptr,stackptr curstack,
+									methodinfo *refmethod);
+
 #ifdef ENABLE_VERIFIER
 bool constrain_unresolved_field(unresolved_field *ref,
 						   classinfo *referer,methodinfo *refmethod,
@@ -184,13 +193,6 @@ bool constrain_unresolved_method(unresolved_method *ref,
 						 	instruction *iptr,
 						 	stackelement *stack);
 
-bool resolve_and_check_subtype_set(classinfo *referer,methodinfo *refmethod,
-							  unresolved_subtype_set *ref,
-							  classref_or_classinfo type,
-							  bool reversed,
-							  resolve_mode_t mode,
-							  resolve_err_t error,
-							  bool *checked);
 #endif
 
 #ifndef NDEBUG
