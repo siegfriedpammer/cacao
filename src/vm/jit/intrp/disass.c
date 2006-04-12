@@ -29,8 +29,9 @@
 
    Changes: Christian Thalinger
             Anton Ertl
+			Edwin Steiner
 
-   $Id: disass.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: disass.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -160,6 +161,17 @@ void printarg_af      (functionptr        af      )
 	fprintf(vm_out, "f: %p", (void *)af);
 }
 
+void printarg_afi     (fieldinfo *        afi      )
+{
+	if (afi) {
+		utf_fprint_classname(vm_out, afi->class->name);
+		fprintf(vm_out, ".");
+		utf_fprint(vm_out, afi->name);
+		utf_fprint(vm_out, afi->descriptor);
+	} else
+		fprintf(vm_out, "fi=NULL");
+}
+
 void printarg_am      (methodinfo *       am      )
 {
 	if (am) {
@@ -224,4 +236,5 @@ void printarg_avftbl  (vftbl_t *          avftbl  )
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

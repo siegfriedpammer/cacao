@@ -26,11 +26,10 @@
 
    Authors: Christian Thalinger
             Anton Ertl
-			Edwin Steiner
+			
+   Changes: Edwin Steiner
 
-   Changes:
-
-   $Id: codegen.c 4718 2006-04-01 21:03:40Z edwin $
+   $Id: codegen.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -160,6 +159,13 @@ void genarg_af(codegendata *cd1, functionptr a)
 {
 	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
 	*((functionptr *) *mcodepp) = a;
+	(*mcodepp)++;
+}
+
+void genarg_afi(codegendata *cd1, fieldinfo *a)
+{
+	Inst **mcodepp = (Inst **) &(cd1->mcodeptr);
+	*((fieldinfo **) *mcodepp) = a;
 	(*mcodepp)++;
 }
 
@@ -1102,37 +1108,50 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1 = type, val.a = field address            */
 
 			{
-			fieldinfo *fi = iptr->val.a;
-			unresolved_field *uf = iptr->target;
+			fieldinfo *fi = NULL;
+			unresolved_field *uf = NULL;
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
+			else
+				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_GETSTATIC_CLINIT_INT(cd, 0, fi);
 				} else {
-					gen_GETSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
+					gen_GETSTATIC_INT(cd, (u1 *)&(fi->value.i), fi);
 				}
 				break;
 			case TYPE_FLT:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_GETSTATIC_FLOAT(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_GETSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				} else {
-					gen_GETSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), uf);
+					gen_GETSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), fi);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_GETSTATIC_CLINIT_LONG(cd, 0, fi);
 				} else {
-					gen_GETSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
+					gen_GETSTATIC_LONG(cd, (u1 *)&(fi->value.l), fi);
 				}
 				break;
 			case TYPE_ADR:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_GETSTATIC_CLINIT_CELL(cd, 0, fi);
 				} else {
-					gen_GETSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
+					gen_GETSTATIC_CELL(cd, (u1 *)&(fi->value.a), fi);
 				}
 				break;
 			}
@@ -1143,37 +1162,50 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1 = type, val.a = field address            */
 
 			{
-			fieldinfo *fi = iptr->val.a;
-			unresolved_field *uf = iptr->target;
+			fieldinfo *fi = NULL;
+			unresolved_field *uf = NULL;
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
+			else
+				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_PUTSTATIC_CLINIT_INT(cd, 0, fi);
 				} else {
-					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), uf);
+					gen_PUTSTATIC_INT(cd, (u1 *)&(fi->value.i), fi);
 				}
 				break;
 			case TYPE_FLT:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_PUTSTATIC_FLOAT(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_PUTSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				} else {
-					gen_PUTSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), uf);
+					gen_PUTSTATIC_FLOAT(cd, (u1 *)&(fi->value.i), fi);
 				}
 				break;
 			case TYPE_LNG:
 			case TYPE_DBL:
-				if ((fi == NULL) || !CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_PUTSTATIC_CLINIT_LONG(cd, 0, fi);
 				} else {
-					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), uf);
+					gen_PUTSTATIC_LONG(cd, (u1 *)&(fi->value.l), fi);
 				}
 				break;
 			case TYPE_ADR:
-				if ((fi == NULL) ||	!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (fi == NULL) {
 					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
+				} else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					gen_PATCHER_PUTSTATIC_CLINIT_CELL(cd, 0, fi);
 				} else {
-					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), uf);
+					gen_PUTSTATIC_CELL(cd, (u1 *)&(fi->value.a), fi);
 				}
 				break;
 			}
@@ -1185,22 +1217,27 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1 = type, val.a = field address            */
 
 			{
-			fieldinfo *fi = iptr->val.a;
-			unresolved_field *uf = iptr->target;
+			fieldinfo *fi = NULL;
+			unresolved_field *uf = NULL;
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
+			else
+				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
 				if (fi == NULL) {
 					gen_PATCHER_GETFIELD_INT(cd, 0, uf);
 				} else {
-					gen_GETFIELD_INT(cd, fi->offset, uf);
+					gen_GETFIELD_INT(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_FLT:
 				if (fi == NULL) {
 					gen_PATCHER_GETFIELD_FLOAT(cd, 0, uf);
 				} else {
-					gen_GETFIELD_FLOAT(cd, fi->offset, uf);
+					gen_GETFIELD_FLOAT(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_LNG:
@@ -1208,14 +1245,14 @@ bool intrp_codegen(jitdata *jd)
 				if (fi == NULL) {
 					gen_PATCHER_GETFIELD_LONG(cd, 0, uf);
 				} else {
-					gen_GETFIELD_LONG(cd, fi->offset, uf);
+					gen_GETFIELD_LONG(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_ADR:
 				if (fi == NULL) {
 					gen_PATCHER_GETFIELD_CELL(cd, 0, uf);
 				} else {
-					gen_GETFIELD_CELL(cd, fi->offset, uf);
+					gen_GETFIELD_CELL(cd, fi->offset, fi);
 				}
 				break;
 			}
@@ -1226,22 +1263,27 @@ bool intrp_codegen(jitdata *jd)
 		                      /* op1 = type, val.a = field address            */
 
 			{
-			fieldinfo *fi = iptr->val.a;
-			unresolved_field *uf = iptr->target;
+			fieldinfo *fi = NULL;
+			unresolved_field *uf = NULL;
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
+			else
+				fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 			switch (iptr->op1) {
 			case TYPE_INT:
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_INT(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_INT(cd, fi->offset, uf);
+					gen_PUTFIELD_INT(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_FLT:
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_FLOAT(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_FLOAT(cd, fi->offset, uf);
+					gen_PUTFIELD_FLOAT(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_LNG:
@@ -1249,14 +1291,14 @@ bool intrp_codegen(jitdata *jd)
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_LONG(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_LONG(cd, fi->offset, uf);
+					gen_PUTFIELD_LONG(cd, fi->offset, fi);
 				}
 				break;
 			case TYPE_ADR:
 				if (fi == NULL) {
 					gen_PATCHER_PUTFIELD_CELL(cd, 0, uf);
 				} else {
-					gen_PUTFIELD_CELL(cd, fi->offset, uf);
+					gen_PUTFIELD_CELL(cd, fi->offset, fi);
 				}
 				break;
 			}
@@ -1642,63 +1684,59 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
 		                        /* op1 = arg count, val.a = method pointer    */
 
-			lm = iptr->val.a;
-			um = iptr->target;
-
-			if (lm == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKESTATIC(cd, 0, md->paramslots, um);
 
 			} else {
+				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
 				md = lm->parseddesc;
-				gen_INVOKESTATIC(cd, (Inst **)lm->stubroutine, md->paramslots, um);
+				gen_INVOKESTATIC(cd, (Inst **)lm->stubroutine, md->paramslots, lm);
 			}
 			break;
 
 		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
 
-			lm = iptr->val.a;
-			um = iptr->target;
-
-			if (lm == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKESPECIAL(cd, 0, md->paramslots, um);
 
 			} else {
+				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
 				md = lm->parseddesc;
-				gen_INVOKESPECIAL(cd, (Inst **)lm->stubroutine, md->paramslots, um);
+				gen_INVOKESPECIAL(cd, (Inst **)lm->stubroutine, md->paramslots, lm);
 			}
 			break;
 
 		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
 
-			lm = iptr->val.a;
-			um = iptr->target;
-
-			if (lm == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKEVIRTUAL(cd, 0, md->paramslots, um);
 
 			} else {
+				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
 				md = lm->parseddesc;
 
 				s1 = OFFSET(vftbl_t, table[0]) +
 					sizeof(methodptr) * lm->vftblindex;
 
-				gen_INVOKEVIRTUAL(cd, s1, md->paramslots, um);
+				gen_INVOKEVIRTUAL(cd, s1, md->paramslots, lm);
 			}
 			break;
 
 		case ICMD_INVOKEINTERFACE:/* op1 = arg count, val.a = method pointer  */
 
-			lm = iptr->val.a;
-			um = iptr->target;
-
-			if (lm == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 				md = um->methodref->parseddesc.md;
 				gen_PATCHER_INVOKEINTERFACE(cd, 0, 0, md->paramslots, um);
 
 			} else {
+				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
 				md = lm->parseddesc;
 
 				s1 = OFFSET(vftbl_t, interfacetable[0]) -
@@ -1706,7 +1744,7 @@ bool intrp_codegen(jitdata *jd)
 
 				s2 = sizeof(methodptr) * (lm - lm->class->methods);
 
-				gen_INVOKEINTERFACE(cd, s1, s2, md->paramslots, um);
+				gen_INVOKEINTERFACE(cd, s1, s2, md->paramslots, lm);
 			}
 			break;
 

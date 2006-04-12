@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4734 2006-04-05 09:57:55Z edwin $
+   $Id: codegen.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -3220,10 +3220,10 @@ bool codegen(jitdata *jd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EAX*/ 
 
-			if (iptr->val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3232,7 +3232,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				fieldinfo *fi = iptr->val.a;
+				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -3288,10 +3288,10 @@ bool codegen(jitdata *jd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			if (iptr->val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr->target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3300,7 +3300,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				fieldinfo *fi = iptr->val.a;
+				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -3356,10 +3356,10 @@ bool codegen(jitdata *jd)
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
-			if (iptr[1].val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_get_putstatic,
-									(unresolved_field *) iptr[1].target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3368,7 +3368,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				fieldinfo *fi = iptr[1].val.a;
+				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, cd->mcodeptr,
@@ -3405,10 +3405,10 @@ bool codegen(jitdata *jd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (iptr->val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_getfield,
-									(unresolved_field *) iptr->target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3417,7 +3417,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				disp = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr)->offset;
 			}
 
 			switch (iptr->op1) {
@@ -3465,10 +3465,10 @@ bool codegen(jitdata *jd)
 			} else
 				var_to_reg_flt(s2, src, REG_FTMP2);
 
-			if (iptr->val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfield,
-									(unresolved_field *) iptr->target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3477,7 +3477,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				disp = ((fieldinfo *) (iptr->val.a))->offset;
+				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr)->offset;
 			}
 
 			switch (iptr->op1) {
@@ -3509,10 +3509,10 @@ bool codegen(jitdata *jd)
 			var_to_reg_int(s1, src, REG_ITMP1);
 			gen_nullptr_check(s1);
 
-			if (iptr[1].val.a == NULL) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
 				codegen_addpatchref(cd, cd->mcodeptr,
 									PATCHER_putfieldconst,
-									(unresolved_field *) iptr[1].target, 0);
+									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3521,7 +3521,7 @@ bool codegen(jitdata *jd)
 				disp = 0;
 
 			} else {
-				disp = ((fieldinfo *) (iptr[1].val.a))->offset;
+				disp = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1)->offset;
 			}
 
 			switch (iptr[1].op1) {
@@ -4441,12 +4441,12 @@ nowperformreturn:
 			/* REG_RES Register usage: see icmd_uses_reg_res.inc */
 			/* EAX: S|YES ECX: YES EDX: YES OUTPUT: EAX */
 
-			lm = iptr->val.a;
-
-			if (lm == NULL) {
-				unresolved_method *um = iptr->target;
-				md = um->methodref->parseddesc.md;
-			} else {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				md = INSTRUCTION_UNRESOLVED_METHOD(iptr)->methodref->parseddesc.md;
+				lm = NULL;
+			}
+			else {
+				lm = INSTRUCTION_RESOLVED_METHODINFO(iptr);
 				md = lm->parseddesc;
 			}
 
@@ -4534,7 +4534,7 @@ gen_method:
 
 			case ICMD_INVOKESTATIC:
 				if (lm == NULL) {
-					unresolved_method *um = iptr->target;
+					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokestatic_special, um, 0);
@@ -4560,7 +4560,7 @@ gen_method:
 				gen_nullptr_check(REG_ITMP1);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->target;
+					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokevirtual, um, 0);
@@ -4588,7 +4588,7 @@ gen_method:
 				gen_nullptr_check(REG_ITMP1);
 
 				if (lm == NULL) {
-					unresolved_method *um = iptr->target;
+					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
 					codegen_addpatchref(cd, cd->mcodeptr,
 										PATCHER_invokeinterface, um, 0);

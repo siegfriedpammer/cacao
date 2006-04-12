@@ -27,9 +27,9 @@
    Authors: Christian Thalinger
             Anton Ertl
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: intrp.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: intrp.h 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -142,6 +142,7 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 #define vm_Cell2acr(x1,x2)        ((x2) = (constant_classref *)(x1))
 #define vm_Cell2addr(x1,x2)       ((x2) = (u1 *               )(x1))
 #define vm_Cell2af(x1,x2)         ((x2) = (functionptr        )(x1))
+#define vm_Cell2afi(x1,x2)        ((x2) = (fieldinfo *        )(x1))
 #define vm_Cell2am(x1,x2)         ((x2) = (methodinfo *       )(x1))
 #define vm_Cell2acell(x1,x2)      ((x2) = (Cell *             )(x1))
 #define vm_Cell2ainst(x1,x2)      ((x2) = (Inst *             )(x1))
@@ -161,6 +162,7 @@ static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 #define vm_acr2Cell(x1,x2) ((x2) = (Cell)(x1))
 #define vm_addr2Cell(x1,x2) ((x2) = (Cell)(x1))
 #define vm_af2Cell(x1,x2) ((x2) = (Cell)(x1))
+#define vm_afi2Cell(x1,x2) ((x2) = (Cell)(x1))
 #define vm_am2Cell(x1,x2) ((x2) = (Cell)(x1))
 #define vm_acell2Cell(x1,x2) ((x2) = (Cell)(x1))
 #define vm_ainst2Cell(x1,x2) ((x2) = (Cell)(x1))
@@ -231,6 +233,7 @@ void printarg_aClass  (classinfo *        aClass  );
 void printarg_acr     (constant_classref *acr     );
 void printarg_addr    (u1 *               addr    );
 void printarg_af      (functionptr        af      );
+void printarg_afi     (fieldinfo *        afi     );
 void printarg_am      (methodinfo *       am      );
 void printarg_acell   (Cell *             acell   );
 void printarg_ainst   (Inst *             ainst   );
@@ -261,4 +264,5 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

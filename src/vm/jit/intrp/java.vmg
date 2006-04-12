@@ -882,90 +882,90 @@ RETURN ( #vOffsetFP ... -- ) 0xb1
   SET_IP(new_ip);
 }
 
-GETSTATIC_CELL ( #addr #auf -- vResult ) opt
+GETSTATIC_CELL ( #addr #afi -- vResult ) opt
 {
   vResult = *(Cell *)addr;
 }
 
-GETSTATIC_INT ( #addr #auf -- iResult ) opt
+GETSTATIC_INT ( #addr #afi -- iResult ) opt
 {
   iResult = *(s4 *)addr;
 }
 
-GETSTATIC_FLOAT ( #addr #auf -- fResult ) opt
+GETSTATIC_FLOAT ( #addr #afi -- fResult ) opt
 {
   fResult = *(float *)addr;
 }
 
-GETSTATIC_LONG ( #addr #auf -- lResult ) opt
+GETSTATIC_LONG ( #addr #afi -- lResult ) opt
 {
   lResult = *((s8 *) addr);
 }
 
-PUTSTATIC_CELL ( #addr #auf vValue -- ) opt
+PUTSTATIC_CELL ( #addr #afi vValue -- ) opt
 {
   *((Cell *) addr) = vValue;
 }
 
-PUTSTATIC_INT ( #addr #auf iValue -- ) opt
+PUTSTATIC_INT ( #addr #afi iValue -- ) opt
 {
   *((s4 *) addr) = iValue;
 }
 
-PUTSTATIC_FLOAT ( #addr #auf fValue -- ) opt
+PUTSTATIC_FLOAT ( #addr #afi fValue -- ) opt
 {
   *((float *) addr) = fValue;
 }
 
-PUTSTATIC_LONG ( #addr #auf lValue -- ) opt
+PUTSTATIC_LONG ( #addr #afi lValue -- ) opt
 {
   *((s8 *) addr) = lValue;
 }
 
-GETFIELD_CELL ( #vOffset #auf aRef -- vResult ) opt
+GETFIELD_CELL ( #vOffset #afi aRef -- vResult ) opt
 {
   CHECK_NULL_PTR(aRef);
   vResult = *((Cell *) (((u1 *)aRef) + vOffset));
 }
 
-GETFIELD_INT ( #vOffset #auf aRef -- iResult ) opt
+GETFIELD_INT ( #vOffset #afi aRef -- iResult ) opt
 {
   CHECK_NULL_PTR(aRef);
   iResult = *((s4 *) (((u1 *)aRef) + vOffset));
 }
 
-GETFIELD_FLOAT ( #vOffset #auf aRef -- fResult ) opt
+GETFIELD_FLOAT ( #vOffset #afi aRef -- fResult ) opt
 {
   CHECK_NULL_PTR(aRef);
   fResult = *((float *) (((u1 *) aRef) + vOffset));
 }
 
-GETFIELD_LONG ( #vOffset #auf aRef -- lResult ) opt
+GETFIELD_LONG ( #vOffset #afi aRef -- lResult ) opt
 {
   CHECK_NULL_PTR(aRef);
   lResult = *((s8 *) (((u1 *)aRef) + vOffset));
 }
 
 
-PUTFIELD_CELL ( #vOffset #auf aRef vValue -- ) opt
+PUTFIELD_CELL ( #vOffset #afi aRef vValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
   *((Cell *) (((u1 *)aRef) + vOffset)) = vValue;
 }
 
-PUTFIELD_INT ( #vOffset #auf aRef iValue -- ) opt
+PUTFIELD_INT ( #vOffset #afi aRef iValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
   *((s4 *) (((u1 *)aRef) + vOffset)) = iValue;
 }
 
-PUTFIELD_FLOAT ( #vOffset #auf aRef fValue -- ) opt
+PUTFIELD_FLOAT ( #vOffset #afi aRef fValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
   *((float *) (((u1 *)aRef) + vOffset)) = fValue;
 }
 
-PUTFIELD_LONG ( #vOffset #auf aRef lValue -- ) opt
+PUTFIELD_LONG ( #vOffset #afi aRef lValue -- ) opt
 {
   CHECK_NULL_PTR(aRef);
   *((s8 *) (((u1 *)aRef) + vOffset)) = lValue;
@@ -975,7 +975,7 @@ PUTFIELD_LONG ( #vOffset #auf aRef lValue -- ) opt
 \ methods are always called indirectly through the codeptr in the stub 
 \   (see createcompilerstub and TRANSLATE).
 
-INVOKEVIRTUAL ( #vOffset #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xd8
+INVOKEVIRTUAL ( #vOffset #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xd8
 {
   java_objectheader *aRef = (java_objectheader *)(sp[iNargs - 1]);
   char *v;
@@ -992,7 +992,7 @@ INVOKEVIRTUAL ( #vOffset #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xd8
   SET_IP(target);
 }
 
-INVOKESTATIC ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb8
+INVOKESTATIC ( #aaTarget #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xb8
 /* an indirect pointer to target is passed to avoid references to uncompiled code */
 {
   Inst *target = *aaTarget;
@@ -1003,7 +1003,7 @@ INVOKESTATIC ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb8
   SET_IP(target);
 }
 
-INVOKESPECIAL ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb7
+INVOKESPECIAL ( #aaTarget #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xb7
 /* an indirect pointer to target is passed to avoid references to uncompiled code */
 {
   java_objectheader *aRef = (java_objectheader *)(sp[iNargs - 1]);
@@ -1016,7 +1016,7 @@ INVOKESPECIAL ( #aaTarget #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xb7
   SET_IP(target);
 }
 
-INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #aum ... -- ... acelloldfp ainstoldip ) 0xd8
+INVOKEINTERFACE ( #iInterfaceOffset #vOffset #iNargs #am ... -- ... acelloldfp ainstoldip ) 0xd8
 {
   java_objectheader *aRef;
   char   *v, *t;
@@ -1301,7 +1301,7 @@ IFNONNULL ( #ainstTarget aRef -- ) 0xc7
   }
 }
 
-\ patchers for stuff that is unknown at compile time (unloaded classes)
+\ patchers for resolving fields
 
 PATCHER_GETSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
@@ -1363,6 +1363,70 @@ IP[-3] = INST_ADDR(GETSTATIC_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
 
+\ patchers for statically initializing classes
+
+PATCHER_GETSTATIC_CLINIT_INT ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETSTATIC_INT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_GETSTATIC_CLINIT_FLOAT ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETSTATIC_FLOAT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_GETSTATIC_CLINIT_LONG ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETSTATIC_LONG);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_GETSTATIC_CLINIT_CELL ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(GETSTATIC_CELL);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+\ patchers for resolving fields
+
 PATCHER_PUTSTATIC_INT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
@@ -1422,6 +1486,70 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTSTATIC_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
+
+\ patchers for statically initializing classes
+
+PATCHER_PUTSTATIC_CLINIT_INT ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTSTATIC_INT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_PUTSTATIC_CLINIT_FLOAT ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *)(IP-3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTSTATIC_FLOAT);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_PUTSTATIC_CLINIT_LONG ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTSTATIC_LONG);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+PATCHER_PUTSTATIC_CLINIT_CELL ( #aRef #afi ... -- )
+stackframeinfo sfi;
+bool result;
+global_sp = sp;
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
+result = intrp_patcher_get_putstatic_clinit((u1 *) (IP - 3));
+stacktrace_remove_stackframeinfo(&sfi);
+CLEAR_global_sp;
+if (!result)
+  THROW0;
+STORE_ORDER_BARRIER();
+IP[-3] = INST_ADDR(PUTSTATIC_CELL);
+SET_IP(IP-3);
+patchersuper_rewrite(IP);
+
+\ patchers for resolving fields
 
 PATCHER_GETFIELD_INT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
@@ -1542,6 +1670,8 @@ STORE_ORDER_BARRIER();
 IP[-3] = INST_ADDR(PUTFIELD_CELL);
 SET_IP(IP-3);
 patchersuper_rewrite(IP);
+
+\ other patchers for lazy resolving
 
 PATCHER_MULTIANEWARRAY ( #aClass #iSize #acr ... -- )
 stackframeinfo sfi;

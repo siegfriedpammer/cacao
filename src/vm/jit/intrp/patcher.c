@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: patcher.c 4544 2006-02-21 13:43:27Z twisti $
+   $Id: patcher.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -68,6 +68,39 @@ bool intrp_patcher_get_putstatic(u1 *sp)
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
+
+	/* check if the field's class is initialized */
+
+	if (!(fi->class->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->class))
+			return false;
+
+	/* patch the field's address */
+
+	ip[1] = (ptrint) &(fi->value);
+
+	return true;
+}
+
+
+/* patcher_get_putstatic_clinit ************************************************
+
+   This patcher is used if we already have the resolved fieldinfo but the
+   class of the field has not been initialized, yet.
+   
+   Machine code:
+
+*******************************************************************************/
+
+bool intrp_patcher_get_putstatic_clinit(u1 *sp)
+{
+	ptrint            *ip;
+	fieldinfo         *fi;
+
+	/* get the fieldinfo */
+
+	ip = (ptrint *) sp;
+	fi = (fieldinfo *) ip[2];
 
 	/* check if the field's class is initialized */
 

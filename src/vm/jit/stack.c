@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: stack.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -161,7 +161,6 @@ bool stack_analyse(jitdata *jd)
 #endif
 
 	builtintable_entry *bte;
-	unresolved_method  *um;
 	methoddesc         *md;
 
 	/* get required compiler data */
@@ -675,7 +674,7 @@ bool stack_analyse(jitdata *jd)
 								if (!opt_intrp) {
 # endif
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									if (iptr[0].val.i == 0) {
+									if (iptr[0].val.i == 0) { /* XXX check val.l? */
 # endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
 										switch (iptr[1].opc) {
 										case ICMD_PUTSTATIC:
@@ -2138,8 +2137,7 @@ bool stack_analyse(jitdata *jd)
 					case ICMD_INVOKEVIRTUAL:
 					case ICMD_INVOKEINTERFACE:
 						COUNT(count_pcmd_met);
-						um = iptr->target;
-						md = um->methodref->parseddesc.md;
+						INSTRUCTION_GET_METHODDESC(iptr,md);
 /*                          if (lm->flags & ACC_STATIC) */
 /*                              {COUNT(count_check_null);} */ 	 
 
@@ -3127,49 +3125,41 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_GETFIELD:
 	case ICMD_PUTFIELD:
-		uf = iptr->target;
-		f  = iptr->val.a;
-
-		if (f == NULL) 	 
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
 			printf(" (NOT RESOLVED), ");
-		else 	 
+
+			field_fieldref_print(uf->fieldref);
+		}
+		else {
+			f = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 			printf(" %d, ", f->offset);
 
-		utf_display_classname(uf->fieldref->p.classref->name);
-		printf(".");
-		utf_display(uf->fieldref->name);
-		printf(" (type ");
-		utf_display(uf->fieldref->descriptor);
-		printf(")"); 
+			field_print(f);
+		}
 		break;
 
  	case ICMD_PUTSTATIC:
 	case ICMD_GETSTATIC:
-		uf = (unresolved_field *) iptr->target;
-		f  = (fieldinfo *) iptr->val.a;
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
+			printf(" (NOT RESOLVED), ");
 
-		if (iptr->val.a) {
+			field_fieldref_print(uf->fieldref);
+		}
+		else {
+			f = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 			if (!CLASS_IS_OR_ALMOST_INITIALIZED(f->class))
 				printf(" (NOT INITIALIZED) ");
 			else
 				printf(" ");
-		} 
-		else
-			printf(" (NOT RESOLVED) ");
 
-		utf_display_classname(uf->fieldref->p.classref->name);
-		printf(".");
-		utf_display(uf->fieldref->name);
-		printf(" (type ");
-		utf_display(uf->fieldref->descriptor);
-		printf(")");
+			field_print(f);
+		}
 		break;
 
 	case ICMD_PUTSTATICCONST:
 	case ICMD_PUTFIELDCONST:
-		uf = (unresolved_field *) iptr[1].target;
-		f  = (fieldinfo *) iptr[1].val.a;
-
 		switch (iptr[1].op1) {
 		case TYPE_INT:
 			printf(" %d (0x%08x),", iptr->val.i, iptr->val.i);
@@ -3195,22 +3185,21 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 #endif
 			break;
 		}
-		if (f == NULL)
-			printf(" (NOT RESOLVED),");
+
+		if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
+			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr + 1);
+			printf(" (NOT RESOLVED), ");
+			field_fieldref_print(uf->fieldref);
+		}
 		else {
+			f = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1);
 			if ((iptr->opc == ICMD_PUTSTATICCONST) &&
 				!CLASS_IS_OR_ALMOST_INITIALIZED(f->class))
-				printf(" (NOT INITIALIZED),");
+				printf(" (NOT INITIALIZED), ");
 			else
-				printf(" %d,", f->offset);
+				printf(" %d, ", f->offset);
+			field_print(f);
 		}
-		printf(" ");
-		utf_display_classname(uf->fieldref->p.classref->name);
-		printf(".");
-		utf_display(uf->fieldref->name);
-		printf(" (type ");
-		utf_display(uf->fieldref->descriptor);
-		printf(")");
 		break;
 
 	case ICMD_IINC:
@@ -3341,17 +3330,30 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_INVOKESPECIAL:
 	case ICMD_INVOKESTATIC:
 	case ICMD_INVOKEINTERFACE:
-		um = iptr->target;
-
-		if (!iptr->val.a)
-			printf(" (NOT RESOLVED) ");
-		else
-			printf(" ");
-
-		utf_display_classname(um->methodref->p.classref->name);
-		printf(".");
-		utf_display(um->methodref->name);
-		utf_display(um->methodref->descriptor);
+		{
+			constant_FMIref *mref;
+			
+			/* XXX target used temporarily as flag */
+			if (iptr->target) {
+				printf(" (NOT RESOLVED) ");
+				mref = ((unresolved_method *)iptr->val.a)->methodref;
+			}
+			else {
+				printf(" ");
+				mref = (constant_FMIref *)iptr->val.a;
+			}
+			if (IS_FMIREF_RESOLVED(mref)) {
+				printf(" <method> ");
+				method_print(mref->p.method);
+			}
+			else {
+				printf(" <ref> ");
+				utf_display_classname(mref->p.classref->name);
+				printf(".");
+				utf_display(mref->name);
+				utf_display(mref->descriptor);
+			}
+		}
 		break;
 
 	case ICMD_IFEQ:

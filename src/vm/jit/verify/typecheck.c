@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: typecheck.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -1161,7 +1161,10 @@ verify_invocation(verifier_state *state)
 {
 	unresolved_method *um;      /* struct describing the called method */
 	constant_FMIref *mref;           /* reference to the called method */
+	methodinfo *mi;                        /* resolved method (if any) */
 	methoddesc *md;                 /* descriptor of the called method */
+	utf *mname;                                         /* method name */
+	utf *mclassname;                     /* name of the method's class */
 	bool specialmethod;            /* true if a <...> method is called */
 	int opcode;                                   /* invocation opcode */
 	bool callinginit;                      /* true if <init> is called */
@@ -1172,11 +1175,31 @@ verify_invocation(verifier_state *state)
 	stackelement *dst;               /* result stack of the invocation */
 	int i;                                                  /* counter */
     u1 rtype;                          /* return type of called method */
+	resolve_result_t result;
 
-	um = (unresolved_method *) state->iptr[0].target;
-	mref = um->methodref;
+	if (state->iptr[0].target) { /* XXX used temporarily as flag */
+		/* unresolved method */
+		um = (unresolved_method *) state->iptr[0].val.a;
+		mref = um->methodref;
+	}
+	else {
+		um = NULL;
+		mref = (constant_FMIref *) state->iptr[0].val.a;
+	}
+
 	md = mref->parseddesc.md;
-	specialmethod = (mref->name->text[0] == '<');
+	mname = mref->name;
+
+	if (IS_FMIREF_RESOLVED(mref)) {
+		mi = mref->p.method;
+		mclassname = mi->class->name;
+	}
+	else {
+		mi = NULL;
+		mclassname = mref->p.classref->name;
+	}
+
+	specialmethod = (mname->text[0] == '<');
 	opcode = state->iptr[0].opc;
 	dst = state->iptr->dst;
 
@@ -1186,7 +1209,7 @@ verify_invocation(verifier_state *state)
 
 	/* check whether we are calling <init> */
 	
-	callinginit = (opcode == ICMD_INVOKESPECIAL && mref->name == utf_init);
+	callinginit = (opcode == ICMD_INVOKESPECIAL && mname == utf_init);
 	if (specialmethod && !callinginit)
 		TYPECHECK_VERIFYERROR_bool("Invalid invocation of special method");
 
@@ -1281,8 +1304,13 @@ verify_invocation(verifier_state *state)
 			/* must be <init> of current class or direct superclass                   */
 			/* the current class is linked, so must be its superclass. thus we can be */
 			/* sure that resolving will be trivial.                                   */
-			if (!resolve_classref(state->m,mref->p.classref,resolveLazy,false,true,&cls))
-				return false; /* exception */
+			if (mi) {
+				cls = mi->class;
+			}
+			else {
+				if (!resolve_classref(state->m,mref->p.classref,resolveLazy,false,true,&cls))
+					return false; /* exception */
+			}
 
 			/* if lazy resolving did not succeed, it's not one of the allowed classes */
 			/* otherwise we check it directly                                         */
@@ -1296,21 +1324,38 @@ verify_invocation(verifier_state *state)
 		}
 		else {
 			/* { we are initializing an instance created with NEW } */
-			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mref->p.classref->name) {
+			if ((IS_CLASSREF(initclass) ? initclass.ref->name : initclass.cls->name) != mclassname) {
 				TYPECHECK_VERIFYERROR_bool("wrong <init> called for uninitialized reference");
 			}
 		}
 	}
 
-	/* record subtype constraints for parameters */
-	
-	if (!constrain_unresolved_method(um,state->m->class,state->m,state->iptr,state->curstack))
-		return false; /* XXX maybe wrap exception */
-
 	/* try to resolve the method lazily */
-	
-	if (!resolve_method(um,resolveLazy,(methodinfo **) &(state->iptr[0].val.a)))
+
+	result = resolve_method_lazy(state->iptr,state->curstack,state->m);
+	if (result == resolveFailed)
 		return false;
+
+	if (result != resolveSucceeded) {
+		if (!um) {
+			um = create_unresolved_method(state->m->class,
+					state->m, state->iptr);
+
+			if (!um)
+				return false;
+		}
+
+		/* record subtype constraints for parameters */
+
+		if (!constrain_unresolved_method(um,state->m->class,state->m,state->iptr,state->curstack))
+			return false; /* XXX maybe wrap exception */
+
+		/* store the unresolved_method pointer */
+
+		/* XXX this will be changed */
+		state->iptr->val.a = um;
+		state->iptr->target = (void*)1; /* XXX used temporarily as flag */
+	}
 
 	return true;
 }
@@ -1562,10 +1607,11 @@ verify_basic_block(verifier_state *state)
     classinfo *cls;                                       /* temporary */
     bool maythrow;               /* true if this instruction may throw */
 	unresolved_field *uf;                        /* for field accesses */
-	fieldinfo **fieldinfop;                      /* for field accesses */
+	constant_FMIref *fieldref;                   /* for field accesses */
 	s4 i;
 	s4 b_index;
 	typecheck_result r;
+	resolve_result_t result;
 
 	LOGSTR1("\n---- BLOCK %04d ------------------------------------------------\n",state->bptr->debug_nr);
 	LOGFLUSH;
@@ -1781,8 +1827,14 @@ verify_basic_block(verifier_state *state)
 			case ICMD_PUTSTATICCONST:
 				TYPECHECK_COUNT(stat_ins_field);
 
-				uf = INSTRUCTION_PUTCONST_FIELDREF(state->iptr);
-				fieldinfop = INSTRUCTION_PUTCONST_FIELDINFO_PTR(state->iptr);
+				if (INSTRUCTION_IS_UNRESOLVED(state->iptr + 1)) {
+					uf = INSTRUCTION_UNRESOLVED_FIELD(state->iptr + 1);
+					fieldref = uf->fieldref;
+				}
+				else {
+					uf = NULL;
+					fieldref = INSTRUCTION_RESOLVED_FMIREF(state->iptr + 1);
+				}
 
 				goto fieldaccess_tail;
 
@@ -1790,8 +1842,14 @@ verify_basic_block(verifier_state *state)
 			case ICMD_PUTSTATIC:
 				TYPECHECK_COUNT(stat_ins_field);
 
-				uf = (unresolved_field *) state->iptr[0].target;
-				fieldinfop = (fieldinfo **) &(state->iptr[0].val.a);
+				if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
+					uf = INSTRUCTION_UNRESOLVED_FIELD(state->iptr);
+					fieldref = uf->fieldref;
+				}
+				else {
+					uf = NULL;
+					fieldref = INSTRUCTION_RESOLVED_FMIREF(state->iptr);
+				}
 				
 				goto fieldaccess_tail;
 
@@ -1799,26 +1857,50 @@ verify_basic_block(verifier_state *state)
 			case ICMD_GETSTATIC:
 				TYPECHECK_COUNT(stat_ins_field);
 
-				uf = (unresolved_field *) state->iptr[0].target;
-				fieldinfop = (fieldinfo **) &(state->iptr[0].val.a);
+				if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
+					uf = INSTRUCTION_UNRESOLVED_FIELD(state->iptr);
+					fieldref = uf->fieldref;
+				}
+				else {
+					uf = NULL;
+					fieldref = INSTRUCTION_RESOLVED_FMIREF(state->iptr);
+				}
 
 				/* the result is pushed on the stack */
 				if (dst->type == TYPE_ADR) {
-					if (!typeinfo_init_from_typedesc(uf->fieldref->parseddesc.fd,NULL,&(dst->typeinfo)))
+					if (!typeinfo_init_from_typedesc(fieldref->parseddesc.fd,NULL,&(dst->typeinfo)))
 						return false;
 				}
 
 fieldaccess_tail:
-				/* record the subtype constraints for this field access */
-				if (!constrain_unresolved_field(uf,state->m->class,state->m,state->iptr,state->curstack))
-					return false; /* XXX maybe wrap exception? */
-
-				/* try to resolve the field reference */
-				if (!resolve_field(uf,resolveLazy,fieldinfop))
+				/* try to resolve the field reference lazily */
+				result = resolve_field_lazy(state->iptr, state->curstack, state->m);
+				if (result == resolveFailed)
 					return false;
 
-				TYPECHECK_COUNTIF(!*fieldinfop,stat_ins_field_unresolved);
-				TYPECHECK_COUNTIF(*fieldinfop && !(*fieldinfop)->class->initialized,stat_ins_field_uninitialized);
+				if (result != resolveSucceeded) {
+					if (!uf) {
+						uf = create_unresolved_field(state->m->class, state->m, state->iptr);
+						if (!uf)
+							return false;
+
+						if (opcode == ICMD_PUTSTATICCONST || opcode == ICMD_PUTFIELDCONST) {
+							state->iptr[1].val.a = uf;
+							state->iptr[1].target = (void*)1; /* XXX target used temporarily as flag */
+						}
+						else {
+							state->iptr[0].val.a = uf;
+							state->iptr[0].target = (void*)1; /* XXX target used temporarily as flag */
+						}
+					}
+
+					/* record the subtype constraints for this field access */
+					if (!constrain_unresolved_field(uf,state->m->class,state->m,state->iptr,state->curstack))
+						return false; /* XXX maybe wrap exception? */
+
+					TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
+					TYPECHECK_COUNTIF(INSTRUCTION_IS_RESOLVED(state->iptr) && !INSTRUCTION_RESOLVED_FIELDINFO(state->iptr)->class->initialized,stat_ins_field_uninitialized);
+				}
 					
 				maythrow = true;
 				break;

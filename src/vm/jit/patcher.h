@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: patcher.h 4530 2006-02-21 09:11:53Z twisti $
+   $Id: patcher.h 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -170,6 +170,7 @@ bool patcher_resolve_native(u1 *sp);
 
 #if defined(ENABLE_INTRP)
 bool intrp_patcher_get_putstatic(u1 *sp);
+bool intrp_patcher_get_putstatic_clinit(u1 *sp);
 bool intrp_patcher_get_putfield(u1 *sp);
 bool intrp_patcher_aconst(u1 *sp);
 bool intrp_patcher_builtin_multianewarray(u1 *sp);

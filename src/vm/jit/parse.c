@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4754 2006-04-12 09:20:59Z edwin $
+   $Id: parse.c 4760 2006-04-12 20:06:23Z edwin $
 
 */
 
@@ -170,6 +170,12 @@ bool parse(jitdata *jd)
 	constant_classref  *compr;
 	classinfo          *c;
 	builtintable_entry *bte;
+
+	constant_FMIref   *mr;
+	methoddesc        *md;
+	unresolved_method *um;
+	methodinfo        *mi;
+	resolve_result_t   result;
 
 	u2 lineindex = 0;
 	u2 currentline = 0;
@@ -810,7 +816,6 @@ fetch_opcode:
 			{
 				constant_FMIref  *fr;
 				unresolved_field *uf;
-				fieldinfo        *fi;
 
 				i = code_get_u2(p + 1, m);
 				fr = class_getconstant(m->class, i,
@@ -820,177 +825,112 @@ fetch_opcode:
 
 				OP2A_NOINC(opcode, fr->parseddesc.fd->type, fr, currentline);
 
-				if (!(uf = create_unresolved_field(m->class,
-												   m,
-												   iptr)))
-					return false;
-
-				/* store unresolved_field pointer */
-
-				iptr->target = uf;
-
 				/* only with -noverify, otherwise the typechecker does this */
 
 				if (!opt_verify) {
-					if (!resolve_field(uf, resolveLazy, &fi))
+					result = resolve_field_lazy(iptr,NULL,m);
+					if (result == resolveFailed)
 						return false;
 
-					iptr->val.a = fi;
+					if (result != resolveSucceeded) {
+						uf = create_unresolved_field(m->class,
+													 m, iptr);
 
-				} 
+						if (!uf)
+							return false;
+
+						/* store the unresolved_field pointer */
+
+						/* XXX this will be changed */
+						iptr->val.a = uf;
+						iptr->target = (void*)1; /* XXX target temporarily used as flag */
+					}
+					else {
+						iptr->target = NULL;
+					}
+				}
 				else {
-					iptr->val.a = NULL;
+					iptr->target = NULL;
 				}
 				PINC;
 			}
 			break;
-
+				
 
 		/* method invocation **************************************************/
 
 		case JAVA_INVOKESTATIC:
 			i = code_get_u2(p + 1, m);
-			{
-				constant_FMIref   *mr;
-				methoddesc        *md;
-				unresolved_method *um;
-				methodinfo        *mi;
+			mr = class_getconstant(m->class, i,
+					CONSTANT_Methodref);
+			if (!mr)
+				return false;
 
-				m->isleafmethod = false;
+			md = mr->parseddesc.md;
 
-				mr = class_getconstant(m->class, i,
-									   CONSTANT_Methodref);
-				if (!mr)
+			if (!md->params)
+				if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
 					return false;
 
-				md = mr->parseddesc.md;
-
-				if (!md->params)
-					if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
-						return false;
-
-				OP2A_NOINC(opcode, 0, mr, currentline);
-
-				um = create_unresolved_method(m->class,
-											  m, iptr);
-
-				if (!um)
-					return false;
-
-				/* store the unresolved_method pointer */
-
-				iptr->target = um;
-
-				/* only with -noverify, otherwise the typechecker does this */
-
-				if (!opt_verify) {
-					if (!resolve_method(um, resolveLazy, &mi))
-						return false;
-
-					iptr->val.a = mi;
-				}
-				else {
-					iptr->val.a = NULL;
-				}
-				PINC;
-			}
-			break;
-
-		case JAVA_INVOKESPECIAL:
-		case JAVA_INVOKEVIRTUAL:
-			{
-				constant_FMIref   *mr;
-				methoddesc        *md;
-				unresolved_method *um;
-				methodinfo        *mi;
-
-				m->isleafmethod = false;
-
-				i = code_get_u2(p + 1, m);
-				mr = class_getconstant(m->class, i,
-									   CONSTANT_Methodref);
-				if (!mr)
-					return false;
-
-				md = mr->parseddesc.md;
-
-				if (!md->params)
-					if (!descriptor_params_from_paramtypes(md, 0))
-						return false;
-				
-				OP2A_NOINC(opcode, 0, mr, currentline);
-
-				um = create_unresolved_method(m->class,
-											  m, iptr);
-
-				if (!um)
-					return false;
-
-				/* store the unresolved_method* */
-
-				iptr->target = um;
-
-				/* only with -noverify, otherwise the typechecker does this */
-
-				if (!opt_verify) {
-					if (!resolve_method(um, resolveLazy, &mi))
-						return false;
-
-					iptr->val.a = mi;
-				}
-				else {
-					iptr->val.a = NULL;
-				}
-				PINC;
-			}
-			break;
+			goto invoke_method;
 
 		case JAVA_INVOKEINTERFACE:
 			i = code_get_u2(p + 1, m);
-			{
-				constant_FMIref   *mr;
-				methoddesc        *md;
-				unresolved_method *um;
-				methodinfo        *mi;
 				
-				m->isleafmethod = false;
+			mr = class_getconstant(m->class, i,
+					CONSTANT_InterfaceMethodref);
 
-				mr = class_getconstant(m->class, i,
-									   CONSTANT_InterfaceMethodref);
-				if (!mr)
+			goto invoke_nonstatic_method;
+
+		case JAVA_INVOKESPECIAL:
+		case JAVA_INVOKEVIRTUAL:
+			i = code_get_u2(p + 1, m);
+			mr = class_getconstant(m->class, i,
+					CONSTANT_Methodref);
+
+invoke_nonstatic_method:
+			if (!mr)
+				return false;
+
+			md = mr->parseddesc.md;
+
+			if (!md->params)
+				if (!descriptor_params_from_paramtypes(md, 0))
 					return false;
 
-				md = mr->parseddesc.md;
+invoke_method:
+			m->isleafmethod = false;
 
-				if (!md->params)
-					if (!descriptor_params_from_paramtypes(md, 0))
-						return false;
+			OP2A_NOINC(opcode, 0, mr, currentline);
 
-				OP2A_NOINC(opcode, 0, mr, currentline);
+			/* only with -noverify, otherwise the typechecker does this */
 
-				um = create_unresolved_method(m->class,
-											  m, iptr);
-
-				if (!um)
+			if (!opt_verify) {
+				result = resolve_method_lazy(iptr,NULL,m);
+				if (result == resolveFailed)
 					return false;
 
-				/* store the unresolved_method* */
+				if (result != resolveSucceeded) {
+					um = create_unresolved_method(m->class,
+							m, iptr);
 
-				iptr->target = um;
-
-				/* only with -noverify, otherwise the typechecker does this */
-
-				if (!opt_verify) {
-					if (!resolve_method(um, resolveLazy, &mi))
+					if (!um)
 						return false;
 
-					iptr->val.a = mi;
+					/* store the unresolved_method pointer */
+
+					/* XXX this will be changed */
+					iptr->val.a = um;
+					iptr->target = (void*)1; /* XXX target temporarily used as flag */
 				}
 				else {
-					iptr->val.a = NULL;
+					iptr->target = NULL;
 				}
-				PINC;
 			}
+			else {
+				iptr->target = NULL;
+			}
+			PINC;
 			break;
 
 		/* miscellaneous object operations ************************************/
