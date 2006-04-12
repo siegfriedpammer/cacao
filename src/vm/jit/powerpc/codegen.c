@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4721 2006-04-03 13:59:29Z twisti $
+   $Id: codegen.c 4756 2006-04-12 09:49:18Z twisti $
 
 */
 
@@ -2579,8 +2579,11 @@ nowperformreturn:
 			/* restore return address                                         */
 
 			if (!m->isleafmethod) {
-				M_ALD(REG_ZERO, REG_SP, p * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ZERO);
+				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
+				   may have a displacement overflow. */
+
+				M_ALD(REG_ITMP1, REG_SP, p * 4 + LA_LR_OFFSET);
+				M_MTLR(REG_ITMP1);
 			}
 
 			/* restore saved registers                                        */
@@ -3441,6 +3444,9 @@ gen_method:
 				M_IADD_IMM(REG_SP, LA_SIZE + 6 * 4, REG_SP);
 
 				if (m->isleafmethod) {
+					/* XXX FIXME: REG_ZERO can cause problems here! */
+					assert(stackframesize * 4 <= 32767);
+
 					M_ALD(REG_ZERO, REG_SP, stackframesize * 4 + LA_LR_OFFSET);
 					M_MTLR(REG_ZERO);
 				}
