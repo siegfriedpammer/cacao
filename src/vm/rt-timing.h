@@ -74,7 +74,22 @@
 #define RT_TIMING_LINK_SUBCLASS  19
 #define RT_TIMING_LINK_TOTAL     20
 
-#define RT_TIMING_N              21
+#define RT_TIMING_LOAD_CHECKS    21
+#define RT_TIMING_LOAD_CPOOL     22
+#define RT_TIMING_LOAD_SETUP     23
+#define RT_TIMING_LOAD_FIELDS    24
+#define RT_TIMING_LOAD_METHODS   25
+#define RT_TIMING_LOAD_CLASSREFS 26
+#define RT_TIMING_LOAD_DESCS     27
+#define RT_TIMING_LOAD_SETREFS   28
+#define RT_TIMING_LOAD_PARSEFDS  29
+#define RT_TIMING_LOAD_PARSEMDS  30
+#define RT_TIMING_LOAD_PARSECP   31
+#define RT_TIMING_LOAD_VERIFY    32
+#define RT_TIMING_LOAD_ATTRS     33
+#define RT_TIMING_LOAD_TOTAL     34
+
+#define RT_TIMING_N              35
 
 void rt_timing_gettime(struct timespec *ts);
 

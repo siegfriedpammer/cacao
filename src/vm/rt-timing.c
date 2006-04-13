@@ -61,6 +61,7 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
     { RT_TIMING_JIT_RPLPOINTS   ,RT_TIMING_JIT_TOTAL , "replacement point generation" },
     { RT_TIMING_JIT_CODEGEN     ,RT_TIMING_JIT_TOTAL , "codegen" },
     { RT_TIMING_JIT_TOTAL       ,-1                  , "total compile time" },
+    { -1                        ,-1                  , "" },
 
     { RT_TIMING_LINK_RESOLVE    ,RT_TIMING_LINK_TOTAL, "link: resolve superclass/superinterfaces"},
     { RT_TIMING_LINK_C_VFTBL    ,RT_TIMING_LINK_TOTAL, "link: compute vftbl length"},
@@ -73,8 +74,25 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
     { RT_TIMING_LINK_EXCEPTS    ,RT_TIMING_LINK_TOTAL, "link: resolve exception classes"},
     { RT_TIMING_LINK_SUBCLASS   ,RT_TIMING_LINK_TOTAL, "link: re-calculate subclass indices"},
     { RT_TIMING_LINK_TOTAL      ,-1                  , "total link time" },
+    { -1                        ,-1                  , "" },
+	
+	{ RT_TIMING_LOAD_CHECKS     ,RT_TIMING_LOAD_TOTAL, "load: initial checks"},
+	{ RT_TIMING_LOAD_CPOOL      ,RT_TIMING_LOAD_TOTAL, "load: load constant pool"},
+	{ RT_TIMING_LOAD_SETUP      ,RT_TIMING_LOAD_TOTAL, "load: class setup"},
+	{ RT_TIMING_LOAD_FIELDS     ,RT_TIMING_LOAD_TOTAL, "load: load fields"},
+	{ RT_TIMING_LOAD_METHODS    ,RT_TIMING_LOAD_TOTAL, "load: load methods"},
+	{ RT_TIMING_LOAD_CLASSREFS  ,RT_TIMING_LOAD_TOTAL, "load: create classrefs"},
+	{ RT_TIMING_LOAD_DESCS      ,RT_TIMING_LOAD_TOTAL, "load: allocate descriptors"},
+	{ RT_TIMING_LOAD_SETREFS    ,RT_TIMING_LOAD_TOTAL, "load: set classrefs"},
+	{ RT_TIMING_LOAD_PARSEFDS   ,RT_TIMING_LOAD_TOTAL, "load: parse field descriptors"},
+	{ RT_TIMING_LOAD_PARSEMDS   ,RT_TIMING_LOAD_TOTAL, "load: parse method descriptors"},
+	{ RT_TIMING_LOAD_PARSECP    ,RT_TIMING_LOAD_TOTAL, "load: parse descriptors in constant pool"},
+	{ RT_TIMING_LOAD_VERIFY     ,RT_TIMING_LOAD_TOTAL, "load: verifier checks"},
+	{ RT_TIMING_LOAD_ATTRS      ,RT_TIMING_LOAD_TOTAL, "load: load attributes"},
+	{ RT_TIMING_LOAD_TOTAL      ,-1                  , "total load time (from classbuffer)"},
+    { -1                        ,-1                  , "" },
 
-    { 0,                   NULL }
+    { 0                         ,-1                  , NULL }
 };
 
 static long long rt_timing_sum[RT_TIMING_N] = { 0 };
@@ -114,8 +132,12 @@ void rt_timing_print_time_stats(FILE *file)
 	struct rt_timing_stat *stats;
 	double total;
 
-	stats = rt_timing_stat_defs;
-	while (stats->name) {
+	for (stats = rt_timing_stat_defs; stats->name; ++stats) {
+		if (stats->index < 0) {
+			fprintf(file,"%s\n",stats->name);
+			continue;
+		}
+		
 		if (stats->totalindex >= 0) {
 			total = rt_timing_sum[stats->totalindex];
 			fprintf(file,"%12lld usec %3.0f%% %s\n",
@@ -128,7 +150,6 @@ void rt_timing_print_time_stats(FILE *file)
 					rt_timing_sum[stats->index],
 					stats->name);
 		}
-		stats++;
 	}
 }
 

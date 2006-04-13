@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: loader.c 4770 2006-04-13 18:00:33Z edwin $
 
 */
 
@@ -77,6 +77,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/rt-timing.h"
 
 
 /******************************************************************************/
@@ -1755,6 +1756,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 classrefsize;
 	u4 descsize;
 #endif
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_checks, time_cpool, time_setup, 
+					time_fields, time_methods, time_classrefs, time_descs,
+					time_setrefs, time_parsefds, time_parsemds, 
+					time_parsecpool, time_verify, time_attrs;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	/* get the classbuffer's class */
 
@@ -1809,6 +1818,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		goto return_exception;
 	}
+	RT_TIMING_GET_TIME(time_checks);
 
 	/* create a new descriptor pool */
 
@@ -1818,6 +1828,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	if (!load_constantpool(cb, descpool))
 		goto return_exception;
+
+	RT_TIMING_GET_TIME(time_cpool);
 
 	/* ACC flags */
 
@@ -1946,6 +1958,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (!(c->interfaces[i].any = (utf *) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 			goto return_exception;
 	}
+	
+	RT_TIMING_GET_TIME(time_setup);
 
 	/* load fields */
 	if (!suck_check_classbuffer_size(cb, 2))
@@ -1959,6 +1973,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 	}
 
+	RT_TIMING_GET_TIME(time_fields);
+
 	/* load methods */
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
@@ -1971,10 +1987,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 	}
 
+	RT_TIMING_GET_TIME(time_methods);
+
 	/* create the class reference table */
 
 	c->classrefs =
 		descriptor_pool_create_classrefs(descpool, &(c->classrefcount));
+
+	RT_TIMING_GET_TIME(time_classrefs);
 
 	/* allocate space for the parsed descriptors */
 
@@ -1989,6 +2009,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		count_parsed_desc_len += descsize;
 	}
 #endif
+
+	RT_TIMING_GET_TIME(time_descs);
 
 	/* put the classrefs in the constant pool */
 	for (i = 0; i < c->cpcount; i++) {
@@ -2016,6 +2038,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 	}
 
+	RT_TIMING_GET_TIME(time_setrefs);
+
 	/* parse field descriptors */
 
 	for (i = 0; i < c->fieldscount; i++) {
@@ -2025,6 +2049,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (!c->fields[i].parseddesc)
 			goto return_exception;
 	}
+
+	RT_TIMING_GET_TIME(time_parsefds);
 
 	/* parse method descriptors */
 
@@ -2053,6 +2079,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				goto return_exception;
 		}
 	}
+
+	RT_TIMING_GET_TIME(time_parsemds);
 
 	/* parse the loaded descriptors */
 
@@ -2094,6 +2122,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			break;
 		}
 	}
+
+	RT_TIMING_GET_TIME(time_parsecpool);
 
 #ifdef ENABLE_VERIFIER
 	/* Check if all fields and methods can be uniquely
@@ -2186,6 +2216,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 #endif /* ENABLE_VERIFIER */
 
+	RT_TIMING_GET_TIME(time_verify);
+
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_class_infos += sizeof(classinfo*) * c->interfacescount;
@@ -2218,6 +2250,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 #endif
 
+	RT_TIMING_GET_TIME(time_attrs);
+
 	/* release dump area */
 
 	dump_release(dumpsize);
@@ -2231,6 +2265,21 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		log_message_class("Loading done class: ", c);
 #endif
 
+	RT_TIMING_TIME_DIFF(time_start     , time_checks    , RT_TIMING_LOAD_CHECKS);
+	RT_TIMING_TIME_DIFF(time_checks    , time_cpool     , RT_TIMING_LOAD_CPOOL);
+	RT_TIMING_TIME_DIFF(time_cpool     , time_setup     , RT_TIMING_LOAD_SETUP);
+	RT_TIMING_TIME_DIFF(time_setup     , time_fields    , RT_TIMING_LOAD_FIELDS);
+	RT_TIMING_TIME_DIFF(time_fields    , time_methods   , RT_TIMING_LOAD_METHODS);
+	RT_TIMING_TIME_DIFF(time_methods   , time_classrefs , RT_TIMING_LOAD_CLASSREFS);
+	RT_TIMING_TIME_DIFF(time_classrefs , time_descs     , RT_TIMING_LOAD_DESCS);
+	RT_TIMING_TIME_DIFF(time_descs     , time_setrefs   , RT_TIMING_LOAD_SETREFS);
+	RT_TIMING_TIME_DIFF(time_setrefs   , time_parsefds  , RT_TIMING_LOAD_PARSEFDS);
+	RT_TIMING_TIME_DIFF(time_parsefds  , time_parsemds  , RT_TIMING_LOAD_PARSEMDS);
+	RT_TIMING_TIME_DIFF(time_parsemds  , time_parsecpool, RT_TIMING_LOAD_PARSECP);
+	RT_TIMING_TIME_DIFF(time_parsecpool, time_verify    , RT_TIMING_LOAD_VERIFY);
+	RT_TIMING_TIME_DIFF(time_verify    , time_attrs     , RT_TIMING_LOAD_ATTRS);
+	RT_TIMING_TIME_DIFF(time_start     , time_attrs     , RT_TIMING_LOAD_TOTAL);
+	
 	return c;
 
 return_exception:
