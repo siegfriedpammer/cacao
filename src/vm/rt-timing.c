@@ -93,7 +93,21 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_LOAD_TOTAL      ,-1                  , "total load time (from classbuffer)"},
     { -1                        ,-1                  , "" },
 
-    { 0                         ,-1                  , NULL }
+	{ RT_TIMING_LOAD_BOOT_LOOKUP,-1                       , "boot: lookup in classcache"},
+	{ RT_TIMING_LOAD_BOOT_ARRAY ,RT_TIMING_LOAD_BOOT_TOTAL, "boot: load array classes"},
+	{ RT_TIMING_LOAD_BOOT_SUCK  ,RT_TIMING_LOAD_BOOT_TOTAL, "boot: suck class files"},
+	{ RT_TIMING_LOAD_BOOT_LOAD  ,RT_TIMING_LOAD_BOOT_TOTAL, "boot: load from class buffer"},
+	{ RT_TIMING_LOAD_BOOT_CACHE ,RT_TIMING_LOAD_BOOT_TOTAL, "boot: store in classcache"},
+	{ RT_TIMING_LOAD_BOOT_TOTAL ,-1                       , "total bootstrap loader time"},
+    { -1                        ,-1                       , "" },
+
+	{ RT_TIMING_LOAD_CL_LOOKUP  ,-1                       , "classloader: lookup in classcache" },
+	{ RT_TIMING_LOAD_CL_PREPARE ,-1                       , "classloader: prepare loader call" },
+	{ RT_TIMING_LOAD_CL_JAVA    ,-1                       , "classloader: loader Java code" },
+	{ RT_TIMING_LOAD_CL_CACHE   ,-1                       , "classloader: store in classcache" },
+    { -1                        ,-1                       , "" },
+
+    { 0                         ,-1                       , NULL }
 };
 
 static long long rt_timing_sum[RT_TIMING_N] = { 0 };

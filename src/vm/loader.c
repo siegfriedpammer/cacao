@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4771 2006-04-13 18:21:11Z edwin $
+   $Id: loader.c 4772 2006-04-13 20:45:16Z edwin $
 
 */
 
@@ -1457,12 +1457,21 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 	classinfo         *c;
 	classinfo         *tmpc;
 	java_lang_String  *s;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_lookup, time_prepare, time_java, 
+					time_cache;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	LOADER_ASSERT(name);
 
 	/* lookup if this class has already been loaded */
 
 	c = classcache_lookup(cl, name);
+
+	RT_TIMING_GET_TIME(time_lookup);
+	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_CL_LOOKUP);
 
 	if (c)
 		return c;
@@ -1555,7 +1564,11 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		s = javastring_new_slash_to_dot(name);
 
+		RT_TIMING_GET_TIME(time_prepare);
+
 		o = vm_call_method(lc, cl, s);
+
+		RT_TIMING_GET_TIME(time_java);
 
 		c = (classinfo *) o;
 
@@ -1589,6 +1602,12 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 			classnotfoundexception_to_noclassdeffounderror();
 		}
+
+		RT_TIMING_GET_TIME(time_cache);
+
+		RT_TIMING_TIME_DIFF(time_lookup , time_prepare, RT_TIMING_LOAD_CL_PREPARE);
+		RT_TIMING_TIME_DIFF(time_prepare, time_java   , RT_TIMING_LOAD_CL_JAVA);
+		RT_TIMING_TIME_DIFF(time_java   , time_cache  , RT_TIMING_LOAD_CL_CACHE);
 
 		/* SUN compatible -verbose:class output */
 
@@ -1629,6 +1648,12 @@ classinfo *load_class_bootstrap(utf *name)
 	classbuffer *cb;
 	classinfo   *c;
 	classinfo   *r;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_lookup, time_array, time_suck, 
+					time_load, time_cache;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	/* for debugging */
 
@@ -1636,9 +1661,17 @@ classinfo *load_class_bootstrap(utf *name)
 
 	/* lookup if this class has already been loaded */
 
-	if ((r = classcache_lookup(NULL, name)))
-		return r;
+	if ((r = classcache_lookup(NULL, name))) {
 
+		RT_TIMING_GET_TIME(time_lookup);
+		RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
+		
+		return r;
+	}
+
+	RT_TIMING_GET_TIME(time_lookup);
+	RT_TIMING_TIME_DIFF(time_start,time_lookup,RT_TIMING_LOAD_BOOT_LOOKUP);
+		
 	/* create the classinfo */
 
 	c = class_create_classinfo(name);
@@ -1650,6 +1683,10 @@ classinfo *load_class_bootstrap(utf *name)
 		if (c == NULL)
 			return NULL;
 		LOADER_ASSERT(c->state & CLASS_LOADED);
+
+		RT_TIMING_GET_TIME(time_array);
+		RT_TIMING_TIME_DIFF(time_start,time_array,RT_TIMING_LOAD_BOOT_ARRAY);
+		
 		return c;
 	}
 
@@ -1676,11 +1713,15 @@ classinfo *load_class_bootstrap(utf *name)
 
 		return NULL;
 	}
+
+	RT_TIMING_GET_TIME(time_suck);
 	
 	/* load the class from the buffer */
 
 	r = load_class_from_classbuffer(cb);
 
+	RT_TIMING_GET_TIME(time_load);
+	
 	if (!r) {
 		/* the class could not be loaded, free the classinfo struct */
 
@@ -1701,6 +1742,8 @@ classinfo *load_class_bootstrap(utf *name)
 		r = res;
 	}
 
+	RT_TIMING_GET_TIME(time_cache);
+	
 	/* SUN compatible -verbose:class output */
 
 	if (opt_verboseclass && r) {
@@ -1722,6 +1765,11 @@ classinfo *load_class_bootstrap(utf *name)
 	if (getcompilingtime)
 		compilingtime_start();
 #endif
+
+	RT_TIMING_TIME_DIFF(time_lookup, time_suck , RT_TIMING_LOAD_BOOT_SUCK);
+	RT_TIMING_TIME_DIFF(time_suck  , time_load , RT_TIMING_LOAD_BOOT_LOAD);
+	RT_TIMING_TIME_DIFF(time_load  , time_cache, RT_TIMING_LOAD_BOOT_CACHE);
+	RT_TIMING_TIME_DIFF(time_lookup, time_cache, RT_TIMING_LOAD_BOOT_TOTAL);
 
 	return r;
 }
