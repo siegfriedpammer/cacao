@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4770 2006-04-13 18:00:33Z edwin $
+   $Id: loader.c 4771 2006-04-13 18:21:11Z edwin $
 
 */
 
@@ -1757,9 +1757,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	u4 descsize;
 #endif
 #if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_checks, time_cpool, time_setup, 
-					time_fields, time_methods, time_classrefs, time_descs,
-					time_setrefs, time_parsefds, time_parsemds, 
+	struct timespec time_start, time_checks, time_ndpool, time_cpool,
+					time_setup, time_fields, time_methods, time_classrefs,
+					time_descs,	time_setrefs, time_parsefds, time_parsemds,
 					time_parsecpool, time_verify, time_attrs;
 #endif
 
@@ -1785,7 +1785,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (loadverbose)
 		log_message_class("Loading class: ", c);
 #endif
-	
+
 	/* mark start of dump memory area */
 
 	dumpsize = dump_size();
@@ -1823,6 +1823,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* create a new descriptor pool */
 
 	descpool = descriptor_pool_new(c);
+
+	RT_TIMING_GET_TIME(time_ndpool);
 
 	/* load the constant pool */
 
@@ -1902,7 +1904,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		goto return_exception;
 	}
-	
+
 	/* retrieve superclass */
 
 	c->super.any = NULL;
@@ -1941,7 +1943,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			goto return_exception;
 		}
 	}
-			 
+
 	/* retrieve interfaces */
 
 	if (!suck_check_classbuffer_size(cb, 2))
@@ -1958,7 +1960,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		if (!(c->interfaces[i].any = (utf *) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
 			goto return_exception;
 	}
-	
+
 	RT_TIMING_GET_TIME(time_setup);
 
 	/* load fields */
@@ -2087,7 +2089,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	for (i = 0; i < c->cpcount; i++) {
 		constant_FMIref *fmi;
 		s4               index;
-		
+
 		switch (c->cptags[i]) {
 		case CONSTANT_Fieldref:
 			fmi = (constant_FMIref *) c->cpinfos[i];
@@ -2180,7 +2182,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			}
 			hashtab[index] = i + 1;
 		}
-		
+
 		/* Check methods */
 		memset(hashtab, 0, sizeof(u2) * (hashlen + hashlen/5));
 
@@ -2211,7 +2213,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			}
 			hashtab[index] = i + 1;
 		}
-		
+
 		MFREE(hashtab, u2, (hashlen + len));
 	}
 #endif /* ENABLE_VERIFIER */
@@ -2266,7 +2268,8 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 #endif
 
 	RT_TIMING_TIME_DIFF(time_start     , time_checks    , RT_TIMING_LOAD_CHECKS);
-	RT_TIMING_TIME_DIFF(time_checks    , time_cpool     , RT_TIMING_LOAD_CPOOL);
+	RT_TIMING_TIME_DIFF(time_checks    , time_ndpool    , RT_TIMING_LOAD_NDPOOL);
+	RT_TIMING_TIME_DIFF(time_ndpool    , time_cpool     , RT_TIMING_LOAD_CPOOL);
 	RT_TIMING_TIME_DIFF(time_cpool     , time_setup     , RT_TIMING_LOAD_SETUP);
 	RT_TIMING_TIME_DIFF(time_setup     , time_fields    , RT_TIMING_LOAD_FIELDS);
 	RT_TIMING_TIME_DIFF(time_fields    , time_methods   , RT_TIMING_LOAD_METHODS);
@@ -2279,7 +2282,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_TIME_DIFF(time_parsecpool, time_verify    , RT_TIMING_LOAD_VERIFY);
 	RT_TIMING_TIME_DIFF(time_verify    , time_attrs     , RT_TIMING_LOAD_ATTRS);
 	RT_TIMING_TIME_DIFF(time_start     , time_attrs     , RT_TIMING_LOAD_TOTAL);
-	
+
 	return c;
 
 return_exception:

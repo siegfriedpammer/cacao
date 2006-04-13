@@ -77,6 +77,7 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
     { -1                        ,-1                  , "" },
 	
 	{ RT_TIMING_LOAD_CHECKS     ,RT_TIMING_LOAD_TOTAL, "load: initial checks"},
+	{ RT_TIMING_LOAD_NDPOOL     ,RT_TIMING_LOAD_TOTAL, "load: new descriptor pool"},
 	{ RT_TIMING_LOAD_CPOOL      ,RT_TIMING_LOAD_TOTAL, "load: load constant pool"},
 	{ RT_TIMING_LOAD_SETUP      ,RT_TIMING_LOAD_TOTAL, "load: class setup"},
 	{ RT_TIMING_LOAD_FIELDS     ,RT_TIMING_LOAD_TOTAL, "load: load fields"},
