@@ -48,6 +48,9 @@
 #define RT_TIMING_GET_TIME(ts) \
 	rt_timing_gettime(&(ts));
 
+#define RT_TIMING_TIME_DIFF(a,b,index) \
+	rt_timing_time_diff(&(a),&(b),(index));
+
 #define RT_TIMING_JIT_CHECKS     0
 #define RT_TIMING_JIT_PARSE      1
 #define RT_TIMING_JIT_STACK      2
@@ -70,6 +73,7 @@ void rt_timing_print_time_stats(FILE *file);
 #else /* !defined(ENABLE_RT_TIMING) */
 
 #define RT_TIMING_GET_TIME(ts)
+#define RT_TIMING_TIME_DIFF(a,b,index)
 
 #endif /* defined(ENABLE_RT_TIMING) */
 

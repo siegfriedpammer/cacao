@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4762 2006-04-12 22:20:49Z edwin $
+   $Id: jit.c 4768 2006-04-13 16:58:05Z edwin $
 
 */
 
@@ -1706,17 +1706,15 @@ static u1 *jit_compile_intern(jitdata *jd)
 	code->prev = m->code;
 	m->code = code;
 
-#if defined(ENABLE_RT_TIMING)
-	rt_timing_time_diff(&time_start,&time_checks,RT_TIMING_JIT_CHECKS);
-	rt_timing_time_diff(&time_checks,&time_parse,RT_TIMING_JIT_PARSE);
-	rt_timing_time_diff(&time_parse,&time_stack,RT_TIMING_JIT_STACK);
-	rt_timing_time_diff(&time_stack,&time_typecheck,RT_TIMING_JIT_TYPECHECK);
-	rt_timing_time_diff(&time_typecheck,&time_loop,RT_TIMING_JIT_LOOP);
-	rt_timing_time_diff(&time_loop,&time_alloc,RT_TIMING_JIT_ALLOC);
-	rt_timing_time_diff(&time_alloc,&time_rplpoints,RT_TIMING_JIT_RPLPOINTS);
-	rt_timing_time_diff(&time_rplpoints,&time_codegen,RT_TIMING_JIT_CODEGEN);
-	rt_timing_time_diff(&time_start,&time_codegen,RT_TIMING_JIT_TOTAL);
-#endif
+	RT_TIMING_TIME_DIFF(time_start,time_checks,RT_TIMING_JIT_CHECKS);
+	RT_TIMING_TIME_DIFF(time_checks,time_parse,RT_TIMING_JIT_PARSE);
+	RT_TIMING_TIME_DIFF(time_parse,time_stack,RT_TIMING_JIT_STACK);
+	RT_TIMING_TIME_DIFF(time_stack,time_typecheck,RT_TIMING_JIT_TYPECHECK);
+	RT_TIMING_TIME_DIFF(time_typecheck,time_loop,RT_TIMING_JIT_LOOP);
+	RT_TIMING_TIME_DIFF(time_loop,time_alloc,RT_TIMING_JIT_ALLOC);
+	RT_TIMING_TIME_DIFF(time_alloc,time_rplpoints,RT_TIMING_JIT_RPLPOINTS);
+	RT_TIMING_TIME_DIFF(time_rplpoints,time_codegen,RT_TIMING_JIT_CODEGEN);
+	RT_TIMING_TIME_DIFF(time_start,time_codegen,RT_TIMING_JIT_TOTAL);
 
 	/* return pointer to the methods entry point */
 

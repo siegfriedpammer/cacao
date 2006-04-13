@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 4768 2006-04-13 16:58:05Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,6 +48,10 @@ THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
 else
 THREAD_LIB = $(top_builddir)/src/threads/green/libthreads.la
 endif
+endif
+
+if ENABLE_RT_TIMING
+cacaoh_LDFLAGS = -lrt
 endif
 
 noinst_LTLIBRARIES = libcacaoh.la

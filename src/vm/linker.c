@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: linker.c 4768 2006-04-13 16:58:05Z edwin $
 
 */
 
@@ -55,6 +55,7 @@
 #include "vm/statistics.h"
 #include "vm/stringlocal.h"
 #include "vm/access.h"
+#include "vm/rt-timing.h"
 
 
 /* global variables ***********************************************************/
@@ -357,6 +358,11 @@ static bool link_primitivetype_table(void)
 classinfo *link_class(classinfo *c)
 {
 	classinfo *r;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	if (!c) {
 		exceptions_throw_nullpointerexception();
@@ -413,6 +419,10 @@ classinfo *link_class(classinfo *c)
 
 	builtin_monitorexit((java_objectheader *) c);
 #endif
+
+	RT_TIMING_GET_TIME(time_end);
+
+	RT_TIMING_TIME_DIFF(time_start,time_end,RT_TIMING_LINK_TOTAL);
 
 	return r;
 }
