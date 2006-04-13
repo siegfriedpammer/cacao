@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4717 2006-04-01 21:00:28Z edwin $
+   $Id: codegen-common.h 4765 2006-04-13 13:10:06Z twisti $
 
 */
 
@@ -85,9 +85,14 @@ struct threadcritnodetemp {
 
 struct codegendata {
 	u1             *mcodebase;      /* base pointer of code area              */
-	s4             *mcodeend;       /* pointer to end of code area            */
+	u1             *mcodeend;       /* pointer to end of code area            */
 	s4              mcodesize;      /* complete size of code area (bytes)     */
+
+#if defined(__I386__) || defined(__X86_64__)
 	u1             *mcodeptr;       /* code generation pointer                */
+#else
+	u4             *mcodeptr;       /* code generation pointer                */
+#endif
 
 #if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	u1             *lastmcodeptr;   /* last patcher position of basic block   */
