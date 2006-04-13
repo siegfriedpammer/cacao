@@ -58,9 +58,12 @@
 #define RT_TIMING_JIT_RPLPOINTS  7
 #define RT_TIMING_JIT_CODEGEN    8
 #define RT_TIMING_JIT_TOTAL      9
-#define RT_TIMING_N              10
 
-void rt_timing_diff(struct timespec *a,struct timespec *b,int index);
+#define RT_TIMING_LINK_TOTAL     10
+
+#define RT_TIMING_N              11
+
+void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
 
 void rt_timing_print_time_stats(FILE *file);
 

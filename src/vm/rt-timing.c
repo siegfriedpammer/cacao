@@ -46,20 +46,24 @@
 
 struct rt_timing_stat {
 	int index;
+	int totalindex;
 	const char *name;
 };
 
 static struct rt_timing_stat rt_timing_stat_defs[] = {
-	{ RT_TIMING_CHECKS,    "checks at beginning" },
-	{ RT_TIMING_PARSE,     "parse" },
-	{ RT_TIMING_STACK,     "analyse_stack" },
-	{ RT_TIMING_TYPECHECK, "typecheck" },
-	{ RT_TIMING_LOOP,      "loop" },
-	{ RT_TIMING_IFCONV,    "if conversion" },
-	{ RT_TIMING_ALLOC,     "register allocation" },
-	{ RT_TIMING_RPLPOINTS, "replacement point generation" },
-	{ RT_TIMING_CODEGEN,   "codegen" },
-	{ RT_TIMING_TOTAL,     "total" },
+	{ RT_TIMING_JIT_CHECKS,    RT_TIMING_JIT_TOTAL,   "checks at beginning" },
+	{ RT_TIMING_JIT_PARSE,     RT_TIMING_JIT_TOTAL,   "parse" },
+	{ RT_TIMING_JIT_STACK,     RT_TIMING_JIT_TOTAL,   "analyse_stack" },
+	{ RT_TIMING_JIT_TYPECHECK, RT_TIMING_JIT_TOTAL,   "typecheck" },
+	{ RT_TIMING_JIT_LOOP,      RT_TIMING_JIT_TOTAL,   "loop" },
+	{ RT_TIMING_JIT_IFCONV,    RT_TIMING_JIT_TOTAL,   "if conversion" },
+	{ RT_TIMING_JIT_ALLOC,     RT_TIMING_JIT_TOTAL,   "register allocation" },
+	{ RT_TIMING_JIT_RPLPOINTS, RT_TIMING_JIT_TOTAL,   "replacement point generation" },
+	{ RT_TIMING_JIT_CODEGEN,   RT_TIMING_JIT_TOTAL,   "codegen" },
+	{ RT_TIMING_JIT_TOTAL,     -1,                    "total compile time" },
+
+	{ RT_TIMING_LINK_TOTAL,    -1,                    "total link time" },
+
 	{ 0,                   NULL }
 };
 
@@ -87,7 +91,7 @@ static long rt_timing_diff_usec(struct timespec *a,struct timespec *b)
 	return diff;
 }
 
-void rt_timing_diff(struct timespec *a,struct timespec *b,int index)
+void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index)
 {
 	long diff;
 
@@ -101,12 +105,19 @@ void rt_timing_print_time_stats(FILE *file)
 	double total;
 
 	stats = rt_timing_stat_defs;
-	total = rt_timing_sum[RT_TIMING_TOTAL];
 	while (stats->name) {
-		fprintf(file,"%12lld usec %3.0f%% %s\n",
-				rt_timing_sum[stats->index],
-				(total != 0.0) ? rt_timing_sum[stats->index] / total * 100.0 : 0.0,
-				stats->name);
+		if (stats->totalindex >= 0) {
+			total = rt_timing_sum[stats->totalindex];
+			fprintf(file,"%12lld usec %3.0f%% %s\n",
+					rt_timing_sum[stats->index],
+					(total != 0.0) ? rt_timing_sum[stats->index] / total * 100.0 : 0.0,
+					stats->name);
+		}
+		else {
+			fprintf(file,"%12lld usec      %s\n",
+					rt_timing_sum[stats->index],
+					stats->name);
+		}
 		stats++;
 	}
 }
