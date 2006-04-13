@@ -51,20 +51,30 @@ struct rt_timing_stat {
 };
 
 static struct rt_timing_stat rt_timing_stat_defs[] = {
-	{ RT_TIMING_JIT_CHECKS,    RT_TIMING_JIT_TOTAL,   "checks at beginning" },
-	{ RT_TIMING_JIT_PARSE,     RT_TIMING_JIT_TOTAL,   "parse" },
-	{ RT_TIMING_JIT_STACK,     RT_TIMING_JIT_TOTAL,   "analyse_stack" },
-	{ RT_TIMING_JIT_TYPECHECK, RT_TIMING_JIT_TOTAL,   "typecheck" },
-	{ RT_TIMING_JIT_LOOP,      RT_TIMING_JIT_TOTAL,   "loop" },
-	{ RT_TIMING_JIT_IFCONV,    RT_TIMING_JIT_TOTAL,   "if conversion" },
-	{ RT_TIMING_JIT_ALLOC,     RT_TIMING_JIT_TOTAL,   "register allocation" },
-	{ RT_TIMING_JIT_RPLPOINTS, RT_TIMING_JIT_TOTAL,   "replacement point generation" },
-	{ RT_TIMING_JIT_CODEGEN,   RT_TIMING_JIT_TOTAL,   "codegen" },
-	{ RT_TIMING_JIT_TOTAL,     -1,                    "total compile time" },
+    { RT_TIMING_JIT_CHECKS      ,RT_TIMING_JIT_TOTAL , "checks at beginning" },
+    { RT_TIMING_JIT_PARSE       ,RT_TIMING_JIT_TOTAL , "parse" },
+    { RT_TIMING_JIT_STACK       ,RT_TIMING_JIT_TOTAL , "analyse_stack" },
+    { RT_TIMING_JIT_TYPECHECK   ,RT_TIMING_JIT_TOTAL , "typecheck" },
+    { RT_TIMING_JIT_LOOP        ,RT_TIMING_JIT_TOTAL , "loop" },
+    { RT_TIMING_JIT_IFCONV      ,RT_TIMING_JIT_TOTAL , "if conversion" },
+    { RT_TIMING_JIT_ALLOC       ,RT_TIMING_JIT_TOTAL , "register allocation" },
+    { RT_TIMING_JIT_RPLPOINTS   ,RT_TIMING_JIT_TOTAL , "replacement point generation" },
+    { RT_TIMING_JIT_CODEGEN     ,RT_TIMING_JIT_TOTAL , "codegen" },
+    { RT_TIMING_JIT_TOTAL       ,-1                  , "total compile time" },
 
-	{ RT_TIMING_LINK_TOTAL,    -1,                    "total link time" },
+    { RT_TIMING_LINK_RESOLVE    ,RT_TIMING_LINK_TOTAL, "link: resolve superclass/superinterfaces"},
+    { RT_TIMING_LINK_C_VFTBL    ,RT_TIMING_LINK_TOTAL, "link: compute vftbl length"},
+    { RT_TIMING_LINK_ABSTRACT   ,RT_TIMING_LINK_TOTAL, "link: handle abstract methods"},
+    { RT_TIMING_LINK_C_IFTBL    ,RT_TIMING_LINK_TOTAL, "link: compute interface table"},
+    { RT_TIMING_LINK_F_VFTBL    ,RT_TIMING_LINK_TOTAL, "link: fill vftbl"},
+    { RT_TIMING_LINK_OFFSETS    ,RT_TIMING_LINK_TOTAL, "link: set offsets"},
+    { RT_TIMING_LINK_F_IFTBL    ,RT_TIMING_LINK_TOTAL, "link: fill interface table"},
+    { RT_TIMING_LINK_FINALIZER  ,RT_TIMING_LINK_TOTAL, "link: set finalizer"},
+    { RT_TIMING_LINK_EXCEPTS    ,RT_TIMING_LINK_TOTAL, "link: resolve exception classes"},
+    { RT_TIMING_LINK_SUBCLASS   ,RT_TIMING_LINK_TOTAL, "link: re-calculate subclass indices"},
+    { RT_TIMING_LINK_TOTAL      ,-1                  , "total link time" },
 
-	{ 0,                   NULL }
+    { 0,                   NULL }
 };
 
 static long long rt_timing_sum[RT_TIMING_N] = { 0 };

@@ -62,9 +62,21 @@
 #define RT_TIMING_JIT_CODEGEN    8
 #define RT_TIMING_JIT_TOTAL      9
 
-#define RT_TIMING_LINK_TOTAL     10
+#define RT_TIMING_LINK_RESOLVE   10
+#define RT_TIMING_LINK_C_VFTBL   11
+#define RT_TIMING_LINK_ABSTRACT  12
+#define RT_TIMING_LINK_C_IFTBL   13
+#define RT_TIMING_LINK_F_VFTBL   14
+#define RT_TIMING_LINK_OFFSETS   15
+#define RT_TIMING_LINK_F_IFTBL   16
+#define RT_TIMING_LINK_FINALIZER 17
+#define RT_TIMING_LINK_EXCEPTS   18
+#define RT_TIMING_LINK_SUBCLASS  19
+#define RT_TIMING_LINK_TOTAL     20
 
-#define RT_TIMING_N              11
+#define RT_TIMING_N              21
+
+void rt_timing_gettime(struct timespec *ts);
 
 void rt_timing_time_diff(struct timespec *a,struct timespec *b,int index);
 

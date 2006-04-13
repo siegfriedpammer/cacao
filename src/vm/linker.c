@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4768 2006-04-13 16:58:05Z edwin $
+   $Id: linker.c 4769 2006-04-13 17:23:12Z edwin $
 
 */
 
@@ -446,6 +446,14 @@ static classinfo *link_class_intern(classinfo *c)
 	vftbl_t *v;                   /* vftbl of current class                   */
 	s4 i,j;                       /* interface/method/field counter           */
 	arraydescriptor *arraydesc;   /* descriptor for array classes             */
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_resolving, time_compute_vftbl,
+					time_abstract, time_compute_iftbl, time_fill_vftbl,
+					time_offsets, time_fill_iftbl, time_finalizer,
+					time_exceptions, time_subclasses;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	/* the class is already linked */
 
@@ -579,6 +587,7 @@ static classinfo *link_class_intern(classinfo *c)
 		
 		c->finalizer = super->finalizer;
 	}
+	RT_TIMING_GET_TIME(time_resolving);
 
 
 	/* compute vftbl length */
@@ -626,7 +635,8 @@ static classinfo *link_class_intern(classinfo *c)
 		foundvftblindex:
 			;
 		}
-	}	
+	}
+	RT_TIMING_GET_TIME(time_compute_vftbl);
 
 
 	/* Check all interfaces of an abtract class (maybe be an interface
@@ -714,6 +724,7 @@ static classinfo *link_class_intern(classinfo *c)
 			}
 		}
 	}
+	RT_TIMING_GET_TIME(time_abstract);
 
 
 #if defined(ENABLE_STATISTICS)
@@ -734,6 +745,7 @@ static classinfo *link_class_intern(classinfo *c)
 		}
 		tc = tc->super.cls;
 	}
+	RT_TIMING_GET_TIME(time_compute_iftbl);
 
 	/* allocate virtual function table */
 
@@ -782,6 +794,7 @@ static classinfo *link_class_intern(classinfo *c)
 		if (!(m->flags & ACC_STATIC))
 			v->table[m->vftblindex] = (methodptr) (ptrint) m->stubroutine;
 	}
+	RT_TIMING_GET_TIME(time_fill_vftbl);
 
 	/* compute instance size and offset of each field */
 	
@@ -796,6 +809,7 @@ static classinfo *link_class_intern(classinfo *c)
 			c->instancesize += dsize;
 		}
 	}
+	RT_TIMING_GET_TIME(time_offsets);
 
 	/* initialize interfacetable and interfacevftbllength */
 	
@@ -816,6 +830,8 @@ static classinfo *link_class_intern(classinfo *c)
 	for (tc = c; tc != NULL; tc = tc->super.cls)
 		for (i = 0; i < tc->interfacescount; i++)
 			linker_addinterface(c, tc->interfaces[i].cls);
+	
+	RT_TIMING_GET_TIME(time_fill_iftbl);
 
 	/* add finalizer method (not for java.lang.Object) */
 
@@ -828,6 +844,7 @@ static classinfo *link_class_intern(classinfo *c)
 			if (!(fi->flags & ACC_STATIC))
 				c->finalizer = fi;
 	}
+	RT_TIMING_GET_TIME(time_finalizer);
 
 	/* resolve exception class references */
 
@@ -844,10 +861,13 @@ static classinfo *link_class_intern(classinfo *c)
 				return NULL;
 		}
 	}
+	RT_TIMING_GET_TIME(time_exceptions);
 	
 	/* final tasks */
 
 	linker_compute_subclasses(c);
+
+	RT_TIMING_GET_TIME(time_subclasses);
 
 	/* revert the linking state and class is linked */
 
@@ -857,6 +877,17 @@ static classinfo *link_class_intern(classinfo *c)
 	if (linkverbose)
 		log_message_class("Linking done class: ", c);
 #endif
+
+	RT_TIMING_TIME_DIFF(time_start        ,time_resolving    ,RT_TIMING_LINK_RESOLVE);
+	RT_TIMING_TIME_DIFF(time_resolving    ,time_compute_vftbl,RT_TIMING_LINK_C_VFTBL);
+	RT_TIMING_TIME_DIFF(time_compute_vftbl,time_abstract     ,RT_TIMING_LINK_ABSTRACT);
+	RT_TIMING_TIME_DIFF(time_abstract     ,time_compute_iftbl,RT_TIMING_LINK_C_IFTBL);
+	RT_TIMING_TIME_DIFF(time_compute_iftbl,time_fill_vftbl   ,RT_TIMING_LINK_F_VFTBL);
+	RT_TIMING_TIME_DIFF(time_fill_vftbl   ,time_offsets      ,RT_TIMING_LINK_OFFSETS);
+	RT_TIMING_TIME_DIFF(time_offsets      ,time_fill_iftbl   ,RT_TIMING_LINK_F_IFTBL);
+	RT_TIMING_TIME_DIFF(time_fill_iftbl   ,time_finalizer    ,RT_TIMING_LINK_FINALIZER);
+	RT_TIMING_TIME_DIFF(time_finalizer    ,time_exceptions   ,RT_TIMING_LINK_EXCEPTS);
+	RT_TIMING_TIME_DIFF(time_exceptions   ,time_subclasses   ,RT_TIMING_LINK_SUBCLASS);
 
 	/* just return c to show that we didn't had a problem */
 
