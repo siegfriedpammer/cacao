@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: codegen.c 4764 2006-04-13 09:32:09Z twisti $
 
 */
 
@@ -3888,16 +3888,16 @@ gen_method:
 
 			/* Check if the exception is an
 			   ArrayIndexOutOfBoundsException.  If so, move index register
-			   into REG_ITMP1. */
+			   into a4. */
 
 			if (eref->reg != -1)
-				M_MOV(eref->reg, REG_ITMP1);
+				M_MOV(eref->reg, rd->argintregs[4]);
 
 			/* calcuate exception address */
 
-			M_MOV_IMM(0, REG_ITMP2_XPC);
+			M_MOV_IMM(0, rd->argintregs[3]);
 			dseg_adddata(cd, cd->mcodeptr);
-			M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
+			M_AADD_IMM32(eref->branchpos - 6, rd->argintregs[3]);
 
 			/* move function to call into REG_ITMP3 */
 
@@ -3912,11 +3912,9 @@ gen_method:
 				x86_64_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase), rd->argintregs[0]);
 				M_MOV(REG_SP, rd->argintregs[1]);
 				M_ALD(rd->argintregs[2], REG_SP, stackframesize * 8);
-				M_MOV(REG_ITMP2_XPC, rd->argintregs[3]);
-				M_MOV(REG_ITMP1, rd->argintregs[4]);            /* for AIOOBE */
 
 				M_ASUB_IMM(2 * 8, REG_SP);
-				M_AST(REG_ITMP2_XPC, REG_SP, 0 * 8);
+				M_AST(rd->argintregs[3], REG_SP, 0 * 8);         /* store XPC */
 
 				M_CALL(REG_ITMP3);
 
