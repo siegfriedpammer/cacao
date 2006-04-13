@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emitfuncs.c 4763 2006-04-13 09:19:58Z twisti $
 
 */
 
@@ -340,20 +340,34 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 	if (iptr->dst->flags & INMEMORY) {
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 			if (s1 == d) {
-				x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, RCX);
+				M_ILD(RCX, REG_SP, s2 * 8);
 				x86_64_shiftl_membase(cd, shift_op, REG_SP, d * 8);
 
 			} else {
-				x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, RCX);
-				x86_64_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP2);
+				M_ILD(RCX, REG_SP, s2 * 8);
+				M_ILD(REG_ITMP2, REG_SP, s1 * 8);
 				x86_64_shiftl_reg(cd, shift_op, REG_ITMP2);
-				x86_64_movl_reg_membase(cd, REG_ITMP2, REG_SP, d * 8);
+				M_IST(REG_ITMP2, REG_SP, d * 8);
 			}
 
 		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
-			x86_64_movl_reg_membase(cd, s1, REG_SP, d * 8);
-			x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, RCX);
+			if (s1 == RCX) {
+				if (s2 == d) {
+					M_ILD(REG_ITMP1, REG_SP, s2 * 8);
+					M_IST(s1, REG_SP, d * 8);
+					M_INTMOVE(REG_ITMP1, RCX);
+
+				} else {
+					M_IST(s1, REG_SP, d * 8);
+					M_ILD(RCX, REG_SP, s2 * 8);
+				}
+
+			} else {
+				M_ILD(RCX, REG_SP, s2 * 8);
+				M_IST(s1, REG_SP, d * 8);
+			}
+
 			x86_64_shiftl_membase(cd, shift_op, REG_SP, d * 8);
 
 		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -363,14 +377,14 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 
 			} else {
 				M_INTMOVE(s2, RCX);
-				x86_64_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP2);
+				M_ILD(REG_ITMP2, REG_SP, s1 * 8);
 				x86_64_shiftl_reg(cd, shift_op, REG_ITMP2);
-				x86_64_movl_reg_membase(cd, REG_ITMP2, REG_SP, d * 8);
+				M_IST(REG_ITMP2, REG_SP, d * 8);
 			}
 
 		} else {
 			/* s1 may be equal to RCX */
-			x86_64_movl_reg_membase(cd, s1, REG_SP, d * 8);
+			M_IST(s1, REG_SP, d * 8);
 			M_INTMOVE(s2, RCX);
 			x86_64_shiftl_membase(cd, shift_op, REG_SP, d * 8);
 		}
@@ -384,26 +398,36 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 		}
 					
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, RCX);
-			x86_64_movl_membase_reg(cd, REG_SP, s1 * 8, d);
+			M_ILD(RCX, REG_SP, s2 * 8);
+			M_ILD(d, REG_SP, s1 * 8);
 			x86_64_shiftl_reg(cd, shift_op, d);
 
 		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
-			x86_64_movl_membase_reg(cd, REG_SP, s2 * 8, RCX);
+			M_ILD(RCX, REG_SP, s2 * 8);
 			x86_64_shiftl_reg(cd, shift_op, d);
 
 		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 			M_INTMOVE(s2, RCX);
-			x86_64_movl_membase_reg(cd, REG_SP, s1 * 8, d);
+			M_ILD(d, REG_SP, s1 * 8);
 			x86_64_shiftl_reg(cd, shift_op, d);
 
 		} else {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
-				M_INTMOVE(s1, d);
-				M_INTMOVE(s2, RCX);
+				if (s2 == d) {
+					/* d cannot be used to backup s1 since this would
+					   overwrite s2. */
+					M_INTMOVE(s1, REG_ITMP3);
+					M_INTMOVE(s2, RCX);
+					M_INTMOVE(REG_ITMP3, d);
+
+				} else {
+					M_INTMOVE(s1, d);
+					M_INTMOVE(s2, RCX);
+				}
+
 			} else {
 				/* d may be equal to s2 */
 				M_INTMOVE(s2, RCX);
@@ -412,12 +436,10 @@ void x86_64_emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 			x86_64_shiftl_reg(cd, shift_op, d);
 		}
 
-		if (d_old == RCX) {
+		if (d_old == RCX)
 			M_INTMOVE(REG_ITMP3, RCX);
-
-		} else {
+		else
 			M_INTMOVE(REG_ITMP1, RCX);                         /* restore RCX */
-		}
 	}
 }
 
@@ -434,20 +456,34 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 	if (iptr->dst->flags & INMEMORY) {
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 			if (s1 == d) {
-				x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, RCX);
+				M_ILD(RCX, REG_SP, s2 * 8);
 				x86_64_shift_membase(cd, shift_op, REG_SP, d * 8);
 
 			} else {
-				x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, RCX);
-				x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP2);
+				M_ILD(RCX, REG_SP, s2 * 8);
+				M_LLD(REG_ITMP2, REG_SP, s1 * 8);
 				x86_64_shift_reg(cd, shift_op, REG_ITMP2);
-				x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, d * 8);
+				M_LST(REG_ITMP2, REG_SP, d * 8);
 			}
 
 		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
-			x86_64_mov_reg_membase(cd, s1, REG_SP, d * 8);
-			x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, RCX);
+			if (s1 == RCX) {
+				if (s2 == d) {
+					M_ILD(REG_ITMP1, REG_SP, s2 * 8);
+					M_LST(s1, REG_SP, d * 8);
+					M_INTMOVE(REG_ITMP1, RCX);
+
+				} else {
+					M_LST(s1, REG_SP, d * 8);
+					M_ILD(RCX, REG_SP, s2 * 8);
+				}
+
+			} else {
+				M_ILD(RCX, REG_SP, s2 * 8);
+				M_LST(s1, REG_SP, d * 8);
+			}
+
 			x86_64_shift_membase(cd, shift_op, REG_SP, d * 8);
 
 		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
@@ -457,14 +493,14 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 
 			} else {
 				M_INTMOVE(s2, RCX);
-				x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP2);
+				M_LLD(REG_ITMP2, REG_SP, s1 * 8);
 				x86_64_shift_reg(cd, shift_op, REG_ITMP2);
-				x86_64_mov_reg_membase(cd, REG_ITMP2, REG_SP, d * 8);
+				M_LST(REG_ITMP2, REG_SP, d * 8);
 			}
 
 		} else {
 			/* s1 may be equal to RCX */
-			x86_64_mov_reg_membase(cd, s1, REG_SP, d * 8);
+			M_LST(s1, REG_SP, d * 8);
 			M_INTMOVE(s2, RCX);
 			x86_64_shift_membase(cd, shift_op, REG_SP, d * 8);
 		}
@@ -478,26 +514,36 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 		}
 
 		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, RCX);
-			x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, d);
+			M_ILD(RCX, REG_SP, s2 * 8);
+			M_LLD(d, REG_SP, s1 * 8);
 			x86_64_shift_reg(cd, shift_op, d);
 
 		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
 			/* s1 may be equal to RCX */
 			M_INTMOVE(s1, d);
-			x86_64_mov_membase_reg(cd, REG_SP, s2 * 8, RCX);
+			M_ILD(RCX, REG_SP, s2 * 8);
 			x86_64_shift_reg(cd, shift_op, d);
 
 		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
 			M_INTMOVE(s2, RCX);
-			x86_64_mov_membase_reg(cd, REG_SP, s1 * 8, d);
+			M_LLD(d, REG_SP, s1 * 8);
 			x86_64_shift_reg(cd, shift_op, d);
 
 		} else {
 			/* s1 may be equal to RCX */
 			if (s1 == RCX) {
-				M_INTMOVE(s1, d);
-				M_INTMOVE(s2, RCX);
+				if (s2 == d) {
+					/* d cannot be used to backup s1 since this would
+					   overwrite s2. */
+					M_INTMOVE(s1, REG_ITMP3);
+					M_INTMOVE(s2, RCX);
+					M_INTMOVE(REG_ITMP3, d);
+
+				} else {
+					M_INTMOVE(s1, d);
+					M_INTMOVE(s2, RCX);
+				}
+
 			} else {
 				/* d may be equal to s2 */
 				M_INTMOVE(s2, RCX);
@@ -506,12 +552,10 @@ void x86_64_emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction 
 			x86_64_shift_reg(cd, shift_op, d);
 		}
 
-		if (d_old == RCX) {
+		if (d_old == RCX)
 			M_INTMOVE(REG_ITMP3, RCX);
-
-		} else {
+		else
 			M_INTMOVE(REG_ITMP1, RCX);                         /* restore RCX */
-		}
 	}
 }
 
