@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4744 2006-04-06 12:51:53Z twisti $
+   $Id: codegen.h 4776 2006-04-14 12:40:49Z twisti $
 
 */
 
@@ -50,7 +50,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ(objreg, 0); \
-        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
         M_NOP; \
     }
 
@@ -59,14 +59,14 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
         M_BEQZ(REG_ITMP3, 0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
         M_NOP; \
     }
 
 #define gen_div_check(r) \
     do { \
         M_BEQZ((r), 0); \
-        codegen_add_arithmeticexception_ref(cd, mcodeptr); \
+        codegen_add_arithmeticexception_ref(cd, cd->mcodeptr); \
         M_NOP; \
     } while (0)
 
@@ -74,12 +74,12 @@
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+	if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+        cd->mcodeptr = (u4 *) codegen_increase(cd, (u1 *) cd->mcodeptr)
 
 
 #define ALIGNCODENOP \
-    if ((int) ((long) mcodeptr & 7)) { \
+    if ((int) ((long) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
 
@@ -154,100 +154,9 @@
 	}
 	  
 
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
-
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-        M_LLD(tempnr, REG_SP, 8 * (v)->regoff); \
-        regnr = tempnr; \
-	} else regnr = (v)->regoff; \
-}
-
-
-#define var_to_reg_flt(regnr,v,tempnr) { \
-	if ((v)->flags & INMEMORY) { \
-		COUNT_SPILLS; \
-        M_DLD(tempnr, REG_SP, 8 * (v)->regoff); \
-        regnr = tempnr; \
-	} else regnr = (v)->regoff; \
-}
-
-
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
-    
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-
-#define store_reg_to_var_int(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_LST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
-
-#define store_reg_to_var_flt(sptr, tempregnum) {       \
-	if ((sptr)->flags & INMEMORY) {                    \
-		COUNT_SPILLS;                                  \
-		M_DST(tempregnum, REG_SP, 8 * (sptr)->regoff); \
-		}                                              \
-	}
-
-
-#define M_COPY(from,to) \
-	d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
-	if ((from->regoff != to->regoff) || \
-	    ((from->flags ^ to->flags) & INMEMORY)) { \
-		if (IS_FLT_DBL_TYPE(from->type)) { \
-			var_to_reg_flt(s1, from, d); \
-			M_TFLTMOVE(from->type, s1, d); \
-			store_reg_to_var_flt(to, d); \
-		} else { \
-			var_to_reg_int(s1, from, d); \
-			M_INTMOVE(s1, d); \
-			store_reg_to_var_int(to, d); \
-		} \
-	}
-
-
-#define ICONST(r,c) \
-    if ((c) >= -32768 && (c) <= 32767) { \
-        M_IADD_IMM(REG_ZERO, (c), (r)); \
-    } else if ((c) >= 0 && (c) <= 0xffff) { \
-        M_OR_IMM(REG_ZERO, (c), (r)); \
-    } else { \
-        disp = dseg_adds4(cd, (c)); \
-        M_ILD((r), REG_PV, disp); \
-    }
-
-#define LCONST(r,c) \
-    if ((c) >= -32768 && (c) <= 32767) { \
-        M_LADD_IMM(REG_ZERO, (c), (r)); \
-    } else if ((c) >= 0 && (c) <= 0xffff) { \
-        M_OR_IMM(REG_ZERO, (c), (r)); \
-    } else { \
-        disp = dseg_adds8(cd, (c)); \
-        M_LLD((r), REG_PV, disp); \
-    }
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define ICONST(r,c)                     emit_iconst(cd, (r), (c))
+#define LCONST(r,c)                     emit_lconst(cd, (r), (c))
 
 
 /* macros to create code ******************************************************/
@@ -264,13 +173,13 @@
 
 
 #define M_ITYPE(op,rs,rt,imm) \
-    *(mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff))
+    *(cd->mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff))
 
 #define M_JTYPE(op,imm) \
-    *(mcodeptr++) = (((op) << 26) | ((off) & 0x3ffffff))
+    *(cd->mcodeptr++) = (((op) << 26) | ((off) & 0x3ffffff))
 
 #define M_RTYPE(op,rs,rt,rd,sa,fu) \
-    *(mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((sa) << 6) | (fu))
+    *(cd->mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((sa) << 6) | (fu))
 
 #define M_FP2(fu, fmt, fs, fd)       M_RTYPE(0x11, fmt,  0, fs, fd, fu)
 #define M_FP3(fu, fmt, fs, ft, fd)   M_RTYPE(0x11, fmt, ft, fs, fd, fu)
