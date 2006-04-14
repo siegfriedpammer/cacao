@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4712 2006-03-30 11:59:46Z twisti $
+   $Id: codegen.h 4773 2006-04-14 11:20:38Z twisti $
 
 */
 
@@ -56,7 +56,7 @@
     if (checknull) { \
         M_TST((objreg)); \
         M_BEQ(0); \
-        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
     }
 
 #define gen_bound_check \
@@ -64,15 +64,15 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPU(s2, REG_ITMP3);\
         M_BGE(0);\
-        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-    if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+    if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+        cd->mcodeptr = (u4 *) codegen_increase(cd, (u1 *) cd->mcodeptr)
 
 
 /* M_INTMOVE:
@@ -118,204 +118,16 @@
     } while (0)
 
 
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
-
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) \
-	do { \
-		if ((v)->flags & INMEMORY) { \
-			COUNT_SPILLS; \
-			if (IS_2_WORD_TYPE((v)->type)) { \
-				M_ILD(GET_HIGH_REG((tempnr)), REG_SP, (v)->regoff * 4); \
-				M_ILD(GET_LOW_REG((tempnr)), REG_SP, (v)->regoff * 4 + 4); \
-			} else \
-				M_ILD((tempnr), REG_SP, (v)->regoff * 4); \
-			regnr = tempnr; \
-		} else { \
-			regnr = (v)->regoff; \
-		} \
-	} while(0)
-
-
-#define var_to_reg_lng(regnr,v,tempnr) \
-    do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_ILD(GET_HIGH_REG((tempnr)), REG_SP, (v)->regoff * 4); \
-            M_ILD(GET_LOW_REG((tempnr)), REG_SP, (v)->regoff * 4 + 4); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } while (0)
-
-
-/* fetch only the low part of v, regnr hast to be a single register */
-
-#define var_to_reg_lng_low(regnr,v,tempnr) \
-	do { \
-		if ((v)->flags & INMEMORY) { \
-			COUNT_SPILLS; \
-			M_ILD((tempnr), REG_SP, (v)->regoff * 4 + 4); \
-			regnr = tempnr; \
-		} else { \
-			regnr = GET_LOW_REG((v)->regoff); \
-		} \
-	} while(0)
-
-
-/* fetch only the high part of v, regnr hast to be a single register */
-
-#define var_to_reg_lng_high(regnr,v,tempnr) \
-	do { \
-		if ((v)->flags & INMEMORY) { \
-			COUNT_SPILLS; \
-			M_ILD((tempnr), REG_SP, (v)->regoff * 4); \
-			regnr = tempnr; \
-		} else { \
-			regnr = GET_HIGH_REG((v)->regoff); \
-		} \
-	} while(0)
-
-
-
-#define var_to_reg_flt(regnr,v,tempnr) \
-	do { \
-		if ((v)->flags & INMEMORY) { \
-			COUNT_SPILLS; \
-			if ((v)->type == TYPE_DBL) \
-				M_DLD(tempnr, REG_SP, (v)->regoff * 4); \
-			else \
-				M_FLD(tempnr, REG_SP, (v)->regoff * 4); \
-			regnr = tempnr; \
-		} else { \
-			regnr = (v)->regoff; \
-		} \
-	} while (0)
-
-
-#define var_to_reg_dbl(regnr,v,tempnr) \
-	do { \
-		if ((v)->flags & INMEMORY) { \
-			COUNT_SPILLS; \
-			M_DLD(tempnr, REG_SP, (v)->regoff * 4); \
-			regnr = tempnr; \
-		} else { \
-			regnr = (v)->regoff; \
-		} \
-	} while (0)
-
-
-/* store_reg_to_var_xxx ********************************************************
-
-   This function generates the code to store the result of an
-   operation back into a spilled pseudo-variable.  If the
-   pseudo-variable has not been spilled in the first place, this
-   function will generate nothing.
-    
-   v ............ Pseudovariable
-   tempregnum ... Number of the temporary registers as returned by
-                  reg_of_var.
-
-*******************************************************************************/
-
-#define store_reg_to_var_int(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_IST(tempregnum, REG_SP, (sptr)->regoff * 4); \
-        } \
-    } while (0)
-
-#define store_reg_to_var_lng(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_IST(GET_HIGH_REG(tempregnum), REG_SP, (sptr)->regoff * 4); \
-            M_IST(GET_LOW_REG(tempregnum), REG_SP, (sptr)->regoff * 4 + 4); \
-        } \
-    } while (0)
-
-#define store_reg_to_var_adr(sptr, tempregnum) \
-    store_reg_to_var_int(sptr, tempregnum)
-
-#define store_reg_to_var_flt(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_FST(tempregnum, REG_SP, (sptr)->regoff * 4); \
-        } \
-    } while (0)
-
-#define store_reg_to_var_dbl(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_DST(tempregnum, REG_SP, (sptr)->regoff * 4); \
-        } \
-    } while (0)
-
-
-#define ICONST(reg,c) \
-    if (((c) >= 0 && (c) <= 32767) || ((c) >= -32768 && (c) < 0)) {\
-        M_LDA((reg), REG_ZERO, (c)); \
-    } else { \
-        a = dseg_adds4(cd, c); \
-        M_ILD((reg), REG_PV, a); \
-    }
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define ICONST(d,c)                     emit_iconst(cd, (d), (c))
 
 #define LCONST(reg,c) \
     ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
     ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c)));
 
 
-#define M_COPY(from,to) \
-    do { \
-        if (from->type == TYPE_LNG) \
-            d = codegen_reg_of_var(rd, iptr->opc, (to), PACK_REGS(REG_ITMP2, REG_ITMP1)); \
-        else \
-            d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
-        if ((from->regoff != to->regoff) || \
-            ((from->flags ^ to->flags) & INMEMORY)) { \
-            if (IS_INT_LNG_TYPE(from->type)) { \
-                if (IS_2_WORD_TYPE(from->type)) { \
-                    var_to_reg_lng(s1, from, d); \
-                    M_LNGMOVE(s1, d); \
-                    store_reg_to_var_lng(to, d); \
-                } else { \
-                    var_to_reg_int(s1, from, d); \
-                    M_INTMOVE(s1, d); \
-                    store_reg_to_var_int(to, d); \
-                } \
-            } else { \
-                if (IS_2_WORD_TYPE(from->type)) { \
-                    var_to_reg_dbl(s1, from, d); \
-                    M_FLTMOVE(s1,d); \
-                    store_reg_to_var_dbl(to, d); \
-                } else { \
-                    var_to_reg_flt(s1, from, d); \
-                    M_FLTMOVE(s1,d); \
-                    store_reg_to_var_flt(to, d); \
-                } \
-            } \
-        } \
-    } while (0)
-
-
 #define ALIGNCODENOP \
-    if ((s4) ((ptrint) mcodeptr & 7)) { \
+    if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
 
@@ -323,22 +135,22 @@
 /* macros to create code ******************************************************/
 
 #define M_OP3(opcode,y,oe,rc,d,a,b) \
-	*(mcodeptr++) = (((opcode) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
+	*(cd->mcodeptr++) = (((opcode) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
 
 #define M_OP4(x,y,rc,d,a,b,c) \
-	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc))
+	*(cd->mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc))
 
 #define M_OP2_IMM(x,d,a,i) \
-	*(mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff))
+	*(cd->mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff))
 
 #define M_BRMASK     0x0000fffc                     /* (((1 << 16) - 1) & ~3) */
 #define M_BRAMASK    0x03fffffc                     /* (((1 << 26) - 1) & ~3) */
 
 #define M_BRA(x,i,a,l) \
-	*(mcodeptr++) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l))
+	*(cd->mcodeptr++) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l))
 
 #define M_BRAC(x,bo,bi,i,a,l) \
-	*(mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l))
+	*(cd->mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l))
 
 
 /* instruction macros *********************************************************/
@@ -464,6 +276,24 @@
         } \
     } while (0)
 
+#define M_LLD_INTERN(a,b,disp) \
+    do { \
+        M_ILD_INTERN(GET_HIGH_REG(a), b, disp); \
+        M_ILD_INTERN(GET_LOW_REG(a), b, disp + 4); \
+    } while (0)
+
+#define M_LLD(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_LLD_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,a); \
+            M_LLD_INTERN(a,GET_LOW_REG(a),lo); \
+        } \
+    } while (0)
+
 #define M_ALD_INTERN(a,b,disp)          M_ILD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)                 M_ILD(a,b,disp)
 
@@ -472,9 +302,9 @@
 
 #define M_IST_INTERN(a,b,disp)          M_OP2_IMM(36,a,b,disp)
 
-/* Stores with displacement overflow should only happen with PUTFIELD or on   */
-/* the stack. The PUTFIELD instruction does not use REG_ITMP3 and a           */
-/* reg_of_var call should not use REG_ITMP3!!!                                */
+/* Stores with displacement overflow should only happen with PUTFIELD
+   or on the stack. The PUTFIELD instruction does not use REG_ITMP3
+   and a reg_of_var call should not use REG_ITMP3!!! */
 
 #define M_IST(a,b,disp) \
     do { \
@@ -485,6 +315,24 @@
         } else { \
             M_ADDIS(b,hi,REG_ITMP3); \
             M_IST_INTERN(a,REG_ITMP3,lo); \
+        } \
+    } while (0)
+
+#define M_LST_INTERN(a,b,disp) \
+    do { \
+        M_IST_INTERN(GET_HIGH_REG(a), b, disp); \
+        M_IST_INTERN(GET_LOW_REG(a), b, disp + 4); \
+    } while (0)
+
+#define M_LST(a,b,disp) \
+    do { \
+        s4 lo = (short) (disp); \
+        s4 hi = (short) (((disp) - lo) >> 16); \
+        if (hi == 0) { \
+            M_LST_INTERN(a,b,lo); \
+        } else { \
+            M_ADDIS(b,hi,REG_ITMP3); \
+            M_LST_INTERN(a,REG_ITMP3, lo); \
         } \
     } while (0)
 
@@ -605,11 +453,6 @@
 
 #define gen_resolvebranch(ip,so,to) \
 	*((s4*)(ip)-1)=(*((s4*)(ip)-1) & ~M_BRMASK) | (((s4)((to)-(so))+4)&((((*((s4*)(ip)-1)>>26)&63)==18)?M_BRAMASK:M_BRMASK))
-
-
-/* function prototypes ********************************************************/
-
-void docacheflush(u1 *p, long bytelen);
 
 #endif /* _CODEGEN_H */
 
