@@ -37,8 +37,9 @@
 #include "vm/types.h"
 
 #include <assert.h>
-#include <time.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "vm/rt-timing.h"
 #include "mm/memory.h"
