@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: parse.c 4778 2006-04-14 23:48:26Z edwin $
 
 */
 
@@ -174,7 +174,6 @@ bool parse(jitdata *jd)
 	constant_FMIref   *mr;
 	methoddesc        *md;
 	unresolved_method *um;
-	methodinfo        *mi;
 	resolve_result_t   result;
 
 	u2 lineindex = 0;
