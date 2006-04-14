@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4765 2006-04-13 13:10:06Z twisti $
+   $Id: codegen-common.h 4779 2006-04-14 23:50:27Z edwin $
 
 */
 
@@ -64,7 +64,7 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 /* Register Pack/Unpack Macros ************************************************/
 
 /* ATTENTION: Don't change the order where low and high bits are
-   stored! At least mips32 relys in one case on that order. */
+   stored! At least mips32 relies in one case on that order. */
 
 #define PACK_REGS(low,high) \
     ( (((high) & 0x0000ffff) << 16) | ((low) & 0x0000ffff) )
