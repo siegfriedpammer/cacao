@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4709 2006-03-30 10:14:22Z twisti $
+   $Id: codegen-common.c 4775 2006-04-14 11:57:04Z twisti $
 
 */
 
@@ -160,12 +160,18 @@ void codegen_setup(jitdata *jd)
 	cd = jd->cd;
 
 	cd->mcodebase = DMNEW(u1, MCODEINITSIZE);
+	cd->mcodeend  = cd->mcodebase + MCODEINITSIZE;
 	cd->mcodesize = MCODEINITSIZE;
 
 	/* initialize mcode variables */
-	
+
+#if defined(__I386__) || defined(__X86_64__)	
 	cd->mcodeptr = cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + MCODEINITSIZE);
+#else
+	cd->mcodeptr = (u4 *) cd->mcodebase;
+#endif
+
+	cd->lastmcodeptr = cd->mcodebase;
 
 #if defined(ENABLE_INTRP)
 	/* native dynamic superinstructions variables */
@@ -254,7 +260,7 @@ s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 							  cd->mcodesize,
 							  cd->mcodesize * 2);
 	cd->mcodesize *= 2;
-	cd->mcodeend   = (s4 *) (cd->mcodebase + cd->mcodesize);
+	cd->mcodeend   = cd->mcodebase + cd->mcodesize;
 
 #if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* adjust the pointer to the last patcher position */
@@ -574,7 +580,6 @@ u1 *codegen_findmethod(u1 *pc)
 
 void codegen_finish(jitdata *jd, s4 mcodelen)
 {
-	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 #if 0
@@ -591,10 +596,8 @@ void codegen_finish(jitdata *jd, s4 mcodelen)
 
 	/* get required compiler data */
 
-	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-
 
 	/* prevent compiler warning */
 
@@ -771,7 +774,6 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 {
 	jitdata     *jd;
 	codeinfo    *code;
-	codegendata *cd;
 	s4           dumpsize;
 	methoddesc  *md;
 	methoddesc  *nmd;	
@@ -794,7 +796,6 @@ codeinfo *codegen_createnativestub(functionptr f, methodinfo *m)
 	/* get required compiler data */
 
 	code = jd->code;
-	cd   = jd->cd;
 
 	/* setup code generation stuff */
 
