@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: codegen.c 4782 2006-04-17 15:49:06Z edwin $
 
 */
 
@@ -368,7 +368,7 @@ bool intrp_codegen(jitdata *jd)
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
+		bptr->mpc = (s4) ((u1*)cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -1612,7 +1612,7 @@ bool intrp_codegen(jitdata *jd)
 
 			/* actually -3 cells offset */
 
-			dseg_adddata(cd, (cd->mcodeptr - 2 * sizeof(Inst)));
+			dseg_adddata(cd, ((u1*)cd->mcodeptr - 2 * sizeof(Inst)));
 			codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
 			/* build jump table top down and use address of lowest entry */
@@ -1645,7 +1645,7 @@ bool intrp_codegen(jitdata *jd)
 			/* arguments: count, datasegment address, table offset in         */
 			/* datasegment, default target                                    */
 			gen_LOOKUPSWITCH(cd, i, NULL, 0, NULL);
-			dseg_adddata(cd, (cd->mcodeptr - 2*sizeof(Inst))); /* actually -3 cells offset*/
+			dseg_adddata(cd, ((u1*)cd->mcodeptr - 2*sizeof(Inst))); /* actually -3 cells offset*/
 			codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
 
 			/* build jump table top down and use address of lowest entry */
@@ -1800,7 +1800,7 @@ bool intrp_codegen(jitdata *jd)
 
 	dseg_createlinenumbertable(cd);
 
-	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) ((u1*)cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
 	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
@@ -2034,7 +2034,7 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	gen_BBEND;
 
-	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) ((u1*)cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
 	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
@@ -2258,7 +2258,7 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	gen_BBEND;
 
-	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd, (s4) ((u1*)cd->mcodeptr - cd->mcodebase));
 
 #ifdef VM_PROFILING
 	vm_block_insert(jd->code->mcode + jd->code->mcodelength);
