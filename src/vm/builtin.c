@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4749 2006-04-11 10:20:18Z twisti $
+   $Id: builtin.c 4781 2006-04-17 15:20:45Z edwin $
 
 */
 
@@ -84,6 +84,7 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
+#include "vm/rt-timing.h"
 
 
 /* include builtin tables *****************************************************/
@@ -1764,6 +1765,10 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 #if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o)
 {
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_overhead, time_lock;
+#endif
+	
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1778,7 +1783,14 @@ void builtin_monitorenter(java_objectheader *o)
 
 	--blockInts;
 #else
+	RT_TIMING_GET_TIME(time_start);
+	RT_TIMING_GET_TIME(time_overhead);
+
 	monitorEnter((threadobject *) THREADOBJECT, o);
+
+	RT_TIMING_GET_TIME(time_lock);
+	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
+	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_LOCK);
 #endif
 }
 #endif
@@ -1798,6 +1810,10 @@ void builtin_staticmonitorenter(classinfo *c)
 #if defined(USE_THREADS)
 void builtin_monitorexit(java_objectheader *o)
 {
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_overhead, time_lock;
+#endif
+	
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1816,7 +1832,14 @@ void builtin_monitorexit(java_objectheader *o)
 
 	--blockInts;
 #else
+	RT_TIMING_GET_TIME(time_start);
+	RT_TIMING_GET_TIME(time_overhead);
+
 	monitorExit((threadobject *) THREADOBJECT, o);
+
+	RT_TIMING_GET_TIME(time_lock);
+	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
+	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_UNLOCK);
 #endif
 }
 #endif
