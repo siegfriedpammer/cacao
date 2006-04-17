@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4779 2006-04-14 23:50:27Z edwin $
+   $Id: codegen-common.h 4780 2006-04-17 11:47:03Z twisti $
 
 */
 
@@ -94,9 +94,7 @@ struct codegendata {
 	u4             *mcodeptr;       /* code generation pointer                */
 #endif
 
-#if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	u1             *lastmcodeptr;   /* last patcher position of basic block   */
-#endif
 
 #if defined(ENABLE_INTRP)
 	u1             *ncodebase;      /* base pointer of native code area       */
