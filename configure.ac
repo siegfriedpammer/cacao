@@ -337,13 +337,13 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
 
             case "${OS_DIR}" in
                 cygwin | darwin )
-                     AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from bintuils))])
+                     AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
                      ;;
             esac
 
-            AC_CHECK_LIB(iberty, xstrerror,, [AC_MSG_ERROR(cannot find libiberty (from bintuils))])
-            AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from bintuils))])
-            AC_CHECK_LIB(opcodes, disassembler,, [AC_MSG_ERROR(cannot find libopcodes (from bintuils))])
+            AC_CHECK_LIB(iberty, xstrerror,, [AC_MSG_ERROR(cannot find libiberty (from binutils))])
+            AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from binutils))])
+            AC_CHECK_LIB(opcodes, disassembler,, [AC_MSG_ERROR(cannot find libopcodes (from binutils))])
             AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
             AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [true])
             ;;
