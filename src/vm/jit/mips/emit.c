@@ -65,9 +65,12 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 		disp = src->regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, disp);
-		else
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+		} else
 			M_LLD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
@@ -99,9 +102,12 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 		disp = src->regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, disp);
-		else
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+		} else
 			M_LLD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
@@ -133,9 +139,12 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 
 		disp = src->regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(src->type))
-			M_DLD(tempreg, REG_SP, disp);
-		else
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+		} else
 			M_LLD(tempreg, REG_SP, disp);
 
 		reg = tempreg;
@@ -166,9 +175,12 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 		disp = dst->regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(dst->type))
-			M_DST(d, REG_SP, disp);
-		else
+		if (IS_FLT_DBL_TYPE(dst->type)) {
+			if (IS_2_WORD_TYPE(dst->type))
+				M_DST(d, REG_SP, disp);
+			else
+				M_FST(d, REG_SP, disp);
+		} else
 			M_LST(d, REG_SP, disp);
 	}
 }

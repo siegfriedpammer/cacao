@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4776 2006-04-14 12:40:49Z twisti $
+   $Id: codegen.h 4783 2006-04-18 13:36:15Z twisti $
 
 */
 
@@ -79,7 +79,7 @@
 
 
 #define ALIGNCODENOP \
-    if ((int) ((long) cd->mcodeptr & 7)) { \
+    if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
 
@@ -90,69 +90,6 @@
 */ 
 
 #define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) if (a != b) { M_DMOV(a, b); }
-
-#define M_TFLTMOVE(t,a,b) \
-    do { \
-        if ((a) != (b)) \
-            if ((t) == TYPE_DBL) { \
-                M_DMOV(a,b); \
-            } else { \
-                M_FMOV(a,b); \
-            } \
-    } while (0)
-
-#define M_TFLD(t,a,b,disp) \
-    if ((t) == TYPE_DBL) { \
-	  M_DLD(a,b,disp); \
-    } else { \
-	  M_FLD(a,b,disp); \
-    }
-
-#define M_TFST(t,a,b,disp) \
-    if ((t)==TYPE_DBL) \
-	  {M_DST(a,b,disp);} \
-    else \
-	  {M_FST(a,b,disp);}
-
-#define M_CCFLTMOVE(t1,t2,a,b) \
-	if ((t1)==(t2)) \
-	  {M_TFLTMOVE(t1,a,b);} \
-	else \
-	  if ((t1)==TYPE_DBL) \
-		{M_CVTDF(a,b);} \
-	  else \
-		{M_CVTFD(a,b);}
-
-#define M_CCFLD(t1,t2,a,b,disp) \
-    if ((t1)==(t2)) \
-	  {M_DLD(a,b,disp);} \
-	else { \
-	  M_DLD(REG_FTMP1,b,disp); \
-	  if ((t1)==TYPE_DBL) \
-	    {M_CVTDF(REG_FTMP1,a);} \
-	  else \
-	    {M_CVTFD(REG_FTMP1,a);} \
-	}
-	  
-#define M_CCFST(t1,t2,a,b,disp) \
-    if ((t1)==(t2)) \
-	  {M_DST(a,b,disp);} \
-	else { \
-	  if ((t1)==TYPE_DBL) \
-	    {M_CVTDF(a,REG_FTMP1);} \
-	  else \
-	    {M_CVTFD(a,REG_FTMP1);} \
-	  M_DST(REG_FTMP1,b,disp); \
-	}
-	  
 
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 #define ICONST(r,c)                     emit_iconst(cd, (r), (c))
