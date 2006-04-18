@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4789 2006-04-18 20:34:52Z twisti $
+   $Id: codegen.c 4791 2006-04-18 21:16:36Z twisti $
 
 */
 
@@ -47,7 +47,7 @@
 
 #include "vm/jit/x86_64/arch.h"
 #include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/emitfuncs.h"
+#include "vm/jit/x86_64/md-emit.h"
 
 #include "mm/memory.h"
 #include "native/jni.h"

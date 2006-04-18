@@ -28,12 +28,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4690 2006-03-27 11:37:46Z twisti $
+## $Id: Makefile.am 4791 2006-04-18 21:16:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src
-AM_CCASFLAGS = $(AM_CPPFLAGS)
+AM_CCASFLAGS = $(AM_CPPFLAGS) $(AM_LDFLAGS)
 
 LIBS =
 
@@ -59,12 +59,12 @@ libarch_la_SOURCES = \
 	codegen.c \
 	codegen.h \
 	$(DISASS_SOURCES) \
-	emitfuncs.c \
-	emitfuncs.h \
+	emit.c \
 	patcher.c \
 	\
 	md-abi.c \
 	md-abi.h \
+	md-emit.h \
 	md.c \
 	md.h
 

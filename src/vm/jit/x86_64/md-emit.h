@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/emitfuncs.h - emit function prototypes
+/* src/vm/jit/x86_64/md-emit.h - machine dependent emit function prototypes
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,13 +28,13 @@
 
    Changes:
 
-   $Id: emitfuncs.h 4789 2006-04-18 20:34:52Z twisti $
+   $Id: md-emit.h 4791 2006-04-18 21:16:36Z twisti $
 
 */
 
 
-#ifndef _EMITFUNCS_H
-#define _EMITFUNCS_H
+#ifndef _MD_EMIT_H
+#define _MD_EMIT_H
 
 #include "vm/types.h"
 
@@ -225,7 +225,7 @@ void x86_64_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 
 void emit_rdtsc(codegendata *cd);
 
-#endif /* _EMITFUNCS_H */
+#endif /* _MD_EMIT_H */
 
 
 /*

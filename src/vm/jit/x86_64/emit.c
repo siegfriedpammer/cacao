@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/emitfuncs.c - x86_64 code emitter functions
+/* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4789 2006-04-18 20:34:52Z twisti $
+   $Id: emit.c 4791 2006-04-18 21:16:36Z twisti $
 
 */
 
@@ -38,9 +38,10 @@
 #include "md-abi.h"
 
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/x86_64/codegen.h"
-#include "vm/jit/x86_64/emitfuncs.h"
+#include "vm/jit/x86_64/md-emit.h"
 
 
 /* code generation functions **************************************************/
