@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 4786 2006-04-18 20:10:23Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,11 +55,16 @@ noinst_HEADERS = \
 
 noinst_LTLIBRARIES = libarch.la
 
+if ENABLE_DISASSEMBLER
+DISASS_SOURCES = \
+	disass.c
+endif
+
 libarch_la_SOURCES = \
 	asmpart.S \
 	codegen.c \
 	codegen.h \
-	disass.c \
+	$(DISASS_SOURCES) \
 	patcher.c \
 	\
 	md-abi.c \
