@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4751 2006-04-11 13:13:23Z twisti $
+   $Id: codegen.h 4789 2006-04-18 20:34:52Z twisti $
 
 */
 
@@ -311,6 +311,13 @@ typedef enum {
 	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
         cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
 
+
+#define ALIGNCODENOP \
+    if ((s4) (((ptrint) cd->mcodeptr) & 7)) { \
+        M_NOP; \
+    }
+
+
 /* M_INTMOVE:
     generates an integer-move from register a to b.
     if a and b are the same int-register, no code will be generated.
@@ -337,90 +344,27 @@ typedef enum {
     } while (0)
 
 
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) \
-    if ((v)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        if ((v)->type == TYPE_INT) { \
-            x86_64_movl_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
-        } else { \
-            x86_64_mov_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
-        } \
-        regnr = tempnr; \
-    } else { \
-        regnr = (v)->regoff; \
-    }
+#define ICONST(r,c) \
+    do { \
+        if (iptr->val.i == 0) \
+            M_CLR(d); \
+        else \
+            M_IMOV_IMM(iptr->val.i, d); \
+    } while (0)
+/*     do { \ */
+/*        M_IMOV_IMM(iptr->val.i, d); \ */
+/*     } while (0) */
 
 
-
-#define var_to_reg_flt(regnr,v,tempnr) \
-    if ((v)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        if ((v)->type == TYPE_FLT) { \
-            x86_64_movlps_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
-        } else { \
-            x86_64_movlpd_membase_reg(cd, REG_SP, (v)->regoff * 8, tempnr); \
-        } \
-/*        x86_64_movq_membase_reg(REG_SP, (v)->regoff * 8, tempnr);*/ \
-        regnr = tempnr; \
-    } else { \
-        regnr = (v)->regoff; \
-    }
-
-
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
-    
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-
-#define store_reg_to_var_int(sptr, tempregnum) \
-    if ((sptr)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        x86_64_mov_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
-    }
-
-
-#define store_reg_to_var_flt(sptr, tempregnum) \
-    if ((sptr)->flags & INMEMORY) { \
-         COUNT_SPILLS; \
-         x86_64_movq_reg_membase(cd, tempregnum, REG_SP, (sptr)->regoff * 8); \
-    }
-
-
-#define M_COPY(from,to) \
-    d = codegen_reg_of_var(rd, iptr->opc, (to), REG_ITMP1); \
-	if ((from->regoff != to->regoff) || \
-	    ((from->flags ^ to->flags) & INMEMORY)) { \
-		if (IS_FLT_DBL_TYPE(from->type)) { \
-			var_to_reg_flt(s1, from, d); \
-			M_FLTMOVE(s1, d); \
-			store_reg_to_var_flt(to, d); \
-		} else { \
-			var_to_reg_int(s1, from, d); \
-			M_INTMOVE(s1, d); \
-			store_reg_to_var_int(to, d); \
-		} \
-	}
+#define LCONST(r,c) \
+    do { \
+        if (iptr->val.l == 0) \
+            M_CLR(d); \
+        else \
+            M_MOV_IMM(iptr->val.l, d); \
+    } while (0)
 
 
 /* macros to create code ******************************************************/
@@ -434,14 +378,12 @@ typedef enum {
 
 #define M_ILD(a,b,disp)         x86_64_movl_membase_reg(cd, (b), (disp), (a))
 #define M_LLD(a,b,disp)         x86_64_mov_membase_reg(cd, (b), (disp), (a))
-#define M_DLD(a,b,disp)         x86_64_movq_membase_reg(cd, (b), (disp), (a))
 
 #define M_ILD32(a,b,disp)       x86_64_movl_membase32_reg(cd, (b), (disp), (a))
 #define M_LLD32(a,b,disp)       x86_64_mov_membase32_reg(cd, (b), (disp), (a))
 
 #define M_IST(a,b,disp)         x86_64_movl_reg_membase(cd, (a), (b), (disp))
 #define M_LST(a,b,disp)         x86_64_mov_reg_membase(cd, (a), (b), (disp))
-#define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
 
 #define M_IST_IMM(a,b,disp)     x86_64_movl_imm_membase(cd, (a), (b), (disp))
 #define M_LST_IMM32(a,b,disp)   x86_64_mov_imm_membase(cd, (a), (b), (disp))
@@ -479,6 +421,12 @@ typedef enum {
 #define M_LLEA(a,b,c)           x86_64_lea_membase_reg(cd, (a), (b), (c))
 #define M_ALEA(a,b,c)           M_LLEA(a,b,c)
 
+#define M_INEG(a)               x86_64_negl_reg(cd, (a))
+#define M_LNEG(a)               x86_64_neg_reg(cd, (a))
+
+#define M_INEG_MEMBASE(a,b)     x86_64_negl_membase(cd, (a), (b))
+#define M_LNEG_MEMBASE(a,b)     x86_64_neg_membase(cd, (a), (b))
+
 #define M_AND(a,b)              x86_64_alu_reg_reg(cd, X86_64_AND, (a), (b))
 #define M_XOR(a,b)              x86_64_alu_reg_reg(cd, X86_64_XOR, (a), (b))
 
@@ -511,6 +459,13 @@ typedef enum {
 #define M_CMOVGE(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_GE, (a), (b))
 #define M_CMOVGT(a,b)           x86_64_cmovcc_reg_reg(cd, X86_64_CC_G, (a), (b))
 
+#define M_CMOVEQ_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_E, (a), (b))
+#define M_CMOVNE_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_NE, (a), (b))
+#define M_CMOVLT_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_L, (a), (b))
+#define M_CMOVLE_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_LE, (a), (b))
+#define M_CMOVGE_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_GE, (a), (b))
+#define M_CMOVGT_MEMBASE(a,b,c) x86_64_cmovcc_reg_membase(cd, X86_64_CC_G, (a), (b))
+
 #define M_CMOVB(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_B, (a), (b))
 #define M_CMOVA(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_A, (a), (b))
 #define M_CMOVP(a,b)            x86_64_cmovcc_reg_reg(cd, X86_64_CC_P, (a), (b))
@@ -528,6 +483,18 @@ typedef enum {
 #define M_NOP                   x86_64_nop(cd)
 
 #define M_CLR(a)                M_XOR(a,a)
+
+
+#if 0
+#define M_FLD(a,b,c)            x86_64_movlps_membase_reg(cd, (a), (b), (c))
+#define M_DLD(a,b,c)            x86_64_movlpd_membase_reg(cd, (a), (b), (c))
+
+#define M_FST(a,b,c)            x86_64_movlps_reg_membase(cd, (a), (b), (c))
+#define M_DST(a,b,c)            x86_64_movlpd_reg_membase(cd, (a), (b), (c))
+#endif
+
+#define M_DLD(a,b,disp)         x86_64_movq_membase_reg(cd, (b), (disp), (a))
+#define M_DST(a,b,disp)         x86_64_movq_reg_membase(cd, (a), (b), (disp))
 
 
 /* system instructions ********************************************************/

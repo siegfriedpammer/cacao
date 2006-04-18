@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4763 2006-04-13 09:19:58Z twisti $
+   $Id: emitfuncs.c 4789 2006-04-18 20:34:52Z twisti $
 
 */
 
@@ -37,9 +37,244 @@
 
 #include "md-abi.h"
 
+#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emitfuncs.h"
+
+
+/* code generation functions **************************************************/
+
+/* emit_load_s1 ****************************************************************
+
+   Emits a possible load of the first source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 8;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			M_DLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_INT_TYPE(src->type))
+				M_ILD(tempreg, REG_SP, disp);
+			else
+				M_LLD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_load_s2 ****************************************************************
+
+   Emits a possible load of the second source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 8;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			M_DLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_INT_TYPE(src->type))
+				M_ILD(tempreg, REG_SP, disp);
+			else
+				M_LLD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_load_s3 ****************************************************************
+
+   Emits a possible load of the third source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 8;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			M_DLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_INT_TYPE(src->type))
+				M_ILD(tempreg, REG_SP, disp);
+			else
+				M_LLD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_store ******************************************************************
+
+   This function generates the code to store the result of an
+   operation back into a spilled pseudo-variable.  If the
+   pseudo-variable has not been spilled in the first place, this
+   function will generate nothing.
+    
+*******************************************************************************/
+
+void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+{
+	codegendata  *cd;
+	registerdata *rd;
+	s4            disp;
+	s4            s;
+	u2            opcode;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+	rd = jd->rd;
+
+	/* do we have to generate a conditional move? */
+
+	if ((iptr != NULL) && (iptr->opc & ICMD_CONDITION_MASK)) {
+		/* the passed register d is actually the source register */
+
+		s = d;
+
+		/* Only pass the opcode to codegen_reg_of_var to get the real
+		   destination register. */
+
+		opcode = iptr->opc & ICMD_OPCODE_MASK;
+
+		/* get the real destination register */
+
+		d = codegen_reg_of_var(rd, opcode, dst, REG_ITMP1);
+
+		/* and emit the conditional move */
+
+		emit_cmovxx(cd, iptr, s, d);
+	}
+
+	if (dst->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = dst->regoff * 8;
+
+		if (IS_FLT_DBL_TYPE(dst->type))
+			M_DST(d, REG_SP, disp);
+		else
+			M_LST(d, REG_SP, disp);
+	}
+}
+
+
+/* emit_copy *******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+{
+	codegendata  *cd;
+	registerdata *rd;
+	s4            s1, d;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+	rd = jd->rd;
+
+	if ((src->regoff != dst->regoff) ||
+		((src->flags ^ dst->flags) & INMEMORY)) {
+		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
+		s1 = emit_load_s1(jd, iptr, src, d);
+
+		if (s1 != d) {
+			if (IS_FLT_DBL_TYPE(src->type))
+				M_FMOV(s1, d);
+			else
+				M_MOV(s1, d);
+		}
+
+		emit_store(jd, iptr, dst, d);
+	}
+}
+
+
+void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
+{
+	switch ((iptr->opc & ICMD_CONDITION_MASK) >> 8) {
+	case ICMD_IFEQ:
+		M_CMOVEQ(s, d);
+		break;
+	case ICMD_IFNE:
+		M_CMOVNE(s, d);
+		break;
+	case ICMD_IFLT:
+		M_CMOVLT(s, d);
+		break;
+	case ICMD_IFGE:
+		M_CMOVGE(s, d);
+		break;
+	case ICMD_IFGT:
+		M_CMOVGT(s, d);
+		break;
+	case ICMD_IFLE:
+		M_CMOVLE(s, d);
+		break;
+	}
+}
 
 
 /* code generation functions */
@@ -630,8 +865,14 @@ void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr
 		else
 			M_ICMP_IMM(iptr->val.i, src->regoff);
 	}
-	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+
+	/* If the conditional branch is part of an if-converted block,
+	   don't generate the actual branch. */
+
+	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+		x86_64_jcc(cd, if_op, 0);
+		codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+	}
 }
 
 
@@ -667,7 +908,14 @@ void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *ip
 }
 
 
-void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
+/* emit_if_icmpcc **************************************************************
+
+   Generate ICMD_IF_ICMPxx instructions.
+
+*******************************************************************************/
+
+void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src,
+						   instruction *iptr)
 {
 	s4 s1 = src->prev->regoff;
 	s4 s2 = src->regoff;
@@ -685,8 +933,15 @@ void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction 
 	} else {
 		x86_64_alul_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
-	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+
+	
+	/* If the conditional branch is part of an if-converted block,
+	   don't generate the actual branch. */
+
+	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
+		x86_64_jcc(cd, if_op, 0);
+		codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+	}
 }
 
 
@@ -713,9 +968,8 @@ void x86_64_emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction 
 }
 
 
-/*
- * mov ops
- */
+/* low-level code emitter functions *******************************************/
+
 void x86_64_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 	x86_64_emit_rex(1,(reg),0,(dreg));
 	*(cd->mcodeptr++) = 0x89;
@@ -1508,7 +1762,8 @@ void x86_64_setcc_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
 }
 
 
-void x86_64_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg) {
+void x86_64_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
+{
 	x86_64_emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x40 + (opc));
@@ -1516,7 +1771,8 @@ void x86_64_cmovcc_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg) {
 }
 
 
-void x86_64_cmovccl_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg) {
+void x86_64_cmovccl_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
+{
 	x86_64_emit_rex(0,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x40 + (opc));

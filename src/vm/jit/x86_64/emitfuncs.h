@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emitfuncs.h 4789 2006-04-18 20:34:52Z twisti $
 
 */
 
@@ -37,6 +37,11 @@
 #define _EMITFUNCS_H
 
 #include "vm/types.h"
+
+
+/* function prototypes ********************************************************/
+
+void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 
 /* code generation prototypes */
