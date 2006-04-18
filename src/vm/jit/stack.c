@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: stack.c 4787 2006-04-18 20:17:07Z edwin $
 
 */
 
@@ -3127,7 +3127,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_PUTFIELD:
 		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			printf(" (NOT RESOLVED), ");
+			printf(" (NOT RESOLVED) ");
 
 			field_fieldref_print(uf->fieldref);
 		}
@@ -3143,7 +3143,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_GETSTATIC:
 		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr);
-			printf(" (NOT RESOLVED), ");
+			printf(" (NOT RESOLVED) ");
 
 			field_fieldref_print(uf->fieldref);
 		}
@@ -3188,7 +3188,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 		if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
 			uf = INSTRUCTION_UNRESOLVED_FIELD(iptr + 1);
-			printf(" (NOT RESOLVED), ");
+			printf(" (NOT RESOLVED) ");
 			field_fieldref_print(uf->fieldref);
 		}
 		else {
@@ -3333,26 +3333,15 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 		{
 			constant_FMIref *mref;
 			
-			/* XXX target used temporarily as flag */
-			if (iptr->target) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				printf(" (NOT RESOLVED) ");
-				mref = ((unresolved_method *)iptr->val.a)->methodref;
+				mref = INSTRUCTION_UNRESOLVED_METHOD(iptr)->methodref;
 			}
 			else {
 				printf(" ");
-				mref = (constant_FMIref *)iptr->val.a;
+				mref = INSTRUCTION_RESOLVED_FMIREF(iptr);
 			}
-			if (IS_FMIREF_RESOLVED(mref)) {
-				printf(" <method> ");
-				method_print(mref->p.method);
-			}
-			else {
-				printf(" <ref> ");
-				utf_display_classname(mref->p.classref->name);
-				printf(".");
-				utf_display(mref->name);
-				utf_display(mref->descriptor);
-			}
+			method_methodref_print(mref);
 		}
 		break;
 
@@ -3479,7 +3468,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 	case ICMD_ARETURN:
 		if (iptr->val.a) {
-			printf(" (NOT RESOLVED), Class = \"");
+			printf(" (NOT RESOLVED) Class = \"");
 			utf_display(((unresolved_class *) iptr->val.a)->classref->name);
 			printf("\"");
 		}

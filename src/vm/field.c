@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: field.c 4787 2006-04-18 20:17:07Z edwin $
 
 */
 
@@ -98,10 +98,12 @@ void field_printflags(fieldinfo *f)
 void field_print(fieldinfo *f)
 {
 	if (f == NULL) {
-		printf("NULL");
+		printf("(fieldinfo*)NULL");
 		return;
 	}
 
+	utf_display_classname(f->class->name);
+	printf(".");
 	utf_display(f->name);
 	printf(" ");
 	utf_display(f->descriptor);	
