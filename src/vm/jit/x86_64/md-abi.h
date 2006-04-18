@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.h 4788 2006-04-18 20:20:13Z twisti $
 
 */
 
@@ -100,6 +100,8 @@
 #define REG_FTMP2       XMM9     /* temporary floating point register         */
 #define REG_FTMP3       XMM10    /* temporary floating point register         */
 
+#define REG_IFTMP       10   /* temporary integer and floating point register */
+
 
 #define INT_REG_CNT     16       /* number of integer registers               */
 #define INT_SAV_CNT     5        /* number of integer callee saved registers  */
@@ -113,7 +115,7 @@
 #define FLT_TMP_CNT     5        /* number of float temporary registers       */
 #define FLT_RES_CNT     3        /* number of float reserved registers        */
 
-#define TRACE_ARGS_NUM   6
+#define TRACE_ARGS_NUM  6
 
 #endif /* _MD_ABI_H */
 
