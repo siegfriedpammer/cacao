@@ -336,7 +336,7 @@ if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
             AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
 
             case "${OS_DIR}" in
-                cygwin | darwin )
+                cygwin | darwin | netbsd )
                      AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
                      ;;
             esac
