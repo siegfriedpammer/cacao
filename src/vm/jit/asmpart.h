@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4707 2006-03-30 09:52:49Z twisti $
+   $Id: asmpart.h 4792 2006-04-19 01:05:18Z edwin $
 
 */
 
@@ -178,6 +178,8 @@ u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 
 /* cache flush function */
 void asm_cacheflush(u1 *addr, s4 nbytes);
+
+u8 asm_get_cycle_count(void);
 
 #endif /* _ASMPART_H */
 

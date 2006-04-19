@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4598 2006-03-14 22:16:47Z edwin $
+   $Id: headers.c 4792 2006-04-19 01:05:18Z edwin $
 
 */
 
@@ -142,6 +142,11 @@ void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 #if defined(ENABLE_INTRP)
 void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out) {}
 #endif
+
+u8 asm_get_cycle_count(void)
+{
+	return 0;
+}
 
 
 void *Java_java_lang_VMObject_clone(void *env, void *clazz, void * this)

@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
+   $Id: asmpart.S 4792 2006-04-19 01:05:18Z edwin $
 
 */
 
@@ -80,6 +80,8 @@
 	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
+
+	.globl asm_get_cycle_count
 
 
 /* asm_md_init *****************************************************************
@@ -825,6 +827,22 @@ asm_criticalsections:
 #if defined(__GCC__) && defined(__ELF__)
 	.section .note.GNU-stack,"",@progbits
 #endif
+
+
+/* asm_get_cycle_count *********************************************************
+
+   Get the current time-stamp counter from the CPU.
+
+*******************************************************************************/
+
+asm_get_cycle_count:
+	push    bp
+	mov     sp,bp                       /* save stackptr                      */
+
+	rdtsc
+
+	leave
+	ret
 
 
 /*

@@ -1343,6 +1343,10 @@ void vm_exit_handler(void)
  	rt_timing_print_time_stats(stderr);
 #endif
 
+#if defined(ENABLE_CYCLES_STATS)
+	builtin_print_cycles_stats(stderr);
+#endif
+
 	if (opt_verbose || getcompilingtime || opt_stat) {
 		log_text("CACAO terminated");
 

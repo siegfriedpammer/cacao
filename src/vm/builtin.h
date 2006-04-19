@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 4749 2006-04-11 10:20:18Z twisti $
+   $Id: builtin.h 4792 2006-04-19 01:05:18Z edwin $
 
 */
 
@@ -319,6 +319,10 @@ inline java_objectheader **builtin_get_exceptionptrptr(void)
 {
 	return &THREADINFO->_exceptionptr;
 }
+#endif
+
+#if defined(ENABLE_CYCLES_STATS)
+void builtin_print_cycles_stats(FILE *file);
 #endif
 
 #endif /* _BUILTIN_H */

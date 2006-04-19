@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4762 2006-04-12 22:20:49Z edwin $
+## $Id: Makefile.am 4792 2006-04-19 01:05:18Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -47,6 +47,11 @@ endif
 if ENABLE_RT_TIMING
 RT_TIMING_OBJ = \
 	rt-timing.c
+endif
+
+if ENABLE_CYCLES_STATS
+CYCLES_STATS_SOURCE = \
+	cycles-stats.h
 endif
 
 if ENABLE_ZLIB
@@ -73,6 +78,7 @@ libvmcore_la_SOURCES = \
 	class.h \
 	classcache.c \
 	classcache.h \
+	$(CYCLES_STATS_SOURCE) \
 	descriptor.c \
 	descriptor.h \
 	field.c \

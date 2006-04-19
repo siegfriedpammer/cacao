@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4781 2006-04-17 15:20:45Z edwin $
+   $Id: builtin.c 4792 2006-04-19 01:05:18Z edwin $
 
 */
 
@@ -85,6 +85,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
 #include "vm/rt-timing.h"
+#include "vm/cycles-stats.h"
 
 
 /* include builtin tables *****************************************************/
@@ -1761,6 +1762,24 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 }
 #endif
 
+CYCLES_STATS_DECLARE(builtin_monitorenter,100,2)
+CYCLES_STATS_DECLARE(builtin_monitorexit,100,2)
+CYCLES_STATS_DECLARE(builtin_overhead,80,1)
+
+#if defined(ENABLE_CYCLES_STATS)
+void builtin_print_cycles_stats(FILE *file)
+{
+	s4 i;
+
+	fprintf(file,"builtin cylce count statistics:\n");
+
+	CYCLES_STATS_PRINT(builtin_monitorenter,file);
+	CYCLES_STATS_PRINT(builtin_monitorexit ,file);
+	CYCLES_STATS_PRINT(builtin_overhead    ,file);
+
+	fprintf(file,"\n");
+}
+#endif /* defined(ENABLE_CYCLES_STATS) */
 
 #if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o)
@@ -1768,7 +1787,10 @@ void builtin_monitorenter(java_objectheader *o)
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_overhead, time_lock;
 #endif
-	
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_overhead, cycles_end;
+#endif
+
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1782,16 +1804,21 @@ void builtin_monitorenter(java_objectheader *o)
 		internal_lock_mutex_for_object(o);
 
 	--blockInts;
-#else
+#else /* defined(NATIVE_THREADS) */
 	RT_TIMING_GET_TIME(time_start);
 	RT_TIMING_GET_TIME(time_overhead);
+	CYCLES_STATS_GET(cycles_start);
+	CYCLES_STATS_GET(cycles_overhead);
 
 	monitorEnter((threadobject *) THREADOBJECT, o);
 
+	CYCLES_STATS_GET(cycles_end);
+	CYCLES_STATS_COUNT(builtin_monitorenter, cycles_end - cycles_overhead);
+	CYCLES_STATS_COUNT(builtin_overhead    , cycles_overhead - cycles_start);
 	RT_TIMING_GET_TIME(time_lock);
 	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
 	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_LOCK);
-#endif
+#endif /* defined(NATIVE_THREADS) */
 }
 #endif
 
@@ -1813,7 +1840,10 @@ void builtin_monitorexit(java_objectheader *o)
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_overhead, time_lock;
 #endif
-	
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_end, cyc;
+#endif
+
 #if !defined(NATIVE_THREADS)
 	int hashValue;
 
@@ -1831,16 +1861,19 @@ void builtin_monitorexit(java_objectheader *o)
 		internal_unlock_mutex_for_object(o);
 
 	--blockInts;
-#else
+#else /* defined(NATIVE_THREADS) */
 	RT_TIMING_GET_TIME(time_start);
 	RT_TIMING_GET_TIME(time_overhead);
+	CYCLES_STATS_GET(cycles_start);
 
 	monitorExit((threadobject *) THREADOBJECT, o);
 
+	CYCLES_STATS_GET(cycles_end);
+	CYCLES_STATS_COUNT(builtin_monitorexit, cycles_end - cycles_start);
 	RT_TIMING_GET_TIME(time_lock);
 	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
 	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_UNLOCK);
-#endif
+#endif /* defined(NATIVE_THREADS) */
 }
 #endif
 

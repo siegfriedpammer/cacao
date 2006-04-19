@@ -390,6 +390,23 @@ if test x"${ENABLE_RT_TIMING}" = "xyes"; then
 fi
 
 
+dnl check for cycle count statistics
+AC_MSG_CHECKING(whether cycle count statistics should be enabled)
+AC_ARG_ENABLE([cycles-stats],
+              [AS_HELP_STRING(--enable-cycles-stats,enable cycle count statistics [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_CYCLES_STATS=yes;;
+                   *) ENABLE_CYCLES_STATS=no;;
+               esac],
+              [ENABLE_CYCLES_STATS=no])
+AC_MSG_RESULT(${ENABLE_CYCLES_STATS})
+AM_CONDITIONAL([ENABLE_CYCLES_STATS], test x"${ENABLE_CYCLES_STATS}" = "xyes")
+
+if test x"${ENABLE_CYCLES_STATS}" = "xyes"; then
+    AC_DEFINE([ENABLE_CYCLES_STATS], 1, [enable cycle count statistics])
+fi
+
+
 dnl check for JVMTI
 AC_MSG_CHECKING(whether to compile JVMTI support)
 AC_ARG_ENABLE([jvmti],
