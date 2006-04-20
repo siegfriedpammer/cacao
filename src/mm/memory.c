@@ -27,8 +27,9 @@
    Authors: Reinhard Grafl
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: memory.c 4797 2006-04-20 18:59:41Z edwin $
+   $Id: memory.c 4798 2006-04-20 19:18:43Z edwin $
 
 */
 
@@ -541,4 +542,5 @@ s4 dump_size(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
