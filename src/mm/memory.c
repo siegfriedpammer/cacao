@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: memory.c 4797 2006-04-20 18:59:41Z edwin $
 
 */
 
@@ -74,7 +74,7 @@
 /*******************************************************************************
 
   This structure is used for dump memory allocation if cacao
-  runswithout threads.
+  runs without threads.
 
 *******************************************************************************/
 
@@ -114,7 +114,7 @@ bool memory_init(void)
 # if defined(NATIVE_THREADS)
 	initObjectLock(codememlock);
 # endif
-#endif
+#endif /* defined(USE_THREADS) */
 
 	/* everything's ok */
 
@@ -125,6 +125,9 @@ bool memory_init(void)
 /* memory_checked_alloc ********************************************************
 
    Allocated zeroed-out memory and does an OOM check.
+
+   ERROR HANDLING:
+      XXX If no memory could be allocated, this function justs *exists*.
 
 *******************************************************************************/
 
@@ -283,17 +286,43 @@ void mem_free(void *m, s4 size)
 
 /* dump_alloc ******************************************************************
 
-   XXX
+   Allocate memory in the dump area.
+
+   IN:
+      size.........size of block to allocate, in bytes
+	  			   may be zero, in which case NULL is returned
+
+   RETURN VALUE:
+      pointer to allocated memory, or
+	  NULL iff `size` was zero
+
+   ERROR HANDLING:
+      XXX This function uses `memory_checked_alloc`, which *exits* if no 
+	  memory could be allocated.
+
+   THREADS:
+      dump_alloc is thread safe. Each thread has its own dump memory area.
+
+   dump_alloc is a fast allocator suitable for scratch memory that can be
+   collectively freed when the current activity (eg. compiling) is done.
+
+   You cannot selectively free dump memory. Before you start allocating it, 
+   you remember the current size returned by `dump_size`. Later, when you no 
+   longer need the memory, call `dump_release` with the remembered size and
+   all dump memory allocated since the call to `dump_size` will be freed.
 
 *******************************************************************************/
 
 void *dump_alloc(s4 size)
 {
 #if defined(DISABLE_DUMP)
+
 	/* use malloc memory for dump memory (for debugging only!) */
 
 	return mem_alloc(size);
-#else
+
+#else /* !defined(DISABLE_DUMP) */
+
 	void     *m;
 	dumpinfo *di;
 
@@ -365,15 +394,16 @@ void *dump_alloc(s4 size)
 		if (di->useddumpsize > maxdumpsize)
 			maxdumpsize = di->useddumpsize;
 #endif
-		
+
 	return m;
+
 #endif /* defined(DISABLE_DUMP) */
 }
 
 
 /* dump_realloc ****************************************************************
 
-   XXX
+   Stupid realloc implementation for dump memory. Avoid, if possible.
 
 *******************************************************************************/
 
@@ -395,17 +425,31 @@ void *dump_realloc(void *src, s4 len1, s4 len2)
 
 /* dump_release ****************************************************************
 
-   XXX
+   Release dump memory above the given size.
+
+   IN:
+       size........All dump memory above this mark will be freed. Usually
+	               `size` will be the return value of a `dump_size` call
+				   made earlier.
+
+	ERROR HANDLING:
+	   XXX If the given size is invalid, this function *exits* with an
+	       error message.
+				   
+	See `dump_alloc`.
 
 *******************************************************************************/
 
 void dump_release(s4 size)
 {
 #if defined(DISABLE_DUMP)
+
 	/* use malloc memory for dump memory (for debugging only!) */
 
 	/* do nothing */
-#else
+
+#else /* !defined(DISABLE_DUMP) */
+
 	dumpinfo *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
@@ -450,13 +494,14 @@ void dump_release(s4 size)
 		free(tmp->dumpmem);
 		free(tmp);
 	}
+
 #endif /* defined(DISABLE_DUMP) */
 }
 
 
 /* dump_size *******************************************************************
 
-   XXX
+   Return the current size of the dump memory area. See `dump_alloc`.
 
 *******************************************************************************/
 
@@ -466,7 +511,9 @@ s4 dump_size(void)
 	/* use malloc memory for dump memory (for debugging only!) */
 
 	return 0;
-#else
+
+#else /* !defined(DISABLE_DUMP) */
+
 	dumpinfo *di;
 
 	/* If no threads are used, the dumpinfo structure is a static structure   */
@@ -478,6 +525,7 @@ s4 dump_size(void)
 		return 0;
 
 	return di->useddumpsize;
+
 #endif /* defined(DISABLE_DUMP) */
 }
 
