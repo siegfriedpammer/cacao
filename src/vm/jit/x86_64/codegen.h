@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4789 2006-04-18 20:34:52Z twisti $
+   $Id: codegen.h 4795 2006-04-20 10:55:11Z twisti $
 
 */
 
@@ -406,9 +406,12 @@ typedef enum {
 #define M_ISUB_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_SUB, (a), (b), (c))
 #define M_ISBB_MEMBASE(a,b,c)   x86_64_alul_reg_membase(cd, X86_64_SBB, (a), (b), (c))
 
-#define M_ALD(a,b,c)            M_LLD(a,b,c)
+#define M_ALD(a,b,disp)         M_LLD(a,b,disp)
+#define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
+
 #define M_AST(a,b,c)            M_LST(a,b,c)
 #define M_AST_IMM32(a,b,c)      M_LST_IMM32(a,b,c)
+
 #define M_AADD(a,b)             M_LADD(a,b)
 #define M_AADD_IMM(a,b)         M_LADD_IMM(a,b)
 #define M_ASUB_IMM(a,b)         M_LSUB_IMM(a,b)
