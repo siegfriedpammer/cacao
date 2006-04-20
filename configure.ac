@@ -526,12 +526,12 @@ fi
 dnl check for loop optimization
 AC_MSG_CHECKING(whether loop optimization should be supported)
 AC_ARG_ENABLE([loop],
-              [AS_HELP_STRING(--disable-loop,disable loop optimization [[default=yes]])],
+              [AS_HELP_STRING(--enable-loop,enable loop optimization [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_LOOP=no;;
-                   *) ENABLE_LOOP=yes;;
+                   yes) ENABLE_LOOP=yes;;
+                   *) ENABLE_LOOP=no;;
                esac],
-              [ENABLE_LOOP=yes])
+              [ENABLE_LOOP=no])
 AC_MSG_RESULT(${ENABLE_LOOP})
 AM_CONDITIONAL([ENABLE_LOOP], test x"${ENABLE_LOOP}" = "xyes")
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4550 2006-03-01 17:00:33Z twisti $
+   $Id: options.h 4796 2006-04-20 18:04:18Z edwin $
 
 */
 
@@ -114,7 +114,9 @@ extern bool checkbounds;
 extern bool checknull;
 extern bool opt_noieee;
 extern bool checksync;
+#if defined(ENABLE_LOOP)
 extern bool opt_loops;
+#endif
 
 extern bool makeinitializations;
 

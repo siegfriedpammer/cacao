@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: options.c 4796 2006-04-20 18:04:18Z edwin $
 
 */
 
@@ -103,7 +103,9 @@ bool checkbounds = true;       /* check array bounds                         */
 bool checknull = true;         /* check null pointers                        */
 bool opt_noieee = false;       /* don't implement ieee compliant floats      */
 bool checksync = true;         /* do synchronization                         */
+#if defined(ENABLE_LOOP)
 bool opt_loops = false;        /* optimize array accesses in loops           */
+#endif
 
 bool makeinitializations = true;
 

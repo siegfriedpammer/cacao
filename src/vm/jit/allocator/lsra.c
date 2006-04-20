@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 4710 2006-03-30 10:23:11Z twisti $
+   $Id: lsra.c 4796 2006-04-20 18:04:18Z edwin $
 
 */
 
@@ -833,12 +833,14 @@ void lsra_setup(methodinfo *m, codegendata *cd, registerdata *rd, lsradata *ls)
 	s4  t;
 	methoddesc *md = m->parseddesc;
 
+#if defined(ENABLE_LOOP)
 	/* Loop optimization "destroys" the basicblock array */
 	/* TODO: work with the basicblock list               */
 	if (opt_loops) {
 		log_text("lsra not possible with loop optimization\n");
 		assert(0);
 	}
+#endif /* defined(ENABLE_LOOP) */
 
 	/* Setup LSRA Data structures */
 

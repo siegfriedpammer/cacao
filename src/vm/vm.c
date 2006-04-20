@@ -164,8 +164,6 @@ enum {
 	OPT_SIGNATURE,
 	OPT_SHOW,
 	OPT_ALL,
-	OPT_OLOOP,
-	OPT_INLINING,
 
 	OPT_VERBOSETC,
 	OPT_NOVERIFY,
@@ -174,12 +172,20 @@ enum {
 
 	/* optimization options */
 
+#if defined(ENABLE_LOOP)
+	OPT_OLOOP,
+#endif
+	
 #if defined(ENABLE_IFCONV)
 	OPT_IFCONV,
 #endif
 
 #if defined(ENABLE_LSRA)
 	OPT_LSRA,
+#endif
+
+#if defined(ENABLE_INLINING)
+	OPT_INLINING,
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -250,7 +256,9 @@ opt_struct opts[] = {
 	{ "eager",             false, OPT_EAGER },
 	{ "sig",               true,  OPT_SIGNATURE },
 	{ "all",               false, OPT_ALL },
+#if defined(ENABLE_LOOP)
 	{ "oloop",             false, OPT_OLOOP },
+#endif
 #if defined(ENABLE_IFCONV)
 	{ "ifconv",            false, OPT_IFCONV },
 #endif
@@ -297,7 +305,9 @@ opt_struct opts[] = {
 
 	/* keep these at the end of the list */
 
+#if defined(ENABLE_INLINING)
 	{ "i",                 true,  OPT_INLINING },
+#endif
 	{ "m",                 true,  OPT_METHOD },
 	{ "s",                 true,  OPT_SHOW },
 
@@ -359,7 +369,9 @@ void usage(void)
 	puts("    -log logfile             specify a name for the logfile");
 	puts("    -c(heck)b(ounds)         don't check array bounds");
 	puts("            s(ync)           don't check for synchronization");
-	puts("    -oloop                   optimize array accesses in loops"); 
+#if defined(ENABLE_LOOP)
+	puts("    -oloop                   optimize array accesses in loops");
+#endif
 	puts("    -l                       don't start the class after loading");
 	puts("    -eager                   perform eager class loading and linking");
 	puts("    -all                     compile all methods, no execution");
@@ -373,11 +385,13 @@ void usage(void)
 	puts("           m(ethods)         show class fields and methods");
 	puts("           n(ative)          show disassembled native stubs");
 	puts("           u(tf)             show the utf - hash");
+#if defined(ENABLE_INLINING)
 	puts("    -i     n(line)           activate inlining");
 	puts("           v(irtual)         inline virtual methods (uses/turns rt option on)");
 	puts("           e(exception)      inline methods with exceptions");
 	puts("           p(aramopt)        optimize argument renaming");
 	puts("           o(utsiders)       inline methods of foreign classes");
+#endif /* defined(ENABLE_INLINING) */
 #if defined(ENABLE_IFCONV)
 	puts("    -ifconv                  use if-conversion");
 #endif
@@ -879,10 +893,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			}
 			break;
 			
+#if defined(ENABLE_LOOP)
 		case OPT_OLOOP:
 			opt_loops = true;
 			break;
+#endif
 
+#if defined(ENABLE_INLINING)
 		case OPT_INLINING:
 			for (j = 0; j < strlen(opt_arg); j++) {		
 				switch (opt_arg[j]) {
@@ -908,6 +925,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				}
 			}
 			break;
+#endif /* defined(ENABLE_INLINING) */
 
 #if defined(ENABLE_IFCONV)
 		case OPT_IFCONV:
