@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 4519 2006-02-14 15:53:36Z edwin $
+   $Id: classcache.h 4799 2006-04-20 20:38:07Z edwin $
 
 */
 
@@ -36,10 +36,10 @@
 #ifndef _CLASSCACHE_H
 #define _CLASSCACHE_H
 
-#include <stdio.h>  /* for FILE */
-
 #include "config.h"
 #include "vm/types.h"
+
+#include <stdio.h>  /* for FILE */
 
 #include "vm/hashtable.h"
 #include "vm/references.h"
@@ -133,7 +133,11 @@ bool classcache_store_unique(classinfo *cls);
 classinfo * classcache_store(classloader *initloader,classinfo *cls,bool mayfree);
 classinfo * classcache_store_defined(classinfo *cls);
 
+#if defined(ENABLE_VERIFIER)
 bool classcache_add_constraint(classloader *a,classloader *b,utf *classname);
+bool classcache_add_constraints_for_params(classloader *a,classloader *b,
+										   methodinfo *m);
+#endif
 
 #ifndef NDEBUG
 void classcache_debug_dump(FILE *file,utf *only);

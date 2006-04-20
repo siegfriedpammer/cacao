@@ -28,16 +28,15 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: classcache.c 4799 2006-04-20 20:38:07Z edwin $
 
 */
 
 
 #include "config.h"
+#include "vm/types.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
 
 #include "mm/memory.h"
 #include "vm/classcache.h"
@@ -1167,6 +1166,7 @@ void classcache_free(void)
    
 *******************************************************************************/
 
+#if defined(ENABLE_VERIFIER)
 bool classcache_add_constraint(classloader * a,
 							   classloader * b,
 							   utf * classname)
@@ -1262,6 +1262,62 @@ bool classcache_add_constraint(classloader * a,
 	CLASSCACHE_UNLOCK();
 	return false;				/* exception */
 }
+#endif /* defined(ENABLE_VERIFIER) */
+
+/* classcache_add_constraints_for_params ***************************************
+ 
+   Add loading constraints for the parameters of the given method.
+  
+   IN:
+       a................first initiating loader
+       b................second initiating loader
+       m................methodinfo 
+  
+   RETURN VALUE:
+       true.............everything ok, the constraints have been added,
+       false............an exception has been thrown.
+   
+   Note: synchronized with global tablelock
+   
+*******************************************************************************/
+
+#if defined(ENABLE_VERIFIER)
+bool classcache_add_constraints_for_params(classloader * a,
+										   classloader * b,
+										   methodinfo *m)
+{
+	methoddesc *md;
+	typedesc *td;
+	s4 i;
+
+	/* a constraint with a == b is trivially satisfied */
+
+	if (a == b) {
+		return true;
+	}
+
+	/* get the parsed descriptor */
+
+	assert(m);
+	md = m->parseddesc;
+	assert(md);
+
+	/* constrain each reference type */
+
+	td = md->paramtypes;
+	i = md->paramcount;
+	for (; i--; td++) {
+		if (td->type != TYPE_ADR)
+			continue;
+
+		if (!classcache_add_constraint(a, b, td->classref->name))
+			return false; /* exception */
+	}
+
+	/* everything ok */
+	return true;
+}
+#endif /* defined(ENABLE_VERIFIER) */
 
 /*============================================================================*/
 /* DEBUG DUMPS                                                                */
