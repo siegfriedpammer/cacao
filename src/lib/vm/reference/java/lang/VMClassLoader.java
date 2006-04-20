@@ -1,6 +1,6 @@
 /* VMClassLoader.java -- Reference implementation of native interface
    required by ClassLoader
-   Copyright (C) 1998, 2001, 2002, 2004, 2005 Free Software Foundation
+   Copyright (C) 1998, 2001, 2002, 2004, 2005, 2006 Free Software Foundation
 
 This file is part of GNU Classpath.
 
@@ -39,19 +39,23 @@ exception statement from your version. */
 
 package java.lang;
 
-import gnu.classpath.SystemProperties;
 import gnu.classpath.Configuration;
+import gnu.classpath.SystemProperties;
+import gnu.java.lang.InstrumentationImpl;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-//  import java.lang.InstrumentationImpl;
-//  import java.lang.instrument.Instrumentation;
+import java.io.InputStreamReader;
+import java.lang.instrument.Instrumentation;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.ProtectionDomain;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.zip.ZipFile;
@@ -172,67 +176,67 @@ final class VMClassLoader
    *
    * @param name the resource to find
    * @return an enumeration of resources
-   * @throws IOException if one occurs
    */
   static Enumeration getResources(String name)
   {
-//      StringTokenizer st = new StringTokenizer(
-//        SystemProperties.getProperty("java.boot.class.path", "."),
-//        File.pathSeparator);
-//      Vector v = new Vector();
-//      while (st.hasMoreTokens())
-//        {
-//  	File file = new File(st.nextToken());
-//  	if (file.isDirectory())
-//  	  {
-//  	    try
-//  	      {
-//                  File f = new File(file, name);
-//                  if (!f.exists()) continue;
-//                  v.add(new URL("file://" + f.getAbsolutePath()));
-//  	      }
-//  	    catch (MalformedURLException e)
-//  	      {
-//  		throw new Error(e);
-//  	      }
-//  	  }
-//  	else if (file.isFile())
-//  	  {
-//  	    ZipFile zip;
-//              synchronized(bootjars)
-//                {
-//                  zip = (ZipFile) bootjars.get(file.getName());
-//                }
-//              if(zip == null)
-//                {
-//                  try
-//  	          {
-//                      zip = new ZipFile(file);
-//                      synchronized(bootjars)
-//                        {
-//                          bootjars.put(file.getName(), zip);
-//                        }
-//  	          }
-//  	        catch (IOException e)
-//  	          {
-//  		    continue;
-//  	          }
-//                }
-//  	    String zname = name.startsWith("/") ? name.substring(1) : name;
-//  	    if (zip.getEntry(zname) == null)
-//  	      continue;
-//  	    try
-//  	      {
-//  		v.add(new URL("jar:file://"
-//  		  + file.getAbsolutePath() + "!/" + zname));
-//  	      }
-//  	    catch (MalformedURLException e)
-//  	      {
-//  		throw new Error(e);
-//  	      }
-//  	  }
-//        }
-//      return v.elements();
+//     StringTokenizer st = new StringTokenizer(
+//       SystemProperties.getProperty("java.boot.class.path", "."),
+//       File.pathSeparator);
+//     Vector v = new Vector();
+//     while (st.hasMoreTokens())
+//       {
+// 	File file = new File(st.nextToken());
+// 	if (file.isDirectory())
+// 	  {
+// 	    try
+// 	      {
+//                 File f = new File(file, name);
+//                 if (!f.exists()) continue;
+//                 v.add(new URL("file://" + f.getAbsolutePath()));
+// 	      }
+// 	    catch (MalformedURLException e)
+// 	      {
+// 		throw new Error(e);
+// 	      }
+// 	  }
+// 	else if (file.isFile())
+// 	  {
+// 	    ZipFile zip;
+//             synchronized(bootjars)
+//               {
+//                 zip = (ZipFile) bootjars.get(file.getName());
+//               }
+//             if(zip == null)
+//               {
+//                 try
+// 	          {
+//                     zip = new ZipFile(file);
+//                     synchronized(bootjars)
+//                       {
+//                         bootjars.put(file.getName(), zip);
+//                       }
+// 	          }
+// 	        catch (IOException e)
+// 	          {
+// 		    continue;
+// 	          }
+//               }
+// 	    String zname = name.startsWith("/") ? name.substring(1) : name;
+// 	    if (zip.getEntry(zname) == null)
+// 	      continue;
+// 	    try
+// 	      {
+// 		v.add(new URL("jar:file://"
+// 		  + file.getAbsolutePath() + "!/" + zname));
+// 	      }
+// 	    catch (MalformedURLException e)
+// 	      {
+// 		throw new Error(e);
+// 	      }
+// 	  }
+//       }
+//     return v.elements();
+//   }
     Vector urls = nativeGetResources(name);
     Vector v = new Vector();
     for (Enumeration en = urls.elements(); en.hasMoreElements();)
@@ -249,17 +253,51 @@ final class VMClassLoader
     return v.elements();
   }
 
-    private native static final Vector nativeGetResources(String name);
+  private native static final Vector nativeGetResources(String name);
 
 
   /**
    * Returns a String[] of native package names. The default
-   * implementation returns an empty array, or you may decide
-   * this needs native help.
+   * implementation tries to load a list of package from
+   * the META-INF/INDEX.LIST file in the boot jar file.
+   * If not found or if any exception is raised, it returns
+   * an empty array. You may decide this needs native help.
    */
   private static String[] getBootPackages()
   {
-    return new String[0];
+    URL indexList = getResource("META-INF/INDEX.LIST");
+    if (indexList != null)
+      {
+        try
+          {
+            Set packageSet = new HashSet();
+            String line;
+            int lineToSkip = 3;
+            BufferedReader reader = new BufferedReader(
+                                                       new InputStreamReader(
+                                                                             indexList.openStream()));
+            while ((line = reader.readLine()) != null)
+              {
+                if (lineToSkip == 0)
+                  {
+                    if (line.length() == 0)
+                      lineToSkip = 1;
+                    else
+                      packageSet.add(line.replace('/', '.'));
+                  }
+                else
+                  lineToSkip--;
+              }
+            reader.close();
+            return (String[]) packageSet.toArray(new String[packageSet.size()]);
+          }
+        catch (IOException e)
+          {
+            return new String[0];
+          }
+      }
+    else
+      return new String[0];
   }
 
 
@@ -368,7 +406,7 @@ final class VMClassLoader
   /**
    * The Instrumentation object created by the vm when agents are defined.
    */
-//    static final Instrumentation instrumenter = null;
+  static final Instrumentation instrumenter = null;
 
   /**
    * Call the transformers of the possible Instrumentation object. This
@@ -389,20 +427,20 @@ final class VMClassLoader
       String name, byte[] data, int offset, int len, ProtectionDomain pd)
   {
     
-//      if (instrumenter != null)
-//        {
-//          byte[] modifiedData = new byte[len];
-//          System.arraycopy(data, offset, modifiedData, 0, len);
-//          modifiedData =
-//            ((InstrumentationImpl)instrumenter).callTransformers(loader, name,
-//              null, pd, modifiedData);
+    if (instrumenter != null)
+      {
+        byte[] modifiedData = new byte[len];
+        System.arraycopy(data, offset, modifiedData, 0, len);
+        modifiedData =
+          ((InstrumentationImpl)instrumenter).callTransformers(loader, name,
+            null, pd, modifiedData);
         
-//          return defineClass(loader, name, modifiedData, 0, modifiedData.length,
-//              pd);
-//        }
-//      else
-//        {
+        return defineClass(loader, name, modifiedData, 0, modifiedData.length,
+            pd);
+      }
+    else
+      {
         return defineClass(loader, name, data, offset, len, pd);
-//        }
+      }
   }
 }
