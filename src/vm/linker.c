@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4799 2006-04-20 20:38:07Z edwin $
+   $Id: linker.c 4800 2006-04-20 20:40:59Z edwin $
 
 */
 
@@ -624,9 +624,11 @@ static classinfo *link_class_intern(classinfo *c)
 
 						/* method m overwrites method j of class tc */
 
+#if defined(ENABLE_VERIFIER)
 						if (!classcache_add_constraints_for_params(
 									c->classloader, tc->classloader, m))
 							return NULL;
+#endif
 
 						m->vftblindex = tc->methods[j].vftblindex;
 						goto foundvftblindex;
