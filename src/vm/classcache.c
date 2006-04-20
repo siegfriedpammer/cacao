@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4799 2006-04-20 20:38:07Z edwin $
+   $Id: classcache.c 4802 2006-04-20 22:28:57Z edwin $
 
 */
 
@@ -1266,7 +1266,8 @@ bool classcache_add_constraint(classloader * a,
 
 /* classcache_add_constraints_for_params ***************************************
  
-   Add loading constraints for the parameters of the given method.
+   Add loading constraints for the parameters and return type of 
+   the given method.
   
    IN:
        a................first initiating loader
@@ -1302,7 +1303,14 @@ bool classcache_add_constraints_for_params(classloader * a,
 	md = m->parseddesc;
 	assert(md);
 
-	/* constrain each reference type */
+	/* constrain the return type */
+
+	if (md->returntype.type == TYPE_ADR) {
+		if (!classcache_add_constraint(a, b, md->returntype.classref->name))
+			return false; /* exception */
+	}
+
+	/* constrain each reference type used in the parameters */
 
 	td = md->paramtypes;
 	i = md->paramcount;
