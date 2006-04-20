@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 4788 2006-04-18 20:20:13Z twisti $
+   $Id: md-abi.h 4794 2006-04-20 10:42:01Z twisti $
 
 */
 
@@ -85,10 +85,13 @@
 #define REG_ITMP2       R10      /* temporary register and method pointer     */
 #define REG_ITMP3       R11      /* temporary register                        */
 
+#define REG_METHODPTR   REG_ITMP2/* pointer to the place from where the       */
+                                 /* procedure vector has been fetched         */
+
 #define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
-#define REG_ITMP1_XPTR  RAX      /* exception pointer = temporary register 1  */
-#define REG_ITMP2_XPC   R10      /* exception pc = temporary register 2       */
+#define REG_ITMP1_XPTR  REG_ITMP1/* exception pointer = temporary register 1  */
+#define REG_ITMP2_XPC   REG_ITMP2/* exception pc = temporary register 2       */
 
 #define REG_SP          RSP      /* stack pointer                             */
 
