@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4800 2006-04-20 20:40:59Z edwin $
+   $Id: linker.c 4801 2006-04-20 21:47:41Z edwin $
 
 */
 
@@ -98,7 +98,7 @@ static classinfo *link_class_intern(classinfo *c);
 static arraydescriptor *link_array(classinfo *c);
 static void linker_compute_class_values(classinfo *c);
 static void linker_compute_subclasses(classinfo *c);
-static void linker_addinterface(classinfo *c, classinfo *ic);
+static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
 
 
@@ -820,7 +820,7 @@ static classinfo *link_class_intern(classinfo *c)
 	RT_TIMING_GET_TIME(time_offsets);
 
 	/* initialize interfacetable and interfacevftbllength */
-	
+
 	v->interfacevftbllength = MNEW(s4, interfacetablelength);
 
 #if defined(ENABLE_STATISTICS)
@@ -832,13 +832,14 @@ static classinfo *link_class_intern(classinfo *c)
 		v->interfacevftbllength[i] = 0;
 		v->interfacetable[-i] = NULL;
 	}
-	
+
 	/* add interfaces */
-	
+
 	for (tc = c; tc != NULL; tc = tc->super.cls)
 		for (i = 0; i < tc->interfacescount; i++)
-			linker_addinterface(c, tc->interfaces[i].cls);
-	
+			if (!linker_addinterface(c, tc->interfaces[i].cls))
+				return NULL;
+
 	RT_TIMING_GET_TIME(time_fill_iftbl);
 
 	/* add finalizer method (not for java.lang.Object) */
@@ -1123,9 +1124,13 @@ static void linker_compute_class_values(classinfo *c)
    Is needed by link_class for adding a VTBL to a class. All
    interfaces implemented by ic are added as well.
 
+   RETURN VALUE:
+      true.........everything ok
+	  false........an exception has been thrown
+
 *******************************************************************************/
 
-static void linker_addinterface(classinfo *c, classinfo *ic)
+static bool linker_addinterface(classinfo *c, classinfo *ic)
 {
 	s4     j, m;
 	s4     i   = ic->index;
@@ -1136,15 +1141,18 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 		assert(0);
 	}
 
+	/* if this interface has already been added, return immediately */
+
 	if (v->interfacetable[-i])
-		return;
+		return true;
 
 	if (ic->methodscount == 0) {  /* fake entry needed for subtype test */
 		v->interfacevftbllength[i] = 1;
 		v->interfacetable[-i] = MNEW(methodptr, 1);
 		v->interfacetable[-i][0] = NULL;
 
-	} else {
+	}
+	else {
 		v->interfacevftbllength[i] = ic->methodscount;
 		v->interfacetable[-i] = MNEW(methodptr, ic->methodscount);
 
@@ -1162,6 +1170,12 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 					methodinfo *mi = &(sc->methods[m]);
 
 					if (method_canoverwrite(mi, &(ic->methods[j]))) {
+						/* method mi overwrites the (abstract) interface method */
+#if defined(ENABLE_VERIFIER)
+						if (!classcache_add_constraints_for_params(
+									ic->classloader, c->classloader, mi))
+							return false;
+#endif
 						v->interfacetable[-i][j] = v->table[mi->vftblindex];
 						goto foundmethod;
 					}
@@ -1173,8 +1187,14 @@ static void linker_addinterface(classinfo *c, classinfo *ic)
 		}
 	}
 
-	for (j = 0; j < ic->interfacescount; j++) 
-		linker_addinterface(c, ic->interfaces[j].cls);
+	/* add superinterfaces of this interface */
+
+	for (j = 0; j < ic->interfacescount; j++)
+		if (!linker_addinterface(c, ic->interfaces[j].cls))
+			return false;
+
+	/* everything ok */
+	return true;
 }
 
 
