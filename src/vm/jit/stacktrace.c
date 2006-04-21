@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4807 2006-04-21 13:08:00Z edwin $
+   $Id: stacktrace.c 4808 2006-04-21 14:32:03Z edwin $
 
 */
 
@@ -493,6 +493,7 @@ java_objectheader *stacktrace_inline_fillInStackTrace(u1 *pv, u1 *sp, u1 *ra,
 	/* get exception */
 
 	o = *exceptionptr;
+	assert(o);
 
 	/* clear exception */
 
@@ -775,6 +776,10 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
    Generates a stacktrace from the thread passed into a
    stacktracebuffer.  The stacktracebuffer is allocated on the GC
    heap.
+
+   RETURN VALUE:
+      pointer to the stacktracebuffer, or
+	  NULL if an exception has been thrown
 
 *******************************************************************************/
 
@@ -1102,6 +1107,8 @@ java_objectarray *stacktrace_getClassContext(void)
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
+	if (!stb)
+		return NULL;
 
 	/* calculate the size of the Class array */
 
@@ -1126,7 +1133,6 @@ java_objectarray *stacktrace_getClassContext(void)
 	/* allocate the Class array */
 
 	oa = builtin_anewarray(oalength, class_java_lang_Class);
-
 	if (!oa)
 		return NULL;
 
@@ -1172,6 +1178,8 @@ classinfo *stacktrace_getCurrentClass(void)
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
+	if (!stb)
+		return NULL; /* XXX exception: how to distinguish from normal NULL return? */
 
 	/* iterate over all stacktrace entries and find the first suitable
 	   class */
@@ -1199,6 +1207,10 @@ classinfo *stacktrace_getCurrentClass(void)
 
    Create a 2-dimensional array for java.security.VMAccessControler.
 
+   RETURN VALUE:
+      the arrary, or
+	  NULL if an exception has been thrown
+
 *******************************************************************************/
 
 java_objectarray *stacktrace_getStack(void)
@@ -1215,6 +1227,8 @@ java_objectarray *stacktrace_getStack(void)
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
+	if (!stb)
+		return NULL;
 
 	/* get the first stacktrace entry */
 
