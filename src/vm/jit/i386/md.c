@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
+   $Id: md.c 4806 2006-04-21 11:07:43Z twisti $
 
 */
 
@@ -79,6 +79,77 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
+/* md_get_method_patch_address *************************************************
+
+   Gets the patch address of the currently compiled method. The offset
+   is extracted from the load instruction(s) before the jump and added
+   to the right base address (PV or REG_METHODPTR).
+
+   INVOKESTATIC/SPECIAL:
+
+   b9 30 00 49 b7             mov    $0xb7490030,%ecx
+   ff d1                      call   *%ecx
+
+   INVOKEVIRTUAL:
+
+   8b 08                      mov    (%eax),%ecx
+   8b 81 00 00 00 00          mov    0x0(%ecx),%eax
+   ff d0                      call   *%eax
+
+   INVOKEINTERFACE:
+
+   8b 00                      mov    (%eax),%eax
+   8b 88 00 00 00 00          mov    0x0(%eax),%ecx
+   8b 81 00 00 00 00          mov    0x0(%ecx),%eax
+   ff d0                      call   *%eax
+
+*******************************************************************************/
+
+u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+{
+	u1  mcode;
+	s4  offset;
+	u1 *pa;                             /* patch address                      */
+
+	/* go back to the actual call instruction (2-bytes) */
+
+	ra = ra - 2;
+
+	/* get the last byte of the call */
+
+	mcode = ra[1];
+
+	/* check for the different calls */
+
+	/* INVOKESTATIC/SPECIAL */
+
+	if (mcode == 0xd1) {
+		/* patch address is 8-bytes before the call instruction */
+
+		pa = ra - 4;
+
+	} else if (mcode == 0xd0) {
+		/* INVOKEVIRTUAL/INTERFACE */
+
+		/* Get the offset from the instruction (the offset address is
+		   4-bytes before the call instruction). */
+
+		offset = *((s4 *) (ra - 4));
+
+		/* add the offset to the method pointer */
+
+		pa = mptr + offset;
+
+	} else {
+		/* catch any problems */
+
+		assert(0);
+	}
+
+	return pa;
+}
+
+
 /* md_codegen_findmethod *******************************************************
 
    On this architecture just a wrapper function to codegen_findmethod.
@@ -106,6 +177,30 @@ u1 *md_codegen_findmethod(u1 *ra)
 *******************************************************************************/
 
 void md_cacheflush(u1 *addr, s4 nbytes)
+{
+	/* do nothing */
+}
+
+
+/* md_icacheflush **************************************************************
+
+   Calls the system's function to flush the instruction cache.
+
+*******************************************************************************/
+
+void md_icacheflush(u1 *addr, s4 nbytes)
+{
+	/* do nothing */
+}
+
+
+/* md_dcacheflush **************************************************************
+
+   Calls the system's function to flush the data cache.
+
+*******************************************************************************/
+
+void md_dcacheflush(u1 *addr, s4 nbytes)
 {
 	/* do nothing */
 }
