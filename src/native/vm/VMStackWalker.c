@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes: 
+   Changes: Edwin Steiner
 
-   $Id: VMStackWalker.c 4430 2006-02-04 19:04:31Z twisti $
+   $Id: VMStackWalker.c 4807 2006-04-21 13:08:00Z edwin $
 
 */
 
@@ -67,11 +67,12 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
 	if (opt_intrp) {
 		return stacktrace_getClassContext();
 
-	} else
+	} 
+	else
 # endif
-		{
-			return builtin_anewarray(0, class_java_lang_Class);
-		}
+	{
+		return builtin_anewarray(0, class_java_lang_Class);
+	}
 #endif
 }
 
@@ -89,6 +90,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
 	java_objectarray *oa;
 
 	oa = stacktrace_getClassContext();
+	if (!oa)
+		return NULL;
 
 	if (oa->header.size < 2)
 		return NULL;
@@ -103,17 +106,20 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
 		java_objectarray *oa;
 
 		oa = stacktrace_getClassContext();
+		if (!oa)
+			return NULL;
 
 		if (oa->header.size < 2)
 			return NULL;
 
 		return (java_lang_Class *) oa->data[1];
 
-	} else
+	} 
+	else
 # endif
-		{
-			return NULL;
-		}
+	{
+		return NULL;
+	}
 #endif
 }
 
@@ -133,6 +139,8 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 	/* these JITs support stacktraces, and so does the interpreter */
 
 	oa = stacktrace_getClassContext();
+	if (!oa)
+		return NULL;
 
 	if (oa->header.size < 2)
 		return NULL;
@@ -146,6 +154,8 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 
 	if (opt_intrp) {
 		oa = stacktrace_getClassContext();
+		if (!oa)
+			return NULL;
 
 		if (oa->header.size < 2)
 			return NULL;
@@ -154,11 +164,12 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 
 		cl = c->classloader;
 
-	} else
+	} 
+	else
 # endif
-		{
-			cl = NULL;
-		}
+	{
+		cl = NULL;
+	}
 #endif
 
 	return (java_lang_ClassLoader *) cl;
@@ -176,4 +187,5 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

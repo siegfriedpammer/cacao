@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4804 2006-04-21 10:45:14Z twisti $
+   $Id: stacktrace.c 4807 2006-04-21 13:08:00Z edwin $
 
 */
 
@@ -1084,6 +1084,10 @@ stacktracebuffer *stacktrace_fillInStackTrace(void)
 /* stacktrace_getClassContext **************************************************
 
    Creates a Class context array.
+
+   RETURN VALUE:
+      the array of java.lang.Class objects, or
+	  NULL if an exception has been thrown
 
 *******************************************************************************/
 

@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Method.c 4691 2006-03-28 09:41:33Z twisti $
+   $Id: Method.c 4807 2006-04-21 13:08:00Z edwin $
 
 */
 
@@ -145,6 +145,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 			/* get the calling class */
 
 			oa = stacktrace_getClassContext();
+			if (!oa)
+				return NULL;
 
 			/* this function is always called like this:
 

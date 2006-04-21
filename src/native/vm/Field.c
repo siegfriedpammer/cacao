@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: Field.c 4691 2006-03-28 09:41:33Z twisti $
+   $Id: Field.c 4807 2006-04-21 13:08:00Z edwin $
 
 */
 
@@ -70,7 +70,15 @@
 
 /* cacao_get_field_address *****************************************************
 
-   XXX
+   Return the address of a field of an object.
+
+   IN:
+      this.........the field (a java.lang.reflect.Field object)
+	  o............the object of which to get the field
+
+   RETURN VALUE:
+      a pointer to the field, or
+	  NULL if an exception has been thrown
 
 *******************************************************************************/
 
@@ -94,6 +102,8 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			/* get the calling class */
 
 			oa = stacktrace_getClassContext();
+			if (!oa)
+				return NULL;
 
 			/* this function is always called like this:
 
