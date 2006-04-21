@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4801 2006-04-20 21:47:41Z edwin $
+   $Id: linker.c 4803 2006-04-21 00:00:22Z edwin $
 
 */
 
@@ -625,9 +625,16 @@ static classinfo *link_class_intern(classinfo *c)
 						/* method m overwrites method j of class tc */
 
 #if defined(ENABLE_VERIFIER)
-						if (!classcache_add_constraints_for_params(
-									c->classloader, tc->classloader, m))
+						/* Add loading constraints (for the more general    */
+						/* types of method tc->methods[j]). --              */
+						/* Not for <init>,  as it is not invoked virtually. */
+						if ((m->name != utf_init)
+							&& !classcache_add_constraints_for_params(
+									c->classloader, tc->classloader,
+									&(tc->methods[j])))
+						{
 							return NULL;
+						}
 #endif
 
 						m->vftblindex = tc->methods[j].vftblindex;
@@ -1170,11 +1177,16 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 					methodinfo *mi = &(sc->methods[m]);
 
 					if (method_canoverwrite(mi, &(ic->methods[j]))) {
-						/* method mi overwrites the (abstract) interface method */
+						/* method mi overwrites the (abstract) method    */
 #if defined(ENABLE_VERIFIER)
+						/* Add loading constraints (for the more general */
+						/* types of the method ic->methods[j]).          */
 						if (!classcache_add_constraints_for_params(
-									ic->classloader, c->classloader, mi))
+									c->classloader, ic->classloader,
+									&(ic->methods[j])))
+						{
 							return false;
+						}
 #endif
 						v->interfacetable[-i][j] = v->table[mi->vftblindex];
 						goto foundmethod;
