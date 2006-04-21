@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4791 2006-04-18 21:16:36Z twisti $
+   $Id: codegen.c 4805 2006-04-21 10:54:24Z twisti $
 
 */
 
@@ -3241,11 +3241,10 @@ gen_method:
 					d = lm->parseddesc->returntype.type;
 				}
 
-				x86_64_mov_membase_reg(cd, rd->argintregs[0],
-									   OFFSET(java_objectheader, vftbl),
-									   REG_ITMP2);
-				x86_64_mov_membase32_reg(cd, REG_ITMP2, s1, REG_ITMP1);
-				M_CALL(REG_ITMP1);
+				M_ALD(REG_METHODPTR, rd->argintregs[0],
+					  OFFSET(java_objectheader, vftbl));
+				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
+				M_CALL(REG_ITMP3);
 				break;
 
 			case ICMD_INVOKEINTERFACE:
@@ -3274,11 +3273,11 @@ gen_method:
 					d = lm->parseddesc->returntype.type;
 				}
 
-				M_ALD(REG_ITMP2, rd->argintregs[0],
+				M_ALD(REG_METHODPTR, rd->argintregs[0],
 					  OFFSET(java_objectheader, vftbl));
-				x86_64_mov_membase32_reg(cd, REG_ITMP2, s1, REG_ITMP2);
-				x86_64_mov_membase32_reg(cd, REG_ITMP2, s2, REG_ITMP1);
-				M_CALL(REG_ITMP1);
+				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
+				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
+				M_CALL(REG_ITMP3);
 				break;
 			}
 

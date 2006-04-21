@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
+   $Id: asmpart.S 4805 2006-04-21 10:54:24Z twisti $
 
 */
 
@@ -202,7 +202,15 @@ L_stack_copy:
 
 L_copy_done:
 	                                    /* itmp1 still contains method pointer*/
-	lea     L_asm_call_jit_compiler(%rip),itmp3
+	lea     L_asm_call_jit_compiler(%rip),mptr
+	mov     sp,itmp3                    /* calculate the old stack pointer    */
+	add     bp,itmp3
+	mov     mptr,6*8(itmp3)
+	lea     (6*8-256)(itmp3),mptr       /* We subtract 256 to force the next  */
+	                                    /* move instruction to have a 32-bit  */
+	                                    /* offset.                            */
+
+	mov     (0*8+256)(mptr),itmp3       /* method call as in Java             */
 	call    *itmp3                      /* call JIT compiler                  */
 
 	add     bp,sp                       /* remove argument stack frame if any */
@@ -316,72 +324,24 @@ handle_fa7:
 
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
-	                                    /* keep stack 16-byte aligned         */
-	sub     $((3+ARG_CNT)*8+sizestackframeinfo),sp
+	sub     $(ARG_CNT+1)*8,sp           /* +1: keep stack 16-byte aligned     */
 
-	mov     t0,0*8(sp)                  /* save register                      */
+	SAVE_ARGUMENT_REGISTERS(0)
 
-	mov     (3+ARG_CNT)*8+sizestackframeinfo(sp),itmp3 /* get return address  */
-	mov     -1(itmp3),%bl               /* get function code                  */
-	cmp     $0xd2,%bl                   /* called with `call *REG_ITMP2'?     */
-	jne     L_not_static_special
-
-	sub     $11,itmp3                   /* calculate address of immediate     */
-	jmp     L_call_jit_compile
-		
-L_not_static_special:
-	cmp     $0xd0,%bl                   /* called with `call *REG_ITMP1'      */
-	jne     L_not_virtual_interface
-		
-	sub     $7,itmp3                    /* calculate address of offset        */
-	mov     (itmp3),itmp3l              /* get offset (32-bit)                */
-	add     itmp2,itmp3                 /* add base address to get method addr*/
-	jmp     L_call_jit_compile
-
-L_not_virtual_interface:                /* a call from asm_calljavamethod     */
-	xor     itmp3,itmp3
-		
-L_call_jit_compile:
-	mov     0*8(sp),t0                  /* restore register                   */
-	mov     itmp3,0*8(sp)               /* save address for method pointer    */
-	mov     itmp1,1*8(sp)               /* save method pointer                */
-
-	SAVE_ARGUMENT_REGISTERS(3)
-
-	mov     sp,a0                       /* create stackframe info             */
-	add     $((3+ARG_CNT)*8),a0         /* pass sfi                           */
-	xor     a1,a1                       /* if pv is NULL, use findmethod      */
+	mov     itmp1,a0                    /* pass methodinfo pointer            */
+	mov     mptr,a1                     /* pass method pointer                */
 	mov     sp,a2                       /* pass java sp                       */
-	add     $((1+3+ARG_CNT)*8+sizestackframeinfo),a2
-	                                    /* pass ra to java function           */
-	mov     ((3+ARG_CNT)*8+sizestackframeinfo)(sp),a3
-	mov     a3,a4                       /* xpc is equal to ra                 */
-	call    stacktrace_create_extern_stackframeinfo@PLT
+	add     $(1+ARG_CNT+1)*8,a2
+	mov     (ARG_CNT+1)*8(sp),a3	    /* pass ra to java function           */
+	call    jit_asm_compile@PLT
 
-	mov     1*8(sp),a0                  /* pass method pointer                */
-	call	jit_compile@PLT
-	mov     v0,1*8(sp)                  /* save return value                  */
+	RESTORE_ARGUMENT_REGISTERS(0)
 
-	mov     sp,a0                       /* remove stackframe info             */
-	add     $((3+ARG_CNT)*8),a0         /* pass sfi                           */
-	call    stacktrace_remove_stackframeinfo@PLT
-
-	mov     0*8(sp),itmp3               /* restore address for method pointer */
-	mov     1*8(sp),v0                  /* restore return value               */
-
-	RESTORE_ARGUMENT_REGISTERS(3)
-
-	add     $((3+ARG_CNT)*8+sizestackframeinfo),sp /* remove stack frame      */
+	add     $(ARG_CNT+1)*8,sp           /* remove stack frame                 */
 
 	test    v0,v0                       /* check for exception                */
 	je      L_asm_call_jit_compiler_exception
 
-	test    itmp3,itmp3                 /* is address == 0 (asm_calljavamethod*/
-	je      L_call_method
-
-	mov     v0,(itmp3)                  /* and now save the new pointer       */
-
-L_call_method:
 	jmp     *v0                         /* ...and now call the new method     */
 
 L_asm_call_jit_compiler_exception:

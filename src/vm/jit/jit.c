@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4768 2006-04-13 16:58:05Z edwin $
+   $Id: jit.c 4805 2006-04-21 10:54:24Z twisti $
 
 */
 
@@ -1720,6 +1720,57 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	return code->entrypoint;
 } 
+
+
+/* jit_asm_compile *************************************************************
+
+   This method is called from asm_vm_call_method and does things like:
+   create stackframe info for exceptions, compile the method, patch
+   the entrypoint of the method into the calculated address in the JIT
+   code, and flushes the instruction cache.
+
+*******************************************************************************/
+
+u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
+{
+	stackframeinfo  sfi;
+	u1             *entrypoint;
+	u1             *pa;
+	ptrint         *p;
+
+	/* create the stackframeinfo (XPC is equal to RA) */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
+
+	/* actually compile the method */
+
+	entrypoint = jit_compile(m);
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* there was a problem during compilation */
+
+	if (entrypoint == NULL)
+		return NULL;
+
+	/* get the method patch address */
+
+	pa = md_get_method_patch_address(ra, &sfi, mptr);
+
+	/* patch the method entry point */
+
+	p = (ptrint *) pa;
+
+	*p = (ptrint) entrypoint;
+
+	/* flush the instruction cache */
+
+	md_icacheflush(pa, SIZEOF_VOID_P);
+
+	return entrypoint;
+}
 
 
 /*

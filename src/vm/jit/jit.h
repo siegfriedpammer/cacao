@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4790 2006-04-18 20:36:40Z twisti $
+   $Id: jit.h 4805 2006-04-21 10:54:24Z twisti $
 
 */
 
@@ -60,6 +60,7 @@ typedef struct insinfo_inline insinfo_inline;
 #include "vm/statistics.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"
@@ -1000,9 +1001,14 @@ void jit_close(void);
 /* compile a method with jit compiler */
 u1 *jit_compile(methodinfo *m);
 
+/* patch the method entrypoint */
+u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
+
 /* machine dependent functions */
 #if defined(ENABLE_JIT)
 void md_init(void);
+
+u1  *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr);
 
 void md_cacheflush(u1 *addr, s4 nbytes);
 void md_icacheflush(u1 *addr, s4 nbytes);
