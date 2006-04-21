@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4615 2006-03-15 16:36:43Z twisti $
+   $Id: stacktrace.c 4804 2006-04-21 10:45:14Z twisti $
 
 */
 
@@ -634,21 +634,26 @@ static bool stacktrace_add_method_intern(stacktracebuffer *stb,
 	for (; lntsize > 0; lntsize--, lntentry--) {
 
 		/* did we reach the current line? */
-		/* Note: In case of inlining this may actually compare the pc against a */
-		/* methodinfo *, yielding a non-sensical result. This is no problem,    */
-		/* however, as we ignore such entries in the switch below. This way we  */
-		/* optimize for the common case (ie. a real pc in lntentry->pc).        */
+
+		/* Note: In case of inlining this may actually compare the pc
+		   against a methodinfo *, yielding a non-sensical
+		   result. This is no problem, however, as we ignore such
+		   entries in the switch below. This way we optimize for the
+		   common case (ie. a real pc in lntentry->pc). */
+
 		if (pc >= lntentry->pc) {
 
-			/* check for special inline entries             */
-			/* (see doc/inlining_stacktrace.txt for details */
+			/* check for special inline entries (see
+			   doc/inlining_stacktrace.txt for details */
+
 			if ((s4)lntentry->line < 0) {
 				switch (lntentry->line) {
 					case -1: 
-						/* begin of inlined method (ie. INLINE_END instruction) */
+						/* begin of inlined method (ie. INLINE_END
+						   instruction) */
 
-						lntinline = --lntentry;  /* get entry with methodinfo * */
-						lntentry--;              /* skip the special entry      */
+						lntinline = --lntentry;/* get entry with methodinfo * */
+						lntentry--;            /* skip the special entry      */
 						lntsize -= 2;
 
 						/* search inside the inlined method */
@@ -664,17 +669,19 @@ static bool stacktrace_add_method_intern(stacktracebuffer *stb,
 							stacktrace_add_entry(stb, m, (-3) - lntinline->line);
 							return true;
 						}
-						/* pc was not in inlined method, continue search.     */
-						/* Entries inside the inlined method will be skipped  */
-						/* because their lntentry->pc is higher than pc.      */
+						/* pc was not in inlined method, continue
+						   search.  Entries inside the inlined method
+						   will be skipped because their lntentry->pc
+						   is higher than pc.  */
 						break;
 
 					case -2: 
 						/* end of inlined method */
 						return false;
 
-					/* default: is only reached for an -3-line entry after a skipped */
-					/* -2 entry. We can safely ignore it and continue searching.     */
+					/* default: is only reached for an -3-line entry
+					   after a skipped -2 entry. We can safely ignore
+					   it and continue searching.  */
 				}
 			}
 			else {
