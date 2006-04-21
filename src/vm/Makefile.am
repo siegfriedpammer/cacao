@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4792 2006-04-19 01:05:18Z edwin $
+## $Id: Makefile.am 4809 2006-04-21 21:36:54Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -51,6 +51,7 @@ endif
 
 if ENABLE_CYCLES_STATS
 CYCLES_STATS_SOURCE = \
+	cycles-stats.c \
 	cycles-stats.h
 endif
 

@@ -40,6 +40,8 @@
 
 #if defined(ENABLE_CYCLES_STATS)
 
+#include <stdio.h>
+
 #define CYCLES_STATS_DECLARE(name,nbins,divisor)                            \
     static const int CYCLES_STATS_##name##_MAX = (nbins);                   \
     static const int CYCLES_STATS_##name##_DIV = (divisor);                 \
@@ -68,23 +70,15 @@
 
 #define CYCLES_STATS_PRINT(name,file)                                       \
     do {                                                                    \
-        s4 local_i;                                                         \
-        fprintf(file,"\t%s: %u calls\n",                                    \
-                #name, cycles_stats_##name##_count);                        \
-        fprintf(file,"\t%s cycles distribution:\n", #name);                 \
-        fprintf(file,"\t\tmin = %llu\n",                                    \
-                (unsigned long long)cycles_stats_##name##_min);             \
-        for (local_i=0; local_i<CYCLES_STATS_##name##_MAX; ++local_i) {     \
-            fprintf(file,"\t\t<  %5d: %u\n",                                \
-                    (local_i+1) * CYCLES_STATS_##name##_DIV,                \
-                    cycles_stats_##name##_bins[local_i]);                   \
-        }                                                                   \
-        fprintf(file,"\t\t>= %5d: %u\n",                                    \
-                CYCLES_STATS_##name##_MAX * CYCLES_STATS_##name##_DIV,      \
-                cycles_stats_##name##_bins[local_i]);                       \
-        fprintf(file,"\t\tmax = %llu\n",                                    \
-                (unsigned long long)cycles_stats_##name##_max);             \
+        cycles_stats_print((file), #name,                                   \
+            CYCLES_STATS_##name##_MAX, CYCLES_STATS_##name##_DIV,           \
+            cycles_stats_##name##_bins, cycles_stats_##name##_count,        \
+            cycles_stats_##name##_min, cycles_stats_##name##_max);          \
     } while (0)
+
+void cycles_stats_print(FILE *file,
+					    const char *name, int nbins, int div,
+					    u4 *bins, u4 count, u8 min, u8 max);
 
 
 #else /* !defined(ENABLE_CYCLES_STATS) */
