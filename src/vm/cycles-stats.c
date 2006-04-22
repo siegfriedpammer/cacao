@@ -56,11 +56,11 @@ static struct cycles_stats_percentile cycles_stats_percentile_defs[] = {
 
 void cycles_stats_print(FILE *file,
 						const char *name, int nbins, int div,
-						u4 *bins, u4 count, u8 min, u8 max)
+						u4 *bins, u8 count, u8 min, u8 max)
 {
         s4 i;
 		struct cycles_stats_percentile *pcd;
-		u4 floor, ceiling;
+		u8 floor, ceiling;
 		u8 p;
 		u8 cumul;
 		double percentile;

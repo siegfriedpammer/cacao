@@ -78,7 +78,7 @@
 
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
-					    u4 *bins, u4 count, u8 min, u8 max);
+					    u4 *bins, u8 count, u8 min, u8 max);
 
 
 #else /* !defined(ENABLE_CYCLES_STATS) */
