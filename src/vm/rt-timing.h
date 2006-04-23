@@ -102,9 +102,10 @@
 #define RT_TIMING_LOAD_CL_JAVA     44
 #define RT_TIMING_LOAD_CL_CACHE    45
 
-#define RT_TIMING_NEW_TOTAL        46
+#define RT_TIMING_NEW_OBJECT       46
+#define RT_TIMING_NEW_ARRAY        47
 
-#define RT_TIMING_N                47
+#define RT_TIMING_N                48
 
 void rt_timing_gettime(struct timespec *ts);
 

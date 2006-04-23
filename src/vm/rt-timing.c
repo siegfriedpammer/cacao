@@ -108,7 +108,8 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_LOAD_CL_CACHE   ,-1                       , "classloader: store in classcache" },
     { -1                        ,-1                       , "" },
 
-	{ RT_TIMING_NEW_TOTAL       ,-1                       , "builtin_new: total time" },
+	{ RT_TIMING_NEW_OBJECT      ,-1                       , "builtin_new time" },
+	{ RT_TIMING_NEW_ARRAY       ,-1                       , "builtin_newarray time" },
     { -1                        ,-1                       , "" },
 
     { 0                         ,-1                       , NULL }

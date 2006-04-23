@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4814 2006-04-23 16:11:41Z edwin $
+   $Id: builtin.c 4815 2006-04-23 19:16:54Z edwin $
 
 */
 
@@ -796,7 +796,7 @@ java_objectheader *builtin_new(classinfo *c)
 	RT_TIMING_GET_TIME(time_end);
 	
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
-	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_TOTAL);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
 
 	return o;
 }
@@ -818,6 +818,11 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 	s4                componentsize;
 	s4                actualsize;
 	java_arrayheader *a;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
 
 	desc          = arrayclass->vftbl->arraydesc;
 	dataoffset    = desc->dataoffset;
@@ -847,6 +852,9 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 #endif
 
 	a->size = size;
+
+	RT_TIMING_GET_TIME(time_end);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_ARRAY);
 
 	return a;
 }
