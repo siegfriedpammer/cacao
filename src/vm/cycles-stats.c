@@ -38,6 +38,8 @@
 #if defined(ENABLE_CYCLES_STATS)
 
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include <assert.h>
 #include "vm/cycles-stats.h"
 
@@ -67,10 +69,12 @@ static double cycles_stats_get_cpu_MHz(void)
 		return cycles_stats_cpu_MHz;
 
 	info = fopen("/proc/cpuinfo","r");
-	if (!info)
+	if (!info) {
+		fprintf(stderr,"error: could not open /proc/cpuinfo: %s\n",strerror(errno));
 		goto got_no_cpuinfo;
+	}
 
-	while (!feof(info)) {
+	while (!feof(info) && !ferror(info)) {
 		if (fgets(line,CYCLES_STATS_MAXLINE,info)
 			&& sscanf(line,"cpu MHz : %lf",&cycles_stats_cpu_MHz) == 1) 
 		{
@@ -79,6 +83,10 @@ static double cycles_stats_get_cpu_MHz(void)
 					cycles_stats_cpu_MHz);
 			return cycles_stats_cpu_MHz;
 		}
+	}
+
+	if (ferror(info)) {
+		fprintf(stderr,"error reading /proc/cpuinfo: %s\n",strerror(errno));
 	}
 
 	fclose(info);
