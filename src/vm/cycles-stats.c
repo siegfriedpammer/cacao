@@ -102,6 +102,7 @@ u8 cycles_stats_measurement_overhead = 0;
 
 static void cycles_stats_print_percentile(FILE *file, const char *name, 
 										  double percentile, u8 count,
+										  u8 cumul, double cumulcycles,
 										  bool isoverhead, bool printforall)
 {
 	u8 forall;
@@ -113,13 +114,14 @@ static void cycles_stats_print_percentile(FILE *file, const char *name,
 	}
 	else {
 		percentile -= cycles_stats_measurement_overhead;
-		forall = percentile * count;
 		
 		fprintf(file,"\t\t%14s = %14.1f (+%llu)",
 				name, percentile, 
 				(unsigned long long)cycles_stats_measurement_overhead);
 		if (printforall) {
-			fprintf(file," (for all calls: %15llu cycles = %6lu msec)",
+			forall = cumulcycles + percentile * (count - cumul);
+			fprintf(file," (%-23s: %15llu cycles = %6lu msec)",
+					(count == cumul) ? "total" : "capped here & extrapol.",
 					(unsigned long long)forall,
 					(unsigned long)(forall / cycles_per_ms));
 		}
@@ -129,7 +131,7 @@ static void cycles_stats_print_percentile(FILE *file, const char *name,
 
 void cycles_stats_print(FILE *file,
 						const char *name, int nbins, int div,
-						u4 *bins, u8 count, u8 min, u8 max,
+						u4 *bins, u8 count, u8 total, u8 min, u8 max,
 						int overhead)
 {
         s4 i;
@@ -137,6 +139,7 @@ void cycles_stats_print(FILE *file,
 		u8 floor, ceiling;
 		u8 p;
 		u8 cumul;
+		double cumulcycles;
 		double percentile;
 		double cpuMHz = cycles_stats_get_cpu_MHz();
 		u8 cycles_per_ms = cpuMHz * 1000;
@@ -148,13 +151,14 @@ void cycles_stats_print(FILE *file,
         fprintf(file,"\t%s cycles distribution:\n", 
 				(overhead) ? "measurement overhead" : name);
 
-		cycles_stats_print_percentile(file, "min", min, count, overhead, true);
+		cycles_stats_print_percentile(file, "min", min, count, 0, 0, overhead, true);
 
 		pcd = cycles_stats_percentile_defs;
 		for (; pcd->name; pcd++) {
 			floor   = (count * pcd->pct) / 100;
 			ceiling = (count * pcd->pct + 99) / 100;
 			cumul = 0;
+			cumulcycles = 0;
 			p = 0;
 			percentile = -1.0;
 
@@ -181,6 +185,8 @@ void cycles_stats_print(FILE *file,
 				cumul += bins[i];
 				p     += div;
 
+				cumulcycles += bins[i] * (p - (double)div/2.0);
+
 				/* { invariant: `cumul` samples are < `p` } */
 			}
 			
@@ -194,7 +200,9 @@ void cycles_stats_print(FILE *file,
 				if (overhead && pcd->pct == 50) {
 					cycles_stats_measurement_overhead = percentile;
 				}
-				cycles_stats_print_percentile(file, pcd->name, percentile, count, overhead, true);
+				cycles_stats_print_percentile(file, pcd->name, percentile,
+											  count, cumul, cumulcycles,
+											  overhead, true);
 			}
 			else {
 				if (!overhead)
@@ -202,8 +210,9 @@ void cycles_stats_print(FILE *file,
 				fprintf(file,"\t\t%14s = unknown (> %llu)\n", pcd->name, (unsigned long long)p);
 			}
 		}
-		
-		cycles_stats_print_percentile(file, "max", max, count, overhead, false);
+
+		cycles_stats_print_percentile(file, "max", max, count, count,
+									  total, overhead, true);
 
 		if (!overhead) {
 			fprintf(file,"\t\t(assuming %llu cycles per ms)\n",

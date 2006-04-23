@@ -47,6 +47,7 @@
     static const int CYCLES_STATS_##name##_DIV = (divisor);                 \
     static u4 cycles_stats_##name##_bins[(nbins) + 1] = { 0 };              \
     static u4 cycles_stats_##name##_count = 0;                              \
+    static u8 cycles_stats_##name##_total = 0;                              \
     static u8 cycles_stats_##name##_max = 0;                                \
     static u8 cycles_stats_##name##_min = 1000000000;
 
@@ -56,6 +57,7 @@
 #define CYCLES_STATS_COUNT(name,cyclesexpr)                                 \
     do {                                                                    \
         u8 cyc = (cyclesexpr);                                              \
+		cycles_stats_##name##_total += cyc;                                 \
         if (cyc > cycles_stats_##name##_max)                                \
             cycles_stats_##name##_max = cyc;                                \
         if (cyc < cycles_stats_##name##_min)                                \
@@ -73,6 +75,7 @@
         cycles_stats_print((file), #name,                                   \
             CYCLES_STATS_##name##_MAX, CYCLES_STATS_##name##_DIV,           \
             cycles_stats_##name##_bins, cycles_stats_##name##_count,        \
+            cycles_stats_##name##_total,                                    \
             cycles_stats_##name##_min, cycles_stats_##name##_max, 0);       \
     } while (0)
 
@@ -81,12 +84,13 @@
         cycles_stats_print((file), #name,                                   \
             CYCLES_STATS_##name##_MAX, CYCLES_STATS_##name##_DIV,           \
             cycles_stats_##name##_bins, cycles_stats_##name##_count,        \
+            cycles_stats_##name##_total,                                    \
             cycles_stats_##name##_min, cycles_stats_##name##_max, 1);       \
     } while (0)
 
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
-					    u4 *bins, u8 count, u8 min, u8 max,
+					    u4 *bins, u8 count, u8 total, u8 min, u8 max,
 						int overhead);
 
 
