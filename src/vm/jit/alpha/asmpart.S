@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
+   $Id: asmpart.S 4817 2006-04-23 23:03:50Z twisti $
 
 */
 
@@ -256,7 +256,7 @@ asm_call_jit_compiler:
 	ldq     a0,13*8(sp)           /* pass return address                      */
 	lda     a1,15*8(sp)           /* pass stackframeinfo (for PV)             */
 	ldq     a2,12*8(sp)           /* pass method pointer                      */
-	jsr     ra,md_assembler_get_patch_address /* get address of patch position*/
+	jsr     ra,md_get_method_patch_address /* get address of patch position   */
 	ldgp    gp,0(ra)
 	stq     v0,12*8(sp)           /* store patch address for later use        */
 
