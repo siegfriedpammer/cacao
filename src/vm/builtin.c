@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4792 2006-04-19 01:05:18Z edwin $
+   $Id: builtin.c 4811 2006-04-23 15:24:10Z edwin $
 
 */
 
@@ -92,6 +92,11 @@
 
 #include "vm/builtintable.inc"
 
+
+CYCLES_STATS_DECLARE(builtin_monitorenter,100,2)
+CYCLES_STATS_DECLARE(builtin_monitorexit ,100,2)
+CYCLES_STATS_DECLARE(builtin_new         ,100,5)
+CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
 
 /* builtintable_init ***********************************************************
 
@@ -737,6 +742,11 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 java_objectheader *builtin_new(classinfo *c)
 {
 	java_objectheader *o;
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_end;
+#endif
+
+	CYCLES_STATS_GET(cycles_start);
 
 	/* is the class loaded */
 
@@ -777,6 +787,9 @@ java_objectheader *builtin_new(classinfo *c)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	initObjectLock(o);
 #endif
+
+	CYCLES_STATS_GET(cycles_end);
+	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
 
 	return o;
 }
@@ -1762,10 +1775,6 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 }
 #endif
 
-CYCLES_STATS_DECLARE(builtin_monitorenter,100,2)
-CYCLES_STATS_DECLARE(builtin_monitorexit,100,2)
-CYCLES_STATS_DECLARE(builtin_overhead,80,1)
-
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file)
 {
@@ -1775,6 +1784,7 @@ void builtin_print_cycles_stats(FILE *file)
 
 	CYCLES_STATS_PRINT(builtin_monitorenter,file);
 	CYCLES_STATS_PRINT(builtin_monitorexit ,file);
+	CYCLES_STATS_PRINT(builtin_new         ,file);
 	CYCLES_STATS_PRINT(builtin_overhead    ,file);
 
 	fprintf(file,"\n");

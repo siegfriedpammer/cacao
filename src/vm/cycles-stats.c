@@ -54,6 +54,41 @@ static struct cycles_stats_percentile cycles_stats_percentile_defs[] = {
 	{  0, NULL             } /* sentinel */
 };
 
+static double cycles_stats_cpu_MHz = 0.0;
+
+#define CYCLES_STATS_MAXLINE  100
+
+static double cycles_stats_get_cpu_MHz(void)
+{
+	FILE *info;
+	char line[CYCLES_STATS_MAXLINE + 1];
+	
+	if (cycles_stats_cpu_MHz != 0.0)
+		return cycles_stats_cpu_MHz;
+
+	info = fopen("/proc/cpuinfo","r");
+	if (!info)
+		goto got_no_cpuinfo;
+
+	while (!feof(info)) {
+		if (fgets(line,CYCLES_STATS_MAXLINE,info)
+			&& sscanf(line,"cpu MHz : %lf",&cycles_stats_cpu_MHz) == 1) 
+		{
+			fclose(info);
+			fprintf(stderr,"CPU frequency used for statistics: %f MHz\n",
+					cycles_stats_cpu_MHz);
+			return cycles_stats_cpu_MHz;
+		}
+	}
+
+	fclose(info);
+
+got_no_cpuinfo:
+	fprintf(stderr,"warning: falling back to default CPU frequency for statistics\n");
+	cycles_stats_cpu_MHz = 1800.0;
+	return cycles_stats_cpu_MHz;
+}
+
 void cycles_stats_print(FILE *file,
 						const char *name, int nbins, int div,
 						u4 *bins, u8 count, u8 min, u8 max)
@@ -64,13 +99,15 @@ void cycles_stats_print(FILE *file,
 		u8 p;
 		u8 cumul;
 		double percentile;
+		double cpuMHz = cycles_stats_get_cpu_MHz();
+		u8 cycles_per_ms = cpuMHz * 1000;
 
-        fprintf(file,"\t%s: %u calls\n",
-                name, count);
+        fprintf(file,"\t%s: %llu calls\n",
+                name, (unsigned long long)count);
 		
         fprintf(file,"\t%s cycles distribution:\n", name);
-		
-        fprintf(file,"\t\t%20s = %llu\n", "min", (unsigned long long)min);
+
+        fprintf(file,"\t\t%14s = %llu\n", "min", (unsigned long long)min);
 
 		pcd = cycles_stats_percentile_defs;
 		for (; pcd->name; pcd++) {
@@ -113,14 +150,19 @@ void cycles_stats_print(FILE *file,
 			}
 
 			if (percentile >= 0) {
-				fprintf(file,"\t\t%20s = %.1f\n", pcd->name, percentile);
+				u8 forall = percentile * count;
+				fprintf(file,"\t\t%14s = %6.1f (for all calls: %15llu cycles = %6lu msec)\n",
+						pcd->name, percentile, (unsigned long long)forall,
+						(unsigned long)(forall / cycles_per_ms));
 			}
 			else {
-				fprintf(file,"\t\t%20s = unknown (> %llu)\n", pcd->name, (unsigned long long)p);
+				fprintf(file,"\t\t%14s = unknown (> %llu)\n", pcd->name, (unsigned long long)p);
 			}
 		}
 		
-        fprintf(file,"\t\t%20s = %llu\n", "max", (unsigned long long)max);
+        fprintf(file,"\t\t%14s = %llu\n", "max", (unsigned long long)max);
+        fprintf(file,"\t\t(assuming %llu cycles per ms)\n", (unsigned long long)cycles_per_ms);
+		fprintf(file,"\n");
 		
 		cumul = 0;
         for (i=0; i<nbins; ++i) {
