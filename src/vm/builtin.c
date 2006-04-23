@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4813 2006-04-23 15:39:51Z edwin $
+   $Id: builtin.c 4814 2006-04-23 16:11:41Z edwin $
 
 */
 
@@ -1787,10 +1787,10 @@ void builtin_print_cycles_stats(FILE *file)
 {
 	fprintf(file,"builtin cylce count statistics:\n");
 
+	CYCLES_STATS_PRINT_OVERHEAD(builtin_overhead,file);
 	CYCLES_STATS_PRINT(builtin_monitorenter,file);
 	CYCLES_STATS_PRINT(builtin_monitorexit ,file);
 	CYCLES_STATS_PRINT(builtin_new         ,file);
-	CYCLES_STATS_PRINT(builtin_overhead    ,file);
 
 	fprintf(file,"\n");
 }

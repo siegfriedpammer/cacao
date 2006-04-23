@@ -73,12 +73,21 @@
         cycles_stats_print((file), #name,                                   \
             CYCLES_STATS_##name##_MAX, CYCLES_STATS_##name##_DIV,           \
             cycles_stats_##name##_bins, cycles_stats_##name##_count,        \
-            cycles_stats_##name##_min, cycles_stats_##name##_max);          \
+            cycles_stats_##name##_min, cycles_stats_##name##_max, 0);       \
+    } while (0)
+
+#define CYCLES_STATS_PRINT_OVERHEAD(name,file)                              \
+    do {                                                                    \
+        cycles_stats_print((file), #name,                                   \
+            CYCLES_STATS_##name##_MAX, CYCLES_STATS_##name##_DIV,           \
+            cycles_stats_##name##_bins, cycles_stats_##name##_count,        \
+            cycles_stats_##name##_min, cycles_stats_##name##_max, 1);       \
     } while (0)
 
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
-					    u4 *bins, u8 count, u8 min, u8 max);
+					    u4 *bins, u8 count, u8 min, u8 max,
+						int overhead);
 
 
 #else /* !defined(ENABLE_CYCLES_STATS) */
@@ -87,6 +96,7 @@ void cycles_stats_print(FILE *file,
 #define CYCLES_STATS_GET(var)
 #define CYCLES_STATS_COUNT(name,cyclesexpr)
 #define CYCLES_STATS_PRINT(name,file)
+#define CYCLES_STATS_PRINT_OVERHEAD(name,file)
 
 #endif /* defined(ENABLE_CYCLES_STATS) */
 
