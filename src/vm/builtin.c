@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4811 2006-04-23 15:24:10Z edwin $
+   $Id: builtin.c 4813 2006-04-23 15:39:51Z edwin $
 
 */
 
@@ -742,10 +742,14 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 java_objectheader *builtin_new(classinfo *c)
 {
 	java_objectheader *o;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
 #endif
 
+	RT_TIMING_GET_TIME(time_start);
 	CYCLES_STATS_GET(cycles_start);
 
 	/* is the class loaded */
@@ -789,7 +793,10 @@ java_objectheader *builtin_new(classinfo *c)
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
+	RT_TIMING_GET_TIME(time_end);
+	
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_TOTAL);
 
 	return o;
 }
@@ -1778,8 +1785,6 @@ void internal_unlock_mutex_for_object (java_objectheader *object)
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file)
 {
-	s4 i;
-
 	fprintf(file,"builtin cylce count statistics:\n");
 
 	CYCLES_STATS_PRINT(builtin_monitorenter,file);
@@ -1794,9 +1799,6 @@ void builtin_print_cycles_stats(FILE *file)
 #if defined(USE_THREADS)
 void builtin_monitorenter(java_objectheader *o)
 {
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_overhead, time_lock;
-#endif
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_overhead, cycles_end;
 #endif
@@ -1815,8 +1817,6 @@ void builtin_monitorenter(java_objectheader *o)
 
 	--blockInts;
 #else /* defined(NATIVE_THREADS) */
-	RT_TIMING_GET_TIME(time_start);
-	RT_TIMING_GET_TIME(time_overhead);
 	CYCLES_STATS_GET(cycles_start);
 	CYCLES_STATS_GET(cycles_overhead);
 
@@ -1825,9 +1825,6 @@ void builtin_monitorenter(java_objectheader *o)
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorenter, cycles_end - cycles_overhead);
 	CYCLES_STATS_COUNT(builtin_overhead    , cycles_overhead - cycles_start);
-	RT_TIMING_GET_TIME(time_lock);
-	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
-	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_LOCK);
 #endif /* defined(NATIVE_THREADS) */
 }
 #endif
@@ -1847,11 +1844,8 @@ void builtin_staticmonitorenter(classinfo *c)
 #if defined(USE_THREADS)
 void builtin_monitorexit(java_objectheader *o)
 {
-#if defined(ENABLE_RT_TIMING)
-	struct timespec time_start, time_overhead, time_lock;
-#endif
 #if defined(ENABLE_CYCLES_STATS)
-	u8 cycles_start, cycles_end, cyc;
+	u8 cycles_start, cycles_end;
 #endif
 
 #if !defined(NATIVE_THREADS)
@@ -1872,17 +1866,12 @@ void builtin_monitorexit(java_objectheader *o)
 
 	--blockInts;
 #else /* defined(NATIVE_THREADS) */
-	RT_TIMING_GET_TIME(time_start);
-	RT_TIMING_GET_TIME(time_overhead);
 	CYCLES_STATS_GET(cycles_start);
 
 	monitorExit((threadobject *) THREADOBJECT, o);
 
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorexit, cycles_end - cycles_start);
-	RT_TIMING_GET_TIME(time_lock);
-	RT_TIMING_TIME_DIFF(time_start,time_overhead,RT_TIMING_LOCK_MEASERR);
-	RT_TIMING_TIME_DIFF(time_overhead,time_lock,RT_TIMING_LOCK_UNLOCK);
 #endif /* defined(NATIVE_THREADS) */
 }
 #endif

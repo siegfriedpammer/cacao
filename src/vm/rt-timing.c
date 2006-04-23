@@ -108,9 +108,7 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_LOAD_CL_CACHE   ,-1                       , "classloader: store in classcache" },
     { -1                        ,-1                       , "" },
 
-	{ RT_TIMING_LOCK_MEASERR    ,-1                       , "lock: measurement error" },
-	{ RT_TIMING_LOCK_LOCK       ,-1                       , "lock: monitor lock time" },
-	{ RT_TIMING_LOCK_UNLOCK     ,-1                       , "lock: monitor unlock time" },
+	{ RT_TIMING_NEW_TOTAL       ,-1                       , "builtin_new: total time" },
     { -1                        ,-1                       , "" },
 
     { 0                         ,-1                       , NULL }
