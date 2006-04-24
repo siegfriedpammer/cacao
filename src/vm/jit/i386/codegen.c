@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.c 4827 2006-04-24 16:10:59Z twisti $
 
 */
 
@@ -188,15 +188,6 @@ bool codegen(jitdata *jd)
 		(void) dseg_addaddress(cd, ex->catchtype.cls);
 	}
 	
-	/* initialize mcode variables */
-	
-	cd->mcodeptr = cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
-
-	/* initialize the last patcher pointer */
-
-	cd->lastmcodeptr = cd->mcodeptr;
-
 	/* generate method profiling code */
 
 	if (opt_prof) {
@@ -593,7 +584,7 @@ bool codegen(jitdata *jd)
 		currentline = 0;
 		for (iptr = bptr->iinstr; len > 0; src = iptr->dst, len--, iptr++) {
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
+				dseg_addlinenumber(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
@@ -5475,11 +5466,6 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	(void) dseg_adds4(cd, 0);                               /* FltSave        */
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_adds4(cd, 0);                               /* ExTableSize    */
-
-	/* initialize mcode variables */
-	
-	cd->mcodeptr = (u1 *) cd->mcodebase;
-	cd->mcodeend = (s4 *) (cd->mcodebase + cd->mcodesize);
 
 	/* generate native method profiling code */
 
