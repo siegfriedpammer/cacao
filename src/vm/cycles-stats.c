@@ -226,14 +226,14 @@ void cycles_stats_print(FILE *file,
 		cumul = 0;
         for (i=0; i<nbins; ++i) {
 			cumul += bins[i];
-            fprintf(file,"\t\t<  %5d: %10lu (%3d%%) %10lu\n",
+            fprintf(file,"\t\t<  %8d: %10lu (%3d%%) %10lu\n",
                     (int)((i+1) * div),
 					(unsigned long) cumul,
-					(int)((cumul * 100) / count),
+					(count) ? (int)((cumul * 100) / count) : 0,
                     (unsigned long) bins[i]);
         }
 		
-        fprintf(file,"\t\t>= %5d: %10s (----) %10lu\n",
+        fprintf(file,"\t\t>= %8d: %10s (----) %10lu\n",
                 (int)(nbins * div),
 				"OVER",
                 (unsigned long) bins[nbins]);

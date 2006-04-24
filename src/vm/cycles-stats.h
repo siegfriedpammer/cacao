@@ -88,6 +88,24 @@
             cycles_stats_##name##_min, cycles_stats_##name##_max, 1);       \
     } while (0)
 
+#define CYCLES_STATS_DECLARE_AND_START                                      \
+    u8 cycles_start = asm_get_cycle_count();                                \
+    u8 cycles_end;
+
+#define CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD                        \
+    u8 cycles_start = asm_get_cycle_count();                                \
+    u8 cycles_overhead = asm_get_cycle_count();                             \
+    u8 cycles_end;
+
+#define CYCLES_STATS_END(name)                                              \
+    cycles_end = asm_get_cycle_count();                                     \
+    CYCLES_STATS_COUNT(name, cycles_end - cycles_start);
+
+#define CYCLES_STATS_END_WITH_OVERHEAD(name,ovname)                         \
+    cycles_end = asm_get_cycle_count();                                     \
+    CYCLES_STATS_COUNT(ovname, cycles_overhead - cycles_start);             \
+    CYCLES_STATS_COUNT(name, cycles_end - cycles_overhead);
+
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
 					    u4 *bins, u8 count, u8 total, u8 min, u8 max,
@@ -101,6 +119,10 @@ void cycles_stats_print(FILE *file,
 #define CYCLES_STATS_COUNT(name,cyclesexpr)
 #define CYCLES_STATS_PRINT(name,file)
 #define CYCLES_STATS_PRINT_OVERHEAD(name,file)
+#define CYCLES_STATS_DECLARE_AND_START
+#define CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
+#define CYCLES_STATS_END(name)
+#define CYCLES_STATS_END_WITH_OVERHEAD(name)
 
 #endif /* defined(ENABLE_CYCLES_STATS) */
 
