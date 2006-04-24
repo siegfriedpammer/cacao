@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4792 2006-04-19 01:05:18Z edwin $
+   $Id: asmpart.S 4818 2006-04-24 00:19:06Z edwin $
 
 */
 
@@ -836,12 +836,7 @@ asm_criticalsections:
 *******************************************************************************/
 
 asm_get_cycle_count:
-	push    bp
-	mov     sp,bp                       /* save stackptr                      */
-
 	rdtsc
-
-	leave
 	ret
 
 
