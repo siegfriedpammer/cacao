@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
+   $Id: asmpart.S 4821 2006-04-24 10:08:07Z twisti $
 
 */
 
@@ -301,7 +301,7 @@ asm_call_jit_compiler:
 	ald     a0,17*8(sp)           /* pass return address                      */
 	aaddiu  a1,sp,20*8            /* pass stackframeinfo (for PV)             */
 	ald     a2,16*8(sp)           /* pass method pointer                      */
-	jal     md_assembler_get_patch_address /* get address of patch position   */
+	jal     md_get_method_patch_address /* get address of patch position      */
 	move    t0,v0                 /* move offset to t0 for later use          */
 
 	RESTORE_ARGUMENT_REGISTERS(0)

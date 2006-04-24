@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4744 2006-04-06 12:51:53Z twisti $
+   $Id: md.c 4821 2006-04-24 10:08:07Z twisti $
 
 */
 
@@ -72,15 +72,36 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_assembler_get_patch_address **********************************************
+/* md_get_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
    to the right base address (PV or REG_METHODPTR).
 
+   INVOKESTATIC/SPECIAL:
+
+   dfdeffb8    ld       s8,-72(s8)
+   03c0f809    jalr     s8
+   00000000    nop
+
+   INVOKEVIRTUAL:
+
+   dc990000    ld       t9,0(a0)
+   df3e0000    ld       s8,0(t9)
+   03c0f809    jalr     s8
+   00000000    nop
+
+   INVOKEINTERFACE:
+
+   dc990000    ld       t9,0(a0)
+   df39ff90    ld       t9,-112(t9)
+   df3e0018    ld       s8,24(t9)
+   03c0f809    jalr     s8
+   00000000    nop
+
 *******************************************************************************/
 
-u1 *md_assembler_get_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 {
 	u4  mcode;
 	s4  offset;
