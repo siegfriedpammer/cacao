@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 4791 2006-04-18 21:16:36Z twisti $
+   $Id: emit.c 4828 2006-04-24 16:24:49Z twisti $
 
 */
 
@@ -872,7 +872,7 @@ void x86_64_emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr
 
 	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
 		x86_64_jcc(cd, if_op, 0);
-		codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+		codegen_addreference(cd, (basicblock *) iptr->target);
 	}
 }
 
@@ -905,7 +905,7 @@ void x86_64_emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *ip
 		}
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target);
 }
 
 
@@ -941,7 +941,7 @@ void x86_64_emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src,
 
 	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
 		x86_64_jcc(cd, if_op, 0);
-		codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+		codegen_addreference(cd, (basicblock *) iptr->target);
 	}
 }
 
@@ -965,7 +965,7 @@ void x86_64_emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction 
 		x86_64_alu_reg_reg(cd, X86_64_CMP, s2, s1);
 	}
 	x86_64_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+	codegen_addreference(cd, (basicblock *) iptr->target);
 }
 
 
