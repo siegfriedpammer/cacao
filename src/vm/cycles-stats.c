@@ -65,7 +65,7 @@ static double cycles_stats_get_cpu_MHz(void)
 {
 	FILE *info;
 	char line[CYCLES_STATS_MAXLINE + 1];
-	
+
 	if (cycles_stats_cpu_MHz != 0.0)
 		return cycles_stats_cpu_MHz;
 
@@ -77,7 +77,7 @@ static double cycles_stats_get_cpu_MHz(void)
 
 	while (!feof(info) && !ferror(info)) {
 		if (fgets(line,CYCLES_STATS_MAXLINE,info)
-			&& sscanf(line,"cpu MHz : %lf",&cycles_stats_cpu_MHz) == 1) 
+			&& sscanf(line,"cpu MHz : %lf",&cycles_stats_cpu_MHz) == 1)
 		{
 			fclose(info);
 			fprintf(stderr,"CPU frequency used for statistics: %f MHz\n",
@@ -100,7 +100,7 @@ got_no_cpuinfo:
 
 u8 cycles_stats_measurement_overhead = 0;
 
-static void cycles_stats_print_percentile(FILE *file, const char *name, 
+static void cycles_stats_print_percentile(FILE *file, const char *name,
 										  double percentile, u8 count,
 										  u8 cumul, double cumulcycles,
 										  bool isoverhead, bool printforall)
@@ -108,15 +108,15 @@ static void cycles_stats_print_percentile(FILE *file, const char *name,
 	u8 forall;
 	double cpuMHz = cycles_stats_get_cpu_MHz();
 	u8 cycles_per_ms = cpuMHz * 1000;
-	
+
 	if (isoverhead) {
 		fprintf(file,"\t\t%14s = %6.1f\n", name, percentile);
 	}
 	else {
 		percentile -= cycles_stats_measurement_overhead;
-		
+
 		fprintf(file,"\t\t%14s = %14.1f (+%llu)",
-				name, percentile, 
+				name, percentile,
 				(unsigned long long)cycles_stats_measurement_overhead);
 		if (printforall) {
 			forall = cumulcycles - cumul * cycles_stats_measurement_overhead
@@ -146,10 +146,10 @@ void cycles_stats_print(FILE *file,
 		u8 cycles_per_ms = cpuMHz * 1000;
 
         fprintf(file,"\t%s: %llu calls\n",
-                (overhead) ? "measurement overhead determined by" : name, 
+                (overhead) ? "measurement overhead determined by" : name,
 				(unsigned long long)count);
-		
-        fprintf(file,"\t%s cycles distribution:\n", 
+
+        fprintf(file,"\t%s cycles distribution:\n",
 				(overhead) ? "measurement overhead" : name);
 
 		cycles_stats_print_percentile(file, "min", min, count, 0, 0, overhead, true);
@@ -170,7 +170,7 @@ void cycles_stats_print(FILE *file,
 				/* { invariant: `cumul` samples are < `p` } */
 
 				/* check if percentile lies exactly at the bin boundary */
-				
+
 				if (floor == cumul && floor == ceiling) {
 					percentile = p;
 					break;
@@ -182,7 +182,7 @@ void cycles_stats_print(FILE *file,
 					percentile = p + (double)div/2.0;
 					break;
 				}
-				
+
 				cumul += bins[i];
 				p     += div;
 
@@ -190,7 +190,7 @@ void cycles_stats_print(FILE *file,
 
 				/* { invariant: `cumul` samples are < `p` } */
 			}
-			
+
 			/* check if percentile lies exactly at the bin boundary */
 
 			if (floor == cumul && floor == ceiling) {
@@ -218,12 +218,12 @@ void cycles_stats_print(FILE *file,
 		if (!overhead) {
 			fprintf(file,"\t\t(assuming %llu cycles per ms)\n",
 					(unsigned long long)cycles_per_ms);
-			fprintf(file,"\t\t(assuming %llu cycles measurement overhead)\n", 
+			fprintf(file,"\t\t(assuming %llu cycles measurement overhead)\n",
 					(unsigned long long)cycles_stats_measurement_overhead);
 		}
 
 		fprintf(file,"\n");
-		
+
 		cumul = 0;
         for (i=0; i<nbins; ++i) {
 			cumul += bins[i];
@@ -233,7 +233,7 @@ void cycles_stats_print(FILE *file,
 					(count) ? (int)((cumul * 100) / count) : 0,
                     (unsigned long) bins[i]);
         }
-		
+
         fprintf(file,"\t\t>= %8d: %10s (----) %10lu\n",
                 (int)(nbins * div),
 				"OVER",
