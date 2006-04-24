@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4815 2006-04-23 19:16:54Z edwin $
+   $Id: builtin.c 4829 2006-04-24 17:16:45Z edwin $
 
 */
 
@@ -781,7 +781,8 @@ java_objectheader *builtin_new(classinfo *c)
 			return NULL;
 	}
 
-	o = heap_allocate(c->instancesize, true, c->finalizer);
+	o = heap_allocate(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+					  c->finalizer);
 
 	if (!o)
 		return NULL;
@@ -794,7 +795,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 	CYCLES_STATS_GET(cycles_end);
 	RT_TIMING_GET_TIME(time_end);
-	
+
 	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
 

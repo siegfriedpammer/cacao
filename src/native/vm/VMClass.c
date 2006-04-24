@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClass.c 4725 2006-04-04 08:45:43Z twisti $
+   $Id: VMClass.c 4829 2006-04-24 17:16:45Z edwin $
 
 */
 
@@ -321,16 +321,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
 
 				if (outer.any)
 					/* return flags got from the outer class file */
-					return c->innerclass[i].flags;
+					return c->innerclass[i].flags & ACC_CLASS_REFLECT_MASK;
 				else
-					return c->flags;
+					return c->flags & ACC_CLASS_REFLECT_MASK;
 			}
 		}
 	}
 
 	/* passed class is no inner class or it was not requested */
 
-	return c->flags;
+	return c->flags & ACC_CLASS_REFLECT_MASK;
 }
 
 

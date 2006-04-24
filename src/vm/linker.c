@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4803 2006-04-21 00:00:22Z edwin $
+   $Id: linker.c 4829 2006-04-24 17:16:45Z edwin $
 
 */
 
@@ -565,10 +565,16 @@ static classinfo *link_class_intern(classinfo *c)
 									  "Cannot inherit from final class");
 			return NULL;
 		}
+
+		/* link the superclass if necessary */
 		
 		if (!(super->state & CLASS_LINKED))
 			if (!link_class(super))
 				return NULL;
+
+		/* OR the ACC_CLASS_HAS_POINTERS flag */
+
+		c->flags |= (super->flags & ACC_CLASS_HAS_POINTERS);
 
 		/* handle array classes */
 
@@ -582,7 +588,7 @@ static classinfo *link_class_intern(classinfo *c)
 			c->index = super->index + 1;
 		
 		c->instancesize = super->instancesize;
-		
+
 		vftbllength = supervftbllength = super->vftbl->vftbllength;
 		
 		c->finalizer = super->finalizer;

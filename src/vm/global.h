@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4728 2006-04-04 09:17:05Z twisti $
+   $Id: global.h 4829 2006-04-24 17:16:45Z edwin $
 
 */
 
@@ -192,6 +192,11 @@ typedef struct java_objectarray java_objectarray;
 #define ACC_ENUM            0x4000
 #define ACC_MIRANDA         0x8000
 
+/* special flags used in classinfo ********************************************/
+
+#define ACC_CLASS_REFLECT_MASK 0x0000ffff     /* flags reported by reflection */
+#define ACC_CLASS_HAS_POINTERS 0x00010000     /* instance contains pointers   */
+
 
 /* data structures of the runtime system **************************************/
 
@@ -314,4 +319,5 @@ void compiler_unlock();
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
