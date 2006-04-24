@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Joseph Wenninger
 
-   $Id: dseg.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: dseg.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -122,31 +122,22 @@ struct linenumberref {
 
 /* function prototypes ********************************************************/
 
-void dseg_increase(codegendata *cd);
-
-s4 dseg_adds4_increase(codegendata *cd, s4 value);
 s4 dseg_adds4(codegendata *cd, s4 value);
-
-s4 dseg_adds8_increase(codegendata *cd, s8 value);
 s4 dseg_adds8(codegendata *cd, s8 value);
-
-s4 dseg_addfloat_increase(codegendata *cd, float value);
 s4 dseg_addfloat(codegendata *cd, float value);
-
-s4 dseg_adddouble_increase(codegendata *cd, double value);
 s4 dseg_adddouble(codegendata *cd, double value);
 
 void dseg_addtarget(codegendata *cd, basicblock *target);
 
 void dseg_addlinenumbertablesize(codegendata *cd);
-void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *ptr);
-void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr, u1 *ptr);
+void dseg_addlinenumber(codegendata *cd, u2 linenumber);
+void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr);
 void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr);
 
 void dseg_createlinenumbertable(codegendata *cd);
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
-void dseg_adddata(codegendata *cd, u1 *ptr);
+void dseg_adddata(codegendata *cd);
 void dseg_resolve_datareferences(jitdata *jd);
 #endif
 

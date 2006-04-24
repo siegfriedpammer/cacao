@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4795 2006-04-20 10:55:11Z twisti $
+   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -281,7 +281,7 @@ typedef enum {
 	if (checknull) { \
         M_TEST(objreg); \
         M_BEQ(0); \
- 	    codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
+ 	    codegen_add_nullpointerexception_ref(cd); \
 	}
 
 
@@ -289,7 +289,7 @@ typedef enum {
     if (checkbounds) { \
         M_CMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
         M_BAE(0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
     }
 
 
@@ -301,15 +301,17 @@ typedef enum {
             M_TEST(src->regoff); \
         } \
         M_BEQ(0); \
-        codegen_add_arithmeticexception_ref(cd, cd->mcodeptr); \
+        codegen_add_arithmeticexception_ref(cd); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
-        cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr)
+    do { \
+        if ((cd->mcodeptr + (icnt)) > cd->mcodeend) \
+            codegen_increase(cd); \
+    } while (0)
 
 
 #define ALIGNCODENOP \

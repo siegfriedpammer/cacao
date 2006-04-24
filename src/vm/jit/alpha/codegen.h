@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4722 2006-04-03 15:36:00Z twisti $
+   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -50,7 +50,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ((objreg), 0); \
-        codegen_add_nullpointerexception_ref(cd, mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd); \
     }
 
 #define gen_bound_check \
@@ -58,19 +58,21 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3);\
         M_BEQZ(REG_ITMP3, 0);\
-        codegen_add_arrayindexoutofboundsexception_ref(cd, mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
     }
 
 
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((mcodeptr + (icnt)) > cd->mcodeend) \
-        mcodeptr = codegen_increase(cd, (u1 *) mcodeptr)
+    do { \
+        if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+            codegen_increase(cd); \
+    } while (0)
 
 
 #define ALIGNCODENOP \
-    if ((s4) ((ptrint) mcodeptr & 7)) { \
+    if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
         M_NOP; \
     }
 
@@ -80,7 +82,11 @@
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
+#define M_INTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) \
+            M_MOV(a, b); \
+    } while (0)
 
 
 /* M_FLTMOVE:
@@ -88,109 +94,16 @@
     if a and b are the same float-register, no code will be generated
 */ 
 
-#define M_FLTMOVE(a,b) if (a != b) { M_FMOV(a, b); }
-
-
-/* var_to_reg_xxx **************************************************************
-
-   This function generates code to fetch data from a pseudo-register
-   into a real register. If the pseudo-register has actually been
-   assigned to a real register, no code will be emitted, since
-   following operations can use this register directly.
-    
-   v: pseudoregister to be fetched from
-   tempregnum: temporary register to be used if v is actually spilled to ram
-
-   return: the register number, where the operand can be found after 
-           fetching (this wil be either tempregnum or the register
-           number allready given to v)
-
-*******************************************************************************/
-
-#define var_to_reg_int(regnr,v,tempnr) \
+#define M_FLTMOVE(a,b) \
     do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_LLD(tempnr, REG_SP, (v)->regoff * 8); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
+        if ((a) != (b)) \
+            M_FMOV(a, b); \
     } while (0)
 
 
-#define var_to_reg_flt(regnr,v,tempnr) \
-    do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_DLD(tempnr, REG_SP, (v)->regoff * 8); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } while (0)
-
-
-/* store_reg_to_var_xxx ********************************************************
-
-   This function generates the code to store the result of an
-   operation back into a spilled pseudo-variable. If the
-   pseudo-variable has not been spilled in the first place, this
-   function will generate nothing.
-    
-   v ............ Pseudovariable
-   tempregnum ... Number of the temporary registers as returned by
-                  reg_of_var.
-
-*******************************************************************************/
-
-#define store_reg_to_var_int(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_LST(tempregnum, REG_SP, (sptr)->regoff * 8); \
-        } \
-    } while (0)
-
-#define store_reg_to_var_flt(sptr, tempregnum) \
-    do { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_DST(tempregnum, REG_SP, (sptr)->regoff * 8); \
-        } \
-    } while (0)
-
-
-#define M_COPY(from,to) \
-	d = codegen_reg_of_var(rd, iptr->opc, (to), REG_IFTMP); \
-	if ((from->regoff != to->regoff) || \
-	    ((from->flags ^ to->flags) & INMEMORY)) { \
-		if (IS_FLT_DBL_TYPE(from->type)) { \
-			var_to_reg_flt(s1, from, d); \
-			M_FLTMOVE(s1,d); \
-			store_reg_to_var_flt(to, d); \
-		} else { \
-			var_to_reg_int(s1, from, d); \
-			M_INTMOVE(s1,d); \
-			store_reg_to_var_int(to, d); \
-		} \
-	}
-
-#define ICONST(r,c) \
-    if ((c) >= -32768 && (c) <= 32767) { \
-        M_LDA_INTERN((r), REG_ZERO, c); \
-    } else { \
-        disp = dseg_adds4(cd, (c)); \
-        M_ILD((r), REG_PV, disp); \
-    }
-
-#define LCONST(r,c) \
-    if ((c) >= -32768 && (c) <= 32767) { \
-        M_LDA_INTERN((r), REG_ZERO, (c)); \
-    } else { \
-        disp = dseg_adds8(cd, (c)); \
-        M_LLD((r), REG_PV, disp); \
-    }
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
+#define ICONST(d,c)                     emit_iconst(cd, (d), (c))
+#define LCONST(d,c)                     emit_lconst(cd, (d), (c))
 
 
 /* macros to create code ******************************************************/
@@ -210,7 +123,7 @@
 */      
 
 #define M_OP3(op,fu,a,b,c,const) \
-	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c)))
+	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c)))
 
 
 /* 3-address-floating-point-operation: M_FOP3 
@@ -221,7 +134,7 @@
 */ 
 
 #define M_FOP3(op,fu,a,b,c) \
-	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c))
+	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c))
 
 
 /* branch instructions: M_BRA 
@@ -231,7 +144,7 @@
 */
 
 #define M_BRA(op,a,disp) \
-	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff))
+	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff))
 
 
 /* memory operations: M_MEM
@@ -242,7 +155,7 @@
 */ 
 
 #define M_MEM(op,a,b,disp) \
-	*(mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff))
+	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff))
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/

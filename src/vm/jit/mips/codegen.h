@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4783 2006-04-18 13:36:15Z twisti $
+   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -50,7 +50,7 @@
 #define gen_nullptr_check(objreg) \
     if (checknull) { \
         M_BEQZ(objreg, 0); \
-        codegen_add_nullpointerexception_ref(cd, cd->mcodeptr); \
+        codegen_add_nullpointerexception_ref(cd); \
         M_NOP; \
     }
 
@@ -59,14 +59,14 @@
         M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size)); \
         M_CMPULT(s2, REG_ITMP3, REG_ITMP3); \
         M_BEQZ(REG_ITMP3, 0); \
-        codegen_add_arrayindexoutofboundsexception_ref(cd, cd->mcodeptr, s2); \
+        codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
         M_NOP; \
     }
 
 #define gen_div_check(r) \
     do { \
         M_BEQZ((r), 0); \
-        codegen_add_arithmeticexception_ref(cd, cd->mcodeptr); \
+        codegen_add_arithmeticexception_ref(cd); \
         M_NOP; \
     } while (0)
 
@@ -74,8 +74,10 @@
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
-        cd->mcodeptr = (u4 *) codegen_increase(cd, (u1 *) cd->mcodeptr)
+    do { \
+        if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+            codegen_increase(cd); \
+    } while (0)
 
 
 #define ALIGNCODENOP \

@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4780 2006-04-17 11:47:03Z twisti $
+   $Id: codegen-common.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -160,30 +160,29 @@ void codegen_setup(jitdata *jd);
 
 void codegen_close(void);
 
-s4 *codegen_increase(codegendata *cd, u1 *mcodeptr);
+void codegen_increase(codegendata *cd);
 
 #if defined(ENABLE_INTRP)
 u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr);
 #endif
 
-void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr);
+void codegen_addreference(codegendata *cd, basicblock *target);
 
-void codegen_add_arithmeticexception_ref(codegendata *cd, void *branchptr);
-void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd,
-													void *branchptr, s4 reg);
-void codegen_add_arraystoreexception_ref(codegendata *cd, void *branchptr);
-void codegen_add_classcastexception_ref(codegendata *cd, void *branchptr);
-void codegen_add_nullpointerexception_ref(codegendata *cd, void *branchptr);
-void codegen_add_fillinstacktrace_ref(codegendata *cd, void *branchptr);
+void codegen_add_arithmeticexception_ref(codegendata *cd);
+void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg);
+void codegen_add_arraystoreexception_ref(codegendata *cd);
+void codegen_add_classcastexception_ref(codegendata *cd);
+void codegen_add_nullpointerexception_ref(codegendata *cd);
+void codegen_add_fillinstacktrace_ref(codegendata *cd);
 
 
-void codegen_addpatchref(codegendata *cd, voidptr branchptr,
-						 functionptr patcher, voidptr ref, s4 disp);
+void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
+						 s4 disp);
 
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_findmethod(u1 *pc);
 
-void codegen_finish(jitdata *jd, s4 mcodelen);
+void codegen_finish(jitdata *jd);
 
 codeinfo *codegen_createnativestub(functionptr f, methodinfo *m);
 #if defined(ENABLE_DISASSEMBLER)

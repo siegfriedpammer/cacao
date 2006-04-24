@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emit.c 4398 2006-01-31 23:43:08Z twisti $
 
 */
 
@@ -37,9 +37,9 @@
 
 #include "md-abi.h"
 
+#include "vm/jit/emit.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/emit.h"
 
 
 /* code generation functions **************************************************/
@@ -173,10 +173,9 @@ void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
 	cd = jd->cd;
 	rd = jd->rd;
 
-	d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
-
 	if ((src->regoff != dst->regoff) ||
 		((src->flags ^ dst->flags) & INMEMORY)) {
+		d = codegen_reg_of_var(rd, iptr->opc, dst, REG_IFTMP);
 		s1 = emit_load_s1(jd, iptr, src, d);
 
 		if (IS_FLT_DBL_TYPE(src->type))
@@ -198,6 +197,19 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 	} else {
 		disp = dseg_adds4(cd, value);
 		M_ILD(d, REG_PV, disp);
+	}
+}
+
+
+void emit_lconst(codegendata *cd, s4 d, s8 value)
+{
+	s4 disp;
+
+	if ((value >= -32768) && (value <= 32767)) {
+		M_LDA_INTERN(d, REG_ZERO, value);
+	} else {
+		disp = dseg_adds8(cd, value);
+		M_LLD(d, REG_PV, disp);
 	}
 }
 

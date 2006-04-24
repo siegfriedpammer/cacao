@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4775 2006-04-14 11:57:04Z twisti $
+   $Id: codegen-common.c 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -165,7 +165,7 @@ void codegen_setup(jitdata *jd)
 
 	/* initialize mcode variables */
 
-#if defined(__I386__) || defined(__X86_64__)	
+#if defined(__I386__) || defined(__X86_64__)
 	cd->mcodeptr = cd->mcodebase;
 #else
 	cd->mcodeptr = (u4 *) cd->mcodebase;
@@ -245,7 +245,7 @@ void codegen_close(void)
 
 *******************************************************************************/
 
-s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
+void codegen_increase(codegendata *cd)
 {
 	u1 *oldmcodebase;
 
@@ -262,16 +262,21 @@ s4 *codegen_increase(codegendata *cd, u1 *mcodeptr)
 	cd->mcodesize *= 2;
 	cd->mcodeend   = cd->mcodebase + cd->mcodesize;
 
+	/* set new mcodeptr */
+
+#if defined(__I386__) || defined(__X86_64__)
+	cd->mcodeptr = cd->mcodebase + ((u1 *) cd->mcodeptr - oldmcodebase);
+#else
+	cd->mcodeptr = (u4 *) (cd->mcodebase +
+						   ((u1 *) cd->mcodeptr - oldmcodebase));
+#endif
+
 #if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* adjust the pointer to the last patcher position */
 
 	if (cd->lastmcodeptr != NULL)
 		cd->lastmcodeptr = cd->mcodebase + (cd->lastmcodeptr - oldmcodebase);
 #endif
-
-	/* return the new mcodeptr */
-
-	return (s4 *) (cd->mcodebase + (mcodeptr - oldmcodebase));
 }
 
 
@@ -305,11 +310,11 @@ u1 *codegen_ncode_increase(codegendata *cd, u1 *ncodeptr)
 #endif
 
 
-void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
+void codegen_addreference(codegendata *cd, basicblock *target)
 {
 	s4 branchpos;
 
-	branchpos = (u1 *) branchptr - cd->mcodebase;
+	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
 
 #if defined(ENABLE_JIT)
 	/* Check if the target basicblock has already a start pc, so the
@@ -347,13 +352,13 @@ void codegen_addreference(codegendata *cd, basicblock *target, void *branchptr)
 
 *******************************************************************************/
 
-static void codegen_add_exception_ref(codegendata *cd, void *branchptr, s4 reg,
+static void codegen_add_exception_ref(codegendata *cd, s4 reg,
 									  functionptr function)
 {
 	s4            branchpos;
 	exceptionref *eref;
 
-	branchpos = (u1 *) branchptr - cd->mcodebase;
+	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
 
 	eref = DNEW(exceptionref);
 
@@ -372,10 +377,9 @@ static void codegen_add_exception_ref(codegendata *cd, void *branchptr, s4 reg,
 
 *******************************************************************************/
 
-void codegen_add_arithmeticexception_ref(codegendata *cd, void *branchptr)
+void codegen_add_arithmeticexception_ref(codegendata *cd)
 {
-	codegen_add_exception_ref(cd, branchptr, -1,
-							  STACKTRACE_inline_arithmeticexception);
+	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_arithmeticexception);
 }
 
 
@@ -385,10 +389,9 @@ void codegen_add_arithmeticexception_ref(codegendata *cd, void *branchptr)
 
 *******************************************************************************/
 
-void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd,
-													void *branchptr, s4 reg)
+void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd, s4 reg)
 {
-	codegen_add_exception_ref(cd, branchptr, reg,
+	codegen_add_exception_ref(cd, reg,
 							  STACKTRACE_inline_arrayindexoutofboundsexception);
 }
 
@@ -399,10 +402,9 @@ void codegen_add_arrayindexoutofboundsexception_ref(codegendata *cd,
 
 *******************************************************************************/
 
-void codegen_add_arraystoreexception_ref(codegendata *cd, void *branchptr)
+void codegen_add_arraystoreexception_ref(codegendata *cd)
 {
-	codegen_add_exception_ref(cd, branchptr, -1,
-							  STACKTRACE_inline_arraystoreexception);
+	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_arraystoreexception);
 }
 
 
@@ -412,10 +414,9 @@ void codegen_add_arraystoreexception_ref(codegendata *cd, void *branchptr)
 
 *******************************************************************************/
 
-void codegen_add_classcastexception_ref(codegendata *cd, void *branchptr)
+void codegen_add_classcastexception_ref(codegendata *cd)
 {
-	codegen_add_exception_ref(cd, branchptr, -1,
-							  STACKTRACE_inline_classcastexception);
+	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_classcastexception);
 }
 
 
@@ -425,10 +426,9 @@ void codegen_add_classcastexception_ref(codegendata *cd, void *branchptr)
 
 *******************************************************************************/
 
-void codegen_add_nullpointerexception_ref(codegendata *cd, void *branchptr)
+void codegen_add_nullpointerexception_ref(codegendata *cd)
 {
-	codegen_add_exception_ref(cd, branchptr, -1,
-							  STACKTRACE_inline_nullpointerexception);
+	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_nullpointerexception);
 }
 
 
@@ -438,10 +438,9 @@ void codegen_add_nullpointerexception_ref(codegendata *cd, void *branchptr)
 
 *******************************************************************************/
 
-void codegen_add_fillinstacktrace_ref(codegendata *cd, void *branchptr)
+void codegen_add_fillinstacktrace_ref(codegendata *cd)
 {
-	codegen_add_exception_ref(cd, branchptr, -1,
-							  STACKTRACE_inline_fillInStackTrace);
+	codegen_add_exception_ref(cd, -1, STACKTRACE_inline_fillInStackTrace);
 }
 
 
@@ -451,13 +450,13 @@ void codegen_add_fillinstacktrace_ref(codegendata *cd, void *branchptr)
 
 *******************************************************************************/
 
-void codegen_addpatchref(codegendata *cd, voidptr branchptr,
-						 functionptr patcher, voidptr ref, s4 disp)
+void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
+						 s4 disp)
 {
 	patchref *pr;
 	s4        branchpos;
 
-	branchpos = (u1 *) branchptr - cd->mcodebase;
+	branchpos = (u1 *) cd->mcodeptr - cd->mcodebase;
 
 	pr = DNEW(patchref);
 
@@ -476,7 +475,7 @@ void codegen_addpatchref(codegendata *cd, voidptr branchptr,
 	   the basic block code generation is completed, we check the
 	   range and maybe generate some nop's. */
 
-	cd->lastmcodeptr = ((u1 *) branchptr) + PATCHER_CALL_SIZE;
+	cd->lastmcodeptr = ((u1 *) cd->mcodeptr) + PATCHER_CALL_SIZE;
 #endif
 }
 
@@ -578,13 +577,11 @@ u1 *codegen_findmethod(u1 *pc)
 
 *******************************************************************************/
 
-void codegen_finish(jitdata *jd, s4 mcodelen)
+void codegen_finish(jitdata *jd)
 {
 	codeinfo    *code;
 	codegendata *cd;
-#if 0
 	s4           mcodelen;
-#endif
 #if defined(ENABLE_INTRP)
 	s4           ncodelen;
 #endif
@@ -605,6 +602,10 @@ void codegen_finish(jitdata *jd, s4 mcodelen)
 	ncodelen = 0;
 #endif
 
+	/* calculate the code length */
+
+	mcodelen = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	extralen = sizeof(threadcritnode) * cd->threadcritcount;
 #else
@@ -618,9 +619,6 @@ void codegen_finish(jitdata *jd, s4 mcodelen)
 	}
 #endif
 
-#if 0
-	mcodelen = cd->mcodeptr - cd->mcodebase;
-#endif
 	alignedmcodelen = ALIGN(mcodelen, MAX_ALIGN);
 
 #if defined(ENABLE_INTRP)

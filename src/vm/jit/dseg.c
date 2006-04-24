@@ -31,7 +31,7 @@
             Joseph Wenninger
 			Edwin Steiner
 
-   $Id: dseg.c 4734 2006-04-05 09:57:55Z edwin $
+   $Id: dseg.c 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -52,7 +52,7 @@
 
 *******************************************************************************/
 
-void dseg_increase(codegendata *cd)
+static void dseg_increase(codegendata *cd)
 {
 	u1 *newstorage;
 
@@ -67,37 +67,18 @@ void dseg_increase(codegendata *cd)
 }
 
 
-s4 dseg_adds4_increase(codegendata *cd, s4 value)
-{
-	dseg_increase(cd);
-
-	*((s4 *) (cd->dsegtop - cd->dseglen)) = value;
-
-	return -(cd->dseglen);
-}
-
-
 s4 dseg_adds4(codegendata *cd, s4 value)
 {
 	s4 *dataptr;
 
 	cd->dseglen += 4;
-	dataptr = (s4 *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adds4_increase(cd, value);
+		dseg_increase(cd);
+
+	dataptr = (s4 *) (cd->dsegtop - cd->dseglen);
 
 	*dataptr = value;
-
-	return -(cd->dseglen);
-}
-
-
-s4 dseg_adds8_increase(codegendata *cd, s8 value)
-{
-	dseg_increase(cd);
-
-	*((s8 *) (cd->dsegtop - cd->dseglen)) = value;
 
 	return -(cd->dseglen);
 }
@@ -108,22 +89,13 @@ s4 dseg_adds8(codegendata *cd, s8 value)
 	s8 *dataptr;
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
-	dataptr = (s8 *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adds8_increase(cd, value);
+		dseg_increase(cd);
+
+	dataptr = (s8 *) (cd->dsegtop - cd->dseglen);
 
 	*dataptr = value;
-
-	return -(cd->dseglen);
-}
-
-
-s4 dseg_addfloat_increase(codegendata *cd, float value)
-{
-	dseg_increase(cd);
-
-	*((float *) (cd->dsegtop - cd->dseglen)) = value;
 
 	return -(cd->dseglen);
 }
@@ -134,22 +106,13 @@ s4 dseg_addfloat(codegendata *cd, float value)
 	float *dataptr;
 
 	cd->dseglen += 4;
-	dataptr = (float *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_addfloat_increase(cd, value);
+		dseg_increase(cd);
+
+	dataptr = (float *) (cd->dsegtop - cd->dseglen);
 
 	*dataptr = value;
-
-	return -(cd->dseglen);
-}
-
-
-s4 dseg_adddouble_increase(codegendata *cd, double value)
-{
-	dseg_increase(cd);
-
-	*((double *) (cd->dsegtop - cd->dseglen)) = value;
 
 	return -(cd->dseglen);
 }
@@ -160,10 +123,11 @@ s4 dseg_adddouble(codegendata *cd, double value)
 	double *dataptr;
 
 	cd->dseglen = ALIGN(cd->dseglen + 8, 8);
-	dataptr = (double *) (cd->dsegtop - cd->dseglen);
 
 	if (cd->dseglen > cd->dsegsize)
-		return dseg_adddouble_increase(cd, value);
+		dseg_increase(cd);
+
+	dataptr = (double *) (cd->dsegtop - cd->dseglen);
 
 	*dataptr = value;
 
@@ -221,7 +185,7 @@ void dseg_addlinenumbertablesize(codegendata *cd)
 
 *******************************************************************************/
 
-void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *mcodeptr)
+void dseg_addlinenumber(codegendata *cd, u2 linenumber)
 {
 	linenumberref *lr;
 
@@ -229,7 +193,7 @@ void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *mcodeptr)
 
 	lr->linenumber = linenumber;
 	lr->tablepos   = 0;
-	lr->targetmpc  = mcodeptr - cd->mcodebase;
+	lr->targetmpc  = (u1 *) cd->mcodeptr - cd->mcodebase;
 	lr->next       = cd->linenumberreferences;
 
 	cd->linenumberreferences = lr;
@@ -248,9 +212,7 @@ void dseg_addlinenumber(codegendata *cd, u2 linenumber, u1 *mcodeptr)
 
 *******************************************************************************/
 
-void dseg_addlinenumber_inline_start(codegendata *cd, 
-									 instruction *iptr, 
-									 u1 *mcodeptr)
+void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr)
 {
 	linenumberref *lr;
 	insinfo_inline *insinfo;
@@ -260,7 +222,7 @@ void dseg_addlinenumber_inline_start(codegendata *cd,
 
 	lr->linenumber = (-2); /* marks start of inlined method */
 	lr->tablepos   = 0;
-	lr->targetmpc  = (mpc = mcodeptr - cd->mcodebase);
+	lr->targetmpc  = (mpc = (u1 *) cd->mcodeptr - cd->mcodebase);
 	lr->next       = cd->linenumberreferences;
 
 	cd->linenumberreferences = lr;
@@ -345,13 +307,13 @@ void dseg_createlinenumbertable(codegendata *cd)
 *******************************************************************************/
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(ENABLE_INTRP)
-void dseg_adddata(codegendata *cd, u1 *mcodeptr)
+void dseg_adddata(codegendata *cd)
 {
 	dataref *dr;
 
 	dr = DNEW(dataref);
 
-	dr->datapos = mcodeptr - cd->mcodebase;
+	dr->datapos = (u1 *) cd->mcodeptr - cd->mcodebase;
 	dr->next    = cd->datareferences;
 
 	cd->datareferences = dr;

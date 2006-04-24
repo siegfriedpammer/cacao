@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4760 2006-04-12 20:06:23Z edwin $
+   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -51,9 +51,10 @@
 /* MCODECHECK(icnt) */
 
 #define MCODECHECK(icnt) \
-	if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) { \
-        cd->mcodeptr = (u1 *) codegen_increase(cd, cd->mcodeptr); \
-    }
+    do { \
+        if ((cd->mcodeptr + (icnt)) > (u1 *) cd->mcodeend) \
+            codegen_increase(cd); \
+    } while (0)
 
 
 /* gen_resolvebranch ***********************************************************

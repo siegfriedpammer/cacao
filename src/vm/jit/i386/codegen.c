@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: codegen.c 4826 2006-04-24 16:06:16Z twisti $
 
 */
 
@@ -350,7 +350,7 @@ bool codegen(jitdata *jd)
 			M_ALD(REG_ITMP1, REG_SP, stackframesize * 4 + 4);
 			M_TEST(REG_ITMP1);
 			M_BEQ(0);
-			codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
+			codegen_add_nullpointerexception_ref(cd);
 			M_AST(REG_ITMP1, REG_SP, s1 * 4);
 			M_AST(REG_ITMP1, REG_SP, 0 * 4);
 			M_MOV_IMM(BUILTIN_monitorenter, REG_ITMP1);
@@ -628,7 +628,7 @@ bool codegen(jitdata *jd)
 					}
 				}
 #endif
-				dseg_addlinenumber_inline_start(cd, iptr, cd->mcodeptr);
+				dseg_addlinenumber_inline_start(cd, iptr);
 			}
 			break;
 
@@ -637,7 +637,7 @@ bool codegen(jitdata *jd)
 				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
 
 				dseg_addlinenumber_inline_end(cd, iptr);
-				dseg_addlinenumber(cd, iptr->line, cd->mcodeptr);
+				dseg_addlinenumber(cd, iptr->line);
 
 #if defined(USE_THREADS)
 				if (insinfo->synchronize) {
@@ -651,7 +651,7 @@ bool codegen(jitdata *jd)
 					else {
 						var = &(rd->locals[insinfo->synclocal][TYPE_ADR]);
 						if (var->flags & INMEMORY) {
-							i386_mov_membase_reg(cd, REG_SP, var->regoff * 4, REG_ITMP1);
+							M_ALD(REG_ITMP1, REG_SP, var->regoff * 4);
 							M_AST(REG_ITMP1, REG_SP, 0 * 4);
 						} 
 						else {
@@ -679,7 +679,7 @@ bool codegen(jitdata *jd)
 			else
 				M_TEST(src->regoff);
 			M_BEQ(0);
-			codegen_add_nullpointerexception_ref(cd, cd->mcodeptr);
+			codegen_add_nullpointerexception_ref(cd);
 			break;
 
 		/* constant operations ************************************************/
@@ -750,7 +750,7 @@ bool codegen(jitdata *jd)
 			} else {
   				disp = dseg_addfloat(cd, iptr->val.f);
 				i386_mov_imm_reg(cd, 0, REG_ITMP1);
-				dseg_adddata(cd, cd->mcodeptr);
+				dseg_adddata(cd);
 				i386_flds_membase(cd, REG_ITMP1, disp);
 				fpu_st_offset++;
 			}
@@ -786,7 +786,7 @@ bool codegen(jitdata *jd)
 			} else {
 				disp = dseg_adddouble(cd, iptr->val.d);
 				i386_mov_imm_reg(cd, 0, REG_ITMP1);
-				dseg_adddata(cd, cd->mcodeptr);
+				dseg_adddata(cd);
 				i386_fldl_membase(cd, REG_ITMP1, disp);
 				fpu_st_offset++;
 			}
@@ -802,8 +802,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 
 			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_aconst,
+				codegen_addpatchref(cd, PATCHER_aconst,
 									(unresolved_class *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
@@ -1769,7 +1768,7 @@ bool codegen(jitdata *jd)
 			M_OR_MEMBASE(REG_SP, src->regoff * 4 + 4, REG_ITMP2);
 			M_TEST(REG_ITMP2);
 			M_BEQ(0);
-			codegen_add_arithmeticexception_ref(cd, cd->mcodeptr);
+			codegen_add_arithmeticexception_ref(cd);
 
 			bte = iptr->val.a;
 			md = bte->md;
@@ -2522,7 +2521,7 @@ bool codegen(jitdata *jd)
 			} else {
 				disp = dseg_adds4(cd, 0);
 				i386_mov_imm_reg(cd, 0, REG_ITMP1);
-				dseg_adddata(cd, cd->mcodeptr);
+				dseg_adddata(cd);
 				i386_mov_reg_membase(cd, src->regoff, REG_ITMP1, disp);
 				i386_fildl_membase(cd, REG_ITMP1, disp);
 				fpu_st_offset++;
@@ -2555,7 +2554,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_adds4(cd, 0x0e7f);
@@ -2616,7 +2615,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_adds4(cd, 0x0e7f);
@@ -2676,7 +2675,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_adds4(cd, 0x0e7f);
@@ -2734,7 +2733,7 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_NULL);
 
 			i386_mov_imm_reg(cd, 0, REG_ITMP1);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_adds4(cd, 0x0e7f);
@@ -3126,7 +3125,7 @@ bool codegen(jitdata *jd)
 			M_CALL(REG_ITMP1);
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
-			codegen_add_arraystoreexception_ref(cd, cd->mcodeptr);
+			codegen_add_arraystoreexception_ref(cd);
 
 			var_to_reg_int(s1, src->prev->prev, REG_ITMP1);
 			var_to_reg_int(s2, src->prev, REG_ITMP2);
@@ -3221,8 +3220,7 @@ bool codegen(jitdata *jd)
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: EAX*/ 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_get_putstatic,
+				codegen_addpatchref(cd, PATCHER_get_putstatic,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
@@ -3235,8 +3233,7 @@ bool codegen(jitdata *jd)
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3289,8 +3286,7 @@ bool codegen(jitdata *jd)
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_get_putstatic,
+				codegen_addpatchref(cd, PATCHER_get_putstatic,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
@@ -3303,8 +3299,7 @@ bool codegen(jitdata *jd)
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3357,8 +3352,7 @@ bool codegen(jitdata *jd)
 			/* EAX: S|YES ECX: S|YES EDX: S|YES OUTPUT: REG_NULL*/ 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_get_putstatic,
+				codegen_addpatchref(cd, PATCHER_get_putstatic,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1), 0);
 
 				if (opt_showdisassemble) {
@@ -3371,8 +3365,7 @@ bool codegen(jitdata *jd)
 				fieldinfo *fi = INSTRUCTION_RESOLVED_FIELDINFO(iptr + 1);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_clinit, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -3406,8 +3399,7 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_getfield,
+				codegen_addpatchref(cd, PATCHER_getfield,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
@@ -3466,8 +3458,7 @@ bool codegen(jitdata *jd)
 				var_to_reg_flt(s2, src, REG_FTMP2);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_putfield,
+				codegen_addpatchref(cd, PATCHER_putfield,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr), 0);
 
 				if (opt_showdisassemble) {
@@ -3510,8 +3501,7 @@ bool codegen(jitdata *jd)
 			gen_nullptr_check(s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr + 1)) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_putfieldconst,
+				codegen_addpatchref(cd, PATCHER_putfieldconst,
 									INSTRUCTION_UNRESOLVED_FIELD(iptr + 1), 0);
 
 				if (opt_showdisassemble) {
@@ -3549,8 +3539,7 @@ bool codegen(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_athrow_areturn,
+				codegen_addpatchref(cd, PATCHER_athrow_areturn,
 									(unresolved_class *) iptr->val.a, 0);
 
 				if (opt_showdisassemble) {
@@ -3577,7 +3566,7 @@ bool codegen(jitdata *jd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
 			M_JMP_IMM(0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			ALIGNCODENOP;
 			break;
 
@@ -3587,7 +3576,7 @@ bool codegen(jitdata *jd)
 			/* EAX: YES ECX: YES EDX: YES OUTPUT: REG_NULL*/ 
 
   			M_CALL_IMM(0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 			
 		case ICMD_RET:          /* ... ==> ...                                */
@@ -3612,7 +3601,7 @@ bool codegen(jitdata *jd)
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFNONNULL:    /* ..., value ==> ...                         */
@@ -3627,7 +3616,7 @@ bool codegen(jitdata *jd)
 				i386_test_reg_reg(cd, src->regoff, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFEQ:         /* ..., value ==> ...                         */
@@ -3642,7 +3631,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFLT:         /* ..., value ==> ...                         */
@@ -3657,7 +3646,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFLE:         /* ..., value ==> ...                         */
@@ -3672,7 +3661,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_LE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFNE:         /* ..., value ==> ...                         */
@@ -3687,7 +3676,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFGT:         /* ..., value ==> ...                         */
@@ -3702,7 +3691,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_G, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IFGE:         /* ..., value ==> ...                         */
@@ -3717,7 +3706,7 @@ bool codegen(jitdata *jd)
 				i386_alu_imm_reg(cd, ALU_CMP, iptr->val.i, src->regoff);
 			}
 			i386_jcc(cd, I386_CC_GE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -3740,7 +3729,7 @@ bool codegen(jitdata *jd)
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LLT:       /* ..., value ==> ...                         */
@@ -3751,7 +3740,7 @@ bool codegen(jitdata *jd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->regoff * 4);
@@ -3761,7 +3750,7 @@ bool codegen(jitdata *jd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_B, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -3773,7 +3762,7 @@ bool codegen(jitdata *jd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_L, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->regoff * 4);
@@ -3783,7 +3772,7 @@ bool codegen(jitdata *jd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_BE, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -3807,7 +3796,7 @@ bool codegen(jitdata *jd)
 			}
 			i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LGT:       /* ..., value ==> ...                         */
@@ -3818,7 +3807,7 @@ bool codegen(jitdata *jd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->regoff * 4);
@@ -3828,7 +3817,7 @@ bool codegen(jitdata *jd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_A, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -3840,7 +3829,7 @@ bool codegen(jitdata *jd)
 			if (src->flags & INMEMORY) {
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l >> 32, REG_SP, src->regoff * 4 + 4);
 				i386_jcc(cd, I386_CC_G, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->regoff * 4);
@@ -3850,7 +3839,7 @@ bool codegen(jitdata *jd)
 
 				i386_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, src->regoff * 4);
 				i386_jcc(cd, I386_CC_AE, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -3873,7 +3862,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
@@ -3890,7 +3879,7 @@ bool codegen(jitdata *jd)
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_E, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_ICMPNE:    /* ..., value, value ==> ...                  */
@@ -3912,7 +3901,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPNE:    /* ..., value, value ==> ...                  */
@@ -3929,7 +3918,7 @@ bool codegen(jitdata *jd)
 				i386_test_reg_reg(cd, REG_ITMP1, REG_ITMP1);
 			}			
 			i386_jcc(cd, I386_CC_NE, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_ICMPLT:    /* ..., value, value ==> ...                  */
@@ -3951,7 +3940,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			i386_jcc(cd, I386_CC_L, 0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPLT:    /* ..., value, value ==> ...                  */
@@ -3963,7 +3952,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				M_BLT(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->prev->regoff * 4);
@@ -3974,7 +3963,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_B, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -3997,7 +3986,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			M_BGT(0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPGT:    /* ..., value, value ==> ...                  */
@@ -4009,7 +3998,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				M_BGT(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->prev->regoff * 4);
@@ -4020,7 +4009,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -4043,7 +4032,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			M_BLE(0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPLE:    /* ..., value, value ==> ...                  */
@@ -4055,7 +4044,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				M_BLT(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->prev->regoff * 4);
@@ -4066,7 +4055,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				M_BBE(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -4089,7 +4078,7 @@ bool codegen(jitdata *jd)
 				i386_alu_reg_reg(cd, ALU_CMP, src->regoff, src->prev->regoff);
 			}
 			M_BGE(0);
-			codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+			codegen_addreference(cd, (basicblock *) iptr->target);
 			break;
 
 		case ICMD_IF_LCMPGE:    /* ..., value, value ==> ...                  */
@@ -4101,7 +4090,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4 + 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4 + 4, REG_ITMP1);
 				M_BGT(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 
 				disp = 3 + 3 + 6;
 				CALCOFFSETBYTES(disp, REG_SP, src->prev->regoff * 4);
@@ -4112,7 +4101,7 @@ bool codegen(jitdata *jd)
 				i386_mov_membase_reg(cd, REG_SP, src->prev->regoff * 4, REG_ITMP1);
 				i386_alu_membase_reg(cd, ALU_CMP, REG_SP, src->regoff * 4, REG_ITMP1);
 				M_BAE(0);
-				codegen_addreference(cd, (basicblock *) iptr->target, cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) iptr->target);
 			}			
 			break;
 
@@ -4209,8 +4198,7 @@ bool codegen(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_athrow_areturn,
+				codegen_addpatchref(cd, PATCHER_athrow_areturn,
 									(unresolved_class *) iptr->val.a, 0);
 
 				if (opt_showdisassemble) {
@@ -4369,7 +4357,7 @@ nowperformreturn:
 				i386_alu_imm_reg(cd, ALU_CMP, i - 1, REG_ITMP1);
 				i386_jcc(cd, I386_CC_A, 0);
 
-				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) tptr[0]);
 
 				/* build jump table top down and use address of lowest entry */
 
@@ -4383,7 +4371,7 @@ nowperformreturn:
 				/* length of dataseg after last dseg_addtarget is used by load */
 
 				i386_mov_imm_reg(cd, 0, REG_ITMP2);
-				dseg_adddata(cd, cd->mcodeptr);
+				dseg_adddata(cd);
 				i386_mov_memindex_reg(cd, -(cd->dseglen), REG_ITMP2, REG_ITMP1, 2, REG_ITMP1);
 				i386_jmp_reg(cd, REG_ITMP1);
 			}
@@ -4412,13 +4400,13 @@ nowperformreturn:
 					val = s4ptr[0];
 					i386_alu_imm_reg(cd, ALU_CMP, val, s1);
 					i386_jcc(cd, I386_CC_E, 0);
-					codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr); 
+					codegen_addreference(cd, (basicblock *) tptr[0]); 
 				}
 
 				i386_jmp_imm(cd, 0);
 			
 				tptr = (void **) iptr->target;
-				codegen_addreference(cd, (basicblock *) tptr[0], cd->mcodeptr);
+				codegen_addreference(cd, (basicblock *) tptr[0]);
 			}
 			break;
 
@@ -4519,7 +4507,7 @@ gen_method:
 				if (iptr->op1 == true) {
 					M_TEST(REG_RESULT);
 					M_BEQ(0);
-					codegen_add_fillinstacktrace_ref(cd, cd->mcodeptr);
+					codegen_add_fillinstacktrace_ref(cd);
 				}
 				break;
 
@@ -4536,8 +4524,8 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokestatic_special, um, 0);
+					codegen_addpatchref(cd, PATCHER_invokestatic_special,
+										um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4562,8 +4550,7 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokevirtual, um, 0);
+					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4590,8 +4577,7 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = INSTRUCTION_UNRESOLVED_METHOD(iptr);
 
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_invokeinterface, um, 0);
+					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
 					if (opt_showdisassemble) {
 						M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4744,8 +4730,7 @@ gen_method:
 					i386_test_reg_reg(cd, s1, s1);
 					i386_jcc(cd, I386_CC_Z, 5 + (opt_showdisassemble ? 5 : 0) + 6 + 6 + s2 + 5 + s3);
 
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_checkcast_instanceof_flags,
+					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
 										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
@@ -4770,7 +4755,7 @@ gen_method:
 										 REG_ITMP2);
 
 					if (!super) {
-						codegen_addpatchref(cd, cd->mcodeptr,
+						codegen_addpatchref(cd,
 											PATCHER_checkcast_instanceof_interface,
 											(constant_classref *) iptr->target, 0);
 
@@ -4785,14 +4770,14 @@ gen_method:
 					i386_alu_imm32_reg(cd, ALU_SUB, superindex, REG_ITMP3);
 					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 					i386_jcc(cd, I386_CC_LE, 0);
-					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd);
 					i386_mov_membase32_reg(cd, REG_ITMP2,
 										   OFFSET(vftbl_t, interfacetable[0]) -
 										   superindex * sizeof(methodptr*),
 										   REG_ITMP3);
 					i386_test_reg_reg(cd, REG_ITMP3, REG_ITMP3);
 					i386_jcc(cd, I386_CC_E, 0);
-					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd);
 
 					if (!super)
 						i386_jmp_imm(cd, s3);
@@ -4811,9 +4796,9 @@ gen_method:
 										 REG_ITMP2);
 
 					if (!super) {
-						codegen_addpatchref(cd, cd->mcodeptr,
-											PATCHER_checkcast_class,
-											(constant_classref *) iptr->target, 0);
+						codegen_addpatchref(cd, PATCHER_checkcast_class,
+											(constant_classref *) iptr->target,
+											0);
 
 						if (opt_showdisassemble) {
 							M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -4852,7 +4837,7 @@ gen_method:
 
 					i386_alu_reg_reg(cd, ALU_CMP, REG_ITMP3, REG_ITMP2);
 					i386_jcc(cd, I386_CC_A, 0);    /* (u) REG_ITMP2 > (u) REG_ITMP3 -> jump */
-					codegen_add_classcastexception_ref(cd, cd->mcodeptr);
+					codegen_add_classcastexception_ref(cd);
 				}
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP3);
 
@@ -4863,8 +4848,7 @@ gen_method:
 				M_AST(s1, REG_SP, 0 * 4);
 
 				if (iptr->val.a == NULL) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_builtin_arraycheckcast,
+					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
 										iptr->target, 0);
 
 					if (opt_showdisassemble) {
@@ -4877,7 +4861,7 @@ gen_method:
 				M_CALL(REG_ITMP3);
 				M_TEST(REG_RESULT);
 				M_BEQ(0);
-				codegen_add_classcastexception_ref(cd, cd->mcodeptr);
+				codegen_add_classcastexception_ref(cd);
 
 				var_to_reg_int(s1, src, REG_ITMP1);
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, s1);
@@ -4972,8 +4956,7 @@ gen_method:
 				i386_test_reg_reg(cd, s1, s1);
 				i386_jcc(cd, I386_CC_Z, 5 + (opt_showdisassemble ? 5 : 0) + 6 + 6 + s2 + 5 + s3);
 
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_checkcast_instanceof_flags,
+				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
 									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
@@ -4998,7 +4981,7 @@ gen_method:
 									 REG_ITMP1);
 
 				if (!super) {
-					codegen_addpatchref(cd, cd->mcodeptr,
+					codegen_addpatchref(cd,
 										PATCHER_checkcast_instanceof_interface,
 										(constant_classref *) iptr->target, 0);
 
@@ -5044,8 +5027,7 @@ gen_method:
 									 REG_ITMP1);
 
 				if (!super) {
-					codegen_addpatchref(cd, cd->mcodeptr,
-										PATCHER_instanceof_class,
+					codegen_addpatchref(cd, PATCHER_instanceof_class,
 										(constant_classref *) iptr->target, 0);
 
 					if (opt_showdisassemble) {
@@ -5107,8 +5089,7 @@ gen_method:
 			/* is a patcher function set? */
 
 			if (iptr->val.a == NULL) {
-				codegen_addpatchref(cd, cd->mcodeptr,
-									PATCHER_builtin_multianewarray,
+				codegen_addpatchref(cd, PATCHER_builtin_multianewarray,
 									(constant_classref *) iptr->target, 0);
 
 				if (opt_showdisassemble) {
@@ -5142,7 +5123,7 @@ gen_method:
 
 			M_TEST(REG_RESULT);
 			M_BEQ(0);
-			codegen_add_fillinstacktrace_ref(cd, cd->mcodeptr);
+			codegen_add_fillinstacktrace_ref(cd);
 
 			s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
 			M_INTMOVE(REG_RESULT, s1);
@@ -5251,7 +5232,7 @@ gen_method:
 			/* calcuate exception address */
 
 			M_MOV_IMM(0, REG_ITMP2_XPC);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 			M_AADD_IMM32(eref->branchpos - 6, REG_ITMP2_XPC);
 
 			/* move function to call into REG_ITMP3 */
@@ -5271,7 +5252,7 @@ gen_method:
 				M_AST(REG_ITMP1, REG_SP, 4 * 4);                /* for AIOOBE */
 
 				M_AST_IMM(0, REG_SP, 0 * 4);
-				dseg_adddata(cd, cd->mcodeptr);
+				dseg_adddata(cd);
 				M_MOV(REG_SP, REG_ITMP1);
 				M_AADD_IMM(5 * 4, REG_ITMP1);
 				M_AST(REG_ITMP1, REG_SP, 1 * 4);
@@ -5323,7 +5304,7 @@ gen_method:
 			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 			M_AADD_IMM(off, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 #else
@@ -5374,7 +5355,7 @@ gen_method:
 		}
 	}
 	
-	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd);
 
 	/* everything's ok */
 
@@ -5582,7 +5563,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL) {
-		codegen_addpatchref(cd, cd->mcodeptr, PATCHER_resolve_native, m, 0);
+		codegen_addpatchref(cd, PATCHER_resolve_native, m, 0);
 
 		if (opt_showdisassemble) {
 			M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -5611,7 +5592,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_IST_IMM(0, REG_SP, 1 * 4);
-	dseg_adddata(cd, cd->mcodeptr);
+	dseg_adddata(cd);
 
 	M_MOV(REG_SP, REG_ITMP2);
 	M_AADD_IMM(stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
@@ -5802,7 +5783,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
-			dseg_adddata(cd, cd->mcodeptr);
+			dseg_adddata(cd);
 			M_AADD_IMM(disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
 #else
@@ -5821,7 +5802,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		}
 	}
 
-	codegen_finish(jd, (s4) (cd->mcodeptr - cd->mcodebase));
+	codegen_finish(jd);
 
 	return jd->code->entrypoint;
 }
