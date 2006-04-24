@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4773 2006-04-14 11:20:38Z twisti $
+   $Id: codegen.h 4819 2006-04-24 09:58:04Z twisti $
 
 */
 
@@ -89,20 +89,15 @@
 
 #define M_LNGMOVE(a,b) \
     do { \
-        M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
+            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+        } else { \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+        } \
     } while (0)
-
-#define M_TINTMOVE(t,a,b) \
-    if ((t) == TYPE_LNG) { \
-        if ((a) <= (b)) \
-            M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
-        M_INTMOVE(GET_HIGH_REG((a)), GET_HIGH_REG((b))); \
-        if ((a) > (b)) \
-            M_INTMOVE(GET_LOW_REG((a)), GET_LOW_REG((b))); \
-    } else { \
-        M_INTMOVE((a), (b)); \
-    }
 
 
 /* M_FLTMOVE:

@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4773 2006-04-14 11:20:38Z twisti $
+   $Id: codegen.c 4819 2006-04-24 09:58:04Z twisti $
 
 */
 
@@ -219,27 +219,24 @@ bool codegen(jitdata *jd)
 				s2 = rd->argintregs[s1];
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!(var->flags & INMEMORY)) {      /* reg arg -> register   */
- 					M_TINTMOVE(t, s2, var->regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_LNGMOVE(s2, var->regoff);
+					else
+						M_INTMOVE(s2, var->regoff);
 
 				} else {                             /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t)) {
-						M_IST(GET_HIGH_REG(s2), REG_SP, var->regoff * 4);
-						M_IST(GET_LOW_REG(s2), REG_SP, var->regoff * 4 + 4);
-					} else {
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s2, REG_SP, var->regoff * 4);
+					else
 						M_IST(s2, REG_SP, var->regoff * 4);
-					}
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
-					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(GET_HIGH_REG(var->regoff), REG_SP,
-							  (stackframesize + s1) * 4);
-						M_ILD(GET_LOW_REG(var->regoff), REG_SP,
-							  (stackframesize + s1) * 4 + 4);
-					} else {
+					if (IS_2_WORD_TYPE(t))
+						M_LLD(var->regoff, REG_SP, (stackframesize + s1) * 4);
+					else
 						M_ILD(var->regoff, REG_SP, (stackframesize + s1) * 4);
-					}
 
 				} else {                             /* stack arg -> spilled  */
 #if 1
@@ -447,17 +444,17 @@ bool codegen(jitdata *jd)
 					} else {
 						if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
 							s1 = rd->interfaces[len][s2].regoff;
-							M_TINTMOVE(s2, s1, d);
+							if (IS_2_WORD_TYPE(s2))
+								M_LNGMOVE(s1, d);
+							else
+								M_INTMOVE(s1, d);
 						} else {
-							if (IS_2_WORD_TYPE(s2)) {
-								M_ILD(GET_HIGH_REG(d), REG_SP,
+							if (IS_2_WORD_TYPE(s2))
+								M_LLD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
-								M_ILD(GET_LOW_REG(d), REG_SP,
-									  rd->interfaces[len][s2].regoff * 4 + 4);
-							} else {
+							else
 								M_ILD(d, REG_SP,
 									  rd->interfaces[len][s2].regoff * 4);
-							}
 						}
 
 						emit_store(jd, NULL, src, d);
@@ -564,11 +561,10 @@ bool codegen(jitdata *jd)
 			if ((iptr->dst->varkind == LOCALVAR) &&
 			    (iptr->dst->varnum == iptr->op1))
 				break;
-			if (var->flags & INMEMORY) {
+			if (var->flags & INMEMORY)
 				M_ILD(d, REG_SP, var->regoff * 4);
-			} else {
-				M_TINTMOVE(var->type, var->regoff, d);
-			}
+			else
+				M_INTMOVE(var->regoff, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -580,12 +576,10 @@ bool codegen(jitdata *jd)
 			if ((iptr->dst->varkind == LOCALVAR) &&
 				(iptr->dst->varnum == iptr->op1))
 				break;
-			if (var->flags & INMEMORY) {
-				M_ILD(GET_HIGH_REG(d), REG_SP, var->regoff * 4);
-				M_ILD(GET_LOW_REG(d), REG_SP, var->regoff * 4 + 4);
-			} else {
-				M_TINTMOVE(var->type, var->regoff, d);
-			}
+			if (var->flags & INMEMORY)
+				M_LLD(d, REG_SP, var->regoff * 4);
+			else
+				M_LNGMOVE(var->regoff, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -597,11 +591,10 @@ bool codegen(jitdata *jd)
 				(iptr->dst->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY) {
-					M_FLD(d, REG_SP, var->regoff * 4);
-			} else {
+			if (var->flags & INMEMORY)
+				M_FLD(d, REG_SP, var->regoff * 4);
+			else
 				M_FLTMOVE(var->regoff, d);
-			}
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -613,11 +606,10 @@ bool codegen(jitdata *jd)
 				(iptr->dst->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ILOAD]);
-			if (var->flags & INMEMORY) {
+			if (var->flags & INMEMORY)
 				M_DLD(d, REG_SP, var->regoff * 4);
-			} else {
+			else
 				M_FLTMOVE(var->regoff, d);
-			}
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -633,7 +625,7 @@ bool codegen(jitdata *jd)
 				M_IST(s1, REG_SP, var->regoff * 4);
 			} else {
 				s1 = emit_load_s1(jd, iptr, src, var->regoff);
-				M_TINTMOVE(var->type, s1, var->regoff);
+				M_INTMOVE(s1, var->regoff);
 			}
 			break;
 
@@ -645,26 +637,37 @@ bool codegen(jitdata *jd)
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-				M_IST(GET_HIGH_REG(s1), REG_SP, var->regoff * 4);
-				M_IST(GET_LOW_REG(s1), REG_SP, var->regoff * 4 + 4);
+				M_LST(s1, REG_SP, var->regoff * 4);
 			} else {
 				s1 = emit_load_s1(jd, iptr, src, var->regoff);
-				M_TINTMOVE(var->type, s1, var->regoff);
+				M_LNGMOVE(s1, var->regoff);
 			}
 			break;
 
 		case ICMD_FSTORE:     /* ..., value  ==> ...                          */
-		case ICMD_DSTORE:     /* op1 = local variable                         */
+		                      /* op1 = local variable                         */
 
 			if ((src->varkind == LOCALVAR) && (src->varnum == iptr->op1))
 				break;
 			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
 			if (var->flags & INMEMORY) {
 				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
-				if (var->type == TYPE_DBL)
-					M_DST(s1, REG_SP, var->regoff * 4);
-				else
-					M_FST(s1, REG_SP, var->regoff * 4);
+				M_FST(s1, REG_SP, var->regoff * 4);
+			} else {
+				s1 = emit_load_s1(jd, iptr, src, var->regoff);
+				M_FLTMOVE(s1, var->regoff);
+			}
+			break;
+
+		case ICMD_DSTORE:     /* ..., value  ==> ...                          */
+		                      /* op1 = local variable                         */
+
+			if ((src->varkind == LOCALVAR) && (src->varnum == iptr->op1))
+				break;
+			var = &(rd->locals[iptr->op1][iptr->opc - ICMD_ISTORE]);
+			if (var->flags & INMEMORY) {
+				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
+				M_DST(s1, REG_SP, var->regoff * 4);
 			} else {
 				s1 = emit_load_s1(jd, iptr, src, var->regoff);
 				M_FLTMOVE(s1, var->regoff);
@@ -969,17 +972,17 @@ bool codegen(jitdata *jd)
 
 			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
-			M_TINTMOVE(TYPE_LNG, s2, s3);
+			M_LNGMOVE(s2, s3);
 
 			s1 = emit_load_s1(jd, iptr, src->prev, PACK_REGS(REG_ITMP2, REG_ITMP1));
 			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[0].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[0].regoff)]);
-			M_TINTMOVE(TYPE_LNG, s1, s3);
+			M_LNGMOVE(s1, s3);
 
 			M_JSR;
 
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_RESULT2, REG_RESULT));
-			M_TINTMOVE(TYPE_LNG, PACK_REGS(REG_RESULT2, REG_RESULT), d);
+			M_LNGMOVE(PACK_REGS(REG_RESULT2, REG_RESULT), d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -1589,9 +1592,7 @@ bool codegen(jitdata *jd)
 			}
 			M_SLL_IMM(s2, 3, REG_ITMP2);
 			M_IADD(s1, REG_ITMP2, REG_ITMP2);
-			M_ILD(GET_HIGH_REG(d), REG_ITMP2, OFFSET(java_longarray, data[0]));
-			M_ILD(GET_LOW_REG(d), REG_ITMP2, OFFSET(java_longarray,
-													data[0]) + 4);
+			M_LLD_INTERN(d, REG_ITMP2, OFFSET(java_longarray, data[0]));
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -1804,30 +1805,26 @@ bool codegen(jitdata *jd)
 			case TYPE_INT:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD_INTERN(d, REG_ITMP1, 0);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_LNG:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
 				M_ILD_INTERN(GET_LOW_REG(d), REG_ITMP1, 4);/* keep this order */
 				M_ILD_INTERN(GET_HIGH_REG(d), REG_ITMP1, 0);/*keep this order */
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ALD_INTERN(d, REG_ITMP1, 0);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_FLD_INTERN(d, REG_ITMP1, 0);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_DLD_INTERN(d, REG_ITMP1, 0);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			}
+			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
@@ -1866,8 +1863,7 @@ bool codegen(jitdata *jd)
 				break;
 			case TYPE_LNG:
 				s2 = emit_load_s2(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP3));
-				M_IST_INTERN(GET_HIGH_REG(s2), REG_ITMP1, 0);
-				M_IST_INTERN(GET_LOW_REG(s2), REG_ITMP1, 4);
+				M_LST_INTERN(s2, REG_ITMP1, 0);
 				break;
 			case TYPE_ADR:
 				s2 = emit_load_s2(jd, iptr, src, REG_ITMP2);
@@ -1909,7 +1905,6 @@ bool codegen(jitdata *jd)
 			case TYPE_INT:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ILD(d, s1, disp);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_LNG:
    				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, PACK_REGS(REG_ITMP2, REG_ITMP1));
@@ -1920,24 +1915,21 @@ bool codegen(jitdata *jd)
 					M_ILD(GET_HIGH_REG(d), s1, disp);
 					M_ILD(GET_LOW_REG(d), s1, disp + 4);
 				}
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_ADR:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
 				M_ALD(d, s1, disp);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_FLT:
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_FLD(d, s1, disp);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			case TYPE_DBL:				
 				d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FTMP1);
 				M_DLD(d, s1, disp);
-				emit_store(jd, iptr, iptr->dst, d);
 				break;
 			}
+			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
 		case ICMD_PUTFIELD:   /* ..., value  ==> ...                          */
@@ -2428,13 +2420,13 @@ bool codegen(jitdata *jd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_RESULT);
-			M_TINTMOVE(src->type, s1, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
 			goto nowperformreturn;
 
 		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_RESULT);
-			M_TINTMOVE(src->type, s1, REG_RESULT);
+			M_INTMOVE(s1, REG_RESULT);
 
 #ifdef ENABLE_VERIFIER
 			if (iptr->val.a) {
@@ -2451,7 +2443,7 @@ bool codegen(jitdata *jd)
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, PACK_REGS(REG_RESULT2, REG_RESULT));
-			M_TINTMOVE(src->type, s1, PACK_REGS(REG_RESULT2, REG_RESULT));
+			M_LNGMOVE(s1, PACK_REGS(REG_RESULT2, REG_RESULT));
 			goto nowperformreturn;
 
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
@@ -2725,18 +2717,18 @@ gen_method:
 							s1 = PACK_REGS(
 						   rd->argintregs[GET_LOW_REG(md->params[s3].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[s3].regoff)]);
+							d = emit_load_s1(jd, iptr, src, s1);
+							M_LNGMOVE(d, s1);
 						} else {
 							s1 = rd->argintregs[md->params[s3].regoff];
+							d = emit_load_s1(jd, iptr, src, s1);
+							M_INTMOVE(d, s1);
 						}
-						d = emit_load_s1(jd, iptr, src, s1);
-						M_TINTMOVE(src->type, d, s1);
+
 					} else {
 						if (IS_2_WORD_TYPE(src->type)) {
 							d = emit_load_s1(jd, iptr, src, PACK_REGS(REG_ITMP2, REG_ITMP1));
-							M_IST(GET_HIGH_REG(d), REG_SP,
-								  md->params[s3].regoff * 4);
-							M_IST(GET_LOW_REG(d), REG_SP,
-								  md->params[s3].regoff * 4 + 4);
+							M_LST(d, REG_SP, md->params[s3].regoff * 4);
 						} else {
 							d = emit_load_s1(jd, iptr, src, REG_ITMP1);
 							M_IST(d, REG_SP, md->params[s3].regoff * 4);
@@ -2748,6 +2740,7 @@ gen_method:
 						s1 = rd->argfltregs[md->params[s3].regoff];
 						d = emit_load_s1(jd, iptr, src, s1);
 						M_FLTMOVE(d, s1);
+
 					} else {
 						d = emit_load_s1(jd, iptr, src, REG_FTMP1);
 						if (IS_2_WORD_TYPE(src->type))
@@ -2886,23 +2879,16 @@ gen_method:
 					if (IS_2_WORD_TYPE(iptr->dst->type)) {
 						s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst,
 										PACK_REGS(REG_RESULT2, REG_RESULT));
-						M_TINTMOVE(iptr->dst->type,
-								   PACK_REGS(REG_RESULT2, REG_RESULT), s1);
-						emit_store(jd, iptr, iptr->dst, s1);
+						M_LNGMOVE(PACK_REGS(REG_RESULT2, REG_RESULT), s1);
 					} else {
 						s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_RESULT);
-						M_TINTMOVE(iptr->dst->type, REG_RESULT, s1);
-						emit_store(jd, iptr, iptr->dst, s1);
+						M_INTMOVE(REG_RESULT, s1);
 					}
 				} else {
 					s1 = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_FRESULT);
 					M_FLTMOVE(REG_FRESULT, s1);
-					if (IS_2_WORD_TYPE(iptr->dst->type)) {
-						emit_store(jd, iptr, iptr->dst, s1);
-					} else {
-						emit_store(jd, iptr, iptr->dst, s1);
-					}
 				}
+				emit_store(jd, iptr, iptr->dst, s1);
 			}
 			break;
 
@@ -3331,28 +3317,24 @@ gen_method:
 			s2 = src->type;
 			if (IS_FLT_DBL_TYPE(s2)) {
 				s1 = emit_load_s1(jd, iptr, src, REG_FTMP1);
-				if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
+				if (!(rd->interfaces[len][s2].flags & INMEMORY))
 					M_FLTMOVE(s1, rd->interfaces[len][s2].regoff);
-
-				} else {
+				else
 					M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
-				}
 
 			} else {
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 				if (!(rd->interfaces[len][s2].flags & INMEMORY)) {
-					M_TINTMOVE(s2, s1, rd->interfaces[len][s2].regoff);
+					if (IS_2_WORD_TYPE(s2))
+						M_LNGMOVE(s1, rd->interfaces[len][s2].regoff);
+					else
+						M_INTMOVE(s1, rd->interfaces[len][s2].regoff);
 
 				} else {
-					if (IS_2_WORD_TYPE(s2)) {
-						M_IST(GET_HIGH_REG(s1),
-							  REG_SP, rd->interfaces[len][s2].regoff * 4);
-						M_IST(GET_LOW_REG(s1), REG_SP,
-							  rd->interfaces[len][s2].regoff * 4 + 4);
-					} else {
+					if (IS_2_WORD_TYPE(s2))
+						M_LST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
+					else
 						M_IST(s1, REG_SP, rd->interfaces[len][s2].regoff * 4);
-					}
-
 				}
 			}
 		}
@@ -3795,22 +3777,22 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 					s1 = rd->argintregs[md->params[i].regoff];
 
 				if (!nmd->params[j].inmemory) {
-					if (IS_2_WORD_TYPE(t))
+					if (IS_2_WORD_TYPE(t)) {
 						s2 = PACK_REGS(
 						   rd->argintregs[GET_LOW_REG(nmd->params[j].regoff)],
 						   rd->argintregs[GET_HIGH_REG(nmd->params[j].regoff)]);
-					else
+						M_LNGMOVE(s1, s2);
+					} else {
 						s2 = rd->argintregs[nmd->params[j].regoff];
-					M_TINTMOVE(t, s1, s2);
+						M_INTMOVE(s1, s2);
+					}
 
 				} else {
 					s2 = nmd->params[j].regoff;
-					if (IS_2_WORD_TYPE(t)) {
-						M_IST(GET_HIGH_REG(s1), REG_SP, s2 * 4);
-						M_IST(GET_LOW_REG(s1), REG_SP, s2 * 4 + 4);
-					} else {
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, s2 * 4);
+					else
 						M_IST(s1, REG_SP, s2 * 4);
-					}
 				}
 
 			} else {
@@ -3818,13 +3800,12 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 				s2 = nmd->params[j].regoff;
 
 				M_ILD(REG_ITMP1, REG_SP, s1 * 4);
-				if (IS_2_WORD_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t))
 					M_ILD(REG_ITMP2, REG_SP, s1 * 4 + 4);
-				}
+
 				M_IST(REG_ITMP1, REG_SP, s2 * 4);
-				if (IS_2_WORD_TYPE(t)) {
+				if (IS_2_WORD_TYPE(t))
 					M_IST(REG_ITMP2, REG_SP, s2 * 4 + 4);
-				}
 			}
 
 		} else {
