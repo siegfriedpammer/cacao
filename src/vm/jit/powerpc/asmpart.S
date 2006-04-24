@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4749 2006-04-11 10:20:18Z twisti $
+   $Id: asmpart.S 4820 2006-04-24 10:00:13Z twisti $
 
 */
 
@@ -374,28 +374,7 @@ asm_call_jit_compiler:
 L_asm_call_jit_compiler:                /* required for PIC code              */
 	mflr    r0
 	stw     r0,LA_LR_OFFSET(r1)         /* save return address                */
-	stwu    r1,-((LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo)(r1)
-	stw     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-
-	mr      itmp1,r0                    /* save return address to other reg.  */
-	lwz     itmp3,-12(itmp1)
-	srwi    itmp3,itmp3,16
-	andi.   itmp3,itmp3,31
-	cmpwi   itmp3,mptrn
-	beq     noregchange
-	lwz     itmp3,4(itmp1)
-	extsh   itmp3,itmp3
-	add     mptr,itmp3,itmp1
-	lwz     itmp3,8(itmp1)
-	srwi    itmp3,itmp3,16
-	cmpwi   itmp3,0x3dad
-	bne     noregchange
-	lwz     itmp3,8(itmp1)
-	slwi    itmp3,itmp3,16
-	add     mptr,mptr,itmp3
-		
-noregchange:
-	stw     mptr,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 2*4)(r1)
+	stwu    r1,-(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(r1)
 
 #if defined(__DARWIN__)
 	stw     a0,(LA_WORD_SIZE+5+0)*4(r1)
@@ -424,19 +403,12 @@ noregchange:
 	SAVE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
 #endif
 
-	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
-	li      a1,0                        /* we don't have pv handy             */
-	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo
-	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo+LA_LR_OFFSET(sp)
-	mr      a4,a3                       /* xpc is equal to ra                 */
-	bl      stacktrace_create_extern_stackframeinfo
-
-	lwz     a0,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 1*4)(r1)
-	bl      jit_compile                 /* compile the Java method            */
-	mr      pv,r3                       /* move address to pv register        */
-
-	addi    a0,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)
-	bl      stacktrace_remove_stackframeinfo
+	mr      a0,itmp1
+	mr      a1,mptr
+	addi    a2,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
+	lwz     a3,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
+	bl      jit_asm_compile
+	mr      pv,v0                       /* move address to pv register        */
 
 #if defined(__DARWIN__)
 	lwz     a0,(LA_WORD_SIZE+5+0)*4(r1)
@@ -465,19 +437,13 @@ noregchange:
 	RESTORE_ARGUMENT_REGISTERS(LA_WORD_SIZE+1)
 #endif
 
-	lwz     mptr,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 2*4)(r1)
-
-	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo+LA_LR_OFFSET(r1)
+	lwz     itmp1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(r1)
 	mtlr    itmp1
-	addi    r1,r1,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8 + 3*4)+sizestackframeinfo
+
+	addi    sp,sp,(LA_SIZE + 5*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
 
 	mr.     pv,pv                       /* test for exception                 */
 	beq     L_asm_call_jit_compiler_exception
-
-	lwz     itmp3,-12(itmp1)
-	extsh   itmp3,itmp3
-	add     mptr,mptr,itmp3
-	stw     pv,0(mptr)                  /* store method address               */
 
 	mtctr   pv                          /* move method address to control reg */
 	bctr                                /* and call the Java method           */

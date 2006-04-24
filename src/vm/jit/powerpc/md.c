@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4673 2006-03-22 15:30:06Z edwin $
+   $Id: md.c 4820 2006-04-24 10:00:13Z twisti $
 
 */
 
@@ -77,6 +77,95 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 	ra = *((u1 **) (sp + framesize + LA_LR_OFFSET));
 
 	return ra;
+}
+
+
+/* md_get_method_patch_address *************************************************
+
+   Gets the patch address of the currently compiled method. The offset
+   is extracted from the load instruction(s) before the jump and added
+   to the right base address (PV or REG_METHODPTR).
+
+   INVOKESTATIC/SPECIAL:
+
+   81adffd4    lwz     r13,-44(r13)
+   7da903a6    mtctr   r13
+   4e800421    bctrl
+
+   INVOKEVIRTUAL:
+
+   81830000    lwz     r12,0(r3)
+   81ac0000    lwz     r13,0(r12)
+   7da903a6    mtctr   r13
+   4e800421    bctrl
+
+   INVOKEINTERFACE:
+
+   81830000    lwz     r12,0(r3)
+   818c0000    lwz     r12,0(r12)
+   81ac0000    lwz     r13,0(r12)
+   7da903a6    mtctr   r13
+   4e800421    bctrl
+
+*******************************************************************************/
+
+u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+{
+	u4  mcode;
+	s4  offset;
+	u1 *pa;
+
+	/* go back to the actual load instruction (3 instructions) */
+
+	ra = ra - 3 * 4;
+
+	/* get first instruction word (lwz) */
+
+	mcode = *((u4 *) ra);
+
+	/* check if we have 2 instructions (addis, addi) */
+
+	if ((mcode >> 16) == 0x3c19) {
+		/* XXX write a regression for this */
+		assert(0);
+
+		/* get displacement of first instruction (addis) */
+
+		offset = (s4) (mcode << 16);
+
+		/* get displacement of second instruction (addi) */
+
+		mcode = *((u4 *) (ra + 1 * 4));
+
+		assert((mcode >> 16) != 0x6739);
+
+		offset += (s2) (mcode & 0x0000ffff);
+
+	} else {
+		/* get the offset from the instruction */
+
+		offset = (s2) (mcode & 0x0000ffff);
+
+		/* check for load from PV */
+
+		if ((mcode >> 16) == 0x81ad) {
+			/* get the final data segment address */
+
+			pa = sfi->pv + offset;
+
+		} else if ((mcode >> 16) == 0x81ac) {
+			/* in this case we use the passed method pointer */
+
+			pa = mptr + offset;
+
+		} else {
+			/* catch any problems */
+
+			assert(0);
+		}
+	}
+
+	return pa;
 }
 
 
