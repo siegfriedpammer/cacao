@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4824 2006-04-24 11:40:05Z edwin $
+   $Id: stacktrace.c 4825 2006-04-24 15:43:36Z edwin $
 
 */
 
@@ -793,8 +793,6 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 stacktracebuffer *stacktrace_create(threadobject* thread)
 {
 	stacktracebuffer *stb;
-	stacktracebuffer *gcstb;
-	s4                dumpsize;
 	stackframeinfo   *sfi;
 	methodinfo       *m;
 	u1               *pv;
@@ -802,10 +800,6 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	u4                framesize;
 	u1               *ra;
 	u1               *xpc;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
 
 	/* prevent compiler warnings */
 
@@ -1042,35 +1036,9 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 		}
 	}
 
-	/* allocate memory from the GC heap and copy the stacktrace buffer */
-
-	gcstb = GCNEW(stacktracebuffer);
-
-	if (gcstb == NULL) {
-		dump_release(dumpsize);
-
-		return NULL;
-	}
-
-	gcstb->capacity = stb->capacity;
-	gcstb->used     = stb->used;
-	gcstb->entries  = GCMNEW(stacktrace_entry, stb->used);
-
-	if (gcstb->entries == NULL) {
-		dump_release(dumpsize);
-
-		return NULL;
-	}
-
-	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
-
-	/* release dump memory */
-
-	dump_release(dumpsize);
-
 	/* return the stacktracebuffer */
 
-	return gcstb;
+	return stb;
 }
 
 
@@ -1084,15 +1052,51 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 stacktracebuffer *stacktrace_fillInStackTrace(void)
 {
 	stacktracebuffer *stb;
+	stacktracebuffer *gcstb;
+	s4                dumpsize;
 	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
 
 	/* create a stacktrace from the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
+	if (!stb)
+		goto return_NULL;
 
-	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace, 
+	/* allocate memory from the GC heap and copy the stacktrace buffer */
+
+	gcstb = GCNEW(stacktracebuffer);
+
+	if (gcstb == NULL)
+		goto return_NULL;
+
+	gcstb->capacity = stb->capacity;
+	gcstb->used     = stb->used;
+	gcstb->entries  = GCMNEW(stacktrace_entry, stb->used);
+
+	if (gcstb->entries == NULL)
+		goto return_NULL;
+
+	MCOPY(gcstb->entries, stb->entries, stacktrace_entry, stb->used);
+
+	/* release dump memory */
+
+	dump_release(dumpsize);
+
+	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
-	return stb;
+	return gcstb;
+
+return_NULL:
+	dump_release(dumpsize);
+
+	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
+								   stacktrace_overhead)
+
+	return NULL;
 }
 
 
@@ -1113,13 +1117,18 @@ java_objectarray *stacktrace_getClassContext(void)
 	java_objectarray  *oa;
 	s4                 oalength;
 	s4                 i;
+	s4                 dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
 
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 	if (!stb)
-		return NULL;
+		goto return_NULL;
 
 	/* calculate the size of the Class array */
 
@@ -1145,7 +1154,7 @@ java_objectarray *stacktrace_getClassContext(void)
 
 	oa = builtin_anewarray(oalength, class_java_lang_Class);
 	if (!oa)
-		return NULL;
+		goto return_NULL;
 
 	/* fill the Class array from the stacktracebuffer */
 
@@ -1158,9 +1167,20 @@ java_objectarray *stacktrace_getClassContext(void)
 		oa->data[i] = (java_objectheader *) ste->method->class;
 	}
 
+	/* release dump memory */
+
+	dump_release(dumpsize);
+
 	CYCLES_STATS_END(stacktrace_getClassContext)
 
 	return oa;
+
+return_NULL:
+	dump_release(dumpsize);
+
+	CYCLES_STATS_END(stacktrace_getClassContext)
+
+	return NULL;
 }
 
 
@@ -1187,13 +1207,18 @@ classinfo *stacktrace_getCurrentClass(void)
 	stacktrace_entry  *ste;
 	methodinfo        *m;
 	s4                 i;
+	s4                 dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
 
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 	if (!stb)
-		return NULL; /* XXX exception: how to distinguish from normal NULL return? */
+		goto return_NULL; /* XXX exception: how to distinguish from normal NULL return? */
 
 	/* iterate over all stacktrace entries and find the first suitable
 	   class */
@@ -1205,9 +1230,11 @@ classinfo *stacktrace_getCurrentClass(void)
 			continue;
 
 		if (m->class == class_java_security_PrivilegedAction)
-			return NULL;
+			goto return_NULL;
 
 		if (m->class != NULL) {
+			dump_release(dumpsize);
+
 			CYCLES_STATS_END(stacktrace_getCurrentClass)
 
 			return m->class;
@@ -1215,6 +1242,9 @@ classinfo *stacktrace_getCurrentClass(void)
 	}
 
 	/* no Java method found on the stack */
+
+return_NULL:
+	dump_release(dumpsize);
 
 	CYCLES_STATS_END(stacktrace_getCurrentClass)
 
@@ -1242,13 +1272,18 @@ java_objectarray *stacktrace_getStack(void)
 	classinfo        *c;
 	java_lang_String *str;
 	s4                i;
+	s4                dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
 
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 	if (!stb)
-		return NULL;
+		goto return_NULL;
 
 	/* get the first stacktrace entry */
 
@@ -1259,17 +1294,17 @@ java_objectarray *stacktrace_getStack(void)
 	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
 
 	if (!oa)
-		return NULL;
+		goto return_NULL;
 
 	classes = builtin_anewarray(stb->used, class_java_lang_Class);
 
 	if (!classes)
-		return NULL;
+		goto return_NULL;
 
 	methodnames = builtin_anewarray(stb->used, class_java_lang_String);
 
 	if (!methodnames)
-		return NULL;
+		goto return_NULL;
 
 	/* set up the 2-dimensional array */
 
@@ -1285,16 +1320,25 @@ java_objectarray *stacktrace_getStack(void)
 		str = javastring_new(ste->method->name);
 
 		if (!str)
-			return NULL;
+			goto return_NULL;
 
 		methodnames->data[i] = (java_objectheader *) str;
 	}
 
 	/* return the 2-dimensional array */
 
+	dump_release(dumpsize);
+
 	CYCLES_STATS_END(stacktrace_getStack)
 
 	return oa;
+
+return_NULL:
+	dump_release(dumpsize);
+
+	CYCLES_STATS_END(stacktrace_getStack)
+
+	return NULL;
 }
 
 
@@ -1349,6 +1393,7 @@ static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 void stacktrace_dump_trace(void)
 {
 	stacktracebuffer *stb;
+	s4                dumpsize;
 
 #if 0
 	/* get methodinfo pointer from data segment */
@@ -1372,6 +1417,10 @@ void stacktrace_dump_trace(void)
 	*psfi = sfi;
 #endif
 
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
 	/* create a stacktrace for the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
@@ -1385,6 +1434,8 @@ void stacktrace_dump_trace(void)
 		puts("\t<<No stacktrace available>>");
 		fflush(stdout);
 	}
+
+	dump_release(dumpsize);
 }
 
 
