@@ -1363,6 +1363,7 @@ void vm_exit_handler(void)
 
 #if defined(ENABLE_CYCLES_STATS)
 	builtin_print_cycles_stats(stderr);
+	stacktrace_print_cycles_stats(stderr);
 #endif
 
 	if (opt_verbose || getcompilingtime || opt_stat) {

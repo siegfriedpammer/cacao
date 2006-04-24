@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4615 2006-03-15 16:36:43Z twisti $
+   $Id: stacktrace.h 4824 2006-04-24 11:40:05Z edwin $
 
 */
 
@@ -177,6 +177,10 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+#endif
+
+#if defined(ENABLE_CYCLES_STATS)
+void stacktrace_print_cycles_stats(FILE *file);
 #endif
 
 #endif /* _STACKTRACE_H */

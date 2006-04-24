@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4808 2006-04-21 14:32:03Z edwin $
+   $Id: stacktrace.c 4824 2006-04-24 11:40:05Z edwin $
 
 */
 
@@ -72,6 +72,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/methodheader.h"
+#include "vm/cycles-stats.h"
 
 
 /* linenumbertable_entry ******************************************************/
@@ -91,6 +92,12 @@ struct linenumbertable_entry {
 #if !defined(USE_THREADS)
 stackframeinfo *_no_threads_stackframeinfo = NULL;
 #endif
+
+CYCLES_STATS_DECLARE(stacktrace_overhead        ,100,1)
+CYCLES_STATS_DECLARE(stacktrace_fillInStackTrace,40,5000)
+CYCLES_STATS_DECLARE(stacktrace_getClassContext ,40,5000)
+CYCLES_STATS_DECLARE(stacktrace_getCurrentClass ,40,5000)
+CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,5000)
 
 
 /* stacktrace_create_stackframeinfo ********************************************
@@ -1077,11 +1084,14 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 stacktracebuffer *stacktrace_fillInStackTrace(void)
 {
 	stacktracebuffer *stb;
+	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 
 	/* create a stacktrace from the current thread */
 
 	stb = stacktrace_create(THREADOBJECT);
 
+	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace, 
+								   stacktrace_overhead)
 	return stb;
 }
 
@@ -1103,6 +1113,7 @@ java_objectarray *stacktrace_getClassContext(void)
 	java_objectarray  *oa;
 	s4                 oalength;
 	s4                 i;
+	CYCLES_STATS_DECLARE_AND_START
 
 	/* create a stacktrace for the current thread */
 
@@ -1147,6 +1158,8 @@ java_objectarray *stacktrace_getClassContext(void)
 		oa->data[i] = (java_objectheader *) ste->method->class;
 	}
 
+	CYCLES_STATS_END(stacktrace_getClassContext)
+
 	return oa;
 }
 
@@ -1174,6 +1187,7 @@ classinfo *stacktrace_getCurrentClass(void)
 	stacktrace_entry  *ste;
 	methodinfo        *m;
 	s4                 i;
+	CYCLES_STATS_DECLARE_AND_START
 
 	/* create a stacktrace for the current thread */
 
@@ -1193,11 +1207,16 @@ classinfo *stacktrace_getCurrentClass(void)
 		if (m->class == class_java_security_PrivilegedAction)
 			return NULL;
 
-		if (m->class != NULL)
+		if (m->class != NULL) {
+			CYCLES_STATS_END(stacktrace_getCurrentClass)
+
 			return m->class;
+		}
 	}
 
 	/* no Java method found on the stack */
+
+	CYCLES_STATS_END(stacktrace_getCurrentClass)
 
 	return NULL;
 }
@@ -1223,6 +1242,7 @@ java_objectarray *stacktrace_getStack(void)
 	classinfo        *c;
 	java_lang_String *str;
 	s4                i;
+	CYCLES_STATS_DECLARE_AND_START
 
 	/* create a stacktrace for the current thread */
 
@@ -1271,6 +1291,8 @@ java_objectarray *stacktrace_getStack(void)
 	}
 
 	/* return the 2-dimensional array */
+
+	CYCLES_STATS_END(stacktrace_getStack)
 
 	return oa;
 }
@@ -1391,6 +1413,18 @@ void stacktrace_print_trace(java_objectheader *xptr)
 
 	stacktrace_print_trace_from_buffer(stb);
 }
+
+
+#if defined(ENABLE_CYCLES_STATS)
+void stacktrace_print_cycles_stats(FILE *file)
+{
+	CYCLES_STATS_PRINT_OVERHEAD(stacktrace_overhead,file);
+	CYCLES_STATS_PRINT(stacktrace_fillInStackTrace,file);
+	CYCLES_STATS_PRINT(stacktrace_getClassContext ,file);
+	CYCLES_STATS_PRINT(stacktrace_getCurrentClass ,file);
+	CYCLES_STATS_PRINT(stacktrace_getStack        ,file);
+}
+#endif
 
 
 /*
