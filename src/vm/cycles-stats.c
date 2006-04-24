@@ -119,7 +119,8 @@ static void cycles_stats_print_percentile(FILE *file, const char *name,
 				name, percentile, 
 				(unsigned long long)cycles_stats_measurement_overhead);
 		if (printforall) {
-			forall = cumulcycles + percentile * (count - cumul);
+			forall = cumulcycles - cumul * cycles_stats_measurement_overhead
+				   + percentile * (count - cumul);
 			fprintf(file," (%-23s: %15llu cycles = %6lu msec)",
 					(count == cumul) ? "total" : "capped here & extrapol.",
 					(unsigned long long)forall,
