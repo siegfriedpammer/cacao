@@ -122,7 +122,7 @@ void cycles_stats_print(FILE *file,
 #define CYCLES_STATS_DECLARE_AND_START
 #define CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 #define CYCLES_STATS_END(name)
-#define CYCLES_STATS_END_WITH_OVERHEAD(name)
+#define CYCLES_STATS_END_WITH_OVERHEAD(name,ovname)
 
 #endif /* defined(ENABLE_CYCLES_STATS) */
 
