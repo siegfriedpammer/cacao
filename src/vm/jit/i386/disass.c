@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass.c 4843 2006-04-25 17:57:56Z edwin $
 
 */
 
@@ -88,7 +88,7 @@ u1 *disassinstr(u1 *code)
 
 	disass_len = 0;
 
-	seqlen = print_insn_i386((bfd_vma) code, &info);
+	seqlen = print_insn_i386((bfd_vma) (ptrint) code, &info);
 
 	for (i = 0; i < seqlen; i++, code++) {
 		printf("%02x ", *code);
