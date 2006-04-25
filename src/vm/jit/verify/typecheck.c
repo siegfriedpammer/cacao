@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: typecheck.c 4835 2006-04-25 12:35:15Z edwin $
 
 */
 
@@ -195,9 +195,9 @@ of the typeinfo of the stack slot.
 #endif
 
 #ifdef TYPECHECK_VERBOSE_OPT
-bool typecheckverbose = false;
+bool opt_typecheckverbose = false;
 FILE *typecheck_logfile;
-#define DOLOG(action)  do { if (typecheckverbose) {action;} } while(0)
+#define DOLOG(action)  do { if (opt_typecheckverbose) {action;} } while(0)
 #else
 #define DOLOG(action)
 #endif

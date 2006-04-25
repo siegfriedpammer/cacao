@@ -165,10 +165,12 @@ enum {
 	OPT_SHOW,
 	OPT_ALL,
 
-	OPT_VERBOSETC,
 #if defined(ENABLE_VERIFIER)
 	OPT_NOVERIFY,
+#if defined(TYPECHECK_VERBOSE)
+	OPT_VERBOSETC,
 #endif
+#endif /* defined(ENABLE_VERIFIER) */
 	OPT_EAGER,
 
 	/* optimization options */
@@ -241,7 +243,7 @@ opt_struct opts[] = {
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose:",          true,  OPT_VERBOSE },
 
-#ifdef TYPECHECK_VERBOSE
+#if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)
 	{ "verbosetc",         false, OPT_VERBOSETC },
 #endif
 #if defined(__ALPHA__)
@@ -771,9 +773,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				opt_verboseexception = true;
 			break;
 
-#ifdef TYPECHECK_VERBOSE
+#if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)
 		case OPT_VERBOSETC:
-			typecheckverbose = true;
+			opt_typecheckverbose = true;
 			break;
 #endif
 				

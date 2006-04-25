@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: typeinfo.h 4835 2006-04-25 12:35:15Z edwin $
 
 */
 
@@ -67,7 +67,7 @@
 #endif
 
 #ifdef TYPECHECK_VERBOSE_OPT
-extern bool typecheckverbose;
+extern bool opt_typecheckverbose;
 #endif
 
 /* resolve typedef cycles *****************************************************/
