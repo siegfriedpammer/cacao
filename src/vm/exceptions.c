@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4727 2006-04-04 09:14:19Z twisti $
+   $Id: exceptions.c 4836 2006-04-25 15:26:55Z edwin $
 
 */
 
@@ -905,7 +905,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 		case TYPE_FLT: typename = "float"; break;
 		case TYPE_DBL: typename = "double"; break;
 		case TYPE_ADR: typename = "object/array"; break;
-		default: assert(0);
+		default:       typename = "<INVALID>"; assert(0); break;
 	}
 	strcat(msg, typename);
 	strcat(msg, " on stack");
