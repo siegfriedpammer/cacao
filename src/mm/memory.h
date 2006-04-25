@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: memory.h 4438 2006-02-05 00:16:54Z twisti $
+   $Id: memory.h 4840 2006-04-25 17:45:02Z edwin $
 
 */
 
@@ -159,6 +159,7 @@ struct dumpinfo {
 
 #define MCOPY(dest,src,type,num) memcpy((dest), (src), sizeof(type) * (num))
 #define MSET(ptr,byte,type,num) memset((ptr), (byte), sizeof(type) * (num))
+#define MZERO(ptr,type,num)     MSET(ptr,0,type,num)
 #define MMOVE(dest,src,type,num) memmove((dest), (src), sizeof(type) * (num))
 
 #define CNEW(type,num)        ((type *) memory_cnew(sizeof(type) * (num)))
