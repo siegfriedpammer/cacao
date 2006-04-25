@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4787 2006-04-18 20:17:07Z edwin $
+   $Id: stack.c 4842 2006-04-25 17:53:54Z edwin $
 
 */
 
@@ -3013,7 +3013,6 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	classinfo         *c;
 	fieldinfo         *f;
 	constant_classref *cr;
-	unresolved_method *um;
 	unresolved_field  *uf;
 
 	/* get the opcode and the condition */
