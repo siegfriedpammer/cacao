@@ -272,7 +272,7 @@ void profile_printstats(void)
 		printf("%10d   %.5f   %12ld   %.5f   ",
 			   m->frequency,
 			   (double) m->frequency / (double) frequency,
-			   m->cycles,
+			   (long)m->cycles,
 			   (double) m->cycles / (double) cycles);
 
 		method_println(m);
@@ -287,7 +287,7 @@ void profile_printstats(void)
 	}
 
 	printf("-----------           -------------- \n");
-	printf("%10d             %12ld\n", frequency, cycles);
+	printf("%10d             %12ld\n", frequency, (long)cycles);
 }
 #endif /* !defined(NDEBUG) */
 

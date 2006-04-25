@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: disass-common.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: disass-common.c 4844 2006-04-25 18:02:15Z edwin $
 
 */
 
@@ -118,7 +118,7 @@ void disass_printf(PTR p, const char *fmt, ...)
 
 int disass_buffer_read_memory(bfd_vma memaddr, bfd_byte *myaddr, unsigned int length, struct disassemble_info *info)
 {
-	MCOPY(myaddr, (void *) memaddr, u1, length);
+	MCOPY(myaddr, (void *) (ptrint) memaddr, u1, length);
 
 	return 0;
 }
