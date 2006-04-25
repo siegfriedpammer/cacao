@@ -70,6 +70,13 @@
         cycles_stats_##name##_count++;                                      \
     } while (0)
 
+#define CYCLES_STATS_COUNT_OVER(name,ovname,cyclesexpr)                     \
+    do {                                                                    \
+        u8 cyc = (cyclesexpr);                                              \
+        if (cyc / CYCLES_STATS_##name##_DIV >= CYCLES_STATS_##name##_MAX)   \
+            CYCLES_STATS_COUNT(ovname,cyc);                                 \
+    } while (0)
+
 #define CYCLES_STATS_PRINT(name,file)                                       \
     do {                                                                    \
         cycles_stats_print((file), #name,                                   \
@@ -117,6 +124,7 @@ void cycles_stats_print(FILE *file,
 #define CYCLES_STATS_DECLARE(name,nbins,divisor)
 #define CYCLES_STATS_GET(var)
 #define CYCLES_STATS_COUNT(name,cyclesexpr)
+#define CYCLES_STATS_COUNT_OVER(name,ovname,cyclesexpr)
 #define CYCLES_STATS_PRINT(name,file)
 #define CYCLES_STATS_PRINT_OVERHEAD(name,file)
 #define CYCLES_STATS_DECLARE_AND_START
