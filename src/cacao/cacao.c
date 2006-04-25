@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4690 2006-03-27 11:37:46Z twisti $
+   $Id: cacao.c 4837 2006-04-25 15:31:17Z edwin $
 
 */
 
@@ -312,24 +312,21 @@ int main(int argc, char **argv)
 #endif
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
-
-
 #if defined(ENABLE_JVMTI)
 		/* if this is the parent process than start the jdwp listening */
 		if (jvmti || jdwp) {
 			fprintf(stderr, "jdwp/debugger set herewego brkpt %p\n",&&herewego);
 			setsysbrkpt(HEREWEGOBRK,&&herewego);
-			if (dbgprocess && jdwp) cacaodbglisten(transport); 
+			if (dbgprocess && jdwp) cacaodbglisten(transport);
 		}
 
-		
 		if (!dbgprocess) {
 			fprintf(stderr,"debuggee: herewe go\n");
 			fflush(stderr);
 		}
-#endif
 		/* here we go... */
 	herewego:
+#endif
 		(void) vm_call_method(m, NULL, oa);
 
 		/* exception occurred? */
