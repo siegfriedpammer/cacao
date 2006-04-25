@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4834 2006-04-25 12:25:43Z edwin $
+   $Id: loader.c 4841 2006-04-25 17:48:18Z edwin $
 
 */
 
@@ -1024,9 +1024,8 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 		count_all_methods++;
 #endif
 
-	m->thrownexceptionscount = 0;
-	m->linenumbercount       = 0;
-	m->linenumbers           = 0;
+	/* all fields of m have been zeroed in load_class_from_classbuffer */
+
 	m->class                 = c;
 	
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
@@ -1043,7 +1042,6 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 		return false;
 
 	m->descriptor = u;
-	m->parseddesc = NULL;
 
 	if (!descriptor_pool_add(descpool, u, &argcount))
 		return false;
@@ -1114,18 +1112,6 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	}
 #endif /* ENABLE_VERIFIER */
 		
-	m->jcode            = NULL;
-	m->basicblockcount  = 0;
-	m->basicblocks      = NULL;
-	m->basicblockindex  = NULL;
-	m->instructioncount = 0;
-	m->instructions     = NULL;
-	m->stackcount       = 0;
-	m->stack            = NULL;
-	m->exceptiontable   = NULL;
-	m->stubroutine      = NULL;
-	m->code             = NULL;
-
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
 	
@@ -2035,6 +2021,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	c->methodscount = suck_u2(cb);
 /*  	c->methods = GCNEW(methodinfo, c->methodscount); */
 	c->methods = MNEW(methodinfo, c->methodscount);
+
+	MZERO(c->methods, methodinfo, c->methodscount);
+	
 	for (i = 0; i < c->methodscount; i++) {
 		if (!load_method(cb, &(c->methods[i]),descpool))
 			goto return_exception;
@@ -2492,6 +2481,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	clonedesc->paramcount = 0;
 	clonedesc->paramslots = 0;
 	clonedesc->paramtypes[0].classref = classrefs + 0;
+	clonedesc->params = NULL;
 
 	/* create methodinfo */
 
