@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4571 2006-03-07 19:32:08Z twisti $
+   $Id: VMSystemProperties.c 4839 2006-04-25 17:42:08Z edwin $
 
 */
 
@@ -140,7 +140,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	libpath = MNEW(char, libpathlen);
 
-	strcat(libpath, CLASSPATH_LIBRARY_PATH);
+	strcpy(libpath, CLASSPATH_LIBRARY_PATH);
 
 	properties_system_add("gnu.classpath.boot.library.path", libpath);
 
