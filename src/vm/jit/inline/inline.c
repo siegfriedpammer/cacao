@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4736 2006-04-05 11:32:52Z edwin $
+   $Id: inline.c 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -1670,6 +1670,7 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 	DOLOG( printf("INLINING STACK INTERFACES FOR "); method_println(iln->m) );
 	inline_stack_interfaces(iln,n_rd);
 	
+#if defined(ENABLE_VERIFIER)
 	if (debug_verify_inlined_code) {
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n") );
@@ -1683,6 +1684,7 @@ static bool test_inlining(inline_node *iln,jitdata *jd,
 		}
 		debug_verify_inlined_code = 1;
 	}
+#endif /* defined(ENABLE_VERIFIER) */
 
 #ifndef NDEBUG
 #if 1

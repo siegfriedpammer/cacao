@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4825 2006-04-24 15:43:36Z edwin $
+   $Id: stacktrace.c 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -97,7 +97,7 @@ CYCLES_STATS_DECLARE(stacktrace_overhead        ,100,1)
 CYCLES_STATS_DECLARE(stacktrace_fillInStackTrace,40,5000)
 CYCLES_STATS_DECLARE(stacktrace_getClassContext ,40,5000)
 CYCLES_STATS_DECLARE(stacktrace_getCurrentClass ,40,5000)
-CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,5000)
+CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,10000)
 
 
 /* stacktrace_create_stackframeinfo ********************************************

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4796 2006-04-20 18:04:18Z edwin $
+   $Id: options.h 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -87,8 +87,6 @@ extern bool opt_verbosejni;
 extern bool opt_verbosecall;
 extern bool opt_verboseexception;
 
-extern bool opt_liberalutf;      /* Don't check overlong UTF-8 sequences */
-
 extern bool showmethods;
 extern bool showconstantpool;
 extern bool showutf;
@@ -124,7 +122,9 @@ extern bool getloadingtime;
 extern bool getcompilingtime;
 
 extern bool opt_stat;
+#if defined(ENABLE_VERIFIER)
 extern bool opt_verify;
+#endif
 extern bool opt_eager;
 
 extern bool opt_prof;

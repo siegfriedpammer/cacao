@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4829 2006-04-24 17:16:45Z edwin $
+   $Id: global.h 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -87,11 +87,6 @@ typedef struct java_objectarray java_objectarray;
 #define CLASSPATH_GLIBJ_ZIP_PATH    CLASSPATH_PREFIX "/share/classpath/" GLIBJ_ZIP_STRING
 #define CLASSPATH_LIBRARY_PATH      CLASSPATH_LIBDIR "/classpath"
 
-
-/*
- * ENABLE_VERIFIER activates bytecode verification and other checks
- */
-#define ENABLE_VERIFIER
 
 /* if we have threads disabled this one is not defined ************************/
 

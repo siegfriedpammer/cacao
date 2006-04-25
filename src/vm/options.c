@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4796 2006-04-20 18:04:18Z edwin $
+   $Id: options.c 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -76,8 +76,6 @@ bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool opt_verboseexception = false;
 
-bool opt_liberalutf = false;   /* Don't check overlong UTF-8 sequences        */
-
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
@@ -113,7 +111,9 @@ bool getloadingtime = false;   /* to measure the runtime                     */
 bool getcompilingtime = false; /* compute compile time                       */
 
 bool opt_stat    = false;
+#if defined(ENABLE_VERIFIER)
 bool opt_verify  = true;       /* true if classfiles should be verified      */
+#endif
 bool opt_eager   = false;
 
 bool opt_prof    = false;

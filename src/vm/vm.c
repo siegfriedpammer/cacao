@@ -166,8 +166,9 @@ enum {
 	OPT_ALL,
 
 	OPT_VERBOSETC,
+#if defined(ENABLE_VERIFIER)
 	OPT_NOVERIFY,
-	OPT_LIBERALUTF,
+#endif
 	OPT_EAGER,
 
 	/* optimization options */
@@ -234,8 +235,9 @@ opt_struct opts[] = {
 	{ "X",                 false, OPT_X },
 
 	{ "noasyncgc",         false, OPT_IGNORE },
+#if defined(ENABLE_VERIFIER)
 	{ "noverify",          false, OPT_NOVERIFY },
-	{ "liberalutf",        false, OPT_LIBERALUTF },
+#endif
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose:",          true,  OPT_VERBOSE },
 
@@ -359,8 +361,9 @@ void usage(void)
 #if defined(__ALPHA__)
 	puts("    -noieee                  don't use ieee compliant arithmetic");
 #endif
+#if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
-	puts("    -liberalutf              don't warn about overlong UTF-8 sequences");
+#endif
 	puts("    -softnull                use software nullpointer check");
 	puts("    -time                    measure the runtime");
 #if defined(ENABLE_STATISTICS)
@@ -791,13 +794,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			opt_noieee = true;
 			break;
 
+#if defined(ENABLE_VERIFIER)
 		case OPT_NOVERIFY:
 			opt_verify = false;
 			break;
-
-		case OPT_LIBERALUTF:
-			opt_liberalutf = true;
-			break;
+#endif
 
 		case OPT_SOFTNULL:
 			checknull = true;

@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4778 2006-04-14 23:48:26Z edwin $
+   $Id: parse.c 4833 2006-04-25 12:00:58Z edwin $
 
 */
 
@@ -826,7 +826,9 @@ fetch_opcode:
 
 				/* only with -noverify, otherwise the typechecker does this */
 
+#if defined(ENABLE_VERIFIER)
 				if (!opt_verify) {
+#endif
 					result = resolve_field_lazy(iptr,NULL,m);
 					if (result == resolveFailed)
 						return false;
@@ -847,10 +849,12 @@ fetch_opcode:
 					else {
 						iptr->target = NULL;
 					}
+#if defined(ENABLE_VERIFIER)
 				}
 				else {
 					iptr->target = NULL;
 				}
+#endif
 				PINC;
 			}
 			break;
@@ -904,7 +908,9 @@ invoke_method:
 
 			/* only with -noverify, otherwise the typechecker does this */
 
+#if defined(ENABLE_VERIFIER)
 			if (!opt_verify) {
+#endif
 				result = resolve_method_lazy(iptr,NULL,m);
 				if (result == resolveFailed)
 					return false;
@@ -925,10 +931,12 @@ invoke_method:
 				else {
 					iptr->target = NULL;
 				}
+#if defined(ENABLE_VERIFIER)
 			}
 			else {
 				iptr->target = NULL;
 			}
+#endif
 			PINC;
 			break;
 
