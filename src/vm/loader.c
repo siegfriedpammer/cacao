@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4829 2006-04-24 17:16:45Z edwin $
+   $Id: loader.c 4834 2006-04-25 12:25:43Z edwin $
 
 */
 
@@ -1696,10 +1696,10 @@ classinfo *load_class_bootstrap(utf *name)
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
-	if (getcompilingtime)
+	if (opt_getcompilingtime)
 		compilingtime_stop();
 
-	if (getloadingtime)
+	if (opt_getloadingtime)
 		loadingtime_start();
 #endif
 
@@ -1762,10 +1762,10 @@ classinfo *load_class_bootstrap(utf *name)
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
-	if (getloadingtime)
+	if (opt_getloadingtime)
 		loadingtime_stop();
 
-	if (getcompilingtime)
+	if (opt_getcompilingtime)
 		compilingtime_start();
 #endif
 

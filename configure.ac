@@ -359,12 +359,12 @@ fi
 dnl check for statistics
 AC_MSG_CHECKING(whether statistics generation should be enabled)
 AC_ARG_ENABLE([statistics],
-              [AS_HELP_STRING(--disable-statistics,disable statistics generation [[default=yes]])],
+              [AS_HELP_STRING(--enable-statistics,enable statistics generation [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_STATISTICS=no;;
-                   *) ENABLE_STATISTICS=yes;;
+                   yes) ENABLE_STATISTICS=yes;;
+                   *) ENABLE_STATISTICS=no;;
                esac],
-              [ENABLE_STATISTICS=yes])
+              [ENABLE_STATISTICS=no])
 AC_MSG_RESULT(${ENABLE_STATISTICS})
 AM_CONDITIONAL([ENABLE_STATISTICS], test x"${ENABLE_STATISTICS}" = "xyes")
 

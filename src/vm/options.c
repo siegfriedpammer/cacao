@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4833 2006-04-25 12:00:58Z edwin $
+   $Id: options.c 4834 2006-04-25 12:25:43Z edwin $
 
 */
 
@@ -107,10 +107,11 @@ bool opt_loops = false;        /* optimize array accesses in loops           */
 
 bool makeinitializations = true;
 
-bool getloadingtime = false;   /* to measure the runtime                     */
-bool getcompilingtime = false; /* compute compile time                       */
-
+#if defined(ENABLE_STATISTICS)
 bool opt_stat    = false;
+bool opt_getloadingtime = false;   /* to measure the runtime                 */
+bool opt_getcompilingtime = false; /* compute compile time                   */
+#endif
 #if defined(ENABLE_VERIFIER)
 bool opt_verify  = true;       /* true if classfiles should be verified      */
 #endif

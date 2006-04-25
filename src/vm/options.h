@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4833 2006-04-25 12:00:58Z edwin $
+   $Id: options.h 4834 2006-04-25 12:25:43Z edwin $
 
 */
 
@@ -118,10 +118,11 @@ extern bool opt_loops;
 
 extern bool makeinitializations;
 
-extern bool getloadingtime;
-extern bool getcompilingtime;
-
+#if defined(ENABLE_STATISTICS)
 extern bool opt_stat;
+extern bool opt_getloadingtime;
+extern bool opt_getcompilingtime;
+#endif
 #if defined(ENABLE_VERIFIER)
 extern bool opt_verify;
 #endif

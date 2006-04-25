@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4805 2006-04-21 10:54:24Z twisti $
+   $Id: jit.c 4834 2006-04-25 12:25:43Z edwin $
 
 */
 
@@ -1375,7 +1375,7 @@ u1 *jit_compile(methodinfo *m)
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
-	if (getcompilingtime)
+	if (opt_getcompilingtime)
 		compilingtime_start();
 #endif
 
@@ -1435,7 +1435,7 @@ u1 *jit_compile(methodinfo *m)
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
-	if (getcompilingtime)
+	if (opt_getcompilingtime)
 		compilingtime_stop();
 #endif
 

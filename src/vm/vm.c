@@ -151,9 +151,9 @@ enum {
 	OPT_VERBOSE1,
 	OPT_NOIEEE,
 	OPT_SOFTNULL,
-	OPT_TIME,
 
 #if defined(ENABLE_STATISTICS)
+	OPT_TIME,
 	OPT_STAT,
 #endif
 
@@ -248,8 +248,8 @@ opt_struct opts[] = {
 	{ "noieee",            false, OPT_NOIEEE },
 #endif
 	{ "softnull",          false, OPT_SOFTNULL },
-	{ "time",              false, OPT_TIME },
 #if defined(ENABLE_STATISTICS)
+	{ "time",              false, OPT_TIME },
 	{ "stat",              false, OPT_STAT },
 #endif
 	{ "log",               true,  OPT_LOG },
@@ -365,8 +365,8 @@ void usage(void)
 	puts("    -noverify                don't verify classfiles");
 #endif
 	puts("    -softnull                use software nullpointer check");
-	puts("    -time                    measure the runtime");
 #if defined(ENABLE_STATISTICS)
+	puts("    -time                    measure the runtime");
 	puts("    -stat                    detailed compiler statistics");
 #endif
 	puts("    -log logfile             specify a name for the logfile");
@@ -804,12 +804,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			checknull = true;
 			break;
 
+#if defined(ENABLE_STATISTICS)
 		case OPT_TIME:
-			getcompilingtime = true;
-			getloadingtime = true;
+			opt_getcompilingtime = true;
+			opt_getloadingtime = true;
 			break;
 					
-#if defined(ENABLE_STATISTICS)
 		case OPT_STAT:
 			opt_stat = true;
 			break;
@@ -1310,7 +1310,12 @@ void vm_shutdown(s4 status)
 		ipcrm();
 	}
 #endif
-	if (opt_verbose || getcompilingtime || opt_stat) {
+	if (opt_verbose 
+#if defined(ENABLE_STATISTICS)
+		|| opt_getcompilingtime || opt_stat
+#endif
+	   ) 
+	{
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);
 	}
@@ -1351,7 +1356,7 @@ void vm_exit_handler(void)
 	if (opt_prof)
 		profile_printstats();
 # endif
-#endif
+#endif /* !defined(NDEBUG) */
 
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	clear_thread_flags();		/* restores standard file descriptor
@@ -1367,7 +1372,12 @@ void vm_exit_handler(void)
 	stacktrace_print_cycles_stats(stderr);
 #endif
 
-	if (opt_verbose || getcompilingtime || opt_stat) {
+	if (opt_verbose 
+#if defined(ENABLE_STATISTICS)
+		|| opt_getcompilingtime || opt_stat
+#endif
+	   ) 
+	{
 		log_text("CACAO terminated");
 
 #if defined(ENABLE_STATISTICS)
@@ -1380,9 +1390,9 @@ void vm_exit_handler(void)
 
 		mem_usagelog(1);
 
-		if (getcompilingtime)
+		if (opt_getcompilingtime)
 			print_times();
-#endif
+#endif /* defined(ENABLE_STATISTICS) */
 	}
 	/* vm_print_profile(stderr);*/
 }
