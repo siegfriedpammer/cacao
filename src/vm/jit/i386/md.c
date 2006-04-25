@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4806 2006-04-21 11:07:43Z twisti $
+   $Id: md.c 4838 2006-04-25 15:46:06Z edwin $
 
 */
 
@@ -143,6 +143,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	} else {
 		/* catch any problems */
 
+		pa = NULL; /* avoid warnings */
 		assert(0);
 	}
 
