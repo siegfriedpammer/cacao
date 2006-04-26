@@ -30,8 +30,11 @@
 ##
 ## Changes:
 ##
-## $Id: rmic.in 4357 2006-01-22 23:33:38Z twisti $
+## $Id: rmic.in 4846 2006-04-26 09:02:39Z twisti $
 
-prefix = @prefix@
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@CLASSPATH_PREFIX@/share/classpath"
 
-exec ${prefix}/jre/bin/cacao gnu.java.rmi.rmic.RMIC $@
+exec ${bindir}/cacao -cp ${libdir}/tools.zip gnu.classpath.tools.rmi.RMIC ${1+"$@"}

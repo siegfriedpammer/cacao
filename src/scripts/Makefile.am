@@ -28,13 +28,15 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4846 2006-04-26 09:02:39Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 bin_SCRIPTS = \
 	java \
+	rmic \
 	rmiregistry
+
 
 ## Local variables:
 ## mode: Makefile
