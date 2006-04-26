@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4833 2006-04-25 12:00:58Z edwin $
+   $Id: stacktrace.c 4850 2006-04-26 15:44:07Z edwin $
 
 */
 
@@ -1136,19 +1136,12 @@ java_objectarray *stacktrace_getClassContext(void)
 		if (stb->entries[i].method != NULL)
 			oalength++;
 
+	/* The first entry corresponds to the method whose implementation */
+	/* calls stacktrace_getClassContext. We remove that entry.        */
+
 	ste = &(stb->entries[0]);
 	ste++;
 	oalength--;
-
-	/* XXX document me */
-
-	if (oalength > 0) {
-		if (ste->method &&
-			(ste->method->class == class_java_lang_SecurityManager)) {
-			ste++;
-			oalength--;
-		}
-	}
 
 	/* allocate the Class array */
 
