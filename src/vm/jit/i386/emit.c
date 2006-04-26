@@ -1,4 +1,4 @@
-/* vm/jit/i386/emitfuncs.c - i386 code emitter functions
+/* vm/jit/i386/emit.c - i386 code emitter functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,19 +26,223 @@
 
    Authors: Christian Thalinger
 
-   $Id: emit.c 4847 2006-04-26 11:02:20Z twisti $
+   $Id: emit.c 4849 2006-04-26 14:09:15Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <assert.h>
+
 #include "vm/types.h"
 
 #include "vm/statistics.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/i386/md-abi.h"
-#include "vm/jit/i386/emitfuncs.h"
+#include "vm/jit/i386/md-emit.h"
 #include "vm/jit/i386/codegen.h"
+
+
+/* emit_load_s1 ****************************************************************
+
+   Emits a possible load of the first source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_2_WORD_TYPE(src->type))
+				M_LLD(tempreg, REG_SP, disp);
+			else
+				M_ILD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_load_s2 ****************************************************************
+
+   Emits a possible load of the second source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_2_WORD_TYPE(src->type))
+				M_LLD(tempreg, REG_SP, disp);
+			else
+				M_ILD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_load_s3 ****************************************************************
+
+   Emits a possible load of the third source operand.
+
+*******************************************************************************/
+
+s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
+{
+	codegendata  *cd;
+	s4            disp;
+	s4            reg;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (src->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		disp = src->regoff * 4;
+
+		if (IS_FLT_DBL_TYPE(src->type)) {
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
+
+		} else {
+			if (IS_2_WORD_TYPE(src->type))
+				M_LLD(tempreg, REG_SP, disp);
+			else
+				M_ILD(tempreg, REG_SP, disp);
+		}
+
+		reg = tempreg;
+	} else
+		reg = src->regoff;
+
+	return reg;
+}
+
+
+/* emit_store ******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
+{
+	codegendata  *cd;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+
+	if (dst->flags & INMEMORY) {
+		COUNT_SPILLS;
+
+		if (IS_FLT_DBL_TYPE(dst->type)) {
+			if (IS_2_WORD_TYPE(dst->type))
+				M_DST(d, REG_SP, dst->regoff * 4);
+			else
+				M_FST(d, REG_SP, dst->regoff * 4);
+
+		} else {
+			if (IS_2_WORD_TYPE(dst->type))
+				M_LST(d, REG_SP, dst->regoff * 4);
+			else
+				M_IST(d, REG_SP, dst->regoff * 4);
+		}
+	}
+}
+
+
+/* emit_copy *******************************************************************
+
+   XXX
+
+*******************************************************************************/
+
+void emit_copy(jitdata *jd, instruction *iptr, stackptr src, stackptr dst)
+{
+	codegendata  *cd;
+	registerdata *rd;
+	s4            s1, d;
+
+	/* get required compiler data */
+
+	cd = jd->cd;
+	rd = jd->rd;
+
+	if ((src->regoff != dst->regoff) ||
+		((src->flags ^ dst->flags) & INMEMORY)) {
+		if (IS_LNG_TYPE(src->type))
+			d = codegen_reg_of_var(rd, iptr->opc, dst, PACK_REGS(REG_ITMP1, REG_ITMP2));
+		else
+			d = codegen_reg_of_var(rd, iptr->opc, dst, REG_ITMP1);
+
+		s1 = emit_load_s1(jd, iptr, src, d);
+
+		if (s1 != d) {
+			if (IS_FLT_DBL_TYPE(src->type)) {
+/* 				M_FMOV(s1, d); */
+			} else {
+				if (IS_2_WORD_TYPE(src->type))
+					M_LNGMOVE(s1, d);
+				else
+                    M_MOV(s1, d);
+			}
+		}
+
+		emit_store(jd, iptr, dst, d);
+	}
+}
 
 
 void i386_emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)

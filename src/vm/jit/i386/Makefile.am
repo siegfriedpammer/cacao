@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4731 2006-04-04 18:14:55Z edwin $
+## $Id: Makefile.am 4849 2006-04-26 14:09:15Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -66,8 +66,8 @@ libarch_la_SOURCES = \
 	codegen.c \
 	codegen.h \
 	$(DISASS_SOURCES) \
-	emitfuncs.c \
-	emitfuncs.h \
+	emit.c \
+	md-emit.h \
 	md.c \
 	patcher.c \
 	\

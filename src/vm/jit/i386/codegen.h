@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.h 4849 2006-04-26 14:09:15Z twisti $
 
 */
 
@@ -114,10 +114,23 @@
      if a and b are the same int-register, no code will be generated.
 */ 
 
-#define M_INTMOVE(reg,dreg) \
-    if ((reg) != (dreg)) { \
-        i386_mov_reg_reg(cd, (reg),(dreg)); \
-    }
+#define M_INTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) \
+            M_MOV(a, b); \
+    } while (0)
+
+#define M_LNGMOVE(a,b) \
+    do { \
+        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
+            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+        } else { \
+            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
+            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
+        } \
+    } while (0)
 
 
 /* M_FLTMOVE:
@@ -132,177 +145,8 @@
     } while (0)
 
 
-#define M_LNGMEMMOVE(reg,dreg) \
-    do { \
-        i386_mov_membase_reg(cd, REG_SP, (reg) * 4, REG_ITMP1); \
-        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 4); \
-        i386_mov_membase_reg(cd, REG_SP, (reg) * 4 + 4, REG_ITMP1); \
-        i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, (dreg) * 4 + 4); \
-    } while (0)
+#define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 
-
-/* var_to_reg_xxx:
-    this function generates code to fetch data from a pseudo-register
-    into a real register. 
-    If the pseudo-register has actually been assigned to a real 
-    register, no code will be emitted, since following operations
-    can use this register directly.
-    
-    v: pseudoregister to be fetched from
-    tempregnum: temporary register to be used if v is actually spilled to ram
-
-    return: the register number, where the operand can be found after 
-            fetching (this wil be either tempregnum or the register
-            number allready given to v)
-*/
-
-#define var_to_reg_int(regnr,v,tempnr) \
-    do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_ILD(tempnr, REG_SP, (v)->regoff * 4); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } while (0)
-
-#define var_to_reg_lng(regnr,v,tempnr) \
-    do { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            M_LLD(tempnr, REG_SP, (v)->regoff * 4); \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } while (0)
-
-#define var_to_reg_flt(regnr,v,tempnr) \
-    if ((v)->type == TYPE_FLT) { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            i386_flds_membase(cd, REG_SP, (v)->regoff * 4); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
-            i386_fld_reg(cd, (v)->regoff + fpu_st_offset); \
-            fpu_st_offset++; \
-            regnr = (v)->regoff; \
-        } \
-    } else { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            i386_fldl_membase(cd, REG_SP, (v)->regoff * 4); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
-            i386_fld_reg(cd, (v)->regoff + fpu_st_offset); \
-            fpu_st_offset++; \
-            regnr = (v)->regoff; \
-        } \
-    }
-
-#define NEW_var_to_reg_flt(regnr,v,tempnr) \
-    if ((v)->type == TYPE_FLT) { \
-       if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            i386_flds_membase(cd, REG_SP, (v)->regoff * 4); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    } else { \
-        if ((v)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            i386_fldl_membase(cd, REG_SP, (v)->regoff * 4); \
-            fpu_st_offset++; \
-            regnr = tempnr; \
-        } else { \
-            regnr = (v)->regoff; \
-        } \
-    }
-
-
-/* store_reg_to_var_xxx:
-    This function generates the code to store the result of an operation
-    back into a spilled pseudo-variable.
-    If the pseudo-variable has not been spilled in the first place, this 
-    function will generate nothing.
-    
-    v ............ Pseudovariable
-    tempregnum ... Number of the temporary registers as returned by
-                   reg_of_var.
-*/	
-
-#define store_reg_to_var_int(sptr, tempregnum) \
-    if ((sptr)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        M_IST(tempregnum, REG_SP, (sptr)->regoff * 4); \
-    }
-
-
-#define store_reg_to_var_lng(sptr, tempregnum) \
-    if ((sptr)->flags & INMEMORY) { \
-        COUNT_SPILLS; \
-        M_LST(tempregnum, REG_SP, (sptr)->regoff * 4); \
-    }
-
-
-#define store_reg_to_var_flt(sptr, tempregnum) \
-    if ((sptr)->type == TYPE_FLT) { \
-        if ((sptr)->flags & INMEMORY) { \
-             COUNT_SPILLS; \
-             i386_fstps_membase(cd, REG_SP, (sptr)->regoff * 4); \
-             fpu_st_offset--; \
-        } else { \
-/*                  i386_fxch_reg((sptr)->regoff);*/ \
-             i386_fstp_reg(cd, (sptr)->regoff + fpu_st_offset); \
-             fpu_st_offset--; \
-        } \
-    } else { \
-        if ((sptr)->flags & INMEMORY) { \
-            COUNT_SPILLS; \
-            i386_fstpl_membase(cd, REG_SP, (sptr)->regoff * 4); \
-            fpu_st_offset--; \
-        } else { \
-/*                  i386_fxch_reg((sptr)->regoff);*/ \
-            i386_fstp_reg(cd, (sptr)->regoff + fpu_st_offset); \
-            fpu_st_offset--; \
-        } \
-    }
-
-
-#define M_COPY(from,to) \
-    d = codegen_reg_of_var(rd, iptr->opc, (to), REG_ITMP1); \
-	if ((from->regoff != to->regoff) || \
-	    ((from->flags ^ to->flags) & INMEMORY)) { \
-		if (IS_FLT_DBL_TYPE(from->type)) { \
-			var_to_reg_flt(s1, from, d); \
-			/*M_FLTMOVE(s1, d);*/ \
-			store_reg_to_var_flt(to, d); \
-		} else { \
-            if (!IS_2_WORD_TYPE(from->type)) { \
-                if (to->flags & INMEMORY) { \
-                     if (from->flags & INMEMORY) { \
-                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 4, REG_ITMP1); \
-                         i386_mov_reg_membase(cd, REG_ITMP1, REG_SP, to->regoff * 4); \
-                     } else { \
-                         i386_mov_reg_membase(cd, from->regoff, REG_SP, to->regoff * 4); \
-                     } \
-                } else { \
-                     if (from->flags & INMEMORY) { \
-                         i386_mov_membase_reg(cd, REG_SP, from->regoff * 4, to->regoff); \
-                     } else { \
-                         i386_mov_reg_reg(cd, from->regoff, to->regoff); \
-                     } \
-                } \
-            } else { \
-                M_LNGMEMMOVE(from->regoff, to->regoff); \
-            } \
-		} \
-	}
 
 /* macros to create code ******************************************************/
 
@@ -577,6 +421,16 @@ typedef enum {
 #define M_JMP_IMM(a)            i386_jmp_imm(cd, (a))
 
 #define M_NOP                   i386_nop(cd)
+
+
+#define M_FLD(a,b,disp)         i386_flds_membase(cd, (b), (disp))
+#define M_DLD(a,b,disp)         i386_fldl_membase(cd, (b), (disp))
+
+#define M_FLD32(a,b,disp)       i386_flds_membase32(cd, (b), (disp))
+#define M_DLD32(a,b,disp)       i386_fldl_membase32(cd, (b), (disp))
+
+#define M_FST(a,b,disp)         i386_fstps_membase(cd, (b), (disp))
+#define M_DST(a,b,disp)         i386_fstpl_membase(cd, (b), (disp))
 
 
 /* function gen_resolvebranch **************************************************
