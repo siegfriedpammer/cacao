@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4690 2006-03-27 11:37:46Z twisti $
+## $Id: Makefile.am 4845 2006-04-26 08:57:01Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -62,7 +62,11 @@ VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
+	@if test "$(JAVAC)" = "ecj"; then \
+	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
+	else \
+	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
+	fi
 	@if test "$(JAR)" = "zip"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
@@ -73,7 +77,11 @@ pkgdata_DATA = nozip
 
 nozip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES)
+	@if test "$(JAVAC)" = "ecj"; then \
+	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes -1.5 $(VM_JAVA_FILES); \
+	else \
+	    $(JAVAC) -bootclasspath $(GLIBJ_ZIP) -d classes $(VM_JAVA_FILES); \
+	fi
 endif
 
 clean-local:

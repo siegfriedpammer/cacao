@@ -37,9 +37,9 @@ dnl @license GPLWithACException
 AC_DEFUN([AC_PROG_JAVAC],[
 AC_REQUIRE([AC_EXEEXT])dnl
 if test "x$JAVAPREFIX" = x; then
-        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "gcj$EXEEXT -C" ecj$EXEEXT jikes$EXEEXT javac$EXEEXT)
+        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, ecj$EXEEXT "gcj$EXEEXT -C" jikes$EXEEXT javac$EXEEXT)
 else
-        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, "gcj$EXEEXT -C" ecj$EXEEXT jikes$EXEEXT javac$EXEEXT, $JAVAPREFIX)
+        test "x$JAVAC" = x && AC_CHECK_PROGS(JAVAC, ecj$EXEEXT "gcj$EXEEXT -C" jikes$EXEEXT javac$EXEEXT, $JAVAPREFIX)
 fi
 test "x$JAVAC" = x && AC_MSG_ERROR([no acceptable Java compiler found in \$PATH])
 AC_PROG_JAVAC_WORKS
