@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emitfuncs.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-emit.h 4848 2006-04-26 11:02:51Z twisti $
 
 */
 
