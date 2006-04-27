@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: VMSystemProperties.c 4839 2006-04-25 17:42:08Z edwin $
+   $Id: VMSystemProperties.c 4852 2006-04-27 11:05:03Z twisti $
 
 */
 
@@ -64,20 +64,20 @@
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *p)
 {
 	char       *cwd;
+	char       *env_java_home;
+	char       *env_user;
+	char       *env_home;
+	char       *env_lang;
 	char       *java_home;
-	char       *user;
-	char       *home;
 	char       *extdirs;
-	s4          extdirslen;
-	char       *locale;
 	char       *lang;
 	char       *country;
 	struct utsname utsnamebuf;
+	s4          len;
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	char *ld_library_path;
 	char *libpath;
-	s4    libpathlen;
 #endif
 
 	if (p == NULL) {
@@ -87,10 +87,12 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* get properties from system */
 
-	cwd = _Jv_getcwd();
-	java_home = getenv("JAVA_HOME");
-	user = getenv("USER");
-	home = getenv("HOME");
+	cwd           = _Jv_getcwd();
+	env_java_home = getenv("JAVA_HOME");
+	env_user      = getenv("USER");
+	env_home      = getenv("HOME");
+	env_lang      = getenv("LANG");
+
 	uname(&utsnamebuf);
 
 	/* post-initialize the properties */
@@ -100,13 +102,28 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* set JAVA_HOME to default prefix if not defined */
 
-	if (java_home == NULL)
-		java_home = CACAO_PREFIX;
+	if (env_java_home == NULL)
+		env_java_home = CACAO_PREFIX;
+
+	/* fill in system properties */
 
 	properties_system_add("java.version", JAVA_VERSION);
 	properties_system_add("java.vendor", "GNU Classpath");
 	properties_system_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
+
+	/* add /jre to java.home property */
+
+	len = strlen(env_java_home) + strlen("/jre") + strlen("0");
+
+	java_home = MNEW(char, len);
+
+	strcpy(java_home, env_java_home);
+	strcat(java_home, "/jre");
+
 	properties_system_add("java.home", java_home);
+
+	MFREE(java_home, char, len);
+
 	properties_system_add("java.vm.specification.version", "1.0");
 	properties_system_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_system_add("java.vm.specification.name", "Java Virtual Machine Specification");
@@ -136,15 +153,15 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	/* fill gnu.classpath.boot.library.path with GNU Classpath library
        path */
 
-	libpathlen = strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
+	len = strlen(CLASSPATH_LIBRARY_PATH) + strlen("0");
 
-	libpath = MNEW(char, libpathlen);
+	libpath = MNEW(char, len);
 
 	strcpy(libpath, CLASSPATH_LIBRARY_PATH);
 
 	properties_system_add("gnu.classpath.boot.library.path", libpath);
 
-	MFREE(libpath, char, libpathlen);
+	MFREE(libpath, char, len);
 
 
 	/* now fill java.library.path */
@@ -152,15 +169,15 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	ld_library_path = getenv("LD_LIBRARY_PATH");
 
 	if (ld_library_path) {
-		libpathlen = strlen(ld_library_path) + strlen("0");
+		len = strlen(ld_library_path) + strlen("0");
 
-		libpath = MNEW(char, libpathlen);
+		libpath = MNEW(char, len);
 
 		strcpy(libpath, ld_library_path);
 
 		properties_system_add("java.library.path", libpath);
 
-		MFREE(libpath, char, libpathlen);
+		MFREE(libpath, char, len);
 
 	} else {
 		properties_system_add("java.library.path", "");
@@ -184,16 +201,16 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* set the java.ext.dirs property */
 
-	extdirslen = strlen(java_home) + strlen("/jre/lib/ext") + strlen("0");
+	len = strlen(env_java_home) + strlen("/jre/lib/ext") + strlen("0");
 
-	extdirs = MNEW(char, extdirslen);
+	extdirs = MNEW(char, len);
 
-	strcpy(extdirs, java_home);
+	strcpy(extdirs, env_java_home);
 	strcat(extdirs, "/jre/lib/ext");
 
 	properties_system_add("java.ext.dirs", extdirs);
 
-	MFREE(extdirs, char, extdirslen);
+	MFREE(extdirs, char, len);
 
 
 #if defined(DISABLE_GC)
@@ -230,8 +247,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 	properties_system_add("file.separator", "/");
 	properties_system_add("path.separator", ":");
 	properties_system_add("line.separator", "\n");
-	properties_system_add("user.name", user ? user : "null");
-	properties_system_add("user.home", home ? home : "null");
+	properties_system_add("user.name", env_user ? env_user : "null");
+	properties_system_add("user.home", env_home ? env_home : "null");
 	properties_system_add("user.dir", cwd ? cwd : "null");
 
 #if defined(WITH_STATIC_CLASSPATH)
@@ -249,22 +266,20 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 
 	/* get locale */
 
-	locale = getenv("LANG");
-
-	if (locale != NULL) {
+	if (env_lang != NULL) {
 		/* get the local stuff from the environment */
 
-		if (strlen(locale) <= 2) {
-			properties_system_add("user.language", locale);
+		if (strlen(env_lang) <= 2) {
+			properties_system_add("user.language", env_lang);
 
 		} else {
-			if ((locale[2] == '_') && (strlen(locale) >= 5)) {
+			if ((env_lang[2] == '_') && (strlen(env_lang) >= 5)) {
 				lang = MNEW(char, 3);
-				strncpy(lang, (char *) &locale[0], 2);
+				strncpy(lang, (char *) &env_lang[0], 2);
 				lang[2] = '\0';
 
 				country = MNEW(char, 3);
-				strncpy(country, (char *) &locale[3], 2);
+				strncpy(country, (char *) &env_lang[3], 2);
 				country[2] = '\0';
 
 				properties_system_add("user.language", lang);
