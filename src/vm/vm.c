@@ -1420,8 +1420,8 @@ static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
 
 	if (o != NULL) {
 		/* the `this' pointer */
-		vmargs[0].type = TYPE_ADR;
-		vmargs[0].data = (u8) (ptrint) o;
+		vmargs[0].type   = TYPE_ADR;
+		vmargs[0].data.l = (u8) (ptrint) o;
 
 		paramtypes++;
 		i++;
@@ -1435,34 +1435,34 @@ static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
 		case PRIMITIVETYPE_CHAR:
 		case PRIMITIVETYPE_SHORT: 
 		case PRIMITIVETYPE_INT:
-			vmargs[i].type = TYPE_INT;
-			vmargs[i].data = (s8) va_arg(ap, s4);
+			vmargs[i].type   = TYPE_INT;
+			vmargs[i].data.l = (s8) va_arg(ap, s4);
 			break;
 
 		case PRIMITIVETYPE_LONG:
-			vmargs[i].type = TYPE_LNG;
-			vmargs[i].data = (s8) va_arg(ap, s8);
+			vmargs[i].type   = TYPE_LNG;
+			vmargs[i].data.l = (s8) va_arg(ap, s8);
 			break;
 
 		case PRIMITIVETYPE_FLOAT:
-			vmargs[i].type = TYPE_FLT;
+			vmargs[i].type   = TYPE_FLT;
 #if defined(__ALPHA__)
 			/* this keeps the assembler function much simpler */
 
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
+			vmargs[i].data.d = (jdouble) va_arg(ap, jdouble);
 #else
-			*((jfloat *) (&vmargs[i].data)) = (jfloat) va_arg(ap, jdouble);
+			vmargs[i].data.f = (jfloat) va_arg(ap, jdouble);
 #endif
 			break;
 
 		case PRIMITIVETYPE_DOUBLE:
-			vmargs[i].type = TYPE_DBL;
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) va_arg(ap, jdouble);
+			vmargs[i].type   = TYPE_DBL;
+			vmargs[i].data.d = (jdouble) va_arg(ap, jdouble);
 			break;
 
 		case TYPE_ADR: 
-			vmargs[i].type = TYPE_ADR;
-			vmargs[i].data = (u8) (ptrint) va_arg(ap, void*);
+			vmargs[i].type   = TYPE_ADR;
+			vmargs[i].data.l = (u8) (ptrint) va_arg(ap, void*);
 			break;
 		}
 	}
@@ -1490,8 +1490,8 @@ static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 
 	if (o != NULL) {
 		/* the `this' pointer */
-		vmargs[0].type = TYPE_ADR;
-		vmargs[0].data = (u8) (ptrint) o;
+		vmargs[0].type   = TYPE_ADR;
+		vmargs[0].data.l = (u8) (ptrint) o;
 
 		paramtypes++;
 		i++;
@@ -1505,13 +1505,13 @@ static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 		case PRIMITIVETYPE_CHAR:
 		case PRIMITIVETYPE_SHORT: 
 		case PRIMITIVETYPE_INT:
-			vmargs[i].type = TYPE_INT;
-			vmargs[i].data = (s8) args[j].i;
+			vmargs[i].type   = TYPE_INT;
+			vmargs[i].data.l = (s8) args[j].i;
 			break;
 
 		case PRIMITIVETYPE_LONG:
-			vmargs[i].type = TYPE_LNG;
-			vmargs[i].data = (s8) args[j].j;
+			vmargs[i].type   = TYPE_LNG;
+			vmargs[i].data.l = (s8) args[j].j;
 			break;
 
 		case PRIMITIVETYPE_FLOAT:
@@ -1519,20 +1519,20 @@ static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
 #if defined(__ALPHA__)
 			/* this keeps the assembler function much simpler */
 
-			*((jdouble *) (&vmargs[i].data)) = (jdouble) args[j].f;
+			vmargs[i].data.d = (jdouble) args[j].f;
 #else
-			*((jfloat *) (&vmargs[i].data)) = args[j].f;
+			vmargs[i].data.f = args[j].f;
 #endif
 			break;
 
 		case PRIMITIVETYPE_DOUBLE:
-			vmargs[i].type = TYPE_DBL;
-			*((jdouble *) (&vmargs[i].data)) = args[j].d;
+			vmargs[i].type   = TYPE_DBL;
+			vmargs[i].data.d = args[j].d;
 			break;
 
 		case TYPE_ADR: 
-			vmargs[i].type = TYPE_ADR;
-			vmargs[i].data = (u8) (ptrint) args[j].l;
+			vmargs[i].type   = TYPE_ADR;
+			vmargs[i].data.l = (u8) (ptrint) args[j].l;
 			break;
 		}
 	}

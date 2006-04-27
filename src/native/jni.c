@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4573 2006-03-08 09:44:22Z twisti $
+   $Id: jni.c 4854 2006-04-27 23:03:37Z twisti $
 
 */
 
@@ -243,6 +243,7 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 	classinfo         *c;
 	s4                 i;
 	s4                 j;
+	s8                 value;
 
 	paramcount = descr->paramcount;
 	paramtypes = descr->paramtypes;
@@ -253,8 +254,8 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 
 	if (o != NULL) {
 		/* this pointer */
-		vmargs[0].type = TYPE_ADR;
-		vmargs[0].data = (u8) (ptrint) o;
+		vmargs[0].type   = TYPE_ADR;
+		vmargs[0].data.l = (u8) (ptrint) o;
 
 		paramtypes++;
 		paramcount--;
@@ -283,70 +284,82 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 			switch (paramtypes->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Boolean *) param)->value;
+					value = (s8) ((java_lang_Boolean *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_BYTE:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Byte *) param)->value;
+					value = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_CHAR:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Character *) param)->value;
+					value = (s8) ((java_lang_Character *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_SHORT:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Short *) param)->value;
+					value = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Byte *) param)->value;
+					value = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_INT:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Integer *) param)->value;
+					value = (s8) ((java_lang_Integer *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Short *) param)->value;
+					value = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Byte *) param)->value;
+					value = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_LONG:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Long *) param)->value;
+					value = (s8) ((java_lang_Long *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_INT].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Integer *) param)->value;
+					value = (s8) ((java_lang_Integer *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_SHORT].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Short *) param)->value;
+					value = (s8) ((java_lang_Short *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_BYTE].class_wrap)
-					vmargs[i].data = (s8) ((java_lang_Byte *) param)->value;
+					value = (s8) ((java_lang_Byte *) param)->value;
 				else
 					goto illegal_arg;
+
+				vmargs[i].data.l = value;
 				break;
 
 			case PRIMITIVETYPE_FLOAT:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					*((jfloat *) (&vmargs[i].data)) = (jfloat) ((java_lang_Float *) param)->value;
+					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_DOUBLE:
 				if (c == primitivetype_table[paramtypes->decltype].class_wrap)
-					*((jdouble *) (&vmargs[i].data)) = (jdouble) ((java_lang_Double *) param)->value;
+					vmargs[i].data.d = (jdouble) ((java_lang_Double *) param)->value;
 				else if (c == primitivetype_table[PRIMITIVETYPE_FLOAT].class_wrap)
-					*((jfloat *) (&vmargs[i].data)) = (jfloat) ((java_lang_Float *) param)->value;
+					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
 				else
 					goto illegal_arg;
 				break;
@@ -370,8 +383,9 @@ static bool _Jv_jni_vmargs_from_objectarray(java_objectheader *o,
 							goto illegal_arg;
 					}
 				}
-				vmargs[i].type = TYPE_ADR;
-				vmargs[i].data = (u8) (ptrint) params->data[j];
+
+				vmargs[i].type   = TYPE_ADR;
+				vmargs[i].data.l = (u8) (ptrint) params->data[j];
 				break;
 
 			default:

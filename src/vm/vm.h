@@ -70,7 +70,12 @@ typedef struct vm_arg vm_arg;
 
 struct vm_arg {
 	u8 type;
-	u8 data;
+
+	union {
+		u8     l;
+		float  f;
+		double d;
+	} data;
 };
 
 

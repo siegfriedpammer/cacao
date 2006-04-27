@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4728 2006-04-04 09:17:05Z twisti $
+   $Id: threads.c 4854 2006-04-27 23:03:37Z twisti $
 
 */
 
@@ -1085,7 +1085,7 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 
 				/* if the object still refers to lr, replace it by the new mlr */
 				MEMORY_BARRIER_BEFORE_ATOMIC();
-				nlr = (void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
+				nlr = (monitorLockRecord *) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
 			}
 
 			if (nlr == lr) {

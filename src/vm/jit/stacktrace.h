@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4824 2006-04-24 11:40:05Z edwin $
+   $Id: stacktrace.h 4854 2006-04-27 23:03:37Z twisti $
 
 */
 
@@ -65,7 +65,7 @@ struct stackframeinfo {
 };
 
 #if defined(USE_THREADS)
-#define STACKFRAMEINFO    (stackframeinfo **) (&THREADINFO->_stackframeinfo)
+#define STACKFRAMEINFO    (stackframeinfo **) (&(THREADINFO->_stackframeinfo))
 #else
 extern stackframeinfo *_no_threads_stackframeinfo;
 

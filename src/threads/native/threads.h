@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4661 2006-03-21 00:04:59Z motse $
+   $Id: threads.h 4854 2006-04-27 23:03:37Z twisti $
 
 */
 
@@ -109,7 +109,7 @@ struct nativethread {
 	threadobject      *next;
 	threadobject      *prev;
 	java_objectheader *_exceptionptr;
-	void              *_stackframeinfo;
+	stackframeinfo    *_stackframeinfo;
 	localref_table    *_localref_table; /* JNI local references               */
 #if defined(ENABLE_INTRP)
 	void              *_global_sp;
