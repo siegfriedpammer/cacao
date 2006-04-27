@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4820 2006-04-24 10:00:13Z twisti $
+   $Id: asmpart.S 4851 2006-04-27 10:32:27Z twisti $
 
 */
 
@@ -1339,21 +1339,21 @@ L_stacktrace_create_extern_stackframeinfo$lazy_ptr:
 
 .section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.align 2
-L_jit_compile$stub:
-	.indirect_symbol _jit_compile
+L_jit_asm_compile$stub:
+	.indirect_symbol _jit_asm_compile
 	mflr r0
-	bcl 20,31,L00$_jit_compile
-L00$_jit_compile:
+	bcl 20,31,L00$_jit_asm_compile
+L00$_jit_asm_compile:
 	mflr r11
-	addis r11,r11,ha16(L_jit_compile$lazy_ptr - L00$_jit_compile)
+	addis r11,r11,ha16(L_jit_asm_compile$lazy_ptr - L00$_jit_asm_compile)
 	mtlr r0
-	lwzu r12,lo16(L_jit_compile$lazy_ptr - L00$_jit_compile)(r11)
+	lwzu r12,lo16(L_jit_asm_compile$lazy_ptr - L00$_jit_asm_compile)(r11)
 	mtctr r12
 	bctr
 .data
 .lazy_symbol_pointer
-L_jit_compile$lazy_ptr:
-	.indirect_symbol _jit_compile
+L_jit_asm_compile$lazy_ptr:
+	.indirect_symbol _jit_asm_compile
 	.long dyld_stub_binding_helper
 
 

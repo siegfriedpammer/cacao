@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4715 2006-03-31 07:50:19Z twisti $
+   $Id: md-asm.h 4851 2006-04-27 10:32:27Z twisti $
 
 */
 
@@ -258,7 +258,7 @@
 
 #define builtin_throw_exception               L_builtin_throw_exception$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
-#define jit_compile                           L_jit_compile$stub
+#define jit_asm_compile                       L_jit_asm_compile$stub
 #define replace_me                            L_replace_me$stub
 
 #define stacktrace_create_extern_stackframeinfo \
