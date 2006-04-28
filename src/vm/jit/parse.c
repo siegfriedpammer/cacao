@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4833 2006-04-25 12:00:58Z edwin $
+   $Id: parse.c 4861 2006-04-28 12:25:27Z edwin $
 
 */
 
@@ -929,6 +929,7 @@ invoke_method:
 					iptr->target = (void*)1; /* XXX target temporarily used as flag */
 				}
 				else {
+					/* the method could be resolved */
 					iptr->target = NULL;
 				}
 #if defined(ENABLE_VERIFIER)
