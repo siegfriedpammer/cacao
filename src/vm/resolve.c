@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: resolve.c 4857 2006-04-28 11:24:39Z edwin $
 
 */
 
@@ -1825,6 +1825,14 @@ resolved_the_method:
 	}
 #endif /* defined(ENABLE_VERIFIER) */
 
+	/* if this call is monomorphic, turn it into an INVOKESPECIAL */
+
+	if ((iptr->opc == ICMD_INVOKEVIRTUAL)
+		&& (mi->flags & (ACC_FINAL | ACC_PRIVATE)))
+	{
+		iptr->opc = ICMD_INVOKESPECIAL;
+	}
+
 	/* succeed */
 	return resolveSucceeded;
 }
@@ -2677,10 +2685,11 @@ void unresolved_method_free(unresolved_method *ref)
 	FREE(ref,unresolved_method);
 }
 
-#ifndef NDEBUG
 /******************************************************************************/
 /* DEBUG DUMPS                                                                */
 /******************************************************************************/
+
+#if !defined(NDEBUG)
 
 /* unresolved_subtype_set_debug_dump *******************************************
  
@@ -2823,7 +2832,7 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 		}
 	}
 }
-#endif
+#endif /* !defined(NDEBUG) */
 
 /*
  * These are local overrides for various environment variables in Emacs.
