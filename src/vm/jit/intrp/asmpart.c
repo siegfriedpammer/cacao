@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4746 2006-04-11 05:10:55Z edwin $
+   $Id: asmpart.c 4856 2006-04-28 00:46:39Z edwin $
 
 */
 
@@ -70,12 +70,12 @@ static bool intrp_asm_vm_call_method_intern(methodinfo *m, s4 vmargscount,
 		case TYPE_INT:
 		case TYPE_FLT:
 		case TYPE_ADR:
-			*(--sp) = vmargs[i].data;
+			*(--sp) = (Cell) vmargs[i].data.l;
 			break;
 		case TYPE_LNG:
 		case TYPE_DBL:
 			sp -= 2;
-			*((u8 *) sp) = vmargs[i].data;
+			*((u8 *) sp) = vmargs[i].data.l;
 			break;
 		}
 	}
