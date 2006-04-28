@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4441 2006-02-05 12:20:26Z twisti $
+## $Id: Makefile.am 4858 2006-04-28 11:37:33Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,6 +36,7 @@ JAVA      = $(top_builddir)/src/cacao/cacao
 JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/$(VM_ZIP_STRING):$(CLASSPATH_PREFIX)/share/classpath/$(GLIBJ_ZIP_STRING)
 
 SOURCE_FILES = \
+	$(srcdir)/aastoreconstClass.java \
 	$(srcdir)/checkcastC.java \
 	$(srcdir)/checkcastI.java \
 	$(srcdir)/getfieldD.java \
@@ -54,18 +55,28 @@ SOURCE_FILES = \
 	$(srcdir)/invokestatic.java \
 	$(srcdir)/multianewarray.java \
 	$(srcdir)/newarray.java \
-	$(srcdir)/putfieldconstIF.java \
-	$(srcdir)/putfieldconstJDL.java \
 	$(srcdir)/putfieldD.java \
 	$(srcdir)/putfieldF.java \
 	$(srcdir)/putfieldI.java \
 	$(srcdir)/putfieldJ.java \
 	$(srcdir)/putfieldL.java \
+	$(srcdir)/putfieldconstC.java \
+	$(srcdir)/putfieldconstD.java \
+	$(srcdir)/putfieldconstF.java \
+	$(srcdir)/putfieldconstI.java \
+	$(srcdir)/putfieldconstJ.java \
+	$(srcdir)/putfieldconstL.java \
 	$(srcdir)/putstaticD.java \
 	$(srcdir)/putstaticF.java \
 	$(srcdir)/putstaticI.java \
 	$(srcdir)/putstaticJ.java \
 	$(srcdir)/putstaticL.java \
+	$(srcdir)/putstaticconstC.java \
+	$(srcdir)/putstaticconstD.java \
+	$(srcdir)/putstaticconstF.java \
+	$(srcdir)/putstaticconstI.java \
+	$(srcdir)/putstaticconstJ.java \
+	$(srcdir)/putstaticconstL.java \
 	$(srcdir)/test.java
 
 EXTRA_DIST = \
@@ -75,6 +86,7 @@ MAINCLASS = \
 	test.class
 
 CLASSES = \
+	aastoreconstClass.class \
 	checkcastC.class \
 	checkcastI.class \
 	getfieldD.class \
@@ -93,18 +105,28 @@ CLASSES = \
 	invokestatic.class \
 	multianewarray.class \
 	newarray.class \
-	putfieldconstIF.class \
-	putfieldconstJDL.class \
 	putfieldD.class \
 	putfieldF.class \
 	putfieldI.class \
 	putfieldJ.class \
 	putfieldL.class \
+	putfieldconstC.class \
+	putfieldconstD.class \
+	putfieldconstF.class \
+	putfieldconstI.class \
+	putfieldconstJ.class \
+	putfieldconstL.class \
 	putstaticD.class \
 	putstaticF.class \
 	putstaticI.class \
 	putstaticJ.class \
-	putstaticL.class
+	putstaticL.class \
+	putstaticconstC.class \
+	putstaticconstD.class \
+	putstaticconstF.class \
+	putstaticconstI.class \
+	putstaticconstJ.class \
+	putstaticconstL.class
 
 CLEANFILES = \
 	*.class

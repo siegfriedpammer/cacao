@@ -42,6 +42,7 @@ public class test extends Thread {
 
         getstatic();
         putstatic();
+        putstaticconst();
 
         getfield();
         putfield();
@@ -187,6 +188,118 @@ public class test extends Thread {
         }
     }
 
+    private void putstaticconst() {
+        try {
+            p("putstaticconst (I): ");
+            if (doit) {
+                putstaticconstI.i = 123;
+                check(putstaticconstI.i, 123);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst (J): ");
+            if (doit) {
+                putstaticconstJ.l = 1234567890123L;
+                check(putstaticconstJ.l, 1234567890123L);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst (F): ");
+            if (doit) {
+                putstaticconstF.f = 123.456F;
+                check(putstaticconstF.f, 123.456F);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst (D): ");
+            if (doit) {
+                putstaticconstD.d = 789.012;
+                check(putstaticconstD.d, 789.012);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst zero (I): ");
+            if (doit) {
+                putstaticconstI.i = 0;
+                check(putstaticconstI.i, 0);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst zero (J): ");
+            if (doit) {
+                putstaticconstJ.l = 0L;
+                check(putstaticconstJ.l, 0L);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst zero (F): ");
+            if (doit) {
+                putstaticconstF.f = 0.0F;
+                check(putstaticconstF.f, 0.0F);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst zero (D): ");
+            if (doit) {
+                putstaticconstD.d = 0.0;
+                check(putstaticconstD.d, 0.0);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst zero (L): ");
+            if (doit) {
+                putstaticconstL.o = null;
+                check(putstaticconstL.o, null);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putstaticconst unresolved class: ");
+            if (doit) {
+                putstaticconstC.c = putstaticconstC.class;
+                check(putstaticconstC.c, Class.forName("putstaticconstC"));
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+    }
+
     private void getfield() {
         try {
             p("getfield (I): ");
@@ -308,11 +421,11 @@ public class test extends Thread {
 
     private void putfieldconst() {
         try {
-            p("putfieldconst (I,F): ");
+            p("putfieldconst (I): ");
             if (doit) {
-                putfieldconstIF pfcif = new putfieldconstIF();
-                pfcif.i = 123;
-                check(pfcif.i, 123);
+                putfieldconstI pfci = new putfieldconstI();
+                pfci.i = 123;
+                check(pfci.i, 123);
             } else
                 ok();
         } catch (Throwable t) {
@@ -320,23 +433,11 @@ public class test extends Thread {
         }
  
         try {
-            p("putfieldconst zero (I,F): ");
+            p("putfieldconst (J): ");
             if (doit) {
-                putfieldconstIF pfcif = new putfieldconstIF();
-                pfcif.i = 0;
-                check(pfcif.i, 0);
-            } else
-                ok();
-        } catch (Throwable t) {
-            failed(t);
-        }
- 
-        try {
-            p("putfieldconst (J,D,L): ");
-            if (doit) {
-                putfieldconstJDL pfcjdl = new putfieldconstJDL();
-                pfcjdl.l = 1234567890123L;
-                check(pfcjdl.l, 1234567890123L);
+                putfieldconstJ pfcj = new putfieldconstJ();
+                pfcj.l = 1234567890123L;
+                check(pfcj.l, 1234567890123L);
             } else
                 ok();
         } catch (Throwable t) {
@@ -344,11 +445,95 @@ public class test extends Thread {
         }
 
         try {
-            p("putfieldconst zero (J,D,L): ");
+            p("putfieldconst (F): ");
             if (doit) {
-                putfieldconstJDL pfcjdl = new putfieldconstJDL();
-                pfcjdl.l = 0L;
-                check(pfcjdl.l, 0L);
+                putfieldconstF pfcf = new putfieldconstF();
+                pfcf.f = 123.456F;
+                check(pfcf.f, 123.456F);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+ 
+        try {
+            p("putfieldconst (D): ");
+            if (doit) {
+                putfieldconstD pfcd = new putfieldconstD();
+                pfcd.d = 789.012;
+                check(pfcd.d, 789.012);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putfieldconst zero (I): ");
+            if (doit) {
+                putfieldconstI pfci = new putfieldconstI();
+                pfci.i = 0;
+                check(pfci.i, 0);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+ 
+        try {
+            p("putfieldconst zero (J): ");
+            if (doit) {
+                putfieldconstJ pfcj = new putfieldconstJ();
+                pfcj.l = 0L;
+                check(pfcj.l, 0L);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putfieldconst zero (F): ");
+            if (doit) {
+                putfieldconstF pfcf = new putfieldconstF();
+                pfcf.f = 0.0F;
+                check(pfcf.f, 0.0F);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+ 
+        try {
+            p("putfieldconst zero (D): ");
+            if (doit) {
+                putfieldconstD pfcd = new putfieldconstD();
+                pfcd.d = 0.0;
+                check(pfcd.d, 0.0);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putfieldconst zero (L): ");
+            if (doit) {
+                putfieldconstL pfcl = new putfieldconstL();
+                pfcl.o = null;
+                check(pfcl.o, null);
+            } else
+                ok();
+        } catch (Throwable t) {
+            failed(t);
+        }
+
+        try {
+            p("putfieldconst unresolved class: ");
+            if (doit) {
+                putfieldconstC pfcc = new putfieldconstC();
+                pfcc.c = putfieldconstC.class;
+                check(pfcc.c, Class.forName("putfieldconstC"));
             } else
                 ok();
         } catch (Throwable t) {
