@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4842 2006-04-25 17:53:54Z edwin $
+   $Id: stack.c 4859 2006-04-28 11:50:06Z twisti $
 
 */
 
@@ -1055,7 +1055,14 @@ bool stack_analyse(jitdata *jd)
 # if defined(ENABLE_INTRP)
 						if (!opt_intrp) {
 # endif
-							if ((len > 0) && (iptr->val.a == 0)) {
+							/* Check if the ACONST instruction is
+							   resolved, otherwise we can run into a
+							   bug for classes compiled for Java 1.5.
+							   The following instructions don't have a
+							   patcher for that case. */
+
+							if ((len > 0) && INSTRUCTION_IS_RESOLVED(iptr) &&
+								(iptr->val.a == 0)) {
 								switch (iptr[1].opc) {
 								case ICMD_AASTORE:
 								case ICMD_PUTSTATIC:
@@ -3098,13 +3105,13 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_AASTORECONST:
 		/* check if this is a constant string or a class reference */
 
-		cr = iptr->target;
-
-		if (cr != NULL) {
+		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 			if (iptr->val.a)
 				printf(" %p", iptr->val.a);
 			else
 				printf(" (NOT RESOLVED)");
+
+			cr = iptr->target;
 
 			printf(", Class = \"");
 			utf_display(cr->name);
