@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4859 2006-04-28 11:50:06Z twisti $
+   $Id: stack.c 4860 2006-04-28 12:24:40Z twisti $
 
 */
 
@@ -1055,23 +1055,28 @@ bool stack_analyse(jitdata *jd)
 # if defined(ENABLE_INTRP)
 						if (!opt_intrp) {
 # endif
-							/* Check if the ACONST instruction is
-							   resolved, otherwise we can run into a
-							   bug for classes compiled for Java 1.5.
-							   The following instructions don't have a
-							   patcher for that case. */
-
-							if ((len > 0) && INSTRUCTION_IS_RESOLVED(iptr) &&
-								(iptr->val.a == 0)) {
+							if ((len > 0) && ((iptr->target == NULL) &&
+											  (iptr->val.a == NULL))) {
 								switch (iptr[1].opc) {
 								case ICMD_AASTORE:
+									iptr[0].opc = ICMD_AASTORECONST;
+									OPTT2_0(TYPE_INT, TYPE_ADR);
+
+									iptr[1].opc = ICMD_NOP;
+									COUNT(count_pcmd_op);
+									break;
+
+								default:
+									PUSHCONST(TYPE_ADR);
+								}
+
+							}
+							else if ((len > 0) && ((iptr->target == NULL) ||
+												   (iptr->val.a != NULL))) {
+								switch (iptr[1].opc) {
 								case ICMD_PUTSTATIC:
 								case ICMD_PUTFIELD:
 									switch (iptr[1].opc) {
-									case ICMD_AASTORE:
-										iptr[0].opc = ICMD_AASTORECONST;
-										OPTT2_0(TYPE_INT, TYPE_ADR);
-										break;
 									case ICMD_PUTSTATIC:
 										iptr[0].opc = ICMD_PUTSTATICCONST;
 										iptr[0].op1 = TYPE_ADR;
@@ -1092,7 +1097,7 @@ bool stack_analyse(jitdata *jd)
 									PUSHCONST(TYPE_ADR);
 								}
 
-							} 
+							}
 							else
 								PUSHCONST(TYPE_ADR);
 # if defined(ENABLE_INTRP)
@@ -3105,13 +3110,13 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_AASTORECONST:
 		/* check if this is a constant string or a class reference */
 
-		if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-			if (iptr->val.a)
-				printf(" %p", iptr->val.a);
-			else
-				printf(" (NOT RESOLVED)");
+		cr = iptr->target;
 
-			cr = iptr->target;
+		if (cr != NULL) {
+			if (iptr->val.a == NULL)
+				printf(" (NOT RESOLVED)");
+			else
+				printf(" %p", iptr->val.a);
 
 			printf(", Class = \"");
 			utf_display(cr->name);
