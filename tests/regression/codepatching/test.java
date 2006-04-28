@@ -54,6 +54,8 @@ public class test extends Thread {
 
         checkcast();
         _instanceof();
+
+        aastoreconst();
     }
 
 
@@ -488,6 +490,25 @@ public class test extends Thread {
         }
     }
 
+    private void aastoreconst() {
+        Class[] ca = new Class[1];
+
+        try {
+            ca[0] = aastoreconstClass.class;
+
+            p("aastoreconst of unresolved class != NULL: ");
+            if (ca[0] != null)
+                ok();
+            else
+                failed();
+
+            p("aastoreconst of unresolved correct value: ");
+            check(ca[0],Class.forName("aastoreconstClass"));
+        } catch (Throwable t) {
+            failed(t);
+        }
+    }
+
     private static final void ok() {
         pln("OK");
     }
@@ -543,3 +564,6 @@ public class test extends Thread {
         System.out.println(s);
     }
 }
+
+// vim: et ts=4 sw=4
+
