@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4835 2006-04-25 12:35:15Z edwin $
+   $Id: typecheck.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -964,8 +964,6 @@ typestate_reach(verifier_state *state,
 		stackptr sp;
 		int i;
 
-		/* XXX FIXME FOR INLINING */
-
 		if (!useinlining) {
 			TYPECHECK_COUNT(stat_backwards);
         		LOG("BACKWARDS!");
@@ -1177,14 +1175,14 @@ verify_invocation(verifier_state *state)
     u1 rtype;                          /* return type of called method */
 	resolve_result_t result;
 
-	if (state->iptr[0].target) { /* XXX used temporarily as flag */
+	if (INSTRUCTION_IS_UNRESOLVED(state->iptr)) {
 		/* unresolved method */
-		um = (unresolved_method *) state->iptr[0].val.a;
+		um = INSTRUCTION_UNRESOLVED_METHOD(state->iptr);
 		mref = um->methodref;
 	}
 	else {
 		um = NULL;
-		mref = (constant_FMIref *) state->iptr[0].val.a;
+		mref = INSTRUCTION_RESOLVED_FMIREF(state->iptr);
 	}
 
 	md = mref->parseddesc.md;
@@ -1241,7 +1239,7 @@ verify_invocation(verifier_state *state)
 				LOGINFO(&(stack->typeinfo));
 				ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(stack->typeinfo);
 				if (ins)
-					initclass = CLASSREF_OR_CLASSINFO(ins[-1].target);
+					initclass = ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1);
 				else
 					initclass.cls = state->m->class;
 				LOGSTR("class: "); LOGNAME(initclass); LOGNL;
@@ -1354,7 +1352,7 @@ verify_invocation(verifier_state *state)
 
 		/* XXX this will be changed */
 		state->iptr->val.a = um;
-		state->iptr->target = (void*)1; /* XXX used temporarily as flag */
+		state->iptr->target = (void*) 0x01; /* XXX used temporarily as flag */
 	}
 
 	return true;
@@ -1452,7 +1450,7 @@ verify_builtin(verifier_state *state)
 	if (ISBUILTIN(BUILTIN_new)) {
 		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_new without class");
-		cls.any = state->iptr[-1].target;
+		cls = ICMD_ACONST_CLASSREF_OR_CLASSINFO(state->iptr - 1);
 		TYPEINFO_INIT_NEWOBJECT(dst->typeinfo,state->iptr);
 	}
 	else if (ISBUILTIN(BUILTIN_newarray_boolean)) {
@@ -1490,10 +1488,10 @@ verify_builtin(verifier_state *state)
 	else if (ISBUILTIN(BUILTIN_newarray))
 	{
 		TYPECHECK_INT(state->curstack->prev);
-		if (state->iptr[-1].opc != ICMD_ACONST || !state->iptr[-1].target)
+		if (state->iptr[-1].opc != ICMD_ACONST)
 			TYPECHECK_VERIFYERROR_bool("illegal instruction: builtin_newarray without class");
 		/* XXX check that it is an array class(ref) */
-		typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[-1].target));
+		typeinfo_init_class(&(dst->typeinfo),ICMD_ACONST_CLASSREF_OR_CLASSINFO(state->iptr - 1));
 	}
 	else if (ISBUILTIN(BUILTIN_arrayinstanceof))
 	{
@@ -1562,7 +1560,7 @@ verify_multianewarray(verifier_state *state)
 		
 		/* the array class reference is still unresolved */
 		/* check that the reference indicates an array class of correct dimension */
-		cr = (constant_classref *) state->iptr[0].target;
+		cr = (constant_classref *) state->iptr[0].target; /* XXX new instruction format */
 		i = 0;
 		p = cr->name->text;
 		while (p[i] == '[')
@@ -1574,7 +1572,7 @@ verify_multianewarray(verifier_state *state)
 			TYPECHECK_VERIFYERROR_bool("MULTIANEWARRAY dimension to high");
 
 		/* set the array type of the result */
-		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
+		if (!typeinfo_init_class(&(state->iptr->dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target))) /* XXX new instruction format */
 			return false;
 	}
 
@@ -1886,11 +1884,11 @@ fieldaccess_tail:
 
 						if (opcode == ICMD_PUTSTATICCONST || opcode == ICMD_PUTFIELDCONST) {
 							state->iptr[1].val.a = uf;
-							state->iptr[1].target = (void*)1; /* XXX target used temporarily as flag */
+							state->iptr[1].target = (void*) 0x01; /* XXX target used temporarily as flag */
 						}
 						else {
 							state->iptr[0].val.a = uf;
-							state->iptr[0].target = (void*)1; /* XXX target used temporarily as flag */
+							state->iptr[0].target = (void*) 0x01; /* XXX target used temporarily as flag */
 						}
 					}
 
@@ -2037,9 +2035,10 @@ fieldaccess_tail:
 				/* ADDRESS CONSTANTS                    */
 
 			case ICMD_ACONST:
-				if (state->iptr->target) {
+				if (ICMD_ACONST_IS_CLASS(state->iptr)) {
 					/* a java.lang.Class reference */
-					TYPEINFO_INIT_JAVA_LANG_CLASS(dst->typeinfo,(constant_classref *)state->iptr->target);
+					TYPEINFO_INIT_JAVA_LANG_CLASS(dst->typeinfo,
+												  ICMD_ACONST_CLASSREF_OR_CLASSINFO(state->iptr));
 				}
 				else {
 					if (state->iptr->val.a == NULL)
@@ -2064,7 +2063,7 @@ fieldaccess_tail:
 				if (cls)
 					typeinfo_init_classinfo(&(dst->typeinfo),cls);
 				else
-					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target)))
+					if (!typeinfo_init_class(&(dst->typeinfo),CLASSREF_OR_CLASSINFO(state->iptr[0].target))) /* XXX new instruction format */
 						return false;
 				maythrow = true;
 				break;
@@ -2698,9 +2697,6 @@ typecheck_reset_flags(verifier_state *state)
 /*     true.............successful verification                             */
 /*     false............an exception has been thrown                        */
 /*                                                                          */
-/* XXX TODO:                                                                */
-/*     Bytecode verification has not been tested with inlining and          */
-/*     probably does not work correctly with inlining.                      */
 /****************************************************************************/
 
 #define MAXPARAMS 255

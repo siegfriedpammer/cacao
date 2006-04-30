@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4805 2006-04-21 10:54:24Z twisti $
+   $Id: jit.h 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -169,10 +169,10 @@ struct instruction {
 };
 
 #define INSTRUCTION_IS_RESOLVED(iptr) \
-	((iptr)->target == NULL) /* XXX target used temporarily as flag */
+	(!((ptrint)(iptr)->target & 0x01)) /* XXX target used temporarily as flag */
 
 #define INSTRUCTION_IS_UNRESOLVED(iptr) \
-	((iptr)->target != NULL) /* XXX target used temporarily as flag */
+	((ptrint)(iptr)->target & 0x01) /* XXX target used temporarily as flag */
 
 #define INSTRUCTION_GET_FIELDREF(iptr,fref) \
 	do { \
@@ -235,6 +235,20 @@ struct instruction {
 
 #define INSTRUCTION_PUTCONST_FIELDREF(iptr) \
 	((unresolved_field *)((iptr)[1].target))
+
+/* for ICMD_ACONST */
+
+#define ICMD_ACONST_IS_CLASS(iptr) \
+	((ptrint)(iptr)->target & 0x02) /* XXX target used temporarily as flag */
+
+#define ICMD_ACONST_CLASSREF_OR_CLASSINFO(iptr) \
+(CLASSREF_OR_CLASSINFO((iptr)->val.a))
+
+#define ICMD_ACONST_RESOLVED_CLASSINFO(iptr) \
+	((classinfo *) (iptr)->val.a)
+
+#define ICMD_ACONST_UNRESOLVED_CLASSREF(iptr) \
+	((constant_classref *) (iptr)->val.a)
 
 
 /* additional info structs for special instructions ***************************/

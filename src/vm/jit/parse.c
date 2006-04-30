@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4861 2006-04-28 12:25:27Z edwin $
+   $Id: parse.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -328,7 +328,14 @@ fetch_opcode:
 
 				/* if not resolved, c == NULL */
 
-				LOADCONST_A_CLASS(c, cr);
+				if (c) {
+					iptr->target = (void*) 0x02; /* XXX target used temporarily as flag */
+					LOADCONST_A(c);
+				}
+				else {
+					iptr->target = (void*) 0x03; /* XXX target used temporarily as flag */
+					LOADCONST_A(cr);
+				}
 				break;
 
 #if defined(ENABLE_VERIFIER)
@@ -844,7 +851,7 @@ fetch_opcode:
 
 						/* XXX this will be changed */
 						iptr->val.a = uf;
-						iptr->target = (void*)1; /* XXX target temporarily used as flag */
+						iptr->target = (void*) 0x01; /* XXX target temporarily used as flag */
 					}
 					else {
 						iptr->target = NULL;
@@ -926,7 +933,7 @@ invoke_method:
 
 					/* XXX this will be changed */
 					iptr->val.a = um;
-					iptr->target = (void*)1; /* XXX target temporarily used as flag */
+					iptr->target = (void*) 0x01; /* XXX target temporarily used as flag */
 				}
 				else {
 					/* the method could be resolved */

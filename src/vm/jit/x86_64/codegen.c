@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4853 2006-04-27 12:33:20Z twisti $
+   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -577,11 +577,11 @@ bool codegen(jitdata *jd)
 
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 
-			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 /* 				PROFILE_CYCLE_STOP; */
 
 				codegen_addpatchref(cd, PATCHER_aconst,
-									(unresolved_class *) iptr->target, 0);
+									ICMD_ACONST_UNRESOLVED_CLASSREF(iptr), 0);
 
 				if (opt_showdisassemble) {
 					M_NOP; M_NOP; M_NOP; M_NOP; M_NOP;
@@ -589,7 +589,7 @@ bool codegen(jitdata *jd)
 
 /* 				PROFILE_CYCLE_START; */
 
-				M_MOV_IMM(iptr->val.a, d);
+				M_MOV_IMM(NULL, d);
 
 			} else {
 				if (iptr->val.a == 0)

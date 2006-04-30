@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -434,8 +434,9 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 		                      /* op1 = 0, val.a = constant                    */
 
-			if ((iptr->target != NULL) && (iptr->val.a == NULL))
-				gen_PATCHER_ACONST(cd, NULL, iptr->target);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				gen_PATCHER_ACONST(cd, NULL,
+								   ICMD_ACONST_UNRESOLVED_CLASSREF(iptr));
 			else
 				gen_ACONST(cd, iptr->val.a);
 			break;

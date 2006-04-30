@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -537,9 +537,10 @@ bool codegen(jitdata *jd)
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
 			disp = dseg_addaddress(cd, iptr->val.a);
 
-			if ((iptr->target != NULL) && (iptr->val.a == NULL)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				codegen_addpatchref(cd, PATCHER_aconst,
-									(unresolved_class *) iptr->target, disp);
+									ICMD_ACONST_UNRESOLVED_CLASSREF(iptr),
+								    disp);
 
 				if (opt_showdisassemble)
 					M_NOP;

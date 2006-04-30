@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4857 2006-04-28 11:24:39Z edwin $
+   $Id: resolve.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -1611,7 +1611,7 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 					TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
 			{   /* XXX clean up */
 				instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-				classref_or_classinfo initclass = (ins) ? CLASSREF_OR_CLASSINFO(ins[-1].target)
+				classref_or_classinfo initclass = (ins) ? ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1)
 											 : CLASSREF_OR_CLASSINFO(refmethod->class);
 				tip = &tinfo;
 				if (!typeinfo_init_class(tip,initclass))
@@ -2557,7 +2557,7 @@ bool constrain_unresolved_method(unresolved_method *ref,
 				TYPEINFO_IS_NEWOBJECT(instanceslot->typeinfo))
 		{   /* XXX clean up */
 			instruction *ins = (instruction*)TYPEINFO_NEWOBJECT_INSTRUCTION(instanceslot->typeinfo);
-			classref_or_classinfo initclass = (ins) ? CLASSREF_OR_CLASSINFO(ins[-1].target)
+			classref_or_classinfo initclass = (ins) ? ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1)
 										 : CLASSREF_OR_CLASSINFO(refmethod->class);
 			tip = &tinfo;
 			if (!typeinfo_init_class(tip,initclass))

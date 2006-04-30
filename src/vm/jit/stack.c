@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4860 2006-04-28 12:24:40Z twisti $
+   $Id: stack.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -1055,10 +1055,19 @@ bool stack_analyse(jitdata *jd)
 # if defined(ENABLE_INTRP)
 						if (!opt_intrp) {
 # endif
-							if ((len > 0) && ((iptr->target == NULL) &&
-											  (iptr->val.a == NULL))) {
+							/* We can only optimize if the ACONST is resolved
+							 * and there is an instruction after it. */
+
+							if ((len > 0) && INSTRUCTION_IS_RESOLVED(iptr))
+							{
 								switch (iptr[1].opc) {
 								case ICMD_AASTORE:
+									/* We can only optimize for NULL values
+									 * here because otherwise a checkcast is
+									 * required. */
+									if (iptr->val.a != NULL)
+										goto aconst_no_transform;
+
 									iptr[0].opc = ICMD_AASTORECONST;
 									OPTT2_0(TYPE_INT, TYPE_ADR);
 
@@ -1066,14 +1075,6 @@ bool stack_analyse(jitdata *jd)
 									COUNT(count_pcmd_op);
 									break;
 
-								default:
-									PUSHCONST(TYPE_ADR);
-								}
-
-							}
-							else if ((len > 0) && ((iptr->target == NULL) ||
-												   (iptr->val.a != NULL))) {
-								switch (iptr[1].opc) {
 								case ICMD_PUTSTATIC:
 								case ICMD_PUTFIELD:
 									switch (iptr[1].opc) {
@@ -1094,14 +1095,17 @@ bool stack_analyse(jitdata *jd)
 									break;
 
 								default:
+								aconst_no_transform:
+									/* no transformation */
 									PUSHCONST(TYPE_ADR);
 								}
-
 							}
-							else
+							else {
+								/* no transformation */
 								PUSHCONST(TYPE_ADR);
+							}
 # if defined(ENABLE_INTRP)
-						} 
+						}
 						else
 							PUSHCONST(TYPE_ADR);
 # endif
@@ -3110,19 +3114,16 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_AASTORECONST:
 		/* check if this is a constant string or a class reference */
 
-		cr = iptr->target;
-
-		if (cr != NULL) {
-			if (iptr->val.a == NULL)
-				printf(" (NOT RESOLVED)");
-			else
-				printf(" %p", iptr->val.a);
-
-			printf(", Class = \"");
-			utf_display(cr->name);
-			printf("\"");
-
-		} 
+		if (ICMD_ACONST_IS_CLASS(iptr)) {
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				printf(" (NOT RESOLVED) classref = ");
+				class_classref_print(ICMD_ACONST_UNRESOLVED_CLASSREF(iptr));
+			}
+			else {
+				printf(" class = ");
+				class_print(ICMD_ACONST_RESOLVED_CLASSINFO(iptr));
+			}
+		}
 		else {
 			printf(" %p", iptr->val.a);
 

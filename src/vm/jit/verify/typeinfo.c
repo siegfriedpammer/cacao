@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 4726 2006-04-04 09:13:01Z edwin $
+   $Id: typeinfo.c 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -1282,7 +1282,7 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 	TYPEINFO_ASSERT(info);
 
 	/* if necessary, try to resolve lazily */
-	if (!resolve_classref_or_classinfo(NULL /* XXX should now method */,
+	if (!resolve_classref_or_classinfo(NULL /* XXX should know method */,
 				c,resolveLazy,false,true,&cls))
 	{
 		return false;
@@ -2657,7 +2657,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
         ins = (instruction *)TYPEINFO_NEWOBJECT_INSTRUCTION(*info);
         if (ins) {
             fprintf(file,"%sNEW(%p):",ind,(void*)ins);
-			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].target));
+			typeinfo_print_class(file,ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1));
             fprintf(file,"\n");
         }
         else {
@@ -2736,7 +2736,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
         if (ins) {
 			/*fprintf(file,"<ins %p>",ins);*/
             fprintf(file,"NEW(%p):",(void*)ins);
-			typeinfo_print_class(file,CLASSREF_OR_CLASSINFO(ins[-1].target));
+			typeinfo_print_class(file,ICMD_ACONST_CLASSREF_OR_CLASSINFO(ins-1));
         }
         else
             fprintf(file,"NEW(this)");

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4742 2006-04-05 20:31:38Z edwin $
+   $Id: parse.h 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -77,22 +77,21 @@
     iptr->line   = currentline; \
     PINC
 
-#define LOADCONST_A_CLASS(v,t) \
-    iptr->opc    = ICMD_ACONST; \
-    iptr->val.a  = (v); \
-    iptr->target = (t); \
-    iptr->line   = currentline; \
-    PINC
-
 /* ACONST instructions generated as arguments for builtin functions
  * have op1 set to non-zero. This is used for stack overflow checking
  * in stack.c. */
-#define LOADCONST_A_BUILTIN(v,t) \
+/* XXX in the new instruction format use a flag for this */
+/* XXX target used temporarily as flag */
+#define LOADCONST_A_BUILTIN(c,cr) \
     iptr->opc    = ICMD_ACONST; \
     iptr->op1    = 1; \
-    iptr->val.a  = (v); \
-    iptr->target = (t); \
     iptr->line   = currentline; \
+	if (c) { \
+		iptr->val.a = c; iptr->target = (void*) 0x02; \
+	} \
+	else { \
+		iptr->val.a = cr; iptr->target = (void*) 0x03; \
+	} \
     PINC
 
 #define OP(o) \

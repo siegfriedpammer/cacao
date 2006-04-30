@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.h 4835 2006-04-25 12:35:15Z edwin $
+   $Id: typeinfo.h 4863 2006-04-30 16:17:44Z edwin $
 
 */
 
@@ -446,9 +446,9 @@ struct typevector {
              (info).dimension = 0;                      \
              (info).elementtype = 0;} while(0)
 
-#define TYPEINFO_INIT_JAVA_LANG_CLASS(info,cr)                  \
+#define TYPEINFO_INIT_JAVA_LANG_CLASS(info,c)                   \
          do {(info).typeclass.any = class_java_lang_Class;      \
-             (info).elementclass.ref = (cr);                    \
+             (info).elementclass = (c);                         \
              (info).merged = NULL;                              \
              (info).dimension = 0;                              \
              (info).elementtype = 0;} while(0)
