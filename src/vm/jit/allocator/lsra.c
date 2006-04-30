@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 4796 2006-04-20 18:04:18Z edwin $
+   $Id: lsra.c 4862 2006-04-30 15:58:53Z edwin $
 
 */
 
@@ -2659,14 +2659,7 @@ Check this - ? For every incoming Stack Slot a lifetime has to be created ?
 		case ICMD_INVOKESPECIAL:
 		case ICMD_INVOKEVIRTUAL:
 		case ICMD_INVOKEINTERFACE:
-			lm = iptr->val.a;
-
-			if (lm)
-				md = lm->parseddesc;
-			else {
-				unresolved_method *um = iptr->target;
-				md = um->methodref->parseddesc.md;
-			}
+			INSTRUCTION_GET_METHODDESC(iptr,md);
 			i = md->paramcount;
 			while (--i >= 0) {
 				lsra_from_stack(ls, src, b_index, iindex);
@@ -2907,6 +2900,7 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 	stackptr    src;
 	stackptr    dst;
 	instruction *iptr;
+	methoddesc  *md;
 
 	struct _list *succ;
 
@@ -3346,13 +3340,13 @@ int _test_lifetimes(methodinfo *m, lsradata *ls, registerdata *rd, int b_index, 
 		case ICMD_INVOKESPECIAL:
 		case ICMD_INVOKESTATIC:
 		case ICMD_INVOKEINTERFACE:
-#error XXX FIXME TWISTI: use md->paramcount (2005/10/4)
-			i = iptr->op1;
+			INSTRUCTION_GET_METHODDESC(iptr,md);
+			i = md->paramcount;
 			while (--i >= 0) {
 				ret = lsra_test_from_stack(ls, rd, src, values);
 				src = src->prev;
 			}
-			if (((unresolved_method *) iptr->target)->methodref->parseddesc.md->returntype.type != TYPE_VOID) 	 
+			if (md->returntype.type != TYPE_VOID)
 				ret = lsra_test_new_stack(ls, rd,dst, values);
 			break;
 

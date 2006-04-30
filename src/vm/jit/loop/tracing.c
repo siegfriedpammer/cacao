@@ -31,7 +31,7 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: tracing.c 4862 2006-04-30 15:58:53Z edwin $
 
 */
 
@@ -216,7 +216,6 @@ Trace* tracing(basicblock *block, int index, int temp)
 {
 	instruction        *iptr;
 	methodinfo         *m;
-	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	s4                  args;
@@ -582,14 +581,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 		case ICMD_INVOKESPECIAL:    /* ..., objectref, [arg1, [arg2 ...]] ==> . */
 		case ICMD_INVOKEVIRTUAL:
 		case ICMD_INVOKEINTERFACE:
-			m = iptr->val.a;        /* get method pointer and                 */
-
-			if (m)
-				md = m->parseddesc;
-			else {
-				um = iptr->target;
-				md = um->methodref->parseddesc.md;
-			}
+			INSTRUCTION_GET_METHODDESC(iptr,md);
 
 			args = md->paramcount;  /* number of arguments                    */
 
