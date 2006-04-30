@@ -1,6 +1,7 @@
 Makefile
 Makefile.in
 cacao
+jarsigner
 java
 javac
 rmic
