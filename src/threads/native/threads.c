@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4866 2006-05-01 21:40:38Z edwin $
+   $Id: threads.c 4867 2006-05-01 23:14:42Z edwin $
 
 */
 
@@ -550,7 +550,9 @@ void setthreadobject(threadobject *thread)
 
 /* thread_setself **************************************************************
 
-   XXX
+   Return the threadobject of the current thread.
+   
+   XXX The return value type should be changed to a typed pointer.
 
 *******************************************************************************/
 
@@ -559,7 +561,7 @@ void *thread_getself(void)
 	return THREADOBJECT;
 }
 
-
+/* unlocked dummy record - avoids NULL checks */
 static monitorLockRecord *dummyLR;
 
 static void initPools();
@@ -758,17 +760,35 @@ void initThread(java_lang_VMThread *t)
 static void initThreadLocks(threadobject *);
 
 
+/* startupinfo *****************************************************************
+
+   Struct used to pass info from threads_start_thread to 
+   threads_startup_thread.
+
+******************************************************************************/
+
 typedef struct {
-	threadobject *thread;
-	functionptr   function;
-	sem_t        *psem;
-	sem_t        *psem_first;
+	threadobject *thread;      /* threadobject for this thread             */
+	functionptr   function;    /* function to run in the new thread        */
+	sem_t        *psem;        /* signals when thread has been entered     */
+	                           /* in the thread list                       */
+	sem_t        *psem_first;  /* signals when pthread_create has returned */
 } startupinfo;
 
 
-/* threads_startup *************************************************************
+/* threads_startup_thread ******************************************************
 
    Thread startup function called by pthread_create.
+
+   NOTE: This function is not called directly by pthread_create. The Boehm GC
+         inserts its own GC_start_routine in between, which then calls
+		 threads_startup.
+
+   IN:
+      t............the argument passed to pthread_create, ie. a pointer to
+	               a startupinfo struct. CAUTION: When the `psem` semaphore
+				   is posted, the startupinfo struct becomes invalid! (It
+				   is allocated on the stack of threads_start_thread.)
 
 ******************************************************************************/
 
@@ -798,6 +818,7 @@ static void *threads_startup_thread(void *t)
 	/* get passed startupinfo structure and the values in there */
 
 	startup = t;
+	t = NULL; /* make sure it's not used wrongly */
 
 	thread   = startup->thread;
 	function = startup->function;
@@ -810,7 +831,8 @@ static void *threads_startup_thread(void *t)
 	 * to return. */
 	threads_sem_wait(startup->psem_first);
 
-	t = NULL;
+	/* set the thread object */
+
 #if defined(__DARWIN__)
 	info->mach_thread = mach_thread_self();
 #endif
@@ -827,10 +849,17 @@ static void *threads_startup_thread(void *t)
 
 	pthread_mutex_unlock(&threadlistlock);
 
+	/* init data structures of this thread */
+
 	initThreadLocks(thread);
+
+	/* tell threads_startup_thread that we registered ourselves */
+	/* CAUTION: *startup becomes invalid with this!             */
 
 	startup = NULL;
 	threads_sem_post(psem);
+
+	/* set our priority */
 
 	setPriority(info->tid, thread->o.thread->priority);
 
@@ -855,7 +884,7 @@ static void *threads_startup_thread(void *t)
 
 		(void) vm_call_method(method, (java_objectheader *) thread);
 
-	} 
+	}
 	else {
 		/* call passed function, e.g. finalizer_thread */
 
@@ -880,6 +909,8 @@ static void *threads_startup_thread(void *t)
 	info->tid = 0;
 	pthread_mutex_unlock(&info->joinMutex);
 
+	/* tell everyone that a thread has finished */
+
 	pthread_cond_broadcast(&info->joinCond);
 
 	return NULL;
@@ -889,6 +920,11 @@ static void *threads_startup_thread(void *t)
 /* threads_start_thread ********************************************************
 
    Start a thread in the JVM.
+
+   IN:
+      t............the java.lang.Thread object
+	  function.....function to run in the new thread. NULL means that the
+	               "run" method of the object `t` should be called
 
 ******************************************************************************/
 
@@ -901,7 +937,8 @@ void threads_start_thread(thread *t, functionptr function)
 
 	info = &((threadobject *) t->vmThread)->info;
 
-	/* fill startupinfo structure passed by pthread_create to XXX */
+	/* fill startupinfo structure passed by pthread_create to
+	 * threads_startup_thread */
 
 	startup.thread     = (threadobject*) t->vmThread;
 	startup.function   = function;       /* maybe we don't call Thread.run()V */
@@ -910,18 +947,25 @@ void threads_start_thread(thread *t, functionptr function)
 
 	threads_sem_init(&sem, 0, 0);
 	threads_sem_init(&sem_first, 0, 0);
-	
+
+	/* create the thread */
+
 	if (pthread_create(&info->tid, &threadattr, threads_startup_thread,
 					   &startup)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
 
+	/* signal that pthread_create has returned, so info->tid is valid */
+
 	threads_sem_post(&sem_first);
 
 	/* wait here until the thread has entered itself into the thread list */
 
 	threads_sem_wait(&sem);
+
+	/* cleanup */
+
 	sem_destroy(&sem);
 	sem_destroy(&sem_first);
 }
@@ -970,17 +1014,6 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	pthread_mutex_init(&r->resolveLock, NULL);
 	pthread_cond_init(&r->resolveWait, NULL);
 }
-
-/* No lock record must ever be destroyed because there may still be references
- * to it.
-
-static void destroyLockRecord(monitorLockRecord *r)
-{
-	sem_destroy(&r->queueSem);
-	pthread_mutex_destroy(&r->resolveLock);
-	pthread_cond_destroy(&r->resolveWait);
-}
-*/
 
 void initLocks()
 {
@@ -1085,6 +1118,13 @@ static inline void recycleLockRecord(threadobject *t, monitorLockRecord *r)
 	r->nextFree = t->ee.firstLR;
 	t->ee.firstLR = r;
 }
+
+/* initObjectLock **************************************************************
+
+   Initialize the monitor pointer of the given object. The monitor gets
+   initialized to an unlocked state.
+
+*******************************************************************************/
 
 void initObjectLock(java_objectheader *o)
 {
