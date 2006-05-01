@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4854 2006-04-27 23:03:37Z twisti $
+   $Id: threads.c 4865 2006-05-01 12:40:18Z edwin $
 
 */
 
@@ -150,6 +150,33 @@ static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
 #define pthread_mutex_rec_t pthread_mutex_t
 
 #endif /* MUTEXSIM */
+
+/* threads_sem_wait ************************************************************
+ 
+   Wait for a semaphore, non-interruptible.
+
+   IMPORTANT: Always use this function instead of `sem_wait` directly, as
+              `sem_wait` may be interrupted by signals!
+  
+   IN:
+       sem..............the semaphore to wait on
+   
+*******************************************************************************/
+
+void threads_sem_wait(sem_t *sem)
+{
+	int r;
+
+	do {
+		r = sem_wait(sem);
+		if (r == 0)
+			return;
+	} while (errno == EINTR);
+
+	fprintf(stderr,"error: sem_wait returned unexpected error %d: %s\n",
+			errno, strerror(errno));
+	abort();
+}
 
 static void setPriority(pthread_t tid, int priority)
 {
@@ -394,7 +421,7 @@ void cast_stopworld()
 #else
 	count = cast_sendsignals(GC_signum1(), 0);
 	for (i=0; i<count; i++)
-		sem_wait(&suspend_ack);
+		threads_sem_wait(&suspend_ack);
 #endif
 	pthread_mutex_unlock(&threadlistlock);
 }
@@ -725,7 +752,7 @@ static void *threads_startup_thread(void *t)
 	/* Seems like we've encountered a situation where info->tid was not set by
 	 * pthread_create. We alleviate this problem by waiting for pthread_create
 	 * to return. */
-	sem_wait(startup->psem_first);
+	threads_sem_wait(startup->psem_first);
 
 	t = NULL;
 #if defined(__DARWIN__)
@@ -838,7 +865,7 @@ void threads_start_thread(thread *t, functionptr function)
 
 	/* wait here until the thread has entered itself into the thread list */
 
-	sem_wait(&sem);
+	threads_sem_wait(&sem);
 	sem_destroy(&sem);
 	sem_destroy(&sem_first);
 }
@@ -1032,7 +1059,7 @@ static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
 	MEMORY_BARRIER_AFTER_ATOMIC();
 
 	if (lr->o == o)
-		sem_wait(&lr->queueSem);
+		threads_sem_wait(&lr->queueSem);
 
 	atomic_add(&lr->queuers, -1);
 }

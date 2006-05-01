@@ -27,7 +27,7 @@
 
    Authors: Martin Platter
 
-   Changes: 
+   Changes: Edwin Steiner
 
 
    $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
@@ -77,7 +77,7 @@ static void getchildprocptrace (char *ptr, void* addr, int cnt) {
 *******************************************************************************/
 static bool contchild(int signal) {
 	/* get lock for running state */ 
-	sem_wait(&workingdata_lock);
+	threads_sem_wait(&workingdata_lock);
 	fprintf(stderr,"cacaodbgserver: contchild called (hastostop: %d)\n",cdbgshmem->hastostop);
 	if(cdbgshmem->hastostop < 1) {
 		fprintf(stderr,"cacaodbgserver: going to continue child\n");
@@ -167,7 +167,7 @@ static void waitloop() {
 			ip--; /* EIP has already been incremented */
 			fprintf(stderr,"got signal: %d IP %X\n",signal,ip);
 			
-			sem_wait(&workingdata_lock);
+			threads_sem_wait(&workingdata_lock);
 			cdbgshmem->running = false;
 			cdbgshmem->hastostop = 1;
 			sem_post(&workingdata_lock);
@@ -311,4 +311,5 @@ void cacaodbgserver() {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

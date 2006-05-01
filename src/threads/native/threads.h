@@ -27,8 +27,9 @@
    Authors: Stefan Ring
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: threads.h 4854 2006-04-27 23:03:37Z twisti $
+   $Id: threads.h 4865 2006-05-01 12:40:18Z edwin $
 
 */
 
@@ -177,6 +178,7 @@ struct lockRecordPool {
 	monitorLockRecord    lr[1];
 };
 
+void threads_sem_wait(sem_t *sem);
 
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);
@@ -256,4 +258,5 @@ void thread_restartcriticalsection(ucontext_t *);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

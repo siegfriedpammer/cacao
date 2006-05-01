@@ -27,7 +27,7 @@
 
    Authors: Martin Platter
 
-   Changes: 
+   Changes: Edwin Steiner
 
 
    $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
@@ -95,7 +95,7 @@ static void msgqsendevent(ptrace_request *pt, ptrace_reply** rcvbuf, int buflen)
 
 void getworkingdatalock() {
 	workingdatanum++;
-	if (workingdatanum==1) sem_wait(&workingdata_lock);
+	if (workingdatanum==1) threads_sem_wait(&workingdata_lock);
 }
 
 /* releaseworkingdatalock *********************************************************
@@ -667,4 +667,5 @@ bool cacaodbgfork() {
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
