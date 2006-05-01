@@ -85,10 +85,10 @@ static bool contchild(int signal) {
 		cdbgshmem->hastostop = 0;
 		cdbgshmem->running=true;
 		/* release lock for running state */ 
-		sem_post(&workingdata_lock);
+		threads_sem_post(&workingdata_lock);
 		return true;
 	} else {
-		sem_post(&workingdata_lock);
+		threads_sem_post(&workingdata_lock);
 		return false;		
 	}
 }
@@ -170,7 +170,7 @@ static void waitloop() {
 			threads_sem_wait(&workingdata_lock);
 			cdbgshmem->running = false;
 			cdbgshmem->hastostop = 1;
-			sem_post(&workingdata_lock);
+			threads_sem_post(&workingdata_lock);
 
 			if (signal==SIGUSR2) {
 				fprintf(stderr,"SIGUSR2 - debuggee has stopped by jdwp process\n");

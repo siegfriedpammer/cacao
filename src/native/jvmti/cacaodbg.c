@@ -107,7 +107,7 @@ void getworkingdatalock() {
 void releaseworkingdatalock() {
 	workingdatanum--;
 	assert(workingdatanum>=0);
-	if (workingdatanum==0) sem_post(&workingdata_lock);
+	if (workingdatanum==0) threads_sem_post(&workingdata_lock);
 }
 
 /* getchildproc ***************************************************************
@@ -572,7 +572,7 @@ bool cacaodbgfork() {
 
 	/* todo: remove shared memory and msg queue on exit */
     /* create/initialize semaphores/shared memory/message queue */
-	sem_init(&workingdata_lock, 1, 1);
+	threads_sem_init(&workingdata_lock, true, 1);
 
 	shmid = shmget(IPC_PRIVATE, sizeof(cacaodbgserver_data), IPC_CREAT | 0x180);
 	if ((cdbgshmem = (cacaodbgserver_data*)shmat(shmid, NULL, 0)) == -1) {

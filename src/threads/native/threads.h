@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.h 4865 2006-05-01 12:40:18Z edwin $
+   $Id: threads.h 4866 2006-05-01 21:40:38Z edwin $
 
 */
 
@@ -178,7 +178,9 @@ struct lockRecordPool {
 	monitorLockRecord    lr[1];
 };
 
+void threads_sem_init(sem_t *sem, bool shared, int value);
 void threads_sem_wait(sem_t *sem);
+void threads_sem_post(sem_t *sem);
 
 monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
 bool monitorExit(threadobject *, java_objectheader *);

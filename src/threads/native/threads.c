@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4865 2006-05-01 12:40:18Z edwin $
+   $Id: threads.c 4866 2006-05-01 21:40:38Z edwin $
 
 */
 
@@ -151,6 +151,34 @@ static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
 
 #endif /* MUTEXSIM */
 
+/* threads_sem_init ************************************************************
+ 
+   Initialize a semaphore. Checks against errors and interruptions.
+
+   IN:
+       sem..............the semaphore to initialize
+	   shared...........true if this semaphore will be shared between processes
+	   value............the initial value for the semaphore
+   
+*******************************************************************************/
+
+void threads_sem_init(sem_t *sem, bool shared, int value)
+{
+	int r;
+
+	assert(sem);
+
+	do {
+		r = sem_init(sem, shared, value);
+		if (r == 0)
+			return;
+	} while (errno == EINTR);
+
+	fprintf(stderr,"error: sem_init returned unexpected error %d: %s\n",
+			errno, strerror(errno));
+	abort();
+}
+
 /* threads_sem_wait ************************************************************
  
    Wait for a semaphore, non-interruptible.
@@ -167,6 +195,8 @@ void threads_sem_wait(sem_t *sem)
 {
 	int r;
 
+	assert(sem);
+
 	do {
 		r = sem_wait(sem);
 		if (r == 0)
@@ -174,6 +204,32 @@ void threads_sem_wait(sem_t *sem)
 	} while (errno == EINTR);
 
 	fprintf(stderr,"error: sem_wait returned unexpected error %d: %s\n",
+			errno, strerror(errno));
+	abort();
+}
+
+/* threads_sem_post ************************************************************
+ 
+   Increase the count of a semaphore. Checks for errors.
+
+   IN:
+       sem..............the semaphore to increase the count of
+   
+*******************************************************************************/
+
+void threads_sem_post(sem_t *sem)
+{
+	int r;
+
+	assert(sem);
+
+	/* unlike sem_wait, sem_post is not interruptible */
+
+	r = sem_post(sem);
+	if (r == 0)
+		return;
+
+	fprintf(stderr,"error: sem_post returned unexpected error %d: %s\n",
 			errno, strerror(errno));
 	abort();
 }
@@ -455,11 +511,11 @@ static void sigsuspend_handler(ucontext_t *ctx)
 	   (not POSIX async-safe). */
 #if defined(__IRIX__)
 	pthread_mutex_lock(&suspend_ack_lock);
-	sem_post(&suspend_ack);
+	threads_sem_post(&suspend_ack);
 	pthread_cond_wait(&suspend_cond, &suspend_ack_lock);
 	pthread_mutex_unlock(&suspend_ack_lock);
 #else
-	sem_post(&suspend_ack);
+	threads_sem_post(&suspend_ack);
 
 	sig = GC_signum2();
 	sigfillset(&sigs);
@@ -557,7 +613,7 @@ void threads_preinit(void)
     criticaltree = avl_create(&criticalcompare);
 
 	thread_addstaticcritical();
-	sem_init(&suspend_ack, 0, 0);
+	threads_sem_init(&suspend_ack, 0, 0);
 }
 
 
@@ -774,7 +830,7 @@ static void *threads_startup_thread(void *t)
 	initThreadLocks(thread);
 
 	startup = NULL;
-	sem_post(psem);
+	threads_sem_post(psem);
 
 	setPriority(info->tid, thread->o.thread->priority);
 
@@ -852,8 +908,8 @@ void threads_start_thread(thread *t, functionptr function)
 	startup.psem       = &sem;
 	startup.psem_first = &sem_first;
 
-	sem_init(&sem, 0, 0);
-	sem_init(&sem_first, 0, 0);
+	threads_sem_init(&sem, 0, 0);
+	threads_sem_init(&sem_first, 0, 0);
 	
 	if (pthread_create(&info->tid, &threadattr, threads_startup_thread,
 					   &startup)) {
@@ -861,7 +917,7 @@ void threads_start_thread(thread *t, functionptr function)
 		assert(0);
 	}
 
-	sem_post(&sem_first);
+	threads_sem_post(&sem_first);
 
 	/* wait here until the thread has entered itself into the thread list */
 
@@ -910,7 +966,7 @@ static void initLockRecord(monitorLockRecord *r, threadobject *t)
 	r->waiter = NULL;
 	r->incharge = (monitorLockRecord *) &dummyLR;
 	r->waiting = NULL;
-	sem_init(&r->queueSem, 0, 0);
+	threads_sem_init(&r->queueSem, 0, 0);
 	pthread_mutex_init(&r->resolveLock, NULL);
 	pthread_cond_init(&r->resolveWait, NULL);
 }
@@ -1071,7 +1127,7 @@ static void freeLockRecord(monitorLockRecord *lr)
 	MEMORY_BARRIER();
 	q = lr->queuers;
 	while (q--)
-		sem_post(&lr->queueSem);
+		threads_sem_post(&lr->queueSem);
 }
 
 static inline void handleWaiter(monitorLockRecord *mlr, monitorLockRecord *lr, java_objectheader *o)
@@ -1166,7 +1222,7 @@ static void wakeWaiters(monitorLockRecord *lr)
 		q = tmplr->queuers;
 
 		while (q--)
-			sem_post(&tmplr->queueSem);
+			threads_sem_post(&tmplr->queueSem);
 
 		tmplr = tmplr->waiter;
 	} while (tmplr != NULL && tmplr != lr);
