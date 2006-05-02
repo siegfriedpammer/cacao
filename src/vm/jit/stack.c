@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: stack.c 4868 2006-05-02 16:16:04Z twisti $
 
 */
 
@@ -637,7 +637,7 @@ bool stack_analyse(jitdata *jd)
 # endif
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.i == 0) {
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 										switch (iptr[1].opc) {
 										case ICMD_IASTORE:
 											iptr[0].opc = ICMD_IASTORECONST;
@@ -660,7 +660,7 @@ bool stack_analyse(jitdata *jd)
 									} 
 									else
 										PUSHCONST(TYPE_INT);
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 # if defined(ENABLE_INTRP)
 								} 
 								else
@@ -674,8 +674,8 @@ bool stack_analyse(jitdata *jd)
 								if (!opt_intrp) {
 # endif
 # if SUPPORT_CONST_STORE_ZERO_ONLY
-									if (iptr[0].val.i == 0) { /* XXX check val.l? */
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+									if (iptr[0].val.i == 0) {
+# endif
 										switch (iptr[1].opc) {
 										case ICMD_PUTSTATIC:
 											iptr[0].opc = ICMD_PUTSTATICCONST;
@@ -694,7 +694,7 @@ bool stack_analyse(jitdata *jd)
 									} 
 									else
 										PUSHCONST(TYPE_INT);
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 # if defined(ENABLE_INTRP)
 								} 
 								else
@@ -980,7 +980,7 @@ bool stack_analyse(jitdata *jd)
 # endif
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.l == 0) {
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 										iptr[0].opc = ICMD_LASTORECONST;
 										iptr[1].opc = ICMD_NOP;
 										OPTT2_0(TYPE_INT, TYPE_ADR);
@@ -989,7 +989,7 @@ bool stack_analyse(jitdata *jd)
 									} 
 									else
 										PUSHCONST(TYPE_LNG);
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 # if defined(ENABLE_INTRP)
 								} 
 								else
@@ -1004,7 +1004,7 @@ bool stack_analyse(jitdata *jd)
 # endif
 # if SUPPORT_CONST_STORE_ZERO_ONLY
 									if (iptr[0].val.l == 0) {
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 										switch (iptr[1].opc) {
 										case ICMD_PUTSTATIC:
 											iptr[0].opc = ICMD_PUTSTATICCONST;
@@ -1023,7 +1023,7 @@ bool stack_analyse(jitdata *jd)
 									} 
 									else
 										PUSHCONST(TYPE_LNG);
-# endif /* SUPPORT_CONST_STORE_ZERO_ONLY */
+# endif
 # if defined(ENABLE_INTRP)
 								} 
 								else
@@ -1077,21 +1077,32 @@ bool stack_analyse(jitdata *jd)
 
 								case ICMD_PUTSTATIC:
 								case ICMD_PUTFIELD:
-									switch (iptr[1].opc) {
-									case ICMD_PUTSTATIC:
-										iptr[0].opc = ICMD_PUTSTATICCONST;
-										iptr[0].op1 = TYPE_ADR;
-										SETDST;
-										break;
-									case ICMD_PUTFIELD:
-										iptr[0].opc = ICMD_PUTFIELDCONST;
-										iptr[0].op1 = TYPE_ADR;
-										OP1_0(TYPE_ADR);
-										break;
-									}
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									if (iptr->val.a == 0) {
+# endif
 
-									iptr[1].opc = ICMD_NOP;
-									COUNT(count_pcmd_op);
+										switch (iptr[1].opc) {
+										case ICMD_PUTSTATIC:
+											iptr[0].opc = ICMD_PUTSTATICCONST;
+											iptr[0].op1 = TYPE_ADR;
+											SETDST;
+											break;
+										case ICMD_PUTFIELD:
+											iptr[0].opc = ICMD_PUTFIELDCONST;
+											iptr[0].op1 = TYPE_ADR;
+											OP1_0(TYPE_ADR);
+											break;
+										}
+
+										iptr[1].opc = ICMD_NOP;
+										COUNT(count_pcmd_op);
+
+# if SUPPORT_CONST_STORE_ZERO_ONLY
+									}
+									else
+										/* no transformation */
+										PUSHCONST(TYPE_ADR);
+# endif
 									break;
 
 								default:
