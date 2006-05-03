@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4869 2006-05-03 22:46:39Z edwin $
+   $Id: threads.c 4870 2006-05-03 22:58:01Z edwin $
 
 */
 
@@ -1183,11 +1183,32 @@ static void freeLockRecord(monitorLockRecord *lr)
 		threads_sem_post(&lr->queueSem);
 }
 
-static inline void handleWaiter(monitorLockRecord *mlr, monitorLockRecord *lr, java_objectheader *o)
+static inline void handleWaiter(monitorLockRecord *newlr,
+								monitorLockRecord *curlr,
+								java_objectheader *o)
 {
-	if (lr->waiting == o)
-		mlr->waiter = lr;
+	/* if the current lock record is used for waiting on the object */
+	/* `o`, then record it as a waiter in the new lock record       */
+
+	if (curlr->waiting == o)
+		newlr->waiter = curlr;
 }
+
+/* monitorEnter ****************************************************************
+
+   Acquire the monitor of the given object. If the current thread already
+   owns the monitor, the lock counter is simply increased.
+
+   This function blocks until it can acquire the monitor.
+
+   IN:
+      t............the current thread
+	  o............the object of which to enter the monitor
+
+   RETURN VALUE:
+      the new lock record of the object when it has been entered
+
+*******************************************************************************/
 
 monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 {
@@ -1599,22 +1620,34 @@ void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 
 static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
 {
-	monitorLockRecord *lr = o->monitorPtr;
+	monitorLockRecord *lr;
+	monitorLockRecord *wlr;
+	threadobject *wthread;
+
+	lr = o->monitorPtr;
 	GRAB_LR(lr, t);
 	CHECK_MONITORSTATE(lr, t, o, return);
-	do {
-		threadobject *wthread;
-		monitorLockRecord *wlr = lr->waiter;
-		if (!wlr)
-			break;
+
+	/* { the thread t owns the lock record lr on the object o } */
+
+	/* for each waiter: */
+
+	for (wlr = lr->waiter; wlr; wlr = wlr->waiter) {
+
+		/* signal the waiting thread */
+
 		wthread = wlr->ownerThread;
 		pthread_mutex_lock(&wthread->waitLock);
 		if (wthread->isSleeping)
 			pthread_cond_signal(&wthread->waitCond);
 		wthread->signaled = true;
 		pthread_mutex_unlock(&wthread->waitLock);
-		lr = wlr;
-	} while (!one);
+
+		/* if we should only wake one, we are done */
+
+		if (one)
+			break;
+	}
 }
 
 /* threadHoldsLock *************************************************************
