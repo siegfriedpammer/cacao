@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4870 2006-05-03 22:58:01Z edwin $
+   $Id: threads.c 4871 2006-05-03 23:04:30Z edwin $
 
 */
 
@@ -1283,12 +1283,23 @@ monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
 	}
 }
 
-static void wakeWaiters(monitorLockRecord *lr)
+/* threads_wake_waiters ********************************************************
+
+   For each lock record in the given waiter list, post the queueSem
+   once for each queuer of the lock record.
+
+   IN:
+      lr...........the head of the waiter list
+
+*******************************************************************************/
+
+static void threads_wake_waiters(monitorLockRecord *lr)
 {
 	monitorLockRecord *tmplr;
 	s4 q;
 
-	/* assign lock record to a temporary variable */
+	/* move it to a local variable (Stefan commented this especially.
+	 * Might be important somehow...) */
 
 	tmplr = lr;
 
