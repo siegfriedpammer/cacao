@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 4566 2006-03-07 10:36:42Z twisti $
+   $Id: string.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -290,7 +290,7 @@ java_lang_String *javastring_new(utf *u)
 	}
 
 	utf_ptr = u->text;
-	utflength = utf_strlen(u);
+	utflength = utf_get_number_of_u2s(u);
 
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
@@ -335,7 +335,7 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 	}
 
 	utf_ptr = u->text;
-	utflength = utf_strlen(u);
+	utflength = utf_get_number_of_u2s(u);
 
 	s = (java_lang_String *) builtin_new(class_java_lang_String);
 	a = builtin_newarray_char(utflength);
@@ -644,7 +644,7 @@ java_objectheader *literalstring_new(utf *u)
     u4              i;
 
 	utf_ptr = u->text;
-	utflength = utf_strlen(u);
+	utflength = utf_get_number_of_u2s(u);
 
     /* allocate memory */ 
     a = mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);

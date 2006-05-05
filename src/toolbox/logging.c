@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 4375 2006-01-27 17:35:13Z twisti $
+   $Id: logging.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -179,7 +179,7 @@ void log_message_utf(const char *msg, utf *u)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_strlen(u) + strlen("0");
+	len = strlen(msg) + utf_get_number_of_u2s(u) + strlen("0");
 
 	buf = MNEW(char, len);
 
@@ -221,8 +221,8 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 	s4    len;
 
 	len =
-		strlen(msg1) + utf_strlen(c1->name) +
-		strlen(msg2) + utf_strlen(c2->name) + strlen("0");
+		strlen(msg1) + utf_get_number_of_u2s(c1->name) +
+		strlen(msg2) + utf_get_number_of_u2s(c2->name) + strlen("0");
 
 	buf = MNEW(char, len);
 
@@ -250,8 +250,8 @@ void log_message_method(const char *msg, methodinfo *m)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_strlen(m->class->name) + strlen(".") +
-		utf_strlen(m->name) + utf_strlen(m->descriptor) + strlen("0");
+	len = strlen(msg) + utf_get_number_of_u2s(m->class->name) + strlen(".") +
+		utf_get_number_of_u2s(m->name) + utf_get_number_of_u2s(m->descriptor) + strlen("0");
 
 	buf = MNEW(char, len);
 

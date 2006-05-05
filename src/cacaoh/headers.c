@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4792 2006-04-19 01:05:18Z edwin $
+   $Id: headers.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -498,7 +498,7 @@ void printID(utf *u)
 	char *utf_ptr = u->text;
 	int i;
 
-	for (i = 0; i < utf_strlen(u); i++) 
+	for (i = 0; i < utf_get_number_of_u2s(u); i++) 
 		printIDpart(utf_nextu2(&utf_ptr));
 }
 
@@ -739,7 +739,7 @@ void gen_header_filename(char *buffer, utf *u)
 {
 	s4 i;
   
-	for (i = 0; i < utf_strlen(u); i++) {
+	for (i = 0; i < utf_get_number_of_u2s(u); i++) {
 		if ((u->text[i] == '/') || (u->text[i] == '$')) {
 			buffer[i] = '_';  /* convert '$' and '/' to '_' */
 
@@ -747,7 +747,7 @@ void gen_header_filename(char *buffer, utf *u)
 			buffer[i] = u->text[i];
 		}
 	}
-	buffer[utf_strlen(u)] = '\0';
+	buffer[utf_get_number_of_u2s(u)] = '\0';
 }
 
 

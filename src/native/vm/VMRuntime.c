@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4578 2006-03-10 22:22:06Z twisti $
+   $Id: VMRuntime.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -344,7 +344,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	buffer_len = strlen("lib");
 
-	buffer_len += utf_strlen(u);
+	buffer_len += utf_get_number_of_u2s(u);
 
 #if defined(__DARWIN__)
 	buffer_len += strlen(".dylib");

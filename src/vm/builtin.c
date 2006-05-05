@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4829 2006-04-24 17:16:45Z edwin $
+   $Id: builtin.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -531,7 +531,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 
 		if (t) {
 			logtextlen +=
-				utf_strlen(xptr->vftbl->class->name) +
+				utf_get_number_of_u2s(xptr->vftbl->class->name) +
 				strlen(": ") +
 				javastring_strlen(t->detailMessage);
 
@@ -1154,7 +1154,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	if (xptr) {
 		logtextlen =
 			strlen("Exception ") +
-			utf_strlen(xptr->vftbl->class->name);
+			utf_get_number_of_u2s(xptr->vftbl->class->name);
 
 	} else {
 		logtextlen = strlen("Some Throwable");
@@ -1164,10 +1164,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	if (m) {
 		logtextlen +=
-			utf_strlen(m->class->name) +
+			utf_get_number_of_u2s(m->class->name) +
 			strlen(".") +
-			utf_strlen(m->name) +
-			utf_strlen(m->descriptor) +
+			utf_get_number_of_u2s(m->name) +
+			utf_get_number_of_u2s(m->descriptor) +
 			strlen("(NOSYNC,NATIVE");
 
 #if SIZEOF_VOID_P == 8
@@ -1180,7 +1180,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		if (m->class->sourcefile == NULL)
 			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
 		else
-			logtextlen += utf_strlen(m->class->sourcefile);
+			logtextlen += utf_get_number_of_u2s(m->class->sourcefile);
 
 		logtextlen += strlen(":65536)");
 
@@ -1306,10 +1306,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		methodindent +
 		strlen("called: ") +
-		utf_strlen(m->class->name) +
+		utf_get_number_of_u2s(m->class->name) +
 		strlen(".") +
-		utf_strlen(m->name) +
-		utf_strlen(m->descriptor) +
+		utf_get_number_of_u2s(m->name) +
+		utf_get_number_of_u2s(m->descriptor) +
 		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
 
 	/* add maximal argument length */
@@ -1566,10 +1566,10 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		methodindent +
 		strlen("finished: ") +
-		utf_strlen(m->class->name) +
+		utf_get_number_of_u2s(m->class->name) +
 		strlen(".") +
-		utf_strlen(m->name) +
-		utf_strlen(m->descriptor) +
+		utf_get_number_of_u2s(m->name) +
+		utf_get_number_of_u2s(m->descriptor) +
 		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
 
 	/* add maximal argument length */
@@ -1664,7 +1664,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 					u = o->vftbl->class->name;
 				}
 
-				len = strlen(", Class = \"") + utf_strlen(u) + strlen("\"");
+				len = strlen(", Class = \"") + utf_get_number_of_u2s(u) + strlen("\"");
 
 				/* realloc memory for string length */
 

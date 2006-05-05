@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4689 2006-03-27 11:15:44Z twisti $
+   $Id: utf8.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -790,13 +790,24 @@ u2 utf_nextu2(char **utf_ptr)
 }
 
 
-/* utf_strlen ******************************************************************
+/* utf_get_number_of_u2s *******************************************************
 
-   Determine number of unicode characters in the utf string.
+   Determine number of UTF-16 u2s in the utf string.
+
+   CAUTION: Use this function *only* when you want to convert a utf string
+   to an array of u2s and want to know how many of them you will get.
+   All other uses of this function are probably wrong.
+
+   IN:
+      u............utf string
+
+   OUT:
+      the number of u2s needed to hold this string in UTF-16 encoding.
+	  There is _no_ terminating zero included in this count.
 
 *******************************************************************************/
 
-u4 utf_strlen(utf *u)
+u4 utf_get_number_of_u2s(utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */

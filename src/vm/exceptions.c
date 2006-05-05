@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4836 2006-04-25 15:26:55Z edwin $
+   $Id: exceptions.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -474,7 +474,7 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	msglen = 0;
 
 	if (c)
-		msglen += utf_strlen(c->name) + strlen(" (");
+		msglen += utf_get_number_of_u2s(c->name) + strlen(" (");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
@@ -668,7 +668,7 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 
 	msglen = strlen(message) + 1;
 	if (c) {
-		msglen += utf_strlen(c->name);
+		msglen += utf_get_number_of_u2s(c->name);
 	}
 		
 	/* allocate memory */
@@ -708,8 +708,8 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 
 	/* calculate exception message length */
 
-	msglen = utf_strlen(c->name) + strlen(".") + utf_strlen(name) +
-		utf_strlen(desc) + strlen("0");
+	msglen = utf_get_number_of_u2s(c->name) + strlen(".") + utf_get_number_of_u2s(name) +
+		utf_get_number_of_u2s(desc) + strlen("0");
 
 	/* allocate memory */
 
@@ -760,7 +760,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 	/* calculate exception message length */
 
-	msglen = utf_strlen(c->name) + strlen(" (") + strlen(")") + strlen("0");
+	msglen = utf_get_number_of_u2s(c->name) + strlen(" (") + strlen(")") + strlen("0");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
@@ -814,9 +814,9 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 	msglen = 0;
 
 	if (m)
-		msglen = strlen("(class: ") + utf_strlen(m->class->name) +
-			strlen(", method: ") + utf_strlen(m->name) +
-			strlen(" signature: ") + utf_strlen(m->descriptor) +
+		msglen = strlen("(class: ") + utf_get_number_of_u2s(m->class->name) +
+			strlen(", method: ") + utf_get_number_of_u2s(m->name) +
+			strlen(" signature: ") + utf_get_number_of_u2s(m->descriptor) +
 			strlen(") ") + strlen("0");
 
 	va_start(ap, message);
@@ -873,9 +873,9 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 	msglen = 0;
 
 	if (m)
-		msglen = strlen("(class: ") + utf_strlen(m->class->name) +
-			strlen(", method: ") + utf_strlen(m->name) +
-			strlen(" signature: ") + utf_strlen(m->descriptor) +
+		msglen = strlen("(class: ") + utf_get_number_of_u2s(m->class->name) +
+			strlen(", method: ") + utf_get_number_of_u2s(m->name) +
+			strlen(" signature: ") + utf_get_number_of_u2s(m->descriptor) +
 			strlen(") Expecting to find longest-------typename on stack") 
 			+ strlen("0");
 

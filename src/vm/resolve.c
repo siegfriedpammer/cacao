@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: resolve.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -193,7 +193,7 @@ bool resolve_class_from_name(classinfo *referer,
 		int msglen;
 		char *message;
 
-		msglen = utf_strlen(cls->name) + utf_strlen(referer->name) + 100;
+		msglen = utf_get_number_of_u2s(cls->name) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"class is not accessible (");
 		utf_sprint_classname(message+strlen(message),cls->name);
@@ -519,7 +519,7 @@ check_again:
 		char *message;
 		int msglen;
 
-		msglen = utf_strlen(subclass->name) + utf_strlen(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
+		msglen = utf_get_number_of_u2s(subclass->name) + utf_get_number_of_u2s(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
 		message = MNEW(char,msglen);
 		strcpy(message,(error == resolveIllegalAccessError) ?
 				"illegal access to protected member ("
@@ -1021,7 +1021,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		int msglen;
 		char *message;
 
-		msglen = utf_strlen(declarer->name) + utf_strlen(fi->name) + utf_strlen(referer->name) + 100;
+		msglen = utf_get_number_of_u2s(declarer->name) + utf_get_number_of_u2s(fi->name) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"field is not accessible (");
 		utf_sprint_classname(message+strlen(message),declarer->name);
@@ -1572,8 +1572,8 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 		char *message;
 
 		/* XXX clean this up. this should be in exceptions.c */
-		msglen = utf_strlen(declarer->name) + utf_strlen(mi->name) +
-			utf_strlen(mi->descriptor) + utf_strlen(referer->name) + 100;
+		msglen = utf_get_number_of_u2s(declarer->name) + utf_get_number_of_u2s(mi->name) +
+			utf_get_number_of_u2s(mi->descriptor) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"method is not accessible (");
 		utf_sprint_classname(message+strlen(message),declarer->name);

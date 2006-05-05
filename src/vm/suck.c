@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4587 2006-03-12 23:23:52Z twisti $
+   $Id: suck.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -527,7 +527,7 @@ classbuffer *suck_start(classinfo *c)
 	/* get the classname as char string (do it here for the warning at
        the and of the function) */
 
-	filenamelen = utf_strlen(c->name) + strlen(".class") + strlen("0");
+	filenamelen = utf_get_number_of_u2s(c->name) + strlen(".class") + strlen("0");
 	filename = MNEW(char, filenamelen);
 
 	utf_sprint(filename, c->name);

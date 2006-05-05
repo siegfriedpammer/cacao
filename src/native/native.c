@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4691 2006-03-28 09:41:33Z twisti $
+   $Id: native.c 4872 2006-05-05 13:48:25Z edwin $
 
 */
 
@@ -650,8 +650,8 @@ functionptr native_resolve_function(methodinfo *m)
 		
 	/* calculate length of native function name */
 
-	namelen = strlen("Java_") + utf_strlen(m->class->name) + strlen("_") +
-		utf_strlen(m->name) + strlen("0");
+	namelen = strlen("Java_") + utf_get_number_of_u2s(m->class->name) + strlen("_") +
+		utf_get_number_of_u2s(m->name) + strlen("0");
 
 	/* check for underscores in class name */
 
