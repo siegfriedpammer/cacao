@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: resolve.c 4880 2006-05-05 18:08:17Z edwin $
 
 */
 
@@ -193,14 +193,14 @@ bool resolve_class_from_name(classinfo *referer,
 		int msglen;
 		char *message;
 
-		msglen = utf_get_number_of_u2s(cls->name) + utf_get_number_of_u2s(referer->name) + 100;
-		message = MNEW(char,msglen);
-		strcpy(message,"class is not accessible (");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),cls->name);
-		strcat(message," from ");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
-		strcat(message,")");
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+		msglen = utf_bytes(cls->name) + utf_bytes(referer->name) + 100;
+		message = MNEW(char, msglen);
+		strcpy(message, "class is not accessible (");
+		utf_cat_classname(message, cls->name);
+		strcat(message, " from ");
+		utf_cat_classname(message, referer->name);
+		strcat(message, ")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
 		MFREE(message,char,msglen);
 		return false; /* exception */
 	}
@@ -519,20 +519,20 @@ check_again:
 		char *message;
 		int msglen;
 
-		msglen = utf_get_number_of_u2s(subclass->name) + utf_get_number_of_u2s(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
-		message = MNEW(char,msglen);
-		strcpy(message,(error == resolveIllegalAccessError) ?
+		msglen = utf_bytes(subclass->name) + utf_bytes(CLASSREF_OR_CLASSINFO_NAME(supertype)) + 200;
+		message = MNEW(char, msglen);
+		strcpy(message, (error == resolveIllegalAccessError) ?
 				"illegal access to protected member ("
 				: "subtype constraint violated (");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),subclass->name);
-		strcat(message," is not a subclass of ");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),CLASSREF_OR_CLASSINFO_NAME(supertype));
-		strcat(message,")");
+		utf_cat_classname(message, subclass->name);
+		strcat(message, " is not a subclass of ");
+		utf_cat_classname(message, CLASSREF_OR_CLASSINFO_NAME(supertype));
+		strcat(message, ")");
 		if (error == resolveIllegalAccessError)
-			*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+			*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
 		else
-			*exceptionptr = exceptions_new_linkageerror(message,NULL);
-		MFREE(message,char,msglen);
+			*exceptionptr = exceptions_new_linkageerror(message, NULL);
+		MFREE(message, char, msglen);
 		return resolveFailed; /* exception */
 	}
 
@@ -1021,16 +1021,16 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		int msglen;
 		char *message;
 
-		msglen = utf_get_number_of_u2s(declarer->name) + utf_get_number_of_u2s(fi->name) + utf_get_number_of_u2s(referer->name) + 100;
-		message = MNEW(char,msglen);
-		strcpy(message,"field is not accessible (");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),declarer->name);
-		strcat(message,".");
-		utf_sprint_convert_to_latin1(message+strlen(message),fi->name);
-		strcat(message," from ");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
-		strcat(message,")");
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
+		msglen = utf_bytes(declarer->name) + utf_bytes(fi->name) + utf_bytes(referer->name) + 100;
+		message = MNEW(char, msglen);
+		strcpy(message, "field is not accessible (");
+		utf_cat_classname(message, declarer->name);
+		strcat(message, ".");
+		utf_cat(message, fi->name);
+		strcat(message, " from ");
+		utf_cat_classname(message, referer->name);
+		strcat(message, ")");
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
 		MFREE(message,char,msglen);
 		return resolveFailed; /* exception */
 	}
@@ -1572,19 +1572,19 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 		char *message;
 
 		/* XXX clean this up. this should be in exceptions.c */
-		msglen = utf_get_number_of_u2s(declarer->name) + utf_get_number_of_u2s(mi->name) +
-			utf_get_number_of_u2s(mi->descriptor) + utf_get_number_of_u2s(referer->name) + 100;
-		message = MNEW(char,msglen);
-		strcpy(message,"method is not accessible (");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),declarer->name);
-		strcat(message,".");
-		utf_sprint_convert_to_latin1(message+strlen(message),mi->name);
-		utf_sprint_convert_to_latin1(message+strlen(message),mi->descriptor);
+		msglen = utf_bytes(declarer->name) + utf_bytes(mi->name) +
+			utf_bytes(mi->descriptor) + utf_bytes(referer->name) + 100;
+		message = MNEW(char, msglen);
+		strcpy(message, "method is not accessible (");
+		utf_cat_classname(message, declarer->name);
+		strcat(message, ".");
+		utf_cat(message, mi->name);
+		utf_cat(message, mi->descriptor);
 		strcat(message," from ");
-		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
+		utf_cat_classname(message, referer->name);
 		strcat(message,")");
-		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
-		MFREE(message,char,msglen);
+		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException, message);
+		MFREE(message, char, msglen);
 		return resolveFailed; /* exception */
 	}
 
