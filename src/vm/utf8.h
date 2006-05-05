@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 4882 2006-05-05 18:49:01Z edwin $
+   $Id: utf8.h 4887 2006-05-05 19:31:39Z edwin $
 
 */
 
@@ -36,16 +36,15 @@
 #ifndef _UTF_H
 #define _UTF_H
 
-#include <stdio.h>
+#include "config.h"
 
+#include <stdio.h>
 
 /* forward typedefs ***********************************************************/
 
 typedef struct utf utf;
 
-#include "config.h"
 #include "vm/types.h"
-
 #include "vm/global.h"
 
 
