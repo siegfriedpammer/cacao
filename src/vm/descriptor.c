@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: descriptor.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: descriptor.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -457,7 +457,7 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 #ifdef DESCRIPTOR_VERBOSE
 	fprintf(stderr,"descriptor_pool_add_class(%p,",(void*)pool);
-	utf_fprint(stderr,name);fprintf(stderr,")\n");
+	utf_fprint_printable_ascii(stderr,name);fprintf(stderr,")\n");
 #endif
 
 	/* find a place in the hashtable */
@@ -522,7 +522,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 	
 #ifdef DESCRIPTOR_VERBOSE
 	fprintf(stderr,"descriptor_pool_add(%p,",(void*)pool);
-	utf_fprint(stderr,desc);fprintf(stderr,")\n");
+	utf_fprint_printable_ascii(stderr,desc);fprintf(stderr,")\n");
 #endif
 
 	assert(pool);
@@ -869,7 +869,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 #ifdef DESCRIPTOR_VERBOSE
 	fprintf(stderr,"descriptor_pool_parse_method_descriptor(%p,%d,%p,",
 			(void*)pool,(int)mflags,(void*)thisclass);
-	utf_fprint(stderr,desc); fprintf(stderr,")\n");
+	utf_fprint_printable_ascii(stderr,desc); fprintf(stderr,")\n");
 #endif
 
 	assert(pool);
@@ -1175,7 +1175,7 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 	
 	if (d->type == TYPE_ADDRESS) {
 		if (d->classref)
-			utf_fprint(file,d->classref->name);
+			utf_fprint_printable_ascii(file,d->classref->name);
 		else
 			fprintf(file,"<class=NULL>");
 	}
@@ -1278,7 +1278,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 	u4 size;
 	
 	fprintf(file,"======[descriptor_pool for ");
-	utf_fprint(file,pool->referer->name);
+	utf_fprint_printable_ascii(file,pool->referer->name);
 	fprintf(file,"]======\n");
 
 	fprintf(file,"fieldcount:     %d\n",pool->fieldcount);
@@ -1294,7 +1294,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 		classref_hash_entry *c = (classref_hash_entry *) pool->classrefhash.ptr[slot];
 		while (c) {
 			fprintf(file,"    %4d: ",c->index);
-			utf_fprint(file,c->name);
+			utf_fprint_printable_ascii(file,c->name);
 			fprintf(file,"\n");
 			c = c->hashlink;
 		}
@@ -1305,7 +1305,7 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 		descriptor_hash_entry *c = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
 		while (c) {
 			fprintf(file,"    %p: ",c->parseddesc.any);
-			utf_fprint(file,c->desc);
+			utf_fprint_printable_ascii(file,c->desc);
 			fprintf(file,"\n");
 			c = c->hashlink;
 		}

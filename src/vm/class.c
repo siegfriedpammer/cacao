@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: class.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -1154,7 +1154,7 @@ void class_print(classinfo *c)
 		return;
 	}
 
-	utf_display(c->name);
+	utf_display_printable_ascii(c->name);
 	class_printflags(c);
 }
 #endif
@@ -1174,7 +1174,7 @@ void class_classref_print(constant_classref *cr)
 		return;
 	}
 
-	utf_display(cr->name);
+	utf_display_printable_ascii(cr->name);
 	printf("(ref.by ");
 	if (cr->referer)
 		class_print(cr->referer);
@@ -1238,7 +1238,7 @@ void class_showconstantpool (classinfo *c)
 			switch (c -> cptags [i]) {
 			case CONSTANT_Class:
 				printf ("Classreference -> ");
-				utf_display ( ((constant_classref*)e) -> name );
+				utf_display_printable_ascii ( ((constant_classref*)e) -> name );
 				break;
 			case CONSTANT_Fieldref:
 				printf ("Fieldref -> ");
@@ -1254,7 +1254,7 @@ void class_showconstantpool (classinfo *c)
 				break;
 			case CONSTANT_String:
 				printf ("String -> ");
-				utf_display (e);
+				utf_display_printable_ascii (e);
 				break;
 			case CONSTANT_Integer:
 				printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
@@ -1280,14 +1280,14 @@ void class_showconstantpool (classinfo *c)
 				{
 					constant_nameandtype *cnt = e;
 					printf ("NameAndType: ");
-					utf_display (cnt->name);
+					utf_display_printable_ascii (cnt->name);
 					printf (" ");
-					utf_display (cnt->descriptor);
+					utf_display_printable_ascii (cnt->descriptor);
 				}
 				break;
 			case CONSTANT_Utf8:
 				printf ("Utf8 -> ");
-				utf_display (e);
+				utf_display_printable_ascii (e);
 				break;
 			default: 
 				log_text("Invalid type of ConstantPool-Entry");
@@ -1318,12 +1318,12 @@ void class_showmethods (classinfo *c)
 	printf("\n");
 
 	printf("This: ");
-	utf_display(c->name);
+	utf_display_printable_ascii(c->name);
 	printf("\n");
 
 	if (c->super.cls) {
 		printf("Super: ");
-		utf_display(c->super.cls->name);
+		utf_display_printable_ascii(c->super.cls->name);
 		printf ("\n");
 	}
 
@@ -1332,7 +1332,7 @@ void class_showmethods (classinfo *c)
 	printf("Interfaces:\n");	
 	for (i = 0; i < c->interfacescount; i++) {
 		printf("   ");
-		utf_display(c->interfaces[i].cls->name);
+		utf_display_printable_ascii(c->interfaces[i].cls->name);
 		printf (" (%d)\n", c->interfaces[i].cls->index);
 	}
 

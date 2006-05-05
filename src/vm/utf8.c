@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 4877 2006-05-05 16:51:15Z edwin $
+   $Id: utf8.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -1010,13 +1010,14 @@ void utf_cat_classname(char *buffer, utf *u)
 	utf_copy_classname(buffer + strlen(buffer), u);
 }
 
-/* utf_display *****************************************************************
+/* utf_display_printable_ascii *************************************************
 
    Write utf symbol to stdout (for debugging purposes).
+   Non-printable and non-ASCII characters are printed as '?'.
 
 *******************************************************************************/
 
-void utf_display(utf *u)
+void utf_display_printable_ascii(utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1045,14 +1046,15 @@ void utf_display(utf *u)
 }
 
 
-/* utf_display_classname *******************************************************
+/* utf_display_printable_ascii_classname ***************************************
 
    Write utf symbol to stdout with `/' converted to `.' (for debugging
    purposes).
+   Non-printable and non-ASCII characters are printed as '?'.
 
 *******************************************************************************/
 
-void utf_display_classname(utf *u)
+void utf_display_printable_ascii_classname(utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1084,13 +1086,15 @@ void utf_display_classname(utf *u)
 }
 
 
-/* utf_sprint ******************************************************************
+/* utf_sprint_convert_to_latin1 ************************************************
 	
    Write utf symbol into c-string (for debugging purposes).
+   Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
+   invalid results.
 
 *******************************************************************************/
 
-void utf_sprint(char *buffer, utf *u)
+void utf_sprint_convert_to_latin1(char *buffer, utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1113,14 +1117,16 @@ void utf_sprint(char *buffer, utf *u)
 }
 
 
-/* utf_sprint_classname ********************************************************
+/* utf_sprint_convert_to_latin1_classname **************************************
 	
    Write utf symbol into c-string with `/' converted to `.' (for debugging
    purposes).
+   Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
+   invalid results.
 
 *******************************************************************************/
 
-void utf_sprint_classname(char *buffer, utf *u)
+void utf_sprint_convert_to_latin1_classname(char *buffer, utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1146,37 +1152,42 @@ void utf_sprint_classname(char *buffer, utf *u)
 }
 
 
-/* utf_strcat ******************************************************************
+/* utf_strcat_convert_to_latin1 ************************************************
 	
    Like libc strcat, but uses an utf8 string.
+   Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
+   invalid results.
 
 *******************************************************************************/
 
-void utf_strcat(char *buffer, utf *u)
+void utf_strcat_convert_to_latin1(char *buffer, utf *u)
 {
-	utf_sprint(buffer + strlen(buffer), u);
+	utf_sprint_convert_to_latin1(buffer + strlen(buffer), u);
 }
 
 
-/* utf_strcat_classname ********************************************************
+/* utf_strcat_convert_to_latin1_classname **************************************
 	
    Like libc strcat, but uses an utf8 string.
+   Characters are converted to 8-bit Latin-1, non-Latin-1 characters yield
+   invalid results.
 
 *******************************************************************************/
 
-void utf_strcat_classname(char *buffer, utf *u)
+void utf_strcat_convert_to_latin1_classname(char *buffer, utf *u)
 {
-	utf_sprint_classname(buffer + strlen(buffer), u);
+	utf_sprint_convert_to_latin1_classname(buffer + strlen(buffer), u);
 }
 
 
-/* utf_fprint ******************************************************************
+/* utf_fprint_printable_ascii **************************************************
 	
    Write utf symbol into file.
+   Non-printable and non-ASCII characters are printed as '?'.
 
 *******************************************************************************/
 
-void utf_fprint(FILE *file, utf *u)
+void utf_fprint_printable_ascii(FILE *file, utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1197,13 +1208,14 @@ void utf_fprint(FILE *file, utf *u)
 }
 
 
-/* utf_fprint_classname ********************************************************
+/* utf_fprint_printable_ascii_classname ****************************************
 	
    Write utf symbol into file with `/' converted to `.'.
+   Non-printable and non-ASCII characters are printed as '?'.
 
 *******************************************************************************/
 
-void utf_fprint_classname(FILE *file, utf *u)
+void utf_fprint_printable_ascii_classname(FILE *file, utf *u)
 {
 	char *endpos;                       /* points behind utf string           */
 	char *utf_ptr;                      /* current position in utf text       */
@@ -1358,7 +1370,7 @@ void utf_show(void)
 
 			while (u) {
 				printf("'");
-				utf_display(u);
+				utf_display_printable_ascii(u);
 				printf("' ");
 				u = u->hashlink;
 			}	

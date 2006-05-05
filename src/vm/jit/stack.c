@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4868 2006-05-02 16:16:04Z twisti $
+   $Id: stack.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -2743,9 +2743,9 @@ void stack_show_method(jitdata *jd)
 		printf("  (catchtype: ");
 		if (ex->catchtype.any)
 			if (IS_CLASSREF(ex->catchtype))
-				utf_display_classname(ex->catchtype.ref->name);
+				utf_display_printable_ascii_classname(ex->catchtype.ref->name);
 			else
-				utf_display_classname(ex->catchtype.cls->name);
+				utf_display_printable_ascii_classname(ex->catchtype.cls->name);
 		else
 			printf("ANY");
 		printf(")\n");
@@ -3140,7 +3140,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 			if (iptr->val.a) {
 				printf(", String = \"");
-				utf_display(javastring_toutf(iptr->val.a, false));
+				utf_display_printable_ascii(javastring_toutf(iptr->val.a, false));
 				printf("\"");
 			}
 		}
@@ -3267,7 +3267,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_NEW:
 		c = iptr->val.a;
 		printf(" ");
-		utf_display_classname(c->name);
+		utf_display_printable_ascii_classname(c->name);
 		break;
 
 	case ICMD_NEWARRAY:
@@ -3303,7 +3303,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 		if (iptr->op1) {
 			c = iptr->val.a;
 			printf(" ");
-			utf_display_classname(c->name);
+			utf_display_printable_ascii_classname(c->name);
 		}
 		break;
 
@@ -3313,11 +3313,11 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 
 		if (c == NULL) {
 			printf(" (NOT RESOLVED) %d ", iptr->op1);
-			utf_display(cr->name);
+			utf_display_printable_ascii(cr->name);
 		} 
 		else {
 			printf(" %d ", iptr->op1);
-			utf_display_classname(c->name);
+			utf_display_printable_ascii_classname(c->name);
 		}
 		break;
 
@@ -3333,7 +3333,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 				printf(" (CLASS,%3d) ", c->vftbl->diffval);
 		} else
 			printf(" (NOT RESOLVED) ");
-		utf_display_classname(cr->name);
+		utf_display_printable_ascii_classname(cr->name);
 		break;
 
 	case ICMD_INLINE_START:
@@ -3492,7 +3492,7 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_ARETURN:
 		if (iptr->val.a) {
 			printf(" (NOT RESOLVED) Class = \"");
-			utf_display(((unresolved_class *) iptr->val.a)->classref->name);
+			utf_display_printable_ascii(((unresolved_class *) iptr->val.a)->classref->name);
 			printf("\"");
 		}
 	}

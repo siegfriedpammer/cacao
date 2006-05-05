@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: builtin.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -547,7 +547,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		strcpy(logtext, "Builtin exception thrown: ");
 
 		if (t) {
-			utf_sprint_classname(logtext + strlen(logtext),
+			utf_sprint_convert_to_latin1_classname(logtext + strlen(logtext),
 								 xptr->vftbl->class->name);
 
 			if (t->detailMessage) {
@@ -1197,7 +1197,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	if (xptr) {
 		strcpy(logtext, "Exception ");
-		utf_strcat_classname(logtext, xptr->vftbl->class->name);
+		utf_strcat_convert_to_latin1_classname(logtext, xptr->vftbl->class->name);
 
 	} else {
 		strcpy(logtext, "Some Throwable");
@@ -1206,10 +1206,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	strcat(logtext, " thrown in ");
 
 	if (m) {
-		utf_strcat_classname(logtext, m->class->name);
+		utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
 		strcat(logtext, ".");
-		utf_strcat(logtext, m->name);
-		utf_strcat(logtext, m->descriptor);
+		utf_strcat_convert_to_latin1(logtext, m->name);
+		utf_strcat_convert_to_latin1(logtext, m->descriptor);
 
 		if (m->flags & ACC_SYNCHRONIZED)
 			strcat(logtext, "(SYNC");
@@ -1250,7 +1250,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			if (m->class->sourcefile == NULL)
 				strcat(logtext, "<NO CLASSFILE INFORMATION>");
 			else
-				utf_strcat(logtext, m->class->sourcefile);
+				utf_strcat_convert_to_latin1(logtext, m->class->sourcefile);
 
 			sprintf(logtext + strlen(logtext), ":%d)", 0);
 		}
@@ -1334,10 +1334,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 	strcpy(logtext + pos, "called: ");
 
-	utf_strcat_classname(logtext, m->class->name);
+	utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
 	strcat(logtext, ".");
-	utf_strcat(logtext, m->name);
-	utf_strcat(logtext, m->descriptor);
+	utf_strcat_convert_to_latin1(logtext, m->name);
+	utf_strcat_convert_to_latin1(logtext, m->descriptor);
 
 	if (m->flags & ACC_PUBLIC)       strcat(logtext, " PUBLIC");
 	if (m->flags & ACC_PRIVATE)      strcat(logtext, " PRIVATE");
@@ -1600,10 +1600,10 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		logtext[pos++] = '\t';
 
 	strcpy(logtext + pos, "finished: ");
-	utf_strcat_classname(logtext, m->class->name);
+	utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
 	strcat(logtext, ".");
-	utf_strcat(logtext, m->name);
-	utf_strcat(logtext, m->descriptor);
+	utf_strcat_convert_to_latin1(logtext, m->name);
+	utf_strcat_convert_to_latin1(logtext, m->descriptor);
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
@@ -1644,7 +1644,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 				u = javastring_toutf(s, false);
 
 				strcat(logtext, ", String = \"");
-				utf_strcat(logtext, u);
+				utf_strcat_convert_to_latin1(logtext, u);
 				strcat(logtext, "\"");
 
 			} else {
@@ -1673,7 +1673,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 				/* strcat to the logtext */
 
 				strcat(logtext, ", Class = \"");
-				utf_strcat(logtext, u);
+				utf_strcat_convert_to_latin1(logtext, u);
 				strcat(logtext, "\"");
 			}
 		}

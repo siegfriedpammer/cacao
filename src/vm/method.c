@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: method.c 4758 2006-04-12 17:51:10Z edwin $
+   $Id: method.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -188,10 +188,10 @@ void method_print(methodinfo *m)
 		return;
 	}
 
-	utf_display_classname(m->class->name);
+	utf_display_printable_ascii_classname(m->class->name);
 	printf(".");
-	utf_display(m->name);
-	utf_display(m->descriptor);
+	utf_display_printable_ascii(m->name);
+	utf_display_printable_ascii(m->descriptor);
 
 	method_printflags(m);
 }
@@ -235,10 +235,10 @@ void method_methodref_print(constant_FMIref *mr)
 	}
 	else {
 		printf("<methodref> ");
-		utf_display_classname(mr->p.classref->name);
+		utf_display_printable_ascii_classname(mr->p.classref->name);
 		printf(".");
-		utf_display(mr->name);
-		utf_display(mr->descriptor);
+		utf_display_printable_ascii(mr->name);
+		utf_display_printable_ascii(mr->descriptor);
 	}
 }
 #endif /* !defined(NDEBUG) */

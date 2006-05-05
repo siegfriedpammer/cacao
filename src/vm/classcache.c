@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4802 2006-04-20 22:28:57Z edwin $
+   $Id: classcache.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -395,9 +395,9 @@ static void classcache_merge_class_entries(classcache_name_entry *en,
 	sprintf(logbuffer,"classcache_merge_class_entries(%p,%p->%p,%p->%p) ", 
 			(void*)en,(void*)clsenA,(void*)clsenA->classobj,(void*)clsenB,(void*)clsenB->classobj);
 	if (clsenA->classobj)
-		utf_strcat(logbuffer, clsenA->classobj->name);
+		utf_strcat_convert_to_latin1(logbuffer, clsenA->classobj->name);
 	if (clsenB->classobj)
-		utf_strcat(logbuffer, clsenB->classobj->name);
+		utf_strcat_convert_to_latin1(logbuffer, clsenB->classobj->name);
 	log_text(logbuffer);
 #endif
 
@@ -759,7 +759,7 @@ classinfo *classcache_store(classloader *initloader, classinfo *cls,
 
 #ifdef CLASSCACHE_VERBOSE
 	sprintf(logbuffer,"classcache_store (%p,%d,%p=", (void*)initloader,mayfree,(void*)cls);
-	utf_strcat(logbuffer, cls->name);
+	utf_strcat_convert_to_latin1(logbuffer, cls->name);
 	strcat(logbuffer,")");
 	log_text(logbuffer);
 #endif
@@ -944,7 +944,7 @@ classinfo *classcache_store_defined(classinfo *cls)
 
 #ifdef CLASSCACHE_VERBOSE
 	sprintf(logbuffer,"classcache_store_defined (%p,", (void*)cls->classloader);
-	utf_strcat(logbuffer, cls->name);
+	utf_strcat_convert_to_latin1(logbuffer, cls->name);
 	strcat(logbuffer,")");
 	log_text(logbuffer);
 #endif
@@ -1179,7 +1179,7 @@ bool classcache_add_constraint(classloader * a,
 
 #ifdef CLASSCACHE_VERBOSE
 	fprintf(stderr, "classcache_add_constraint(%p,%p,", (void *) a, (void *) b);
-	utf_fprint_classname(stderr, classname);
+	utf_fprint_printable_ascii_classname(stderr, classname);
 	fprintf(stderr, ")\n");
 #endif
 
@@ -1371,7 +1371,7 @@ void classcache_debug_dump(FILE * file,utf *only)
 
 dump_it:
 		for (; c; c = c->hashlink) {
-			utf_fprint_classname(file, c->name);
+			utf_fprint_printable_ascii_classname(file, c->name);
 			fprintf(file, "\n");
 
 			/* iterate over all class entries */

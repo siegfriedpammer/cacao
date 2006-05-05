@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 4862 2006-04-30 15:58:53Z edwin $
+   $Id: lsra.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -148,11 +148,11 @@ bool lsra(jitdata *jd)
 
 #if defined(LSRA_DEBUG) || defined(LSRA_LEAF)
 	printf("Max Lifetimes %i \n", m->maxlifetimes);
-	utf_sprint(name, m->class->name);
-	utf_sprint(name1, m->name);
+	utf_sprint_convert_to_latin1(name, m->class->name);
+	utf_sprint_convert_to_latin1(name1, m->name);
 	strcat(name, ".");
 	strcat(name, name1);
-	utf_sprint(name1, m->descriptor);
+	utf_sprint_convert_to_latin1(name1, m->descriptor);
 	strcat(name, name1);
 
 #ifndef LSRA_LEAF

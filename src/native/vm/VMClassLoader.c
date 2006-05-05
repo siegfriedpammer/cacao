@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: VMClassLoader.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -328,7 +328,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	namelen = utf_get_number_of_u2s(utfname) + strlen("0");
 	charname = MNEW(char, namelen);
 
-	utf_sprint(charname, utfname);
+	utf_sprint_convert_to_latin1(charname, utfname);
 
 	/* search for `.class', if found remove it */
 

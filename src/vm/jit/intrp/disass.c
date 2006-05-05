@@ -31,7 +31,7 @@
             Anton Ertl
 			Edwin Steiner
 
-   $Id: disass.c 4760 2006-04-12 20:06:23Z edwin $
+   $Id: disass.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -141,7 +141,7 @@ void printarg_aaTarget(Inst **            aaTarget)
 void printarg_aClass  (classinfo *        aClass  )
 {
 	if (aClass)
-		utf_fprint_classname(vm_out, aClass->name);
+		utf_fprint_printable_ascii_classname(vm_out, aClass->name);
 	else
 		fprintf(vm_out, "NULL");
 }
@@ -164,10 +164,10 @@ void printarg_af      (functionptr        af      )
 void printarg_afi     (fieldinfo *        afi      )
 {
 	if (afi) {
-		utf_fprint_classname(vm_out, afi->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, afi->class->name);
 		fprintf(vm_out, ".");
-		utf_fprint(vm_out, afi->name);
-		utf_fprint(vm_out, afi->descriptor);
+		utf_fprint_printable_ascii(vm_out, afi->name);
+		utf_fprint_printable_ascii(vm_out, afi->descriptor);
 	} else
 		fprintf(vm_out, "fi=NULL");
 }
@@ -175,10 +175,10 @@ void printarg_afi     (fieldinfo *        afi      )
 void printarg_am      (methodinfo *       am      )
 {
 	if (am) {
-		utf_fprint_classname(vm_out, am->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, am->class->name);
 		fprintf(vm_out, ".");
-		utf_fprint(vm_out, am->name);
-		utf_fprint(vm_out, am->descriptor);
+		utf_fprint_printable_ascii(vm_out, am->name);
+		utf_fprint_printable_ascii(vm_out, am->descriptor);
 	} else
 		fprintf(vm_out, "m=NULL");
 }
@@ -196,9 +196,9 @@ void printarg_ainst   (Inst *             ainst   )
 void printarg_auf     (unresolved_field * auf     )
 {
 	if (auf) {
-		utf_fprint(vm_out, auf->fieldref->name);
+		utf_fprint_printable_ascii(vm_out, auf->fieldref->name);
 		fprintf(vm_out, " (type ");
-		utf_fprint(vm_out, auf->fieldref->descriptor);
+		utf_fprint_printable_ascii(vm_out, auf->fieldref->descriptor);
 		fprintf(vm_out, ")");
 	} else
 		fprintf(vm_out, "NULL");
@@ -207,10 +207,10 @@ void printarg_auf     (unresolved_field * auf     )
 void printarg_aum     (unresolved_method *aum     )
 {
 	if (aum) {
-		utf_fprint_classname(vm_out, METHODREF_CLASSNAME(aum->methodref));
+		utf_fprint_printable_ascii_classname(vm_out, METHODREF_CLASSNAME(aum->methodref));
 		fprintf(vm_out, ".");
-		utf_fprint(vm_out, aum->methodref->name);
-		utf_fprint(vm_out, aum->methodref->descriptor);
+		utf_fprint_printable_ascii(vm_out, aum->methodref->name);
+		utf_fprint_printable_ascii(vm_out, aum->methodref->descriptor);
 	} else
 		fprintf(vm_out, "NULL");
 }
@@ -219,7 +219,7 @@ void printarg_avftbl  (vftbl_t *          avftbl  )
 {
 	if (avftbl) {
 		fprintf(vm_out, "vftbl: ");
-		utf_fprint_classname(vm_out, avftbl->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, avftbl->class->name);
 	} else
 		fprintf(vm_out, "NULL");
 }

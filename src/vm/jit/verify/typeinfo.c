@@ -26,7 +26,7 @@
 
    Authors: Edwin Steiner
 
-   $Id: typeinfo.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: typeinfo.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -1972,8 +1972,8 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 	{
 		typeinfo dbgx,dbgy;
 		fprintf(stderr,"merge_nonarrays:\n");
-		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint(stderr,xname);fprintf(stderr,"\n");
-		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint(stderr,yname);fprintf(stderr,"\n");
+		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,xname);fprintf(stderr,"\n");
+		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,yname);fprintf(stderr,"\n");
 		fflush(stderr);
 		typeinfo_init_class(&dbgx,x);
 		dbgx.merged = mergedx;
@@ -2332,7 +2332,7 @@ return_simple:
 						return typecheck_FAIL;
 					}
 				}
-                /* DEBUG */ /* utf_display(common->name); printf("\n"); */
+                /* DEBUG */ /* utf_display_printable_ascii(common->name); printf("\n"); */
             }
 			else {
 				common.any = y->typeclass.any;
@@ -2617,10 +2617,10 @@ typeinfo_print_class(FILE *file,classref_or_classinfo c)
 	else {
 		if (IS_CLASSREF(c)) {
 			fprintf(file,"<ref>");
-			utf_fprint(file,c.ref->name);
+			utf_fprint_printable_ascii(file,c.ref->name);
 		}
 		else {
-			utf_fprint(file,c.cls->name);
+			utf_fprint_printable_ascii(file,c.cls->name);
 		}
 	}
 }

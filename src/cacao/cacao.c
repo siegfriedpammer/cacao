@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: cacao.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
 					if (!(c->state & CLASS_LINKED)) {
 						if (!link_class(c)) {
 							fprintf(stderr, "Error linking: ");
-							utf_fprint_classname(stderr, c->name);
+							utf_fprint_printable_ascii_classname(stderr, c->name);
 							fprintf(stderr, "\n");
 
 							/* print out exception and cause */
@@ -400,10 +400,10 @@ int main(int argc, char **argv)
 						if (m->jcode) {
 							if (!jit_compile(m)) {
 								fprintf(stderr, "Error compiling: ");
-								utf_fprint_classname(stderr, c->name);
+								utf_fprint_printable_ascii_classname(stderr, c->name);
 								fprintf(stderr, ".");
-								utf_fprint(stderr, m->name);
-								utf_fprint(stderr, m->descriptor);
+								utf_fprint_printable_ascii(stderr, m->name);
+								utf_fprint_printable_ascii(stderr, m->descriptor);
 								fprintf(stderr, "\n");
 
 								/* print out exception and cause */

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 4412 2006-02-03 20:53:25Z twisti $
+   $Id: gennativetable.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -272,9 +272,9 @@ int main(int argc, char **argv)
 
 		print_classname(m->class);
 		fprintf(file, "\",\n     \"");
-		utf_fprint(file, m->name);
+		utf_fprint_printable_ascii(file, m->name);
 		fprintf(file, "\",\n     \"");
-		utf_fprint(file, m->descriptor);
+		utf_fprint_printable_ascii(file, m->descriptor);
 		fprintf(file, "\",\n     ");
 
 		if (m->flags & ACC_STATIC)

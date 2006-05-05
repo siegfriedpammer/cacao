@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: headers.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -251,7 +251,7 @@ java_objectheader *new_exception_message(const char *classname, const char *mess
 java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
 	fprintf(stderr, "%s: ", classname);
-	utf_display(message);
+	utf_display_printable_ascii(message);
 	fputc('\n', stderr);
 
 	exit(1);
@@ -281,7 +281,7 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 {
 	va_list ap;
 
-	utf_display(c->name);
+	utf_display_printable_ascii(c->name);
 	fprintf(stderr, ": ");
 
 	va_start(ap, message);
@@ -311,7 +311,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 java_objectheader *new_classnotfoundexception(utf *name)
 {
 	fprintf(stderr, "java.lang.ClassNotFoundException: ");
-	utf_fprint(stderr, name);
+	utf_fprint_printable_ascii(stderr, name);
 	fputc('\n', stderr);
 
 	exit(1);
@@ -325,7 +325,7 @@ java_objectheader *new_classnotfoundexception(utf *name)
 java_objectheader *new_noclassdeffounderror(utf *name)
 {
 	fprintf(stderr, "java.lang.NoClassDefFoundError: ");
-	utf_fprint(stderr, name);
+	utf_fprint_printable_ascii(stderr, name);
 	fputc('\n', stderr);
 
 	exit(1);
@@ -341,7 +341,7 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 {
 	fprintf(stderr, "java.lang.LinkageError: %s",message);
 	if (c) {
-		utf_fprint_classname(stderr, c->name);
+		utf_fprint_printable_ascii_classname(stderr, c->name);
 	}
 	fputc('\n', stderr);
 
@@ -356,10 +356,10 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 													utf *name, utf *desc)
 {
 	fprintf(stderr, "java.lang.NoSuchMethodError: ");
-	utf_fprint(stderr, c->name);
+	utf_fprint_printable_ascii(stderr, c->name);
 	fprintf(stderr, ".");
-	utf_fprint(stderr, name);
-	utf_fprint(stderr, desc);
+	utf_fprint_printable_ascii(stderr, name);
+	utf_fprint_printable_ascii(stderr, desc);
 	fputc('\n', stderr);
 
 	exit(1);
@@ -394,7 +394,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 	fprintf(stderr, "%s: ", string_java_lang_UnsupportedClassVersionError);
 
-	utf_display(c->name);
+	utf_display_printable_ascii(c->name);
 	fprintf(stderr, ": ");
 
 	va_start(ap, message);
@@ -657,7 +657,7 @@ static void printfields(classinfo *c)
 			fprintf(file, "   ");
 			printtype(f->descriptor->text);
 			fprintf(file, " ");
-			utf_fprint(file, f->name);
+			utf_fprint_printable_ascii(file, f->name);
 
 			/* rename multiple fieldnames */
 			if ((ident_count = searchidentchain_utf(f->name)))
@@ -683,11 +683,11 @@ void printmethod(methodinfo *m)
 
 	/* create remarks */
 	fprintf(file, "\n/*\n * Class:     ");
-	utf_fprint(file, m->class->name);
+	utf_fprint_printable_ascii(file, m->class->name);
 	fprintf(file, "\n * Method:    ");
-	utf_fprint(file, m->name);
+	utf_fprint_printable_ascii(file, m->name);
 	fprintf(file, "\n * Signature: ");
-	utf_fprint(file, m->descriptor);
+	utf_fprint_printable_ascii(file, m->descriptor);
 	fprintf(file, "\n */\n");
 
 	/* create prototype */ 			
@@ -799,7 +799,7 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 
 	/* create structure for direct access to objects */	
 	fprintf(file, "/* Structure information for class: ");
-	utf_fprint(file, c->name);
+	utf_fprint_printable_ascii(file, c->name);
 	fprintf(file, " */\n\n");
 	fprintf(file, "typedef struct ");
 	printID(c->name);							

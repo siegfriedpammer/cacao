@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4871 2006-05-03 23:04:30Z edwin $
+   $Id: threads.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -1843,7 +1843,7 @@ void threads_dump(void)
 			name = javastring_toutf(t->name, false);
 
 			printf("\n\"");
-			utf_display(name);
+			utf_display_printable_ascii(name);
 			printf("\" ");
 
 			if (t->daemon)

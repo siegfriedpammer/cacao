@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: suck.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -530,7 +530,7 @@ classbuffer *suck_start(classinfo *c)
 	filenamelen = utf_get_number_of_u2s(c->name) + strlen(".class") + strlen("0");
 	filename = MNEW(char, filenamelen);
 
-	utf_sprint(filename, c->name);
+	utf_sprint_convert_to_latin1(filename, c->name);
 	strcat(filename, ".class");
 
 	/* walk through all classpath entries */

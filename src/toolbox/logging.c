@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: logging.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -184,7 +184,7 @@ void log_message_utf(const char *msg, utf *u)
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_strcat(buf, u);
+	utf_strcat_convert_to_latin1(buf, u);
 
 	log_text(buf);
 
@@ -227,9 +227,9 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg1);
-	utf_strcat(buf, c1->name);
+	utf_strcat_convert_to_latin1(buf, c1->name);
 	strcat(buf, msg2);
-	utf_strcat(buf, c2->name);
+	utf_strcat_convert_to_latin1(buf, c2->name);
 
 	log_text(buf);
 
@@ -256,10 +256,10 @@ void log_message_method(const char *msg, methodinfo *m)
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_strcat_classname(buf, m->class->name);
+	utf_strcat_convert_to_latin1_classname(buf, m->class->name);
 	strcat(buf, ".");
-	utf_strcat(buf, m->name);
-	utf_strcat(buf, m->descriptor);
+	utf_strcat_convert_to_latin1(buf, m->name);
+	utf_strcat_convert_to_latin1(buf, m->descriptor);
 
 	log_text(buf);
 

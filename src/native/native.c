@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: native.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -642,9 +642,9 @@ functionptr native_resolve_function(methodinfo *m)
 
 	if (opt_verbosejni) {
 		printf("[Dynamic-linking native method ");
-		utf_display_classname(m->class->name);
+		utf_display_printable_ascii_classname(m->class->name);
 		printf(".");
-		utf_display(m->name);
+		utf_display_printable_ascii(m->name);
 		printf(" ... ");
 	}
 		

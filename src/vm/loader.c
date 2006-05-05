@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: loader.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -274,7 +274,7 @@ void loader_load_all_classes(void)
 
 					if (!load_class_bootstrap(u)) {
 						fprintf(stderr, "Error loading: ");
-						utf_fprint_classname(stderr, u);
+						utf_fprint_printable_ascii_classname(stderr, u);
 						fprintf(stderr, "\n");
 
 #if !defined(NDEBUG)
@@ -1602,7 +1602,7 @@ classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
 
 		if (opt_verboseclass && (c != NULL) && (c->classloader == cl)) {
 			printf("[Loaded ");
-			utf_display_classname(name);
+			utf_display_printable_ascii_classname(name);
 			printf("]\n");
 		}
 
@@ -1737,7 +1737,7 @@ classinfo *load_class_bootstrap(utf *name)
 
 	if (opt_verboseclass && r) {
 		printf("[Loaded ");
-		utf_display_classname(name);
+		utf_display_printable_ascii_classname(name);
 		printf(" from %s]\n", cb->path);
 	}
 
@@ -1929,9 +1929,9 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		msg = MNEW(char, msglen);
 
-		utf_sprint(msg, c->name);
+		utf_sprint_convert_to_latin1(msg, c->name);
 		strcat(msg, " (wrong name: ");
-		utf_strcat(msg, name);
+		utf_strcat_convert_to_latin1(msg, name);
 		strcat(msg, ")");
 
 		*exceptionptr =

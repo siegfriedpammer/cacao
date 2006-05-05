@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: field.c 4787 2006-04-18 20:17:07Z edwin $
+   $Id: field.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -102,11 +102,11 @@ void field_print(fieldinfo *f)
 		return;
 	}
 
-	utf_display_classname(f->class->name);
+	utf_display_printable_ascii_classname(f->class->name);
 	printf(".");
-	utf_display(f->name);
+	utf_display_printable_ascii(f->name);
 	printf(" ");
-	utf_display(f->descriptor);	
+	utf_display_printable_ascii(f->descriptor);	
 
 	field_printflags(f);
 }
@@ -147,11 +147,11 @@ void field_fieldref_print(constant_FMIref *fr)
 	}
 	else {
 		printf("<fieldref> ");
-		utf_display_classname(fr->p.classref->name);
+		utf_display_printable_ascii_classname(fr->p.classref->name);
 		printf(".");
-		utf_display(fr->name);
+		utf_display_printable_ascii(fr->name);
 		printf(" ");
-		utf_display(fr->descriptor);
+		utf_display_printable_ascii(fr->descriptor);
 	}
 }
 #endif

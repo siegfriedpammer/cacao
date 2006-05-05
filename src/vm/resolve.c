@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: resolve.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -117,9 +117,9 @@ bool resolve_class_from_name(classinfo *referer,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_class_from_name(");
-	utf_fprint(stderr,referer->name);
+	utf_fprint_printable_ascii(stderr,referer->name);
 	fprintf(stderr,",%p,",referer->classloader);
-	utf_fprint(stderr,classname);
+	utf_fprint_printable_ascii(stderr,classname);
 	fprintf(stderr,",%d,%d)\n",(int)checkaccess,(int)link);
 #endif
 
@@ -196,9 +196,9 @@ bool resolve_class_from_name(classinfo *referer,
 		msglen = utf_get_number_of_u2s(cls->name) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"class is not accessible (");
-		utf_sprint_classname(message+strlen(message),cls->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),cls->name);
 		strcat(message," from ");
-		utf_sprint_classname(message+strlen(message),referer->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
 		strcat(message,")");
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
 		MFREE(message,char,msglen);
@@ -305,7 +305,7 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"resolve_classref_or_classinfo(");
-	utf_fprint(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
+	utf_fprint_printable_ascii(stderr,(IS_CLASSREF(cls)) ? cls.ref->name : cls.cls->name);
 	fprintf(stderr,",%i,%i,%i)\n",mode,(int)checkaccess,(int)link);
 #endif
 
@@ -408,7 +408,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	assert(!link || (cls->state & CLASS_LINKED));
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    result = ");utf_fprint(stderr,cls->name);fprintf(stderr,"\n");
+	fprintf(stderr,"    result = ");utf_fprint_printable_ascii(stderr,cls->name);fprintf(stderr,"\n");
 #endif
 
 	*result = cls;
@@ -524,9 +524,9 @@ check_again:
 		strcpy(message,(error == resolveIllegalAccessError) ?
 				"illegal access to protected member ("
 				: "subtype constraint violated (");
-		utf_sprint_classname(message+strlen(message),subclass->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),subclass->name);
 		strcat(message," is not a subclass of ");
-		utf_sprint_classname(message+strlen(message),CLASSREF_OR_CLASSINFO_NAME(supertype));
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),CLASSREF_OR_CLASSINFO_NAME(supertype));
 		strcat(message,")");
 		if (error == resolveIllegalAccessError)
 			*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
@@ -1024,11 +1024,11 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 		msglen = utf_get_number_of_u2s(declarer->name) + utf_get_number_of_u2s(fi->name) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"field is not accessible (");
-		utf_sprint_classname(message+strlen(message),declarer->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),declarer->name);
 		strcat(message,".");
-		utf_sprint(message+strlen(message),fi->name);
+		utf_sprint_convert_to_latin1(message+strlen(message),fi->name);
 		strcat(message," from ");
-		utf_sprint_classname(message+strlen(message),referer->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
 		strcat(message,")");
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
 		MFREE(message,char,msglen);
@@ -1576,12 +1576,12 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 			utf_get_number_of_u2s(mi->descriptor) + utf_get_number_of_u2s(referer->name) + 100;
 		message = MNEW(char,msglen);
 		strcpy(message,"method is not accessible (");
-		utf_sprint_classname(message+strlen(message),declarer->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),declarer->name);
 		strcat(message,".");
-		utf_sprint(message+strlen(message),mi->name);
-		utf_sprint(message+strlen(message),mi->descriptor);
+		utf_sprint_convert_to_latin1(message+strlen(message),mi->name);
+		utf_sprint_convert_to_latin1(message+strlen(message),mi->descriptor);
 		strcat(message," from ");
-		utf_sprint_classname(message+strlen(message),referer->name);
+		utf_sprint_convert_to_latin1_classname(message+strlen(message),referer->name);
 		strcat(message,")");
 		*exceptionptr = new_exception_message(string_java_lang_IllegalAccessException,message);
 		MFREE(message,char,msglen);
@@ -2077,7 +2077,7 @@ static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 #ifdef TYPEINFO_DEBUG
 	typeinfo_print(stderr,tinfo,4);
 #endif
-	fprintf(stderr,"    declared type:");utf_fprint(stderr,declaredtype->name);
+	fprintf(stderr,"    declared type:");utf_fprint_printable_ascii(stderr,declaredtype->name);
 	fprintf(stderr,"\n");
 #endif
 
@@ -2173,12 +2173,12 @@ unresolved_class * create_unresolved_class(methodinfo *refmethod,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_class\n");
-	fprintf(stderr,"    referer: ");utf_fprint(stderr,classref->referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,classref->referer->name);fputc('\n',stderr);
 	if (refmethod) {
-		fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-		fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+		fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+		fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
 	}
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,classref->name);fputc('\n',stderr);
 #endif
 
 	ref = NEW(unresolved_class);
@@ -2221,9 +2221,9 @@ unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refme
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
 #endif
 
 	ref = NEW(unresolved_field);
@@ -2265,9 +2265,9 @@ unresolved_field * create_unresolved_field(classinfo *referer, methodinfo *refme
 	assert(fieldref);
 
 #ifdef RESOLVE_VERBOSE
-	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
 	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
 	fputc('\n',stderr);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
@@ -2315,12 +2315,12 @@ bool constrain_unresolved_field(unresolved_field *ref,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"constrain_unresolved_field\n");
-	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint(stderr,fieldref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,fieldref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint(stderr,fieldref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,fieldref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,fieldref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,fieldref->descriptor);fputc('\n',stderr);
 	fprintf(stderr,"    type   : ");descriptor_debug_print_typedesc(stderr,fieldref->parseddesc.fd);
 	fputc('\n',stderr);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
@@ -2451,12 +2451,12 @@ unresolved_method * create_unresolved_method(classinfo *referer, methodinfo *ref
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"create_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
@@ -2525,12 +2525,12 @@ bool constrain_unresolved_method(unresolved_method *ref,
 
 #ifdef RESOLVE_VERBOSE
 	fprintf(stderr,"constrain_unresolved_method\n");
-	fprintf(stderr,"    referer: ");utf_fprint(stderr,referer->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmethod: ");utf_fprint(stderr,refmethod->name);fputc('\n',stderr);
-	fprintf(stderr,"    rmdesc : ");utf_fprint(stderr,refmethod->descriptor);fputc('\n',stderr);
-	fprintf(stderr,"    class  : ");utf_fprint(stderr,methodref->classref->name);fputc('\n',stderr);
-	fprintf(stderr,"    name   : ");utf_fprint(stderr,methodref->name);fputc('\n',stderr);
-	fprintf(stderr,"    desc   : ");utf_fprint(stderr,methodref->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    referer: ");utf_fprint_printable_ascii(stderr,referer->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmethod: ");utf_fprint_printable_ascii(stderr,refmethod->name);fputc('\n',stderr);
+	fprintf(stderr,"    rmdesc : ");utf_fprint_printable_ascii(stderr,refmethod->descriptor);fputc('\n',stderr);
+	fprintf(stderr,"    class  : ");utf_fprint_printable_ascii(stderr,methodref->classref->name);fputc('\n',stderr);
+	fprintf(stderr,"    name   : ");utf_fprint_printable_ascii(stderr,methodref->name);fputc('\n',stderr);
+	fprintf(stderr,"    desc   : ");utf_fprint_printable_ascii(stderr,methodref->descriptor);fputc('\n',stderr);
 	/*fprintf(stderr,"    opcode : %d %s\n",iptr[0].opc,icmd_names[iptr[0].opc]);*/
 #endif
 
@@ -2713,11 +2713,11 @@ void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 		for (;p->any; ++p) {
 			if (IS_CLASSREF(*p)) {
 				fprintf(file,"        ref: ");
-				utf_fprint(file,p->ref->name);
+				utf_fprint_printable_ascii(file,p->ref->name);
 			}
 			else {
 				fprintf(file,"        cls: ");
-				utf_fprint(file,p->cls->name);
+				utf_fprint_printable_ascii(file,p->cls->name);
 			}
 			fputc('\n',file);
 		}
@@ -2739,13 +2739,13 @@ void unresolved_class_debug_dump(unresolved_class *ref,FILE *file)
 	fprintf(file,"unresolved_class(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint(file,ref->classref->referer->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->classref->referer->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
-		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
-		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
-		utf_fprint(file,ref->classref->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->classref->name); fputc('\n',file);
 		fprintf(file,"    subtypeconstraints:\n");
 		unresolved_subtype_set_debug_dump(&(ref->subtypeconstraints),file);
 	}
@@ -2766,17 +2766,17 @@ void unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 	fprintf(file,"unresolved_field(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint(file,ref->referermethod->class->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->class->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
-		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
-		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
-		utf_fprint(file,FIELDREF_CLASSNAME(ref->fieldref)); fputc('\n',file);
+		utf_fprint_printable_ascii(file,FIELDREF_CLASSNAME(ref->fieldref)); fputc('\n',file);
 		fprintf(file,"    name      : ");
-		utf_fprint(file,ref->fieldref->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->fieldref->name); fputc('\n',file);
 		fprintf(file,"    descriptor: ");
-		utf_fprint(file,ref->fieldref->descriptor); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->fieldref->descriptor); fputc('\n',file);
 		fprintf(file,"    parseddesc: ");
 		descriptor_debug_print_typedesc(file,ref->fieldref->parseddesc.fd); fputc('\n',file);
 		fprintf(file,"    flags     : %04x\n",ref->flags);
@@ -2804,17 +2804,17 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 	fprintf(file,"unresolved_method(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint(file,ref->referermethod->class->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->class->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
-		utf_fprint(file,ref->referermethod->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
-		utf_fprint(file,ref->referermethod->descriptor); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->descriptor); fputc('\n',file);
 		fprintf(file,"    classname : ");
-		utf_fprint(file,METHODREF_CLASSNAME(ref->methodref)); fputc('\n',file);
+		utf_fprint_printable_ascii(file,METHODREF_CLASSNAME(ref->methodref)); fputc('\n',file);
 		fprintf(file,"    name      : ");
-		utf_fprint(file,ref->methodref->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->methodref->name); fputc('\n',file);
 		fprintf(file,"    descriptor: ");
-		utf_fprint(file,ref->methodref->descriptor); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->methodref->descriptor); fputc('\n',file);
 		fprintf(file,"    parseddesc: ");
 		descriptor_debug_print_methoddesc(file,ref->methodref->parseddesc.md); fputc('\n',file);
 		fprintf(file,"    flags     : %04x\n",ref->flags);

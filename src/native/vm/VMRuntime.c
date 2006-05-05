@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: VMRuntime.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -360,7 +360,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	/* generate library name */
 
 	strcpy(buffer, "lib");
-	utf_strcat(buffer, u);
+	utf_strcat_convert_to_latin1(buffer, u);
 
 #if defined(__DARWIN__)
 	strcat(buffer, ".dylib");

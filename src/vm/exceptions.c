@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4878 2006-05-05 17:09:48Z edwin $
+   $Id: exceptions.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -201,7 +201,7 @@ static void throw_exception_exit_intern(bool doexit)
 				t = (java_lang_Throwable *) *exceptionptr;
 
 				fprintf(stderr, "Exception while printStackTrace(): ");
-				utf_fprint_classname(stderr, t->header.vftbl->class->name);
+				utf_fprint_printable_ascii_classname(stderr, t->header.vftbl->class->name);
 
 				if (t->detailMessage) {
 					char *buf;
@@ -215,7 +215,7 @@ static void throw_exception_exit_intern(bool doexit)
 			}
 
 		} else {
-			utf_fprint_classname(stderr, c->name);
+			utf_fprint_printable_ascii_classname(stderr, c->name);
 			fprintf(stderr, ": printStackTrace()V not found!\n");
 		}
 
@@ -1489,13 +1489,13 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	/* print the root exception */
 
-	utf_display_classname(t->header.vftbl->class->name);
+	utf_display_printable_ascii_classname(t->header.vftbl->class->name);
 
 	if (t->detailMessage) {
 		u = javastring_toutf(t->detailMessage, false);
 
 		printf(": ");
-		utf_display(u);
+		utf_display_printable_ascii(u);
 	}
 
 	putc('\n', stdout);
@@ -1504,13 +1504,13 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	if (cause && (cause != t)) {
 		printf("Caused by: ");
-		utf_display_classname(cause->header.vftbl->class->name);
+		utf_display_printable_ascii_classname(cause->header.vftbl->class->name);
 
 		if (cause->detailMessage) {
 			u = javastring_toutf(cause->detailMessage, false);
 
 			printf(": ");
-			utf_display(u);
+			utf_display_printable_ascii(u);
 		}
 
 		putc('\n', stdout);

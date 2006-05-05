@@ -97,7 +97,7 @@ java_objectheader *init_vmthread(void *thr)
                 if (opt_verbose) {
                         char logtext[MAXLOGTEXT];
                         sprintf(logtext, "Warning: class has no instance-initializer: ");
-                        utf_sprint_classname(logtext + strlen(logtext), c->name);
+                        utf_sprint_convert_to_latin1_classname(logtext + strlen(logtext), c->name);
                         log_text(logtext);
                 }
                 return o;
@@ -386,7 +386,7 @@ firstStartThread(void)
 	asm_calljavafunction(method, currentThread->vmThread, NULL, NULL, NULL);
 
     if (*exceptionptr) {
-        utf_display((*exceptionptr)->vftbl->class->name);
+        utf_display_printable_ascii((*exceptionptr)->vftbl->class->name);
         printf("\n");
     }
 

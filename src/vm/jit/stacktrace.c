@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4850 2006-04-26 15:44:07Z edwin $
+   $Id: stacktrace.c 4879 2006-05-05 17:34:49Z edwin $
 
 */
 
@@ -1355,17 +1355,17 @@ static void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 		m = ste->method;
 
 		printf("\tat ");
-		utf_display_classname(m->class->name);
+		utf_display_printable_ascii_classname(m->class->name);
 		printf(".");
-		utf_display(m->name);
-		utf_display(m->descriptor);
+		utf_display_printable_ascii(m->name);
+		utf_display_printable_ascii(m->descriptor);
 
 		if (m->flags & ACC_NATIVE) {
 			puts("(Native Method)");
 
 		} else {
 			printf("(");
-			utf_display(m->class->sourcefile);
+			utf_display_printable_ascii(m->class->sourcefile);
 			printf(":%d)\n", (u4) ste->linenumber);
 		}
 	}
