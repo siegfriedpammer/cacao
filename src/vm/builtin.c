@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: builtin.c 4884 2006-05-05 19:13:41Z edwin $
 
 */
 
@@ -531,12 +531,17 @@ void *builtin_throw_exception(java_objectheader *xptr)
 
 		if (t) {
 			logtextlen +=
-				utf_get_number_of_u2s(xptr->vftbl->class->name) +
-				strlen(": ") +
-				javastring_strlen(t->detailMessage);
-
-		} else
+				utf_bytes(xptr->vftbl->class->name);
+			if (t->detailMessage) {
+				logtextlen += strlen(": ") +
+					u2_utflength(t->detailMessage->value->data 
+									+ t->detailMessage->offset,
+						     	 t->detailMessage->count);
+			}
+		} 
+		else {
 			logtextlen += strlen("(nil)");
+		}
 
 		/* allocate memory */
 
@@ -547,8 +552,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		strcpy(logtext, "Builtin exception thrown: ");
 
 		if (t) {
-			utf_sprint_convert_to_latin1_classname(logtext + strlen(logtext),
-								 xptr->vftbl->class->name);
+			utf_cat_classname(logtext, xptr->vftbl->class->name);
 
 			if (t->detailMessage) {
 				char *buf;
@@ -556,7 +560,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 				buf = javastring_tochar((java_objectheader *) t->detailMessage);
 				strcat(logtext, ": ");
 				strcat(logtext, buf);
-				MFREE(buf, char, strlen(buf));
+				MFREE(buf, char, strlen(buf) + 1);
 			}
 
 		} else {
@@ -1153,10 +1157,9 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	if (xptr) {
 		logtextlen =
-			strlen("Exception ") +
-			utf_get_number_of_u2s(xptr->vftbl->class->name);
-
-	} else {
+			strlen("Exception ") + utf_bytes(xptr->vftbl->class->name);
+	} 
+	else {
 		logtextlen = strlen("Some Throwable");
 	}
 
@@ -1164,10 +1167,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	if (m) {
 		logtextlen +=
-			utf_get_number_of_u2s(m->class->name) +
+			utf_bytes(m->class->name) +
 			strlen(".") +
-			utf_get_number_of_u2s(m->name) +
-			utf_get_number_of_u2s(m->descriptor) +
+			utf_bytes(m->name) +
+			utf_bytes(m->descriptor) +
 			strlen("(NOSYNC,NATIVE");
 
 #if SIZEOF_VOID_P == 8
@@ -1180,12 +1183,14 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 		if (m->class->sourcefile == NULL)
 			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
 		else
-			logtextlen += utf_get_number_of_u2s(m->class->sourcefile);
+			logtextlen += utf_bytes(m->class->sourcefile);
 
 		logtextlen += strlen(":65536)");
 
-	} else
+	} 
+	else {
 		logtextlen += strlen("call_java_method");
+	}
 
 	logtextlen += strlen("0");
 
@@ -1197,7 +1202,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 	if (xptr) {
 		strcpy(logtext, "Exception ");
-		utf_strcat_convert_to_latin1_classname(logtext, xptr->vftbl->class->name);
+		utf_cat_classname(logtext, xptr->vftbl->class->name);
 
 	} else {
 		strcpy(logtext, "Some Throwable");
@@ -1206,10 +1211,10 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 	strcat(logtext, " thrown in ");
 
 	if (m) {
-		utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
+		utf_cat_classname(logtext, m->class->name);
 		strcat(logtext, ".");
-		utf_strcat_convert_to_latin1(logtext, m->name);
-		utf_strcat_convert_to_latin1(logtext, m->descriptor);
+		utf_cat(logtext, m->name);
+		utf_cat(logtext, m->descriptor);
 
 		if (m->flags & ACC_SYNCHRONIZED)
 			strcat(logtext, "(SYNC");
@@ -1250,7 +1255,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 			if (m->class->sourcefile == NULL)
 				strcat(logtext, "<NO CLASSFILE INFORMATION>");
 			else
-				utf_strcat_convert_to_latin1(logtext, m->class->sourcefile);
+				utf_cat(logtext, m->class->sourcefile);
 
 			sprintf(logtext + strlen(logtext), ":%d)", 0);
 		}
@@ -1306,10 +1311,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		methodindent +
 		strlen("called: ") +
-		utf_get_number_of_u2s(m->class->name) +
+		utf_bytes(m->class->name) +
 		strlen(".") +
-		utf_get_number_of_u2s(m->name) +
-		utf_get_number_of_u2s(m->descriptor) +
+		utf_bytes(m->name) +
+		utf_bytes(m->descriptor) +
 		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
 
 	/* add maximal argument length */
@@ -1334,10 +1339,10 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 	strcpy(logtext + pos, "called: ");
 
-	utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
+	utf_cat_classname(logtext, m->class->name);
 	strcat(logtext, ".");
-	utf_strcat_convert_to_latin1(logtext, m->name);
-	utf_strcat_convert_to_latin1(logtext, m->descriptor);
+	utf_cat(logtext, m->name);
+	utf_cat(logtext, m->descriptor);
 
 	if (m->flags & ACC_PUBLIC)       strcat(logtext, " PUBLIC");
 	if (m->flags & ACC_PRIVATE)      strcat(logtext, " PRIVATE");
@@ -1566,10 +1571,10 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		methodindent +
 		strlen("finished: ") +
-		utf_get_number_of_u2s(m->class->name) +
+		utf_bytes(m->class->name) +
 		strlen(".") +
-		utf_get_number_of_u2s(m->name) +
-		utf_get_number_of_u2s(m->descriptor) +
+		utf_bytes(m->name) +
+		utf_bytes(m->descriptor) +
 		strlen(" SYNCHRONIZED") + strlen("(") + strlen(")");
 
 	/* add maximal argument length */
@@ -1600,10 +1605,10 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 		logtext[pos++] = '\t';
 
 	strcpy(logtext + pos, "finished: ");
-	utf_strcat_convert_to_latin1_classname(logtext, m->class->name);
+	utf_cat_classname(logtext, m->class->name);
 	strcat(logtext, ".");
-	utf_strcat_convert_to_latin1(logtext, m->name);
-	utf_strcat_convert_to_latin1(logtext, m->descriptor);
+	utf_cat(logtext, m->name);
+	utf_cat(logtext, m->descriptor);
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
@@ -1630,10 +1635,11 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 				/* get java.lang.String object and the length of the
                    string */
 
-				s= (java_lang_String *) (ptrint) l;
+				s = (java_lang_String *) (ptrint) l;
 
-				len = strlen(", String = \"") + javastring_strlen(s) +
-					strlen("\"");
+				u = javastring_toutf(s, false);
+
+				len = strlen(", String = \"") + utf_bytes(u) + strlen("\"");
 
 				/* realloc memory for string length */
 
@@ -1641,10 +1647,8 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 
 				/* convert to utf8 string and strcat it to the logtext */
 
-				u = javastring_toutf(s, false);
-
 				strcat(logtext, ", String = \"");
-				utf_strcat_convert_to_latin1(logtext, u);
+				utf_cat(logtext, u);
 				strcat(logtext, "\"");
 
 			} else {
@@ -1664,7 +1668,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 					u = o->vftbl->class->name;
 				}
 
-				len = strlen(", Class = \"") + utf_get_number_of_u2s(u) + strlen("\"");
+				len = strlen(", Class = \"") + utf_bytes(u) + strlen("\"");
 
 				/* realloc memory for string length */
 
@@ -1673,7 +1677,7 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 				/* strcat to the logtext */
 
 				strcat(logtext, ", Class = \"");
-				utf_strcat_convert_to_latin1(logtext, u);
+				utf_cat_classname(logtext, u);
 				strcat(logtext, "\"");
 			}
 		}
