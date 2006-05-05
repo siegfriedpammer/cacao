@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 4876 2006-05-05 15:26:04Z edwin $
+   $Id: utf8.h 4877 2006-05-05 16:51:15Z edwin $
 
 */
 
@@ -195,6 +195,11 @@ u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength);
 
 /* determine utf length in bytes of a u2 array */
 u4 u2_utflength(u2 *text, u4 u2_length);
+
+void utf_copy(char *buffer, utf *u);
+void utf_cat(char *buffer, utf *u);
+void utf_copy_classname(char *buffer, utf *u);
+void utf_cat_classname(char *buffer, utf *u);
 
 /* write utf symbol to file/buffer */
 void utf_display(utf *u);

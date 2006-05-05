@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 4876 2006-05-05 15:26:04Z edwin $
+   $Id: utf8.c 4877 2006-05-05 16:51:15Z edwin $
 
 */
 
@@ -928,6 +928,87 @@ u4 u2_utflength(u2 *text, u4 u2_length)
     return result_len;
 }
 
+
+/* utf_copy ********************************************************************
+
+   Copy the given utf string byte-for-byte to a buffer.
+
+   IN:
+      buffer.......the buffer
+	  u............the utf string
+
+*******************************************************************************/
+
+void utf_copy(char *buffer, utf *u)
+{
+	/* our utf strings are zero-terminated (done by utf_new) */
+	MCOPY(buffer, u->text, char, u->blength + 1);
+}
+
+
+/* utf_cat *********************************************************************
+
+   Append the given utf string byte-for-byte to a buffer.
+
+   IN:
+      buffer.......the buffer
+	  u............the utf string
+
+*******************************************************************************/
+
+void utf_cat(char *buffer, utf *u)
+{
+	/* our utf strings are zero-terminated (done by utf_new) */
+	MCOPY(buffer + strlen(buffer), u->text, char, u->blength + 1);
+}
+
+
+/* utf_copy_classname **********************************************************
+
+   Copy the given utf classname byte-for-byte to a buffer.
+   '/' is replaced by '.'
+
+   IN:
+      buffer.......the buffer
+	  u............the utf string
+
+*******************************************************************************/
+
+void utf_copy_classname(char *buffer, utf *u)
+{
+	char *bufptr;
+	char *srcptr;
+	char *endptr;
+	char ch;
+
+	bufptr = buffer;
+	srcptr = u->text;
+	endptr = UTF_END(u) + 1; /* utfs are zero-terminared by utf_new */
+
+	while (srcptr != endptr) {
+		ch = *srcptr++;
+		if (ch == '/')
+			ch = '.';
+		*bufptr++ = ch;
+	}
+}
+
+
+/* utf_cat *********************************************************************
+
+   Append the given utf classname byte-for-byte to a buffer.
+   '/' is replaced by '.'
+
+   IN:
+      buffer.......the buffer
+	  u............the utf string
+
+*******************************************************************************/
+
+void utf_cat_classname(char *buffer, utf *u)
+{
+	utf_copy_classname(buffer + strlen(buffer), u);
+}
 
 /* utf_display *****************************************************************
 
