@@ -150,7 +150,7 @@ bool profile_start_thread(void)
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	t->vmThread = profile_vmthread;
-	t->name     = javastring_new_char("Profiling Sampler");
+	t->name     = javastring_new_from_ascii("Profiling Sampler");
 	t->daemon   = true;
 	t->priority = 5;
 

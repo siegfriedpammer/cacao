@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: properties.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: properties.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -166,8 +166,8 @@ void properties_system_add(char *key, char *value)
 	java_lang_String *k;
 	java_lang_String *v;
 
-	k = javastring_new_char(key);
-	v = javastring_new_char(value);
+	k = javastring_new_from_ascii(key);
+	v = javastring_new_from_ascii(value);
 
 	(void) vm_call_method(mput, (java_objectheader *) psystem, k, v);
 }

@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: VMClassLoader.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -373,7 +373,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 				tmppath = MNEW(char, pathlen);
 
 				sprintf(tmppath, "jar:file://%s!/%s", lce->path, charname);
-				path = javastring_new_char(tmppath),
+				path = javastring_new_from_ascii(tmppath),
 
 				MFREE(tmppath, char, pathlen);
 			}
@@ -390,7 +390,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
 				if (!S_ISDIR(buf.st_mode))
-					path = javastring_new_char(tmppath);
+					path = javastring_new_from_ascii(tmppath);
 
 			MFREE(tmppath, char, pathlen);
 #if defined(ENABLE_ZLIB)

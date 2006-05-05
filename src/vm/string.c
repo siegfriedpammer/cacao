@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: string.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -361,16 +361,21 @@ java_lang_String *javastring_new_slash_to_dot(utf *u)
 }
 
 
-/* javastring_new_char *********************************************************
+/* javastring_new_from_ascii ***************************************************
 
-   creates a new java/lang/String object which contains the convertet
-   C-string passed via text.
+   creates a new java/lang/String object which contains the given ASCII
+   C-string converted to UTF-16.
 
-   return: the object pointer or NULL if memory is exhausted.
+   IN:
+      text.........string of ASCII characters
+
+   RETURN VALUE:
+      the java.lang.String object, or 
+      NULL if an exception has been thrown.
 
 *******************************************************************************/
 
-java_lang_String *javastring_new_char(const char *text)
+java_lang_String *javastring_new_from_ascii(const char *text)
 {
 	s4 i;
 	s4 len;                             /* length of the string               */

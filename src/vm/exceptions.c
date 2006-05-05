@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: exceptions.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -349,7 +349,7 @@ java_objectheader *new_exception_message(const char *classname,
 	if (!(c = load_class_bootstrap(utf_new_char(classname))))
 		return *exceptionptr;
 
-	o = native_new_and_init_string(c, javastring_new_char(message));
+	o = native_new_and_init_string(c, javastring_new_from_ascii(message));
 
 	if (!o)
 		return *exceptionptr;
@@ -683,7 +683,7 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 	}
 
 	o = native_new_and_init_string(class_java_lang_LinkageError,
-								   javastring_new_char(msg));
+								   javastring_new_from_ascii(msg));
 
 	/* free memory */
 
@@ -723,7 +723,7 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 	utf_strcat(msg, desc);
 
 	o = native_new_and_init_string(class_java_lang_NoSuchMethodError,
-								   javastring_new_char(msg));
+								   javastring_new_from_ascii(msg));
 
 	/* free memory */
 

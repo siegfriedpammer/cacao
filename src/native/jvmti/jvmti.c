@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
 
    
-   $Id: jvmti.c 4661 2006-03-21 00:04:59Z motse $
+   $Id: jvmti.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -1403,7 +1403,7 @@ CreateRawMonitor (jvmtiEnv * env, const char *name,
 		return JVMTI_ERROR_NULL_POINTER;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	monitor->name=javastring_new_char(name);
+	monitor->name=javastring_new_from_ascii(name);
 #else
 	log_text ("CreateRawMonitor not supported");
 #endif
@@ -3597,7 +3597,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
     if (!mid) throw_main_exception_exit();
 
     obj = (java_objectheader*)_Jv_JNINativeInterface.CallObjectMethod(
-        NULL, sysprop, mid, javastring_new_char(property));
+        NULL, sysprop, mid, javastring_new_from_ascii(property));
     if (!obj) return JVMTI_ERROR_NOT_AVAILABLE;
 
     ch = javastring_tochar(obj);
@@ -3647,7 +3647,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
     if (!mid) throw_main_exception_exit();
 
     _Jv_JNINativeInterface.CallObjectMethod(
-        NULL, sysprop, mid, javastring_new_char(property),javastring_new_char(value));
+        NULL, sysprop, mid, javastring_new_from_ascii(property),javastring_new_from_ascii(value));
     
     return JVMTI_ERROR_NONE;
 }

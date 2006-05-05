@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMRuntime.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: VMRuntime.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -368,7 +368,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	strcat(buffer, ".so");
 #endif
 
-	s = javastring_new_char(buffer);
+	s = javastring_new_from_ascii(buffer);
 
 	/* release memory */
 

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: finalizer.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -136,7 +136,7 @@ bool finalizer_start_thread(void)
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	t->vmThread = finalizer_vmthread;
-	t->name     = javastring_new_char("Finalizer");
+	t->name     = javastring_new_from_ascii("Finalizer");
 	t->daemon   = true;
 	t->priority = 5;
 

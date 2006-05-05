@@ -450,7 +450,7 @@ static void setup_jdwp_thread(char* transport) {
             class_java_lang_Object,
             false);
 
-	s = javastring_new_char(&transport[1]);
+	s = javastring_new_from_ascii(&transport[1]);
 
 	vm_call_method(m,o,s);
 

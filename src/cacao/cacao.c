@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4837 2006-04-25 15:31:17Z edwin $
+   $Id: cacao.c 4874 2006-05-05 14:36:18Z edwin $
 
 */
 
@@ -111,7 +111,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	s = javastring_new_char(mainstring);
+	s = javastring_new_from_ascii(mainstring);
 
 	(void) vm_call_method(m, o, s);
 
@@ -167,7 +167,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 	if (!m)
 		throw_main_exception_exit();
 
-	s = javastring_new_char("Main-Class");
+	s = javastring_new_from_ascii("Main-Class");
 
 	o = vm_call_method(m, o, s);
 
