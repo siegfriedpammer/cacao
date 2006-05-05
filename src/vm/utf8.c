@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4872 2006-05-05 13:48:25Z edwin $
+   $Id: utf8.c 4873 2006-05-05 13:56:35Z edwin $
 
 */
 
@@ -789,6 +789,24 @@ u2 utf_nextu2(char **utf_ptr)
     return unicode_char;
 }
 
+
+/* utf_bytes *******************************************************************
+
+   Determine number of bytes (aka. octets) in the utf string.
+
+   IN:
+      u............utf string
+
+   OUT:
+      The number of octets of this utf string.
+	  There is _no_ terminating zero included in this count.
+
+*******************************************************************************/
+
+u4 utf_bytes(utf *u)
+{
+	return u->blength;
+}
 
 /* utf_get_number_of_u2s *******************************************************
 
