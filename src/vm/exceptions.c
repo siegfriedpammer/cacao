@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: exceptions.c 4878 2006-05-05 17:09:48Z edwin $
 
 */
 
@@ -314,6 +314,13 @@ void exceptions_throw_outofmemory_exit(void)
 
    Creates an exception object with the given name and initalizes it.
 
+   IN:
+      classname....class name in UTF-8
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_exception(const char *classname)
@@ -338,23 +345,26 @@ java_objectheader *new_exception(const char *classname)
    Creates an exception object with the given name and initalizes it
    with the given char message.
 
+   IN:
+      classname....class name in UTF-8
+	  message......message in UTF-8
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_exception_message(const char *classname,
 										 const char *message)
 {
-	java_objectheader *o;
-	classinfo         *c;
-   
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
+	java_lang_String *s;
+
+	s = javastring_new_from_utf_string(message);
+	if (!s)
 		return *exceptionptr;
 
-	o = native_new_and_init_string(c, javastring_new_from_ascii(message));
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
+	return new_exception_javastring(classname, s);
 }
 
 
@@ -362,6 +372,14 @@ java_objectheader *new_exception_message(const char *classname,
 
    Creates an exception object with the given name and initalizes it
    with the given java/lang/Throwable exception.
+
+   IN:
+      classname....class name in UTF-8
+	  throwable....the given Throwable
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -388,22 +406,25 @@ java_objectheader *new_exception_throwable(const char *classname,
    Creates an exception object with the given name and initalizes it
    with the given utf message.
 
+   IN:
+      classname....class name in UTF-8
+	  message......the message as an utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 {
-	java_objectheader *o;
-	classinfo         *c;
-   
-	if (!(c = load_class_bootstrap(utf_new_char(classname))))
+	java_lang_String *s;
+
+	s = javastring_new(message);
+	if (!s)
 		return *exceptionptr;
 
-	o = native_new_and_init_string(c, javastring_new(message));
-
-	if (!o)
-		return *exceptionptr;
-
-	return o;
+	return new_exception_javastring(classname, s);
 }
 
 
@@ -411,6 +432,14 @@ java_objectheader *new_exception_utfmessage(const char *classname, utf *message)
 
    Creates an exception object with the given name and initalizes it
    with the given java/lang/String message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as a java.lang.String
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -437,6 +466,14 @@ java_objectheader *new_exception_javastring(const char *classname,
    Creates an exception object with the given name and initalizes it
    with the given int value.
 
+   IN:
+      classname....class name in UTF-8
+	  i............the integer
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_exception_int(const char *classname, s4 i)
@@ -460,6 +497,14 @@ java_objectheader *new_exception_int(const char *classname, s4 i)
 
    generates a java.lang.ClassFormatError for the classloader
 
+   IN:
+      c............the class in which the error was found
+	  message......UTF-8 format string
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
@@ -474,7 +519,7 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	msglen = 0;
 
 	if (c)
-		msglen += utf_get_number_of_u2s(c->name) + strlen(" (");
+		msglen += utf_bytes(c->name) + strlen(" (");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
@@ -492,7 +537,7 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 	/* print message into allocated buffer */
 
 	if (c) {
-		utf_sprint_classname(msg, c->name);
+		utf_copy_classname(msg, c->name);
 		strcat(msg, " (");
 	}
 
@@ -513,8 +558,15 @@ java_objectheader *new_classformaterror(classinfo *c, const char *message, ...)
 
 /* exceptions_throw_classformaterror *******************************************
 
-   Generates a java.lang.ClassFormatError for the VM system throw it
-   in the VM system.
+   Generate a java.lang.ClassFormatError for the VM system and throw it.
+
+   IN:
+      c............the class in which the error was found
+	  message......UTF-8 format string
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -532,14 +584,25 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
    Generates a java.lang.ClassNotFoundException for the classloader.
 
+   IN:
+      name.........name of the class not found as a utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_classnotfoundexception(utf *name)
 {
 	java_objectheader *o;
+	java_lang_String  *s;
 
-	o = native_new_and_init_string(class_java_lang_ClassNotFoundException,
-								   javastring_new(name));
+	s = javastring_new(name);
+	if (!s)
+		return *exceptionptr;
+
+	o = native_new_and_init_string(class_java_lang_ClassNotFoundException, s);
 
 	if (!o)
 		return *exceptionptr;
@@ -552,14 +615,25 @@ java_objectheader *new_classnotfoundexception(utf *name)
 
    Generates a java.lang.NoClassDefFoundError
 
+   IN:
+      name.........name of the class not found as a utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_noclassdeffounderror(utf *name)
 {
 	java_objectheader *o;
+	java_lang_String  *s;
 
-	o = native_new_and_init_string(class_java_lang_NoClassDefFoundError,
-								   javastring_new(name));
+	s = javastring_new(name);
+	if (!s)
+		return *exceptionptr;
+
+	o = native_new_and_init_string(class_java_lang_NoClassDefFoundError, s);
 
 	if (!o)
 		return *exceptionptr;
@@ -613,6 +687,13 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 
    Generates a java.lang.InternalError for the VM.
 
+   IN:
+      message......UTF-8 message format string
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_internalerror(const char *message, ...)
@@ -653,7 +734,15 @@ java_objectheader *new_internalerror(const char *message, ...)
 /* exceptions_new_linkageerror *************************************************
 
    Generates a java.lang.LinkageError with an error message.
-   If c != NULL, the name of c is appended to the error message.
+
+   IN:
+      message......UTF-8 message
+	  c............class related to the error. If this is != NULL
+	               the name of c is appended to the error message.
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -668,7 +757,7 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 
 	msglen = strlen(message) + 1;
 	if (c) {
-		msglen += utf_get_number_of_u2s(c->name);
+		msglen += utf_bytes(c->name);
 	}
 		
 	/* allocate memory */
@@ -679,15 +768,18 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 
 	strcpy(msg,message);
 	if (c) {
-		utf_strcat(msg, c->name);
+		utf_cat_classname(msg, c->name);
 	}
 
 	o = native_new_and_init_string(class_java_lang_LinkageError,
-								   javastring_new_from_ascii(msg));
+								   javastring_new_from_utf_string(msg));
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
+
+	if (!o)
+		return *exceptionptr;
 
 	return o;
 }
@@ -696,6 +788,15 @@ java_objectheader *exceptions_new_linkageerror(const char *message,
 /* exceptions_new_nosuchmethoderror ********************************************
 
    Generates a java.lang.NoSuchMethodError with an error message.
+
+   IN:
+      c............class in which the method was not found
+	  name.........name of the method
+	  desc.........descriptor of the method
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -708,8 +809,8 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 
 	/* calculate exception message length */
 
-	msglen = utf_get_number_of_u2s(c->name) + strlen(".") + utf_get_number_of_u2s(name) +
-		utf_get_number_of_u2s(desc) + strlen("0");
+	msglen = utf_bytes(c->name) + strlen(".") + utf_bytes(name) +
+		utf_bytes(desc) + strlen("0");
 
 	/* allocate memory */
 
@@ -717,17 +818,20 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 
 	/* generate message */
 
-	utf_sprint_classname(msg, c->name);
+	utf_copy_classname(msg, c->name);
 	strcat(msg, ".");
-	utf_strcat(msg, name);
-	utf_strcat(msg, desc);
+	utf_cat(msg, name);
+	utf_cat(msg, desc);
 
 	o = native_new_and_init_string(class_java_lang_NoSuchMethodError,
-								   javastring_new_from_ascii(msg));
+								   javastring_new_from_utf_string(msg));
 
 	/* free memory */
 
 	MFREE(msg, char, msglen);
+
+	if (!o)
+		return *exceptionptr;
 
 	return o;
 }
@@ -736,6 +840,11 @@ java_objectheader *exceptions_new_nosuchmethoderror(classinfo *c,
 /* exceptions_throw_nosuchmethoderror ******************************************
 
    Generates a java.lang.NoSuchMethodError with an error message.
+
+   IN:
+      c............class in which the method was not found
+	  name.........name of the method
+	  desc.........descriptor of the method
 
 *******************************************************************************/
 
@@ -747,7 +856,15 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 
 /* new_unsupportedclassversionerror ********************************************
 
-   generates a java.lang.UnsupportedClassVersionError for the classloader
+   Generate a java.lang.UnsupportedClassVersionError for the classloader
+
+   IN:
+      c............class in which the method was not found
+	  message......UTF-8 format string
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
 
 *******************************************************************************/
 
@@ -760,7 +877,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 	/* calculate exception message length */
 
-	msglen = utf_get_number_of_u2s(c->name) + strlen(" (") + strlen(")") + strlen("0");
+	msglen = utf_bytes(c->name) + strlen(" (") + strlen(")") + strlen("0");
 
 	va_start(ap, message);
 	msglen += get_variable_message_length(message, ap);
@@ -772,7 +889,7 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
 	/* generate message */
 
-	utf_sprint_classname(msg, c->name);
+	utf_copy_classname(msg, c->name);
 	strcat(msg, " (");
 
 	va_start(ap, message);
@@ -798,6 +915,14 @@ java_objectheader *new_unsupportedclassversionerror(classinfo *c, const char *me
 
    Generates a java.lang.VerifyError for the JIT compiler.
 
+   IN:
+      m............method in which the error was found
+	  message......UTF-8 format string
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
@@ -814,9 +939,9 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 	msglen = 0;
 
 	if (m)
-		msglen = strlen("(class: ") + utf_get_number_of_u2s(m->class->name) +
-			strlen(", method: ") + utf_get_number_of_u2s(m->name) +
-			strlen(" signature: ") + utf_get_number_of_u2s(m->descriptor) +
+		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
+			strlen(", method: ") + utf_bytes(m->name) +
+			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") ") + strlen("0");
 
 	va_start(ap, message);
@@ -831,11 +956,11 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 
 	if (m) {
 		strcpy(msg, "(class: ");
-		utf_strcat(msg, m->class->name);
+		utf_cat_classname(msg, m->class->name);
 		strcat(msg, ", method: ");
-		utf_strcat(msg, m->name);
+		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
-		utf_strcat(msg, m->descriptor);
+		utf_cat(msg, m->descriptor);
 		strcat(msg, ") ");
 	}
 
@@ -859,6 +984,14 @@ java_objectheader *new_verifyerror(methodinfo *m, const char *message, ...)
 
    throws a java.lang.VerifyError for an invalid stack slot type
 
+   IN:
+      m............method in which the error was found
+	  type.........the expected type
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
 *******************************************************************************/
 
 void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
@@ -873,9 +1006,9 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 	msglen = 0;
 
 	if (m)
-		msglen = strlen("(class: ") + utf_get_number_of_u2s(m->class->name) +
-			strlen(", method: ") + utf_get_number_of_u2s(m->name) +
-			strlen(" signature: ") + utf_get_number_of_u2s(m->descriptor) +
+		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
+			strlen(", method: ") + utf_bytes(m->name) +
+			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") Expecting to find longest-------typename on stack") 
 			+ strlen("0");
 
@@ -887,11 +1020,11 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m,int type)
 
 	if (m) {
 		strcpy(msg, "(class: ");
-		utf_strcat(msg, m->class->name);
+		utf_cat_classname(msg, m->class->name);
 		strcat(msg, ", method: ");
-		utf_strcat(msg, m->name);
+		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
-		utf_strcat(msg, m->descriptor);
+		utf_cat(msg, m->descriptor);
 		strcat(msg, ") ");
 	}
 	else {
@@ -1192,7 +1325,19 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 
 /* exceptions_handle_exception *************************************************
 
-   XXX
+   Try to find an exception handler for the given exception and return it.
+   If no handler is found, exit the monitor of the method (if any)
+   and return NULL.
+
+   IN:
+      xptr.........the exception object
+	  xpc..........PC of where the exception was thrown
+	  pv...........Procedure Value of the current method
+	  sp...........current stack pointer
+
+   RETURN VALUE:
+      the address of the first matching exception handler, or
+	  NULL if no handler was found
 
 *******************************************************************************/
 
