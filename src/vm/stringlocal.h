@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: stringlocal.h 4875 2006-05-05 15:14:18Z edwin $
+   $Id: stringlocal.h 4876 2006-05-05 15:26:04Z edwin $
 
 */
 
@@ -167,4 +167,5 @@ void literalstring_free(java_objectheader*);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

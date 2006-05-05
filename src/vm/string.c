@@ -29,8 +29,9 @@
             Andreas Krall
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: string.c 4875 2006-05-05 15:14:18Z edwin $
+   $Id: string.c 4876 2006-05-05 15:26:04Z edwin $
 
 */
 
@@ -766,4 +767,5 @@ void literalstring_free(java_objectheader* sobj)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

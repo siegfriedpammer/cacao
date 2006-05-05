@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: utf8.h 4875 2006-05-05 15:14:18Z edwin $
+   $Id: utf8.h 4876 2006-05-05 15:26:04Z edwin $
 
 */
 
@@ -233,4 +233,5 @@ void utf_show(void);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
