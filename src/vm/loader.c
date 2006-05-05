@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: loader.c 4881 2006-05-05 18:14:27Z edwin $
 
 */
 
@@ -1924,14 +1924,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		char *msg;
 		s4    msglen;
 
-		msglen = utf_get_number_of_u2s(c->name) + strlen(" (wrong name: ") +
-			utf_get_number_of_u2s(name) + strlen(")") + strlen("0");
+		msglen = utf_bytes(c->name) + strlen(" (wrong name: ") +
+			utf_bytes(name) + strlen(")") + strlen("0");
 
 		msg = MNEW(char, msglen);
 
-		utf_sprint_convert_to_latin1(msg, c->name);
+		utf_copy_classname(msg, c->name);
 		strcat(msg, " (wrong name: ");
-		utf_strcat_convert_to_latin1(msg, name);
+		utf_cat_classname(msg, name);
 		strcat(msg, ")");
 
 		*exceptionptr =
