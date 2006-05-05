@@ -1,4 +1,4 @@
-/* src/vm/utf.h - utf string header
+/* src/vm/utf8.h - utf8 string functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: utf8.h 4879 2006-05-05 17:34:49Z edwin $
+   $Id: utf8.h 4882 2006-05-05 18:49:01Z edwin $
 
 */
 
