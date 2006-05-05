@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: logging.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: logging.c 4885 2006-05-05 19:21:42Z edwin $
 
 */
 
@@ -179,12 +179,12 @@ void log_message_utf(const char *msg, utf *u)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_get_number_of_u2s(u) + strlen("0");
+	len = strlen(msg) + utf_bytes(u) + strlen("0");
 
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_strcat_convert_to_latin1(buf, u);
+	utf_cat(buf, u);
 
 	log_text(buf);
 
@@ -221,15 +221,15 @@ void log_message_class_message_class(const char *msg1, classinfo *c1,
 	s4    len;
 
 	len =
-		strlen(msg1) + utf_get_number_of_u2s(c1->name) +
-		strlen(msg2) + utf_get_number_of_u2s(c2->name) + strlen("0");
+		strlen(msg1) + utf_bytes(c1->name) +
+		strlen(msg2) + utf_bytes(c2->name) + strlen("0");
 
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg1);
-	utf_strcat_convert_to_latin1(buf, c1->name);
+	utf_cat_classname(buf, c1->name);
 	strcat(buf, msg2);
-	utf_strcat_convert_to_latin1(buf, c2->name);
+	utf_cat_classname(buf, c2->name);
 
 	log_text(buf);
 
@@ -250,16 +250,16 @@ void log_message_method(const char *msg, methodinfo *m)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_get_number_of_u2s(m->class->name) + strlen(".") +
-		utf_get_number_of_u2s(m->name) + utf_get_number_of_u2s(m->descriptor) + strlen("0");
+	len = strlen(msg) + utf_bytes(m->class->name) + strlen(".") +
+		utf_bytes(m->name) + utf_bytes(m->descriptor) + strlen("0");
 
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_strcat_convert_to_latin1_classname(buf, m->class->name);
+	utf_cat_classname(buf, m->class->name);
 	strcat(buf, ".");
-	utf_strcat_convert_to_latin1(buf, m->name);
-	utf_strcat_convert_to_latin1(buf, m->descriptor);
+	utf_cat(buf, m->name);
+	utf_cat(buf, m->descriptor);
 
 	log_text(buf);
 
