@@ -27,8 +27,9 @@
    Authors: Reinhard Grafl
 
    Changes: Christian Thalinger
+   			Edwin Steiner
 
-   $Id: logging.c 4885 2006-05-05 19:21:42Z edwin $
+   $Id: logging.c 4886 2006-05-05 19:22:57Z edwin $
 
 */
 
@@ -278,4 +279,5 @@ void log_message_method(const char *msg, methodinfo *m)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
