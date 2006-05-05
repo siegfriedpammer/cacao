@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: utf8.h 4873 2006-05-05 13:56:35Z edwin $
+   $Id: utf8.h 4875 2006-05-05 15:14:18Z edwin $
 
 */
 
@@ -191,6 +191,7 @@ u2 utf_nextu2(char **utf);
 
 /* get number of unicode characters of a utf string */
 u4 utf_get_number_of_u2s(utf *u);
+u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength);
 
 /* determine utf length in bytes of a u2 array */
 u4 u2_utflength(u2 *text, u4 u2_length);

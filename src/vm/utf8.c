@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: utf8.c 4873 2006-05-05 13:56:35Z edwin $
+   $Id: utf8.c 4875 2006-05-05 15:14:18Z edwin $
 
 */
 
@@ -808,6 +808,48 @@ u4 utf_bytes(utf *u)
 	return u->blength;
 }
 
+/* utf_get_number_of_u2s_for_buffer ********************************************
+
+   Determine number of UTF-16 u2s in the given UTF-8 buffer
+
+   CAUTION: Use this function *only* when you want to convert an UTF-8 buffer
+   to an array of u2s (UTF-16) and want to know how many of them you will get.
+   All other uses of this function are probably wrong.
+
+   IN:
+      buffer........points to first char in buffer
+	  blength.......number of _bytes_ in the buffer
+
+   OUT:
+      the number of u2s needed to hold this string in UTF-16 encoding.
+	  There is _no_ terminating zero included in this count.
+
+   NOTE: Unlike utf_get_number_of_u2s, this function never throws an
+   exception.
+
+*******************************************************************************/
+
+u4 utf_get_number_of_u2s_for_buffer(const char *buffer, u4 blength)
+{
+	const char *endpos;                 /* points behind utf string           */
+	const char *utf_ptr;                /* current position in utf text       */
+	u4 len = 0;                         /* number of unicode characters       */
+
+	utf_ptr = buffer;
+	endpos = utf_ptr + blength;
+
+	while (utf_ptr < endpos) {
+		len++;
+		/* next unicode character */
+		utf_nextu2((char **)&utf_ptr);
+	}
+
+	assert(utf_ptr == endpos);
+
+	return len;
+}
+
+
 /* utf_get_number_of_u2s *******************************************************
 
    Determine number of UTF-16 u2s in the utf string.
@@ -822,6 +864,7 @@ u4 utf_bytes(utf *u)
    OUT:
       the number of u2s needed to hold this string in UTF-16 encoding.
 	  There is _no_ terminating zero included in this count.
+	  XXX 0 if a NullPointerException has been thrown (see below)
 
 *******************************************************************************/
 
@@ -831,6 +874,8 @@ u4 utf_get_number_of_u2s(utf *u)
 	char *utf_ptr;                      /* current position in utf text       */
 	u4 len = 0;                         /* number of unicode characters       */
 
+	/* XXX this is probably not checked by most callers! Review this after */
+	/* the invalid uses of this function have been eliminated */
 	if (!u) {
 		exceptions_throw_nullpointerexception();
 		return 0;

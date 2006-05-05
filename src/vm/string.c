@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: string.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: string.c 4875 2006-05-05 15:14:18Z edwin $
 
 */
 
@@ -264,6 +264,77 @@ void stringtable_update(void)
 			}       
 		}               
 	}
+}
+
+
+/* javastring_new_from_utf_buffer **********************************************
+
+   Create a new object of type java/lang/String with the text from
+   the specified utf8 buffer.
+
+   IN:
+      buffer.......points to first char in the buffer
+	  blength......number of bytes to read from the buffer
+
+   RETURN VALUE:
+      the java.lang.String object, or
+      NULL if an exception has been thrown
+
+*******************************************************************************/
+
+java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength)
+{
+	const char *utf_ptr;            /* current utf character in utf string    */
+	u4 utflength;                   /* length of utf-string if uncompressed   */
+	java_lang_String *s;            /* result-string                          */
+	java_chararray *a;
+	u4 i;
+
+	assert(buffer);
+
+	utflength = utf_get_number_of_u2s_for_buffer(buffer,blength);
+
+	s = (java_lang_String *) builtin_new(class_java_lang_String);
+	a = builtin_newarray_char(utflength);
+
+	/* javastring or character-array could not be created */
+	if (!a || !s)
+		return NULL;
+
+	/* decompress utf-string */
+	utf_ptr = buffer;
+	for (i = 0; i < utflength; i++)
+		a->data[i] = utf_nextu2((char **)&utf_ptr);
+	
+	/* set fields of the javastring-object */
+	s->value  = a;
+	s->offset = 0;
+	s->count  = utflength;
+
+	return s;
+}
+
+
+/* javastring_new_from_utf_string **********************************************
+
+   Create a new object of type java/lang/String with the text from
+   the specified zero-terminated utf8 string.
+
+   IN:
+      buffer.......points to first char in the buffer
+	  blength......number of bytes to read from the buffer
+
+   RETURN VALUE:
+      the java.lang.String object, or
+      NULL if an exception has been thrown
+
+*******************************************************************************/
+
+java_lang_String *javastring_new_from_utf_string(const char *utfstr)
+{
+	assert(utfstr);
+
+	return javastring_new_from_utf_buffer(utfstr, strlen(utfstr));
 }
 
 

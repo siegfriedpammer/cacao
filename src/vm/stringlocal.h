@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stringlocal.h 4874 2006-05-05 14:36:18Z edwin $
+   $Id: stringlocal.h 4875 2006-05-05 15:14:18Z edwin $
 
 */
 
@@ -127,8 +127,12 @@ java_lang_String *javastring_new(utf *text);
 /* creates a new object of type java/lang/String from a utf-text, changes slashes to dots */
 java_lang_String *javastring_new_slash_to_dot(utf *text);
 
-/* creates a new object of type java/lang/String from a c-string */
+/* creates a new object of type java/lang/String from an ASCII c-string */
 java_lang_String *javastring_new_from_ascii(const char *text);
+
+/* creates a new object of type java/lang/String from UTF-8 */
+java_lang_String *javastring_new_from_utf_buffer(const char *buffer, u4 blength);
+java_lang_String *javastring_new_from_utf_string(const char *utfstr);
 
 /* make c-string from a javastring (debugging) */
 char *javastring_tochar(java_objectheader *s);
