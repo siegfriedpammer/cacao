@@ -26,9 +26,9 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: zip.c 4489 2006-02-12 13:11:06Z twisti $
+   $Id: zip.c 4888 2006-05-06 00:11:18Z edwin $
 
 */
 
@@ -340,7 +340,20 @@ hashtable *zip_open(char *path)
 
 /* zip_find ********************************************************************
 
-   XXX
+   Search for the given filename in the classpath entries of a zip file.
+
+   NOTE: The '.class' extension is stripped when reading a zip file, so if
+   you want to find a .class file, you must search for its name _without_
+   the '.class' extension. 
+   XXX I dont like that, it makes foo and foo.class ambiguous. -Edwin
+
+   IN:
+      lce..........the classpath entries for the zip file
+	  u............the filename to look for
+
+   RETURN VALUE:
+      hashtable_zipfile_entry * of the entry if found, or
+	  NULL if not found
 
 *******************************************************************************/
 
@@ -482,4 +495,5 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: VMClassLoader.c 4888 2006-05-06 00:11:18Z edwin $
 
 */
 
@@ -308,44 +308,65 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  */
 JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	jobject               o;
-	methodinfo           *m;
-	java_lang_String     *path;
-	list_classpath_entry *lce;
-	utf                  *utfname;
-	char                 *charname;
-	char                 *end;
-	char                 *tmppath;
-	s4                    namelen;
-	s4                    pathlen;
-	struct stat           buf;
-	jboolean              ret;
+	jobject               o;         /* vector being created     */
+	methodinfo           *m;         /* "add" method of vector   */
+	java_lang_String     *path;      /* path to be added         */
+	list_classpath_entry *lce;       /* classpath entry          */
+	utf                  *utfname;   /* utf to look for          */
+	char                 *buffer;    /* char buffer              */
+	char                 *namestart; /* start of name to use     */
+	char                 *tmppath;   /* temporary buffer         */
+	s4                    namelen;   /* length of name to use    */
+	s4                    searchlen; /* length of name to search */
+	s4                    bufsize;   /* size of buffer allocated */
+	s4                    pathlen;   /* name of path to assemble */
+	struct stat           buf;       /* buffer for stat          */
+	jboolean              ret;       /* return value of "add"    */
 
 	/* get the resource name as utf string */
 
 	utfname = javastring_toutf(name, false);
+	if (!utfname)
+		return NULL;
 
-	namelen = utf_get_number_of_u2s(utfname) + strlen("0");
-	charname = MNEW(char, namelen);
+	/* copy it to a char buffer */
 
-	utf_sprint_convert_to_latin1(charname, utfname);
+	namelen = utf_bytes(utfname);
+	searchlen = namelen;
+	bufsize = namelen + strlen("0");
+	buffer = MNEW(char, bufsize);
 
-	/* search for `.class', if found remove it */
+	utf_copy(buffer, utfname);
+	namestart = buffer;
 
-	if ((end = strstr(charname, ".class"))) {
-		*end = '\0';
-		utfname = utf_new_char(charname);
+	/* skip leading '/' */
 
-		/* little hack, but it should work */
-		*end = '.';
+	if (namestart[0] == '/') {
+		namestart++;
+		namelen--;
+		searchlen--;
 	}
 
+	/* remove trailing `.class' */
+
+	if (namelen >= 6 && strcmp(namestart + (namelen - 6), ".class") == 0) {
+		searchlen -= 6;
+	}
+
+	/* create a new needle to look for, if necessary */
+
+	if (namelen != bufsize-1) {
+		utfname = utf_new(namestart, searchlen);
+		if (!utf_new)
+			goto return_NULL;
+	}
+			
 	/* new Vector() */
 
 	o = native_new_and_init(class_java_util_Vector);
 
 	if (!o)
-		return NULL;
+		goto return_NULL;
 
 	/* get Vector.add() method */
 
@@ -356,7 +377,9 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 								 true);
 
 	if (!m)
-		return NULL;
+		goto return_NULL;
+
+	/* iterate over all classpath entries */
 
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce)) {
@@ -372,8 +395,8 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 				tmppath = MNEW(char, pathlen);
 
-				sprintf(tmppath, "jar:file://%s!/%s", lce->path, charname);
-				path = javastring_new_from_ascii(tmppath),
+				sprintf(tmppath, "jar:file://%s!/%s", lce->path, namestart);
+				path = javastring_new_from_utf_string(tmppath),
 
 				MFREE(tmppath, char, pathlen);
 			}
@@ -384,13 +407,13 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 			tmppath = MNEW(char, pathlen);
 
-			sprintf(tmppath, "file://%s%s", lce->path, charname);
+			sprintf(tmppath, "file://%s%s", lce->path, namestart);
 
 			/* Does this file exist? */
 
 			if (stat(tmppath + strlen("file://") - 1, &buf) == 0)
 				if (!S_ISDIR(buf.st_mode))
-					path = javastring_new_from_ascii(tmppath);
+					path = javastring_new_from_utf_string(tmppath);
 
 			MFREE(tmppath, char, pathlen);
 #if defined(ENABLE_ZLIB)
@@ -402,12 +425,22 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 		if (path) {
 			ret = vm_call_method_int(m, o, path);
 
-			if (ret == 0)
-				return NULL;
+			if (*exceptionptr)
+				goto return_NULL;
+
+			if (ret == 0) 
+				goto return_NULL;
 		}
 	}
 
+	MFREE(buffer, char, bufsize);
+
 	return (java_util_Vector *) o;
+
+return_NULL:
+	MFREE(buffer, char, bufsize);
+
+	return NULL;
 }
 
 
