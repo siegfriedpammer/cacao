@@ -28,8 +28,9 @@
 
    Changes: Joseph Wenninger
             Christian Thalinger
+			Edwin Steiner
 
-   $Id: VMRuntime.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: VMRuntime.c 4891 2006-05-06 14:13:04Z edwin $
 
 */
 
@@ -344,7 +345,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	buffer_len = strlen("lib");
 
-	buffer_len += utf_get_number_of_u2s(u);
+	buffer_len += utf_bytes(u);
 
 #if defined(__DARWIN__)
 	buffer_len += strlen(".dylib");
@@ -360,7 +361,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	/* generate library name */
 
 	strcpy(buffer, "lib");
-	utf_strcat_convert_to_latin1(buffer, u);
+	utf_cat(buffer, u);
 
 #if defined(__DARWIN__)
 	strcat(buffer, ".dylib");
@@ -368,7 +369,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	strcat(buffer, ".so");
 #endif
 
-	s = javastring_new_from_ascii(buffer);
+	s = javastring_new_from_utf_string(buffer);
 
 	/* release memory */
 
@@ -389,4 +390,5 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
