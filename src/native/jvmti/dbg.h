@@ -29,7 +29,7 @@
    Changes:             
 
    
-   $Id: dbg.h 4661 2006-03-21 00:04:59Z motse $
+   $Id: dbg.h 4892 2006-05-06 18:29:55Z motse $
 
 */
 
@@ -42,7 +42,7 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 
-#define TRACEME ptrace(PTRACE_TRACEME, 0, 0, 0)
+#define TRACEATTACH(pid) ptrace(PTRACE_ATTACH, pid, 0, 0)
 #define DETACH(pid,sig)  ptrace(PTRACE_DETACH, pid, 0, sig)
 #define TRAPINS 0xcc /* opcode for brk */
 #define TRAP asm("int3")

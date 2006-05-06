@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: cacao.c 4892 2006-05-06 18:29:55Z motse $
 
 */
 
@@ -50,6 +50,7 @@
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/cacaodbg.h"
+
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 #include <pthread.h>
 #endif
@@ -201,7 +202,7 @@ int main(int argc, char **argv)
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
 	stackbottom = &dummy;
 #endif
-	
+
 	if (atexit(vm_exit_handler))
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Unable to register exit_handler");
@@ -221,8 +222,8 @@ int main(int argc, char **argv)
 	JNI_CreateJavaVM(&jvm, (void **) &_Jv_env, vm_args);
 
 #if defined(ENABLE_JVMTI)
-	if (dbgprocess && jvmti && jdwp) /* is this the parent/debugger process ? */
-		set_jvmti_phase(JVMTI_PHASE_START);
+	pthread_mutex_init(&dbgcomlock,NULL);
+	set_jvmti_phase(JVMTI_PHASE_START);
 #endif
 
 	/* do we have a main class? */
@@ -313,20 +314,24 @@ int main(int argc, char **argv)
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 #if defined(ENABLE_JVMTI)
-		/* if this is the parent process than start the jdwp listening */
-		if (jvmti || jdwp) {
-			fprintf(stderr, "jdwp/debugger set herewego brkpt %p\n",&&herewego);
-			setsysbrkpt(HEREWEGOBRK,&&herewego);
-			if (dbgprocess && jdwp) cacaodbglisten(transport);
+		/* start the jdwp listening */
+		if (jdwp) {
+			log_text("cacao vm - init VMjdwp");
+			if (!VMjdwpInit()) exit(1);
+			setup_jdwp_thread(transport);
+			if (!suspend) {
+				fprintf(stderr,"suspend false -> continue debuggee\n");
+			} else {
+				fprintf(stderr,"suspend true -> do no continue debuggee(todo)\n");
+				/* XXX todo*/
+			}
 		}
 
-		if (!dbgprocess) {
-			fprintf(stderr,"debuggee: herewe go\n");
-			fflush(stderr);
-		}
-		/* here we go... */
-	herewego:
+		set_jvmti_phase(JVMTI_PHASE_LIVE);
+
+		log_text("debuggee: herewe go");
 #endif
+
 		(void) vm_call_method(m, NULL, oa);
 
 		/* exception occurred? */

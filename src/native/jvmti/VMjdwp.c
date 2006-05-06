@@ -29,12 +29,13 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 4661 2006-03-21 00:04:59Z motse $
+   $Id: VMjdwp.c 4892 2006-05-06 18:29:55Z motse $
 
 */
 
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/cacaodbg.h"
+#include "native/jvmti/VMjdwp.h"
 #include "vm/loader.h"
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
@@ -351,24 +352,27 @@ static void GarbageCollectionFinish (jvmtiEnv *jvmti_env){
 }
 
 
-bool VMjdwpInit(jvmtiEnv* env) {
+/* it would be more apropriate to call this function from gnu-cp jdwp */
+bool VMjdwpInit() {
 	int end, i=0;
 	jvmtiCapabilities cap;
 	jvmtiError e;
 
+	log_text("cacao vm - create new jvmti environment");
+	jvmtienv = new_jvmtienv();
 
 	/* set eventcallbacks */
 	if (JVMTI_ERROR_NONE != 
-		(*env)->SetEventCallbacks(env,
+		(*jvmtienv)->SetEventCallbacks(jvmtienv,
 							   &jvmti_jdwp_EventCallbacks,
 							   sizeof(jvmti_jdwp_EventCallbacks))){
 		log_text("unable to setup event callbacks");
 		return false;
 	}
 	
-	e = (*env)->GetPotentialCapabilities(env, &cap);
+	e = (*jvmtienv)->GetPotentialCapabilities(jvmtienv, &cap);
 	if (e == JVMTI_ERROR_NONE) {
-		e = (*env)->AddCapabilities(env, &cap);
+		e = (*jvmtienv)->AddCapabilities(jvmtienv, &cap);
 	}
 	if (e != JVMTI_ERROR_NONE) {
 		log_text("error adding jvmti capabilities");
@@ -379,7 +383,7 @@ bool VMjdwpInit(jvmtiEnv* env) {
 	for (i = 0; i < end; i++) {
 		/* enable standard VM callbacks  */
 		if (((void**)&jvmti_jdwp_EventCallbacks)[i] != NULL) {
-			e = (*env)->SetEventNotificationMode(env,
+			e = (*jvmtienv)->SetEventNotificationMode(jvmtienv,
 												JVMTI_ENABLE,
 												JVMTI_EVENT_START_ENUM+i,
 												NULL);

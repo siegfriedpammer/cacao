@@ -26,10 +26,10 @@ Contact: cacao@cacaojvm.org
 
 Authors: Martin Platter
 
-Changes: 
+Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 4661 2006-03-21 00:04:59Z motse $
+$Id: VMVirtualMachine.c 4892 2006-05-06 18:29:55Z motse $
 
 */
 
@@ -43,7 +43,7 @@ $Id: VMVirtualMachine.c 4661 2006-03-21 00:04:59Z motse $
 #include "native/include/gnu_classpath_jdwp_event_EventRequest.h"
 #include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
 #include "native/jvmti/jvmti.h"
-#include "native/jvmti/cacaodbg.h"
+#include "native/jvmti/VMjdwp.h"
 #include <string.h>
 
 
@@ -54,7 +54,7 @@ $Id: VMVirtualMachine.c 4661 2006-03-21 00:04:59Z motse $
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    (*remotedbgjvmtienv)->SuspendThread(remotedbgjvmtienv, (jthread) par1);
+    (*jvmtienv)->SuspendThread(jvmtienv, (jthread) par1);
 }
 
 /*
@@ -64,7 +64,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_suspendThread(JN
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1)
 {
-    (*remotedbgjvmtienv)->ResumeThread(remotedbgjvmtienv, (jthread) par1);
+    (*jvmtienv)->ResumeThread(jvmtienv, (jthread) par1);
 }
 
 
@@ -87,7 +87,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClasse
     jint count;
     jclass* classes;
 
-    (*remotedbgjvmtienv)->GetLoadedClasses(remotedbgjvmtienv, &count, &classes);
+    (*jvmtienv)->GetLoadedClasses(jvmtienv, &count, &classes);
     return count;
 }
 
@@ -107,9 +107,9 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	jvmtiError err;
 	char* errdesc;
 
-	if (JVMTI_ERROR_NONE != (err= (*remotedbgjvmtienv)->
-		GetLoadedClasses(remotedbgjvmtienv, &classcount, &classes))) {
-		(*remotedbgjvmtienv)->GetErrorName(remotedbgjvmtienv,err, &errdesc);
+	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+		GetLoadedClasses(jvmtienv, &classcount, &classes))) {
+		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
 		fprintf(stderr,"jvmti error: %s\n",errdesc);
 		fflush(stderr);
 /*		env->ThrowNew(env,ec,"jvmti error occoured");*/
@@ -119,6 +119,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 
 	/* Arrays.asList(Object[] classes)->List.Iterator()->Iterator */
 	joa = (*env)->NewObjectArray(env, (jsize)classcount, cl , NULL);
+	if (!joa) return NULL;
 
 	for (i = 0; i < classcount; i++) 
 		(*env)->SetObjectArrayElement(env,joa,(jsize)i, (jobject)classes[i]);
@@ -134,8 +135,8 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 
 	cl = (*env)->FindClass(env,"java.util.List");
 	if (!cl) return NULL;
-	m = (*env)->GetMethodID(env,cl,"Iterator","()Ljava/util/Iterator;");
-
+	m = (*env)->GetMethodID(env,cl,"iterator","()Ljava/util/Iterator;");
+	if (!m) return NULL;
 	oi = (*env)->CallObjectMethod(env,*ol,m);
 		
 	return (struct java_util_Iterator*)oi;
@@ -147,7 +148,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
 	jint status;
-	(*remotedbgjvmtienv)->GetClassStatus(remotedbgjvmtienv, (jclass) par1, &status);
+	(*jvmtienv)->GetClassStatus(jvmtienv, (jclass) par1, &status);
 	return status;
 }
 
@@ -158,6 +159,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNI
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllClassMethods(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
     log_text ("VMVirtualMachine_getAllClassMethods: IMPLEMENT ME !!!");
+	return NULL;
 }
 
 
@@ -168,6 +170,7 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
  */
 JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassMethod(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s8 par2) {
     log_text ("VMVirtualMachine_getAllClassMethod: IMPLEMENT ME !!!");
+	return NULL;
 }
 
 
@@ -179,7 +182,7 @@ JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VM
 JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1, s4 par2, s4 par3) {
     log_text ("VMVirtualMachine_getFrames - IMPLEMENT ME!!!");
 /*	jclass ec = (*env)->FindClass(env,"gnu/classpath/jdwp/JdwpInternalErrorException");
-	if (JVMTI_ERROR_NONE != (*remotedbgjvmtienv)->GetClassStatus(remotedbgjvmtienv, par1, &status))
+	if (JVMTI_ERROR_NONE != (*jvmtienv)->GetClassStatus(jvmtienv, par1, &status))
 	env->ThrowNew(env,ec,"jvmti error occoured");*/
 	return 0;
 }
@@ -203,7 +206,7 @@ JNIEXPORT struct gnu_classpath_jdwp_VMFrame* JNICALL Java_gnu_classpath_jdwp_VMV
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint count;
-	(*remotedbgjvmtienv)->GetFrameCount(remotedbgjvmtienv, (jthread)par1, &count);
+	(*jvmtienv)->GetFrameCount(jvmtienv, (jthread)par1, &count);
 	return count;
 }
 
@@ -215,7 +218,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIE
  */
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint status;
-	if (JVMTI_ERROR_NONE != (*remotedbgjvmtienv)->GetThreadState(remotedbgjvmtienv, (jthread)par1, &status))
+	if (JVMTI_ERROR_NONE != (*jvmtienv)->GetThreadState(jvmtienv, (jthread)par1, &status))
 		return 0;
 	if (status && JVMTI_THREAD_STATE_ALIVE) {
 		if (status && JVMTI_THREAD_STATE_WAITING) {		
@@ -265,8 +268,8 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMVirtualMach
 	char* srcname;
 	jstring str;
 
-    (*remotedbgjvmtienv)->
-		GetSourceFileName(remotedbgjvmtienv, (jclass)par1, &srcname);
+    (*jvmtienv)->
+		GetSourceFileName(jvmtienv, (jclass)par1, &srcname);
 	str = (*env)->NewString(env,(jchar*)srcname,(jsize)strlen(srcname));
 
 	return (struct java_lang_String*)str;
@@ -312,8 +315,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_registerEvent(JN
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
-	(*remotedbgjvmtienv)->
-		SetEventNotificationMode(remotedbgjvmtienv, JVMTI_ENABLE, 
+	(*jvmtienv)->
+		SetEventNotificationMode(jvmtienv, JVMTI_ENABLE, 
 								 EventKind2jvmtiEvent(kind), NULL);
 
 	/* todo: error handling, suspend policy */
@@ -335,8 +338,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
 	kindid = (*env)->GetFieldID(env, erc, "_kind", "B");
 	kind = (*env)->GetByteField(env, (jobject)par1, kindid);
 
-	(*remotedbgjvmtienv)->
-		SetEventNotificationMode(remotedbgjvmtienv, JVMTI_DISABLE, 
+	(*jvmtienv)->
+		SetEventNotificationMode(jvmtienv, JVMTI_DISABLE, 
 								 EventKind2jvmtiEvent(kind), NULL);
 
 	/* todo: error handling, suspend policy */

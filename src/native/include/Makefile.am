@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4594 2006-03-14 16:40:32Z twisti $
+## $Id: Makefile.am 4892 2006-05-06 18:29:55Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -75,6 +75,7 @@ GEN_HEADER_FILES = \
 GEN_JVMTI_HEADER_FILES = \
 	java_nio_ByteBuffer.h \
 	gnu_classpath_jdwp_VMFrame.h \
+	gnu_classpath_jdwp_VMMethod.h \
 	gnu_classpath_jdwp_VMVirtualMachine.h \
 	gnu_classpath_jdwp_event_EventRequest.h
 

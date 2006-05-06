@@ -59,11 +59,12 @@ void setip(pid_t pid, void* ip) {
 
 void setbrk(pid_t pid, void* addr, long* orig) {
     long ins;
+
 	*orig = GETMEM(pid,addr);
 
 	ins = (*orig & ~0x000000FF) | TRAPINS; 
 
-	fprintf (stderr,"pid %d set brk at %p orig: %X new: %X\n",getpid(),addr,*orig,ins);
+	fprintf (stderr,"pid %d set brk at %p orig: %X new: %X\n",pid,addr,*orig,ins);
 	if (ptrace(PTRACE_POKEDATA, pid, (caddr_t) addr, ins)==-1) 
 		perror("setbrk error ");
 }

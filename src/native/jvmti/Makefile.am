@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4661 2006-03-21 00:04:59Z motse $
+## $Id: Makefile.am 4892 2006-05-06 18:29:55Z motse $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,14 +40,16 @@ libjvmti_la_SOURCES = \
 	jvmti.c \
 	jvmti.h \
 	VMjdwp.c \
+	VMjdwp.h \
 	dbg.h\
         dbg.c\
         cacaodbg.h \
-        cacaodbg.c \
-	cacaodbgserver.c \
-	cacaodbgserver.h
+        cacaodbg.c
 
 
+## seperate cacaodbgserver executable
+##	cacaodbgserver.c \
+##	cacaodbgserver.h \
 
 ## Local variables:
 ## mode: Makefile

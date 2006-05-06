@@ -1,5 +1,5 @@
 /* src/native/jvmti/cacaodbgserver.c - contains the cacaodbgserver process. This
-                                       process controls the debuggee.
+                                       process controls the debuggee/cacao vm.
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
    Authors: Martin Platter
 
    Changes: Edwin Steiner
-
+            Samuel Vinson
 
    $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
 
@@ -42,12 +42,9 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <semaphore.h>
-#include <sys/msg.h>
-#include <linux/user.h>
+#include <stdio.h>
 
+pid_t debuggee;
 
 /* getchildprocptrace *********************************************************
 
@@ -56,247 +53,166 @@
 
 *******************************************************************************/
 static void getchildprocptrace (char *ptr, void* addr, int cnt) {
-	int i, longcnt;
+	long i, longcnt;
 	long *p = (long*) ptr;
 	
 	longcnt = cnt/sizeof(long);
 	for (i=0; i<longcnt; i++) {
 		p[i]=GETMEM(debuggee,addr);
-		if (p[i]==-1) 
-			perror("cacaodbgserver process: getchildprocptrace: ");
+		if (p[i]==-1)
+		{
+			fprintf(stderr,"cacaodbgserver process: getchildprocptrace: %ld\n",i);
+			perror("cacaodbgserver process: getchildprocptrace:");
+			exit(1);
+		}
 		addr+=sizeof(long);
 	}
-	longcnt = GETMEM(debuggee,addr);
-	memcpy(ptr,&longcnt,cnt%sizeof(long));
+	i = GETMEM(debuggee,addr);
+	memcpy(p+longcnt,&i,cnt%sizeof(long));
 }
 
-/* contchild ******************************************************************
-
-   Helper function to continue child process. 
-
-*******************************************************************************/
-static bool contchild(int signal) {
-	/* get lock for running state */ 
-	threads_sem_wait(&workingdata_lock);
-	fprintf(stderr,"cacaodbgserver: contchild called (hastostop: %d)\n",cdbgshmem->hastostop);
-	if(cdbgshmem->hastostop < 1) {
-		fprintf(stderr,"cacaodbgserver: going to continue child\n");
-		CONT(debuggee,signal);
-		cdbgshmem->hastostop = 0;
-		cdbgshmem->running=true;
-		/* release lock for running state */ 
-		threads_sem_post(&workingdata_lock);
-		return true;
-	} else {
-		threads_sem_post(&workingdata_lock);
-		return false;		
-	}
-}
-
-/* msgqsendevent *******************************************************************
-
-   sends an event notification to the jdwp/debugger process through the 
-   message queue
-
-*******************************************************************************/
-static void msgqsendevent(basic_event *ev) {
-	ev->mtype = MSGQDEBUGGER;
-	
-	if (-1 == msgsnd(msgqid, ev, sizeof(basic_event), 0)) {
-		perror("cacaodbgserver process: cacaodbglisten send error: ");
-		exit(1);
-	}
-}
 
 /* waitloop *******************************************************************
 
-   waits and handles signals from debuggee/child process
+   waits and handles signals from debuggee/child process. Returns true if 
+   cacaodbgserver should exit.
 
 *******************************************************************************/
 
-static void waitloop() {
+static bool waitloop(void* dbgcvm) {
     int status,retval,signal;
     void* ip;
 	basic_event ev;
+	cacaodbgcommunication vm;
+	long data;
+	struct _brkpt* brk;
 
 	fprintf(stderr,"waitloop\n");
-    fflush (stderr); 
 
-    while (true) {
-		retval = wait(&status);
+	retval = wait(&status);
 
-		fprintf(stderr,"cacaodbgserver: waitloop we got something to do\n");
-		if (retval == -1) {
-			fprintf(stderr,"error in waitloop\n");
-			perror("cacaodbgserver process: waitloop: ");
-			exit(1);
-		}
-
-		if (retval != debuggee) {
-			fprintf(stderr,"cacaodbgserver got signal from process other then debuggee\n");
-			exit(1);
-		}
-		
-		if (WIFEXITED(status)) {
-			/* generate event VMDeath */
-			ev.signal = SIGQUIT;
-			ev.ip = NULL;
-			msgqsendevent(&ev);
-			return;
-		}
-		
-		if (WIFSTOPPED(status)) {
-			signal = WSTOPSIG(status);
-
-			/* ignore SIGSEGV, SIGPWR, SIGBUS and SIGXCPU for now.
-			   todo: in future this signals can be used to detect Garbage 
-			   Collection Start/Finish or NullPointerException Events */
-			if ((signal == SIGSEGV) || (signal == SIGPWR) || 
-				(signal == SIGBUS)	|| (signal == SIGXCPU)) {
-				fprintf(stderr,"cacaodbgserver: ignore internal signal (%d)\n",signal);
-				contchild(signal);
-				continue;
-			}
-
-			if (signal == SIGABRT) {
-				fprintf(stderr,"cacaodbgserver: got SIGABRT from debugee - exit\n");
-				exit(1);
-			}
-
-			ip = getip(debuggee);
-			ip--; /* EIP has already been incremented */
-			fprintf(stderr,"got signal: %d IP %X\n",signal,ip);
-			
-			threads_sem_wait(&workingdata_lock);
-			cdbgshmem->running = false;
-			cdbgshmem->hastostop = 1;
-			threads_sem_post(&workingdata_lock);
-
-			if (signal==SIGUSR2) {
-				fprintf(stderr,"SIGUSR2 - debuggee has stopped by jdwp process\n");
-				return;
-			}
-			
-			ev.signal = signal;
-			ev.ip = ip;
-			msgqsendevent(&ev);
-			return;
-		}
+	fprintf(stderr,"cacaodbgserver: waitloop we got something to do\n");
+	if (retval == -1) {
+		fprintf(stderr,"error in waitloop\n");
+		perror("cacaodbgserver process: waitloop: ");
+		return true;
+	}
 	
-		fprintf(stderr,"wait not handled(child not exited or stopped)\n");
-		fprintf(stderr,"retval: %d status: %d\n",retval,status);
+	if (retval != debuggee) {
+		fprintf(stderr,"cacaodbgserver got signal from process other then debuggee/cacao vm\n");
+		return false;
 	}
+	
+	if (WIFSTOPPED(status)) {
+		signal = WSTOPSIG(status);
+		
+		/* ignore SIGSEGV, SIGPWR, SIGBUS and SIGXCPU for now.
+		   todo: in future this signals could be used to detect Garbage 
+		   Collection Start/Finish or NullPointerException Events */
+		if ((signal == SIGSEGV) || (signal == SIGPWR) || 
+			(signal == SIGBUS)	|| (signal == SIGXCPU)) {
+			fprintf(stderr,"cacaodbgserver: ignore internal signal (%d)\n",signal);
+			CONT(debuggee,signal);
+			return false;
+		}
+		
+		if (signal == SIGABRT) {
+			fprintf(stderr,"cacaodbgserver: got SIGABRT from debugee - exit\n");
+			return true;
+		}
+		
+		ip = getip(debuggee);
+		ip--; /* EIP has already been incremented */
+		fprintf(stderr,"got signal: %d IP %X\n",signal,ip);
+		
+			
+		ev.signal = signal;
+		ev.ip = ip;
+		
+		/* handle breakpoint */
+		getchildprocptrace((char*)&vm,dbgcvm,sizeof(cacaodbgcommunication));
+		
+		if (vm.setbrkpt) {
+			/* set a breakpoint */
+			setbrk(debuggee, vm.brkaddr, &vm.brkorig);
+			CONT(debuggee,0);
+			return false;
+		}
+
+		if (signal == SIGTRAP) {
+			/* Breakpoint hit. Place original instruction and notify cacao vm to
+			   handle it */
+			fprintf(stderr,"breakpoint hit\n");
+		}
+
+		return false;
+	}
+	
+	if (WIFEXITED(status)) {
+		fprintf(stderr,"cacaodbgserver: debuggee/cacao vm exited.\n");
+		return true;
+	}
+	
+	if (WIFSIGNALED(status)) {
+		fprintf(stderr,"cacaodbgserver: child terminated by signal %d\n",WTERMSIG(status));
+		return true;
+	}
+	
+	if (WIFCONTINUED(status)) {
+		fprintf(stderr,"cacaodbgserver: continued\n");
+		return false;
+	}
+	
+	
+	fprintf(stderr,"wait not handled(child not exited or stopped)\n");
+	fprintf(stderr,"retval: %d status: %d\n",retval,status);
+	CONT(debuggee,0);		
+	return false;
 }
 
-/* ptraceloop *****************************************************************
+/* main (cacaodbgserver) ******************************************************
 
-   this function handles the ptrace request from the jdwp/debugger process.
+   main function for cacaodbgserver process.
 
 *******************************************************************************/
 
-void ptraceloop() {
-	bool contdebuggee=false;
-	ptrace_request pt;
-	ptrace_reply *buffer;
-	int size;
-    struct user_regs_struct *regs;
+int main(int argc, char **argv) {
+	bool running = true;
+	void *dbgcvm;
+	int status;
+	
+	if (argc != 2) {
+		fprintf(stderr,"cacaodbgserver: not enough arguments\n");
+		fprintf(stderr, "cacaodbgserver cacaodbgcommunicationaddress\n");
 
-	fprintf(stderr,"ptraceloop\n");
-    fflush (stderr); 
-	while (!contdebuggee) {
-		if (-1 == msgrcv(msgqid, &pt, sizeof(ptrace_request), MSGQPTRACESND, 0))
-			perror("cacaodbgserver process: cacaodbglisten receive error: ");
-
-		switch(pt.kind){
-		case PTCONT:
-			/* continue debuggee process */
-			size= sizeof(ptrace_reply);
-			buffer =(ptrace_reply*) MNEW(char,size);
-
-			contdebuggee = contchild(pt.data);
-
-			buffer->mtype = MSGQPTRACERCV;
-			buffer->successful=true;
-			buffer->datasize=0;
-			break;
-		case PTPEEKDATA:
-			/* get memory content from the debuggee process */
-			size= sizeof(ptrace_reply)+pt.data;
-			buffer =(ptrace_reply*) MNEW(char,size);
-
-			buffer->mtype = MSGQPTRACERCV;
-			buffer->datasize = size-sizeof(ptrace_reply);
-
-			fprintf(stderr,"getchildprocptrace: pid %d get %p - %p cnt: %d (buffer %p buffer->data %p)\n",
-					debuggee, pt.addr,pt.addr+pt.data, buffer->datasize,buffer, buffer->data);
-			fflush(stderr);
-
-			getchildprocptrace(buffer->data,pt.addr,buffer->datasize);
-			break;
-		case PTSETBRK:
-			size= sizeof(ptrace_reply)+sizeof(long);
-			buffer =(ptrace_reply*) MNEW(char,size);
-
-			/* set new breakpoint */
-			buffer->mtype = MSGQPTRACERCV;
-			buffer->successful=true;
-			buffer->datasize=sizeof(long);
-			
-			setbrk(debuggee,pt.addr, (long*)(buffer->data));
-			break;
-		case PTDELBRK:
-			/* delete breakpoint */
-			size= sizeof(ptrace_reply);
-			buffer =(ptrace_reply*) MNEW(char,size);
-			
-			DISABLEBRK(debuggee,pt.ldata,pt.addr);
-			
-			buffer->mtype = MSGQPTRACERCV;
-			buffer->successful=true;
-			buffer->datasize=0;
-			break;
-		case PTGETREG:
-			/* get registers */
-			size= sizeof(ptrace_reply)+sizeof(struct user_regs_struct);
-			buffer =(ptrace_reply*) MNEW(char,size);
-			regs=buffer->data;
-
-			GETREGS(debuggee,*regs);
-			
-			buffer->mtype = MSGQPTRACERCV;
-			buffer->successful=true;
-			buffer->datasize=sizeof(struct user_regs_struct);
-			break;
-		default:
-			fprintf(stderr,"unkown ptrace request %d\n",pt.kind);
-			exit(1);
-		}
-
-		if (-1 == msgsnd(msgqid, buffer, size, 0)) {
-			perror("cacaodbgserver process: cacaodbglisten send error: ");
-			exit(1);
-		}
-		MFREE(buffer,char,size);
+		fprintf(stderr,"argc %d argv[0] %s\n",argc,argv[0]);
+		exit(1);
 	}
-}
 
-/* cacaodbgserver *************************************************************
+	dbgcvm=(cacaodbgcommunication*)strtol(argv[1],NULL,16);
 
-   waits for eventes from and issues ptrace calls to debuggee/child process
+	fprintf(stderr,"cacaodbgserver started pid %d ppid %d\n",getpid(), getppid());
 
-*******************************************************************************/
+	debuggee = getppid();
 
-void cacaodbgserver() {
-	fprintf(stderr,"cacaodbgserver started\n");
-	fflush(stderr);
-	while(true) {
-		/* wait until debuggee process gets stopped 
-		   and inform debugger process */
-		waitloop();
-		/* give the debugger process the opportunity to issue ptrace calls */
-		ptraceloop();
-		/* ptraceloop returns after a PTRACE_CONT call has been issued     */
+	if (TRACEATTACH(debuggee) == -1) perror("cacaodbgserver: ");
+
+	fprintf(stderr,"cacaovm attached\n");
+
+	if (wait(&status) == -1) {
+		fprintf(stderr,"error initial wait\n");
+		perror("cacaodbgserver: ");
+		exit(1);
 	}
+
+	if (WIFSTOPPED(status)) 
+		if (WSTOPSIG(status) == SIGSTOP)
+			CONT(debuggee,0);
+	
+	while(running) {
+		running = !waitloop(dbgcvm);
+	}
+	fprintf(stderr,"cacaodbgserver exit\n");
 }
 
 

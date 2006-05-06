@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: jni.c 4892 2006-05-06 18:29:55Z motse $
 
 */
 
@@ -5825,10 +5825,6 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	_Jv_env = env;
 
-	/* actually create the JVM */
-
-	if (!vm_create(_vm_args))
-		return -1;
 
 	/* create and fill a JavaVM structure */
 
@@ -5836,8 +5832,14 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 	jvm->functions = &_Jv_JNIInvokeInterface;
 
 	/* XXX Set the global variable.  Maybe we should do that differently. */
-
+	/* XXX JVMTI Agents needs a JavaVM  */
 	_Jv_jvm = jvm;
+
+
+	/* actually create the JVM */
+
+	if (!vm_create(_vm_args))
+		return -1;
 
 	/* setup the local ref table (must be created after vm_create) */
 

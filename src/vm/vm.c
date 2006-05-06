@@ -26,7 +26,7 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Martin Platter
 
    $Id: finalizer.c 4357 2006-01-22 23:33:38Z twisti $
 
@@ -511,6 +511,15 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	s4    opt;
 	s4    i, j, k;
 
+
+#if defined(ENABLE_JVMTI)
+	lt_dlhandle  handle;
+	char* libname;
+	bool agentbypath = false;;
+#endif
+	
+
+
 	/* check the JNI version requested */
 
 	switch (vm_args->version) {
@@ -583,10 +592,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 	/* initialize JVMTI related  **********************************************/
-	jvmtibrkpt.brk=NULL;
-	jvmtibrkpt.num=0;
-	jvmtibrkpt.size=0;
-	jdwp = jvmti = dbgprocess = false;
+	jdwp = jvmti = false;
 #endif
 
 	/* initialize properties before commandline handling */
@@ -713,7 +719,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			}
 			
 			break;
+
 		case OPT_AGENTPATH:
+			agentbypath = true;
 		case OPT_AGENTLIB:
 			jvmti=true;
 			agentarg = opt_arg;
@@ -1053,18 +1061,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 
 #if defined(ENABLE_JVMTI)
-	/* The fork has to occure before threads a created because threads  are 
-	   not forked correctly (see man pthread_atfork). Varibale dbgprocess 
-	   stores information whether this is the debugger or debuggee process. */
-	if (jvmti || jdwp) {
+	if (jvmti) {
 		set_jvmti_phase(JVMTI_PHASE_ONLOAD);
-		dbgprocess = cacaodbgfork();
+		agentload(agentarg, agentbypath, &handle, &libname);
 	}
-
-	if (dbgprocess && jvmti) { /* is this the parent/debugger process ? */
-		agentload(agentarg);
-		set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
-	}
+	set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
 #endif
 
 
@@ -1211,6 +1212,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 /* 		throw_main_exception_exit(); */
 #endif
 
+#if defined(ENABLE_JVMTI)
+	if (jvmti) {
+		/* add agent library to native library hashtable */
+		native_hashtable_library_add(utf_new_char(libname), class_java_lang_Object->classloader, handle);
+	}
+#endif
+
 	/* increment the number of VMs */
 
 	vms++;
@@ -1265,10 +1273,8 @@ void vm_exit(s4 status)
 	assert(class_java_lang_System->state & CLASS_LOADED);
 
 #if defined(ENABLE_JVMTI)
-	if (dbgprocess) {
-		set_jvmti_phase(JVMTI_PHASE_DEAD);
-		if (jvmti) agentunload();
-	}
+	set_jvmti_phase(JVMTI_PHASE_DEAD);
+	if (jvmti) agentunload();
 #endif
 
 	if (!link_class(class_java_lang_System))
@@ -1305,13 +1311,6 @@ void vm_exit(s4 status)
 
 void vm_shutdown(s4 status)
 {
-#if defined(ENABLE_JVMTI)
-	if (dbgprocess) {
-		set_jvmti_phase(JVMTI_PHASE_DEAD);
-		if (jvmti) agentunload();
-		ipcrm();
-	}
-#endif
 	if (opt_verbose 
 #if defined(ENABLE_STATISTICS)
 		|| opt_getcompilingtime || opt_stat
@@ -1338,12 +1337,6 @@ void vm_shutdown(s4 status)
 
 void vm_exit_handler(void)
 {
-#if defined(ENABLE_JVMTI)
-	if (jvmti && jdwp) set_jvmti_phase(JVMTI_PHASE_DEAD);
-	if (jvmti) agentunload();
-	ipcrm();
-#endif
-
 #if !defined(NDEBUG)
 	if (showmethods)
 		class_showmethods(mainclass);
