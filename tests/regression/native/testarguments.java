@@ -1,4 +1,4 @@
-/* tests/native/testarguments.java - tests argument passing
+/* tests/regressions/native/testarguments.java - tests argument passing
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -26,16 +26,14 @@
 
    Authors: Christian Thalinger
 
-   $Id: testarguments.java 4357 2006-01-22 23:33:38Z twisti $
+   Changes:
+
+   $Id: testarguments.java 4893 2006-05-08 11:03:57Z twisti $
 
 */
 
 
-import java.util.*;
-
 public class testarguments {
-    static Random r;
-
     public static native void nisub(int a, int b, int c, int d, int e,
                                     int f, int g, int h, int i, int j,
                                     int k, int l, int m, int n, int o);
@@ -52,15 +50,20 @@ public class testarguments {
                                     double f, double g, double h, double i, double j,
                                     double k, double l, double m, double n, double o);
 
-    public static void main(String[] argv) {
-        r = new Random(0);
+    public static native void nmsub(int a, long b, float c, double d,
+                                    int e, long f, float g, double h,
+                                    int i, long j, float k, double l,
+                                    int m, long n, float o);
 
+    public static void main(String[] argv) {
         System.loadLibrary("testarguments");
 
         itest();
         ltest();
         ftest();
         dtest();
+
+        mtest();
     }
 
     static void itest() {
@@ -108,6 +111,21 @@ public class testarguments {
              l2d(0xbbbbbbbbbbbbbbbbL), l2d(0xccccccccccccccccL),
              l2d(0xddddddddddddddddL), l2d(0xeeeeeeeeeeeeeeeeL),
              l2d(0xffffffffffffffffL));
+
+        pln();
+    }
+
+    static void mtest() {
+        pln("testing mixed ------------------------------------------------");
+
+        msub(0x11111111, 0x2222222222222222L,
+             i2f(0x33333333), l2d(0x4444444444444444L),
+             0x55555555, 0x6666666666666666L,
+             i2f(0x77777777), l2d(0x8888888888888888L),
+             0x99999999, 0xaaaaaaaaaaaaaaaaL,
+             i2f(0xbbbbbbbb), l2d(0xccccccccccccccccL),
+             0xdddddddd, 0xeeeeeeeeeeeeeeeeL,
+             i2f(0xffffffff));
     }
 
 
@@ -169,6 +187,21 @@ public class testarguments {
         ndsub(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
     }
 
+    public static void msub(int a, long b, float c, double d,
+                            int e, long f, float g, double h,
+                            int i, long j, float k, double l,
+                            int m, long n, float o) {
+        p("java-java  :");
+
+        p(a); p(b); p(c); p(d); p(e);
+        p(f); p(g); p(h); p(i); p(j);
+        p(k); p(l); p(m); p(n); p(o);
+
+        pln();
+
+        nmsub(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o);
+    }
+
 
     // test native-java argument passing
 
@@ -211,6 +244,19 @@ public class testarguments {
     public static void jdsub(double a, double b, double c, double d, double e,
                              double f, double g, double h, double i, double j,
                              double k, double l, double m, double n, double o) {
+        p("native-java:");
+
+        p(a); p(b); p(c); p(d); p(e);
+        p(f); p(g); p(h); p(i); p(j);
+        p(k); p(l); p(m); p(n); p(o);
+
+        pln();
+    }
+
+    public static void jmsub(int a, long b, float c, double d,
+                             int e, long f, float g, double h,
+                             int i, long j, float k, double l,
+                             int m, long n, float o) {
         p("native-java:");
 
         p(a); p(b); p(c); p(d); p(e);
