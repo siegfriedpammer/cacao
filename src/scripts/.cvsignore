@@ -4,5 +4,6 @@ cacao
 jarsigner
 java
 javac
+keytool
 rmic
 rmiregistry
