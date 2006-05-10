@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4817 2006-04-23 23:03:50Z twisti $
+   $Id: asmpart.S 4896 2006-05-10 13:12:06Z twisti $
 
 */
 
@@ -208,85 +208,47 @@ asm_vm_call_method_exception_handler:
 	.end    asm_vm_call_method
 
 
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   invokes the compiler for untranslated JavaVM methods.                      *
-*                                                                              *
-*   Register R0 contains a pointer to the method info structure (prepared      *
-*   by createcompilerstub). Using the return address in R26 and the            *
-*   offset in the LDA instruction or using the value in methodptr R28 the      *
-*   patching address for storing the method address can be computed:           *
-*                                                                              *
-*   method address was either loaded using                                     *
-*   M_LDQ (REG_PV, REG_PV, a)        ; invokestatic/special    ($27)           *
-*   M_LDA (REG_PV, REG_RA, low)                                                *
-*   M_LDAH(REG_PV, REG_RA, high)     ; optional                                *
-*   or                                                                         *
-*   M_LDQ (REG_PV, REG_METHODPTR, m) ; invokevirtual/interface ($28)           *
-*   in the static case the method pointer can be computed using the            *
-*   return address and the lda function following the jmp instruction          *
-*                                                                              *
+/* asm_call_jit_compiler *******************************************************
+
+   Invokes the compiler for untranslated Java methods.
+
 *******************************************************************************/
 
 	.ent    asm_call_jit_compiler
 
 asm_call_jit_compiler:
 	ldgp    gp,0(pv)
-	lda     sp,-(15*8+sizestackframeinfo)(sp) /* reserve stack space          */
+	lda     sp,-(ARG_CNT+2)*8(sp) /* +2: keep stack 16-byte aligned           */
 
-	SAVE_ARGUMENT_REGISTERS(0)    /* save 6 int/6 float argument registers    */
+	stq     ra,0*8(sp)            /* save return address                      */
 
-	stq     mptr,12*8(sp)         /* save method pointer                      */
-	stq     ra,13*8(sp)           /* save return address                      */
-	stq     itmp1,14*8(sp)        /* save methodinfo pointer                  */
+	SAVE_ARGUMENT_REGISTERS(1)    /* save 6 int/6 float argument registers    */
 
-	lda     a0,15*8(sp)           /* create stackframe info                   */
-	mov     zero,a1               /* we don't have pv handy                   */
-	lda     a2,15*8+sizestackframeinfo(sp) /* pass java sp                    */
-	mov     ra,a3                 /* pass Java ra                             */
-	mov     a3,a4                 /* xpc is equal to ra                       */
-	jsr     ra,stacktrace_create_extern_stackframeinfo
-	ldgp    gp,0(ra)
+	mov     itmp1,a0              /* pass methodinfo pointer                  */
+	mov     mptr,a1               /* pass method pointer                      */
+	lda     a2,(ARG_CNT+2)*8(sp)  /* pass java sp                             */
+	mov     ra,a3
+	jsr     ra,jit_asm_compile    /* call jit compiler                        */
+	mov     v0,pv
 
-	ldq     a0,14*8(sp)           /* pass methodinfo pointer                  */
-	jsr     ra,jit_compile        /* call jit compiler                        */
-	ldgp    gp,0(ra)
-	stq     v0,14*8(sp)           /* save return value                        */
+	ldq     ra,0*8(sp)            /* load return address                      */
 
-	ldq     a0,13*8(sp)           /* pass return address                      */
-	lda     a1,15*8(sp)           /* pass stackframeinfo (for PV)             */
-	ldq     a2,12*8(sp)           /* pass method pointer                      */
-	jsr     ra,md_get_method_patch_address /* get address of patch position   */
-	ldgp    gp,0(ra)
-	stq     v0,12*8(sp)           /* store patch address for later use        */
+	RESTORE_ARGUMENT_REGISTERS(1) /* restore 6 int/6 float argument registers */
 
-	lda     a0,15*8(sp)           /* remove stackframe info                   */
-	jsr     ra,stacktrace_remove_stackframeinfo
-	ldgp    gp,0(ra)
-
-	RESTORE_ARGUMENT_REGISTERS(0) /* restore 6 int/6 float argument registers */
-
-	ldq     t0,12*8(sp)           /* load patch address                       */
-	ldq     ra,13*8(sp)           /* load return address                      */
-	ldq     pv,14*8(sp)           /* restore method entry point               */
-	lda     sp,15*8+sizestackframeinfo(sp) /* deallocate stack area           */
+	lda     sp,(ARG_CNT+2)*8(sp)  /* remove stack frame                       */
 
 	beq     pv,L_asm_call_jit_compiler_exception
-
-	stq     pv,0(t0)              /* patch method entry point                 */
-
-	call_pal PAL_imb              /* synchronise instruction cache            */
 
 	jmp     zero,(pv)             /* and call method, the method returns      */
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	subq    sp,1*8,sp
+	subq    sp,2*8,sp
 	stq     ra,0*8(sp)            /* save return address (xpc)                */
 	jsr     ra,builtin_asm_get_exceptionptrptr
-	ldq     ra,0*8(sp)           /* restore return address (xpc)             */
-	addq    sp,1*8,sp
+	ldq     ra,0*8(sp)            /* restore return address (xpc)             */
+	addq    sp,2*8,sp
 #else
 	lda     v0,_exceptionptr
 #endif
