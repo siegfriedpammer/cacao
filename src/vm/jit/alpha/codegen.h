@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.h 4899 2006-05-10 16:14:28Z twisti $
 
 */
 
@@ -66,7 +66,7 @@
 
 #define MCODECHECK(icnt) \
     do { \
-        if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+        if ((cd->mcodeptr + (icnt) * 4) > cd->mcodeend) \
             codegen_increase(cd); \
     } while (0)
 
@@ -123,7 +123,10 @@
 */      
 
 #define M_OP3(op,fu,a,b,c,const) \
-	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c)))
+    do { \
+        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c))); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 
 /* 3-address-floating-point-operation: M_FOP3 
@@ -134,7 +137,10 @@
 */ 
 
 #define M_FOP3(op,fu,a,b,c) \
-	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c))
+    do { \
+        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 
 /* branch instructions: M_BRA 
@@ -144,7 +150,10 @@
 */
 
 #define M_BRA(op,a,disp) \
-	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff))
+    do { \
+        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 
 /* memory operations: M_MEM
@@ -155,7 +164,10 @@
 */ 
 
 #define M_MEM(op,a,b,disp) \
-	*(cd->mcodeptr++) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff))
+    do { \
+        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/

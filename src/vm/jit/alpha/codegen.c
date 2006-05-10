@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4899 2006-05-10 16:14:28Z twisti $
 
 */
 
@@ -270,8 +270,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_addaddress(cd, BUILTIN_staticmonitorenter);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = -(s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, disp);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_LDA(REG_PV, REG_RA, -disp);
 
 		} else {
 			M_BEQZ(rd->argintregs[0], 0);
@@ -280,8 +280,8 @@ bool codegen(jitdata *jd)
 			disp = dseg_addaddress(cd, BUILTIN_monitorenter);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = -(s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
-			M_LDA(REG_PV, REG_RA, disp);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
+			M_LDA(REG_PV, REG_RA, -disp);
 		}
 
 #if !defined(NDEBUG)
@@ -336,8 +336,8 @@ bool codegen(jitdata *jd)
 		disp = dseg_addaddress(cd, (void *) builtin_trace_args);
 		M_ALD(REG_PV, REG_PV, disp);
 		M_JSR(REG_RA, REG_PV);
-		disp = -(s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
-		M_LDA(REG_PV, REG_RA, disp);
+		disp = (s4) (cd->mcodeptr - cd->mcodebase);
+		M_LDA(REG_PV, REG_RA, -disp);
 		M_ALD(REG_RA, REG_SP, 1 * 8);
 
 		/* restore integer argument registers */
@@ -377,7 +377,7 @@ bool codegen(jitdata *jd)
 
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -902,7 +902,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_addaddress(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
 
 			M_IADD(REG_RESULT, REG_ZERO, d); /* sign extend (bugfix for gcc -O2) */
@@ -924,7 +924,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_addaddress(cd, bte->fp);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
 
 			M_INTMOVE(REG_RESULT, d);
@@ -1913,7 +1913,7 @@ bool codegen(jitdata *jd)
 			disp = dseg_addaddress(cd, BUILTIN_canstore);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
 
 			M_BEQZ(REG_RESULT, 0);
@@ -2942,7 +2942,7 @@ nowperformreturn:
 				disp = dseg_addaddress(cd, (void *) builtin_displaymethodstop);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
 				M_DLD(REG_FRESULT, REG_SP, 2 * 8);
@@ -2971,7 +2971,7 @@ nowperformreturn:
 				disp = dseg_addaddress(cd, BUILTIN_monitorexit);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
-				disp = -(s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = -(s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, disp);
 
 				switch (iptr->opc) {
@@ -3172,7 +3172,7 @@ gen_method:
 
 				M_ALD(REG_PV, REG_PV, disp);  /* Pointer to built-in-function */
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
 				/* if op1 == true, we need to check for an exception */
@@ -3209,7 +3209,7 @@ gen_method:
 
 				M_ALD(REG_PV, REG_PV, disp);         /* method pointer in r27 */
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
@@ -3237,7 +3237,7 @@ gen_method:
 					  OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
@@ -3270,7 +3270,7 @@ gen_method:
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 			}
@@ -3329,7 +3329,7 @@ gen_method:
 				}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritrestart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 
@@ -3419,7 +3419,7 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/*  				if (s1 != REG_ITMP1) { */
@@ -3436,7 +3436,7 @@ gen_method:
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					/*  				} */
 					M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3);
@@ -3466,7 +3466,7 @@ gen_method:
 				disp = dseg_addaddress(cd, BUILTIN_arraycheckcast);
 				M_ALD(REG_PV, REG_PV, disp);
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
 				M_BEQZ(REG_RESULT, 0);
@@ -3514,7 +3514,7 @@ gen_method:
 			}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
@@ -3612,13 +3612,13 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMPULE(REG_ITMP1, REG_ITMP2, d);
@@ -3674,7 +3674,7 @@ gen_method:
 			disp = dseg_addaddress(cd, BUILTIN_multianewarray);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
-			disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
 
 			/* check for exception before result assignment */
@@ -3742,17 +3742,16 @@ gen_method:
 		exceptionref *eref;
 		patchref     *pref;
 		u4            mcode;
-		u4           *savedmcodeptr;
-		u4           *tmpmcodeptr;
+		u1           *savedmcodeptr;
+		u1           *tmpmcodeptr;
 
 		savedmcodeptr = NULL;
 
 		/* generate exception stubs */
 
 		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch((u1 *) cd->mcodebase + eref->branchpos, 
-							  eref->branchpos,
-							  (u1 *) cd->mcodeptr - cd->mcodebase);
+			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
+							  eref->branchpos, cd->mcodeptr - cd->mcodebase);
 
 			MCODECHECK(100);
 
@@ -3775,7 +3774,7 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 
 			if (savedmcodeptr != NULL) {
-				disp = savedmcodeptr - (cd->mcodeptr + 1);
+				disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);
 				M_BR(disp);
 
 			} else {
@@ -3798,7 +3797,7 @@ gen_method:
 
 				M_MOV(REG_ITMP3, REG_PV);
 				M_JSR(REG_RA, REG_PV);
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
 				M_MOV(REG_RESULT, REG_ITMP1_XPTR);
@@ -3826,18 +3825,20 @@ gen_method:
 			/* Get machine code which is patched back in later. The
 			   call is 1 instruction word long. */
 
-			savedmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
-			mcode = *savedmcodeptr;
+			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+
+			mcode = *((u4 *) tmpmcodeptr);
 
 			/* Patch in the call to call the following code (done at
 			   compile time). */
 
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BSR(REG_ITMP3, tmpmcodeptr - (savedmcodeptr + 1));
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+			M_BSR(REG_ITMP3, disp);
 
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 			/* create stack frame */
 
@@ -3904,17 +3905,17 @@ gen_method:
 
 				/* note start of stub code */
 
-				replacementpoint->outcode = (u1*) (ptrint)((u1 *) cd->mcodeptr - cd->mcodebase);
+				replacementpoint->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
 				/* make machine code for patching */
 
-				tmpmcodeptr  = cd->mcodeptr;
-				cd->mcodeptr = (u4 *) &(replacementpoint->mcode);
+				savedmcodeptr  = cd->mcodeptr;
+				cd->mcodeptr = (u1 *) &(replacementpoint->mcode);
 
 				disp = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
 				M_BR(disp);
 
-				cd->mcodeptr = tmpmcodeptr;
+				cd->mcodeptr = savedmcodeptr;
 
 				/* create stack frame - 16-byte aligned */
 
@@ -3974,7 +3975,7 @@ u1 *createcompilerstub(methodinfo *m)
 	dumpsize = dump_size();
 
 	cd = DNEW(codegendata);
-	cd->mcodeptr = (u4 *) s;
+	cd->mcodeptr = s;
 
 	/* Store the methodinfo* in the same place as in the methodheader
 	   for compiled methods. */
@@ -4093,7 +4094,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		disp = dseg_addaddress(cd, builtin_trace_args);
 		M_ALD(REG_PV, REG_PV, disp);
 		M_JSR(REG_RA, REG_PV);
-		disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		disp = (s4) (cd->mcodeptr - cd->mcodebase);
 		M_LDA(REG_PV, REG_RA, -disp);
 
 		for (i = 0, j = 1; i < md->paramcount && i < INT_ARG_CNT; i++) {
@@ -4156,7 +4157,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	disp = dseg_addaddress(cd, codegen_start_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
-	disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 
 	/* restore integer and float argument registers */
@@ -4244,7 +4245,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	M_ALD(REG_PV, REG_PV, funcdisp);
 	M_JSR(REG_RA, REG_PV);              /* call native method                 */
-	disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
 
 	/* save return value */
@@ -4260,7 +4261,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	disp = dseg_addaddress(cd, codegen_finish_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
-	disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 
 	/* call finished trace */
@@ -4284,7 +4285,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 		disp = dseg_addaddress(cd, builtin_displaymethodstop);
 		M_ALD(REG_PV, REG_PV, disp);
 		M_JSR(REG_RA, REG_PV);
-		disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		disp = (s4) (cd->mcodeptr - cd->mcodebase);
 		M_LDA(REG_PV, REG_RA, -disp);
 	}
 #endif /* !defined(NDEBUG) */
@@ -4295,7 +4296,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);
-	disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 	M_MOV(REG_RESULT, REG_ITMP3);
 #else
@@ -4336,8 +4337,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	{
 		patchref *pref;
 		u4        mcode;
-		u4       *savedmcodeptr;
-		u4       *tmpmcodeptr;
+		u1       *savedmcodeptr;
+		u1       *tmpmcodeptr;
 
 		/* there can only be one <clinit> ref entry */
 
@@ -4347,18 +4348,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			/* Get machine code which is patched back in later. The
 			   call is 1 instruction word long. */
 
-			savedmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
-			mcode = (u4) *savedmcodeptr;
+			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
 
-			/* patch in the call to call the following code (done at compile  */
-			/* time)                                                          */
+			mcode = *((u4 *) tmpmcodeptr);
 
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+			/* Patch in the call to call the following code (done at
+			   compile time). */
 
-			M_BSR(REG_ITMP3, tmpmcodeptr - (savedmcodeptr + 1));
+			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+			M_BSR(REG_ITMP3, disp);
+
+			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 			/* create stack frame */
 
