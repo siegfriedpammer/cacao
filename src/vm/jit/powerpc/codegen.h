@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.h 4898 2006-05-10 15:51:46Z twisti $
 
 */
 
@@ -72,7 +72,7 @@
 
 #define MCODECHECK(icnt) \
     do { \
-        if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+        if ((cd->mcodeptr + (icnt) * 4) > cd->mcodeend) \
             codegen_increase(cd); \
     } while (0)
 
@@ -132,22 +132,37 @@
 /* macros to create code ******************************************************/
 
 #define M_OP3(opcode,y,oe,rc,d,a,b) \
-	*(cd->mcodeptr++) = (((opcode) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((opcode) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((oe) << 10) | ((y) << 1) | (rc)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_OP4(x,y,rc,d,a,b,c) \
-	*(cd->mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((b) << 11) | ((c) << 6) | ((y) << 1) | (rc)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_OP2_IMM(x,d,a,i) \
-	*(cd->mcodeptr++) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((d) << 21) | ((a) << 16) | ((i) & 0xffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_BRMASK     0x0000fffc                     /* (((1 << 16) - 1) & ~3) */
 #define M_BRAMASK    0x03fffffc                     /* (((1 << 26) - 1) & ~3) */
 
 #define M_BRA(x,i,a,l) \
-	*(cd->mcodeptr++) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((((i) * 4) + 4) & M_BRAMASK) | ((a) << 1) | (l)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_BRAC(x,bo,bi,i,a,l) \
-	*(cd->mcodeptr++) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((x) << 26) | ((bo) << 21) | ((bi) << 16) | (((i) * 4 + 4) & M_BRMASK) | ((a) << 1) | (l)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 
 /* instruction macros *********************************************************/

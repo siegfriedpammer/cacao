@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: codegen-common.c 4898 2006-05-10 15:51:46Z twisti $
 
 */
 
@@ -165,12 +165,7 @@ void codegen_setup(jitdata *jd)
 
 	/* initialize mcode variables */
 
-#if defined(__I386__) || defined(__X86_64__)
-	cd->mcodeptr = cd->mcodebase;
-#else
-	cd->mcodeptr = (u4 *) cd->mcodebase;
-#endif
-
+	cd->mcodeptr     = cd->mcodebase;
 	cd->lastmcodeptr = cd->mcodebase;
 
 #if defined(ENABLE_INTRP)
@@ -264,12 +259,7 @@ void codegen_increase(codegendata *cd)
 
 	/* set new mcodeptr */
 
-#if defined(__I386__) || defined(__X86_64__)
-	cd->mcodeptr = cd->mcodebase + ((u1 *) cd->mcodeptr - oldmcodebase);
-#else
-	cd->mcodeptr = (u4 *) (cd->mcodebase +
-						   ((u1 *) cd->mcodeptr - oldmcodebase));
-#endif
+	cd->mcodeptr = cd->mcodebase + (cd->mcodeptr - oldmcodebase);
 
 #if defined(__I386__) || defined(__MIPS__) || defined(__X86_64__) || defined(ENABLE_INTRP)
 	/* adjust the pointer to the last patcher position */

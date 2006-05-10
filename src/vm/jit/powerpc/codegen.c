@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4898 2006-05-10 15:51:46Z twisti $
 
 */
 
@@ -366,7 +366,7 @@ bool codegen(jitdata *jd)
 	/* walk through all basic blocks */
 	for (bptr = m->basicblocks; bptr != NULL; bptr = bptr->next) {
 
-		bptr->mpc = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -1294,7 +1294,7 @@ bool codegen(jitdata *jd)
 			{
 				int tempreg = false;
 				int dreg;
-				u4  *br1;
+				u1  *br1;
 
 				if (src->prev->flags & INMEMORY) {
 					tempreg = tempreg || (d == REG_ITMP3) || (d == REG_ITMP2);
@@ -1322,8 +1322,8 @@ bool codegen(jitdata *jd)
 				M_BEQ(1);
 				M_IADD_IMM(dreg, -1, dreg);
 				M_IADD_IMM(dreg, -1, dreg);
-				gen_resolvebranch(br1, (u1*) br1, (u1*) cd->mcodeptr);
-				gen_resolvebranch(br1+1, (u1*) (br1+1), (u1*) (cd->mcodeptr-2));
+				gen_resolvebranch(br1, br1, cd->mcodeptr);
+				gen_resolvebranch(br1 + 1 * 4, br1 + 1 * 4, cd->mcodeptr - 2 * 4);
 				M_INTMOVE(dreg, d);
 			}
 			emit_store(jd, iptr, iptr->dst, d);
@@ -2753,7 +2753,7 @@ gen_method:
 				M_ALD(REG_PV, REG_PV, disp);  /* pointer to built-in-function */
 				M_MTCTR(REG_PV);
 				M_JSR;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
 
@@ -2793,7 +2793,7 @@ gen_method:
 				M_ALD(REG_PV, REG_PV, disp);
 				M_MTCTR(REG_PV);
 				M_JSR;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
@@ -2823,7 +2823,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				M_MTCTR(REG_PV);
 				M_JSR;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
@@ -2858,7 +2858,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				M_MTCTR(REG_PV);
 				M_JSR;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
 				break;
@@ -2921,7 +2921,7 @@ gen_method:
 				}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritrestart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 
@@ -3011,7 +3011,7 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ALD(REG_ITMP2, REG_PV, disp);
@@ -3019,7 +3019,7 @@ gen_method:
 						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 						M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
 					} else {
@@ -3028,7 +3028,7 @@ gen_method:
 						M_ALD(REG_ITMP2, REG_PV, disp);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-						codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+						codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
@@ -3103,7 +3103,7 @@ gen_method:
 			}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-            codegen_threadcritrestart(cd, (u1*) cd->mcodeptr - cd->mcodebase);
+            codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP2);
@@ -3198,13 +3198,13 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMPU(REG_ITMP1, REG_ITMP2);
@@ -3340,17 +3340,16 @@ gen_method:
 		exceptionref *eref;
 		patchref     *pref;
 		u4            mcode;
-		u4           *savedmcodeptr;
-		u4           *tmpmcodeptr;
+		u1           *savedmcodeptr;
+		u1           *tmpmcodeptr;
 
 		savedmcodeptr = NULL;
 
 		/* generate exception stubs */
 
 		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch((u1 *) cd->mcodebase + eref->branchpos, 
-							  eref->branchpos,
-							  (u1 *) cd->mcodeptr - cd->mcodebase);
+			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
+							  eref->branchpos, cd->mcodeptr - cd->mcodebase);
 
 			MCODECHECK(100);
 
@@ -3371,7 +3370,7 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 
 			if (savedmcodeptr != NULL) {
-				disp = savedmcodeptr - (cd->mcodeptr + 1);
+				disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);
 				M_BR(disp);
 
 			} else {
@@ -3430,18 +3429,20 @@ gen_method:
 			/* Get machine code which is patched back in later. The
 			   call is 1 instruction word long. */
 
-			savedmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
-			mcode = *savedmcodeptr;
+			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+
+			mcode = *((u4 *) tmpmcodeptr);
 
 			/* Patch in the call to call the following code (done at
 			   compile time). */
 
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BR(tmpmcodeptr - (savedmcodeptr + 1));
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+			M_BR(disp);
 
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
 			/* create stack frame - keep stack 16-byte aligned */
 
@@ -3510,12 +3511,12 @@ gen_method:
 
 				/* note start of stub code */
 
-				replacementpoint->outcode = (u1*) (ptrint)((u1*)cd->mcodeptr - cd->mcodebase);
+				replacementpoint->outcode = (u1 *) (cd->mcodeptr - cd->mcodebase);
 
 				/* make machine code for patching */
 
 				tmpmcodeptr  = cd->mcodeptr;
-				cd->mcodeptr = (u4 *) &(replacementpoint->mcode) + 1 /* big-endian */;
+				cd->mcodeptr = (u1 *) &(replacementpoint->mcode) + 1 /* big-endian */;
 
 				disp = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
 				M_BR(disp);
@@ -3581,7 +3582,7 @@ u1 *createcompilerstub(methodinfo *m)
 	dumpsize = dump_size();
 
 	cd = DNEW(codegendata);
-	cd->mcodeptr = (u4 *) s;
+	cd->mcodeptr = s;
 
 	/* Store the methodinfo* in the same place as in the methodheader
 	   for compiled methods. */
@@ -3973,27 +3974,29 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	{
 		patchref *pref;
 		u4        mcode;
-		u4       *savedmcodeptr;
-		u4       *tmpmcodeptr;
+		u1       *savedmcodeptr;
+		u1       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* Get machine code which is patched back in later. The
 			   call is 1 instruction word long. */
 
-			savedmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
-			mcode = (u4) *savedmcodeptr;
+			tmpmcodeptr = cd->mcodebase + pref->branchpos;
+
+			mcode = *((u4 *) tmpmcodeptr);
 
 			/* Patch in the call to call the following code (done at
 			   compile time). */
 
-			tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr          */
-			cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position */
+			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BL(tmpmcodeptr - (savedmcodeptr + 1));
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+			M_BL(disp);
 
-			cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr   */
+			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
 
-			/* create stack frame - keep stack 16-byte aligned                */
+			/* create stack frame - keep stack 16-byte aligned */
 
 			M_AADD_IMM(REG_SP, -8 * 4, REG_SP);
 
