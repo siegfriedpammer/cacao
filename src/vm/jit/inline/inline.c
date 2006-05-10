@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: inline.c 4897 2006-05-10 15:09:49Z edwin $
 
 */
 
@@ -1523,7 +1523,7 @@ static void inline_write_exception_handlers(inline_node *master,inline_node *iln
 		if (iln->m->flags & ACC_STATIC) {
 			n_ins->opc = ICMD_ACONST;
 			n_ins->val.a = iln->m->class;
-			n_ins->target = 0x02; /* XXX target used temporarily as flag */
+			n_ins->target = (void *) 0x02; /* XXX target used temporarily as flag */
 		}
 		else {
 			n_ins->opc = ICMD_ALOAD;
