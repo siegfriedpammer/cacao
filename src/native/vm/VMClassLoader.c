@@ -30,7 +30,7 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: VMClassLoader.c 4890 2006-05-06 10:10:00Z edwin $
+   $Id: VMClassLoader.c 4906 2006-05-11 14:02:37Z twisti $
 
 */
 
@@ -357,7 +357,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	if (searchlen != bufsize-1) {
 		utfname = utf_new(namestart, searchlen);
-		if (!utf_new)
+		if (utfname == NULL)
 			goto return_NULL;
 	}
 			
