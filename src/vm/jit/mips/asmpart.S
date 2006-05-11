@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4821 2006-04-24 10:08:07Z twisti $
+   $Id: asmpart.S 4904 2006-05-11 13:09:53Z twisti $
 
 */
 
@@ -276,44 +276,27 @@ asm_vm_call_method_exception_handler:
 	.ent    asm_call_jit_compiler
 
 asm_call_jit_compiler:
-	aaddiu  sp,sp,-(20*8+sizestackframeinfo) /* allocate stack space          */
+	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* allocate stack space                     */
 
-	SAVE_ARGUMENT_REGISTERS(0)
+	ast     ra,0*8(sp)            /* save return address                      */
 
-	ast     mptr,16*8(sp)         /* save method pointer                      */
-	ast     ra,17*8(sp)           /* save return address                      */
-	ast     itmp1,18*8(sp)        /* save methodinfo pointer                  */
+	SAVE_ARGUMENT_REGISTERS(1)
 
-	aaddiu  a0,sp,20*8            /* create stackframe info                   */
-	move    a1,zero               /* we don't have pv handy                   */
-	aaddiu  a2,sp,(20*8+sizestackframeinfo) /* pass java sp                   */
-	ald     a3,17*8(sp)           /* pass java ra                             */
-	move    a4,a3                 /* xpc is equal to ra                       */
-	jal     stacktrace_create_extern_stackframeinfo
+	move    a0,itmp1              /* pass methodinfo pointer                  */
+	move    a1,mptr               /* pass method pointer                      */
+	aaddiu  a2,sp,(ARG_CNT+2)*8   /* pass java sp                             */
+	move    a3,ra
+	jal     jit_asm_compile       /* call jit compiler                        */
+	move    pv,v0
 
-	ald     a0,18*8(sp)           /* pass methodinfo pointer                  */
-	jal     jit_compile           /* jit compiler                             */
-	ast     v0,18*8(sp)           /* save return value                        */
+	ald     ra,0*8(sp)            /* restore return address                   */
 
-	aaddiu  a0,sp,20*8            /* remove stackframe info                   */
-	jal     stacktrace_remove_stackframeinfo
+	RESTORE_ARGUMENT_REGISTERS(1)
 
-	ald     a0,17*8(sp)           /* pass return address                      */
-	aaddiu  a1,sp,20*8            /* pass stackframeinfo (for PV)             */
-	ald     a2,16*8(sp)           /* pass method pointer                      */
-	jal     md_get_method_patch_address /* get address of patch position      */
-	move    t0,v0                 /* move offset to t0 for later use          */
+	aaddiu  sp,sp,(ARG_CNT+2)*8   /* remove stack frame                       */
 
-	RESTORE_ARGUMENT_REGISTERS(0)
+	beqz    pv,L_asm_call_jit_compiler_exception
 
-	ald     ra,17*8(sp)           /* restore return address                   */
-	ald     v0,18*8(sp)           /* restore return value                     */
-	aaddiu  sp,sp,20*8+sizestackframeinfo /* deallocate stack area            */
-
-	beqz    v0,L_asm_call_jit_compiler_exception
-
-	ast     v0,0(t0)              /* store new method address                 */
-	move    pv,v0                 /* move method address into pv              */
 	jr      pv                    /* and call method. The method returns      */
 	                              /* directly to the caller (ra).             */
 
