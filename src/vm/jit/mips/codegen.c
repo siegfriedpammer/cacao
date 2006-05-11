@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4905 2006-05-11 13:43:55Z twisti $
 
 */
 
@@ -393,20 +393,20 @@ bool codegen(jitdata *jd)
 		if (bptr->bitflags & BBFLAG_REPLACEMENT && bptr->flags >= BBREACHED) {
 
 			/* 8-byte align pc */
-			if ((ptrint)cd->mcodeptr & 4) {
+			if ((ptrint) cd->mcodeptr & 4) {
 				M_NOP;
 			}
 			
-			replacementpoint->pc = (u1*)(ptrint)((u1*)cd->mcodeptr - cd->mcodebase);
+			replacementpoint->pc = (u1*)(ptrint) (cd->mcodeptr - cd->mcodebase);
 			replacementpoint++;
 
-			assert(cd->lastmcodeptr <= (u1*)cd->mcodeptr);
-			cd->lastmcodeptr = (u1*)cd->mcodeptr + 2*4; /* br + delay slot */
+			assert(cd->lastmcodeptr <= cd->mcodeptr);
+			cd->lastmcodeptr = cd->mcodeptr + 2 * 4;       /* br + delay slot */
 		}
 
 		/* store relative start of block */
 
-		bptr->mpc = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
 
 		if (bptr->flags >= BBREACHED) {
 
@@ -414,7 +414,7 @@ bool codegen(jitdata *jd)
 			{
 				branchref *bref;
 				for (bref = bptr->branchrefs; bref != NULL; bref = bref->next) {
-					gen_resolvebranch((u1 *) cd->mcodebase + bref->branchpos, 
+					gen_resolvebranch(cd->mcodebase + bref->branchpos, 
 									  bref->branchpos,
 									  bptr->mpc);
 				}
@@ -1655,7 +1655,7 @@ bool codegen(jitdata *jd)
 				gen_bound_check;
 			}
 			M_AADD(s2, s1, REG_ITMP3);
-			M_BLDS(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
+			M_BLDS(d, REG_ITMP3, OFFSET(java_bytearray, data[0]));
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -1685,7 +1685,7 @@ bool codegen(jitdata *jd)
 			}
 			M_AADD(s2, s1, REG_ITMP3);
 			M_AADD(s2, REG_ITMP3, REG_ITMP3);
-			M_SLDS(d, REG_ITMP3, OFFSET(java_chararray, data[0]));
+			M_SLDS(d, REG_ITMP3, OFFSET(java_shortarray, data[0]));
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 
@@ -2839,13 +2839,13 @@ bool codegen(jitdata *jd)
 	    case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_FRESULT);
-			M_FMOV(s1, REG_FRESULT);
+			M_FLTMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 	    case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
 			s1 = emit_load_s1(jd, iptr, src, REG_FRESULT);
-			M_DMOV(s1, REG_FRESULT);
+			M_DBLMOVE(s1, REG_FRESULT);
 			goto nowperformreturn;
 
 		case ICMD_RETURN:      /* ...  ==> ...                                */
@@ -3123,7 +3123,7 @@ gen_method:
 				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
 				M_JSR(REG_RA, REG_ITMP3);
 				M_NOP;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 
 				/* if op1 == true, we need to check for an exception */
@@ -3164,7 +3164,7 @@ gen_method:
 				M_ALD(REG_PV, REG_PV, disp);          /* method pointer in pv */
 				M_JSR(REG_RA, REG_PV);
 				M_NOP;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
@@ -3194,7 +3194,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				M_JSR(REG_RA, REG_PV);
 				M_NOP;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 
@@ -3229,7 +3229,7 @@ gen_method:
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				M_JSR(REG_RA, REG_PV);
 				M_NOP;
-				disp = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
+				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
 				break;
 			}
@@ -3286,7 +3286,7 @@ gen_method:
 				}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritrestart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
@@ -3386,14 +3386,14 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/* 				if (s1 != REG_ITMP1) { */
 					/* 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
 					/* 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval)); */
 					/* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
-					/* 					codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase); */
+					/* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
 					/* #endif */
 					/* 					M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2); */
 					/* 				} else { */
@@ -3402,7 +3402,7 @@ gen_method:
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-					codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
@@ -3479,7 +3479,7 @@ gen_method:
 			}
 			
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			codegen_threadcritrestart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
@@ -3580,13 +3580,13 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstart(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-				codegen_threadcritstop(cd, (u1 *) cd->mcodeptr - cd->mcodebase);
+				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 				M_CMPULT(REG_ITMP2, REG_ITMP1, d);
@@ -3681,7 +3681,7 @@ gen_method:
 					if (IS_2_WORD_TYPE(s2))
 						M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 8);
 					else
-						M_DST(s1, REG_SP, rd->interfaces[len][s2].regoff * 8);
+						M_FST(s1, REG_SP, rd->interfaces[len][s2].regoff * 8);
 
 				} else {
 					if (IS_2_WORD_TYPE(s2))
@@ -3706,10 +3706,9 @@ gen_method:
 	   actual instruction. So codepatching does not change the
 	   following block unintentionally. */
 
-	if ((u1 *) cd->mcodeptr < cd->lastmcodeptr) {
-		while ((u1 *) cd->mcodeptr < cd->lastmcodeptr) {
+	if (cd->mcodeptr < cd->lastmcodeptr) {
+		while (cd->mcodeptr < cd->lastmcodeptr)
 			M_NOP;
-		}
 	}
 
 	} /* if (bptr -> flags >= BBREACHED) */
@@ -3724,17 +3723,16 @@ gen_method:
 		exceptionref *eref;
 		patchref     *pref;
 		u8            mcode;
-		u4           *savedmcodeptr;
-		u4           *tmpmcodeptr;
+		u1           *savedmcodeptr;
+		u1           *tmpmcodeptr;
 
 		savedmcodeptr = NULL;
 
 		/* generate exception stubs */
 
 		for (eref = cd->exceptionrefs; eref != NULL; eref = eref->next) {
-			gen_resolvebranch((u1 *) cd->mcodebase + eref->branchpos, 
-							  eref->branchpos,
-							  (u1 *) cd->mcodeptr - cd->mcodebase);
+			gen_resolvebranch(cd->mcodebase + eref->branchpos, 
+							  eref->branchpos, cd->mcodeptr - cd->mcodebase);
 
 			MCODECHECK(100);
 
@@ -3755,7 +3753,8 @@ gen_method:
 			M_ALD(REG_ITMP3, REG_PV, disp);
 
 			if (savedmcodeptr != NULL) {
-				M_BR(savedmcodeptr - cd->mcodeptr);
+				disp = ((u4 *) savedmcodeptr) - (((u4 *) cd->mcodeptr) + 1);
+				M_BR(disp);
 				M_NOP;
 
 			} else {
@@ -3807,12 +3806,13 @@ gen_method:
 			/* Get machine code which is patched back in later. The
 			   call is 2 instruction words long. */
 
-			tmpmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
+			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
 
 			/* We need to split this, because an unaligned 8 byte read
 			   causes a SIGSEGV. */
 
-			mcode = ((u8) tmpmcodeptr[1] << 32) + (u4) tmpmcodeptr[0];
+			mcode = ((u8) ((u4 *) tmpmcodeptr)[1] << 32) +
+				((u4 *) tmpmcodeptr)[0];
 
 			/* Patch in the call to call the following code (done at
 			   compile time). */
@@ -3820,7 +3820,7 @@ gen_method:
 			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
 			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			disp = (s4) (savedmcodeptr - (tmpmcodeptr + 1));
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
 
 			if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
 				*exceptionptr =
@@ -3901,12 +3901,12 @@ gen_method:
 
 				/* note start of stub code */
 
-				replacementpoint->outcode = (u1*) (ptrint)((u1*)cd->mcodeptr - cd->mcodebase);
+				replacementpoint->outcode = (u1*) (ptrint) (cd->mcodeptr - cd->mcodebase);
 
 				/* make machine code for patching */
 
-				tmpmcodeptr = cd->mcodeptr;
-				cd->mcodeptr = (u4 *) &(replacementpoint->mcode);
+				savedmcodeptr = cd->mcodeptr;
+				cd->mcodeptr = (u1 *) &(replacementpoint->mcode);
 
 				disp = (ptrint)((s4*)replacementpoint->outcode - (s4*)replacementpoint->pc) - 1;
 				if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) {
@@ -3918,7 +3918,7 @@ gen_method:
 				M_BR(disp);
 				M_NOP; /* delay slot */
 
-				cd->mcodeptr = tmpmcodeptr;
+				cd->mcodeptr = savedmcodeptr;
 
 				/* create stack frame - 16-byte aligned */
 
@@ -3979,7 +3979,7 @@ u1 *createcompilerstub(methodinfo *m)
 	dumpsize = dump_size();
 
 	cd = DNEW(codegendata);
-	cd->mcodeptr = (u4 *) s;
+	cd->mcodeptr = s;
 
 	/* Store the methodinfo* in the same place as in the methodheader
 	   for compiled methods. */
@@ -3992,7 +3992,7 @@ u1 *createcompilerstub(methodinfo *m)
 	M_JMP(REG_PV);
 	M_NOP;
 
-	md_cacheflush(s, (s4) ((u1 *) cd->mcodeptr - s));
+	md_cacheflush(s, (s4) (cd->mcodeptr - (u1 *) d));
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -4332,19 +4332,20 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 	{
 		patchref *pref;
 		u8        mcode;
-		u4       *savedmcodeptr;
-		u4       *tmpmcodeptr;
+		u1       *savedmcodeptr;
+		u1       *tmpmcodeptr;
 
 		for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
 			/* Get machine code which is patched back in later. The
 			   call is 2 instruction words long. */
 
-			tmpmcodeptr = (u4 *) (cd->mcodebase + pref->branchpos);
+			tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
 
 			/* We need to split this, because an unaligned 8 byte read
 			   causes a SIGSEGV. */
 
-			mcode = ((u8) tmpmcodeptr[1] << 32) + (u4) tmpmcodeptr[0];
+			mcode = ((u8) ((u4 *) tmpmcodeptr)[1] << 32) +
+				((u4 *) tmpmcodeptr)[0];
 
 			/* Patch in the call to call the following code (done at
 			   compile time). */
@@ -4352,7 +4353,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
 			cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
 
-			M_BRS(savedmcodeptr - (tmpmcodeptr + 1));
+			disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
+			M_BRS(disp);
 			M_NOP;                          /* branch delay slot              */
 
 			cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */

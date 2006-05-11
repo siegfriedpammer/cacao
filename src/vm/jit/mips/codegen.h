@@ -26,7 +26,7 @@
 
    Authors: Andreas Krall
 
-   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
+   $Id: codegen.h 4905 2006-05-11 13:43:55Z twisti $
 
 */
 
@@ -75,7 +75,7 @@
 
 #define MCODECHECK(icnt) \
     do { \
-        if ((cd->mcodeptr + (icnt)) > (u4 *) cd->mcodeend) \
+        if ((cd->mcodeptr + (icnt) * 4) > cd->mcodeend) \
             codegen_increase(cd); \
     } while (0)
 
@@ -86,12 +86,19 @@
     }
 
 
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
 #define M_INTMOVE(a,b) if (a != b) { M_MOV(a, b); }
+
+#define M_FLTMOVE(a,b) \
+    do { \
+        if ((a) != (b)) \
+            M_FMOV(a, b); \
+    } while (0)
+
+#define M_DBLMOVE(a,b) \
+    do { \
+        if ((a) != (b)) \
+            M_DMOV(a, b); \
+    } while (0)
 
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 #define ICONST(r,c)                     emit_iconst(cd, (r), (c))
@@ -112,13 +119,22 @@
 
 
 #define M_ITYPE(op,rs,rt,imm) \
-    *(cd->mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((imm) & 0xffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_JTYPE(op,imm) \
-    *(cd->mcodeptr++) = (((op) << 26) | ((off) & 0x3ffffff))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((op) << 26) | ((off) & 0x3ffffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_RTYPE(op,rs,rt,rd,sa,fu) \
-    *(cd->mcodeptr++) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((sa) << 6) | (fu))
+    do { \
+        *((u4 *) cd->mcodeptr) = (((op) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((sa) << 6) | (fu)); \
+        cd->mcodeptr += 4; \
+    } while (0)
 
 #define M_FP2(fu, fmt, fs, fd)       M_RTYPE(0x11, fmt,  0, fs, fd, fu)
 #define M_FP3(fu, fmt, fs, ft, fd)   M_RTYPE(0x11, fmt, ft, fs, fd, fu)
