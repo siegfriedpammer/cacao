@@ -265,39 +265,45 @@ final class VMClassLoader
    */
   private static String[] getBootPackages()
   {
-    URL indexList = getResource("META-INF/INDEX.LIST");
-    if (indexList != null)
+    try
       {
-        try
+        Enumeration indexListEnumeration = getResources("META-INF/INDEX.LIST");
+        Set packageSet = new HashSet();
+
+        while (indexListEnumeration.hasMoreElements())
           {
-            Set packageSet = new HashSet();
-            String line;
-            int lineToSkip = 3;
-            BufferedReader reader = new BufferedReader(
-                                                       new InputStreamReader(
-                                                                             indexList.openStream()));
-            while ((line = reader.readLine()) != null)
+            try
               {
-                if (lineToSkip == 0)
+                String line;
+                int lineToSkip = 3;
+                BufferedReader reader = new BufferedReader(
+                                                           new InputStreamReader(
+                                                                                 ((URL) indexListEnumeration.nextElement()).openStream()));
+                while ((line = reader.readLine()) != null)
                   {
-                    if (line.length() == 0)
-                      lineToSkip = 1;
+                    if (lineToSkip == 0)
+                      {
+                        if (line.length() == 0)
+                          lineToSkip = 1;
+                        else
+                          packageSet.add(line.replace('/', '.'));
+                      }
                     else
-                      packageSet.add(line.replace('/', '.'));
+                      lineToSkip--;
                   }
-                else
-                  lineToSkip--;
+                reader.close();
               }
-            reader.close();
-            return (String[]) packageSet.toArray(new String[packageSet.size()]);
+            catch (IOException e)
+              {
+                // Empty catch block on purpose
+              }
           }
-        catch (IOException e)
-          {
-            return new String[0];
-          }
+        return (String[]) packageSet.toArray(new String[packageSet.size()]);
       }
-    else
-      return new String[0];
+    catch (Exception e)
+      {
+        return new String[0];
+      }
   }
 
 
