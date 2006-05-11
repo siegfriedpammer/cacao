@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4900 2006-05-11 09:18:28Z twisti $
+   $Id: jni.c 4901 2006-05-11 12:18:55Z twisti $
 
 */
 
@@ -5197,7 +5197,11 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	key  = ((u4) (ptrint) globalRef) >> 4;     /* align to 16-byte boundaries */
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
-	
+
+	/* initialize prevgre */
+
+	prevgre = NULL;
+
 	/* search external hash chain for the entry */
 
 	while (gre) {
@@ -5209,7 +5213,12 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 			/* if reference count is 0, remove the entry */
 
 			if (gre->refs == 0) {
-				prevgre->hashlink = gre->hashlink;
+				/* special handling if it's the first in the chain */
+
+				if (prevgre == NULL)
+					hashtable_global_ref->ptr[slot] = gre->hashlink;
+				else
+					prevgre->hashlink = gre->hashlink;
 
 				FREE(gre, hashtable_global_ref_entry);
 			}
