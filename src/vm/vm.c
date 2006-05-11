@@ -1175,6 +1175,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!builtin_init())
 		throw_main_exception_exit();
 
+	/* Initialize the JNI subsystem (must be done _before_
+	   threads_init, as threads_init can call JNI methods
+	   (e.g. NewGlobalRef). */
+
+	if (!jni_init())
+		throw_main_exception_exit();
+
 #if defined(USE_THREADS)
   	if (!threads_init((u1 *) stackbottom))
 		throw_main_exception_exit();
@@ -1186,11 +1193,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	   has to happen after initThreads!!! */
 
 	if (!initialize_class(class_java_lang_System))
-		throw_main_exception_exit();
-
-	/* JNI init creates a Java object (this means running Java code) */
-
-	if (!jni_init())
 		throw_main_exception_exit();
 
 #if defined(ENABLE_PROFILING)

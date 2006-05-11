@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4661 2006-03-21 00:04:59Z motse $
+   $Id: jni.h 4900 2006-05-11 09:18:28Z twisti $
 
 */
 
@@ -103,6 +103,19 @@ extern localref_table *_no_threads_localref_table;
 #define LOCALREFTABLE    (_no_threads_localref_table)
 #endif
 
+
+/* hashtable_global_ref_entry *************************************************/
+
+typedef struct hashtable_global_ref_entry hashtable_global_ref_entry;
+
+struct hashtable_global_ref_entry {
+	java_objectheader          *o;      /* object pointer of global ref       */
+	s4                          refs;   /* references of the current pointer  */
+	hashtable_global_ref_entry *hashlink; /* link for external chaining       */
+};
+
+
+/* function prototypes ********************************************************/
 
 /* initialize JNI subsystem */
 bool jni_init(void);

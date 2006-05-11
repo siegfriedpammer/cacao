@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: hashtable.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: hashtable.c 4900 2006-05-11 09:18:28Z twisti $
 
 */
 
@@ -39,6 +39,13 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+#  include "threads/native/threads.h"
+# endif
+#endif
+
 #include "vm/hashtable.h"
 
 
@@ -51,11 +58,74 @@
 
 void hashtable_create(hashtable *hash, u4 size)
 {
+	/* initialize locking pointer */
+
+#if defined(USE_THREADS)
+# if defined(NATIVE_THREADS)
+	/* We need to seperately allocate a java_objectheader here, as we
+	   need to store the lock object in the new hashtable if it's
+	   resized.  Otherwise we get an IllegalMonitorStateException. */
+
+	hash->header = NEW(java_objectheader);
+
+	initObjectLock(hash->header);
+# endif
+#endif
+
+	/* set initial hash values */
+
 	hash->size    = size;
 	hash->entries = 0;
 	hash->ptr     = MNEW(void*, size);
 
 	/* MNEW always allocates memory zeroed out, no need to clear the table */
+}
+
+
+/* hashtable_resize ************************************************************
+
+   Creates a new hashtable with specified size and moves the important
+   stuff from the old hashtable.
+
+*******************************************************************************/
+
+hashtable *hashtable_resize(hashtable *hash, u4 size)
+{
+	hashtable *newhash;
+
+	/* create new hashtable with specified size */
+
+	newhash = NEW(hashtable);
+
+	hashtable_create(newhash, size);
+
+#if defined(USE_THREADS)
+	/* We need to store the old lock object in the new hashtable.
+	   Otherwise we get an IllegalMonitorStateException. */
+
+	FREE(newhash->header, java_objectheader);
+
+	newhash->header  = hash->header;
+#endif
+
+	/* store the number of entries in the new hashtable */
+
+	newhash->entries = hash->entries;
+
+	return newhash;
+}
+
+
+/* hashtable_free **************************************************************
+
+   Simply frees the hashtable.
+
+*******************************************************************************/
+
+void hashtable_free(hashtable *hash)
+{
+	MFREE(hash->ptr, void*, hash->size);
+	FREE(hash, hashtable);
 }
 
 

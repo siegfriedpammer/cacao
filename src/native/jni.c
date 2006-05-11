@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4892 2006-05-06 18:29:55Z motse $
+   $Id: jni.c 4900 2006-05-11 09:18:28Z twisti $
 
 */
 
@@ -109,13 +109,11 @@
 
 /* global reference table *****************************************************/
 
-static java_objectheader **global_ref_table;
+/* hashsize must be power of 2 */
 
-/* jmethodID and jclass caching variables for NewGlobalRef and DeleteGlobalRef*/
-static classinfo *ihmclass = NULL;
-static methodinfo *putmid = NULL;
-static methodinfo *getmid = NULL;
-static methodinfo *removemid = NULL;
+#define HASHTABLE_GLOBAL_REF_SIZE    64 /* initial size of globalref-hash     */
+
+static hashtable *hashtable_global_ref; /* hashtable for globalrefs           */
 
 
 /* direct buffer stuff ********************************************************/
@@ -162,29 +160,11 @@ jint EnsureLocalCapacity(JNIEnv* env, jint capacity);
 
 bool jni_init(void)
 {
-	/* initalize global reference table */
+	/* create global ref hashtable */
 
-	if (!(ihmclass =
-		  load_class_bootstrap(utf_new_char("java/util/IdentityHashMap"))))
-		return false;
+	hashtable_global_ref = NEW(hashtable);
 
-	global_ref_table = GCNEW(jobject);
-
-	if (!(*global_ref_table = native_new_and_init(ihmclass)))
-		return false;
-
-	if (!(getmid = class_resolvemethod(ihmclass, utf_get,
-									   utf_java_lang_Object__java_lang_Object)))
-		return false;
-
-	if (!(putmid = class_resolvemethod(ihmclass, utf_put,
-									   utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))))
-		return false;
-
-	if (!(removemid =
-		  class_resolvemethod(ihmclass, utf_remove,
-							  utf_java_lang_Object__java_lang_Object)))
-		return false;
+	hashtable_create(hashtable_global_ref, HASHTABLE_GLOBAL_REF_SIZE);
 
 
 	/* direct buffer stuff */
@@ -5132,46 +5112,64 @@ void DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
 
 *******************************************************************************/
     
-jobject NewGlobalRef(JNIEnv* env, jobject lobj)
+jobject NewGlobalRef(JNIEnv* env, jobject obj)
 {
-	java_objectheader *o;
-	java_lang_Integer *refcount;
-	java_objectheader *newval;
+	hashtable_global_ref_entry *gre;
+	u4   key;                           /* hashkey                            */
+	u4   slot;                          /* slot in hashtable                  */
 
 	STATISTICS(jniinvokation());
 
 #if defined(USE_THREADS)
-	builtin_monitorenter(*global_ref_table);
+	builtin_monitorenter(hashtable_global_ref->header);
 #endif
+
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
+
+	key  = ((u4) (ptrint) obj) >> 4;           /* align to 16-byte boundaries */
+	slot = key & (hashtable_global_ref->size - 1);
+	gre  = hashtable_global_ref->ptr[slot];
 	
-	o = vm_call_method(getmid, *global_ref_table, lobj);
+	/* search external hash chain for the entry */
 
-	refcount = (java_lang_Integer *) o;
+	while (gre) {
+		if (gre->o == obj) {
+			/* global object found, increment the reference */
 
-	if (refcount == NULL) {
-		newval = native_new_and_init_int(class_java_lang_Integer, 1);
+			gre->refs++;
 
-		if (newval == NULL) {
 #if defined(USE_THREADS)
-			builtin_monitorexit(*global_ref_table);
+			builtin_monitorexit(hashtable_global_ref->header);
 #endif
-			return NULL;
+
+			return obj;
 		}
 
-		(void) vm_call_method(putmid, *global_ref_table, lobj, newval);
-
-	} else {
-		/* we can access the object itself, as we are in a
-           synchronized section */
-
-		refcount->value++;
+		gre = gre->hashlink;                /* next element in external chain */
 	}
 
+	/* global ref not found, create a new one */
+
+	gre = NEW(hashtable_global_ref_entry);
+
+	gre->o    = obj;
+	gre->refs = 1;
+
+	/* insert entry into hashtable */
+
+	gre->hashlink = hashtable_global_ref->ptr[slot];
+
+	hashtable_global_ref->ptr[slot] = gre;
+
+	/* update number of hashtable-entries */
+
+	hashtable_global_ref->entries++;
+
 #if defined(USE_THREADS)
-	builtin_monitorexit(*global_ref_table);
+	builtin_monitorexit(hashtable_global_ref->header);
 #endif
 
-	return lobj;
+	return obj;
 }
 
 
@@ -5183,42 +5181,54 @@ jobject NewGlobalRef(JNIEnv* env, jobject lobj)
 
 void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 {
-	java_objectheader *o;
-	java_lang_Integer *refcount;
-	s4                 val;
+	hashtable_global_ref_entry *gre;
+	hashtable_global_ref_entry *prevgre;
+	u4   key;                           /* hashkey                            */
+	u4   slot;                          /* slot in hashtable                  */
 
 	STATISTICS(jniinvokation());
 
 #if defined(USE_THREADS)
-	builtin_monitorenter(*global_ref_table);
+	builtin_monitorenter(hashtable_global_ref->header);
 #endif
 
-	o = vm_call_method(getmid, *global_ref_table, globalRef);
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	refcount = (java_lang_Integer *) o;
+	key  = ((u4) (ptrint) globalRef) >> 4;     /* align to 16-byte boundaries */
+	slot = key & (hashtable_global_ref->size - 1);
+	gre  = hashtable_global_ref->ptr[slot];
+	
+	/* search external hash chain for the entry */
 
-	if (refcount == NULL) {
-		log_text("JNI-DeleteGlobalRef: unable to find global reference");
-		return;
-	}
+	while (gre) {
+		if (gre->o == globalRef) {
+			/* global object found, decrement the reference count */
 
-	/* we can access the object itself, as we are in a synchronized
-	   section */
+			gre->refs--;
 
-	val = refcount->value - 1;
+			/* if reference count is 0, remove the entry */
 
-	if (val == 0) {
-		(void) vm_call_method(removemid, *global_ref_table, refcount);
+			if (gre->refs == 0) {
+				prevgre->hashlink = gre->hashlink;
 
-	} else {
-		/* we do not create a new object, but set the new value into
-           the old one */
-
-		refcount->value = val;
-	}
+				FREE(gre, hashtable_global_ref_entry);
+			}
 
 #if defined(USE_THREADS)
-	builtin_monitorexit(*global_ref_table);
+			builtin_monitorexit(hashtable_global_ref->header);
+#endif
+
+			return;
+		}
+
+		prevgre = gre;                    /* save current pointer for removal */
+		gre     = gre->hashlink;            /* next element in external chain */
+	}
+
+	log_println("JNI-DeleteGlobalRef: global reference not found");
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(hashtable_global_ref->header);
 #endif
 }
 

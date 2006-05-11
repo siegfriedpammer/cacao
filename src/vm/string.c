@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 4876 2006-05-05 15:26:04Z edwin $
+   $Id: string.c 4900 2006-05-11 09:18:28Z twisti $
 
 */
 
@@ -619,10 +619,6 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     stringdata->header.objheader.vftbl =
 		primitivetype_table[ARRAYTYPE_CHAR].arrayvftbl;
     stringdata->header.size = length;
-
-	/* XXX TWISTI: is this necessary? */
-	if (!class_java_lang_String)
-		class_java_lang_String = load_class_bootstrap(utf_java_lang_String);
 
 	assert(class_java_lang_String);
 	assert(class_java_lang_String->state & CLASS_LOADED);

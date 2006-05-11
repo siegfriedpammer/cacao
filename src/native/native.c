@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: native.c 4900 2006-05-11 09:18:28Z twisti $
 
 */
 
@@ -277,7 +277,7 @@ static bool nativecompdone = false;
 /* global variables ***********************************************************/
 
 #if !defined(WITH_STATIC_CLASSPATH)
-static hashtable hashtable_library;
+static hashtable *hashtable_library;
 static lt_dlhandle mainhandle;
 #endif
 
@@ -315,7 +315,9 @@ bool native_init(void)
 
 	/* initialize library hashtable, 10 entries should be enough */
 
-	hashtable_create(&hashtable_library, 10);
+	hashtable_library = NEW(hashtable);
+
+	hashtable_create(hashtable_library, 10);
 #endif
 
 	/* everything's ok */
@@ -339,11 +341,15 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
+#if defined(USE_THREADS)
+	builtin_monitorenter(hashtable_library->header);
+#endif
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
-	slot = key & (hashtable_library.size - 1);
-	le   = hashtable_library.ptr[slot];
+	slot = key & (hashtable_library->size - 1);
+	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -356,21 +362,21 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 	/* no loader found? create a new entry */
 
-	if (!le) {
+	if (le == NULL) {
 		le = NEW(hashtable_library_loader_entry);
 
-		le->loader = loader;
+		le->loader   = loader;
 		le->namelink = NULL;
 
 		/* insert entry into hashtable */
 
 		le->hashlink =
-			(hashtable_library_loader_entry *) hashtable_library.ptr[slot];
-		hashtable_library.ptr[slot] = le;
+			(hashtable_library_loader_entry *) hashtable_library->ptr[slot];
+		hashtable_library->ptr[slot] = le;
 
 		/* update number of hashtable-entries */
 
-		hashtable_library.entries++;
+		hashtable_library->entries++;
 	}
 
 
@@ -379,8 +385,13 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	ne = le->namelink;
 
 	while (ne) {
-		if (ne->name == filename)
+		if (ne->name == filename) {
+#if defined(USE_THREADS)
+			builtin_monitorexit(hashtable_library->header);
+#endif
+
 			return;
+		}
 
 		ne = ne->hashlink;                  /* next element in external chain */
 	}
@@ -389,13 +400,17 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 	ne = NEW(hashtable_library_name_entry);
 
-	ne->name = filename;
+	ne->name   = filename;
 	ne->handle = handle;
 
 	/* insert entry into external chain */
 
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
+
+#if defined(USE_THREADS)
+	builtin_monitorexit(hashtable_library->header);
+#endif
 }
 #endif /* !defined(WITH_STATIC_CLASSPATH) */
 
@@ -418,8 +433,8 @@ hashtable_library_name_entry *native_hashtable_library_find(utf *filename,
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
-	slot = key & (hashtable_library.size - 1);
-	le   = hashtable_library.ptr[slot];
+	slot = key & (hashtable_library->size - 1);
+	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -733,8 +748,8 @@ functionptr native_resolve_function(methodinfo *m)
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) m->class->classloader) >> 4;    /* align to 16-byte */
-	slot = key & (hashtable_library.size - 1);
-	le   = hashtable_library.ptr[slot];
+	slot = key & (hashtable_library->size - 1);
+	le   = hashtable_library->ptr[slot];
 
 	/* iterate through loaders in this hash slot */
 
