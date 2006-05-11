@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: threads.c 4903 2006-05-11 12:48:43Z edwin $
 
 */
 
@@ -1367,6 +1367,7 @@ bool monitorExit(threadobject *t, java_objectheader *o)
 			(void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) wlr) != lr)
 		{
 			monitorLockRecord *nlr = o->monitorPtr;
+			assert(nlr->waiter == NULL);
 			nlr->waiter = wlr; /* XXX is it ok to overwrite the nlr->waiter field like that? */
 			STORE_ORDER_BARRIER();
 		}
