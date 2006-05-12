@@ -47,7 +47,7 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 
-#if defined(__POWERPC__)
+#if SIZEOF_VOID_P == 4
 s4 emit_load_s1_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s2_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
 s4 emit_load_s3_low(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg);
