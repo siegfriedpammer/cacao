@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 4805 2006-04-21 10:54:24Z twisti $
+   $Id: md.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -137,7 +137,7 @@ void thread_restartcriticalsection(ucontext_t *uc)
 {
 	void *critical;
 
-	critical = thread_checkcritical((void *) uc->uc_mcontext.gregs[REG_RIP]);
+	critical = critical_find_restart_point((void *) uc->uc_mcontext.gregs[REG_RIP]);
 
 	if (critical)
 		uc->uc_mcontext.gregs[REG_RIP] = (ptrint) critical;

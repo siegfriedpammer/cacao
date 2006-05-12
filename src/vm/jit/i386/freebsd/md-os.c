@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-os.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -110,7 +110,7 @@ void thread_restartcriticalsection(ucontext_t *uc)
 {
 	void *critical;
 
-	critical = thread_checkcritical((void *) uc->uc_mcontext.mc_eip);
+	critical = critical_find_restart_point((void *) uc->uc_mcontext.mc_eip);
 
 	if (critical)
 		uc->uc_mcontext.mc_eip = (ptrint) critical;

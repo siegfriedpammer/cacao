@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4746 2006-04-11 05:10:55Z edwin $
+   $Id: dynamic-super.c 4908 2006-05-12 16:49:50Z edwin $
 */
 
 
@@ -717,8 +717,8 @@ void dynamic_super_init(void)
   lock_hashtable_superreuse  = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-  initObjectLock(lock_hashtable_patchersupers);
-  initObjectLock(lock_hashtable_superreuse);
+  lock_init_object_lock(lock_hashtable_patchersupers);
+  lock_init_object_lock(lock_hashtable_superreuse);
 # endif
 #endif
 }

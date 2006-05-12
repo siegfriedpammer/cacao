@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: avl.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: avl.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -75,7 +75,7 @@ avl_tree *avl_create(avl_comparator *compar)
 	t->lock       = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(t->lock);
+	lock_init_object_lock(t->lock);
 # endif
 #endif
 

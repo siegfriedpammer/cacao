@@ -1090,7 +1090,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #if defined(NATIVE_THREADS)
   	threads_preinit();
 #endif
-	initLocks();
+	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done

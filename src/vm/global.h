@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4854 2006-04-27 23:03:37Z twisti $
+   $Id: global.h 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -205,7 +205,7 @@ typedef struct java_objectarray java_objectarray;
 struct java_objectheader {              /* header for all objects             */
 	struct _vftbl            *vftbl;    /* pointer to virtual function table  */
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	struct monitorLockRecord *monitorPtr;
+	struct lock_record_t *monitorPtr;
 #endif
 };
 

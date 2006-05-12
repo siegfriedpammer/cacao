@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: hashtable.c 4900 2006-05-11 09:18:28Z twisti $
+   $Id: hashtable.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -68,7 +68,7 @@ void hashtable_create(hashtable *hash, u4 size)
 
 	hash->header = NEW(java_objectheader);
 
-	initObjectLock(hash->header);
+	lock_init_object_lock(hash->header);
 # endif
 #endif
 

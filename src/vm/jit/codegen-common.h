@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4898 2006-05-10 15:51:46Z twisti $
+   $Id: codegen-common.h 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -40,7 +40,7 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct codegendata codegendata;
-typedef struct threadcritnodetemp threadcritnodetemp;
+typedef struct codegen_critical_section_t codegen_critical_section_t;
 
 
 #include "config.h"
@@ -75,8 +75,8 @@ typedef struct threadcritnodetemp threadcritnodetemp;
 
 /************************* critical sections  *********************************/
 
-struct threadcritnodetemp {
-	threadcritnodetemp *next;
+struct codegen_critical_section_t {
+	codegen_critical_section_t *next;
 	s4                  mcodebegin;
 	s4                  mcodeend;
 	s4                  mcoderestart;
@@ -128,8 +128,8 @@ struct codegendata {
 	s4              exceptiontablelength; /* exceptiontable length            */
 	exceptiontable *exceptiontable; /* the exceptiontable                     */
 
-	threadcritnodetemp *threadcrit; /* List of critical code regions          */
-	threadcritnodetemp threadcritcurrent;
+	codegen_critical_section_t *threadcrit; /* List of critical code regions          */
+	codegen_critical_section_t threadcritcurrent;
 	s4                 threadcritcount; /* Number of critical regions         */
 
 	s4              maxstack;

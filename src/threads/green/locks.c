@@ -45,7 +45,7 @@ long conditionHashMask;
  * Init the tables.
  */
 void
-initLocks (void)
+lock_init (void)
 {
     int i;
 
@@ -249,7 +249,7 @@ conditionLockedMutexForObject (java_objectheader *object)
  * Wait for the condition of an object to be signalled
  */
 void
-wait_cond_for_object (java_objectheader *obj, s8 time, s4 par3)
+lock_wait_for_object (java_objectheader *obj, s8 time, s4 par3)
 {
     iCv *condition;
     mutexHashEntry *mutexEntry;
@@ -277,7 +277,7 @@ wait_cond_for_object (java_objectheader *obj, s8 time, s4 par3)
  * Signal the condition of an object
  */
 void
-signal_cond_for_object (java_objectheader *obj)
+lock_notify_object (java_objectheader *obj)
 {
     iCv *condition;
 
@@ -301,10 +301,10 @@ signal_cond_for_object (java_objectheader *obj)
  * Broadcast the condition of an object.
  */
 void
-broadcast_cond_for_object (java_objectheader *obj)
+lock_notify_all_object (java_objectheader *obj)
 {
 	intsDisable();
-	internal_broadcast_cond_for_object(obj);
+	internal_lock_notify_all_object(obj);
 	intsRestore();
 }
 
@@ -312,7 +312,7 @@ broadcast_cond_for_object (java_objectheader *obj)
  * Internal: Broadcast the condition of an object.
  */
 void
-internal_broadcast_cond_for_object (java_objectheader *obj)
+internal_lock_notify_all_object (java_objectheader *obj)
 {
     iCv *condition;
 

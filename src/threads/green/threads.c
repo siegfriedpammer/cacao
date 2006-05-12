@@ -171,7 +171,7 @@ initThreads(u1 *stackbottom)
 
 	signal(SIGPIPE, SIG_IGN);
 
-    initLocks();
+    lock_init();
 
     for (i = 0; i < MAXTHREADS; ++i) {
 		contexts[i]=0;
@@ -652,7 +652,7 @@ killThread(thread* tid)
 
 		/* Notify on the object just in case anyone is waiting */
 		internal_lock_mutex_for_object(&tid->header);
-		internal_broadcast_cond_for_object(&tid->header);
+		internal_lock_notify_all_object(&tid->header);
 		internal_unlock_mutex_for_object(&tid->header);
 
 		/* Remove thread from live list to it can be garbaged */

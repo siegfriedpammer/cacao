@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4792 2006-04-19 01:05:18Z edwin $
+   $Id: asmpart.h 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -45,6 +45,7 @@
 #if defined(USE_THREADS)
 # if defined(NATIVE_THREADS)
 #  include "threads/native/threads.h"
+#  include "threads/native/critical.h"
 # else
 #  include "threads/green/threads.h"
 # endif
@@ -158,7 +159,7 @@ void asm_replacement_in(executionstate *es);
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-extern threadcritnode asm_criticalsections;
+extern critical_section_node_t asm_criticalsections;
 #endif
 
 

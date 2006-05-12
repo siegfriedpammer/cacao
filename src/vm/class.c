@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: class.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -237,7 +237,7 @@ classinfo *class_create_classinfo(utf *classname)
 		class_set_packagename(c);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&c->object.header);
+	lock_init_object_lock(&c->object.header);
 #endif
 
 	return c;

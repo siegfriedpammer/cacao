@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -5200,7 +5200,7 @@ gen_method:
 			/* move pointer to java_objectheader onto stack */
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
@@ -5674,7 +5674,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);

@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4884 2006-05-05 19:13:41Z edwin $
+   $Id: builtin.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -794,7 +794,7 @@ java_objectheader *builtin_new(classinfo *c)
 	o->vftbl = c->vftbl;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(o);
+	lock_init_object_lock(o);
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -853,7 +853,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 	a->objheader.vftbl = arrayclass->vftbl;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&a->objheader);
+	lock_init_object_lock(&a->objheader);
 #endif
 
 	a->size = size;
@@ -1833,7 +1833,7 @@ void builtin_monitorenter(java_objectheader *o)
 	CYCLES_STATS_GET(cycles_start);
 	CYCLES_STATS_GET(cycles_overhead);
 
-	monitorEnter((threadobject *) THREADOBJECT, o);
+	lock_monitor_enter((threadobject *) THREADOBJECT, o);
 
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorenter, cycles_end - cycles_overhead);
@@ -1881,7 +1881,7 @@ void builtin_monitorexit(java_objectheader *o)
 #else /* defined(NATIVE_THREADS) */
 	CYCLES_STATS_GET(cycles_start);
 
-	monitorExit((threadobject *) THREADOBJECT, o);
+	lock_monitor_exit((threadobject *) THREADOBJECT, o);
 
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorexit, cycles_end - cycles_start);

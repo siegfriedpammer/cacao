@@ -78,7 +78,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 /* code_get_sync_slot_count ****************************************************
 
    Return the number of stack slots used for storing the synchronized object
-   (and the return value around monitorExit calls) by the given code.
+   (and the return value around lock_monitor_exit calls) by the given code.
    
    IN:
        code.............the codeinfo of the code in question

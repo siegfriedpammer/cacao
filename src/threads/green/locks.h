@@ -91,7 +91,7 @@ typedef struct
     iCv condition;
 } object_mutex;
 
-extern void initLocks (void);
+extern void lock_init (void);
 
 mutexHashEntry* conditionLockedMutexForObject (java_objectheader *object);
 
@@ -104,9 +104,9 @@ void removeConditionForObject (java_objectheader *object);
  * use these functions only outside critical sections (intsEnable/intsRestore).
  */
 
-void signal_cond_for_object (java_objectheader *obj);
-void broadcast_cond_for_object (java_objectheader *obj);
-void wait_cond_for_object (java_objectheader *obj, s8 time, s4);
+void lock_notify_object (java_objectheader *obj);
+void lock_notify_all_object (java_objectheader *obj);
+void lock_wait_for_object (java_objectheader *obj, s8 time, s4);
 void lock_mutex_for_object (java_objectheader *obj);
 void unlock_mutex_for_object (java_objectheader *obj);
 
@@ -128,7 +128,7 @@ void internal_broadcast_cond (iCv*);
 
 void internal_lock_mutex_for_object (java_objectheader *obj);
 void internal_unlock_mutex_for_object (java_objectheader *obj);
-void internal_broadcast_cond_for_object (java_objectheader *obj);
+void internal_lock_notify_all_object (java_objectheader *obj);
 
 #endif /* __locks_h */
 

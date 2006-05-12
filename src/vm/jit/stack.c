@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: stack.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -98,7 +98,7 @@ bool stack_init(void)
 	lock_stack_show_icmd = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_stack_show_icmd);
+	lock_init_object_lock(lock_stack_show_icmd);
 # endif
 #endif
 

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-os.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -129,7 +129,7 @@ void thread_restartcriticalsection(ucontext_t *uc)
 {
 	void *critical;
 
-	critical = thread_checkcritical((void*) uc->uc_mcontext.gregs[CTX_EPC]);
+	critical = critical_find_restart_point((void*) uc->uc_mcontext.gregs[CTX_EPC]);
 
 	if (critical)
 		uc->uc_mcontext.gregs[CTX_EPC] = (ptrint) critical;

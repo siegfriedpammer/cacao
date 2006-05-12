@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -3926,7 +3926,7 @@ gen_method:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			a = dseg_addaddress(cd, NULL);                      /* vftbl      */
 
   			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP3);
@@ -4386,7 +4386,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
   			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP3);

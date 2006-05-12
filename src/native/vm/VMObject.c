@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 4550 2006-03-01 17:00:33Z twisti $
+   $Id: VMObject.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -106,7 +106,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 		MCOPY(new, this, u1, size);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-		initObjectLock((java_objectheader *) new);
+		lock_init_object_lock((java_objectheader *) new);
 #endif
         
 		return new;
@@ -130,7 +130,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     MCOPY(new, this, u1, c->instancesize);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock((java_objectheader *) new);
+	lock_init_object_lock((java_objectheader *) new);
 #endif
 
     return new;
@@ -145,7 +145,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 #if defined(USE_THREADS)
-	signal_cond_for_object(&this->header);
+	lock_notify_object(&this->header);
 #endif
 }
 
@@ -158,7 +158,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 #if defined(USE_THREADS)
-	broadcast_cond_for_object(&this->header);
+	lock_notify_all_object(&this->header);
 #endif
 }
 
@@ -171,7 +171,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
 {
 #if defined(USE_THREADS)
-	wait_cond_for_object(&o->header, ms, ns);
+	lock_wait_for_object(&o->header, ms, ns);
 #endif
 }
 

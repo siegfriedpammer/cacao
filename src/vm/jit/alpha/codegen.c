@@ -32,7 +32,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4899 2006-05-10 16:14:28Z twisti $
+   $Id: codegen.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -3853,7 +3853,7 @@ gen_method:
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);
@@ -4376,7 +4376,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, get_dummyLR());          /* monitorPtr */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);

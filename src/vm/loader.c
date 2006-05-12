@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4881 2006-05-05 18:14:27Z edwin $
+   $Id: loader.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -112,7 +112,7 @@ bool loader_init(u1 *stackbottom)
 	for (lce = list_first(list_classpath_entries); lce != NULL;
 		 lce = list_next(list_classpath_entries, lce))
 		if (lce->type == CLASSPATH_ARCHIVE)
-			initObjectLock((java_objectheader *) lce);
+			lock_init_object_lock((java_objectheader *) lce);
 #endif
 
 	/* load some important classes */
@@ -225,7 +225,7 @@ bool loader_init(u1 *stackbottom)
 
 #if defined(USE_THREADS)
 	if (stackbottom != 0)
-		initLocks();
+		lock_init(); /* XXX this should probably be done only for green threads */
 #endif
 
 	return true;
@@ -1016,7 +1016,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 	c = cb->class;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&m->header);
+	lock_init_object_lock(&m->header);
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -2489,7 +2489,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	MSET(clone, 0, methodinfo, 1);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&clone->header);
+	lock_init_object_lock(&clone->header);
 #endif
 
 	/* ATTENTION: if you delete the ACC_NATIVE below, set

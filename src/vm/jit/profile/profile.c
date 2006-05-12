@@ -114,7 +114,7 @@ static void profile_thread(void)
 
 		/* wait 1 ms */
 	
-		wait_cond_for_object(lock_profile_thread, 0, 100);
+		lock_wait_for_object(lock_profile_thread, 0, 100);
 
 		/* leave the lock */
 

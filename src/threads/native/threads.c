@@ -29,12 +29,14 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4903 2006-05-11 12:48:43Z edwin $
+   $Id: threads.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
 
 #include "config.h"
+
+/* XXX cleanup these includes */
 
 #include <stdlib.h>
 #include <string.h>
@@ -53,7 +55,7 @@
 
 #include "arch.h"
 
-#ifndef USE_MD_THREAD_STUFF
+#if !defined(USE_MD_THREAD_STUFF)
 #include "machine-instr.h"
 #else
 #include "threads/native/generic-primitives.h"
@@ -88,38 +90,66 @@
 #include "boehm-gc/include/gc.h"
 #endif
 
-#ifdef USE_MD_THREAD_STUFF
+
+/* prototypes *****************************************************************/
+
+static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
+	
+/******************************************************************************/
+/* GLOBAL VARIABLES                                                           */
+/******************************************************************************/
+
+/* the main thread */
+threadobject *mainthreadobj;
+
+#ifndef HAVE___THREAD
+pthread_key_t tkey_threadinfo;
+#else
+__thread threadobject *threadobj;
+#endif
+
+static pthread_mutex_rec_t compiler_mutex;
+
+static pthread_mutex_t threadlistlock;
+
+static pthread_mutex_t stopworldlock;
+static volatile int stopworldwhere;
+
+static sem_t suspend_ack;
+#if defined(__MIPS__)
+static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
+#endif
+
+static pthread_attr_t threadattr;
+
+#if defined(USE_MD_THREAD_STUFF)
 pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
+
 /******************************************************************************/
 /* Recursive Mutex Implementation for Darwin                                  */
 /******************************************************************************/
 
-#ifdef MUTEXSIM
+#if defined(MUTEXSIM)
 
 /* We need this for older MacOSX (10.1.x) */
 
-typedef struct {
-	pthread_mutex_t mutex;
-	pthread_t owner;
-	int count;
-} pthread_mutex_rec_t;
-
-static void pthread_mutex_init_rec(pthread_mutex_rec_t *m)
+void pthread_mutex_init_rec(pthread_mutex_rec_t *m)
 {
 	pthread_mutex_init(&m->mutex, NULL);
 	m->count = 0;
 }
 
-static void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m)
+void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m)
 {
 	pthread_mutex_destroy(&m->mutex);
 }
 
-static void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
+void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
 {
 	for (;;) {
 		if (!m->count)
@@ -141,19 +171,14 @@ static void pthread_mutex_lock_rec(pthread_mutex_rec_t *m)
 	}
 }
 
-static void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
+void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m)
 {
 	if (!--m->count)
 		pthread_mutex_unlock(&m->mutex);
 }
 
-#else /* MUTEXSIM */
+#endif /* defined(MUTEXSIM) */
 
-#define pthread_mutex_lock_rec pthread_mutex_lock
-#define pthread_mutex_unlock_rec pthread_mutex_unlock
-#define pthread_mutex_rec_t pthread_mutex_t
-
-#endif /* MUTEXSIM */
 
 /* threads_sem_init ************************************************************
  
@@ -182,6 +207,7 @@ void threads_sem_init(sem_t *sem, bool shared, int value)
 			errno, strerror(errno));
 	abort();
 }
+
 
 /* threads_sem_wait ************************************************************
  
@@ -212,6 +238,7 @@ void threads_sem_wait(sem_t *sem)
 	abort();
 }
 
+
 /* threads_sem_post ************************************************************
  
    Increase the count of a semaphore. Checks for errors.
@@ -238,6 +265,7 @@ void threads_sem_post(sem_t *sem)
 	abort();
 }
 
+
 /* threads_set_thread_priority *************************************************
 
    Set the priority of the given thread.
@@ -259,120 +287,52 @@ static void threads_set_thread_priority(pthread_t tid, int priority)
 }
 
 
-static avl_tree *criticaltree;
-threadobject *mainthreadobj;
+/* compiler_lock ***************************************************************
 
-#ifndef HAVE___THREAD
-pthread_key_t tkey_threadinfo;
-#else
-__thread threadobject *threadobj;
-#endif
+   Enter the compiler lock.
 
-static pthread_mutex_rec_t compiler_mutex;
+******************************************************************************/
 
 void compiler_lock()
 {
 	pthread_mutex_lock_rec(&compiler_mutex);
 }
 
+
+/* compiler_unlock *************************************************************
+
+   Release the compiler lock.
+
+******************************************************************************/
+
 void compiler_unlock()
 {
 	pthread_mutex_unlock_rec(&compiler_mutex);
 }
 
-static s4 criticalcompare(const void *pa, const void *pb)
-{
-	const threadcritnode *na = pa;
-	const threadcritnode *nb = pb;
 
-	if (na->mcodebegin < nb->mcodebegin)
-		return -1;
-	if (na->mcodebegin > nb->mcodebegin)
-		return 1;
-	return 0;
-}
+/* lock_stopworld **************************************************************
 
+   Enter the stopworld lock, specifying why the world shall be stopped.
 
-static const threadcritnode *findcritical(u1 *mcodeptr)
-{
-    avl_node *n;
-    const threadcritnode *m;
+   IN:
+      where........ 1 from within GC
+                    2 class numbering
 
-    n = criticaltree->root;
-	m = NULL;
+******************************************************************************/
 
-    if (!n)
-        return NULL;
-
-    for (;;) {
-        const threadcritnode *d = n->data;
-
-        if (mcodeptr == d->mcodebegin)
-            return d;
-
-        if (mcodeptr < d->mcodebegin) {
-            if (n->childs[0]) {
-                n = n->childs[0];
-			}
-            else {
-                return m;
-			}
-        }
-		else {
-            if (n->childs[1]) {
-                m = n->data;
-                n = n->childs[1];
-            }
-			else {
-                return n->data;
-			}
-        }
-    }
-}
-
-
-void thread_registercritical(threadcritnode *n)
-{
-	avl_insert(criticaltree, n);
-}
-
-u1 *thread_checkcritical(u1 *mcodeptr)
-{
-	const threadcritnode *n = findcritical(mcodeptr);
-	return (n && mcodeptr < n->mcodeend && mcodeptr > n->mcodebegin) ? n->mcoderestart : NULL;
-}
-
-static void thread_addstaticcritical()
-{
-	/* XXX TWISTI: this is just a quick hack */
-#if defined(ENABLE_JIT)
-	threadcritnode *n = &asm_criticalsections;
-
-	while (n->mcodebegin)
-		thread_registercritical(n++);
-#endif
-}
-
-static pthread_mutex_t threadlistlock;
-
-static pthread_mutex_t stopworldlock;
-volatile int stopworldwhere;
-
-static sem_t suspend_ack;
-#if defined(__MIPS__)
-static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
-#endif
-
-/*
- * where - 1 from within GC
-           2 class numbering
- */
 void lock_stopworld(int where)
 {
 	pthread_mutex_lock(&stopworldlock);
 	stopworldwhere = where;
 }
+
+
+/* unlock_stopworld ************************************************************
+
+   Release the stopworld lock.
+
+******************************************************************************/
 
 void unlock_stopworld()
 {
@@ -548,6 +508,16 @@ int cacao_suspendhandler(ucontext_t *ctx)
 }
 #endif
 
+
+/* setthreadobject *************************************************************
+
+   Set the current thread object.
+   
+   IN:
+      thread.......the thread object to set
+
+*******************************************************************************/
+
 #if !defined(ENABLE_JVMTI)
 static void setthreadobject(threadobject *thread)
 #else
@@ -574,11 +544,6 @@ void *thread_getself(void)
 {
 	return THREADOBJECT;
 }
-
-/* unlocked dummy record - avoids NULL checks */
-static monitorLockRecord *dummyLR;
-
-static void initPools();
 
 
 /* thread_preinit **************************************************************
@@ -612,30 +577,16 @@ void threads_preinit(void)
 	pthread_key_create(&tkey_threadinfo, NULL);
 #endif
 	setthreadobject(mainthreadobj);
-	initPools();
-
-	/* Every newly created object's monitorPtr points here so we save
-	   a check against NULL */
-
-	dummyLR = NEW(monitorLockRecord);
-	dummyLR->o = NULL;
-	dummyLR->ownerThread = NULL;
-	dummyLR->waiting = NULL;
-	dummyLR->incharge = dummyLR;
 
 	/* we need a working dummyLR before initializing the critical
 	   section tree */
 
-    criticaltree = avl_create(&criticalcompare);
+	lock_init();
 
-	thread_addstaticcritical();
+	critical_init();
+
 	threads_sem_init(&suspend_ack, 0, 0);
 }
-
-
-static pthread_attr_t threadattr;
-
-static void freeLockRecordPools(lockRecordPool *);
 
 
 /* threads_init ****************************************************************
@@ -654,7 +605,7 @@ bool threads_init(u1 *stackbottom)
 
 	tempthread = mainthreadobj;
 
-	freeLockRecordPools(mainthreadobj->ee.lrpool);
+	lock_record_free_pools(mainthreadobj->ee.lrpool);
 
 	/* This is kinda tricky, we grow the java.lang.Thread object so we
 	   can keep the execution environment there. No Thread object must
@@ -675,7 +626,7 @@ bool threads_init(u1 *stackbottom)
 
 	setthreadobject(mainthreadobj);
 
-	initLocks();
+	lock_init_thread_lock_record_pool(mainthreadobj);
 
 	mainthreadobj->info.next = mainthreadobj;
 	mainthreadobj->info.prev = mainthreadobj;
@@ -755,6 +706,15 @@ bool threads_init(u1 *stackbottom)
 }
 
 
+/* initThread ******************************************************************
+
+   Initialize implementation fields of a java.lang.VMThread.
+
+   IN:
+      t............the java.lang.VMThread
+
+******************************************************************************/
+
 void initThread(java_lang_VMThread *t)
 {
 	threadobject *thread = (threadobject*) t;
@@ -770,8 +730,6 @@ void initThread(java_lang_VMThread *t)
 	thread->signaled = false;
 	thread->isSleeping = false;
 }
-
-static void initThreadLocks(threadobject *);
 
 
 /* startupinfo *****************************************************************
@@ -865,7 +823,7 @@ static void *threads_startup_thread(void *t)
 
 	/* init data structures of this thread */
 
-	initThreadLocks(thread);
+	lock_init_thread_lock_record_pool(thread);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -908,7 +866,7 @@ static void *threads_startup_thread(void *t)
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
 
-	freeLockRecordPools(thread->ee.lrpool);
+	lock_record_free_pools(thread->ee.lrpool);
 
 	/* remove thread from thread list, do this inside a lock */
 
@@ -985,6 +943,13 @@ void threads_start_thread(thread *t, functionptr function)
 }
 
 
+/* findNonDaemon ***************************************************************
+
+   Helper function used by joinAllThreads for finding non-daemon threads
+   that are still running.
+
+*******************************************************************************/
+
 /* At the end of the program, we wait for all running non-daemon threads to die
  */
 
@@ -998,6 +963,13 @@ static threadobject *findNonDaemon(threadobject *thread)
 
 	return NULL;
 }
+
+
+/* joinAllThreads **************************************************************
+
+   Join all non-daemon threads.
+
+*******************************************************************************/
 
 void joinAllThreads()
 {
@@ -1015,395 +987,6 @@ void joinAllThreads()
 	pthread_mutex_unlock(&threadlistlock);
 }
 
-static void initLockRecord(monitorLockRecord *r, threadobject *t)
-{
-	r->lockCount = 1;
-	r->ownerThread = t;
-	r->queuers = 0;
-	r->o = NULL;
-	r->waiter = NULL;
-	r->incharge = (monitorLockRecord *) &dummyLR;
-	r->waiting = NULL;
-	threads_sem_init(&r->queueSem, 0, 0);
-	pthread_mutex_init(&r->resolveLock, NULL);
-	pthread_cond_init(&r->resolveWait, NULL);
-}
-
-void initLocks()
-{
-	initThreadLocks(mainthreadobj);
-}
-
-static void initThreadLocks(threadobject *thread)
-{
-	thread->ee.firstLR = NULL;
-	thread->ee.lrpool = NULL;
-	thread->ee.numlr = 0;
-}
-
-static lockRecordPool *allocNewLockRecordPool(threadobject *thread, int size)
-{
-	lockRecordPool *p = mem_alloc(sizeof(lockRecordPoolHeader) + sizeof(monitorLockRecord) * size);
-	int i;
-
-	p->header.size = size;
-	for (i=0; i<size; i++) {
-		initLockRecord(&p->lr[i], thread);
-		p->lr[i].nextFree = &p->lr[i+1];
-	}
-	p->lr[i-1].nextFree = NULL;
-	return p;
-}
-
-#define INITIALLOCKRECORDS 8
-
-pthread_mutex_t pool_lock;
-lockRecordPool *global_pool;
-
-static void initPools()
-{
-	pthread_mutex_init(&pool_lock, NULL);
-}
-
-static lockRecordPool *allocLockRecordPool(threadobject *t, int size)
-{
-	pthread_mutex_lock(&pool_lock);
-	if (global_pool) {
-		int i;
-		lockRecordPool *pool = global_pool;
-		global_pool = pool->header.next;
-		pthread_mutex_unlock(&pool_lock);
-
-		for (i=0; i < pool->header.size; i++) {
-			pool->lr[i].ownerThread = t;
-			pool->lr[i].nextFree = &pool->lr[i+1];
-		}
-		pool->lr[i-1].nextFree = NULL;
-
-		return pool;
-	}
-	pthread_mutex_unlock(&pool_lock);
-
-	return allocNewLockRecordPool(t, size);
-}
-
-static void freeLockRecordPools(lockRecordPool *pool)
-{
-	lockRecordPoolHeader *last;
-	pthread_mutex_lock(&pool_lock);
-	last = &pool->header;
-	while (last->next)
-		last = &last->next->header;
-	last->next = global_pool;
-	global_pool = pool;
-	pthread_mutex_unlock(&pool_lock);
-}
-
-static monitorLockRecord *allocLockRecordSimple(threadobject *t)
-{
-	monitorLockRecord *r;
-
-	assert(t);
-	r = t->ee.firstLR;
-
-	if (!r) {
-		int poolsize = t->ee.numlr ? t->ee.numlr * 2 : INITIALLOCKRECORDS;
-		lockRecordPool *pool = allocLockRecordPool(t, poolsize);
-		pool->header.next = t->ee.lrpool;
-		t->ee.lrpool = pool;
-		r = &pool->lr[0];
-		t->ee.numlr += pool->header.size;
-	}
-
-	t->ee.firstLR = r->nextFree;
-#ifndef NDEBUG
-	r->nextFree = NULL; /* in order to find invalid uses of nextFree */
-#endif
-	return r;
-}
-
-static inline void recycleLockRecord(threadobject *t, monitorLockRecord *r)
-{
-	assert(t);
-	assert(r);
-	assert(r->ownerThread == t);
-	assert(r->nextFree == NULL);
-
-	r->nextFree = t->ee.firstLR;
-	t->ee.firstLR = r;
-}
-
-/* initObjectLock **************************************************************
-
-   Initialize the monitor pointer of the given object. The monitor gets
-   initialized to an unlocked state.
-
-*******************************************************************************/
-
-void initObjectLock(java_objectheader *o)
-{
-	assert(o);
-
-	o->monitorPtr = dummyLR;
-}
-
-
-/* get_dummyLR *****************************************************************
-
-   Returns the global dummy monitor lock record. The pointer is
-   required in the code generator to set up a virtual
-   java_objectheader for code patch locking.
-
-*******************************************************************************/
-
-monitorLockRecord *get_dummyLR(void)
-{
-	return dummyLR;
-}
-
-
-static void queueOnLockRecord(monitorLockRecord *lr, java_objectheader *o)
-{
-	atomic_add(&lr->queuers, 1);
-	MEMORY_BARRIER_AFTER_ATOMIC();
-
-	if (lr->o == o)
-		threads_sem_wait(&lr->queueSem);
-
-	atomic_add(&lr->queuers, -1);
-}
-
-static void freeLockRecord(monitorLockRecord *lr)
-{
-	int q;
-	lr->o = NULL;
-	MEMORY_BARRIER();
-	q = lr->queuers;
-	while (q--)
-		threads_sem_post(&lr->queueSem);
-}
-
-static inline void handleWaiter(monitorLockRecord *newlr,
-								monitorLockRecord *curlr,
-								java_objectheader *o)
-{
-	/* if the current lock record is used for waiting on the object */
-	/* `o`, then record it as a waiter in the new lock record       */
-
-	if (curlr->waiting == o)
-		newlr->waiter = curlr;
-}
-
-/* monitorEnter ****************************************************************
-
-   Acquire the monitor of the given object. If the current thread already
-   owns the monitor, the lock counter is simply increased.
-
-   This function blocks until it can acquire the monitor.
-
-   IN:
-      t............the current thread
-	  o............the object of which to enter the monitor
-
-   RETURN VALUE:
-      the new lock record of the object when it has been entered
-
-*******************************************************************************/
-
-monitorLockRecord *monitorEnter(threadobject *t, java_objectheader *o)
-{
-	for (;;) {
-		monitorLockRecord *lr = o->monitorPtr;
-		if (lr->o != o) {
-			/* the lock record does not lock this object */
-			monitorLockRecord *nlr;
-			monitorLockRecord *mlr;
-		   
-			/* allocate a new lock record for this object */
-			mlr	= allocLockRecordSimple(t);
-			mlr->o = o;
-
-			/* check if it is the same record the object refered to earlier */
-			if (mlr == lr) {
-				MEMORY_BARRIER();
-				nlr = o->monitorPtr;
-				if (nlr == lr) {
-					/* the object still refers to the same lock record */
-					/* got it! */
-					handleWaiter(mlr, lr, o);
-					return mlr;
-				}
-			} 
-			else {
-				/* no, it's another lock record */
-				/* if we don't own the old record, set incharge XXX */
-				if (lr->ownerThread != t)
-					mlr->incharge = lr;
-
-				/* if the object still refers to lr, replace it by the new mlr */
-				MEMORY_BARRIER_BEFORE_ATOMIC();
-				nlr = (monitorLockRecord *) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) mlr);
-			}
-
-			if (nlr == lr) {
-				/* we swapped the new record in successfully */
-				if (mlr == lr || lr->o != o) {
-					/* the old lock record is the same as the new one, or */
-					/* it locks another object.                           */
-					/* got it! */
-					handleWaiter(mlr, lr, o);
-					return mlr;
-				}
-				/* lr locks the object, we have to wait */
-				while (lr->o == o)
-					queueOnLockRecord(lr, o);
-
-				/* got it! */
-				handleWaiter(mlr, lr, o);
-				return mlr;
-			}
-
-			/* forget this mlr lock record, wait on nlr and try again */
-			freeLockRecord(mlr);
-			recycleLockRecord(t, mlr);
-			queueOnLockRecord(nlr, o);
-		} 
-		else {
-			/* the lock record is for the object we want */
-
-			if (lr->ownerThread == t) {
-				/* we own it already, just recurse */
-				lr->lockCount++;
-				return lr;
-			}
-
-			/* it's locked. we wait and then try again */
-			queueOnLockRecord(lr, o);
-		}
-	}
-}
-
-/* threads_wake_waiters ********************************************************
-
-   For each lock record in the given waiter list, post the queueSem
-   once for each queuer of the lock record.
-
-   IN:
-      lr...........the head of the waiter list
-
-*******************************************************************************/
-
-static void threads_wake_waiters(monitorLockRecord *lr)
-{
-	monitorLockRecord *tmplr;
-	s4 q;
-
-	/* move it to a local variable (Stefan commented this especially.
-	 * Might be important somehow...) */
-
-	tmplr = lr;
-
-	do {
-		q = tmplr->queuers;
-
-		while (q--)
-			threads_sem_post(&tmplr->queueSem);
-
-		tmplr = tmplr->waiter;
-	} while (tmplr != NULL && tmplr != lr); /* this breaks cycles to lr */
-}
-
-#define GRAB_LR(lr,t) \
-    if (lr->ownerThread != t) { \
-		lr = lr->incharge; \
-	}
-
-#define CHECK_MONITORSTATE(lr,t,mo,a) \
-    if (lr->o != mo || lr->ownerThread != t) { \
-		*exceptionptr = new_illegalmonitorstateexception(); \
-		a; \
-	}
-
-/* monitorExit *****************************************************************
-
-   Decrement the counter of a (currently owned) monitor. If the counter
-   reaches zero, release the monitor.
-
-   If the current thread is not the owner of the monitor, an 
-   IllegalMonitorState exception is thrown.
-
-   IN:
-      t............the current thread
-	  o............the object of which to exit the monitor
-
-   RETURN VALUE:
-      true.........everything ok,
-	  false........an exception has been thrown
-
-*******************************************************************************/
-
-bool monitorExit(threadobject *t, java_objectheader *o)
-{
-	monitorLockRecord *lr;
-
-	lr = o->monitorPtr;
-	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, t, o, return false);
-
-	/* { the current thread `t` owns the lock record `lr` on object `o` } */
-
-	if (lr->lockCount > 1) {
-		/* we had locked this one recursively. just decrement, it will */
-		/* still be locked. */
-		lr->lockCount--;
-		return true;
-	}
-
-	/* we are going to unlock and recycle this lock record */
-
-	if (lr->waiter) {
-		monitorLockRecord *wlr = lr->waiter;
-		if (o->monitorPtr != lr ||
-			(void*) compare_and_swap((long*) &o->monitorPtr, (long) lr, (long) wlr) != lr)
-		{
-			monitorLockRecord *nlr = o->monitorPtr;
-			assert(nlr->waiter == NULL);
-			nlr->waiter = wlr; /* XXX is it ok to overwrite the nlr->waiter field like that? */
-			STORE_ORDER_BARRIER();
-		}
-		else {
-			threads_wake_waiters(wlr);
-		}
-		lr->waiter = NULL;
-	}
-
-	/* unlock and throw away this lock record */
-	freeLockRecord(lr);
-	recycleLockRecord(t, lr);
-	return true;
-}
-
-/* threads_remove_waiter *******************************************************
-
-   Remove a waiter lock record from the waiter list of the given lock record
-
-   IN:
-      lr...........the lock record holding the waiter list
-	  toremove.....the record to remove from the list
-
-*******************************************************************************/
-
-static void threads_remove_waiter(monitorLockRecord *lr,
-								  monitorLockRecord *toremove)
-{
-	do {
-		if (lr->waiter == toremove) {
-			lr->waiter = toremove->waiter;
-			break;
-		}
-		lr = lr->waiter;
-	} while (lr); /* XXX need to break cycle? */
-}
 
 /* threads_timespec_earlier ****************************************************
 
@@ -1425,6 +1008,7 @@ static inline bool threads_timespec_earlier(const struct timespec *tv1,
 				||
 		(tv1->tv_sec == tv2->tv_sec && tv1->tv_nsec < tv2->tv_nsec);
 }
+
 
 /* threads_current_time_is_earlier_than ****************************************
 
@@ -1464,7 +1048,7 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 /* threads_wait_with_timeout ***************************************************
 
-   Wait for the given maximum amount of time on a monitor until either
+   Wait until the given point in time on a monitor until either
    we are notified, we are interrupted, or the time is up.
 
    IN:
@@ -1526,7 +1110,52 @@ static bool threads_wait_with_timeout(threadobject *t,
 }
 
 
-static void calcAbsoluteTime(struct timespec *tm, s8 millis, s4 nanos)
+/* threads_wait_with_timeout_relative ******************************************
+
+   Wait for the given maximum amount of time on a monitor until either
+   we are notified, we are interrupted, or the time is up.
+
+   IN:
+      t............the current thread
+	  millis.......milliseconds to wait
+	  nanos........nanoseconds to wait
+
+   RETURN VALUE:
+      true.........if the wait has been interrupted,
+	  false........if the wait was ended by notification or timeout
+
+*******************************************************************************/
+
+bool threads_wait_with_timeout_relative(threadobject *t,
+									  	s8 millis,
+										s4 nanos)
+{
+	struct timespec wakeupTime;
+
+	/* calculate the the (latest) wakeup time */
+
+	threads_calc_absolute_time(&wakeupTime, millis, nanos);
+
+	/* wait */
+
+	return threads_wait_with_timeout(t, &wakeupTime);
+}
+
+
+/* threads_calc_absolute_time **************************************************
+
+   Calculate the absolute point in time a given number of ms and ns from now.
+
+   IN:
+      millis............milliseconds from now
+	  nanos.............nanoseconds from now
+
+   OUT:
+      *tm...............receives the timespec of the absolute point in time
+
+*******************************************************************************/
+
+static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 {
 	if (millis || nanos) {
 		struct timeval tv;
@@ -1544,146 +1173,6 @@ static void calcAbsoluteTime(struct timespec *tm, s8 millis, s4 nanos)
 	}
 }
 
-/* monitorWait *****************************************************************
-
-   Wait on an object for a given (maximum) amount of time.
-
-   IN:
-      t............the current thread
-	  o............the object
-	  millis.......milliseconds of timeout
-	  nanos........nanoseconds of timeout
-
-   PRE-CONDITION:
-      The current thread must be the owner of the object's monitor.
-   
-*******************************************************************************/
-
-void monitorWait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
-{
-	bool wasinterrupted;
-	struct timespec wakeupTime;
-	monitorLockRecord *newlr;
-	monitorLockRecord *lr;
-
-	lr = o->monitorPtr;
-	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, t, o, return);
-
-	/* { the thread t owns the lock record lr on the object o } */
-
-	/* calculate the the (latest) wakeup time */
-
-	calcAbsoluteTime(&wakeupTime, millis, nanos);
-
-	/* wake threads waiting on this record XXX why? */
-
-	if (lr->waiter)
-		threads_wake_waiters(lr->waiter);
-
-	/* mark the lock record as "waiting on object o" */
-
-	lr->waiting = o;
-	STORE_ORDER_BARRIER();
-
-	/* unlock this record */
-
-	freeLockRecord(lr);
-
-	/* wait until notified/interrupted/timed out */
-
-	wasinterrupted = threads_wait_with_timeout(t, &wakeupTime);
-
-	/* re-enter the monitor */
-
-	newlr = monitorEnter(t, o);
-
-	/* we are no longer waiting */
-
-	threads_remove_waiter(newlr, lr);
-	newlr->lockCount = lr->lockCount;
-
-	/* recylce the old lock record */
-
-	lr->lockCount = 1;
-	lr->waiting = NULL;
-	lr->waiter = NULL;
-	recycleLockRecord(t, lr);
-
-	/* if we have been interrupted, throw the appropriate exception */
-
-	if (wasinterrupted)
-		*exceptionptr = new_exception(string_java_lang_InterruptedException);
-}
-
-/* notifyOneOrAll **************************************************************
-
-   Notify one thread or all threads waiting on the given object.
-
-   IN:
-      t............the current thread
-	  o............the object
-	  one..........if true, only notify one thread
-
-   PRE-CONDITION:
-      The current thread must be the owner of the object's monitor.
-   
-*******************************************************************************/
-
-static void notifyOneOrAll(threadobject *t, java_objectheader *o, bool one)
-{
-	monitorLockRecord *lr;
-	monitorLockRecord *wlr;
-	threadobject *wthread;
-
-	lr = o->monitorPtr;
-	GRAB_LR(lr, t);
-	CHECK_MONITORSTATE(lr, t, o, return);
-
-	/* { the thread t owns the lock record lr on the object o } */
-
-	/* for each waiter: */
-
-	for (wlr = lr->waiter; wlr; wlr = wlr->waiter) {
-
-		/* signal the waiting thread */
-
-		wthread = wlr->ownerThread;
-		pthread_mutex_lock(&wthread->waitLock);
-		if (wthread->isSleeping)
-			pthread_cond_signal(&wthread->waitCond);
-		wthread->signaled = true;
-		pthread_mutex_unlock(&wthread->waitLock);
-
-		/* if we should only wake one, we are done */
-
-		if (one)
-			break;
-	}
-}
-
-/* threadHoldsLock *************************************************************
-
-   Return true if the given thread owns the monitor of the given object.
-
-   IN:
-      t............the thread
-	  o............the object
-   
-   RETURN VALUE:
-      true, if the thread is locking the object
-
-*******************************************************************************/
-
-bool threadHoldsLock(threadobject *t, java_objectheader *o)
-{
-	monitorLockRecord *lr;
-
-	lr = o->monitorPtr;
-	GRAB_LR(lr, t);
-
-	return (lr->o == o) && (lr->ownerThread == t);
-}
 
 /* interruptThread *************************************************************
 
@@ -1711,6 +1200,7 @@ void interruptThread(java_lang_VMThread *thread)
 	pthread_mutex_unlock(&t->waitLock);
 }
 
+
 /* interruptedThread ***********************************************************
 
    Check if the current thread has been interrupted and reset the
@@ -1735,6 +1225,7 @@ bool interruptedThread()
 	return intr;
 }
 
+
 /* isInterruptedThread *********************************************************
 
    Check if the given thread has been interrupted
@@ -1756,6 +1247,7 @@ bool isInterruptedThread(java_lang_VMThread *thread)
 	return t->interrupted;
 }
 
+
 /* thread_sleep ****************************************************************
 
    Sleep the current thread for the specified amount of time.
@@ -1770,7 +1262,7 @@ void thread_sleep(s8 millis, s4 nanos)
 
 	t = (threadobject *) THREADOBJECT;
 
-	calcAbsoluteTime(&wakeupTime, millis, nanos);
+	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
 	wasinterrupted = threads_wait_with_timeout(t, &wakeupTime);
 
@@ -1778,33 +1270,33 @@ void thread_sleep(s8 millis, s4 nanos)
 		*exceptionptr = new_exception(string_java_lang_InterruptedException);
 }
 
+
+/* yieldThread *****************************************************************
+
+   Yield to the scheduler.
+
+*******************************************************************************/
+
 void yieldThread()
 {
 	sched_yield();
 }
 
+
+/* setPriorityThread ***********************************************************
+
+   Set the priority for the given java.lang.Thread.
+
+   IN:
+      t............the java.lang.Thread
+	  priority.....the priority
+
+*******************************************************************************/
+
 void setPriorityThread(thread *t, s4 priority)
 {
 	nativethread *info = &((threadobject*) t->vmThread)->info;
 	threads_set_thread_priority(info->tid, priority);
-}
-
-void wait_cond_for_object(java_objectheader *o, s8 millis, s4 nanos)
-{
-	threadobject *t = (threadobject*) THREADOBJECT;
-	monitorWait(t, o, millis, nanos);
-}
-
-void signal_cond_for_object(java_objectheader *o)
-{
-	threadobject *t = (threadobject*) THREADOBJECT;
-	notifyOneOrAll(t, o, true);
-}
-
-void broadcast_cond_for_object(java_objectheader *o)
-{
-	threadobject *t = (threadobject*) THREADOBJECT;
-	notifyOneOrAll(t, o, false);
 }
 
 

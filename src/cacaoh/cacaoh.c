@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: cacaoh.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 #if defined(NATIVE_THREADS)
 	threads_preinit();
 #endif
-	initLocks();
+	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done

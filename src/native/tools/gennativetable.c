@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: gennativetable.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 #if defined(NATIVE_THREADS)
 	threads_preinit();
 #endif
-	initLocks();
+	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done

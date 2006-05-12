@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: finalizer.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -72,7 +72,7 @@ bool finalizer_init(void)
 	lock_finalizer_thread = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_finalizer_thread);
+	lock_init_object_lock(lock_finalizer_thread);
 # endif
 #endif
 
@@ -100,7 +100,7 @@ static void finalizer_thread(void)
 
 		/* wait forever (0, 0) on that object till we are signaled */
 	
-		wait_cond_for_object(lock_finalizer_thread, 0, 0);
+		lock_wait_for_object(lock_finalizer_thread, 0, 0);
 
 		/* leave the lock */
 
@@ -169,7 +169,7 @@ void finalizer_notify(void)
 
 	/* signal the finalizer thread */
 	
-	signal_cond_for_object(lock_finalizer_thread);
+	lock_notify_object(lock_finalizer_thread);
 
 	/* leave the lock */
 

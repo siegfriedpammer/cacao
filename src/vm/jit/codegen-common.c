@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4898 2006-05-10 15:51:46Z twisti $
+   $Id: codegen-common.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -597,7 +597,7 @@ void codegen_finish(jitdata *jd)
 	mcodelen = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	extralen = sizeof(threadcritnode) * cd->threadcritcount;
+	extralen = sizeof(critical_section_node_t) * cd->threadcritcount;
 #else
 	extralen = 0;
 #endif
@@ -728,15 +728,15 @@ void codegen_finish(jitdata *jd)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	{
-		threadcritnode *n = (threadcritnode *) ((ptrint) code->mcode + alignedlen);
+		critical_section_node_t *n = (critical_section_node_t *) ((ptrint) code->mcode + alignedlen);
 		s4 i;
-		threadcritnodetemp *nt = cd->threadcrit;
+		codegen_critical_section_t *nt = cd->threadcrit;
 
 		for (i = 0; i < cd->threadcritcount; i++) {
 			n->mcodebegin = (u1 *) (ptrint) code->mcode + nt->mcodebegin;
 			n->mcodeend = (u1 *) (ptrint) code->mcode + nt->mcodeend;
 			n->mcoderestart = (u1 *) (ptrint) code->mcode + nt->mcoderestart;
-			thread_registercritical(n);
+			critical_register_critical_section(n);
 			n++;
 			nt = nt->next;
 		}
@@ -1130,7 +1130,7 @@ void codegen_threadcritstop(codegendata *cd, int offset)
 {
 	cd->threadcritcurrent.next = cd->threadcrit;
 	cd->threadcritcurrent.mcodeend = offset;
-	cd->threadcrit = DNEW(threadcritnodetemp);
+	cd->threadcrit = DNEW(codegen_critical_section_t);
 	*(cd->threadcrit) = cd->threadcritcurrent;
 	cd->threadcritcount++;
 }

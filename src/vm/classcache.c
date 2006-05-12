@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4889 2006-05-06 00:16:11Z edwin $
+   $Id: classcache.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -265,7 +265,7 @@ bool classcache_init(void)
 	lock_hashtable_classcache = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_hashtable_classcache);
+	lock_init_object_lock(lock_hashtable_classcache);
 # endif
 #endif
 

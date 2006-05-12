@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.h 4866 2006-05-01 21:40:38Z edwin $
+   $Id: threads.h 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -54,6 +54,8 @@
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
 #include "vm/global.h"
+
+#include "threads/native/lock.h"
 
 #if defined(__DARWIN__)
 #include <mach/mach.h>
@@ -84,27 +86,9 @@ extern pthread_key_t tkey_threadinfo;
 
 /* typedefs *******************************************************************/
 
-typedef struct ExecEnvironment ExecEnvironment;
 typedef struct nativethread nativethread;
 typedef struct threadobject threadobject;
-typedef struct monitorLockRecord monitorLockRecord;
-typedef struct lockRecordPoolHeader lockRecordPoolHeader;
-typedef struct lockRecordPool lockRecordPool;
 typedef java_lang_Thread thread;
-
-
-/* ExecEnvironment *************************************************************
-
-   Monitor lock implementation
-
-*******************************************************************************/
-
-struct ExecEnvironment {
-	monitorLockRecord *firstLR;
-	lockRecordPool    *lrpool;
-	int                numlr;
-};
-
 
 struct nativethread {
 	threadobject      *next;
@@ -134,7 +118,7 @@ struct nativethread {
 struct threadobject {
 	java_lang_VMThread  o;
 	nativethread        info;           /* some general pthreads stuff        */
-	ExecEnvironment     ee;             /* contains our lock record pool      */
+	lock_execution_env_t     ee;             /* contains our lock record pool      */
 
 	/* these are used for the wait/notify implementation                      */
 	pthread_mutex_t     waitLock;
@@ -146,59 +130,16 @@ struct threadobject {
 	dumpinfo            dumpinfo;       /* dump memory info structure         */
 };
 
-/* monitorLockRecord ***********************************************************
-
-   This is the really interesting stuff.
-   See handbook for a detailed description.
-
-*******************************************************************************/
-
-struct monitorLockRecord {
-	threadobject      *ownerThread;
-	java_objectheader *o;
-	s4                 lockCount;
-	monitorLockRecord *nextFree;
-	s4                 queuers;
-	monitorLockRecord *waiter;
-	monitorLockRecord *incharge;
-	java_objectheader *waiting;
-	sem_t              queueSem;
-	pthread_mutex_t    resolveLock;
-	pthread_cond_t     resolveWait;
-};
-
-
-struct lockRecordPoolHeader {
-	lockRecordPool *next;
-	int             size;
-}; 
-
-struct lockRecordPool {
-	lockRecordPoolHeader header;
-	monitorLockRecord    lr[1];
-};
-
 void threads_sem_init(sem_t *sem, bool shared, int value);
 void threads_sem_wait(sem_t *sem);
 void threads_sem_post(sem_t *sem);
-
-monitorLockRecord *monitorEnter(threadobject *, java_objectheader *);
-bool monitorExit(threadobject *, java_objectheader *);
-
-bool threadHoldsLock(threadobject *t, java_objectheader *o);
-
-void wait_cond_for_object(java_objectheader *o, s8 millis, s4 nanos);
-void signal_cond_for_object(java_objectheader *o);
-void broadcast_cond_for_object(java_objectheader *o);
 
 void *thread_getself(void);
 
 void threads_preinit(void);
 bool threads_init(u1 *stackbottom);
 
-void initObjectLock(java_objectheader *);
-monitorLockRecord *get_dummyLR(void);
-void initLocks();
+void lock_init();
 void initThread(java_lang_VMThread *);
 
 /* start a thread */
@@ -208,6 +149,8 @@ void joinAllThreads();
 
 void thread_sleep(s8 millis, s4 nanos);
 void yieldThread();
+
+bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void setPriorityThread(thread *t, s4 priority);
 
@@ -219,23 +162,7 @@ bool isInterruptedThread(java_lang_VMThread *);
 void setthreadobject(threadobject *thread);
 #endif
 
-
-/* This must not be changed, it is used in asm_criticalsections */
-typedef struct {
-	u1 *mcodebegin;
-	u1 *mcodeend;
-	u1 *mcoderestart;
-} threadcritnode;
-
-void thread_registercritical(threadcritnode *);
-u1 *thread_checkcritical(u1*);
-
-extern volatile int stopworldwhere;
 extern threadobject *mainthreadobj;
-
-extern pthread_mutex_t pool_lock;
-extern lockRecordPool *global_pool;
-
 
 void cast_stopworld();
 void cast_startworld();
@@ -243,8 +170,33 @@ void cast_startworld();
 /* dumps all threads */
 void threads_dump(void);
 
-/* this is a machine dependent functions (src/vm/jit/$(ARCH_DIR)/md.c) */
-void thread_restartcriticalsection(ucontext_t *);
+
+/******************************************************************************/
+/* Recursive Mutex Implementation for Darwin                                  */
+/******************************************************************************/
+
+#if defined(MUTEXSIM)
+
+/* We need this for older MacOSX (10.1.x) */
+
+typedef struct {
+	pthread_mutex_t mutex;
+	pthread_t owner;
+	int count;
+} pthread_mutex_rec_t;
+
+void pthread_mutex_init_rec(pthread_mutex_rec_t *m);
+void pthread_mutex_destroy_rec(pthread_mutex_rec_t *m);
+void pthread_mutex_lock_rec(pthread_mutex_rec_t *m);
+void pthread_mutex_unlock_rec(pthread_mutex_rec_t *m);
+
+#else /* !defined(MUTEXSIM) */
+
+#define pthread_mutex_lock_rec pthread_mutex_lock
+#define pthread_mutex_unlock_rec pthread_mutex_unlock
+#define pthread_mutex_rec_t pthread_mutex_t
+
+#endif /* defined(MUTEXSIM) */
 
 #endif /* _THREADS_H */
 

@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 4900 2006-05-11 09:18:28Z twisti $
+   $Id: string.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -212,7 +212,7 @@ bool string_init(void)
 	lock_hashtable_string = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(lock_hashtable_string);
+	lock_init_object_lock(lock_hashtable_string);
 # endif
 #endif
 
@@ -633,7 +633,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 	js = NEW(java_lang_String);
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	initObjectLock(&js->header);
+	lock_init_object_lock(&js->header);
 #endif
 
 	js->header.vftbl = class_java_lang_String->vftbl;

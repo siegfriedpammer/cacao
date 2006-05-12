@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: headers.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -461,7 +461,7 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 /* machine dependent stuff ****************************************************/
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-threadcritnode asm_criticalsections;
+critical_section_node_t asm_criticalsections;
 void thread_restartcriticalsection(ucontext_t *uc) {}
 #endif
 

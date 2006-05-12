@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4892 2006-05-06 18:29:55Z motse $
+   $Id: jvmti.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -673,7 +673,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 {
 	int i,j,size=20;
 	java_objectheader **om;
-	lockRecordPool* lrp;
+	lock_record_pool_t* lrp;
 
 	log_text("GetOwnedMonitorInfo called - todo: fix object mapping");
 
@@ -694,12 +694,12 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	om=MNEW(java_objectheader*,size);
 
-	pthread_mutex_lock(&pool_lock);
-	lrp=global_pool;
+	pthread_mutex_lock(&lock_global_pool_lock);
+	lrp=lock_global_pool;
 
 	while (lrp != NULL) {
 		for (j=0; j<lrp->header.size; j++) {
-			if((lrp->lr[j].ownerThread==(threadobject*)thread)&&
+			if((lrp->lr[j].owner==(threadobject*)thread)&&
 			   (!lrp->lr[j].waiting)) {
 				if (i>=size) {
 					MREALLOC(om,java_objectheader*,size,size*2);
@@ -712,7 +712,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&pool_lock);
+	pthread_mutex_unlock(&lock_global_pool_lock);
 
 	*owned_monitors_ptr	= heap_allocate(sizeof(java_objectheader*)*i,true,NULL);
 	memcpy(*owned_monitors_ptr,om,i*sizeof(java_objectheader*));
@@ -736,7 +736,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 			    jobject * monitor_ptr)
 {
 	int j;
-	lockRecordPool* lrp;
+	lock_record_pool_t* lrp;
 	java_objectheader* monitor;
 
 	CHECK_PHASE_START
@@ -755,13 +755,13 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 
-	pthread_mutex_lock(&pool_lock);
+	pthread_mutex_lock(&lock_global_pool_lock);
 
-	lrp=global_pool;
+	lrp=lock_global_pool;
 
 	while ((lrp != NULL)&&(monitor==NULL)) {
 		for (j=0; j<lrp->header.size; j++) {
-			if((lrp->lr[j].ownerThread==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
+			if((lrp->lr[j].owner==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
 				monitor=lrp->lr[j].o;
 				break;
 			}
@@ -769,7 +769,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&pool_lock);
+	pthread_mutex_unlock(&lock_global_pool_lock);
 
 	if (monitor!=NULL) {
 		*monitor_ptr = heap_allocate(sizeof(java_objectheader*),true,NULL);
@@ -1407,10 +1407,10 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 		return JVMTI_ERROR_INVALID_MONITOR;
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	if (!threadHoldsLock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
+	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 	
-	monitorExit((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name);
+	lock_monitor_exit((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name);
 
 	/* GC will clean monitor up */
 #else
@@ -1457,7 +1457,7 @@ RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!threadHoldsLock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	builtin_monitorexit((java_objectheader*)monitor->name);
@@ -1483,10 +1483,10 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!threadHoldsLock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
-	wait_cond_for_object(&monitor->name->header, millis,0);
+	lock_wait_for_object(&monitor->name->header, millis,0);
 	if (builtin_instanceof((java_objectheader*)exceptionptr, load_class_bootstrap(utf_new_char("java/lang/InterruptedException"))))
 		return JVMTI_ERROR_INTERRUPT;
 
@@ -1512,10 +1512,10 @@ RawMonitorNotify (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!threadHoldsLock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
-	signal_cond_for_object((java_objectheader*)&monitor->name);
+	lock_notify_object((java_objectheader*)&monitor->name);
 #else
 	log_text ("RawMonitorNotify not supported");
 #endif
@@ -1538,10 +1538,10 @@ RawMonitorNotifyAll (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!threadHoldsLock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
+	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
-	broadcast_cond_for_object((java_objectheader*)&monitor->name);
+	lock_notify_all_object((java_objectheader*)&monitor->name);
 #else
 	log_text ("RawMonitorNotifyAll not supported");
 #endif

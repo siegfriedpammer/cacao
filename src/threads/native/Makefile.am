@@ -26,9 +26,9 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## Changes:
+## Changes: Edwin Steiner
 ##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
+## $Id: Makefile.am 4908 2006-05-12 16:49:50Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -39,6 +39,10 @@ LIBS =
 noinst_LTLIBRARIES = libthreads.la
 
 libthreads_la_SOURCES = \
+	critical.c \
+	critical.h \
+	lock.c \
+	lock.h \
 	threads.c \
 	threads.h
 

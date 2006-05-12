@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 4798 2006-04-20 19:18:43Z edwin $
+   $Id: memory.c 4908 2006-05-12 16:49:50Z edwin $
 
 */
 
@@ -113,7 +113,7 @@ bool memory_init(void)
 	codememlock = NEW(java_objectheader);
 
 # if defined(NATIVE_THREADS)
-	initObjectLock(codememlock);
+	lock_init_object_lock(codememlock);
 # endif
 #endif /* defined(USE_THREADS) */
 
