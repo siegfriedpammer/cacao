@@ -126,7 +126,7 @@ void lock_notify_all_object(java_objectheader *o);
 void lock_init_object_lock(java_objectheader *);
 lock_record_t *lock_get_initial_lock_word(void);
 
-void lock_init_thread_lock_record_pool(struct threadobject *thread);
+void lock_init_execution_env(struct threadobject *thread);
 void lock_record_free_pools(lock_record_pool_t *pool);
 
 #endif /* _LOCK_H */

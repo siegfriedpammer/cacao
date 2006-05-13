@@ -126,6 +126,12 @@ pthread_mutex_t lock_global_pool_lock;
 lock_record_pool_t *lock_global_pool;
 
 
+
+/*============================================================================*/
+/* INITIALIZATION OF DATA STRUCTURES                                          */
+/*============================================================================*/
+
+
 /* lock_init *******************************************************************
 
    Initialize global data for locking.
@@ -172,21 +178,27 @@ static void lock_record_init(lock_record_t *r, threadobject *t)
 }
 
 
-/* lock_init_thread_lock_record_pool *******************************************
+/* lock_init_execution_env *****************************************************
 
-   Initialize the lock record pool(s) for a thread.
+   Initialize the execution environment for a thread.
 
    IN:
       thread.......the thread
 
 *******************************************************************************/
 
-void lock_init_thread_lock_record_pool(threadobject *thread)
+void lock_init_execution_env(threadobject *thread)
 {
 	thread->ee.firstLR = NULL;
 	thread->ee.lrpool = NULL;
 	thread->ee.numlr = 0;
 }
+
+
+
+/*============================================================================*/
+/* LOCK RECORD MANAGEMENT                                                     */
+/*============================================================================*/
 
 
 /* lock_record_alloc_new_pool **************************************************
@@ -204,7 +216,7 @@ void lock_init_thread_lock_record_pool(threadobject *thread)
 
 static lock_record_pool_t *lock_record_alloc_new_pool(threadobject *thread, int size)
 {
-	lock_record_pool_t *p = mem_alloc(sizeof(lock_record_pool_header_t) 
+	lock_record_pool_t *p = mem_alloc(sizeof(lock_record_pool_header_t)
 										+ sizeof(lock_record_t) * size);
 	int i;
 
@@ -235,10 +247,12 @@ static lock_record_pool_t *lock_record_alloc_new_pool(threadobject *thread, int 
 static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
 {
 	pthread_mutex_lock(&lock_global_pool_lock);
+
 	if (lock_global_pool) {
 		int i;
 		lock_record_pool_t *pool = lock_global_pool;
 		lock_global_pool = pool->header.next;
+
 		pthread_mutex_unlock(&lock_global_pool_lock);
 
 		for (i=0; i < pool->header.size; i++) {
@@ -249,6 +263,7 @@ static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
 
 		return pool;
 	}
+
 	pthread_mutex_unlock(&lock_global_pool_lock);
 
 	return lock_record_alloc_new_pool(t, size);
@@ -267,12 +282,15 @@ static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
 void lock_record_free_pools(lock_record_pool_t *pool)
 {
 	lock_record_pool_header_t *last;
+
 	pthread_mutex_lock(&lock_global_pool_lock);
+
 	last = &pool->header;
 	while (last->next)
 		last = &last->next->header;
 	last->next = lock_global_pool;
 	lock_global_pool = pool;
+
 	pthread_mutex_unlock(&lock_global_pool_lock);
 }
 
@@ -333,6 +351,12 @@ static inline void lock_record_recycle(threadobject *t, lock_record_t *r)
 }
 
 
+
+/*============================================================================*/
+/* OBJECT LOCK INITIALIZATION                                                 */
+/*============================================================================*/
+
+
 /* lock_init_object_lock *******************************************************
 
    Initialize the monitor pointer of the given object. The monitor gets
@@ -360,6 +384,12 @@ lock_record_t *lock_get_initial_lock_word(void)
 {
 	return dummyLR;
 }
+
+
+
+/*============================================================================*/
+/* LOCKING ALGORITHM                                                          */
+/*============================================================================*/
 
 
 /* lock_queue_on_lock_record ***************************************************
@@ -434,7 +464,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 			/* the lock record does not lock this object */
 			lock_record_t *nlr;
 			lock_record_t *mlr;
-		   
+
 			/* allocate a new lock record for this object */
 			mlr	= lock_record_alloc(t);
 			mlr->o = o;
@@ -449,7 +479,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 					lock_handle_waiter(mlr, lr, o);
 					return mlr;
 				}
-			} 
+			}
 			else {
 				/* no, it's another lock record */
 				/* if we don't own the old record, set incharge XXX */
@@ -483,7 +513,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 			lock_record_release(mlr);
 			lock_record_recycle(t, mlr);
 			lock_queue_on_lock_record(nlr, o);
-		} 
+		}
 		else {
 			/* the lock record is for the object we want */
 
@@ -602,7 +632,7 @@ bool lock_monitor_exit(threadobject *t, java_objectheader *o)
 *******************************************************************************/
 
 static void lock_record_remove_waiter(lock_record_t *lr,
-								  	  lock_record_t *toremove)
+									  lock_record_t *toremove)
 {
 	do {
 		if (lr->waiter == toremove) {
@@ -729,6 +759,12 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 }
 
 
+
+/*============================================================================*/
+/* INQUIRY FUNCIONS                                                           */
+/*============================================================================*/
+
+
 /* lock_does_thread_hold_lock **************************************************
 
    Return true if the given thread owns the monitor of the given object.
@@ -751,6 +787,12 @@ bool lock_does_thread_hold_lock(threadobject *t, java_objectheader *o)
 
 	return (lr->o == o) && (lr->owner == t);
 }
+
+
+
+/*============================================================================*/
+/* WRAPPERS FOR OPERATIONS ON THE CURRENT THREAD                              */
+/*============================================================================*/
 
 
 /* lock_wait_for_object ********************************************************

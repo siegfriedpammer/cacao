@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4909 2006-05-13 23:10:21Z edwin $
+   $Id: threads.c 4910 2006-05-13 23:25:20Z edwin $
 
 */
 
@@ -664,7 +664,7 @@ bool threads_init(u1 *stackbottom)
 
 	threads_set_current_threadobject(mainthreadobj);
 
-	lock_init_thread_lock_record_pool(mainthreadobj);
+	lock_init_execution_env(mainthreadobj);
 
 	mainthreadobj->info.next = mainthreadobj;
 	mainthreadobj->info.prev = mainthreadobj;
@@ -845,7 +845,7 @@ static void *threads_startup_thread(void *t)
 
 	/* init data structures of this thread */
 
-	lock_init_thread_lock_record_pool(thread);
+	lock_init_execution_env(thread);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
