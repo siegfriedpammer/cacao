@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4901 2006-05-11 12:18:55Z twisti $
+   $Id: jni.c 4909 2006-05-13 23:10:21Z edwin $
 
 */
 
@@ -5436,7 +5436,7 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	STATISTICS(jniinvokation());
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	if (thread_getself() == NULL) {
+	if (threads_get_current_threadobject() == NULL) {
 		*env = NULL;
 
 		return JNI_EDETACHED;

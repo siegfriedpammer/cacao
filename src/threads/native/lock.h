@@ -75,16 +75,16 @@ struct lock_execution_env_t {
 
 struct lock_record_t {
 	struct threadobject *owner;
-	java_objectheader *o;
-	s4                 lockCount;
-	lock_record_t *nextFree;
-	s4                 queuers;
-	lock_record_t *waiter;
-	lock_record_t *incharge;
-	java_objectheader *waiting;
-	sem_t              queueSem;
-	pthread_mutex_t    resolveLock;
-	pthread_cond_t     resolveWait;
+	java_objectheader   *o;
+	s4                   lockCount;
+	lock_record_t       *nextFree;
+	s4                   queuers;
+	lock_record_t       *waiter;
+	lock_record_t       *incharge;
+	java_objectheader   *waiting;
+	sem_t                queueSem;
+	pthread_mutex_t      resolveLock;
+	pthread_cond_t       resolveWait;
 };
 
 
@@ -94,7 +94,7 @@ struct lock_record_t {
 
 struct lock_record_pool_header_t {
 	lock_record_pool_t *next;
-	int             size;
+	int                 size;
 }; 
 
 
@@ -104,8 +104,11 @@ struct lock_record_pool_header_t {
 
 struct lock_record_pool_t {
 	lock_record_pool_header_t header;
-	lock_record_t    lr[1];
+	lock_record_t             lr[1];
 };
+
+
+/* functions ******************************************************************/
 
 void lock_init(void);
 

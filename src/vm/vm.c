@@ -1245,7 +1245,7 @@ s4 vm_destroy(JavaVM *vm)
 {
 #if defined(USE_THREADS)
 #if defined(NATIVE_THREADS)
-	joinAllThreads();
+	threads_join_all_threads();
 #else
 	killThread(currentThread);
 #endif

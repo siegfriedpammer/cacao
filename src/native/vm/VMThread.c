@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: VMThread.c 4909 2006-05-13 23:10:21Z edwin $
 
 */
 
@@ -83,7 +83,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 
 	/* don't pass a function pointer (NULL) since we want Thread.run()V here */
 
-	threads_start_thread((thread *) this->thread, NULL);
+	threads_start_thread((java_lang_Thread *) this->thread, NULL);
 #endif
 }
 
@@ -96,7 +96,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	interruptThread(this);
+	threads_interrupt_thread(this);
 #else
 	log_text("Java_java_lang_VMThread_interrupt called");
 #endif
@@ -111,7 +111,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	return isInterruptedThread(this);
+	return threads_thread_has_been_interrupted(this);
 #else
 	log_text("Java_java_lang_VMThread_isInterrupted called");
 	return 0;
@@ -127,7 +127,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lan
 JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	suspendThread((thread *) this->thread);
+	suspendThread((java_lang_Thread *) this->thread);
 #endif
 }
 
@@ -140,7 +140,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
 JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	resumeThread((thread *) this->thread);
+	resumeThread((java_lang_Thread *) this->thread);
 #endif
 }
 
@@ -153,7 +153,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, s4 priority)
 {
 #if defined(USE_THREADS)
-	setPriorityThread((thread *) this->thread, priority);
+	threads_java_lang_Thread_set_priority((java_lang_Thread *) this->thread, priority);
 #endif
 }
 
@@ -166,7 +166,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {
 #if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	if (currentThread == (thread *) this->thread) {
+	if (currentThread == (java_lang_Thread *) this->thread) {
 		log_text("killing");
 		killThread(0);
 		/*
@@ -175,8 +175,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang
 		*/
 
 	} else {
-		/*CONTEXT((thread*)this)*/ this->flags |= THREAD_FLAGS_KILLED;
-		resumeThread((thread *) this->thread);
+		/*CONTEXT((java_lang_Thread*)this)*/ this->flags |= THREAD_FLAGS_KILLED;
+		resumeThread((java_lang_Thread *) this->thread);
 	}
 #endif
 }
@@ -229,7 +229,7 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv
 JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 {
 #if defined(USE_THREADS)
-	yieldThread();
+	threads_yield();
 #endif
 }
 
@@ -242,7 +242,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-	return interruptedThread();
+	return threads_check_if_interrupted_and_reset();
 #else
 	log_text("Java_java_lang_VMThread_interrupted");
 	return 0;

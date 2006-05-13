@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: threads.c 4909 2006-05-13 23:10:21Z edwin $
 
 */
 
@@ -91,30 +91,64 @@
 #endif
 
 
+/* internally used constants **************************************************/
+
+/* CAUTION: Do not change these values. Boehm GC code depends on them.        */
+#define STOPWORLD_FROM_GC               1
+#define STOPWORLD_FROM_CLASS_NUMBERING  2
+
+
+/* startupinfo *****************************************************************
+
+   Struct used to pass info from threads_start_thread to 
+   threads_startup_thread.
+
+******************************************************************************/
+
+typedef struct {
+	threadobject *thread;      /* threadobject for this thread             */
+	functionptr   function;    /* function to run in the new thread        */
+	sem_t        *psem;        /* signals when thread has been entered     */
+	                           /* in the thread list                       */
+	sem_t        *psem_first;  /* signals when pthread_create has returned */
+} startupinfo;
+
+
 /* prototypes *****************************************************************/
 
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
-	
+
+
 /******************************************************************************/
 /* GLOBAL VARIABLES                                                           */
 /******************************************************************************/
 
-/* the main thread */
+/* the main thread                                                            */
 threadobject *mainthreadobj;
 
-#ifndef HAVE___THREAD
-pthread_key_t tkey_threadinfo;
+/* the thread object of the current thread                                    */
+/* This is either a thread-local variable defined with __thread, or           */
+/* a thread-specific value stored with key threads_current_threadobject_key.  */
+#if defined(HAVE___THREAD)
+__thread threadobject *threads_current_threadobject;
 #else
-__thread threadobject *threadobj;
+pthread_key_t threads_current_threadobject_key;
 #endif
 
+/* global compiler mutex                                                      */
 static pthread_mutex_rec_t compiler_mutex;
 
+/* global mutex for changing the thread list                                  */
 static pthread_mutex_t threadlistlock;
 
+/* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
+
+/* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
+/* being stopped                                                              */
 static volatile int stopworldwhere;
 
+/* semaphore used for acknowleding thread suspension                          */
 static sem_t suspend_ack;
 #if defined(__MIPS__)
 static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -123,6 +157,7 @@ static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 
 static pthread_attr_t threadattr;
 
+/* mutexes used by the fake atomic instructions                               */
 #if defined(USE_MD_THREAD_STUFF)
 pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -293,7 +328,7 @@ static void threads_set_thread_priority(pthread_t tid, int priority)
 
 ******************************************************************************/
 
-void compiler_lock()
+void compiler_lock(void)
 {
 	pthread_mutex_lock_rec(&compiler_mutex);
 }
@@ -305,7 +340,7 @@ void compiler_lock()
 
 ******************************************************************************/
 
-void compiler_unlock()
+void compiler_unlock(void)
 {
 	pthread_mutex_unlock_rec(&compiler_mutex);
 }
@@ -316,8 +351,8 @@ void compiler_unlock()
    Enter the stopworld lock, specifying why the world shall be stopped.
 
    IN:
-      where........ 1 from within GC
-                    2 class numbering
+      where........ STOPWORLD_FROM_GC              (1) from within GC
+                    STOPWORLD_FROM_CLASS_NUMBERING (2) class numbering
 
 ******************************************************************************/
 
@@ -334,7 +369,7 @@ void lock_stopworld(int where)
 
 ******************************************************************************/
 
-void unlock_stopworld()
+void unlock_stopworld(void)
 {
 	stopworldwhere = 0;
 	pthread_mutex_unlock(&stopworldlock);
@@ -342,7 +377,7 @@ void unlock_stopworld()
 
 #if !defined(__DARWIN__)
 /* Caller must hold threadlistlock */
-static int cast_sendsignals(int sig, int count)
+static int threads_cast_sendsignals(int sig, int count)
 {
 	/* Count threads */
 	threadobject *tobj = mainthreadobj;
@@ -367,7 +402,7 @@ static int cast_sendsignals(int sig, int count)
 
 #else
 
-static void cast_darwinstop()
+static void threads_cast_darwinstop(void)
 {
 	threadobject *tobj = mainthreadobj;
 	nativethread *infoself = THREADINFO;
@@ -408,7 +443,7 @@ static void cast_darwinstop()
 	} while (tobj != mainthreadobj);
 }
 
-static void cast_darwinresume()
+static void threads_cast_darwinresume(void)
 {
 	threadobject *tobj = mainthreadobj;
 	nativethread *infoself = THREADINFO;
@@ -433,7 +468,7 @@ static void cast_darwinresume()
 #endif
 
 #if defined(__MIPS__)
-static void cast_irixresume()
+static void threads_cast_irixresume(void)
 {
 	pthread_mutex_lock(&suspend_ack_lock);
 	pthread_cond_broadcast(&suspend_cond);
@@ -441,37 +476,37 @@ static void cast_irixresume()
 }
 #endif
 
-void cast_stopworld()
+void threads_cast_stopworld(void)
 {
 	int count, i;
-	lock_stopworld(2);
+	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
-	cast_darwinstop();
+	threads_cast_darwinstop();
 #else
-	count = cast_sendsignals(GC_signum1(), 0);
+	count = threads_cast_sendsignals(GC_signum1(), 0);
 	for (i=0; i<count; i++)
 		threads_sem_wait(&suspend_ack);
 #endif
 	pthread_mutex_unlock(&threadlistlock);
 }
 
-void cast_startworld()
+void threads_cast_startworld(void)
 {
 	pthread_mutex_lock(&threadlistlock);
 #if defined(__DARWIN__)
-	cast_darwinresume();
+	threads_cast_darwinresume();
 #elif defined(__MIPS__)
-	cast_irixresume();
+	threads_cast_irixresume();
 #else
-	cast_sendsignals(GC_signum2(), -1);
+	threads_cast_sendsignals(GC_signum2(), -1);
 #endif
 	pthread_mutex_unlock(&threadlistlock);
 	unlock_stopworld();
 }
 
 #if !defined(__DARWIN__)
-static void sigsuspend_handler(ucontext_t *ctx)
+static void threads_sigsuspend_handler(ucontext_t *ctx)
 {
 	int sig;
 	sigset_t sigs;
@@ -498,18 +533,20 @@ static void sigsuspend_handler(ucontext_t *ctx)
 #endif
 }
 
+/* This function is called from Boehm GC code. */
+
 int cacao_suspendhandler(ucontext_t *ctx)
 {
-	if (stopworldwhere != 2)
+	if (stopworldwhere != STOPWORLD_FROM_CLASS_NUMBERING)
 		return 0;
 
-	sigsuspend_handler(ctx);
+	threads_sigsuspend_handler(ctx);
 	return 1;
 }
 #endif
 
 
-/* setthreadobject *************************************************************
+/* threads_set_current_threadobject ********************************************
 
    Set the current thread object.
    
@@ -519,34 +556,35 @@ int cacao_suspendhandler(ucontext_t *ctx)
 *******************************************************************************/
 
 #if !defined(ENABLE_JVMTI)
-static void setthreadobject(threadobject *thread)
+static void threads_set_current_threadobject(threadobject *thread)
 #else
-void setthreadobject(threadobject *thread)
+void threads_set_current_threadobject(threadobject *thread)
 #endif
 {
 #if !defined(HAVE___THREAD)
-	pthread_setspecific(tkey_threadinfo, thread);
+	pthread_setspecific(threads_current_threadobject_key, thread);
 #else
-	threadobj = thread;
+	threads_current_threadobject = thread;
 #endif
 }
 
 
-/* thread_setself **************************************************************
+/* threads_get_current_threadobject ********************************************
 
    Return the threadobject of the current thread.
    
-   XXX The return value type should be changed to a typed pointer.
+   RETURN VALUE:
+       the current threadobject * (an instance of java.lang.VMThread)
 
 *******************************************************************************/
 
-void *thread_getself(void)
+threadobject *threads_get_current_threadobject(void)
 {
 	return THREADOBJECT;
 }
 
 
-/* thread_preinit **************************************************************
+/* threads_preinit *************************************************************
 
    Do some early initialization of stuff required.
 
@@ -574,9 +612,9 @@ void threads_preinit(void)
 	mainthreadobj = NEW(threadobject);
 	mainthreadobj->info.tid = pthread_self();
 #if !defined(HAVE___THREAD)
-	pthread_key_create(&tkey_threadinfo, NULL);
+	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
-	setthreadobject(mainthreadobj);
+	threads_set_current_threadobject(mainthreadobj);
 
 	/* we need a working dummyLR before initializing the critical
 	   section tree */
@@ -622,9 +660,9 @@ bool threads_init(u1 *stackbottom)
 
 	FREE(tempthread, threadobject);
 
-	initThread(&mainthreadobj->o);
+	threads_init_threadobject(&mainthreadobj->o);
 
-	setthreadobject(mainthreadobj);
+	threads_set_current_threadobject(mainthreadobj);
 
 	lock_init_thread_lock_record_pool(mainthreadobj);
 
@@ -706,7 +744,7 @@ bool threads_init(u1 *stackbottom)
 }
 
 
-/* initThread ******************************************************************
+/* threads_init_threadobject **************************************************
 
    Initialize implementation fields of a java.lang.VMThread.
 
@@ -715,7 +753,7 @@ bool threads_init(u1 *stackbottom)
 
 ******************************************************************************/
 
-void initThread(java_lang_VMThread *t)
+void threads_init_threadobject(java_lang_VMThread *t)
 {
 	threadobject *thread = (threadobject*) t;
 	nativethread *info = &thread->info;
@@ -730,22 +768,6 @@ void initThread(java_lang_VMThread *t)
 	thread->signaled = false;
 	thread->isSleeping = false;
 }
-
-
-/* startupinfo *****************************************************************
-
-   Struct used to pass info from threads_start_thread to 
-   threads_startup_thread.
-
-******************************************************************************/
-
-typedef struct {
-	threadobject *thread;      /* threadobject for this thread             */
-	functionptr   function;    /* function to run in the new thread        */
-	sem_t        *psem;        /* signals when thread has been entered     */
-	                           /* in the thread list                       */
-	sem_t        *psem_first;  /* signals when pthread_create has returned */
-} startupinfo;
 
 
 /* threads_startup_thread ******************************************************
@@ -808,7 +830,7 @@ static void *threads_startup_thread(void *t)
 #if defined(__DARWIN__)
 	info->mach_thread = mach_thread_self();
 #endif
-	setthreadobject(thread);
+	threads_set_current_threadobject(thread);
 
 	/* insert the thread into the threadlist */
 
@@ -900,7 +922,7 @@ static void *threads_startup_thread(void *t)
 
 ******************************************************************************/
 
-void threads_start_thread(thread *t, functionptr function)
+void threads_start_thread(java_lang_Thread *t, functionptr function)
 {
 	nativethread *info;
 	sem_t         sem;
@@ -943,9 +965,9 @@ void threads_start_thread(thread *t, functionptr function)
 }
 
 
-/* findNonDaemon ***************************************************************
+/* threads_find_non_daemon_thread **********************************************
 
-   Helper function used by joinAllThreads for finding non-daemon threads
+   Helper function used by threads_join_all_threads for finding non-daemon threads
    that are still running.
 
 *******************************************************************************/
@@ -953,7 +975,7 @@ void threads_start_thread(thread *t, functionptr function)
 /* At the end of the program, we wait for all running non-daemon threads to die
  */
 
-static threadobject *findNonDaemon(threadobject *thread)
+static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 {
 	while (thread != mainthreadobj) {
 		if (!thread->o.thread->daemon)
@@ -965,17 +987,17 @@ static threadobject *findNonDaemon(threadobject *thread)
 }
 
 
-/* joinAllThreads **************************************************************
+/* threads_join_all_threads ****************************************************
 
    Join all non-daemon threads.
 
 *******************************************************************************/
 
-void joinAllThreads()
+void threads_join_all_threads(void)
 {
 	threadobject *thread;
 	pthread_mutex_lock(&threadlistlock);
-	while ((thread = findNonDaemon(mainthreadobj->info.prev)) != NULL) {
+	while ((thread = threads_find_non_daemon_thread(mainthreadobj->info.prev)) != NULL) {
 		nativethread *info = &thread->info;
 		pthread_mutex_lock(&info->joinMutex);
 		pthread_mutex_unlock(&threadlistlock);
@@ -1127,7 +1149,7 @@ static bool threads_wait_with_timeout(threadobject *t,
 *******************************************************************************/
 
 bool threads_wait_with_timeout_relative(threadobject *t,
-									  	s8 millis,
+										s8 millis,
 										s4 nanos)
 {
 	struct timespec wakeupTime;
@@ -1174,7 +1196,7 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 }
 
 
-/* interruptThread *************************************************************
+/* threads_interrupt_thread ****************************************************
 
    Interrupt the given thread.
 
@@ -1186,7 +1208,7 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 *******************************************************************************/
 
-void interruptThread(java_lang_VMThread *thread)
+void threads_interrupt_thread(java_lang_VMThread *thread)
 {
 	threadobject *t = (threadobject*) thread;
 
@@ -1201,7 +1223,7 @@ void interruptThread(java_lang_VMThread *thread)
 }
 
 
-/* interruptedThread ***********************************************************
+/* threads_check_if_interrupted_and_reset **************************************
 
    Check if the current thread has been interrupted and reset the
    interruption flag.
@@ -1211,7 +1233,7 @@ void interruptThread(java_lang_VMThread *thread)
 
 *******************************************************************************/
 
-bool interruptedThread()
+bool threads_check_if_interrupted_and_reset(void)
 {
 	threadobject *t;
 	bool intr;
@@ -1226,7 +1248,7 @@ bool interruptedThread()
 }
 
 
-/* isInterruptedThread *********************************************************
+/* threads_thread_has_been_interrupted *********************************************************
 
    Check if the given thread has been interrupted
 
@@ -1238,7 +1260,7 @@ bool interruptedThread()
 
 *******************************************************************************/
 
-bool isInterruptedThread(java_lang_VMThread *thread)
+bool threads_thread_has_been_interrupted(java_lang_VMThread *thread)
 {
 	threadobject *t;
 
@@ -1248,13 +1270,13 @@ bool isInterruptedThread(java_lang_VMThread *thread)
 }
 
 
-/* thread_sleep ****************************************************************
+/* threads_sleep ***************************************************************
 
    Sleep the current thread for the specified amount of time.
 
 *******************************************************************************/
 
-void thread_sleep(s8 millis, s4 nanos)
+void threads_sleep(s8 millis, s4 nanos)
 {
 	threadobject       *t;
 	struct timespec    wakeupTime;
@@ -1271,19 +1293,19 @@ void thread_sleep(s8 millis, s4 nanos)
 }
 
 
-/* yieldThread *****************************************************************
+/* threads_yield *****************************************************************
 
    Yield to the scheduler.
 
 *******************************************************************************/
 
-void yieldThread()
+void threads_yield(void)
 {
 	sched_yield();
 }
 
 
-/* setPriorityThread ***********************************************************
+/* threads_java_lang_Thread_set_priority ***********************************************************
 
    Set the priority for the given java.lang.Thread.
 
@@ -1293,7 +1315,7 @@ void yieldThread()
 
 *******************************************************************************/
 
-void setPriorityThread(thread *t, s4 priority)
+void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority)
 {
 	nativethread *info = &((threadobject*) t->vmThread)->info;
 	threads_set_thread_priority(info->tid, priority);
@@ -1354,7 +1376,7 @@ void threads_dump(void)
 
 			/* sleep this thread a bit, so the signal can reach the thread */
 
-			thread_sleep(10, 0);
+			threads_sleep(10, 0);
 		}
 
 		tobj = tobj->info.next;

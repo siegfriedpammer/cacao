@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.h 4908 2006-05-12 16:49:50Z edwin $
+   $Id: threads.h 4909 2006-05-13 23:10:21Z edwin $
 
 */
 
@@ -65,30 +65,38 @@
 #endif
 
 
+/* forward typedefs ***********************************************************/
+
+typedef struct nativethread nativethread;
+typedef struct threadobject threadobject;
+
+
+/* current threadobject *******************************************************/
+
 #if defined(HAVE___THREAD)
 
 #define THREADSPECIFIC    __thread
-#define THREADOBJECT      threadobj
-#define THREADINFO        (&threadobj->info)
+#define THREADOBJECT      threads_current_threadobject
+#define THREADINFO        (&threads_current_threadobject->info)
 
-extern __thread threadobject *threadobj;
+extern __thread threadobject *threads_current_threadobject;
 
 #else /* defined(HAVE___THREAD) */
 
 #define THREADSPECIFIC
-#define THREADOBJECT      pthread_getspecific(tkey_threadinfo)
-#define THREADINFO        (&((threadobject*) pthread_getspecific(tkey_threadinfo))->info)
+#define THREADOBJECT      pthread_getspecific(threads_current_threadobject_key)
+#define THREADINFO        (&((threadobject*) pthread_getspecific(threads_current_threadobject_key))->info)
 
-extern pthread_key_t tkey_threadinfo;
+extern pthread_key_t threads_current_threadobject_key;
 
 #endif /* defined(HAVE___THREAD) */
 
 
-/* typedefs *******************************************************************/
+/* nativethread ****************************************************************
 
-typedef struct nativethread nativethread;
-typedef struct threadobject threadobject;
-typedef java_lang_Thread thread;
+   XXX
+
+*******************************************************************************/
 
 struct nativethread {
 	threadobject      *next;
@@ -116,58 +124,61 @@ struct nativethread {
 *******************************************************************************/
 
 struct threadobject {
-	java_lang_VMThread  o;
-	nativethread        info;           /* some general pthreads stuff        */
-	lock_execution_env_t     ee;             /* contains our lock record pool      */
+	java_lang_VMThread    o;
+	nativethread          info;         /* some general pthreads stuff        */
+	lock_execution_env_t  ee;           /* contains our lock record pool      */
 
 	/* these are used for the wait/notify implementation                      */
-	pthread_mutex_t     waitLock;
-	pthread_cond_t      waitCond;
-	bool                interrupted;
-	bool                signaled;
-	bool                isSleeping;
+	pthread_mutex_t       waitLock;
+	pthread_cond_t        waitCond;
+	bool                  interrupted;
+	bool                  signaled;
+	bool                  isSleeping;
 
-	dumpinfo            dumpinfo;       /* dump memory info structure         */
+	dumpinfo              dumpinfo;     /* dump memory info structure         */
 };
+
+
+/* variables ******************************************************************/
+
+extern threadobject *mainthreadobj;
+
+
+/* functions ******************************************************************/
 
 void threads_sem_init(sem_t *sem, bool shared, int value);
 void threads_sem_wait(sem_t *sem);
 void threads_sem_post(sem_t *sem);
 
-void *thread_getself(void);
+threadobject *threads_get_current_threadobject(void);
 
 void threads_preinit(void);
 bool threads_init(u1 *stackbottom);
 
-void lock_init();
-void initThread(java_lang_VMThread *);
+void threads_init_threadobject(java_lang_VMThread *);
 
-/* start a thread */
-void threads_start_thread(thread *t, functionptr function);
+void threads_start_thread(java_lang_Thread *t, functionptr function);
 
-void joinAllThreads();
+void threads_join_all_threads(void);
 
-void thread_sleep(s8 millis, s4 nanos);
-void yieldThread();
+void threads_sleep(s8 millis, s4 nanos);
+void threads_yield(void);
 
 bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
-void setPriorityThread(thread *t, s4 priority);
-
-void interruptThread(java_lang_VMThread *);
-bool interruptedThread();
-bool isInterruptedThread(java_lang_VMThread *);
+void threads_interrupt_thread(java_lang_VMThread *);
+bool threads_check_if_interrupted_and_reset(void);
+bool threads_thread_has_been_interrupted(java_lang_VMThread *);
 
 #if defined(ENABLE_JVMTI)
-void setthreadobject(threadobject *thread);
+void threads_set_current_threadobject(threadobject *thread);
 #endif
 
-extern threadobject *mainthreadobj;
+void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority);
 
-void cast_stopworld();
-void cast_startworld();
+void threads_cast_stopworld(void);
+void threads_cast_startworld(void);
 
-/* dumps all threads */
 void threads_dump(void);
 
 

@@ -42,9 +42,11 @@
 #include "vm/jit/asmpart.h"
 #include "toolbox/avl.h"
 
+
 /* the AVL tree containing the critical sections */
 
 static avl_tree *criticaltree;
+
 
 /* prototypes *****************************************************************/
 
@@ -53,7 +55,7 @@ static void critical_register_asm_critical_sections(void);
 
 
 /* critical_init ***************************************************************
- 
+
    Init global data structures.
 
 *******************************************************************************/
@@ -66,7 +68,7 @@ void critical_init(void)
 }
 
 /* critical_compare ************************************************************
- 
+
    Comparison function for AVL tree of critical section.
 
    IN:
@@ -74,8 +76,8 @@ void critical_init(void)
 	   pb...............second node
 
    RETURN VALUE:
-       -1, 0, or +1
-   
+       -1, 0, +1 for (pa <, ==, > pb)
+
 *******************************************************************************/
 
 static s4 critical_compare(const void *pa, const void *pb)
@@ -158,7 +160,7 @@ void critical_register_critical_section(critical_section_node_t *n)
 
 
 /* critical_find_restart_point *************************************************
- 
+
    Find a restart point for the given PC, in case it is in a critical section.
 
    IN:
@@ -180,7 +182,7 @@ u1 *critical_find_restart_point(u1 *mcodeptr)
 
 
 /* critical_register_asm_critical_sections *************************************
- 
+
    Register critical sections defined in the array asm_criticalsections.
 
 *******************************************************************************/

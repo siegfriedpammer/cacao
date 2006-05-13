@@ -459,7 +459,7 @@ iresumeThread(thread* tid)
  * Yield process to another thread of equal priority.
  */
 void
-yieldThread()
+threads_yield()
 {
     intsDisable();
 
@@ -709,7 +709,7 @@ killThread(thread* tid)
  * Change thread priority.
  */
 void
-setPriorityThread(thread* tid, int prio)
+threads_java_lang_Thread_set_priority(thread* tid, int prio)
 {
     thread** ntid;
 

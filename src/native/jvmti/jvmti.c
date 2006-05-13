@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: jvmti.c 4909 2006-05-13 23:10:21Z edwin $
 
 */
 
@@ -4315,7 +4315,7 @@ void set_jvmti_phase(jvmtiPhase p) {
 		d.ev = JVMTI_EVENT_VM_START;
 		/* this event is sent during start or live phase */
 		log_text("set sysbrk in setthreadobj");
-		setsysbrkpt(SETTHREADOBJECTBRK,(void*)&setthreadobject);
+		setsysbrkpt(SETTHREADOBJECTBRK,(void*)&threads_set_current_threadobject);
         break;
     case JVMTI_PHASE_LIVE: 
 		phase = p; 

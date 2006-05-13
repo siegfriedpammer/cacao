@@ -196,9 +196,9 @@ void resumeThread (thread*);
 void iresumeThread (thread*);
 void suspendThread (thread*);
 void suspendOnQThread (thread*, thread**);
-void yieldThread (void);
+void threads_yield (void);
 void killThread (thread*);
-void setPriorityThread (thread*, int);
+void threads_java_lang_Thread_set_priority (thread*, int);
 
 s8 currentTime (void);
 void sleepThread(s8 millis, s4 nanos);

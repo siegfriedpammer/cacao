@@ -105,7 +105,7 @@ static void profile_thread(void)
 	while (true) {
 		/* sleep thread for 100 nanos */
 
-		thread_sleep(0, 100);
+		threads_sleep(0, 100);
 
 #if 0
 		/* get the lock on the finalizer lock object, so we can call wait */

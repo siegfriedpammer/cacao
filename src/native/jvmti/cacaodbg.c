@@ -102,7 +102,7 @@ jvmtiError allthreads (jint * threads_count_ptr, threadobject*** threads_ptr) {
 
 *******************************************************************************/
 jthread getcurrentthread() {
-	return (jthread)((threadobject*)thread_getself())->o.thread;
+	return (jthread)(threads_get_current_threadobject())->o.thread;
 }
 
 
@@ -281,8 +281,8 @@ void cacaobreakpointhandler() {
 		
 		switch (i) {
 		case SETTHREADOBJECTBRK:
-			/* setthreadobject */
-			fprintf(stderr,"IP %X == setthreadobject\n",ev.ip);
+			/* threads_set_current_threadobject */
+			fprintf(stderr,"IP %X == threads_set_current_threadobject\n",ev.ip);
 			data.ev=JVMTI_EVENT_THREAD_START;
 			fireEvent(&data);
 			break;

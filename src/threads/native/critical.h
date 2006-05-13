@@ -41,13 +41,26 @@
 
 #include <ucontext.h>
 
-/* This must not be changed, it is used in asm_criticalsections! */
+/* forward typedefs ***********************************************************/
 
-typedef struct {
+typedef struct critical_section_node_t critical_section_node_t;
+
+
+/* critical_section_node_t *****************************************************
+
+   A node representing a restartable critical section.
+
+*******************************************************************************/
+
+/* CAUTION: This must not be changed, it is used in asm_criticalsections!     */
+struct critical_section_node_t {
 	u1 *mcodebegin;
 	u1 *mcodeend;
 	u1 *mcoderestart;
-} critical_section_node_t;
+};
+
+
+/* functions ******************************************************************/
 
 void critical_init(void);
 
@@ -55,7 +68,8 @@ void critical_register_critical_section(critical_section_node_t *);
 
 u1 *critical_find_restart_point(u1*);
 
-/* this is a machine dependent functions (src/vm/jit/$(ARCH_DIR)/md.c) */
+/* this is a machine dependent function (see src/vm/jit/$(ARCH_DIR)/md.c) */
+/* XXX should be renamed to md_restart_critical_section                   */
 void thread_restartcriticalsection(ucontext_t *);
 
 #endif /* _CRITICAL_H */
