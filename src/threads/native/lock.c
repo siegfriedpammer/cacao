@@ -61,6 +61,9 @@
 #endif
 
 
+/* #define LOCK_VERBOSE */
+
+
 /******************************************************************************/
 /* MACROS                                                                     */
 /******************************************************************************/
@@ -68,10 +71,42 @@
 /* number of lock records in the first pool allocated for a thread */
 #define INITIALLOCKRECORDS 8
 
+#define COMPARE_AND_SWAP_OLD_VALUE(address, oldvalue, newvalue) \
+	((ptrint) compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)))
 
 /* CAUTION: oldvalue is evaluated twice! */
 #define COMPARE_AND_SWAP_SUCCEEDS(address, oldvalue, newvalue) \
 	(compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)) == (long)(oldvalue))
+
+
+/******************************************************************************/
+/* MACROS FOR THIN/FAT LOCKS                                                  */
+/******************************************************************************/
+
+#if SIZEOF_VOID_P == 8
+#define THIN_LOCK_WORD_SIZE    64
+#else
+#define THIN_LOCK_WORD_SIZE    32
+#endif
+
+#define THIN_LOCK_SHAPE_BIT    0x01
+
+#define THIN_LOCK_COUNT_SHIFT  1
+#define THIN_LOCK_COUNT_SIZE   8
+#define THIN_LOCK_COUNT_INCR   (1 << THIN_LOCK_COUNT_SHIFT)
+#define THIN_LOCK_COUNT_MAX    ((1 << THIN_LOCK_COUNT_SIZE) - 1)
+#define THIN_LOCK_COUNT_MASK   (THIN_LOCK_COUNT_MAX << THIN_LOCK_COUNT_SHIFT)
+
+#define THIN_LOCK_TID_SHIFT    (THIN_LOCK_COUNT_SIZE + THIN_LOCK_COUNT_SHIFT)
+#define THIN_LOCK_TID_SIZE     (THIN_LOCK_WORD_SIZE - THIN_LOCK_TID_SHIFT)
+
+#define IS_THIN_LOCK(lockword)  (!((lockword) & THIN_LOCK_SHAPE_BIT))
+#define IS_FAT_LOCK(lockword)     ((lockword) & THIN_LOCK_SHAPE_BIT)
+
+#define GET_FAT_LOCK(lockword)  ((lock_record_t *) ((lockword) & ~THIN_LOCK_SHAPE_BIT))
+#define MAKE_FAT_LOCK(ptr)      ((ptrint)(ptr) | THIN_LOCK_SHAPE_BIT)
+
+#define LOCK_WORD_WITHOUT_COUNT(lockword) ((lockword) & ~THIN_LOCK_COUNT_MASK)
 
 
 /******************************************************************************/
@@ -115,7 +150,7 @@ void lock_init(void)
 
 static void lock_record_init(lock_record_t *r, threadobject *t)
 {
-	r->owner = NULL;
+	r->owner = t;
 	r->count = 0;
 	r->waiters = NULL;
 
@@ -141,6 +176,25 @@ void lock_init_execution_env(threadobject *thread)
 	thread->ee.firstfree = NULL;
 	thread->ee.lockrecordpools = NULL;
 	thread->ee.lockrecordcount = 0;
+}
+
+
+
+/* lock_pre_compute_thinlock ***************************************************
+
+   Pre-compute the thin lock value for a thread index.
+
+   IN:
+      index........the thead index (>= 1)
+
+   RETURN VALUE:
+      the thin lock value for this thread index
+
+*******************************************************************************/
+
+ptrint lock_pre_compute_thinlock(s4 index)
+{
+	return index << THIN_LOCK_TID_SHIFT;
 }
 
 
@@ -225,7 +279,7 @@ static lock_record_pool_t *lock_record_alloc_pool(threadobject *t, int size)
 		/* re-initialize owner and freelist chaining */
 
 		for (i=0; i < pool->header.size; i++) {
-			pool->lr[i].owner = NULL;
+			pool->lr[i].owner = t;
 			pool->lr[i].nextfree = &pool->lr[i+1];
 		}
 		pool->lr[i-1].nextfree = NULL;
@@ -284,10 +338,14 @@ void lock_record_free_pools(lock_record_pool_t *pool)
 
 /* lock_record_alloc ***********************************************************
 
-   Allocate a lock record which is owned by the given thread.
+   Allocate a lock record which is owned by the current thread.
 
    IN:
-      t............the thread 
+      t............the current thread 
+
+   POST-CONDITION:
+      The current thread holds the mutex of the returned lock record
+	  and is recored as owner of the record.
 
 *******************************************************************************/
 
@@ -323,6 +381,11 @@ static lock_record_t *lock_record_alloc(threadobject *t)
 #ifndef NDEBUG
 	r->nextfree = NULL; /* in order to find invalid uses of nextfree */
 #endif
+
+	/* pre-acquire the mutex of the new lock record */
+
+	pthread_mutex_lock(&(r->mutex));
+
 	return r;
 }
 
@@ -342,7 +405,7 @@ static inline void lock_record_recycle(threadobject *t, lock_record_t *r)
 {
 	assert(t);
 	assert(r);
-	assert(r->owner == NULL);
+	assert(r->owner == t);
 	assert(r->nextfree == NULL);
 
 	r->nextfree = t->ee.firstfree;
@@ -393,7 +456,8 @@ lock_record_t *lock_get_initial_lock_word(void)
 
 /* lock_inflate ****************************************************************
 
-   Inflate the lock of the given object.
+   Inflate the lock of the given object. This may only be called by the
+   owner of the monitor.
 
    IN:
       t............the current thread
@@ -402,26 +466,40 @@ lock_record_t *lock_get_initial_lock_word(void)
    RETURN VALUE:
       the new lock record of the object
 
+   PRE-CONDITION:
+      The current thread must be the owner of this object's monitor!
+
 *******************************************************************************/
 
 static lock_record_t *lock_inflate(threadobject *t, java_objectheader *o)
 {
 	lock_record_t *lr;
+	ptrint lockword;
+	ptrint count;
+
+	/* get the current lock count */
+
+	lockword = (ptrint) o->monitorPtr;
+
+	assert( LOCK_WORD_WITHOUT_COUNT(lockword) == t->thinlock );
+
+	count = (lockword & THIN_LOCK_COUNT_MASK) >> THIN_LOCK_COUNT_SHIFT;
 
 	/* allocate a fat lock */
 
 	lr = lock_record_alloc(t);
+	lr->count = count;
 
-	/* We try to install this fat lock... */
+#if defined(LOCK_VERBOSE)
+	printf("thread %3d: inflating lock of object %p current lockword %lx, count %d\n",
+			t->index, (void*) o, (long)o->monitorPtr, (int)count);
+#endif
 
-	if (COMPARE_AND_SWAP_SUCCEEDS(&(o->monitorPtr), NULL, lr))
-		return lr;
+	/* install it */
 
-	/* The CAS failed. That means another thread inflated the lock. */
-	/* It won't change anymore, so we can read it in a relaxed way. */
+	o->monitorPtr = (lock_record_t *) MAKE_FAT_LOCK(lr);
 
-	lock_record_recycle(t, lr);
-	return o->monitorPtr;
+	return lr;
 }
 
 
@@ -437,37 +515,122 @@ static lock_record_t *lock_inflate(threadobject *t, java_objectheader *o)
 	  o............the object of which to enter the monitor
 
    RETURN VALUE:
-      the new lock record of the object when it has been entered
+      the new lock record of the object when it has been entered, or
+	  NULL if a thin lock has been entered
 
 *******************************************************************************/
 
 lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 {
-	lock_record_t *lr;
+	/* CAUTION: This code assumes that ptrint is unsigned! */
+	ptrint lockword;
+	ptrint thinlock;
 
-	/* get the lock record for this object       */
-	/* inflate the lock if it is not already fat */
-	if ((lr = o->monitorPtr) == NULL) {
-		lr = lock_inflate(t, o);
+	thinlock = t->thinlock;
+
+	/* most common case: try to thin-lock an unlocked object */
+
+	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), 0, thinlock)) == 0) {
+		/* success. we locked it */
+		/* The Java Memory Model requires a memory barrier here: */
+		MEMORY_BARRIER();
+		return NULL;
 	}
 
-	/* check for recursive entering */
-	/* We don't have to worry about stale values here, as any stale value */
-	/* will be != t and thus fail this check.                             */
-	if (lr->owner == t) {
-		lr->count++;
+	/* next common case: recursive lock with small recursion count */
+	/* We don't have to worry about stale values here, as any stale value  */
+	/* will indicate another thread holding the lock (or an inflated lock) */
+
+	if (LOCK_WORD_WITHOUT_COUNT(lockword) == thinlock) {
+		/* we own this monitor               */
+		/* check the current recursion count */
+
+		if ((lockword ^ thinlock) < (THIN_LOCK_COUNT_MAX << THIN_LOCK_COUNT_SHIFT))
+		{
+			/* the recursion count is low enough */
+
+			o->monitorPtr = (lock_record_t *) (lockword + THIN_LOCK_COUNT_INCR);
+
+			/* success. we locked it */
+			return NULL;
+		}
+		else {
+			lock_record_t *lr;
+
+			/* recursion count overflow */
+
+			lr = lock_inflate(t, o);
+			lr->count++;
+
+			return lr;
+		}
+	}
+
+	/* the lock is either contented or fat */
+
+	{
+		lock_record_t *lr;
+		ptrint fatlock;
+
+		if (IS_FAT_LOCK(lockword)) {
+
+			lr = GET_FAT_LOCK(lockword);
+
+			/* check for recursive entering */
+			if (lr->owner == t) {
+				lr->count++;
+				return lr;
+			}
+		}
+		else {
+			/* alloc a lock record owned by us */
+			lr = lock_record_alloc(t);
+			fatlock = MAKE_FAT_LOCK(lr);
+
+#if defined(LOCK_VERBOSE)
+			printf("thread %3d: SPINNING for inflating lock of %p, current lockword = %lx\n",
+					t->index, (void*)o, (long)lockword);
+#endif
+
+			/* SPIN LOOP */
+			while (true) {
+				lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), 0, fatlock);
+				if (lockword == 0) {
+#if defined(LOCK_VERBOSE)
+					printf("thread %3d: successfully inflated lock of %p\n",
+							t->index, (void*)o);
+#endif
+					/* we managed to install our lock record */
+					/* The Java Memory Model requires a memory barrier here: */
+					MEMORY_BARRIER();
+					return lr;
+				}
+
+				if (IS_FAT_LOCK(lockword)) {
+#if defined(LOCK_VERBOSE)
+					printf("thread %3d: lock of %p was inflated by other thread, lockword = %lx\n",
+							t->index, (void*)o, (long)lockword);
+#endif
+					/* another thread inflated the lock */
+					pthread_mutex_unlock(&(lr->mutex));
+					lock_record_recycle(t, lr);
+
+					lr = GET_FAT_LOCK(lockword);
+					break;
+				}
+			}
+		}
+
+		/* acquire the mutex of the lock record */
+		pthread_mutex_lock(&(lr->mutex));
+
+		/* enter us as the owner */
+		lr->owner = t;
+
+		assert(lr->count == 0);
+
 		return lr;
 	}
-
-	/* acquire the mutex of the lock record */
-	pthread_mutex_lock(&(lr->mutex));
-
-	/* enter us as the owner */
-	lr->owner = t;
-
-	assert(lr->count == 0);
-
-	return lr;
 }
 
 
@@ -491,34 +654,71 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 bool lock_monitor_exit(threadobject *t, java_objectheader *o)
 {
-	lock_record_t *lr;
+	ptrint lockword;
+	ptrint thinlock;
 
-	lr = o->monitorPtr;
-
-	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
-	/* will be != t and thus fail this check.                             */
+	/* will indicate that we don't own the lock.                          */
 
-	if (!lr || lr->owner != t) {
-		*exceptionptr = new_illegalmonitorstateexception();
-		return false;
-	}
+	lockword = (ptrint) o->monitorPtr;
+	thinlock = t->thinlock;
 
-	/* { the current thread `t` owns the lock record `lr` on object `o` } */
+	/* most common case: we release a thin lock that we hold once */
 
-	if (lr->count != 0) {
-		/* we had locked this one recursively. just decrement, it will */
-		/* still be locked. */
-		lr->count--;
+	if (lockword == thinlock) {
+		/* memory barrier for Java Memory Model */
+		MEMORY_BARRIER();
+		o->monitorPtr = 0;
+		/* memory barrier for thin locking */
+		MEMORY_BARRIER();
 		return true;
 	}
 
-	/* unlock this lock record */
+	/* next common case: we release a recursive lock, count > 0 */
 
-	lr->owner = NULL;
-	pthread_mutex_unlock(&(lr->mutex));
+	if (LOCK_WORD_WITHOUT_COUNT(lockword) == thinlock) {
+		o->monitorPtr = (lock_record_t *) (lockword - THIN_LOCK_COUNT_INCR);
+		return true;
+	}
 
-	return true;
+	/* either the lock is fat, or we don't hold it at all */
+
+	if (IS_FAT_LOCK(lockword)) {
+
+		lock_record_t *lr;
+
+		lr = GET_FAT_LOCK(lockword);
+
+		/* check if we own this monitor */
+		/* We don't have to worry about stale values here, as any stale value */
+		/* will be != t and thus fail this check.                             */
+
+		if (lr->owner != t) {
+			*exceptionptr = new_illegalmonitorstateexception();
+			return false;
+		}
+
+		/* { the current thread `t` owns the lock record `lr` on object `o` } */
+
+		if (lr->count != 0) {
+			/* we had locked this one recursively. just decrement, it will */
+			/* still be locked. */
+			lr->count--;
+			return true;
+		}
+
+		/* unlock this lock record */
+
+		lr->owner = NULL;
+		pthread_mutex_unlock(&(lr->mutex));
+
+		return true;
+	}
+
+	/* legal thin lock cases have been handled above, so this is an error */
+
+	*exceptionptr = new_illegalmonitorstateexception();
+	return false;
 }
 
 
@@ -551,7 +751,7 @@ void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
 	}
 
 	/* this should never happen */
-	fprintf(stderr,"error: waiting thread not found in list of waiters\n"); 
+	fprintf(stderr,"error: waiting thread not found in list of waiters\n");
 	fflush(stderr);
 	abort();
 }
@@ -574,23 +774,40 @@ void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
 
 void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 {
+	ptrint         lockword;
 	lock_record_t *lr;
 	lock_waiter_t *waiter;
-	s4 lockcount;
-	bool wasinterrupted;
+	s4             lockcount;
+	bool           wasinterrupted;
 
-	lr = o->monitorPtr;
+	lockword = (ptrint) o->monitorPtr;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
-	/* will be != t and thus fail this check.                             */
+	/* will fail this check.                                              */
 
-	if (!lr || lr->owner != t) {
-		*exceptionptr = new_illegalmonitorstateexception();
-		return;
+	if (IS_FAT_LOCK(lockword)) {
+
+		lr = GET_FAT_LOCK(lockword);
+
+		if (lr->owner != t) {
+			*exceptionptr = new_illegalmonitorstateexception();
+			return;
+		}
+	}
+	else {
+		/* it's a thin lock */
+
+		if (LOCK_WORD_WITHOUT_COUNT(lockword) != t->thinlock) {
+			*exceptionptr = new_illegalmonitorstateexception();
+			return;
+		}
+
+		/* inflate this lock */
+		lr = lock_inflate(t, o);
 	}
 
-	/* { the thread t owns the lock record lr on the object o } */
+	/* { the thread t owns the fat lock record lr on the object o } */
 
 	/* register us as waiter for this object */
 
@@ -622,7 +839,7 @@ void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nano
 	lock_record_remove_waiter(lr, t);
 
 	/* restore the old lock count */
-	
+
 	lr->count = lockcount;
 
 	/* if we have been interrupted, throw the appropriate exception */
@@ -648,22 +865,39 @@ void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nano
 
 static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 {
+	ptrint lockword;
 	lock_record_t *lr;
 	lock_waiter_t *waiter;
 	threadobject *waitingthread;
 
-	lr = o->monitorPtr;
+	lockword = (ptrint) o->monitorPtr;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
-	/* will be != t and thus fail this check.                             */
+	/* will fail this check.                                              */
 
-	if (!lr || lr->owner != t) {
-		*exceptionptr = new_illegalmonitorstateexception();
-		return;
+	if (IS_FAT_LOCK(lockword)) {
+
+		lr = GET_FAT_LOCK(lockword);
+
+		if (lr->owner != t) {
+			*exceptionptr = new_illegalmonitorstateexception();
+			return;
+		}
 	}
-	
-	/* { the thread t owns the lock record lr on the object o } */
+	else {
+		/* it's a thin lock */
+
+		if (LOCK_WORD_WITHOUT_COUNT(lockword) != t->thinlock) {
+			*exceptionptr = new_illegalmonitorstateexception();
+			return;
+		}
+
+		/* inflate this lock */
+		lr = lock_inflate(t, o);
+	}
+
+	/* { the thread t owns the fat lock record lr on the object o } */
 
 	/* for each waiter: */
 
@@ -708,11 +942,27 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 
 bool lock_does_thread_hold_lock(threadobject *t, java_objectheader *o)
 {
-	lock_record_t *lr;
+	ptrint lockword;
 
-	lr = o->monitorPtr;
-	
-	return (lr && lr->owner == t);
+	/* check if we own this monitor */
+	/* We don't have to worry about stale values here, as any stale value */
+	/* will fail this check.                                              */
+
+	lockword = (ptrint) o->monitorPtr;
+
+	if (IS_FAT_LOCK(lockword)) {
+		lock_record_t *lr;
+
+		/* it's a fat lock */
+		lr = GET_FAT_LOCK(lockword);
+
+		return (lr->owner == t);
+	}
+	else {
+		/* it's a thin lock */
+
+		return (LOCK_WORD_WITHOUT_COUNT(lockword) == t->thinlock);
+	}
 }
 
 

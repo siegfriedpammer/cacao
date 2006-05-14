@@ -25,11 +25,11 @@
    Contact: cacao@cacaojvm.org
 
    Authors: Stefan Ring
-
-   Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.h 4913 2006-05-14 14:02:51Z edwin $
+   Changes: Christian Thalinger
+
+   $Id: threads.h 4916 2006-05-14 22:41:34Z edwin $
 
 */
 
@@ -132,6 +132,8 @@ struct threadobject {
 
 	threadobject         *next;         /* next thread in list, or self       */
 	threadobject         *prev;         /* prev thread in list, or self       */
+
+	ptrint                thinlock;     /* pre-computed thin lock value       */
 
 	s4                    index;        /* thread index, startin with 1       */
 

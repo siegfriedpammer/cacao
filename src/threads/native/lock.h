@@ -124,6 +124,8 @@ void lock_record_free_pools(lock_record_pool_t *pool);
 void lock_init_object_lock(java_objectheader *);
 lock_record_t *lock_get_initial_lock_word(void);
 
+ptrint lock_pre_compute_thinlock(s4 index);
+
 lock_record_t *lock_monitor_enter(struct threadobject *, java_objectheader *);
 bool lock_monitor_exit(struct threadobject *, java_objectheader *);
 

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4915 2006-05-14 22:36:35Z edwin $
+   $Id: threads.c 4916 2006-05-14 22:41:34Z edwin $
 
 */
 
@@ -621,6 +621,9 @@ void threads_preinit(void)
 
 	mainthreadobj = NEW(threadobject);
 	mainthreadobj->tid = pthread_self();
+	mainthreadobj->index = 1;
+	mainthreadobj->thinlock = lock_pre_compute_thinlock(mainthreadobj->index);
+	
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
@@ -792,7 +795,7 @@ static void threads_table_init(void)
 /* threads_table_add **********************************************************
 
    Add a thread to the global threads table. The index is entered in the
-   threadobject.
+   threadobject. The thinlock value for the thread is pre-computed.
 
    IN:
       thread............the thread to add
@@ -824,6 +827,7 @@ got_an_index:
 		threads_table.table[0].nextfree = threads_table.table[index].nextfree;
 		threads_table.table[index].thread = thread;
 		thread->index = index;
+		thread->thinlock = lock_pre_compute_thinlock(index);
 		return index;
 	}
 
