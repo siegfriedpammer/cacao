@@ -255,6 +255,10 @@ void lock_record_free_pools(lock_record_pool_t *pool)
 {
 	lock_record_pool_header_t *last;
 
+	assert(false); /* XXX this function does not match the new locking */
+	               /*     algorithm. We must find another way to free  */
+	               /*     unused lock records.                         */
+
 	if (!pool)
 		return;
 

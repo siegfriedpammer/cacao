@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4914 2006-05-14 15:34:51Z edwin $
+   $Id: threads.c 4915 2006-05-14 22:36:35Z edwin $
 
 */
 
@@ -656,7 +656,9 @@ bool threads_init(u1 *stackbottom)
 
 	tempthread = mainthreadobj;
 
-	lock_record_free_pools(mainthreadobj->ee.lockrecordpools);
+	/* XXX We have to find a new way to free lock records */
+	/*     with the new locking algorithm.                */
+	/* lock_record_free_pools(mainthreadobj->ee.lockrecordpools); */
 
 	/* This is kinda tricky, we grow the java.lang.Thread object so we
 	   can keep the execution environment there. No Thread object must
@@ -829,8 +831,6 @@ got_an_index:
 
 	oldsize = threads_table.size;
 	newsize = oldsize * 2;
-
-	printf("growing threads table to size %d\n", newsize);
 
 	threads_table.table = MREALLOC(threads_table.table, threads_table_entry_t,
 								   oldsize, newsize);
@@ -1029,7 +1029,9 @@ static void *threads_startup_thread(void *t)
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
 
-	lock_record_free_pools(thread->ee.lockrecordpools);
+	/* XXX We have to find a new way to free lock records */
+	/*     with the new locking algorithm.                */
+	/* lock_record_free_pools(thread->ee.lockrecordpools); */
 
 	/* remove thread from thread list and threads table, do this inside a lock */
 
