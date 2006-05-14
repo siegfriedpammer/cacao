@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 4629 2006-03-16 13:59:14Z twisti $
+   $Id: engine.c 4912 2006-05-14 12:22:25Z edwin $
 */
 
 
@@ -52,7 +52,7 @@
 #include "vm/jit/patcher.h"
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
-# ifndef USE_MD_THREAD_STUFF
+# ifndef USE_FAKE_ATOMIC_INSTRUCTIONS
 #  include "machine-instr.h"
 # else
 #  include "threads/native/generic-primitives.h"

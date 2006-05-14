@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: arch.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: arch.h 4912 2006-05-14 12:22:25Z edwin $
 
 */
 
@@ -36,7 +36,7 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
-#define USE_MD_THREAD_STUFF 1
+#define USE_FAKE_ATOMIC_INSTRUCTIONS 1
 
 /* define architecture features ***********************************************/
 

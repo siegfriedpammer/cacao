@@ -51,6 +51,7 @@ typedef struct lock_execution_env_t      lock_execution_env_t;
 typedef struct lock_record_t             lock_record_t;
 typedef struct lock_record_pool_header_t lock_record_pool_header_t;
 typedef struct lock_record_pool_t        lock_record_pool_t;
+typedef struct lock_waiter_t             lock_waiter_t;
 
 
 /* lock_execution_env_t ********************************************************
@@ -60,31 +61,36 @@ typedef struct lock_record_pool_t        lock_record_pool_t;
 *******************************************************************************/
 
 struct lock_execution_env_t {
-	lock_record_t         *firstLR;
-	lock_record_pool_t    *lrpool;
-	int                    numlr;
+	lock_record_t         *firstfree;        /* lock record freelist          */
+	lock_record_pool_t    *lockrecordpools;  /* list of per-thread pools      */
+	int                    lockrecordcount;  /* # of records for this thread  */
+};
+
+
+/* lock_waiter_t ***************************************************************
+
+   List node for storing a waiting thread.
+
+*******************************************************************************/
+
+struct lock_waiter_t {
+	struct threadobject *waiter;         /* the waiting thread                */
+	lock_waiter_t       *next;           /* next in list                      */
 };
 
 
 /* lock_record_t ***************************************************************
 
-   This is the really interesting stuff.
-   See handbook for a detailed description.
+   Lock record struct representing an inflated ("fat") lock.
 
 *******************************************************************************/
 
 struct lock_record_t {
-	struct threadobject *owner;
-	java_objectheader   *o;
-	s4                   lockCount;
-	lock_record_t       *nextFree;
-	s4                   queuers;
-	lock_record_t       *waiter;
-	lock_record_t       *incharge;
-	java_objectheader   *waiting;
-	sem_t                queueSem;
-	pthread_mutex_t      resolveLock;
-	pthread_cond_t       resolveWait;
+	struct threadobject *owner;              /* current owner of this monitor */
+	s4                   count;              /* recursive lock count          */
+	pthread_mutex_t      mutex;              /* mutex for synchronizing       */
+	lock_waiter_t       *waiters;            /* list of threads waiting       */
+	lock_record_t       *nextfree;           /* next in free list             */
 };
 
 
@@ -93,8 +99,8 @@ struct lock_record_t {
 *******************************************************************************/
 
 struct lock_record_pool_header_t {
-	lock_record_pool_t *next;
-	int                 size;
+	lock_record_pool_t *next;                /* next pool                     */
+	int                 size;                /* records in this pool          */
 }; 
 
 
@@ -103,8 +109,8 @@ struct lock_record_pool_header_t {
 *******************************************************************************/
 
 struct lock_record_pool_t {
-	lock_record_pool_header_t header;
-	lock_record_t             lr[1];
+	lock_record_pool_header_t header;        /* pool header (see above)       */
+	lock_record_t             lr[1];         /* variable array of records     */
 };
 
 
@@ -112,6 +118,10 @@ struct lock_record_pool_t {
 
 void lock_init(void);
 
+void lock_init_execution_env(struct threadobject *thread);
+void lock_record_free_pools(lock_record_pool_t *pool);
+
+void lock_init_object_lock(java_objectheader *);
 lock_record_t *lock_get_initial_lock_word(void);
 
 lock_record_t *lock_monitor_enter(struct threadobject *, java_objectheader *);
@@ -122,12 +132,6 @@ bool lock_does_thread_hold_lock(struct threadobject *t, java_objectheader *o);
 void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
 void lock_notify_object(java_objectheader *o);
 void lock_notify_all_object(java_objectheader *o);
-
-void lock_init_object_lock(java_objectheader *);
-lock_record_t *lock_get_initial_lock_word(void);
-
-void lock_init_execution_env(struct threadobject *thread);
-void lock_record_free_pools(lock_record_pool_t *pool);
 
 #endif /* _LOCK_H */
 

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4911 2006-05-14 12:15:12Z edwin $
+   $Id: threads.c 4912 2006-05-14 12:22:25Z edwin $
 
 */
 
@@ -55,7 +55,7 @@
 
 #include "arch.h"
 
-#if !defined(USE_MD_THREAD_STUFF)
+#if !defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
 #include "machine-instr.h"
 #else
 #include "threads/native/generic-primitives.h"
@@ -158,7 +158,7 @@ static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 static pthread_attr_t threadattr;
 
 /* mutexes used by the fake atomic instructions                               */
-#if defined(USE_MD_THREAD_STUFF)
+#if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
 pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -643,7 +643,7 @@ bool threads_init(u1 *stackbottom)
 
 	tempthread = mainthreadobj;
 
-	lock_record_free_pools(mainthreadobj->ee.lrpool);
+	lock_record_free_pools(mainthreadobj->ee.lockrecordpools);
 
 	/* This is kinda tricky, we grow the java.lang.Thread object so we
 	   can keep the execution environment there. No Thread object must
@@ -888,7 +888,7 @@ static void *threads_startup_thread(void *t)
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
 
-	lock_record_free_pools(thread->ee.lrpool);
+	lock_record_free_pools(thread->ee.lockrecordpools);
 
 	/* remove thread from thread list, do this inside a lock */
 
