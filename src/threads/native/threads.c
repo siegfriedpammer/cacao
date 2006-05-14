@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4910 2006-05-13 23:25:20Z edwin $
+   $Id: threads.c 4911 2006-05-14 12:15:12Z edwin $
 
 */
 
@@ -1179,7 +1179,7 @@ bool threads_wait_with_timeout_relative(threadobject *t,
 
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 {
-	if (millis || nanos) {
+	if ((millis != 0x7fffffffffffffffLLU) && (millis || nanos)) {
 		struct timeval tv;
 		long nsec;
 		gettimeofday(&tv, NULL);
