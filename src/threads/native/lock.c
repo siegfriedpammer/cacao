@@ -669,11 +669,11 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 
 		waitingthread = waiter->waiter;
 
-		pthread_mutex_lock(&waitingthread->waitLock);
-		if (waitingthread->isSleeping)
-			pthread_cond_signal(&waitingthread->waitCond);
+		pthread_mutex_lock(&waitingthread->waitmutex);
+		if (waitingthread->sleeping)
+			pthread_cond_signal(&waitingthread->waitcond);
 		waitingthread->signaled = true;
-		pthread_mutex_unlock(&waitingthread->waitLock);
+		pthread_mutex_unlock(&waitingthread->waitmutex);
 
 		/* if we should only wake one, we are done */
 

@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4912 2006-05-14 12:22:25Z edwin $
+   $Id: threads.c 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -381,23 +381,24 @@ static int threads_cast_sendsignals(int sig, int count)
 {
 	/* Count threads */
 	threadobject *tobj = mainthreadobj;
-	nativethread *infoself = THREADINFO;
+	threadobject *self = THREADOBJECT;
 
 	if (count == 0) {
 		do {
 			count++;
-			tobj = tobj->info.next;
+			tobj = tobj->next;
 		} while (tobj != mainthreadobj);
 	}
 
+	assert(tobj == mainthreadobj);
+
 	do {
-		nativethread *info = &tobj->info;
-		if (info != infoself)
-			pthread_kill(info->tid, sig);
-		tobj = tobj->info.next;
+		if (tobj != self)
+			pthread_kill(tobj->tid, sig);
+		tobj = tobj->next;
 	} while (tobj != mainthreadobj);
 
-	return count-1;
+	return count - 1;
 }
 
 #else
@@ -405,16 +406,15 @@ static int threads_cast_sendsignals(int sig, int count)
 static void threads_cast_darwinstop(void)
 {
 	threadobject *tobj = mainthreadobj;
-	nativethread *infoself = THREADINFO;
+	threadobject *self = THREADOBJECT;
 
 	do {
-		nativethread *info = &tobj->info;
-		if (info != infoself)
+		if (tobj != self)
 		{
 			thread_state_flavor_t flavor = PPC_THREAD_STATE;
 			mach_msg_type_number_t thread_state_count = PPC_THREAD_STATE_COUNT;
 			ppc_thread_state_t thread_state;
-			mach_port_t thread = info->mach_thread;
+			mach_port_t thread = tobj->mach_thread;
 			kern_return_t r;
 
 			r = thread_suspend(thread);
@@ -439,20 +439,19 @@ static void threads_cast_darwinstop(void)
 				assert(0);
 			}
 		}
-		tobj = tobj->info.next;
+		tobj = tobj->next;
 	} while (tobj != mainthreadobj);
 }
 
 static void threads_cast_darwinresume(void)
 {
 	threadobject *tobj = mainthreadobj;
-	nativethread *infoself = THREADINFO;
+	threadobject *self = THREADOBJECT;
 
 	do {
-		nativethread *info = &tobj->info;
-		if (info != infoself)
+		if (tobj != self)
 		{
-			mach_port_t thread = info->mach_thread;
+			mach_port_t thread = tobj->mach_thread;
 			kern_return_t r;
 
 			r = thread_resume(thread);
@@ -461,7 +460,7 @@ static void threads_cast_darwinresume(void)
 				assert(0);
 			}
 		}
-		tobj = tobj->info.next;
+		tobj = tobj->next;
 	} while (tobj != mainthreadobj);
 }
 
@@ -610,7 +609,7 @@ void threads_preinit(void)
 	heap_allocate(1, false, NULL);
 
 	mainthreadobj = NEW(threadobject);
-	mainthreadobj->info.tid = pthread_self();
+	mainthreadobj->tid = pthread_self();
 #if !defined(HAVE___THREAD)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
@@ -666,15 +665,15 @@ bool threads_init(u1 *stackbottom)
 
 	lock_init_execution_env(mainthreadobj);
 
-	mainthreadobj->info.next = mainthreadobj;
-	mainthreadobj->info.prev = mainthreadobj;
+	mainthreadobj->next = mainthreadobj;
+	mainthreadobj->prev = mainthreadobj;
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
 
 	if (opt_intrp) {
 		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		mainthreadobj->info._global_sp = intrp_main_stack + opt_stacksize;
+		mainthreadobj->_global_sp = intrp_main_stack + opt_stacksize;
 	}
 #endif
 
@@ -756,17 +755,19 @@ bool threads_init(u1 *stackbottom)
 void threads_init_threadobject(java_lang_VMThread *t)
 {
 	threadobject *thread = (threadobject*) t;
-	nativethread *info = &thread->info;
-	info->tid = pthread_self();
-	/* TODO destroy all those things */
-	pthread_mutex_init(&info->joinMutex, NULL);
-	pthread_cond_init(&info->joinCond, NULL);
 
-	pthread_mutex_init(&thread->waitLock, NULL);
-	pthread_cond_init(&thread->waitCond, NULL);
+	thread->tid = pthread_self();
+
+	/* TODO destroy all those things */
+	pthread_mutex_init(&(thread->joinmutex), NULL);
+	pthread_cond_init(&(thread->joincond), NULL);
+
+	pthread_mutex_init(&(thread->waitmutex), NULL);
+	pthread_cond_init(&(thread->waitcond), NULL);
+	
 	thread->interrupted = false;
 	thread->signaled = false;
-	thread->isSleeping = false;
+	thread->sleeping = false;
 }
 
 
@@ -791,7 +792,6 @@ static void *threads_startup_thread(void *t)
 	startupinfo  *startup;
 	threadobject *thread;
 	sem_t        *psem;
-	nativethread *info;
 	threadobject *tnext;
 	methodinfo   *method;
 	functionptr   function;
@@ -818,9 +818,7 @@ static void *threads_startup_thread(void *t)
 	function = startup->function;
 	psem     = startup->psem;
 
-	info = &thread->info;
-
-	/* Seems like we've encountered a situation where info->tid was not set by
+	/* Seems like we've encountered a situation where thread->tid was not set by
 	 * pthread_create. We alleviate this problem by waiting for pthread_create
 	 * to return. */
 	threads_sem_wait(startup->psem_first);
@@ -828,7 +826,7 @@ static void *threads_startup_thread(void *t)
 	/* set the thread object */
 
 #if defined(__DARWIN__)
-	info->mach_thread = mach_thread_self();
+	thread->mach_thread = mach_thread_self();
 #endif
 	threads_set_current_threadobject(thread);
 
@@ -836,10 +834,10 @@ static void *threads_startup_thread(void *t)
 
 	pthread_mutex_lock(&threadlistlock);
 
-	info->prev = mainthreadobj;
-	info->next = tnext = mainthreadobj->info.next;
-	mainthreadobj->info.next = thread;
-	tnext->info.prev = thread;
+	thread->prev = mainthreadobj;
+	thread->next = tnext = mainthreadobj->next;
+	mainthreadobj->next = thread;
+	tnext->prev = thread;
 
 	pthread_mutex_unlock(&threadlistlock);
 
@@ -855,13 +853,13 @@ static void *threads_startup_thread(void *t)
 
 	/* set our priority */
 
-	threads_set_thread_priority(info->tid, thread->o.thread->priority);
+	threads_set_thread_priority(thread->tid, thread->o.thread->priority);
 
 #if defined(ENABLE_INTRP)
 	/* set interpreter stack */
 
 	if (opt_intrp)
-		THREADINFO->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
+		thread->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
 #endif
 
 	/* find and run the Thread.run()V method if no other function was passed */
@@ -893,19 +891,19 @@ static void *threads_startup_thread(void *t)
 	/* remove thread from thread list, do this inside a lock */
 
 	pthread_mutex_lock(&threadlistlock);
-	info->next->info.prev = info->prev;
-	info->prev->info.next = info->next;
+	thread->next->prev = thread->prev;
+	thread->prev->next = thread->next;
 	pthread_mutex_unlock(&threadlistlock);
 
-	/* reset thread id (lock on joinMutex? TWISTI) */
+	/* reset thread id (lock on joinmutex? TWISTI) */
 
-	pthread_mutex_lock(&info->joinMutex);
-	info->tid = 0;
-	pthread_mutex_unlock(&info->joinMutex);
+	pthread_mutex_lock(&thread->joinmutex);
+	thread->tid = 0;
+	pthread_mutex_unlock(&thread->joinmutex);
 
 	/* tell everyone that a thread has finished */
 
-	pthread_cond_broadcast(&info->joinCond);
+	pthread_cond_broadcast(&thread->joincond);
 
 	return NULL;
 }
@@ -924,17 +922,17 @@ static void *threads_startup_thread(void *t)
 
 void threads_start_thread(java_lang_Thread *t, functionptr function)
 {
-	nativethread *info;
 	sem_t         sem;
 	sem_t         sem_first;
 	startupinfo   startup;
+	threadobject *thread;
 
-	info = &((threadobject *) t->vmThread)->info;
+	thread = (threadobject *) t->vmThread;
 
 	/* fill startupinfo structure passed by pthread_create to
 	 * threads_startup_thread */
 
-	startup.thread     = (threadobject*) t->vmThread;
+	startup.thread     = thread;
 	startup.function   = function;       /* maybe we don't call Thread.run()V */
 	startup.psem       = &sem;
 	startup.psem_first = &sem_first;
@@ -944,13 +942,13 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 
 	/* create the thread */
 
-	if (pthread_create(&info->tid, &threadattr, threads_startup_thread,
+	if (pthread_create(&thread->tid, &threadattr, threads_startup_thread,
 					   &startup)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
 
-	/* signal that pthread_create has returned, so info->tid is valid */
+	/* signal that pthread_create has returned, so thread->tid is valid */
 
 	threads_sem_post(&sem_first);
 
@@ -980,7 +978,7 @@ static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 	while (thread != mainthreadobj) {
 		if (!thread->o.thread->daemon)
 			return thread;
-		thread = thread->info.prev;
+		thread = thread->prev;
 	}
 
 	return NULL;
@@ -996,16 +994,23 @@ static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 void threads_join_all_threads(void)
 {
 	threadobject *thread;
+
 	pthread_mutex_lock(&threadlistlock);
-	while ((thread = threads_find_non_daemon_thread(mainthreadobj->info.prev)) != NULL) {
-		nativethread *info = &thread->info;
-		pthread_mutex_lock(&info->joinMutex);
+
+	while ((thread = threads_find_non_daemon_thread(mainthreadobj->prev)) != NULL) {
+
+		pthread_mutex_lock(&thread->joinmutex);
+
 		pthread_mutex_unlock(&threadlistlock);
-		while (info->tid)
-			pthread_cond_wait(&info->joinCond, &info->joinMutex);
-		pthread_mutex_unlock(&info->joinMutex);
+
+		while (thread->tid)
+			pthread_cond_wait(&thread->joincond, &thread->joinmutex);
+
+		pthread_mutex_unlock(&thread->joinmutex);
+
 		pthread_mutex_lock(&threadlistlock);
 	}
+
 	pthread_mutex_unlock(&threadlistlock);
 }
 
@@ -1090,28 +1095,28 @@ static bool threads_wait_with_timeout(threadobject *t,
 {
 	bool wasinterrupted;
 
-	/* acquire the waitLock */
+	/* acquire the waitmutex */
 
-	pthread_mutex_lock(&t->waitLock);
+	pthread_mutex_lock(&t->waitmutex);
 
 	/* mark us as sleeping */
 
-	t->isSleeping = true;
+	t->sleeping = true;
 
-	/* wait on waitCond */
+	/* wait on waitcond */
 
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
 		/* with timeout */
 		while (!t->interrupted && !t->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			pthread_cond_timedwait(&t->waitCond, &t->waitLock, wakeupTime);
+			pthread_cond_timedwait(&t->waitcond, &t->waitmutex, wakeupTime);
 		}
 	}
 	else {
 		/* no timeout */
 		while (!t->interrupted && !t->signaled)
-			pthread_cond_wait(&t->waitCond, &t->waitLock);
+			pthread_cond_wait(&t->waitcond, &t->waitmutex);
 	}
 
 	/* check if we were interrupted */
@@ -1122,11 +1127,11 @@ static bool threads_wait_with_timeout(threadobject *t,
 
 	t->interrupted = false;
 	t->signaled = false;
-	t->isSleeping = false;
+	t->sleeping = false;
 
-	/* release the waitLock */
+	/* release the waitmutex */
 
-	pthread_mutex_unlock(&t->waitLock);
+	pthread_mutex_unlock(&t->waitmutex);
 
 	return wasinterrupted;
 }
@@ -1200,7 +1205,7 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
    Interrupt the given thread.
 
-   The thread gets the "waitCond" signal and 
+   The thread gets the "waitcond" signal and 
    its interrupted flag is set to true.
 
    IN:
@@ -1212,14 +1217,14 @@ void threads_interrupt_thread(java_lang_VMThread *thread)
 {
 	threadobject *t = (threadobject*) thread;
 
-	/* signal the thread a "waitCond" and tell it that it has been */
+	/* signal the thread a "waitcond" and tell it that it has been */
 	/* interrupted                                                 */
 
-	pthread_mutex_lock(&t->waitLock);
-	if (t->isSleeping)
-		pthread_cond_signal(&t->waitCond);
+	pthread_mutex_lock(&t->waitmutex);
+	if (t->sleeping)
+		pthread_cond_signal(&t->waitcond);
 	t->interrupted = true;
-	pthread_mutex_unlock(&t->waitLock);
+	pthread_mutex_unlock(&t->waitmutex);
 }
 
 
@@ -1317,8 +1322,11 @@ void threads_yield(void)
 
 void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority)
 {
-	nativethread *info = &((threadobject*) t->vmThread)->info;
-	threads_set_thread_priority(info->tid, priority);
+	threadobject *thread;
+
+	thread = (threadobject*) t->vmThread;
+
+	threads_set_thread_priority(thread->tid, priority);
 }
 
 
@@ -1333,7 +1341,6 @@ void threads_dump(void)
 {
 	threadobject       *tobj;
 	java_lang_VMThread *vmt;
-	nativethread       *nt;
 	java_lang_Thread   *t;
 	utf                *name;
 
@@ -1347,7 +1354,6 @@ void threads_dump(void)
 		/* get thread objects */
 
 		vmt = &tobj->o;
-		nt  = &tobj->info;
 		t   = vmt->thread;
 
 		/* the thread may be currently in initalization, don't print it */
@@ -1365,21 +1371,21 @@ void threads_dump(void)
 				printf("daemon ");
 
 #if SIZEOF_VOID_P == 8
-			printf("prio=%d tid=0x%016lx\n", t->priority, nt->tid);
+			printf("prio=%d tid=0x%016lx\n", t->priority, tobj->tid);
 #else
-			printf("prio=%d tid=0x%08lx\n", t->priority, nt->tid);
+			printf("prio=%d tid=0x%08lx\n", t->priority, tobj->tid);
 #endif
 
 			/* send SIGUSR1 to thread to print stacktrace */
 
-			pthread_kill(nt->tid, SIGUSR1);
+			pthread_kill(tobj->tid, SIGUSR1);
 
 			/* sleep this thread a bit, so the signal can reach the thread */
 
 			threads_sleep(10, 0);
 		}
 
-		tobj = tobj->info.next;
+		tobj = tobj->next;
 	} while (tobj && (tobj != mainthreadobj));
 }
 

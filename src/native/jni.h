@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4900 2006-05-11 09:18:28Z twisti $
+   $Id: jni.h 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -96,7 +96,7 @@ struct localref_table {
 };
 
 #if defined(USE_THREADS)
-#define LOCALREFTABLE    (THREADINFO->_localref_table)
+#define LOCALREFTABLE    (THREADOBJECT->_localref_table)
 #else
 extern localref_table *_no_threads_localref_table;
 

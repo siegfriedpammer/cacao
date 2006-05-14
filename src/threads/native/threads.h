@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.h 4909 2006-05-13 23:10:21Z edwin $
+   $Id: threads.h 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -67,8 +67,9 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct nativethread nativethread;
-typedef struct threadobject threadobject;
+typedef struct threadobject          threadobject;
+typedef union  threads_table_entry_t threads_table_entry_t;
+typedef struct threads_table_t       threads_table_t;
 
 
 /* current threadobject *******************************************************/
@@ -77,42 +78,43 @@ typedef struct threadobject threadobject;
 
 #define THREADSPECIFIC    __thread
 #define THREADOBJECT      threads_current_threadobject
-#define THREADINFO        (&threads_current_threadobject->info)
 
 extern __thread threadobject *threads_current_threadobject;
 
 #else /* defined(HAVE___THREAD) */
 
 #define THREADSPECIFIC
-#define THREADOBJECT      pthread_getspecific(threads_current_threadobject_key)
-#define THREADINFO        (&((threadobject*) pthread_getspecific(threads_current_threadobject_key))->info)
+#define THREADOBJECT \
+	((threadobject *)pthread_getspecific(threads_current_threadobject_key))
 
 extern pthread_key_t threads_current_threadobject_key;
 
 #endif /* defined(HAVE___THREAD) */
 
 
-/* nativethread ****************************************************************
+/* threads_table_entry_t *******************************************************
 
-   XXX
+   An entry in the global threads table.
 
 *******************************************************************************/
 
-struct nativethread {
-	threadobject      *next;
-	threadobject      *prev;
-	java_objectheader *_exceptionptr;
-	stackframeinfo    *_stackframeinfo;
-	localref_table    *_localref_table; /* JNI local references               */
-#if defined(ENABLE_INTRP)
-	void              *_global_sp;
-#endif
-	pthread_t          tid;
-#if defined(__DARWIN__)
-	mach_port_t        mach_thread;
-#endif
-	pthread_mutex_t    joinMutex;
-	pthread_cond_t     joinCond;
+union threads_table_entry_t {
+	threadobject       *thread;        /* an existing thread                  */
+	ptrint              nextfree;      /* next free index                     */
+};
+
+
+/* threads_table_t *************************************************************
+
+   Struct for the global threads table.
+
+*******************************************************************************/
+
+struct threads_table_t {
+	threads_table_entry_t *table;      /* the table, threads[0] is the head   */
+	                                   /* of the free list. Real entries      */
+									   /* start at threads[1].                */
+	s4                     size;       /* current size of the table           */
 };
 
 
@@ -124,16 +126,39 @@ struct nativethread {
 *******************************************************************************/
 
 struct threadobject {
-	java_lang_VMThread    o;
-	nativethread          info;         /* some general pthreads stuff        */
-	lock_execution_env_t  ee;           /* contains our lock record pool      */
+	java_lang_VMThread    o;            /* the java.lang.VMThread object      */
+
+	lock_execution_env_t  ee;           /* data for the lock implementation   */
+
+	threadobject         *next;         /* next thread in list, or self       */
+	threadobject         *prev;         /* prev thread in list, or self       */
+
+	s4                    index;        /* thread index, startin with 1       */
+
+	pthread_t             tid;               /* pthread id                    */
+
+#if defined(__DARWIN__)
+	mach_port_t           mach_thread;       /* Darwin thread id              */
+#endif
+
+	pthread_mutex_t       joinmutex;
+	pthread_cond_t        joincond;
 
 	/* these are used for the wait/notify implementation                      */
-	pthread_mutex_t       waitLock;
-	pthread_cond_t        waitCond;
+	pthread_mutex_t       waitmutex;
+	pthread_cond_t        waitcond;
+
 	bool                  interrupted;
 	bool                  signaled;
-	bool                  isSleeping;
+	bool                  sleeping;
+
+	java_objectheader    *_exceptionptr;     /* current exception             */
+	stackframeinfo       *_stackframeinfo;   /* current native stackframeinfo */
+	localref_table       *_localref_table;   /* JNI local references          */
+
+#if defined(ENABLE_INTRP)
+	void                 *_global_sp;        /* stack pointer for interpreter */
+#endif
 
 	dumpinfo              dumpinfo;     /* dump memory info structure         */
 };

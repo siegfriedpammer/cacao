@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4909 2006-05-13 23:10:21Z edwin $
+   $Id: jvmti.c 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -1090,7 +1090,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_IN_OBJECT_WAIT;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_PARKED;
-		if (t->isSleeping) *thread_state_ptr |= JVMTI_THREAD_STATE_SLEEPING;
+		if (t->sleeping) *thread_state_ptr |= JVMTI_THREAD_STATE_SLEEPING;
 	}
 #else
 	return JVMTI_ERROR_INTERNAL;

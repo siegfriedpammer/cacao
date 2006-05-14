@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: stacktrace.c 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -820,7 +820,7 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	   function). */
 
 #if defined(USE_THREADS)
-	sfi = thread->info._stackframeinfo;
+	sfi = thread->_stackframeinfo;
 #else
 	sfi = _no_threads_stackframeinfo;
 #endif

@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 4760 2006-04-12 20:06:23Z edwin $
+   $Id: intrp.h 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -110,7 +110,7 @@ typedef union {
 
 #if defined(USE_THREADS) && defined(NATIVE_THREADS)
 
-#define global_sp    (*(Cell **)&(THREADINFO->_global_sp))
+#define global_sp    (*(Cell **)&(THREADOBJECT->_global_sp))
 
 #else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
 

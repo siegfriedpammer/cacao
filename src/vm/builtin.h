@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 4792 2006-04-19 01:05:18Z edwin $
+   $Id: builtin.h 4913 2006-05-14 14:02:51Z edwin $
 
 */
 
@@ -317,7 +317,7 @@ static inline java_objectheader **builtin_get_exceptionptrptr(void);
 
 inline java_objectheader **builtin_get_exceptionptrptr(void)
 {
-	return &THREADINFO->_exceptionptr;
+	return &(THREADOBJECT->_exceptionptr);
 }
 #endif
 
