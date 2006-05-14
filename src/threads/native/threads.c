@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4913 2006-05-14 14:02:51Z edwin $
+   $Id: threads.c 4914 2006-05-14 15:34:51Z edwin $
 
 */
 
@@ -97,6 +97,8 @@
 #define STOPWORLD_FROM_GC               1
 #define STOPWORLD_FROM_CLASS_NUMBERING  2
 
+#define THREADS_INITIAL_TABLE_SIZE      8
+
 
 /* startupinfo *****************************************************************
 
@@ -116,8 +118,14 @@ typedef struct {
 
 /* prototypes *****************************************************************/
 
+static void threads_table_init(void);
+static s4 threads_table_add(threadobject *thread);
+static void threads_table_remove(threadobject *thread);
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos);
 
+#if !defined(NDEBUG)
+static void threads_table_dump(FILE *file);
+#endif
 
 /******************************************************************************/
 /* GLOBAL VARIABLES                                                           */
@@ -134,6 +142,9 @@ __thread threadobject *threads_current_threadobject;
 #else
 pthread_key_t threads_current_threadobject_key;
 #endif
+
+/* global threads table                                                       */
+static threads_table_t threads_table;
 
 /* global compiler mutex                                                      */
 static pthread_mutex_rec_t compiler_mutex;
@@ -615,14 +626,17 @@ void threads_preinit(void)
 #endif
 	threads_set_current_threadobject(mainthreadobj);
 
-	/* we need a working dummyLR before initializing the critical
-	   section tree */
+	threads_sem_init(&suspend_ack, 0, 0);
+
+	/* initialize the threads table */
+
+	threads_table_init();
+
+	/* initialize subsystems */
 
 	lock_init();
 
 	critical_init();
-
-	threads_sem_init(&suspend_ack, 0, 0);
 }
 
 
@@ -667,6 +681,8 @@ bool threads_init(u1 *stackbottom)
 
 	mainthreadobj->next = mainthreadobj;
 	mainthreadobj->prev = mainthreadobj;
+
+	threads_table_add(mainthreadobj);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -743,6 +759,129 @@ bool threads_init(u1 *stackbottom)
 }
 
 
+/* threads_table_init *********************************************************
+
+   Initialize the global threads table.
+
+******************************************************************************/
+
+static void threads_table_init(void)
+{
+	s4 size;
+	s4 i;
+
+	size = THREADS_INITIAL_TABLE_SIZE;
+
+	threads_table.size = size;
+	threads_table.table = MNEW(threads_table_entry_t, size);
+
+	/* link the entries in a freelist */
+
+	for (i=0; i<size; ++i) {
+		threads_table.table[i].nextfree = i+1;
+	}
+
+	/* terminate the freelist */
+
+	threads_table.table[size-1].nextfree = 0; /* index 0 is never free */
+}
+
+
+/* threads_table_add **********************************************************
+
+   Add a thread to the global threads table. The index is entered in the
+   threadobject.
+
+   IN:
+      thread............the thread to add
+
+   RETURN VALUE:
+      The table index for the newly added thread. This value has also been
+	  entered in the threadobject.
+
+   PRE-CONDITION:
+      The caller must hold the threadlistlock!
+
+******************************************************************************/
+
+static s4 threads_table_add(threadobject *thread)
+{
+	s4 index;
+	s4 oldsize;
+	s4 newsize;
+	s4 i;
+
+	/* table[0] serves as the head of the freelist */
+
+	index = threads_table.table[0].nextfree;
+
+	/* if we got a free index, use it */
+
+	if (index) {
+got_an_index:
+		threads_table.table[0].nextfree = threads_table.table[index].nextfree;
+		threads_table.table[index].thread = thread;
+		thread->index = index;
+		return index;
+	}
+
+	/* we must grow the table */
+
+	oldsize = threads_table.size;
+	newsize = oldsize * 2;
+
+	printf("growing threads table to size %d\n", newsize);
+
+	threads_table.table = MREALLOC(threads_table.table, threads_table_entry_t,
+								   oldsize, newsize);
+	threads_table.size = newsize;
+
+	/* link the new entries to a free list */
+
+	for (i=oldsize; i<newsize; ++i) {
+		threads_table.table[i].nextfree = i+1;
+	}
+
+	/* terminate the freelist */
+
+	threads_table.table[newsize-1].nextfree = 0; /* index 0 is never free */
+
+	/* use the first of the new entries */
+
+	index = oldsize;
+	goto got_an_index;
+}
+
+
+/* threads_table_remove *******************************************************
+
+   Remove a thread from the global threads table.
+
+   IN:
+      thread............the thread to remove
+
+   PRE-CONDITION:
+      The caller must hold the threadlistlock!
+
+******************************************************************************/
+
+static void threads_table_remove(threadobject *thread)
+{
+	s4 index;
+
+	index = thread->index;
+
+	/* put the index into the freelist */
+
+	threads_table.table[index] = threads_table.table[0];
+	threads_table.table[0].nextfree = index;
+
+	/* delete the index in the threadobject to discover bugs */
+#if !defined(NDEBUG)
+	thread->index = 0;
+#endif
+}
+
 /* threads_init_threadobject **************************************************
 
    Initialize implementation fields of a java.lang.VMThread.
@@ -758,13 +897,15 @@ void threads_init_threadobject(java_lang_VMThread *t)
 
 	thread->tid = pthread_self();
 
+	thread->index = 0;
+
 	/* TODO destroy all those things */
 	pthread_mutex_init(&(thread->joinmutex), NULL);
 	pthread_cond_init(&(thread->joincond), NULL);
 
 	pthread_mutex_init(&(thread->waitmutex), NULL);
 	pthread_cond_init(&(thread->waitcond), NULL);
-	
+
 	thread->interrupted = false;
 	thread->signaled = false;
 	thread->sleeping = false;
@@ -830,7 +971,7 @@ static void *threads_startup_thread(void *t)
 #endif
 	threads_set_current_threadobject(thread);
 
-	/* insert the thread into the threadlist */
+	/* insert the thread into the threadlist and the threads table */
 
 	pthread_mutex_lock(&threadlistlock);
 
@@ -838,6 +979,8 @@ static void *threads_startup_thread(void *t)
 	thread->next = tnext = mainthreadobj->next;
 	mainthreadobj->next = thread;
 	tnext->prev = thread;
+
+	threads_table_add(thread);
 
 	pthread_mutex_unlock(&threadlistlock);
 
@@ -888,11 +1031,15 @@ static void *threads_startup_thread(void *t)
 
 	lock_record_free_pools(thread->ee.lockrecordpools);
 
-	/* remove thread from thread list, do this inside a lock */
+	/* remove thread from thread list and threads table, do this inside a lock */
 
 	pthread_mutex_lock(&threadlistlock);
+
 	thread->next->prev = thread->prev;
 	thread->prev->next = thread->next;
+
+	threads_table_remove(thread);
+
 	pthread_mutex_unlock(&threadlistlock);
 
 	/* reset thread id (lock on joinmutex? TWISTI) */
@@ -1389,6 +1536,47 @@ void threads_dump(void)
 	} while (tobj && (tobj != mainthreadobj));
 }
 
+
+/* threads_table_dump *********************************************************
+
+   Dump the threads table for debugging purposes.
+
+   IN:
+      file..............stream to write to
+
+******************************************************************************/
+
+#if !defined(NDEBUG)
+static void threads_table_dump(FILE *file)
+{
+	s4 i;
+	s4 size;
+	ptrint index;
+
+	pthread_mutex_lock(&threadlistlock);
+
+	size = threads_table.size;
+
+	fprintf(file, "======== THREADS TABLE (size %d) ========\n", size);
+
+	for (i=0; i<size; ++i) {
+		index = threads_table.table[i].nextfree;
+
+		fprintf(file, "%4d: ", i);
+
+		if (index < size) {
+			fprintf(file, "free, nextfree = %d\n", index);
+		}
+		else {
+			fprintf(file, "thread %p\n", (void*) threads_table.table[i].thread);
+		}
+	}
+
+	fprintf(file, "======== END OF THREADS TABLE ========\n");
+
+	pthread_mutex_unlock(&threadlistlock);
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
