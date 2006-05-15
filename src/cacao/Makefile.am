@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
+## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -113,8 +113,7 @@ bin_PROGRAMS = \
 	cacao
 
 cacao_SOURCES = \
-	cacao.c \
-	cacao.h
+	cacao.c
 
 cacao_LDADD = \
 	libcacaovm.la \

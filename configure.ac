@@ -737,6 +737,7 @@ AC_DEFINE_UNQUOTED(GLIBJ_ZIP_STRING, "$GLIBJ_ZIP_STRING", [define to the string 
 
 
 dnl check for some programs we need
+export BOOTCLASSPATH=${CLASSPATH_PREFIX}/share/classpath/${GLIBJ_ZIP_STRING}
 AC_PROG_JAVAC
 AC_PROG_JAR
 

@@ -28,13 +28,14 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4773 2006-04-14 11:20:38Z twisti $
+## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	darwin \
-	linux
+	linux \
+	netbsd
 
 SUBDIRS = $(OS_DIR)
 

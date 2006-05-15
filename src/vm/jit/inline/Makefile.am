@@ -1,4 +1,4 @@
-## vm/jit/inline/Makefile.am
+## src/vm/jit/inline/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
 ## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4664 2006-03-21 04:14:26Z edwin $
+## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,11 +36,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 
 LIBS =
 
-noinst_LTLIBRARIES = libinline.la
+noinst_LTLIBRARIES = \
+	libinline.la
 
 libinline_la_SOURCES = \
 	inline.c \
-	inline.h
+	inline.h \
+	inline_debug.inc
 
 
 ## Local variables:
