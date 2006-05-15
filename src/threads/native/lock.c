@@ -759,7 +759,7 @@ bool lock_monitor_exit(threadobject *t, java_objectheader *o)
    
 *******************************************************************************/
 
-void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
+static void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
 {
 	lock_waiter_t **link;
 	lock_waiter_t *w;
@@ -796,7 +796,7 @@ void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
    
 *******************************************************************************/
 
-void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
+static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
 {
 	ptrint         lockword;
 	lock_record_t *lr;
