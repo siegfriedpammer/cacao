@@ -1,4 +1,4 @@
-/* src/native/jvmti/cacaodbg.h - contains cacao specifics for debugging support                                  
+/* src/native/jvmti/cacaodbg.h - contains cacao specifics for debugging support
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -99,7 +99,7 @@ typedef struct {
 
 cacaodbgcommunication *dbgcom;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 struct _jrawMonitorID {
     java_lang_String *name;
 };

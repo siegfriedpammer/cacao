@@ -35,7 +35,7 @@
    This module generates MIPS machine code for a sequence of
    intermediate code commands (ICMDs).
 
-   $Id: codegen.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -118,7 +118,9 @@ bool codegen(jitdata *jd)
 
 	parentargs_base = rd->memuse + savedregs_num;
 
-#if defined(USE_THREADS)           /* space to save argument of monitor_enter */
+#if defined(ENABLE_THREADS)
+	/* space to save argument of monitor_enter */
+
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		parentargs_base++;
 #endif
@@ -136,7 +138,7 @@ bool codegen(jitdata *jd)
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
 	(void) dseg_adds4(cd, parentargs_base * 8);             /* FrameSize      */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
@@ -241,7 +243,7 @@ bool codegen(jitdata *jd)
 
 	/* call monitorenter function */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		/* stack offset for monitor argument */
 
@@ -2881,7 +2883,7 @@ nowperformreturn:
 				M_LDA(REG_SP, REG_SP, 3 * 8);
 			}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				disp = dseg_addaddress(cd, (void *) builtin_monitorexit);
 				M_ALD(REG_ITMP3, REG_PV, disp);
@@ -3285,7 +3287,7 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 			
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 
@@ -3385,14 +3387,14 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/* 				if (s1 != REG_ITMP1) { */
 					/* 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
 					/* 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval)); */
-					/* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
+					/* #if defined(ENABLE_THREADS) */
 					/* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
 					/* #endif */
 					/* 					M_ISUB(REG_ITMP2, REG_ITMP1, REG_ITMP2); */
@@ -3401,7 +3403,7 @@ gen_method:
 					M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2); 
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					/* 				} */
@@ -3478,7 +3480,7 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 
@@ -3579,13 +3581,13 @@ gen_method:
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
@@ -3845,7 +3847,7 @@ gen_method:
 
 			/* move pointer to java_objectheader onto stack */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			/* create a virtual java_objectheader */
 
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
@@ -4290,7 +4292,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* check for exception */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	disp = dseg_addaddress(cd, builtin_get_exceptionptrptr);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
@@ -4369,7 +4371,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			/* move pointer to java_objectheader onto stack */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			/* order reversed because of data segment layout */
 
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */

@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: codegen-common.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -76,12 +76,8 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/exceptions.h"
@@ -215,7 +211,7 @@ void codegen_setup(jitdata *jd)
 	cd->maxstack = m->maxstack;
 	cd->maxlocals = m->maxlocals;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	cd->threadcritcurrent.next = NULL;
 	cd->threadcritcount = 0;
 #endif
@@ -596,7 +592,7 @@ void codegen_finish(jitdata *jd)
 
 	mcodelen = (s4) ((u1 *) cd->mcodeptr - cd->mcodebase);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	extralen = sizeof(critical_section_node_t) * cd->threadcritcount;
 #else
 	extralen = 0;
@@ -726,7 +722,7 @@ void codegen_finish(jitdata *jd)
 #endif
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	{
 		critical_section_node_t *n = (critical_section_node_t *) ((ptrint) code->mcode + alignedlen);
 		s4 i;
@@ -1113,7 +1109,7 @@ s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum)
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void codegen_threadcritrestart(codegendata *cd, int offset)
 {
 	cd->threadcritcurrent.mcoderestart = offset;

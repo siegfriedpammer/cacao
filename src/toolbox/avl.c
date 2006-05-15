@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: avl.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: avl.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -42,12 +42,8 @@
 #include "mm/memory.h"
 #include "toolbox/avl.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/builtin.h"
@@ -69,14 +65,12 @@ avl_tree *avl_create(avl_comparator *compar)
 	t->comparator = compar;
 	t->entries    = 0;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* create lock object for this tree */
 
 	t->lock       = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(t->lock);
-# endif
 #endif
 
 	return t;
@@ -325,7 +319,7 @@ bool avl_insert(avl_tree *tree, void *data)
 	assert(tree);
 	assert(data);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(tree->lock);
 #endif
 
@@ -350,7 +344,7 @@ bool avl_insert(avl_tree *tree, void *data)
 	printf("-------------------\n");
 #endif
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(tree->lock);
 #endif
 
@@ -375,7 +369,7 @@ void *avl_find(avl_tree *tree, void *data)
 	assert(tree);
 	assert(data);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(tree->lock);
 #endif
 
@@ -389,7 +383,7 @@ void *avl_find(avl_tree *tree, void *data)
 		/* was the entry found? return it */
 
 		if (res == 0) {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(tree->lock);
 #endif
 
@@ -401,7 +395,7 @@ void *avl_find(avl_tree *tree, void *data)
 		node = node->childs[(res < 0) ? AVL_LEFT : AVL_RIGHT];
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(tree->lock);
 #endif
 

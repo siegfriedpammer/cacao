@@ -29,7 +29,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: intrp.h 4913 2006-05-14 14:02:51Z edwin $
+   $Id: intrp.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -108,11 +108,11 @@ typedef union {
 #endif /* SIZEOF_VOID_P == 4 */
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 
 #define global_sp    (*(Cell **)&(THREADOBJECT->_global_sp))
 
-#else /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+#else /* defined(ENABLE_THREADS) */
 
 #define MAX_STACK_SIZE 128*1024
 static char stack[MAX_STACK_SIZE];
@@ -120,7 +120,7 @@ static char stack[MAX_STACK_SIZE];
 static Cell *_global_sp = (Cell *)(stack+MAX_STACK_SIZE);
 #define global_sp    _global_sp
 
-#endif /* defined(USE_THREADS) && defined(NATIVE_THREADS) */
+#endif /* defined(ENABLE_THREADS) */
 
 #define CLEAR_global_sp (global_sp=NULL)
 

@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: classcache.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -212,7 +212,7 @@ void classcache_print_statistics(FILE *file) {
 	/*          NOT synchronized!              */
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 # define CLASSCACHE_LOCK()      builtin_monitorenter(lock_hashtable_classcache)
 # define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_hashtable_classcache)
 #else
@@ -226,7 +226,7 @@ void classcache_print_statistics(FILE *file) {
 
 hashtable hashtable_classcache;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *lock_hashtable_classcache;
 #endif
 
@@ -259,14 +259,12 @@ bool classcache_init(void)
 
 	hashtable_create(&hashtable_classcache, CLASSCACHE_INIT_SIZE);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* create utf hashtable lock object */
 
 	lock_hashtable_classcache = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(lock_hashtable_classcache);
-# endif
 #endif
 
 	/* everything's ok */

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4919 2006-05-15 12:23:13Z twisti $
+   $Id: threads.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -188,7 +188,7 @@ void threads_sem_post(sem_t *sem);
 threadobject *threads_get_current_threadobject(void);
 
 void threads_preinit(void);
-bool threads_init(u1 *stackbottom);
+bool threads_init(void);
 
 void threads_init_threadobject(java_lang_VMThread *);
 

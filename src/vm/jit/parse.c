@@ -31,7 +31,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: parse.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: parse.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -217,7 +217,7 @@ bool parse(jitdata *jd)
 
 	s_count = 1 + m->exceptiontablelength; /* initialize stack element counter   */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		m->isleafmethod = false;
 	}			
@@ -1012,7 +1012,7 @@ invoke_method:
 			break;
 
 		case JAVA_MONITORENTER:
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync) {
 				OP(ICMD_CHECKNULL);
 				bte = builtintable_get_internal(BUILTIN_monitorenter);
@@ -1027,7 +1027,7 @@ invoke_method:
 			break;
 
 		case JAVA_MONITOREXIT:
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(BUILTIN_monitorexit);
 				BUILTIN(bte, false, NULL, currentline);

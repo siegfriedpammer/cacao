@@ -31,10 +31,12 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: headers.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -42,10 +44,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 # if defined(__DARWIN__)
 #  include <signal.h>
 # endif
@@ -77,7 +78,7 @@ u1 *intrp_main_stack;
 
 /* for raising exceptions from native methods *********************************/
 
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if !defined(ENABLE_THREADS)
 java_objectheader *_no_threads_exceptionptr = NULL;
 #endif
 
@@ -460,7 +461,7 @@ void classnotfoundexception_to_noclassdeffounderror(void)
 
 /* machine dependent stuff ****************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 critical_section_node_t asm_criticalsections;
 void thread_restartcriticalsection(ucontext_t *uc) {}
 #endif

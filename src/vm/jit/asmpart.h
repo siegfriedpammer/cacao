@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4920 2006-05-15 13:13:22Z twisti $
+   $Id: asmpart.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -42,13 +42,9 @@
 #include "vm/types.h"
 
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-#  include "threads/native/critical.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+# include "threads/native/critical.h"
 #endif
 
 #include "vm/global.h"
@@ -150,7 +146,7 @@ void asm_replacement_in(executionstate *es);
 
 void *asm_switchstackandcall(void *stack, void *func, void **stacktopsave, void * p);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 extern critical_section_node_t asm_criticalsections;
 #endif
 
@@ -161,12 +157,6 @@ void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
 
 #if defined(ENABLE_INTRP)
 void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-#endif
-
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-void asm_perform_threadswitch(u1 **from, u1 **to, u1 **stackTop);
-u1*  asm_initialize_thread_stack(void *func, u1 *stack);
 #endif
 
 /* cache flush function */

@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: class.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -46,13 +46,8 @@
 
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -236,7 +231,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(&c->object.header);
 #endif
 

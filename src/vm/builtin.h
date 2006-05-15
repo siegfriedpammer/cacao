@@ -29,7 +29,7 @@
    Changes: Edwin Steiner
             Christian Thalinger
 
-   $Id: builtin.h 4913 2006-05-14 14:02:51Z edwin $
+   $Id: builtin.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -42,12 +42,8 @@
 #include "arch.h"
 #include "toolbox/logging.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/jit/stacktrace.h"
@@ -192,7 +188,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f);
 /* NOT AN OP */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 void builtin_monitorenter(java_objectheader *o);
 #define BUILTIN_monitorenter (functionptr) builtin_monitorenter
 void builtin_staticmonitorenter(classinfo *c);
@@ -312,7 +308,7 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o);
 /* this is a wrapper for calls from asmpart */
 java_objectheader **builtin_asm_get_exceptionptrptr(void);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 static inline java_objectheader **builtin_get_exceptionptrptr(void);
 
 inline java_objectheader **builtin_get_exceptionptrptr(void)

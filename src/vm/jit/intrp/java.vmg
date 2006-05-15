@@ -1243,7 +1243,7 @@ ARRAYINSTANCEOF ( aRef aClass  -- iResult )
 
 MONITORENTER ( aRef -- )
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   /* CHECK_NULL_PTR(aRef); is now done explicitly */
   builtin_monitorenter(aRef);
 #endif
@@ -1251,7 +1251,7 @@ MONITORENTER ( aRef -- )
 
 MONITOREXIT ( aRef -- )
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   /* CHECK_NULL_PTR(aRef); cannot happen */
   builtin_monitorexit(aRef);
 #endif

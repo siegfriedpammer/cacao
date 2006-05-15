@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: avl.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: avl.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -63,12 +63,12 @@ typedef struct avl_node avl_node;
 /* avl_tree *******************************************************************/
 
 struct avl_tree {
+#if defined(ENABLE_THREADS)
+	java_objectheader *lock;            /* threads lock object                */
+#endif
 	avl_node          *root;            /* pointer to root node               */
 	avl_comparator    *comparator;      /* pointer to comparison function     */
 	s4                 entries;         /* contains number of entries         */
-#if defined(USE_THREADS)
-	java_objectheader *lock;            /* threads lock object                */
-#endif
 };
 
 

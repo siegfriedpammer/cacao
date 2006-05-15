@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -103,7 +103,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
 {
 	/* XXX set pc to restart address */

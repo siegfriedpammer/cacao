@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -131,7 +131,7 @@ bool codegen(jitdata *jd)
 	stackframesize = rd->memuse + savedregs_num;
 
 	   
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
@@ -154,7 +154,7 @@ bool codegen(jitdata *jd)
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
 	(void) dseg_adds4(cd, stackframesize * 4);              /* FrameSize      */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
@@ -327,7 +327,7 @@ bool codegen(jitdata *jd)
 
 	/* call monitorenter function */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		s1 = rd->memuse;
 
@@ -593,7 +593,7 @@ bool codegen(jitdata *jd)
 		case ICMD_INLINE_START:
 			{
 				insinfo_inline *insinfo = (insinfo_inline *) iptr->target;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 				if (insinfo->synchronize) {
 					/* add monitor enter code */
 					if (insinfo->method->flags & ACC_STATIC) {
@@ -629,7 +629,7 @@ bool codegen(jitdata *jd)
 				dseg_addlinenumber_inline_end(cd, iptr);
 				dseg_addlinenumber(cd, iptr->line);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 				if (insinfo->synchronize) {
 					/* add monitor exit code */
 					if (insinfo->method->flags & ACC_STATIC) {
@@ -4171,7 +4171,7 @@ nowperformreturn:
 			}
 #endif /* !defined(NDEBUG) */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				M_ALD(REG_ITMP2, REG_SP, rd->memuse * 4);
 
@@ -4581,7 +4581,7 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 			
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
@@ -4710,7 +4710,7 @@ gen_method:
 					}
 
 					i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP3);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 					codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					i386_mov_membase32_reg(cd, REG_ITMP2,
@@ -4720,7 +4720,7 @@ gen_method:
 					/* 				if (s1 != REG_ITMP1) { */
 					/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, baseval), REG_ITMP1); */
 					/* 					i386_mov_membase_reg(cd, REG_ITMP3, OFFSET(vftbl_t, diffval), REG_ITMP3); */
-					/* #if defined(USE_THREADS) && defined(NATIVE_THREADS) */
+					/* #if defined(ENABLE_THREADS) */
 					/* 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase); */
 					/* #endif */
 					/* 					i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP1, REG_ITMP2); */
@@ -4734,7 +4734,7 @@ gen_method:
 					i386_mov_membase_reg(cd, REG_ITMP3,
 										 OFFSET(vftbl_t, diffval),
 										 REG_ITMP3);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 					codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 					/* 				} */
@@ -4811,7 +4811,7 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			codegen_threadcritrestart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 
@@ -4940,7 +4940,7 @@ gen_method:
 				}
 
 				i386_mov_imm_reg(cd, (ptrint) supervftbl, REG_ITMP2);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritstart(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				i386_mov_membase_reg(cd, REG_ITMP1,
@@ -4952,7 +4952,7 @@ gen_method:
 				i386_mov_membase_reg(cd, REG_ITMP2,
 									 OFFSET(vftbl_t, baseval),
 									 REG_ITMP2);
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 				codegen_threadcritstop(cd, cd->mcodeptr - cd->mcodebase);
 #endif
 				i386_alu_reg_reg(cd, ALU_SUB, REG_ITMP2, REG_ITMP1);
@@ -5199,7 +5199,7 @@ gen_method:
 
 			/* move pointer to java_objectheader onto stack */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
 			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
 
@@ -5327,7 +5327,7 @@ u1 *createcompilerstub(methodinfo *m)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 /* this way we can call the function directly with a memory call */
 
 static java_objectheader **(*callgetexceptionptrptr)() = builtin_get_exceptionptrptr;
@@ -5591,7 +5591,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* check for exception */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 /* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
 	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
 #else
@@ -5623,7 +5623,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* handle exception */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	i386_push_reg(cd, REG_ITMP2);
 /* 	i386_call_mem(cd, (ptrint) builtin_get_exceptionptrptr); */
 	i386_call_mem(cd, (ptrint) &callgetexceptionptrptr);
@@ -5671,7 +5671,7 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 			/* move pointer to java_objectheader onto stack */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 			/* create a virtual java_objectheader */
 
 			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */

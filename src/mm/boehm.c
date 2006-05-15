@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: boehm.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -36,10 +36,10 @@
 #include "config.h"
 #include "vm/types.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__LINUX__)
+#if defined(ENABLE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
 #endif
-#if defined(USE_THREADS) && defined(NATIVE_THREADS) && defined(__IRIX__)
+#if defined(ENABLE_THREADS) && defined(__IRIX__)
 #define GC_IRIX_THREADS
 #endif
 
@@ -47,12 +47,8 @@
 #include "mm/boehm.h"
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -70,15 +66,6 @@
 
 static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */
 
-
-static void
-#ifdef __GNUC__
-	__attribute__ ((unused))
-#endif
-*stackcall_twoargs(struct otherstackcall *p)
-{
-	return (*p->p2)(p->p, p->l);
-}
 
 /* prototype static functions *************************************************/
 
@@ -132,12 +119,6 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 {
 }
 
-static void *stackcall_malloc(void *p, u4 bytelength)
-{
-	return GC_MALLOC(bytelength);
-}
-
-
 static void *stackcall_malloc_atomic(void *p, u4 bytelength)
 {
 	return GC_MALLOC_ATOMIC(bytelength);
@@ -150,37 +131,11 @@ static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
 }
 
 
-static void *stackcall_free(void *p, u4 bytelength)
-{
-	GC_FREE(p);
-	return NULL;
-}
-
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-#define MAINTHREADCALL(r,m,pp,ll) \
-	if (currentThread == NULL || currentThread == mainThread) { \
-		r = m(pp, ll); \
-	} else { \
-		struct otherstackcall sc; \
-		sc.p2 = m; \
-		sc.p = pp; \
-		sc.l = ll; \
-		r = (*asm_switchstackandcall)(CONTEXT(mainThread).usedStackTop, \
-				stackcall_twoargs, \
-				(void**)&(CONTEXT(currentThread).usedStackTop), &sc); \
-	}
-#else
-#define MAINTHREADCALL(r,m,pp,ll) \
-	{ r = m(pp, ll); }
-#endif
-
-
 void *heap_alloc_uncollectable(u4 bytelength)
 {
 	void *result;
 
-	MAINTHREADCALL(result, stackcall_malloc_uncollectable, NULL, bytelength);
+	result = stackcall_malloc_uncollectable(NULL, bytelength);
 
 	/* clear allocated memory region */
 
@@ -194,12 +149,10 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 {
 	void *result;
 
-	if (references) {
-		MAINTHREADCALL(result, stackcall_malloc, NULL, bytelength);
-
-	} else {
-		MAINTHREADCALL(result, stackcall_malloc_atomic, NULL, bytelength);
-	}
+	if (references)
+		result = GC_MALLOC(bytelength);
+	else
+		result = stackcall_malloc_atomic(NULL, bytelength);
 
 	if (!result)
 		return NULL;
@@ -217,9 +170,7 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 
 void heap_free(void *p)
 {
-	void *result;
-
-	MAINTHREADCALL(result, stackcall_free, p, 0);
+	GC_FREE(p);
 }
 
 void gc_call(void)

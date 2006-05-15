@@ -28,13 +28,15 @@
 
    Changes:
 
-   $Id: builtintable.inc 4357 2006-01-22 23:33:38Z twisti $
+   $Id: builtintable.inc 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
 
 #include "config.h"
+
 #include "arch.h"
+
 #include "vm/builtin.h"
 #include "vm/jit/jit.h"
 
@@ -218,7 +220,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	{
 		ICMD_MONITORENTER,
 		BUILTIN_monitorenter,

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: jni.h 4913 2006-05-14 14:02:51Z edwin $
+   $Id: jni.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -95,7 +95,7 @@ struct localref_table {
 	java_objectheader *refs[LOCALREFTABLE_CAPACITY]; /* references            */
 };
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 #define LOCALREFTABLE    (THREADOBJECT->_localref_table)
 #else
 extern localref_table *_no_threads_localref_table;

@@ -29,13 +29,17 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: VMObject.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
+#include "vm/types.h"
 
 #include "mm/boehm.h"
 #include "mm/memory.h"
@@ -46,13 +50,8 @@
 #include "native/include/java_lang_Cloneable.h"
 #include "native/include/java_lang_Object.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/builtin.h"
@@ -100,12 +99,12 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 		new = (java_lang_Object *)
 			heap_allocate(size, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
 
-		if (!new)
+		if (new == NULL)
 			return NULL;
 
 		MCOPY(new, this, u1, size);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 		lock_init_object_lock((java_objectheader *) new);
 #endif
         
@@ -124,12 +123,12 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
     c = this->header.vftbl->class;
     new = (java_lang_Object *) builtin_new(c);
 
-    if (!new)
+    if (new == NULL)
         return NULL;
 
     MCOPY(new, this, u1, c->instancesize);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock((java_objectheader *) new);
 #endif
 
@@ -144,7 +143,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_notify_object(&this->header);
 #endif
 }
@@ -157,7 +156,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_notify_all_object(&this->header);
 #endif
 }
@@ -170,7 +169,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, s8 ms, s4 ns)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_wait_for_object(&o->header, ms, ns);
 #endif
 }

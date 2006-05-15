@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: boehm.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: boehm.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -40,17 +40,6 @@
 #include "vm/types.h"
 
 #include "vm/method.h"
-
-
-struct otherstackcall;
-
-typedef void *(*calltwoargs)(void *, u4);
-
-struct otherstackcall {
-	calltwoargs  p2;
-	void        *p;
-	u4           l;
-};
 
 
 /* function prototypes ********************************************************/

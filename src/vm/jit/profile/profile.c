@@ -44,12 +44,8 @@
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_VMThread.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/builtin.h"
@@ -72,7 +68,7 @@ struct list_method_entry {
 
 /* global variables ***********************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_lang_VMThread *profile_vmthread;
 #endif
 
@@ -97,7 +93,7 @@ bool profile_init(void)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static void profile_thread(void)
 {
 /* 	s4 i = 0; */
@@ -134,7 +130,7 @@ static void profile_thread(void)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 bool profile_start_thread(void)
 {
 	java_lang_Thread *t;

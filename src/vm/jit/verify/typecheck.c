@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: typecheck.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -2100,18 +2100,46 @@ fieldaccess_tail:
 			case ICMD_IF_ICMPLE:
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:
+
 			case ICMD_IF_LEQ:
 			case ICMD_IF_LNE:
 			case ICMD_IF_LLT:
 			case ICMD_IF_LGE:
 			case ICMD_IF_LGT:
 			case ICMD_IF_LLE:
+
 			case ICMD_IF_LCMPEQ:
 			case ICMD_IF_LCMPNE:
 			case ICMD_IF_LCMPLT:
 			case ICMD_IF_LCMPGE:
 			case ICMD_IF_LCMPGT:
 			case ICMD_IF_LCMPLE:
+
+			case ICMD_IF_FCMPEQ:
+			case ICMD_IF_FCMPNE:
+
+			case ICMD_IF_FCMPL_LT:
+			case ICMD_IF_FCMPL_GE:
+			case ICMD_IF_FCMPL_GT:
+			case ICMD_IF_FCMPL_LE:
+
+			case ICMD_IF_FCMPG_LT:
+			case ICMD_IF_FCMPG_GE:
+			case ICMD_IF_FCMPG_GT:
+			case ICMD_IF_FCMPG_LE:
+
+			case ICMD_IF_DCMPEQ:
+			case ICMD_IF_DCMPNE:
+
+			case ICMD_IF_DCMPL_LT:
+			case ICMD_IF_DCMPL_GE:
+			case ICMD_IF_DCMPL_GT:
+			case ICMD_IF_DCMPL_LE:
+
+			case ICMD_IF_DCMPG_LT:
+			case ICMD_IF_DCMPG_GE:
+			case ICMD_IF_DCMPG_GT:
+			case ICMD_IF_DCMPG_LE:
 				TYPECHECK_COUNT(stat_ins_branch);
 				tbptr = (basicblock *) state->iptr->target;
 

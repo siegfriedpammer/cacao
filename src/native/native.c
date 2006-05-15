@@ -30,7 +30,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: native.c 4900 2006-05-11 09:18:28Z twisti $
+   $Id: native.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -341,7 +341,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(hashtable_library->header);
 #endif
 
@@ -386,7 +386,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 
 	while (ne) {
 		if (ne->name == filename) {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(hashtable_library->header);
 #endif
 
@@ -408,7 +408,7 @@ void native_hashtable_library_add(utf *filename, java_objectheader *loader,
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(hashtable_library->header);
 #endif
 }

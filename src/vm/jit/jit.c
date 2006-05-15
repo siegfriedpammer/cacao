@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4834 2006-04-25 12:25:43Z edwin $
+   $Id: jit.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -78,12 +78,8 @@
 #include "vm/jit/verify/typecheck.h"
 #include "vm/rt-timing.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 
@@ -731,10 +727,53 @@ int jcommandsize[256] = {
 #define ICMD_LMULPOW2         215
 	1,
 
+#define ICMD_IF_FCMPEQ        216
+	1,
+#define ICMD_IF_FCMPNE        217
+
+#define ICMD_IF_FCMPL_LT      218
+	1,
+#define ICMD_IF_FCMPL_GE      219
+	1,
+#define ICMD_IF_FCMPL_GT      220
+	1,
+#define ICMD_IF_FCMPL_LE      221
+	1,
+
+#define ICMD_IF_FCMPG_LT      222
+	1,
+#define ICMD_IF_FCMPG_GE      223
+	1,
+#define ICMD_IF_FCMPG_GT      224
+	1,
+#define ICMD_IF_FCMPG_LE      225
+	1,
+
+#define ICMD_IF_DCMPEQ        226
+	1,
+#define ICMD_IF_DCMPNE        227
+	1,
+
+#define ICMD_IF_DCMPL_LT      228
+	1,
+#define ICMD_IF_DCMPL_GE      229
+	1,
+#define ICMD_IF_DCMPL_GT      230
+	1,
+#define ICMD_IF_DCMPL_LE      231
+	1,
+
+#define ICMD_IF_DCMPG_LT      232
+	1,
+#define ICMD_IF_DCMPG_GE      233
+	1,
+#define ICMD_IF_DCMPG_GT      234
+	1,
+#define ICMD_IF_DCMPG_LE      235
+	1,
+
 	/* unused */
-	            1,1,1,1,
-	1,1,1,1,1,1,1,1,1,1,
-	1,1,1,1,1,1,1,1,1,1,
+	        1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1
 };
@@ -958,10 +997,32 @@ char *icmd_names[256] = {
 	"IMULPOW2       ", /*             214 */
 	"LMULPOW2       ", /*             215 */
 
-	"UNDEF216", "UNDEF217", "UNDEF218", "UNDEF219", "UNDEF220",
-	"UNDEF221", "UNDEF222", "UNDEF223", "UNDEF224", "UNDEF225",
-	"UNDEF226", "UNDEF227", "UNDEF228", "UNDEF229", "UNDEF230",
-	"UNDEF231", "UNDEF232", "UNDEF233", "UNDEF234", "UNDEF235",
+	"IF_FCMPEQ      ", /*             216 */
+	"IF_FCMPNE      ", /*             217 */
+
+	"IF_FCMPL_LT    ", /*             218 */
+	"IF_FCMPL_GE    ", /*             219 */
+	"IF_FCMPL_GT    ", /*             220 */
+	"IF_FCMPL_LE    ", /*             221 */
+
+	"IF_FCMPG_LT    ", /*             222 */
+	"IF_FCMPG_GE    ", /*             223 */
+	"IF_FCMPG_GT    ", /*             224 */
+	"IF_FCMPG_LE    ", /*             225 */
+
+	"IF_DCMPEQ      ", /*             226 */
+	"IF_DCMPNE      ", /*             227 */
+
+	"IF_DCMPL_LT    ", /*             228 */
+	"IF_DCMPL_GE    ", /*             229 */
+	"IF_DCMPL_GT    ", /*             230 */
+	"IF_DCMPL_LE    ", /*             231 */
+	
+	"IF_DCMPG_LT    ", /*             232 */
+	"IF_DCMPG_GE    ", /*             233 */
+	"IF_DCMPG_GT    ", /*             234 */
+	"IF_DCMPG_LE    ", /*             235 */
+	
 	"UNDEF236", "UNDEF237", "UNDEF238", "UNDEF239", "UNDEF240",
 	"UNDEF241", "UNDEF242", "UNDEF243", "UNDEF244", "UNDEF245",
 	"UNDEF246", "UNDEF247", "UNDEF248", "UNDEF249", "UNDEF250",
@@ -1353,7 +1414,7 @@ u1 *jit_compile(methodinfo *m)
 			return m->code->entrypoint;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* enter a monitor on the method */
 
 	builtin_monitorenter((java_objectheader *) m);
@@ -1362,7 +1423,7 @@ u1 *jit_compile(methodinfo *m)
 	/* if method has been already compiled return immediately */
 
 	if (m->code) {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 		builtin_monitorexit((java_objectheader *) m);
 #endif
 
@@ -1440,7 +1501,7 @@ u1 *jit_compile(methodinfo *m)
 #endif
 
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) m);

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: finalizer.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: finalizer.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -54,7 +54,7 @@
 
 /* global variables ***********************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_lang_VMThread *finalizer_vmthread;
 static java_objectheader *lock_finalizer_thread;
 #endif
@@ -68,12 +68,10 @@ static java_objectheader *lock_finalizer_thread;
 
 bool finalizer_init(void)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_finalizer_thread = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(lock_finalizer_thread);
-# endif
 #endif
 
 	/* everything's ok */
@@ -90,7 +88,7 @@ bool finalizer_init(void)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static void finalizer_thread(void)
 {
 	while (true) {
@@ -120,7 +118,7 @@ static void finalizer_thread(void)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 bool finalizer_start_thread(void)
 {
 	java_lang_Thread *t;
@@ -162,7 +160,7 @@ bool finalizer_start_thread(void)
 
 void finalizer_notify(void)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
 	builtin_monitorenter(lock_finalizer_thread);

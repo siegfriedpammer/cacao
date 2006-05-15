@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4913 2006-05-14 14:02:51Z edwin $
+   $Id: stacktrace.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -51,12 +51,8 @@
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_VMThrowable.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #else
 # include "threads/none/threads.h"
 #endif
@@ -89,7 +85,7 @@ struct linenumbertable_entry {
 
 /* global variables ***********************************************************/
 
-#if !defined(USE_THREADS)
+#if !defined(ENABLE_THREADS)
 stackframeinfo *_no_threads_stackframeinfo = NULL;
 #endif
 
@@ -819,7 +815,10 @@ stacktracebuffer *stacktrace_create(threadobject* thread)
 	   native stackframeinfo (VMThrowable.fillInStackTrace is a native
 	   function). */
 
-#if defined(USE_THREADS)
+	/* We don't use the STACKFRAMEINFO macro here, as we have to use
+	   the passed thread. */
+
+#if defined(ENABLE_THREADS)
 	sfi = thread->_stackframeinfo;
 #else
 	sfi = _no_threads_stackframeinfo;

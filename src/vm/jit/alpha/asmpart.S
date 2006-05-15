@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4896 2006-05-10 13:12:06Z twisti $
+   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -243,7 +243,7 @@ asm_call_jit_compiler:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	subq    sp,2*8,sp
 	stq     ra,0*8(sp)            /* save return address (xpc)                */
 	jsr     ra,builtin_asm_get_exceptionptrptr
@@ -503,7 +503,7 @@ L_asm_wrapper_patcher_exception:
 L_asm_wrapper_patcher_exception_load_gp:
 	ldgp    gp,0(itmp1)           /* itmp3 == gp, load the current gp         */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	subq    sp,3*8,sp
 	stq     xpc,0*8(sp)           /* save return address (xpc)                */
 	stq     ra,1*8(sp)
@@ -883,7 +883,7 @@ _crit_end:
     .data
 
 asm_criticalsections:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
     .quad   _crit_begin
     .quad   _crit_end
     .quad   _crit_restart

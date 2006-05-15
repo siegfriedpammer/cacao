@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: suck.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -54,10 +54,9 @@ enum {
 typedef struct list_classpath_entry list_classpath_entry;
 
 struct list_classpath_entry {
-#if defined(USE_THREADS)
-	/* Required for monitor locking on zip/jar files. */
-	java_objectheader  header;
-#endif				  
+#if defined(ENABLE_THREADS)
+	java_objectheader  header;	        /* monitor locking on zip/jar files   */
+#endif
 	s4                 type;
 	char              *path;
 	s4                 pathlen;

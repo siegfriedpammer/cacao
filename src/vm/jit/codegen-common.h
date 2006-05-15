@@ -29,7 +29,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen-common.h 4908 2006-05-12 16:49:50Z edwin $
+   $Id: codegen-common.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -199,7 +199,7 @@ void removenativestub(u1 *stub);
 
 s4 codegen_reg_of_var(registerdata *rd, u2 opcode, stackptr v, s4 tempregnum);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void codegen_threadcritrestart(codegendata *cd, int offset);
 void codegen_threadcritstart(codegendata *cd, int offset);
 void codegen_threadcritstop(codegendata *cd, int offset);

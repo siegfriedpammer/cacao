@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4908 2006-05-12 16:49:50Z edwin $
+   $Id: global.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -86,13 +86,6 @@ typedef struct java_objectarray java_objectarray;
 
 #define CLASSPATH_GLIBJ_ZIP_PATH    CLASSPATH_PREFIX "/share/classpath/" GLIBJ_ZIP_STRING
 #define CLASSPATH_LIBRARY_PATH      CLASSPATH_LIBDIR "/classpath"
-
-
-/* if we have threads disabled this one is not defined ************************/
-
-#if !defined(USE_THREADS)
-#define THREADSPECIFIC
-#endif
 
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
@@ -204,7 +197,7 @@ typedef struct java_objectarray java_objectarray;
 
 struct java_objectheader {              /* header for all objects             */
 	struct _vftbl            *vftbl;    /* pointer to virtual function table  */
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	struct lock_record_t *monitorPtr;
 #endif
 };
@@ -295,7 +288,7 @@ struct java_objectarray {
 
 /* Synchronization ************************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void compiler_lock();
 void compiler_unlock();
 #endif

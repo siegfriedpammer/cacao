@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4863 2006-04-30 16:17:44Z edwin $
+   $Id: jit.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -945,28 +945,45 @@ extern int jcommandsize[256];
 /* UNDEF203 */
 
 #define ICMD_IASTORECONST     204
-
 #define ICMD_LASTORECONST     205
-
 #define ICMD_FASTORECONST     206
-
 #define ICMD_DASTORECONST     207
-
 #define ICMD_AASTORECONST     208
-
 #define ICMD_BASTORECONST     209
-
 #define ICMD_CASTORECONST     210
-
 #define ICMD_SASTORECONST     211
 
 #define ICMD_PUTSTATICCONST   212
-
 #define ICMD_PUTFIELDCONST    213
 
 #define ICMD_IMULPOW2         214
-
 #define ICMD_LMULPOW2         215
+
+#define ICMD_IF_FCMPEQ        216
+#define ICMD_IF_FCMPNE        217
+
+#define ICMD_IF_FCMPL_LT      218
+#define ICMD_IF_FCMPL_GE      219
+#define ICMD_IF_FCMPL_GT      220
+#define ICMD_IF_FCMPL_LE      221
+
+#define ICMD_IF_FCMPG_LT      222
+#define ICMD_IF_FCMPG_GE      223
+#define ICMD_IF_FCMPG_GT      224
+#define ICMD_IF_FCMPG_LE      225
+
+#define ICMD_IF_DCMPEQ        226
+#define ICMD_IF_DCMPNE        227
+
+#define ICMD_IF_DCMPL_LT      228
+#define ICMD_IF_DCMPL_GE      229
+#define ICMD_IF_DCMPL_GT      230
+#define ICMD_IF_DCMPL_LE      231
+
+#define ICMD_IF_DCMPG_LT      232
+#define ICMD_IF_DCMPG_GE      233
+#define ICMD_IF_DCMPG_GT      234
+#define ICMD_IF_DCMPG_LE      235
 
 #define ICMD_INLINE_START     251       /* instruction before inlined method  */
 #define ICMD_INLINE_END       252       /* instruction after inlined method   */

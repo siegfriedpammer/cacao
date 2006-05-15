@@ -26,20 +26,17 @@
 
    Authors: Christian Thalinger
 
-   $Id: headers.h 4357 2006-01-22 23:33:38Z twisti $
+   $Id: headers.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
 #ifndef _HEADERS_H
 #define _HEADERS_H
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#include "config.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/chain.h"

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 4851 2006-04-27 10:32:27Z twisti $
+   $Id: md-asm.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -267,7 +267,7 @@
 #define stacktrace_remove_stackframeinfo \
     L_stacktrace_remove_stackframeinfo$stub
 
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if !defined(ENABLE_THREADS)
 #define _no_threads_exceptionptr              __no_threads_exceptionptr
 #endif
 

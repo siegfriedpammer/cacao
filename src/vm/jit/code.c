@@ -91,7 +91,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 int code_get_sync_slot_count(codeinfo *code)
 {
-#ifdef USE_THREADS
+#ifdef ENABLE_THREADS
 	int count;
 	
 	assert(code);
@@ -117,11 +117,11 @@ int code_get_sync_slot_count(codeinfo *code)
 
 	return count;
 
-#else /* !USE_THREADS */
+#else /* !ENABLE_THREADS */
 	
 	return 0;
 
-#endif /* USE_THREADS */
+#endif /* ENABLE_THREADS */
 }
 
 /* code_get_stack_frame_size ***************************************************

@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: loader.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: loader.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -49,13 +49,8 @@
 #include "native/native.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -102,9 +97,9 @@
 
 *******************************************************************************/
  
-bool loader_init(u1 *stackbottom)
+bool loader_init(void)
 {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	list_classpath_entry *lce;
 
 	/* Initialize the monitor pointer for zip/jar file locking. */
@@ -222,11 +217,6 @@ bool loader_init(u1 *stackbottom)
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
 		return false;
-
-#if defined(USE_THREADS)
-	if (stackbottom != 0)
-		lock_init(); /* XXX this should probably be done only for green threads */
-#endif
 
 	return true;
 }
@@ -1015,7 +1005,7 @@ static bool load_method(classbuffer *cb, methodinfo *m, descriptor_pool *descpoo
 
 	c = cb->class;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(&m->header);
 #endif
 
@@ -2488,7 +2478,7 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(&clone->header);
 #endif
 

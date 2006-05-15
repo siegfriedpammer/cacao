@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: hashtable.h 4900 2006-05-11 09:18:28Z twisti $
+   $Id: hashtable.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -100,7 +100,7 @@ hashtable.ptr-->+-------------------+
 /* hashtable ******************************************************************/
 
 struct hashtable {            
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	java_objectheader  *header;         /* required for locking               */
 #endif
 	u4                  size;           /* current size of the hashtable      */

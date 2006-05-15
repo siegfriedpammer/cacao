@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4919 2006-05-15 12:23:13Z twisti $
+   $Id: threads.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -724,7 +724,7 @@ void threads_preinit(void)
 
 *******************************************************************************/
 
-bool threads_init(u1 *stackbottom)
+bool threads_init(void)
 {
 	java_lang_String      *threadname;
 	java_lang_Thread      *mainthread;

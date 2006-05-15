@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.c 4879 2006-05-05 17:34:49Z edwin $
+   $Id: exceptions.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -62,7 +62,7 @@
 
 /* for raising exceptions from native methods *********************************/
 
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if !defined(ENABLE_THREADS)
 java_objectheader *_no_threads_exceptionptr = NULL;
 #endif
 
@@ -1351,7 +1351,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	s4                     i;
 	classref_or_classinfo  cr;
 	classinfo             *c;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	java_objectheader     *o;
 #endif
 
@@ -1439,7 +1439,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 		}
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* is this method synchronized? */
 
 	if (issync) {

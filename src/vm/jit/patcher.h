@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: patcher.h 4760 2006-04-12 20:06:23Z edwin $
+   $Id: patcher.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -44,7 +44,7 @@
 
 /* patcher macros *************************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 
 #define PATCHER_MONITORENTER \
 	/* enter a monitor on the patching position */       \
@@ -79,7 +79,7 @@
 #define PATCHER_MONITOREXIT                  /* nop */
 #define PATCHER_MARK_PATCHED_MONITOREXIT     /* nop */
 
-#endif /* defined(USE_THREADS) */
+#endif /* defined(ENABLE_THREADS) */
 
 
 /* function prototypes ********************************************************/

@@ -26,16 +26,12 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4357 2006-01-22 23:33:38Z twisti $
+## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
-if USE_THREADS
-if NATIVE_THREADS
+if ENABLE_THREADS
 SUBDIRS = native
-else
-SUBDIRS = green
-endif
 else
 SUBDIRS =
 endif

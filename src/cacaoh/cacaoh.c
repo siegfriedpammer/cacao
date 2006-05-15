@@ -30,7 +30,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacaoh.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: cacaoh.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -48,12 +48,8 @@
 #include "mm/memory.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -164,7 +160,6 @@ int main(int argc, char **argv)
 	s4 opt;
 	classinfo *c;
 	char *opt_directory;
-	void *dummy;
 
 	/********** internal (only used by main) *****************************/
    
@@ -288,11 +283,8 @@ int main(int argc, char **argv)
 
 	gc_init(heapmaxsize, heapstartsize);
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	threads_preinit();
-#endif
-	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done
@@ -329,7 +321,7 @@ int main(int argc, char **argv)
 	/* initialize the loader subsystems (must be done _after_
        classcache_init) */
 
-	if (!loader_init((u1 *) &dummy))
+	if (!loader_init())
 		throw_main_exception_exit();
 
 

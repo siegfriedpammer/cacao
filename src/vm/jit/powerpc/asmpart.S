@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4894 2006-05-08 11:05:48Z twisti $
+   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -72,9 +72,6 @@
 	.globl asm_replacement_in
 
 	.globl asm_cacheflush
-	.globl asm_initialize_thread_stack
-	.globl asm_perform_threadswitch
-	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -714,7 +711,7 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	bctr                                /* and call the Java method           */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	mflr	r0
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
@@ -1076,7 +1073,7 @@ L_asm_wrapper_patcher_exception:
 	lwz     xpc,(5+LA_WORD_SIZE+5+58)*4+sizestackframeinfo(sp)
 	addi    sp,sp,(8+LA_WORD_SIZE+5+58)*4+sizestackframeinfo
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	mflr	r0
 	stw     r0,LA_LR_OFFSET(sp)
 	stwu    sp,-(LA_SIZE+1*4)(sp) /* preserve linkage area                    */
@@ -1343,180 +1340,6 @@ asm_cacheflush:
 	blr
 
 
-	.align 3
-doublezero:
-	.double 0.0
-
-asm_initialize_thread_stack:
-	addi r4,r4,-256
-	stw r3,120(r4)
-	li r3,0
-	stw r3,124(r4)
-	stw r3,0(r4)
-	stw r3,4(r4)
-	stw r3,8(r4)
-	stw r3,12(r4)
-	stw r3,16(r4)
-	stw r3,20(r4)
-	stw r3,24(r4)
-	stw r3,28(r4)
-	stw r3,32(r4)
-	stw r3,36(r4)
-
-	stw r3,128(r4)
-	stw r3,132(r4)
-	stw r3,136(r4)
-	stw r3,140(r4)
-	stw r3,144(r4)
-	stw r3,148(r4)
-	stw r3,152(r4)
-	stw r3,156(r4)
-
-	mflr r0
-	bl 0f
-0:
-	mflr r3
-	mtlr r0
-#if defined(__DARWIN__)
-	lfd fr0,lo16(doublezero-0b)(r3)
-#else
-	lfd fr0,(doublezero-0b)@l(r3)
-#endif
-
-	stfd fr0,40(r4)
-	stfd fr0,48(r4)
-	stfd fr0,56(r4)
-	stfd fr0,64(r4)
-	stfd fr0,72(r4)
-	stfd fr0,80(r4)
-	stfd fr0,88(r4)
-	stfd fr0,96(r4)
-	stfd fr0,104(r4)
-	stfd fr0,112(r4)
-
-	stfd fr0,160(r4)
-	stfd fr0,168(r4)
-	stfd fr0,176(r4)
-	stfd fr0,184(r4)
-	stfd fr0,192(r4)
-	stfd fr0,200(r4)
-	stfd fr0,208(r4)
-	stfd fr0,216(r4)
-
-	mr r3,r4
-	blr
-
-
-asm_perform_threadswitch:
-	mflr r0
-	addi r1,r1,-224
-	stw r0,120(r1)
-	stw pv,124(r1)
-	stw r14,0(r1)
-	stw r15,4(r1)
-	stw r24,8(r1)
-	stw r25,12(r1)
-	stw r26,16(r1)
-	stw r27,20(r1)
-	stw r28,24(r1)
-	stw r29,28(r1)
-	stw r30,32(r1)
-	stw r31,36(r1)
-	stfd fr14,40(r1)
-	stfd fr15,48(r1)
-	stfd fr24,56(r1)
-	stfd fr25,64(r1)
-	stfd fr26,72(r1)
-	stfd fr27,80(r1)
-	stfd fr28,88(r1)
-	stfd fr29,96(r1)
-	stfd fr30,104(r1)
-	stfd fr31,112(r1)
-
-	stw r16,128(r1)
-	stw r17,132(r1)
-	stw r18,136(r1)
-	stw r19,140(r1)
-	stw r20,144(r1)
-	stw r21,148(r1)
-	stw r22,152(r1)
-	stw r23,156(r1)
-	stfd fr16,160(r1)
-	stfd fr17,168(r1)
-	stfd fr18,176(r1)
-	stfd fr19,184(r1)
-	stfd fr20,192(r1)
-	stfd fr21,200(r1)
-	stfd fr22,208(r1)
-	stfd fr23,216(r1)
-
-	stw r1,0(r3)
-	stw r1,0(r5)
-	lwz r1,0(r4)
-
-	lwz r0,120(r1)
-	lwz pv,124(r1)
-	lwz r14,0(r1)
-	lwz r15,4(r1)
-	lwz r24,8(r1)
-	lwz r25,12(r1)
-	lwz r26,16(r1)
-	lwz r27,20(r1)
-	lwz r28,24(r1)
-	lwz r29,28(r1)
-	lwz r30,32(r1)
-	lwz r31,36(r1)
-	lfd fr14,40(r1)
-	lfd fr15,48(r1)
-	lfd fr24,56(r1)
-	lfd fr25,64(r1)
-	lfd fr26,72(r1)
-	lfd fr27,80(r1)
-	lfd fr28,88(r1)
-	lfd fr29,96(r1)
-	lfd fr30,104(r1)
-	lfd fr31,112(r1)
-
-	lwz r16,128(r1)
-	lwz r17,132(r1)
-	lwz r18,136(r1)
-	lwz r19,140(r1)
-	lwz r20,144(r1)
-	lwz r21,148(r1)
-	lwz r22,152(r1)
-	lwz r23,156(r1)
-	lfd fr16,160(r1)
-	lfd fr17,168(r1)
-	lfd fr18,176(r1)
-	lfd fr19,184(r1)
-	lfd fr20,192(r1)
-	lfd fr21,200(r1)
-	lfd fr22,208(r1)
-	lfd fr23,216(r1)
-
-	mtlr r0
-	addi r1,r1,224
-	blr
-
-
-asm_switchstackandcall:
-	mflr r0
-	stwu r3,-48(r3)
-	stw r0,40(r3)
-	stw r1,44(r3)
-	stw r1,0(r5)
-	mr r1,r3
-
-	mtctr r4
-	mr r3,r6
-	bctrl
-
-	lwz r0,40(r1)
-	mtlr r0
-	lwz r1,44(r1)
-	blr
-
-
 asm_getclassvalues_atomic:
 _crit_restart:
 _crit_begin:
@@ -1532,7 +1355,7 @@ _crit_end:
 	.data
 
 asm_criticalsections:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	.long   _crit_begin
 	.long   _crit_end
 	.long   _crit_restart

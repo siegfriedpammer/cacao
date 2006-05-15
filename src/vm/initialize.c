@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: initialize.c 4559 2006-03-05 23:24:50Z twisti $
+   $Id: initialize.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -74,7 +74,7 @@ bool initialize_class(classinfo *c)
 	if (!makeinitializations)
 		return true;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
@@ -84,7 +84,7 @@ bool initialize_class(classinfo *c)
 	   pass the monitor, is currently initalizing this class */
 
 	if (CLASS_IS_OR_ALMOST_INITIALIZED(c)) {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
 
@@ -97,7 +97,7 @@ bool initialize_class(classinfo *c)
 	if (c->state & CLASS_ERROR) {
 		*exceptionptr = new_noclassdeffounderror(c->name);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
 
@@ -124,7 +124,7 @@ bool initialize_class(classinfo *c)
 
 	c->state &= ~CLASS_INITIALIZING;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
@@ -145,9 +145,6 @@ static bool initialize_class_intern(classinfo *c)
 {
 	methodinfo        *m;
 	java_objectheader *xptr;
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	int b;
-#endif
 
 	/* maybe the class is not already linked */
 
@@ -199,19 +196,9 @@ static bool initialize_class_intern(classinfo *c)
 		log_message_class("Starting static class initializer for class: ", c);
 #endif
 
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	b = blockInts;
-	blockInts = 0;
-#endif
-
 	/* now call the initializer */
 
 	(void) vm_call_method(m, NULL);
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	assert(blockInts == 0);
-	blockInts = b;
-#endif
 
 	/* we have an exception or error */
 

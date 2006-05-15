@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4897 2006-05-10 15:09:49Z edwin $
+   $Id: inline.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -61,12 +62,8 @@
 
 #include "vm/jit/verify/typecheck.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #ifndef NDEBUG
@@ -233,7 +230,7 @@ static bool inline_jit_compile(inline_node *iln)
 	m = iln->m;
 	assert(m);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* enter a monitor on the method */
 	builtin_monitorenter((java_objectheader *) m);
 #endif
@@ -296,7 +293,7 @@ static bool inline_jit_compile(inline_node *iln)
 #endif
 
 return_r:
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* leave the monitor */
 	builtin_monitorexit((java_objectheader *) m );
 #endif

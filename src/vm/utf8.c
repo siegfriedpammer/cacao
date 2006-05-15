@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: utf8.c 4900 2006-05-11 09:18:28Z twisti $
+   $Id: utf8.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -45,12 +45,8 @@
 
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/builtin.h"
@@ -505,7 +501,7 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(hashtable_utf->header);
 #endif
 
@@ -535,7 +531,7 @@ utf *utf_new(const char *text, u2 length)
 
 			/* symbol found in hashtable */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(hashtable_utf->header);
 #endif
 
@@ -608,7 +604,7 @@ utf *utf_new(const char *text, u2 length)
 		hashtable_utf = newhash;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(hashtable_utf->header);
 #endif
 

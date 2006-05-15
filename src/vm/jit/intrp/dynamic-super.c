@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: dynamic-super.c 4921 2006-05-15 14:24:36Z twisti $
 */
 
 
@@ -46,12 +46,8 @@
 
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/hashtable.h"
@@ -110,7 +106,7 @@ typedef struct superstart {
 static hashtable hashtable_patchersupers;
 #define HASHTABLE_PATCHERSUPERS_BITS 14
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *lock_hashtable_patchersupers;
 #endif
 
@@ -124,7 +120,7 @@ typedef struct superreuse {
 static hashtable hashtable_superreuse;
 #define HASHTABLE_SUPERREUSE_BITS 14
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *lock_hashtable_superreuse;
 #endif
 
@@ -373,12 +369,12 @@ static void superreuse_insert(u1 *code, u4 length)
   superreuse *sr = NEW(superreuse);
   sr->code = code;
   sr->length = length;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorenter(lock_hashtable_superreuse);
 #endif
   sr->next = *listp;
   *listp = sr;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorexit(lock_hashtable_superreuse);
 #endif
   count_supers_unique++;
@@ -411,7 +407,7 @@ void patchersuper_rewrite(Inst *p)
   superstart **listp = (superstart **)&hashtable_patchersupers.ptr[slot];
   superstart *ss;
   count_patchers_exec++;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorenter(lock_hashtable_patchersupers);
 #endif
   for (; ss=*listp,  ss!=NULL; listp = &(ss->next)) {
@@ -430,7 +426,7 @@ void patchersuper_rewrite(Inst *p)
       break;
     }
   }
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorexit(lock_hashtable_patchersupers);
 #endif
 }
@@ -441,12 +437,12 @@ static void hashtable_patchersupers_insert(superstart *ss)
   u4 slot = ((key + (key>>HASHTABLE_PATCHERSUPERS_BITS)) & 
              ((1<<HASHTABLE_PATCHERSUPERS_BITS)-1));
   void **listp = &hashtable_patchersupers.ptr[slot];
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorenter(lock_hashtable_patchersupers);
 #endif
   ss->next = (superstart *)*listp;
   *listp = (void *)ss;
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   builtin_monitorexit(lock_hashtable_patchersupers);
 #endif
   count_patchers_ins++;
@@ -710,15 +706,13 @@ void dynamic_super_init(void)
   if (opt_no_replication)
     hashtable_create(&hashtable_superreuse,  1<<HASHTABLE_SUPERREUSE_BITS);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
   /* create patchersupers hashtable lock object */
 
   lock_hashtable_patchersupers = NEW(java_objectheader);
   lock_hashtable_superreuse  = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
   lock_init_object_lock(lock_hashtable_patchersupers);
   lock_init_object_lock(lock_hashtable_superreuse);
-# endif
 #endif
 }

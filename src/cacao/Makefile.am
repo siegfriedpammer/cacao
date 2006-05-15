@@ -28,30 +28,20 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4737 2006-04-05 12:56:43Z edwin $
+## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 if DISABLE_GC
-if NATIVE_THREADS
-GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-else
 GC_LIB =
-endif
 else
 GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
 endif
 
-if USE_THREADS
-if NATIVE_THREADS
+if ENABLE_THREADS
 THREAD_LIB = $(top_builddir)/src/threads/native/libthreads.la
-else
-THREAD_LIB = $(top_builddir)/src/threads/green/libthreads.la
-endif
-else
-THREAD_LIB =
 endif
 
 if ENABLE_STATICVM

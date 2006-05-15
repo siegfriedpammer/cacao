@@ -29,17 +29,18 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: logging.c 4886 2006-05-05 19:22:57Z edwin $
+   $Id: logging.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
+
+#include "config.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -48,10 +49,8 @@
 #include "vm/global.h"
 #include "vm/statistics.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 
@@ -82,12 +81,12 @@ void log_init(const char *fname)
 void log_start(void)
 {
 	if (logfile) {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 		fprintf(logfile, "[%p] ", (void *) THREADOBJECT);
 #endif
 
 	} else {
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 		fprintf(stdout, "LOG: [%p] ", (void *) THREADOBJECT);
 #else
 		fputs("LOG: ", stdout);

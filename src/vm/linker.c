@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4834 2006-04-25 12:25:43Z edwin $
+   $Id: linker.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -369,7 +369,7 @@ classinfo *link_class(classinfo *c)
 		return NULL;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* enter a monitor on the class */
 
 	builtin_monitorenter((java_objectheader *) c);
@@ -378,7 +378,7 @@ classinfo *link_class(classinfo *c)
 	/* maybe the class is already linked */
 
 	if (c->state & CLASS_LINKED) {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 		builtin_monitorexit((java_objectheader *) c);
 #endif
 
@@ -414,7 +414,7 @@ classinfo *link_class(classinfo *c)
 		compilingtime_start();
 #endif
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* leave the monitor */
 
 	builtin_monitorexit((java_objectheader *) c);
@@ -1074,12 +1074,8 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	compiler_lock();
-#else
-	intsDisable();
-#endif
 #endif
 
 	if (!(c->flags & ACC_INTERFACE)) {
@@ -1098,12 +1094,8 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	compiler_unlock();
-#else
-	intsRestore();
-#endif
 #endif
 }
 

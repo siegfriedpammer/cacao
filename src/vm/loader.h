@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loader.h 4490 2006-02-12 16:02:43Z edwin $
+   $Id: loader.h 4921 2006-05-15 14:24:36Z twisti $
 */
 
 
@@ -115,17 +115,10 @@ struct classbuffer {
 };
 
 
-/* export variables ***********************************************************/
-
-#if defined(USE_THREADS)
-extern int blockInts;
-#endif
-
-
 /* function prototypes ********************************************************/
 
 /* initialize loader, load important systemclasses */
-bool loader_init(u1 *stackbottom);
+bool loader_init(void);
 
 void loader_load_all_classes(void);
 

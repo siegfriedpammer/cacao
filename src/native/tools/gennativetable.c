@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: gennativetable.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: gennativetable.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -46,12 +46,8 @@
 #include "mm/boehm.h"
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/chain.h"
@@ -105,8 +101,6 @@ int main(int argc, char **argv)
 	methodinfo *m2;
 	bool nativelyoverloaded;
 
-	void *dummy;
-
 #if defined(DISABLE_GC)
 	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
@@ -145,11 +139,8 @@ int main(int argc, char **argv)
 
 	gc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	threads_preinit();
-#endif
-	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done
@@ -181,7 +172,7 @@ int main(int argc, char **argv)
 	/* initialize the loader subsystems (must be done _after_
        classcache_init) */
 
-	if (!loader_init((u1 *) &dummy))
+	if (!loader_init())
 		throw_main_exception_exit();
 
 

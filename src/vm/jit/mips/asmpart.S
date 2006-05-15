@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4904 2006-05-11 13:09:53Z twisti $
+   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -301,7 +301,7 @@ asm_call_jit_compiler:
 	                              /* directly to the caller (ra).             */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	aaddiu  sp,sp,-2*8
 	ast     ra,0*8(sp)
 	jal     builtin_asm_get_exceptionptrptr
@@ -520,7 +520,7 @@ L_asm_wrapper_patcher_exception:
 	ald     xpc,((5+2+16+22+4)*8+sizestackframeinfo)(sp) /* RA to JIT is xpc  */
 	aaddiu  sp,sp,((6+2+16+22+4)*8+sizestackframeinfo) /* remove stack frame  */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	daddiu  sp,sp,-4*8
 	sd      xpc,0*8(sp)
 	sd      ra,1*8(sp)
@@ -888,7 +888,7 @@ _crit_end:
     .data
 
 asm_criticalsections:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
     .dword  _crit_begin
     .dword  _crit_end
     .dword  _crit_restart

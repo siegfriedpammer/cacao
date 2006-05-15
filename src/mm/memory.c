@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: memory.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -56,12 +56,8 @@
 #include "mm/memory.h"
 #include "native/native.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -79,11 +75,11 @@
 
 *******************************************************************************/
 
-#if !defined(USE_THREADS) || (defined(USE_THREADS) && !defined(NATIVE_THREADS))
+#if !defined(ENABLE_THREADS)
 static dumpinfo _no_threads_dumpinfo;
 #endif
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #define DUMPINFO    &((threadobject *) THREADOBJECT)->dumpinfo
 #else
 #define DUMPINFO    &_no_threads_dumpinfo
@@ -94,7 +90,7 @@ static dumpinfo _no_threads_dumpinfo;
 
 #define DEFAULT_CODEMEM_SIZE    128 * 1024  /* defaulting to 128kB            */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *codememlock = NULL;
 #endif
 static int                codememsize = 0;
@@ -109,13 +105,11 @@ static void              *codememptr  = NULL;
 
 bool memory_init(void)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	codememlock = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(codememlock);
-# endif
-#endif /* defined(USE_THREADS) */
+#endif
 
 	/* everything's ok */
 
@@ -157,7 +151,7 @@ void *memory_cnew(s4 size)
 	void *p;
 	int   pagesize;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(codememlock);
 #endif
 
@@ -215,7 +209,7 @@ void *memory_cnew(s4 size)
 	codememptr = (void *) ((ptrint) codememptr + size);
 	codememsize -= size;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(codememlock);
 #endif
 

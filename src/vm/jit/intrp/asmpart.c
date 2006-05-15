@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: asmpart.c 4856 2006-04-28 00:46:39Z edwin $
+   $Id: asmpart.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -234,24 +234,16 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
 {
 	s4 sbv, sdv, sv;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	compiler_lock();
-#else
-	intsDisable();
-#endif
 #endif
 
 	sbv = super->baseval;
 	sdv = super->diffval;
 	sv  = sub->baseval;
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	compiler_unlock();
-#else
-	intsRestore();
-#endif
 #endif
 
 	out->super_baseval = sbv;

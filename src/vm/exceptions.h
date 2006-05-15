@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: exceptions.h 4690 2006-03-27 11:37:46Z twisti $
+   $Id: exceptions.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -51,13 +51,13 @@ typedef struct exceptionentry exceptionentry;
 #include "vm/method.h"
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #define exceptionptr    builtin_get_exceptionptrptr()
 #else
 #define exceptionptr    &_no_threads_exceptionptr
 #endif
 
-#if !defined(USE_THREADS) || !defined(NATIVE_THREADS)
+#if !defined(ENABLE_THREADS)
 extern java_objectheader *_no_threads_exceptionptr;
 #endif
 

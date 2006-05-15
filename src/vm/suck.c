@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4883 2006-05-05 18:58:00Z edwin $
+   $Id: suck.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -540,7 +540,7 @@ classbuffer *suck_start(classinfo *c)
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			/* enter a monitor on zip/jar archives */
 
 			builtin_monitorenter((java_objectheader *) lce);
@@ -550,7 +550,7 @@ classbuffer *suck_start(classinfo *c)
 
 			cb = zip_get(lce, c);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			/* leave the monitor */
 
 			builtin_monitorexit((java_objectheader *) lce);

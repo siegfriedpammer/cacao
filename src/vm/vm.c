@@ -45,13 +45,8 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/classcache.h"
@@ -90,8 +85,6 @@ bool vm_exiting = false;
 #if defined(ENABLE_INTRP)
 u1 *intrp_main_stack = NULL;
 #endif
-
-void **stackbottom = NULL;
 
 char *mainstring = NULL;
 classinfo *mainclass = NULL;
@@ -1086,11 +1079,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
   	threads_preinit();
-#endif
-	lock_init();
 #endif
 
 	/* initialize the string hashtable stuff: lock (must be done
@@ -1160,7 +1150,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* initialize the loader subsystems (must be done _after_
        classcache_init) */
 
-	if (!loader_init((u1 *) stackbottom))
+	if (!loader_init())
 		throw_main_exception_exit();
 
 	if (!linker_init())
@@ -1182,8 +1172,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!jni_init())
 		throw_main_exception_exit();
 
-#if defined(USE_THREADS)
-  	if (!threads_init((u1 *) stackbottom))
+#if defined(ENABLE_THREADS)
+  	if (!threads_init())
 		throw_main_exception_exit();
 #endif
 
@@ -1202,7 +1192,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_main_exception_exit();
 #endif
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
@@ -1243,12 +1233,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 s4 vm_destroy(JavaVM *vm)
 {
-#if defined(USE_THREADS)
-#if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	threads_join_all_threads();
-#else
-	killThread(currentThread);
-#endif
 #endif
 
 	/* everything's ok */
@@ -1354,11 +1340,6 @@ void vm_exit_handler(void)
 		profile_printstats();
 # endif
 #endif /* !defined(NDEBUG) */
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	clear_thread_flags();		/* restores standard file descriptor
-	                               flags */
-#endif
 
 #if defined(ENABLE_RT_TIMING)
  	rt_timing_print_time_stats(stderr);

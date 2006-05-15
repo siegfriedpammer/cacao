@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: md-os.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -124,7 +124,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *uc)
 {
 	void *critical;

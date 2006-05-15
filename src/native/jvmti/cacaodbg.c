@@ -63,7 +63,7 @@ jvmtiError allthreads (jint * threads_count_ptr, threadobject*** threads_ptr) {
     int i = 0, cnt = 8; 
     threadobject *thread, **tthreads;
 	
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	tthreads = MNEW(threadobject*, (sizeof(threadobject*) * cnt));
 
 	thread = mainthreadobj;

@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4913 2006-05-14 14:02:51Z edwin $
+   $Id: jvmti.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -75,7 +75,7 @@
 #include <unistd.h>
 #include <sched.h>
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #include "threads/native/threads.h"
 #include <sched.h>
 #include <pthread.h>
@@ -690,7 +690,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	CHECK_THREAD_IS_ALIVE(thread);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 
 	om=MNEW(java_objectheader*,size);
 
@@ -753,7 +753,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 	CHECK_THREAD_IS_ALIVE(thread);
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 
 	pthread_mutex_lock(&lock_global_pool_lock);
 
@@ -826,7 +826,7 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 	rap.arg = (void*)arg;
 	rap.jvmti_env = env;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	pthread_attr_init(&threadattr);
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
 	if (priority == JVMTI_THREAD_MIN_PRIORITY) {
@@ -871,7 +871,7 @@ GetTopThreadGroups (jvmtiEnv * env, jint * group_count_ptr,
     if ((groups_ptr == NULL) || (group_count_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	tg = MNEW(jthreadGroup*,size);
 	x = 0;
 	if (JVMTI_ERROR_NONE!=GetAllThreads(env,&threads_count_ptr,(jthread**)&threads_ptr))
@@ -1071,7 +1071,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 	if (thread_state_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
 	*thread_state_ptr = 0;
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	if((th->vmThread==NULL)&&(th->group==NULL)) { /* alive ? */
 		/* not alive */
 		if (((threadobject*)th->vmThread)->info.tid == 0)
@@ -1379,7 +1379,7 @@ CreateRawMonitor (jvmtiEnv * env, const char *name,
 	if ((name == NULL) || (monitor_ptr == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	monitor->name=javastring_new_from_ascii(name);
 #else
 	log_text ("CreateRawMonitor not supported");
@@ -1406,7 +1406,7 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 	
@@ -1433,7 +1433,7 @@ RawMonitorEnter (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter((java_objectheader*)monitor->name);        
 #else
 	log_text ("RawMonitorEnter not supported");
@@ -1455,7 +1455,7 @@ RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
 	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
@@ -1481,7 +1481,7 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
 	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
@@ -1510,7 +1510,7 @@ RawMonitorNotify (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
 	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
@@ -1536,7 +1536,7 @@ RawMonitorNotifyAll (jvmtiEnv * env, jrawMonitorID monitor)
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
 		return JVMTI_ERROR_INVALID_MONITOR;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
 	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
@@ -4103,7 +4103,7 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   1,				/* can_get_bytecodes */
   0,				/* can_get_synthetic_attribute */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
   1,				/* can_get_owned_monitor_info */
   1,				/* can_get_current_contended_monitor */
 #else

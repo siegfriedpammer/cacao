@@ -29,7 +29,7 @@
 			
    Changes: Edwin Steiner
 
-   $Id: codegen.c 4863 2006-04-30 16:17:44Z edwin $
+   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -239,7 +239,7 @@ struct builtin_gen builtin_gen_table[] = {
     {BUILTIN_newarray_double,         gen_NEWARRAY_DOUBLE, },
     {BUILTIN_arrayinstanceof,         gen_ARRAYINSTANCEOF, },
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
     {BUILTIN_monitorenter,            gen_MONITORENTER,    },
     {BUILTIN_monitorexit,             gen_MONITOREXIT,     },
 #endif
@@ -315,7 +315,7 @@ bool intrp_codegen(jitdata *jd)
 	(void) dseg_addaddress(cd, m);                          /* MethodPointer  */
 	(void) dseg_adds4(cd, m->maxlocals * SIZEOF_VOID_P);    /* FrameSize      */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		(void) dseg_adds4(cd, 1);                           /* IsSync         */
 	else
@@ -348,7 +348,7 @@ bool intrp_codegen(jitdata *jd)
 
 	gen_BBSTART;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 		if (m->flags & ACC_STATIC)
 			gen_ACONST(cd, (java_objectheader *) m->class);
@@ -1539,7 +1539,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
@@ -1558,7 +1558,7 @@ bool intrp_codegen(jitdata *jd)
 		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
@@ -1576,7 +1576,7 @@ bool intrp_codegen(jitdata *jd)
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);

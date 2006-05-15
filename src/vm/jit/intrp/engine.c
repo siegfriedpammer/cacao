@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: engine.c 4912 2006-05-14 12:22:25Z edwin $
+   $Id: engine.c 4921 2006-05-15 14:24:36Z twisti $
 */
 
 
@@ -51,7 +51,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 # ifndef USE_FAKE_ATOMIC_INSTRUCTIONS
 #  include "machine-instr.h"
 # else
@@ -59,7 +59,7 @@
 # endif
 #endif
 
-#if !defined(STORE_ORDER_BARRIER) && !defined(USE_THREADS)
+#if !defined(STORE_ORDER_BARRIER) && !defined(ENABLE_THREADS)
 #define STORE_ORDER_BARRIER() /* nothing */
 #endif
 

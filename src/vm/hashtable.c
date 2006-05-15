@@ -30,7 +30,7 @@
             Andreas Krall
             Christian Thalinger
 
-   $Id: hashtable.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: hashtable.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -40,10 +40,8 @@
 
 #include "mm/memory.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "vm/hashtable.h"
@@ -60,8 +58,7 @@ void hashtable_create(hashtable *hash, u4 size)
 {
 	/* initialize locking pointer */
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* We need to seperately allocate a java_objectheader here, as we
 	   need to store the lock object in the new hashtable if it's
 	   resized.  Otherwise we get an IllegalMonitorStateException. */
@@ -69,7 +66,6 @@ void hashtable_create(hashtable *hash, u4 size)
 	hash->header = NEW(java_objectheader);
 
 	lock_init_object_lock(hash->header);
-# endif
 #endif
 
 	/* set initial hash values */
@@ -99,7 +95,7 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 
 	hashtable_create(newhash, size);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* We need to store the old lock object in the new hashtable.
 	   Otherwise we get an IllegalMonitorStateException. */
 
@@ -119,6 +115,8 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 /* hashtable_free **************************************************************
 
    Simply frees the hashtable.
+
+   ATTENTION: It does NOT free the lock object!
 
 *******************************************************************************/
 

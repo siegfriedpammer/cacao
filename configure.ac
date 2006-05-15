@@ -449,37 +449,26 @@ AC_MSG_CHECKING(whether to include threads support)
 enable_threads=${enable_threads:-native}
 case "$enable_threads" in
 no | none | single)
-	AC_MSG_RESULT(no)
-	dnl no threads for boehm
-	ac_configure_args="$ac_configure_args --disable-boehm-threads"
-	AM_CONDITIONAL([USE_THREADS], [false])
-	AM_CONDITIONAL([NATIVE_THREADS], [false])
-	;;
-
-green | native | posix | pthreads)
-	AC_DEFINE([USE_THREADS], 1, [use threads])
-
-	AM_CONDITIONAL([USE_THREADS], [true])
-
-	if test x"$enable_threads" != "xgreen"; then
-		AC_MSG_RESULT(yes, native)
-                AC_CHECK_LIB(pthread, main)
-		AC_DEFINE([NATIVE_THREADS], 1, [use pthreads])
-
-		CFLAGS="$CFLAGS -D_REENTRANT"
-
-		dnl tell boehm to support threads as well
-		ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
-		AM_CONDITIONAL([NATIVE_THREADS], [true])
-
-	else
-		AC_MSG_RESULT(yes, green)
-
-		dnl no threads for boehm
-		ac_configure_args="$ac_configure_args --disable-boehm-threads"
-		AM_CONDITIONAL([NATIVE_THREADS], [false])
-	fi
+    AC_MSG_RESULT(no)
+    dnl no threads for boehm
+    ac_configure_args="$ac_configure_args --disable-boehm-threads"
+    AM_CONDITIONAL([ENABLE_THREADS], [false])
     ;;
+
+native | posix | pthreads)
+    AC_DEFINE([ENABLE_THREADS], 1, [enable threads])
+    
+    AM_CONDITIONAL([ENABLE_THREADS], [true])
+    
+    AC_MSG_RESULT(yes, native)
+    AC_CHECK_LIB(pthread, main)
+    
+    CFLAGS="$CFLAGS -D_REENTRANT"
+    
+    dnl tell boehm to support threads as well
+    ac_configure_args="$ac_configure_args --enable-boehm-threads=posix"
+    ;;
+
 *)
     AC_MSG_ERROR($enable_threads is an unknown thread package)
     ;;

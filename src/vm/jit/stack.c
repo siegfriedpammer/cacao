@@ -30,7 +30,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: stack.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: stack.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -72,7 +72,7 @@
 
 /* global variables ***********************************************************/
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *lock_stack_show_icmd;
 #endif
 
@@ -92,14 +92,12 @@ static java_objectheader *lock_stack_show_icmd;
 
 bool stack_init(void)
 {
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* initialize the show lock */
 
 	lock_stack_show_icmd = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(lock_stack_show_icmd);
-# endif
 #endif
 
 	/* everything's ok */
@@ -1996,16 +1994,188 @@ bool stack_analyse(jitdata *jd)
 #endif /* SUPPORT_LONG_CMP_CONST */
 							OPTT2_1(TYPE_LNG, TYPE_INT);
 						break;
+
+#if 0
+					case ICMD_FCMPL:
+						COUNT(count_pcmd_op);
+						if ((len > 0) && (iptr[1].val.i == 0)) {
+							switch (iptr[1].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IF_FCMPEQ;
+							icmd_if_fcmpl_tail:
+								iptr[0].op1 = iptr[1].op1;
+								iptr[1].opc = ICMD_NOP;
+
+								OP2_0(TYPE_FLT);
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[0].op1];
+			
+								iptr[0].target = (void *) tbptr;
+
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IF_FCMPNE;
+								goto icmd_if_fcmpl_tail;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IF_FCMPL_LT;
+								goto icmd_if_fcmpl_tail;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IF_FCMPL_GT;
+								goto icmd_if_fcmpl_tail;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IF_FCMPL_LE;
+								goto icmd_if_fcmpl_tail;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IF_FCMPL_GE;
+								goto icmd_if_fcmpl_tail;
+							default:
+								OPTT2_1(TYPE_FLT, TYPE_INT);
+							}
+						}
+						else
+							OPTT2_1(TYPE_FLT, TYPE_INT);
+						break;
+
+					case ICMD_FCMPG:
+						COUNT(count_pcmd_op);
+						if ((len > 0) && (iptr[1].val.i == 0)) {
+							switch (iptr[1].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IF_FCMPEQ;
+							icmd_if_fcmpg_tail:
+								iptr[0].op1 = iptr[1].op1;
+								iptr[1].opc = ICMD_NOP;
+
+								OP2_0(TYPE_FLT);
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[0].op1];
+			
+								iptr[0].target = (void *) tbptr;
+
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IF_FCMPNE;
+								goto icmd_if_fcmpg_tail;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IF_FCMPG_LT;
+								goto icmd_if_fcmpg_tail;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IF_FCMPG_GT;
+								goto icmd_if_fcmpg_tail;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IF_FCMPG_LE;
+								goto icmd_if_fcmpg_tail;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IF_FCMPG_GE;
+								goto icmd_if_fcmpg_tail;
+							default:
+								OPTT2_1(TYPE_FLT, TYPE_INT);
+							}
+						}
+						else
+							OPTT2_1(TYPE_FLT, TYPE_INT);
+						break;
+
+					case ICMD_DCMPL:
+						COUNT(count_pcmd_op);
+						if ((len > 0) && (iptr[1].val.i == 0)) {
+							switch (iptr[1].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IF_DCMPEQ;
+							icmd_if_dcmpl_tail:
+								iptr[0].op1 = iptr[1].op1;
+								iptr[1].opc = ICMD_NOP;
+
+								OP2_0(TYPE_DBL);
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[0].op1];
+			
+								iptr[0].target = (void *) tbptr;
+
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IF_DCMPNE;
+								goto icmd_if_dcmpl_tail;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IF_DCMPL_LT;
+								goto icmd_if_dcmpl_tail;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IF_DCMPL_GT;
+								goto icmd_if_dcmpl_tail;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IF_DCMPL_LE;
+								goto icmd_if_dcmpl_tail;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IF_DCMPL_GE;
+								goto icmd_if_dcmpl_tail;
+							default:
+								OPTT2_1(TYPE_DBL, TYPE_INT);
+							}
+						}
+						else
+							OPTT2_1(TYPE_DBL, TYPE_INT);
+						break;
+
+					case ICMD_DCMPG:
+						COUNT(count_pcmd_op);
+						if ((len > 0) && (iptr[1].val.i == 0)) {
+							switch (iptr[1].opc) {
+							case ICMD_IFEQ:
+								iptr[0].opc = ICMD_IF_DCMPEQ;
+							icmd_if_dcmpg_tail:
+								iptr[0].op1 = iptr[1].op1;
+								iptr[1].opc = ICMD_NOP;
+
+								OP2_0(TYPE_DBL);
+								tbptr = m->basicblocks +
+									m->basicblockindex[iptr[0].op1];
+			
+								iptr[0].target = (void *) tbptr;
+
+								MARKREACHED(tbptr, copy);
+								COUNT(count_pcmd_bra);
+								break;
+							case ICMD_IFNE:
+								iptr[0].opc = ICMD_IF_DCMPNE;
+								goto icmd_if_dcmpg_tail;
+							case ICMD_IFLT:
+								iptr[0].opc = ICMD_IF_DCMPG_LT;
+								goto icmd_if_dcmpg_tail;
+							case ICMD_IFGT:
+								iptr[0].opc = ICMD_IF_DCMPG_GT;
+								goto icmd_if_dcmpg_tail;
+							case ICMD_IFLE:
+								iptr[0].opc = ICMD_IF_DCMPG_LE;
+								goto icmd_if_dcmpg_tail;
+							case ICMD_IFGE:
+								iptr[0].opc = ICMD_IF_DCMPG_GE;
+								goto icmd_if_dcmpg_tail;
+							default:
+								OPTT2_1(TYPE_DBL, TYPE_INT);
+							}
+						}
+						else
+							OPTT2_1(TYPE_DBL, TYPE_INT);
+						break;
+#else
 					case ICMD_FCMPL:
 					case ICMD_FCMPG:
 						COUNT(count_pcmd_op);
 						OPTT2_1(TYPE_FLT, TYPE_INT);
 						break;
+
 					case ICMD_DCMPL:
 					case ICMD_DCMPG:
 						COUNT(count_pcmd_op);
 						OPTT2_1(TYPE_DBL, TYPE_INT);
 						break;
+#endif
 
 						/* pop 1 push 1 */
 						
@@ -2718,7 +2888,7 @@ void stack_show_method(jitdata *jd)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* We need to enter a lock here, since the binutils disassembler
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
@@ -2915,7 +3085,7 @@ void stack_show_method(jitdata *jd)
 	}
 #endif
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(lock_stack_show_icmd);
 #endif
 
@@ -3421,12 +3591,40 @@ void stack_show_icmd(instruction *iptr, bool deadcode)
 	case ICMD_IF_ICMPGE:
 	case ICMD_IF_ICMPGT:
 	case ICMD_IF_ICMPLE:
+
 	case ICMD_IF_LCMPEQ:
 	case ICMD_IF_LCMPNE:
 	case ICMD_IF_LCMPLT:
 	case ICMD_IF_LCMPGE:
 	case ICMD_IF_LCMPGT:
 	case ICMD_IF_LCMPLE:
+
+	case ICMD_IF_FCMPEQ:
+	case ICMD_IF_FCMPNE:
+
+	case ICMD_IF_FCMPL_LT:
+	case ICMD_IF_FCMPL_GE:
+	case ICMD_IF_FCMPL_GT:
+	case ICMD_IF_FCMPL_LE:
+
+	case ICMD_IF_FCMPG_LT:
+	case ICMD_IF_FCMPG_GE:
+	case ICMD_IF_FCMPG_GT:
+	case ICMD_IF_FCMPG_LE:
+
+	case ICMD_IF_DCMPEQ:
+	case ICMD_IF_DCMPNE:
+
+	case ICMD_IF_DCMPL_LT:
+	case ICMD_IF_DCMPL_GE:
+	case ICMD_IF_DCMPL_GT:
+	case ICMD_IF_DCMPL_LE:
+
+	case ICMD_IF_DCMPG_LT:
+	case ICMD_IF_DCMPG_GE:
+	case ICMD_IF_DCMPG_GT:
+	case ICMD_IF_DCMPG_LE:
+
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
 		if (!(iptr->opc & ICMD_CONDITION_MASK)) {

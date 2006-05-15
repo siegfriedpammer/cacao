@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: string.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: string.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -61,7 +61,7 @@
 
 hashtable hashtable_string;             /* hashtable for javastrings          */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 static java_objectheader *lock_hashtable_string;
 #endif
 
@@ -206,14 +206,12 @@ bool string_init(void)
 
 	hashtable_create(&hashtable_string, HASHTABLE_STRING_SIZE);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	/* create string hashtable lock object */
 
 	lock_hashtable_string = NEW(java_objectheader);
 
-# if defined(NATIVE_THREADS)
 	lock_init_object_lock(lock_hashtable_string);
-# endif
 #endif
 
 	/* everything's ok */
@@ -565,7 +563,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
     u4                slot;
     u2                i;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(lock_hashtable_string);
 #endif
 
@@ -590,7 +588,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 			if (!copymode)
 				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(lock_hashtable_string);
 #endif
 
@@ -632,7 +630,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 	js = NEW(java_lang_String);
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(&js->header);
 #endif
 
@@ -693,7 +691,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 		hashtable_string = newhash;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(lock_hashtable_string);
 #endif
 

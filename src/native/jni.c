@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4909 2006-05-13 23:10:21Z edwin $
+   $Id: jni.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -81,12 +81,8 @@
 # include "native/jvmti/jvmti.h"
 #endif
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -132,7 +128,7 @@ static methodinfo *dbbirw_init;
 
 /* local reference table ******************************************************/
 
-#if !defined(USE_THREADS)
+#if !defined(ENABLE_THREADS)
 localref_table *_no_threads_localref_table;
 #endif
 
@@ -4934,7 +4930,7 @@ jint MonitorEnter(JNIEnv *env, jobject obj)
 		return JNI_ERR;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(obj);
 #endif
 
@@ -4961,7 +4957,7 @@ jint MonitorExit(JNIEnv *env, jobject obj)
 		return JNI_ERR;
 	}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(obj);
 #endif
 
@@ -5120,7 +5116,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 	STATISTICS(jniinvokation());
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(hashtable_global_ref->header);
 #endif
 
@@ -5138,7 +5134,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 			gre->refs++;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(hashtable_global_ref->header);
 #endif
 
@@ -5165,7 +5161,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj)
 
 	hashtable_global_ref->entries++;
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(hashtable_global_ref->header);
 #endif
 
@@ -5188,7 +5184,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	STATISTICS(jniinvokation());
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorenter(hashtable_global_ref->header);
 #endif
 
@@ -5223,7 +5219,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 				FREE(gre, hashtable_global_ref_entry);
 			}
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 			builtin_monitorexit(hashtable_global_ref->header);
 #endif
 
@@ -5236,7 +5232,7 @@ void DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	log_println("JNI-DeleteGlobalRef: global reference not found");
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 	builtin_monitorexit(hashtable_global_ref->header);
 #endif
 }
@@ -5435,7 +5431,7 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 {
 	STATISTICS(jniinvokation());
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	if (threads_get_current_threadobject() == NULL) {
 		*env = NULL;
 

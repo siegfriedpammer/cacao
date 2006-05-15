@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4818 2006-04-24 00:19:06Z edwin $
+   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -323,7 +323,7 @@ L_call_method:
 	jmp		*v0                         /* ...and now call the new method     */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2                    /* v0 == itmp1                        */
 #else
@@ -534,7 +534,7 @@ asm_wrapper_patcher:
 L_asm_wrapper_patcher_exception:
 	add     $((6+2+4)*4+sizestackframeinfo),sp /* remove stack frame, keep ra */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	call    builtin_asm_get_exceptionptrptr
 	mov     v0,itmp2
 #else
@@ -809,7 +809,7 @@ _crit_end2:
 	.data
 
 asm_criticalsections:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #if 0
 	.long   _crit_begin1
 	.long   _crit_end1

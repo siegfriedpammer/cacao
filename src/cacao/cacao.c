@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4892 2006-05-06 18:29:55Z motse $
+   $Id: cacao.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -51,7 +51,7 @@
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/cacaodbg.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #include <pthread.h>
 #endif
 #endif
@@ -189,19 +189,12 @@ void exit_handler(void);
 
 int main(int argc, char **argv)
 {
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	void *dummy;
-#endif
 	s4 i;
 	
 	/* local variables ********************************************************/
 
 	JavaVMInitArgs *vm_args;
 	JavaVM         *jvm;                /* denotes a Java VM                  */
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-	stackbottom = &dummy;
-#endif
 
 	if (atexit(vm_exit_handler))
 		throw_cacao_exception_exit(string_java_lang_InternalError,
@@ -219,7 +212,7 @@ int main(int argc, char **argv)
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
-	JNI_CreateJavaVM(&jvm, (void **) &_Jv_env, vm_args);
+	JNI_CreateJavaVM(&jvm, (void *) &_Jv_env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 	pthread_mutex_init(&dbgcomlock,NULL);

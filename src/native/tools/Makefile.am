@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4627 2006-03-16 12:53:32Z twisti $
+## $Id: Makefile.am 4921 2006-05-15 14:24:36Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -37,9 +37,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 if DISABLE_GC
-if NATIVE_THREADS
 GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
-endif
 else
 GC_LIB = $(top_builddir)/src/boehm-gc/libgc.la
 endif

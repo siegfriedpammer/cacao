@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: stacktrace.h 4913 2006-05-14 14:02:51Z edwin $
+   $Id: stacktrace.h 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -64,7 +64,7 @@ struct stackframeinfo {
 	u1             *xpc;                /* XPC (for inline stubs)             */
 };
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 #define STACKFRAMEINFO    (&(THREADOBJECT->_stackframeinfo))
 #else
 extern stackframeinfo *_no_threads_stackframeinfo;

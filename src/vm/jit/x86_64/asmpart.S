@@ -30,7 +30,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: asmpart.S 4805 2006-04-21 10:54:24Z twisti $
+   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -345,7 +345,7 @@ L_asm_call_jit_compiler:                /* required for PIC code              */
 	jmp     *v0                         /* ...and now call the new method     */
 
 L_asm_call_jit_compiler_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
@@ -564,7 +564,7 @@ asm_wrapper_patcher:
 	ret                                 /* call new patched code              */
 
 L_asm_wrapper_patcher_exception:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	call    builtin_asm_get_exceptionptrptr@PLT
 	mov     v0,itmp2                    /* v0 == xptr                         */
 #else
@@ -881,7 +881,7 @@ _crit_end:
 	.data
 		
 asm_criticalsections:
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	.quad   _crit_begin
 	.quad   _crit_end
 	.quad   _crit_restart

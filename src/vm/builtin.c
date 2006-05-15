@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4908 2006-05-12 16:49:50Z edwin $
+   $Id: builtin.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -63,13 +63,8 @@
 #include "native/include/java_lang_Object.h"          /* required by VMObject */
 #include "native/include/java_lang_VMObject.h"
 
-#if defined(USE_THREADS)
-# if defined(NATIVE_THREADS)
-#  include "threads/native/threads.h"
-# else
-#  include "threads/green/threads.h"
-#  include "threads/green/locks.h"
-# endif
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
 #endif
 
 #include "toolbox/logging.h"
@@ -793,7 +788,7 @@ java_objectheader *builtin_new(classinfo *c)
 
 	o->vftbl = c->vftbl;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(o);
 #endif
 
@@ -852,7 +847,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 
 	a->objheader.vftbl = arrayclass->vftbl;
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 	lock_init_object_lock(&a->objheader);
 #endif
 
@@ -1707,94 +1702,6 @@ void builtin_displaymethodstop(methodinfo *m, s8 l, double d, float f)
 #endif /* !defined(NDEBUG) */
 
 
-/****************************************************************************
-			 SYNCHRONIZATION FUNCTIONS
-*****************************************************************************/
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-/*
- * Lock the mutex of an object.
- */
-void internal_lock_mutex_for_object(java_objectheader *object)
-{
-	mutexHashEntry *entry;
-	int hashValue;
-
-	assert(object != 0);
-
-	hashValue = MUTEX_HASH_VALUE(object);
-	entry = &mutexHashTable[hashValue];
-
-	if (entry->object != 0) {
-		if (entry->mutex.count == 0 && entry->conditionCount == 0) {
-			entry->object = 0;
-			entry->mutex.holder = 0;
-			entry->mutex.count = 0;
-			entry->mutex.muxWaiters = 0;
-
-		} else {
-			while (entry->next != 0 && entry->object != object)
-				entry = entry->next;
-
-			if (entry->object != object) {
-				entry->next = firstFreeOverflowEntry;
-				firstFreeOverflowEntry = firstFreeOverflowEntry->next;
-
-				entry = entry->next;
-				entry->object = 0;
-				entry->next = 0;
-				assert(entry->conditionCount == 0);
-			}
-		}
-
-	} else {
-		entry->mutex.holder = 0;
-		entry->mutex.count = 0;
-		entry->mutex.muxWaiters = 0;
-	}
-
-	if (entry->object == 0)
-		entry->object = object;
-	
-	internal_lock_mutex(&entry->mutex);
-}
-#endif
-
-
-#if defined(USE_THREADS) && !defined(NATIVE_THREADS)
-/*
- * Unlocks the mutex of an object.
- */
-void internal_unlock_mutex_for_object (java_objectheader *object)
-{
-	int hashValue;
-	mutexHashEntry *entry;
-
-	hashValue = MUTEX_HASH_VALUE(object);
-	entry = &mutexHashTable[hashValue];
-
-	if (entry->object == object) {
-		internal_unlock_mutex(&entry->mutex);
-
-	} else {
-		while (entry->next != 0 && entry->next->object != object)
-			entry = entry->next;
-
-		assert(entry->next != 0);
-
-		internal_unlock_mutex(&entry->next->mutex);
-
-		if (entry->next->mutex.count == 0 && entry->conditionCount == 0) {
-			mutexHashEntry *unlinked = entry->next;
-
-			entry->next = unlinked->next;
-			unlinked->next = firstFreeOverflowEntry;
-			firstFreeOverflowEntry = unlinked;
-		}
-	}
-}
-#endif
-
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file)
 {
@@ -1809,27 +1716,13 @@ void builtin_print_cycles_stats(FILE *file)
 }
 #endif /* defined(ENABLE_CYCLES_STATS) */
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 void builtin_monitorenter(java_objectheader *o)
 {
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_overhead, cycles_end;
 #endif
 
-#if !defined(NATIVE_THREADS)
-	int hashValue;
-
-	++blockInts;
-
-	hashValue = MUTEX_HASH_VALUE(o);
-	if (mutexHashTable[hashValue].object == o 
-		&& mutexHashTable[hashValue].mutex.holder == currentThread)
-		++mutexHashTable[hashValue].mutex.count;
-	else
-		internal_lock_mutex_for_object(o);
-
-	--blockInts;
-#else /* defined(NATIVE_THREADS) */
 	CYCLES_STATS_GET(cycles_start);
 	CYCLES_STATS_GET(cycles_overhead);
 
@@ -1838,12 +1731,11 @@ void builtin_monitorenter(java_objectheader *o)
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorenter, cycles_end - cycles_overhead);
 	CYCLES_STATS_COUNT(builtin_overhead    , cycles_overhead - cycles_start);
-#endif /* defined(NATIVE_THREADS) */
 }
 #endif
 
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 /*
  * Locks the class object - needed for static synchronized methods.
  */
@@ -1854,38 +1746,19 @@ void builtin_staticmonitorenter(classinfo *c)
 #endif
 
 
-#if defined(USE_THREADS)
+#if defined(ENABLE_THREADS)
 void builtin_monitorexit(java_objectheader *o)
 {
 #if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
 #endif
 
-#if !defined(NATIVE_THREADS)
-	int hashValue;
-
-	++blockInts;
-
-	hashValue = MUTEX_HASH_VALUE(o);
-	if (mutexHashTable[hashValue].object == o) {
-		if (mutexHashTable[hashValue].mutex.count == 1
-			&& mutexHashTable[hashValue].mutex.muxWaiters != 0)
-			internal_unlock_mutex_for_object(o);
-		else
-			--mutexHashTable[hashValue].mutex.count;
-
-	} else
-		internal_unlock_mutex_for_object(o);
-
-	--blockInts;
-#else /* defined(NATIVE_THREADS) */
 	CYCLES_STATS_GET(cycles_start);
 
 	lock_monitor_exit((threadobject *) THREADOBJECT, o);
 
 	CYCLES_STATS_GET(cycles_end);
 	CYCLES_STATS_COUNT(builtin_monitorexit, cycles_end - cycles_start);
-#endif /* defined(NATIVE_THREADS) */
 }
 #endif
 
@@ -2705,7 +2578,7 @@ java_arrayheader *builtin_clone_array(void *env, java_arrayheader *o)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 java_objectheader **builtin_asm_get_exceptionptrptr(void)
 {
 	return builtin_get_exceptionptrptr();

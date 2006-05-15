@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: signal.c 4530 2006-02-21 09:11:53Z twisti $
+   $Id: signal.c 4921 2006-05-15 14:24:36Z twisti $
 
 */
 
@@ -40,7 +40,7 @@
 
 #include "vm/types.h"
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
 #endif
 
@@ -115,7 +115,7 @@ void signal_init(void)
 
 	/* catch SIGQUIT for thread dump */
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 #if !defined(__FREEBSD__)
 	act.sa_sigaction = signal_handler_sigquit;
 	act.sa_flags = SA_SIGINFO;
@@ -137,7 +137,7 @@ void signal_init(void)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void signal_handler_sigquit(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* do thread dump */
@@ -175,7 +175,7 @@ void signal_handler_sigint(int sig, siginfo_t *siginfo, void *_p)
 
 *******************************************************************************/
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
+#if defined(ENABLE_THREADS)
 void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* call stacktrace function */
