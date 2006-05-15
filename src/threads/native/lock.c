@@ -83,6 +83,33 @@
 /* MACROS FOR THIN/FAT LOCKS                                                  */
 /******************************************************************************/
 
+/* We use a variant of the thin locks described in the paper
+ * 
+ *     Bacon, Konuru, Murthy, Serrano
+ *     Thin Locks: Featherweight Synchronization for Java
+ *	   Proceedings of the ACM Conference on Programming Language Design and 
+ *	   Implementation (Montreal, Canada), SIGPLAN Notices volume 33, number 6,
+ *	   June 1998
+ *
+ * In thin lock mode the lockword (monitorPtr) looks like this:
+ *
+ *     ,----------------------,-----------,---,
+ *     |      thread ID       |   count   | 0 |
+ *     `----------------------'-----------'---´
+ *
+ *     thread ID......the 'index' of the owning thread, or 0
+ *     count..........number of times the lock has been entered	minus 1
+ *     0..............the shape bit is 0 in thin lock mode
+ *
+ * In fat lock mode it is basically a lock_record_t *:
+ *
+ *     ,----------------------------------,---,
+ *     |    lock_record_t * (without LSB) | 1 |
+ *     `----------------------------------'---´
+ *
+ *     1..............the shape bit is 1 in fat lock mode
+ */
+
 #if SIZEOF_VOID_P == 8
 #define THIN_LOCK_WORD_SIZE    64
 #else
