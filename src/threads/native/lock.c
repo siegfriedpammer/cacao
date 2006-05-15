@@ -118,6 +118,8 @@
 
 #define THIN_LOCK_SHAPE_BIT    0x01
 
+#define THIN_UNLOCKED          0
+
 #define THIN_LOCK_COUNT_SHIFT  1
 #define THIN_LOCK_COUNT_SIZE   8
 #define THIN_LOCK_COUNT_INCR   (1 << THIN_LOCK_COUNT_SHIFT)
@@ -221,7 +223,7 @@ void lock_init_execution_env(threadobject *thread)
 
 ptrint lock_pre_compute_thinlock(s4 index)
 {
-	return index << THIN_LOCK_TID_SHIFT;
+	return (index << THIN_LOCK_TID_SHIFT) | THIN_UNLOCKED;
 }
 
 
@@ -457,7 +459,7 @@ void lock_init_object_lock(java_objectheader *o)
 {
 	assert(o);
 
-	o->monitorPtr = NULL;
+	o->monitorPtr = (lock_record_t *) THIN_UNLOCKED;
 }
 
 
@@ -471,7 +473,7 @@ void lock_init_object_lock(java_objectheader *o)
 
 lock_record_t *lock_get_initial_lock_word(void)
 {
-	return NULL;
+	return (lock_record_t *) THIN_UNLOCKED;
 }
 
 
@@ -541,13 +543,9 @@ static lock_record_t *lock_inflate(threadobject *t, java_objectheader *o)
       t............the current thread
 	  o............the object of which to enter the monitor
 
-   RETURN VALUE:
-      the new lock record of the object when it has been entered, or
-	  NULL if a thin lock has been entered
-
 *******************************************************************************/
 
-lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
+void lock_monitor_enter(threadobject *t, java_objectheader *o)
 {
 	/* CAUTION: This code assumes that ptrint is unsigned! */
 	ptrint lockword;
@@ -557,11 +555,11 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 	/* most common case: try to thin-lock an unlocked object */
 
-	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), 0, thinlock)) == 0) {
+	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) == THIN_UNLOCKED) {
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
 		MEMORY_BARRIER();
-		return NULL;
+		return;
 	}
 
 	/* next common case: recursive lock with small recursion count */
@@ -579,7 +577,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 			o->monitorPtr = (lock_record_t *) (lockword + THIN_LOCK_COUNT_INCR);
 
 			/* success. we locked it */
-			return NULL;
+			return;
 		}
 		else {
 			lock_record_t *lr;
@@ -589,7 +587,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 			lr = lock_inflate(t, o);
 			lr->count++;
 
-			return lr;
+			return;
 		}
 	}
 
@@ -606,7 +604,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 			/* check for recursive entering */
 			if (lr->owner == t) {
 				lr->count++;
-				return lr;
+				return;
 			}
 		}
 		else {
@@ -621,8 +619,8 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 			/* SPIN LOOP */
 			while (true) {
-				lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), 0, fatlock);
-				if (lockword == 0) {
+				lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), THIN_UNLOCKED, fatlock);
+				if (lockword == THIN_UNLOCKED) {
 #if defined(LOCK_VERBOSE)
 					printf("thread %3d: successfully inflated lock of %p\n",
 							t->index, (void*)o);
@@ -630,7 +628,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 					/* we managed to install our lock record */
 					/* The Java Memory Model requires a memory barrier here: */
 					MEMORY_BARRIER();
-					return lr;
+					return;
 				}
 
 				if (IS_FAT_LOCK(lockword)) {
@@ -656,7 +654,7 @@ lock_record_t *lock_monitor_enter(threadobject *t, java_objectheader *o)
 
 		assert(lr->count == 0);
 
-		return lr;
+		return;
 	}
 }
 
@@ -695,7 +693,7 @@ bool lock_monitor_exit(threadobject *t, java_objectheader *o)
 	if (lockword == thinlock) {
 		/* memory barrier for Java Memory Model */
 		MEMORY_BARRIER();
-		o->monitorPtr = 0;
+		o->monitorPtr = THIN_UNLOCKED;
 		/* memory barrier for thin locking */
 		MEMORY_BARRIER();
 		return true;
@@ -859,7 +857,11 @@ void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nano
 
 	/* re-enter the monitor */
 
-	lr = lock_monitor_enter(t, o);
+	lock_monitor_enter(t, o);
+
+	/* assert that the lock record is still the same */
+
+	assert( GET_FAT_LOCK((ptrint) o->monitorPtr) == lr );
 
 	/* remove us from the list of waiting threads */
 

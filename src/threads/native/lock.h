@@ -126,7 +126,7 @@ lock_record_t *lock_get_initial_lock_word(void);
 
 ptrint lock_pre_compute_thinlock(s4 index);
 
-lock_record_t *lock_monitor_enter(struct threadobject *, java_objectheader *);
+void lock_monitor_enter(struct threadobject *, java_objectheader *);
 bool lock_monitor_exit(struct threadobject *, java_objectheader *);
 
 bool lock_does_thread_hold_lock(struct threadobject *t, java_objectheader *o);
