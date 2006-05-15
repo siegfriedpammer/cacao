@@ -40,10 +40,8 @@
 #include "config.h"
 #include "vm/types.h"
 
-/* XXX Darwin */
-#include <semaphore.h>
-
 #include "vm/global.h"
+
 
 /* typedefs *******************************************************************/
 

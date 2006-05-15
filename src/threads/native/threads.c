@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4916 2006-05-14 22:41:34Z edwin $
+   $Id: threads.c 4919 2006-05-15 12:23:13Z twisti $
 
 */
 
@@ -49,16 +49,15 @@
 #include <errno.h>
 
 #include <pthread.h>
-#include <semaphore.h>
 
 #include "vm/types.h"
 
 #include "arch.h"
 
 #if !defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-#include "machine-instr.h"
+# include "machine-instr.h"
 #else
-#include "threads/native/generic-primitives.h"
+# include "threads/native/generic-primitives.h"
 #endif
 
 #include "mm/boehm.h"
@@ -82,13 +81,89 @@
 #include "vm/jit/asmpart.h"
 
 #if !defined(__DARWIN__)
-#if defined(__LINUX__)
-#define GC_LINUX_THREADS
-#elif defined(__MIPS__)
-#define GC_IRIX_THREADS
+# if defined(__LINUX__)
+#  define GC_LINUX_THREADS
+# elif defined(__MIPS__)
+#  define GC_IRIX_THREADS
+# endif
+# include <semaphore.h>
+# include "boehm-gc/include/gc.h"
 #endif
-#include "boehm-gc/include/gc.h"
-#endif
+
+
+#if defined(__DARWIN__)
+/* Darwin has no working semaphore implementation.  This one is taken
+   from Boehm-GC. */
+
+/*
+   This is a very simple semaphore implementation for darwin. It
+   is implemented in terms of pthreads calls so it isn't async signal
+   safe. This isn't a problem because signals aren't used to
+   suspend threads on darwin.
+*/
+   
+static int sem_init(sem_t *sem, int pshared, int value)
+{
+	if (pshared)
+		assert(0);
+
+	sem->value = value;
+    
+	if (pthread_mutex_init(&sem->mutex, NULL) < 0)
+		return -1;
+
+	if (pthread_cond_init(&sem->cond, NULL) < 0)
+		return -1;
+
+	return 0;
+}
+
+static int sem_post(sem_t *sem)
+{
+	if (pthread_mutex_lock(&sem->mutex) < 0)
+		return -1;
+
+	sem->value++;
+
+	if (pthread_cond_signal(&sem->cond) < 0) {
+		pthread_mutex_unlock(&sem->mutex);
+		return -1;
+	}
+
+	if (pthread_mutex_unlock(&sem->mutex) < 0)
+		return -1;
+
+	return 0;
+}
+
+static int sem_wait(sem_t *sem)
+{
+	if (pthread_mutex_lock(&sem->mutex) < 0)
+		return -1;
+
+	while (sem->value == 0) {
+		pthread_cond_wait(&sem->cond, &sem->mutex);
+	}
+
+	sem->value--;
+
+	if (pthread_mutex_unlock(&sem->mutex) < 0)
+		return -1;    
+
+	return 0;
+}
+
+static int sem_destroy(sem_t *sem)
+{
+	if (pthread_cond_destroy(&sem->cond) < 0)
+		return -1;
+
+	if (pthread_mutex_destroy(&sem->mutex) < 0)
+		return -1;
+
+	return 0;
+}
+#endif /* defined(__DARWIN__) */
 
 
 /* internally used constants **************************************************/

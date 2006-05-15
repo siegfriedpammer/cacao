@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4916 2006-05-14 22:41:34Z edwin $
+   $Id: threads.h 4919 2006-05-15 12:23:13Z twisti $
 
 */
 
@@ -40,7 +40,6 @@
 #include "config.h"
 
 #include <pthread.h>
-#include <semaphore.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -58,10 +57,19 @@
 #include "threads/native/lock.h"
 
 #if defined(__DARWIN__)
-#include <mach/mach.h>
+# include <mach/mach.h>
 
 /* We need to emulate recursive mutexes. */
-#define MUTEXSIM
+# define MUTEXSIM
+
+typedef struct {
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	int value;
+} sem_t;
+
+#else
+# include <semaphore.h>
 #endif
 
 
