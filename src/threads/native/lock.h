@@ -129,7 +129,7 @@ ptrint lock_pre_compute_thinlock(s4 index);
 void lock_monitor_enter(struct threadobject *, java_objectheader *);
 bool lock_monitor_exit(struct threadobject *, java_objectheader *);
 
-bool lock_does_thread_hold_lock(struct threadobject *t, java_objectheader *o);
+bool lock_is_held_by_current_thread(java_objectheader *o);
 
 void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
 void lock_notify_object(java_objectheader *o);

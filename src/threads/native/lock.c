@@ -955,28 +955,29 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
 /*============================================================================*/
 
 
-/* lock_does_thread_hold_lock **************************************************
+/* lock_is_held_by_current_thread **********************************************
 
-   Return true if the given thread owns the monitor of the given object.
+   Return true if the current thread owns the monitor of the given object.
 
    IN:
-      t............the thread
 	  o............the object
-   
-   RETURN VALUE:
-      true, if the thread is locking the object
 
+   RETURN VALUE:
+      true, if the current thread holds the lock of this object.
+   
 *******************************************************************************/
 
-bool lock_does_thread_hold_lock(threadobject *t, java_objectheader *o)
+bool lock_is_held_by_current_thread(java_objectheader *o)
 {
-	ptrint lockword;
+	ptrint        lockword;
+	threadobject *t;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will fail this check.                                              */
 
 	lockword = (ptrint) o->monitorPtr;
+	t = THREADOBJECT;
 
 	if (IS_FAT_LOCK(lockword)) {
 		lock_record_t *lr;

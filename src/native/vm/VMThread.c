@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMThread.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: VMThread.c 4926 2006-05-15 21:32:09Z edwin $
 
 */
 
@@ -229,8 +229,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass cla
 JNIEXPORT s4 JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object* o)
 {
 #if defined(ENABLE_THREADS)
-	return lock_does_thread_hold_lock((threadobject*) THREADOBJECT,
-									  (java_objectheader *) o);
+	return lock_is_held_by_current_thread((java_objectheader *) o);
 #endif
 }
 

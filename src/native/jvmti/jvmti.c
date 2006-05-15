@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: jvmti.c 4926 2006-05-15 21:32:09Z edwin $
 
 */
 
@@ -1407,7 +1407,7 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 		return JVMTI_ERROR_INVALID_MONITOR;
 
 #if defined(ENABLE_THREADS)
-	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
+	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 	
 	lock_monitor_exit((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name);
@@ -1457,7 +1457,7 @@ RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	builtin_monitorexit((java_objectheader*)monitor->name);
@@ -1483,7 +1483,7 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 
 #if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	lock_wait_for_object(&monitor->name->header, millis,0);
@@ -1512,7 +1512,7 @@ RawMonitorNotify (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT,(java_objectheader*)monitor->name))
+	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	lock_notify_object((java_objectheader*)&monitor->name);
@@ -1538,7 +1538,7 @@ RawMonitorNotifyAll (jvmtiEnv * env, jrawMonitorID monitor)
 
 #if defined(ENABLE_THREADS)
 	/* assure current thread owns this monitor */
-	if (!lock_does_thread_hold_lock((threadobject*)THREADOBJECT, (java_objectheader*)monitor->name))
+	if (!lock_is_held_by_current_thread((java_objectheader*)monitor->name))
 		return JVMTI_ERROR_NOT_MONITOR_OWNER;
 
 	lock_notify_all_object((java_objectheader*)&monitor->name);
