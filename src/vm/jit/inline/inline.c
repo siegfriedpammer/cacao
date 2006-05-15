@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: inline.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: inline.c 4928 2006-05-15 23:22:48Z edwin $
 
 */
 
@@ -182,7 +182,7 @@ static int stack_depth(stackptr sp)
 }
 
 #ifndef NDEBUG
-#include "inline_debug.c"
+#include "inline_debug.inc"
 
 void inline_print_stats()
 {

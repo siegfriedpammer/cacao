@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: resolve.c 4880 2006-05-05 18:08:17Z edwin $
+   $Id: resolve.c 4928 2006-05-15 23:22:48Z edwin $
 
 */
 
@@ -369,7 +369,7 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
        false............an exception has been thrown
 
    NOTE:
-       This function always resolved eagerly.
+       This function always resolves eagerly.
    
 *******************************************************************************/
 
