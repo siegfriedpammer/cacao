@@ -15,7 +15,8 @@ atomic_add (volatile int *mem, int val)
   Atomically do the following: Check if the location still contains
   `oldval`. If so, replace it by `newval` and return `oldval`.
 
-  Otherwise (the value has changed), return the changed value at *p.
+  RETURN VALUE:
+      the old value at *p
 
 ***************************************************************************/
 
