@@ -31,7 +31,7 @@
             Christian Thalinger
 	    	Edwin Steiner
 
-   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
+   $Id: asmpart.S 4922 2006-05-15 14:39:05Z twisti $
 
 */
 
@@ -69,9 +69,6 @@
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 
-	.globl asm_perform_threadswitch
-	.globl asm_initialize_thread_stack
-	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -741,126 +738,6 @@ asm_replacement_in:
 	jmp     zero,(itmp3)
 
 	.end asm_replacement_in
-
-/******************* function asm_initialize_thread_stack **********************
-*                                                                              *
-*   initialized a thread stack                                                 *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_initialize_thread_stack
-
-asm_initialize_thread_stack:
-	lda     a1,-128(a1)
-	stq     zero, 0(a1)
-	stq     zero, 8(a1)
-	stq     zero, 16(a1)
-	stq     zero, 24(a1)
-	stq     zero, 32(a1)
-	stq     zero, 40(a1)
-	stq     zero, 48(a1)
-	stt     fzero, 56(a1)
-	stt     fzero, 64(a1)
-	stt     fzero, 72(a1)
-	stt     fzero, 80(a1)
-	stt     fzero, 88(a1)
-	stt     fzero, 96(a1)
-	stt     fzero, 104(a1)
-	stt     fzero, 112(a1)
-	stq     a0, 120(a1)
-	mov     a1, v0
-	jmp     zero,(ra)
-
-	.end    asm_initialize_thread_stack
-
-
-/******************* function asm_perform_threadswitch *************************
-*                                                                              *
-*   void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);         *
-*                                                                              *
-*   performs a threadswitch                                                    *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_perform_threadswitch
-
-asm_perform_threadswitch:
-	subq    sp,128,sp
-	stq     s0, 0(sp)
-	stq     s1, 8(sp)
-	stq     s2, 16(sp)
-	stq     s3, 24(sp)
-	stq     s4, 32(sp)
-	stq     s5, 40(sp)
-	stq     s6, 48(sp)
-	stt     fs0, 56(sp)
-	stt     fs1, 64(sp)
-	stt     fs2, 72(sp)
-	stt     fs3, 80(sp)
-	stt     fs4, 88(sp)
-	stt     fs5, 96(sp)
-	stt     fs6, 104(sp)
-	stt     fs7, 112(sp)
-	stq     ra, 120(sp)
-	stq     sp, 0(a0)
-	stq     sp, 0(a2)
-	ldq     sp, 0(a1)
-	ldq     s0, 0(sp)
-	ldq     s1, 8(sp)
-	ldq     s2, 16(sp)
-	ldq     s3, 24(sp)
-	ldq     s4, 32(sp)
-	ldq     s5, 40(sp)
-	ldq     s6, 48(sp)
-	ldt     fs0, 56(sp)
-	ldt     fs1, 64(sp)
-	ldt     fs2, 72(sp)
-	ldt     fs3, 80(sp)
-	ldt     fs4, 88(sp)
-	ldt     fs5, 96(sp)
-	ldt     fs6, 104(sp)
-	ldt     fs7, 112(sp)
-	ldq     ra, 120(sp)
-	mov     ra, pv
-	addq    sp, 128, sp
-	jmp	zero,(ra)
-
-	.end    asm_perform_threadswitch
-
-
-/********************* function asm_switchstackandcall *************************
-*                                                                              *
-*  void *asm_switchstackandcall (void *stack, void *func, void **stacktopsave, *
-*                               void *p);                                      *
-*                                                                              *
-*   Switches to a new stack, calls a function and switches back.               *
-*       a0      new stack pointer                                              *
-*       a1      function pointer                                               *
-*		a2		pointer to variable where stack top should be stored           *
-*		a3      pointer to user data, is passed to the function                *
-*                                                                              *
-*******************************************************************************/
-
-
-	.ent	asm_switchstackandcall
-
-asm_switchstackandcall:
-	lda	a0,-2*8(a0)     /* allocate new stack                                 */
-	stq	ra,0(a0)        /* save return address on new stack                   */
-	stq	sp,1*8(a0)      /* save old stack pointer on new stack                */
-	stq sp,0(a2)        /* save old stack pointer to variable                 */
-	mov	a0,sp           /* switch to new stack                                */
-	
-	mov	a1,pv           /* load function pointer                              */
-	mov a3,a0           /* pass pointer */
-	jmp	ra,(pv)         /* and call function                                  */
-
-	ldq	ra,0(sp)        /* load return address                                */
-	ldq	sp,1*8(sp)      /* switch to old stack                                */
-
-	jmp	zero,(ra)       /* return                                             */
-
-	.end	asm_switchstackandcall
 
 
 	.ent    asm_getclassvalues_atomic

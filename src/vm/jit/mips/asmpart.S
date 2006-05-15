@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
+   $Id: asmpart.S 4922 2006-05-15 14:39:05Z twisti $
 
 */
 
@@ -66,9 +66,6 @@
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 
-	.globl asm_perform_threadswitch
-	.globl asm_initialize_thread_stack
-	.globl asm_switchstackandcall
 	.globl asm_getclassvalues_atomic
 	.globl asm_criticalsections
 
@@ -754,119 +751,6 @@ asm_replacement_in:
 	jr      itmp3
 
 	.end asm_replacement_in
-
-/******************* function asm_initialize_thread_stack **********************
-*                                                                              *
-*   u1* asm_initialize_thread_stack (void *func, u1 *stack);                   *
-*                                                                              *
-*   initialize a thread stack                                                  *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_initialize_thread_stack
-
-asm_initialize_thread_stack:
-	aaddiu  a1,a1,-14*8     /* allocate save area                             */
-	sd      zero, 0*8(a1)   /* s0 initalize thread area                       */
-	sd      zero, 1*8(a1)   /* s1                                             */
-	sd      zero, 2*8(a1)   /* s2                                             */
-	sd      zero, 3*8(a1)   /* s3                                             */
-	sd      zero, 4*8(a1)   /* s4                                             */
-	sd      zero, 5*8(a1)   /* s5                                             */
-	sd      zero, 6*8(a1)   /* s6                                             */
-	sd      zero, 7*8(a1)   /* s7                                             */
-	sd      zero, 8*8(a1)   /* s8                                             */
-	sd      zero, 9*8(a1)   /* fs0                                            */
-	sd      zero,10*8(a1)   /* fs1                                            */
-	sd      zero,11*8(a1)   /* fs2                                            */
-	sd      zero,12*8(a1)   /* fs3                                            */
-	sd      a0, 13*8(a1)
-	move    v0,a1
-	j       ra              /* return                                         */
-
-	.end    asm_initialize_thread_stack
-
-
-/******************* function asm_perform_threadswitch *************************
-*                                                                              *
-*   void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);         *
-*                                                                              *
-*   performs a threadswitch                                                    *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_perform_threadswitch
-
-asm_perform_threadswitch:
-	aaddiu  sp,sp,-14*8     /* allocate new stack                             */
-	sd      s0,  0*8(sp)    /* save saved registers of old thread             */
-	sd      s1,  1*8(sp)
-	sd      s2,  2*8(sp)
-	sd      s3,  3*8(sp)
-	sd      s4,  4*8(sp)
-	sd      s5,  5*8(sp)
-	sd      s6,  6*8(sp)
-	sd      s7,  7*8(sp)
-	sd      s8,  8*8(sp)
-	sdc1    fs0, 9*8(sp)
-	sdc1    fs1,10*8(sp)
-	sdc1    fs2,11*8(sp)
-	sdc1    fs3,12*8(sp)
-	sd      ra, 13*8(sp)
-	ast     sp,0(a0)        /* save old stack pointer                         */
-	ast     sp,0(a2)        /* stackTop = old stack pointer                   */
-	ald     sp,0(a1)        /* load new stack pointer                         */
-	ld      s0,  0*8(sp)    /* load saved registers of new thread             */
-	ld      s1,  1*8(sp)
-	ld      s2,  2*8(sp)
-	ld      s3,  3*8(sp)
-	ld      s4,  4*8(sp)
-	ld      s5,  5*8(sp)
-	ld      s6,  6*8(sp)
-	ld      s7,  7*8(sp)
-	ld      s8,  8*8(sp)
-	ldc1    fs0, 9*8(sp)
-	ldc1    fs1,10*8(sp)
-	ldc1    fs2,11*8(sp)
-	ldc1    fs3,12*8(sp)
-	ld      ra, 13*8(sp)
-	aaddiu  sp,sp,14*8      /* deallocate new stack                           */
-	move    itmp3, ra
-	j       ra              /* return                                         */
-
-	.end    asm_perform_threadswitch
-
-
-/********************* function asm_switchstackandcall *************************
-*                                                                              *
-*  void asm_switchstackandcall (void *stack, void *func, void **stacktopsave); *
-*                                                                              *
-*   Switches to a new stack, calls a function and switches back.               *
-*       a0      new stack pointer                                              *
-*       a1      function pointer                                               *
-*		a2		pointer to variable where stack top should be stored           *
-*                                                                              *
-*******************************************************************************/
-
-	.ent	asm_switchstackandcall
-
-asm_switchstackandcall:
-	aaddiu  a0,a0,-16       /* allocate new stack                             */
-	sd      ra,0(a0)        /* save return address on new stack               */
-	sd      sp,8(a0)        /* save old stack pointer on new stack            */
-	sd      sp,0(a2)        /* save old stack pointer to variable             */
-	move    sp,a0           /* switch to new stack                            */
-	
-	move    itmp3,a1
-	move    a0,a3
-	jalr    itmp3           /* and call function                              */
-
-	ld      ra,0(sp)        /* load return address                            */
-	ld      sp,8(sp)        /* switch to old stack                            */
-
-	j       ra              /* return                                         */
-
-	.end	asm_switchstackandcall
 
 
 	.ent    asm_getclassvalues_atomic

@@ -31,7 +31,7 @@
    Changes: Joseph Wenninger
             Edwin Steiner
 
-   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
+   $Id: asmpart.S 4922 2006-05-15 14:39:05Z twisti $
 
 */
 
@@ -75,9 +75,6 @@
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
 
-	.globl asm_perform_threadswitch
-	.globl asm_initialize_thread_stack
-	.globl asm_switchstackandcall
 	.globl asm_criticalsections
 	.globl asm_getclassvalues_atomic
 
@@ -676,119 +673,6 @@ asm_builtin_d2l:
 	ret
 
 
-/******************* function asm_initialize_thread_stack **********************
-*                                                                              *
-* initialized a thread stack                                                   *
-* (to)->restorePoint = asm_initialize_thread_stack((u1*)(func), (to)->stackEnd)*
-*                                                                              *
-*******************************************************************************/
-
-asm_initialize_thread_stack:
-		mov		8(%esp),%eax            /* (to)->stackEnd                     */
-		sub		$36,%eax                /* 4 bytes * 8 regs + 4 bytes func    */
-		   		
-		xor		%edx,%edx
-		mov		%edx,0(%eax)
-		mov		%edx,4(%eax)
-		mov		%edx,8(%eax)
-		mov		%edx,12(%eax)
-		mov		%edx,16(%eax)
-		mov		%edx,20(%eax)
-		mov     %edx,24(%eax)
-		mov     %edx,28(%eax)
-		   		
-		mov     4(%esp),%edx            /* save (u1*) (func)                  */
-		mov     %edx,32(%eax)
-
-		ret                             /* return restorepoint in %eax        */
-
-
-/******************* function asm_perform_threadswitch *************************
-*                                                                              *
-*   void asm_perform_threadswitch (u1 **from, u1 **to, u1 **stackTop);         *
-*                                                                              *
-*   performs a threadswitch                                                    *
-*                                                                              *
-*******************************************************************************/
-
-asm_perform_threadswitch:
-	sub     $36,%esp
-	   
-	mov     %eax,0(%esp)
-	mov     %ecx,4(%esp)
-	mov     %edx,8(%esp)
-	mov     %ebx,12(%esp)
-	mov     %esp,16(%esp)
-	mov     %ebp,20(%esp)
-	mov     %esi,24(%esp)
-	mov     %edi,28(%esp)
-	   
-	mov     36(%esp),%eax         /* save current return address              */
-	mov     %eax,32(%esp)
-	   
-	mov     40(%esp),%eax         /* first argument **from                    */
-	mov     %esp,0(%eax)
-	   
-	mov     48(%esp),%eax         /* third argument **stackTop                */
-	mov     %esp,0(%eax)
-	   
-	mov     44(%esp),%eax         /* second argument **to                     */
-	mov     0(%eax),%esp          /* load new stack pointer                   */
-	   
-	mov     0(%esp),%eax
-	mov     4(%esp),%ecx
-	mov     8(%esp),%edx
-	mov     12(%esp),%ebx
-	                              /* skip stack pointer                       */
-	mov     20(%esp),%ebp
-	mov     24(%esp),%esi
-	mov     28(%esp),%edi
-	   
-	add     $32,%esp              /* leave return address on stack            */
-	ret
-		
-
-/********************* function asm_switchstackandcall *************************
-*                                                                              *
-*  int asm_switchstackandcall (void *stack, void *func, void **stacktopsave,   *
-*		                       void *p);                                       *
-*                                                                              *
-*   Switches to a new stack, calls a function and switches back.               *
-*       a0      new stack pointer                                              *
-*       a1      function pointer                                               *
-*		a2		pointer to variable where stack top should be stored           *
-*       a3      pointer to user data, is passed to the function                *
-*                                                                              *
-*******************************************************************************/
-
-asm_switchstackandcall:
-	mov     4(%esp),%edx          /* first argument *stack                    */
-	sub     $8,%edx               /* allocate new stack                       */
-
-	mov     (%esp),%eax           /* save return address on new stack         */
-	mov     %eax,(%edx)
-
-	mov     %esp,4(%edx)          /* save old stack pointer on new stack      */
-
-	mov     12(%esp),%eax         /* third argument **stacktopsave            */
-	mov     %esp,(%eax)           /* save old stack pointer to variable       */
-
-	mov     8(%esp),%eax          /* load function pointer                    */
-	mov     16(%esp),%ecx         /* fourth argument *p                       */
-	
-	mov     %edx,%esp             /* switch to new stack                      */
-
-	sub     $4,%esp
-	mov     %ecx,0(%esp)          /* pass pointer                             */
-	call    *%eax                 /* and call function                        */
-	add     $4,%esp
-
-	mov     (%esp),%edx           /* load return address                      */
-	mov     4(%esp),%esp          /* switch to old stack                      */
-	mov     %edx,(%esp)
-	ret
-
-		
 asm_getclassvalues_atomic:
 _crit_restart2:
 	mov     4(%esp),%ecx        /* super */
