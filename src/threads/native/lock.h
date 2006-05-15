@@ -33,13 +33,11 @@
 
 */
 
-
 #ifndef _LOCK_H
 #define _LOCK_H
 
 #include "config.h"
 #include "vm/types.h"
-
 #include "vm/global.h"
 
 
@@ -92,7 +90,9 @@ struct lock_record_t {
 };
 
 
-/* XXXXXXXXXXXXXXXXX ***********************************************************
+/* lock_record_pool_header_t ***************************************************
+ 
+   Lock records are allocated in pools. Each pool has on of these headers.
 
 *******************************************************************************/
 
@@ -102,7 +102,9 @@ struct lock_record_pool_header_t {
 }; 
 
 
-/* XXXXXXXXXXXXXXXXX ***********************************************************
+/* lock_record_pool_t **********************************************************
+ 
+   Lock records are allocated in such pools.
 
 *******************************************************************************/
 
