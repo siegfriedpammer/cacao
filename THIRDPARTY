@@ -70,14 +70,6 @@ The upstream for fdlibm is libgcj (http://gcc.gnu.org/java/), they sync
 again with the 'real' upstream (http://www.netlib.org/fdlibm/readme).
 
 
-* src/threads/green/{locks.[ch],threadio.[ch],threads.[ch]}
-
-This files are taken from Kaffe.org VM available at
-http://www.kaffe.org/.  Kaffe's license.terms file is located in the
-top directory of the source code.  The current license of Kaffe is the
-same as of CACAO, GPL Version 2.
-
-
 * src/lib/classes/*
 
 GNU Classpath is licensed under the terms of the GNU General Public 
