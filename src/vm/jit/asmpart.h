@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.h 4908 2006-05-12 16:49:50Z edwin $
+   $Id: asmpart.h 4920 2006-05-15 13:13:22Z twisti $
 
 */
 
@@ -108,7 +108,6 @@ s4   asm_md_init(void);
 */
 void asm_call_jit_compiler(void);
 
-
 #if defined(ENABLE_JIT)
 java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
 									  vm_arg *vmargs);
@@ -133,13 +132,6 @@ float  intrp_asm_vm_call_method_float(methodinfo *m, s4 vmargscount,
 									  vm_arg *vmargs);
 double intrp_asm_vm_call_method_double(methodinfo *m, s4 vmargscount,
 									   vm_arg *vmargs);
-#endif
-
-
-/* We need these two labels in codegen.inc to add the asm_calljavafunction*'s
-   into the methodtable */
-#if defined(__I386__) || defined(__X86_64__)
-void calljava_xhandler2(void);
 #endif
 
 /* exception handling functions */
