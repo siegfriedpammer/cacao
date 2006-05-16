@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen.c 4932 2006-05-16 13:08:30Z twisti $
 
 */
 
@@ -967,8 +967,8 @@ bool codegen(jitdata *jd)
 			codegen_add_arithmeticexception_ref(cd);
 
 			disp = dseg_addaddress(cd, bte->fp);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_MTCTR(REG_ITMP3);
 
 			s3 = PACK_REGS(rd->argintregs[GET_LOW_REG(md->params[1].regoff)],
 						   rd->argintregs[GET_HIGH_REG(md->params[1].regoff)]);
@@ -1869,8 +1869,8 @@ bool codegen(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, src, rd->argintregs[1]);
 
 			disp = dseg_addaddress(cd, BUILTIN_canstore);
-			M_ALD(REG_ITMP1, REG_PV, disp);
-			M_MTCTR(REG_ITMP1);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_MTCTR(REG_ITMP3);
 
 			M_INTMOVE(s1, rd->argintregs[0]);
 			M_INTMOVE(s3, rd->argintregs[1]);
