@@ -658,7 +658,7 @@ void lock_monitor_enter(threadobject *t, java_objectheader *o)
 }
 
 
-/* lock_monitor_exit *****************************************************************
+/* lock_monitor_exit ***********************************************************
 
    Decrement the counter of a (currently owned) monitor. If the counter
    reaches zero, release the monitor.
@@ -746,7 +746,7 @@ bool lock_monitor_exit(threadobject *t, java_objectheader *o)
 }
 
 
-/* lock_record_remove_waiter *********************************************************
+/* lock_record_remove_waiter ***************************************************
 
    Remove a thread from the list of waiting threads of a lock record.
 
@@ -781,7 +781,7 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *t)
 }
 
 
-/* lock_monitor_wait *****************************************************************
+/* lock_monitor_wait ***********************************************************
 
    Wait on an object for a given (maximum) amount of time.
 
@@ -877,7 +877,7 @@ static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, 
 }
 
 
-/* lock_monitor_notify **************************************************************
+/* lock_monitor_notify *********************************************************
 
    Notify one thread or all threads waiting on the given object.
 
