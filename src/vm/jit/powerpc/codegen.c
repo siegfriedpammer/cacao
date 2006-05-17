@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4932 2006-05-16 13:08:30Z twisti $
+   $Id: codegen.c 4933 2006-05-17 12:10:25Z twisti $
 
 */
 
@@ -3804,28 +3804,33 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* save integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
+	j = 0;
+
+	for (i = 0; i < md->paramcount; i++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
-			s1 = md->params[i].regoff;
-			if (IS_2_WORD_TYPE(t)) {
-				M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				j++;
-				M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				j++;
-			} else {
-				M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+				if (IS_2_WORD_TYPE(t)) {
+					M_IST(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					j++;
+					M_IST(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				} else {
+					M_IST(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				}
 				j++;
 			}
 		}
 	}
 
-	for (i = 0; i < md->paramcount && j < FLT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			s1 = md->params[i].regoff;
-			M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
-			j++;
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+				M_DST(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				j++;
+			}
 		}
 	}
 
@@ -3842,29 +3847,34 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 
 	/* restore integer and float argument registers */
 
-	for (i = 0, j = 0; i < md->paramcount && j < INT_ARG_CNT; i++) {
+	j = 0;
+
+	for (i = 0; i < md->paramcount; i++) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
-			s1 = md->params[i].regoff;
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
 
-			if (IS_2_WORD_TYPE(t)) {
-				M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				j++;
-				M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				j++;
-			} else {
-				M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(rd->argintregs[GET_HIGH_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+					j++;
+					M_ILD(rd->argintregs[GET_LOW_REG(s1)], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				} else {
+					M_ILD(rd->argintregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 4);
+				}
 				j++;
 			}
 		}
 	}
 
-	for (i = 0; i < md->paramcount && j < FLT_ARG_CNT; i++) {
+	for (i = 0; i < md->paramcount; i++) {
 		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			s1 = md->params[i].regoff;
-			M_DLD(rd->argfltregs[i], REG_SP, LA_SIZE + 4 * 4 + j * 8);
-			j++;
+			if (!md->params[i].inmemory) {
+				s1 = md->params[i].regoff;
+				M_DLD(rd->argfltregs[s1], REG_SP, LA_SIZE + 4 * 4 + j * 8);
+				j++;
+			}
 		}
 	}
 	
@@ -3915,8 +3925,8 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 			}
 
 		} else {
-			/* We only copy spilled float arguments, as the float argument    */
-			/* registers keep unchanged.                                      */
+			/* We only copy spilled float arguments, as the float
+			   argument registers keep unchanged. */
 
 			if (md->params[i].inmemory) {
 				s1 = md->params[i].regoff + stackframesize;

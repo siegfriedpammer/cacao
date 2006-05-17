@@ -31,7 +31,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: asmpart.S 4921 2006-05-15 14:24:36Z twisti $
+   $Id: asmpart.S 4933 2006-05-17 12:10:25Z twisti $
 
 */
 
@@ -159,6 +159,9 @@ asm_vm_call_method_double:
 	li      t0,0                      /* initialize integer argument counter  */
 	li      t1,0                      /* initialize float argument counter    */
 	li      t6,0                      /* initialize integer register counter  */
+#if defined(__DARWIN__)
+	li      t7,0                      /* initialize stack slot counter        */
+#endif
 
 	mflr    r0                        /* save link register (PIC code)        */
 	bl      L_asm_vm_call_method_get_pc
@@ -172,11 +175,7 @@ L_register_copy:
 	mr.     itmp2,itmp2
 	beq     L_register_copy_done
 
-#if WORDS_BIGENDIAN == 1
 	lwz     itmp3,offvmargtype+4(itmp1)
-#else
-#error XXX
-#endif
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_register_handle_float
 	
@@ -194,12 +193,16 @@ L_register_handle_int:
 	lis     itmp3,L_jumptable_int@ha
 	addi    itmp3,itmp3,L_jumptable_int@l
 #endif
+
 	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t0,t0,1                   /* integer argument counter             */
 	addi    t6,t6,1                   /* integer argument register counter    */
+#if defined(__DARWIN__)
+	addi    t7,t7,1                   /* stack slot counter                   */
+#endif
 	bctr
 
 L_register_handle_long:
@@ -210,18 +213,27 @@ L_register_handle_long:
 	lis     itmp3,L_jumptable_long@ha
 	addi    itmp3,itmp3,L_jumptable_long@l
 #endif
+#if !defined(__DARWIN__)
 	addi    t6,t6,1                   /* align to even numbers                */
 	andi.   t6,t6,0xfffe
+#endif
 
 	cmpwi   t6,(INT_ARG_CNT - 1)      /* are we out of integer argument       */
-	bge     L_register_copy           /* registers? yes, next loop            */
+	blt     L_register_handle_long_continue /* registers?                     */
 
+	li      t6,INT_ARG_CNT            /* yes, set integer argument register   */
+	b       L_register_copy           /* count to max and next loop           */
+
+L_register_handle_long_continue:
 	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t0,t0,1                   /* integer argument counter             */
 	addi    t6,t6,2                   /* integer argument register counter    */
+#if defined(__DARWIN__)
+	addi    t7,t7,2                   /* stack slot counter                   */
+#endif
 	bctr
 
 L_register_handle_float:
@@ -238,11 +250,16 @@ L_register_handle_float:
 	lis     itmp3,L_jumptable_float@ha
 	addi    itmp3,itmp3,L_jumptable_float@l
 #endif
+
 	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t1,t1,1                   /* float argument counter               */
+#if defined(__DARWIN__)
+	addi    t7,t7,1                   /* stack slot counter                   */
+	addi    t6,t6,1                   /* skip 1 integer argument register     */
+#endif
 	bctr
 
 L_register_handle_double:
@@ -253,29 +270,43 @@ L_register_handle_double:
 	lis     itmp3,L_jumptable_double@ha
 	addi    itmp3,itmp3,L_jumptable_double@l
 #endif
+
 	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
 	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
 	lwz     itmp3,0(itmp3)            /* load function address                */
 	mtctr   itmp3
 	addi    t1,t1,1                   /* float argument counter               */
+#if defined(__DARWIN__)
+	addi    t7,t7,2                   /* stack slot counter                   */
+	addi    t6,t6,2                   /* skip 2 integer argument registers    */
+#endif
 	bctr
 
 L_register_copy_done:
 	                                  /* calculate remaining arguments        */
-	sub     t6,t4,t0                  /* - integer arguments in registers     */
-	sub     t6,t6,t1                  /* - float arguments in registers       */
-	mr.     t6,t6
+	sub     itmp3,t4,t0               /* - integer arguments in registers     */
+	sub     itmp3,itmp3,t1            /* - float arguments in registers       */
+	mr.     itmp3,itmp3
 	beq     L_stack_copy_done
 
 	mr      itmp2,t4                  /* restore argument count               */
 	mr      itmp1,t5                  /* restore argument block pointer       */
 
-	slwi    t6,t6,3                   /* XXX use 8-bytes slots for now        */
-	addi    t6,t6,LA_SIZE             /* add size of linkage area             */
-	sub     sp,sp,t6
+	slwi    t4,itmp3,3                /* XXX use 8-bytes slots for now        */
+	addi    t4,t4,LA_SIZE             /* add size of linkage area             */
+
+#if defined(__DARWIN__)
+	slwi    t5,t7,2                   /* add stack space for arguments        */
+	add     t4,t4,t5
+#endif
+
+	sub     sp,sp,t4
 
 	mr      t6,sp                     /* use t6 as temporary sp               */
 	addi    t6,t6,LA_SIZE             /* skip linkage area                    */
+#if defined(__DARWIN__)
+	add     t6,t6,t5                  /* skip stack space for arguments       */
+#endif
 
 	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
 	addi    itmp2,itmp2,1             /* initialize argument count            */
@@ -286,11 +317,7 @@ L_stack_copy_loop:
 	mr.     itmp2,itmp2
 	beq     L_stack_copy_done
 	
-#if WORDS_BIGENDIAN == 1
 	lwz     itmp3,offvmargtype+4(itmp1)
-#else
-#error XXX
-#endif
 	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
 	bne     L_stack_handle_float
 
@@ -308,8 +335,10 @@ L_stack_handle_int:
 	b       L_stack_copy_loop
 
 L_stack_handle_long:
+#if !defined(__DARWIN__)
 	addi    t6,t6,4                   /* align stack to 8-bytes               */
 	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
+#endif
 
 	lwz     itmp3,offvmargdata+0(itmp1) /* get long argument                  */
 	stw     itmp3,0(t6)               /* and store it on the stack            */
@@ -332,8 +361,10 @@ L_stack_handle_float:
 	b       L_stack_copy_loop
 
 L_stack_handle_double:
+#if !defined(__DARWIN__)
 	addi    t6,t6,4                   /* align stack to 8-bytes               */
 	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
+#endif
 
 	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
 	stfd    ftmp3,0(t6)               /* and store it on the stack            */
@@ -455,6 +486,13 @@ L_handle_a7:
 
 L_jumptable_long:
 #if defined(__DARWIN__)
+	.long   L_handle_a0_a1
+	.long   L_handle_a1_a2
+	.long   L_handle_a2_a3
+	.long   L_handle_a3_a4
+	.long   L_handle_a4_a5
+	.long   L_handle_a5_a6
+	.long   L_handle_a6_a7
 #else
 	/* we have two entries here, so we get the even argument register
 	alignment for linux */
@@ -466,7 +504,6 @@ L_jumptable_long:
 	.long   L_handle_a4_a5
 	.long   0
 	.long   L_handle_a6_a7
-	.long   0
 #endif
 
 	.text
@@ -476,14 +513,32 @@ L_handle_a0_a1:
 	lwz     a0,offvmargdata+0(itmp1)
 	lwz     a1,offvmargdata+4(itmp1)
 	b       L_register_copy
+#if defined(__DARWIN__)
+L_handle_a1_a2:
+	lwz     a1,offvmargdata+0(itmp1)
+	lwz     a2,offvmargdata+4(itmp1)
+	b       L_register_copy
+#endif
 L_handle_a2_a3:
 	lwz     a2,offvmargdata+0(itmp1)
 	lwz     a3,offvmargdata+4(itmp1)
 	b       L_register_copy
+#if defined(__DARWIN__)
+L_handle_a3_a4:
+	lwz     a3,offvmargdata+0(itmp1)
+	lwz     a4,offvmargdata+4(itmp1)
+	b       L_register_copy
+#endif
 L_handle_a4_a5:
 	lwz     a4,offvmargdata+0(itmp1)
 	lwz     a5,offvmargdata+4(itmp1)
 	b       L_register_copy
+#if defined(__DARWIN__)
+L_handle_a5_a6:
+	lwz     a5,offvmargdata+0(itmp1)
+	lwz     a6,offvmargdata+4(itmp1)
+	b       L_register_copy
+#endif
 L_handle_a6_a7:
 	lwz     a6,offvmargdata+0(itmp1)
 	lwz     a7,offvmargdata+4(itmp1)
