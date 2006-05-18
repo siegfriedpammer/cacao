@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen.c 4937 2006-05-18 14:33:32Z edwin $
 
 */
 
@@ -3926,8 +3926,9 @@ gen_method:
 #if defined(ENABLE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			a = dseg_addaddress(cd, NULL);                      /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			a = dseg_addaddress(cd, NULL);                            /* vftbl      */
 
   			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + a, REG_ITMP3);
 			M_PUSH(REG_ITMP3);
@@ -4386,8 +4387,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(ENABLE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
   			emit_lea_membase_reg(cd, RIP, -(((ptrint) cd->mcodeptr + 7) - (ptrint) cd->mcodebase) + disp, REG_ITMP3);
 			M_PUSH(REG_ITMP3);

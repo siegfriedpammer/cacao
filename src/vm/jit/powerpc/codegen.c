@@ -31,7 +31,7 @@
             Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4933 2006-05-17 12:10:25Z twisti $
+   $Id: codegen.c 4937 2006-05-18 14:33:32Z edwin $
 
 */
 
@@ -3575,8 +3575,9 @@ gen_method:
 #if defined(ENABLE_THREADS)
 			/* order reversed because of data segment layout */
 
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 4);
@@ -4137,8 +4138,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(ENABLE_THREADS)
 			/* order reversed because of data segment layout */
 
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
 			M_LDA(REG_ITMP3, REG_PV, disp);
 			M_AST(REG_ITMP3, REG_SP, 4 * 4);

@@ -31,7 +31,7 @@
             Christian Ullrich
 			Edwin Steiner
 
-   $Id: codegen.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen.c 4937 2006-05-18 14:33:32Z edwin $
 
 */
 
@@ -5200,8 +5200,9 @@ gen_method:
 			/* move pointer to java_objectheader onto stack */
 
 #if defined(ENABLE_THREADS)
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			off = dseg_addaddress(cd, NULL);                    /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			off = dseg_addaddress(cd, NULL);                          /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
 			dseg_adddata(cd);
@@ -5674,8 +5675,9 @@ u1 *createnativestub(functionptr f, jitdata *jd, methoddesc *nmd)
 #if defined(ENABLE_THREADS)
 			/* create a virtual java_objectheader */
 
-			(void) dseg_addaddress(cd, lock_get_initial_lock_word());          /* monitorPtr */
-			disp = dseg_addaddress(cd, NULL);                   /* vftbl      */
+			(void) dseg_addaddress(cd, NULL);                         /* flcword    */
+			(void) dseg_addaddress(cd, lock_get_initial_lock_word()); /* monitorPtr */
+			disp = dseg_addaddress(cd, NULL);                         /* vftbl      */
 
 			M_MOV_IMM(0, REG_ITMP3);
 			dseg_adddata(cd);

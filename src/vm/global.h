@@ -33,7 +33,7 @@
             Joseph Wenninger
             Christian Thalinger
 
-   $Id: global.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: global.h 4937 2006-05-18 14:33:32Z edwin $
 
 */
 
@@ -199,6 +199,7 @@ struct java_objectheader {              /* header for all objects             */
 	struct _vftbl            *vftbl;    /* pointer to virtual function table  */
 #if defined(ENABLE_THREADS)
 	struct lock_record_t *monitorPtr;
+	ptrint                flcword;      /* word containing the FLC bit        */
 #endif
 };
 

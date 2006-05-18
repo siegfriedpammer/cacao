@@ -24,10 +24,9 @@
 
    Contact: cacao@cacaojvm.org
 
-   Authors: Stefan Ring
+   Authors: Edwin Steiner
 
-   Changes: Christian Thalinger
-   			Edwin Steiner
+   Changes: 
 
    $Id: threads.h 4866 2006-05-01 21:40:38Z edwin $
 
@@ -48,6 +47,7 @@ typedef struct lock_record_t             lock_record_t;
 typedef struct lock_record_pool_header_t lock_record_pool_header_t;
 typedef struct lock_record_pool_t        lock_record_pool_t;
 typedef struct lock_waiter_t             lock_waiter_t;
+typedef struct lock_hashtable_t          lock_hashtable_t;
 
 
 /* lock_execution_env_t ********************************************************
@@ -82,11 +82,27 @@ struct lock_waiter_t {
 *******************************************************************************/
 
 struct lock_record_t {
+	java_objectheader   *obj;                /* object for which this lock is */
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	pthread_mutex_t      mutex;              /* mutex for synchronizing       */
 	lock_waiter_t       *waiters;            /* list of threads waiting       */
 	lock_record_t       *nextfree;           /* next in free list             */
+	lock_record_t       *hashlink;           /* next record in hash chain     */
+};
+
+
+/* lock_hashtable_t ************************************************************
+ 
+   The global hashtable mapping objects to lock records.
+
+*******************************************************************************/
+
+struct lock_hashtable_t {
+	pthread_mutex_t      mutex;       /* mutex for synch. access to the table */
+	u4                   size;        /* number of slots                      */
+	u4                   entries;     /* current number of entries            */
+	lock_record_t      **ptr;         /* the table of slots, uses ext. chain. */
 };
 
 
