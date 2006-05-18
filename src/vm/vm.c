@@ -468,7 +468,14 @@ static void version(void)
 #else
 	puts("  CC         : "VERSION_CC"");
 #endif
-	puts("  CFLAGS     : "VERSION_CFLAGS"");
+	puts("  CFLAGS     : "VERSION_CFLAGS"\n");
+
+	puts("Default classpath variables:\n");
+	puts("  java.boot.class.path    : "CACAO_VM_ZIP_PATH":"CLASSPATH_GLIBJ_ZIP_PATH"");
+	puts("  java.library.path       : "CLASSPATH_LIBRARY_PATH"\n");
+
+	puts("Runtime classpath variables:\n");
+	printf("  java.boot.class.path    : %s\n", bootclasspath);
 }
 
 
@@ -594,6 +601,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		throw_cacao_exception_exit(string_java_lang_InternalError,
 								   "Unable to init properties");
 
+	/* add some default properties */
+
+	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
+
+
 	/* iterate over all passed options */
 
 	while ((opt = options_get(opts, vm_args)) != OPT_DONE) {
@@ -639,7 +651,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			/* if no '=' is given, just create an empty property */
 
 			properties_add(opt_arg, "");
-					
+
 		didit:
 			break;
 
