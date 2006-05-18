@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: properties.c 4874 2006-05-05 14:36:18Z edwin $
+   $Id: properties.c 4936 2006-05-18 14:06:58Z twisti $
 
 */
 
@@ -145,8 +145,11 @@ char *properties_get(char *key)
 {
 	list_properties_entry *p;
 
-	for (p = list_first(list_properties); p != NULL;
-		 p = list_next(list_properties, p)) {
+	/* We search backwards, so we get the newest entry for a key, as
+	   the list may contain more than one entry for a specific key. */
+
+	for (p = list_last(list_properties); p != NULL;
+		 p = list_prev(list_properties, p)) {
 		if (strcmp(p->key, key) == 0)
 			return p->value;
 	}
