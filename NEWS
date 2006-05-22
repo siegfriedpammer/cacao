@@ -2,6 +2,8 @@ New in release 0.96 (XXX XX, 2006)
 
   * Handle Miranda-methods properly.
   * try-catch line number problem with jikes fixed.
+  * Added support for libjvm.so.
+  * Stripped down object code size of code generators.
 
 
 New in release 0.95 (February 13, 2006)
