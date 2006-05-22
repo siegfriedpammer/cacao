@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: threads.c 4938 2006-05-22 09:06:44Z twisti $
 
 */
 
@@ -324,9 +324,7 @@ void threads_sem_init(sem_t *sem, bool shared, int value)
 			return;
 	} while (errno == EINTR);
 
-	fprintf(stderr,"error: sem_init returned unexpected error %d: %s\n",
-			errno, strerror(errno));
-	abort();
+	vm_abort("sem_init failed: %s", strerror(errno));
 }
 
 
@@ -354,9 +352,7 @@ void threads_sem_wait(sem_t *sem)
 			return;
 	} while (errno == EINTR);
 
-	fprintf(stderr,"error: sem_wait returned unexpected error %d: %s\n",
-			errno, strerror(errno));
-	abort();
+	vm_abort("sem_wait failed: %s", strerror(errno));
 }
 
 
@@ -381,9 +377,7 @@ void threads_sem_post(sem_t *sem)
 	if (r == 0)
 		return;
 
-	fprintf(stderr,"error: sem_post returned unexpected error %d: %s\n",
-			errno, strerror(errno));
-	abort();
+	vm_abort("sem_post failed: %s", strerror(errno));
 }
 
 
@@ -748,7 +742,7 @@ bool threads_init(void)
 
 	mainthreadobj = (threadobject *) builtin_new(class_java_lang_VMThread);
 
-	if (!mainthreadobj)
+	if (mainthreadobj == NULL)
 		return false;
 
 	FREE(tempthread, threadobject);
@@ -787,7 +781,7 @@ bool threads_init(void)
 
 	mainthread = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (!mainthread)
+	if (mainthread == NULL)
 		throw_exception_exit();
 
 	mainthreadobj->o.thread = mainthread;
@@ -800,7 +794,7 @@ bool threads_init(void)
 									  class_java_lang_Thread,
 									  true);
 
-	if (!method)
+	if (method == NULL)
 		return false;
 
 	(void) vm_call_method(method, (java_objectheader *) mainthread,
@@ -819,7 +813,7 @@ bool threads_init(void)
 									  class_java_lang_ThreadGroup,
 									  true);
 
-	if (!method)
+	if (method == NULL)
 		return false;
 
 	(void) vm_call_method(method, (java_objectheader *) threadgroup,
@@ -830,7 +824,13 @@ bool threads_init(void)
 
 	threads_set_thread_priority(pthread_self(), 5);
 
-	pthread_attr_init(&threadattr);
+	/* initialize the thread attribute object */
+
+	if (pthread_attr_init(&threadattr)) {
+		log_println("pthread_attr_init failed: %s", strerror(errno));
+		return false;
+	}
+
 	pthread_attr_setdetachstate(&threadattr, PTHREAD_CREATE_DETACHED);
 
 	/* everything's ok */
@@ -1150,10 +1150,11 @@ static void *threads_startup_thread(void *t)
 
 void threads_start_thread(java_lang_Thread *t, functionptr function)
 {
-	sem_t         sem;
-	sem_t         sem_first;
-	startupinfo   startup;
-	threadobject *thread;
+	sem_t          sem;
+	sem_t          sem_first;
+	pthread_attr_t attr;
+	startupinfo    startup;
+	threadobject  *thread;
 
 	thread = (threadobject *) t->vmThread;
 
@@ -1168,13 +1169,20 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 	threads_sem_init(&sem, 0, 0);
 	threads_sem_init(&sem_first, 0, 0);
 
+	/* initialize thread attribute object */
+
+	if (pthread_attr_init(&attr))
+		vm_abort("pthread_attr_init failed: %s", strerror(errno));
+
+	/* initialize thread stacksize */
+
+	if (pthread_attr_setstacksize(&attr, opt_stacksize))
+		vm_abort("pthread_attr_setstacksize failed: %s", strerror(errno));
+
 	/* create the thread */
 
-	if (pthread_create(&thread->tid, &threadattr, threads_startup_thread,
-					   &startup)) {
-		log_text("pthread_create failed");
-		assert(0);
-	}
+	if (pthread_create(&thread->tid, &attr, threads_startup_thread, &startup))
+		vm_abort("pthread_create failed: %s", strerror(errno));
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
@@ -1284,11 +1292,8 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 	/* get current time */
 
-	if (gettimeofday(&tvnow, NULL) != 0) {
-		fprintf(stderr,"error: gettimeofday returned unexpected error %d: %s\n",
-				errno, strerror(errno));
-		abort();
-	}
+	if (gettimeofday(&tvnow, NULL) != 0)
+		vm_abort("gettimeofday failed: %s\n", strerror(errno));
 
 	/* convert it to a timespec */
 

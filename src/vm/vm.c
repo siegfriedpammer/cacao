@@ -1388,6 +1388,32 @@ void vm_exit_handler(void)
 }
 
 
+/* vm_abort ********************************************************************
+
+   Prints an error message and aborts the VM.
+
+*******************************************************************************/
+
+void vm_abort(const char *text, ...)
+{
+	va_list ap;
+
+	/* print the log message */
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	/* now abort the VM */
+
+	abort();
+}
+
+
 /* vm_vmargs_from_valist *******************************************************
 
    XXX

@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: headers.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: headers.c 4938 2006-05-22 09:06:44Z twisti $
 
 */
 
@@ -102,6 +102,10 @@ java_objectheader *native_new_and_init_throwable(classinfo *c, java_lang_Throwab
 java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
 { return NULL; }
 
+void vm_abort(const char *text, ...)
+{
+	abort();
+}
 
 /* code patching functions */
 void patcher_builtin_arraycheckcast(u1 *sp) {}

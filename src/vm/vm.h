@@ -90,6 +90,8 @@ void vm_shutdown(s4 status);
 
 void vm_exit_handler(void);
 
+void vm_abort(const char *text, ...);
+
 /* Java method calling functions */
 java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,

@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 4375 2006-01-27 17:35:13Z twisti $
+   $Id: logging.h 4938 2006-05-22 09:06:44Z twisti $
 
 */
 
@@ -57,6 +57,7 @@ void log_init(const char *fname);
 
 void log_start(void);
 
+void log_vprint(const char *text, va_list ap);
 void log_print(const char *text, ...);
 void log_println(const char *text, ...);
 

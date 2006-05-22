@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: logging.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: logging.c 4938 2006-05-22 09:06:44Z twisti $
 
 */
 
@@ -101,7 +101,7 @@ void log_start(void)
 
 *******************************************************************************/
 
-static void log_vprint(const char *text, va_list ap)
+void log_vprint(const char *text, va_list ap)
 {
 	if (logfile)
 		vfprintf(logfile, text, ap);
