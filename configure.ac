@@ -694,8 +694,15 @@ AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
 AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [GNU Classpath libraries installation directory])
 AC_SUBST(CLASSPATH_LIBDIR)
 
-AC_CHECK_HEADER([${CLASSPATH_PREFIX}/include/jni.h],
-                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_PREFIX}/include/jni.h", [GNU Classpath jni.h header])],
+AC_MSG_CHECKING(where GNU Classpath headers are installed)
+AC_ARG_WITH([classpath-includedir],
+            [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of GNU Classpath headers [[default=/usr/local/classpath/include]])],
+            [CLASSPATH_INCLUDEDIR=${withval}],
+            [CLASSPATH_INCLUDEDIR=${CLASSPATH_PREFIX}/include])
+AC_MSG_RESULT(${CLASSPATH_INCLUDEDIR})
+
+AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
+                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [GNU Classpath jni.h header])],
                 [AC_MSG_ERROR(cannot find jni.h)])
 
 
