@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4944 2006-05-23 15:31:19Z motse $
+   $Id: jvmti.c 4945 2006-05-23 19:52:47Z motse $
 
 */
 
@@ -1735,8 +1735,6 @@ static jvmtiError
 GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
 		   char **generic_ptr)
 {
-    int nsize,psize;
-
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -1745,19 +1743,11 @@ GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
     if ((generic_ptr== NULL)||(signature_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-    nsize=((classinfo*)klass)->name->blength;
-    psize=((classinfo*)klass)->packagename->blength;
+    *signature_ptr = (char*)
+		heap_allocate(sizeof(char) * 
+					  ((classinfo*)klass)->name->blength,true,NULL);
 
-    *signature_ptr = (char*) 
-        heap_allocate(sizeof(char)* nsize+psize+4,true,NULL);
-
-    *signature_ptr[0]='L';
-    memcpy(&(*signature_ptr[1]),((classinfo*)klass)->packagename->text, psize);
-    *signature_ptr[psize+2]='/';
-    memcpy(&(*signature_ptr[psize+3]),((classinfo*)klass)->name->text, nsize);
-    *signature_ptr[nsize+psize+3]=';';
-    *signature_ptr[nsize+psize+4]='\0';
-
+	utf_sprint_convert_to_latin1(*signature_ptr, ((classinfo*)klass)->name);
     *generic_ptr = NULL;
 
     return JVMTI_ERROR_NONE;
@@ -2521,18 +2511,9 @@ IsMethodSynthetic (jvmtiEnv * env, jmethodID method,
 static jvmtiError
 GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 {
-	int i,j;
-	char* data;
-	hashtable* ht;
-	classcache_name_entry *cne;
-	classcache_class_entry *cce;
-
-	log_text ("GetLoadedClasses called %d ", phase);
-
-
-	/* XXX todo */
-
-	*class_count_ptr = 0;
+	int i,j=0;
+	classcache_name_entry *nameentry;
+	classcache_class_entry *classentry;
 
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -2541,54 +2522,39 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
     if (class_count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
     if (classes_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
-	log_text ("GetLoadedClasses1");
-
-/*
 	CLASSCACHE_LOCK();
-	log_text ("GetLoadedClasses2");
-	getchildproc(&data, &hashtable_classcache, sizeof(hashtable));
-	ht = (hashtable*) &data;
-
-	log_text ("GetLoadedClasses got ht pointer");
 	*classes_ptr = 
-		heap_allocate(sizeof(jclass*) * (ht->entries),true,NULL);
-	fprintf (stderr,"hashtable_classcache.entries = %d\n",ht->entries);
-	fflush(stderr);
+		heap_allocate(sizeof(jclass)*(hashtable_classcache.entries),true,NULL);
+	
+	/*	look in every slot of the hashtable */
+	for (i=0; i<hashtable_classcache.size; i++) {
+		nameentry = hashtable_classcache.ptr[i];
+		while (nameentry != NULL) { /* iterate over hashlink */
 
-	*class_count_ptr = ht->entries;
-	log_text ("GetLoadedClasses %d", *class_count_ptr);
-	j=0;
-     look in every slot of the hashtable 
-	for (i=0; i<ht->size; i++) { 
-		cne = ht->ptr[i];
+			/* filter pseudo classes $NEW$,$NULL$,$ARRAYSTUB$ out */
+			if (nameentry->name->text[0]=='$')
+			{
+				log_println("%s", nameentry->name->text);
+				*class_count_ptr -= 1;
+				break;
+				}
 
-		while (cne != NULL) { iterate over hashlink 
-			getchildproc(&data, cne, sizeof(classcache_name_entry));
-			cne =(classcache_name_entry*) &data;
-
-	 		cce = cne->classes;
-			while (cce != NULL){ iterate over classes with same name 
-		 		getchildproc(&data, cce, sizeof(classcache_class_entry));
-			 	cce =(classcache_class_entry*) &data;
-				 
-				if (cce->classobj != NULL) { get only loaded classes 
-					 assert(j<ht->entries);
-					* classes_ptr[j]=cce->classobj;
+			classentry = nameentry->classes;
+			while (classentry != NULL){ /* iterate over classes with same name */
+				if (classentry->classobj != NULL) { /*get only loaded classes */
+					 assert(j<hashtable_classcache.entries);
+					(*classes_ptr)[j]=classentry->classobj;
 					j++;
 				}
-				cce = cce->next;
+				classentry = classentry->next;
 			}
-			cne = cne->hashlink;
+			nameentry = nameentry->hashlink;
 		}
 	}
  
-	log_text ("GetLoadedClasses continue");
-
 	CLASSCACHE_UNLOCK();
 
-*/
-
-	log_text ("GetLoadedClasses finished");
+	*class_count_ptr = j;
 
     return JVMTI_ERROR_NONE;
 }

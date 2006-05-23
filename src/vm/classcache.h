@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 4799 2006-04-20 20:38:07Z edwin $
+   $Id: classcache.h 4945 2006-05-23 19:52:47Z motse $
 
 */
 
@@ -57,6 +57,17 @@ typedef java_objectheader classloader;
 
 extern hashtable hashtable_classcache;
 
+#if defined(ENABLE_JVMTI)
+#if defined(ENABLE_THREADS)
+# define CLASSCACHE_LOCK()      builtin_monitorenter(lock_hashtable_classcache)
+# define CLASSCACHE_UNLOCK()    builtin_monitorexit(lock_hashtable_classcache)
+#else
+# define CLASSCACHE_LOCK()
+# define CLASSCACHE_UNLOCK()
+#endif
+
+extern java_objectheader *lock_hashtable_classcache;
+#endif 
 
 /* structs ********************************************************************/
 

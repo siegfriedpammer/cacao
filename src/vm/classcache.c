@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: classcache.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: classcache.c 4945 2006-05-23 19:52:47Z motse $
 
 */
 
@@ -227,7 +227,11 @@ void classcache_print_statistics(FILE *file) {
 hashtable hashtable_classcache;
 
 #if defined(ENABLE_THREADS)
+#if defined(ENABLE_JVMTI)
+java_objectheader *lock_hashtable_classcache;
+#else
 static java_objectheader *lock_hashtable_classcache;
+#endif
 #endif
 
 
