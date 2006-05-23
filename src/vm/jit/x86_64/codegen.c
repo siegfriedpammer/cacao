@@ -30,7 +30,7 @@
    Changes: Christian Ullrich
             Edwin Steiner
 
-   $Id: codegen.c 4937 2006-05-18 14:33:32Z edwin $
+   $Id: codegen.c 4941 2006-05-23 08:25:14Z twisti $
 
 */
 
@@ -849,7 +849,7 @@ bool codegen(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, src, REG_ITMP1);
 			d = codegen_reg_of_var(rd, iptr->opc, iptr->dst, REG_ITMP1);
-			M_INTMOVE(s1, d);
+			M_IMOV(s1, d);
 			emit_store(jd, iptr, iptr->dst, d);
 			break;
 

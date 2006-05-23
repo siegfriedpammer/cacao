@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 4853 2006-04-27 12:33:20Z twisti $
+   $Id: emit.c 4941 2006-05-23 08:25:14Z twisti $
 
 */
 
@@ -984,6 +984,14 @@ void emit_mov_imm_reg(codegendata *cd, s8 imm, s8 reg)
 	emit_rex(1,0,0,(reg));
 	*(cd->mcodeptr++) = 0xb8 + ((reg) & 0x07);
 	emit_imm64((imm));
+}
+
+
+void emit_movl_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
+	emit_rex(0,(reg),0,(dreg));
+	*(cd->mcodeptr++) = 0x89;
+	emit_reg((reg),(dreg));
 }
 
 

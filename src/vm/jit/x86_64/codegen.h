@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4853 2006-04-27 12:33:20Z twisti $
+   $Id: codegen.h 4941 2006-05-23 08:25:14Z twisti $
 
 */
 
@@ -76,7 +76,7 @@
 
 #define gen_bound_check \
     if (checkbounds) { \
-        M_CMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
+        M_ICMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
         M_BAE(0); \
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
     }
@@ -163,9 +163,10 @@
 #define M_MOV(a,b)              emit_mov_reg_reg(cd, (a), (b))
 #define M_MOV_IMM(a,b)          emit_mov_imm_reg(cd, (u8) (a), (b))
 
-#define M_FMOV(a,b)             emit_movq_reg_reg(cd, (a), (b))
-
+#define M_IMOV(a,b)             emit_movl_reg_reg(cd, (a), (b))
 #define M_IMOV_IMM(a,b)         emit_movl_imm_reg(cd, (u4) (a), (b))
+
+#define M_FMOV(a,b)             emit_movq_reg_reg(cd, (a), (b))
 
 #define M_ILD(a,b,disp)         emit_movl_membase_reg(cd, (b), (disp), (a))
 #define M_LLD(a,b,disp)         emit_mov_membase_reg(cd, (b), (disp), (a))
@@ -254,6 +255,7 @@
 #define M_ICMP(a,b)             emit_alul_reg_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM(a,b)         emit_alul_imm_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_CMP, (a), (b), (c))
+#define M_ICMP_MEMBASE(a,b,c)   emit_alul_membase_reg(cd, ALU_CMP, (a), (b), (c))
 
 #define M_BEQ(disp)             emit_jcc(cd, CC_E, (disp))
 #define M_BNE(disp)             emit_jcc(cd, CC_NE, (disp))
