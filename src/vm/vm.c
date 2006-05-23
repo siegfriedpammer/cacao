@@ -470,12 +470,18 @@ static void version(void)
 #endif
 	puts("  CFLAGS     : "VERSION_CFLAGS"\n");
 
-	puts("Default classpath variables:\n");
-	puts("  java.boot.class.path    : "CACAO_VM_ZIP_PATH":"CLASSPATH_GLIBJ_ZIP_PATH"");
-	puts("  java.library.path       : "CLASSPATH_LIBRARY_PATH"\n");
+	puts("Default variables:\n");
+	printf("  maximum heap size   : %d\n", HEAP_MAXSIZE);
+	printf("  initial heap size   : %d\n", HEAP_STARTSIZE);
+	printf("  stack size          : %d\n", STACK_SIZE);
+	puts("  java.boot.class.path: "CACAO_VM_ZIP_PATH":"CLASSPATH_GLIBJ_ZIP_PATH"");
+	puts("  java.library.path   : "CLASSPATH_LIBRARY_PATH"\n");
 
-	puts("Runtime classpath variables:\n");
-	printf("  java.boot.class.path    : %s\n", bootclasspath);
+	puts("Runtime variables:\n");
+	printf("  maximum heap size   : %d\n", opt_heapmaxsize);
+	printf("  initial heap size   : %d\n", opt_heapstartsize);
+	printf("  stack size          : %d\n", opt_stacksize);
+	printf("  java.boot.class.path: %s\n", bootclasspath);
 }
 
 
@@ -506,8 +512,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 {
 	char *cp;
 	s4    cplen;
-	u4    heapmaxsize;
-	u4    heapstartsize;
 	s4    opt;
 	s4    i, j, k;
 
@@ -585,9 +589,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	checknull  = false;
 	opt_noieee = false;
 
-	heapmaxsize   = HEAP_MAXSIZE;
-	heapstartsize = HEAP_STARTSIZE;
-	opt_stacksize = STACK_SIZE;
+	opt_heapmaxsize   = HEAP_MAXSIZE;
+	opt_heapstartsize = HEAP_STARTSIZE;
+	opt_stacksize     = STACK_SIZE;
 
 
 #if defined(ENABLE_JVMTI)
@@ -750,9 +754,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 					j = atoi(opt_arg);
 
 				if (opt == OPT_MX)
-					heapmaxsize = j;
+					opt_heapmaxsize = j;
 				else if (opt == OPT_MS)
-					heapstartsize = j;
+					opt_heapstartsize = j;
 				else
 					opt_stacksize = j;
 			}
@@ -1080,7 +1084,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* initialize the garbage collector */
 
-	gc_init(heapmaxsize, heapstartsize);
+	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */

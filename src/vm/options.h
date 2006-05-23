@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.h 4834 2006-04-25 12:25:43Z edwin $
+   $Id: options.h 4942 2006-05-23 08:42:46Z twisti $
 
 */
 
@@ -73,7 +73,10 @@ extern bool opt_intrp;
 extern bool opt_jar;
 extern bool opt_run;
 
+extern s4   opt_heapmaxsize;
+extern s4   opt_heapstartsize;
 extern s4   opt_stacksize;
+
 extern bool opt_verbose;
 extern bool compileall;
 

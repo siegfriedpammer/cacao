@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: options.c 4834 2006-04-25 12:25:43Z edwin $
+   $Id: options.c 4942 2006-05-23 08:42:46Z twisti $
 
 */
 
@@ -61,7 +61,9 @@ bool opt_intrp = true;          /* interpreter mode execution (default)       */
 
 bool opt_run = true;
 
-s4   opt_stacksize = 0;         /* thread stack size                          */
+s4   opt_heapmaxsize   = 0;     /* maximum heap size                          */
+s4   opt_heapstartsize = 0;     /* initial heap size                          */
+s4   opt_stacksize     = 0;     /* thread stack size                          */
 
 bool opt_verbose = false;
 bool compileall = false;
