@@ -1,5 +1,5 @@
 /* src/native/jvmti/cacaodbgserver.c - contains the cacaodbgserver process. This
-                                       process controls the debuggee/cacao vm.
+                                       process controls the cacao vm through gdb
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -30,7 +30,7 @@
    Changes: Edwin Steiner
             Samuel Vinson
 
-   $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
+   $Id$
 
 */
 
@@ -43,131 +43,216 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
+#include <string.h>
 
-pid_t debuggee;
+FILE *gdbin, *gdbout; /* file descriptor for gdb pipes */
 
-/* getchildprocptrace *********************************************************
+struct _pending_brkpt {
+	int brknumber;
+	unsigned long threadid;
+	char* regs;
+};
 
-   Get data count number of bytes from address addr for child process address 
-   space. Requested  data is stored in the array pointed to by ptr.
+struct _pending_brkpt *pending_brkpts;
+int pending_brkpts_size;
+
+
+static void closepipeend (int fd) {
+	if (close(fd) == -1) {
+		perror("unable to close pipe - ");
+		exit(1);
+	}
+}
+
+/* startgdb *******************************************************************
+
+   starts a gdb session and creates two pipes connection gdb stdout/stdin to
+   gdbin/gdbout
 
 *******************************************************************************/
-static void getchildprocptrace (char *ptr, void* addr, int cnt) {
-	long i, longcnt;
-	long *p = (long*) ptr;
-	
-	longcnt = cnt/sizeof(long);
-	for (i=0; i<longcnt; i++) {
-		p[i]=GETMEM(debuggee,addr);
-		if (p[i]==-1)
-		{
-			fprintf(stderr,"cacaodbgserver process: getchildprocptrace: %ld\n",i);
-			perror("cacaodbgserver process: getchildprocptrace:");
+
+static void startgdb() {
+	char gdbargs[20];
+	int cacao2gdbpipe[2],gdb2cacaopipe[2];
+
+	pipe(cacao2gdbpipe);
+	pipe(gdb2cacaopipe);
+
+	snprintf(gdbargs,20,"--pid=%d",getppid());		
+
+	switch(fork()) {
+	case -1:
+		fprintf(stderr,"cacaodbgserver: fork error\n");
+		exit(1);
+	case 0:		
+		/* child */
+		closepipeend(gdb2cacaopipe[0]); /* read end */
+		closepipeend(cacao2gdbpipe[1]); /* write end */
+		
+		/* connect stdin of gdb to cacao2gdbpipe */
+		dup2(cacao2gdbpipe[0],0);
+		/* connect stdout of gdb to gdb2cacaopipe */
+		dup2(gdb2cacaopipe[1],1);
+
+		if (execlp("gdb","gdb","--interpreter=mi" ,gdbargs,(char *) NULL)==-1){
+			fprintf(stderr,"cacaodbgserver: unable to start gdb\n");
 			exit(1);
 		}
-		addr+=sizeof(long);
+	default:
+		/* parent */
+		closepipeend(gdb2cacaopipe[1]); /* write end */
+		closepipeend(cacao2gdbpipe[0]); /* read end */
+
+		gdbin = fdopen(gdb2cacaopipe[0],"r");
+		gdbout = fdopen(cacao2gdbpipe[1],"w");
 	}
-	i = GETMEM(debuggee,addr);
-	memcpy(p+longcnt,&i,cnt%sizeof(long));
+
 }
 
 
-/* waitloop *******************************************************************
+#define SENDCMD(CMD) \
+	fprintf(gdbout,"%s",CMD); \
+	fflush(gdbout); \
 
-   waits and handles signals from debuggee/child process. Returns true if 
-   cacaodbgserver should exit.
+
+static void getgdboutput(char *inbuf,int buflen) {
+	int i=0;
+	inbuf[0]='\0';
+	do {
+		i += strlen(&inbuf[i]);
+		if (fgets(&inbuf[i],buflen-i,gdbin)==NULL) {
+			perror("cacaodbgserver: ");
+			exit(1);
+		}
+	} while(!(strncmp(OUTPUTEND,&inbuf[i],OUTPUTENDSIZE)==0));
+}
+
+
+/* dataevaluate ***************************************************************
+
+   evaluates expr returning long in gdb and returns the result 
 
 *******************************************************************************/
 
-static bool waitloop(void* dbgcvm) {
-    int status,retval,signal;
-    void* ip;
-	basic_event ev;
-	cacaodbgcommunication vm;
-	long data;
-	struct _brkpt* brk;
+static unsigned long dataevaluate(char *expr) {
+	char *match, inbuf[160];
 
-	fprintf(stderr,"waitloop\n");
+	fprintf(gdbout,"-data-evaluate-expression %s\n",expr); 
+	fflush(gdbout); 
 
-	retval = wait(&status);
+	getgdboutput(inbuf,160);
+	if ((match=strstr(inbuf,DATAEVALUATE))==NULL) {
+		fprintf(stderr,"dataevaluate: no matching value\n");
+		return -1;
+	}
+	return strtoll(&match[strlen(DATAEVALUATE)],NULL,16);
+}
 
-	fprintf(stderr,"cacaodbgserver: waitloop we got something to do\n");
-	if (retval == -1) {
-		fprintf(stderr,"error in waitloop\n");
-		perror("cacaodbgserver process: waitloop: ");
+
+/* commonbreakpointhandler *****************************************************
+
+   called by gdb and hard coded breakpoint handler
+
+*******************************************************************************/
+
+static bool commonbreakpointhandler(char* sigbuf, int sigtrap) {
+	int numberofbreakpoints, i;
+	char tmp[INBUFLEN], *match;
+	unsigned long addr;
+
+	if ((match=strstr(sigbuf,SIGADDR))==NULL) {
+		fprintf(stderr,"commonbreakpointhandler: no matching address(%s)\n",
+				sigbuf);
 		return true;
 	}
-	
-	if (retval != debuggee) {
-		fprintf(stderr,"cacaodbgserver got signal from process other then debuggee/cacao vm\n");
+
+	addr = strtoll(&match[strlen(SIGADDR)],NULL,16);
+	if (sigtrap) addr--;
+
+
+	numberofbreakpoints = (int)dataevaluate("dbgcom->jvmtibrkpt.num");
+
+	i = -1;
+	do {
+		i++; 
+		snprintf(tmp,INBUFLEN,"dbgcom->jvmtibrkpt.brk[%d].addr",i);
+	} while ((i<numberofbreakpoints) && (dataevaluate(tmp) != addr));
+
+	assert(i<numberofbreakpoints);
+
+	/* handle system breakpoints */
+	switch(i) {
+	case SETSYSBRKPT:
+		/* add a breakpoint */
+		fprintf(gdbout,"break *0x%lx\n",dataevaluate("dbgcom->brkaddr"));
+		fflush(gdbout);
+		getgdboutput(tmp,INBUFLEN);
+		break;
+	case CACAODBGSERVERQUIT:
+		SENDCMD("-gdb-exit\n");
 		return false;
+	default:
+		/* other breakpoints -> call jvmti_cacao_generic_breakpointhandler 
+		   in the cacao vm */
+		fprintf(gdbout,"call jvmti_cacao_generic_breakpointhandler(%d)\n",i);
+		fflush(gdbout);
+		getgdboutput(tmp,INBUFLEN);		
 	}
-	
-	if (WIFSTOPPED(status)) {
-		signal = WSTOPSIG(status);
-		
-		/* ignore SIGSEGV, SIGPWR, SIGBUS and SIGXCPU for now.
-		   todo: in future this signals could be used to detect Garbage 
-		   Collection Start/Finish or NullPointerException Events */
-		if ((signal == SIGSEGV) || (signal == SIGPWR) || 
-			(signal == SIGBUS)	|| (signal == SIGXCPU)) {
-			fprintf(stderr,"cacaodbgserver: ignore internal signal (%d)\n",signal);
-			CONT(debuggee,signal);
-			return false;
+	SENDCMD(CONTINUE);
+	getgdboutput(tmp,INBUFLEN);
+	return true;
+}
+
+/* controlloop ****************************************************************
+
+   this function controls the gdb behaviour
+
+*******************************************************************************/
+
+static void controlloop() {
+	char inbuf[INBUFLEN], *match;
+	bool running = true;
+
+	pending_brkpts_size = 5;
+	pending_brkpts = malloc(sizeof(struct _pending_brkpt)*pending_brkpts_size);
+
+	getgdboutput(inbuf,INBUFLEN); 	/* read gdb welcome message */
+
+	SENDCMD("handle SIGSEGV SIGPWR SIGXCPU SIGBUS noprint nostop\n");
+	getgdboutput(inbuf,INBUFLEN);
+
+	SENDCMD("print dbgcom\n");
+	getgdboutput(inbuf,INBUFLEN);
+
+	SENDCMD(CONTINUE);
+	getgdboutput(inbuf,INBUFLEN);
+
+	while(running) {
+		getgdboutput(inbuf,INBUFLEN);
+
+		if ((match=strstr(inbuf,HCSIGTRAP))!=NULL) {
+			running = commonbreakpointhandler(match,1);
+			continue;
+			}
+
+		if ((match=strstr(inbuf,GDBBREAKPOINT))!=NULL) {
+			running = commonbreakpointhandler(match,0);
+			continue;
 		}
-		
-		if (signal == SIGABRT) {
-			fprintf(stderr,"cacaodbgserver: got SIGABRT from debugee - exit\n");
-			return true;
+
+		if (strstr(inbuf,EXITEDNORMALLY) != NULL) {
+			/* quit gdb */
+			SENDCMD ("-gdb-exit");
+			running = false;
+			continue;
 		}
-		
-		ip = getip(debuggee);
-		ip--; /* EIP has already been incremented */
-		fprintf(stderr,"got signal: %d IP %X\n",signal,ip);
-		
 			
-		ev.signal = signal;
-		ev.ip = ip;
-		
-		/* handle breakpoint */
-		getchildprocptrace((char*)&vm,dbgcvm,sizeof(cacaodbgcommunication));
-		
-		if (vm.setbrkpt) {
-			/* set a breakpoint */
-			setbrk(debuggee, vm.brkaddr, &vm.brkorig);
-			CONT(debuggee,0);
-			return false;
-		}
+		if ((inbuf[0]!=LOGSTREAMOUTPUT) && (inbuf[0]!=CONSOLESTREAMOUTPUT))
+			fprintf(stderr,"gdbin not handled %s\n",inbuf);
+	}
 
-		if (signal == SIGTRAP) {
-			/* Breakpoint hit. Place original instruction and notify cacao vm to
-			   handle it */
-			fprintf(stderr,"breakpoint hit\n");
-		}
-
-		return false;
-	}
-	
-	if (WIFEXITED(status)) {
-		fprintf(stderr,"cacaodbgserver: debuggee/cacao vm exited.\n");
-		return true;
-	}
-	
-	if (WIFSIGNALED(status)) {
-		fprintf(stderr,"cacaodbgserver: child terminated by signal %d\n",WTERMSIG(status));
-		return true;
-	}
-	
-	if (WIFCONTINUED(status)) {
-		fprintf(stderr,"cacaodbgserver: continued\n");
-		return false;
-	}
-	
-	
-	fprintf(stderr,"wait not handled(child not exited or stopped)\n");
-	fprintf(stderr,"retval: %d status: %d\n",retval,status);
-	CONT(debuggee,0);		
-	return false;
+	free(pending_brkpts);
 }
 
 /* main (cacaodbgserver) ******************************************************
@@ -177,42 +262,11 @@ static bool waitloop(void* dbgcvm) {
 *******************************************************************************/
 
 int main(int argc, char **argv) {
-	bool running = true;
-	void *dbgcvm;
-	int status;
-	
-	if (argc != 2) {
-		fprintf(stderr,"cacaodbgserver: not enough arguments\n");
-		fprintf(stderr, "cacaodbgserver cacaodbgcommunicationaddress\n");
+	startgdb();
 
-		fprintf(stderr,"argc %d argv[0] %s\n",argc,argv[0]);
-		exit(1);
-	}
+	controlloop();
 
-	dbgcvm=(cacaodbgcommunication*)strtol(argv[1],NULL,16);
-
-	fprintf(stderr,"cacaodbgserver started pid %d ppid %d\n",getpid(), getppid());
-
-	debuggee = getppid();
-
-	if (TRACEATTACH(debuggee) == -1) perror("cacaodbgserver: ");
-
-	fprintf(stderr,"cacaovm attached\n");
-
-	if (wait(&status) == -1) {
-		fprintf(stderr,"error initial wait\n");
-		perror("cacaodbgserver: ");
-		exit(1);
-	}
-
-	if (WIFSTOPPED(status)) 
-		if (WSTOPSIG(status) == SIGSTOP)
-			CONT(debuggee,0);
-	
-	while(running) {
-		running = !waitloop(dbgcvm);
-	}
-	fprintf(stderr,"cacaodbgserver exit\n");
+	return 0;
 }
 
 

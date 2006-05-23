@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: cacao.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -181,6 +181,7 @@ static char *getmainclassnamefromjar(char *mainstring)
 void exit_handler(void);
 
 
+
 /* main ************************************************************************
 
    The main program.
@@ -216,7 +217,7 @@ int main(int argc, char **argv)
 
 #if defined(ENABLE_JVMTI)
 	pthread_mutex_init(&dbgcomlock,NULL);
-	set_jvmti_phase(JVMTI_PHASE_START);
+	jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 
 	/* do we have a main class? */
@@ -307,10 +308,10 @@ int main(int argc, char **argv)
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 #if defined(ENABLE_JVMTI)
-		/* start the jdwp listening */
+		/* start the jdwp listening thread*/
 		if (jdwp) {
 			log_text("cacao vm - init VMjdwp");
-			if (!VMjdwpInit()) exit(1);
+			if (!jvmti_VMjdwpInit()) exit(1);
 			setup_jdwp_thread(transport);
 			if (!suspend) {
 				fprintf(stderr,"suspend false -> continue debuggee\n");
@@ -320,9 +321,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		set_jvmti_phase(JVMTI_PHASE_LIVE);
-
-		log_text("debuggee: herewe go");
+		jvmti_set_phase(JVMTI_PHASE_LIVE);
 #endif
 
 		(void) vm_call_method(m, NULL, oa);

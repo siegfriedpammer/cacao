@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 4892 2006-05-06 18:29:55Z motse $
+$Id: VMVirtualMachine.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -86,8 +86,18 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount(JN
 JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClassesCount(JNIEnv *env, jclass clazz) {
     jint count;
     jclass* classes;
+	jvmtiError err;
+	char* errdesc;
 
-    (*jvmtienv)->GetLoadedClasses(jvmtienv, &count, &classes);
+	if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+		GetLoadedClasses(jvmtienv, &count, &classes))) {
+		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+		fprintf(stderr,"jvmti error: %s\n",errdesc);
+		(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+		fflush(stderr);
+		return 0;
+	}
+	(*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)classes);
     return count;
 }
 
@@ -112,10 +122,14 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
 		fprintf(stderr,"jvmti error: %s\n",errdesc);
 		fflush(stderr);
-/*		env->ThrowNew(env,ec,"jvmti error occoured");*/
+		
+		/* we should throw JDWP Exception INTERNAL = 113;*/
+/*		env->ThrowNew(env,ec,"jvmti error occoured");  */
+		return NULL;
 	}
 	
 	cl = (*env)->FindClass(env,"java.lang.Class");
+	if (!cl) return NULL;
 
 	/* Arrays.asList(Object[] classes)->List.Iterator()->Iterator */
 	joa = (*env)->NewObjectArray(env, (jsize)classcount, cl , NULL);
@@ -123,6 +137,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 
 	for (i = 0; i < classcount; i++) 
 		(*env)->SetObjectArrayElement(env,joa,(jsize)i, (jobject)classes[i]);
+	(*jvmtienv)->Deallocate(jvmtienv, (unsigned char*)classes);
 	
 	cl = (*env)->FindClass(env,"java.util.Arrays");
 	if (!cl) return NULL;
@@ -137,7 +152,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
 	if (!cl) return NULL;
 	m = (*env)->GetMethodID(env,cl,"iterator","()Ljava/util/Iterator;");
 	if (!m) return NULL;
-	oi = (*env)->CallObjectMethod(env,*ol,m);
+	oi = (*env)->CallObjectMethod(env,ol,m);
 		
 	return (struct java_util_Iterator*)oi;
 }
@@ -158,8 +173,43 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNI
  * Signature: (Ljava/lang/Class;)[Lgnu/classpath/jdwp/VMMethod;
  */
 JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllClassMethods(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
-    log_text ("VMVirtualMachine_getAllClassMethods: IMPLEMENT ME !!!");
-	return NULL;
+    jint count;
+    jmethodID* methodID, m;
+   	jvmtiError err;
+	char* errdesc;
+	
+	jclass *cl;
+	jobject *ol;
+	jobjectArray joa;
+	int i;
+	fprintf(stderr, "VMVirtualMachine_getAllClassMethods start\n");
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+							 GetClassMethods(jvmtienv, (jclass) par1, &count, &methodID))) {
+		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+		fprintf(stderr,"jvmti error: %s\n",errdesc);
+		(*jvmtienv)->Deallocate(jvmtienv, (unsigned char *)errdesc);
+		fflush(stderr);
+/*		env->ThrowNew(env,ec,"jvmti error occoured");*/
+		return NULL;
+	}
+	
+	fprintf(stderr, "VMVirtualMachine_getAllClassMethods count %d\n", count);
+	m = (*env)->GetStaticMethodID(env, clazz, "getClassMethod", "(Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;");
+	if (!m) return NULL;
+   
+    cl = (*env)->FindClass(env,"gnu.classpath.jdwp.VMMethod");
+	if (!cl) return NULL;
+	
+	joa = (*env)->NewObjectArray(env, (jsize)count, cl , NULL);
+	if (!joa) return NULL;
+	fprintf(stderr, "VMVirtualMachine_getAllClassMethods 3\n");
+    for (i = 0; i < count; i++) {
+    	ol = (*env)->CallStaticObjectMethod(env,clazz,m,(jobject)par1, methodID[i]);
+		if (!ol) return NULL;
+    	(*env)->SetObjectArrayElement(env,joa,(jsize)i, ol);
+    }
+	fprintf(stderr, "VMVirtualMachine_getAllClassMethods end\n");
+	return joa;
 }
 
 
@@ -169,8 +219,19 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
  * Signature: (Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;
  */
 JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassMethod(JNIEnv *env, jclass clazz, struct java_lang_Class* par1, s8 par2) {
-    log_text ("VMVirtualMachine_getAllClassMethod: IMPLEMENT ME !!!");
-	return NULL;
+	jclass *cl;
+    jmethodID m;
+    jobject *ol;
+	
+    cl = (*env)->FindClass(env,"gnu.classpath.jdwp.VMMethod");
+	if (!cl) return NULL;
+	
+	m = (*env)->GetMethodID(env, cl, "<init>", "(Ljava/lang/Class;J)V");
+	if (!m) return NULL;
+	
+    ol = (*env)->NewObject(env, cl, m, par1, par2);
+	
+	return (struct gnu_classpath_jdwp_VMMethod*)ol;
 }
 
 

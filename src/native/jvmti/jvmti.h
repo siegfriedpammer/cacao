@@ -30,7 +30,7 @@
    Changes:             
 
    
-   $Id: jvmti.h 4892 2006-05-06 18:29:55Z motse $
+   $Id: jvmti.h 4944 2006-05-23 15:31:19Z motse $
 
 */
 #ifndef _JVMTI_H
@@ -39,8 +39,13 @@
 #include "native/jni.h"
 #include <sys/types.h>
 
+
+#define JVMTI_VERSION_INTERFACE_JNI   0x00000000
+#define JVMTI_VERSION_INTERFACE_JVMTI 0x30000000
+#define JVMTI_VERSION_MASK_INTERFACE_TYPE 0x70000000
 #define JVMTI_VERSION_1_0 0x30010000
 #define JVMTI_VERSION     JVMTI_VERSION_1_0 
+
 
 typedef jobject jthread;
 typedef jobject jthreadGroup;

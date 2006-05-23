@@ -43,7 +43,6 @@
 
 
 
-
 typedef struct {
 	jvmtiEvent ev;
 	jvmtiEnv *jvmti_env;
@@ -73,11 +72,36 @@ typedef struct {
 } genericEventData;
 
 
+
+#if defined(ENABLE_THREADS)
+struct _jrawMonitorID {
+    java_lang_String *name;
+};
+
+
+#endif
+
+
+/* constants where system breakpoints are stored in the breakpoint table       */
+#define SETSYSBRKPT             0 /* used for setsysbrkpt calls                */
+#define CACAODBGSERVERQUIT      1 
+#define NOTHARDCODEDBRK         2 /* here is where the first not hard coded 
+   								     breakpoint is stored                      */
+#define THREADSTARTBRK          2 
+#define THREADENDBRK            3 
+#define CLASSLOADBRK            4
+#define CLASSPREPARERK          5
+#define CLASSFILELOADHOOKBRK    6
+#define COMPILEDMETHODLOADBRK   7
+#define COMPILEDMETHODUNLOADBRK 8
+#define BEGINUSERBRK            9 /* here is where the first user breakpoint  
+								     is stored                                 */
+
 struct _brkpt {
     jmethodID method;
     jlocation location;
     void* addr; /* memory address          */
-    long orig;  /* original memory content */
+	int count;
 };
 
 
@@ -90,62 +114,38 @@ struct brkpts {
 
 typedef struct {
 	int running;
-	void* breakpointhandler;
-	bool setbrkpt;
+	bool addbrkpt;
 	void* brkaddr;
-	long brkorig;
 	struct brkpts jvmtibrkpt;
 } cacaodbgcommunication;
 
 cacaodbgcommunication *dbgcom;
 
-#if defined(ENABLE_THREADS)
-struct _jrawMonitorID {
-    java_lang_String *name;
-};
 
-struct _threadmap {
-	pthread_t tid;
-	threadobject* cacaothreadobj;	
-};
+bool jdwp;                  /* debugger via jdwp                               */
+bool jvmti;                 /* jvmti agent                                     */
 
-struct threadmap {
-	struct _threadmap* map;
-	int num;
-	int size;
-};
-
-struct threadmap thmap;
-#endif
-
-
-/* constants where system breakpoints are stored in the breakpoint table     */
-#define SETTHREADOBJECTBRK    0 /* used for EVENT_THREAD_START               */
-#define BEGINUSERBRK          1 /* here is where the first user breakpoint is 
-								   stored                                    */
-
-
-bool jdwp;                  /* debugger via jdwp                              */
-bool jvmti;                 /* jvmti agent                                    */
-
-char *transport, *agentarg; /* arguments for jdwp transport and agent load    */
-bool suspend;               /* should the virtual machine suspend on startup? */
+char *transport, *agentarg; /* arguments for jdwp transport and agent load     */
+bool suspend;               /* should the virtual machine suspend on startup?  */
 
 extern pthread_mutex_t dbgcomlock;
 
 void setup_jdwp_thread(char* transport);
-void cacaobreakpointhandler();
-jvmtiEnv* new_jvmtienv();
-void set_jvmti_phase(jvmtiPhase p);
-void fireEvent(genericEventData* data);
-bool VMjdwpInit();
-void agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char **libname);
-void agentunload();
-void addbrkpt(void* addr, jmethodID method, jlocation location);
-void setsysbrkpt(int sysbrk, void* addr);
-jvmtiError allthreads (jint * threads_count_ptr, threadobject *** threads_ptr);
-jthread getcurrentthread();
-
+void jvmti_cacao_breakpointhandler();
+bool jvmti_VMjdwpInit();
+jvmtiEnv* jvmti_new_environment();
+void jvmti_set_phase(jvmtiPhase p);
+void jvmti_fireEvent(genericEventData* data);
+void jvmti_agentload(char* opt_arg, bool agentbypath, 
+					 lt_dlhandle  *handle, char **libname);
+void jvmti_agentunload();
+void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location);
+void jvmti_set_system_breakpoint(int sysbrk, bool mode);
+jvmtiError jvmti_get_all_threads (jint * threads_count_ptr, 
+								  threadobject *** threads_ptr);
+jthread jvmti_get_current_thread();
+void jvmti_cacao_debug_init();
+void jvmti_cacaodbgserver_quit();
 #endif
 
 /*

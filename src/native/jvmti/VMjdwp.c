@@ -29,7 +29,7 @@
    Changes:             
 
 
-   $Id: VMjdwp.c 4892 2006-05-06 18:29:55Z motse $
+   $Id: VMjdwp.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -353,13 +353,13 @@ static void GarbageCollectionFinish (jvmtiEnv *jvmti_env){
 
 
 /* it would be more apropriate to call this function from gnu-cp jdwp */
-bool VMjdwpInit() {
+bool jvmti_VMjdwpInit() {
 	int end, i=0;
 	jvmtiCapabilities cap;
 	jvmtiError e;
 
 	log_text("cacao vm - create new jvmti environment");
-	jvmtienv = new_jvmtienv();
+	jvmtienv = jvmti_new_environment();
 
 	/* set eventcallbacks */
 	if (JVMTI_ERROR_NONE != 

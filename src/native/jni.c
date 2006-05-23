@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: jni.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -5447,8 +5447,10 @@ jint GetEnv(JavaVM *vm, void **env, jint version)
 	}
 
 #if defined(ENABLE_JVMTI)
-	if (version == JVMTI_VERSION_1_0) {
-		*env = (void *) new_jvmtienv();
+	if ((version & JVMTI_VERSION_MASK_INTERFACE_TYPE) 
+		== JVMTI_VERSION_INTERFACE_JVMTI) {
+
+		*env = (void *) jvmti_new_environment();
 
 		if (env != NULL)
 			return JNI_OK;

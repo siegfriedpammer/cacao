@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4926 2006-05-15 21:32:09Z edwin $
+   $Id: jvmti.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
 #include "threads/native/threads.h"
+#include "threads/native/lock.h"
 #include "vm/exceptions.h"
 #include "native/include/java_util_Vector.h"
 #include "native/include/java_io_PrintStream.h"
@@ -81,7 +82,6 @@
 #include <pthread.h>
 #endif 
 
-#include "native/jvmti/stacktrace.h"
 #include "dbg.h"
 
 
@@ -122,7 +122,7 @@ static struct jvmtiEnv_struct JVMTI_EnvTable;
 static jvmtiCapabilities JVMTI_Capabilities;
 static lt_ptr unload;
 
-#define CHECK_PHASE_START  if (!(0 
+#define CHECK_PHASE_START  if (!(false 
 #define CHECK_PHASE(chkphase) || (phase == chkphase)
 #define CHECK_PHASE_END  )) return JVMTI_ERROR_WRONG_PHASE
 #define CHECK_CAPABILITY(env,CAP) if(((environment*)env)->capabilities.CAP == 0) \
@@ -152,20 +152,25 @@ static jvmtiError check_thread_is_alive(jthread t) {
    in the data structure.
 
 *******************************************************************************/
-static void execcallback(jvmtiEvent e, functionptr ec, genericEventData* data) {
+static void execute_callback(jvmtiEvent e, functionptr ec, 
+							 genericEventData* data) {
 	JNIEnv* jni_env = (JNIEnv*)_Jv_env;
 
 	fprintf(stderr,"execcallback called (event: %d)\n",e);
 
 	switch (e) {
 	case JVMTI_EVENT_VM_INIT:
+		if (phase != JVMTI_PHASE_LIVE) return;
     case JVMTI_EVENT_THREAD_START:
     case JVMTI_EVENT_THREAD_END: 
-		((jvmtiEventThreadStart)ec) (data->jvmti_env, jni_env, data->thread);
+		if ((phase == JVMTI_PHASE_START) || (phase == JVMTI_PHASE_LIVE))
+			((jvmtiEventThreadStart)ec)(data->jvmti_env,jni_env,data->thread);
 		break;
 
-
     case JVMTI_EVENT_CLASS_FILE_LOAD_HOOK:
+		if ((phase == JVMTI_PHASE_START) || 
+			(phase == JVMTI_PHASE_LIVE)  ||
+			(phase == JVMTI_PHASE_PRIMORDIAL))
 		((jvmtiEventClassFileLoadHook)ec) (data->jvmti_env, 
 										   jni_env, 
 										   data->klass,
@@ -181,158 +186,175 @@ static void execcallback(jvmtiEvent e, functionptr ec, genericEventData* data) {
 
     case JVMTI_EVENT_CLASS_PREPARE: 
     case JVMTI_EVENT_CLASS_LOAD:
-		((jvmtiEventClassLoad)ec) (data->jvmti_env, jni_env, 
-								   data->thread, data->klass);
+		if ((phase == JVMTI_PHASE_START) || (phase == JVMTI_PHASE_LIVE))
+			((jvmtiEventClassLoad)ec) (data->jvmti_env, jni_env, 
+									   data->thread, data->klass);
 		break;
 
     case JVMTI_EVENT_VM_DEATH:
+		if (phase != JVMTI_PHASE_LIVE) return;
     case JVMTI_EVENT_VM_START: 
+		if ((phase == JVMTI_PHASE_START) || (phase == JVMTI_PHASE_LIVE))
 		((jvmtiEventVMStart)ec) (data->jvmti_env, jni_env);
 		break;
 
-    case JVMTI_EVENT_EXCEPTION:
-		((jvmtiEventException)ec) (data->jvmti_env, jni_env, 
-								   data->thread, 
-								   data->method, 
-								   data->location,
-								   data->object,
-								   data->catch_method,
-								   data->catch_location);
-		break;
-		
-    case JVMTI_EVENT_EXCEPTION_CATCH:
-		((jvmtiEventExceptionCatch)ec) (data->jvmti_env, jni_env, 
-										data->thread, 
-										data->method, 
-										data->location,
-										data->object);
-		break;
-
-    case JVMTI_EVENT_BREAKPOINT:
-    case JVMTI_EVENT_SINGLE_STEP: 
-		((jvmtiEventSingleStep)ec) (data->jvmti_env, jni_env, 
-									data->thread, 
-									data->method, 
-									data->location);
-		break;
-
-    case JVMTI_EVENT_FRAME_POP:
-		((jvmtiEventFramePop)ec) (data->jvmti_env, jni_env, 
-								  data->thread, 
-								  data->method, 
-								  data->b);
-		break;
-
-    case JVMTI_EVENT_FIELD_ACCESS: 
-		((jvmtiEventFieldAccess)ec) (data->jvmti_env, jni_env, 
-									 data->thread, 
-									 data->method, 
-									 data->location,
-									 data->klass,
-									 data->object,
-									 data->field);
-		break;
-
-    case JVMTI_EVENT_FIELD_MODIFICATION:
-		((jvmtiEventFieldModification)ec) (data->jvmti_env, jni_env, 
-										   data->thread, 
-										   data->method, 
-										   data->location,
-										   data->klass,
-										   data->object,
-										   data->field,
-										   data->signature_type,
-										   data->value);
-		break;
-
-    case JVMTI_EVENT_METHOD_ENTRY:
-		((jvmtiEventMethodEntry)ec) (data->jvmti_env, jni_env, 
-									 data->thread, 
-									 data->method);
-		break;
-
-    case JVMTI_EVENT_METHOD_EXIT: 
-		((jvmtiEventMethodExit)ec) (data->jvmti_env, jni_env, 
-									data->thread, 
-									data->method,
-									data->b,
-									data->value);
-		break;
-
     case JVMTI_EVENT_NATIVE_METHOD_BIND:
-		((jvmtiEventNativeMethodBind)ec) (data->jvmti_env, jni_env, 
-										  data->thread, 
-										  data->method,
-										  data->address,
-										  data->new_address_ptr);
-		break;
-
-    case JVMTI_EVENT_COMPILED_METHOD_LOAD:
-		((jvmtiEventCompiledMethodLoad)ec) (data->jvmti_env, 
-											data->method,
-											data->jint1,
-											data->address,
-											data->jint2,
-											data->map,
-											data->compile_info);
-		break;
-		
-    case JVMTI_EVENT_COMPILED_METHOD_UNLOAD:
-		((jvmtiEventCompiledMethodUnload)ec) (data->jvmti_env,
+		if ((phase == JVMTI_PHASE_START) || 
+			(phase == JVMTI_PHASE_LIVE)  ||
+			(phase == JVMTI_PHASE_PRIMORDIAL))
+			((jvmtiEventNativeMethodBind)ec) (data->jvmti_env, jni_env, 
+											  data->thread, 
 											  data->method,
-											  data->address);
+											  data->address,
+											  data->new_address_ptr);
 		break;
+	
 
     case JVMTI_EVENT_DYNAMIC_CODE_GENERATED:
-		((jvmtiEventDynamicCodeGenerated)ec) (data->jvmti_env,
-											  data->name,
-											  data->address,
-											  data->jint1);
+		if ((phase == JVMTI_PHASE_START) || 
+			(phase == JVMTI_PHASE_LIVE)  ||
+			(phase == JVMTI_PHASE_PRIMORDIAL))
+			((jvmtiEventDynamicCodeGenerated)ec) (data->jvmti_env,
+												  data->name,
+												  data->address,
+												  data->jint1);
 		break;
 
-    case JVMTI_EVENT_GARBAGE_COLLECTION_START:
-    case JVMTI_EVENT_GARBAGE_COLLECTION_FINISH:
-    case JVMTI_EVENT_DATA_DUMP_REQUEST: 
-		((jvmtiEventDataDumpRequest)ec) (data->jvmti_env);
-		break;
-
-    case JVMTI_EVENT_MONITOR_WAIT:
-		((jvmtiEventMonitorWait)ec) (data->jvmti_env, jni_env, 
-									 data->thread, 
-									 data->object,
-									 data->jlong);
-		break;
-
-    case JVMTI_EVENT_MONITOR_WAITED:
-		((jvmtiEventMonitorWaited)ec) (data->jvmti_env, jni_env, 
-									   data->thread, 
-									   data->object,
-									   data->b);
-		break;
-
-
-    case JVMTI_EVENT_MONITOR_CONTENDED_ENTERED:
-    case JVMTI_EVENT_MONITOR_CONTENDED_ENTER:
-		((jvmtiEventMonitorContendedEnter)ec) (data->jvmti_env, jni_env, 
-											   data->thread, 
-											   data->object);
-		break;
-
-    case JVMTI_EVENT_OBJECT_FREE: 
-		((jvmtiEventObjectFree)ec) (data->jvmti_env, data->jlong);
-		break;
-
-    case JVMTI_EVENT_VM_OBJECT_ALLOC:
-		((jvmtiEventVMObjectAlloc)ec) (data->jvmti_env, jni_env, 
-									   data->thread, 
-									   data->object,
-									   data->klass,
-									   data->jlong);
-		break;
 
 
 	default:
-		log_text ("unknown event");
+		if (phase != JVMTI_PHASE_LIVE) return;
+		switch (e) {
+		case JVMTI_EVENT_EXCEPTION:			
+			((jvmtiEventException)ec) (data->jvmti_env, jni_env, 
+									   data->thread, 
+									   data->method, 
+									   data->location,
+									   data->object,
+									   data->catch_method,
+									   data->catch_location);
+			break;
+			
+		case JVMTI_EVENT_EXCEPTION_CATCH:
+			((jvmtiEventExceptionCatch)ec) (data->jvmti_env, jni_env, 
+											data->thread, 
+											data->method, 
+											data->location,
+											data->object);
+			break;
+
+		case JVMTI_EVENT_BREAKPOINT:
+		case JVMTI_EVENT_SINGLE_STEP:
+			((jvmtiEventSingleStep)ec) (data->jvmti_env, jni_env, 
+										data->thread, 
+										data->method, 
+										data->location);
+			break;
+
+		case JVMTI_EVENT_FRAME_POP:
+			((jvmtiEventFramePop)ec) (data->jvmti_env, jni_env, 
+									  data->thread, 
+									  data->method, 
+									  data->b);
+			break;
+
+
+		case JVMTI_EVENT_FIELD_ACCESS: 
+			((jvmtiEventFieldAccess)ec) (data->jvmti_env, jni_env, 
+										 data->thread, 
+										 data->method, 
+										 data->location,
+										 data->klass,
+										 data->object,
+										 data->field);
+			break;
+
+		case JVMTI_EVENT_FIELD_MODIFICATION:
+
+			((jvmtiEventFieldModification)ec) (data->jvmti_env, jni_env, 
+											   data->thread, 
+											   data->method, 
+											   data->location,
+											   data->klass,
+											   data->object,
+											   data->field,
+											   data->signature_type,
+											   data->value);
+			break;
+
+		case JVMTI_EVENT_METHOD_ENTRY:
+			((jvmtiEventMethodEntry)ec) (data->jvmti_env, jni_env, 
+										 data->thread, 
+										 data->method);
+			break;
+
+		case JVMTI_EVENT_METHOD_EXIT: 
+			((jvmtiEventMethodExit)ec) (data->jvmti_env, jni_env, 
+										data->thread, 
+										data->method,
+										data->b,
+										data->value);
+			break;
+
+		case JVMTI_EVENT_COMPILED_METHOD_LOAD:
+			((jvmtiEventCompiledMethodLoad)ec) (data->jvmti_env, 
+												data->method,
+												data->jint1,
+												data->address,
+												data->jint2,
+												data->map,
+												data->compile_info);
+			break;
+		
+		case JVMTI_EVENT_COMPILED_METHOD_UNLOAD:
+			((jvmtiEventCompiledMethodUnload)ec) (data->jvmti_env,
+												  data->method,
+												  data->address);
+			break;
+
+		case JVMTI_EVENT_GARBAGE_COLLECTION_START:
+		case JVMTI_EVENT_GARBAGE_COLLECTION_FINISH:
+		case JVMTI_EVENT_DATA_DUMP_REQUEST: 
+			((jvmtiEventDataDumpRequest)ec) (data->jvmti_env);
+			break;
+
+		case JVMTI_EVENT_MONITOR_WAIT:
+			((jvmtiEventMonitorWait)ec) (data->jvmti_env, jni_env, 
+										 data->thread, 
+										 data->object,
+										 data->jlong);
+			break;
+
+		case JVMTI_EVENT_MONITOR_WAITED:
+			((jvmtiEventMonitorWaited)ec) (data->jvmti_env, jni_env, 
+										   data->thread, 
+										   data->object,
+										   data->b);
+			break;
+
+
+		case JVMTI_EVENT_MONITOR_CONTENDED_ENTERED:
+		case JVMTI_EVENT_MONITOR_CONTENDED_ENTER:
+			((jvmtiEventMonitorContendedEnter)ec) (data->jvmti_env, jni_env,
+												   data->thread, 
+												   data->object);
+			break;
+
+		case JVMTI_EVENT_OBJECT_FREE: 
+			((jvmtiEventObjectFree)ec) (data->jvmti_env, data->jlong);
+			break;
+
+		case JVMTI_EVENT_VM_OBJECT_ALLOC:
+			((jvmtiEventVMObjectAlloc)ec) (data->jvmti_env, jni_env, 
+										   data->thread, 
+										   data->object,
+										   data->klass,
+										   data->jlong);
+			break;
+		default:
+			log_text ("unknown event");
+		}
+		break;
 	}
 }
 
@@ -356,14 +378,14 @@ static void dofireEvent(jvmtiEvent e, genericEventData* data) {
 				if (evm->mode == JVMTI_ENABLE) {
 					data->jvmti_env=&env->env;
 					ec = ((functionptr*)(&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
-					execcallback(e, ec, data);
+					execute_callback(e, ec, data);
 				}
 				evm=evm->next;
 			}
 		} else { /* event enabled globally */
  			data->jvmti_env=&env->env;
 			ec = ((functionptr*)(&env->callbacks))[e-JVMTI_EVENT_START_ENUM];
-			execcallback(e, ec, data);
+			execute_callback(e, ec, data);
 		}
 		
 		env=env->next;
@@ -377,22 +399,17 @@ static void dofireEvent(jvmtiEvent e, genericEventData* data) {
    missing EventData.
 
 *******************************************************************************/
-void fireEvent(genericEventData* d) {
+void jvmti_fireEvent(genericEventData* d) {
 	jthread thread;
-    /* todo : respect event order JVMTI-Spec:Multiple Co-located Events */
+    /* XXX todo : respect event order JVMTI-Spec:Multiple Co-located Events */
 
 	if (d->ev != JVMTI_EVENT_VM_START)
-		thread = getcurrentthread();
+		thread = jvmti_get_current_thread();
 	else
 		thread = NULL;
 
-	fprintf (stderr,"jvmti: fireEvent: %d\n",d->ev);
 	d->thread = thread;
 	dofireEvent(d->ev,d);
-
-	/* if we need to send a VM_INIT event then also send a THREAD_START event */
-	if (d->ev == JVMTI_EVENT_VM_INIT) 
-		dofireEvent(JVMTI_EVENT_THREAD_START,d);
 }
 
 
@@ -402,7 +419,7 @@ void fireEvent(genericEventData* d) {
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
 			  jvmtiEvent event_type, jthread event_thread, ...)
 {
@@ -420,11 +437,12 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
 		CHECK_THREAD_IS_ALIVE(event_thread);
 	}
 	
+
 	cacao_env = (environment*) env;    
 	if ((mode != JVMTI_ENABLE) && (mode != JVMTI_DISABLE))
 		return JVMTI_ERROR_ILLEGAL_ARGUMENT;
 
-	switch (event_type) { /* check capability */
+	switch (event_type) { /* check capability and set system breakpoint */
     case JVMTI_EVENT_EXCEPTION:
 	case JVMTI_EVENT_EXCEPTION_CATCH:
 		CHECK_CAPABILITY(env,can_generate_exception_events)
@@ -473,6 +491,13 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
     case JVMTI_EVENT_VM_OBJECT_ALLOC:
 		CHECK_CAPABILITY(env,can_generate_vm_object_alloc_events)
 		break;
+    case JVMTI_EVENT_THREAD_START:
+		jvmti_set_system_breakpoint(THREADSTARTBRK, mode);
+		break;
+    case JVMTI_EVENT_THREAD_END:
+		jvmti_set_system_breakpoint(THREADENDBRK, mode);
+		break;
+
 	default:
 		/* all other events are required */
 		if ((event_type < JVMTI_EVENT_START_ENUM) ||
@@ -517,7 +542,7 @@ SetEventNotificationMode (jvmtiEnv * env, jvmtiEventMode mode,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
 	       jthread ** threads_ptr)
 {
@@ -525,8 +550,6 @@ GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
 	int i;
 	jvmtiError retval;
 	
-	log_text ("GetAllThreads called");
-
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
@@ -534,7 +557,7 @@ GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
     if ((threads_count_ptr == NULL) || (threads_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
-	retval=allthreads(threads_count_ptr, &threads);
+	retval=jvmti_get_all_threads(threads_count_ptr, &threads);
 	if (retval != JVMTI_ERROR_NONE) return retval;
 
 	*threads_ptr = 
@@ -553,7 +576,7 @@ GetAllThreads (jvmtiEnv * env, jint * threads_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SuspendThread (jvmtiEnv * env, jthread thread)
 {
 	CHECK_PHASE_START
@@ -573,7 +596,7 @@ SuspendThread (jvmtiEnv * env, jthread thread)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ResumeThread (jvmtiEnv * env, jthread thread)
 {
     CHECK_PHASE_START
@@ -594,7 +617,7 @@ ResumeThread (jvmtiEnv * env, jthread thread)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 StopThread (jvmtiEnv * env, jthread thread, jobject exception)
 {
 	CHECK_PHASE_START
@@ -614,7 +637,7 @@ StopThread (jvmtiEnv * env, jthread thread, jobject exception)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 InterruptThread (jvmtiEnv * env, jthread thread)
 {
 	CHECK_PHASE_START
@@ -641,12 +664,10 @@ InterruptThread (jvmtiEnv * env, jthread thread)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 {
 	java_lang_Thread* th = (java_lang_Thread*)t;
-
-	log_text("GetThreadInfo called");
 
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -666,7 +687,7 @@ GetThreadInfo (jvmtiEnv * env, jthread t, jvmtiThreadInfo * info_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 		     jint * owned_monitor_count_ptr,
 		     jobject ** owned_monitors_ptr)
@@ -675,7 +696,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 	java_objectheader **om;
 	lock_record_pool_t* lrp;
 
-	log_text("GetOwnedMonitorInfo called - todo: fix object mapping");
+	log_text("GetOwnedMonitorInfo called");
 
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
@@ -699,7 +720,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	while (lrp != NULL) {
 		for (j=0; j<lrp->header.size; j++) {
-			if((lrp->lr[j].owner==(threadobject*)thread)&&
+/*			if((lrp->lr[j].owner==(threadobject*)thread)&&
 			   (!lrp->lr[j].waiting)) {
 				if (i>=size) {
 					MREALLOC(om,java_objectheader*,size,size*2);
@@ -707,7 +728,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 				}
 				om[i]=lrp->lr[j].o;
 				i++;
-			}
+				}*/
 		}
 		lrp=lrp->header.next;
 	}
@@ -731,7 +752,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 			    jobject * monitor_ptr)
 {
@@ -761,10 +782,10 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 	while ((lrp != NULL)&&(monitor==NULL)) {
 		for (j=0; j<lrp->header.size; j++) {
-			if((lrp->lr[j].owner==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
+/*			if((lrp->lr[j].owner==(threadobject*)thread)&&(lrp->lr[j].waiting)) {
 				monitor=lrp->lr[j].o;
 				break;
-			}
+				}*/
 		}
 		lrp=lrp->header.next;
 	}
@@ -800,7 +821,7 @@ static void *threadstartup(void *t) {
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 		const void *arg, jint priority)
 {
@@ -837,7 +858,7 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 	}
 	pthread_attr_setschedparam(&threadattr,&sp);
 	if (pthread_create(&((threadobject*) 
-						 thread)->info.tid, &threadattr, &threadstartup, &rap)) {
+						 thread)->tid, &threadattr, &threadstartup, &rap)) {
 		log_text("pthread_create failed");
 		assert(0);
 	}
@@ -853,7 +874,7 @@ RunAgentThread (jvmtiEnv * env, jthread thread, jvmtiStartFunction proc,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetTopThreadGroups (jvmtiEnv * env, jint * group_count_ptr,
 		    jthreadGroup ** groups_ptr)
 {
@@ -918,7 +939,7 @@ GetTopThreadGroups (jvmtiEnv * env, jint * group_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadGroupInfo (jvmtiEnv * env, jthreadGroup group,
 		    jvmtiThreadGroupInfo * info_ptr)
 {
@@ -958,7 +979,7 @@ GetThreadGroupInfo (jvmtiEnv * env, jthreadGroup group,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
 			jint * thread_count_ptr, jthread ** threads_ptr,
 			jint * group_count_ptr, jthreadGroup ** groups_ptr)
@@ -1023,7 +1044,7 @@ static jvmtiError getcacaostacktrace(stacktracebuffer** trace, jthread thread) {
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 {
 	stacktracebuffer* trace;
@@ -1055,7 +1076,7 @@ GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 {
 	java_lang_Thread* th = (java_lang_Thread*)thread;
@@ -1074,7 +1095,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 #if defined(ENABLE_THREADS)
 	if((th->vmThread==NULL)&&(th->group==NULL)) { /* alive ? */
 		/* not alive */
-		if (((threadobject*)th->vmThread)->info.tid == 0)
+		if (((threadobject*)th->vmThread)->tid == 0)
 			*thread_state_ptr = JVMTI_THREAD_STATE_TERMINATED;
 	} else {
 		/* alive */
@@ -1106,7 +1127,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetFrameLocation (jvmtiEnv * env, jthread thread, jint depth,
 		  jmethodID * method_ptr, jlocation * location_ptr)
 {
@@ -1127,7 +1148,7 @@ GetFrameLocation (jvmtiEnv * env, jthread thread, jint depth,
 	if ((method_ptr == NULL)&&(location_ptr == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
 	
-	sfi = ((threadobject*)thread)->info._stackframeinfo;
+	sfi = ((threadobject*)thread)->_stackframeinfo;
 	
 	i = 0;
 	while ((sfi != NULL) && (i<depth)) {
@@ -1150,7 +1171,7 @@ GetFrameLocation (jvmtiEnv * env, jthread thread, jint depth,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 NotifyFramePop (jvmtiEnv * env, jthread thread, jint depth)
 {
 	CHECK_PHASE_START
@@ -1168,7 +1189,7 @@ NotifyFramePop (jvmtiEnv * env, jthread thread, jint depth)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalObject (jvmtiEnv * env,
 		jthread thread, jint depth, jint slot, jobject * value_ptr)
 {
@@ -1187,7 +1208,7 @@ GetLocalObject (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalInt (jvmtiEnv * env,
 	     jthread thread, jint depth, jint slot, jint * value_ptr)
 {
@@ -1205,7 +1226,7 @@ GetLocalInt (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalLong (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 	      jlong * value_ptr)
 {
@@ -1225,7 +1246,7 @@ GetLocalLong (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalFloat (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 	       jfloat * value_ptr)
 {
@@ -1245,7 +1266,7 @@ GetLocalFloat (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalDouble (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 		jdouble * value_ptr)
 {
@@ -1265,7 +1286,7 @@ GetLocalDouble (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetLocalObject (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 		jobject value)
 {
@@ -1285,7 +1306,7 @@ SetLocalObject (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetLocalInt (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 	     jint value)
 {
@@ -1305,7 +1326,7 @@ SetLocalInt (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetLocalLong (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 	      jlong value)
 {
@@ -1325,7 +1346,7 @@ SetLocalLong (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetLocalFloat (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 	       jfloat value)
 {
@@ -1345,7 +1366,7 @@ SetLocalFloat (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetLocalDouble (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 		jdouble value)
 {
@@ -1365,7 +1386,7 @@ SetLocalDouble (jvmtiEnv * env, jthread thread, jint depth, jint slot,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 CreateRawMonitor (jvmtiEnv * env, const char *name,
 		  jrawMonitorID * monitor_ptr)
 {
@@ -1395,7 +1416,7 @@ CreateRawMonitor (jvmtiEnv * env, const char *name,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 {
 	CHECK_PHASE_START
@@ -1427,7 +1448,7 @@ DestroyRawMonitor (jvmtiEnv * env, jrawMonitorID monitor)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RawMonitorEnter (jvmtiEnv * env, jrawMonitorID monitor)
 {
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
@@ -1449,7 +1470,7 @@ RawMonitorEnter (jvmtiEnv * env, jrawMonitorID monitor)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 {
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
@@ -1475,7 +1496,7 @@ RawMonitorExit (jvmtiEnv * env, jrawMonitorID monitor)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 {
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
@@ -1504,7 +1525,7 @@ RawMonitorWait (jvmtiEnv * env, jrawMonitorID monitor, jlong millis)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RawMonitorNotify (jvmtiEnv * env, jrawMonitorID monitor)
 {
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
@@ -1530,7 +1551,7 @@ RawMonitorNotify (jvmtiEnv * env, jrawMonitorID monitor)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RawMonitorNotifyAll (jvmtiEnv * env, jrawMonitorID monitor)
 {
 	if (!builtin_instanceof((java_objectheader*)monitor->name,class_java_lang_String))
@@ -1556,14 +1577,14 @@ RawMonitorNotifyAll (jvmtiEnv * env, jrawMonitorID monitor)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetBreakpoint (jvmtiEnv * env, jmethodID method, jlocation location)
 {
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 	CHECK_CAPABILITY(env,can_generate_breakpoint_events)
-        
+
 		/* addbrkpt */
   log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
     return JVMTI_ERROR_NONE;
@@ -1576,7 +1597,7 @@ SetBreakpoint (jvmtiEnv * env, jmethodID method, jlocation location)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ClearBreakpoint (jvmtiEnv * env, jmethodID method, jlocation location)
 {
 	CHECK_PHASE_START
@@ -1595,7 +1616,7 @@ ClearBreakpoint (jvmtiEnv * env, jmethodID method, jlocation location)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetFieldAccessWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 {
 	CHECK_PHASE_START
@@ -1614,7 +1635,7 @@ SetFieldAccessWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ClearFieldAccessWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 {
 	CHECK_PHASE_START
@@ -1633,7 +1654,7 @@ ClearFieldAccessWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetFieldModificationWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 {
 	CHECK_PHASE_START
@@ -1652,7 +1673,7 @@ SetFieldModificationWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ClearFieldModificationWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 {
 	CHECK_PHASE_START
@@ -1672,7 +1693,7 @@ ClearFieldModificationWatch (jvmtiEnv * env, jclass klass, jfieldID field)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 Allocate (jvmtiEnv * env, jlong size, unsigned char **mem_ptr)
 {
     
@@ -1694,10 +1715,11 @@ Allocate (jvmtiEnv * env, jlong size, unsigned char **mem_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 Deallocate (jvmtiEnv * env, unsigned char *mem)
 {
     /* let Boehm GC do the job */
+	heap_free(mem);
     return JVMTI_ERROR_NONE;
 }
 
@@ -1709,7 +1731,7 @@ Deallocate (jvmtiEnv * env, unsigned char *mem)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
 		   char **generic_ptr)
 {
@@ -1747,7 +1769,7 @@ GetClassSignature (jvmtiEnv * env, jclass klass, char **signature_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassStatus (jvmtiEnv * env, jclass klass, jint * status_ptr)
 {
 	classinfo *c;
@@ -1791,7 +1813,7 @@ GetClassStatus (jvmtiEnv * env, jclass klass, jint * status_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
 {
     int size; 
@@ -1822,7 +1844,7 @@ GetSourceFileName (jvmtiEnv * env, jclass klass, char **source_name_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassModifiers (jvmtiEnv * env, jclass klass, jint * modifiers_ptr)
 {
 	CHECK_PHASE_START
@@ -1848,15 +1870,17 @@ GetClassModifiers (jvmtiEnv * env, jclass klass, jint * modifiers_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassMethods (jvmtiEnv * env, jclass klass, jint * method_count_ptr,
 		 jmethodID ** methods_ptr)
 {
-    CHECK_PHASE_START
+	int i;
+
+	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
-        
+    	
     if ((klass == NULL)||(methods_ptr == NULL)||(method_count_ptr == NULL)) 
         return JVMTI_ERROR_NULL_POINTER;
 
@@ -1866,10 +1890,10 @@ GetClassMethods (jvmtiEnv * env, jclass klass, jint * method_count_ptr,
     *method_count_ptr = (jint)((classinfo*)klass)->methodscount;
     *methods_ptr = (jmethodID*) 
         heap_allocate(sizeof(jmethodID) * (*method_count_ptr),true,NULL);
-    
-    memcpy (*methods_ptr, ((classinfo*)klass)->methods, 
-            sizeof(jmethodID) * (*method_count_ptr));
-    
+
+    for (i=0; i<*method_count_ptr;i++)
+		(*methods_ptr)[i]=(jmethodID) &(((classinfo*)klass)->methods[i]);
+
     return JVMTI_ERROR_NONE;
 }
 
@@ -1881,7 +1905,7 @@ GetClassMethods (jvmtiEnv * env, jclass klass, jint * method_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassFields (jvmtiEnv * env, jclass klass, jint * field_count_ptr,
 		jfieldID ** fields_ptr)
 {
@@ -1910,7 +1934,7 @@ GetClassFields (jvmtiEnv * env, jclass klass, jint * field_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetImplementedInterfaces (jvmtiEnv * env, jclass klass,
 			  jint * interface_count_ptr,
 			  jclass ** interfaces_ptr)
@@ -1955,7 +1979,7 @@ GetImplementedInterfaces (jvmtiEnv * env, jclass klass,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsInterface (jvmtiEnv * env, jclass klass, jboolean * is_interface_ptr)
 {
     CHECK_PHASE_START
@@ -1977,7 +2001,7 @@ IsInterface (jvmtiEnv * env, jclass klass, jboolean * is_interface_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsArrayClass (jvmtiEnv * env, jclass klass, jboolean * is_array_class_ptr)
 {
     CHECK_PHASE_START
@@ -2001,7 +2025,7 @@ IsArrayClass (jvmtiEnv * env, jclass klass, jboolean * is_array_class_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassLoader (jvmtiEnv * env, jclass klass, jobject * classloader_ptr)
 {
     CHECK_PHASE_START
@@ -2024,7 +2048,7 @@ GetClassLoader (jvmtiEnv * env, jclass klass, jobject * classloader_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetObjectHashCode (jvmtiEnv * env, jobject object, jint * hash_code_ptr)
 {
 	CHECK_PHASE_START
@@ -2048,7 +2072,7 @@ GetObjectHashCode (jvmtiEnv * env, jobject object, jint * hash_code_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetObjectMonitorUsage (jvmtiEnv * env, jobject object,
 		       jvmtiMonitorUsage * info_ptr)
 {
@@ -2069,7 +2093,7 @@ GetObjectMonitorUsage (jvmtiEnv * env, jobject object,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetFieldName (jvmtiEnv * env, jclass klass, jfieldID field,
 	      char **name_ptr, char **signature_ptr, char **generic_ptr)
 {
@@ -2105,7 +2129,7 @@ GetFieldName (jvmtiEnv * env, jclass klass, jfieldID field,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetFieldDeclaringClass (jvmtiEnv * env, jclass klass, jfieldID field,
 			jclass * declaring_class_ptr)
 {
@@ -2126,7 +2150,7 @@ GetFieldDeclaringClass (jvmtiEnv * env, jclass klass, jfieldID field,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetFieldModifiers (jvmtiEnv * env, jclass klass, jfieldID field,
 		   jint * modifiers_ptr)
 {
@@ -2154,7 +2178,7 @@ GetFieldModifiers (jvmtiEnv * env, jclass klass, jfieldID field,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsFieldSynthetic (jvmtiEnv * env, jclass klass, jfieldID field,
 		  jboolean * is_synthetic_ptr)
 {
@@ -2176,7 +2200,7 @@ IsFieldSynthetic (jvmtiEnv * env, jclass klass, jfieldID field,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 	       char **signature_ptr, char **generic_ptr)
 {
@@ -2189,8 +2213,6 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 
     if ((method == NULL) || (name_ptr == NULL) || (signature_ptr == NULL)
         || (generic_ptr == NULL)) return JVMTI_ERROR_NULL_POINTER;
-
-	if (m->name == NULL) return JVMTI_ERROR_INTERNAL;
 
     *name_ptr = (char*)
 		heap_allocate(sizeof(char) * (m->name->blength),true,NULL);
@@ -2213,7 +2235,7 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetMethodDeclaringClass (jvmtiEnv * env, jmethodID method,
 			 jclass * declaring_class_ptr)
 {
@@ -2237,7 +2259,7 @@ GetMethodDeclaringClass (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetMethodModifiers (jvmtiEnv * env, jmethodID method, jint * modifiers_ptr)
 {
     CHECK_PHASE_START
@@ -2262,7 +2284,7 @@ GetMethodModifiers (jvmtiEnv * env, jmethodID method, jint * modifiers_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetMaxLocals (jvmtiEnv * env, jmethodID method, jint * max_ptr)
 {
     CHECK_PHASE_START
@@ -2289,7 +2311,7 @@ GetMaxLocals (jvmtiEnv * env, jmethodID method, jint * max_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetArgumentsSize (jvmtiEnv * env, jmethodID method, jint * size_ptr)
 {
     CHECK_PHASE_START
@@ -2315,7 +2337,7 @@ GetArgumentsSize (jvmtiEnv * env, jmethodID method, jint * size_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLineNumberTable (jvmtiEnv * env, jmethodID method,
 		    jint * entry_count_ptr, jvmtiLineNumberEntry ** table_ptr)
 {
@@ -2358,7 +2380,7 @@ GetLineNumberTable (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetMethodLocation (jvmtiEnv * env, jmethodID method,
 		   jlocation * start_location_ptr,
 		   jlocation * end_location_ptr)
@@ -2395,7 +2417,7 @@ GetMethodLocation (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLocalVariableTable (jvmtiEnv * env, jmethodID method,
 		       jint * entry_count_ptr,
 		       jvmtiLocalVariableEntry ** table_ptr)
@@ -2418,7 +2440,7 @@ GetLocalVariableTable (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetBytecodes (jvmtiEnv * env, jmethodID method,
 	      jint * bytecode_count_ptr, unsigned char **bytecodes_ptr)
 {
@@ -2448,7 +2470,7 @@ GetBytecodes (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsMethodNative (jvmtiEnv * env, jmethodID method, jboolean * is_native_ptr)
 {
     CHECK_PHASE_START
@@ -2475,7 +2497,7 @@ IsMethodNative (jvmtiEnv * env, jmethodID method, jboolean * is_native_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsMethodSynthetic (jvmtiEnv * env, jmethodID method,
 		   jboolean * is_synthetic_ptr)
 {
@@ -2496,7 +2518,7 @@ IsMethodSynthetic (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 {
 	int i,j;
@@ -2579,7 +2601,7 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetClassLoaderClasses (jvmtiEnv * env, jobject initiating_loader,
 		       jint * class_count_ptr, jclass ** classes_ptr)
 {
@@ -2605,7 +2627,7 @@ GetClassLoaderClasses (jvmtiEnv * env, jobject initiating_loader,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 PopFrame (jvmtiEnv * env, jthread thread)
 {
     CHECK_PHASE_START
@@ -2624,7 +2646,7 @@ PopFrame (jvmtiEnv * env, jthread thread)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RedefineClasses (jvmtiEnv * env, jint class_count,
 		 const jvmtiClassDefinition * class_definitions)
 {
@@ -2645,12 +2667,12 @@ RedefineClasses (jvmtiEnv * env, jint class_count,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetVersionNumber (jvmtiEnv * env, jint * version_ptr)
 {
     if (version_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
-    *version_ptr = JVMTI_VERSION_1_0;
+    *version_ptr = JVMTI_VERSION;
     
     return JVMTI_ERROR_NONE;
 }
@@ -2663,7 +2685,7 @@ GetVersionNumber (jvmtiEnv * env, jint * version_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetCapabilities (jvmtiEnv * env, jvmtiCapabilities * capabilities_ptr)
 {
     if (capabilities_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
@@ -2680,7 +2702,7 @@ GetCapabilities (jvmtiEnv * env, jvmtiCapabilities * capabilities_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetSourceDebugExtension (jvmtiEnv * env, jclass klass,
 			 char **source_debug_extension_ptr)
 {
@@ -2701,7 +2723,7 @@ GetSourceDebugExtension (jvmtiEnv * env, jclass klass,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IsMethodObsolete (jvmtiEnv * env, jmethodID method,
 		  jboolean * is_obsolete_ptr)
 {
@@ -2722,7 +2744,7 @@ IsMethodObsolete (jvmtiEnv * env, jmethodID method,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SuspendThreadList (jvmtiEnv * env, jint request_count,
 		   const jthread * request_list, jvmtiError * results)
 {
@@ -2744,7 +2766,7 @@ SuspendThreadList (jvmtiEnv * env, jint request_count,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ResumeThreadList (jvmtiEnv * env, jint request_count,
 		  const jthread * request_list, jvmtiError * results)
 {
@@ -2765,7 +2787,7 @@ ResumeThreadList (jvmtiEnv * env, jint request_count,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	       jint max_frame_count, jvmtiFrameInfo * frame_buffer,
 	       jint * count_ptr)
@@ -2810,7 +2832,7 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadListStackTraces (jvmtiEnv * env, jint thread_count,
 			  const jthread * thread_list,
 			  jint max_frame_count,
@@ -2855,7 +2877,7 @@ GetThreadListStackTraces (jvmtiEnv * env, jint thread_count,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetAllStackTraces (jvmtiEnv * env, jint max_frame_count,
 		   jvmtiStackInfo ** stack_info_ptr, jint * thread_count_ptr)
 {
@@ -2889,7 +2911,7 @@ GetAllStackTraces (jvmtiEnv * env, jint max_frame_count,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadLocalStorage (jvmtiEnv * env, jthread thread, void **data_ptr)
 {
 	jvmtiThreadLocalStorage *tls;
@@ -2980,7 +3002,7 @@ SetThreadLocalStorage (jvmtiEnv * jenv, jthread thread, const void *data)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetTag (jvmtiEnv * env, jobject object, jlong * tag_ptr)
 {
 	CHECK_PHASE_START
@@ -2999,7 +3021,7 @@ GetTag (jvmtiEnv * env, jobject object, jlong * tag_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetTag (jvmtiEnv * env, jobject object, jlong tag)
 {
 	CHECK_PHASE_START
@@ -3019,7 +3041,7 @@ SetTag (jvmtiEnv * env, jobject object, jlong tag)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 ForceGarbageCollection (jvmtiEnv * env)
 {
 	CHECK_PHASE_START
@@ -3038,7 +3060,7 @@ ForceGarbageCollection (jvmtiEnv * env)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IterateOverObjectsReachableFromObject (jvmtiEnv * env, jobject object,
 				       jvmtiObjectReferenceCallback
 				       object_reference_callback,
@@ -3060,7 +3082,7 @@ IterateOverObjectsReachableFromObject (jvmtiEnv * env, jobject object,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IterateOverReachableObjects (jvmtiEnv * env, jvmtiHeapRootCallback
 			     heap_root_callback,
 			     jvmtiStackReferenceCallback
@@ -3084,7 +3106,7 @@ IterateOverReachableObjects (jvmtiEnv * env, jvmtiHeapRootCallback
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IterateOverHeap (jvmtiEnv * env, jvmtiHeapObjectFilter object_filter,
 		 jvmtiHeapObjectCallback heap_object_callback,
 		 void *user_data)
@@ -3105,7 +3127,7 @@ IterateOverHeap (jvmtiEnv * env, jvmtiHeapObjectFilter object_filter,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 IterateOverInstancesOfClass (jvmtiEnv * env, jclass klass,
 			     jvmtiHeapObjectFilter object_filter,
 			     jvmtiHeapObjectCallback
@@ -3127,7 +3149,7 @@ IterateOverInstancesOfClass (jvmtiEnv * env, jclass klass,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetObjectsWithTags (jvmtiEnv * env, jint tag_count, const jlong * tags,
 		    jint * count_ptr, jobject ** object_result_ptr,
 		    jlong ** tag_result_ptr)
@@ -3148,7 +3170,7 @@ GetObjectsWithTags (jvmtiEnv * env, jint tag_count, const jlong * tags,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetJNIFunctionTable (jvmtiEnv * env,
 		     const jniNativeInterface * function_table)
 { 
@@ -3171,7 +3193,7 @@ SetJNIFunctionTable (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetJNIFunctionTable (jvmtiEnv * env, jniNativeInterface ** function_table)
 {
     CHECK_PHASE_START
@@ -3194,7 +3216,7 @@ GetJNIFunctionTable (jvmtiEnv * env, jniNativeInterface ** function_table)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetEventCallbacks (jvmtiEnv * env,
 		   const jvmtiEventCallbacks * callbacks,
 		   jint size_of_callbacks)
@@ -3224,7 +3246,7 @@ SetEventCallbacks (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GenerateEvents (jvmtiEnv * env, jvmtiEvent event_type)
 {
     CHECK_PHASE_START
@@ -3242,7 +3264,7 @@ GenerateEvents (jvmtiEnv * env, jvmtiEvent event_type)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetExtensionFunctions (jvmtiEnv * env, jint * extension_count_ptr,
 		       jvmtiExtensionFunctionInfo ** extensions)
 {
@@ -3267,7 +3289,7 @@ GetExtensionFunctions (jvmtiEnv * env, jint * extension_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetExtensionEvents (jvmtiEnv * env, jint * extension_count_ptr,
 		    jvmtiExtensionEventInfo ** extensions)
 {
@@ -3292,7 +3314,7 @@ GetExtensionEvents (jvmtiEnv * env, jint * extension_count_ptr,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetExtensionEventCallback (jvmtiEnv * env, jint extension_event_index,
 			   jvmtiExtensionEvent callback)
 {
@@ -3312,7 +3334,7 @@ SetExtensionEventCallback (jvmtiEnv * env, jint extension_event_index,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 DisposeEnvironment (jvmtiEnv * env)
 {
 	environment* cacao_env = (environment*)env;
@@ -3343,12 +3365,7 @@ DisposeEnvironment (jvmtiEnv * env)
 	cacao_env->tls = NULL;
 
 
-	pthread_mutex_lock(&dbgcomlock);
-	dbgcom->running--;
-	if (dbgcom->running  == 0) {
-		TRAP;
-	}
-	pthread_mutex_unlock(&dbgcomlock);
+	jvmti_cacaodbgserver_quit();
 
     /* let the GC do the rest */
     return JVMTI_ERROR_NONE;
@@ -3365,7 +3382,7 @@ DisposeEnvironment (jvmtiEnv * env)
                                     memcpy(*name_ptr, &str, sizeof(str)); \
                                     break
 
-jvmtiError
+static jvmtiError
 GetErrorName (jvmtiEnv * env, jvmtiError error, char **name_ptr)
 {
     if (name_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
@@ -3479,7 +3496,7 @@ GetErrorName (jvmtiEnv * env, jvmtiError error, char **name_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetJLocationFormat (jvmtiEnv * env, jvmtiJlocationFormat * format_ptr)
 {
     *format_ptr = JVMTI_JLOCATION_MACHINEPC;
@@ -3494,7 +3511,7 @@ GetJLocationFormat (jvmtiEnv * env, jvmtiJlocationFormat * format_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
 {
 	jmethodID mid, moremid;
@@ -3574,7 +3591,7 @@ GetSystemProperties (jvmtiEnv * env, jint * count_ptr, char ***property_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
 {
     jmethodID mid;
@@ -3626,7 +3643,7 @@ GetSystemProperty (jvmtiEnv * env, const char *property, char **value_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
 {
     jmethodID mid;
@@ -3669,7 +3686,7 @@ SetSystemProperty (jvmtiEnv * env, const char *property, const char *value)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetPhase (jvmtiEnv * env, jvmtiPhase * phase_ptr)
 {
     if (phase_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
@@ -3685,7 +3702,7 @@ GetPhase (jvmtiEnv * env, jvmtiPhase * phase_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetCurrentThreadCpuTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 {
 	CHECK_PHASE_START
@@ -3705,7 +3722,7 @@ GetCurrentThreadCpuTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetCurrentThreadCpuTime (jvmtiEnv * env, jlong * nanos_ptr)
 {
 	CHECK_PHASE_START
@@ -3724,7 +3741,7 @@ GetCurrentThreadCpuTime (jvmtiEnv * env, jlong * nanos_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadCpuTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 {
 	CHECK_PHASE_START
@@ -3743,7 +3760,7 @@ GetThreadCpuTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetThreadCpuTime (jvmtiEnv * env, jthread thread, jlong * nanos_ptr)
 {
 	CHECK_PHASE_START
@@ -3760,7 +3777,7 @@ GetThreadCpuTime (jvmtiEnv * env, jthread thread, jlong * nanos_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 {
     if (info_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
@@ -3779,7 +3796,7 @@ GetTimerInfo (jvmtiEnv * env, jvmtiTimerInfo * info_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetTime (jvmtiEnv * env, jlong * nanos_ptr)
 {
     /* Note: this implementation copied directly from Japhar's, by Chris Toshok. */
@@ -3804,7 +3821,7 @@ GetTime (jvmtiEnv * env, jlong * nanos_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetPotentialCapabilities (jvmtiEnv * env,
 			  jvmtiCapabilities * capabilities_ptr)
 {
@@ -3821,11 +3838,13 @@ GetPotentialCapabilities (jvmtiEnv * env,
 }
 
 
-#define CHECK_ADD_CAPABILITY(env,CAN)      \
-        if ((capabilities_ptr->CAN == 1) && \
-           (JVMTI_Capabilities.CAN == 0))   \
-           return JVMTI_ERROR_NOT_AVAILABLE; \
-        env->capabilities.CAN = 1;
+#define CHECK_ADD_CAPABILITY(env,CAN)          \
+        if (capabilities_ptr->CAN == 1) {      \
+           if (JVMTI_Capabilities.CAN == 0)    \
+             return JVMTI_ERROR_NOT_AVAILABLE; \
+           else                                \
+             env->capabilities.CAN = 1;        \
+        }                                     
 
 /* AddCapabilities ************************************************************
 
@@ -3834,7 +3853,7 @@ GetPotentialCapabilities (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 AddCapabilities (jvmtiEnv * env, const jvmtiCapabilities * capabilities_ptr)
 {
     environment* cacao_env;
@@ -3898,7 +3917,7 @@ AddCapabilities (jvmtiEnv * env, const jvmtiCapabilities * capabilities_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 RelinquishCapabilities (jvmtiEnv * env,
 			const jvmtiCapabilities * capabilities_ptr)
 {
@@ -3957,7 +3976,7 @@ RelinquishCapabilities (jvmtiEnv * env,
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetAvailableProcessors (jvmtiEnv * env, jint * processor_count_ptr)
 {
 	CHECK_PHASE_START
@@ -3980,7 +3999,7 @@ GetAvailableProcessors (jvmtiEnv * env, jint * processor_count_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetEnvironmentLocalStorage (jvmtiEnv * env, void **data_ptr)
 {
     if ((env == NULL) || (data_ptr == NULL)) return JVMTI_ERROR_NULL_POINTER;
@@ -3997,7 +4016,7 @@ GetEnvironmentLocalStorage (jvmtiEnv * env, void **data_ptr)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetEnvironmentLocalStorage (jvmtiEnv * env, const void *data)
 {
     if (env == NULL) return JVMTI_ERROR_NULL_POINTER;
@@ -4014,7 +4033,7 @@ SetEnvironmentLocalStorage (jvmtiEnv * env, const void *data)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 AddToBootstrapClassLoaderSearch (jvmtiEnv * env, const char *segment)
 {
     char* tmp_bcp;
@@ -4043,7 +4062,7 @@ AddToBootstrapClassLoaderSearch (jvmtiEnv * env, const char *segment)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 SetVerboseFlag (jvmtiEnv * env, jvmtiVerboseFlag flag, jboolean value)
 {
     switch (flag) {
@@ -4072,7 +4091,7 @@ SetVerboseFlag (jvmtiEnv * env, jvmtiVerboseFlag flag, jboolean value)
 
 *******************************************************************************/
 
-jvmtiError
+static jvmtiError
 GetObjectSize (jvmtiEnv * env, jobject object, jlong * size_ptr)
 {
     CHECK_PHASE_START
@@ -4297,7 +4316,7 @@ static struct jvmtiEnv_struct JVMTI_EnvTable = {
 };
 
 
-void set_jvmti_phase(jvmtiPhase p) {
+void jvmti_set_phase(jvmtiPhase p) {
 	genericEventData d;
 
 	fprintf (stderr,"set JVMTI phase %d\n",p);
@@ -4313,13 +4332,13 @@ void set_jvmti_phase(jvmtiPhase p) {
     case JVMTI_PHASE_START: 
 		phase = p;
 		d.ev = JVMTI_EVENT_VM_START;
-		/* this event is sent during start or live phase */
-		log_text("set sysbrk in setthreadobj");
-		setsysbrkpt(SETTHREADOBJECTBRK,(void*)&threads_set_current_threadobject);
         break;
     case JVMTI_PHASE_LIVE: 
 		phase = p; 
 		d.ev = JVMTI_EVENT_VM_INIT;
+		jvmti_fireEvent(&d);
+		/* thread start event for main thread */
+		d.ev = JVMTI_EVENT_THREAD_START;
 		break;
     case JVMTI_PHASE_DEAD:
 		phase = p;
@@ -4330,13 +4349,11 @@ void set_jvmti_phase(jvmtiPhase p) {
 		exit(1);
     }
 
-	fireEvent(&d);
+	jvmti_fireEvent(&d);
 }
 
-jvmtiEnv* new_jvmtienv() {
+jvmtiEnv* jvmti_new_environment() {
     environment* env;
-	pid_t dbgserver;
-	char* comaddr;
 
 	if (envs == NULL) {
 		envs = heap_allocate(sizeof(environment),true,NULL);
@@ -4357,38 +4374,14 @@ jvmtiEnv* new_jvmtienv() {
     RelinquishCapabilities(&(env->env),&(env->capabilities));
     env->EnvironmentLocalStorage = NULL;
 	env->tls = NULL;
-
-	/* start new cacaodbgserver if needed*/
-	pthread_mutex_lock(&dbgcomlock);
-	if (dbgcom == NULL) {
-		dbgcom = heap_allocate(sizeof(cacaodbgcommunication),true,NULL);		
-		dbgcom->running = 1;
-		dbgcom->breakpointhandler = (void*)cacaobreakpointhandler;
-		dbgserver = fork();
-		if (dbgserver  == (-1)) {
-			log_text("cacaodbgserver fork error");
-			exit(1);
-		} else {
-			if (dbgserver == 0) {
-				comaddr = MNEW(char,11);
-				snprintf(comaddr,11,"%p",dbgcom);
-				if (execlp("cacaodbgserver","cacaodbgserver",comaddr,(char *) NULL) == -1) {
-					log_text("unable to execute cacaodbgserver");
-					exit(1);
-				}
-			}
-		}
-	} else {
-		dbgcom->running++;
-	}
-	pthread_mutex_unlock(&dbgcomlock);
-	sched_yield();
-
+	
+	/* initialize cacao debugging facilities */
+	jvmti_cacao_debug_init();
 
 	return (jvmtiEnv*)env;
 }
 
-void agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char **libname) {
+void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char **libname) {
 	lt_ptr onload;
 	char *arg;
 	int i=0,len;
@@ -4437,7 +4430,7 @@ void agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char **lib
 	if (retval != 0) exit (retval);
 }
 
-void agentunload() {
+void jvmti_agentunload() {
 	if (unload != NULL) {
 		((JNIEXPORT void JNICALL (*) (JavaVM *vm)) unload) 
 			((JavaVM*) &_Jv_JNIInvokeInterface);

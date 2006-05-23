@@ -129,6 +129,11 @@ struct lock_record_pool_t {
 	lock_record_t             lr[1];         /* variable array of records     */
 };
 
+#if defined(ENABLE_JVMTI)
+extern pthread_mutex_t lock_global_pool_lock;
+extern lock_record_pool_t *lock_global_pool;
+#endif
+
 
 /* functions ******************************************************************/
 

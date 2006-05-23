@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: threads.h 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -205,10 +205,6 @@ void threads_interrupt_thread(java_lang_VMThread *);
 bool threads_check_if_interrupted_and_reset(void);
 bool threads_thread_has_been_interrupted(java_lang_VMThread *);
 
-#if defined(ENABLE_JVMTI)
-void threads_set_current_threadobject(threadobject *thread);
-#endif
-
 void threads_java_lang_Thread_set_priority(java_lang_Thread *t, s4 priority);
 
 void threads_cast_stopworld(void);
@@ -216,7 +212,9 @@ void threads_cast_startworld(void);
 
 void threads_dump(void);
 
-
+#if defined(ENABLE_JVMTI)
+void jvmti_get_threads_breakpoints(void **brks);
+#endif
 /******************************************************************************/
 /* Recursive Mutex Implementation for Darwin                                  */
 /******************************************************************************/

@@ -36,7 +36,6 @@
 
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/cacaodbg.h"
-#include "native/jvmti/cacaodbgserver.h"
 #include "native/jvmti/dbg.h"
 #include "vm/vm.h"
 #include "vm/loader.h"
@@ -52,14 +51,16 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/wait.h>
 
 
-/* allthreads *****************************************************************
+/* jvmti_get_all_threads ******************************************************
 
    Gets an array of threadobjects of all threads
 
 *******************************************************************************/
-jvmtiError allthreads (jint * threads_count_ptr, threadobject*** threads_ptr) {
+jvmtiError jvmti_get_all_threads (jint * threads_count_ptr, 
+								  threadobject*** threads_ptr) {
     int i = 0, cnt = 8; 
     threadobject *thread, **tthreads;
 	
@@ -79,7 +80,7 @@ jvmtiError allthreads (jint * threads_count_ptr, threadobject*** threads_ptr) {
 		   tthreads[i] = thread;
 		   i++;
 		}
-		thread = thread->info.prev;
+		thread = thread->prev;
 
 		/* repeat until we got the pointer to the mainthread twice */
 	} while (mainthreadobj != thread);
@@ -96,24 +97,24 @@ jvmtiError allthreads (jint * threads_count_ptr, threadobject*** threads_ptr) {
 }
 
 
-/* getcurrentthread ***********************************************************
+/* jvmti_get_current_thread ***************************************************
 
    Get jthread structure of current thread. 
 
 *******************************************************************************/
-jthread getcurrentthread() {
+jthread jvmti_get_current_thread() {
 	return (jthread)(threads_get_current_threadobject())->o.thread;
 }
 
 
 
-/* brktablecreator*************************************************************
+/*  breakpointtable_creator ***************************************************
 
    helper function to enlarge the breakpoint table if needed
 
 *******************************************************************************/
 
-static void brktablecreator() {
+static void breakpointtable_creator() {
 	struct _brkpt* tmp;
 	struct brkpts *jvmtibrkpt;
 
@@ -134,54 +135,69 @@ static void brktablecreator() {
 }
 
 
-/* setsysbrkpt ****************************************************************
+/* jvmti_set_system_breakpoint ************************************************
 
    sets a system breakpoint in breakpoint table and calls set breakpoint
 
 *******************************************************************************/
 
-void setsysbrkpt(int sysbrk, void* addr) {	
+void jvmti_set_system_breakpoint(int sysbrk, bool mode) {	
 	struct brkpts *jvmtibrkpt;
 
 	pthread_mutex_lock(&dbgcomlock);
-	jvmtibrkpt = &dbgcom->jvmtibrkpt;;
+	jvmtibrkpt = &dbgcom->jvmtibrkpt;
 
+	assert (sysbrk < BEGINUSERBRK);	
 	if (jvmtibrkpt->size == jvmtibrkpt->num)
-		brktablecreator();
+		breakpointtable_creator();
 
-	assert (sysbrk < BEGINUSERBRK);
-	jvmtibrkpt->brk[sysbrk].addr = addr;
-
-
-	dbgcom->setbrkpt = true;
-	dbgcom->brkaddr = addr;
-	jvmtibrkpt->brk[sysbrk].orig = dbgcom->brkorig;
+	if (mode) {
+		/* add breakpoint*/
+		if (jvmtibrkpt->brk[sysbrk].count > 0) {
+			jvmtibrkpt->brk[sysbrk].count++;
+			pthread_mutex_unlock(&dbgcomlock);
+			return;
+		}
+		dbgcom->addbrkpt = true;
+		dbgcom->brkaddr = jvmtibrkpt->brk[sysbrk].addr;
+	} else {
+		/* remove breakpoint*/		
+		if ((jvmtibrkpt->brk[sysbrk].count == 1) ) {
+			jvmtibrkpt->brk[sysbrk].count--;
+			/* remove breakpoint */
+			dbgcom->addbrkpt = false;
+			dbgcom->brkaddr = jvmtibrkpt->brk[sysbrk].addr;
+		} else {
+			/* avoid negative counter values */
+			if (jvmtibrkpt->brk[sysbrk].count > 0) jvmtibrkpt->brk[sysbrk].count--;
+			pthread_mutex_unlock(&dbgcomlock);
+			return;
+		}
+	}
 	pthread_mutex_unlock(&dbgcomlock);
-
 	/* call cacaodbgserver */
+	__asm__ ("setsysbrkpt:");
 	TRAP; 
-
-	fprintf (stderr,"setsysbrk %d %X  done\n",sysbrk, addr);
 }
 
 
-/* addbrkpt *******************************************************************
+/* jvmti_add_breakpoint *******************************************************
 
    adds a breakpoint to breakpoint table and calls set breakpoint
 
 *******************************************************************************/
 
-void addbrkpt(void* addr, jmethodID method, jlocation location) {
+void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location) {
 	struct brkpts *jvmtibrkpt;
 
 	pthread_mutex_lock(&dbgcomlock);
 	jvmtibrkpt = &dbgcom->jvmtibrkpt;;
 
 	if (jvmtibrkpt->size == jvmtibrkpt->num)
-		brktablecreator();
+		breakpointtable_creator();
 
 	assert (jvmtibrkpt->size > jvmtibrkpt->num);
-	fprintf (stderr,"add brk add: %X\n",addr);
+	fprintf (stderr,"add brk add: %p\n",addr);
 	jvmtibrkpt->brk[jvmtibrkpt->num].addr = addr;
 	jvmtibrkpt->brk[jvmtibrkpt->num].method = method;
 	jvmtibrkpt->brk[jvmtibrkpt->num].location = location;
@@ -256,50 +272,112 @@ void setup_jdwp_thread(char* transport) {
 	vm_call_method(m,o);
 }
 
-/* cacaobreakpointhandler **********************************************************
 
-   handles breakpoints. called by cacaodbgserver.
+/* jvmti_cacaodbgserver_quit **************************************************
+
+   quits cacaodbgserver if the last jvmti environment gets disposed
+
+*******************************************************************************/
+void jvmti_cacaodbgserver_quit(){
+	pthread_mutex_lock(&dbgcomlock);
+	dbgcom->running--;
+	if (dbgcom->running  == 0) {
+		__asm__ ("cacaodbgserver_quit:");
+		TRAP;
+		/* get cacaodbserver exit */
+		wait(NULL);
+	}
+	dbgcom = NULL;
+	pthread_mutex_unlock(&dbgcomlock);
+}
+
+
+
+/* jvmti_cacao_generic_breakpointhandler **************************************
+
+   convert cacao breakpoints in jvmti events and fire event
 
 *******************************************************************************/
 
-void cacaobreakpointhandler() {
-	basic_event ev;
-	genericEventData data;
-	int i;
+static void jvmti_cacao_generic_breakpointhandler(int kindofbrk){
+	genericEventData data; 
 
-	/* XXX to be continued :-) */
-
-	fprintf(stderr,"breakpoint handler called\n");
-	log_text(" - signal %d", ev.signal);
-	switch (ev.signal) {
-	case SIGTRAP:
-		/* search the breakpoint that has been triggered */
-		i=0;
-		while ((ev.ip!=dbgcom->jvmtibrkpt.brk[i].addr) && (i<dbgcom->jvmtibrkpt.num)) i++;
-		
-		fprintf(stderr,"cacaodbglisten SIGTRAP switch after while loop i %d\n",i);
-		
-		switch (i) {
-		case SETTHREADOBJECTBRK:
-			/* threads_set_current_threadobject */
-			fprintf(stderr,"IP %X == threads_set_current_threadobject\n",ev.ip);
-			data.ev=JVMTI_EVENT_THREAD_START;
-			fireEvent(&data);
-			break;
-		default:
-			if ((i >= BEGINUSERBRK) && (i<dbgcom->jvmtibrkpt.num)) {
-				log_text("todo: user defined breakpoints are not handled yet");
-			} else 
-				log_text("breakpoint not handled - continue anyway");
-		}
+	switch (kindofbrk) {
+	case THREADSTARTBRK:
+		data.ev=JVMTI_EVENT_THREAD_START; 
 		break;
-	case SIGQUIT:
-		log_text("debugger process SIGQUIT");
-		data.ev=JVMTI_EVENT_VM_DEATH;
-		fireEvent(&data);		
+	case THREADENDBRK:
+		data.ev=JVMTI_EVENT_THREAD_END; 
+		break;
+	case CLASSLOADBRK:
+		data.ev=JVMTI_EVENT_CLASS_LOAD; 
+		break;
+	case CLASSPREPARERK:
+		data.ev=JVMTI_EVENT_CLASS_PREPARE; 
+		break;
+	case CLASSFILELOADHOOKBRK:
+		data.ev=JVMTI_EVENT_CLASS_FILE_LOAD_HOOK; 
+		break;
+	case COMPILEDMETHODLOADBRK:
+		data.ev=JVMTI_EVENT_COMPILED_METHOD_LOAD; 
+		break;
+	case COMPILEDMETHODUNLOADBRK:
+		data.ev=JVMTI_EVENT_COMPILED_METHOD_UNLOAD; 
 		break;
 	default:
-		log_text("signal not handled");
+		fprintf(stderr,"unhandled kind of cacao break %d\n",kindofbrk);
+		return;
+	}
+	jvmti_fireEvent(&data);
+}
+
+
+
+/* jvmti_cacao_debug_init ***************************************************************
+
+   starts up a new cacaodbgserver process if needed
+
+*******************************************************************************/
+
+void jvmti_cacao_debug_init() {
+	pid_t dbgserver;	
+	void* addr[2];
+
+	/* start new cacaodbgserver if needed*/
+	pthread_mutex_lock(&dbgcomlock);
+	if (dbgcom == NULL) {
+		dbgcom = heap_allocate(sizeof(cacaodbgcommunication),true,NULL);		
+		dbgcom->running = 1;
+
+		breakpointtable_creator();
+		/* set addresses of hard coded TRAPs */
+		__asm__ ("movl $setsysbrkpt,%0;" 
+			 :"=m"(dbgcom->jvmtibrkpt.brk[SETSYSBRKPT].addr));
+		__asm__ ("movl $cacaodbgserver_quit,%0;" 
+			 :"=m"(dbgcom->jvmtibrkpt.brk[CACAODBGSERVERQUIT].addr));
+
+		jvmti_get_threads_breakpoints(addr);
+		dbgcom->jvmtibrkpt.brk[THREADSTARTBRK].addr = addr[0];
+		dbgcom->jvmtibrkpt.brk[THREADENDBRK].addr = addr[1];
+
+		dbgserver = fork();
+		if (dbgserver  == (-1)) {
+			log_text("cacaodbgserver fork error");
+			exit(1);
+		} else {
+			if (dbgserver == 0) {
+				if (execlp("cacaodbgserver","cacaodbgserver",(char *) NULL) == -1) {
+					log_text("unable to execute cacaodbgserver");
+					exit(1);
+				}
+			}
+		}
+		pthread_mutex_unlock(&dbgcomlock);
+		/* let cacaodbgserver get ready */
+		sleep(1);
+	} else {
+		dbgcom->running++;
+		pthread_mutex_unlock(&dbgcomlock);
 	}
 }
 

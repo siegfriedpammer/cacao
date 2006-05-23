@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4938 2006-05-22 09:06:44Z twisti $
+   $Id: threads.c 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -624,7 +624,6 @@ int cacao_suspendhandler(ucontext_t *ctx)
 }
 #endif
 
-
 /* threads_set_current_threadobject ********************************************
 
    Set the current thread object.
@@ -634,11 +633,7 @@ int cacao_suspendhandler(ucontext_t *ctx)
 
 *******************************************************************************/
 
-#if !defined(ENABLE_JVMTI)
 static void threads_set_current_threadobject(threadobject *thread)
-#else
-void threads_set_current_threadobject(threadobject *thread)
-#endif
 {
 #if !defined(HAVE___THREAD)
 	pthread_setspecific(threads_current_threadobject_key, thread);
@@ -1084,6 +1079,14 @@ static void *threads_startup_thread(void *t)
 		thread->_global_sp = (void *) (intrp_thread_stack + opt_stacksize);
 #endif
 
+
+
+#if defined(ENABLE_JVMTI)
+	/* breakpoint for thread start event */
+ 	__asm__("threadstart:");
+#endif
+
+
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
@@ -1104,6 +1107,12 @@ static void *threads_startup_thread(void *t)
 
 		(function)();
 	}
+
+#if defined(ENABLE_JVMTI)
+	/* breakpoint for thread end event */
+ 	__asm__("threadend:");
+#endif
+
 
 	/* Allow lock record pools to be used by other threads. They
 	   cannot be deleted so we'd better not waste them. */
@@ -1661,6 +1670,20 @@ static void threads_table_dump(FILE *file)
 	fprintf(file, "======== END OF THREADS TABLE ========\n");
 
 	pthread_mutex_unlock(&threadlistlock);
+}
+#endif
+
+
+#if defined(ENABLE_JVMTI)
+/* jvmti_get_threads_breakpoints ***********************************************
+
+   gets all breakpoints from this file
+
+*******************************************************************************/
+
+void jvmti_get_threads_breakpoints(void **brks) {
+	__asm__ ("movl $threadstart,%0;" :"=m"(brks[0]));
+	__asm__ ("movl $threadend,%0;" :"=m"(brks[1]));
 }
 #endif
 

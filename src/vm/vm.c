@@ -1071,10 +1071,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 	if (jvmti) {
-		set_jvmti_phase(JVMTI_PHASE_ONLOAD);
-		agentload(agentarg, agentbypath, &handle, &libname);
+		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
+		jvmti_agentload(agentarg, agentbypath, &handle, &libname);
 	}
-	set_jvmti_phase(JVMTI_PHASE_PRIMORDIAL);
+	jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
 #endif
 
 
@@ -1277,8 +1277,8 @@ void vm_exit(s4 status)
 	assert(class_java_lang_System->state & CLASS_LOADED);
 
 #if defined(ENABLE_JVMTI)
-	set_jvmti_phase(JVMTI_PHASE_DEAD);
-	if (jvmti) agentunload();
+	jvmti_set_phase(JVMTI_PHASE_DEAD);
+	if (jvmti) jvmti_agentunload();
 #endif
 
 	if (!link_class(class_java_lang_System))

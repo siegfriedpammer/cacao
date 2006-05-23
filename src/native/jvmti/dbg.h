@@ -29,7 +29,7 @@
    Changes:             
 
    
-   $Id: dbg.h 4892 2006-05-06 18:29:55Z motse $
+   $Id: dbg.h 4944 2006-05-23 15:31:19Z motse $
 
 */
 
@@ -39,23 +39,8 @@
 #ifndef _DBG_H
 #define _DBG_H
 
-#include <sys/types.h>
-#include <sys/ptrace.h>
-
-#define TRACEATTACH(pid) ptrace(PTRACE_ATTACH, pid, 0, 0)
-#define DETACH(pid,sig)  ptrace(PTRACE_DETACH, pid, 0, sig)
 #define TRAPINS 0xcc /* opcode for brk */
-#define TRAP asm("int3")
-#define GETMEM(pid, addr) ptrace(PTRACE_PEEKDATA, pid, addr, 0)
-#define CONT(pid,sig) if(ptrace(PTRACE_CONT, pid, 0, sig)==-1) \
-                         perror("continue failed: ");
-#define DISABLEBRK(pid,ins,addr) ptrace(PTRACE_POKEDATA, pid, (caddr_t) addr, ins)
-#define GETREGS(pid,regs) ptrace(PTRACE_GETREGS, pid, 0, &regs)
-
-void* getip(pid_t pid);
-void setip(pid_t pid, void* ip);
-
-void setbrk(pid_t pid, void* addr,long* orig);
+#define TRAP __asm__("int3") 
 
 #endif
 #endif
