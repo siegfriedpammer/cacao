@@ -29,7 +29,7 @@
 
    Changes:
 
-   $Id: codegen.h 4941 2006-05-23 08:25:14Z twisti $
+   $Id: codegen.h 4943 2006-05-23 08:51:33Z twisti $
 
 */
 
@@ -76,21 +76,10 @@
 
 #define gen_bound_check \
     if (checkbounds) { \
-        M_ICMP_MEMBASE(s1, OFFSET(java_arrayheader, size), s2); \
+        M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));\
+        M_ICMP(REG_ITMP3, s2); \
         M_BAE(0); \
         codegen_add_arrayindexoutofboundsexception_ref(cd, s2); \
-    }
-
-
-#define gen_div_check(v) \
-    if (checknull) { \
-        if ((v)->flags & INMEMORY) { \
-            M_CMP_IMM_MEMBASE(0, REG_SP, src->regoff * 8); \
-        } else { \
-            M_TEST(src->regoff); \
-        } \
-        M_BEQ(0); \
-        codegen_add_arithmeticexception_ref(cd); \
     }
 
 
@@ -187,19 +176,23 @@
 #define M_LST32_IMM32(a,b,disp) emit_mov_imm_membase32(cd, (a), (b), (disp))
 
 #define M_IADD(a,b)             emit_alul_reg_reg(cd, ALU_ADD, (a), (b))
-#define M_IADD_IMM(a,b)         emit_alul_reg_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB(a,b)             emit_alul_reg_reg(cd, ALU_SUB, (a), (b))
+#define M_IMUL(a,b)             emit_imull_reg_reg(cd, (a), (b))
+
+#define M_IADD_IMM(a,b)         emit_alul_imm_reg(cd, ALU_ADD, (a), (b))
+#define M_ISUB_IMM(a,b)         emit_alul_imm_reg(cd, ALU_SUB, (a), (b))
+#define M_IMUL_IMM(a,b,c)       emit_imull_imm_reg_reg(cd, (b), (a), (c))
 
 #define M_LADD(a,b)             emit_alu_reg_reg(cd, ALU_ADD, (a), (b))
-#define M_LADD_IMM(a,b)         emit_alu_imm_reg(cd, ALU_ADD, (a), (b))
 #define M_LSUB(a,b)             emit_alu_reg_reg(cd, ALU_SUB, (a), (b))
+#define M_LMUL(a,b)             emit_imul_reg_reg(cd, (a), (b))
+
+#define M_LADD_IMM(a,b)         emit_alu_imm_reg(cd, ALU_ADD, (a), (b))
 #define M_LSUB_IMM(a,b)         emit_alu_imm_reg(cd, ALU_SUB, (a), (b))
+#define M_LMUL_IMM(a,b,c)       emit_imul_imm_reg_reg(cd, (b), (a), (c))
 
-#define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
-
-#define M_IADD_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADD, (a), (b), (c))
-#define M_IADC_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADC, (a), (b), (c))
-#define M_ISUB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SUB, (a), (b), (c))
-#define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
+#define M_IINC(a)               emit_incl_reg(cd, (a))
+#define M_IDEC(a)               emit_decl_reg(cd, (a))
 
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)
 #define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
@@ -222,15 +215,21 @@
 #define M_INEG(a)               emit_negl_reg(cd, (a))
 #define M_LNEG(a)               emit_neg_reg(cd, (a))
 
-#define M_INEG_MEMBASE(a,b)     emit_negl_membase(cd, (a), (b))
-#define M_LNEG_MEMBASE(a,b)     emit_neg_membase(cd, (a), (b))
-
-#define M_AND(a,b)              emit_alu_reg_reg(cd, ALU_AND, (a), (b))
-#define M_XOR(a,b)              emit_alu_reg_reg(cd, ALU_XOR, (a), (b))
-
 #define M_IAND(a,b)             emit_alul_reg_reg(cd, ALU_AND, (a), (b))
-#define M_IAND_IMM(a,b)         emit_alul_imm_reg(cd, ALU_AND, (a), (b))
+#define M_IOR(a,b)              emit_alul_reg_reg(cd, ALU_OR, (a), (b))
 #define M_IXOR(a,b)             emit_alul_reg_reg(cd, ALU_XOR, (a), (b))
+
+#define M_IAND_IMM(a,b)         emit_alul_imm_reg(cd, ALU_AND, (a), (b))
+#define M_IOR_IMM(a,b)          emit_alul_imm_reg(cd, ALU_OR, (a), (b))
+#define M_IXOR_IMM(a,b)         emit_alul_imm_reg(cd, ALU_XOR, (a), (b))
+
+#define M_LAND(a,b)             emit_alu_reg_reg(cd, ALU_AND, (a), (b))
+#define M_LOR(a,b)              emit_alu_reg_reg(cd, ALU_OR, (a), (b))
+#define M_LXOR(a,b)             emit_alu_reg_reg(cd, ALU_XOR, (a), (b))
+
+#define M_LAND_IMM(a,b)         emit_alu_imm_reg(cd, ALU_AND, (a), (b))
+#define M_LOR_IMM(a,b)          emit_alu_imm_reg(cd, ALU_OR, (a), (b))
+#define M_LXOR_IMM(a,b)         emit_alu_imm_reg(cd, ALU_XOR, (a), (b))
 
 #define M_BSEXT(a,b)            emit_movsbq_reg_reg(cd, (a), (b))
 #define M_SSEXT(a,b)            emit_movswq_reg_reg(cd, (a), (b))
@@ -238,19 +237,21 @@
 
 #define M_CZEXT(a,b)            emit_movzwq_reg_reg(cd, (a), (b))
 
-#define M_BSEXT_MEMBASE(a,disp,b) emit_movsbq_membase_reg(cd, (a), (disp), (b))
-#define M_SSEXT_MEMBASE(a,disp,b) emit_movswq_membase_reg(cd, (a), (disp), (b))
-#define M_ISEXT_MEMBASE(a,disp,b) emit_movslq_membase_reg(cd, (a), (disp), (b))
+#define M_ISLL_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SHL, (a), (b))
+#define M_ISRA_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SAR, (a), (b))
+#define M_ISRL_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SHR, (a), (b))
 
-#define M_CZEXT_MEMBASE(a,disp,b) emit_movzwq_membase_reg(cd, (a), (disp), (b))
+#define M_LSLL_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SHL, (a), (b))
+#define M_LSRA_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SAR, (a), (b))
+#define M_LSRL_IMM(a,b)         emit_shift_imm_reg(cd, SHIFT_SHR, (a), (b))
 
 #define M_TEST(a)               emit_test_reg_reg(cd, (a), (a))
 #define M_ITEST(a)              emit_testl_reg_reg(cd, (a), (a))
 
-#define M_CMP(a,b)              emit_alu_reg_reg(cd, ALU_CMP, (a), (b))
-#define M_CMP_IMM(a,b)          emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
-#define M_CMP_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
-#define M_CMP_MEMBASE(a,b,c)    emit_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
+#define M_LCMP(a,b)             emit_alu_reg_reg(cd, ALU_CMP, (a), (b))
+#define M_LCMP_IMM(a,b)         emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
+#define M_LCMP_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
+#define M_LCMP_MEMBASE(a,b,c)   emit_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
 
 #define M_ICMP(a,b)             emit_alul_reg_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM(a,b)         emit_alul_imm_reg(cd, ALU_CMP, (a), (b))
@@ -261,6 +262,8 @@
 #define M_BNE(disp)             emit_jcc(cd, CC_NE, (disp))
 #define M_BLT(disp)             emit_jcc(cd, CC_L, (disp))
 #define M_BLE(disp)             emit_jcc(cd, CC_LE, (disp))
+#define M_BGE(disp)             emit_jcc(cd, CC_GE, (disp))
+#define M_BGT(disp)             emit_jcc(cd, CC_G, (disp))
 #define M_BAE(disp)             emit_jcc(cd, CC_AE, (disp))
 #define M_BA(disp)              emit_jcc(cd, CC_A, (disp))
 
@@ -294,24 +297,54 @@
 
 #define M_NOP                   emit_nop(cd)
 
-#define M_CLR(a)                M_XOR(a,a)
+#define M_CLR(a)                M_LXOR(a,a)
 
 
-#if 0
-#define M_FLD(a,b,c)            emit_movlps_membase_reg(cd, (a), (b), (c))
-#define M_DLD(a,b,c)            emit_movlpd_membase_reg(cd, (a), (b), (c))
+#define M_FLD(a,b,disp)         emit_movss_membase_reg(cd, (b), (disp), (a))
+#define M_DLD(a,b,disp)         emit_movsd_membase_reg(cd, (b), (disp), (a))
 
-#define M_FST(a,b,c)            emit_movlps_reg_membase(cd, (a), (b), (c))
-#define M_DST(a,b,c)            emit_movlpd_reg_membase(cd, (a), (b), (c))
-#endif
+#define M_FLD32(a,b,disp)       emit_movss_membase32_reg(cd, (b), (disp), (a))
+#define M_DLD32(a,b,disp)       emit_movsd_membase32_reg(cd, (b), (disp), (a))
 
-#define M_DLD(a,b,disp)         emit_movq_membase_reg(cd, (b), (disp), (a))
-#define M_DST(a,b,disp)         emit_movq_reg_membase(cd, (a), (b), (disp))
+#define M_FST(a,b,disp)         emit_movss_reg_membase(cd, (a), (b), (disp))
+#define M_DST(a,b,disp)         emit_movsd_reg_membase(cd, (a), (b), (disp))
+
+#define M_FST32(a,b,disp)       emit_movss_reg_membase32(cd, (a), (b), (disp))
+#define M_DST32(a,b,disp)       emit_movsd_reg_membase32(cd, (a), (b), (disp))
+
+#define M_FADD(a,b)             emit_addss_reg_reg(cd, (a), (b))
+#define M_DADD(a,b)             emit_addsd_reg_reg(cd, (a), (b))
+#define M_FSUB(a,b)             emit_subss_reg_reg(cd, (a), (b))
+#define M_DSUB(a,b)             emit_subsd_reg_reg(cd, (a), (b))
+#define M_FMUL(a,b)             emit_mulss_reg_reg(cd, (a), (b))
+#define M_DMUL(a,b)             emit_mulsd_reg_reg(cd, (a), (b))
+#define M_FDIV(a,b)             emit_divss_reg_reg(cd, (a), (b))
+#define M_DDIV(a,b)             emit_divsd_reg_reg(cd, (a), (b))
+
+#define M_CVTIF(a,b)            emit_cvtsi2ss_reg_reg(cd, (a), (b))
+#define M_CVTID(a,b)            emit_cvtsi2sd_reg_reg(cd, (a), (b))
+#define M_CVTLF(a,b)            emit_cvtsi2ssq_reg_reg(cd, (a), (b))
+#define M_CVTLD(a,b)            emit_cvtsi2sdq_reg_reg(cd, (a), (b))
+#define M_CVTFI(a,b)            emit_cvttss2si_reg_reg(cd, (a), (b))
+#define M_CVTDI(a,b)            emit_cvttsd2si_reg_reg(cd, (a), (b))
+#define M_CVTFL(a,b)            emit_cvttss2siq_reg_reg(cd, (a), (b))
+#define M_CVTDL(a,b)            emit_cvttsd2siq_reg_reg(cd, (a), (b))
+
+#define M_CVTFD(a,b)            emit_cvtss2sd_reg_reg(cd, (a), (b))
+#define M_CVTDF(a,b)            emit_cvtsd2ss_reg_reg(cd, (a), (b))
 
 
 /* system instructions ********************************************************/
 
 #define M_RDTSC                 emit_rdtsc(cd)
+
+#define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
+
+#define M_IADD_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADD, (a), (b), (c))
+#define M_IADC_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADC, (a), (b), (c))
+#define M_ISUB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SUB, (a), (b), (c))
+#define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
+
 
 #define PROFILE_CYCLE_START \
     do { \

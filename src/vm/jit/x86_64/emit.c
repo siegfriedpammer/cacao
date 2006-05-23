@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: emit.c 4941 2006-05-23 08:25:14Z twisti $
+   $Id: emit.c 4943 2006-05-23 08:51:33Z twisti $
 
 */
 
@@ -68,7 +68,10 @@ s4 emit_load_s1(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		disp = src->regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
-			M_DLD(tempreg, REG_SP, disp);
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
 
 		} else {
 			if (IS_INT_TYPE(src->type))
@@ -107,7 +110,10 @@ s4 emit_load_s2(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		disp = src->regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
-			M_DLD(tempreg, REG_SP, disp);
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
 
 		} else {
 			if (IS_INT_TYPE(src->type))
@@ -146,7 +152,10 @@ s4 emit_load_s3(jitdata *jd, instruction *iptr, stackptr src, s4 tempreg)
 		disp = src->regoff * 8;
 
 		if (IS_FLT_DBL_TYPE(src->type)) {
-			M_DLD(tempreg, REG_SP, disp);
+			if (IS_2_WORD_TYPE(src->type))
+				M_DLD(tempreg, REG_SP, disp);
+			else
+				M_FLD(tempreg, REG_SP, disp);
 
 		} else {
 			if (IS_INT_TYPE(src->type))
@@ -211,9 +220,13 @@ void emit_store(jitdata *jd, instruction *iptr, stackptr dst, s4 d)
 
 		disp = dst->regoff * 8;
 
-		if (IS_FLT_DBL_TYPE(dst->type))
-			M_DST(d, REG_SP, disp);
-		else
+		if (IS_FLT_DBL_TYPE(dst->type)) {
+			if (IS_2_WORD_TYPE(dst->type))
+				M_DST(d, REG_SP, disp);
+			else
+				M_FST(d, REG_SP, disp);
+
+		} else
 			M_LST(d, REG_SP, disp);
 	}
 }
@@ -280,286 +293,40 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d)
 
 /* code generation functions **************************************************/
 
-void emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
+static void emit_membase(codegendata *cd, s4 basereg, s4 disp, s4 dreg)
 {
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-	s4 d = iptr->dst->regoff;
+	if ((basereg == REG_SP) || (basereg == R12)) {
+		if (disp == 0) {
+			emit_address_byte(0, dreg, REG_SP);
+			emit_address_byte(0, REG_SP, REG_SP);
 
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (s2 == d) {
-				emit_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alul_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-
-			} else if (s1 == d) {
-				emit_movl_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-				emit_alul_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-
-			} else {
-				emit_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alul_membase_reg(cd, alu_op, REG_SP, s2 * 8, REG_ITMP1);
-				emit_movl_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			if (s2 == d) {
-				emit_alul_reg_membase(cd, alu_op, s1, REG_SP, d * 8);
-
-			} else {
-				emit_movl_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-				emit_alul_reg_reg(cd, alu_op, s1, REG_ITMP1);
-				emit_movl_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (s1 == d) {
-				emit_alul_reg_membase(cd, alu_op, s2, REG_SP, d * 8);
-						
-			} else {
-				emit_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alul_reg_reg(cd, alu_op, s2, REG_ITMP1);
-				emit_movl_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
+		} else if (IS_IMM8(disp)) {
+			emit_address_byte(1, dreg, REG_SP);
+			emit_address_byte(0, REG_SP, REG_SP);
+			emit_imm8(disp);
 
 		} else {
-			emit_movl_reg_membase(cd, s1, REG_SP, d * 8);
-			emit_alul_reg_membase(cd, alu_op, s2, REG_SP, d * 8);
+			emit_address_byte(2, dreg, REG_SP);
+			emit_address_byte(0, REG_SP, REG_SP);
+			emit_imm32(disp);
 		}
+
+	} else if ((disp) == 0 && (basereg) != RBP && (basereg) != R13) {
+		emit_address_byte(0,(dreg),(basereg));
+
+	} else if ((basereg) == RIP) {
+		emit_address_byte(0, dreg, RBP);
+		emit_imm32(disp);
 
 	} else {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			emit_movl_membase_reg(cd, REG_SP, s1 * 8, d);
-			emit_alul_membase_reg(cd, alu_op, REG_SP, s2 * 8, d);
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			M_INTMOVE(s1, d);
-			emit_alul_membase_reg(cd, alu_op, REG_SP, s2 * 8, d);
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			M_INTMOVE(s2, d);
-			emit_alul_membase_reg(cd, alu_op, REG_SP, s1 * 8, d);
+		if (IS_IMM8(disp)) {
+			emit_address_byte(1, dreg, basereg);
+			emit_imm8(disp);
 
 		} else {
-			if (s2 == d) {
-				emit_alul_reg_reg(cd, alu_op, s1, d);
-
-			} else {
-				M_INTMOVE(s1, d);
-				emit_alul_reg_reg(cd, alu_op, s2, d);
-			}
+			emit_address_byte(2, dreg, basereg);
+			emit_imm32(disp);
 		}
-	}
-}
-
-
-void emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-	s4 d = iptr->dst->regoff;
-
-	if (iptr->dst->flags & INMEMORY) {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (s2 == d) {
-				emit_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-
-			} else if (s1 == d) {
-				emit_mov_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-				emit_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-
-			} else {
-				emit_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alu_membase_reg(cd, alu_op, REG_SP, s2 * 8, REG_ITMP1);
-				emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			if (s2 == d) {
-				emit_alu_reg_membase(cd, alu_op, s1, REG_SP, d * 8);
-
-			} else {
-				emit_mov_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-				emit_alu_reg_reg(cd, alu_op, s1, REG_ITMP1);
-				emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			if (s1 == d) {
-				emit_alu_reg_membase(cd, alu_op, s2, REG_SP, d * 8);
-						
-			} else {
-				emit_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alu_reg_reg(cd, alu_op, s2, REG_ITMP1);
-				emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else {
-			emit_mov_reg_membase(cd, s1, REG_SP, d * 8);
-			emit_alu_reg_membase(cd, alu_op, s2, REG_SP, d * 8);
-		}
-
-	} else {
-		if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			emit_mov_membase_reg(cd, REG_SP, s1 * 8, d);
-			emit_alu_membase_reg(cd, alu_op, REG_SP, s2 * 8, d);
-
-		} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-			M_INTMOVE(s1, d);
-			emit_alu_membase_reg(cd, alu_op, REG_SP, s2 * 8, d);
-
-		} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-			M_INTMOVE(s2, d);
-			emit_alu_membase_reg(cd, alu_op, REG_SP, s1 * 8, d);
-
-		} else {
-			if (s2 == d) {
-				emit_alu_reg_reg(cd, alu_op, s1, d);
-
-			} else {
-				M_INTMOVE(s1, d);
-				emit_alu_reg_reg(cd, alu_op, s2, d);
-			}
-		}
-	}
-}
-
-
-void emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->regoff;
-	s4 d = iptr->dst->regoff;
-
-	if (iptr->dst->flags & INMEMORY) {
-		if (src->flags & INMEMORY) {
-			if (s1 == d) {
-				emit_alul_imm_membase(cd, alu_op, iptr->val.i, REG_SP, d * 8);
-
-			} else {
-				emit_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-				emit_alul_imm_reg(cd, alu_op, iptr->val.i, REG_ITMP1);
-				emit_movl_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else {
-			emit_movl_reg_membase(cd, s1, REG_SP, d * 8);
-			emit_alul_imm_membase(cd, alu_op, iptr->val.i, REG_SP, d * 8);
-		}
-
-	} else {
-		if (src->flags & INMEMORY) {
-			emit_movl_membase_reg(cd, REG_SP, s1 * 8, d);
-			emit_alul_imm_reg(cd, alu_op, iptr->val.i, d);
-
-		} else {
-#if 0
-			M_INTMOVE(s1, d);
-			emit_alul_imm_reg(cd, alu_op, iptr->val.i, d);
-#else
-			/* lea addition optimization */
-
-			if ((alu_op == ALU_ADD) && (s1 != d)) {
-				M_ILEA(s1, iptr->val.i, d);
-
-			} else {
-				M_INTMOVE(s1, d);
-				emit_alul_imm_reg(cd, alu_op, iptr->val.i, d);
-			}
-#endif
-		}
-	}
-}
-
-
-void emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->regoff;
-	s4 d = iptr->dst->regoff;
-
-	if (iptr->dst->flags & INMEMORY) {
-		if (src->flags & INMEMORY) {
-			if (s1 == d) {
-				if (IS_IMM32(iptr->val.l)) {
-					emit_alu_imm_membase(cd, alu_op, iptr->val.l, REG_SP, d * 8);
-
-				} else {
-					emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-					emit_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-				}
-
-			} else {
-				emit_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-
-				if (IS_IMM32(iptr->val.l)) {
-					emit_alu_imm_reg(cd, alu_op, iptr->val.l, REG_ITMP1);
-
-				} else {
-					emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP2);
-					emit_alu_reg_reg(cd, alu_op, REG_ITMP2, REG_ITMP1);
-				}
-				emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-			}
-
-		} else {
-			emit_mov_reg_membase(cd, s1, REG_SP, d * 8);
-
-			if (IS_IMM32(iptr->val.l)) {
-				emit_alu_imm_membase(cd, alu_op, iptr->val.l, REG_SP, d * 8);
-
-			} else {
-				emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-				emit_alu_reg_membase(cd, alu_op, REG_ITMP1, REG_SP, d * 8);
-			}
-		}
-
-	} else {
-#if 0
-		if (src->flags & INMEMORY) {
-			emit_mov_membase_reg(cd, REG_SP, s1 * 8, d);
-
-		} else {
-			M_INTMOVE(s1, d);
-		}
-
-		if (IS_IMM32(iptr->val.l)) {
-			emit_alu_imm_reg(cd, alu_op, iptr->val.l, d);
-
-		} else {
-			emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-			emit_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
-		}
-#else
-		if (src->flags & INMEMORY) {
-			emit_mov_membase_reg(cd, REG_SP, s1 * 8, d);
-
-			if (IS_IMM32(iptr->val.l)) {
-				emit_alu_imm_reg(cd, alu_op, iptr->val.l, d);
-
-			} else {
-				emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-				emit_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
-			}
-
-		} else {
-			if (IS_IMM32(iptr->val.l)) {
-				/* lea addition optimization */
-
-				if ((alu_op == ALU_ADD) && (s1 != d)) {
-					M_LLEA(s1, iptr->val.l, d);
-
-				} else {
-					M_INTMOVE(s1, d);
-					emit_alu_imm_reg(cd, alu_op, iptr->val.l, d);
-				}
-
-			} else {
-				M_INTMOVE(s1, d);
-				emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-				emit_alu_reg_reg(cd, alu_op, REG_ITMP1, d);
-			}
-		}
-#endif
 	}
 }
 
@@ -796,179 +563,6 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
 }
 
 
-void emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->regoff;
-	s4 d = iptr->dst->regoff;
-
-	if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		if (s1 == d) {
-			emit_shiftl_imm_membase(cd, shift_op, iptr->val.i, REG_SP, d * 8);
-
-		} else {
-			emit_movl_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-			emit_shiftl_imm_reg(cd, shift_op, iptr->val.i, REG_ITMP1);
-			emit_movl_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-		}
-
-	} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
-		emit_movl_membase_reg(cd, REG_SP, s1 * 8, d);
-		emit_shiftl_imm_reg(cd, shift_op, iptr->val.i, d);
-				
-	} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		emit_movl_reg_membase(cd, s1, REG_SP, d * 8);
-		emit_shiftl_imm_membase(cd, shift_op, iptr->val.i, REG_SP, d * 8);
-
-	} else {
-		M_INTMOVE(s1, d);
-		emit_shiftl_imm_reg(cd, shift_op, iptr->val.i, d);
-	}
-}
-
-
-void emit_lshiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->regoff;
-	s4 d = iptr->dst->regoff;
-
-	if ((src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		if (s1 == d) {
-			emit_shift_imm_membase(cd, shift_op, iptr->val.i, REG_SP, d * 8);
-
-		} else {
-			emit_mov_membase_reg(cd, REG_SP, s1 * 8, REG_ITMP1);
-			emit_shift_imm_reg(cd, shift_op, iptr->val.i, REG_ITMP1);
-			emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, d * 8);
-		}
-
-	} else if ((src->flags & INMEMORY) && !(iptr->dst->flags & INMEMORY)) {
-		emit_mov_membase_reg(cd, REG_SP, s1 * 8, d);
-		emit_shift_imm_reg(cd, shift_op, iptr->val.i, d);
-				
-	} else if (!(src->flags & INMEMORY) && (iptr->dst->flags & INMEMORY)) {
-		emit_mov_reg_membase(cd, s1, REG_SP, d * 8);
-		emit_shift_imm_membase(cd, shift_op, iptr->val.i, REG_SP, d * 8);
-
-	} else {
-		M_INTMOVE(s1, d);
-		emit_shift_imm_reg(cd, shift_op, iptr->val.i, d);
-	}
-}
-
-
-void emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
-{
-	if (src->flags & INMEMORY)
-		M_ICMP_IMM_MEMBASE(iptr->val.i, REG_SP, src->regoff * 8);
-	else {
-		if (iptr->val.i == 0)
-			M_ITEST(src->regoff);
-		else
-			M_ICMP_IMM(iptr->val.i, src->regoff);
-	}
-
-	/* If the conditional branch is part of an if-converted block,
-	   don't generate the actual branch. */
-
-	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
-		emit_jcc(cd, if_op, 0);
-		codegen_addreference(cd, (basicblock *) iptr->target);
-	}
-}
-
-
-void emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->regoff;
-
-	if (src->flags & INMEMORY) {
-		if (IS_IMM32(iptr->val.l)) {
-			emit_alu_imm_membase(cd, ALU_CMP, iptr->val.l, REG_SP, s1 * 8);
-
-		} else {
-			emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-			emit_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, s1 * 8);
-		}
-
-	} else {
-		if (iptr->val.l == 0) {
-			emit_test_reg_reg(cd, s1, s1);
-
-		} else {
-			if (IS_IMM32(iptr->val.l)) {
-				emit_alu_imm_reg(cd, ALU_CMP, iptr->val.l, s1);
-
-			} else {
-				emit_mov_imm_reg(cd, iptr->val.l, REG_ITMP1);
-				emit_alu_reg_reg(cd, ALU_CMP, REG_ITMP1, s1);
-			}
-		}
-	}
-	emit_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target);
-}
-
-
-/* emit_if_icmpcc **************************************************************
-
-   Generate ICMD_IF_ICMPxx instructions.
-
-*******************************************************************************/
-
-void emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src,
-						   instruction *iptr)
-{
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-
-	if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-		emit_movl_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-		emit_alul_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, s1 * 8);
-
-	} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-		emit_alul_membase_reg(cd, ALU_CMP, REG_SP, s2 * 8, s1);
-
-	} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-		emit_alul_reg_membase(cd, ALU_CMP, s2, REG_SP, s1 * 8);
-
-	} else {
-		emit_alul_reg_reg(cd, ALU_CMP, s2, s1);
-	}
-
-	
-	/* If the conditional branch is part of an if-converted block,
-	   don't generate the actual branch. */
-
-	if ((iptr->opc & ICMD_CONDITION_MASK) == 0) {
-		emit_jcc(cd, if_op, 0);
-		codegen_addreference(cd, (basicblock *) iptr->target);
-	}
-}
-
-
-void emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr)
-{
-	s4 s1 = src->prev->regoff;
-	s4 s2 = src->regoff;
-
-	if ((src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-		emit_mov_membase_reg(cd, REG_SP, s2 * 8, REG_ITMP1);
-		emit_alu_reg_membase(cd, ALU_CMP, REG_ITMP1, REG_SP, s1 * 8);
-
-	} else if ((src->flags & INMEMORY) && !(src->prev->flags & INMEMORY)) {
-		emit_alu_membase_reg(cd, ALU_CMP, REG_SP, s2 * 8, s1);
-
-	} else if (!(src->flags & INMEMORY) && (src->prev->flags & INMEMORY)) {
-		emit_alu_reg_membase(cd, ALU_CMP, s2, REG_SP, s1 * 8);
-
-	} else {
-		emit_alu_reg_reg(cd, ALU_CMP, s2, s1);
-	}
-	emit_jcc(cd, if_op, 0);
-	codegen_addreference(cd, (basicblock *) iptr->target);
-}
-
-
 /* low-level code emitter functions *******************************************/
 
 void emit_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg)
@@ -1005,7 +599,7 @@ void emit_movl_imm_reg(codegendata *cd, s8 imm, s8 reg) {
 void emit_mov_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1024,7 +618,7 @@ void emit_movl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg)
 {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8b;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1041,7 +635,7 @@ void emit_movl_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg)
 void emit_mov_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1055,7 +649,7 @@ void emit_mov_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 void emit_movl_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x89;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1114,7 +708,7 @@ void emit_movb_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 ind
 void emit_mov_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 	emit_rex(1,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 	emit_imm32((imm));
 }
 
@@ -1130,7 +724,7 @@ void emit_mov_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 void emit_movl_imm_membase(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 	emit_rex(0,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xc7;
-	emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 	emit_imm32((imm));
 }
 
@@ -1145,7 +739,8 @@ void emit_movl_imm_membase32(codegendata *cd, s8 imm, s8 basereg, s8 disp) {
 }
 
 
-void emit_movsbq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
+void emit_movsbq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbe;
@@ -1154,15 +749,8 @@ void emit_movsbq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 }
 
 
-void emit_movsbq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
-	emit_rex(1,(dreg),0,(basereg));
-	*(cd->mcodeptr++) = 0x0f;
-	*(cd->mcodeptr++) = 0xbe;
-	emit_membase((basereg),(disp),(dreg));
-}
-
-
-void emit_movswq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
+void emit_movswq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
@@ -1171,15 +759,8 @@ void emit_movswq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 }
 
 
-void emit_movswq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
-	emit_rex(1,(dreg),0,(basereg));
-	*(cd->mcodeptr++) = 0x0f;
-	*(cd->mcodeptr++) = 0xbf;
-	emit_membase((basereg),(disp),(dreg));
-}
-
-
-void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
+void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x63;
 	/* XXX: why do reg and dreg have to be exchanged */
@@ -1187,27 +768,13 @@ void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 }
 
 
-void emit_movslq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
-	emit_rex(1,(dreg),0,(basereg));
-	*(cd->mcodeptr++) = 0x63;
-	emit_membase((basereg),(disp),(dreg));
-}
-
-
-void emit_movzwq_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
+void emit_movzwq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xb7;
 	/* XXX: why do reg and dreg have to be exchanged */
 	emit_reg((dreg),(reg));
-}
-
-
-void emit_movzwq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
-	emit_rex(1,(dreg),0,(basereg));
-	*(cd->mcodeptr++) = 0x0f;
-	*(cd->mcodeptr++) = 0xb7;
-	emit_membase((basereg),(disp),(dreg));
 }
 
 
@@ -1291,31 +858,35 @@ void emit_alul_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
 }
 
 
-void emit_alu_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp) {
+void emit_alu_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp)
+{
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = (((opc)) << 3) + 1;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void emit_alul_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp) {
+void emit_alul_reg_membase(codegendata *cd, s8 opc, s8 reg, s8 basereg, s8 disp)
+{
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = (((opc)) << 3) + 1;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void emit_alu_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg) {
+void emit_alu_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg)
+{
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
-void emit_alul_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg) {
+void emit_alul_membase_reg(codegendata *cd, s8 opc, s8 basereg, s8 disp, s8 reg)
+{
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -1361,12 +932,12 @@ void emit_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) 
 	if (IS_IMM8(imm)) {
 		emit_rex(1,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x83;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm8((imm));
 	} else {
 		emit_rex(1,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x81;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm32((imm));
 	}
 }
@@ -1376,12 +947,12 @@ void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp)
 	if (IS_IMM8(imm)) {
 		emit_rex(0,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x83;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm8((imm));
 	} else {
 		emit_rex(0,(basereg),0,0);
 		*(cd->mcodeptr++) = 0x81;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm32((imm));
 	}
 }
@@ -1426,78 +997,24 @@ void emit_testb_imm_reg(codegendata *cd, s8 imm, s8 reg) {
 void emit_lea_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 	emit_rex(1,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8d;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
 void emit_leal_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x8d;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
-
-
-/*
- * inc, dec operations
- */
-void emit_inc_reg(codegendata *cd, s8 reg) {
-	emit_rex(1,0,0,(reg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_reg(0,(reg));
-}
-
-
-void emit_incl_reg(codegendata *cd, s8 reg) {
-	emit_rex(0,0,0,(reg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_reg(0,(reg));
-}
-
-
-void emit_inc_membase(codegendata *cd, s8 basereg, s8 disp)
-{
-	emit_rex(1,0,0,(basereg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_membase((basereg),(disp),0);
-}
 
 
 void emit_incl_membase(codegendata *cd, s8 basereg, s8 disp)
 {
 	emit_rex(0,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xff;
-	emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
-
-
-void emit_dec_reg(codegendata *cd, s8 reg) {
-	emit_rex(1,0,0,(reg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_reg(1,(reg));
-}
-
-        
-void emit_decl_reg(codegendata *cd, s8 reg) {
-	emit_rex(0,0,0,(reg));
-	*(cd->mcodeptr++) = 0xff;
-	emit_reg(1,(reg));
-}
-
-        
-void emit_dec_membase(codegendata *cd, s8 basereg, s8 disp) {
-	emit_rex(1,(basereg),0,0);
-	*(cd->mcodeptr++) = 0xff;
-	emit_membase((basereg),(disp),1);
-}
-
-
-void emit_decl_membase(codegendata *cd, s8 basereg, s8 disp) {
-	emit_rex(0,(basereg),0,0);
-	*(cd->mcodeptr++) = 0xff;
-	emit_membase((basereg),(disp),1);
-}
-
 
 
 
@@ -1533,7 +1050,7 @@ void emit_imul_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(1,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xaf;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -1541,7 +1058,7 @@ void emit_imull_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xaf;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -1594,12 +1111,12 @@ void emit_imul_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8 
 	if (IS_IMM8((imm))) {
 		emit_rex(1,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x6b;
-		emit_membase((basereg),(disp),(dreg));
+		emit_membase(cd, (basereg),(disp),(dreg));
 		emit_imm8((imm));
 	} else {
 		emit_rex(1,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x69;
-		emit_membase((basereg),(disp),(dreg));
+		emit_membase(cd, (basereg),(disp),(dreg));
 		emit_imm32((imm));
 	}
 }
@@ -1609,12 +1126,12 @@ void emit_imull_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8
 	if (IS_IMM8((imm))) {
 		emit_rex(0,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x6b;
-		emit_membase((basereg),(disp),(dreg));
+		emit_membase(cd, (basereg),(disp),(dreg));
 		emit_imm8((imm));
 	} else {
 		emit_rex(0,(dreg),0,(basereg));
 		*(cd->mcodeptr++) = 0x69;
-		emit_membase((basereg),(disp),(dreg));
+		emit_membase(cd, (basereg),(disp),(dreg));
 		emit_imm32((imm));
 	}
 }
@@ -1661,14 +1178,14 @@ void emit_shiftl_reg(codegendata *cd, s8 opc, s8 reg) {
 void emit_shift_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
 	emit_rex(1,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xd3;
-	emit_membase((basereg),(disp),(opc));
+	emit_membase(cd, (basereg),(disp),(opc));
 }
 
 
 void emit_shiftl_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
 	emit_rex(0,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xd3;
-	emit_membase((basereg),(disp),(opc));
+	emit_membase(cd, (basereg),(disp),(opc));
 }
 
 
@@ -1704,11 +1221,11 @@ void emit_shift_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp
 	if ((imm) == 1) {
 		emit_rex(1,0,0,(basereg));
 		*(cd->mcodeptr++) = 0xd1;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 	} else {
 		emit_rex(1,0,0,(basereg));
 		*(cd->mcodeptr++) = 0xc1;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm8((imm));
 	}
 }
@@ -1718,11 +1235,11 @@ void emit_shiftl_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 dis
 	if ((imm) == 1) {
 		emit_rex(0,0,0,(basereg));
 		*(cd->mcodeptr++) = 0xd1;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 	} else {
 		emit_rex(0,0,0,(basereg));
 		*(cd->mcodeptr++) = 0xc1;
-		emit_membase((basereg),(disp),(opc));
+		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm8((imm));
 	}
 }
@@ -1771,7 +1288,7 @@ void emit_setcc_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp) {
 	*(cd->mcodeptr++) = (0x40 | (((basereg) >> 3) & 0x01));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = (0x90 + (opc));
-	emit_membase((basereg),(disp),0);
+	emit_membase(cd, (basereg),(disp),0);
 }
 
 
@@ -1794,31 +1311,19 @@ void emit_cmovccl_reg_reg(codegendata *cd, s8 opc, s8 reg, s8 dreg)
 
 
 
-void emit_neg_reg(codegendata *cd, s8 reg) {
+void emit_neg_reg(codegendata *cd, s8 reg)
+{
 	emit_rex(1,0,0,(reg));
 	*(cd->mcodeptr++) = 0xf7;
 	emit_reg(3,(reg));
 }
 
 
-void emit_negl_reg(codegendata *cd, s8 reg) {
+void emit_negl_reg(codegendata *cd, s8 reg)
+{
 	emit_rex(0,0,0,(reg));
 	*(cd->mcodeptr++) = 0xf7;
 	emit_reg(3,(reg));
-}
-
-
-void emit_neg_membase(codegendata *cd, s8 basereg, s8 disp) {
-	emit_rex(1,0,0,(basereg));
-	*(cd->mcodeptr++) = 0xf7;
-	emit_membase((basereg),(disp),3);
-}
-
-
-void emit_negl_membase(codegendata *cd, s8 basereg, s8 disp) {
-	emit_rex(0,0,0,(basereg));
-	*(cd->mcodeptr++) = 0xf7;
-	emit_membase((basereg),(disp),3);
 }
 
 
@@ -2029,7 +1534,7 @@ void emit_movd_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x7e;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2047,7 +1552,7 @@ void emit_movd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(1,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x6e;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2056,7 +1561,7 @@ void emit_movdl_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x6e;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2083,7 +1588,7 @@ void emit_movq_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xd6;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2092,7 +1597,7 @@ void emit_movq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x7e;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2119,7 +1624,7 @@ void emit_movss_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2139,7 +1644,7 @@ void emit_movsd_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp) {
 	emit_rex(0,(reg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x11;
-	emit_membase((basereg),(disp),(reg));
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2159,7 +1664,7 @@ void emit_movss_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2174,11 +1679,21 @@ void emit_movss_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 }
 
 
-void emit_movlps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
+void emit_movlps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg)
+{
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x12;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
+}
+
+
+void emit_movlps_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp)
+{
+	emit_rex(0,(reg),0,(basereg));
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0x13;
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2187,7 +1702,7 @@ void emit_movsd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x10;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2202,12 +1717,23 @@ void emit_movsd_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 }
 
 
-void emit_movlpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
+void emit_movlpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg)
+{
 	*(cd->mcodeptr++) = 0x66;
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x12;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
+}
+
+
+void emit_movlpd_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp)
+{
+	*(cd->mcodeptr++) = 0x66;
+	emit_rex(0,(reg),0,(basereg));
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0x13;
+	emit_membase(cd, (basereg),(disp),(reg));
 }
 
 
@@ -2312,7 +1838,7 @@ void emit_xorps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x57;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 
@@ -2330,7 +1856,7 @@ void emit_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg) {
 	emit_rex(0,(dreg),0,(basereg));
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x57;
-	emit_membase((basereg),(disp),(dreg));
+	emit_membase(cd, (basereg),(disp),(dreg));
 }
 
 

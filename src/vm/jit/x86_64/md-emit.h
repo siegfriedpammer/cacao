@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 4853 2006-04-27 12:33:20Z twisti $
+   $Id: md-emit.h 4943 2006-05-23 08:51:33Z twisti $
 
 */
 
@@ -143,44 +143,6 @@ typedef union {
     } while (0)
 
 
-#define emit_membase(basereg,disp,dreg) \
-    do { \
-        if ((basereg) == REG_SP || (basereg) == R12) { \
-            if ((disp) == 0) { \
-                emit_address_byte(0,(dreg),REG_SP); \
-                emit_address_byte(0,REG_SP,REG_SP); \
-            } else if (IS_IMM8((disp))) { \
-                emit_address_byte(1,(dreg),REG_SP); \
-                emit_address_byte(0,REG_SP,REG_SP); \
-                emit_imm8((disp)); \
-            } else { \
-                emit_address_byte(2,(dreg),REG_SP); \
-                emit_address_byte(0,REG_SP,REG_SP); \
-                emit_imm32((disp)); \
-            } \
-            break; \
-        } \
-        if ((disp) == 0 && (basereg) != RBP && (basereg) != R13) { \
-            emit_address_byte(0,(dreg),(basereg)); \
-            break; \
-        } \
-        \
-        if ((basereg) == RIP) { \
-            emit_address_byte(0,(dreg),RBP); \
-            emit_imm32((disp)); \
-            break; \
-        } \
-        \
-        if (IS_IMM8((disp))) { \
-            emit_address_byte(1,(dreg),(basereg)); \
-            emit_imm8((disp)); \
-        } else { \
-            emit_address_byte(2,(dreg),(basereg)); \
-            emit_imm32((disp)); \
-        } \
-    } while (0)
-
-
 #define emit_membase32(basereg,disp,dreg) \
     do { \
         if ((basereg) == REG_SP || (basereg) == R12) { \
@@ -264,18 +226,8 @@ void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 /* code generation prototypes */
 
-void emit_ialu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_lalu(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_ialuconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
-void emit_laluconst(codegendata *cd, s4 alu_op, stackptr src, instruction *iptr);
 void emit_ishift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
 void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_ishiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_lshiftconst(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
-void emit_ifcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
-void emit_if_lcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
-void emit_if_icmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
-void emit_if_lcmpcc(codegendata *cd, s4 if_op, stackptr src, instruction *iptr);
 
 
 /* integer instructions */
@@ -334,14 +286,9 @@ void emit_testw_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void emit_testb_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void emit_lea_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 void emit_leal_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
-void emit_inc_reg(codegendata *cd, s8 reg);
-void emit_incl_reg(codegendata *cd, s8 reg);
-void emit_inc_membase(codegendata *cd, s8 basereg, s8 disp);
+
 void emit_incl_membase(codegendata *cd, s8 basereg, s8 disp);
-void emit_dec_reg(codegendata *cd, s8 reg);
-void emit_decl_reg(codegendata *cd, s8 reg);
-void emit_dec_membase(codegendata *cd, s8 basereg, s8 disp);
-void emit_decl_membase(codegendata *cd, s8 basereg, s8 disp);
+
 void emit_cltd(codegendata *cd);
 void emit_cqto(codegendata *cd);
 void emit_imul_reg_reg(codegendata *cd, s8 reg, s8 dreg);
@@ -420,9 +367,11 @@ void emit_movsd_reg_membase32(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void emit_movss_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movss_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movlps_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+void emit_movlps_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void emit_movsd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movsd_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movlpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+void emit_movlpd_reg_membase(codegendata *cd, s8 reg, s8 basereg, s8 disp);
 void emit_movss_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
 void emit_movsd_reg_memindex(codegendata *cd, s8 reg, s8 disp, s8 basereg, s8 indexreg, s8 scale);
 void emit_movss_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 dreg);
