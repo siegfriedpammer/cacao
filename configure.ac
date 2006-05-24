@@ -70,26 +70,31 @@ dnl host type
 case "$host_os" in
 *darwin* )
     OS_DIR="darwin"
+    INTRP_CFLAGS="$CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
     CFLAGS="$CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
+    INTRP_CFLAGS="$CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
     CFLAGS="$CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
     ;;
 
 *irix* )
     OS_DIR="irix"
+    INTRP_CFLAGS="$CFLAGS -D__IRIX__"
     CFLAGS="$CFLAGS -D__IRIX__"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
+    INTRP_CFLAGS="$CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     CFLAGS="$CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
+    INTRP_CFLAGS="$CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     CFLAGS="$CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
@@ -108,6 +113,7 @@ dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(OS_DIR)
+AC_SUBST(INTRP_CFLAGS)
 AC_SUBST(USE_SCHEDULER)
 
 
