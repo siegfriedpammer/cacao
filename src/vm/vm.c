@@ -1277,8 +1277,10 @@ void vm_exit(s4 status)
 	assert(class_java_lang_System->state & CLASS_LOADED);
 
 #if defined(ENABLE_JVMTI)
-	jvmti_set_phase(JVMTI_PHASE_DEAD);
-	if (jvmti) jvmti_agentunload();
+	if (jvmti || (dbgcom!=NULL)) {
+		jvmti_set_phase(JVMTI_PHASE_DEAD);
+		if (jvmti) jvmti_agentunload();
+	}
 #endif
 
 	if (!link_class(class_java_lang_System))

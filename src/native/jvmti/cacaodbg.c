@@ -286,8 +286,8 @@ void jvmti_cacaodbgserver_quit(){
 		TRAP;
 		/* get cacaodbserver exit */
 		wait(NULL);
+		dbgcom = NULL;
 	}
-	dbgcom = NULL;
 	pthread_mutex_unlock(&dbgcomlock);
 }
 

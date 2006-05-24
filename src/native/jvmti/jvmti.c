@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4945 2006-05-23 19:52:47Z motse $
+   $Id: jvmti.c 4946 2006-05-24 11:00:38Z motse $
 
 */
 
@@ -2534,10 +2534,9 @@ GetLoadedClasses (jvmtiEnv * env, jint * class_count_ptr, jclass ** classes_ptr)
 			/* filter pseudo classes $NEW$,$NULL$,$ARRAYSTUB$ out */
 			if (nameentry->name->text[0]=='$')
 			{
-				log_println("%s", nameentry->name->text);
 				*class_count_ptr -= 1;
 				break;
-				}
+			}
 
 			classentry = nameentry->classes;
 			while (classentry != NULL){ /* iterate over classes with same name */
