@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4944 2006-05-23 15:31:19Z motse $
+   $Id: threads.c 4948 2006-05-24 14:11:16Z twisti $
 
 */
 
@@ -1017,11 +1017,11 @@ static void *threads_startup_thread(void *t)
 	/* create interpreter stack */
 
 	if (opt_intrp) {
-		intrp_thread_stack = (u1 *) alloca(opt_stacksize);
+		intrp_thread_stack = GCMNEW(u1, opt_stacksize);
 		MSET(intrp_thread_stack, 0, u1, opt_stacksize);
-	} else {
-		intrp_thread_stack = NULL;
 	}
+	else
+		intrp_thread_stack = NULL;
 #endif
 
 	/* get passed startupinfo structure and the values in there */
