@@ -4,7 +4,7 @@ New in release 0.96 (XXX XX, 2006)
   * try-catch line number problem with jikes fixed.
   * Added support for libjvm.so (including invocation API).
   * Stripped down object code size of code generators.
-  * Increased default maximum heap size to 256MB and decreased default
+  * Increased default maximum heap size to 128MB and decreased default
     stack size to 64kB.
 
 
