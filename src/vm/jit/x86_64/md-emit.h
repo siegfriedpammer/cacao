@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-emit.h 4943 2006-05-23 08:51:33Z twisti $
+   $Id: md-emit.h 4950 2006-05-25 11:29:32Z twisti $
 
 */
 
@@ -234,6 +234,7 @@ void emit_lshift(codegendata *cd, s4 shift_op, stackptr src, instruction *iptr);
 
 void emit_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_mov_imm_reg(codegendata *cd, s8 imm, s8 reg);
+void emit_movl_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_movl_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void emit_mov_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 void emit_mov_membase32_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
