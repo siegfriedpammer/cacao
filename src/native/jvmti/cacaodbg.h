@@ -121,12 +121,7 @@ typedef struct {
 
 cacaodbgcommunication *dbgcom;
 
-
-bool jdwp;                  /* debugger via jdwp                               */
 bool jvmti;                 /* jvmti agent                                     */
-
-char *transport, *agentarg; /* arguments for jdwp transport and agent load     */
-bool suspend;               /* should the virtual machine suspend on startup?  */
 
 extern pthread_mutex_t dbgcomlock;
 

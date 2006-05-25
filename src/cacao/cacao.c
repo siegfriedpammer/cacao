@@ -31,7 +31,7 @@
             Philipp Tomsich
             Christian Thalinger
 
-   $Id: cacao.c 4944 2006-05-23 15:31:19Z motse $
+   $Id: cacao.c 4954 2006-05-25 21:59:49Z motse $
 
 */
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 
 #if defined(ENABLE_JVMTI)
 	pthread_mutex_init(&dbgcomlock,NULL);
-	jvmti_set_phase(JVMTI_PHASE_START);
+	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 
 	/* do we have a main class? */
@@ -308,19 +308,6 @@ int main(int argc, char **argv)
 		/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 #if defined(ENABLE_JVMTI)
-		/* start the jdwp listening thread*/
-		if (jdwp) {
-			log_text("cacao vm - init VMjdwp");
-			if (!jvmti_VMjdwpInit()) exit(1);
-			setup_jdwp_thread(transport);
-			if (!suspend) {
-				fprintf(stderr,"suspend false -> continue debuggee\n");
-			} else {
-				fprintf(stderr,"suspend true -> do no continue debuggee(todo)\n");
-				/* XXX todo*/
-			}
-		}
-
 		jvmti_set_phase(JVMTI_PHASE_LIVE);
 #endif
 

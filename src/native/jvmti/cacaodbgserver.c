@@ -197,7 +197,7 @@ static bool commonbreakpointhandler(char* sigbuf, int sigtrap) {
 		   in the cacao vm */
 		fprintf(gdbout,"call jvmti_cacao_generic_breakpointhandler(%d)\n",i);
 		fflush(gdbout);
-		getgdboutput(tmp,INBUFLEN);		
+		getgdboutput(tmp,INBUFLEN);
 	}
 	SENDCMD(CONTINUE);
 	getgdboutput(tmp,INBUFLEN);
@@ -248,8 +248,17 @@ static void controlloop() {
 			continue;
 		}
 			
-		if ((inbuf[0]!=LOGSTREAMOUTPUT) && (inbuf[0]!=CONSOLESTREAMOUTPUT))
+		if ((inbuf[0]!=LOGSTREAMOUTPUT) && (inbuf[0]!=CONSOLESTREAMOUTPUT)) {
 			fprintf(stderr,"gdbin not handled %s\n",inbuf);
+			fprintf(gdbout,"bt\n");
+			fflush(gdbout);
+			fprintf(stderr,"not handled 1\n");
+			fflush(stderr);
+			getgdboutput(inbuf,INBUFLEN);
+			fprintf(stderr,"gdbin: %s\n",inbuf);
+			SENDCMD("-gdb-exit\n");
+			return false;
+		}
 	}
 
 	free(pending_brkpts);

@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4946 2006-05-24 11:00:38Z motse $
+   $Id: jvmti.c 4954 2006-05-25 21:59:49Z motse $
 
 */
 
@@ -584,9 +584,17 @@ SuspendThread (jvmtiEnv * env, jthread thread)
 	CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend);
     
-	log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
-	return JVMTI_ERROR_NOT_AVAILABLE;
+	if(thread == NULL) return JVMTI_ERROR_INVALID_THREAD;
+	if (!builtin_instanceof(thread,class_java_lang_Thread))
+		return JVMTI_ERROR_INVALID_THREAD;
+	CHECK_THREAD_IS_ALIVE(thread);
 
+
+	/* quick try - this should be changed in the future */
+	pthread_kill(((threadobject*)((java_lang_Thread*) thread)->vmThread)->tid,
+				 GC_signum1());
+	
+	
     return JVMTI_ERROR_NONE;
 }
 
@@ -604,8 +612,15 @@ ResumeThread (jvmtiEnv * env, jthread thread)
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend);
 
-	log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
-	return JVMTI_ERROR_NOT_AVAILABLE;
+	if(thread == NULL) return JVMTI_ERROR_INVALID_THREAD;
+	if (!builtin_instanceof(thread,class_java_lang_Thread))
+		return JVMTI_ERROR_INVALID_THREAD;
+	CHECK_THREAD_IS_ALIVE(thread);
+
+
+	/* quick try - this should be changed in the future */
+	pthread_kill(((threadobject*)((java_lang_Thread*) thread)->vmThread)->tid,
+				 GC_signum2());
 
     return JVMTI_ERROR_NONE;
 }
@@ -2704,8 +2719,8 @@ IsMethodObsolete (jvmtiEnv * env, jmethodID method,
 
 
 /* SuspendThreadList **********************************************************
-
    
+   Suspend all threads in the request list.
 
 *******************************************************************************/
 
@@ -2713,13 +2728,31 @@ static jvmtiError
 SuspendThreadList (jvmtiEnv * env, jint request_count,
 		   const jthread * request_list, jvmtiError * results)
 {
+	int i;
+	int suspendme = -1;
+	jthread me;
+
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_START)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend);
-        
-	log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
+    
+	if (request_count<0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
+	if ((request_list==NULL) || (results == NULL)) 
+		return JVMTI_ERROR_NULL_POINTER;
+
+	me = jvmti_get_current_thread();
+
+	for (i=0;i<request_count;i++) {
+		if (request_list[i] == me) 
+			suspendme = i;
+		else 
+			results[i]=SuspendThread(env, request_list[i]);
+	}
+
+	if (suspendme != -1) 
+		results[suspendme]=SuspendThread(env, request_list[suspendme]);
 
     return JVMTI_ERROR_NONE;
 }
@@ -2727,7 +2760,7 @@ SuspendThreadList (jvmtiEnv * env, jint request_count,
 
 /* ResumeThreadList ***********************************************************
 
-   
+   Resumes all threads in the request list.   
 
 *******************************************************************************/
 
@@ -2735,12 +2768,19 @@ static jvmtiError
 ResumeThreadList (jvmtiEnv * env, jint request_count,
 		  const jthread * request_list, jvmtiError * results)
 {
+	int i;
+
 	CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
     CHECK_CAPABILITY(env,can_suspend);
-        
-	log_text ("JVMTI-Call: TBD OPTIONAL IMPLEMENT ME!!!");
+    
+	if (request_count<0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
+	if ((request_list==NULL) || (results == NULL)) 
+		return JVMTI_ERROR_NULL_POINTER;
+
+	for (i=0;i<request_count;i++) 
+			results[i]=ResumeThread(env, request_list[i]);
 
     return JVMTI_ERROR_NONE;
 }
@@ -3192,6 +3232,7 @@ SetEventCallbacks (jvmtiEnv * env,
     CHECK_PHASE_END;
 
     if (size_of_callbacks < 0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
+
 
 	if (callbacks == NULL) { /* remove the existing callbacks */
         memset(&(((environment* )env)->callbacks), 0, 
@@ -3787,8 +3828,7 @@ GetTime (jvmtiEnv * env, jlong * nanos_ptr)
 *******************************************************************************/
 
 static jvmtiError
-GetPotentialCapabilities (jvmtiEnv * env,
-			  jvmtiCapabilities * capabilities_ptr)
+GetPotentialCapabilities (jvmtiEnv * env, jvmtiCapabilities * capabilities_ptr)
 {
     CHECK_PHASE_START
     CHECK_PHASE(JVMTI_PHASE_ONLOAD)
@@ -4108,7 +4148,7 @@ static jvmtiCapabilities JVMTI_Capabilities = {
   0,				/* can_generate_exception_events */
   0,				/* can_generate_frame_pop_events */
   0,				/* can_generate_breakpoint_events */
-  0,				/* can_suspend */
+  1,				/* can_suspend */
   0,				/* can_redefine_any_class */
   0,				/* can_get_current_thread_cpu_time */
   0,				/* can_get_thread_cpu_time */
@@ -4352,24 +4392,26 @@ void jvmti_agentload(char* opt_arg, bool agentbypath, lt_dlhandle  *handle, char
 	int i=0,len;
 	jint retval;
 
-	
 	len = strlen(opt_arg);
 	
 	/* separate argumtents */
-	while ((opt_arg[i]!='=')&&(i<=len)) i++;
-	arg = &opt_arg[i];
+	while ((opt_arg[i]!='=')&&(i<len)) i++;
+	if (i<len)
+		arg = &opt_arg[i+1];
+	else
+		arg = "";
 
 	if (agentbypath) {
 		/* -agentpath */
 		*libname=heap_allocate(sizeof(char)*i,true,NULL);
-		strncpy(*libname,opt_arg,i-1);
-		(*libname)[i-1]='\0';
+		strncpy(*libname,opt_arg,i);
+		(*libname)[i]='\0';
 	} else {
 		/* -agentlib */
 		*libname=heap_allocate(sizeof(char)*(i+7),true,NULL);
 		strncpy(*libname,"lib",3);
-		strncpy(&(*libname)[3],opt_arg,i-1);
-		strncpy(&(*libname)[i+2],".so",3);
+		strncpy(&(*libname)[3],opt_arg,i);
+		strncpy(&(*libname)[i+3],".so",3);
 	}
 
 	/* try to open the library */

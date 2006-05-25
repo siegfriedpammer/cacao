@@ -39,6 +39,8 @@
 #include "native/jvmti/jvmti.h"
 
 jvmtiEnv* jvmtienv;
-jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
+extern jvmtiEventCallbacks jvmti_jdwp_EventCallbacks;
+char* jdwpoptions;
+bool suspend;               /* should the virtual machine suspend on startup?  */
 
 #endif

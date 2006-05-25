@@ -211,66 +211,6 @@ void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location) {
 }
 
 
-/* setup_jdwp_thread *****************************************************
-
-   Helper function to start JDWP threads
-
-*******************************************************************************/
-
-void setup_jdwp_thread(char* transport) {
-	java_objectheader *o;
-	methodinfo *m;
-	java_lang_String  *s;
-	classinfo *class;
-
-	/* new gnu.classpath.jdwp.Jdwp() */
-	class = load_class_from_sysloader(
-            utf_new_char("gnu.classpath.jdwp.Jdwp"));
-	if (!class)
-		throw_main_exception_exit();
-
-	o = builtin_new(class);
-
-	if (!o)
-		throw_main_exception_exit();
-	
-	m = class_resolveclassmethod(class,
-                                     utf_init, 
-                                     NULL,
-                                     class_java_lang_Object,
-                                     true);
-	if (!m)
-            throw_main_exception_exit();
-        
-	vm_call_method(m,o);
-        
-	/* configure(transport,NULL) */
-	m = class_resolveclassmethod(
-            class, utf_new_char("configure"), 
-            utf_new_char("(Ljava/lang/String;)V"),
-            class_java_lang_Object,
-            false);
-
-	s = javastring_new_from_ascii(&transport[1]);
-
-	vm_call_method(m,o,s);
-
-	if (!m)
-		throw_main_exception_exit();
-
-
-	/* _doInitialization */
-	m = class_resolveclassmethod(class,
-                                     utf_new_char("_doInitialization"), 
-                                     utf_new_char("()V"),
-                                     class,
-                                     false);
-	
-	if (!m)
-            throw_main_exception_exit();
-        
-	vm_call_method(m,o);
-}
 
 
 /* jvmti_cacaodbgserver_quit **************************************************

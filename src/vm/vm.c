@@ -344,6 +344,7 @@ void usage(void)
 
 #ifdef ENABLE_JVMTI
 	puts("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent");
+	puts ("                                         for jdwp help use: -agentlib:jdwp=help");
 	puts("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent");
 #endif
 
@@ -424,9 +425,9 @@ static void Xusage(void)
 #if defined(ENABLE_JVMTI)
     /* -Xdebug option depend on gnu classpath JDWP options. options: 
 	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
-	puts("    -Xdebug           enable remote debugging\n");
+	puts("    -Xdebug                  enable remote debugging\n");
 	puts("    -Xrunjdwp transport=[dt_socket|...],address=<hostname:port>,server=[y|n],suspend=[y|n]\n");
-	puts("                      enable remote debugging\n");
+	puts("                             enable remote debugging\n");
 #endif 
 
 	/* exit with error code */
@@ -518,8 +519,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 	lt_dlhandle  handle;
-	char* libname;
-	bool agentbypath = false;;
+	char *libname, *agentarg;
+	bool jdwp,agentbypath;
+	jdwp = agentbypath = false;
 #endif
 	
 
@@ -596,7 +598,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 	/* initialize JVMTI related  **********************************************/
-	jdwp = jvmti = false;
+	jvmti = false;
 #endif
 
 	/* initialize properties before commandline handling */
@@ -699,36 +701,19 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_JVMTI)
 		case OPT_DEBUG:
-			jdwp=true;
+			/* this option exists only for compatibility reasons */
 			break;
 		case OPT_NOAGENT:
 			/* I don't know yet what Xnoagent should do. This is only for 
 			   compatiblity with eclipse - motse */
 			break;
 		case OPT_XRUNJDWP:
-			transport = opt_arg;
-			j=0;
-			while (transport[j]!='=') j++;
-			j++;
-			while (j<strlen(transport)) {
-				if (strncmp("suspend=",&transport[j],8)==0) {
-					if ((j+8)>=strlen(transport) || 
-						(transport[j+8]!= 'y' && transport[j+8]!= 'n')) {
-						printf("bad Xrunjdwp option: -Xrunjdwp%s\n",transport);
-						usage();
-						break;
-					}
-					else {
-						suspend = transport[j+8] == 'y';
-						break;
-					}
-				}
-				while (transport[j]!=',') j++;
-				j++;
-			}
-			
+			agentbypath=jvmti=jdwp=true;
+			i = strlen(opt_arg)+33;
+			agentarg = MNEW(char,i);
+			/* XXX how can I get the <prefix>/lib directory ? */
+			snprintf(agentarg,i,"/usr/local/cacao/lib/libjdwp.so=%s",&opt_arg[1]);
 			break;
-
 		case OPT_AGENTPATH:
 			agentbypath = true;
 		case OPT_AGENTLIB:
@@ -1073,8 +1058,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (jvmti) {
 		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
 		jvmti_agentload(agentarg, agentbypath, &handle, &libname);
+		if (jdwp) MFREE(agentarg,char,strlen(agentarg));
+		jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
 	}
-	jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
+
 #endif
 
 
@@ -1325,7 +1312,18 @@ void vm_shutdown(s4 status)
 	{
 		log_text("CACAO terminated by shutdown");
 		dolog("Exit status: %d\n", (s4) status);
+
 	}
+
+#if defined(ENABLE_JVMTI)
+	/* terminate cacaodbgserver */
+	if (dbgcom!=NULL) {
+		pthread_mutex_lock(&dbgcomlock);
+		dbgcom->running=1;
+		pthread_mutex_unlock(&dbgcomlock);
+		jvmti_cacaodbgserver_quit();
+	}	
+#endif
 
 	exit(status);
 }
