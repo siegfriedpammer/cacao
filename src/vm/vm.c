@@ -1,4 +1,4 @@
-/* src/vm/finalizer.c - finalizer linked list and thread
+/* src/vm/vm.c - VM startup and shutdown functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -28,7 +28,7 @@
 
    Changes: Martin Platter
 
-   $Id: finalizer.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: vm.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
 
@@ -97,9 +97,9 @@ bool startit = true;
 
 /* define heap sizes **********************************************************/
 
-#define HEAP_MAXSIZE      64 * 1024 * 1024  /* default 64MB                   */
-#define HEAP_STARTSIZE    2  * 1024 * 1024  /* default 2MB                    */
-#define STACK_SIZE              128 * 1024  /* default 128kB                  */
+#define HEAP_MAXSIZE      128 * 1024 * 1024 /* default 128MB                  */
+#define HEAP_STARTSIZE      2 * 1024 * 1024 /* default 2MB                    */
+#define STACK_SIZE                64 * 1024 /* default 64kB                   */
 
 
 /* define command line options ************************************************/
@@ -417,9 +417,9 @@ static void Xusage(void)
 	puts("                             value is appended to the bootstrap class path");
 	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
 	puts("                             value is prepended to the bootstrap class path");
-	puts("    -Xms<size>               set the initial size of the heap (default: 2MB)");
-	puts("    -Xmx<size>               set the maximum size of the heap (default: 64MB)");
-	puts("    -Xss<size>               set the thread stack size (default: 128kB)");
+	printf("    -Xms<size>               set the initial size of the heap (default: %dMB)\n", HEAP_STARTSIZE / 1024 / 1024);
+	printf("    -Xmx<size>               set the maximum size of the heap (default: %dMB)\n", HEAP_MAXSIZE / 1024 / 1024);
+	printf("    -Xss<size>               set the thread stack size (default: %dkB)\n", STACK_SIZE / 1024);
 	puts("    -Xprof[:bb]              collect and print profiling data");
 #if defined(ENABLE_JVMTI)
     /* -Xdebug option depend on gnu classpath JDWP options. options: 

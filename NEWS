@@ -2,8 +2,10 @@ New in release 0.96 (XXX XX, 2006)
 
   * Handle Miranda-methods properly.
   * try-catch line number problem with jikes fixed.
-  * Added support for libjvm.so.
+  * Added support for libjvm.so (including invocation API).
   * Stripped down object code size of code generators.
+  * Increased default maximum heap size to 256MB and decreased default
+    stack size to 64kB.
 
 
 New in release 0.95 (February 13, 2006)
