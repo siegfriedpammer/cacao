@@ -521,12 +521,12 @@ fi
 dnl check for inlining
 AC_MSG_CHECKING(whether method inlining should be supported)
 AC_ARG_ENABLE([inlining],
-              [AS_HELP_STRING(--disable-inlining,disable method inlining [[default=yes]])],
+              [AS_HELP_STRING(--enable-inlining,enable method inlining [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_INLINING=no;;
-                   *) ENABLE_INLINING=yes;;
+                   yes) ENABLE_INLINING=yes;;
+                   *) ENABLE_INLINING=no;;
                esac],
-              [ENABLE_INLINING=yes])
+              [ENABLE_INLINING=no])
 AC_MSG_RESULT(${ENABLE_INLINING})
 AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
 
@@ -555,12 +555,12 @@ fi
 dnl check if linear scan register allocator(lsra) should be used
 AC_MSG_CHECKING(whether lsra should be supported)
 AC_ARG_ENABLE([lsra],
-              [AS_HELP_STRING(--disable-lsra,disable linear scan register allocator [[default=yes]])],
+              [AS_HELP_STRING(--enable-lsra,enable linear scan register allocator [[default=no]])],
               [case "${enableval}" in
-                   no) ENABLE_LSRA=no;;
-                   *) ENABLE_LSRA=yes;;
+                   yes) ENABLE_LSRA=yes;;
+                   *) ENABLE_LSRA=no;;
                esac],
-              [ENABLE_LSRA=yes])
+              [ENABLE_LSRA=no])
 AC_MSG_RESULT(${ENABLE_LSRA})
 AM_CONDITIONAL([ENABLE_LSRA], test x"${ENABLE_LSRA}" = "xyes")
    
