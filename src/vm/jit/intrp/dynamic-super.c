@@ -32,7 +32,7 @@
 
    Changes:
 
-   $Id: dynamic-super.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: dynamic-super.c 4953 2006-05-25 12:28:51Z twisti $
 */
 
 
@@ -50,11 +50,14 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "toolbox/logging.h"
+#include "vm/builtin.h"
 #include "vm/hashtable.h"
 #include "vm/options.h"
 #include "vm/types.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/intrp/intrp.h"
-#include "toolbox/logging.h"
+
 
 s4 no_super=0;   /* option: just use replication, but no dynamic superinsts */
 
@@ -639,7 +642,8 @@ void gen_inst(codegendata *cd, ptrint instr)
   if (lastmcodeptr != NULL) {
     ptrint combo;
 
-    assert(lastmcodeptr < cd->mcodeptr && cd->mcodeptr < lastmcodeptr+40);
+    assert((u1 *) lastmcodeptr < cd->mcodeptr &&
+           cd->mcodeptr < (u1 *) (lastmcodeptr + 40));
 
     combo = peephole_opt(*lastmcodeptr, instr, peeptable);
 
@@ -652,7 +656,8 @@ void gen_inst(codegendata *cd, ptrint instr)
 
   /* actually generate the threaded code instruction */
 
-  *((Inst *) cd->mcodeptr) = instr;
+  *((Inst *) cd->mcodeptr) = (Inst) instr;
+
   cd->lastmcodeptr = cd->mcodeptr;
   cd->mcodeptr += sizeof(Inst);
 }

@@ -29,7 +29,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4944 2006-05-23 15:31:19Z motse $
+   $Id: threads.h 4953 2006-05-25 12:28:51Z twisti $
 
 */
 
@@ -167,7 +167,7 @@ struct threadobject {
 	localref_table       *_localref_table;   /* JNI local references          */
 
 #if defined(ENABLE_INTRP)
-	void                 *_global_sp;        /* stack pointer for interpreter */
+	u1                   *_global_sp;        /* stack pointer for interpreter */
 #endif
 
 	dumpinfo              dumpinfo;     /* dump memory info structure         */

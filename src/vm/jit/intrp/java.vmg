@@ -1322,7 +1322,7 @@ PATCHER_GETSTATIC_FLOAT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putstatic((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
@@ -1384,7 +1384,7 @@ PATCHER_GETSTATIC_CLINIT_FLOAT ( #aRef #afi ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putstatic_clinit((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
@@ -1446,7 +1446,7 @@ PATCHER_PUTSTATIC_FLOAT ( #aRef #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putstatic((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
@@ -1508,7 +1508,7 @@ PATCHER_PUTSTATIC_CLINIT_FLOAT ( #aRef #afi ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putstatic_clinit((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
@@ -1570,7 +1570,7 @@ PATCHER_GETFIELD_FLOAT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putfield((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
@@ -1630,7 +1630,7 @@ PATCHER_PUTFIELD_FLOAT ( #vOffset #auf ... -- )
 stackframeinfo sfi;
 bool result;
 global_sp = sp;
-stacktrace_create_stackframeinfo(&sfi, NULL, fp, (functionptr) IP);
+stacktrace_create_stackframeinfo(&sfi, NULL, (u1 *) fp, (u1 *) IP);
 result = intrp_patcher_get_putfield((u1 *)(IP-3));
 stacktrace_remove_stackframeinfo(&sfi);
 CLEAR_global_sp;
