@@ -8,6 +8,7 @@ New in release 0.96 (XXX XX, 2006)
   * Stripped down object code size of code generators.
   * Increased default maximum heap size to 128MB and decreased default
     stack size to 64kB.
+  * Cleaned up internal handling of Unicode strings.
   * Fixed getResources of bootstrap classloader.
   * Correct handling of boot packages (provided glibj.zip contains a
     jar index).
