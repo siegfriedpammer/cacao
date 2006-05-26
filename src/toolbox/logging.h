@@ -28,7 +28,7 @@
 
    Changes: Christan Thalinger
 
-   $Id: logging.h 4938 2006-05-22 09:06:44Z twisti $
+   $Id: logging.h 4967 2006-05-26 16:24:58Z edwin $
 
 */
 
@@ -39,6 +39,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "vm/class.h"
 #include "vm/method.h"
