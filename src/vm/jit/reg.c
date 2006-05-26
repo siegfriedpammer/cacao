@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: reg.c 4710 2006-03-30 10:23:11Z twisti $
+   $Id: reg.c 4959 2006-05-26 12:09:29Z edwin $
 
 */
 
@@ -245,7 +245,7 @@ void reg_setup(jitdata *jd)
 	                /* value, if appropriate */
 #endif
 
-	/* Set rd->argxxxreguse to XXX_ARG_CNBT to not use unused argument        */
+	/* Set rd->arg*reguse to *_ARG_CNBT to not use unused argument            */
 	/* registers as temp registers  */
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 	rd->argadrreguse = 0;

@@ -791,7 +791,7 @@ void replace_me(rplpoint *rp,executionstate *es)
 
 	target = rp->target;
 
-	/* XXX DEBUG turn of self-replacement */
+	/* XXX DEBUG turn off self-replacement */
 	if (target == rp)
 		replace_deactivate_replacement_point(rp);
 	

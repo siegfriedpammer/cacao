@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: typecheck.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: typecheck.c 4959 2006-05-26 12:09:29Z edwin $
 
 */
 
@@ -1641,25 +1641,22 @@ verify_basic_block(verifier_state *state)
 	typevectorset_copy_inplace(MGET_TYPEVECTOR(state->localbuf,b_index,state->numlocals),
 			state->localset,state->numlocals);
 
-	/* XXX FIXME FOR INLINING */
-	if (!useinlining) {
-		if (state->handlers[0])
-			for (i=0; i<state->numlocals; ++i)
-				if (state->localset->td[i].type == TYPE_ADR
-						&& TYPEINFO_IS_NEWOBJECT(state->localset->td[i].info)) {
-					/* XXX we do not check this for the uninitialized 'this' instance in */
-					/* <init> methods. Otherwise there are problems with try blocks in   */
-					/* <init>. The spec seems to indicate that we should perform the test*/
-					/* in all cases, but this fails with real code.                      */
-					/* Example: org/eclipse/ui/internal/PerspectiveBarNewContributionItem*/
-					/* of eclipse 3.0.2                                                  */
-					if (TYPEINFO_NEWOBJECT_INSTRUCTION(state->localset->td[i].info) != NULL) {
-						/*show_icmd_method(state->m, state->cd, state->rd);*/
-						printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->debug_nr);
-						TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
-					}
+	if (state->handlers[0])
+		for (i=0; i<state->numlocals; ++i)
+			if (state->localset->td[i].type == TYPE_ADR
+					&& TYPEINFO_IS_NEWOBJECT(state->localset->td[i].info)) {
+				/* XXX we do not check this for the uninitialized 'this' instance in */
+				/* <init> methods. Otherwise there are problems with try blocks in   */
+				/* <init>. The spec seems to indicate that we should perform the test*/
+				/* in all cases, but this fails with real code.                      */
+				/* Example: org/eclipse/ui/internal/PerspectiveBarNewContributionItem*/
+				/* of eclipse 3.0.2                                                  */
+				if (TYPEINFO_NEWOBJECT_INSTRUCTION(state->localset->td[i].info) != NULL) {
+					/*show_icmd_method(state->m, state->cd, state->rd);*/
+					printf("Uninitialized variable: %d, block: %d\n", i, state->bptr->debug_nr);
+					TYPECHECK_VERIFYERROR_bool("Uninitialized object in local variable inside try block");
 				}
-	}
+			}
 	DOLOG(typestate_print(typecheck_logfile,state->curstack,state->localset,state->numlocals));
 	LOGNL; LOGFLUSH;
 

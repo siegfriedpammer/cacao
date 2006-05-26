@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: loader.h 4921 2006-05-15 14:24:36Z twisti $
+   $Id: loader.h 4959 2006-05-26 12:09:29Z edwin $
 */
 
 
@@ -63,7 +63,7 @@ typedef struct classbuffer classbuffer;
 
 		kind                      structure                     generated?
 	----------------------------------------------------------------------
-    CONSTANT_Class               classinfo                           no   XXX this will change
+    CONSTANT_Class               constant_classref                  yes
     CONSTANT_Fieldref            constant_FMIref                    yes
     CONSTANT_Methodref           constant_FMIref                    yes
     CONSTANT_InterfaceMethodref  constant_FMIref                    yes
