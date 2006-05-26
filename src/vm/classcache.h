@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: classcache.h 4945 2006-05-23 19:52:47Z motse $
+   $Id: classcache.h 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -93,7 +93,7 @@ extern java_objectheader *lock_hashtable_classcache;
 /*   class name to this class object in the future                            */
 /*                                                                            */
 /* The classcache_class_entry:s approximate the equivalence classes created   */
-/* by the loading constraints and (XXX?) the equivalence of loaded classes.   */
+/* by the loading constraints and the equivalence of loaded classes.          */
 /*                                                                            */
 /* When a loading constraint (loaderA,loaderB,NAME) is added, then the        */
 /* classcache_class_entry:s for NAME containing loaderA and loaderB resp.     */

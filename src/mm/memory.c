@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: memory.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: memory.c 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -462,17 +462,6 @@ void dump_release(s4 size)
 
 	while (di->currentdumpblock && di->allocateddumpsize - di->currentdumpblock->size >= di->useddumpsize) {
 		dumpblock *tmp = di->currentdumpblock;
-
-#if 0
-		/* XXX TWISTI: can someone explain this to me? */
-#ifdef TRACECALLARGS
-		/* Keep the first dumpblock if we don't free memory. Otherwise
-		 * a new dumpblock is allocated each time and we run out of
-		 * memory.
-		 */
-		if (!oldtop->prev) break;
-#endif
-#endif
 
 		di->allocateddumpsize -= tmp->size;
 		di->currentdumpblock = tmp->prev;

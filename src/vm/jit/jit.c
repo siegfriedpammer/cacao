@@ -31,7 +31,7 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: jit.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: jit.c 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -164,7 +164,7 @@ int jcommandsize[256] = {
 #define ICMD_IFLE_ICONST      20
 	3,
 	                                    /* order of LOAD instructions must be */
-	                                    /* equal to order of TYPE_XXX defines */
+	                                    /* equal to order of TYPE_*   defines */
 #define JAVA_ILOAD            21
 #define ICMD_ILOAD            21        /* op1 = local variable               */
 	2,                      
@@ -265,7 +265,7 @@ int jcommandsize[256] = {
 #define ICMD_SALOAD           53
 	1,
 	                                    /* order of STORE instructions must be*/
-	                                    /* equal to order of TYPE_XXX defines */
+	                                    /* equal to order of TYPE_* defines   */
 #define JAVA_ISTORE           54
 #define ICMD_ISTORE           54        /* op1 = local variable               */
 	2,

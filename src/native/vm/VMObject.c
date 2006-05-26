@@ -29,7 +29,7 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: VMObject.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: VMObject.c 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -119,7 +119,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
         return NULL;
     }
 
-    /* XXX should use vftbl */
     c = this->header.vftbl->class;
     new = (java_lang_Object *) builtin_new(c);
 

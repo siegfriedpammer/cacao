@@ -31,7 +31,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: class.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: class.c 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -850,9 +850,6 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	methodinfo *m;
 	s4          i;
 
-	/* XXX resolve class c */
-	/* XXX check access from REFERER to C */
-	
 /*  	if (c->flags & ACC_INTERFACE) { */
 /*  		if (throwexception) */
 /*  			*exceptionptr = */
@@ -913,9 +910,6 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *desc,
 {
 	methodinfo *mi;
 
-	/* XXX resolve class c */
-	/* XXX check access from REFERER to C */
-	
 	if (!(c->flags & ACC_INTERFACE)) {
 		if (throwexception)
 			*exceptionptr =
@@ -1066,9 +1060,6 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 {
 	fieldinfo *fi;
 
-	/* XXX resolve class c */
-	/* XXX check access from REFERER to C */
-	
 	fi = class_resolvefield_int(c, name, desc);
 
 	if (!fi) {

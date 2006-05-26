@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: lsra.h 4699 2006-03-28 14:52:32Z twisti $
+   $Id: lsra.h 4957 2006-05-26 11:48:10Z edwin $
 
 */
 
@@ -106,7 +106,7 @@ struct lifetime {
 	int i_start;                /* instruction number of first use */
 	int i_end;                  /* instruction number of last use */
 	int v_index;           /* local variable index or negative for stackslots */
-	int type;                   /* TYPE_XXX or -1 for unused lifetime */
+	int type;                   /* TYPE_* or -1 for unused lifetime */
 	long usagecount;            /* number of references*/
 	int reg;                    /* regoffset allocated by lsra*/
 	int savedvar;
