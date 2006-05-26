@@ -28,7 +28,7 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: md-abi.c 4960 2006-05-26 12:19:43Z edwin $
 
 */
 
@@ -63,7 +63,8 @@ s4 nregdescfloat[] = {
 
 /* md_param_alloc **************************************************************
 
-   XXX
+   Allocate the parameters of the given method descriptor according to the
+   calling convention of the platform.
 
 *******************************************************************************/
 

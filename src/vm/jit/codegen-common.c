@@ -48,7 +48,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: codegen-common.c 4960 2006-05-26 12:19:43Z edwin $
 
 */
 
@@ -469,7 +469,7 @@ void codegen_addpatchref(codegendata *cd, functionptr patcher, voidptr ref,
 #if defined(__I386__) || defined(__X86_64__) || defined(ENABLE_INTRP) || defined(DISABLE_GC)
 /* methodtree_comparator *******************************************************
 
-   XXX
+   Comparator function used for the AVL tree of methods.
 
 *******************************************************************************/
 
@@ -502,7 +502,7 @@ static s4 methodtree_comparator(const void *pc, const void *element)
 
 /* codegen_insertmethod ********************************************************
 
-   XXX
+   Insert the machine code range of a method into the AVL tree of methods.
 
 *******************************************************************************/
 
@@ -526,7 +526,7 @@ void codegen_insertmethod(u1 *startpc, u1 *endpc)
 
 /* codegen_findmethod **********************************************************
 
-   XXX
+   Find the PV for the given PC by searching in the AVL tree of methods.
 
 *******************************************************************************/
 

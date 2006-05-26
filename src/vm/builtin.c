@@ -37,7 +37,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: builtin.c 4960 2006-05-26 12:19:43Z edwin $
 
 */
 
@@ -245,7 +245,7 @@ static void builtintable_sort_automatic(void)
 
 /* builtin_init ****************************************************************
 
-   XXX
+   Initialize the global table of builtin functions.
 
 *******************************************************************************/
 
@@ -1271,7 +1271,7 @@ java_objectheader *builtin_trace_exception(java_objectheader *xptr,
 
 /* builtin_trace_args **********************************************************
 
-   XXX
+   Print method call with arguments for -verbose:call.
 
 *******************************************************************************/
 
@@ -1537,7 +1537,7 @@ void builtin_trace_args(s8 a0, s8 a1,
 
 /* builtin_displaymethodstop ***************************************************
 
-   XXX
+   Print method exit for -verbose:call.
 
 *******************************************************************************/
 

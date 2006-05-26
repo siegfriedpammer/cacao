@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 4357 2006-01-22 23:33:38Z twisti $
+   $Id: util.c 4960 2006-05-26 12:19:43Z edwin $
 
 */
 
@@ -47,7 +47,11 @@
 
 /* getcwd **********************************************************************
 
-   XXX
+   Return the current working directory.
+
+   RETURN VALUE:
+       pointer to a char array allocated by MNEW, or
+	   NULL if memory could not be allocated.
 
 *******************************************************************************/
 

@@ -32,7 +32,7 @@
             Michael Starzinger
             Edwin Steiner
 
-   $Id: simplereg.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: simplereg.c 4960 2006-05-26 12:19:43Z edwin $
 
 */
 
@@ -1164,7 +1164,7 @@ static void reg_mark_copy(registerdata *rd, stackptr src_top, stackptr src_botto
 
 /* allocate_scratch_registers **************************************************
 
-   XXX
+   Allocate temporary (non-interface, non-local) registers.
 
 *******************************************************************************/
 
