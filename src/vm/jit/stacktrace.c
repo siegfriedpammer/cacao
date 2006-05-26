@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
             Edwin Steiner
 
-   $Id: stacktrace.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: stacktrace.c 4962 2006-05-26 12:26:41Z edwin $
 
 */
 
@@ -314,7 +314,7 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 
 /* stacktrace_remove_stackframeinfo ********************************************
 
-   XXX
+   Remove the topmost stackframeinfo in the current thread.
 
 *******************************************************************************/
 
