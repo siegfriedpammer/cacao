@@ -28,13 +28,14 @@
 
    Changes:
 
-   $Id: md-os.c 4961 2006-05-26 12:25:51Z twisti $
+   $Id: md-os.c 4966 2006-05-26 12:58:40Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <signal.h>
 #include <ucontext.h>
 
@@ -106,11 +107,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 #if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)
 {
-	mcontext_t         *_mc;
+	mcontext_t          _mc;
 	ppc_thread_state_t *_ss;
 	void               *critical;
-
-	assert(0);
 
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;

@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-os.c 4961 2006-05-26 12:25:51Z twisti $
+   $Id: md-os.c 4966 2006-05-26 12:58:40Z twisti $
 
 */
 
@@ -100,8 +100,6 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 {
 	mcontext_t *_mc;
 	void       *critical;
-
-	assert(0);
 
 	_mc = _uc->uc_mcontext.uc_regs;
 
