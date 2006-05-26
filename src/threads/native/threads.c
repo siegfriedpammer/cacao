@@ -29,7 +29,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: threads.c 4948 2006-05-24 14:11:16Z twisti $
+   $Id: threads.c 4958 2006-05-26 11:57:20Z twisti $
 
 */
 
@@ -1210,13 +1210,13 @@ void threads_start_thread(java_lang_Thread *t, functionptr function)
 
 /* threads_find_non_daemon_thread **********************************************
 
-   Helper function used by threads_join_all_threads for finding non-daemon threads
-   that are still running.
+   Helper function used by threads_join_all_threads for finding
+   non-daemon threads that are still running.
 
 *******************************************************************************/
 
-/* At the end of the program, we wait for all running non-daemon threads to die
- */
+/* At the end of the program, we wait for all running non-daemon
+   threads to die. */
 
 static threadobject *threads_find_non_daemon_thread(threadobject *thread)
 {

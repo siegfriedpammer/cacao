@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4956 2006-05-26 11:22:08Z edwin $
+   $Id: jni.c 4958 2006-05-26 11:57:20Z twisti $
 
 */
 
@@ -1051,7 +1051,7 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader,
 	STATISTICS(jniinvokation());
 
 	cl = (java_lang_ClassLoader *) loader;
-	s = javastring_new_from_utf_string(name);
+	s  = javastring_new_from_utf_string(name);
 	ba = (java_bytearray *) buf;
 
 	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env, NULL, cl, s, ba,
@@ -1191,19 +1191,20 @@ jint Throw(JNIEnv *env, jthrowable obj)
 
 jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg) 
 {
+	classinfo           *c;
 	java_lang_Throwable *o;
 	java_lang_String    *s;
 
 	STATISTICS(jniinvokation());
 
+	c = (classinfo *) clazz;
 	s = (java_lang_String *) javastring_new_from_utf_string(msg);
 
   	/* instantiate exception object */
 
-	o = (java_lang_Throwable *) native_new_and_init_string((classinfo *) clazz,
-														   s);
+	o = (java_lang_Throwable *) native_new_and_init_string(c, s);
 
-	if (!o)
+	if (o == NULL)
 		return -1;
 
 	*exceptionptr = (java_objectheader *) o;
@@ -5842,7 +5843,6 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	_Jv_env = env;
 
-
 	/* create and fill a JavaVM structure */
 
 	jvm = NEW(_Jv_JavaVM);
@@ -5850,13 +5850,19 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	/* XXX Set the global variable.  Maybe we should do that differently. */
 	/* XXX JVMTI Agents needs a JavaVM  */
-	_Jv_jvm = jvm;
 
+	_Jv_jvm = jvm;
 
 	/* actually create the JVM */
 
-	if (!vm_create(_vm_args))
+	if (!vm_create(_vm_args)) {
+		/* release allocated memory */
+
+		FREE(env, _Jv_JNIEnv);
+		FREE(jvm, _Jv_JavaVM);
+
 		return -1;
+	}
 
 	/* setup the local ref table (must be created after vm_create) */
 
