@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4954 2006-05-25 21:59:49Z motse $
+   $Id: jvmti.c 4963 2006-05-26 12:31:23Z motse $
 
 */
 
@@ -1793,13 +1793,13 @@ GetClassStatus (jvmtiEnv * env, jclass klass, jint * status_ptr)
 	*status_ptr = 0;	
 
 /* 	if (c) *status_ptr = *status_ptr | JVMTI_CLASS_STATUS_VERIFIED; ? */
-	if (c->state&=CLASS_LINKED) 
+	if (c->state & CLASS_LINKED) 
 		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_PREPARED;
 
-	if (c->state&=CLASS_INITIALIZED) 
+	if (c->state & CLASS_INITIALIZED) 
 		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_INITIALIZED;
 
-	if (c->state&=CLASS_ERROR) 
+	if (c->state & CLASS_ERROR) 
 		*status_ptr = *status_ptr | JVMTI_CLASS_STATUS_ERROR;
 
 	if (c->vftbl->arraydesc != NULL) 
@@ -2367,9 +2367,9 @@ GetLineNumberTable (jvmtiEnv * env, jmethodID method,
 
 
     for (i=0; i < *entry_count_ptr; i++) {
-        (*table_ptr[i]).start_location = 
+        (*table_ptr)[i].start_location = 
             (jlocation) ((methodinfo*)method)->linenumbers[i].start_pc;
-        (*table_ptr[i]).line_number = 
+        (*table_ptr)[i].line_number = 
             (jint) ((methodinfo*)method)->linenumbers[i].line_number;
     }
     

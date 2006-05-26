@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 Contact: cacao@cacaojvm.org
 
 Authors: Samuel Vinson
+         Martin Platter
+         
 
 Changes: 
 
