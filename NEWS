@@ -1,11 +1,16 @@
 New in release 0.96 (XXX XX, 2006)
 
+  * New tasuki lock implementation resolves deadlock problems on
+    multi-processor machines.
   * Handle Miranda-methods properly.
   * try-catch line number problem with jikes fixed.
   * Added support for libjvm.so (including invocation API).
   * Stripped down object code size of code generators.
   * Increased default maximum heap size to 128MB and decreased default
     stack size to 64kB.
+  * Fixed getResources of bootstrap classloader.
+  * Correct handling of boot packages (provided glibj.zip contains a
+    jar index).
 
 
 New in release 0.95 (February 13, 2006)
