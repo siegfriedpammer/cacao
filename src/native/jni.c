@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4944 2006-05-23 15:31:19Z motse $
+   $Id: jni.c 4956 2006-05-26 11:22:08Z edwin $
 
 */
 
@@ -1051,7 +1051,7 @@ jclass DefineClass(JNIEnv *env, const char *name, jobject loader,
 	STATISTICS(jniinvokation());
 
 	cl = (java_lang_ClassLoader *) loader;
-	s = javastring_new_from_ascii(name);
+	s = javastring_new_from_utf_string(name);
 	ba = (java_bytearray *) buf;
 
 	c = (jclass) Java_java_lang_VMClassLoader_defineClass(env, NULL, cl, s, ba,
@@ -1196,7 +1196,7 @@ jint ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 
 	STATISTICS(jniinvokation());
 
-	s = (java_lang_String *) javastring_new_from_ascii(msg);
+	s = (java_lang_String *) javastring_new_from_utf_string(msg);
 
   	/* instantiate exception object */
 
