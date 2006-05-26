@@ -28,13 +28,14 @@
 
    Changes:
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: md-os.c 4961 2006-05-26 12:25:51Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <assert.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -95,9 +96,19 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 
 #if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
+void thread_restartcriticalsection(ucontext_t *_uc)
 {
-	/* XXX set pc to restart address */
+	mcontext_t *_mc;
+	void       *critical;
+
+	assert(0);
+
+	_mc = _uc->uc_mcontext.uc_regs;
+
+	critical = critical_find_restart_point((void *) _mc->gregs[PT_NIP]);
+
+	if (critical)
+		_mc->gregs[PT_NIP] = (ptrint) critical;
 }
 #endif
 
