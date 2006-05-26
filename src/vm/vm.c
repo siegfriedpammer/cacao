@@ -217,6 +217,7 @@ opt_struct opts[] = {
 	{ "d64",               false, OPT_D64 },
 	{ "client",            false, OPT_IGNORE },
 	{ "server",            false, OPT_IGNORE },
+	{ "jvm",               false, OPT_IGNORE },
 	{ "hotspot",           false, OPT_IGNORE },
 
 	{ "classpath",         true,  OPT_CLASSPATH },
@@ -330,6 +331,7 @@ void usage(void)
 	puts("    -d64                     use 64-bit data model if available");
 	puts("    -client                  compatibility (currently ignored)");
 	puts("    -server                  compatibility (currently ignored)");
+	puts("    -jvm                     compatibility (currently ignored)");
 	puts("    -hotspot                 compatibility (currently ignored)\n");
 
 	puts("    -cp <path>               specify a path to look for classes");
@@ -350,7 +352,8 @@ void usage(void)
 
 	puts("CACAO options:\n");
 	puts("    -v                       write state-information");
-	puts("    -verbose[:call|exception]enable specific verbose output");
+	puts("    -verbose[:call|exception|jit]");
+	puts("                             enable specific verbose output");
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
 #endif

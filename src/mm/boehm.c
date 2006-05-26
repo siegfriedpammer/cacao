@@ -28,7 +28,7 @@
 
    Changes: Christian Thalinger
 
-   $Id: boehm.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: boehm.c 4955 2006-05-26 09:30:22Z twisti $
 
 */
 
@@ -119,23 +119,12 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 {
 }
 
-static void *stackcall_malloc_atomic(void *p, u4 bytelength)
-{
-	return GC_MALLOC_ATOMIC(bytelength);
-}
-
-
-static void *stackcall_malloc_uncollectable(void *p, u4 bytelength)
-{
-	return GC_MALLOC_UNCOLLECTABLE(bytelength);
-}
-
 
 void *heap_alloc_uncollectable(u4 bytelength)
 {
 	void *result;
 
-	result = stackcall_malloc_uncollectable(NULL, bytelength);
+	result = GC_MALLOC_UNCOLLECTABLE(bytelength);
 
 	/* clear allocated memory region */
 
@@ -152,9 +141,9 @@ void *heap_allocate(u4 bytelength, bool references, methodinfo *finalizer)
 	if (references)
 		result = GC_MALLOC(bytelength);
 	else
-		result = stackcall_malloc_atomic(NULL, bytelength);
+		result = GC_MALLOC_ATOMIC(bytelength);
 
-	if (!result)
+	if (result == NULL)
 		return NULL;
 
 	if (finalizer)

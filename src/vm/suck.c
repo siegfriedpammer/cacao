@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: suck.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: suck.c 4955 2006-05-26 09:30:22Z twisti $
 
 */
 
@@ -86,7 +86,11 @@ bool suck_init(void)
 
 *******************************************************************************/
 
+#if defined(__DARWIN__)
+static int scandir_filter(struct dirent *a)
+#else
 static int scandir_filter(const struct dirent *a)
+#endif
 {
 	s4 namlen;
 
