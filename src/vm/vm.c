@@ -133,6 +133,8 @@ enum {
 	OPT_BOOTCLASSPATH_A,
 	OPT_BOOTCLASSPATH_P,
 
+	OPT_GLIBJ,
+
 	OPT_PROF,
 	OPT_PROF_OPTION,
 
@@ -287,11 +289,14 @@ opt_struct opts[] = {
 	{ "Xbootclasspath:",   true,  OPT_BOOTCLASSPATH },
 	{ "Xbootclasspath/a:", true,  OPT_BOOTCLASSPATH_A },
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
+	{ "Xglibj:",           true,  OPT_GLIBJ },
+
 #ifdef ENABLE_JVMTI
 	{ "Xdebug",            false, OPT_DEBUG },
 	{ "Xnoagent",          false, OPT_NOAGENT },
 	{ "Xrunjdwp",          true,  OPT_XRUNJDWP },
 #endif 
+
 	{ "Xms",               true,  OPT_MS },
 	{ "ms",                true,  OPT_MS },
 	{ "Xmx",               true,  OPT_MX },
@@ -421,6 +426,9 @@ static void Xusage(void)
 	puts("                             value is appended to the bootstrap class path");
 	puts("    -Xbootclasspath/p:<zip/jar files and directories separated by :>");
 	puts("                             value is prepended to the bootstrap class path");
+	puts("    -Xglibj:<zip/jar files and directories separated by :>");
+	puts("                             value is used as Java core library, but the");
+	puts("                             hardcoded VM interface classes are prepended");
 	printf("    -Xms<size>               set the initial size of the heap (default: %dMB)\n", HEAP_STARTSIZE / 1024 / 1024);
 	printf("    -Xmx<size>               set the maximum size of the heap (default: %dMB)\n", HEAP_MAXSIZE / 1024 / 1024);
 	printf("    -Xss<size>               set the thread stack size (default: %dkB)\n", STACK_SIZE / 1024);
@@ -445,7 +453,7 @@ static void Xusage(void)
 
 *******************************************************************************/
 
-static void version(void)
+static void version(bool opt_exit)
 {
 	puts("java version \""JAVA_VERSION"\"");
 	puts("CACAO version "VERSION"");
@@ -486,6 +494,11 @@ static void version(void)
 	printf("  initial heap size   : %d\n", opt_heapstartsize);
 	printf("  stack size          : %d\n", opt_stacksize);
 	printf("  java.boot.class.path: %s\n", bootclasspath);
+
+	/* exit normally, if requested */
+
+	if (opt_exit)
+		exit(0);
 }
 
 
@@ -518,7 +531,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	s4    cplen;
 	s4    opt;
 	s4    i, j, k;
-
+	bool  opt_version;
+	bool  opt_exit;
 
 #if defined(ENABLE_JVMTI)
 	lt_dlhandle  handle;
@@ -526,8 +540,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	bool jdwp,agentbypath;
 	jdwp = agentbypath = false;
 #endif
-	
-
 
 	/* check the JNI version requested */
 
@@ -546,13 +558,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (vms > 0)
 		return false;
 
-
 	/* get stuff from the environment *****************************************/
 
 #if defined(DISABLE_GC)
 	nogc_init(HEAP_MAXSIZE, HEAP_STARTSIZE);
 #endif
-
 
 	/* set the bootclasspath */
 
@@ -574,7 +584,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcat(bootclasspath, CLASSPATH_GLIBJ_ZIP_PATH);
 	}
 
-
 	/* set the classpath */
 
 	cp = getenv("CLASSPATH");
@@ -590,9 +599,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 
 	/* interpret the options **************************************************/
-   
-	checknull  = false;
-	opt_noieee = false;
+
+	opt_version       = false;
+	opt_exit          = false;
+
+	checknull         = false;
+	opt_noieee        = false;
 
 	opt_heapmaxsize   = HEAP_MAXSIZE;
 	opt_heapstartsize = HEAP_STARTSIZE;
@@ -667,6 +679,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_BOOTCLASSPATH:
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
+
 			MFREE(bootclasspath, char, strlen(bootclasspath));
 
 			bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
@@ -675,6 +688,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_BOOTCLASSPATH_A:
 			/* append to end of bootclasspath */
+
 			cplen = strlen(bootclasspath);
 
 			bootclasspath = MREALLOC(bootclasspath,
@@ -689,6 +703,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 		case OPT_BOOTCLASSPATH_P:
 			/* prepend in front of bootclasspath */
+
 			cp = bootclasspath;
 			cplen = strlen(cp);
 
@@ -700,6 +715,23 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			strcat(bootclasspath, cp);
 
 			MFREE(cp, char, cplen);
+			break;
+
+		case OPT_GLIBJ:
+			/* use as Java core library, but prepend VM interface classes */
+
+			MFREE(bootclasspath, char, strlen(bootclasspath));
+
+			cplen = strlen(CACAO_VM_ZIP_PATH) +
+				strlen(":") +
+				strlen(opt_arg) +
+				strlen("0");
+
+			bootclasspath = MNEW(char, cplen);
+
+			strcpy(bootclasspath, CACAO_VM_ZIP_PATH);
+			strcat(bootclasspath, ":");
+			strcat(bootclasspath, opt_arg);
 			break;
 
 #if defined(ENABLE_JVMTI)
@@ -785,8 +817,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 				
 		case OPT_VERSION:
-			version();
-			exit(0);
+			opt_version = true;
+			opt_exit    = true;
 			break;
 
 		case OPT_FULLVERSION:
@@ -794,7 +826,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_SHOWVERSION:
-			version();
+			opt_version = true;
 			break;
 
 		case OPT_NOIEEE:
@@ -1028,6 +1060,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			usage();
 		}
 	}
+
+
+	/* Now we have all options handled and we can print the version
+	   information. */
+
+	if (opt_version)
+		version(opt_exit);
 
 
 	/* get the main class *****************************************************/
