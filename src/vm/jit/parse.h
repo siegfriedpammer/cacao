@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: parse.h 4863 2006-04-30 16:17:44Z edwin $
+   $Id: parse.h 4986 2006-05-29 20:22:58Z edwin $
 
 */
 
@@ -233,6 +233,7 @@
                         +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3])
 #define code_get_s4(p,m)  ((s4)((((u4)m->jcode[p]) << 24) + (((u4)m->jcode[p + 1]) << 16) \
                              +(((u4)m->jcode[p + 2]) << 8) + m->jcode[p + 3]))
+/* XXX read 32bit aligned big-endian values directly */
 
 
 /* function prototypes ********************************************************/

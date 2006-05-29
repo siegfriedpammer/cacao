@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: resolve.h 4759 2006-04-12 18:07:05Z edwin $
+   $Id: resolve.h 4986 2006-05-29 20:22:58Z edwin $
 
 */
 
@@ -49,6 +49,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/verify/typeinfo.h"
 
 
 /* constants ******************************************************************/

@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4959 2006-05-26 12:09:29Z edwin $
+   $Id: jit.h 4986 2006-05-29 20:22:58Z edwin $
 
 */
 
@@ -57,6 +57,7 @@ typedef struct insinfo_inline insinfo_inline;
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/references.h"
+#include "vm/resolve.h"
 #include "vm/statistics.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
@@ -156,6 +157,113 @@ struct stackelement {
 
 
 /**************************** instruction structure ***************************/
+
+/*** s1 operand ***/
+
+typedef union {
+	stackptr				var;
+	s4						localindex;
+	s4						argcount;
+} s1_operand_t;
+
+/*** s2 operand ***/
+
+typedef union {
+	stackptr				var;
+	stackptr	   		   *args;
+	ptrint					constval;
+	classref_or_classinfo	cls;
+	unresolved_class	   *uc;
+	s4						tablelow;
+	u4						lookupcount;
+} s2_operand_t;
+
+/*** s3 operand ***/
+
+typedef union {
+	stackptr				var;
+	ptrint					constval;
+	classref_or_classinfo	cls;
+	constant_FMIref		   *fmiref;
+	unresolved_method	   *um;
+	unresolved_field	   *uf;
+	insinfo_inline		   *inlineinfo;
+	s4						tablehigh;
+	basicblock			   *lookupdefault;
+} s3_operant_t;
+
+/*** val operand ***/
+
+typedef union {
+	s4						i;
+	s8						l;
+	float					f;
+	double					d;
+	void 				   *anyptr;
+	java_objectheader	   *stringconst;
+} val_operand_t;
+
+/*** dst operand ***/
+
+typedef union {
+	stackptr				var;
+	s4						localindex;
+	basicblock			   *target;
+	basicblock			  **targettable;
+	void				  **lookuptable;
+	s4						insindex; /* used between parse and stack */
+} dst_operand_t;
+
+/*** flags (32 bits) ***/
+
+typedef struct {
+	union {
+		u1					type;         /* TYPE_* constant for fields */
+		u1					argcount;     /* XXX does u1 suffice?       */
+										  /* for MULTIANEWARRAY and     */
+										  /* INVOKE*                    */
+	} f; /* XXX these could be made smaller */
+	/* only MULTIANEWARRAY needs the argcount */
+
+	bool 					predicated:1;
+	int						condition :3;
+	bool 					unresolved:1; /* field/method is unresolved */
+	bool					nocheck   :1; /* don't check array access   */
+	bool					branch	  :1; /* branch to dst.target       */
+	
+	int						tmpreg1	  :5;
+	int						tmpreg2	  :5;
+	int						tmpreg3	  :5;
+	
+	int  					unused    :2;
+	
+} flags_operand_t;
+
+/*** instruction ***/
+
+/* The new instruction format for the intermediate representation: */
+
+struct new_instruction {
+	u2						opc;	/* opcode       */
+	u2						line;	/* line number  */
+#if SIZEOF_VOID_P == 8
+	flags_operand_t			flags;	/* 4 bytes		*/
+#endif
+	s1_operand_t			s1;		/* pointer-size */
+	union {
+		struct {
+			s2_operand_t	s2;		/* pointer-size */
+			s3_operant_t	s3;		/* pointer-size */
+		} s23;                      /*     XOR      */
+		val_operand_t		val;	/*  long-size	*/
+	} sx;
+	dst_operand_t			dst;	/* pointer-size */
+#if SIZEOF_VOID_P == 4
+	flags_operand_t			flags;	/* 4 bytes      */
+#endif
+};
+
+/* XXX This instruction format will become obsolete. */
 
 struct instruction {
 	stackptr    dst;            /* stack index of destination operand stack   */
