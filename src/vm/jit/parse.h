@@ -24,11 +24,11 @@
 
    Contact: cacao@cacaojvm.org
 
-   Author: Christian Thalinger
+   Author:  Christian Thalinger
 
-   Changes:
+   Changes: Edwin Steiner
 
-   $Id: parse.h 4986 2006-05-29 20:22:58Z edwin $
+   $Id: parse.h 4989 2006-05-29 22:37:02Z edwin $
 
 */
 
@@ -41,6 +41,63 @@
 
 #include "vm/global.h"
 #include "vm/jit/codegen-common.h"
+
+
+/* macros for verifier checks during parsing **********************************/
+
+#if defined(ENABLE_VERIFIER)
+
+/* We have to check local variables indices here because they are             */
+/* used in stack.c to index the locals array.                                 */
+
+#define INDEX_ONEWORD(num) \
+    do { \
+        if (((num) < 0) || ((num) >= m->maxlocals)) \
+            goto throw_illegal_local_variable_number; \
+    } while (0)
+
+#define INDEX_TWOWORD(num) \
+    do { \
+        if (((num) < 0) || (((num) + 1) >= m->maxlocals)) \
+            goto throw_illegal_local_variable_number; \
+    } while (0)
+
+/* CHECK_BYTECODE_INDEX(i) checks whether i is a valid bytecode index.        */
+/* The end of the bytecode (i == m->jcodelength) is considered valid.         */
+
+#define CHECK_BYTECODE_INDEX(i) \
+    do { \
+        if (((i) < 0) || ((i) >= m->jcodelength)) \
+			goto throw_invalid_bytecode_index; \
+    } while (0)
+
+/* CHECK_BYTECODE_INDEX_EXCLUSIVE is used for the exclusive ends               */
+/* of exception handler ranges.                                                */
+#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i) \
+    do { \
+        if ((i) < 0 || (i) > m->jcodelength) \
+			goto throw_invalid_bytecode_index; \
+    } while (0)
+
+#else /* !define(ENABLE_VERIFIER) */
+
+#define INDEX_ONEWORD(num)
+#define INDEX_TWOWORD(num)
+#define CHECK_BYTECODE_INDEX(i)
+#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i)
+
+#endif /* define(ENABLE_VERIFIER) */
+
+
+/* basic block generating macro ***********************************************/
+
+#define block_insert(i) \
+    do { \
+        if (!(m->basicblockindex[(i)] & 1)) { \
+            b_count++; \
+            m->basicblockindex[(i)] |= 1; \
+        } \
+    } while (0)
 
 
 /* intermediate code generating macros ****************************************/
@@ -136,31 +193,6 @@
     iptr->line   = (l); \
     PINC
 
-
-/* We have to check local variables indices here because they are
- * used in stack.c to index the locals array. */
-
-#if defined(ENABLE_VERIFIER)
-
-#define INDEX_ONEWORD(num) \
-    do { \
-        if (((num) < 0) || ((num) >= m->maxlocals)) \
-            goto throw_illegal_local_variable_number; \
-    } while (0)
-
-#define INDEX_TWOWORD(num) \
-    do { \
-        if (((num) < 0) || (((num) + 1) >= m->maxlocals)) \
-            goto throw_illegal_local_variable_number; \
-    } while (0)
-
-#else /* !define(ENABLE_VERIFIER) */
-
-#define INDEX_ONEWORD(num)
-#define INDEX_TWOWORD(num)
-
-#endif /* define(ENABLE_VERIFIER) */
-
 #define OP1LOAD_ONEWORD(o,o1) \
     do { \
 		INDEX_ONEWORD(o1); \
@@ -185,39 +217,6 @@
         OP1(o,o1); \
     } while (0)
 
-/* block generating and checking macros */
-
-#define block_insert(i) \
-    do { \
-        if (!(m->basicblockindex[(i)] & 1)) { \
-            b_count++; \
-            m->basicblockindex[(i)] |= 1; \
-        } \
-    } while (0)
-
-
-#if defined(ENABLE_VERIFIER)
-
-#define CHECK_BYTECODE_INDEX(i) \
-    do { \
-        if (((i) < 0) || ((i) >= m->jcodelength)) \
-			goto throw_invalid_bytecode_index; \
-    } while (0)
-
-/* CHECK_BYTECODE_INDEX_EXCLUSIVE is used for the exclusive ends */ 
-/* of exception handler ranges                                   */
-#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i) \
-    do { \
-        if ((i) < 0 || (i) > m->jcodelength) \
-			goto throw_invalid_bytecode_index; \
-    } while (0)
-
-#else /* !ENABLE_VERIFIER */
-
-#define CHECK_BYTECODE_INDEX(i)
-#define CHECK_BYTECODE_INDEX_EXCLUSIVE(i)
-
-#endif
 
 /* macros for byte code fetching ***********************************************
 
@@ -256,5 +255,4 @@ bool parse(jitdata *jd);
  * End:
  * vim:noexpandtab:sw=4:ts=4:
  */
-
 
