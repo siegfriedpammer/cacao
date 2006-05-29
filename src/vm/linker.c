@@ -32,7 +32,7 @@
             Edwin Steiner
             Christian Thalinger
 
-   $Id: linker.c 4921 2006-05-15 14:24:36Z twisti $
+   $Id: linker.c 4973 2006-05-29 15:21:46Z edwin $
 
 */
 
@@ -825,7 +825,18 @@ static classinfo *link_class_intern(classinfo *c)
 		
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
+
+			/* On i386 we only align to 4 bytes even for double and s8.    */
+			/* This matches what gcc does for struct members. We must      */
+			/* do the same as gcc here because the offsets in native       */
+			/* header structs like java_lang_Double must match the offsets */
+			/* of the Java fields (eg. java.lang.Double.value).            */
+#if defined(__I386__)
+			c->instancesize = ALIGN(c->instancesize, 4);
+#else
 			c->instancesize = ALIGN(c->instancesize, dsize);
+#endif
+
 			f->offset = c->instancesize;
 			c->instancesize += dsize;
 		}
