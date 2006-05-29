@@ -125,9 +125,6 @@ bool jvmti;                 /* jvmti agent                                     *
 
 extern pthread_mutex_t dbgcomlock;
 
-void setup_jdwp_thread(char* transport);
-void jvmti_cacao_breakpointhandler();
-bool jvmti_VMjdwpInit();
 jvmtiEnv* jvmti_new_environment();
 void jvmti_set_phase(jvmtiPhase p);
 void jvmti_fireEvent(genericEventData* data);

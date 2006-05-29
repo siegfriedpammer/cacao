@@ -31,7 +31,7 @@
             Samuel Vinson
 
    
-   $Id: jvmti.c 4963 2006-05-26 12:31:23Z motse $
+   $Id: jvmti.c 4969 2006-05-29 09:41:02Z motse $
 
 */
 
@@ -41,6 +41,7 @@
 #include "native/native.h"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
+#include "vm/jit/stacktrace.h"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/builtin.h"
@@ -125,10 +126,11 @@ static lt_ptr unload;
 #define CHECK_PHASE_START  if (!(false 
 #define CHECK_PHASE(chkphase) || (phase == chkphase)
 #define CHECK_PHASE_END  )) return JVMTI_ERROR_WRONG_PHASE
-#define CHECK_CAPABILITY(env,CAP) if(((environment*)env)->capabilities.CAP == 0) \
+#define CHECK_CAPABILITY(env,CAP) if(((environment*)                            \
+										 env)->capabilities.CAP == 0)           \
                                      return JVMTI_ERROR_MUST_POSSESS_CAPABILITY;
-#define CHECK_THREAD_IS_ALIVE(t) if(check_thread_is_alive(t)== \
-                                  JVMTI_ERROR_THREAD_NOT_ALIVE) \
+#define CHECK_THREAD_IS_ALIVE(t) if(check_thread_is_alive(t)==                  \
+                                  JVMTI_ERROR_THREAD_NOT_ALIVE)                 \
                                   	return JVMTI_ERROR_THREAD_NOT_ALIVE;
 
 
@@ -1040,13 +1042,18 @@ GetThreadGroupChildren (jvmtiEnv * env, jthreadGroup group,
 *******************************************************************************/
 static jvmtiError getcacaostacktrace(stacktracebuffer** trace, jthread thread) {
 	threadobject *t;
+	
+	if (thread == NULL)
+		t = jvmti_get_current_thread();
+	else {
+		t = (threadobject*)((java_lang_Thread*)thread)->vmThread;
+		if (t != jvmti_get_current_thread())
+			/* XXX: todo: take care that the requested thread is in a 
+			   safe state */
+			return JVMTI_ERROR_INTERNAL;
+	}
 
-	log_text("getcacaostacktrace");
-
-	t = (threadobject*)((java_lang_Thread*)thread)->vmThread;
-
-/*	 XXX todo
- *trace = stacktrace_create(t); */
+	*trace = stacktrace_create(t);
 
     return JVMTI_ERROR_NONE;
 }
@@ -1069,18 +1076,24 @@ GetFrameCount (jvmtiEnv * env, jthread thread, jint * count_ptr)
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
     
-	if(!builtin_instanceof(thread,class_java_lang_Thread))
-		return JVMTI_ERROR_INVALID_THREAD;
+	if (thread != NULL){
+		if(!builtin_instanceof(thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
 
-	CHECK_THREAD_IS_ALIVE(thread);
+		CHECK_THREAD_IS_ALIVE(thread);
+	}
 	
 	if(count_ptr == NULL) return JVMTI_ERROR_NULL_POINTER;
 
 	er = getcacaostacktrace(&trace, thread);
-	if (er==JVMTI_ERROR_NONE) return er;
+	if (er==JVMTI_ERROR_NONE) {
+		heap_free(trace);
+		return er;
+	}
 
 	*count_ptr = trace->used;
 
+	heap_free(trace);
     return JVMTI_ERROR_NONE;
 }
 
@@ -2216,19 +2229,25 @@ GetMethodName (jvmtiEnv * env, jmethodID method, char **name_ptr,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
 
-    if ((method == NULL) || (name_ptr == NULL) || (signature_ptr == NULL)
-        || (generic_ptr == NULL)) return JVMTI_ERROR_NULL_POINTER;
 
-    *name_ptr = (char*)
-		heap_allocate(sizeof(char) * (m->name->blength),true,NULL);
-	utf_sprint_convert_to_latin1(*name_ptr, m->name);
+	if (method == NULL) return JVMTI_ERROR_INVALID_METHODID;
 
-    *signature_ptr = (char*)
-		heap_allocate(sizeof(char) * (m->descriptor->blength),true,NULL);
-	utf_sprint_convert_to_latin1(*signature_ptr, m->descriptor);
+	if (name_ptr == NULL) {
+		*name_ptr = (char*)
+			heap_allocate(sizeof(char) * (m->name->blength),true,NULL);
+		utf_sprint_convert_to_latin1(*name_ptr, m->name);
+	}
+	
+	if (signature_ptr == NULL) {
+		*signature_ptr = (char*)
+			heap_allocate(sizeof(char) * (m->descriptor->blength),true,NULL);
+		utf_sprint_convert_to_latin1(*signature_ptr, m->descriptor);
+	}
 
+	if (generic_ptr == NULL) {
     /* there is no generic signature attribute */
-    *generic_ptr = NULL;
+		*generic_ptr = NULL;
+	}
 
     return JVMTI_ERROR_NONE;
 }
@@ -2407,8 +2426,10 @@ GetMethodLocation (jvmtiEnv * env, jmethodID method,
 	/* XXX Don't know if that's the right way to deal with not-yet-
 	 * compiled methods. -Edwin */
 
+    fprintf(stderr,"GetMethodLocation *** XXX todo \n");
+
 	if (!m->code)
-		return JVMTI_ERROR_NULL_POINTER;
+		return JVMTI_ERROR_INTERNAL;
 	
     *start_location_ptr = (jlocation)m->code->mcode;
     *end_location_ptr = (jlocation)(m->code->mcode)+m->code->mcodelength;
@@ -2805,10 +2826,12 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
     CHECK_PHASE(JVMTI_PHASE_LIVE)
     CHECK_PHASE_END;
     
-	if(!builtin_instanceof(thread,class_java_lang_Thread))
-		return JVMTI_ERROR_INVALID_THREAD;
+	if (thread != NULL){
+		if(!builtin_instanceof(thread,class_java_lang_Thread))
+			return JVMTI_ERROR_INVALID_THREAD;
 
-	CHECK_THREAD_IS_ALIVE(thread);
+		CHECK_THREAD_IS_ALIVE(thread);
+	}
 
 	if((count_ptr == NULL)||(frame_buffer == NULL)) 
 		return JVMTI_ERROR_NULL_POINTER;
@@ -2816,7 +2839,10 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
 	if (max_frame_count <0) return JVMTI_ERROR_ILLEGAL_ARGUMENT;
 
 	er = getcacaostacktrace(&trace, thread);
-	if (er==JVMTI_ERROR_NONE) return er;
+	if (er==JVMTI_ERROR_NONE) {
+		heap_free(trace);
+		return er;
+	}
 
 	if ((trace->used >= start_depth) || ((trace->used * -1) > start_depth)) 
 		return JVMTI_ERROR_ILLEGAL_ARGUMENT; 
@@ -2826,6 +2852,8 @@ GetStackTrace (jvmtiEnv * env, jthread thread, jint start_depth,
         /* todo: location BCI/MachinePC not avilable - Linenumber not expected */
 		frame_buffer[j].location = 0;
 		}
+
+	heap_free(trace);
 	
     return JVMTI_ERROR_NONE;
 }

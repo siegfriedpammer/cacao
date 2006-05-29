@@ -29,7 +29,7 @@ Authors: Martin Platter
 Changes: Samuel Vinson
 
 
-$Id: VMVirtualMachine.c 4944 2006-05-23 15:31:19Z motse $
+$Id: VMVirtualMachine.c 4969 2006-05-29 09:41:02Z motse $
 
 */
 
@@ -182,19 +182,20 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
 	jobject *ol;
 	jobjectArray joa;
 	int i;
-	fprintf(stderr, "VMVirtualMachine_getAllClassMethods start\n");
+
     if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
-							 GetClassMethods(jvmtienv, (jclass) par1, &count, &methodID))) {
+							 GetClassMethods(jvmtienv, (jclass) par1, 
+											 &count, &methodID))) {
 		(*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
 		fprintf(stderr,"jvmti error: %s\n",errdesc);
 		(*jvmtienv)->Deallocate(jvmtienv, (unsigned char *)errdesc);
 		fflush(stderr);
-/*		env->ThrowNew(env,ec,"jvmti error occoured");*/
 		return NULL;
 	}
 	
-	fprintf(stderr, "VMVirtualMachine_getAllClassMethods count %d\n", count);
-	m = (*env)->GetStaticMethodID(env, clazz, "getClassMethod", "(Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;");
+	m = (*env)->
+		GetStaticMethodID(env, clazz, "getClassMethod", 
+						  "(Ljava/lang/Class;J)Lgnu/classpath/jdwp/VMMethod;");
 	if (!m) return NULL;
    
     cl = (*env)->FindClass(env,"gnu.classpath.jdwp.VMMethod");
@@ -204,11 +205,11 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_get
 	if (!joa) return NULL;
 	fprintf(stderr, "VMVirtualMachine_getAllClassMethods 3\n");
     for (i = 0; i < count; i++) {
-    	ol = (*env)->CallStaticObjectMethod(env,clazz,m,(jobject)par1, methodID[i]);
+    	ol = (*env)->
+			CallStaticObjectMethod(env,clazz,m,(jobject)par1, methodID[i]);
 		if (!ol) return NULL;
     	(*env)->SetObjectArrayElement(env,joa,(jsize)i, ol);
     }
-	fprintf(stderr, "VMVirtualMachine_getAllClassMethods end\n");
 	return joa;
 }
 

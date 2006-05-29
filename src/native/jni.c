@@ -32,7 +32,7 @@
             Christian Thalinger
 			Edwin Steiner
 
-   $Id: jni.c 4958 2006-05-26 11:57:20Z twisti $
+   $Id: jni.c 4969 2006-05-29 09:41:02Z motse $
 
 */
 
@@ -78,7 +78,7 @@
 #include "native/include/java_nio_DirectByteBufferImpl.h"
 
 #if defined(ENABLE_JVMTI)
-# include "native/jvmti/jvmti.h"
+# include "native/jvmti/cacaodbg.h"
 #endif
 
 #if defined(ENABLE_THREADS)

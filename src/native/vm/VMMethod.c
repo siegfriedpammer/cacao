@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 Contact: cacao@cacaojvm.org
 
 Authors: Samuel Vinson
-         Martin Platter
+Martin Platter
          
 
 Changes: 
@@ -35,26 +35,39 @@ $Id: $
 
 */
 
-#include "toolbox/logging.h"
 #include "native/jni.h"
 #include "native/include/gnu_classpath_jdwp_VMMethod.h"
-#include "vm/stringlocal.h"
-#include "toolbox/logging.h"
+#include "native/jvmti/jvmti.h"
+#include "native/jvmti/VMjdwp.h"
 
 /*
  * Class:     gnu/classpath/jdwp/VMMethod
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getName(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
+JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getName(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this) 
 {
-	classinfo  *c;
-	methodinfo *m;
+    jvmtiError err;
+    char* errdesc;
+    char *name, *signature, *generic;
+    jstring stringname;
+    
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+                             GetMethodName(jvmtienv, (jmethodID)this->_methodId,
+                                           &name, &signature, &generic))) {
+        (*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+        fprintf(stderr,"jvmti error: %s\n",errdesc);
+        fflush(stderr);
+        (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+        return NULL;
+    }
+    
+    stringname = (*env)->NewStringUTF(env,name);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)name);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)signature);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)generic);
 
-	c = (classinfo *)this->_class;
-	m = &(c->methods[this->_methodId]);
-	log_message_utf("Method_getName %s", m->name);
-	return javastring_new(m->name);
+    return stringname;
 }
 
 
@@ -63,10 +76,29 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getN
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getSignature(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
+JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getSignature(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this) 
 {
-	log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+    jvmtiError err;
+    char* errdesc;
+    char *name, *signature, *generic;
+    struct java_lang_String* stringsignature;
+    
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+                             GetMethodName(jvmtienv, (jmethodID)this->_methodId,
+                                           &name, &signature, &generic))) {
+        (*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+        fprintf(stderr,"jvmti error: %s\n",errdesc);
+        fflush(stderr);
+        (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+        return NULL;
+    }
+    
+    stringsignature = (*env)->NewStringUTF(env,signature);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)name);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)signature);
+    (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)generic);
+    
+    return stringsignature;
 }
 
 
@@ -75,15 +107,24 @@ JNIEXPORT struct java_lang_String* JNICALL Java_gnu_classpath_jdwp_VMMethod_getS
  * Method:    getModifiers
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
+JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this) 
 {
-	classinfo  *c;
-	methodinfo *m;
-
-	c = (classinfo *) this->_class;
-	m = &(c->methods[this->_methodId]);
-
-	return m->flags;
+    jvmtiError err;
+    char* errdesc;
+    jint modifiers;
+	
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+                             GetMethodModifiers(jvmtienv, 
+                                                (jmethodID) this->_methodId,
+                                                &modifiers))) {
+        (*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+        fprintf(stderr,"jvmti error: %s\n",errdesc);
+        fflush(stderr);
+        (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+        return 0;
+    }
+    
+    return modifiers;
 }
 
 
@@ -92,10 +133,69 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMMethod_getModifiers(JNIEnv *env, 
  * Method:    getLineTable
  * Signature: ()Lgnu/classpath/jdwp/util/LineTable;
  */
-JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getLineTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
+JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getLineTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this) 
 {
-	log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+    jclass cl;
+    jmethodID m;
+    jobject ol;
+    jlongArray jlineCI;
+    jintArray jlineNum;
+    jint count = 0, i;
+    int *lineNum;
+    long *lineCI;
+    jvmtiLineNumberEntry *lne;
+    jlocation start,end;
+    
+    jvmtiError err;
+    char* errdesc;
+
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+                             GetLineNumberTable(jvmtienv, 
+                                                (jmethodID)this->_methodId, 
+                                                &count, &lne))) {
+        (*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+        fprintf(stderr,"jvmti error: %s\n",errdesc);
+        fflush(stderr);
+        (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+        return NULL;
+    }
+
+    cl = (*env)->FindClass(env,"gnu.classpath.jdwp.util.LineTable");
+    if (!cl) return NULL;
+
+    m = (*env)->GetMethodID(env, cl, "<init>", "(JJ[I[J)V");
+    if (!m) return NULL;
+	
+    jlineNum = (*env)->NewIntArray(env, count);
+    if (!jlineNum) return NULL;
+    jlineCI = (*env)->NewLongArray(env, count);
+    if (!jlineCI) return NULL;
+    lineNum = (*env)->GetIntArrayElements(env, jlineNum, NULL);
+    lineCI = (*env)->GetLongArrayElements(env, jlineCI, NULL);
+    for (i = 0; i < count; ++i) {
+        lineNum[i] = lne[i].line_number;
+        lineCI[i] = lne[i].start_location;
+    }
+    (*env)->ReleaseLongArrayElements(env, jlineCI, lineCI, 0);
+    (*env)->ReleaseIntArrayElements(env, jlineNum, lineNum, 0);
+    (*jvmtienv)->Deallocate(jvmtienv,lne);
+
+    if (JVMTI_ERROR_NONE != (err= (*jvmtienv)->
+                             GetMethodLocation(jvmtienv, 
+                                               (jmethodID)this->_methodId, 
+                                                &start, &end))) {
+        (*jvmtienv)->GetErrorName(jvmtienv,err, &errdesc);
+        fprintf(stderr,"jvmti error: %s\n",errdesc);
+        fflush(stderr);
+        (*jvmtienv)->Deallocate(jvmtienv,(unsigned char*)errdesc);
+        return NULL;
+    }
+
+    ol = (*env)->NewObject(env, cl, m, start, 
+                           end, jlineNum, jlineCI);
+
+    return (struct gnu_classpath_jdwp_util_LineTable*)ol;
+ 
 }
 
 
@@ -106,6 +206,19 @@ JNIEXPORT struct gnu_classpath_jdwp_util_LineTable* JNICALL Java_gnu_classpath_j
  */
 JNIEXPORT struct gnu_classpath_jdwp_util_VariableTable* JNICALL Java_gnu_classpath_jdwp_VMMethod_getVariableTable(JNIEnv *env, struct gnu_classpath_jdwp_VMMethod* this)
 {
-	log_text ("JVMTI-Call: IMPLEMENT ME!!!");
-	return 0;
+    fprintf(stderr,"VMMethod_getVariableTable: IMPLEMENT ME!!!");
+    return 0;
 }
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */
