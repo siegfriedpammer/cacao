@@ -39,7 +39,9 @@
 
 #include "config.h"
 
+#include <signal.h>   /* required on some older Darwin systems for ucontext.h */
 #include <ucontext.h>
+
 
 /* forward typedefs ***********************************************************/
 
