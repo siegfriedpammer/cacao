@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4986 2006-05-29 20:22:58Z edwin $
+   $Id: jit.h 4988 2006-05-29 21:48:50Z edwin $
 
 */
 
@@ -46,6 +46,7 @@ typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
 typedef struct branchref branchref;
 typedef struct instruction instruction;
+typedef struct new_instruction new_instruction;
 typedef struct subroutineinfo subroutineinfo;
 typedef struct insinfo_inline insinfo_inline;
 
@@ -98,6 +99,9 @@ struct jitdata {
 	loopdata     *ld;
 #endif
 	u4            flags;                /* contains JIT compiler flags        */
+
+	s4                new_instructioncount;
+	new_instruction * new_instructions;
 };
 
 
