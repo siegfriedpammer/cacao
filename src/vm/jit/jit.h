@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4990 2006-05-29 23:47:07Z edwin $
+   $Id: jit.h 4991 2006-05-29 23:59:19Z edwin $
 
 */
 
@@ -47,7 +47,6 @@ typedef struct basicblock basicblock;
 typedef struct branchref branchref;
 typedef struct instruction instruction;
 typedef struct new_instruction new_instruction;
-typedef struct subroutineinfo subroutineinfo;
 typedef struct insinfo_inline insinfo_inline;
 
 
