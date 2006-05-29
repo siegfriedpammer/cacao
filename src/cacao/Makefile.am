@@ -28,7 +28,7 @@
 ##
 ## Changes:
 ##
-## $Id: Makefile.am 4929 2006-05-15 23:31:56Z twisti $
+## $Id: Makefile.am 4970 2006-05-29 14:31:12Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -53,16 +53,16 @@ endif
 
 if ENABLE_LIBJVM
 lib_LTLIBRARIES = \
-	libcacaovm.la
+	libjvm.la
 
-libcacaovm_la_LDFLAGS = \
+libjvm_la_LDFLAGS = \
 	-release $(PACKAGE_VERSION)
 
 cacao_LDFLAGS += \
 	-export-dynamic
 else
 noinst_LTLIBRARIES = \
-	libcacaovm.la
+	libjvm.la
 
 cacao_LDFLAGS += \
 	-export-dynamic
@@ -98,9 +98,9 @@ if ENABLE_RT_TIMING
 cacao_LDFLAGS += -lrt
 endif
 
-libcacaovm_la_SOURCES =
+libjvm_la_SOURCES =
 
-libcacaovm_la_LIBADD = \
+libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(top_builddir)/src/mm/libmm.la \
 	$(top_builddir)/src/native/libnative.la \
@@ -116,7 +116,7 @@ cacao_SOURCES = \
 	cacao.c
 
 cacao_LDADD = \
-	libcacaovm.la \
+	libjvm.la \
 	$(CLASSPATH_LIBS)
 
 cacao_DEPENDENCIES = \
