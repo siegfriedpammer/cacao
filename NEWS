@@ -1,4 +1,4 @@
-New in release 0.96 (XXX XX, 2006)
+New in release 0.96 (May 26, 2006)
 
   * New tasuki lock implementation resolves deadlock problems on
     multi-processor machines.
@@ -12,6 +12,16 @@ New in release 0.96 (XXX XX, 2006)
   * Fixed getResources of bootstrap classloader.
   * Correct handling of boot packages (provided glibj.zip contains a
     jar index).
+  * Exception handling fixes (don't allocate memory on Java heap).
+  * x86_64's code generator generates not RISC-style code.
+  * Green threads implementation removed.
+  * Semaphore implementation for Darwin (taken from Boehm).
+  * sem_wait interrupted by signal fixed.
+  * Overflow in Object.wait() (partially) fixed (caused busy waiting
+    in JOnAS).
+  * Store JNI global refs in native hashtable instead of Java
+    hashtable (bootstrap problem).
+  * Argument passing fixed for powerpc-linux (asm_vm_call_method).
 
 
 New in release 0.95 (February 13, 2006)
