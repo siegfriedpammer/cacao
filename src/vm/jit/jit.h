@@ -30,7 +30,7 @@
    Changes: Christian Thalinger
    			Edwin Steiner
 
-   $Id: jit.h 4988 2006-05-29 21:48:50Z edwin $
+   $Id: jit.h 4990 2006-05-29 23:47:07Z edwin $
 
 */
 
@@ -174,9 +174,9 @@ typedef union {
 
 typedef union {
 	stackptr				var;
-	stackptr	   		   *args;
+	stackptr			   *args;
 	ptrint					constval;
-	classref_or_classinfo	cls;
+	classref_or_classinfo	c;
 	unresolved_class	   *uc;
 	s4						tablelow;
 	u4						lookupcount;
@@ -187,7 +187,7 @@ typedef union {
 typedef union {
 	stackptr				var;
 	ptrint					constval;
-	classref_or_classinfo	cls;
+	classref_or_classinfo	c;
 	constant_FMIref		   *fmiref;
 	unresolved_method	   *um;
 	unresolved_field	   *uf;
@@ -203,44 +203,50 @@ typedef union {
 	s8						l;
 	float					f;
 	double					d;
-	void 				   *anyptr;
+	void				   *anyptr;
 	java_objectheader	   *stringconst;
+	classref_or_classinfo	c;
 } val_operand_t;
 
 /*** dst operand ***/
 
 typedef union {
-	stackptr				var;
-	s4						localindex;
-	basicblock			   *target;
-	basicblock			  **targettable;
-	void				  **lookuptable;
-	s4						insindex; /* used between parse and stack */
+	stackptr				   var;
+	s4						   localindex;
+	basicblock			      *target;
+	basicblock			     **targettable;
+	void				     **lookuptable;
+	s4						   insindex; /* used between parse and stack */
+	struct builtintable_entry *bte;
 } dst_operand_t;
 
 /*** flags (32 bits) ***/
 
-typedef struct {
-	union {
-		u1					type;         /* TYPE_* constant for fields */
-		u1					argcount;     /* XXX does u1 suffice?       */
+typedef union {
+	u4                  bits;
+	struct {         /* fields: */
+
+		union {
+			u1				type;         /* TYPE_* constant for fields */
+			u1				argcount;     /* XXX does u1 suffice?       */
 										  /* for MULTIANEWARRAY and     */
 										  /* INVOKE*                    */
-	} f; /* XXX these could be made smaller */
-	/* only MULTIANEWARRAY needs the argcount */
+		} f; /* XXX these could be made smaller */
+		/* only MULTIANEWARRAY needs the argcount */
 
-	bool 					predicated:1;
-	int						condition :3;
-	bool 					unresolved:1; /* field/method is unresolved */
-	bool					nocheck   :1; /* don't check array access   */
-	bool					branch	  :1; /* branch to dst.target       */
-	
-	int						tmpreg1	  :5;
-	int						tmpreg2	  :5;
-	int						tmpreg3	  :5;
-	
-	int  					unused    :2;
-	
+		bool				predicated:1;
+		int					condition :3;
+		bool				unresolved:1; /* field/method is unresolved */
+		bool				nocheck   :1; /* don't check array access   */
+		bool				branch	  :1; /* branch to dst.target       */
+
+		int					tmpreg1	  :5;
+		int					tmpreg2	  :5;
+		int					tmpreg3	  :5;
+
+		int					unused    :2;
+
+	} fields;
 } flags_operand_t;
 
 /*** instruction ***/
