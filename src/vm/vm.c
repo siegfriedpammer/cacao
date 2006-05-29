@@ -355,7 +355,7 @@ void usage(void)
 	puts("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent");
 #endif
 
-	puts("CACAO options:\n");
+	puts("CACAO options:");
 	puts("    -v                       write state-information");
 	puts("    -verbose[:call|exception|jit]");
 	puts("                             enable specific verbose output");
